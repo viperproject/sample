@@ -1,0 +1,5 @@
+PAPERS ABOUT SAMPLE
+
+FMOODS2010-typeanalysis
+Static Type Analysis of Pattern Matching by Abstract Interpretation
+This paper presents a type analysis implemented in Sample. This analysis is focused on the prove of some properties of code containing pattern matchings in Scala.
