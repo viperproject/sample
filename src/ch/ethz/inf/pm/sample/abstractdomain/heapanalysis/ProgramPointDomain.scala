@@ -3,16 +3,26 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
+private object ParameterIds {
+	var n : Int = 0;
+}
+
 sealed abstract class ProgramPointHeapIdentifier(val t : Type) extends HeapIdentifier[ProgramPointHeapIdentifier](t) {
   override def extractField(h : ProgramPointHeapIdentifier, s : String, t : Type) : ProgramPointHeapIdentifier=h match {
     case x : SimpleProgramPointHeapIdentifier => new FieldAndProgramPoint(x, s, t);
     case x : ParameterHeapIdentifier => new FieldAndProgramPoint(x, s, t);
     case x : StaticProgramPointHeapIdentifier => new FieldAndProgramPoint(x, s, t);
+    case x : UnsoundParameterHeapIdentifier => new FieldAndProgramPoint(x, s, t);
     case _ => throw new Exception("Not allowed");
   }
   override def accessStaticObject(t : Type) : ProgramPointHeapIdentifier=new StaticProgramPointHeapIdentifier(t);
   override def createAddress(t : Type, p : ProgramPoint) : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(p, t);
-  override def createAddressForParameter(t : Type) : ProgramPointHeapIdentifier=new ParameterHeapIdentifier(t);
+  override def createAddressForParameter(t : Type) : ProgramPointHeapIdentifier=
+	  if(NonRelationalHeapDomainSettings.unsoundEntryState) {
+	 	  ParameterIds.n=ParameterIds.n+1
+	 	  new UnsoundParameterHeapIdentifier(t, Math.min(ParameterIds.n, NonRelationalHeapDomainSettings.maxInitialNodes));
+	  }
+	  else new ParameterHeapIdentifier(t);
   override def hashCode() : Int = 1;  
   override def getNullNode() = new NullProgramPointHeapIdentifier(t.top());
   override def getName() : String=this.toString();
@@ -29,7 +39,7 @@ case class NullProgramPointHeapIdentifier(t2 : Type) extends ProgramPointHeapIde
   override def toString() : String = "null"
   
   override def factory() : ProgramPointHeapIdentifier=new NullProgramPointHeapIdentifier(t2.top());
-  override def representSingleVariable() : Boolean=true;//TODO: Improve the precision here!
+  override def representSingleVariable() : Boolean=true;
   override def clone() : Object =new NullProgramPointHeapIdentifier(t2);
 }
 
@@ -59,6 +69,17 @@ case class ParameterHeapIdentifier(t2 : Type) extends ProgramPointHeapIdentifier
   override def toString() : String = "Parameter of type "+t.toString()+""
 }
 
+case class UnsoundParameterHeapIdentifier(t2 : Type, n : Int) extends ProgramPointHeapIdentifier(t2) {
+  def getField() : Option[String] = None;
+  override def isNormalized() : Boolean = true;
+  override def equals(x : Any) : Boolean = x match {
+    case UnsoundParameterHeapIdentifier(t3, n2) => return this.t2.equals(t3) && this.n ==n2;
+    case _ => return false
+  }
+  override def representSingleVariable() : Boolean= this.n!=NonRelationalHeapDomainSettings.maxInitialNodes
+  override def factory() : ProgramPointHeapIdentifier=new UnsoundParameterHeapIdentifier(this.t, this.n);
+  override def toString() : String = "Unsound parameter of type "+t.toString()+" number "+this.n;
+}
 
 case class StaticProgramPointHeapIdentifier(t2 : Type) extends ProgramPointHeapIdentifier(t2) {
   def getField() : Option[String] = None;

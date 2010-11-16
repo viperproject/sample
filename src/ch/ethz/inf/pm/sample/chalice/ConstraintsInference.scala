@@ -38,7 +38,6 @@ object ConstraintsInference {
   var priorityInvariants : Int = 1;
   var priorityPredicates : Int = 2;
   
-  
   type Permissions = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
   type HeapId = HeapIdAndSetDomain[ProgramPointHeapIdentifier];
   type HeapDomain = NonRelationalHeapDomain[ProgramPointHeapIdentifier];

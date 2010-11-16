@@ -22,9 +22,10 @@ trait PermissionsDomain[P <: PermissionsDomain[P]] extends SemanticDomain[P] {
   def setPermissionLevel(id : Identifier, p : Int) : P;
 }
 
-object Levels {
+private object Settings {
 	def writeLevel=new SimpleVal(100);
 	def readLevel=new Multiply(1, Epsilon);
+	def unsoundInhaling : Boolean = true;
 }
 
 class Path(val p : List[String]) {
@@ -433,7 +434,9 @@ class SymbolicPermissionsDomain[I <: HeapIdentifier[I]] extends BoxedDomain[Symb
   
   private def inhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
-	if(! id.getType().toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(Levels.writeLevel, new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
+	if(! id.getType().toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(Settings.writeLevel, new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
+	if(! Settings.unsoundInhaling && ! id.representSingleVariable) //In order to be sound, I cannot inhale on heap summary nodes 
+		return this;
 	if(actual.equals(this.top()))
 		return this.add(id, new SymbolicLevelPermission(p));
 	else return this.add(id, actual+p);
@@ -480,7 +483,7 @@ class SymbolicPermissionsDomain[I <: HeapIdentifier[I]] extends BoxedDomain[Symb
   
   def assign(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = {
     if(! variable.getType().toString().equals("Chalice") && ! variable.isInstanceOf[VariableIdentifier])
-    	ConstraintsInference.addConstraint(new Eq(Levels.writeLevel, ConstraintsInference.convert(this.get(variable))));
+    	ConstraintsInference.addConstraint(new Eq(Settings.writeLevel, ConstraintsInference.convert(this.get(variable))));
     return this
   }
 
@@ -490,7 +493,7 @@ class SymbolicPermissionsDomain[I <: HeapIdentifier[I]] extends BoxedDomain[Symb
   
   def access(field : Identifier) : SymbolicPermissionsDomain[I] = {
     if(! field.getType().toString().equals("Chalice") && ! field.isInstanceOf[VariableIdentifier]) 
-    	ConstraintsInference.addConstraint(new Geq(ConstraintsInference.convert(this.get(field)), Levels.readLevel));
+    	ConstraintsInference.addConstraint(new Geq(ConstraintsInference.convert(this.get(field)), Settings.readLevel));
     return this
     }
   

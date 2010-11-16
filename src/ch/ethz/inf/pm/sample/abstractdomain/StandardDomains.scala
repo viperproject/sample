@@ -52,6 +52,9 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
   }
   
   final override def widening(left : T, right : T) : T =  {
+	if(left.isBottom && right.isBottom) return this.bottom();
+	if(left.isBottom) return right;
+	if(right.isBottom) return left;
     val res : Map[K, V]= wideningFunctionalLifting(left, right);
     val result = this.factory();
     result.value=res

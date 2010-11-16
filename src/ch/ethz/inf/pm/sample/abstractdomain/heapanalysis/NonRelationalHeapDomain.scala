@@ -3,6 +3,10 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
+object NonRelationalHeapDomainSettings {
+	val unsoundEntryState : Boolean = true;
+	val maxInitialNodes : Int = 5;
+}
 
 class HeapEnv[I <: HeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSetDomain[I]) extends FunctionalDomain[I, HeapIdAndSetDomain[I], HeapEnv[I]] {
   override def factory() = new HeapEnv(typ, dom)
@@ -151,9 +155,10 @@ class NonRelationalHeapDomain[I <: HeapIdentifier[I]](env : VariableEnv[I], heap
 	    var ids : Map[Identifier, List[String]] = Map.empty[Identifier, List[String]];
 	    ids=ids+((obj, path ));
 	    val newAdd=cod.convert(obj);
-	    for(add <- result.getAddresses)
-	      if(add.getType().lessEqual(typ))
-	        newAdd.add(add);
+	    if(! NonRelationalHeapDomainSettings.unsoundEntryState)
+		    for(add <- result.getAddresses)
+		      if(add.getType().lessEqual(typ))
+		        newAdd.add(add);
 	    if(x.isInstanceOf[VariableIdentifier])
 	    	result=new NonRelationalHeapDomain(result._1.add(x.asInstanceOf[VariableIdentifier], newAdd), result._2, cod, dom);
      
