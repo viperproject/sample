@@ -2,46 +2,100 @@ package Examples.Chalice2
 
 import Chalice._
 
-class Data
-
-class Node {
-  var key : Int = 0
-  var value : Data = new Data()
-  var next : Node = new Node()
+class Client {
+  def Main(d: Data)
+  {
+    var a = new AssociationList
+    a.Init()
+    a.Add(5, d)
+    a.Add(10, d)
+    var t: Data = a.Get(10)
+  }
 }
 
 class AssociationList {
-  var head : Node = new Node
-  
-  /*
-  def Add(key : Int, value : Data) = {
-    Chalice.acquire(this);
-    var p : Node = head;
-    Chalice.release(this);
-    
-    Chalice.acquire(p);
-    var n = new Node;
-    n.key=key;
-    n.value=value;
-    n.next=p.next;
-    p.next=n;
-    Chalice.release(p); 
+  var head: NodeAssociationList  // sentinel
+  //invariant rd(head)
+
+  def Init() = 
+    //requires acc(head)
+    //ensures acc(mu)
+  {
+    head = new NodeAssociationList
+    head.next = null
+    Chalice.share(head)
+    Chalice.share(this)
   }
-*/
-  def Get(key : Int) : Unit = {
-    var d : Data = null;
-    //Chalice.acquire(this);
-    var p : Node = head;
-    //Chalice.release(this);
-    while(/*p!=null &&*/ d==null) {
-      //val temp=p;
-      //Chalice.acquire(temp);
-      if(p.key==key)
-        d=p.value;
-      else
-        p=p.next;
-      //Chalice.release(temp);
+
+  def Add(key: Int, value: Data)
+  {
+    Chalice.acquire(this)
+    var p: NodeAssociationList = head
+    Chalice.acquire(p)
+    Chalice.release(this)
+
+    var n = new NodeAssociationList
+    n.key = key
+    n.value = value
+    n.next = p.next
+    p.next = n
+    Chalice.share(n)
+    Chalice.release(p)
+  }
+
+  def Get(key: Int) : Data = 
+  {
+    var d : Data = null
+    Chalice.acquire(this)
+    var p: NodeAssociationList = head
+    Chalice.acquire(p)
+    Chalice.release(this)
+
+    if (p.next != null) {
+      Chalice.acquire(p.next)
+      if (p.next.key == key) {
+        d = p.next.value
+      } else {
+        var done = false
+        while (!done)
+          //invariant rd(p.key) && rd(p.value) && acc(p.next)
+          //invariant rd(p.next.key) && rd(p.next.value) && acc(p.next.next)
+        {
+          if (p.next.next == null) {
+            done = true  // key not present
+          } else {
+            Chalice.acquire(p.next.next)
+            if (p.next.next.key == key) {
+              done = true  // key is present
+              d = p.next.next.value
+              // move p.next.next closer to the head by one step
+
+              var t: NodeAssociationList = p.next
+              p.next = t.next
+              t.next = p.next.next
+              p.next.next = t
+              Chalice.release(t)
+            } else {
+              var t: NodeAssociationList = p
+              p = p.next
+              Chalice.release(t)
+            }
+          }
+        }
+      }
+      Chalice.release(p.next)
     }
-    //return d;
+    Chalice.release(p)
+    return d
   }
+}
+
+class Data { }
+
+class NodeAssociationList
+{
+  var key: Int
+  var value: Data
+  var next: NodeAssociationList
+  //invariant rd(key) && rd(value) && acc(next)
 }

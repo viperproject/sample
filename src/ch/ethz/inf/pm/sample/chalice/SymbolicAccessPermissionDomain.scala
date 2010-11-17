@@ -22,11 +22,7 @@ trait PermissionsDomain[P <: PermissionsDomain[P]] extends SemanticDomain[P] {
   def setPermissionLevel(id : Identifier, p : Int) : P;
 }
 
-private object Settings {
-	def writeLevel=new SimpleVal(100);
-	def readLevel=new Multiply(1, Epsilon);
-	def unsoundInhaling : Boolean = true;
-}
+
 
 class Path(val p : List[String]) {
   override def toString() : String = {

@@ -119,6 +119,72 @@ class VideoStore {
   }
 }
 
+/** Fig. 11 */
+class RockBand {
+  var memberCount : Int = 0;
+  //Monitor invariant valid
+  
+  //predicate valid acc(memberCount) 
+  
+  //Requires valid
+  //Ensures valid
+  def getMemberCount() = {
+  	Chalice.unfold("valid", this);
+  	val result=this.memberCount;
+  	Chalice.fold("valid", this);
+  	return result;
+  }
+  
+  //Requires acc(memberCount)
+  //Ensures valid
+  def Init() = {
+  	memberCount=0;
+  	Chalice.fold("valid", this);
+  }
+    
+  //Requires valid
+  //Ensures valid
+  def Push(x : Int) = {
+  	Chalice.unfold("valid", this);
+  	memberCount=memberCount+howMany;
+  	Chalice.fold("valid", this);
+  }
+  
+}
+
+
+/** Fig. 12 */
+class Stack{
+  var contents = Nil;
+  
+  //predicate valid acc(contents) 
+  
+  //Requires valid
+  //Ensures valid
+  def sixze() = {
+  	Chalice.unfold("valid", this);
+  	val result=contents.length();
+  	Chalice.fold("valid", this);
+  	return result;
+  }
+  
+  //Requires acc(memberCount)
+  //Ensures valid
+  def Init() = {
+  	contents=Nil;
+  	Chalice.fold("valid", this);
+  }
+    
+  //Requires valid
+  //Ensures valid
+  def AddMembers(howMany : Int) = {
+  	Chalice.unfold("valid", this);
+  	contents=contents :: x;
+  	Chalice.fold("valid", this);
+  }
+  
+}
+
 
 /** Fig. 13 */
 class Node {

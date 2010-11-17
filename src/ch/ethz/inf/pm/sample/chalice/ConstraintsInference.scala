@@ -6,6 +6,20 @@ import ch.ethz.inf.pm.sample.abstractdomain._;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._;
 import lpsolve._;
 
+object Settings {
+	var writeLevel=new SimpleVal(100);
+	var readLevel=new Multiply(1, Epsilon);
+	var unsoundInhaling : Boolean = false;
+	var unsoundDischarging : Boolean = false;
+	var dischargingDepth : Int = 5;
+	
+	  
+  //The lower integer value, the higher priority
+  var priorityContracts : Int = 3;
+  var priorityInvariants : Int = 1;
+  var priorityPredicates : Int = 2;
+}
+
 sealed abstract class Constraint
 
 case class Eq(left : ArithmeticExpression, right : ArithmeticExpression) extends Constraint {
@@ -32,11 +46,7 @@ case class Multiply(mul : Int, right : SymbolicValue) extends Constraint with Ar
 
 object ConstraintsInference {
   private var constraints : Set[Constraint] = Set.empty[Constraint];
-  
-  //The lower integer value, the higher priority
-  var priorityContracts : Int = 3;
-  var priorityInvariants : Int = 1;
-  var priorityPredicates : Int = 2;
+
   
   type Permissions = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
   type HeapId = HeapIdAndSetDomain[ProgramPointHeapIdentifier];
@@ -84,7 +94,7 @@ object ConstraintsInference {
       //if(variable.isInstanceOf[VariableIdentifier])
       //  constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(variable.toString() :: Nil))), expr);
       //else 
-      if(! variable.isInstanceOf[VariableIdentifier])
+      if(! variable.isInstanceOf[VariableIdentifier] && (Settings.unsoundDischarging || (variable.representSingleVariable)))
     	  reach(variable, env, store) match {
 	        case None =>
 	        case Some(s :: Nil) =>
@@ -234,10 +244,10 @@ object ConstraintsInference {
     var s : String = "";
     for(v <- variables) {
       v match {
-        case x : SymbolicMonitorInvariant => s=s+this.priorityInvariants.toString()+" ";
-        case x : SymbolicAbstractPredicates => s=s+this.priorityPredicates.toString()+" ";
-        case x : SymbolicPreCondition => s=s+this.priorityContracts.toString()+" ";
-        case x : SymbolicPostCondition => s=s+this.priorityContracts.toString()+" ";
+        case x : SymbolicMonitorInvariant => s=s+Settings.priorityInvariants.toString()+" ";
+        case x : SymbolicAbstractPredicates => s=s+Settings.priorityPredicates.toString()+" ";
+        case x : SymbolicPreCondition => s=s+Settings.priorityContracts.toString()+" ";
+        case x : SymbolicPostCondition => s=s+Settings.priorityContracts.toString()+" ";
         case x if x.equals(Epsilon) => s=s+"1 ";
       }
     } 
