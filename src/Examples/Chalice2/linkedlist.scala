@@ -4,8 +4,8 @@ import Chalice._;
 
 
 class NodeCell {
-  var next: NodeCell;
-  var value: Int;
+  var next: NodeCell = null;
+  var value: Int = 0;
 
   def init(v: Int)
     //requires acc(next) && acc(value);

@@ -32,7 +32,7 @@ object SystemParameters {
 	  var result : S = state.bottom();
 	  //Method call used to represent a goto statement to a while label
       if(body.isInstanceOf[Variable] && body.asInstanceOf[Variable].getName().length>=5 && body.asInstanceOf[Variable].getName().substring(0, 5).equals("while")) 
-        return state;
+        throw new Exception("This should not appear here!");//return state;
       
 	  if(! body.isInstanceOf[FieldAccess]) return state; //TODO: Sometimes it is a variable, check if $this is implicit!
 	  val castedStatement : FieldAccess = body.asInstanceOf[FieldAccess]

@@ -1,12 +1,6 @@
 package Examples;
 import Chalice._;
 
-
-class Pippo {
-  var x=0;
-  def Foo() : Int = return x;
-}
-
 /**
  * The following examples are taken from:
  * K. R. M. Leino and P. Mueller and J. Smans: Verification of Concurrent Programs with Chalice
@@ -14,6 +8,7 @@ class Pippo {
  */
 
 /*
+*/
 /** Fig. 1 */
 class C100 {
 	var x : Int=0;
@@ -33,9 +28,9 @@ class C100 {
  	def Inc(a : C100, b: Int) = x=x+1
   
  	//Requires acc(x) && acc(y)
- 	def Dispose() = {}
+ 	def Dispose() = {Chalice.free(this)}
 }
-
+/*
 /** Fig. 2 */
 class Math(var n : Int) {
   
@@ -83,10 +78,10 @@ class ParallelMath {
   def TwoSqrts(x : Int, y : Int) : (Int, Int) = {
     var m0 = new Math(x);
     var m1 = new Math(y);
-    Chalice.fork("tk0", m0.ISqrt());
-    Chalice.fork("tk1", m1.ISqrt());
-    Chalice.join("tk0");
-    Chalice.join("tk1");
+    Chalice.fork(m0.ISqrt(), "tk0");
+    Chalice.fork(m1.ISqrt(), "tk1");
+    Chalice.join(m0.ISqrt(), "tk0");
+    Chalice.join(m1.ISqrt(), "tk1");
     return (m0.n, m1.n);
   }
 }
@@ -112,10 +107,10 @@ class VideoStore {
   
   //Requires acc(vr.customerId) && acc(vr.moveiId) && acc(vr.days)
   def Charge(vr : VideoRental) {
-    Chalice.fork("tk0", vr.FrequentRentalPoints());
-    Chalice.fork("tk1", vr.Invoice);
-    var p = Chalice.join("tk0");
-    var r = Chalice.join("tk1");
+    Chalice.fork(vr.FrequentRentalPoints(), "tk0");
+    Chalice.fork(vr.Invoice, "tk1");
+    var p = Chalice.join(vr.FrequentRentalPoints(), "tk0");
+    var r = Chalice.join(vr.Invoice, "tk1");
   }
 }
 
@@ -129,9 +124,9 @@ class RockBand {
   //Requires valid
   //Ensures valid
   def getMemberCount() = {
-  	Chalice.unfold("valid", this);
+  	Chalice.unfold(this, "valid");
   	val result=this.memberCount;
-  	Chalice.fold("valid", this);
+  	Chalice.fold(this, "valid");
   	return result;
   }
   
@@ -139,15 +134,15 @@ class RockBand {
   //Ensures valid
   def Init() = {
   	memberCount=0;
-  	Chalice.fold("valid", this);
+  	Chalice.fold(this, "valid");
   }
     
   //Requires valid
   //Ensures valid
-  def Push(x : Int) = {
-  	Chalice.unfold("valid", this);
+  def addMembers(howMany : Int) = {
+  	Chalice.unfold(this, "valid");
   	memberCount=memberCount+howMany;
-  	Chalice.fold("valid", this);
+  	Chalice.fold(this, "valid");
   }
   
 }
@@ -155,32 +150,32 @@ class RockBand {
 
 /** Fig. 12 */
 class Stack{
-  var contents = Nil;
+  var contents : List[Any]= Nil;
   
   //predicate valid acc(contents) 
   
   //Requires valid
   //Ensures valid
-  def sixze() = {
-  	Chalice.unfold("valid", this);
-  	val result=contents.length();
-  	Chalice.fold("valid", this);
-  	return result;
+  def size() = {
+  	Chalice.unfold(this, "valid");
+  	val result=contents.length;
+  	Chalice.fold(this, "valid");
+  	result;
   }
   
   //Requires acc(memberCount)
   //Ensures valid
   def Init() = {
   	contents=Nil;
-  	Chalice.fold("valid", this);
+  	Chalice.fold(this, "valid");
   }
     
   //Requires valid
   //Ensures valid
-  def AddMembers(howMany : Int) = {
-  	Chalice.unfold("valid", this);
-  	contents=contents :: x;
-  	Chalice.fold("valid", this);
+  def Push(x : Int) = {
+  	Chalice.unfold(this, "valid");
+  	contents=contents ::: x :: Nil;
+  	Chalice.fold(this, "valid");
   }
   
 }
@@ -208,18 +203,18 @@ class Node {
     var tmp : Int = 0;
     Chalice.unfold(this, "isTree");
     var total : Int = value;
-    if(left!=null) Chalice.fork("tk", left.Sum());
+    if(left!=null) Chalice.fork(left.Sum(), "tk");
     if(right!=null) {
       val tmp = right.Sum();
       total=total+tmp;
     }
     if(left!=null) {
-      val tmp=Chalice.join("tk").asInstanceOf[Int];
+      val tmp=Chalice.join(left.Sum(), "tk").asInstanceOf[Int];
       total=total+tmp; 
     }
     Chalice.fold(this, "isTree");
     return total;
   } 
 }
-                      
+  
 */

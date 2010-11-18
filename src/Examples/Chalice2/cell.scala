@@ -3,7 +3,7 @@ package Examples.Chalice2
 import Chalice._
 
 class Cell {
-  var x: Int;
+  var x: Int = 0;
 
   def init(v: Int)
     //requires acc(this.x)
@@ -56,8 +56,8 @@ class Cell {
 }
 
 class Interval {
-  var left: Cell;
-  var right: Cell;
+  var left: Cell = null;
+  var right: Cell = null;
 
   def init(l: Int, r: Int)
     //requires acc(left) && acc(right);

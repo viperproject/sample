@@ -40,6 +40,11 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			    	  exp match {
 			    	    case id : Identifier => result = Annotation.exhaleInvariants(exp.asInstanceOf[Identifier], exp.getType().getName(), castedState)
 			    	  }
+		    case "free" =>
+		    	  for(exp <- ids)
+		    	 	  exp match {
+		    	 	  	case id : Identifier => result = Annotation.exhaleEverything(exp.asInstanceOf[Identifier], castedState) 
+		    	  	  }
 	      }
     
 	    case x :: y :: Nil =>

@@ -360,7 +360,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         if(this.isTop || this.isBottom || typ==null || typ.typeSymbolDirect==NoSymbol)
           return false
         else
-          return typ.typeSymbolDirect.isStaticMember;
+          return typ.typeSymbolDirect.isStatic;
       }
       
       final override def factory() = top();

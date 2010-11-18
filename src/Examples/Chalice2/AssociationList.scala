@@ -1,7 +1,7 @@
 package Examples.Chalice2
 
 import Chalice._
-
+/*
 class Client {
   def Main(d: Data)
   {
@@ -12,11 +12,11 @@ class Client {
     var t: Data = a.Get(10)
   }
 }
-
+*/
 class AssociationList {
-  var head: NodeAssociationList  // sentinel
+  var head: NodeAssociationList = null  // sentinel
   //invariant rd(head)
-
+/*
   def Init() = 
     //requires acc(head)
     //ensures acc(mu)
@@ -41,8 +41,7 @@ class AssociationList {
     p.next = n
     Chalice.share(n)
     Chalice.release(p)
-  }
-
+  }*/
   def Get(key: Int) : Data = 
   {
     var d : Data = null
@@ -94,8 +93,8 @@ class Data { }
 
 class NodeAssociationList
 {
-  var key: Int
-  var value: Data
-  var next: NodeAssociationList
+  var key: Int = 0
+  var value: Data = null
+  var next: NodeAssociationList = null
   //invariant rd(key) && rd(value) && acc(next)
 }

@@ -3,8 +3,8 @@ package Examples.Chalice2
 import Chalice._
 
 class List {
-  var sum: Int
-  var head: Node
+  var sum: Int = 0
+  var head: Node = null
   //invariant acc(head) && rd(head.val) acc(sum,20) && acc(head.sum, 50)
 
   def Main()
@@ -105,9 +105,9 @@ class List {
 }
 
 class Node {
-  var sum: Int
-  var value: Int
-  var next: Node
+  var sum: Int = 0
+  var value: Int = 0
+  var next: Node = null
   //invariant acc(next) && rd(value)
   //invariant rd(next.value)
   //invariant acc(sum, 50)

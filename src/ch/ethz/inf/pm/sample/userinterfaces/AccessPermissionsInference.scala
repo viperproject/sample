@@ -28,9 +28,9 @@ object AccessPermissionsInference {
     //AccessPermissionsInference.apply("C:\\Users\\Pietro\\Desktop\\ScalaImplementation\\ScalaAbstractInterpreter\\src\\Examples\\ChaliceExamples.scala", "C100", "Inc")
     AccessPermissionsInference.analyze("C:\\Users\\Pietro\\workspace\\sample\\src\\Chalice\\Chalice.scala")
     //AccessPermissionsInference.analyze("C:\\Users\\Pietro\\workspace\\sample\\src\\Examples\\Temp.scala")
-    AccessPermissionsInference.analyze("C:\\Users\\Pietro\\workspace\\sample\\src\\Examples\\Chalice2\\AssociationList.scala")
+    AccessPermissionsInference.analyze("C:\\Users\\Pietro\\workspace\\sample\\src\\Examples\\ChaliceExamples.scala")
     //AccessPermissionsInference.analyze("C:\\Users\\Pietro\\Desktop\\ScalaImplementation\\ScalaAbstractInterpreter\\src\\Examples\\Chalice2\\AssociationList.scala")
-    System.out.println("\nTime of the analysis: "+AnalysisTimer.totalTime+" msec")
+    System.out.println("\nTime of the analysis: "+AnalysisTimer.totalTime+" msec\nTime of LP: "+LPTimer.totalTime+" msec")
   }
   
   private def analyze(file : String) {
@@ -151,20 +151,35 @@ object AccessPermissionsInference {
 			 }
 	      }
         }
+	    LPTimer.start();
 	    val solution=ConstraintsInference.solve(constraints);
-	    ConstraintsInference.printConstraints();
+	    //ConstraintsInference.printConstraints();
 	    if(solution!=null) {
 	      val loopInvariants=ConstraintsInference.giveLoopInvariants(result.values.iterator, solution);
+	      LPTimer.stop();
 	      System.out.println("LOOP INVARIANTS\n--------------------\n"+loopInvariants.toString());
 	    }
+	    else LPTimer.stop();
 	    return result;
   	}
   	private def excludeMethods(className : String, name : String) : Boolean =
   		className.equals("Chalice") ||  
-  		! name.equals("Get")
+  		! name.equals("Dispose")
   		//(name.length>=2 && name.substring(name.length-2, name.length).equals("_=")) ||
   		//name.equals("$tag") ||
-  		//name.equals("this") 
-  
+  		//name.equals("this")
 }
 
+private object LPTimer {
+	var lastValue : Option[Long] = None
+	var totalTime : Long = 0;
+  	
+ 	def start() = lastValue=Some(System.currentTimeMillis())
+  
+ 	def stop() = lastValue match {
+ 	  case Some(l) => totalTime=totalTime+(System.currentTimeMillis()-l)
+ 	  case None => System.out.println("Timer not started before!");
+    }
+ 	
+ 	def reset() = totalTime=0; lastValue=None;
+}

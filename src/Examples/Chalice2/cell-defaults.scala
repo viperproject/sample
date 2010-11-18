@@ -5,7 +5,7 @@ import Chalice._;
 // verify this program with -defaults -autoFold -autoMagic
 
 class CellDefault {
-  var x: Int;
+  var x: Int = 0;
 
   def init(v: Int) =
     //requires acc(this.x)
@@ -49,8 +49,8 @@ class CellDefault {
 }
 
 class IntervalDefault {
-  var left: CellDefault;
-  var right: CelDefaultl;
+  var left: CellDefault = null;
+  var right: CellDefault = null;
 
   def init(l: Int, r: Int) =
     //requires acc(left) && acc(right);

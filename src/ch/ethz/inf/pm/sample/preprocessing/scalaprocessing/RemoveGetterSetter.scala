@@ -50,7 +50,7 @@ object RemoveGetterSetter {
 	                   return new FieldAccess(pp1, cleanedObjs, field, t);
 	               }
              case _ => 
-             	System.out.println("Look at this:\n"+st.toString);
+             	//System.out.println("Look at this:\n"+st.toString);
            } 
            return new MethodCall(pp, cleanStatement(method), parametricTypes, cleanListStatement(parameters), returnedType);
        } 

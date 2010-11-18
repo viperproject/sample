@@ -262,14 +262,14 @@ class NonRelationalHeapDomain[I <: HeapIdentifier[I]](env : VariableEnv[I], heap
 	        expr match {
 	          case value : HeapIdAndSetDomain[I] =>
 	            var result=this._1;
-	            for(heapid <- value.value)
+	            for(heapid <- this.normalize(value).value)
 	            	if(value.value.size==1)
-	            		result=result.add(x, value);
-	            	else result=result.add(x, value.lub(value, this._1.get(x)));
+	            		result=result.add(x, this.normalize(value));
+	            	else result=result.add(x, value.lub(this.normalize(value), this._1.get(x)));
 	            new NonRelationalHeapDomain(result, this._2, cod, dom);
 	          case _ =>
 	            val value=this.eval(expr);
-	            new NonRelationalHeapDomain(this._1.add(x, value.lub(this._1.get(x), value)), this._2, cod, dom)
+	            new NonRelationalHeapDomain(this._1.add(x, value.lub(this._1.get(x), this.normalize(value))), this._2, cod, dom)
 	        }
 	      }
 	      catch {
@@ -280,8 +280,8 @@ class NonRelationalHeapDomain[I <: HeapIdentifier[I]](env : VariableEnv[I], heap
 	        return this.top();
 	      var result=this._2;
 	      val value=this.eval(expr)
-	      for(addr <- x.value)
-	        result=result.add(addr, value.lub(value, this._2.get(addr)))
+	      for(addr <- this.normalize(x).value)
+	        result=result.add(addr, value.lub(this.normalize(value), this._2.get(addr)))
 	      return new NonRelationalHeapDomain(this._1, result, cod, dom);
     }
   }
