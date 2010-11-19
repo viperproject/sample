@@ -8,7 +8,6 @@ import Chalice._;
  */
 
 /*
-*/
 /** Fig. 1 */
 class C100 {
 	var x : Int=0;
@@ -30,13 +29,12 @@ class C100 {
  	//Requires acc(x) && acc(y)
  	def Dispose() = {Chalice.free(this)}
 }
-/*
 /** Fig. 2 */
 class Math(var n : Int) {
   
   //Requires acc(n)
   //Ensures acc(n)
-  def ISqrt() = {
+  def ISqrt() : Unit = {
     var N = n;
     n = 0;
     //Invariant acc(n)
@@ -44,7 +42,6 @@ class Math(var n : Int) {
     	n=n+1;
   }
 }
-
 /** Fig. 3 */
 class RockBand {
   var memberCount : Int = 0;
@@ -59,7 +56,6 @@ class RockBand {
   def AddMembers(howMany : Int) = memberCount=memberCount+howMany;
   
 }
-
 /** Fig. 4 */
 class Program {
   def Main() {
@@ -86,6 +82,7 @@ class ParallelMath {
   }
 }
 
+*/
 /** Fig. 6 */
 class VideoRental {
   var customerId : Int = 0;
@@ -94,12 +91,12 @@ class VideoRental {
   
   //Requires rd(customerId) && rd(movieId)
   //Ensures rd(customerId) && rd(movieId)
-  def FrequentRentalPoints() : Int = 0;
+  def FrequentRentalPoints() : Int = customerId+movieId;
   
   
   //Requires rd(customerId) && rd(movieId)
   //Ensures rd(customerId) && rd(movieId)
-  def Invoice() : Int = 0;
+  def Invoice() : Int = customerId+movieId;
   
 }
 
@@ -114,6 +111,7 @@ class VideoStore {
   }
 }
 
+/*
 /** Fig. 11 */
 class RockBand {
   var memberCount : Int = 0;
@@ -127,7 +125,7 @@ class RockBand {
   	Chalice.unfold(this, "valid");
   	val result=this.memberCount;
   	Chalice.fold(this, "valid");
-  	return result;
+  	result;
   }
   
   //Requires acc(memberCount)
@@ -146,7 +144,6 @@ class RockBand {
   }
   
 }
-
 
 /** Fig. 12 */
 class Stack{
@@ -179,6 +176,7 @@ class Stack{
   }
   
 }
+
 
 
 /** Fig. 13 */

@@ -17,6 +17,7 @@ trait PermissionsDomain[P <: PermissionsDomain[P]] extends SemanticDomain[P] {
   def get(id : Identifier) : LevelPermission;
   def inhale(id : Identifier, p : SymbolicValue) : P;
   def exhale(id : Identifier, p : SymbolicValue) : P;
+  def free(id : Identifier) : P;
   def inhale(id : Identifier, p : Int) : P;
   def exhale(id : Identifier, p : Int) : P;
   def setPermissionLevel(id : Identifier, p : Int) : P;
@@ -447,6 +448,18 @@ class SymbolicPermissionsDomain[I <: HeapIdentifier[I]] extends BoxedDomain[Symb
   
   override def inhale(id : Identifier, p : Int) : SymbolicPermissionsDomain[I] = this.inhale(id, new CountedSymbolicValues(p));
   override def exhale(id : Identifier, p : Int) : SymbolicPermissionsDomain[I] = this.exhale(id, new CountedSymbolicValues(p));
+  
+  override def free(id : Identifier) : SymbolicPermissionsDomain[I] =
+    if(id.isInstanceOf[HeapIdAndSetDomain[I]]) {
+      var result=this;
+      for(add <- id.asInstanceOf[HeapIdAndSetDomain[I]].value) {
+    	//the permission should be 100%
+    	ConstraintsInference.addConstraint(new Eq(Settings.writeLevel, ConstraintsInference.convert(this.get(add))));
+        result=result.remove(add);
+      }
+      return result;
+    }
+    else return super.remove(id);
   
   override def inhale(id : Identifier, p : SymbolicValue) : SymbolicPermissionsDomain[I] = this.inhale(id, new CountedSymbolicValues(new WrappedInt(1), p));
   

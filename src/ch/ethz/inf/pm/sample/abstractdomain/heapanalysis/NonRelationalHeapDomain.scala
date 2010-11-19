@@ -4,8 +4,8 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 object NonRelationalHeapDomainSettings {
-	val unsoundEntryState : Boolean = true;
-	val maxInitialNodes : Int = 5;
+	var unsoundEntryState : Boolean = true;
+	var maxInitialNodes : Int = 5;
 }
 
 class HeapEnv[I <: HeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSetDomain[I]) extends FunctionalDomain[I, HeapIdAndSetDomain[I], HeapEnv[I]] {

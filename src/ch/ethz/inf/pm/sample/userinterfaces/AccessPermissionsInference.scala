@@ -33,7 +33,15 @@ object AccessPermissionsInference {
     System.out.println("\nTime of the analysis: "+AnalysisTimer.totalTime+" msec\nTime of LP: "+LPTimer.totalTime+" msec")
   }
   
+  	private val methods : List[String] = "Charge" :: "Invoice" :: "FrequentRentalPoints" :: Nil;
+  	
   private def analyze(file : String) {
+	
+	Settings.unsoundInhaling = true;
+	Settings.unsoundDischarging = false;
+	NonRelationalHeapDomainSettings.unsoundEntryState = true;
+	NonRelationalHeapDomainSettings.maxInitialNodes = 5;
+	  
     this.compile(file)
     System.out.println("Inferring monitor invariants\n---------------------------------");
     this.inferInvariants();
@@ -153,7 +161,7 @@ object AccessPermissionsInference {
         }
 	    LPTimer.start();
 	    val solution=ConstraintsInference.solve(constraints);
-	    //ConstraintsInference.printConstraints();
+	    ConstraintsInference.printConstraints();
 	    if(solution!=null) {
 	      val loopInvariants=ConstraintsInference.giveLoopInvariants(result.values.iterator, solution);
 	      LPTimer.stop();
@@ -162,9 +170,11 @@ object AccessPermissionsInference {
 	    else LPTimer.stop();
 	    return result;
   	}
+  	
+  	
   	private def excludeMethods(className : String, name : String) : Boolean =
   		className.equals("Chalice") ||  
-  		! name.equals("Dispose")
+  		! methods.contains(name)
   		//(name.length>=2 && name.substring(name.length-2, name.length).equals("_=")) ||
   		//name.equals("$tag") ||
   		//name.equals("this")

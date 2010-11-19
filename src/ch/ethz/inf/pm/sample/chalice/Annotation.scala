@@ -246,6 +246,19 @@ object Annotation {
 	  //else return p;
 	}
    
+ 	def exhaleEverything[P <: PermissionsDomain[P]](
+					  id : Identifier,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+	) : P =  {
+	  var p = s._1._1;
+	  var h = s._1._2;
+	  for((s, t) <- id.getType().getPossibleFields()) {
+		  var fieldId = h.getFieldIdentifier(id, s, t);
+	 	  p = p.free(fieldId);
+	  }
+	  return p;
+	}
+ 	
   	private def exhaleFieldsPermissions[P <: PermissionsDomain[P]](
 					  id : Identifier,
 					  localInv : Map[FieldAccess, Int],

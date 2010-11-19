@@ -246,7 +246,9 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         (cfg, statementsUntilHere, currentblock, false)
       }
       else
-        (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
+    	  if(x.toString().equals("scala.Int.box") && args.size==1) //If it's the boxing of an integer, we can ignore that 
+    	 	  return (cfg, statementsUntilHere ::: extractListCFG(args), currentblock, true)
+    	  else return (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
  
     case Ident(name) => 
       (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier(name decode, new ScalaType(body.tpe))) :: Nil , currentblock, true)
@@ -257,6 +259,8 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       (cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractListCFG(trees), field decode, new ScalaType(elemtpt.tpe)) :: Nil , currentblock, true)
     //TODO: I forget the types in elemtpt
     case Select(a, field) => 
+      if(body.toString.equals("scala.runtime.BoxedUnit.UNIT")) //Ad hoc method to put a Unit value and remove the results of method calls. I wanted to ignore it.
+    	  return (cfg, statementsUntilHere, currentblock, true)
       val member=a.tpe.member(field);
       var tpe : ScalaType=new ScalaType(null);
       if(member!=NoSymbol)

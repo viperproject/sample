@@ -11,7 +11,6 @@ object Settings {
 	var readLevel=new Multiply(1, Epsilon);
 	var unsoundInhaling : Boolean = false;
 	var unsoundDischarging : Boolean = false;
-	var dischargingDepth : Int = 5;
 	
 	  
   //The lower integer value, the higher priority
