@@ -470,6 +470,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       
       def getPossibleFields() : Set[(String, oorepresentation.Type)] = {
         if(! this.isObject) return Set.empty[(String, oorepresentation.Type)];
+        if(this.isTop) return Set.empty[(String, oorepresentation.Type)]; //We suppose that Any does not have fields
         var result = Set.empty[(String, oorepresentation.Type)];
         var scope : Scope = typ.decls;
         for(el <- scope.toList) {

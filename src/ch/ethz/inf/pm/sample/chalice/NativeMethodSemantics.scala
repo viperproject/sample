@@ -88,7 +88,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 					  	val solvedPrecondition = solveParameters(method.get.arguments, precondition, parameters, x, state)
 					  	return exhale[S, P](solvedPrecondition, state);*/
 				}
-			    case "join" =>  
+			    case "join" =>
 			      if(y.getExpressions().size != 1) return None;
 				    //It applies pre and post conditions if these exist
 			      y.getExpressions().elements.next() match {

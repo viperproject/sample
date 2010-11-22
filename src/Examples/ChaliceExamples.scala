@@ -74,15 +74,15 @@ class ParallelMath {
   def TwoSqrts(x : Int, y : Int) : (Int, Int) = {
     var m0 = new Math(x);
     var m1 = new Math(y);
-    Chalice.fork(m0.ISqrt(), "tk0");
-    Chalice.fork(m1.ISqrt(), "tk1");
-    Chalice.join(m0.ISqrt(), "tk0");
-    Chalice.join(m1.ISqrt(), "tk1");
+    Chalice.fork(m0, "ISqrt");
+    Chalice.fork(m1, "ISqrt");
+    Chalice.join(m0, "ISqrt");
+    Chalice.join(m1, "ISqrt");
     return (m0.n, m1.n);
   }
 }
 
-*/
+
 /** Fig. 6 */
 class VideoRental {
   var customerId : Int = 0;
@@ -94,9 +94,9 @@ class VideoRental {
   def FrequentRentalPoints() : Int = customerId+movieId;
   
   
-  //Requires rd(customerId) && rd(movieId)
-  //Ensures rd(customerId) && rd(movieId)
-  def Invoice() : Int = customerId+movieId;
+  //Requires rd(customerId) && rd(days)
+  //Ensures rd(customerId) && rd(days)
+  def Invoice() : Int = customerId+days;
   
 }
 
@@ -104,14 +104,12 @@ class VideoStore {
   
   //Requires acc(vr.customerId) && acc(vr.moveiId) && acc(vr.days)
   def Charge(vr : VideoRental) {
-    Chalice.fork(vr.FrequentRentalPoints(), "tk0");
-    Chalice.fork(vr.Invoice, "tk1");
-    var p = Chalice.join(vr.FrequentRentalPoints(), "tk0");
-    var r = Chalice.join(vr.Invoice, "tk1");
+    Chalice.fork(vr, "FrequentRentalPoints");
+    Chalice.fork(vr, "Invoice");
+    Chalice.join(vr, "FrequentRentalPoints");
+    Chalice.join(vr, "Invoice");
   }
 }
-
-/*
 /** Fig. 11 */
 class RockBand {
   var memberCount : Int = 0;
@@ -144,10 +142,9 @@ class RockBand {
   }
   
 }
-
 /** Fig. 12 */
 class Stack{
-  var contents : List[Any]= Nil;
+  var contents : Int= 0; //this should be a list
   
   //predicate valid acc(contents) 
   
@@ -155,15 +152,15 @@ class Stack{
   //Ensures valid
   def size() = {
   	Chalice.unfold(this, "valid");
-  	val result=contents.length;
+  	val result=contents;
   	Chalice.fold(this, "valid");
-  	result;
+  	//result;
   }
   
   //Requires acc(memberCount)
   //Ensures valid
   def Init() = {
-  	contents=Nil;
+  	contents=0;
   	Chalice.fold(this, "valid");
   }
     
@@ -171,14 +168,14 @@ class Stack{
   //Ensures valid
   def Push(x : Int) = {
   	Chalice.unfold(this, "valid");
-  	contents=contents ::: x :: Nil;
+  	contents=contents + x;
   	Chalice.fold(this, "valid");
   }
   
 }
 
 
-
+*/
 /** Fig. 13 */
 class Node {
   var value : Int = 0;
@@ -201,18 +198,20 @@ class Node {
     var tmp : Int = 0;
     Chalice.unfold(this, "isTree");
     var total : Int = value;
-    if(left!=null) Chalice.fork(left.Sum(), "tk");
+    if(left!=null) Chalice.fork(left, "Sum");
     if(right!=null) {
-      val tmp = right.Sum();
+      /*temp=*/right.Sum();
       total=total+tmp;
     }
     if(left!=null) {
-      val tmp=Chalice.join(left.Sum(), "tk").asInstanceOf[Int];
+      /*val tmp=*/Chalice.join(left, "Sum")//.asInstanceOf[Int];
       total=total+tmp; 
     }
     Chalice.fold(this, "isTree");
     return total;
-  } 
+  }
 }
   
+/*
+
 */

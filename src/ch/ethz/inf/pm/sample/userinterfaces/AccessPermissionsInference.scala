@@ -33,13 +33,13 @@ object AccessPermissionsInference {
     System.out.println("\nTime of the analysis: "+AnalysisTimer.totalTime+" msec\nTime of LP: "+LPTimer.totalTime+" msec")
   }
   
-  	private val methods : List[String] = "Charge" :: "Invoice" :: "FrequentRentalPoints" :: Nil;
+  	private val methods : List[String] = "Sum" :: "Init" :: "Push" :: Nil;
   	
   private def analyze(file : String) {
 	
 	Settings.unsoundInhaling = true;
 	Settings.unsoundDischarging = false;
-	NonRelationalHeapDomainSettings.unsoundEntryState = true;
+	NonRelationalHeapDomainSettings.unsoundEntryState = false;
 	NonRelationalHeapDomainSettings.maxInitialNodes = 5;
 	  
     this.compile(file)
@@ -119,6 +119,7 @@ object AccessPermissionsInference {
 	        if(toBeAnalyzed.contains((className, methodName))) {
 				    if(! excludeMethods(className, methodName)/*methodName.equals("Try") || methodName.equals("Inc") || methodName.equals("Get") || methodName.equals("Add")*/) 
 				    {
+				    	ParameterIds.n=0;
 				    	System.out.println("Method "+methodName);
 				    	SystemParameters.analyzedMethods=SystemParameters.analyzedMethods+1;
 				    	SystemParameters.currentClass = className;
@@ -154,7 +155,7 @@ object AccessPermissionsInference {
 		
 					    result=result+(((className, methodName), res));
 					
-						ShowGraph.Show(res);
+						//ShowGraph.Show(res);
 			    }
 			 }
 	      }

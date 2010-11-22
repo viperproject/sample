@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-private object ParameterIds {
+object ParameterIds {
 	var n : Int = 0;
 }
 
