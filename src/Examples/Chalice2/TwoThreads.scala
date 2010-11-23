@@ -11,7 +11,7 @@ class TwoThreads {
   }
   
   def Try() {
-    val b : B = new B();
+    val b : TwoThreads = new TwoThreads();
     Chalice.fork(b, "Inc");
     Chalice.fork(b, "Inc");
     Chalice.join(b, "Inc");

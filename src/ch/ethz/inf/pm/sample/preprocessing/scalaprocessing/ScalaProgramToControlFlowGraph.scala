@@ -14,7 +14,6 @@ import scala.tools.nsc.plugins.PluginComponent
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.abstractdomain.typedomain._
-import ch.ethz.inf.pm.sample.chalice._
 
 class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends ProgramPoint {
   val row : Int = try{

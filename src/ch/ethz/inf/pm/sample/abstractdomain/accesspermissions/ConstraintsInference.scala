@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.chalice
+package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._;
@@ -123,7 +123,7 @@ object ConstraintsInference {
    def bbfunc(problem : LpSolve, userhandle : Object, buf : Int) : Int = 0
    def msgfunc(problem : LpSolve, userhandle : Object, buf : Int) : Unit = {}
    }
-  def solve(constraints : Set[Constraint]) : Map[SymbolicValue, Int] = {
+  def solve(constraints : Set[Constraint]) : Map[SymbolicValue, (Int, Int)] = {
       try {
         val vars : List[SymbolicValue] = this.extractVariables(constraints).toList;
         val solver : LpSolve= LpSolve.makeLp(0, vars.size);
@@ -166,12 +166,13 @@ object ConstraintsInference {
         else {
 	        val variables : Array[Double]= solver.getPtrVariables();
 	        assert(variables.size==vars.size);
-	        var result : Map[SymbolicValue, Int] = Map.empty;
+	        var result : Map[SymbolicValue, (Int, Int)] = Map.empty;
 	        val epsilon = this.extractEpsilon(vars, variables);
 	        for (i <- 0 to variables.length-1) {
 	        	if(variables(i)>0) {
-	        	  System.out.println("Value of " + vars.apply(i) + " = " + stringWithEpsilon(variables(i), epsilon));
-	        	  result=result+((vars.apply(i), variables(i).toInt));
+	        	  val (intPart, nEpsilons)=stringWithEpsilon(variables(i), epsilon)
+	        	  System.out.println("Value of " + vars.apply(i) + " = " + intPart + " + "+nEpsilons+"epsilon");
+	        	  result=result+((vars.apply(i), (intPart, nEpsilons)));
 	           }
 	        }
 	        // delete the problem and free memory
@@ -185,25 +186,26 @@ object ConstraintsInference {
     
   }
   
-  private def stringWithEpsilon(value : Double, epsilon : Double) : String = {
+  private def stringWithEpsilon(value : Double, epsilon : Double) : (Int, Int) = {
 	  var intPart : Int = value.toInt;
 	  var floatPart : Double = value-(intPart.toDouble);
-	  var result="";
+	  var nEpsilons : Int =0;
+	  //var result="";
 	  /*if(floatPart > 0/5 && (1-floatPart)/(epsilon/100)==0) {
 	 	  floatPart=0;
 	 	  intPart=intPart+1;
 	 	  nEpsilons=0;
 	  }*/
 	  if(floatPart>0.5) {
-	 	  var nEpsilons=getNEpsilons(1-floatPart, epsilon);
+	 	  nEpsilons=getNEpsilons(1-floatPart, epsilon);
 	 	  intPart=1+intPart;
-	 	  result=result+(intPart.toString)+" - "+(nEpsilons.toString())+" epsilon";
+	 	  //result=result+(intPart.toString)+" - "+(nEpsilons.toString())+" epsilon";
 	  }
 	  else {  
-	   var nEpsilons=getNEpsilons(floatPart, epsilon);
-	   result=result+(intPart.toString)+" + "+(nEpsilons.toString())+" epsilon";
+	   nEpsilons=getNEpsilons(floatPart, epsilon);
+	   //result=result+(intPart.toString)+" + "+(nEpsilons.toString())+" epsilon";
 	  }
-	  return result;
+	  return (intPart, nEpsilons);
   }
   
   private def getNEpsilons(v : Double, epsilon : Double) : Int = {
@@ -345,8 +347,8 @@ object ConstraintsInference {
   }
   
   
-  def giveLoopInvariants(exs : Iterator[ControlFlowGraphExecution[State]], substitution : Map[SymbolicValue, Int]) : Map[ProgramPoint, Map[Statement, Int]] = {
-    var result : Map[ProgramPoint, Map[Statement, Int]] = Map.empty;
+  def giveLoopInvariants(exs : Iterator[ControlFlowGraphExecution[State]], substitution : Map[SymbolicValue, (Int, Int)]) : Map[ProgramPoint, Map[Statement, (Int, Int)]] = {
+    var result : Map[ProgramPoint, Map[Statement, (Int, Int)]] = Map.empty;
     for(ex <- exs) {                                                                                        
 	    for(i <- 0 to ex.cfg.nodes.length-1) {
 	      if(ex.cfg.initialBlockInLoop(i)) {
@@ -359,19 +361,22 @@ object ConstraintsInference {
     return result;
   }
   
-  def inferPermissions(state : State, substitution : Map[SymbolicValue, Int]) : Map[Statement, Int] = {
+  def inferPermissions(state : State, substitution : Map[SymbolicValue, (Int, Int)]) : Map[Statement, (Int, Int)] = {
     val ownedPermissions : Permissions=state._1._1;
     val environment =state._1._2._1
     val store =state._1._2._2
     
-    var result : Map[Statement, Int]=Map.empty;
+    var result : Map[Statement, (Int, Int)]=Map.empty;
     for(el <- ownedPermissions.value.keySet) 
       reach(el, environment, store) match {
         case Some( (x : Variable) :: Nil) => result=result+((x, this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)));
         case Some(x) => 
           for(field <- selectFieldAccesses(x)) {
-	        if(result.keys.iterator.contains(field))
-	        	result=result+((field, Math.max(this.symbolicPermissionToInt(ownedPermissions.get(el), substitution), result.get(field).get)));
+	        if(result.keys.iterator.contains(field)) {
+	        	val (r1, r2)=this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)
+	        	val (v1, v2)=result.get(field).get
+	        	result=result+((field, (Math.max(r1, v1), Math.max(r2, v2))));
+	        }
 	        else result=result+((field, this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)));
 	       }
         case None =>
@@ -379,15 +384,21 @@ object ConstraintsInference {
     return result;
   }
   
-  def symbolicPermissionToInt(level : SymbolicLevelPermission, substitution : Map[SymbolicValue, Int]) : Int = {
-    var result : Int = 0;
+  def symbolicPermissionToInt(level : SymbolicLevelPermission, substitution : Map[SymbolicValue, (Int, Int)]) : (Int, Int) = {
+    var result1 : Int = 0;
+    var result2 : Int = 0;
     for(el <- level.value) {
       if(el.n==Top) throw new PermissionsException("I can't compute the loop invariant with top values");
-      if(el.s==null) result=result+el.n.asInstanceOf[WrappedInt].i;
-      	else if(substitution.keySet.contains(el.s))
-      			result=result+el.n.asInstanceOf[WrappedInt].i*substitution(el.s);
+      if(el.s==null) {
+    	  result1=result1+el.n.asInstanceOf[WrappedInt].i;
+    	  result2=result2+el.n.asInstanceOf[WrappedInt].i;
+      }
+      	else if(substitution.keySet.contains(el.s)) {
+      			result1=result1+el.n.asInstanceOf[WrappedInt].i*substitution(el.s)._1;
+      			result2=result2+el.n.asInstanceOf[WrappedInt].i*substitution(el.s)._2;
+      	}
     }
-    return result;
+    return (result1, result2);
   }
   
   

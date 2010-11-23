@@ -16,7 +16,7 @@ class Client {
 class AssociationList {
   var head: NodeAssociationList = null  // sentinel
   //invariant rd(head)
-/*
+
   def Init() = 
     //requires acc(head)
     //ensures acc(mu)
@@ -41,7 +41,8 @@ class AssociationList {
     p.next = n
     Chalice.share(n)
     Chalice.release(p)
-  }*/
+  }
+  
   def Get(key: Int) : Data = 
   {
     var d : Data = null

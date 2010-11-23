@@ -3,11 +3,12 @@ import Chalice._;
 
 /**
  * The following examples are taken from:
+
  * K. R. M. Leino and P. Mueller and J. Smans: Verification of Concurrent Programs with Chalice
  * Foundations of Security Analysis and Design V, 2009.
  */
 
-/*
+
 /** Fig. 1 */
 class C100 {
 	var x : Int=0;
@@ -43,7 +44,7 @@ class Math(var n : Int) {
   }
 }
 /** Fig. 3 */
-class RockBand {
+class RockBand3 {
   var memberCount : Int = 0;
   //Monitor invariant acc(memberCount)
   
@@ -59,11 +60,11 @@ class RockBand {
 /** Fig. 4 */
 class Program {
   def Main() {
-    var acdc = new RockBand();
+    var acdc = new RockBand3();
     acdc.Init();
     acdc.AddMembers(5);
     
-    var noDoubt = new RockBand();
+    var noDoubt = new RockBand3();
     noDoubt.Init();
     noDoubt.AddMembers(4);
   } 
@@ -111,7 +112,7 @@ class VideoStore {
   }
 }
 /** Fig. 11 */
-class RockBand {
+class RockBand11 {
   var memberCount : Int = 0;
   //Monitor invariant valid
   
@@ -175,7 +176,6 @@ class Stack{
 }
 
 
-*/
 /** Fig. 13 */
 class Node {
   var value : Int = 0;
@@ -211,7 +211,3 @@ class Node {
     return total;
   }
 }
-  
-/*
-
-*/

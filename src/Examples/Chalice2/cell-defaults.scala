@@ -80,8 +80,8 @@ class IntervalDefault {
     //requires valid;
     //ensures valid;
   {
-    left.set(left.get()+v);
-    right.set(right.get()+v);
+    left.set(left.get()/*+v*/);
+    right.set(right.get()/*+v*/);
   }
 
   def getLeft() : Int = 
@@ -132,8 +132,7 @@ class ProgramDefault {
     rt.init(0)
     return rt;
   }
-
-  def main4() = {
+  /*def main4() = {
     var c: CellDefault = new CellDefault;
     c.init(0);
     Chalice.share(c);
@@ -141,5 +140,5 @@ class ProgramDefault {
     Chalice.acquire(c);
     c.set(1);
     Chalice.release(c);
-  }
+  }*/
 }

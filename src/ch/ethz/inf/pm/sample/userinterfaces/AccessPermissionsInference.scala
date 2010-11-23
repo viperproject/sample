@@ -5,7 +5,7 @@ import scala.tools.nsc.Settings
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.chalice._
+import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing.plugin._
 import ch.ethz.inf.pm.sample.gui._
@@ -28,18 +28,21 @@ object AccessPermissionsInference {
     //AccessPermissionsInference.apply("C:\\Users\\Pietro\\Desktop\\ScalaImplementation\\ScalaAbstractInterpreter\\src\\Examples\\ChaliceExamples.scala", "C100", "Inc")
     AccessPermissionsInference.analyze("C:\\Users\\Pietro\\workspace\\sample\\src\\Chalice\\Chalice.scala")
     //AccessPermissionsInference.analyze("C:\\Users\\Pietro\\workspace\\sample\\src\\Examples\\Temp.scala")
-    AccessPermissionsInference.analyze("C:\\Users\\Pietro\\workspace\\sample\\src\\Examples\\ChaliceExamples.scala")
+    AccessPermissionsInference.analyze("C:\\Users\\Pietro\\workspace\\sample\\src\\Examples\\Chalice2\\cell-defaults.scala")
     //AccessPermissionsInference.analyze("C:\\Users\\Pietro\\Desktop\\ScalaImplementation\\ScalaAbstractInterpreter\\src\\Examples\\Chalice2\\AssociationList.scala")
     System.out.println("\nTime of the analysis: "+AnalysisTimer.totalTime+" msec\nTime of LP: "+LPTimer.totalTime+" msec")
   }
   
-  	private val methods : List[String] = "Sum" :: "Init" :: "Push" :: Nil;
+  	private val methods : List[String] = "init" :: "set" :: "increment" :: "dispose" :: "get" :: "setLeft" :: "setRight" :: "shift" :: "getLeft" :: "getRight" :: "main" :: "main2" :: "main3" :: "main4" :: Nil;
   	
   private def analyze(file : String) {
 	
-	Settings.unsoundInhaling = true;
+	Settings.unsoundInhaling = false;
 	Settings.unsoundDischarging = false;
-	NonRelationalHeapDomainSettings.unsoundEntryState = false;
+	Settings.priorityContracts = 1;
+	Settings.priorityInvariants = 3;
+	Settings.priorityPredicates = 2;
+	NonRelationalHeapDomainSettings.unsoundEntryState = true;
 	NonRelationalHeapDomainSettings.maxInitialNodes = 5;
 	  
     this.compile(file)
@@ -155,7 +158,7 @@ object AccessPermissionsInference {
 		
 					    result=result+(((className, methodName), res));
 					
-						//ShowGraph.Show(res);
+						ShowGraph.Show(res);
 			    }
 			 }
 	      }

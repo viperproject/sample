@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.chalice
+package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample._
