@@ -109,6 +109,5 @@ class NotInstanceOfDomain(typ : Type) extends BoxedDomain[SetExcludedTypes, NotI
  override def access(field : Identifier) : NotInstanceOfDomain=this;
  override def backwardAccess(field : Identifier) : NotInstanceOfDomain=throw new TypeDomainException("Backward analysis not yet supported");
  override def backwardAssign(variable : Identifier, expr : Expression) : NotInstanceOfDomain=throw new TypeDomainException("Backward analysis not yet supported");
-                                                                      
-                        
+                                                                                              
 }
