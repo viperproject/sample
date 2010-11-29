@@ -19,7 +19,6 @@ class AssociationList {
 
   def Init() = 
     //requires acc(head)
-    //ensures acc(mu)
   {
     head = new NodeAssociationList
     head.next = null

@@ -11,9 +11,9 @@ class List {
   {
     var list = new List
     list.Init()
-    list.Insert(8)
-    list.Insert(12)
-    list.Insert(4)
+    //list.Insert(8)
+    //list.Insert(12)
+    //list.Insert(4)
     //assert list.sum == 24
   }
 
@@ -30,7 +30,7 @@ class List {
     sum = 0
     Chalice.share(this)
   }
-
+ 
   def Insert(x: Int)
     //requires acc(sum,80)
     //ensures acc(sum,80)
@@ -61,6 +61,7 @@ class List {
     p.next = t
     Chalice.release(p)
   }
+
 
   def Delete(x: Int)
     //requires acc(sum,80)

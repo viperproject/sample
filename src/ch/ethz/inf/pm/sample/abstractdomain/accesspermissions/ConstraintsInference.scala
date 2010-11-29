@@ -57,6 +57,8 @@ object ConstraintsInference {
   def getConstraints() = constraints;
   
   def addConstraint(c : Constraint) = {
+	  /*if(c.isInstanceOf[Geq] && c.asInstanceOf[Geq].left.equals(new SimpleVal(0)))
+	 	  System.out.println("Here we are");*/
     if(SystemParameters.semanticsComputing)
       constraints=constraints+c;
   }

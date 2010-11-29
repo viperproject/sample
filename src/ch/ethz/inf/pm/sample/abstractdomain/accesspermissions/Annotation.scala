@@ -310,6 +310,7 @@ object Annotation {
  		  it.next match {
  		    case x : VariableIdentifier => result=this.exhaleReachable(env.get(x), state, env, store, s);
  		    case x : FieldAndProgramPoint =>
+ 		    	  considered=Set.empty[ProgramPointHeapIdentifier]
 		    	  this.reachable(id, x, env, store) match {
 		    	    case (in :: path, true) => result=result.exhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object
 		    	    case (Nil, true) => //I'm not sure about that: result=result.exhale(x, s.factory().setPath(new Path(Nil)));
@@ -329,6 +330,7 @@ object Annotation {
  		  it.next match {
  		    case x : VariableIdentifier => result=this.inhaleReachable(env.get(x), state, env, store, s);
  		    case x : FieldAndProgramPoint =>
+ 		    	  considered=Set.empty[ProgramPointHeapIdentifier]
 		    	  this.reachable(id, x, env, store) match {
 		    	    case (in :: path, true) => result=result.inhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object 
 		    	    case (Nil, true) => //I'm not sure about that: result=result.inhale(x, s.factory().setPath(new Path(Nil)))
@@ -339,6 +341,8 @@ object Annotation {
  	  }
  	  return result;
  	}
+  
+  private var considered : Set[ProgramPointHeapIdentifier] = Set.empty[ProgramPointHeapIdentifier];
   
   private def reachable(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= from match {
     case x : VariableIdentifier => 
@@ -356,20 +360,24 @@ object Annotation {
     	return (Nil, false);
      
     case x : ProgramPointHeapIdentifier =>
+    	if(considered.contains(x)) {return (Nil, false);}
       	if(x.equals(to)) return (Nil, true);
         val res=store.get(x).value
         if(res.contains(to)) return (Nil, true);
-        for(resSingle <- res)
+        for(resSingle <- res) 
           this.isAccessibleThroughField(resSingle, to, env, store) match {
 	          case Some(s) =>
 	            return (s :: Nil, true);
 	          case None =>
         }
-	    for(hi <- res)
-	    	reachable(hi, to, env, store) match {
-	    	  case (path, true) => return (path, true);
-	    	  case _ =>
-	    	}
+    	considered+=x
+	    for(hi <- res) {
+	    	//if(!hi.equals(x))
+	    		reachable(hi, to, env, store) match {
+		    	  case (path, true) => return (path, true);
+		    	  case _ =>
+		    	}
+	    }
         return (Nil, false);
     case x : HeapIdAndSetDomain[ProgramPointHeapIdentifier] =>
       if(x.value.contains(to)) return (Nil, true);
