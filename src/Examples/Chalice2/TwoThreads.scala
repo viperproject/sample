@@ -1,6 +1,5 @@
 package Examples.Chalice2
 import Chalice._;
-import Examples._;
 
 class TwoThreads {
   var x : Int = 0;
@@ -12,9 +11,11 @@ class TwoThreads {
   
   def Try() {
     val b : TwoThreads = new TwoThreads();
-    Chalice.fork(b, "Inc");
-    Chalice.fork(b, "Inc");
-    Chalice.join(b, "Inc");
-    Chalice.join(b, "Inc");
+    Chalice.fork(this, "Inc");
+    Chalice.fork(this, "Inc");
+    Chalice.join(this, "Inc");
+    Chalice.join(this, "Inc");
+    if(this.x!=2)
+    	throw new Exception("Error");
   }
 }

@@ -312,8 +312,8 @@ object Annotation {
  		    case x : FieldAndProgramPoint =>
  		    	  considered=Set.empty[ProgramPointHeapIdentifier]
 		    	  this.reachable(id, x, env, store) match {
-		    	    case (in :: path, true) => result=result.exhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object
-		    	    case (Nil, true) => //I'm not sure about that: result=result.exhale(x, s.factory().setPath(new Path(Nil)));
+		    	    case (/*in :: */path, true) => result=result.exhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object
+		    	    //case (Nil, true) => //I'm not sure about that: result=result.exhale(x, s.factory().setPath(new Path(Nil)));
 		    	    case _ => 
 		    	  }
  		    case x : ProgramPointHeapIdentifier =>
@@ -332,8 +332,9 @@ object Annotation {
  		    case x : FieldAndProgramPoint =>
  		    	  considered=Set.empty[ProgramPointHeapIdentifier]
 		    	  this.reachable(id, x, env, store) match {
-		    	    case (in :: path, true) => result=result.inhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object 
-		    	    case (Nil, true) => //I'm not sure about that: result=result.inhale(x, s.factory().setPath(new Path(Nil)))
+		    	    case (/*in :: */path, true) => 
+		    	    	result=result.inhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object 
+		    	    //case (Nil, true) => //I'm not sure about that: result=result.inhale(x, s.factory().setPath(new Path(Nil)))
 		    	    case _ =>
 		    	  }
  		    case x : ProgramPointHeapIdentifier =>
@@ -344,16 +345,16 @@ object Annotation {
   
   private var considered : Set[ProgramPointHeapIdentifier] = Set.empty[ProgramPointHeapIdentifier];
   
-  private def reachable(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= from match {
-    case x : VariableIdentifier => 
+  def reachable(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= from match {
+    case x : VariableIdentifier => //It can be only as first step, so we removed the t.toString, it will be replaced by "this"
     	for(hi <- env.get(x).value) {
     		reachable(hi, to, env, store) match {
-    		  case (path, true) => return (x.toString()::path, true);
+    		  case (path, true) => return (/*x.toString()::*/path, true);
     		  case _ =>
     		}
     		for((field, typ) <- from.getType().getPossibleFields())
     			reachable(new FieldAndProgramPoint(hi, field, typ), to, env, store) match {
-    			  case (path, true) => return (x.toString()::field::path, true);
+    			  case (path, true) => return (/*x.toString()::*/field::path, true);
     			  case _ =>
     			}
     	}
@@ -364,8 +365,9 @@ object Annotation {
       	if(x.equals(to)) return (Nil, true);
         val res=store.get(x).value
         if(res.contains(to)) return (Nil, true);
-        for(resSingle <- res) 
-          this.isAccessibleThroughField(resSingle, to, env, store) match {
+        //for(resSingle <- res) 
+        if(x.isNormalized)
+          this.isAccessibleThroughField(x, to, env, store) match {
 	          case Some(s) =>
 	            return (s :: Nil, true);
 	          case None =>

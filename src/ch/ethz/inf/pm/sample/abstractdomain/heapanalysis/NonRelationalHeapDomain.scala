@@ -280,7 +280,7 @@ class NonRelationalHeapDomain[I <: HeapIdentifier[I]](env : VariableEnv[I], heap
 	        return this.top();
 	      var result=this._2;
 	      val value=this.eval(expr)
-	      for(addr <- this.normalize(x).value)
+	      for(addr <- x.value/*this.normalize(x).value*/)
 	        result=result.add(addr, value.lub(this.normalize(value), this._2.get(addr)))
 	      return new NonRelationalHeapDomain(this._1, result, cod, dom);
     }

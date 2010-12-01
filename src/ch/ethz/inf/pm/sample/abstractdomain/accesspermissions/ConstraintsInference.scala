@@ -87,7 +87,7 @@ object ConstraintsInference {
   
   def addPostconditionConstraints(s : State) : Unit = this.addPostconditionConstraints(s._1._1, SystemParameters.currentClass, SystemParameters.currentMethod, s._1._2._1, s._1._2._2); 
   
-  private def addPostconditionConstraints(p : Permissions, classe : String, method : String, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) = {
+  def addPostconditionConstraints(p : Permissions, classe : String, method : String, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) = {
     for(variable <- p.value.keySet) {
       val expr = this.convert(p.get(variable));
       
@@ -199,7 +199,7 @@ object ConstraintsInference {
 	 	  nEpsilons=0;
 	  }*/
 	  if(floatPart>0.5) {
-	 	  nEpsilons=getNEpsilons(1-floatPart, epsilon);
+	 	  nEpsilons=0-getNEpsilons(1-floatPart, epsilon);
 	 	  intPart=1+intPart;
 	 	  //result=result+(intPart.toString)+" - "+(nEpsilons.toString())+" epsilon";
 	  }
