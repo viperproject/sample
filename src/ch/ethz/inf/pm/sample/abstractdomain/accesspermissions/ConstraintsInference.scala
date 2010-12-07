@@ -119,6 +119,12 @@ object ConstraintsInference {
       System.out.println(c.toString());
   }
   
+  def printConstraints(constraints : Set[Constraint]) = {
+    System.out.println("INFERRED CONSTRAINTS\n---------------------\n\n");
+    for(c <- constraints)
+      System.out.println(c.toString());
+  }
+  
   private object Log extends LogListener with AbortListener with MsgListener with BbListener {
    def logfunc(problem : LpSolve, userhandle : Object, buf : String) : Unit = {}
    def abortfunc(problem : LpSolve, userhandle : Object) : Boolean = true
@@ -173,7 +179,7 @@ object ConstraintsInference {
 	        for (i <- 0 to variables.length-1) {
 	        	if(variables(i)>0) {
 	        	  val (intPart, nEpsilons)=stringWithEpsilon(variables(i), epsilon)
-	        	  System.out.println("Value of " + vars.apply(i) + " = " + intPart + " + "+nEpsilons+"epsilon");
+	        	  System.out.println("Value of " + vars.apply(i) + " = " + intPart + " + "+nEpsilons+"epsilon (float value:"+variables(i)+")");
 	        	  result=result+((vars.apply(i), (intPart, nEpsilons)));
 	           }
 	        }
@@ -188,7 +194,7 @@ object ConstraintsInference {
     
   }
   
-  private def stringWithEpsilon(value : Double, epsilon : Double) : (Int, Int) = {
+  def stringWithEpsilon(value : Double, epsilon : Double) : (Int, Int) = {
 	  var intPart : Int = value.toInt;
 	  var floatPart : Double = value-(intPart.toDouble);
 	  var nEpsilons : Int =0;
@@ -251,7 +257,7 @@ object ConstraintsInference {
         case x : SymbolicAbstractPredicates => s=s+Settings.priorityPredicates.toString()+" ";
         case x : SymbolicPreCondition => s=s+Settings.priorityContracts.toString()+" ";
         case x : SymbolicPostCondition => s=s+Settings.priorityContracts.toString()+" ";
-        case x if x.equals(Epsilon) => s=s+"1 ";
+        case x if x.equals(Epsilon) => s=s+"-2 ";
       }
     } 
     solver.strSetObjFn(s);
@@ -411,7 +417,7 @@ object ConstraintsInference {
   }
   
     /**
-   * Given an id (usually a set of heap identifiers), the state of the environmnet and of the heap, it returns None if the id is not
+   * Given an id (usually a set of heap identifiers), the state of the environment and of the heap, it returns None if the id is not
    * reachable, or a list field accesses that can be used to reach it otherwise
    */
   def reach(id : Identifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[List[Statement]]= id match {
@@ -456,7 +462,7 @@ object ConstraintsInference {
   /**
    * Given an heap identifier, it returns a field access that can be used to reach it
    */
-  private def reach1(id : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[Statement]= {
+  def reach1(id : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[Statement]= {
     for(k <- env.value.keySet)
       if(env.get(k).value.contains(id)) 
         return Some(new Variable(null, k));

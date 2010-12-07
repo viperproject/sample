@@ -45,6 +45,11 @@ class VariableEnv[I <: HeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSet
 final class HeapIdAndSetDomain[I <: HeapIdentifier[I]](id : I) extends HeapIdentifier[HeapIdAndSetDomain[I]](id.getType) with SetDomain[I, HeapIdAndSetDomain[I]] {
   def getField() : Option[String] = if(value.size==1) return value.elements.next.getField() else return None;
 
+  override def equals(x : Any) : Boolean = x match {
+	  case x : I => if(value.size==1) return x.equals(value.elements.next); else return false;
+	  case _ => return super.equals(x);
+  }
+  
   def getNullNode() : HeapIdAndSetDomain[I] = new HeapIdAndSetDomain(id.getNullNode());
   
   def convert(add : I) : HeapIdAndSetDomain[I] = new HeapIdAndSetDomain(add).add(add);

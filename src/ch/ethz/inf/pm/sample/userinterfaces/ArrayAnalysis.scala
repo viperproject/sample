@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing
 
 object ArrayAnalysis {
   def main(args : Array[String]) : Unit = {
-    ArrayAnalysis.analyze("AVP2010", "example4", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\AVP2010.scala", new Interval(0, 0), new ClassHeapIdentifier(null))
+    ArrayAnalysis.analyze("AVP2010", "example", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\AVP2010.scala", new Interval(0, 0), new ClassHeapIdentifier(null))
     //NonRelationalNumericalDomainAndHeapAnalysis.analyze("List2", "Numerical", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\Temp.scalaprocessing", new Sign(SignValues.+), new ClassHeapIdentifier(null))
   }
   def analyze[N <: NonRelationalNumericalDomain[N], I <: HeapIdentifier[I]](classe : String, method : String, file : String, numerical : N, heapid : I) : Unit = {
@@ -57,7 +57,7 @@ object ArrayAnalysis {
 	    for(c <- SystemParameters.classes) {
 	      if(c.name.toString().equals(classe)) {
 	        for(x <- c.methods)
-	        	if(x.name.toString().equals(method)) {
+	        	if(x.name.toString().length() > 6 && x.name.toString().substring(0, 7).equals(method)) {
 			    	heapid.typ=SystemParameters.scalaType.asInstanceOf[Type];
 					val numericalDomain : BoxedNonRelationalNumericalDomain[N]=new BoxedNonRelationalNumericalDomain[N](numerical);
 			    	val heapDomain : NonRelationalHeapDomain[I]= new NonRelationalHeapDomain[I](heapid.getType, new HeapIdAndSetDomain(heapid), heapid);

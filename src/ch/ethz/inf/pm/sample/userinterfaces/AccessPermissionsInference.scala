@@ -39,11 +39,11 @@ object AccessPermissionsInference {
 	
 	Settings.unsoundInhaling = false;
 	Settings.unsoundDischarging = true;
-	Settings.priorityContracts = 2;
-	Settings.priorityInvariants = 1;
+	Settings.priorityContracts = 1;
+	Settings.priorityInvariants = 2;
 	Settings.priorityPredicates = 3;
 	NonRelationalHeapDomainSettings.unsoundEntryState = true;
-	NonRelationalHeapDomainSettings.maxInitialNodes = 5;
+	NonRelationalHeapDomainSettings.maxInitialNodes = 10;
 	  
     this.compile(file)
     System.out.println("Inferring monitor invariants\n---------------------------------");
@@ -83,7 +83,7 @@ object AccessPermissionsInference {
 	    val command = new CompilerCommand(List(file), settings) {
      
 	      /** The command name that will be printed in in the usage message.
-	       *  This is autmatically set to the value of 'plugin.commandname' in the
+	       *  This is automatically set to the value of 'plugin.commandname' in the
 	       *  file build.properties.
 	       */
 	      override val cmdName = "scala2cfg"
@@ -109,7 +109,7 @@ object AccessPermissionsInference {
 	    run.compile(command.files)	    
      }
 
-  	private def analyze(toBeAnalyzed : Set[(String, String)]) : Map[(String, String), ControlFlowGraphExecution[State]] = {
+  	def analyze(toBeAnalyzed : Set[(String, String)]) : Map[(String, String), ControlFlowGraphExecution[State]] = {
 
 	    SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ChaliceNativeMethodSemantics :: Nil;
   	  
@@ -152,7 +152,7 @@ object AccessPermissionsInference {
 					
 					    val res=m.forwardSemantics[State](entryState)
 					    ConstraintsInference.addPostconditionConstraints(res.exitState());
-					    constraints=constraints++ConstraintsInference.getConstraints();
+					    constraints=constraints.union(ConstraintsInference.getConstraints());
 		
 					    AnalysisTimer.stop();
 		
@@ -165,7 +165,7 @@ object AccessPermissionsInference {
         }
 	    LPTimer.start();
 	    val solution=ConstraintsInference.solve(constraints);
-	    ConstraintsInference.printConstraints();
+	    ConstraintsInference.printConstraints(constraints);
 	    if(solution!=null) {
 	      val loopInvariants=ConstraintsInference.giveLoopInvariants(result.values.iterator, solution);
 	      LPTimer.stop();
