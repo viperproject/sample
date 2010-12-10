@@ -2,7 +2,28 @@ package ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
- 
+
+class LengthArray(id : Identifier, typ : Type) extends Identifier(typ) {
+  def getName() : String = id.toString()+".length"
+  def getField() : Option[String] = None;
+  def representSingleVariable() = id.representSingleVariable();
+  override def toString() : String = this.getName();
+}
+
+class ArrayAccess(id : Identifier, index : Expression, typ : Type) extends Identifier(typ) {
+  def getName() : String = id.toString()+"["+index.toString()+"]"
+  def getField() : Option[String] = None;
+  def representSingleVariable() = false //maybe id.representSingleVariable(); is more precise?
+  override def toString() : String = this.getName();
+}
+
+class ArrayCreation(size : Expression, typ : Type) extends Identifier(typ) {
+  def getName() : String = "new "+typ.toString()+"("+size.toString()+")"
+  def getField() : Option[String] = None;
+  def representSingleVariable() = true;
+  override def toString() : String = this.getName();
+}
+
 object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 	
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = thisExpr.getType().toString() match {
@@ -12,11 +33,10 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		        	if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
 		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
 		        	val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
-		        	if(! checkCast(state)) throw new ArrayAnalysisException("Only an array analysis can deal with arrays!");
 		        	var result = state.bottom(); 
 		        	for(exp <- x.getExpressions) {
 		        		val st = x.get(exp);
-		        		result=result.lub(result, casts(result).createArray(id, exp));
+		        		result=result.lub(result, state.setExpression(new SymbolicAbstractValue(new ArrayCreation(exp, thisExpr.getType()), state)));
 		        	}
 		        	return Some(result);
 		      }
@@ -25,12 +45,11 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		        	if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
 		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
 		        	val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
-		        	if(! checkCast(state)) throw new ArrayAnalysisException("Only an array analysis can deal with arrays!");
 		        	var result = state.bottom(); 
 		        	for(ind <- index.getExpressions) {
 		        		for(valu <- value.getExpressions()) {
 		        			val st = value.get(valu);
-		        			result=result.lub(result, casts(result).updateArray(id, ind, valu));
+		        			result=result.lub(result, result.assignVariable(new SymbolicAbstractValue(new ArrayAccess(id, ind, thisExpr.getType()), result), value))
 		        		}
 		        	}
 		        	return Some(result);
@@ -40,11 +59,10 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		        	if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
 		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
 		        	val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
-		        	if(! checkCast(state)) throw new ArrayAnalysisException("Only an array analysis can deal with arrays!");
 		        	var result = state.bottom(); 
 		        	for(exp <- index.getExpressions) {
 		        		val st = index.get(exp);
-		        		result=result.lub(result, casts(result).getArrayValue(id, exp));
+		        		result=result.lub(result, state.setExpression(new SymbolicAbstractValue(new ArrayAccess(id, exp, thisExpr.getType()), state)));
 		        	}
 		        	return Some(result);
 		      }
@@ -53,19 +71,12 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		        	if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
 		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
 		        	val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
-		        	if(! checkCast(state)) throw new ArrayAnalysisException("Only an array analysis can deal with arrays!");
-		        	var result = state.bottom();
-		        	return Some(casts(state).getArrayLength(id));
+		        	return Some(state.setExpression(new SymbolicAbstractValue(new LengthArray(id, returnedtype), state)));
 		      }
 		      //case _ => System.out.println(operator); return None
 		}
 		case _ => return None;
 	}
-	
-	//I can't add another generic to applyForwardNativeSemantics but I need a bounded type as generic of ArrayAnalysis
-	//Then I needed to write this (horrible) workaround
-	private def casts[S <: State[S], A <: ArrayAnalysis[A]](s : S) : ArrayAnalysis[A] = s.asInstanceOf[A];
-	private def checkCast[S <: State[S], A <: ArrayAnalysis[A]](s : S) : Boolean = s.isInstanceOf[ArrayAnalysis[A]];
 	
 	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = None
 }

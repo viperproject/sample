@@ -30,6 +30,7 @@ object AbstractOperatorIdentifiers extends Enumeration {
   val stringLastindexof = Value("StringLastindexof");
   val stringSubstring = Value("StringSubstring");
   val stringContains = Value("StringContains");
+  val arrayApply= Value("arrayApply");
 } 
 
 abstract sealed class Expression {
