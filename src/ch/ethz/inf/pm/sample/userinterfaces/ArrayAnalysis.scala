@@ -18,9 +18,9 @@ object ArrayAnalysis {
 
   type HeapId = HeapIdAndSetDomain[TopHeapIdentifier];
   type HeapDomain = NonRelationalHeapDomain[TopHeapIdentifier];
-  type State[N <: RelationalNumericalDomain[N]] = GenericAbstractState[N, HeapDomain, HeapId];
-  type AbstractValue[N <: RelationalNumericalDomain[N]] = SymbolicAbstractValue[State[N]];
-  type HeapAndAnother[N <: RelationalNumericalDomain[N]] = HeapAndAnotherDomain[N, HeapDomain, HeapId];
+  type State = GenericAbstractState[AVP2010Analysis, HeapDomain, HeapId];
+  type AbstractValue = SymbolicAbstractValue[State];
+  type HeapAndAnother = HeapAndAnotherDomain[AVP2010Analysis, HeapDomain, HeapId];
   
   type ConditionsSingleMethod = Map[String, Map[FieldAccess, Int]]
   type Conditions = Map[String, ConditionsSingleMethod]
@@ -29,7 +29,7 @@ object ArrayAnalysis {
     //ArrayAnalysis.analyze("AVP2010", "example1", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\AVP2010.scala", new Interval(0, 0))
     //NonRelationalNumericalDomainAndHeapAnalysis.analyze("List2", "Numerical", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\Temp.scalaprocessing", new Sign(SignValues.+), new ClassHeapIdentifier(null))
   }
-  def analyze[N <: RelationalNumericalDomain[N]](method : String, file : String, numericalDomain : N) : Unit = {
+  def analyze(method : String, file : String, numericalDomain : AVP2010Analysis) : Unit = {
 
 		SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ArrayNativeMethodSemantics :: Nil;
 		
@@ -72,13 +72,13 @@ object ArrayAnalysis {
 	        	if(x.name.toString().equals(method)) {
 			    	heapid.typ=SystemParameters.scalaType.asInstanceOf[Type];
 			    	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new HeapIdAndSetDomain[TopHeapIdentifier](heapid), heapid);
-			     	val entrydomain  = new HeapAndAnother[N](numericalDomain, heapDomain);
-				    var entryvalue =new AbstractValue[N](None, Some(SystemParameters.scalaType.asInstanceOf[Type]))
-				    var entryState =new State[N](entrydomain, entryvalue)
-				    entryvalue=new AbstractValue[N](Some(entryState), Some(SystemParameters.scalaType.asInstanceOf[Type]))
-				    entryState =new State[N](entrydomain, entryvalue)
+			     	val entrydomain  = new HeapAndAnother(numericalDomain, heapDomain);
+				    var entryvalue =new AbstractValue(None, Some(SystemParameters.scalaType.asInstanceOf[Type]))
+				    var entryState =new State(entrydomain, entryvalue)
+				    entryvalue=new AbstractValue(Some(entryState), Some(SystemParameters.scalaType.asInstanceOf[Type]))
+				    entryState =new State(entrydomain, entryvalue)
 			      
-				    ShowGraph.Show(x.asInstanceOf[MethodDeclaration].forwardSemantics[State[N]](entryState));
+				    ShowGraph.Show(x.asInstanceOf[MethodDeclaration].forwardSemantics[State](entryState));
 	        	}
 	      }
 	    }
