@@ -30,7 +30,7 @@ class Worker2(var c : Cell) {
 object RunningExample {
   def main() : Unit = {
 	  val c : Cell = new Cell();
-	  //Chalice.share(c);
+	  Chalice.share(c);
 	  val w1 : Worker1 = new Worker1(c);
 	  w1.c = c;
 	  val w2 : Worker2 = new Worker2(c);

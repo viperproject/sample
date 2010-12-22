@@ -24,11 +24,12 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			    	    case id : Identifier => result = Annotation.exhaleInvariants(exp.asInstanceOf[Identifier], exp.getType().getName(), castedState)
 			    	  }
 		    case "unshare" => 
-		      if(ids.size == 1) 
+		      /*if(ids.size == 1) 
 			      for(exp <- ids)
 			    	  exp match {
 			    	    case id : Identifier => result = Annotation.inhaleInvariants(exp.asInstanceOf[Identifier], exp.getType().getName(), castedState)
-			    	  }
+			    	  }*/
+		    	//TODO: add the constraints
 		    case "acquire" =>  
 		      if(ids.size == 1) 
 			      for(exp <- ids)

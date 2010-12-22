@@ -37,7 +37,7 @@ object AccessPermissionsInference {
   	
   private def analyze(file : String) {
 	
-	Settings.unsoundInhaling = false;
+	Settings.unsoundInhaling = true;
 	Settings.unsoundDischarging = true;
 	Settings.priorityContracts = 1;
 	Settings.priorityInvariants = 2;
