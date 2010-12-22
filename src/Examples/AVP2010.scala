@@ -97,7 +97,6 @@ class AVP2010 {
 	def example8(size : Int) : Array[Int]= {
 		//proprieta' media: tutti gli accessi all'array sono corretti
 		//proprieta' difficile: negli indici pari abbiamo 0, negli indici dispari abbiamo 1
-		//hard property: arr(even)==0 && arr(odd)==1
 		var arr : Array[Int] = new Array[Int](size);
 		var i : Int = 0;
 		while(i < arr.length/2) {

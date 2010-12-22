@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.userinterfaces
 
 import ch.ethz.inf.pm.sample._
+import AVPProject.ExampleAnalysis;
 
 import scala.tools.nsc.CompilerCommand
 import scala.tools.nsc.Settings
@@ -28,6 +29,7 @@ object ArrayAnalysis {
   def main(args : Array[String]) : Unit = {
     //ArrayAnalysis.analyze("AVP2010", "example1", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\AVP2010.scala", new Interval(0, 0))
     //NonRelationalNumericalDomainAndHeapAnalysis.analyze("List2", "Numerical", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\Temp.scalaprocessing", new Sign(SignValues.+), new ClassHeapIdentifier(null))
+	  ArrayAnalysis.analyze("example4", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\AVP2010.scala", new ExampleAnalysis());
   }
   def analyze(method : String, file : String, numericalDomain : AVP2010Analysis) : Unit = {
 
@@ -82,7 +84,7 @@ object ArrayAnalysis {
 	        	}
 	      }
 	    }
-	    System.out.println(SystemParameters.output.output()+"STATISTICS\n"+SystemParameters.output.statistics())
+	    //System.out.println(SystemParameters.output.output()+"STATISTICS\n"+SystemParameters.output.statistics())
      }
 
 }

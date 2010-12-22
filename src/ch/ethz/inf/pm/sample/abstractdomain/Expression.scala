@@ -37,7 +37,7 @@ abstract sealed class Expression {
   def getType() : Type;
 }
 
-case class NotExpression(thisExpr : Expression) extends Expression {
+case class NotExpression(val thisExpr : Expression) extends Expression {
   override def getType() = thisExpr.getType();
   override def hashCode() : Int = thisExpr.hashCode();
   override def equals(o : Any) = o match {
@@ -47,7 +47,7 @@ case class NotExpression(thisExpr : Expression) extends Expression {
   override def toString() = "! " + thisExpr.toString()
 }
 
-case class AbstractOperator(thisExpr : Expression, parameters : Set[List[Expression]], typeparameters : List[Type], op : AbstractOperatorIdentifiers.Value, returntyp : Type) extends Expression {
+case class AbstractOperator(val thisExpr : Expression, val parameters : Set[List[Expression]], val typeparameters : List[Type], val op : AbstractOperatorIdentifiers.Value, val returntyp : Type) extends Expression {
   override def getType() = returntyp;
   override def hashCode() : Int = thisExpr.hashCode();
   override def equals(o : Any) = o match {
@@ -57,7 +57,7 @@ case class AbstractOperator(thisExpr : Expression, parameters : Set[List[Express
   override def toString() = thisExpr.toString() + "." + op.toString() + ToStringUtilities.parametricTypesToString(typeparameters)+"("+ToStringUtilities.setOfListToString(parameters)+")"
 }
 
-case class BinaryBooleanExpression(left : Expression, right : Expression, op : BooleanOperator.Value, returntyp : Type) extends Expression {
+case class BinaryBooleanExpression(val left : Expression, val right : Expression, op : BooleanOperator.Value, val returntyp : Type) extends Expression {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -67,7 +67,7 @@ case class BinaryBooleanExpression(left : Expression, right : Expression, op : B
   override def toString() = left.toString() + op.toString() + right.toString()
 }
 
-case class BinaryArithmeticExpression(left : Expression, right : Expression, op : ArithmeticOperator.Value, returntyp : Type) extends Expression {
+case class BinaryArithmeticExpression(val left : Expression, val right : Expression, val op : ArithmeticOperator.Value, returntyp : Type) extends Expression {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -77,7 +77,7 @@ case class BinaryArithmeticExpression(left : Expression, right : Expression, op 
   override def toString() = left.toString() + op.toString() + right.toString()
 }
 
-case class UnaryArithmeticExpression(left : Expression, op : ArithmeticOperator.Value, returntyp : Type) extends Expression {
+case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticOperator.Value, val returntyp : Type) extends Expression {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -87,7 +87,7 @@ case class UnaryArithmeticExpression(left : Expression, op : ArithmeticOperator.
   override def toString() = op.toString() + left.toString()
 }
 
-case class Constant(constant : String, typ : Type) extends Expression {
+case class Constant(val constant : String, val typ : Type) extends Expression {
   override def getType() = typ;
   override def hashCode() : Int = constant.hashCode();
   override def equals(o : Any) = o match {

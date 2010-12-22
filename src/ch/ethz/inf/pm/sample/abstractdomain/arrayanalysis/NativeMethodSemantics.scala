@@ -3,25 +3,40 @@ package ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-class LengthArray(id : Identifier, typ : Type) extends Identifier(typ) {
+class LengthArray(val id : Identifier, typ : Type) extends Identifier(typ) {
   def getName() : String = id.toString()+".length"
   def getField() : Option[String] = None;
   def representSingleVariable() = id.representSingleVariable();
   override def toString() : String = this.getName();
+  override def equals(obj : Any) : Boolean = obj match {
+	  case x : LengthArray => return x.id.equals(id);
+	  case _ => return false;
+  }
+  override def hashCode() = 1;
 }
 
-class ArrayAccess(id : Identifier, index : Expression, typ : Type) extends Identifier(typ) {
+class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) extends Identifier(typ) {
   def getName() : String = id.toString()+"["+index.toString()+"]"
   def getField() : Option[String] = None;
   def representSingleVariable() = false //maybe id.representSingleVariable(); is more precise?
   override def toString() : String = this.getName();
+  override def equals(obj : Any) : Boolean = obj match {
+	  case x : ArrayAccess => return x.id.equals(id) && x.index.equals(index);
+	  case _ => return false;
+  }
+  override def hashCode() = 1;
 }
 
-class ArrayCreation(size : Expression, typ : Type) extends Identifier(typ) {
-  def getName() : String = "new "+typ.toString()+"("+size.toString()+")"
+class ArrayCreation(val size : Expression, val typ1 : Type) extends Identifier(typ1) {
+  def getName() : String = "new "+typ1.toString()+"("+size.toString()+")"
   def getField() : Option[String] = None;
   def representSingleVariable() = true;
   override def toString() : String = this.getName();
+  override def equals(obj : Any) : Boolean = obj match {
+	  case x : ArrayCreation => return x.size.equals(size);
+	  case _ => return false;
+  }
+  override def hashCode() = 1;
 }
 
 object ArrayNativeMethodSemantics extends NativeMethodSemantics {
@@ -32,12 +47,14 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		        case x :: Nil =>
 		        	if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
 		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
-		        	val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
+		        	//val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
 		        	var result = state.bottom(); 
 		        	for(exp <- x.getExpressions) {
 		        		val st = x.get(exp);
 		        		result=result.lub(result, state.setExpression(new SymbolicAbstractValue(new ArrayCreation(exp, thisExpr.getType()), state)));
 		        	}
+		        	//val arrayLength = new SymbolicAbstractValue(new LengthArray(), state)
+		        	//val tempResult=result.assignVariable(x, x)
 		        	return Some(result);
 		      }
 		      case "update" => parameters match {
@@ -49,7 +66,7 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		        	for(ind <- index.getExpressions) {
 		        		for(valu <- value.getExpressions()) {
 		        			val st = value.get(valu);
-		        			result=result.lub(result, result.assignVariable(new SymbolicAbstractValue(new ArrayAccess(id, ind, thisExpr.getType()), result), value))
+		        			result=result.lub(result, state.assignVariable(new SymbolicAbstractValue(new ArrayAccess(id, ind, thisExpr.getType()), result), value))
 		        		}
 		        	}
 		        	return Some(result);
@@ -73,7 +90,7 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		        	val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
 		        	return Some(state.setExpression(new SymbolicAbstractValue(new LengthArray(id, returnedtype), state)));
 		      }
-		      //case _ => System.out.println(operator); return None
+		      case _ => return None
 		}
 		case _ => return None;
 	}

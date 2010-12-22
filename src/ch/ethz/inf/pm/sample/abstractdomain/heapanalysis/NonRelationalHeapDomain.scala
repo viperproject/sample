@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 object NonRelationalHeapDomainSettings {
@@ -288,6 +289,7 @@ class NonRelationalHeapDomain[I <: HeapIdentifier[I]](env : VariableEnv[I], heap
 	      for(addr <- x.value/*this.normalize(x).value*/)
 	        result=result.add(addr, value.lub(this.normalize(value), this._2.get(addr)))
 	      return new NonRelationalHeapDomain(this._1, result, cod, dom);
+	    case x : ArrayAccess => return this;//We skip array access, because of AVP2010 project
     }
   }
   

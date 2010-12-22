@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.preprocessing.scalaprocessing
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis._
 import ch.ethz.inf.pm.sample.oorepresentation._
  
 object ObjectNativeMethodSemantics extends NativeMethodSemantics {
@@ -28,7 +29,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 	  }
       case "this" => parameters match {
         case Nil => return Some(state.setExpression(thisExpr));
-         case _ => return this.analyzeConstructor(thisExpr, parameters, state)
+         case _ => return this.analyzeConstructor(thisExpr, parameters, state, returnedtype)
       }
       case x : String if (x.length>=2 && x.substring(x.length-2, x.length).equals("_=")) => //obj.field_=expr is adopted to assign fields
         throw new MethodSemanticException("This should not be here");
@@ -56,7 +57,21 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
       }
 	}
 	
-	def analyzeConstructor[S <: State[S]](thisExpr : SymbolicAbstractValue[S], parameters : List[SymbolicAbstractValue[S]], state : S) : Option[S] = thisExpr.getType().toString() match {
+	def analyzeConstructor[S <: State[S]](thisExpr : SymbolicAbstractValue[S], parameters : List[SymbolicAbstractValue[S]], state : S, returnedType : Type) : Option[S] = returnedType.toString() match {
+	  case "Array" => parameters match {
+		        case x :: Nil =>
+		        	if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
+		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
+		        	//val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
+		        	var result = state.bottom(); 
+		        	for(exp <- x.getExpressions) {
+		        		val st = x.get(exp);
+		        		result=result.lub(result, state.setExpression(new SymbolicAbstractValue(new ArrayCreation(exp, returnedType), state)));
+		        	}
+		        	//val arrayLength = new SymbolicAbstractValue(new LengthArray(), state)
+		        	//val tempResult=result.assignVariable(x, x)
+		        	return Some(result);
+		      }
 	  case _ => new Some(state.setExpression(thisExpr));//or None? It depends, this is used to call the contructor...
 	}
  

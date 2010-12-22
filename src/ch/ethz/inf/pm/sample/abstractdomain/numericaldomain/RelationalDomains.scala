@@ -8,7 +8,7 @@ trait RelationalNumericalDomain[T <: RelationalNumericalDomain[T]] extends Numer
 	override def setToTop(variable : Identifier) : T;
 	override def assign (variable : Identifier, expr : Expression) : T;
 	override def assume(expr : Expression) : T;
-	override def createVariable (variable : Identifier, typ : Type) : T = this.setToTop(variable);
+	override def createVariable (variable : Identifier, typ : Type) : T = this.asInstanceOf[T]; //.setToTop(variable);
 	override def removeVariable(variable : Identifier) : T = this.setToTop(variable);
 }
 
