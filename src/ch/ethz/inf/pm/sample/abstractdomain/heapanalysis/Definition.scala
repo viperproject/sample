@@ -18,7 +18,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Semantic
    @param pp The point of the program that creates the reference
    @return the identifier of the created object
    */ 
-  def createAddress(typ : Type, pp : ProgramPoint) : I;
+  def createObject(typ : Type, pp : ProgramPoint) : I;
   
   /**
    This method returns the identifier of the field of an object

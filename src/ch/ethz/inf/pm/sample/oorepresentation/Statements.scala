@@ -311,10 +311,10 @@ case class New(pp : ProgramPoint, typ: Type) extends Statement(pp) {
 	   * @return the state in which a fresh address pointing to something 
        * of type <code>typ</code> has been created 
 	   */
-    override def forwardSemantics[S <: State[S]](state : S) : S = state createAddress(typ, pp)
+    override def forwardSemantics[S <: State[S]](state : S) : S = state createObject(typ, pp)
     
     override def backwardSemantics[S <: State[S]](state : S) : S = {
-      val ex=state.createAddress(typ, pp).getExpression();
+      val ex=state.createObject(typ, pp).getExpression();
       return state.removeExpression().removeVariable(ex);
     }
       
@@ -402,6 +402,7 @@ case class EmptyStatement(programpoint : ProgramPoint) extends Statement(program
 }
 
 //TODO: delete it!!!
+/*
 case class Switch(programpoint : ProgramPoint, condition : Statement) extends Statement(programpoint : ProgramPoint) {
 	  var cases : List[(Statement, Statement, Statement)] = Nil
    
@@ -428,4 +429,4 @@ case class Switch(programpoint : ProgramPoint, condition : Statement) extends St
         }
         return result+"}\n";
       }
-}
+}*/

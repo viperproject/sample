@@ -87,8 +87,7 @@ class MethodDeclaration(
                       val returnType : Type,
                       val body : ControlFlowGraph,
                       val precond : Expression,
-                      val postcond : Expression,
-                      val inv : Expression
+                      val postcond : Expression
               ) extends ClassElements 
 {
 
@@ -182,7 +181,8 @@ class ClassDefinition(
                       extend : List[ClassIdentifier], 
                       var fields : List[FieldDeclaration], 
                       var methods : List[MethodDeclaration],
-                      pack : PackageIdentifier
+                      pack : PackageIdentifier,
+                      val inv : Expression
                      )
 {
   def addField(f : FieldDeclaration) : Unit = fields=fields ::: f :: Nil

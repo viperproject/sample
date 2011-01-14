@@ -51,9 +51,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def getSemanticDomain() : N = d1.getSemanticDomain();
   def isBottom() : Boolean = this._1.equals(this._1.bottom()) || this._2.equals(this._2.bottom());
   def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id)
-  def createAddress(typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] =  {
+  def createObject(typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
-    val createdLocation=this._1._2.createAddress(typ, pp)
+    val createdLocation=this._1._2.createObject(typ, pp)
     var result=this._1.createVariable(createdLocation, typ);
     for((field, typ2) <- typ.getPossibleFields()) {
      val address = this._1._2.getFieldIdentifier(createdLocation, field, typ2);
@@ -62,9 +62,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result, this._2).removeExpression()));
   }
   
-  def createAddressForParameter(typ : Type, pp : ProgramPoint, path : List[String]) : GenericAbstractState[N,H,I] =  {
+  def createObjectForParameter(typ : Type, pp : ProgramPoint, path : List[String]) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
-    val createdLocation=this._1._2.createAddress(typ, pp)
+    val createdLocation=this._1._2.createObject(typ, pp)
     val (result, ids)=this._1.createVariableForParameter(createdLocation, typ, path);
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result, this._2).removeExpression()));
   }

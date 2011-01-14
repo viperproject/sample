@@ -9,7 +9,7 @@ object NonRelationalHeapDomainSettings {
 	var maxInitialNodes : Int = 5;
 }
 
-class HeapEnv[I <: HeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSetDomain[I]) extends FunctionalDomain[I, HeapIdAndSetDomain[I], HeapEnv[I]] {
+class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSetDomain[I]) extends FunctionalDomain[I, HeapIdAndSetDomain[I], HeapEnv[I]] {
   override def factory() = new HeapEnv(typ, dom)
   def getAddresses : Set[I] = {
     var result : Set[I] = Set.empty[I] ++ value.keySet;
@@ -25,7 +25,7 @@ class HeapEnv[I <: HeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSetDoma
   }
 } 
 
-class VariableEnv[I <: HeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSetDomain[I]) extends FunctionalDomain[VariableIdentifier, HeapIdAndSetDomain[I], VariableEnv[I]] {
+class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSetDomain[I]) extends FunctionalDomain[VariableIdentifier, HeapIdAndSetDomain[I], VariableEnv[I]] {
   override def factory() = new VariableEnv(typ, dom)
   def getVariables=value.keySet; 
   def getAddresses : Set[I]={
@@ -43,7 +43,7 @@ class VariableEnv[I <: HeapIdentifier[I]](val typ : Type, val dom : HeapIdAndSet
   
 }
 
-final class HeapIdAndSetDomain[I <: HeapIdentifier[I]](id : I) extends HeapIdentifier[HeapIdAndSetDomain[I]](id.getType) with SetDomain[I, HeapIdAndSetDomain[I]] {
+final class HeapIdAndSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) extends NonRelationalHeapIdentifier[HeapIdAndSetDomain[I]](id.getType) with SetDomain[I, HeapIdAndSetDomain[I]] {
   def getField() : Option[String] = if(value.size==1) return value.elements.next.getField() else return None;
 
   override def equals(x : Any) : Boolean = x match {
@@ -96,9 +96,19 @@ final class HeapIdAndSetDomain[I <: HeapIdentifier[I]](id : I) extends HeapIdent
 } 
 
 
+abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](typ1 : Type) extends HeapIdentifier[I](typ1) {
+  def createAddress(typ : Type, pp : ProgramPoint) : I;
+  def createAddressForParameter(typ : Type) : I;
+  def extractField(obj : I, field : String, typ : Type) : I;
+  def accessStaticObject(typ : Type) : I;
+  def getNullNode() : I;
+  def isNormalized() : Boolean;
+  def factory() : I;
+}
+
 
 //Approximates all the concrete references created at the same point of the program with a unique abstract reference
-class NonRelationalHeapDomain[I <: HeapIdentifier[I]](env : VariableEnv[I], heap : HeapEnv[I], val cod : HeapIdAndSetDomain[I], dom : I) extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], NonRelationalHeapDomain[I]](env, heap) with HeapDomain[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]] {
+class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : VariableEnv[I], heap : HeapEnv[I], val cod : HeapIdAndSetDomain[I], dom : I) extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], NonRelationalHeapDomain[I]](env, heap) with HeapDomain[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]] {
   def this(typ : Type, cod : HeapIdAndSetDomain[I], dom : I) {
     this(new VariableEnv(typ, cod), new HeapEnv(typ, cod), cod, dom)
   }
@@ -311,7 +321,7 @@ class NonRelationalHeapDomain[I <: HeapIdentifier[I]](env : VariableEnv[I], heap
       return new NonRelationalHeapDomain(this._1, result, cod, dom);
   }  
   
-  override def createAddress(typ : Type, pp : ProgramPoint) : HeapIdAndSetDomain[I] = cod.convert(dom.createAddress(typ, pp));
+  override def createObject(typ : Type, pp : ProgramPoint) : HeapIdAndSetDomain[I] = cod.convert(dom.createAddress(typ, pp));
   
   override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : HeapIdAndSetDomain[I] = this.evalFieldAccess(heapIdentifier, name, typ);
   

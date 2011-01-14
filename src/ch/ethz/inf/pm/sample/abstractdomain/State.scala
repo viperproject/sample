@@ -15,8 +15,8 @@ trait Lattice[T <: Lattice[T]] {
 
 
 trait State[S <: State[S]] extends Lattice[S] {
-  def createAddress(typ : Type, pp : ProgramPoint) : S
-  def createAddressForParameter(typ : Type, pp : ProgramPoint, path : List[String]) : S
+  def createObject(typ : Type, pp : ProgramPoint) : S
+  def createObjectForParameter(typ : Type, pp : ProgramPoint, path : List[String]) : S
   def createVariableForParameter(x : SymbolicAbstractValue[S], typ : Type) : S
   def createVariable(x : SymbolicAbstractValue[S], typ : Type) : S
   def assignVariable(x : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S]) : S

@@ -17,7 +17,7 @@ object NonRelationalNumericalDomainAndHeapAnalysis {
     NonRelationalNumericalDomainAndHeapAnalysis.analyze("B", "Numerical", "C:\\Users\\Pietro\\workspace\\sample\\src\\Examples\\Temp.scala", new Interval(0, 0), new ClassHeapIdentifier(null))
     //NonRelationalNumericalDomainAndHeapAnalysis.analyze("List2", "Numerical", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\Temp.scalaprocessing", new Sign(SignValues.+), new ClassHeapIdentifier(null))
   }
-  def analyze[N <: NonRelationalNumericalDomain[N], I <: HeapIdentifier[I]](classe : String, method : String, file : String, numerical : N, heapid : I) : Unit = {
+  def analyze[N <: NonRelationalNumericalDomain[N], I <: NonRelationalHeapIdentifier[I]](classe : String, method : String, file : String, numerical : N, heapid : I) : Unit = {
 
      
   	    SystemParameters.showgraph=true;

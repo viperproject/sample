@@ -154,7 +154,7 @@ object ShowGraph
 	  }
 	}
 
-   	private class ShowNonRelationalHeapState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]] {
+   	private class ShowNonRelationalHeapState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]] {
 	  def this(state : GenericAbstractState[N, H, I]) = {
 	    this()
      
@@ -177,10 +177,7 @@ object ShowGraph
 					      val ids = idToVertix.keySet
 					      for(id <- ids)
 					    	  if(idToVertix.apply(id)==cell) {
-					    		  val label=if(id.isInstanceOf[I])
-					    			  			state.getStringOfId(id.asInstanceOf[I]);
-					    			  			//state.getStringOfId(state.getHeap().asInstanceOf[NonRelationalHeapDomain[I]].cod.convert(id.asInstanceOf[I]));
-					    		  			else state.getStringOfId(id); 
+					    		  val label=state.getStringOfId(id); 
 					    		  new Show(new JLabel(label), false, singleLine*countLines(label), maxLineLength(label)*spaceSingleCharacter)
 					    	  }
 					    }
@@ -288,7 +285,7 @@ object ShowGraph
     max
   }
  
-  private def nonRelationalHeapStateToGraph[I <: HeapIdentifier[I], N <: SemanticDomain[N]](heap : NonRelationalHeapDomain[I], s : N) : (mxGraph, Map[Identifier, Object]) = {
+  private def nonRelationalHeapStateToGraph[I <: NonRelationalHeapIdentifier[I], N <: SemanticDomain[N]](heap : NonRelationalHeapDomain[I], s : N) : (mxGraph, Map[Identifier, Object]) = {
     val graph : mxGraph = defaultGraphSettings();
 	var vertixes : List[Object] = Nil;
 	var yposition : Double = ygap;
@@ -341,12 +338,12 @@ object ShowGraph
   }
   
   
-  private def stateToGraph[S <: State[S], N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : S) = state match {
+  private def stateToGraph[S <: State[S], N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state : S) = state match {
     case s : GenericAbstractState[N, H, I] => genericStateToGraph(s); 
     case _ => new Show(stateToString(state), false, -1, -1);
   }
   
-  private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : GenericAbstractState[N, H, I]) = state match {
+  private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state : GenericAbstractState[N, H, I]) = state match {
     case _ if state.getHeap().isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[GenericAbstractState[N, H,I]]) 
     case _ => new Show(stateToString(state), false, -1, -1);
   }

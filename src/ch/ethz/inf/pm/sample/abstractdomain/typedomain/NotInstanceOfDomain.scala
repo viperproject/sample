@@ -59,7 +59,7 @@ class NotInstanceOfDomain(typ : Type) extends BoxedDomain[SetExcludedTypes, NotI
   override def factory() : NotInstanceOfDomain = new NotInstanceOfDomain(typ);
 
   def assume(expr : Expression) : NotInstanceOfDomain = expr match {
-    case NotExpression(AbstractOperator(e, pars, typepars,AbstractOperatorIdentifiers.isInstanceOf, typ)) =>
+    case NegatedBooleanExpression(AbstractOperator(e, pars, typepars,AbstractOperatorIdentifiers.isInstanceOf, typ)) =>
       e match {
         case t : VariableIdentifier =>
           typepars match {
@@ -73,7 +73,7 @@ class NotInstanceOfDomain(typ : Type) extends BoxedDomain[SetExcludedTypes, NotI
         case _ => return this;
     }
     
-    case NotExpression(AbstractOperator(left, args, typepars,AbstractOperatorIdentifiers.==, typ)) =>
+    case NegatedBooleanExpression(AbstractOperator(left, args, typepars,AbstractOperatorIdentifiers.==, typ)) =>
       if(args.size != 1)
         return this;
       for(arg <- args) {

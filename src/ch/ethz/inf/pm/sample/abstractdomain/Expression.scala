@@ -37,11 +37,11 @@ abstract sealed class Expression {
   def getType() : Type;
 }
 
-case class NotExpression(val thisExpr : Expression) extends Expression {
+case class NegatedBooleanExpression(val thisExpr : Expression) extends Expression {
   override def getType() = thisExpr.getType();
   override def hashCode() : Int = thisExpr.hashCode();
   override def equals(o : Any) = o match {
-    case NotExpression(l) => thisExpr.equals(l) 
+    case NegatedBooleanExpression(l) => thisExpr.equals(l) 
     case _ => false
   }
   override def toString() = "! " + thisExpr.toString()
@@ -117,15 +117,7 @@ case class VariableIdentifier(var name : String, typ1 : Type) extends Identifier
   }
 }
 
-abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type) extends Identifier(typ1) {
-  def createAddress(typ : Type, pp : ProgramPoint) : I;
-  def createAddressForParameter(typ : Type) : I;
-  def extractField(obj : I, field : String, typ : Type) : I;
-  def accessStaticObject(typ : Type) : I;
-  def getNullNode() : I;
-  def isNormalized() : Boolean;
-  def factory() : I;
-}
+abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type) extends Identifier(typ1) 
 
 case class UnitExpression(typ : Type) extends Expression {
   override def hashCode() : Int = 0;
@@ -159,7 +151,7 @@ object Normalizer {
   //It returns None if it cannot reduce the expression to such form)
   def conditionalExpressionToMonomes(exp : Expression) : Option[(List[(Int, Identifier)], Int)] = exp match {
    
-   case NotExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
+   case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
       op match {
         //! l>= r => l < r
         case ArithmeticOperator.>= => return conditionalExpressionToMonomes(BinaryArithmeticExpression(left, right, ArithmeticOperator.<, typ))

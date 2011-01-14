@@ -396,7 +396,7 @@ object Annotation {
       return (Nil, false);
   }
   
-  private def isAccessibleThroughField[I <: HeapIdentifier[I]](from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[String] = {
+  private def isAccessibleThroughField[I <: NonRelationalHeapIdentifier[I]](from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[String] = {
     for((field, typ) <- from.getType().getPossibleFields()) {
       if(from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field, typ).equals(to)) return Some(field);
     }

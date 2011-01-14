@@ -36,7 +36,7 @@ class SymbolicAbstractValue[S <: State[S]]() extends FunctionalDomain[Expression
   def not() : SymbolicAbstractValue[S] = {
     var result : SymbolicAbstractValue[S] = this.factory();
     for(key <- value.keySet)
-      result=result.add(new NotExpression(key), value.get(key).get);
+      result=result.add(new NegatedBooleanExpression(key), value.get(key).get);
     result;
   }
   

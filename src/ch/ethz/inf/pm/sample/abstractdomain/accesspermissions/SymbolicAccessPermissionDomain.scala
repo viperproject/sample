@@ -407,7 +407,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
   
 }
 
-class SymbolicPermissionsDomain[I <: HeapIdentifier[I]] extends BoxedDomain[SymbolicLevelPermission, SymbolicPermissionsDomain[I]] with PermissionsDomain[SymbolicPermissionsDomain[I]] with AddressedDomain[I]{
+class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends BoxedDomain[SymbolicLevelPermission, SymbolicPermissionsDomain[I]] with PermissionsDomain[SymbolicPermissionsDomain[I]] with AddressedDomain[I]{
 
   def keys() = value.keySet;
   

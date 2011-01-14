@@ -21,7 +21,7 @@ class ClassNullNodeHeapIdentifier(typ : Type) extends ClassHeapIdentifier(typ) {
     override def toString() : String = "null"
 }
 
-class ClassHeapIdentifier(val value : Type) extends HeapIdentifier[ClassHeapIdentifier](value) {
+class ClassHeapIdentifier(val value : Type) extends NonRelationalHeapIdentifier[ClassHeapIdentifier](value) {
 	override def getNullNode() = new ClassNullNodeHeapIdentifier(value.top()); 
 	override def getField() = throw new Exception("Not supported")
 	override def isNormalized() : Boolean = true;

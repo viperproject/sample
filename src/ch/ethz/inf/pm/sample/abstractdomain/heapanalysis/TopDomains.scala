@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-abstract sealed class TopHeapIdentifier(typ : Type) extends HeapIdentifier[TopHeapIdentifier](typ) {
+abstract sealed class TopHeapIdentifier(typ : Type) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ) {
 	  override def getNullNode() = new NullHeapIdentifier(typ.top()); 
 }
 
@@ -88,7 +88,7 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
     result=result+((id, path ::: id.toString() :: Nil));
     (this, result);
   } 
-  override def createAddress(typ : Type, pp : ProgramPoint) : SingleHeapIdentifier=new SingleHeapIdentifier(typ);
+  override def createObject(typ : Type, pp : ProgramPoint) : SingleHeapIdentifier=new SingleHeapIdentifier(typ);
   override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : TopHeapIdentifier=new SingleHeapIdentifier(heapIdentifier.getType());
   
   override def assume(expr : Expression) = this //TODO: for now there is nothing about the heap structure

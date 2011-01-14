@@ -7,7 +7,7 @@ object ParameterIds {
 	var n : Int = 0;
 }
 
-sealed abstract class ProgramPointHeapIdentifier(val t : Type) extends HeapIdentifier[ProgramPointHeapIdentifier](t) {
+sealed abstract class ProgramPointHeapIdentifier(val t : Type) extends NonRelationalHeapIdentifier[ProgramPointHeapIdentifier](t) {
   override def extractField(h : ProgramPointHeapIdentifier, s : String, t : Type) : ProgramPointHeapIdentifier=h match {
     case x : SimpleProgramPointHeapIdentifier => new FieldAndProgramPoint(x, s, t);
     case x : ParameterHeapIdentifier => new FieldAndProgramPoint(x, s, t);

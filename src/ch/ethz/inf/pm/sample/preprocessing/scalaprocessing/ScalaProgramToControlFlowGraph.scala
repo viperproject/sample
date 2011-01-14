@@ -111,7 +111,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       val extend : List[ClassIdentifier] = Nil;
       val members : (List[FieldDeclaration], List[MethodDeclaration]) = extractClassMembers(body, currentType);
       val classname : String=name.decode;
-      new ClassDefinition(programpoint, extractModifiers(mods), new ScalaClassIdentifier(name decode), parametricTypes, extend, members._1, members._2, pack)
+      new ClassDefinition(programpoint, extractModifiers(mods), new ScalaClassIdentifier(name decode), parametricTypes, extend, members._1, members._2, pack, null)
       //TODO: I have to consider also parents, and self!
       
     case _ => throw new ScalaException("I expected a class definition\n"+program.toString())
@@ -140,7 +140,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       val body : ControlFlowGraph = new ControlFlowGraph(new ScalaProgramPoint(program.pos));
       var (cfg, sts, index, goon) = bodyToCFG(rhs, body, Nil, body.addNode(Nil));
       cfg.setNode(index, sts)
-      new MethodDeclaration(programPoint,  currentType, extractModifiers(mods), new ScalaMethodIdentifier(name.decode), parametricTypes, arguments, returnType, RemoveGetterSetter.cleanCFG(cfg), null, null, null)
+      new MethodDeclaration(programPoint,  currentType, extractModifiers(mods), new ScalaMethodIdentifier(name.decode), parametricTypes, arguments, returnType, RemoveGetterSetter.cleanCFG(cfg), null, null)
     //TODO pre and post conditions and class invariants
       
     case ValDef(mods, name, tpt, rhs) => 
@@ -220,11 +220,11 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       (cfg, statementsUntilHere ::: extractCFG(expr) :: Nil , currentblock, false)
       
       
-    case Match(selector, cases) =>
+    /*case Match(selector, cases) =>
       val st : Switch = new Switch(new ScalaProgramPoint(body.pos), extractCFG(selector))
       for(CaseDef(pat, guard, body) <- cases)
         st.addCase(extractCFG(pat), extractCFG(guard), extractCFG(body))
-      (cfg, statementsUntilHere ::: st :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: st :: Nil , currentblock, true)*/
      
     case Throw(expr) => 
       (cfg, statementsUntilHere ::: new oorepresentation.Throw(new ScalaProgramPoint(body.pos), extractCFG(expr)) :: Nil , currentblock, false)
