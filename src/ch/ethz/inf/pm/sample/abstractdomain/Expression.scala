@@ -97,7 +97,6 @@ case class Constant(val constant : String, val typ : Type) extends Expression {
   override def toString() = constant
 }
 
-
 abstract class Identifier(var typ : Type) extends Expression {
   def getName() : String;
   def getField() : Option[String];
