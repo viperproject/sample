@@ -1,14 +1,14 @@
 package Examples
-import Chalice._;
+//import Chalice._;
 
 class B {
   var x : Int = 0;
   //val v = 0;
-  def Inc() = {
+  /*def Inc() = {
     Chalice.acquire(this)
     val a=x+1;
     Chalice.release(this)
-  }
+  }*/
   
   def Numerical(i : Int) = {
 	  var j = 1;
