@@ -6,13 +6,51 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
 	
-	def this(d : Manager) {
+	/*def this(d : Manager) {
 		this(new Abstract1(d, new Environment()), d);
+	}*/
+	
+	override def getStringOfId (id : Identifier) : String = {
+		var result : String = "";
+		for(c <- this.state.toLincons(domain)) {
+			if(this.constraintContains(c, id.getName()))
+				result=result+" " + c.toString();
+		}
+		if(result.equals(""))
+			result="T";
+		return result;
 	}
 	
-	override def getStringOfId (id : Identifier) : String = "TODO"
+	override def toString() : String = "A";//state.toString(); 
+	
+	
+	private def constraintContains(c : Lincons1, variable : String) : Boolean = {
+		for(term <- c.getLinterms )
+			if(term.getVariable().equals(variable))
+				return true;
+		return false;
+	}
+		
+	override def createVariable (variable : Identifier, typ : Type) : ApronInterface = {
+		var env = state.getEnvironment;
+		if(! env.hasVar(variable.getName())) {
+			val v : Array[String] = new Array[String](1);
+			v.update(0, variable.getName());
+			env=env.add(v, new Array[String](0));
+		}
+		return new ApronInterface(state.changeEnvironmentCopy(domain, env, true), domain);
+	}
+	
+	override def removeVariable(variable : Identifier) : ApronInterface = { 
+		var env = state.getEnvironment;
+		val v : Array[String] = new Array[String](1);
+		v.update(0, variable.getName());
+		env=env.remove(v);
+		return new ApronInterface(state.changeEnvironmentCopy(domain, env, false), domain);
+	}
+		
 	override def setToTop(variable : Identifier) : ApronInterface = {
-		val st = state.forgetCopy(domain, variable.getName, true);
+		val st = state.forgetCopy(domain, variable.getName, false);
 		new ApronInterface(st, domain);
 	}
 	override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
@@ -25,9 +63,9 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		new ApronInterface(st, domain);
 	}*/
 
-	override def factory() : ApronInterface = new ApronInterface(domain);
+	override def factory() : ApronInterface = top();
   	override def top() : ApronInterface = {
-  		val result = this.factory();
+		val result = new ApronInterface(new Abstract1(domain, state.getEnvironment), domain);
   		if(! result.state.isTop(domain)) throw new ApronException("I'm not able to create a top state");
   		return result;
   	}
@@ -37,22 +75,39 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		new ApronInterface(st, domain);
 	}
 	override def lub(left : ApronInterface, right : ApronInterface) : ApronInterface =  {
+		if(left.state.isTop(domain)) return left;
+		if(right.state.isTop(domain)) return right;
+		if(left.state.isBottom(domain)) return right;
+		if(right.state.isBottom(domain)) return left;
 		val st = left.state.joinCopy(domain, right.state);
 		new ApronInterface(st, domain);
 	}
 	
 	override def glb(left : ApronInterface, right : ApronInterface) : ApronInterface =  {
+		if(left.state.isBottom(domain)) return left;
+		if(right.state.isBottom(domain)) return right;
+		if(left.state.isTop(domain)) return right;
+		if(right.state.isTop(domain)) return left;
 		val st = left.state.meetCopy(domain, right.state);
 		new ApronInterface(st, domain);
 	}
 	
 	override def widening(left : ApronInterface, right : ApronInterface) : ApronInterface =  {
+		if(left.state.isTop(domain) || right.state.isTop(domain)) return top();
+		if(left.state.isBottom(domain)) return right;
+		if(right.state.isBottom(domain)) return left;
 		val st = new Abstract1(domain, left.state);
 		st.widening(domain, right.state);
 		new ApronInterface(st, domain);
 	}
 	
-	override def lessEqual(r : ApronInterface) : Boolean = this.state.isIncluded(domain, r.state);
+	override def lessEqual(r : ApronInterface) : Boolean = {
+		if(this.state.isBottom(domain)) return true;
+		if(r.state.isTop(domain)) return true;
+		if(r.state.isBottom(domain)) return false;
+		if(this.state.isTop(domain)) return false;
+		this.state.isIncluded(domain, r.state);
+	}
 	
 	private def toTexpr1Intern(e : Expression, env : apron.Environment) : Texpr1Intern = {
 		val e1 = this.toTexpr1Node(e);

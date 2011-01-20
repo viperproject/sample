@@ -2,7 +2,7 @@ package Examples
 //import Chalice._;
 
 class B {
-  var x : Int = 0;
+  //var x : Int = 0;
   //val v = 0;
   /*def Inc() = {
     Chalice.acquire(this)
@@ -10,10 +10,10 @@ class B {
     Chalice.release(this)
   }*/
   
-  def Numerical(i : Int) = {
+  def Numerical(/*i : Int*/) = {
 	  var j = 1;
-	  while(j<i)
-	 	  j=j*2;
+	  //while(j<10)
+	 //	  j=j*2;
   }
   
   /*def Try() = {

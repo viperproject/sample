@@ -15,7 +15,8 @@ import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing
 
 object ApronAndHeapAnalysis {
   def main(args : Array[String]) : Unit = {
-    ApronAndHeapAnalysis.analyze("B", "Numerical", "C:\\Users\\Pietro\\workspace\\sample\\src\\Examples\\Temp.scala", new ApronInterface(new Box()), new ClassHeapIdentifier(null))
+	val domain=new Box();
+    ApronAndHeapAnalysis.analyze("B", "Numerical", "/root/workspace/sample/src/Examples/Temp.scala", new ApronInterface(new Abstract1(domain, new Environment()), domain), new ClassHeapIdentifier(null))
     //NonRelationalNumericalDomainAndHeapAnalysis.analyze("List2", "Numerical", "C:\\Users\\Pietro\\workspace\\Sample\\src\\Examples\\Temp.scalaprocessing", new Sign(SignValues.+), new ClassHeapIdentifier(null))
   }
   def analyze[I <: NonRelationalHeapIdentifier[I]](classe : String, method : String, file : String, numerical : ApronInterface, heapid : I) : Unit = {
