@@ -3,6 +3,12 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
 
+/** 
+ * Arithmetic operators
+ *
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 object ArithmeticOperator extends Enumeration {
   val + = Value("+");
   val - = Value("-");
@@ -16,11 +22,24 @@ object ArithmeticOperator extends Enumeration {
   val < = Value("<");
 }
 
+/** 
+ * Boolean operators
+ *
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 object BooleanOperator extends Enumeration {
   val && = Value("&&");
   val || = Value("||");
 }
 
+
+/** 
+ * Abstract operators that can be used to represent any operations on different types of objects, like string concatenation and type casts
+ *
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 object AbstractOperatorIdentifiers extends Enumeration {
   val isInstanceOf = Value("isInstanceOf");
   val asInstanceOf = Value("asInstanceOf");
@@ -33,10 +52,28 @@ object AbstractOperatorIdentifiers extends Enumeration {
   val arrayApply= Value("arrayApply");
 } 
 
+
+/** 
+ * Expressions are used to represents the values returned by statements. For instance, an assignment returns
+ * a UnitExpression, while a variable access returns a VariableIdentifier and a field access returns a heap
+ * identifier. Expressions represent the results of method calls and arithmetic and boolean operations as
+ * well. 
+ *
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 abstract sealed class Expression {
   def getType() : Type;
 }
 
+
+/** 
+ * Represents the negation of a given expression
+ *  
+ * @param thisExpr The negated expression
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 case class NegatedBooleanExpression(val thisExpr : Expression) extends Expression {
   override def getType() = thisExpr.getType();
   override def hashCode() : Int = thisExpr.hashCode();
@@ -47,6 +84,18 @@ case class NegatedBooleanExpression(val thisExpr : Expression) extends Expressio
   override def toString() = "! " + thisExpr.toString()
 }
 
+/** 
+ * Represents a generic operation, e.g., concatenation of strings. Usually, at source code level these
+ * operations are encoded as method calls. 
+ *  
+ * @param thisExpr The object on which the expression is performed
+ * @param parameters A (possibly empty) list of arguments
+ * @param typeparameters A (possibly empty) list of generic types
+ * @param op The identifier of the operation
+ * @param returntyp The type of the value returned by the operation
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 case class AbstractOperator(val thisExpr : Expression, val parameters : Set[List[Expression]], val typeparameters : List[Type], val op : AbstractOperatorIdentifiers.Value, val returntyp : Type) extends Expression {
   override def getType() = returntyp;
   override def hashCode() : Int = thisExpr.hashCode();
@@ -57,6 +106,16 @@ case class AbstractOperator(val thisExpr : Expression, val parameters : Set[List
   override def toString() = thisExpr.toString() + "." + op.toString() + ToStringUtilities.parametricTypesToString(typeparameters)+"("+ToStringUtilities.setOfListToString(parameters)+")"
 }
 
+/** 
+ * A binary boolean expression, e.g. B1 && B2
+ * 
+ * @param left One of the operands
+ * @param right The other operand
+ * @param op The identifier of the operation
+ * @param typ The type of the returned value
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 case class BinaryBooleanExpression(val left : Expression, val right : Expression, op : BooleanOperator.Value, val returntyp : Type) extends Expression {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
@@ -67,6 +126,16 @@ case class BinaryBooleanExpression(val left : Expression, val right : Expression
   override def toString() = left.toString() + op.toString() + right.toString()
 }
 
+/** 
+ * A binary arithmetic expression, e.g. A1+A2 or A1>=A2
+ * 
+ * @param left One of the operands
+ * @param right The other operand
+ * @param op The identifier of the operation
+ * @param typ The type of the returned value
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 case class BinaryArithmeticExpression(val left : Expression, val right : Expression, val op : ArithmeticOperator.Value, returntyp : Type) extends Expression {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
@@ -77,6 +146,15 @@ case class BinaryArithmeticExpression(val left : Expression, val right : Express
   override def toString() = left.toString() + op.toString() + right.toString()
 }
 
+/** 
+ * A unary arithmetic expression, e.g. -A1
+ * 
+ * @param left The operand
+ * @param op The identifier of the operation
+ * @param typ The type of the returned value
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticOperator.Value, val returntyp : Type) extends Expression {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
@@ -87,6 +165,14 @@ case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticO
   override def toString() = op.toString() + left.toString()
 }
 
+/** 
+ * A (usually numeric) constant represented by a string 
+ * 
+ * @param constant The constant
+ * @param typ The type of the constant
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 case class Constant(val constant : String, val typ : Type) extends Expression {
   override def getType() = typ;
   override def hashCode() : Int = constant.hashCode();
@@ -97,27 +183,79 @@ case class Constant(val constant : String, val typ : Type) extends Expression {
   override def toString() = constant
 }
 
+/** 
+ * An identifier, that could be a variable or a node of the abstract heap
+ * 
+ * @param typ The type of the identifier
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 abstract class Identifier(var typ : Type) extends Expression {
+	
+  /**
+   Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
+   if they are the same identifier
+   @return The name of the identifier
+   */
   def getName() : String;
+  
+  /**
+   Returns the name of the field that is represented by this identifier if it is a heap identifier. 
+   
+   @return The name of the field pointed by this identifier
+   */
   def getField() : Option[String];
+  
   override def getType() : Type = typ;
+  
+  /**
+   Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
+   identifier. This function tells if a node is a summary node.  
+   
+   @return true iff this identifier represents exactly one variable
+   */
   def representSingleVariable() : Boolean;
 }
 
+/** 
+ * The identifier of a variable
+ * 
+ * @param name The name of the variable
+ * @param typ1 The type of the variable
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 case class VariableIdentifier(var name : String, typ1 : Type) extends Identifier(typ1) {
   override def getName() = name.toString
   override def toString() = getName();
   override def getField() = None;
   override def hashCode() : Int = name.hashCode();
+  
+  //Variables always represent exactly one concrete identifier
   override def representSingleVariable()=true;
+  
   override def equals(o : Any) = o match {
     case VariableIdentifier(n, t) => name.equals(n) //&& typ.equals(t) 
     case _ => false
   }
 }
 
+/** 
+ * The heap identifier that has to be implemented by particular heap analyses
+ * 
+ * @param typ1 The type of the identifier
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type) extends Identifier(typ1) 
 
+/** 
+ * The unit expression, that represents the absence of a concrete expression.
+ * 
+ * @param typ The unit type
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 case class UnitExpression(typ : Type) extends Expression {
   override def hashCode() : Int = 0;
   override def getType() : Type = typ;
@@ -128,9 +266,15 @@ case class UnitExpression(typ : Type) extends Expression {
   override def toString() = "Unit"
 }
 
+/** 
+ * An helper object that perform some transformations to obtain simplified and standard numerical expressions.
+ * 
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 object Normalizer {
   
-  def simplify(monomes : List[(Int, Identifier)]) : List[(Int, Identifier)] = monomes match {
+  private def simplify(monomes : List[(Int, Identifier)]) : List[(Int, Identifier)] = monomes match {
     case Nil => Nil
     case (0, x) :: xs => simplify(xs)
     case (n, x) :: xs => 
@@ -138,7 +282,7 @@ object Normalizer {
       return (index1, x) :: simplify(monomes)
   } 
   
-  def simplifyVariable(monomes : List[(Int, Identifier)], id : Identifier, index : Int) : (Int, List[(Int, Identifier)]) = monomes match {
+  private def simplifyVariable(monomes : List[(Int, Identifier)], id : Identifier, index : Int) : (Int, List[(Int, Identifier)]) = monomes match {
     case Nil => (index, monomes)
     case (n, id1) :: xs if(id.equals(id1)) => simplifyVariable(xs, id, n+index)
     case (n, id1) :: xs => 
@@ -146,8 +290,12 @@ object Normalizer {
       return (index1, (n, id1) :: monomes1)
   } 
   
-  //It transform the current expression to \sum a_i x_i + c >= 0
-  //It returns None if it cannot reduce the expression to such form)
+  /**
+   Transforms the current expression to \sum a_i x_i + c >= 0  
+   
+   @param exp The conditional expression to be reduced to monomes
+   @return  None if the given expression cannot be reduced to a linear form, Some(E, c) if it can be reduced to E+c>=0 (where E is \sum a_i x_i) 
+   */
   def conditionalExpressionToMonomes(exp : Expression) : Option[(List[(Int, Identifier)], Int)] = exp match {
    
    case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
@@ -194,8 +342,14 @@ object Normalizer {
     case _ => None;
   }
     
-  //It transform the current expression to \sum a_i x_i + c
-  //It returns None if it cannot reduce the expression to such form)
+  
+  
+  /**
+   Transforms the current expression to \sum a_i x_i + c  
+   
+   @param exp The expression to be reduced to monomes
+   @return  None if the given expression cannot be reduced to a linear form, Some(E, c) if it can be reduced to E+c (where E is \sum a_i x_i) 
+   */
   def arithmeticExpressionToMonomes(exp : Expression) : Option[(List[(Int, Identifier)], Int)] = exp match {
     case BinaryArithmeticExpression(left, right, op, typ) => 
       val l : Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left);
@@ -235,9 +389,9 @@ object Normalizer {
     case x : Identifier => return Some(((1, x.asInstanceOf[Identifier])::Nil, 0))
   }
   
-  def compactOnTheLeft(left : (List[(Int, Identifier)], Int), right : (List[(Int, Identifier)], Int)) : (List[(Int, Identifier)], Int) = (left._1 ::: transform(right._1, (x : Int)=> -x ), left._2-right._2) 
+  private def compactOnTheLeft(left : (List[(Int, Identifier)], Int), right : (List[(Int, Identifier)], Int)) : (List[(Int, Identifier)], Int) = (left._1 ::: transform(right._1, (x : Int)=> -x ), left._2-right._2) 
   
-  def transform(monome : List[(Int, Identifier)], f : Int => Int) : List[(Int, Identifier)] = monome match {
+  private def transform(monome : List[(Int, Identifier)], f : Int => Int) : List[(Int, Identifier)] = monome match {
     case Nil => Nil;
     case (n, v) :: xs => (f(n), v) :: transform(xs, f)
   }

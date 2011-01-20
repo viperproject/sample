@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.typedomain._
  * on variables and expressions are provided
  *
  * @author Pietro Ferrara
- * @version 0.1
+ * @since 0.1
  */
 trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
   
@@ -117,7 +117,7 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
  * the most part of the existing domains.
  *
  * @author Pietro Ferrara
- * @version 0.1
+ * @since 0.1
  */
 trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends SemanticDomain[T] {
   override def setParameter(variable : Identifier, expr : Expression) : T = this.assign(variable, expr);
