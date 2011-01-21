@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
 //import scala.collection.mutable._
-import ch.ethz.inf.pm.sample.gui._
+
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.SystemParameters

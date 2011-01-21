@@ -4,8 +4,19 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
-
-class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](n1 : N, h1 : H) extends CartesianProductDomain[N, H, HeapAndAnotherDomain[N, H, I]](n1, h1) with SemanticDomain[HeapAndAnotherDomain[N, H, I]]{
+/** 
+ * An abstract semantic domain that combines and heap and another semantic domain.
+ * The intuition is that the heap domain takes care of approximating the heap structure, while the 
+ * semantic domain has to manage the information of its interest without taking care of field accesses
+ * and object creation, but dealing only with identifiers (of variables or of heap nodes).
+ *
+ * @param <N> The semantic domain
+ * @param <H> The heap analysis
+ * @param <I> The heap identifiers
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
+class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](n1 : N, h1 : H) extends SemanticCartesianProductDomain[N, H, HeapAndAnotherDomain[N, H, I]](n1, h1) with SemanticDomain[HeapAndAnotherDomain[N, H, I]]{
   
   def getStringOfId(id : Identifier) : String = d1.getStringOfId(id)
   
@@ -13,36 +24,34 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def getSemanticDomain() : N = return d1;
   
   def factory() = new HeapAndAnotherDomain(d1.factory(), d2.factory());
-
-  def setToTop(variable : Identifier) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.setToTop(variable), this._2.setToTop(variable))
-  
-  def assign(variable : Identifier, expr : Expression) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.assign(variable, expr), this._2.assign(variable, expr))
-  
-  def setParameter(variable : Identifier, expr : Expression) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.setParameter(variable, expr), this._2.assign(variable, expr))
-  
-  def assume(expr : Expression) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.assume(expr), this._2.assume(expr))
-  
-  def createVariable(variable : Identifier, typ : Type) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.createVariable(variable, typ), this._2.createVariable(variable, typ))
   
   def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) = {
     var (s2, ids) = this._2.createVariableForParameter(variable, typ, path);
     var s1 = this._1;
     val i = null;
     s1=s1.createVariableForParameter(variable, typ, path)._1
+    //We recursively create the entry state for all the entry abstract nodes.
     for(id <- ids.keys)
       s1=s1.createVariableForParameter(id, typ, ids.apply(id))._1;
     (new HeapAndAnotherDomain[N, H, I](s1, s2), ids)
   }
-  
-  def removeVariable(variable : Identifier) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.removeVariable(variable), this._2.removeVariable(variable))
-  
-  def access(field : Identifier) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.access(field), this._2.access(field))
-  
-  def backwardAccess(field : Identifier) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.backwardAccess(field), this._2)
-  
-  def backwardAssign(variable : Identifier, expr : Expression) : HeapAndAnotherDomain[N, H, I] = new HeapAndAnotherDomain[N, H, I](this._1.backwardAssign(variable, expr), this._2)
 }
 
+/** 
+ * A generic abstract state combines a HeapAndAnotherDomain and a SymbolicAbstractValue. It is the
+ * engine of our analysis: it takes care of all the complexities related to our approach, e.g., if
+ * we have to deal with several possible expressions, it passes one expression after the other to
+ * the abstract domain computing the upper bound between the results of the evaluation of all the 
+ * possible expressions.
+ *
+ * @param <N> The semantic domain
+ * @param <H> The heap analysis
+ * @param <I> The heap identifiers
+ * @param n1 The abstract state of the heap and the semantic domain
+ * @param r1 The expression
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](n1 : HeapAndAnotherDomain[N, H, I], r1 : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) extends
   CartesianProductDomain[HeapAndAnotherDomain[N, H, I], SymbolicAbstractValue[GenericAbstractState[N,H,I]], GenericAbstractState[N,H,I]](n1, r1) with State[GenericAbstractState[N,H,I]] with SingleLineRepresentation {
   
@@ -53,10 +62,12 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id)
   def createObject(typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
+    //It discharges on the heap analysis the creation of the object and its fields
     val createdLocation=this._1._2.createObject(typ, pp)
     var result=this._1.createVariable(createdLocation, typ);
     for((field, typ2) <- typ.getPossibleFields()) {
      val address = this._1._2.getFieldIdentifier(createdLocation, field, typ2);
+     //It asks the semantic domain to simply create the initial value for the given identifier
      result=result.createVariable(address, typ2);
     }
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result, this._2).removeExpression()));
@@ -64,7 +75,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   
   def createObjectForParameter(typ : Type, pp : ProgramPoint, path : List[String]) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
+    //It discharges on the heap analysis the creation of the object and its fields
     val createdLocation=this._1._2.createObject(typ, pp)
+     //It asks the semantic domain to simply create the initial value for the given identifier
     val (result, ids)=this._1.createVariableForParameter(createdLocation, typ, path);
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result, this._2).removeExpression()));
   }
@@ -82,6 +95,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       throw new SymbolicSemanticException("Cannot declare multiple variables together");
     var result=this.bottom();
     for(el <- x.value) {
+    	//For each variable that is potentially created, it computes its semantics and it considers the upper bound
 	    el._1 match {
 	      case variable : Identifier => {
 	        for(assigned <- x.value) {
@@ -102,6 +116,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       throw new SymbolicSemanticException("Cannot declare multiple variables together");
     var result=this.bottom();
     for(el <- x.value) {
+    	//For each variable that is potentially a parameter, it computes its semantics and it considers the upper bound
 	    el._1 match {
 	      case variable : Identifier => {
 	        for(assigned <- x.value) {
@@ -121,6 +136,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     if(right.isTop) return top();
     var result : GenericAbstractState[N,H,I] = this.bottom();
     for(el <- x.value) {
+    	//For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
 	    el._1 match {
 	      case variable : Identifier => {
 	        for(assigned <- right.value) {
@@ -140,6 +156,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     if(right.isTop) return top();
     var result : GenericAbstractState[N,H,I] = this.bottom();
     for(el <- x.value) {
+    	//For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
 	    el._1 match {
 	      case variable : Identifier => {
 	        for(assigned <- right.value) {
@@ -159,6 +176,8 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     if(right.isTop) return top();
     var result : GenericAbstractState[N,H,I] = this.bottom();
     for(el <- x.value) {
+    	
+    	//For each parameter that is set, it computes its semantics and it considers the upper bound
 	    el._1 match {
 	      case variable : Identifier => {
 	        for(assigned <- right.value) {
@@ -177,6 +196,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     if(this.isBottom) return this;
     var result : GenericAbstractState[N,H,I] = this.bottom();
     for(el <- x.value) {
+    	//For each variable that is potentially removed, it computes its semantics and it considers the upper bound
 	    el._1 match {
 	      case variable : Identifier => {
 	        for(previousState <- x.value) {
@@ -218,6 +238,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     if(this.isBottom) return this;
     var result : GenericAbstractState[N,H,I] = this.bottom();
     for(obj : SymbolicAbstractValue[GenericAbstractState[N,H,I]] <- objs) {
+    	//For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
       	for(expr <- obj.getExpressions) {
      	  val heapid : I = obj.get(expr)._1._2.getFieldIdentifier(expr, field, typ);
      	  val accessed=obj.get(expr)._1.access(heapid);
@@ -232,6 +253,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     if(this.isBottom) return this;
     var result : GenericAbstractState[N,H,I] = this.bottom();
     for(obj : SymbolicAbstractValue[GenericAbstractState[N,H,I]] <- objs) {
+    	//For each object that is potentially accessed, it computes the backward semantics of the field access and it considers the upper bound
      	for(expr <- obj.getExpressions) {
      	  val heapid : I = obj.get(expr)._1._2.getFieldIdentifier(expr, field, typ);
      	  val accessed=obj.get(expr)._1.backwardAccess(heapid);
@@ -246,8 +268,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     if(this.isBottom) return this;
     var result : GenericAbstractState[N,H,I] = this.bottom();
     for(expr <- x.value) {
+    	//For each variable that is forgotten, it computes the semantics and it considers the upper bound
     	if(! expr._1.isInstanceOf[Identifier]) throw new SymbolicSemanticException("Not a variable")
-        val variable : Identifier = expr._1.asInstanceOf[Identifier]//new VariableIdentifier(expr._1.asInstanceOf[VariableIdentifier[T]].name, expr._1.getType); 
+        val variable : Identifier = expr._1.asInstanceOf[Identifier] 
         result=result.lub(result, new GenericAbstractState(this._1.setToTop(variable), this._2));
     }
     result;
@@ -258,6 +281,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     var d1 = this._1;
     var isFirst = true;
     for(expr <- cond.value) {
+    //For each expression that is assumed, it computes the semantics and it considers the upper bound
       if(isFirst) {
         d1=expr._2._1.assume(expr._1);
         isFirst=false;

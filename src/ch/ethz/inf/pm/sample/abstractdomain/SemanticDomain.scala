@@ -1,8 +1,5 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.abstractdomain.typedomain._
 
 
 /** 

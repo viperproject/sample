@@ -11,7 +11,6 @@ import ch.ethz.inf.pm.sample.property._
 import java.util.ArrayList
 import scala.collection.mutable.HashMap
 import scala.tools.nsc.plugins.PluginComponent
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.abstractdomain.typedomain._
 
