@@ -1,4 +1,19 @@
+//This file contains several implementations of some standard domains. These standard domains are quite useful to develop
+//new analyses without rewriting some standard code.
+
 package ch.ethz.inf.pm.sample.abstractdomain
+
+/** 
+ * The representation of a functional domain, that is, a domain that is represented by a function whose
+ * codomain is a lattice. The lattice operators are the functional extensions of the lattice operators of
+ * the codomain.
+ *
+ * @param <K> The type of the keys
+ * @param <V> The type of the codomain that has to be a lattice
+ * @param <T> The type of the current functional domain
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
@@ -8,26 +23,47 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
   var value : Map[K, V]=Map.empty[K, V]
   var isBottom : Boolean = false;
 
+  /**
+   * Adds [key->value] to the domain 
+   * @param key The key
+   * @param value The value 
+   * @return The state of the domain after the assignment
+   */
   def add(key : K, value : V) : T = {
     val result : T = this.factory();
     result.value=this.value+((key, value));
     result
   } 
   
-  def get(key : K) : V;/* match {
-    case None => leftDomain match {
-      case Some(l) => l.top()
-      case None => throw new StandardDomainException("Codomain not yet instantiated");
-      }
-    case Some(x) => x
-  }*/
+  /**
+   * Returns the value of key. It is not implemented since in some domains if the domain is not defined on the given
+   * key we have a top value, in some others we have a bottom value. So we decided to let to the particular instance
+   * of the domain the opportunity to define it in order to have a total function (that is more convenient when
+   * defining the other lattice operators).
+   *  
+   * @param key The key
+   * @return The value related to the given key
+   */
+  def get(key : K) : V;
   
+  /**
+   * Removes the key from the domain. 
+   * @param key The key to be removed
+   * @return The state of the domain after the kays has been removed
+   */
   def remove(key : K) : T = {
     val result : T = this.factory();
     result.value=this.value-(key);
     result
   } 
   
+  /**
+   * Computes the upper bound between two states. It is defined by:
+   * left \sqcup right = [k -> left(k) \sqcup right(k) : k \in dom(left) \cup dom(right)]   
+   * @param left One of the two operands
+   * @param right The other operand
+   * @return The upper bound of left and right
+   */
   def lub(left : T, right : T) : T = {
     if(left.equals(this.bottom())) return right;
     if(right.equals(this.bottom())) return left;
@@ -38,6 +74,14 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
     result
   }
   
+  
+  /**
+   * Computes the lower bound between two states. It is defined by:
+   * left \sqcap right = [k -> left(k) \sqcap right(k) : k \in dom(left) \cap dom(right)]   
+   * @param left One of the two operands
+   * @param right The other operand
+   * @return The lower bound of left and right
+   */
   def glb(left : T, right : T) : T =  {
     if(left.equals(this.bottom()) || right.equals(this.bottom())) return this.bottom();
     if(left.equals(this.top())) return right;
@@ -51,7 +95,14 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
     domain
   }
   
-  final override def widening(left : T, right : T) : T =  {
+  /**
+   * Computes the widening between two states. It is defined by:
+   * left \nable right = [k -> left(k) \nabla right(k) : k \in dom(left) \cup dom(right)]   
+   * @param left The left operand
+   * @param right The right operand
+   * @return The upper bound of left and right
+   */
+  override def widening(left : T, right : T) : T =  {
 	if(left.isBottom && right.isBottom) return this.bottom();
 	if(left.isBottom) return right;
 	if(right.isBottom) return left;
@@ -61,18 +112,16 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
     result
   }
   
-  final override def lessEqual(r : T) : Boolean = {
+  /**
+   * Implements the partial ordering between two states of functional domains. It is defined by: 
+   * this \leq r <==> \forall k \in dom(this) : this(k) \leq r(k)   
+   * @param r The right operand
+   * @return true iff this is less or equal than t
+   */
+  override def lessEqual(r : T) : Boolean = {
     //case bottom
     if(this.isBottom) return true;
     if(r.isBottom) return false;
-    //dom(left)\supset dom(right) => ! (left \leq right)
-    /*if(this.value.keySet.subsetOf(r.value.keySet)) {
-      for(variable <- this.value.keySet)
-        if(! this.value.get(variable).get.lessEqual(r.value.get(variable).get) )
-          return false;
-      return true;
-    }
-    else return false*/
     for(variable <- this.value.keySet)
       if(! this.get(variable).lessEqual(r.get(variable)) )
         return false;
@@ -116,12 +165,11 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
     result
   }
   
-  final def wideningFunctionalLifting(f1 : T, f2 : T) : Map[K, V] = {
+  private def wideningFunctionalLifting(f1 : T, f2 : T) : Map[K, V] = {
     var result : Map[K, V]  = Map.empty[K, V] 
     for( el <- f1.value.keySet ) {
       f2.value.get(el) match {
         case Some(x) => result=result+((el, x.widening(f1.value.get(el).get, x))) 
-        //case None => result=result+((el, f1.value.get(el).get.widening(f1.value.get(el).get, f2.get(el))));
         case None => result=result+((el, f1.value.get(el).get));
       } 
     }
@@ -134,7 +182,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
     result
   }
   
-  final def upperBoundFunctionalLifting(f1 : T, f2 : T) : Map[K, V] = {
+  private def upperBoundFunctionalLifting(f1 : T, f2 : T) : Map[K, V] = {
     var result : Map[K, V]  = Map.empty[K, V] 
     for( el <- f1.value.keySet ) {
       f2.value.get(el) match {
@@ -152,6 +200,15 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
   }
 }
 
+/** 
+ * The representation of a boxed domain, that is, a domain that is a functional domain whose keys are (variable
+ * or heap) identifiers
+ *
+ * @param <V> The type of the codomain that has to be a lattice
+ * @param <T> The type of the current boxed domain
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]] extends FunctionalDomain[Identifier, V, T] {
   def getStringOfId(id : Identifier) : String = this.get(id).toString();
   
@@ -164,8 +221,17 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]] extends FunctionalDom
   
 }
 
+/** 
+ * The representation of a set domain, that is, a domain that is represented by a set. The lattice operators 
+ * are the common ones of sets, that is, the upper bound is the union, the lower bound the intersection, and so on.
+ *
+ * @param <V> The type of the values contained in the set
+ * @param <T> The type of the current set domain
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
-  override def factory() : T;
+
   var value : Set[V] = Set.empty[V]
   var isTop=false;
   var isBottom=false;
@@ -183,17 +249,27 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     result
   }
   
-  final def remove(v : V) : T = {
+  /**
+   * Removes an element from the set. Formally, return = old(this)\setminus {v}
+   * @param v The element to be removed
+   * @return The abstract state without the given element.
+   */
+  def remove(v : V) : T = {
     val newSet = this.value.-(v);
     val result = this.factory();
     result.value=newSet;
     return result;
   }
   
-  def add(el : V) : T = {
+  /**
+   * Adds an element to the set. Formally, return = old(this) \cup {v}
+   * @param v The element to be added
+   * @return The abstract state with the given element as well.
+   */
+  def add(v : V) : T = {
     if(this.isTop) return this.top();
     var result = factory();
-    result.value=value+el;
+    result.value=value+v;
     result;
   }
   
@@ -250,11 +326,20 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
   
 }
 
+/** 
+ * The representation of an inverse set domain, that is, a domain that is represented by a set, and whose lattice
+ * operators are the inversed one. Formally, the upper bound is the intersection, the lower bound the union, and 
+ * so on.
+ *
+ * @param <V> The type of the values contained in the set
+ * @param <T> The type of the current set domain
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
   override def factory() : T;
 
   override def add(el : V) : T = {
-    //if(this.isTop) return this.top();
     var result = factory();
     result.isTop=false;
     result.isBottom=false;
@@ -290,11 +375,17 @@ trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
 }
 
 
-
-abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: ReducedProductDomain[T1, T2, T]](d1 : T1, d2 : T2) extends CartesianProductDomain[T1, T2, T](d1, d2) {
-  def reduce() : ReducedProductDomain[T1, T2, T];
-}
-
+/** 
+ * The representation of a Cartesian product, that is, a lattice domain that combines two other lattices without
+ * passing information from one to the other. Each domain could track a different type of information, so their
+ * combination could lead to more precise results than each domain separately.
+ *
+ * @param <T1> The type of the first domain
+ * @param <T2> The type of the second domain
+ * @param <T> The type of the current domain
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: CartesianProductDomain[T1, T2, T]](protected var d1 : T1, protected var d2 : T2) extends Lattice[T] {
   
   if(d1.equals(d1.bottom()) || d2.equals(d2.bottom())) {
@@ -356,6 +447,35 @@ abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <:
   
 }
 
+/** 
+ * The representation of a reduced Cartesian product, that is, a Cartesian product that could pass information
+ * from one domain to the other.
+ *
+ * @param <T1> The type of the first domain
+ * @param <T2> The type of the second domain
+ * @param <T> The type of the current domain
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
+abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: ReducedProductDomain[T1, T2, T]](d1 : T1, d2 : T2) extends CartesianProductDomain[T1, T2, T](d1, d2) {
+	
+  /**
+   * Reduce the information contained in the two domains. The returned value has to be less or equal
+   * (that is, more precise) than the initial state.
+   * @return The reduced abstract state
+   */
+  def reduce() : T;
+}
+
+/** 
+ * The representation of a Cartesian product supporting the operations of the semantic domain. 
+ *
+ * @param <T1> The type of the first domain
+ * @param <T2> The type of the second domain
+ * @param <T> The type of the current domain
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]](a1 : T1, a2 : T2) extends CartesianProductDomain[T1, T2, T](a1, a2) with SemanticDomain[T] {
  def setToTop(variable : Identifier) : T = {
     val result : T = this.factory();
@@ -423,6 +543,16 @@ abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: Se
   
 }
 
+/** 
+ * The representation of reduced a Cartesian product supporting the operations of the semantic domain. After each
+ * semantic operation the reduction is applied. Note that this implementation is not particularly performant. 
+ *
+ * @param <T1> The type of the first domain
+ * @param <T2> The type of the second domain
+ * @param <T> The type of the current domain
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 abstract class ReducedSemanticProductDomain[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: ReducedSemanticProductDomain[T1, T2, T]](d1 : T1, d2 : T2) extends SemanticCartesianProductDomain[T1, T2, T](d1, d2) {
  def reduce() : T;
  override def lub(l : T, r : T) : T = super.lub(l, r).reduce();
