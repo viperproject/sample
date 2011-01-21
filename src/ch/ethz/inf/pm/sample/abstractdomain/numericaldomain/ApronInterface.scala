@@ -57,11 +57,10 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		val st = state.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, state.getEnvironment()), state);
 		new ApronInterface(st, domain);
 	}
-	override def assume(expr : Expression) : ApronInterface = this //TODO 
-	/*{
-		val st = state.meetCopy(domain, this.toLincons1(expr));
+	override def assume(expr : Expression) : ApronInterface = {
+		val st = state.meetCopy(domain, this.toTcons1(expr, this.state.getEnvironment()));
 		new ApronInterface(st, domain);
-	}*/
+	}
 
 	override def factory() : ApronInterface = top();
   	override def top() : ApronInterface = {
@@ -130,8 +129,8 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		case ArithmeticOperator.* => Texpr1BinNode.OP_MUL
 	}
 	
-	private def toTcons1(e : Expression) : Tcons1 = e match {
-		case BinaryArithmeticExpression(left, right, op, typ) => {
+	private def toTcons1(e : Expression, env : Environment) : Tcons1 = e match {
+		case BinaryArithmeticExpression(left, right, op, typ) =>
 			var localop = op;
 			var localleft = left;
 			var localright = right;
@@ -144,8 +143,13 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 				case ArithmeticOperator.< => localleft = right; localright = left; localop = ArithmeticOperator.>;
 			}
 			val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(left, right, ArithmeticOperator.-, null));
-		}
-		throw new ApronException("Not yet supported");
+			localop match {
+				case ArithmeticOperator.>= => return new Tcons1(env, Tcons1.SUPEQ, expr1)
+				case ArithmeticOperator.== => return new Tcons1(env, Tcons1.EQ, expr1)
+				case ArithmeticOperator.!= => return new Tcons1(env, Tcons1.DISEQ, expr1)
+				case ArithmeticOperator.> => return new Tcons1(env, Tcons1.SUP, expr1)
+			}
+		
 	}
 	
 	private def toTcons0Operator(op : ArithmeticOperator.Value) : Int = op match {

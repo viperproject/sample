@@ -12,8 +12,8 @@ class B {
   
   def Numerical(/*i : Int*/) = {
 	  var j = 1;
-	  //while(j<10)
-	 //	  j=j*2;
+	  while(j<10)
+	    j=j*2;
   }
   
   /*def Try() = {
