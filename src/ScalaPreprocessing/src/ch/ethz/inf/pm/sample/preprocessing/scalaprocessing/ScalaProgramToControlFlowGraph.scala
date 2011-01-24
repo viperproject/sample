@@ -86,7 +86,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
   class TraverserPhase(prev: Phase) extends StdPhase(prev) {
 	def apply(unit: CompilationUnit) {
 	    SystemParameters.currentFile=unit.source.file.toString
-        SystemParameters.classes=transformProgram(unit.body, new ScalaPackageIdentifier("", null))
+        ScalaClasses.classes=transformProgram(unit.body, new ScalaPackageIdentifier("", null))
 	  }
     }
 
@@ -104,7 +104,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
     case ClassDef(mods, name, tparams, Template(parents, self, body)) =>
       val programpoint : ScalaProgramPoint = new ScalaProgramPoint(program.pos);
       val currentType = new ScalaType(program.symbol.tpe)//extractType(program.tpe)
-      SystemParameters.scalaType=currentType;
+      //SystemParameters.scalaType=currentType;
       val parametricTypes : List[ScalaType] = extractListTypes(tparams);
       val extend : List[ClassIdentifier] = Nil;
       val members : (List[FieldDeclaration], List[MethodDeclaration]) = extractClassMembers(body, currentType);

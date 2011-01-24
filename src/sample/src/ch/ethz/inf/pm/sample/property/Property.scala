@@ -24,39 +24,9 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
 	            statement, 
 	            printer
 	          )
-          /*else visitor.checkSingleStatement[S](
-              result.nodes.apply(i).apply(k), 
-              statement, 
-              printer
-            )*/
           else {
         	  val state=result.nodes.apply(i).apply(k);
         	  checkStatement(visitor, state, statement, printer)
-        	  /*statement match {
-        	  	case Assignment(programpoint, left, right) =>
-        	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		visitor.checkSingleStatement[S](state, left, printer)
-        	  		visitor.checkSingleStatement[S](left.forwardSemantics[S](state), right, printer)
-        	  	case VariableDeclaration(programpoint, variable, typ, right) =>
-        	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		visitor.checkSingleStatement[S](state, right, printer)
-        	  	case FieldAccess(pp, objs, field, typ) =>
-        	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		for(obj <- objs)
-        	  			visitor.checkSingleStatement[S](state, obj, printer)
-        	  	case MethodCall(pp, method, parametricTypes, parameters, returnedType) =>
-        	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		visitor.checkSingleStatement[S](state, method, printer)
-        	  		var lastState=method.forwardSemantics[S](state);
-        	  		for(par <- parameters) {
-        	  		  visitor.checkSingleStatement[S](state, par, printer)
-        	  		  lastState=par.forwardSemantics[S](lastState)
-        	  		}
-        	  	case Throw(programpoint, expr) =>
-        	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		visitor.checkSingleStatement[S](state, expr, printer)
-        	  	case _ =>
-        	  }*/
           }
         }
       }
@@ -91,8 +61,6 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
         	  		//This should be already there!!!
         	  		val result=new ControlFlowGraphExecution[S](x, state).forwardSemantics(state);
         	  		this.check(result, printer);
-        	  	case _ =>
-        	  	  //System.out.println("This should not happen!\n"+statement.toString());
         	  }
   
 }

@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample
-import ch.ethz.inf.pm.sample.property.OutputCollector
+
+import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
@@ -9,7 +10,6 @@ object SystemParameters {
   val output : OutputCollector = new OutputCollector();
   val outputCasting : OutputCollector = new OutputCollector();
   val outputMatchError : OutputCollector = new OutputCollector();
-  var showgraph : Boolean = false;
   var analyzedClasses : Int = 0;
   var analyzedMethods : Int = 0;
   var nativeMethodsSemantics : List[NativeMethodSemantics] = /*BooleanNativeMethodSemantics :: IntegerNativeMethodSemantics :: ObjectNativeMethodSemantics :: */Nil;
@@ -17,9 +17,8 @@ object SystemParameters {
   var currentMethod : String = null;
   var semanticsComputing : Boolean = false;
   
-  var classes : List[ClassDefinition]= Nil;
-  //var compiledMethods : List[Object]= Nil;
-  var scalaType : Object= null;
+  var compiler : Compiler = null;
+  var property : Property = null;
 
   
   def getForwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, true);

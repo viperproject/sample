@@ -8,6 +8,7 @@ import com.mxgraph.swing._
 import com.mxgraph.model._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
@@ -35,7 +36,7 @@ private class Show extends JFrame {
   }
 }
 
-object ShowGraph
+object ShowGraph extends Property
 {
 	private val ygap : Int = 20;
 	private val leftspace : Int = 40;
@@ -43,6 +44,9 @@ object ShowGraph
 	private val emptySpace : Int = 20;
   	private val spaceSingleCharacter : Int = 7;
   
+  	
+  	def check[S <: State[S]](result : ControlFlowGraphExecution[S], printer : OutputCollector) = Show(result);
+  	
    	def Show[S <: State[S]](a : Any) : Unit = a match {
    	  case graph: ControlFlowGraphExecution[S] => new ShowControlFlowGraphExecution(graph)
       case graph: ControlFlowGraph => new Show(ShowGraph.ControlFlowGraphJGraph(graph), true, -1, -1);
