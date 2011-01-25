@@ -38,7 +38,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 			v.update(0, variable.getName());
 			env=env.add(v, new Array[String](0));
 		}
-		return new ApronInterface(state.changeEnvironmentCopy(domain, env, true), domain);
+		return new ApronInterface(state.changeEnvironmentCopy(domain, env, false), domain);
 	}
 	
 	override def removeVariable(variable : Identifier) : ApronInterface = { 

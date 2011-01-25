@@ -28,7 +28,7 @@ object ApronRun {
 	SystemParameters.property = new ApronProperty;
 	
 	//Files paths
-	val f1 = "/root/workspace/sample/src/src/Examples/Temp.scala";
+	val f1 = "/root/workspace/sample/src/Examples/Temp.scala";
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 	
