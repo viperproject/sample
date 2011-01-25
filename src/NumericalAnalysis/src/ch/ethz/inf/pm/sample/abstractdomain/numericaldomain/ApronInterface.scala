@@ -1,4 +1,4 @@
-/*package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
+package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain._
@@ -160,4 +160,4 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	}
 }
 
-class ApronException(s : String) extends Exception(s);*/
+class ApronException(s : String) extends Exception(s);
