@@ -104,7 +104,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
     case ClassDef(mods, name, tparams, Template(parents, self, body)) =>
       val programpoint : ScalaProgramPoint = new ScalaProgramPoint(program.pos);
       val currentType = new ScalaType(program.symbol.tpe)//extractType(program.tpe)
-      //SystemParameters.scalaType=currentType;
+      SystemParameters.typ=currentType;
       val parametricTypes : List[ScalaType] = extractListTypes(tparams);
       val extend : List[ClassIdentifier] = Nil;
       val members : (List[FieldDeclaration], List[MethodDeclaration]) = extractClassMembers(body, currentType);

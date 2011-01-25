@@ -17,6 +17,7 @@ object SystemParameters {
   var currentMethod : String = null;
   var semanticsComputing : Boolean = false;
   
+  var typ : Type = null;
   var compiler : Compiler = null;
   var property : Property = null;
 

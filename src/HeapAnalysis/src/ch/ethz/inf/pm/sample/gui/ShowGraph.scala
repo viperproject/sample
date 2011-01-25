@@ -45,8 +45,8 @@ object ShowGraph extends Property
   	private val spaceSingleCharacter : Int = 7;
   
   	
-  	def check[S <: State[S]](result : ControlFlowGraphExecution[S], printer : OutputCollector) = Show(result);
-  	
+  	def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) = Show(result);
+  	def finalizeChecking() : Unit = Unit;
    	def Show[S <: State[S]](a : Any) : Unit = a match {
    	  case graph: ControlFlowGraphExecution[S] => new ShowControlFlowGraphExecution(graph)
       case graph: ControlFlowGraph => new Show(ShowGraph.ControlFlowGraphJGraph(graph), true, -1, -1);

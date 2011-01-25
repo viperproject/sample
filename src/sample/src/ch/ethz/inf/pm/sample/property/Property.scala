@@ -6,7 +6,8 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import java.io.PrintStream
 
 trait Property {
-  def check[S <: State[S]](result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
+  def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
+  def finalizeChecking() : Unit;
 }
 
 trait Visitor {
@@ -14,7 +15,7 @@ trait Visitor {
 }
 
 class SingleStatementProperty(visitor : Visitor) extends Property {
-  def check[S <: State[S]](result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+  def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
     for(i <- 0 to result.nodes.size-1)
         for(k <- 0 to result.cfg.nodes.apply(i).size-1) {
           val statement=result.cfg.nodes.apply(i).apply(k);
@@ -26,41 +27,42 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
 	          )
           else {
         	  val state=result.nodes.apply(i).apply(k);
-        	  checkStatement(visitor, state, statement, printer)
+        	  checkStatement(className, methodName, visitor, state, statement, printer)
           }
         }
       }
-  def checkStatement[S <: State[S]](visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
+  override def finalizeChecking() : Unit = Unit;
+  def checkStatement[S <: State[S]](className : String, methodName : String, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
         	  	case Assignment(programpoint, left, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		this.checkStatement(visitor, state, left, printer)
-        	  		this.checkStatement(visitor, left.forwardSemantics[S](state), right, printer)
+        	  		this.checkStatement(className, methodName, visitor, state, left, printer)
+        	  		this.checkStatement(className, methodName, visitor, left.forwardSemantics[S](state), right, printer)
         	  	case VariableDeclaration(programpoint, variable, typ, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		checkStatement(visitor, state, right, printer)
+        	  		checkStatement(className, methodName, visitor, state, right, printer)
         	  	case Variable(programpoint, id) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  	case FieldAccess(pp, objs, field, typ) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  		for(obj <- objs)
-        	  			checkStatement(visitor, state, obj, printer)
+        	  			checkStatement(className, methodName, visitor, state, obj, printer)
         	  	case MethodCall(pp, method, parametricTypes, parameters, returnedType) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		checkStatement(visitor, state, method, printer)
+        	  		checkStatement(className, methodName, visitor, state, method, printer)
         	  		var lastState=method.forwardSemantics[S](state);
         	  		for(par <- parameters)
-        	  		  checkStatement(visitor,state, par, printer)
+        	  		  checkStatement(className, methodName, visitor,state, par, printer)
         	  	case New(pp, typ) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  	case NumericalConstant(pp, value, typ) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  	case Throw(programpoint, expr) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		checkStatement(visitor,state, expr, printer)
+        	  		checkStatement(className, methodName, visitor,state, expr, printer)
         	  	case x : ControlFlowGraph =>
         	  		//This should be already there!!!
         	  		val result=new ControlFlowGraphExecution[S](x, state).forwardSemantics(state);
-        	  		this.check(result, printer);
+        	  		this.check(className, methodName, result, printer);
         	  }
   
 }

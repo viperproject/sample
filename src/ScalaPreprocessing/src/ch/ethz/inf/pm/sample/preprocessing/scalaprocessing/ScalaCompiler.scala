@@ -12,7 +12,8 @@ class ScalaCompiler extends Compiler {
 
 	def compileFile(path : String) : List[ClassDefinition] = {
 		SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil;
-  	    
+  	    //SystemParameters.typ is initialized inside the parser
+		
 	    val settings = new Settings
 
         // WORK
@@ -43,6 +44,7 @@ class ScalaCompiler extends Compiler {
 	    val runner = new PluginRunner(settings)
 	    val run = new runner.Run
 	    run.compile(command.files)
+	    return ScalaClasses.classes;
 	}
 	
 }

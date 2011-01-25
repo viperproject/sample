@@ -244,21 +244,9 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  case Variable(programpoint, id) => return id;
 	}
    
- /**
-  * Given the name of the class and the name of the method, it returns the given method if it finds it
-  */
-	private def findMethod(className : String, methodName : String) : Option[MethodDeclaration] = {
-	  val classes : List[ClassDefinition] = SystemParameters.classes;
-	  for(classe <- classes )
-		  if(classe.name.toString().equals(className)) {
-		    for(method <- classe.methods )
-		    	if(method.name.toString().equals(methodName))
-		    		return Some(method);
-		    return None;
-		  }
-	  return None	
-	}
- 
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = 
+		throw new MethodSemanticException("Backward semantics not yet supported");
+		
 	private def getPrePostConditions(className : String, methodName : String) : Option[(Map[FieldAccess, Int], Map[FieldAccess, Int])] = {
 	  	val classPreconditions=Annotation.preconditions.get(className);
 	  	val classPostconditions=Annotation.postconditions.get(className);
@@ -268,7 +256,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  	if(methodPreconditions==None || methodPostconditions==None) return None;
 	  	return Some((methodPreconditions.get, methodPostconditions.get))
 	}
-
+/*
 	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = thisExpr.getType().toString() match {
 	  case "Chalice" =>
 	    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]
@@ -380,7 +368,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
    
       //case _ => return None;
 	}
- 
+ */
 }
 
 class MethodSemanticException(message : String) extends Exception(message)
