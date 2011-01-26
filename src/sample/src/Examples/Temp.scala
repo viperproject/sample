@@ -12,9 +12,9 @@ class B {
   
   def Numerical(i : Int) = {
 	  var j = 1;
-	   j=j+1;
-	   //if(i>0)
-	  	   //j=j+1;
+	   //j=j+1;
+	   while(j<1000)
+	  	   j=j+1;
   }
   
   /*def Try() = {
