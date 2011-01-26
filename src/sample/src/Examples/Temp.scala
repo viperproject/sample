@@ -10,10 +10,11 @@ class B {
     Chalice.release(this)
   }*/
   
-  def Numerical(/*i : Int*/) = {
+  def Numerical(i : Int) = {
 	  var j = 1;
-	  while(j<10)
-	    j=j*2;
+	   j=j+1;
+	   //if(i>0)
+	  	   //j=j+1;
   }
   
   /*def Try() = {
