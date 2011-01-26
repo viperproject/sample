@@ -6,10 +6,6 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
 	
-	/*def this(d : Manager) {
-		this(new Abstract1(d, new Environment()), d);
-	}*/
-	
 	override def getStringOfId (id : Identifier) : String = {
 		var result : String = "";
 		for(c <- this.state.toLincons(domain)) {
@@ -54,7 +50,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		new ApronInterface(st, domain);
 	}
 	override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
-		val st = state.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, state.getEnvironment()), state);
+		val st = state.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, state.getEnvironment()), null);
 		new ApronInterface(st, domain);
 	}
 	override def assume(expr : Expression) : ApronInterface = {
