@@ -21,7 +21,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		return result;
 	}
 	
-	override def toString() : String = "A";//state.toString(); 
+	override def toString() : String = state.toString(); 
 	
 	
 	private def constraintContains(c : Lincons1, variable : String) : Boolean = {
@@ -105,7 +105,8 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(r.state.isTop(domain)) return true;
 		if(r.state.isBottom(domain)) return false;
 		if(this.state.isTop(domain)) return false;
-		this.state.isIncluded(domain, r.state);
+		val result=this.state.isIncluded(domain, r.state);
+		return result;
 	}
 	
 	private def toTexpr1Intern(e : Expression, env : apron.Environment) : Texpr1Intern = {
@@ -149,14 +150,17 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 				case ArithmeticOperator.!= => return new Tcons1(env, Tcons1.DISEQ, expr1)
 				case ArithmeticOperator.> => return new Tcons1(env, Tcons1.SUP, expr1)
 			}
-		
+		case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
+			return toTcons1(BinaryArithmeticExpression(left, right, negateOperator(op), typ), env)
 	}
-	
-	private def toTcons0Operator(op : ArithmeticOperator.Value) : Int = op match {
-				case ArithmeticOperator.>= => Tcons0.SUPEQ
-				case ArithmeticOperator.== => Tcons0.EQ
-				case ArithmeticOperator.!= => Tcons0.DISEQ
-				case ArithmeticOperator.> => Tcons0.SUP
+
+	private def negateOperator(op : ArithmeticOperator.Value) : ArithmeticOperator.Value = op match {
+			case ArithmeticOperator.<= => return ArithmeticOperator.>=
+			case ArithmeticOperator.< => return ArithmeticOperator.>
+			case ArithmeticOperator.>= => return ArithmeticOperator.<=
+			case ArithmeticOperator.== => return ArithmeticOperator.!=
+			case ArithmeticOperator.!= => return ArithmeticOperator.==
+			case ArithmeticOperator.> => return ArithmeticOperator.<
 	}
 }
 
