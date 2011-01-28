@@ -29,7 +29,8 @@ class ClassHeapIdentifier(val value : Type) extends NonRelationalHeapIdentifier[
     override def extractField(h : ClassHeapIdentifier, s : String, t : Type) : ClassHeapIdentifier=new FieldHeapIdentifier(h.value, s, t);
     override def accessStaticObject(t : Type) : ClassHeapIdentifier=new ClassHeapIdentifier(t);
     override def createAddress(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t);
-    override def createAddressForParameter(t : Type) : ClassHeapIdentifier=new ClassHeapIdentifier(t);
+    override def createAddressForParameter(t : Type) : ClassHeapIdentifier=
+    	new ClassHeapIdentifier(t);
     override def representSingleVariable() : Boolean=false;
     override def getName() : String=value.getName();
     override def clone() : Object =new ClassHeapIdentifier(this.value);

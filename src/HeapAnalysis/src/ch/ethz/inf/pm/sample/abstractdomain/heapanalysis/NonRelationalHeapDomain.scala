@@ -157,7 +157,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       else {
         var result = Map.empty[Identifier, List[String]];
         result=result+((variable, variable.toString() :: Nil ))
-        (this, result);
+        (new NonRelationalHeapDomain(this._1.add(x.asInstanceOf[VariableIdentifier], cod.bottom()), this._2, cod, dom), result);
         }
      case x : HeapIdentifier[I] => {throw new Exception("This should not happen!");}
   }
