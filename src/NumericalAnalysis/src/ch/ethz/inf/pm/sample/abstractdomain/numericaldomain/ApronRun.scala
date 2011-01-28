@@ -20,7 +20,7 @@ class ApronProperty extends Property {
 object ApronRun {
   type HeapId = ClassHeapIdentifier;
 
-  private val methods : List[String] = "Numerical" :: Nil;
+  private val methods : List[String] = /*"ex1" :: */"ex2" :: /*"ex3" :: "ex4" :: */Nil;
   
   def main(args : Array[String]) : Unit = {
 	//Mandatory global settings
@@ -28,7 +28,7 @@ object ApronRun {
 	SystemParameters.property = new ApronProperty;
 	
 	//Files paths
-	val f1 = "/home/pietro/workspace/sample/src/Examples/Temp.scala";
+	val f1 = "/home/pietro/sample/trunk/test/numerical.scala";
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 	

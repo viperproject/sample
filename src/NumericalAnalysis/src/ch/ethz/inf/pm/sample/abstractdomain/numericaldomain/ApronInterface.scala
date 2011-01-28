@@ -151,12 +151,12 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	}
 
 	private def negateOperator(op : ArithmeticOperator.Value) : ArithmeticOperator.Value = op match {
-			case ArithmeticOperator.<= => return ArithmeticOperator.>=
-			case ArithmeticOperator.< => return ArithmeticOperator.>
-			case ArithmeticOperator.>= => return ArithmeticOperator.<=
+			case ArithmeticOperator.<= => return ArithmeticOperator.>
+			case ArithmeticOperator.< => return ArithmeticOperator.>=
+			case ArithmeticOperator.>= => return ArithmeticOperator.<
 			case ArithmeticOperator.== => return ArithmeticOperator.!=
 			case ArithmeticOperator.!= => return ArithmeticOperator.==
-			case ArithmeticOperator.> => return ArithmeticOperator.<
+			case ArithmeticOperator.> => return ArithmeticOperator.<=
 	}
 }
 
