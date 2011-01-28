@@ -91,8 +91,8 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(left.state.isTop(domain) || right.state.isTop(domain)) return top();
 		if(left.state.isBottom(domain)) return right;
 		if(right.state.isBottom(domain)) return left;
-		val st = new Abstract1(domain, left.state);
-		st.widening(domain, right.state);
+		var st = new Abstract1(domain, left.state);
+		st = st.widening(domain, right.state);
 		new ApronInterface(st, domain);
 	}
 	
@@ -139,7 +139,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 				case ArithmeticOperator.<= => localleft = right; localright = left; localop = ArithmeticOperator.>=; 
 				case ArithmeticOperator.< => localleft = right; localright = left; localop = ArithmeticOperator.>;
 			}
-			val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(left, right, ArithmeticOperator.-, null));
+			val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(localleft, localright, ArithmeticOperator.-, null));
 			localop match {
 				case ArithmeticOperator.>= => return new Tcons1(env, Tcons1.SUPEQ, expr1)
 				case ArithmeticOperator.== => return new Tcons1(env, Tcons1.EQ, expr1)
