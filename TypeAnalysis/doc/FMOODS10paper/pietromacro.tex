@@ -1,0 +1,73 @@
+\newcommand{\analyzer}{\ensuremath{\mathsf{Sample}}}
+
+\newcommand{\variables}{\cset{Var}}
+
+\newcommand{\types}{\aset{T}}
+%\newcommand{\statictype}{\aset{ST}}
+\newcommand{\dynamictype}{\aset{DT}}
+%\newcommand{\staticdynamictype}{\aset{SDT}}
+\newcommand{\nottype}{\aset{NT}}
+\newcommand{\notandtypesdomain}{\aset{FT}}
+
+%\newcommand{\asemanticsstatictyping}[1]{\asemantics{ST}{#1}}
+\newcommand{\asemanticsdynamictyping}[1]{\asemantics{DT}{#1}}
+%\newcommand{\asemanticsstaticdynamictyping}[1]{\asemantics{SDT}{#1}}
+\newcommand{\asemanticsnottyping}[1]{\asemantics{NT}{#1}}
+\newcommand{\asemanticsnotantype}[1]{\asemantics{FT}{#1}}
+
+\newcommand{\Java}{\ensuremath{\mathsf{Java}}}
+\newcommand{\Scala}{\ensuremath{\mathsf{Scala}}}
+\newcommand{\CSharp}{\ensuremath{\mathsf{C\#}}}
+\newcommand{\FSharp}{\ensuremath{\mathsf{F\#}}}
+
+
+\newcommand{\lfp}[2]{\ensuremath{\mathit{lfp}^{#1}_{#2} \hspace{2pt}}}
+\newcommand{\parts}[1]{\ensuremath{\wp(#1)}}
+\newcommand{\dom}[1]{\ensuremath{\cfunction{dom}(#1)}}
+\newcommand{\statement}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\funzione}[2]{\ensuremath{[#1 \rightarrow#2]}}
+\newcommand{\pair}[2]{\ensuremath{#1 \times #2}}
+\newcommand{\cartesianproduct}[2]{\ensuremath{#1 \times #2}}
+\newcommand{\reducedproduct}[2]{\ensuremath{#1 \varotimes #2}}
+\newcommand{\true}{\cel{true}}
+\newcommand{\false}{\cel{false}}
+\newcommand{\reducefunction}{\afunction{red}}
+\newcommand{\gettype}{\afunction{getType}}
+\newcommand{\getstatictype}[1]{\cfunction{\sttype}(#1)}
+\newcommand{\sttype}{statictype}
+\newcommand{\abstractn}{abstract}
+\newcommand{\abstractfunction}[1]{\afunction{\abstractn}(#1)}
+
+
+\newcommand{\sem}[1]{\ensuremath{\llbracket \mathtt{#1} \rrbracket}}
+\newcommand{\semanticanome}[1]{\ensuremath{\mathbb{#1}}}
+\newcommand{\semantica}[2]{\ensuremath{\semanticanome{#1}\sem{#2}}}
+
+%Concreto
+
+%Dominio e semantica concrete
+\newcommand{\cset}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\ctrace}[1]{\ensuremath{\trace{{\cset{#1}}}}}
+\newcommand{\cel}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\cjoin}{\ensuremath{\cup}}
+\newcommand{\cmeet}{\ensuremath{\cap}}
+\newcommand{\corder}{\ensuremath{\subseteq}}
+\newcommand{\cbot}{\ensuremath{\emptyset}}
+\newcommand{\ctop}[1]{\cset{#1}}
+\newcommand{\cfunction}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\csemantics}[2]{\ensuremath{\semantica{#1}{#2}}}
+
+%Astratto
+
+%Dominio e semantica astratte
+\newcommand{\aset}[1]{\cset{\overline{#1}}}
+\newcommand{\ael}[1]{\cel{\overline{#1}}}
+\newcommand{\ajoin}{\ensuremath{\sqcup}}
+\newcommand{\ameet}{\ensuremath{\sqcap}}
+\newcommand{\awidening}{\ensuremath{\nabla}}
+\newcommand{\aorder}{\ensuremath{\sqsubseteq}}
+\newcommand{\abot}{\ensuremath{\bot}}
+\newcommand{\abtop}{\ensuremath{\top}}
+\newcommand{\asemantics}[2]{\semantica{\afunction{\semanticanome{#1}}}{#2}}
+\newcommand{\atrace}[1]{\ensuremath{\trace{#1}}}
+\newcommand{\afunction}[1]{\ensuremath{\overline{\mathit{#1}}}}
