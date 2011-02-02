@@ -28,7 +28,7 @@ public class JavaType implements Type {
         return true;
     }
     
-    public scala.collection.immutable.List<String> getPossibleFields() {
+    public scala.Set<(String, Type)> getPossibleFields() {
     	return null;
     }
     

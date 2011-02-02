@@ -1,12 +1,13 @@
 package javatosimple;
 
 import ch.ethz.inf.pm.sample.oorepresentation.*;
+//import scala.collection.immutable.List;
 
-import java.util.ArrayList;
+import java.util.*;
 
 
 /**
- * A little helper class to extract Types of a given Java method escriptor or to
+ * A little helper class to extract Types of a given Java method descriptor or to
  * retrieve access modifiers.
  *
  * @author Roman Scheidegger
@@ -104,7 +105,7 @@ public class TypeExtractor {
      * @return Scala list of access modifiers
      */
     public static scala.collection.immutable.List<Modifier> getModifiers(int accessflags) {
-        scala.collection.immutable.List<Modifier> mods = (new scala.collection.immutable.List<Modifier>()).getEmptyList();
+    	scala.collection.immutable.List<Modifier> mods = ScalaFromJavaHelper.list();
         try {
             if((accessflags & 1024) != 0)
                 mods = mods.$plus((Modifier)new AbstractModifier$());

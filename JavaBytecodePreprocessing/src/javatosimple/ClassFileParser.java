@@ -3,6 +3,8 @@ package javatosimple;
 //import javatosimple.SimpleClasses.JavaMethodIdentifier;
 
 import ch.ethz.inf.pm.sample.abstractdomain.*;
+import listhelperlib.*;
+
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
 import java.io.DataInputStream;
