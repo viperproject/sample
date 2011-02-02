@@ -1,0 +1,120 @@
+\documentclass{article} 
+
+\usepackage[final]{listings}
+\usepackage{stmaryrd}
+\usepackage{amssymb}
+\usepackage{subfig}
+\usepackage{graphicx}
+\usepackage{array}
+
+\lstset{language={Java},mathescape=true,flexiblecolumns=true,morekeywords={,share,unshare,acquire,release,invariant,requires,ensures,w,r,}basicstyle=\sffamily\small,moredelim=[is][\itshape]{@}{@},numberstyle=\footnotesize,stepnumber=1,numbersep=2pt}
+
+
+\input{pietromacro}
+\pagestyle{plain}
+
+\begin{document}
+\title{Formalization of Simple}
+
+\author{Pietro Ferrara}
+
+\maketitle
+
+\section{Statements}
+
+\begin{center}
+\begin{tabular}{rlr}
+\statement{St\ ::=} & \statement{st_1\ :=\ st_2} & (C1)\\
+$|$ & \statement{t\ v\ [:=\ st_1]} & (C2)\\
+$|$ & \statement{v} & (C3)\\
+$|$ & \statement{\{st_1 [, st_2 [, st_3 [\cdots]]]\}.f } & (C4)\\
+$|$ & \statement{st_1[<t_1 [, t_2 [\cdots]]>]([st_1 [, st_2 [\cdots]]])} & (C5)\\
+$|$ & \statement{new\ t} & (C6)\\
+$|$ & \statement{c} & (C7)\\
+$|$ & \statement{throw\ st_1} & (C8)\\
+$|$ & \statement{skip} & (C9)\\
+$|$ & \statement{cfg} & (C10)\\
+\end{tabular}
+\end{center}
+where
+\begin{itemize}
+\item \statement{t} represents the set of type identifiers,
+\item \statement{v} represents the set of variable identifiers,
+\item \statement{f} represents the set of field identifiers,
+\item \statement{c} represents the set of constants (i.e., numbers, strings, ...), and 
+\item \statement{cfg} represents the set of control flow graphs (see next section).
+\end{itemize}
+
+\subsection{An intuition about the semantics}
+The state of the computation is composed by
+\begin{itemize}
+\item a "normal" state (e.g., an environment - that relates variables to values, and a store - that relates an address and a field name to values, and values are addresses or primitive values like integers),
+\item a value that represents what is "left" by the previous statement (e.g., the value of the accessed variable or field). For statements (e.g., assignments) that does not return any value, there is a special value called \statement{Unit}.
+\end{itemize}
+
+
+\section{Control Flow Graph}
+The cfg blocks are made by list of statements. The edges may have a boolean weight (to represent that the value resulting from the computation of the block has to be true or false in order to traverse that edge), or no weight (to represent something like a goto statement). As sorting edges, each block can have an unweighted edges, or two weighted edges (one with true weight, and the other one with the false weight).
+
+\section{Class}
+
+\subsection{Method declaration}
+\begin{center}
+\begin{tabular}{ll}
+\statement{Mdec\ ::=} & \statement{[mod_1\ [, mod_2\ [\cdots]]]\ t_r\ m([t_1\ p_1\ [, t_2\ p_2\ [\cdots]]]) = st}\\
+\end{tabular}
+\end{center}
+where
+\begin{itemize}
+\item \statement{mod} represents the set of modifiers (e.g., \statement{public}),
+\item \statement{m} represents the set of method identifiers,
+\item \statement{t} represents the set of type identifiers, and
+\item \statement{p} represents the set of parameter identifiers.
+\end{itemize}
+
+\subsection{Field declaration}
+\begin{center}
+\begin{tabular}{ll}
+\statement{Fdec\ ::=} & \statement{[mod_1\ [, mod_2\ [\cdots]]]\ t\ f\ [:= st]}\\
+\end{tabular}
+\end{center}
+where
+\begin{itemize}
+\item \statement{mod} represents the set of modifiers (e.g., \statement{public}),
+\item \statement{t} represents the set of type identifiers, and
+\item \statement{f} represents the set of field identifiers.
+\end{itemize}
+
+\subsection{Class declaration}
+\begin{center}
+\begin{tabular}{ll}
+\statement{Cdec\ ::=} & \statement{[mod_1\ [, mod_2\ [\cdots]]]\ class\ c[<t_1 [,\ t_2\ [\cdots]]>]} =\{\\
+& \hspace{20pt} \statement{[fdec_1;\ [fdec_2;\ [\cdots]]]}\\
+& \hspace{20pt} \statement{[mdec_1;\ [mdec_2;\ [\cdots]]]}\\
+&\}\\
+\end{tabular}
+\end{center}
+where
+\begin{itemize}
+\item \statement{mod} represents the set of modifiers (e.g., \statement{public}),
+\item \statement{t} represents the set of type identifiers, and
+\item \statement{c} represents the set of class identifiers.
+\end{itemize}
+
+\section{Package}
+\begin{center}
+\begin{tabular}{ll}
+\statement{Pdec\ ::=} & \statement{package\ p}\\
+& \statement{[cdec_1\ [cdec_2\ [\cdots]]]}\\
+\end{tabular}
+\end{center}
+
+
+where
+\begin{itemize}
+\item \statement{p} represents the set of package identifiers.
+\end{itemize}
+
+\end{document}
+
+

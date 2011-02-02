@@ -1,0 +1,1520 @@
+\documentclass{llncs} 
+
+\usepackage[final]{listings}
+%\usepackage{multicol}
+\usepackage{stmaryrd}
+\usepackage{amssymb}
+%\usepackage{subfig}
+%\usepackage{graphicx}
+%\usepackage{array}
+
+\lstset{
+numbers=left,
+numberstyle=\tiny,
+language={Java},
+mathescape=true,
+flexiblecolumns=true,
+morekeywords={call,method,var,assert,share,unshare,acquire,release,fork,join,free,invariant,requires,ensures,acc,rd,old},
+basicstyle=\sffamily\scriptsize,
+moredelim=[is][\itshape]{@}{@},
+stepnumber=1,
+numbersep=2pt}
+
+\newenvironment{keywords}{
+       \list{}{\advance\topsep by0.35cm\relax\small
+       \leftmargin=1cm
+       \labelwidth=0.35cm
+       \listparindent=0.35cm
+       \itemindent\listparindent
+       \rightmargin\leftmargin}\item[\hskip\labelsep
+                                     \bfseries Key words:]}
+{\endlist}
+
+\input{pietromacro}
+\pagestyle{plain}
+
+\begin{document}
+
+
+\title{Automatic Inference of Access Permissions}
+
+\author{Pietro Ferrara \and Peter M\"uller}
+\institute{ETH Zurich, Switzerland\\
+\email{\{pietro.ferrara, peter.mueller\}@inf.ethz.ch}}
+
+\maketitle
+
+%\todo{What are the key ideas that we should highlight? Is there anything very original?}
+\goup
+\goup
+\goup
+\goup
+\begin{abstract}
+Access permissions are an expressive foundation for the verification
+of imperative programs; they simplify framing and provide a
+basis for reasoning about concurrent code. They are used in a number
+of modern verification approaches such as those based on separation
+logic or implicit dynamic frames. However, access permissions increase
+the annotation overhead because programmers need to specify for each
+program component which permissions it requires from or provides for
+its clients. In this paper, we present a new static analysis based on
+abstract interpretation to infer access permissions automatically.
+Our analysis computes a constraint system that captures the required
+access permissions for each heap location at each
+program point, which we then solve using linear programming. We 
+developed our analysis for the programming language Chalice, which
+supports fractional as well as counting permissions. 
+Experimental results demonstrate that our analysis is fast and is able
+to infer almost all the access permissions for our case studies.
+%We deal with Chalice programs, and we infer
+%annotation on pre and post conditions, monitor invariants, abstract
+%predicates, and loop invariants. 
+\end{abstract}
+%\begin{keywords}
+%Abstract interpretation, static analysis, frame information, access permissions.
+%\end{keywords}
+\goup
+\goup
+\goup
+\goup
+\section{Introduction}
+\goup
+
+Verification techniques based on access permissions associate a
+permission with each heap location. These permissions can be passed
+between methods. A method may access a location if and only if it has
+the access permission for that location. This rule simplifies framing
+because it implies that a method may modify at most those locations
+for which it has permission; all other locations are guaranteed to
+remain unchanged. It also enables the verification of concurrent
+programs, where permissions allow one to prove the absence of data
+races (two threads cannot both have the access permission for any
+memory location) and reason about thread interleavings (if a thread
+has the permission for a location, no other thread can modify it).
+These ideas are for instance used in separation logic
+\cite{REY02} and implicit dynamic frames \cite{SJP09}.
+Fractional permissions \cite{Boyland03} and counting permissions
+\cite{BornatCOP05} refine this permission model by allowing a full
+permission to be split (repeatedly) into fractions or into any
+number of units, which can be re-composed into a full permission. 
+Both fractional and counting permissions allow one to distinguish between
+read access (requiring any non-zero permission) and write access
+(requiring full permission) and, thus, support parallel reads
+while still enforcing exclusive writes.
+
+\begin{figure}
+\goup
+\goup
+\goup
+\setlength{\columnseprule}{0.5pt}
+\setlength{\columnsep}{10pt}
+\begin{multicols}{3}
+\begin{lstlisting}[numbers=none]
+class Coord {
+  var x: int;
+  var y: int;
+
+  invariant acc(x) && acc(y)
+\end{lstlisting}
+\columnbreak
+\begin{lstlisting}[numbers=none]
+  method client() {
+    acquire this;
+    var oldX := x; var oldY := y;
+    this.FlipH();
+    assert x == -oldX;
+    assert y == oldY;
+    release this;
+  }
+\end{lstlisting}
+\columnbreak
+\begin{lstlisting}[numbers=none]
+  method FlipH()
+  requires acc(x)
+  ensures acc(x)
+  ensures x == -old(x) 
+  { x := -x; }
+}
+\end{lstlisting}
+\end{multicols}
+\normalsize
+\goup
+\caption{A chalice example illustrating access permissions.}
+\label{fig:permissionexample}
+\goup
+\goup
+\goup
+\end{figure}
+
+\figref{fig:permissionexample} illustrates the use of access
+permissions in Chalice \cite{LM09,LMS09}, a programming language and static
+program verifier for concurrent class-based programs that supports
+both fractional and a flavor of counting permissions. A full
+permission to a location \statement{e.f} is denoted by
+\statement{acc(e.f)}, which corresponds to
+$\statement{e.f}\mapsto\_\;$ in separation logic.  The monitor
+invariant of class \statement{Coord} expresses that the monitor holds
+the permission to \statement{this.x} and \statement{this.y} when the
+monitor is not being held by any thread. When the monitor is being
+acquired by a thread, the thread obtains these permissions, and returns
+them to the monitor when releasing it. Method \statement{client}
+obtains permissions to \statement{this.x} and \statement{this.y} by
+acquiring the monitor of \statement{this}. Since it has permission to
+\statement{x}, it may call method \statement{FlipH}, which requires
+this permission (via its precondition) in order to update the value of
+\statement{x} and then returns the permission to the caller (via its
+postcondition). Both assertions in \statement{client} verify. The
+first assertion verifies because the asserted property is established by the
+call to \statement{FlipH}; since the current thread holds the
+permission to \statement{x}, no other thread could interfere and
+invalidate the property. The second assertion illustrates framing:
+since \statement{client} does not pass its permission for \statement{y}
+to \statement{FlipH}, we can conclude that \statement{FlipH} is not
+allowed to modify \statement{y}. Both assertions would not verify if they
+were placed after the \statement{release} statement because then other
+threads could obtain permissions to \statement{x} and \statement{y}
+and invalidate the asserted properties.
+
+A drawback of all permission systems is that they require programmers
+to annotate their programs with access permissions, which increases
+the annotation overhead significantly. To address this issue, we
+present a new static analysis based on abstract interpretation to
+infer access permissions automatically.  We developed our analysis for
+Chalice; it infers the access annotations for pre- and postconditions,
+monitor invariants, abstract predicates, and loop invariants. Our
+paper makes three technical contributions: (1)~a representation of
+required fractional and counting permissions with symbolic values,
+(2)~the inference of constraints over these symbolic values, whose
+solution provides the necessary program annotations, and (3)~an
+implementation and experimental evaluation of the analysis in
+\Sample\ (Static Analyzer of Multiple Programming LanguagEs).
+
+
+\goup
+\goup
+\subsubsection{Approach.}
+
+%This approach is based on a static analysis based on the abstract interpretation theory \cite{CC77,CC79}, and it supports several Chalice features (namely, predicates, sharing of variables, monitors, fork and join of threads). The analysis relies on a heap abstraction that soundly approximates all the concrete structures of the heap.
+
+Our approach is based on abstract interpretation \cite{CC77,CC79}, a
+theory for defining and soundly approximating the semantics of a
+program. Then the main components of our analysis are: (i) an \emph{abstract domain} that is a complete
+lattice $\langle \aset{A}, \aorder_\aset{A}, \abot_\aset{A},
+\abtop_\aset{A}, \ajoin_\aset{A}, \ameet_\aset{A} \rangle$, (ii) a
+\emph{widening} operator to make  the analysis convergent, and (iii) an
+\emph{abstract semantics} defined as a transfer function that, given a
+statement and an initial abstract state, defines the abstract state
+obtained after the given statement.
+
+We introduce a \emph{symbolic value} for each location and each
+possible occurrence of an access permission in a
+pre- or postcondition, monitor invariant, or abstract
+predicate.  For instance, \presv{C}{m}{x.f} represents the access
+permission specified in the precondition of method \statement{m} of
+class \statement{C} for the location denoted by the path
+\statement{x.f}.  Using these symbolic values, the analysis infers a
+sound approximation of the access permissions that the current thread
+has for any given heap location at any given program
+point. These \emph{symbolic permissions} have the form of $\sum a_i *
+\statement{v}_i + c$ where $a_i$ and $c$ are integers in
+\integernumbers, and $\statement{v}_i$ is a symbolic value. For
+instance, if method \statement{m}'s first statement acquires the
+monitor of \statement{this} then its symbolic permission \statement{l}
+for a location \statement{x.f} is $1 * \presv{C}{m}{x.f} + 1 *
+\misv{C}{x.f} + 0$.
+
+We then extract a set of \emph{constraints} over the symbolic values,
+which reflect the permission rules of Chalice. For instance, if
+\statement{m}'s next statement is the field write
+$\statement{x.f}:=\ldots$, we introduce a constraint that the symbolic
+permission \statement{l} at this program point is equal to the full (write)
+permission. We solve the resulting constraint system using linear
+programming and obtain a numerical access permission for each symbolic
+value. For simplicity, we assume here that the inference is run on
+un-annotated programs, but partial annotations could be easily represented as additional constraints.
+
+
+%% In addition, we can introduce some optional unsoundness when building
+%% up the entry state of a method, and when inhaling permissions on
+%% summary locations. We adopt this unsoundness in order to increase the
+%% amount of inferred permissions, and this is particularly useful when
+%% the heap approximation is too coarse.
+
+%The approach has been \emph{implemented} in \Sample\ (Static Analyzer of Multiple Programming LanguagEs). 
+%The structure of \Sample\ is such that it can be plugged with different domains, e.g., heap analyses. \Sample\ works on an intermediate language called \Simple, and we have already implemented the translation from \Scala\ to this language. Thus the examples we analyze are written in \Scala, and we add a library to simulate Chalice primitives. 
+
+The experimental results show that our analysis is fast and
+accurate. For all examples in our test suite, we infer permission
+annotations in under three seconds. Our analysis infers all
+necessary permissions in all examples except for two that use
+recursive data structures, for which our heap abstraction is too
+coarse. We expect more precise heap analyses like TVLA \cite{SRW02}
+to solve this issue.
+
+
+
+
+\goup
+\goup
+\subsubsection{Outline.}
+
+\secref{sect:language} introduces the language supported by our
+analysis and the running example. \secref{sect:heapanalysis} sketches
+our heap analysis, while \secref{sect:abstractdomain} defines the
+symbolic abstract domain and semantics to approximate access
+permissions. \secref{sect:inference} presents how we infer access
+permissions.  \secref{sect:experimentalresults} reports the
+experimental results.  \secref{sect:relatedwork} discusses related
+work, and \secref{sect:conclusion} concludes.
+
+
+
+
+%\noindent \textbf{Generic analyzers} Abstract interpretation can be applied in order to develop generic analyzers \cite{COU99}. In particular, this theory allows one to define a compositional analysis, e.g., an analysis that can be instantiated with different numerical domains, and in order to analyze different properties. Many different generic analyzers have been proposed recently \cite{FER09a,LF08,SPO05}. The analysis we present in this paper has been implemented in \Sample.
+\goup
+\section{Language}
+\label{sect:language}
+
+In this section, we introduce the subset of Chalice used
+in the rest of the paper. For brevity, we omit abstract predicates
+here, but our tool handles them.
+
+A program consists of a sequence of class declarations.  Each class
+declares fields, a monitor invariant, and methods. At runtime, each
+object has a (non-reentrant) monitor.  A method declaration contains
+the method signature, pre- and postconditions, and a method body,
+which is given as a Control Flow Graph (cfg) of basic blocks. Each
+basic block consists of a sequence of statements. Different blocks are
+connected through edges that optionally contain a boolean condition to
+represent conditional jumps, for instance, to represent conditionals
+and loops. Specifications are expressed using the expressions of the programming
+language, an \statement{old}-expression to let postconditions refer to
+prestate-values, and permission predicates, which we describe below.
+
+
+\goup
+\goup
+\subsubsection{Expressions and Statements.}
+
+The expressions and statements of our language are summarized in 
+Table~\ref{fig:language}. The expressions are local variable 
+access and field read; we omit uninteresting expressions such as boolean and arithmetic operators here, but use them in our examples.
+
+\begin{table}[ht]
+\begin{center}
+\statement{E ::=} \statement{y} \texttt{|} \statement{x.f}\\% \texttt{|} \statement{new\ T}\\
+\begin{tabular}{rllllllll}
+\statement{St\ ::} & \texttt{=}\ 
+\statement{x:=E} & 
+\texttt{|} \statement{x:=new\ T} &
+\texttt{|} \statement{acquire\ x} &
+\texttt{|} \statement{t:=fork\ x.m()} &
+\texttt{|} \statement{share\ x} & 
+%\texttt{|} \statement{fold\ x.pred} &
+\\
+&  
+\texttt{|} \statement{x.f:=E} &
+\texttt{|} \statement{x.m()}  &
+%\texttt{|} \statement{free\ x}&
+\texttt{|} \statement{release\ x} &
+\texttt{|} \statement{join\ t} 
+%\texttt{|} \statement{unshare\ x} &
+%\texttt{|} \statement{unfold\ x.pred} 
+\end{tabular}
+\goup
+\end{center}
+\caption{Expressions and statements of our Chalice subset.}
+\label{fig:language}
+\end{table}
+
+The statements of our language are: local variable assignment, field
+write, object creation, method call, acquiring and releasing monitors,
+forking and joining threads, as well as sharing a previously
+thread-local object, that is, making the object available for locking.
+
+\goup
+\goup
+\subsubsection{Permissions.}
+
+\lstset{basicstyle=\sffamily\normalsize}
+A permission in Chalice has the form $p\% + n\cdot\epsilon$, where $p$
+is a natural number between 0 and 100, $n$ is an integer, and
+$\epsilon$ is an infinitesimal permission, that is, an arbitrarily
+small, positive number. The percentage encodes fractional permissions,
+whereas the infinitesimal permission is used as counting permissions.
+A thread may access a heap location if and only if it has the
+permission to do that. A value strictly greater than 0 allows a thread
+to read (that is, $p > 0$ or $n>0$), but only a full 100\% permission
+($p=100$ and $n=0$) allows a thread to write. In specifications, we
+write \statement{acc(x.f,p)} and \statement{rd(x.f)} to denote a
+\statement{p}\% permission and an infinitesimal permission for
+location \statement{x.f}, respectively. A full permission is written
+as \statement{acc(x.f)}, which abbreviates \statement{acc(x.f,100)}.
+Specification must be \emph{self-framing}, that is, a specification may refer to
+\statement{x.f} only if it also includes at least a read permission
+for \statement{x.f}. For instance, \lstinline{rd(x.f) && x.f > 0} is
+a valid specification, but  \lstinline{x.f > 0} is not. 
+
+\goup
+\goup
+\subsubsection{Permission Transfer.}
+
+\lstset{basicstyle=\sffamily\scriptsize} 
+Permissions are held by
+threads, more precisely by a method incarnation. Moreover, they can be stored in monitors. The semantics of many statements includes a permission transfer between these
+places. This transfer is encoded via two basic operations. The
+\emph{exhale} operation takes a specification $s$, proves that $s$
+holds, and consumes the permissions described by $s$; that is, it
+checks that the current thread has the required permissions and then
+removes them. The \emph{inhale} operation takes a specification $s$,
+assumes that $s$ holds, and provides permissions described by $s$ to
+the current thread; that is, it adds permissions and, if the thread
+previously had no permission for a location, assigns an arbitrary
+value to that location to reflect the possible changes that other
+threads might have made while the current thread had no permission.
+
+The statements of our language transfer permissions as follows.
+Assignments contain no permission transfer.  Object creation inhales
+full access to all locations of the fresh object.  A method call
+exhales the precondition of the callee and then inhales its
+postcondition.  When a thread acquires a monitor, it inhales the
+monitor invariant, while it exhales the invariant when it releases the
+monitor. Fork exhales the precondition of the forked method, while
+join inhales the postcondition.  Sharing an object exhales its monitor invariant;
+threads can then acquire the monitor to obtain the permissions
+described by the invariant.
+
+The constraints collected by our static analysis depend on the
+requirements a statement makes on the thread's permissions as well as
+on the permission transfer the statement performs. It is therefore
+straightforward to extend our analysis to statements no presented here,
+such as de-allocation or message passing \cite{LM10}.
+
+
+
+
+
+%We identified three main aspects of the language: (i) heaps modification (handled by an external heap analysis - Section \ref{sect:heapanalysis}), (ii) inhaling and exhaling of permissions (handled by our abstract domain and semantics - Section \ref{sect:abstractdomain}), and (iii) constraint inference (handled using the information tracked by the abstract semantics and imposing some constraints on it - Section \ref{sect:inference}). For this reason, we expect that our approach can be straightforwardly extended to support other features, like channels .
+
+
+\goup
+\goup
+\subsubsection{Running Example.}
+\label{sect:runningexample}
+
+\begin{figure}
+\goup
+\goup
+\goup
+\setlength{\columnseprule}{0.5pt}
+\setlength{\columnsep}{20pt}
+\begin{multicols}{3}
+\begin{lstlisting}
+class W1 {
+  var c : Cell;
+  method Inc()
+  ensures c.c1==old(c.c1)+1
+  {
+    acquire c;
+    c.x := c.x+1;
+    c.c1 := c.c1+1;
+    release c;
+  }
+}
+\end{lstlisting}
+\begin{lstlisting}[firstnumber=12]
+class Cell {
+  var x, c1, c2: int;
+  invariant x==c1+c2;
+}
+\end{lstlisting}
+\columnbreak
+\begin{lstlisting}[firstnumber=16]
+class W2 {
+  var c : Cell;
+  method Inc()
+  ensures c.c2==old(c.c2)+1
+  {
+    acquire c;
+    c.x := c.x+1;
+    c.c2 := c.c2+1;
+    release c;
+  }
+}
+\end{lstlisting}
+\columnbreak
+\begin{lstlisting}[firstnumber=27]
+class OwickiGries {
+  method main() {
+    var c := new Cell;
+    share c;
+    var w1 := new W1;
+    w1.c := c;
+    var w2 := new W2;
+    w2.c = c;
+    t1 := fork w1.Inc();
+    t2 := fork w2.Inc();
+    join t1;
+    join t2;
+    acquire c;
+    assert c.x==2;
+  }
+}
+\end{lstlisting}
+\end{multicols}
+\normalsize
+\goup
+\caption{The Owicki-Gries example without access specifications.}
+\label{fig:runningexample}
+\goup
+\goup
+\goup
+\end{figure}
+
+We illustrate our inference using Owicki and Gries's classical example
+\cite{OG76}, see \figref{fig:runningexample}. Two worker threads,
+implemented in classes \statement{W1} and \statement{W2} each increment
+a shared variable \statement{x} by 1. The client (method \statement{main})
+asserts that the effect of running both workers is to increment 
+\statement{x} by 2. Proving this assertion requires ghost state; the
+ghost fields \statement{c1} and \statement{c2} store the contribution
+of each worker to the overall effect. These ghost variables are related
+to \statement{x} in \statement{Cell}'s monitor invariant and also
+mentioned in the workers' postconditions. This design requires fractional
+permissions. Putting full permission to the ghost variables into the
+monitor invariant would prevent the workers from mentioning them in
+the postconditions because they would then not be self-framing. Conversely,
+putting full permissions into the postconditions prevents the monitor
+invariant from relating the ghost fields \statement{c1} and \statement{c2} to \statement{x}. 
+
+When splitting the permissions over the postconditions and the monitor
+invariant, the example verifies. From the postconditions, we know that
+after the two join operations in \statement{main}, \statement{c1} and
+\statement{c2} have each been increased by 1. From \statement{Cell}'s
+monitor invariant, which we can assume after the acquire statement, we
+know that then \statement{x} has increased by 2. We will show how our
+analysis infers the permission annotation that enables this
+verification.
+
+
+\goup
+\section{Heap Analysis}
+\goup
+\label{sect:heapanalysis}
+
+Since access permissions guard accesses to heap locations, our
+inference requires information about the heap, for instance, to decide
+whether two expressions may refer to the same heap location. The
+analysis that approximates properties of the heap is crucial for the
+effectiveness of the permission inference.  However, since the heap
+analysis is not the main focus of this paper, we only sketch the main
+ideas and notations of the implemented heap analysis here, which is an
+extension of our earlier work \cite{FER08a}. We expect that more
+sophisticated heap analyses such as shape analysis \cite{SRW02} could
+be combined with our inference.
+
+Our heap analysis computes an approximation of the concrete heap that
+abstracts objects in the concrete heap to \emph{abstract nodes} in an
+abstract heap. The abstraction identifies each object with the program
+point where it is created. That is, it abstracts all concrete objects
+created at the same program point by the same abstract \emph{summary
+  node}. The heap analysis works modularly, that is, analyzes each
+method separately. The initial heap for a method contains one abstract
+node for each method argument. If two arguments may be aliases (that is,
+their types do not exclude that they refer to the same object), they are
+instead represented by one summary node.
+
+
+We denote by $\aref$ the set of abstract nodes. The function
+$\afunction{isSummary}:\funzione{\aref}{\{\statement{true},
+  \statement{false}\}} $ yields whether a node is a summary node, that
+is, whether it represents more than one concrete object. Summary nodes
+allow us to handle potential aliasing as well as \statement{new}
+statements  inside  loops, which may be executed a statically-unknown
+number of times. 
+
+Our permission inference uses type information for abstract nodes to
+determine which monitor invariant to inhale and exhale for acquire and
+release statements. The function
+$\cfunction{class}:\funzione{\aref}{\className}$ yields the class of
+an abstract node ($\className$ is the set of class identifiers); for
+summary nodes, it returns the smallest superclass of
+the classes of each concrete object represented by the summary node.
+
+The function $\afunction{\fields}:\funzione{\aref}{\parts{\fieldset}}$
+yields the set of fields of an abstract node, and the union of these
+sets for a summary node; $\fieldset$ is the set of field identifiers.
+A path in $\spath$ is a sequence of variable and field identifiers. As
+usual, we denote the concatenation of
+two paths $\statement{p}_1$ and $\statement{p}_2$ by
+$\statement{p}_1.\statement{p}_2$.  
+
+The heap analysis needs to define the semantics of expressions and
+statements in order to describe their effects on the abstract heap.
+The function $\afunction{\semanticanome{\expressionsemantics}} :
+\funzione{(\aheap, \statement{E})}{\aref}$ evaluates an expression in
+an abstract heap and yields the resulting abstract node (\aset{H} is
+the set of abstract heaps). We assume a semantics of statements that
+tracks how each statement modifies the abstract heap. We do not
+present this semantics here, and we leave the heap modifications
+implicit in the abstract semantics for the permission inference.
+
+
+%As we already said, we rely on the design by contract approach, and so the abstract state after the execution of a method call is computed following its contracts\footnote{Clearly this is strictly related with the access permissions specified by these contracts. Our approach suppose that methods are not annotated, thus the heap analysis abstracts away all the part of the heap that is reachable through the parameters and the object on which the method is called}.
+
+
+
+
+
+\goup
+\section{Symbolic Permissions}
+\goup
+\label{sect:abstractdomain}
+
+In this section we introduce the symbolic values that represent
+occurrences of permission predicates in specifications, present the
+formalization of the abstract domain and the abstract semantics, and
+discuss an unsound abstraction that can improve the results of the
+inference.
+
+\goup
+\subsection{Symbolic Values}
+\goup
+
+Programs may contain the permission predicates \statement{acc} and
+\statement{rd} in pre- and postconditions, monitor invariants, and
+loop invariants. We represent the permissions in the former three
+places using symbolic values; we discuss the treatment of loop
+invariants in \secref{sect:inference}. We represent the access
+permissions for a path \statement{p.f} specified by (1)~the
+precondition and postcondition of a method \statement{m} in class
+\statement{C} by \presv{C}{m}{p.f} and \postsv{C}{m}{p.f},
+respectively, and (2)~the monitor invariant of class \statement{C} by
+\misv{C}{p.f}. Since there could be many (possible infinite) paths to
+reach a location, our semantics always considers a shortest path.
+We denote the set of all symbolic values by $\asymbolicvalues$.
+
+
+\goup
+\subsection{Abstract Domain}
+\goup 
+
+The abstract domain $\asvarvalue$ represents the \emph{symbolic access
+  permission} for a single abstract location, that is, field of an
+abstract node. We represent the symbolic permission as the
+\emph{summation} of symbolic values $\statement{s}_i$ multiplied by
+integer coefficients $\cel{a_i}$ (to represent how many times we have
+inhaled or exhaled a permission) and an integer constant \cel{c} (to
+represent integer permissions, for instance, for the 100\% permission
+that is inhaled when an object is created).  Formally,
+$\asvarvalue=\{\sum_\cel{i} \cel{a_i} * \statement{s}_i + \cel{c}
+\mbox{\ where\ } \cel{a_i}, \cel{c} \in \integernumbers,
+\statement{s}_i \in \asymbolicvalues \}$.
+
+\begin{figure}
+\goup
+\goup
+\goup
+\scriptsize
+$
+\begin{array}{l}
+(\sum_j a^1_j * \ael{s}_j + c_1) \sqcup_{\asvarvalue} (\sum_j a^2_j * \ael{s}_j + c_2) = (\sum_j \min(a^1_j, a^2_j) * \ael{s}_j + \min(c_1, c_2))\\
+(\sum_j a^1_j * \ael{s}_j + c_1) \sqcap_{\asvarvalue} (\sum_j a^2_j * \ael{s}_j + c_2) = (\sum_j \max(a^1_j, a^2_j) * \ael{s}_j + \max(c_1, c_2))\\
+(\sum_j a^1_j * \ael{s}_j + c_1) \leq_{\asvarvalue} (\sum_j a^2_j * \ael{s}_j + c_2) = \true \Leftrightarrow c_1 \geq c_2 \land \forall j : a^1_j \geq a^2_j\\
+\end{array}
+$
+\normalsize
+\goup
+\caption{Lattice operators on $\asvarvalue$.}
+\label{fig:latticeoperators}
+\goup
+\goup
+\goup
+\end{figure}
+
+On these summations we define a lattice structure.
+\figref{fig:latticeoperators} formalizes lattice operators. In order
+to be sound, we compute at each program point the access permissions
+the current thread \emph{surely} has, that is, it has in all possible
+executions. For this reason, the upper bound---which is used in the
+abstract semantics for joins in the control flow---of two symbolic
+permissions $\ael{l}_1$ and $\ael{l}_2$ is the \emph{minimum} of
+$\ael{l}_1$ and $\ael{l}_2$. Since symbolic values represent
+non-negative values, the minimum of two symbolic permissions is
+computed using the minimum of the corresponding coefficients and of
+the integer constant \cel{c}. Conversely, the lower bound is the
+\emph{maximum} of $\ael{l}_1$ and $\ael{l}_2$, which is computed
+analogously. Symbolic permission $\ael{l}_1$ is less or equal $\ael{l}_2$ iff
+$\ael{l}_1$ represents \emph{greater} or equal permissions than
+$\ael{l}_2$, that is, each coefficient and the constant in $\ael{l}_1$
+is greater or equal than the corresponding coefficient and the
+constant in $\ael{l}_2$; this definition is in line with defining the
+upper bound as the minimum.  The bottom element is any value greater
+than 100 or less than 0, that is, any invalid value for a
+permission. The top element is the value 0. Then the lattice can be
+defined by $\langle \asvarvalue, \leq_{\asvarvalue}, 101, 0,
+\sqcup_{\asvarvalue}, \sqcap_{\asvarvalue} \rangle$. Note that this
+domain does not track disjunctive information like $\cel{b}
+\Rightarrow \cel{acc}(\statement{x.f})$, but it can be used inside
+other generic domains to obtain precise disjunctive information
+\cite{MR05}.
+
+In the domain we defined, we have a finite number of symbolic values,
+but the integer coefficients could decrease indefinitely. Therefore,
+we need a widening operator to ensure the termination of the analysis.
+Our widening operator abstracts the symbolic value to top if it is
+decreasing. This definition reflects that if a loop exhales
+permissions in each iteration, we have to assume that no permission is
+left when the loop terminates because we do not know statically how
+many times the loop body will be executed. However, we did not have to apply 
+widening in any of the examples we analyzed.
+
+
+%% This result seems reasonable: if the permission decreases
+%% each time we execute the body of a loop, it would mean that we are
+%% exhaling something at each iteration, and statically we may not know
+%% precisely how many times we are going to iterate the loop. On the
+%% other hand, it is possible to write programs that exhale something at
+%% each iteration of a loop, given the hypothesis that we control the
+%% number of loop iterations, and we may not track precisely this
+%% information because of abstraction. Nevertheless, we think and we find
+%% out that in practice this approach is almost never used.
+
+Our abstract domain tracks the access permissions at a given program
+point for each field of each abstract node. Therefore, its state is
+represented by a function that maps abstract locations to symbolic
+permissions: $\apermission : \funzione{(\aref \times \fieldset)}{\asvarvalue}$,
+where $\apermission$ is the set representing our abstract domain. The
+lattice operators are defined as the functional extensions of the
+lattice operators of $\asvarvalue$.
+
+
+\goup
+\subsection{Abstract Semantics}
+\goup
+\label{subsect:abstractsemantics}
+
+
+
+\begin{figure}[b!]
+\goup
+\goup
+\goup
+\scriptsize
+$
+\begin{array}{l}
+\afunction{\reachable} : \funzione{(\aref \times \aheap \times \parts{\aref} \times \spath)}{\parts{\aref \times \fieldset \times \spath}}\\
+\areachable{\ael{r}}{\ael{h}}{\aset{R}}{\statement{p}} = \{ (\ael{r}_1, \statement{f}, \statement{p}) : (\ael{r}_1, \statement{f}) \in \aonestepreachable{\ael{h}}{\statement{p}} \land \ael{r}_1 \notin \aset{R} \} \cup\\
+\hspace{10pt} \cup \{ (\ael{r}_2, \statement{f_1}, \cel{p}_1) \in \areachable{\ael{r}_1}{\ael{h}}{\aset{R} \cup \downarrow_1(\aonestepreachable{\ael{h}}{\statement{p}})}{\cel{p}.\statement{f}} : (\ael{r}_1, \statement{f}) \in \aonestepreachable{\ael{h}}{\statement{p}} \}\\
+\\
+\afunction{\onestepreachable} : \funzione{(\aheap \times \spath)}{\parts{\aref \times \fieldset}}\\
+\aonestepreachable{\ael{h}}{\statement{p}} = \{ (\ael{r}, \cel{f}) : \aexpressionsemantics{\ael{h}}{\statement{p}}=\ael{r} \land \statement{f} \in \afields{\ael{r}} \}\\
+\\
+%
+\afunction{\replace} :\funzione{(\parts{\aref \times \fieldset \times \spath} \times \asymbolicvalues)}{\parts{\aref \times \fieldset \times \asymbolicvalues}}\\
+\areplace{\{(\ael{r}_1, \statement{f}_1, \statement{p}_1), \cdots, (\ael{r}_i, \statement{f}_i, \statement{p}_i)\}}{\ael{s}} = \{(\ael{r}_1, \statement{f}_1, \ael{s}_1), \cdots, (\ael{r}_i, \statement{f}_i, \ael{s}_i) \} : \forall \cel{j} \in [1..\cel{i}] : \\
+\hspace{100pt} \ael{s}_j =
+\left\{
+\begin{array}{ll}
+\misv{\statement{c}}{\statement{p_j}.\statement{f_j}} & \textrm{if } \ael{s}=\misv{\statement{c}}{\statement{p}}\\
+\presv{\statement{c}}{\statement{m}}{\statement{p_j}.\statement{f_j}} & \textrm{if } \ael{s}=\presv{\statement{c}}{\statement{m}}{\statement{p}}\\
+\postsv{\statement{c}}{\statement{m}}{\statement{p_j}.\statement{f_j}} & \textrm{if } \ael{s}=\postsv{\statement{c}}{\statement{m}}{\statement{p}}\\
+%\apsv{\statement{c}}{\statement{pred}}{\statement{p_j}.\statement{f_j}} & \textrm{if } \ael{s}=\presv{\statement{c}}{\statement{pred}}{\statement{p}}\\
+\end{array}
+\right.
+\}
+\\
+\\
+%
+\afunction{\inhalesingle} :\funzione{(\apermission \times \aref \times \fieldset \times \asymbolicvalues)}{\apermission}\\
+\ainhalesingle{\ael{\sigma}}{\ael{r}}{\statement{f}}{\ael{s}}=
+\left\{
+\begin{array}{ll}
+\ael{\sigma}[(\ael{r}, \statement{f}) \mapsto \ael{\sigma}(\ael{r}, \statement{f})+1*\ael{s}] &\textrm{ if } \aisSummary{\ael{r}}=\false\\
+\ael{\sigma} & \textrm{ otherwise}
+\end{array}
+\right.
+\\
+\afunction{\inhale} :\funzione{(\apermission \times \parts{\aref \times \fieldset \times \asymbolicvalues})}{\apermission}\\
+\ainhale{\ael{\sigma}}{\{(\ael{r}_1, \statement{f_1}, \ael{s}_1), \cdots, (\ael{r}_i, \statement{f_i}, \ael{s}_i)\}} = \ael{\sigma}_i :\\
+\hspace{100pt} \exists \ael{\sigma}_0, \cdots, \ael{\sigma}_i \in \apermission : \ael{\sigma}_0=\ael{\sigma} \land \forall \cel{j} \in [1..\cel{i}] : \ael{\sigma}_j=\ainhalesingle{\ael{\sigma}_{j-1}}{\ael{r}_j}{\statement{f_j}}{\ael{s}_j}\\
+\\
+\afunction{\exhalesingle} :\funzione{(\apermission \times \aref \times \fieldset \times \asymbolicvalues)}{\apermission}\\
+\aexhalesingle{\ael{\sigma}}{\ael{r}}{\statement{f}}{\ael{s}}= \ael{\sigma}[(\ael{r}, \statement{f}) \mapsto \ael{\sigma}(\ael{r}, \statement{f})-1*\ael{s}]\\
+\\
+\afunction{\exhale} :\funzione{(\apermission \times \parts{\aref \times \fieldset \times \asymbolicvalues})}{\apermission}\\
+\aexhale{\ael{\sigma}}{\{(\ael{r}_1, \statement{f_1}, \ael{s}_1), \cdots, (\ael{r}_i, \statement{f_i}, \ael{s}_i)\}} = \ael{\sigma}_i : \\
+\hspace{100pt} \exists \ael{\sigma}_0, \cdots, \ael{\sigma}_i \in \apermission : \ael{\sigma}_0=\ael{\sigma} \land \forall \cel{j} \in [1..\cel{i}] : \ael{\sigma}_j=\aexhalesingle{\ael{\sigma}_{j-1}}{\ael{r}_j}{\statement{f_j}}{\ael{s}_j}
+\end{array}
+$
+\normalsize
+\goup
+\caption{Helper functions for the abstract semantics.  The prefix
+  operator $\downarrow_1$ denotes the projection of a pair on its
+  first component; it is lifted to sets of pairs.  }
+\label{fig:semanticsfunction}
+\goup
+\goup
+\end{figure}
+
+The abstract semantics formalizes the effect of statements on symbolic
+permissions. It uses the helper functions in \figref{fig:semanticsfunction}. 
+$\areachable{\ael{r}}{\ael{h}}{\aset{R}}{\statement{p}}$ yields the
+set of abstract locations that can be reached from an abstract node
+$\ael{r}$ in a heap $\ael{h}$, without traversing the abstract nodes
+in $\aset{R}$, and for each reachable abstract location a path through
+which it can be reached; this path is an extension of path
+$\statement{p}$, through which node $\ael{r}$ is reachable from some
+starting point. The set $\aset{R}$ is used to discard alternative paths 
+to the same abstract location.
+%
+Note that the definition of $\afunction{\reachable}$ is recursive. For
+each recursive application, we use function
+$\afunction{\onestepreachable}$ to add all abstract locations that are
+reachable in one step, that is, by accessing a field of $\ael{r}$.
+The recursion is well-founded since the heap domain contains a finite
+number of abstract nodes, and the set $\aset{R}$ grows in each
+recursive application.
+
+Function $\afunction{\reachable}$ is used to extract all the abstract
+locations for which we \emph{potentially} inhale or exhale
+permissions, together with a shortest path through which these
+permissions could be inhaled or exhaled.  Function
+$\afunction{\replace}$ uses these abstract locations and paths to
+construct a symbolic value for each of them.  Its last argument
+determines what kind of symbolic value we want to obtain.  
+
+%With this process we consider only the shortest path that can be used to access an abstract location, but there could be many other (possible infinite) ways of accessing such location, e.g., when dealing with recursive data structures.
+
+Finally, we define two functions $\afunction{\inhalesingle}$ and
+$\afunction{\exhalesingle}$ to inhale and exhale permissions,
+respectively. They map a state of the abstract domain to another
+state. The permissions are determined by pairs of abstract locations
+and symbolic values. The functions $\afunction{\inhale}$ and
+$\afunction{\exhale}$ lift $\afunction{\inhalesingle}$ and
+$\afunction{\exhalesingle}$ to sets of pairs.
+Note that we inhale a permission iff the abstract node of its location
+is not a summary node; otherwise we would potentially inhale one
+permission for multiple concrete locations, which is unsound.
+
+\begin{figure}
+\goup
+\goup
+\goup
+\scriptsize
+$
+\begin{array}{l}
+\afunction{\semanticanome{\statementsemantics}} : \funzione{(\statements, \apermission, \aheap)}{\apermission}\\
+
+\astatementsemantics{\statement{x:=E}}{\ael{\sigma}}{\ael{h}} = \ael{\sigma}\\
+\astatementsemantics{\statement{x.f:=E}}{\ael{\sigma}}{\ael{h}} = \ael{\sigma}\\
+
+\astatementsemantics{\statement{x := new\ T}}{\ael{\sigma}}{\ael{h}} = \ael{\sigma}[\ael{r} \mapsto 100 : (\ael{r}, \statement{p}) \in \aonestepreachable{\ael{h'}}{\statement{x}}]\\
+\hspace{100pt} \textrm{ where } \ael{h'} \textrm{ is the abstract heap obtained after } \statement{x := new\ T}\\
+
+\astatementsemantics{\statement{x.m()}}{\ael{\sigma}}{\ael{h}} = \ael{\sigma}_2 : \ael{\sigma}_1=\aexhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\presv{\class{\aexpressionsemantics{\ael{h}}{\statement{x}}}}{\statement{m}}{\emptyset}}} \land\\
+\hspace{70pt} \ael{\sigma}_2=\ainhale{\ael{\sigma}_1}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\postsv{\class{\aexpressionsemantics{\ael{h}}{\statement{x}}}}{\statement{m}}{\emptyset}}} \\
+
+\astatementsemantics{\statement{acquire\ x}}{\ael{\sigma}}{\ael{h}} = \ainhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\misv{\class{\aexpressionsemantics{\ael{h}}{\statement{x}}}}{\emptyset}}}\\
+\astatementsemantics{\statement{release\ x}}{\ael{\sigma}}{\ael{h}} = \aexhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\misv{\class{\aexpressionsemantics{\ael{h}}{\statement{x}}}}{\emptyset}}}\\
+
+\astatementsemantics{\statement{t:=fork\ x.m()}}{\ael{\sigma}}{\ael{h}} = \aexhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\presv{\class{\aexpressionsemantics{\ael{h}}{\statement{x}}}}{\statement{m}}{\emptyset}}}\\
+\astatementsemantics{\statement{join\ t}}{\ael{\sigma}}{\ael{h}} = \ainhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\postsv{\statement{C}}{\statement{m}}{\emptyset}}} : \cthreadmethod{\statement{t}}=\statement{C.m}\\
+
+\astatementsemantics{\statement{share\ x}}{\ael{\sigma}}{\ael{h}} = \aexhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\misv{\class{\ael{h}(\statement{x})}}{\emptyset}}}\\
+
+%\astatementsemantics{\statement{x.f := new\ T}}{\ael{\sigma}}{\ael{h}} = \ael{\sigma}[\ael{r} \mapsto 100 : (\ael{r}, \statement{p}) \in \aonestepreachable{\aexpressionsemantics{\ael{h}}{\statement{new\ T}}}{\ael{h}}{\statement{x.f}}]\\
+
+
+%\astatementsemantics{\statement{new\ T}}{\ael{\sigma}}{\ael{h}} = \ael{\sigma}[\ael{r} \mapsto 100 : (\ael{r}, \statement{p}) \in \aonestepreachable{\aexpressionsemantics{\ael{h}}{\statement{new\ T}}}{\ael{h}}{\emptyset}]\\
+%\astatementsemantics{\statement{free\ x}}{\ael{\sigma}}{\ael{h}} = \ael{\sigma}[\ael{r} \mapsto 0 : (\ael{r}, \statement{p}) \in \aonestepreachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}]\\
+
+%\astatementsemantics{\statement{fold\ x.p}}{\ael{\sigma}}{\ael{h}} = \aexhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\apsv{\class{\aexpressionsemantics{\ael{h}}{\statement{x}}}}{\statement{p}}{\emptyset}}}\\
+%\astatementsemantics{\statement{unfold\ x.p}}{\ael{\sigma}}{\ael{h}} = \ainhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\apsv{\class{\aexpressionsemantics{\ael{h}}{\statement{x}}}}{\statement{p}}{\emptyset}}}\\
+
+%\astatementsemantics{\statement{unshare\ x}}{\ael{\sigma}}{\ael{h}} = \ainhale{\sigma}{\areplace{\areachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\emptyset}{\statement{this}}}{\misv{\class{\aexpressionsemantics{\ael{h}}{\statement{x}}}}{\emptyset}}}\\
+
+
+\end{array}
+$
+\normalsize
+\goup
+\caption{The definition of the abstract semantics.  The function
+  $\cfunction{\threadmethod}$ yields the method with which a given
+  thread was forked.}
+\label{fig:abstractsemantics}
+\goup
+\goup
+\end{figure}
+
+The abstract semantics of statements (\figref{fig:abstractsemantics})
+maps a statement, a state of the abstract domain, and a heap to
+another state. It reflects the permission transfer described in
+\secref{sect:language}.  For instance, acquiring a monitor inhales all
+the symbolic permissions that its invariant could specify. These are
+permissions for all abstract locations reachable from the object whose
+monitor is being acquired. To determine these abstract locations we apply 
+$\afunction{\replace}$ to the result of $\afunction{\reachable}$.
+
+
+\goup
+\goup
+\subsubsection{Running example.}  
+
+In method
+\statement{Inc} of class \statement{W1}, we obtain that between the
+\statement{acquire} and the \statement{release} statements (lines 7
+and 8), the current thread has the symbolic access permission
+$1*$\presv{W1}{Inc}{this.c.f}+1*\misv{Cell}{this.f}
+for each field \statement{f} of \statement{Cell} (that is, \statement{x}, \statement{c1}, or \statement{c2}). At the end of the method, it has only
+$1*$\presv{W1}{Inc}{this.c.f}
+since we released the monitor of \statement{c}. The permissions for
+class \statement{W2} are analogous.
+
+
+Before the fork in method \statement{main} of class
+\statement{OwickiGries}, the current thread has
+$-1*$\misv{Cell}{c.f}$+100$ for all the fields \statement{f} of class
+\statement{Cell}. The negated permissions from the monitor invariant
+stem from exhaling the monitor invariant when sharing \statement{c};
+the constant 100 is inhaled when \statement{c} is created.  When
+forking the two threads (line 36), we exhale the precondition of the
+forked methods, obtaining
+$-1*$\misv{Cell}{c.f}$-1*$\presv{W1}{Inc}{c.f}$-1*$\presv{W2}{Inc}{c.f}$+100$.
+When joining the forked threads, we inhale the postconditions of the
+forked methods, and when acquiring \statement{c}'s monitor (line 39), we 
+inhale the monitor invariant of class \statement{Cell}, regaining what we
+lost when sharing it. Therefore, at line~41, the current thread has:
+$-1*$\presv{W1}{Inc}{c.f}$+1*$\postsv{W1}{Inc}{c.f}$-1*$\presv{W2}{Inc}{c.f}$+1*$\postsv{W2}{Inc}{c.f}$+100$ for
+each field \statement{f} of \statement{Cell}.
+
+\goup
+\subsection{Unsoundness to Improve the Inference}
+\goup
+
+The analysis we have described so far is sound, but sometimes too
+coarse in its treatment of summary nodes. Even with a more precise
+heap analysis, the inference  becomes more practical when it uses
+two unsound approximations, which we describe next.
+
+First, as we explained earlier, a sound analysis must not inhale
+permissions on summary nodes because this might result in the
+duplication of permissions. Removing this restriction improves
+especially the treatment of recursive data structures, which 
+are usually abstracted to summary nodes.
+
+Second, our analysis conservatively assumes maximum aliasing in the
+input state of a method, that is, arguments or fields whose types do
+not rule out aliasing are represented by summary nodes. Following
+Clousot \cite{LF10}, we suggest to assume that aliasing does not occur
+in the input state. This unsound assumption is useful when methods
+take several parameters of the same type as well as when a parameter
+is a recursive data structure.
+
+These unsound approximations may lead to permission annotations that
+are insufficient to verify a program. For instance, unsoundly inhaling
+on a summary node representing \statement{x} and \statement{y}
+ might provide enough permissions to permit the access \statement{x.f}
+even if in the real execution, there is only a permission for \statement{y.f}.
+However, in our experiments (see \secref{sect:experimentalresults}), 
+the unsound approximations helped inferring complete
+annotations, without compromising their quality.
+
+
+\goup
+\section{Annotation Inference}
+\goup
+\label{sect:inference}
+
+In this section, we explain how we infer constraints from the
+information tracked by the abstract domain, and how these constraints
+are solved.
+
+\goup
+\subsection{Inferring Constraints}
+\goup
+
+
+Through the abstract semantics, we obtain a symbolic permission for
+each abstract location at each program point. When we access an
+abstract location, we impose some constraints on these symbolic
+permissions. In particular, given a symbolic permission $\ael{l}$, we
+have to ensure that (1)~$\ael{l} \geq \epsilon$ when we read,
+(2)~$\ael{l} = 100$ when we write, (3)~$\ael{l} \leq 100$ after we
+inhale, and (4)~$\ael{l} \geq 0$ after we exhale.
+To ensure that specifications are self-framing (see \secref{fig:language}), we generate
+constraint~(1) also for field accesses within preconditions, 
+postconditions, and monitor invariants.
+%(v) $\ael{l} \geq \misv{\statement{c}}{\statement{p}}$ when we unshare an object, where \statement{c} is the class it is instance of, $\ael{l}$ is one of the abstract locations that are reachable from the unshared object, and \statement{p} is the path used to access it; 
+%(vi) $\ael{l} == 100$ before \statement{free\ x} where $\ael{l}$ is the permission level of an abstract location that is in $\downarrow_1(\aonestepreachable{\aexpressionsemantics{\ael{h}}{\statement{x}}}{\ael{h}}{\statement{x}})$ and $\ael{h}$ is the state of the abstract heap at that point.
+Moreover, all symbolic values must represent valid permissions:
+$\forall \ael{s} \in \asymbolicvalues : 0
+\leq \ael{s} \leq 100$.
+We use $\ael{l} \geq \epsilon$ instead of $\ael{l} > 0$ in constraint (1) to enforce that the constraint solver does not produce non-zero permissions smaller than $\epsilon$, which is the smallest permissions that can be expressed in Chalice.
+
+
+We use the symbolic value $\epsilon$ to represent an infinitesimal
+permission. The concrete value of $\epsilon$ must be a read permission
+($0< \epsilon$). Recall that $\epsilon$ is an infinitesimal
+permission, which acts like a counting permission, that is, a thread
+can have several $\epsilon$-permissions and also negative
+$\epsilon$-permissions (for instance, by exhaling an
+$\epsilon$-permissions from a full permission). To reflect these
+properties, we require $n*\epsilon < 0.5$, where $n$ is the maximal
+coefficient for $\epsilon$ in all symbolic permissions. We interpret values in the open interval $(0;0.5)$ as
+a positive number of $\epsilon$'s and values in $(0.5;1)$ as 1 plus a
+negative number of $\epsilon$'s.
+
+
+Finally, in order to infer postconditions, we introduce additional
+constraints for the exit states of the analysis.  For each field of a
+non-summary node reachable through a path \statement{p}, we determine
+the upper bound $\ael{l}$ of the symbolic permissions for all possible exit
+states of the method.  We then require
+$\postsv{C}{m}{p}=\ael{l}$ where \statement{m} and \statement{C} are
+the method and the class we are analyzing.
+
+
+
+
+
+\goup
+\goup
+\subsubsection{Running Example.} 
+
+\figref{fig:runningexampleconstraints} reports some of the
+constraints for the example from \figref{fig:runningexample}.  We have
+already discussed the results of its abstract semantics in the
+previous section. For each constraint, we report the code line that
+induced the constraints. As before, \statement{f} stands for any field
+of class \statement{Cell} (\statement{x}, \statement{c1}, or
+\statement{c2}).
+
+\begin{figure}
+\goup
+\goup
+\goup
+\scriptsize
+\begin{center}
+\begin{tabular}{|l|c|}
+\hline
+\textbf{Constraint} & \textbf{Line}\\
+\hline
+1*\presv{W1}{Inc}{c.c1} $\geq\epsilon$ & \statement{4}\\
+
+1*\presv{W1}{Inc}{c.x} + 1*\misv{Cell}{x}=100 & \statement{7}\\
+
+1*\presv{W1}{Inc}{c.c1} + 1*\misv{Cell}{c1}=100  & \statement{8}\\
+
+1*\postsv{W1}{Inc}{c.f} = 1*\presv{W1}{Inc}{c.f} & \statement{10}\\
+
+%\hline
+
+%1*\presv{W2}{Inc}{c.c2} $>0$ & \statement{19}\\
+
+%1*\presv{W2}{Inc}{c.x} + 1*\misv{Cell}{x}=100 & \statement{22}\\
+
+%1*\presv{W2}{Inc}{c.c2} + 1*\misv{Cell}{c2}=100 & \statement{23}\\
+
+%1*\postsv{W2}{Inc}{c.f} = 1*\presv{W2}{Inc}{c.f} & \statement{25}\\
+
+\hline
+
+1*\misv{Cell}{f} $\geq\epsilon$ & \statement{14}\\
+
+\hline
+
+100 - 1*\misv{Cell}{f} - 1*\presv{W1}{Inc}{c.f} $\geq$ 1*\presv{W2}{Inc}{c.f}& \statement{36}\\
+
+\hline
+\end{tabular}
+\normalsize
+\goup
+\caption{Some constraints for the running example.\label{fig:runningexampleconstraints}
+}
+\end{center}
+\goup
+\goup
+\goup
+\goup
+\end{figure}
+
+\lstset{basicstyle=\sffamily\normalsize}
+The first four constraints are introduced for method \statement{Inc}
+of class \statement{W1}. The constraints for class \statement{W2} are
+analogous (with \statement{c2} instead of \statement{c1}).
+The constraint for line~4 is introduced because \statement{Inc}'s
+postcondition reads \statement{c.c1}; in the exit state of the method,
+the only permission for \statement{c.c1} is the one specified in the
+precondition since we already released the monitor of \statement{c}.
+The identical constraint is introduced for the field read
+\lstinline{old(c.c1)}, which reads \statement{c.c1}'s pre-state value.
+
+The field writes to \statement{c.x} and \statement{c.c1} (lines 7
+and 8) require that the thread has 100\% permission
+for the corresponding abstract locations. Therefore, using the
+information inferred by the abstract semantics, we introduce a
+constraint that the access permission for these locations specified in
+\statement{Inc}'s precondition plus the permission specified in
+\statement{Cell}'s monitor invariant is equal to 100.
+
+Finally, by the abstract semantics the permissions in the exit state
+of \statement{Inc} are exactly those specified in the precondition.
+So we enforce that the precondition and the postcondition specify the
+same permissions for each field \statement{f} of \statement{c}.
+%, in order not to lose any permissions.
+
+The class invariant of class \statement{Cell} (line 14) reads all
+fields of the class and, thus, requires read permission for them.
+
+
+Several constraints are produced for \statement{main} of class
+\statement{OwickiGries}. We discuss the one for the second fork (line
+36), which enforces that \statement{main} has sufficient
+permissions for the fields of \statement{c} in order to exhale the
+precondition of the forked method \statement{Inc}. By the heap
+analysis, we know that \statement{c} is fresh in method
+\statement{main}. So the permissions held before the second fork for
+any field \statement{f} of \statement{c} are 100 (from the creation of
+\statement{c}) minus what is specified in \statement{Cell}'s monitor
+invariant (from sharing \statement{c}) minus what is specified in
+\statement{W1.Inc}'s precondition (from the first fork). This
+permission must be greater than or equal to what is specified in
+\statement{W2.Inc}'s precondition in order to enable exhaling the
+permissions in the second fork.
+
+
+
+
+\goup
+\subsection{Resolution of the Constraints}
+\goup
+
+We solve the inferred system of constraints using linear programming
+\cite{DAN63}. We define an objective function that lets us infer the
+\emph{minimal} access permissions that satisfy the constraints imposed
+by the program. Maximizing the permission we would often obtain full
+permission for each reachable locations, even if the location is never
+accessed. Such a solution complicates subsequent verification, for
+instance, by providing weaker framing.
+
+Through the objective function we also express \emph{priorities} where
+to put annotations when several solutions are possible, for instance,
+in the method specification or in the monitor invariant. To do that,
+we multiply each symbolic value in the objective function with a
+factor. A bigger factor expresses a lower priority for that symbolic
+value, since we minimize the objective function.
+
+Solving the linear programming system determines whether the
+system is feasible, that is, whether there are numerical values (real
+numbers) for all symbolic values that satisfy the constraint.  An
+infeasible system may occur because of approximation, for instance, if
+we soundly abstain from inhaling on summary nodes, the constraint for
+a subsequent field access might not be satisfiable.
+
+If the system is feasible, we use the solution to compute the
+permission predicates for pre- and postconditions as well as monitor
+invariants. The integer part of each numerical value is turned into
+the percentage of a fractional permission, whereas the mantissa is
+turned into (positive or negative) counting permissions by dividing it
+by the solution for the symbolic value $\epsilon$.
+
+In addition, we compute the permission predicates for \emph{loop
+  invariants}. We first determine the upper bound of the symbolic
+permissions in the abstract entry and exit state of each loop and then
+replace the symbolic values in these symbolic permissions by the
+numerical values from the linear programming system, thereby obtaining
+the permissions held both before and after a loop iteration. The then
+use the $\afunction{\reachable}$ analysis from
+\figref{fig:semanticsfunction} to determine which of these permissions
+can be added to the loop invariant.
+
+
+\goup
+\goup
+\subsubsection{Running Example.} 
+
+The linear programming system for our example
+(\figref{fig:runningexampleconstraints}) is feasible. We obtain
+different solutions, depending on priorities encoded in the objective
+function. If we give priority to monitor invariants, we get the
+smallest possible solution for the pre- and postconditions that
+satisfy the constraints. Let's assume that the numerical value for
+$\epsilon$ is $0.1$. Then for \statement{W1}'s \statement{Inc} method we obtain
+$0.1$ for \statement{c.c1} and $0$ for all other fields,
+which are the smallest possible values that satisfy the constraints
+(especially the first) in \figref{fig:runningexampleconstraints}.
+This solution results in \statement{rd(c.c1)} for the pre- and
+postcondition, and analogous for \statement{W2.Inc}.
+
+Since the sum of the permissions for any \statement{c.f} in the
+precondition and in the monitor invariant has to be 100, we obtain
+$99.9$ (that is, $100-\epsilon$) for \statement{c.c1} and
+\statement{c.c2}, and $100$ for \statement{c.x}. This solution cannot
+be expressed in Chalice, which does not have syntax for a negative
+number of $\epsilon$'s. However, we could easily add a constraint that
+for each symbolic value, the mantissa of the numerical value in the
+solution must be in $[0;0.5)$ and, thus, translate into a
+  non-negative number of $\epsilon$'s. With this additional constraint,
+we obtain the pre- and postcondition \statement{acc(c.c1,1)}, and the
+monitor invariant \lstinline{acc(x) && acc(c1,99) && acc(c2,99)}.
+
+
+%The same considerations apply to method \statement{Inc} of class \statement{W2} replacing \statement{c1} with \statement{c2}. So we obtain the following annotation: 
+%
+%\setlength{\columnseprule}{0.5pt}
+%\setlength{\columnsep}{20pt}
+%\begin{multicols}{3}
+%\begin{lstlisting}[numbers=none]
+%class W1 {
+%  method Inc()
+%  requires rd(c1)
+%  ensures rd(c1) {...}
+%}
+%\end{lstlisting}
+%\columnbreak
+%\begin{lstlisting}[numbers=none]
+%class W2 {
+%  method Inc()
+%  requires rd(c2)
+%  ensures rd(c2) {...}
+%}
+%\end{lstlisting}
+%\columnbreak
+%\begin{lstlisting}[numbers=none]
+%class Cell {
+% invariant acc(x) && 
+%   acc(c1, 100-$\epsilon$) && 
+%   acc(c2, 100-$\epsilon$)
+%}
+%\end{lstlisting}
+%\end{multicols}
+%Note that $100-\epsilon$ is not valid in Chalice, since it is not possible to specify a negative amount of epsilons. On the other hand, Chalice implementation encodes negative amounts of epsilons, and we think that these could be easily supported in future releases. Anyway, the solution we proposed is effectively the one that maximizes the annotation on monitor invariants, but we may impose more constraints in our system to avoid that negative amount of epsilons appears in the annotation.
+
+
+Putting the priority on method specification results in 99\%
+permissions for \statement{c.c1} in the pre- and postconditions of
+\statement{W1.Inc} (analogous for \statement{c.c2} for
+\statement{W2.Inc}) and 1\% each for \statement{c1} and \statement{c2}
+in \statement{Cell}'s monitor invariant to satisfy the fifth constraint
+in \figref{fig:runningexampleconstraints}. By the second, third, and
+last constraint, the
+preconditions of the \statement{Inc} methods must not contain any
+permission for \statement{c.x}. So by the second constraint, the
+monitor invariant contains the full permission for \statement{x}.
+Assigning equal priority to method specifications and monitor
+invariants splits the permissions for \statement{c1} and
+\statement{c2} 50:50.  All three annotations reflect the need to split
+the permissions as discussed in \secref{sect:runningexample}, and they
+allow one to verify the example in Chalice.
+
+
+
+
+
+
+%In the second scenario, we maximize the annotation on contracts. In this context, we can assign at most $100\%-\epsilon$ permissions on the pre and post conditions of methods \statement{Inc} in class \statement{W1} (on \statement{c.c1}) and in class \statement{W2} (on \statement{c.c2}), since we need at least a read permission on these fields in the monitor invariant of class \statement{Cell}. On the other hand, the constraints induced by the analysis of method \statement{main} in class \statement{OwickiGries} does not allow to infer 100\% on \statement{c.x} in \statement{W1.Inc} and \statement{W2.Inc}. In fact, after the two forks, we have that the sum of the preconditions of method \statement{Inc} in classes \statement{W1} and \statement{W2} and of the class invariant on that field has to be less or equal than 100\%. Then the only way we have to obtain 100\% permission is to discharge all this permission on the monitor invariants of class \statement{Cell}. 
+%Then we obtain the following annotation: 
+%
+%\setlength{\columnseprule}{0.5pt}
+%\setlength{\columnsep}{20pt}
+%\begin{multicols}{3}
+%\begin{lstlisting}[numbers=none]
+%class W1 {
+%  method Inc()
+%  requires acc(c1, 100-$\epsilon$)
+%  ensures acc(c1, 100-$\epsilon$) {...}
+%}
+%\end{lstlisting}
+%\columnbreak
+%\begin{lstlisting}[numbers=none]
+%class W2 {
+%  method Inc()
+%  requires acc(c2, 100-$\epsilon$)
+%  ensures acc(c2, 100-$\epsilon$) {...}
+%}
+%\end{lstlisting}
+%\columnbreak
+%\begin{lstlisting}[numbers=none]
+%class Cell {
+% invariant acc(x) && 
+%           rd(c1) && 
+%           rd(c2)
+%}
+%\end{lstlisting}
+%\end{multicols}
+
+%Finally, we could assign the same priority to monitor invariants and pre and post conditions. In this context, we obtain the 50\% of the permission for \statement{c1} and \statement{c2} in \statement{Cell}'s monitor invariants, and the 50\% in the pre and post conditions on methods \statement{Inc} in classes \statement{W1} and \statement{W2} respectively. We are still obliged to discharge 100\% permission of \statement{x} on \statement{Cell}'s monitor invariants.
+
+
+%\subsection{Modularity}
+%Our approach is modular since we can analyze and infer constraints on each method separately. On the other hand, if we analyze many methods together, the inferred annotation will be valid on the complete system, while if we analyze each method separately the inferred annotation may be not effective for the overall system. For instance, in the running example we could infer constraints considering only method \statement{Inc} in classes \statement{W1} and \statement{W2}. In this context it would be valid to infer 100\% permission on \statement{x} as pre conditions, but this annotation is not valid when considering method \statement{main} in class \statement{OwickiGries}, since we exhale both the preconditions when we fork \statement{t1} and \statement{t2}.
+%
+%In general this means that if we infer constraints on each method in isolation we could obtain annotation that is not correct for the overall program. On the other hand, the abstract semantics and the constraints inferred on a method is completely modular. The additional value of considering more methods is to put together a wider set of constraints, inferring annotation that is valid in a wider context.
+
+\goup
+\section{Experimental Results}
+\goup
+\label{sect:experimentalresults}
+
+We have developed a prototype implementation of our inference in
+\Sample. We execute the analysis on an Intel Code 2 Quad CPU 2.83 GHz
+with 4 GB of RAM, running Windows 7, and the Java SE Runtime
+Environment 1.6.0\_16-b01. Table~\ref{table:experimental_results}
+summarizes the experimental results when we apply the analysis to some
+case studies from the Chalice tutorial \cite{LMS09} and the Chalice
+distribution. Column \statement{Program} reports the program we
+analyze, and \texttt{\#C} the number of contracts dealing with access
+permissions in the original program that we want to infer. We analyze
+each program with the sound analysis (column \texttt{Sound}), with the
+unsound entry state (\texttt{Uns.entry}), with the unsound inhaling on
+summary nodes (\texttt{Uns.inhale}), and with both unsound
+approximations (\texttt{Unsound}). For each of these analyses, we
+report the number of contracts we inferred correctly  (\texttt{\#C}) and
+the time of the analysis in milliseconds (\texttt{t}). Note that this
+time includes the heap analysis, the inference of symbolic permissions, and
+the time required by the linear programming library to solve the
+system (in average, solving takes about 5\% of the overall time). In
+the \texttt{\#C}-columns, an \textbf{X} means that the resolution of the
+constraints system fails, while underlined values mean that we infer
+all annotations of the original program.
+
+\begin{table}[ht]
+\goup
+\goup
+\goup
+\begin{center}
+\scriptsize
+\begin{tabular}{|l||r|rr|rr|rr|rr|}																			
+\hline																			
+\statement{Program}	&	\texttt{\#C}	&	\multicolumn{2}{|c|}{\texttt{Sound}}			&	\multicolumn{2}{|c|}{\texttt{Uns.entry}}			&	\multicolumn{2}{|c|}{\texttt{Uns.inhale}}			&	\multicolumn{2}{|c|}{\texttt{Unsound}}			\\
+	&		&	\texttt{\#C}	&	\texttt{t}	&	\texttt{\#C}	&	\texttt{t}	&	\texttt{\#C}	&	\texttt{t}	&	\texttt{\#C}	&	\texttt{t}	\\
+\hline																			
+\hline																			
+\statement{Fig1}	&	4	&	3	&	166	&	\textbf{X}	&	173	&	3	&	169	&	\underline{4}	&	181	\\
+\statement{Fig2}	&	3	&	1	&	122	&	\underline{3}	&	125	&	2	&	123	&	\underline{3}	&	124	\\
+\statement{Fig3}	&	4	&	2	&	74	&	\underline{4}	&	76	&	3	&	77	&	\underline{4}	&	79	\\
+\statement{Fig4}	&	4	&	\textbf{X}	&	132	&	\textbf{X}	&	131	&	3	&	131	&	\underline{4}	&	134	\\
+\statement{Fig5}	&	3	&	\textbf{X}	&	220	&	\textbf{X}	&	219	&	2	&	227	&	\underline{3}	&	251	\\
+\statement{Fig6}	&	14	&	7	&	140	&	\underline{14}	&	143	&	7	&	142	&	\underline{14}	&	143	\\
+\statement{Fig11}	&	7	&	3	&	117	&	\underline{7}	&	122	&	\underline{7}	&	114	&	\underline{7}	&	117	\\
+\statement{Fig12}	&	7	&	3	&	109	&	7	&	119	&	7	&	115	&	\underline{7}	&	118	\\
+\statement{Fig13}	&	12	&	5	&	354	&	\underline{12}	&	810	&	5	&	359	&	\underline{12}	&	802	\\
+\statement{AssociationList}	&	11	&	1	&	1271	&	\textbf{X}	&	2056	&	3	&	1266	&	\textbf{X}	&	2063	\\
+\statement{cell-defaults}	&	25	&	\textbf{X}	&	221	&	\textbf{X}	&	234	&	14	&	222	&	\underline{25}	&	245	\\
+\statement{HandOverHand}	&	25	&	6	&	1635	&	\textbf{X}	&	2752	&	8	&	1632	&	\textbf{X}	&	2788	\\
+\statement{linkedlist}	&	4	&	2	&	271	&	\underline{4}	&	910	&	2	&	274	&	\underline{4}	&	918	\\
+\statement{swap}	&	4	&	2	&	95	&	\underline{4}	&	110	&	2	&	110	&	\underline{4}	&	113	\\
+\hline																			
+\end{tabular}
+\normalsize
+\caption{Experimental results.}
+\label{table:experimental_results}
+\end{center}
+\goup
+\goup
+\goup
+\goup
+\goup
+\goup
+\goup
+\end{table}
+
+The performance numbers indicate that our inference is fast; it
+usually converges in 200 milliseconds, and in the worst case still in
+less than 2.8 seconds. 
+
+We evaluate the precision of the analysis by the number of annotations
+it inferred correctly. The sound analysis was unable to infer many
+contracts (around half of the annotations in average), and was unable
+to infer annotations for three examples.  The unsound entry state
+improves the analysis in many cases (in seven cases we infer all
+annotations), but fails to find a solution for six programs. In
+contract, the unsound inhaling finds a solution for all examples, but
+infers all annotations in only one case.
+
+The best results are obtained through the unsound approach: in twelve
+cases we infer the complete annotation, while in the remaining two
+cases (\statement{AssociationList} and \statement{HandOverHand}), we
+obtain an infeasible system.  These programs create difficulties for
+all analyses because they traverse recursive data structures in
+while-loops. These difficulties are caused by the imprecision of our
+heap analysis, not by the permission inference. Therefore, we expect
+that applying a more precise heap analysis will lead to better
+results on these programs as well.
+
+\goup
+\section{Related Work}
+\goup
+\label{sect:relatedwork}
+
+Access permissions are used in several verification frameworks such as
+separation logic \cite{REY02} and implicit dynamic frames \cite{SJP09}
+to reason about framing and concurrency. Fractional permissions
+\cite{Boyland03} and counting permissions \cite{BornatCOP05} allow
+permissions to be split in order to permit concurrent read access to a
+resource.
+
+The Chalice language \cite{LM09}, which we use in this paper, combines
+implicit dynamic frames with fractional permissions and a flavor of
+counting permissions, encoded through infinitesimal permissions. It
+generally requires manual annotations, but provides an option
+\texttt{-autoMagic} to infer certain permission predicates. However,
+the inference does not find non-trivial splittings of permissions as
+required by our running example.
+
+There is a large body of work on the inference of program
+annotations. For instance, Ernst et al.'s Daikon system \cite{EPG07}
+uses a dynamic analysis to infer object invariants. Flanagan and
+Leino's Houdini tool \cite{FL01} generates a large number of candidate
+annotations and uses ESC/Java to verify or refute each of these
+annotations. Leino and Logozzo \cite{LL05} integrate abstract
+interpretation and program verification to infer loop
+invariants. However, none of these inferences supports access
+permissions.
+
+A major application of access permissions is to simplify framing, that
+is, determining what is definitely not changed by a method
+execution. There are several static analyses for frame information.
+Rakamari\'{c} and Hu \cite{RH08} propose a technique to infer frame
+information for functions and loops on C programs.  Spoto and Poll
+\cite{SP03} introduce a static analysis based on abstract
+interpretation for JML's \statement{assignable} clauses. However,
+their analysis only checks existing annotations, rather than inferring
+annotations.  Cata{\~n}o and Huisman's Chase tool \cite{CH03} performs
+similar checks. The practical effectiveness of their approach has been
+demonstrated both in terms of precision and efficiency using
+industrial code. However, the approach is not sound, since it does not
+consider aliasing. In contrast to these approaches, we infer access
+permissions, which can then be used to infer framing information
+\cite{SJP09}, but also for other purposes such as verifying concurrent
+code.
+
+
+
+
+%In this context, as far as we know our approach is the first automatic inference (i) of access permissions, (ii) on Chalice programs, and (iii) that deals with monitor invariants, (abstract predicates), loop invariants, and pre and post conditions all together.
+
+\goup
+\section{Conclusion}
+\goup
+\label{sect:conclusion}
+
+We presented a new approach to infer access permissions, including
+fractional and Chalice's flavor of counting permissions. Our approach
+infers monitor invariants, pre- and postconditions, and loop
+invariants. It also handles abstract predicates, but we omitted them
+in the paper for brevity.
+
+Our static analysis infers a symbolic access permission for each
+abstract location for each program point. It then constructs a
+constraint system over these symbolic permissions that reflects the
+permission requirements of Chalice.  The constraints are solved using
+linear programming, obtaining numerical access permissions that are
+then translated into program annotations. We implemented our approach
+in \Sample. The experimental results indicate that our analysis is
+efficient and precise.
+
+As future work, we plan to integrate a shape analysis \cite{LS00} into
+\Sample\ to obtain more precise heap abstractions and, thus, better
+permission inference.
+
+%\noindent \textbf{Future work} First of all, we plan to apply our approach using more refined heap analyses, and in particular shape analysis. We are currently working on plugging TVLA \cite{LS00} in \Sample. In addition, we want to apply our approach to bigger programs and study the experimental results on them.
+
+\bibliographystyle{abbrv}
+\goup
+\bibliography{bibliografia}
+
+%\newpage
+%
+%\appendix
+%
+%\section{Heap analysis}
+%\label{appendix:heapanalysis}
+%
+%\subsection{Approximating the entry state of methods}
+%When we start the analysis of a method, we do not have information on the heap structure. A trivial and too much approximated approach would be to consider that all the arguments may be aliases of the same concrete reference. Instead, our approach relies on type information in order to discover which arguments cannot be aliases. If the types of two arguments are compatible (that is, they are the same or one is subtype of the other), they may alias the same reference. Then we create an abstract node that may represent many concrete references, and we set the two arguments to point to it. We apply this approach both to the method's arguments and to the fields of the current object.\\
+%\textbf{Formal definition:} Let $\arefarguments=\{\ael{a}_1, \cdots, \ael{a}_n\}$ be the set containing the abstract nodes created to represent the nodes at the beginning of the analysis of a method. Each element corresponds to an argument of the method or a field of the current class. Let $\statement{c_0}, \statement{c_1}, ..., \statement{c_n}$ be the list of the arguments of the method we are going to analyze and of the fields of the current class. The initial abstract state $\ael{\sigma}_0$ is defined as follows:
+%\[
+%\ael{\sigma}_0=\{ [\statement{c_i} \mapsto \ael{a}] : i \in [1..n], \ael{a} = \left\{
+%\begin{array}{ll}
+%\ael{a}_i & \textrm{ if } \exists j \in [1..i-1] : j=\min(\{z : \\
+%& \cfunction{type}(\statement{c_z}) \leq \cfunction{type}(\statement{c_i}) \lor \cfunction{type}(\statement{c_i}) \leq \cfunction{type}(\statement{c_z})\})\\
+%\ael{a}_j & \textrm{ otherwise}\\
+%\end{array}
+%\right.
+%\}
+%\]
+%
+%In addition, for each method call \statement{x.m()} contained in the program we analyze, we suppose to have a set $\arefarguments_{\statement{x.m()}}=\{\ael{r}_1, \cdots, \ael{r}_k\}$ that contains an abstract node for each access permission specified in the preconditions of method \statement{m}.\\
+%
+%\subsection{Approximating memory created inside the method}
+%A method may potentially create an unbounded number of references at runtime (for instance, inside a loop). In order to obtain a computable approximation of the heap structure, we need to build up a finite approximation of concrete heaps.
+%
+%Our approach is to abstract each reference created inside the method we are analyzing with the program point that creates it. Since the length of the program is bounded, also the number of program points of a method is bounded. Hence, our approach contains a finite number of abstract node. As obvious consequence, this means that some abstract nodes would represent many concrete references.\\
+%\textbf{Formal definition:} Let \programpoints\ be the set containing all the program points. The set of abstract nodes representing references created inside the analyzed method is defined as $\arefinside=\programpoints$.\\
+%
+%\subsection{Accesses to fields of objects}
+%We represent fields of objects as pairs composed by the abstract address of the object, and the field's name. In this way we precisely represent each field of an object with a distinct identifier. This is particularly important for our analysis since we want to infer access permissions.\\
+%\textbf{Formal definition:} Let \fields\ be the set of fields' names. We represent nodes to fields of object by elements in $\areffields=\pair{(\arefarguments \cup \arefinside)}{\fields}$. $(\ael{a}, \statement{f})$ represents an access to field \statement{f} on the abstract node \ael{a}.
+%
+%\subsection{Boxed domain with sets of abstract nodes}
+%At a given point of a program objects created by different program points or accessed using different arguments or fields of the current object may be assigned to the same variable. Then our abstract domain collects sets of abstract nodes. The overall domain represents a state of the heap relating identifiers to abstract nodes. An identifier may be (i) a variable $\statement{x} \in \variables$, (ii) the identifier of a field $(\ael{a}, \statement{f}) \in \areffields$.\\
+%\textbf{Formal definition:} Let $\aref=\arefarguments \cup \areffields \cup \arefinside$ be the set containing all the possible abstract nodes. The domain adopted to infer information about what variables may point is the powerset of this set. The lattice operators are the common ones on sets. Formally, $\langle \parts{\aref}, \subseteq, \emptyset, \aref, \cup, \cap \rangle$. A state of our abstract domain relates each identifier $\aid=\variables \cup \areffields$ to an element of this domain, that is $\aheap : \funzione{\aid}{\parts{\aref}}$.
+%
+%\subsection{Representing several concrete references}
+%\label{sect:singleref}
+%In order to recover some precision, we track if an abstract node represents one or many concrete references. If it represents one concrete reference, we can perform strong instead of weak updates \cite{RR99}, and we can inhale permissions on that abstract node, since we are sure to obtain permissions on a specific reference.
+%
+%Formally, a function $\afunction{\isSummary} :\funzione{\parts{\aref}}{\{\statement{true}, \statement{false}\}} $ is provided. It returns \statement{true} if and only if the given abstract node represents is a summary node. Intuitively, if $\ael{\epsilon} \in \parts{\aref}$ contains more than one abstract node, than $\aisSummary{\ael{\epsilon}}=\statement{true}$. Otherwise, it contains only one $\ael{r} \in \aref$. In this context, there are only three possible cases. In the first one, $\ael{r}$ was created inside the method, that is $\ael{r} \in \arefinside$. Then $\ael{r}=\cel{pp}$ where $\cel{pp}$ is a point of the program. Here $\aisSummary{\{\ael{r}\}}=\statement{true}$ if and only if $\cel{pp}$ is inside a loop. In the second case, $\ael{r}$ was created at the beginning of the analysis, that is $\ael{r} \in \arefarguments$. Here $\aisSummary{\{\ael{r}\}}=\statement{true}$ if and only if there is more than one argument or field that points to this abstract node at the beginning of the analysis of the method. In the last case, $\ael{r}$ is the access of a field, that is $\ael{r} \in \areffields$, then $\ael{r}=(\ael{r'}, \statement{field})$ where $\ael{r'} \in \arefinside \cup \arefarguments$. Here $\aisSummary{\{\ael{r}\}}=\aisSummary{\{\ael{r'}\}}$, where $\aisSummary{\{\ael{r'}\}}$ is computed following one of the two previous definitions.
+%
+%\subsection{Semantics}
+%Before defining the semantics of statements, we introduce the function $\afunction{\semanticanome{E}}$ that, given a field access or the instantiation of an object and a state of the heap analysis, returns a set of abstract nodes. In the definition of the semantics, we will denote by \statements\ the set of statements.
+%\[
+%\begin{array}{l}
+%\asemantics{E}{\statement{x.f}, \ael{h}}=\{(\ael{o}, \statement{f}) : \ael{o} \in \ael{h}(\ael{\statement{x}})\}\\
+%\asemantics{E}{\statement{new\ T()}, \ael{h}}=\{\statement{pp} : \statement{pp} \textrm{ is the program point of } \statement{new\ T()}\}\\
+%\end{array}
+%\]
+%\[
+%\begin{array}{l}
+%\afunction{\semanticanome{H}} : \funzione{(\pair{\statements}{\aheap})}{\aheap}\\
+%
+%\asemantics{H}{\statement{x = y.f}, \ael{h}}= \ael{h}[\statement{x} \mapsto \asemantics{E}{\statement{y.f}, \ael{h}}]\\
+%
+%\asemantics{H}{\statement{x = new\ T}, \ael{h}}= \ael{h}[\statement{x} \mapsto \asemantics{E}{\statement{new\ T}, \ael{h}}]\\
+%
+%\asemantics{H}{\statement{x.f = y.f}, \ael{h}}=\\
+%\hspace{10pt} =\ael{h}[\ael{a} \mapsto 
+%\left\{
+%\begin{array}{ll}
+%\asemantics{E}{\statement{y.f}, \ael{h}} & \textrm{ if } \aisSummary{\asemantics{E}{\statement{x.f}, \ael{h}}}=\statement{false}\\
+%\asemantics{E}{\statement{y.f}, \ael{h}} \cup \ael{h}(\ael{a}) & \textrm{ if } \aisSummary{\asemantics{E}{\statement{x.f}, \ael{h}}}=\statement{true}\\
+%\end{array}
+%\right.
+% : \ael{a} \in \asemantics{E}{\statement{x.f}, \ael{h}}]\\
+%
+%\asemantics{H}{\statement{x.f = new\ T}, \ael{h}}=\\
+%\hspace{10pt} =\ael{h}[\ael{a} \mapsto \left\{
+%\begin{array}{ll}
+%\asemantics{E}{\statement{new\ T}, \ael{h}} & \textrm{ if } \aisSummary{\asemantics{E}{\statement{x.f}, \ael{h}}}=\statement{false}\\
+%\asemantics{E}{\statement{new\ T}, \ael{h}} \cup \ael{h}(\ael{a}) & \textrm{ if } \aisSummary{\asemantics{E}{\statement{x.f}, \ael{h}}}=\statement{true}\\
+%\end{array}
+%\right.
+% : \ael{a} \in \asemantics{E}{\statement{x.f}, \ael{h}}]\\
+%
+%\asemantics{H}{\statement{T\ x}, \ael{h}}=\ael{h}\\
+%
+%\asemantics{H}{\statement{x.m()}, \ael{h}}=\ael{h}[\ael{a}_i \mapsto \atopaddress{\agettype{\ael{a}_i}}{\dom{\ael{h}} \cup \arefarguments_{\statement{x.m()}}} :\\
+%\hspace{30pt} \aprecondition{\ael{h}, \statement{x.m()}}=\{(\ael{a}_1, \ael{l}_1), \cdots, (\ael{a}_1, \ael{l}_1)\} \land \arefarguments_{\statement{x.m()}}=\{\ael{r}_1, \cdots, \ael{r}_n \} \subseteq \arefarguments \land\\
+%\hspace{30pt} \forall \cel{i} \in [1..\cel{n}] : \agettype{\ael{r}_i}=\agettype{\ael{a}_i}]\\
+%\hspace{30pt} \textrm{where } \atopaddress{\cel{T}}{\aset{R}}=\{\ael{a} \in \aset{R} : \agettype{\ael{a}} \leq \ael{T}\}
+%
+%\end{array}
+%\]
+%The semantics of the heap analysis tracks the modifications of the heap structure performed by different statements. When assigning local variables, we simply infer that the local variable points to the new abstract nodes after the assignment. Instead, when assigning the field of an object, we have to take into account if the abstract represents one or many concrete references through the $\afunction{\isSummary}$ function. In the first case we can perform strong updates, while in the latter one we have to perform weak updates losing some precision. The analysis of method calls exploits the fact that permissions specify frame information \cite{LMS09}. Intuitively, if a method does not require access to a heap location, then it cannot modify it. Then we set to top all the heap locations that can be accessed by the method in order to preserve the soundness. This corresponds to assign all the nodes that are compatible to the accessible location (that is, all the nodes whose type is the same or a subtype of the assigned location). This set of nodes is composed by all the existing nodes plus a set of nodes that could have been created inside the method and that are compatible with the types of the accessible locations.
+
+\end{document}
+
+
+

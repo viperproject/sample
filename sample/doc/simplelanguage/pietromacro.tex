@@ -1,0 +1,96 @@
+\newcommand{\Sample}{\ensuremath{\mathsf{Sample}}}
+
+\newcommand{\todo}[1]{\textbf{TODO:#1}}
+
+\newcommand{\statements}{\cset{St}}
+\newcommand{\methodcall}{\cset{Mc}}
+\newcommand{\variables}{\cset{Var}}
+\newcommand{\fields}{\cset{F}}
+\newcommand{\programpoints}{\cset{PP}}
+\newcommand{\cref}{\cset{Ref}}
+\newcommand{\aid}{\aset{AbsId}}
+\newcommand{\aref}{\aset{Ref}}
+\newcommand{\areffields}{\aset{RefFields}}
+\newcommand{\arefinside}{\aset{RefIn}}
+\newcommand{\arefarguments}{\aset{RefArg}}
+\newcommand{\aheap}{\aset{H}}
+\newcommand{\astate}{\aset{\Sigma}}
+
+\newcommand{\apermission}{\aset{PL}}
+\newcommand{\aboxedpermission}{\aset{P}}
+
+\newcommand{\Java}{\ensuremath{\mathsf{Java}}}
+\newcommand{\Scala}{\ensuremath{\mathsf{Scala}}}
+\newcommand{\CSharp}{\ensuremath{\mathsf{C\#}}}
+
+
+
+\newcommand{\parts}[1]{\ensuremath{\wp(#1)}}
+\newcommand{\dom}[1]{\ensuremath{\cfunction{dom}(#1)}}
+\newcommand{\statement}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\funzione}[2]{\ensuremath{[#1 \rightarrow#2]}}
+\newcommand{\pair}[2]{\ensuremath{#1 \times #2}}
+\newcommand{\cartesianproduct}[2]{\ensuremath{#1 \times #2}}
+\newcommand{\reducedproduct}[2]{\ensuremath{#1 \varotimes #2}}
+\newcommand{\true}{\cel{true}}
+\newcommand{\false}{\cel{false}}
+\newcommand{\reducefunction}{\afunction{red}}
+\newcommand{\gettype}{getType}
+\newcommand{\agettype}[1]{\afunction{\gettype}(#1)}
+\newcommand{\getFields}{fields}
+\newcommand{\cgetFields}[1]{\cfunction{\getFields}(#1)}
+\newcommand{\abstractn}{abstract}
+\newcommand{\abstractfunction}[1]{\afunction{\abstractn}(#1)}
+\newcommand{\isSingle}{isSingle}
+\newcommand{\aisSingle}[1]{\afunction{\isSingle}(#1)}
+\newcommand{\inhale}{inh}
+\newcommand{\ainhale}[3]{\afunction{\inhale}(#1, #2, #3)}
+\newcommand{\exhale}{exh}
+\newcommand{\aexhale}[3]{\afunction{\exhale}(#1, #2, #3)}
+\newcommand{\inhaleset}{inhSet}
+\newcommand{\ainhaleset}[2]{\afunction{\inhaleset}(#1, #2)}
+\newcommand{\exhaleset}{exhSet}
+\newcommand{\aexhaleset}[2]{\afunction{\exhaleset}(#1, #2)}
+\newcommand{\monitorinvariant}{mInv}
+\newcommand{\amonitorinvariant}[1]{\afunction{\monitorinvariant}(#1)}
+\newcommand{\predicate}{predicate}
+\newcommand{\apredicate}[1]{\afunction{\predicate}(#1)}
+\newcommand{\precondition}{pre}
+\newcommand{\aprecondition}[1]{\afunction{\precondition}(#1)}
+\newcommand{\postcondition}{post}
+\newcommand{\apostcondition}[1]{\afunction{\postcondition}(#1)}
+\newcommand{\topaddress}{top}
+\newcommand{\atopaddress}[2]{\afunction{\topaddress}(#1, #2)}
+
+\newcommand{\sem}[1]{\ensuremath{\llbracket \mathtt{#1} \rrbracket}}
+\newcommand{\semanticanome}[1]{\ensuremath{\mathbb{#1}}}
+\newcommand{\semantica}[2]{\ensuremath{\semanticanome{#1}\sem{#2}}}
+
+%Concreto
+
+%Dominio e semantica concrete
+\newcommand{\cset}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\ctrace}[1]{\ensuremath{\trace{{\cset{#1}}}}}
+\newcommand{\cel}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\cjoin}{\ensuremath{\cup}}
+\newcommand{\cmeet}{\ensuremath{\cap}}
+\newcommand{\corder}{\ensuremath{\subseteq}}
+\newcommand{\cbot}{\ensuremath{\emptyset}}
+\newcommand{\ctop}[1]{\cset{#1}}
+\newcommand{\cfunction}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\csemantics}[2]{\ensuremath{\semantica{#1}{#2}}}
+
+%Astratto
+
+%Dominio e semantica astratte
+\newcommand{\aset}[1]{\cset{\overline{#1}}}
+\newcommand{\ael}[1]{\cel{\overline{#1}}}
+\newcommand{\ajoin}{\ensuremath{\sqcup}}
+\newcommand{\ameet}{\ensuremath{\sqcap}}
+\newcommand{\awidening}{\ensuremath{\nabla}}
+\newcommand{\aorder}{\ensuremath{\sqsubseteq}}
+\newcommand{\abot}{\ensuremath{\bot}}
+\newcommand{\abtop}{\ensuremath{\top}}
+\newcommand{\asemantics}[2]{\semantica{\afunction{\semanticanome{#1}}}{#2}}
+\newcommand{\atrace}[1]{\ensuremath{\trace{#1}}}
+\newcommand{\afunction}[1]{\ensuremath{\overline{\mathit{#1}}}}

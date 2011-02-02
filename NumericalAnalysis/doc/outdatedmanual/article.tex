@@ -1,0 +1,145 @@
+\documentclass[11pt]{article}
+\oddsidemargin 0.0cm
+\evensidemargin 0.0cm
+\textwidth 16.0cm
+\headheight 0.0cm
+\topmargin 0.0cm
+\textheight 19.0cm
+
+\usepackage[final]{listings}
+
+\lstset{language={Java},mathescape=true,flexiblecolumns=true,basicstyle=\sffamily\small,numberstyle=\footnotesize,stepnumber=1,numbersep=2pt}
+
+\newcommand{\ScalaAnalyzer}{\ensuremath{\mathsf{Sample}}}
+\newcommand{\statement}[1]{\lstinline{#1}}
+\newcommand{\Java}{\ensuremath{\mathsf{Java}}}
+\newcommand{\Scala}{\ensuremath{\mathsf{Scala}}}
+
+%\renewcommand{\familydefault}{\sfdefault}
+\begin{document}
+\title{Extending \ScalaAnalyzer\ with non-relational numerical domains and heap analyses}
+
+\author{
+Pietro Ferrara\\
+ETH Zurich\\
+\texttt{pietro.ferrara@inf.ethz.ch}
+}
+
+\maketitle
+
+\begin{abstract}
+\ScalaAnalyzer\ can be plugged with different (relational and non-relational) numerical domains and heap analyses. This document presents and explains the interface that has to be implemented in order to develop a new non-relational numerical domain and heap analysis in \Java\ and plug them in \ScalaAnalyzer.
+\end{abstract}
+
+
+\section{\statement{Lattice}}
+
+\begin{lstlisting}
+package ch.ethz.inf.pm.AbstractInterpreter.AbstractDomain;
+
+public interface Lattice {
+    public boolean lessEqual(Lattice);
+    public Lattice widening(Lattice, Lattice);
+    public Lattice glb(Lattice, Lattice);
+    public Lattice lub(Lattice, Lattice);
+    public Lattice bottom();
+    public Lattice top();
+    public Lattice factory();
+}
+\end{lstlisting}
+
+The methods of interface \statement{Lattice} have the common meaning of operators on lattices. Formally,
+\begin{itemize}
+\item \statement{this.lessEqual(a)} returns \statement{true} $\Leftrightarrow$ \statement{this} $\leq$ \statement{a}
+\item \statement{widening(a, b)} returns \statement{a} $\nabla$ \statement{b}
+\item \statement{glb(a, b)} returns \statement{a} $\sqcap$ \statement{b}
+\item \statement{lub(a, b)} returns \statement{a} $\sqcup$ \statement{b}
+\item \statement{top()} returns $\top$
+\item \statement{bottom()} returns $\bot$
+\end{itemize}
+In addition, \statement{factory()} returns a new instance of the current domain.
+
+
+\section{\statement{NonRelationalNumericalDomain}}
+
+\begin{lstlisting}
+package ch.ethz.inf.pm.AbstractInterpreter.AbstractDomain.NumericalDomain;
+
+public interface NonRelationalNumericalDomain extends Lattice {
+    public NonRelationalNumericalDomain valueLEQ(NonRelationalNumericalDomain);
+    public NonRelationalNumericalDomain valueGEQ(NonRelationalNumericalDomain);
+    public NonRelationalNumericalDomain 
+               divide(NonRelationalNumericalDomain, NonRelationalNumericalDomain);
+    public NonRelationalNumericalDomain 
+               multiply(NonRelationalNumericalDomain, NonRelationalNumericalDomain);
+    public NonRelationalNumericalDomain 
+               subtract(NonRelationalNumericalDomain, NonRelationalNumericalDomain);
+    public NonRelationalNumericalDomain 
+               sum(NonRelationalNumericalDomain, NonRelationalNumericalDomain);
+    public NonRelationalNumericalDomain evalConstant(int);
+}
+\end{lstlisting}
+
+Interface \statement{NonRelationalNumericalDomain} requires to implement all the common arithmetic operators on non-relational numerical domains. In particular,
+\begin{itemize}
+\item \statement{valueLEQ(a)} returns the abstract value approximating the numerical values that are less or equal than \statement{a}, for instance, \statement{valueLEQ(}$[0..2]$\statement{)}$=[-\infty..2]$
+\item \statement{valueGEQ(a)} returns the abstract value approximating the numerical values that are greater or equal than \statement{a}, for instance, \statement{valueGEQ(}$[0..2]$\statement{)}$=[0..+\infty]$
+\item \statement{divide(a, b)} returns the abstract result of the division \statement{a}$/$\statement{b}, for instance, \statement{divide(}$[2..4]$\statement{,}$[2..2]$\statement{)}$=[1..2]$
+\item \statement{multiply(a, b)} returns the abstract result of the multiplication \statement{a}$*$\statement{b}, for instance, \statement{multiply(}\allowbreak$[2..4]$\statement{,}$[2..2]$\statement{)}$=[4..8]$
+\item \statement{subtract(a, b)} returns the abstract result of the subtraction \statement{a}$-$\statement{b}, for instance, \statement{subtract(}\allowbreak$[2..4]$\statement{,}$[2..2]$\statement{)}$=[0..2]$
+\item \statement{sum(a, b)} returns the abstract result of the addition \statement{a}$+$\statement{b}, for instance, \statement{sum(}$[2..4]$\statement{,}$[2..2]$\statement{)}$=[4..6]$
+\item \statement{evalConstant(i)} returns the abstract representation of the numerical value \statement{i}, for instance, \statement{evalConstant(}$1$\statement{)}$=[1..1]$
+\end{itemize}
+
+\section{\statement{HeapIdentifier}}
+\begin{lstlisting}
+package ch.ethz.inf.pm.AbstractInterpreter.AbstractDomain
+
+public abstract class HeapIdentifier extends Identifier {
+    public HeapIdentifier(Type);
+    public abstract HeapIdentifier factory();
+    public abstract HeapIdentifier extractField(HeapIdentifier, String, Type);
+    public abstract HeapIdentifier createAddress(Type, ProgramPoint);
+    public HeapIdentifier accessStaticObject(Type t);
+}
+
+public abstract class Identifier extends Expression {
+    public Identifier(Type);
+    public abstract boolean representSingleVariable();
+    public abstract String getName();
+}
+\end{lstlisting}
+
+Abstract class \statement{HeapIdentifier} requires to implement all the operators required to run the heap analysis. In particular,
+\begin{itemize}
+\item \statement{factory()} returns a new instance of the \statement{HeapIdentifier} class
+\item \statement{extractField(HeapIdentifier h, String f, Type t)} returns the heap identifier representing the access of field \statement{f} of type \statement{t} on the object identifier by \statement{h}
+\item \statement{createAddress(Type t, ProgramPoint p)} returns the heap identifier representing a new instance of type \statement{t} created at program point \statement{p}
+\item \statement{acessStaticObject(t)} returns the identifier of accessing the static object of type \statement{t}
+\item \statement{representSingleVariable()} returns \statement{true} if and only if the current abstract heap identifier represents exactly one concrete reference
+\item \statement{getName()} returns the name of the current heap identifier
+\end{itemize}
+
+\section{How to run the analysis}
+\begin{lstlisting}
+NonRelationalNumericalDomainAndHeapAnalysis.analyze(
+						"<ClassName>",
+						"<MethodName>",
+						"<FilePath>",
+						<NumericalDomain>,
+						<HeapAnalysis>
+	);
+\end{lstlisting}
+In order to run the analysis in \Java, the user has to call method \statement{analyze} on the static object \statement{NonRelationalNumericalDomainAndHeapAnalysis} passing
+\begin{enumerate}
+\item \statement{"<ClassName>"}: the string containing the name of the class to be analyzed
+\item \statement{"<MethodName>"}: the string containing the name of the method to be analyzed
+\item \statement{"<FilePath>"}: the complete path of the file to be analyzed
+\item \statement{<NumericalDomain>}: an instance of the non relational domain that has to be used during the analysis. Such object has to be instance of interface \statement{NonRelationalNumericalDomain}
+\item \statement{<HeapAnalysis>}: an instance of the heap analysis that has to be used during the analysis. Such object has to be instance of abstract class \statement{HeapIdentifier}
+\end{enumerate}
+
+\end{document}
+
+
+

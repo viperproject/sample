@@ -1,0 +1,1 @@
+In order to run the analysis, you have to compile and install the APRON library on your system, since both apron.jar and gmp.jar refers to that. The official webpage of this library is http://apron.cri.ensmp.fr/library/

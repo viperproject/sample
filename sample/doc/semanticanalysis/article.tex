@@ -1,0 +1,267 @@
+\documentclass[11pt]{article}
+\oddsidemargin 0.0cm
+\evensidemargin 0.0cm
+\textwidth 16.0cm
+\headheight 0.0cm
+\topmargin 0.0cm
+\textheight 19.0cm
+
+\usepackage[final]{listings}
+
+\lstset{language={Java},mathescape=true,flexiblecolumns=true,basicstyle=\sffamily\small,numberstyle=\footnotesize,stepnumber=1,numbersep=2pt}
+
+\newcommand{\ScalaAnalyzer}{\ensuremath{\mathsf{Sample}}}
+\newcommand{\statement}[1]{\lstinline{#1}}
+\newcommand{\Java}{\ensuremath{\mathsf{Java}}}
+\newcommand{\Scala}{\ensuremath{\mathsf{Scala}}}
+
+\newcommand{\cfunction}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\dom}[1]{\ensuremath{\cfunction{dom}(#1)}}
+\newcommand{\cset}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\cel}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\aset}[1]{\cset{\overline{#1}}}
+\newcommand{\ael}[1]{\cel{\overline{#1}}}
+
+
+%\renewcommand{\familydefault}{\sfdefault}
+\begin{document}
+\title{Extending \ScalaAnalyzer\ with a semantic analysis}
+
+\author{
+Pietro Ferrara\\
+ETH Zurich\\
+\texttt{pietro.ferrara@inf.ethz.ch}
+}
+
+\maketitle
+
+\begin{abstract}
+\ScalaAnalyzer\ can be plugged with several heterogeneous analyses. This document presents and explains the interface that has to be implemented in order to develop a new semantic analysis. This is a generic analysis that defines the lattice's structure and the basic semantic operators. The semantic analysis does not have to take care of the heap abstraction.
+\end{abstract}
+
+
+\section{\statement{Lattice}}
+
+\begin{lstlisting}
+package ch.ethz.inf.pm.AbstractInterpreter.AbstractDomain
+
+trait Lattice[T <: Lattice[T]] {
+  def factory() : T
+  def top() : T
+  def bottom() : T
+  def lub(left : T, right : T) : T
+  def glb(left : T, right : T) : T
+  def widening(left : T, right : T) : T
+  def lessEqual(r : T) : Boolean
+}
+\end{lstlisting}
+
+The methods of trait \statement{Lattice} have the usual meaning of the operators on lattices. Formally,
+\begin{itemize}
+\item \statement{this.lessEqual(a)} returns \statement{true} $\Leftrightarrow$ \statement{this} $\leq$ \statement{a}
+\item \statement{widening(a, b)} returns \statement{a} $\nabla$ \statement{b}
+\item \statement{glb(a, b)} returns \statement{a} $\sqcap$ \statement{b}
+\item \statement{lub(a, b)} returns \statement{a} $\sqcup$ \statement{b}
+\item \statement{top()} returns $\top$
+\item \statement{bottom()} returns $\bot$
+\end{itemize}
+In addition, \statement{factory()} returns a new instance of the current domain.
+
+
+\section{\statement{SemanticDomain}}
+Trait \statement{SemanticDomain} is aimed at providing an interface for a generic domain that defines the main semantic operators, e.g., assignment of variables. The user can develop an analysis (e.g., about string values) implementing the methods of this traits. Note that this domain has not to take care about the structure of the heap, since it is combined with an heap analysis that preprocesses the program and substitutes heap accesses with abstract identifiers.
+
+\begin{lstlisting}
+package ch.ethz.inf.pm.AbstractInterpreter.AbstractDomain
+
+trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
+  def getStringOfId(id : Identifier) : String;
+  def setToTop(variable : Identifier) : T;
+  def assign(variable : Identifier, expr : Expression) : T;
+  def setParameter(variable : Identifier, expr : Expression) : T;
+  def assume(expr : Expression) : T;
+  def createVariable(variable : Identifier, typ : Type) : T;
+  def createVariableForParameter(variable : Identifier, typ : Type) : T;
+  def removeVariable(variable : Identifier) : T;
+  def access(field : Identifier) : T;
+  def backwardAccess(field : Identifier) : T;
+  def backwardAssign(variable : Identifier, expr : Expression) : T;
+}
+\end{lstlisting}
+
+\begin{itemize}
+\item \statement{getStringOfId(x)} returns a (short) string representing the abstract value of variable \statement{x}. This method is used to show the abstract state of a variable to an user.
+\item \statement{setToTop(x)} havocs the information tracked on variable \statement{x}.
+\item \statement{assign(x, expr)} returns the state obtained after assigning \statement{expr} to the variable represented by object \statement{x}.
+\item \statement{setParameter(x, expr)} returns the state obtained after assigning \statement{expr} to parameter \statement{x}. Usually, its semantics is the same of \statement{assign}. The only difference is that this method is invoked at the beginning of the analysis to set the arguments of the analyzed method, while \statement{assign} is invoked while the method is analyzed, and in particular to abstract the semantics of assignments.
+\item \statement{assume(expr)} returns the state obtained after assuming that expression \statement{expr} holds.
+\item \statement{createVariable(x, t)} returns the state obtained after creating a new variable \statement{x} of type \statement{t}.
+\item \statement{createVariableForParameter(x, t)} returns the state obtained after creating a new parameter \statement{x} of type \statement{t}. Usually, its semantics is the same of \statement{createVariable}. The only difference is that this method is invoked at the beginning of the analysis to create the arguments of the analyzed method, while \statement{createVariable} is invoked while the method is analyzed, and in particular to abstract the semantics of variable declaration.
+\item \statement{removeVariable(x)} removes variable \statement{x} from the state of the domain.
+\item \statement{access(f)} returns the state obtained after accessing field \statement{f} of the object contained in the current expression. Usually, this action is not supposed to change the abstract state.
+\item \statement{backwardAccess(f)} returns the state obtained before accessing field \statement{f} of the object contained in the current expression. It is the backward counterpart of \statement{access}.
+\item \statement{backwardAssign(x, expr)} returns the state obtained before assigning \statement{expr} to variable \statement{x}. It is the backward counterpart of \statement{assign}.
+\end{itemize}
+
+The trait \statement{SimplifiedSemanticDomain} provides a simplified version of \statement{SemanticDomain}. It does not support the backward operators, while \statement{access} does not modify the state, \statement{setParameter(variable, expr)} corresponds to \statement{assign(variable, expr)}, and \statement{createVariableForParameter(variable, typ)} corresponds to \statement{createVariable(variable, typ)}. Then the methods that have to be implemented using \statement{SimplifiedSemanticDomain} are the following ones:
+
+
+\begin{lstlisting}
+package ch.ethz.inf.pm.AbstractInterpreter.AbstractDomain
+
+trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends SemanticDomain[T] {
+  def getStringOfId(id : Identifier) : String;
+  def setToTop(variable : Identifier) : T;
+  def assign(variable : Identifier, expr : Expression) : T;
+  def assume(expr : Expression) : T;
+  def createVariable(variable : Identifier, typ : Type) : T;
+  def removeVariable(variable : Identifier) : T;
+}
+\end{lstlisting}
+
+\section{\statement{NativeMethodSemantics}}
+\begin{lstlisting}
+package ch.ethz.inf.pm.AbstractInterpreter.OORepresentation
+
+trait NativeMethodSemantics {
+	def applyForwardNativeSemantics[S <: State[S]](
+		thisExpr : SymbolicAbstractValue[S], 
+		operator : String, 
+		parameters : List[SymbolicAbstractValue[S]], 
+		typeparameters : List[Type], 
+		returnedtype : Type, 
+		state : S
+	) : Option[S] ;
+
+	def applyBackwardNativeSemantics[S <: State[S]](
+		thisExpr : SymbolicAbstractValue[S], 
+		operator : String, 
+		parameters : List[SymbolicAbstractValue[S]], 
+		typeparameters : List[Type], 
+		returnedtype : Type, 
+		state : S
+	) : Option[S] ;
+}
+\end{lstlisting}
+
+Trait \statement{NativeMethodSemantics} provides the forward (\statement{applyForwardNativeSemantics}) and backward (\statement{applyBackwardNativeSemantics}) semantics of some methods particularly interesting for the analysis we want to implement. These semantics return \statement{None} if the semantics of the analyzed method is not defined, or \statement{Some(state)} otherwise (where \statement{state} is the state obtained after the evaluation of the given method call). The meaning of the arguments of these methods are the following ones:
+\begin{itemize}
+\item \statement{thisExpr} contains the expression representing the object on which the method is invoked.
+\item \statement{operator} contains the string representing the name of the invoked method.
+\item \statement{parameters} contains a list of expressions representing the arguments passed to the method.
+\item \statement{typeparameters} contains a list of types representing the type arguments passed to the method.
+\item \statement{returnedtype} contains the type returned by the invoked method.
+\item \statement{state} contains the abstract state before the invocation of the method.
+\end{itemize}
+
+Sometimes after the invocation of the method we want to put an expression on the state. For instance, after the invocation of \statement{x.+(y)} we want to put on the stack an arithmetic expression representing \statement{x+y}. In order to create such expressions, class \statement{SymbolicAbstractValue} provides a method \statement{createAbstractOperator(thisExpr, parameters, typeParameters, method, state, returnedType)} where \statement{method} is the value of an \statement{AbstractOperatorIdentifier}. Once the expression has been created using this method, it can be put on the state invoking method \statement{setExpression}.
+
+Note that once the expression has been created it can be used to be assigned to a variable or to evaluate a boolean condition. This expression is represented as an instance of the class \statement{AbstractOperator}, e.g., \statement{AbstractOperator(left, args, typepars,AbstractOperatorIdentifiers.==, typ)} represents a comparison between \statement{left} and \statement{args}.
+
+\section{How to run the analysis}
+\begin{lstlisting}
+SemanticAnalysis.analyze(
+	"<ClassName>",
+	"<MethodName>",
+	"<FilePath>",
+	<SemanticAnalysis>
+);
+\end{lstlisting}
+In order to run the analysis in \Scala, the user has to call the method \statement{analyze} on the static object \statement{NonRelationalNumericalDomainAndHeapAnalysis}. The arguments are the following ones:
+\begin{enumerate}
+\item \statement{"<ClassName>"}: the string containing the name of the class to be analyzed
+\item \statement{"<MethodName>"}: the string containing the name of the method to be analyzed
+\item \statement{"<FilePath>"}: the complete path of the file to be analyzed
+\item \statement{<SemanticAnalysis>}: an instance of the analysis to be performed
+\end{enumerate}
+
+\section{Standard domains}
+Several standard domains are already implemented in \ScalaAnalyzer, and they can be used to implement new analyses. These implement all the method of \statement{Lattice} trait.
+
+\subsection{\statement{FunctionalDomain}}
+This class represents functional domains that relates elements in a domain $K$ to abstract values in $V$, where $V$ is a lattice. Formally, \statement{FunctionalDomain}$ : K \to V$. The lattice operators are defined as follows (we denote $\cfunction{op}_V$ the corresponding lattice operator on the codomain $V$):
+\begin{itemize}
+\item 
+$\ael{f}_1 \sqcup \ael{f}_2 = \{[\cel{x} \mapsto \ael{v}] : \cel{x} \in \dom{\ael{f}_1} \cup \dom{\ael{f}_2} \land \ael{v} = \left\{
+\begin{array}{ll}
+\ael{f}_1(\cel{x}) \sqcup_V \ael{f}_2(\cel{x}) & \textrm{ if } \cel{x} \in \dom{\ael{f}_1} \cap \dom{\ael{f}_2}\\
+\ael{f}_1(\cel{x}) & \textrm{ if } \cel{x} \in \dom{\ael{f}_1} \setminus \dom{\ael{f}_2}\\
+\ael{f}_2(\cel{x}) & \textrm{ if } \cel{x} \in \dom{\ael{f}_2} \setminus \dom{\ael{f}_1}\\
+\end{array}
+\right.\}
+$
+\item 
+$\ael{f}_1 \nabla \ael{f}_2 = \{[\cel{x} \mapsto \ael{v}] : \cel{x} \in \dom{\ael{f}_1} \cup \dom{\ael{f}_2} \land \ael{v} = \left\{
+\begin{array}{ll}
+\ael{f}_1(\cel{x}) \nabla_V \ael{f}_2(\cel{x}) & \textrm{ if } \cel{x} \in \dom{\ael{f}_1} \cap \dom{\ael{f}_2}\\
+\ael{f}_1(\cel{x}) & \textrm{ if } \cel{x} \in \dom{\ael{f}_1} \setminus \dom{\ael{f}_2}\\
+\ael{f}_2(\cel{x}) & \textrm{ if } \cel{x} \in \dom{\ael{f}_2} \setminus \dom{\ael{f}_1}\\
+\end{array}
+\right.\}
+$
+\item 
+$\ael{f}_1 \sqcap \ael{f}_2 = \{[\cel{x} \mapsto \ael{v}] : \cel{x} \in \dom{\ael{f}_1} \cup \dom{\ael{f}_2} \land \ael{v} = \left\{
+\begin{array}{ll}
+\ael{f}_1(\cel{x}) \sqcap_V \ael{f}_2(\cel{x}) & \textrm{ if } \cel{x} \in \dom{\ael{f}_1} \cap \dom{\ael{f}_2}\\
+\bot_V & \textrm{ otherwise}\\
+\end{array}
+\right.\}
+$
+\item 
+$\ael{f}_1 \leq \ael{f}_2 \Leftrightarrow \dom{\ael{f}_1} \subseteq \dom{\ael{f}_2} \land \forall \cel{x} \in \dom{\ael{f}_1} : \ael{f}_1(\cel{x}) \leq \ael{f}_2(\cel{x})$
+\item $\top = \lambda \cel{x} . \top_V$
+\item $\bot = \emptyset$
+\end{itemize}
+
+\subsection{\statement{BoxedDomain}}
+\statement{BoxedDomain} is a particular case of \statement{FunctionalDomain} when the domain is the set of identifiers (e.g., variables).
+
+\subsection{\statement{SetDomain}}
+This class represents domains that contain a set of elements. The lattice operators rely on the set operators. Formally, \statement{SetDomain}$=\wp(V)$. The lattice operators are defined as follows:
+\begin{itemize}
+\item $\ael{s}_1 \sqcup \ael{s}_2 = \ael{s}_1 \cup \ael{s}_2$
+\item $\ael{s}_1 \nabla \ael{s}_2 = \ael{s}_1 \cup \ael{s}_2$ (here we suppose that the domain contains a finite number of elements, otherwise the set union would not guarantee the convergence of the analysis)
+\item $\ael{s}_1 \sqcap \ael{s}_2 = \ael{s}_1 \cap \ael{s}_2$
+\item $\ael{s}_1 \leq \ael{s}_2 \Leftrightarrow \ael{s}_1 \subseteq \ael{s}_2$
+\item $\top = V$
+\item $\bot = \emptyset$
+\end{itemize}
+
+
+\subsection{\statement{InverseSetDomain}}
+This class represents domains that contain a set of elements. The lattice operators are the inverse of the ones of \statement{SetDomain}. Formally, \statement{InverseSetDomain}$=\wp(V)$. The lattice operators are defined as follows:
+\begin{itemize}
+\item $\ael{s}_1 \sqcup \ael{s}_2 = \ael{s}_1 \cap \ael{s}_2$
+\item $\ael{s}_1 \nabla \ael{s}_2 = \ael{s}_1 \cap \ael{s}_2$
+\item $\ael{s}_1 \sqcap \ael{s}_2 = \ael{s}_1 \cup \ael{s}_2$
+\item $\ael{s}_1 \leq \ael{s}_2 \Leftrightarrow \ael{s}_1 \supseteq \ael{s}_2$
+\item $\top = \emptyset$
+\item $\bot = V$
+\end{itemize}
+
+
+\subsection{\statement{CartesianProductDomain}}
+This class represents a combination of two domains that have to be lattices. Formally, \statement{CartesianProductDomain}$=A \times B$. The lattice operators are defined as the pointwise application of the operators on $A$ and $B$ (where $\cfunction{op}_A$ and $\cfunction{op}_B$ represent the lattice operator $\cfunction{op}$ respectively on $A$ and $B$):
+
+\begin{itemize}
+\item $(\ael{a}_1, \ael{b}_1) \sqcup (\ael{a}_2, \ael{b}_2) = (\ael{a}_1 \sqcup_A \ael{a}_2, \ael{b}_1 \sqcup_B \ael{b}_2)$
+\item $(\ael{a}_1, \ael{b}_1) \nabla (\ael{a}_2, \ael{b}_2) = (\ael{a}_1 \nabla_A \ael{a}_2, \ael{b}_1 \nabla_B \ael{b}_2)$
+\item $(\ael{a}_1, \ael{b}_1) \sqcap (\ael{a}_2, \ael{b}_2) = (\ael{a}_1 \sqcap_A \ael{a}_2, \ael{b}_1 \sqcap_B \ael{b}_2)$
+\item $(\ael{a}_1, \ael{b}_1) \leq (\ael{a}_2, \ael{b}_2) \Leftrightarrow \ael{a}_1 \leq_A \ael{a}_2 \land \ael{b}_1 \leq_B \ael{b}_2$
+\item $\top = (\top_A, \top_B)$
+\item $\bot = (\bot_A, \bot_B)$
+\end{itemize}
+
+\subsection{\statement{ReducedProductDomain}}
+The \statement{ReducedProductDomain} is the \statement{CartesianProductDomain} on which a \statement{reduce()} method has to be defined. This method aims at mutually refining the information contained in the two domains.
+
+\subsection{\statement{SemanticCartesianProductDomain} and \statement{SemanticReducedProductDomain}}
+\statement{SemanticCartesianProductDomain} and \statement{SemanticReducedProductDomain} are extensions of the two previous domains that extends also the \statement{SemanticDomain} trait. The two domains contained by the product have to extend \statement{SemanticDomain} too. \statement{SemanticCartesianProductDomain} simply apply the methods of \statement{SemanticDomain} on the two domains, while \statement{SemanticReducedProductDomain} calls also method \statement{reduce()} after performing the semantic action.
+
+
+\section{Output of the analysis}
+
+\end{document}
+
+
+
