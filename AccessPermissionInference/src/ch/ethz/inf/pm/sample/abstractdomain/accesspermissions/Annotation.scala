@@ -309,8 +309,7 @@ object Annotation {
  		  it.next match {
  		    case x : VariableIdentifier => result=this.exhaleReachable(env.get(x), state, env, store, s);
  		    case x : FieldAndProgramPoint =>
- 		    	  considered=Set.empty[ProgramPointHeapIdentifier]
-		    	  this.reachable(id, x, env, store) match {
+		    	  ReachabilityAnalysis.reachable(id, x, env, store) match {
 		    	    case (/*in :: */path, true) => result=result.exhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object
 		    	    //case (Nil, true) => //I'm not sure about that: result=result.exhale(x, s.factory().setPath(new Path(Nil)));
 		    	    case _ => 
@@ -329,8 +328,7 @@ object Annotation {
  		  it.next match {
  		    case x : VariableIdentifier => result=this.inhaleReachable(env.get(x), state, env, store, s);
  		    case x : FieldAndProgramPoint =>
- 		    	  considered=Set.empty[ProgramPointHeapIdentifier]
-		    	  this.reachable(id, x, env, store) match {
+		    	  ReachabilityAnalysis.reachable(id, x, env, store) match {
 		    	    case (/*in :: */path, true) => 
 		    	    	result=result.inhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object 
 		    	    //case (Nil, true) => //I'm not sure about that: result=result.inhale(x, s.factory().setPath(new Path(Nil)))
@@ -341,66 +339,6 @@ object Annotation {
  	  }
  	  return result;
  	}
-  
-  private var considered : Set[ProgramPointHeapIdentifier] = Set.empty[ProgramPointHeapIdentifier];
-  
-  def reachable(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= from match {
-    case x : VariableIdentifier => //It can be only as first step, so we removed the t.toString, it will be replaced by "this"
-    	for(hi <- env.get(x).value) {
-    		reachable(hi, to, env, store) match {
-    		  case (path, true) => return (/*x.toString()::*/path, true);
-    		  case _ =>
-    		}
-    		for((field, typ) <- from.getType().getPossibleFields())
-    			reachable(new FieldAndProgramPoint(hi, field, typ), to, env, store) match {
-    			  case (path, true) => return (/*x.toString()::*/field::path, true);
-    			  case _ =>
-    			}
-    	}
-    	return (Nil, false);
-     
-    case x : ProgramPointHeapIdentifier =>
-    	if(considered.contains(x)) {return (Nil, false);}
-      	if(x.equals(to)) return (Nil, true);
-        val res=store.get(x).value
-        if(res.contains(to)) return (Nil, true);
-        //for(resSingle <- res) 
-        if(x.isNormalized)
-          this.isAccessibleThroughField(x, to, env, store) match {
-	          case Some(s) =>
-	            return (s :: Nil, true);
-	          case None =>
-        }
-    	considered+=x
-	    for(hi <- res) {
-	    	//if(!hi.equals(x))
-	    		reachable(hi, to, env, store) match {
-		    	  case (path, true) => return (path, true);
-		    	  case _ =>
-		    	}
-	    }
-        return (Nil, false);
-    case x : HeapIdAndSetDomain[ProgramPointHeapIdentifier] =>
-      if(x.value.contains(to)) return (Nil, true);
-      for(k <- x.value) {
-        val res=store.get(k).value
-        if(res.contains(to)) return (Nil, true);
-	      else
-	    	for(hi <- res)
-	    		reachable(hi, to, env, store) match {
-	    		  case (path, true) => return (path, true)
-	    		  case _ =>
-	    		}
-      }
-      return (Nil, false);
-  }
-  
-  private def isAccessibleThroughField[I <: NonRelationalHeapIdentifier[I]](from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[String] = {
-    for((field, typ) <- from.getType().getPossibleFields()) {
-      if(from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field, typ).equals(to)) return Some(field);
-    }
-    return None;
-  }
   
  	//private def exhaleSingleUnknown[P <: PermissionsDomain[P]](state : P, id : Identifier) : P = state.setMinimalPermissionLevel(id, 0);
  	//private def inhaleSingleUnknown[P <: PermissionsDomain[P]](state : P, id : Identifier) : P = state.setMaximalPermissionLevel(id, 100);

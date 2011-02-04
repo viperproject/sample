@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.waitorderinference;
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.Type
+import ch.ethz.inf.pm.sample.oorepresentation._
 
 class Path(val p : List[String]) {
   override def toString() : String = {
@@ -24,33 +24,18 @@ class Path(val p : List[String]) {
 }
 
 
-sealed abstract class SymbolicOrderValue(val from : Path, val to : Path) {
-  override def toString() = from.toString + "<<" + to.toString;
-  override def equals(a : Any) : Boolean = a match {
-    case x : SymbolicOrderValue => from.equals(x.from) && to.equals(x.to);
-    case _ => return false;
-  }
+sealed abstract class SymbolicOrderValue {
   def factory() : SymbolicOrderValue; 
 }
 
-case class SymbolicOrderPreCondition(val className : String, val methodName : String, f : Path, t : Path) extends SymbolicOrderValue(f, t) { 
-  override def toString() = "pre("+className.toString()+"."+methodName.toString()+", "+super.toString()+")";
-  override def hashCode() = methodName.hashCode();
+case class SymbolicObjectSharing[I <: HeapIdentifier[I]](val heapId : I, val pp : ProgramPoint) extends SymbolicOrderValue { 
+  override def toString() = "Share of "+heapId.toString()+" at "+pp.toString();
+  override def hashCode() = heapId.hashCode();
   override def equals(a : Any) : Boolean = a match {
-    case x : SymbolicOrderPreCondition => super.equals(x) && className.equals(x.className) && methodName.equals(x.methodName);
+    case x : SymbolicObjectSharing[I] => heapId.equals(x.heapId) && pp.equals(x.pp);
     case _ => return false;
   }
-  override def factory() : SymbolicOrderValue = new SymbolicOrderPreCondition(className, methodName, from, to);
-}
-
-case class SymbolicOrderPostCondition(val className : String, val methodName : String, f : Path, t : Path) extends SymbolicOrderValue(f, t) { 
-  override def toString() = "post("+className.toString()+"."+methodName.toString()+", "+super.toString()+")";
-  override def hashCode() = methodName.hashCode();
-  override def equals(a : Any) : Boolean = a match {
-    case x : SymbolicOrderPreCondition => super.equals(x) && className.equals(x.className) && methodName.equals(x.methodName) 
-    case _ => return false;
-  }
-  override def factory() : SymbolicOrderValue = new SymbolicOrderPreCondition(className, methodName, from, to);
+  override def factory() : SymbolicOrderValue = new SymbolicObjectSharing(heapId, pp);
 }
 
 
@@ -60,7 +45,7 @@ class SetSymbolicOrderValues extends SetDomain[SymbolicOrderValue, SetSymbolicOr
 
 abstract class Node
 
-case class AbstractObject[I <: HeapIdentifier[I]](val id : I) {
+case class AbstractObject[I <: HeapIdentifier[I]](val id : I) extends Node {
   override def toString() = id.toString();
   override def hashCode() = id.hashCode();
   override def equals(a : Any) : Boolean = a match {

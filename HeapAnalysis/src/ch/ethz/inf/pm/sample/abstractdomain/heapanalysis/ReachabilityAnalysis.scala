@@ -1,0 +1,75 @@
+package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
+
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.abstractdomain._
+
+object ReachabilityAnalysis {
+
+	
+  private var considered : Set[ProgramPointHeapIdentifier] = Set.empty[ProgramPointHeapIdentifier];
+
+  //It returns a path to go from "from" to "to". The second component of the pair is false iff "to" is not reachable from "from" 
+  def reachable(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= {
+	  considered=Set.empty[ProgramPointHeapIdentifier];
+	   reachable1(from, to, env, store);
+  }
+  private def reachable1(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= from match {
+    case x : VariableIdentifier => //It can be only as first step, so we removed the t.toString, it will be replaced by "this"
+    	for(hi <- env.get(x).value) {
+    		reachable(hi, to, env, store) match {
+    		  case (path, true) => return (/*x.toString()::*/path, true);
+    		  case _ =>
+    		}
+    		for((field, typ) <- from.getType().getPossibleFields())
+    			reachable(new FieldAndProgramPoint(hi, field, typ), to, env, store) match {
+    			  case (path, true) => return (/*x.toString()::*/field::path, true);
+    			  case _ =>
+    			}
+    	}
+    	return (Nil, false);
+     
+    case x : ProgramPointHeapIdentifier =>
+    	if(considered.contains(x)) {return (Nil, false);}
+      	if(x.equals(to)) return (Nil, true);
+        val res=store.get(x).value
+        if(res.contains(to)) return (Nil, true);
+        //for(resSingle <- res) 
+        if(x.isNormalized)
+          ReachabilityAnalysis.isAccessibleThroughField(x, to, env, store) match {
+	          case Some(s) =>
+	            return (s :: Nil, true);
+	          case None =>
+        }
+    	considered+=x
+	    for(hi <- res) {
+	    	//if(!hi.equals(x))
+	    		reachable(hi, to, env, store) match {
+		    	  case (path, true) => return (path, true);
+		    	  case _ =>
+		    	}
+	    }
+        return (Nil, false);
+    case x : HeapIdAndSetDomain[ProgramPointHeapIdentifier] =>
+      if(x.value.contains(to)) return (Nil, true);
+      for(k <- x.value) {
+        val res=store.get(k).value
+        if(res.contains(to)) return (Nil, true);
+	      else
+	    	for(hi <- res)
+	    		reachable(hi, to, env, store) match {
+	    		  case (path, true) => return (path, true)
+	    		  case _ =>
+	    		}
+      }
+      return (Nil, false);
+  }
+  
+  private def isAccessibleThroughField[I <: NonRelationalHeapIdentifier[I]](from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[String] = {
+    for((field, typ) <- from.getType().getPossibleFields()) {
+      if(from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field, typ).equals(to)) return Some(field);
+    }
+    return None;
+  }
+  
+	
+}
