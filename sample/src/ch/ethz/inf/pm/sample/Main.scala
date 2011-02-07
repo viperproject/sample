@@ -14,11 +14,11 @@ object Main {
     def analyze[S <: State[S]](toAnalyze : String => Set[String], entryState : S) : Unit = {
 	    var output = new OutputCollector();
 	    for(c <- classes) {
+	    	SystemParameters.currentClass = c.name.getThisType();
 	     	val methods = toAnalyze.apply(c.name.toString());
 	        for(x <- c.methods)
 	        	if(methods.contains(x.name.toString()))
 				    SystemParameters.property.check(c.name.toString(), x.name.toString(), x.asInstanceOf[MethodDeclaration].forwardSemantics[S](entryState), output);
-	        
 	      }
 	    SystemParameters.property.finalizeChecking();
 	    System.out.println(SystemParameters.output.output()+"STATISTICS\n"+SystemParameters.output.statistics())

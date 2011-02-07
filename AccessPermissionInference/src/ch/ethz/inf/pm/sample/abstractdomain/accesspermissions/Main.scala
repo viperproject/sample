@@ -28,7 +28,10 @@ object Main {
 	Settings.priorityPredicates = 3;
 	NonRelationalHeapDomainSettings.unsoundEntryState = true;
 	NonRelationalHeapDomainSettings.maxInitialNodes = 10;
-
+	
+	SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ChaliceNativeMethodSemantics :: Nil;
+	
+	
 	//Mandatory global settings
 	SystemParameters.compiler = new ScalaCompiler;
 	SystemParameters.property = new InferenceProperty;

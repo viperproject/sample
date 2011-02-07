@@ -13,7 +13,7 @@ object SystemParameters {
   var analyzedClasses : Int = 0;
   var analyzedMethods : Int = 0;
   var nativeMethodsSemantics : List[NativeMethodSemantics] = /*BooleanNativeMethodSemantics :: IntegerNativeMethodSemantics :: ObjectNativeMethodSemantics :: */Nil;
-  var currentClass : String = null;
+  var currentClass : Type = null;
   var currentMethod : String = null;
   var semanticsComputing : Boolean = false;
   
@@ -40,28 +40,28 @@ object SystemParameters {
       val typeparameters : List[Type] = methodCall.parametricTypes
       val returnedtype : Type = methodCall.returnedType
       for(obj <- castedStatement.objs) {
-        result=result.lub(result, analyzeMethodCall[S](obj, calledMethod, parameters, typeparameters, returnedtype, state, forward))
+        result=result.lub(result, analyzeMethodCall[S](obj, calledMethod, parameters, typeparameters, returnedtype, state, methodCall.getPC(), forward))
       }
 	  result;
 	}
 	
-	private def analyzeMethodCall[S <: State[S]](obj : Statement, calledMethod : String, parameters : List[Statement], typeparameters : List[Type], returnedtype : Type, initialState : S, forward : Boolean) : S = {
+	private def analyzeMethodCall[S <: State[S]](obj : Statement, calledMethod : String, parameters : List[Statement], typeparameters : List[Type], returnedtype : Type, initialState : S, programpoint : ProgramPoint, forward : Boolean) : S = {
 	  val (calledExpr, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](initialState, obj);
 	  val (parametersExpr, resultingState1) = UtilitiesOnStates.forwardExecuteListStatements[S](resultingState, parameters);
 	  if(calledExpr.isBottom)
 			  return initialState.bottom();
 	  if(calledExpr.isTop)
 			  return initialState.top();
-	  applyNativeSemantics(calledMethod, calledExpr, parametersExpr, typeparameters, returnedtype, resultingState1, forward);
+	  applyNativeSemantics(calledMethod, calledExpr, parametersExpr, typeparameters, returnedtype, resultingState1, programpoint, forward);
 	}
  
-	private def applyNativeSemantics[S <: State[S]](invokedMethod : String, thisExpr : SymbolicAbstractValue[S], parametersExpr : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S, forward : Boolean) : S = {
+	private def applyNativeSemantics[S <: State[S]](invokedMethod : String, thisExpr : SymbolicAbstractValue[S], parametersExpr : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S, programpoint : ProgramPoint, forward : Boolean) : S = {
 	  val sems=nativeMethodsSemantics
 	  var result = state.top();
 	  for(sem <- sems) {
 		  val res : Option[S] = if(forward)
-			  sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, state);
-          else sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, state);
+			  sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
+          else sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
 	  	  if(res.isInstanceOf[Some[S]]) result=result.glb(result, res.get);
       }
 	  return result;

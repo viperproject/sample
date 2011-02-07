@@ -515,8 +515,8 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
     result=result+((variable, path ::: variable.toString() :: Nil))
     if(! variable.isInstanceOf[VariableIdentifier])
 	    variable.getField() match {
-		    case None => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedInt(1), new SymbolicPreCondition(SystemParameters.currentClass, SystemParameters.currentMethod, new Path( path ::: Nil))))), result);
-		    case Some(s) => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedInt(1), new SymbolicPreCondition(SystemParameters.currentClass, SystemParameters.currentMethod, new Path( path  ::: /*s :: */Nil))))), result);
+		    case None => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedInt(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path ::: Nil))))), result);
+		    case Some(s) => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedInt(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path  ::: /*s :: */Nil))))), result);
 		  }
     else return (this, result);
   }

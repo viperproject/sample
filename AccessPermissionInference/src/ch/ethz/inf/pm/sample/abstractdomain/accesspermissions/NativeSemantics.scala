@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
   type P = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
 
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = thisExpr.getType().toString() match {
+	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = thisExpr.getType().toString() match {
 	  case "Chalice" =>
 	    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]
 	    var result : P=castedState._1._1;
@@ -244,7 +244,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  case Variable(programpoint, id) => return id;
 	}
    
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = 
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = 
 		throw new MethodSemanticException("Backward semantics not yet supported");
 		
 	private def getPrePostConditions(className : String, methodName : String) : Option[(Map[FieldAccess, Int], Map[FieldAccess, Int])] = {

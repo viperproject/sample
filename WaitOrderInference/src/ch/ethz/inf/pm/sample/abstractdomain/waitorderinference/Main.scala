@@ -26,10 +26,11 @@ object Main {
 	//Mandatory global settings
 	SystemParameters.compiler = new ScalaCompiler;
 	SystemParameters.property = new WaitOrderInferenceProperty;
+	SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ChaliceWaitOrderNativeMethodSemantics :: Nil;
 	
 	//Files paths
-	val f1 = "C:\\Users\\Pietro\\workspaceSample\\sample\\src\\Chalice\\Chalice.scala";
-	val f2 = "C:\\Users\\Pietro\\workspaceSample\\sample\\src\\Examples\\Chalice2\\RunningExample.scala";
+	val f1 = "C:\\Users\\Pietro\\workspaceSample\\WaitOrderInference\\test\\Chalice\\Chalice.scala";
+	val f2 = "C:\\Users\\Pietro\\workspaceSample\\WaitOrderInference\\test\\ChaliceExamples\\RunningExample.scala";
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: f2 :: Nil);
 	

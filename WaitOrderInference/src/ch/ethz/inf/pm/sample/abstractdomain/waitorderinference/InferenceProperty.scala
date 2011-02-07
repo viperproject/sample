@@ -10,7 +10,7 @@ import java.io._
 
 class WaitOrderInferenceProperty extends Property {
 	
-	  override def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = Unit;
+	  override def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
 	  
 	  override def finalizeChecking() : Unit = Unit;
 	   

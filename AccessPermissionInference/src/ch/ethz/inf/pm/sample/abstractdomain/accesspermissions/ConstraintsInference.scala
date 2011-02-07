@@ -85,7 +85,7 @@ object ConstraintsInference {
       }
   }
   
-  def addPostconditionConstraints(s : State) : Unit = this.addPostconditionConstraints(s._1._1, SystemParameters.currentClass, SystemParameters.currentMethod, s._1._2._1, s._1._2._2); 
+  def addPostconditionConstraints(s : State) : Unit = this.addPostconditionConstraints(s._1._1, SystemParameters.currentClass.getName(), SystemParameters.currentMethod, s._1._2._1, s._1._2._2); 
   
   def addPostconditionConstraints(p : Permissions, classe : String, method : String, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) = {
     for(variable <- p.value.keySet) {

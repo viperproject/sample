@@ -26,7 +26,9 @@ trait PackageIdentifier
  * @author Pietro Ferrara
  * @version 0.1
  */
-trait ClassIdentifier
+trait ClassIdentifier {
+	def getThisType() : Type;
+}
 
 /** 
  * The identifier of a method
@@ -274,7 +276,7 @@ trait NativeMethodSemantics {
 	   * @param state the abstract state in which the method call is evaluated
 	   * @return the abstract state obtained after the forward evaluation of the native method call, None if the semantics of the method call is not defined 
 	   */
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] ;
+	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] ;
  
 	  /**
 	   * It defines the backward semantics of native method calls
@@ -284,8 +286,9 @@ trait NativeMethodSemantics {
 	   * @param parameters the parameters of the called method
 	   * @param listparameters the list of type generics
 	   * @param returnedtype the type of the returned value
+	   * @param programpoint the program point of the method call
 	   * @param state the abstract state in which the method call is evaluated
 	   * @return the abstract state obtained after the backward evaluation of the native method call, None if the semantics of the method call is not defined
 	   */
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] ;
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] ;
 }

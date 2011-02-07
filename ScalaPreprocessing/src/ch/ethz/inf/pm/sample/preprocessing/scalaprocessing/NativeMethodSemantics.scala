@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
  
 object ObjectNativeMethodSemantics extends NativeMethodSemantics {
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = operator match {
+	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = operator match {
 	  case "$isInstanceOf" => parameters match {
 	    case Nil => typeparameters match {
 	      case t :: Nil => return Some(state.setExpression(thisExpr.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.isInstanceOf, state, returnedtype)));
@@ -75,7 +75,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 	  case _ => new Some(state.setExpression(thisExpr));//or None? It depends, this is used to call the contructor...
 	}
  
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = operator match {
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = operator match {
       case "this" => parameters match {
         case Nil => return Some(state.removeExpression());
         case _ => None
@@ -111,9 +111,9 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 }
 
 object IntegerNativeMethodSemantics extends NativeMethodSemantics {
-  	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = None
+  	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
   
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = 
+	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = 
 		if(thisExpr.getType().toString().equals("Int"))
 			operator match {
 			  case ">=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>=, returnedtype);
@@ -153,9 +153,9 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
 
 
 object BooleanNativeMethodSemantics extends NativeMethodSemantics {
-  	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = None
+  	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
   
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = { 
+	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = { 
 		if(thisExpr.getType().toString().equals("Boolean"))
 			operator match {
 			  case "&&" => return createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.&&, returnedtype);

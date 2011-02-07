@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 
 object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 	
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = thisExpr.getType().toString() match {
+	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = thisExpr.getType().toString() match {
 		case "Array" => operator match {
 		      case "this" => parameters match {
 		        case x :: Nil =>
@@ -59,7 +59,7 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		case _ => return None;
 	}
 	
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, state : S) : Option[S] = None
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
 }
 
 class ArrayAnalysisException(s : String) extends Exception(s)

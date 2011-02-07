@@ -226,6 +226,7 @@ abstract class Identifier(var typ : Type) extends Expression {
  * @since 0.1
  */
 case class VariableIdentifier(var name : String, typ1 : Type) extends Identifier(typ1) {
+	if(typ1==null) throw new Exception("The type of variables has to be specified");
   override def getName() = name.toString
   override def toString() = getName();
   override def getField() = None;

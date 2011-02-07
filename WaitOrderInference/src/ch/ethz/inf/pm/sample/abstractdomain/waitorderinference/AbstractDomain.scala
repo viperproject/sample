@@ -43,20 +43,24 @@ class SetSymbolicOrderValues extends SetDomain[SymbolicOrderValue, SetSymbolicOr
 	def factory : SetSymbolicOrderValues = new SetSymbolicOrderValues();
 }
 
-abstract class Node
+abstract class Node {
+	def containsId(id : Identifier) : Boolean;
+}
 
-case class AbstractObject[I <: HeapIdentifier[I]](val id : I) extends Node {
-  override def toString() = id.toString();
+case class AbstractObject[I <: HeapIdentifier[I]](val id : I, val path : Path) extends Node {
+  override def toString() = id.toString()+" through path "+path.toString();
   override def hashCode() = id.hashCode();
+  override def containsId(id : Identifier) : Boolean = this.id.equals(id);
   override def equals(a : Any) : Boolean = a match {
-    case x : AbstractObject[I] => id.equals(x.id) 
+    case x : AbstractObject[I] => id.equals(x.id) && path.equals(x.path);
     case _ => return false;
   }
 }
 
-case class MaxlockLevel(val classe : String, val method : String) {
+case class MaxlockLevel(val classe : String, val method : String) extends Node {
   override def toString() = "maxlock("+classe.toString+"."+method.toString+")";
   override def hashCode() = classe.hashCode();
+  override def containsId(id : Identifier) : Boolean = false;
   override def equals(a : Any) : Boolean = a match {
     case x : MaxlockLevel => classe.equals(x.classe) && method.equals(x.method) 
     case _ => return false;
@@ -104,7 +108,7 @@ class WaitOrderDomain[I <: HeapIdentifier[I]] extends FunctionalDomain[(Node, No
     def getStringOfId(id : Identifier) : String = {
     	var result = "";
 		for(key <- this.value.keySet)
-			if(key._1 .equals(id) && key._2.equals(id))
+			if(key._1.containsId(id) || key._2.containsId(id))
 				result=result+" "+key._1 .toString+"<<"+key._2 .toString+":"+this.get(key).toString();
     	if(result.equals("")) return "no constraint"
     	else return result;

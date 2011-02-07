@@ -61,7 +61,9 @@ abstract class Named(name : String) {
 
 class ScalaMethodIdentifier(name : String) extends Named(name) with MethodIdentifier
 
-class ScalaClassIdentifier(val name : String) extends Named(name) with ClassIdentifier
+class ScalaClassIdentifier(val name : String, val thisType : Type) extends Named(name) with ClassIdentifier {
+	def getThisType() = thisType;
+}
 
 class ScalaPackageIdentifier(name : String, pack : PackageIdentifier) extends Named(name) with PackageIdentifier
 
@@ -109,7 +111,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       val extend : List[ClassIdentifier] = Nil;
       val members : (List[FieldDeclaration], List[MethodDeclaration]) = extractClassMembers(body, currentType);
       val classname : String=name.decode;
-      new ClassDefinition(programpoint, extractModifiers(mods), new ScalaClassIdentifier(name decode), parametricTypes, extend, members._1, members._2, pack, null)
+      new ClassDefinition(programpoint, extractModifiers(mods), new ScalaClassIdentifier(name decode, currentType), parametricTypes, extend, members._1, members._2, pack, null)
       //TODO: I have to consider also parents, and self!
       
     case _ => throw new ScalaException("I expected a class definition\n"+program.toString())
