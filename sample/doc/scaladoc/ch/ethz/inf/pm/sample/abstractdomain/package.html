@@ -1,0 +1,549 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>ch.ethz.inf.pm.sample.abstractdomain</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../../../lib/template.css" rel="stylesheet" type="text/css" media="screen" />
+      <script type="text/javascript" src="../../../../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="value" onload="windowTitle();">
+
+      <p id="owner"><a href="../../../../../package.html" class="extype" name="ch">ch</a>.<a href="../../../../package.html" class="extype" name="ch.ethz">ethz</a>.<a href="../../../package.html" class="extype" name="ch.ethz.inf">inf</a>.<a href="../../package.html" class="extype" name="ch.ethz.inf.pm">pm</a>.<a href="../package.html" class="extype" name="ch.ethz.inf.pm.sample">sample</a></p>
+
+      <div id="definition">
+        <img src="../../../../../../lib/package_big.png" />
+        <h1>abstractdomain</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">package</span>
+      <span class="symbol">
+        <span class="name">abstractdomain</span>
+        
+        
+        
+      </span>
+      </h4>
+      <div class="fullcomment" id="comment"></div>
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          
+          
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in">Public</li><li class="all out">All</li></ol>
+            </div>
+          <div id="impl">
+              <span class="filtertype">Impl.</span>
+              <ol><li class="concrete in">Concrete</li><li class="abstract in">Abstract</li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.AbstractOperator">
+      <a id="AbstractOperator:AbstractOperator"></a>
+      <h4 class="signature"><a href="AbstractOperator.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">AbstractOperator</span>
+        
+        <span class="params">(<span name="thisExpr">thisExpr: Expression</span>, <span name="parameters">parameters: Set[List[Expression]]</span>, <span name="typeparameters">typeparameters: List[Type]</span>, <span name="op">op: Value</span>, <span name="returntyp">returntyp: Type</span>)</span>
+        <span class="result"> extends Expression with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">Represents a generic operation, e.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.AddressedDomain">
+      <a id="AddressedDomain:AddressedDomain[I]"></a>
+      <h4 class="signature"><a href="AddressedDomain.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">AddressedDomain</span>
+        <span class="tparams">[<span name="I">I &lt;: HeapIdentifier[I]</span>]</span>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.ArrayAccess">
+      <a id="ArrayAccess:ArrayAccess"></a>
+      <h4 class="signature"><a href="ArrayAccess.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">ArrayAccess</span>
+        
+        
+        <span class="result"> extends Identifier</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The identifier of an array access
+</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.ArrayCreation">
+      <a id="ArrayCreation:ArrayCreation"></a>
+      <h4 class="signature"><a href="ArrayCreation.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">ArrayCreation</span>
+        
+        
+        <span class="result"> extends Identifier</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The identifier of the creation of an array
+</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression">
+      <a id="BinaryArithmeticExpression:BinaryArithmeticExpression"></a>
+      <h4 class="signature"><a href="BinaryArithmeticExpression.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">BinaryArithmeticExpression</span>
+        
+        <span class="params">(<span name="left">left: Expression</span>, <span name="right">right: Expression</span>, <span name="op">op: Value</span>, <span name="returntyp">returntyp: Type</span>)</span>
+        <span class="result"> extends Expression with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">A binary arithmetic expression, e.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression">
+      <a id="BinaryBooleanExpression:BinaryBooleanExpression"></a>
+      <h4 class="signature"><a href="BinaryBooleanExpression.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">BinaryBooleanExpression</span>
+        
+        <span class="params">(<span name="left">left: Expression</span>, <span name="right">right: Expression</span>, <span name="op">op: Value</span>, <span name="returntyp">returntyp: Type</span>)</span>
+        <span class="result"> extends Expression with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">A binary boolean expression, e.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.BoxedDomain">
+      <a id="BoxedDomain:BoxedDomain[V, T]"></a>
+      <h4 class="signature"><a href="BoxedDomain.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">BoxedDomain</span>
+        <span class="tparams">[<span name="V">V &lt;: Lattice[V]</span>, <span name="T">T &lt;: BoxedDomain[V, T]</span>]</span>
+        
+        <span class="result"> extends FunctionalDomain[Identifier, V, T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of a boxed domain, that is, a domain that is a functional domain whose keys are (variable
+or heap) identifiers
+</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.CartesianProductDomain">
+      <a id="CartesianProductDomain:CartesianProductDomain[T1, T2, T]"></a>
+      <h4 class="signature"><a href="CartesianProductDomain.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">CartesianProductDomain</span>
+        <span class="tparams">[<span name="T1">T1 &lt;: Lattice[T1]</span>, <span name="T2">T2 &lt;: Lattice[T2]</span>, <span name="T">T &lt;: CartesianProductDomain[T1, T2, T]</span>]</span>
+        
+        <span class="result"> extends Lattice[T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of a Cartesian product, that is, a lattice domain that combines two other lattices without
+passing information from one to the other.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.Constant">
+      <a id="Constant:Constant"></a>
+      <h4 class="signature"><a href="Constant.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">Constant</span>
+        
+        <span class="params">(<span name="constant">constant: String</span>, <span name="typ">typ: Type</span>)</span>
+        <span class="result"> extends Expression with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">A (usually numeric) constant represented by a string
+</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.Expression">
+      <a id="Expression:Expression"></a>
+      <h4 class="signature"><a href="Expression.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">Expression</span>
+        
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">Expressions are used to represents the values returned by statements.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.FunctionalDomain">
+      <a id="FunctionalDomain:FunctionalDomain[K, V, T]"></a>
+      <h4 class="signature"><a href="FunctionalDomain.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">FunctionalDomain</span>
+        <span class="tparams">[<span name="K">K</span>, <span name="V">V &lt;: Lattice[V]</span>, <span name="T">T &lt;: FunctionalDomain[K, V, T]</span>]</span>
+        
+        <span class="result"> extends Lattice[T]</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.GenericAbstractState">
+      <a id="GenericAbstractState:GenericAbstractState[N, H, I]"></a>
+      <h4 class="signature"><a href="GenericAbstractState.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">GenericAbstractState</span>
+        <span class="tparams">[<span name="N">N &lt;: SemanticDomain[N]</span>, <span name="H">H &lt;: HeapDomain[H, I]</span>, <span name="I">I &lt;: HeapIdentifier[I]</span>]</span>
+        
+        <span class="result"> extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], SymbolicAbstractValue[GenericAbstractState[N, H, I]], GenericAbstractState[N, H, I]] with State[GenericAbstractState[N, H, I]] with SingleLineRepresentation</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">A generic abstract state combines a HeapAndAnotherDomain and a SymbolicAbstractValue.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.HeapAndAnotherDomain">
+      <a id="HeapAndAnotherDomain:HeapAndAnotherDomain[N, H, I]"></a>
+      <h4 class="signature"><a href="HeapAndAnotherDomain.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">HeapAndAnotherDomain</span>
+        <span class="tparams">[<span name="N">N &lt;: SemanticDomain[N]</span>, <span name="H">H &lt;: HeapDomain[H, I]</span>, <span name="I">I &lt;: HeapIdentifier[I]</span>]</span>
+        
+        <span class="result"> extends SemanticCartesianProductDomain[N, H, HeapAndAnotherDomain[N, H, I]] with SemanticDomain[HeapAndAnotherDomain[N, H, I]]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">An abstract semantic domain that combines and heap and another semantic domain.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.HeapDomain">
+      <a id="HeapDomain:HeapDomain[T, I]"></a>
+      <h4 class="signature"><a href="HeapDomain.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">HeapDomain</span>
+        <span class="tparams">[<span name="T">T &lt;: HeapDomain[T, I]</span>, <span name="I">I &lt;: HeapIdentifier[I]</span>]</span>
+        
+        <span class="result"> extends SemanticDomain[T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">A <code>HeapDomain</code> is a domain aimed at tracking information
+about the heap structure
+</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.HeapIdentifier">
+      <a id="HeapIdentifier:HeapIdentifier[I]"></a>
+      <h4 class="signature"><a href="HeapIdentifier.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">HeapIdentifier</span>
+        <span class="tparams">[<span name="I">I &lt;: HeapIdentifier[I]</span>]</span>
+        <span class="params">(<span name="typ1">typ1: Type</span>)</span>
+        <span class="result"> extends Identifier with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The heap identifier that has to be implemented by particular heap analyses
+</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.Identifier">
+      <a id="Identifier:Identifier"></a>
+      <h4 class="signature"><a href="Identifier.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">Identifier</span>
+        
+        
+        <span class="result"> extends Expression</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">An identifier, that could be a variable or a node of the abstract heap
+</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.InverseSetDomain">
+      <a id="InverseSetDomain:InverseSetDomain[V, T]"></a>
+      <h4 class="signature"><a href="InverseSetDomain.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">InverseSetDomain</span>
+        <span class="tparams">[<span name="V">V</span>, <span name="T">T &lt;: SetDomain[V, T]</span>]</span>
+        
+        <span class="result"> extends SetDomain[V, T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of an inverse set domain, that is, a domain that is represented by a set, and whose lattice
+operators are the inversed one.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.Lattice">
+      <a id="Lattice:Lattice[T]"></a>
+      <h4 class="signature"><a href="Lattice.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">Lattice</span>
+        <span class="tparams">[<span name="T">T &lt;: Lattice[T]</span>]</span>
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
+</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.LengthArray">
+      <a id="LengthArray:LengthArray"></a>
+      <h4 class="signature"><a href="LengthArray.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">LengthArray</span>
+        
+        
+        <span class="result"> extends Identifier</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The identifier of the length of an array
+</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression">
+      <a id="NegatedBooleanExpression:NegatedBooleanExpression"></a>
+      <h4 class="signature"><a href="NegatedBooleanExpression.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">NegatedBooleanExpression</span>
+        
+        <span class="params">(<span name="thisExpr">thisExpr: Expression</span>)</span>
+        <span class="result"> extends Expression with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">Represents the negation of a given expression
+</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.ReducedProductDomain">
+      <a id="ReducedProductDomain:ReducedProductDomain[T1, T2, T]"></a>
+      <h4 class="signature"><a href="ReducedProductDomain.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">ReducedProductDomain</span>
+        <span class="tparams">[<span name="T1">T1 &lt;: Lattice[T1]</span>, <span name="T2">T2 &lt;: Lattice[T2]</span>, <span name="T">T &lt;: ReducedProductDomain[T1, T2, T]</span>]</span>
+        
+        <span class="result"> extends CartesianProductDomain[T1, T2, T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of a reduced Cartesian product, that is, a Cartesian product that could pass information
+from one domain to the other.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.ReducedSemanticProductDomain">
+      <a id="ReducedSemanticProductDomain:ReducedSemanticProductDomain[T1, T2, T]"></a>
+      <h4 class="signature"><a href="ReducedSemanticProductDomain.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">ReducedSemanticProductDomain</span>
+        <span class="tparams">[<span name="T1">T1 &lt;: SemanticDomain[T1]</span>, <span name="T2">T2 &lt;: SemanticDomain[T2]</span>, <span name="T">T &lt;: ReducedSemanticProductDomain[T1, T2, T]</span>]</span>
+        
+        <span class="result"> extends SemanticCartesianProductDomain[T1, T2, T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of reduced a Cartesian product supporting the operations of the semantic domain.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.SemanticCartesianProductDomain">
+      <a id="SemanticCartesianProductDomain:SemanticCartesianProductDomain[T1, T2, T]"></a>
+      <h4 class="signature"><a href="SemanticCartesianProductDomain.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">SemanticCartesianProductDomain</span>
+        <span class="tparams">[<span name="T1">T1 &lt;: SemanticDomain[T1]</span>, <span name="T2">T2 &lt;: SemanticDomain[T2]</span>, <span name="T">T &lt;: SemanticCartesianProductDomain[T1, T2, T]</span>]</span>
+        
+        <span class="result"> extends CartesianProductDomain[T1, T2, T] with SemanticDomain[T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of a Cartesian product supporting the operations of the semantic domain.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain">
+      <a id="SemanticDomain:SemanticDomain[T]"></a>
+      <h4 class="signature"><a href="SemanticDomain.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">SemanticDomain</span>
+        <span class="tparams">[<span name="T">T &lt;: SemanticDomain[T]</span>]</span>
+        
+        <span class="result"> extends Lattice[T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">A <code>SemanticDomain</code> is a domain on which some functions
+on variables and expressions are provided
+</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.SetDomain">
+      <a id="SetDomain:SetDomain[V, T]"></a>
+      <h4 class="signature"><a href="SetDomain.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">SetDomain</span>
+        <span class="tparams">[<span name="V">V</span>, <span name="T">T &lt;: SetDomain[V, T]</span>]</span>
+        
+        <span class="result"> extends Lattice[T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of a set domain, that is, a domain that is represented by a set.</p>
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.SimplifiedSemanticDomain">
+      <a id="SimplifiedSemanticDomain:SimplifiedSemanticDomain[T]"></a>
+      <h4 class="signature"><a href="SimplifiedSemanticDomain.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">SimplifiedSemanticDomain</span>
+        <span class="tparams">[<span name="T">T &lt;: SimplifiedSemanticDomain[T]</span>]</span>
+        
+        <span class="result"> extends SemanticDomain[T]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">A <code>SimplifiedSemanticDomain</code> is a simplified version of the <code>SemanticDomain</code>Some methods are implemented relying on a common semantics that can be applied to
+the most part of the existing domains.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.StandardDomainException">
+      <a id="StandardDomainException:StandardDomainException"></a>
+      <h4 class="signature"><a href="StandardDomainException.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">StandardDomainException</span>
+        
+        
+        <span class="result"> extends Exception</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.abstractdomain.State">
+      <a id="State:State[S]"></a>
+      <h4 class="signature"><a href="State.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">State</span>
+        <span class="tparams">[<span name="S">S &lt;: State[S]</span>]</span>
+        
+        <span class="result"> extends Lattice[S]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of a state of our analysis.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.SymbolicAbstractValue">
+      <a id="SymbolicAbstractValue:SymbolicAbstractValue[S]"></a>
+      <h4 class="signature"><a href="SymbolicAbstractValue.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">SymbolicAbstractValue</span>
+        <span class="tparams">[<span name="S">S &lt;: State[S]</span>]</span>
+        
+        <span class="result"> extends FunctionalDomain[Expression, S, SymbolicAbstractValue[S]]</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The representation of an expression inside an abstract state of the analysis.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.SymbolicSemanticException">
+      <a id="SymbolicSemanticException:SymbolicSemanticException"></a>
+      <h4 class="signature"><a href="SymbolicSemanticException.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">SymbolicSemanticException</span>
+        
+        
+        <span class="result"> extends Exception</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression">
+      <a id="UnaryArithmeticExpression:UnaryArithmeticExpression"></a>
+      <h4 class="signature"><a href="UnaryArithmeticExpression.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">UnaryArithmeticExpression</span>
+        
+        <span class="params">(<span name="left">left: Expression</span>, <span name="op">op: Value</span>, <span name="returntyp">returntyp: Type</span>)</span>
+        <span class="result"> extends Expression with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">A unary arithmetic expression, e.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.UnitExpression">
+      <a id="UnitExpression:UnitExpression"></a>
+      <h4 class="signature"><a href="UnitExpression.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">UnitExpression</span>
+        
+        <span class="params">(<span name="typ">typ: Type</span>)</span>
+        <span class="result"> extends Expression with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The unit expression, that represents the absence of a concrete expression.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier">
+      <a id="VariableIdentifier:VariableIdentifier"></a>
+      <h4 class="signature"><a href="VariableIdentifier.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">VariableIdentifier</span>
+        
+        <span class="params">(<span name="name">name: String</span>, <span name="typ1">typ1: Type</span>)</span>
+        <span class="result"> extends Identifier with Product</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">The identifier of a variable
+</p>
+    </li></ol>
+            </div>
+
+        <div class="values members" id="values">
+              <h3>Value Members</h3>
+              <ol><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.AbstractOperatorIdentifiers">
+      <a id="AbstractOperatorIdentifiers:AbstractOperatorIdentifiers"></a>
+      <h4 class="signature"><a href="AbstractOperatorIdentifiers$.html">
+      <span class="kind">object</span>
+      <span class="symbol">
+        <span class="name">AbstractOperatorIdentifiers</span>
+        
+        
+        <span class="result"> extends Enumeration</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">Abstract operators that can be used to represent any operations on different types of objects, like string concatenation and type casts
+</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.ArithmeticOperator">
+      <a id="ArithmeticOperator:ArithmeticOperator"></a>
+      <h4 class="signature"><a href="ArithmeticOperator$.html">
+      <span class="kind">object</span>
+      <span class="symbol">
+        <span class="name">ArithmeticOperator</span>
+        
+        
+        <span class="result"> extends Enumeration</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">Arithmetic operators
+</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.BooleanOperator">
+      <a id="BooleanOperator:BooleanOperator"></a>
+      <h4 class="signature"><a href="BooleanOperator$.html">
+      <span class="kind">object</span>
+      <span class="symbol">
+        <span class="name">BooleanOperator</span>
+        
+        
+        <span class="result"> extends Enumeration</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">Boolean operators
+</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.Normalizer">
+      <a id="Normalizer:Normalizer"></a>
+      <h4 class="signature"><a href="Normalizer$.html">
+      <span class="kind">object</span>
+      <span class="symbol">
+        <span class="name">Normalizer</span>
+        
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">An helper object that perform some transformations to obtain simplified and standard numerical expressions.</p>
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.abstractdomain.UtilitiesOnStates">
+      <a id="UtilitiesOnStates:UtilitiesOnStates"></a>
+      <h4 class="signature"><a href="UtilitiesOnStates$.html">
+      <span class="kind">object</span>
+      <span class="symbol">
+        <span class="name">UtilitiesOnStates</span>
+        
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      <p class="comment cmt">Some trivial helper functions that executes forward/backward semantics on single and list of states
+</p>
+    </li></ol>
+            </div>
+
+        
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>

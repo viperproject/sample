@@ -1,0 +1,192 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html>
+        <head>
+          <title>ch.ethz.inf.pm.sample.property</title>
+          <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+          
+      <link href="../../../../../../lib/template.css" rel="stylesheet" type="text/css" media="screen" />
+      <script type="text/javascript" src="../../../../../../lib/jquery.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/jquery-ui.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/template.js"></script>
+      <script type="text/javascript" src="../../../../../../lib/tools.tooltip.js"></script>
+    
+        </head>
+        <body class="value" onload="windowTitle();">
+
+      <p id="owner"><a href="../../../../../package.html" class="extype" name="ch">ch</a>.<a href="../../../../package.html" class="extype" name="ch.ethz">ethz</a>.<a href="../../../package.html" class="extype" name="ch.ethz.inf">inf</a>.<a href="../../package.html" class="extype" name="ch.ethz.inf.pm">pm</a>.<a href="../package.html" class="extype" name="ch.ethz.inf.pm.sample">sample</a></p>
+
+      <div id="definition">
+        <img src="../../../../../../lib/package_big.png" />
+        <h1>property</h1>
+      </div>
+
+      <h4 class="signature" id="signature">
+      <span class="kind">package</span>
+      <span class="symbol">
+        <span class="name">property</span>
+        
+        
+        
+      </span>
+      </h4>
+      <div class="fullcomment" id="comment"></div>
+
+      <div id="template">
+
+        <div id="mbrsel">
+          <div id="textfilter"><span class="pre"></span><span class="input"><input accesskey="/" type="text" /></span><span class="post"></span></div>
+          
+          
+          <div id="visbl">
+              <span class="filtertype">Visibility</span>
+              <ol><li class="public in">Public</li><li class="all out">All</li></ol>
+            </div>
+          <div id="impl">
+              <span class="filtertype">Impl.</span>
+              <ol><li class="concrete in">Concrete</li><li class="abstract in">Abstract</li></ol>
+            </div>
+        </div>
+
+        
+
+        <div class="types members" id="types">
+              <h3>Type Members</h3>
+              <ol><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.property.CastingVisitor">
+      <a id="CastingVisitor:CastingVisitor"></a>
+      <h4 class="signature"><a href="CastingVisitor.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">CastingVisitor</span>
+        
+        
+        <span class="result"> extends Visitor</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.property.MatchErrorVisitor">
+      <a id="MatchErrorVisitor:MatchErrorVisitor"></a>
+      <h4 class="signature"><a href="MatchErrorVisitor.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">MatchErrorVisitor</span>
+        
+        
+        <span class="result"> extends Visitor</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.property.NotValidated">
+      <a id="NotValidated:NotValidated"></a>
+      <h4 class="signature"><a href="NotValidated.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">NotValidated</span>
+        
+        <span class="params">(<span name="pp">pp: ProgramPoint</span>, <span name="file">file: String</span>, <span name="message">message: String</span>)</span>
+        <span class="result"> extends Warning with Product</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.property.OutputCollector">
+      <a id="OutputCollector:OutputCollector"></a>
+      <h4 class="signature"><a href="OutputCollector.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">OutputCollector</span>
+        
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.property.Property">
+      <a id="Property:Property"></a>
+      <h4 class="signature"><a href="Property.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">Property</span>
+        
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.property.PropertyException">
+      <a id="PropertyException:PropertyException"></a>
+      <h4 class="signature"><a href="PropertyException.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">PropertyException</span>
+        
+        
+        <span class="result"> extends Exception</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.property.SingleStatementProperty">
+      <a id="SingleStatementProperty:SingleStatementProperty"></a>
+      <h4 class="signature"><a href="SingleStatementProperty.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">SingleStatementProperty</span>
+        
+        
+        <span class="result"> extends Property</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="false" name="ch.ethz.inf.pm.sample.property.Validated">
+      <a id="Validated:Validated"></a>
+      <h4 class="signature"><a href="Validated.html">
+      <span class="kind">case class</span>
+      <span class="symbol">
+        <span class="name">Validated</span>
+        
+        <span class="params">(<span name="pp">pp: ProgramPoint</span>, <span name="file">file: String</span>, <span name="message">message: String</span>)</span>
+        <span class="result"> extends Warning with Product</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.property.Visitor">
+      <a id="Visitor:Visitor"></a>
+      <h4 class="signature"><a href="Visitor.html">
+      <span class="kind">trait</span>
+      <span class="symbol">
+        <span class="name">Visitor</span>
+        
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      
+    </li><li visbl="pub" data-isabs="true" name="ch.ethz.inf.pm.sample.property.Warning">
+      <a id="Warning:Warning"></a>
+      <h4 class="signature"><a href="Warning.html">
+      <span class="kind">class</span>
+      <span class="symbol">
+        <span class="name">Warning</span>
+        
+        
+        <span class="result"> extends AnyRef</span>
+      </span>
+      </a></h4>
+      
+            
+            <div class="fullcomment"><div class="block">
+          attributes: sealed abstract 
+        </div></div>
+          
+    </li></ol>
+            </div>
+
+        
+
+        
+
+      </div>
+      
+      <div id="tooltip"></div>
+      
+    </body>
+      </html>
