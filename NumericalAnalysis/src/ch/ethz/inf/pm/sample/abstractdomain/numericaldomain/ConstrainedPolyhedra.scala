@@ -113,17 +113,23 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	    }
 	    case Some((monomes, constant)) => {
 	    	if (monomes.length > numOfVariables) {
+	    		
+	    		//-------------------------- Comment out----
 	    		println("Number of varilables in " + expr.toString + " is bigger than " + numOfVariables);
 	    		println("Therefore, " + expr.toString + " is not accepted");
+	    		//------------------------------------------
+	    		
 	    		return false;
 	    	} else {
 	    		 for(monome <- monomes) {
 	    			 val (index, variable) = monome;
 	    			 if (!coefitients.contains(index)) {
+	    				 
 	    				 //-------------------------- Comment out----
 	    				 println(index + " is not contained in " + coefitients.toString);
+	    				 println(expr.toString  + " does not satisfy given constriants.");
+	    				 //------------------------------------------
 	    				 
-	    				 System.out.println(expr.toString  + " does not satisfy given constriants.");
 	    				 return false;
 	    			 }
 	    		 }
