@@ -11,9 +11,9 @@ import apron._;
 
 import scala.collection.mutable.HashSet
 
-object ConstriandPolyhedraApronRun {
+object ConstrianedPolyhedraApronRun {
 	
-	System.out.println("ConstriandPolyhedraApronRun");
+	System.out.println("ConstrianedPolyhedraApronRun");
 
 	type HeapId = ClassHeapIdentifier;
 	
