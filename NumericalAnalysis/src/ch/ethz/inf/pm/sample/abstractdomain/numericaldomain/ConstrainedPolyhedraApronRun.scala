@@ -17,7 +17,7 @@ object ConstrianedPolyhedraApronRun {
 
 	type HeapId = ClassHeapIdentifier;
 	
-	private val methods : List[String] = /*"ex1" :: */"ex2" :: /*"ex3" :: "ex4" :: */Nil;
+	private val methods : List[String] = "ex1" :: "ex2" :: "ex3" :: "ex4" :: Nil;
 	  
 	def main(args : Array[String]) : Unit = {
 		//Mandatory global settings
@@ -32,7 +32,12 @@ object ConstrianedPolyhedraApronRun {
 		//EntryState
 		val domain=new PplPoly(false);
 		System.out.println(domain.getLibrary + " " + domain.getVersion)
-		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, new HashSet[Int], 10);
+		
+		val coefSet = new HashSet[Int];
+		coefSet.add(-1);
+		coefSet.add(1);
+		
+		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 1);
 		val heapid = new ClassHeapIdentifier(null);
 		heapid.typ=SystemParameters.typ;
 		val heapDomain : NonRelationalHeapDomain[HeapId]= new NonRelationalHeapDomain[HeapId](heapid.getType, new HeapIdAndSetDomain(heapid), heapid);
