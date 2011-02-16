@@ -15,6 +15,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 							val cpdomain : Manager, 
 							val coefitients : HashSet[Int],
 							val numOfVariables: Int) extends ApronInterface(cpstate, cpdomain) {
+
 	
 	
 	/*
@@ -105,33 +106,29 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	 * @param expr Expression to be checked if it satisfies constraints
 	 * @return TRUE if the expression satisfies the constrints, otherwise FALSE
 	 */
-	private def isExpressionAccepted(expr : Expression) : Boolean = {
-		// TODO : implement this
-		expr match {
-			case BinaryArithmeticExpression(l, r, o, ty) => {
-				val baexpr = expr.asInstanceOf[BinaryArithmeticExpression];
-				val monomes = Normalizer.conditionalExpressionToMonomes(baexpr);
-				if (monomes == None) {
-					return false;
-				} else {
-					
-				}
-				return true;
-			}
-			case NegatedBooleanExpression(BinaryArithmeticExpression(l, r, o, ty)) => {
-				val bnaexpr = expr.asInstanceOf[NegatedBooleanExpression];
-				val monomes = Normalizer.conditionalExpressionToMonomes(bnaexpr);
-				if (monomes == None) {
-					return false;
-				} else {
-					
-				}
-				return true;
-			}
-			case _ => {
-				System.out.println(expr.getClass.toString + " " + expr.toString  + "is not supproted");
-				return false;
-			}
-		}
+	private def isExpressionAccepted(expr : Expression) : Boolean = Normalizer.conditionalExpressionToMonomes(expr) match {
+	    case None => {
+	    	System.out.println(expr.getClass.toString + " " + expr.toString  + "is not supproted or is not of a right type");
+	    	return false;
+	    }
+	    case Some((monomes, constant)) => {
+	    	if (monomes.length > numOfVariables) {
+	    		println("Number of varilables in " + expr.toString + " is bigger than " + numOfVariables);
+	    		println("Therefore, " + expr.toString + " is not accepted");
+	    		return false;
+	    	} else {
+	    		 for(monome <- monomes) {
+	    			 val (index, variable) = monome;
+	    			 if (!coefitients.contains(index)) {
+	    				 //-------------------------- Comment out----
+	    				 println(index + " is not contained in " + coefitients.toString);
+	    				 
+	    				 System.out.println(expr.toString  + " does not satisfy given constriants.");
+	    				 return false;
+	    			 }
+	    		 }
+	    	}
+	    	return true;
+	    }	
 	}
 }
