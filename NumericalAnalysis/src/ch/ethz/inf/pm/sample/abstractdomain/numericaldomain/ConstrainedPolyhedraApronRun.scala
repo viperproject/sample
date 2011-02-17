@@ -17,7 +17,7 @@ object ConstrianedPolyhedraApronRun {
 
 	type HeapId = ClassHeapIdentifier;
 	
-	private val methods : List[String] = "ex1" :: "ex2" :: "ex3" :: "ex4" :: Nil;
+	private val methods : List[String] = "ex1" /*:: "ex2" :: "ex3" :: "ex4"*/ :: Nil;
 	  
 	def main(args : Array[String]) : Unit = {
 		//Mandatory global settings
@@ -30,7 +30,8 @@ object ConstrianedPolyhedraApronRun {
 		ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 		
 		//EntryState
-		val domain=new PplPoly(false);
+		val domain=new Polka(true);
+		//val domain=new PplPoly(false);
 		System.out.println(domain.getLibrary + " " + domain.getVersion)
 		
 		val coefSet = new HashSet[Int];
