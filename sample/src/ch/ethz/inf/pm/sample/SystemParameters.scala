@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 object SystemParameters {
-  val wideningLimit : Int = 1;
+  val wideningLimit : Int = 5;
   var currentFile : String = "<not yet initialized>";
   val output : OutputCollector = new OutputCollector();
   val outputCasting : OutputCollector = new OutputCollector();

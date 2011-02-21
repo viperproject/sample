@@ -60,13 +60,20 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 
 	override def factory() : ApronInterface = top();
   	override def top() : ApronInterface = {
-		val result = new ApronInterface(new Abstract1(domain, state.getEnvironment), domain);
-  		if(! result.state.isTop(domain)) throw new ApronException("I'm not able to create a top state");
+		var result = new ApronInterface(new Abstract1(domain, state.getEnvironment), domain);
+  		//val result = new ApronInterface(new Abstract1(domain, new Environment()), domain);
+  		if(! result.state.isTop(domain)) {
+  			result = new ApronInterface(new Abstract1(domain, new Environment()), domain);
+  			if(! result.state.isTop(domain)) throw new ApronException("I'm not able to create a top state");
+  		}
   		return result;
   	}
 	override def bottom() : ApronInterface = {
-		val st = state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
-  		if(! st.isBottom(domain)) throw new ApronException("I'm not able to create a bottom state");
+		var st = state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
+  		if(! st.isBottom(domain)) {
+  			st = state.meetCopy(domain, new Tcons1(state.getEnvironment(), Tcons1.EQ, new Texpr1CstNode(new DoubleScalar(1.0))));
+  			if(! st.isBottom(domain))throw new ApronException("I'm not able to create a bottom state");
+  		}
 		new ApronInterface(st, domain);
 	}
 	override def lub(left : ApronInterface, right : ApronInterface) : ApronInterface =  {
