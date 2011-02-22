@@ -13,7 +13,7 @@ object Main {
 	}
 	
     def analyze[S <: State[S]](toAnalyze : String => Set[String], entryState : S) : Unit = {
-    	Timer.go;
+    	Timer.start;
 	    var output = new OutputCollector();
 	    for(c <- classes) {
 	    	SystemParameters.currentClass = c.name.getThisType();
