@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
+import ch.ethz.inf.pm.sample.util.Timer
 
 object Main {
   	var classes : List[ClassDefinition]= Nil;
@@ -12,6 +13,7 @@ object Main {
 	}
 	
     def analyze[S <: State[S]](toAnalyze : String => Set[String], entryState : S) : Unit = {
+    	Timer.go;
 	    var output = new OutputCollector();
 	    for(c <- classes) {
 	    	SystemParameters.currentClass = c.name.getThisType();
@@ -22,6 +24,7 @@ object Main {
 	      }
 	    SystemParameters.property.finalizeChecking();
 	    System.out.println(SystemParameters.output.output()+"STATISTICS\n"+SystemParameters.output.statistics())
+	    System.out.println("Time of analyisis: " + Timer.stop);
      }
     
 }
