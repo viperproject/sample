@@ -69,11 +69,11 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
   		return result;
   	}
 	override def bottom() : ApronInterface = {
-		var st = state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
-  		if(! st.isBottom(domain)) {
-  			st = state.meetCopy(domain, new Tcons1(state.getEnvironment(), Tcons1.EQ, new Texpr1CstNode(new DoubleScalar(1.0))));
+		var st = new Abstract1(domain, state.getEnvironment(), true);//state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
+  		//if(! st.isBottom(domain)) {
+  			//st = state.meetCopy(domain, new Tcons1(state.getEnvironment(), Tcons1.EQ, new Texpr1CstNode(new DoubleScalar(1.0))));
   			if(! st.isBottom(domain))throw new ApronException("I'm not able to create a bottom state");
-  		}
+  		//}
 		new ApronInterface(st, domain);
 	}
 	override def lub(left : ApronInterface, right : ApronInterface) : ApronInterface =  {

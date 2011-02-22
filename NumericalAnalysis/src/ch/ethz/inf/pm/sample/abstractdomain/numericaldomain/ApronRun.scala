@@ -33,7 +33,7 @@ object ApronRun {
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 	
 	//EntryState
-	val domain=new PplPoly(true);
+	val domain=new PolkaGrid(true);
 	val numerical = new ApronInterface(new Abstract1(domain, new Environment()), domain);
 	val heapid = new ClassHeapIdentifier(null);
 	heapid.typ=SystemParameters.typ;
