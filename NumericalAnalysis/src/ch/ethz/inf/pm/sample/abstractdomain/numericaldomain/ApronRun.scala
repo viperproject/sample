@@ -20,7 +20,7 @@ class ApronProperty extends Property {
 object ApronRun {
   type HeapId = ClassHeapIdentifier;
 
-  private val methods : List[String] = "ex1" :: "ex2" :: "ex3" :: "ex4" :: Nil;
+  private val methods : List[String] = "ex1" /*:: "ex2" :: "ex3" :: "ex4" */:: Nil;
   
   def main(args : Array[String]) : Unit = {
 	//Mandatory global settings
@@ -28,12 +28,12 @@ object ApronRun {
 	SystemParameters.property = new ApronProperty;
 	
 	//Files paths
-	val f1 = "/home/pietro/workspaceSample/NumericalAnalysis/test/numerical.scala";
+	val f1 = "/home/pietro/Sample/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 	
 	//EntryState
-	val domain=new PolkaGrid(true);
+	val domain=new Polka(true);
 	val numerical = new ApronInterface(new Abstract1(domain, new Environment()), domain);
 	val heapid = new ClassHeapIdentifier(null);
 	heapid.typ=SystemParameters.typ;

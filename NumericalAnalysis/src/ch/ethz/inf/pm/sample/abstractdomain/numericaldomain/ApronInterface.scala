@@ -50,6 +50,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		new ApronInterface(st, domain);
 	}
 	override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
+		if(state.isBottom(domain)) return this.bottom;
 		val st = state.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, state.getEnvironment()), null);
 		new ApronInterface(st, domain);
 	}

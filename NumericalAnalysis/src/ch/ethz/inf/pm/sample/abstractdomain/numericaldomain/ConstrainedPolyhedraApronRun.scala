@@ -25,7 +25,7 @@ object ConstrianedPolyhedraApronRun {
 		SystemParameters.property = new ApronProperty;
 		
 		//Files paths
-		val f1 = "/home/samlik/ScalaWorkspace/NumericalAnalysis/test/numerical.scala";
+		val f1 = "/home/pietro/Sample/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
 		
 		ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 		
