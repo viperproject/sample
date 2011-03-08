@@ -8,9 +8,16 @@ import ch.ethz.inf.pm.sample.gui._
 import ch.ethz.inf.pm.sample.property._;
 import java.io._
 
-class WaitOrderInferenceProperty extends Property {
+object WaitOrderInferenceVisitor extends Visitor {
+  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = Unit
+}
+
+class WaitOrderInferenceProperty extends SingleStatementProperty(WaitOrderInferenceVisitor) {
 	
-	  override def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
+	  override def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+	 	  ShowGraph.Show(result);
+	 	  super.check(className, methodName, result, printer);
+	  }
 	  
 	  override def finalizeChecking() : Unit = Unit;
 	   

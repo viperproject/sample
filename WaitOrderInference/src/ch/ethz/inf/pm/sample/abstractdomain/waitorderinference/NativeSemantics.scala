@@ -27,7 +27,6 @@ object ChaliceWaitOrderNativeMethodSemantics extends NativeMethodSemantics {
 			    	    	for(heapNode <- heapNodes) {
 			    	    		ReachabilityAnalysis.reachable(new VariableIdentifier("this", SystemParameters.currentClass), heapNode, castedState._1._2._1, castedState._1._2._2) match {
 			    	    			case (p, true) => 
-			    	    				//TODO: This is definitely wrong!!!
 			    	    				var l=result.get((new AbstractObject(id, new Path(variable.getName() :: Nil)), new AbstractObject(heapNode, new Path("this" :: p))));
 			    	    				l=l.add(new SymbolicObjectSharing(id, programpoint))
 			    	    				result=result.add((new AbstractObject(id, new Path(variable.getName() :: Nil)), new AbstractObject(heapNode, new Path("this" :: p))), l);
