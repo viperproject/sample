@@ -114,3 +114,5 @@ class WaitOrderDomain[I <: HeapIdentifier[I]] extends FunctionalDomain[(Node, No
     	else return result;
     }
 }
+
+class WaitOrderInferenceException(message : String) extends Exception(message)
