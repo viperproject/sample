@@ -7,12 +7,29 @@ object ReachabilityAnalysis {
 
 	
   private var considered : Set[ProgramPointHeapIdentifier] = Set.empty[ProgramPointHeapIdentifier];
+  
+  def reach(to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= {
+	  var result : List[String] = Nil;
+	  var b : Boolean = false;
+	  for(id <- env.getVariables) {
+	 	  reachable(id, to, env, store) match {
+	 	 	  case (l, true) =>
+	 	 	   if(result.size ==0 || l.size < result.size) {
+	 	 	  	   result=l;
+	 	 	  	   b=true;
+	 	 	   }
+	 	 	  case _ =>
+	 	  }
+	  }
+	  return (result, b);
+  }
 
   //It returns a path to go from "from" to "to". The second component of the pair is false iff "to" is not reachable from "from" 
   def reachable(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= {
 	  considered=Set.empty[ProgramPointHeapIdentifier];
-	   reachable1(from, to, env, store);
+	  reachable1(from, to, env, store);
   }
+  
   private def reachable1(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= from match {
     case x : VariableIdentifier => //It can be only as first step, so we removed the t.toString, it will be replaced by "this"
     	for(hi <- env.get(x).value) {

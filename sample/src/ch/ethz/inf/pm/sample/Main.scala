@@ -20,7 +20,7 @@ object Main {
 	     	val methods = toAnalyze.apply(c.name.toString());
 	        for(x <- c.methods)
 	        	if(methods.contains(x.name.toString()))
-				    SystemParameters.property.check(c.name.toString(), x.name.toString(), x.asInstanceOf[MethodDeclaration].forwardSemantics[S](entryState), output);
+				    SystemParameters.property.check(c.name.getThisType(), x.name.toString(), x.asInstanceOf[MethodDeclaration].forwardSemantics[S](entryState), output);
 	      }
 	    SystemParameters.property.finalizeChecking();
 	    System.out.println(SystemParameters.output.output()+"STATISTICS\n"+SystemParameters.output.statistics())

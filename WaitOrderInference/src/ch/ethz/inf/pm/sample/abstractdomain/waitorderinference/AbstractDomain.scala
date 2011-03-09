@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.waitorderinference;
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
 class Path(val p : List[String]) {
   override def toString() : String = {
@@ -47,7 +48,15 @@ abstract class Node {
 	def containsId(id : Identifier) : Boolean;
 }
 
-case class AbstractObject[I <: HeapIdentifier[I]](val id : I, val path : Path) extends Node {
+case class AbstractObject[I <: HeapIdentifier[I]](var id : I, val path : Path) extends Node {
+	//TODO: that's horrible!
+	if(id.isInstanceOf[HeapIdAndSetDomain[ProgramPointHeapIdentifier]]) {
+		if(id.asInstanceOf[HeapIdAndSetDomain[ProgramPointHeapIdentifier]].value.size==1)
+			id=id.asInstanceOf[HeapIdAndSetDomain[ProgramPointHeapIdentifier]].value.iterator.next.asInstanceOf[I];
+		else throw new WaitOrderInferenceException("Not yet supported");
+	}
+	
+	
   override def toString() = id.toString()+" through path "+path.toString();
   override def hashCode() = id.hashCode();
   override def containsId(id : Identifier) : Boolean = this.id.equals(id);
@@ -57,29 +66,54 @@ case class AbstractObject[I <: HeapIdentifier[I]](val id : I, val path : Path) e
   }
 }
 
-case class MaxlockLevel(val classe : String, val method : String) extends Node {
+case class InitialLockLevel(val classe : String, val method : String) extends Node {
+	if(method==null || classe==null) throw new WaitOrderInferenceException("This is not allowed");
   override def toString() = "maxlock("+classe.toString+"."+method.toString+")";
   override def hashCode() = classe.hashCode();
   override def containsId(id : Identifier) : Boolean = false;
   override def equals(a : Any) : Boolean = a match {
-    case x : MaxlockLevel => classe.equals(x.classe) && method.equals(x.method) 
+    case x : InitialLockLevel => classe.equals(x.classe) && method.equals(x.method) 
     case _ => return false;
   }
 }
 
-class WaitOrderDomain[I <: HeapIdentifier[I]] extends FunctionalDomain[(Node, Node), SetSymbolicOrderValues, WaitOrderDomain[I]] with SimplifiedSemanticDomain[WaitOrderDomain[I]]{
+class CurrentWaitLevel[I <: HeapIdentifier[I]] extends InverseSetDomain[I, CurrentWaitLevel[I]] {
+	override def factory() = new CurrentWaitLevel();
+}
+
+class WaitOrderDomain[I <: HeapIdentifier[I]](val rel : SymbolicOrderRelationshipsDomain[I], val waitlevel : CurrentWaitLevel[I]) extends CartesianProductDomain[SymbolicOrderRelationshipsDomain[I], CurrentWaitLevel[I], WaitOrderDomain[I]](rel, waitlevel) with SimplifiedSemanticDomain[WaitOrderDomain[I]] {
+	override def removeVariable(variable : Identifier) : WaitOrderDomain[I] = new WaitOrderDomain[I](this._1.removeVariable(variable), this._2);
+    
+    override def createVariable(variable : Identifier, typ : Type) : WaitOrderDomain[I] =  new WaitOrderDomain(this._1.createVariable(variable, typ), this._2); 
+	
+    override def assume(expr : Expression) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.assume(expr), this._2);
+
+    override def assign(variable : Identifier, expr : Expression) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.assign(variable, expr), this._2);
+
+    override def setToTop(variable : Identifier) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.setToTop(variable), this._2);
+
+    override def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id);
+    
+    override def factory() = new WaitOrderDomain[I](new SymbolicOrderRelationshipsDomain[I], new CurrentWaitLevel[I])
+    
+    def wait(id : I) : WaitOrderDomain[I] = new WaitOrderDomain(this._1, this._2.add(id))
+    
+    def release(id : I) : WaitOrderDomain[I] = new WaitOrderDomain(this._1, this._2.remove(id))
+}
+
+class SymbolicOrderRelationshipsDomain[I <: HeapIdentifier[I]] extends FunctionalDomain[(Node, Node), SetSymbolicOrderValues, SymbolicOrderRelationshipsDomain[I]] with SimplifiedSemanticDomain[SymbolicOrderRelationshipsDomain[I]]{
 	
 	def get(key : (Node, Node)) : SetSymbolicOrderValues = this.value.get(key) match {
 		case Some(s) => return s;
 		case None => return new SetSymbolicOrderValues();
 	}
 	
-	def factory() : WaitOrderDomain[I] = new WaitOrderDomain();
+	def factory() : SymbolicOrderRelationshipsDomain[I] = new SymbolicOrderRelationshipsDomain();
 	
-	def removeVariable(variable : Identifier) : WaitOrderDomain[I] = variable match {
+	def removeVariable(variable : Identifier) : SymbolicOrderRelationshipsDomain[I] = variable match {
 		case x : I => 
 			if(this.isBottom) return this;
-			var result : WaitOrderDomain[I] = new WaitOrderDomain[I]();
+			var result : SymbolicOrderRelationshipsDomain[I] = new SymbolicOrderRelationshipsDomain[I]();
 			for(key <- this.value.keySet)
 				if(! key._1 .equals(x) && ! key._2.equals(x))
 					result=result.add(key, this.get(key));
@@ -87,16 +121,16 @@ class WaitOrderDomain[I <: HeapIdentifier[I]] extends FunctionalDomain[(Node, No
 		case _ => this;
 	}
     
-    def createVariable(variable : Identifier, typ : Type) : WaitOrderDomain[I] = this; 
+    def createVariable(variable : Identifier, typ : Type) : SymbolicOrderRelationshipsDomain[I] = this; 
 	
-    def assume(expr : Expression) : WaitOrderDomain[I] = this;
+    def assume(expr : Expression) : SymbolicOrderRelationshipsDomain[I] = this;
 
-    def assign(variable : Identifier, expr : Expression) : WaitOrderDomain[I] = this;
+    def assign(variable : Identifier, expr : Expression) : SymbolicOrderRelationshipsDomain[I] = this;
 
-    def setToTop(variable : Identifier) : WaitOrderDomain[I] = variable match {
+    def setToTop(variable : Identifier) : SymbolicOrderRelationshipsDomain[I] = variable match {
 		case x : I => 
 			if(this.isBottom) return this;
-			var result : WaitOrderDomain[I] = new WaitOrderDomain[I]();
+			var result : SymbolicOrderRelationshipsDomain[I] = new SymbolicOrderRelationshipsDomain[I]();
 			for(key <- this.value.keySet)
 				if(! key._1 .equals(x) && ! key._2.equals(x))
 					result=result.add(key, this.get(key));

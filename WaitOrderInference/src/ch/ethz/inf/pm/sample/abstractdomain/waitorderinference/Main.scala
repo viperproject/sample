@@ -37,7 +37,7 @@ object Main {
 	//EntryState
 	val heapid : ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(SystemParameters.typ);
 	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new HeapIdAndSetDomain(heapid), heapid);
-	val domain : WaitOrder =new WaitOrderDomain[ProgramPointHeapIdentifier]();
+	val domain : WaitOrder =new WaitOrderDomain[ProgramPointHeapIdentifier](new SymbolicOrderRelationshipsDomain[ProgramPointHeapIdentifier], new CurrentWaitLevel[ProgramPointHeapIdentifier]);
 	val entrydomain  = new HeapAndAnother(domain, heapDomain);
 	var entryvalue =new AbstractValue(None, None)
 	var entryState =new State(entrydomain, entryvalue)

@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import java.io.PrintStream
 
 trait Property {
-  def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
+  def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
   def finalizeChecking() : Unit;
 }
 
@@ -15,7 +15,9 @@ trait Visitor {
 }
 
 class SingleStatementProperty(visitor : Visitor) extends Property {
-  def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+  def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+	SystemParameters.currentClass = className;
+	SystemParameters.currentMethod = methodName;
     for(i <- 0 to result.nodes.size-1)
         for(k <- 0 to result.cfg.nodes.apply(i).size-1) {
           val statement=result.cfg.nodes.apply(i).apply(k);
@@ -32,7 +34,7 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
         }
       }
   override def finalizeChecking() : Unit = Unit;
-  def checkStatement[S <: State[S]](className : String, methodName : String, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
+  def checkStatement[S <: State[S]](className : Type, methodName : String, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
         	  	case Assignment(programpoint, left, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  		this.checkStatement(className, methodName, visitor, state, left, printer)

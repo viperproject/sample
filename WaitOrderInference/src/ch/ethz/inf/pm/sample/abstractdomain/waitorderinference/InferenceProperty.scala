@@ -9,11 +9,21 @@ import ch.ethz.inf.pm.sample.gui._
 import ch.ethz.inf.pm.sample.property._;
 import java.io._
 
+
+	//(s, n, true/false) represents that the share s should be above/below n
+class SingleConstraint(val s : SymbolicOrderValue, val n : Node, val above : Boolean) extends Tuple3(s, n, above){
+	override def toString() = 
+		if(above)
+			s.toString()+" above "+n;
+		else s.toString()+" below "+n;
+			
+}
+
 object WaitOrderInferenceVisitor extends Visitor {
 	type I = ProgramPointHeapIdentifier
 	type W = WaitOrderDomain[I]
 	
-	var result : Set[SymbolicOrderValue] = Set.empty;
+	var result : Set[SingleConstraint] = Set.empty;
 	
    private def extractInfo[S <: State[S]](state : S, methodCall : MethodCall) : (SymbolicAbstractValue[S], String, List[Statement]) = {
 	  val body : Statement = methodCall.method.normalize();
@@ -38,16 +48,19 @@ object WaitOrderInferenceVisitor extends Visitor {
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
 	  case s : MethodCall => extractInfo(state, s) match {
 	 	  case (thisExpr, "acquire", x :: Nil) if (thisExpr.getType().getName.equals("Chalice")) =>
+	 	    val castedState=state.asInstanceOf[GenericAbstractState[W, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]
 	 	    val (parameter, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](state, x);
 	 	    if(parameter.getExpressions().size != 1) throw new WaitOrderInferenceException("Not yet supported");
 	 	    val id = parameter.getExpressions().iterator.next();
-	 	    if(! id.isInstanceOf[I]) throw new WaitOrderInferenceException("This should not happen");
-	 	    val path = "this" :: Nil; //TODO: Find out the path!!!
-	 	    val node = new AbstractObject(id.asInstanceOf[I], new Path(path));
-	 	    val localMaxlock = MaxlockLevel(SystemParameters.currentClass.getName(), SystemParameters.currentMethod);
-	 	    //TODO: Cast the state, extract the value, impose that it is one!
-	 	    val castedState=state.asInstanceOf[GenericAbstractState[W, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]
-	 	    result=result++castedState._1._1.get((localMaxlock, node)).value //TODO: Or swapped?
+	 	    if(! id.isInstanceOf[VariableIdentifier]) throw new WaitOrderInferenceException("This should not happen");
+	 	    val heapid = castedState._1._2.get(id.asInstanceOf[VariableIdentifier]); 
+	 	    val path = id.asInstanceOf[VariableIdentifier].getName() :: Nil; //TODO: Find out the path!!!
+	 	    val node = new AbstractObject(heapid, new Path(path));
+	 	    val localMaxlock = InitialLockLevel(SystemParameters.currentClass.getName(), SystemParameters.currentMethod);
+	 	    val newVal = castedState._1._1._1.get((localMaxlock, node))
+	 	    if(newVal.isTop || newVal.isBottom) throw new WaitOrderInferenceException("This should not happen");
+	 	    for(v <- newVal.value)
+	 	    	result=result+(new SingleConstraint(v, localMaxlock, true)) //TODO: Or swapped?
 	 	    	
 	 	  case (thisExpr, "acquire", _) if (thisExpr.getType().getName.equals("Chalice")) =>
 	 	   throw new WaitOrderInferenceException("This should not happen");
@@ -59,12 +72,12 @@ object WaitOrderInferenceVisitor extends Visitor {
 
 class WaitOrderInferenceProperty extends SingleStatementProperty(WaitOrderInferenceVisitor) {
 	
-	  override def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 	 	  ShowGraph.Show(result);
 	 	  super.check(className, methodName, result, printer);
 	  }
 	  
-	  override def finalizeChecking() : Unit = Unit;
+	  override def finalizeChecking() : Unit = System.out.println(WaitOrderInferenceVisitor.result.toString());
 	   
 }
 
