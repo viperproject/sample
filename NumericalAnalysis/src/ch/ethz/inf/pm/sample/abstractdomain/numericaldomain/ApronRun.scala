@@ -11,7 +11,7 @@ import apron._;
 
 class ApronProperty extends Property {
 	
-	  override def check[S <: State[S]](className : String, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
+	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
 	  
 	  override def finalizeChecking() : Unit = Unit
 	   

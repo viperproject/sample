@@ -81,26 +81,6 @@ class CurrentWaitLevel[I <: HeapIdentifier[I]] extends InverseSetDomain[I, Curre
 	override def factory() = new CurrentWaitLevel();
 }
 
-class WaitOrderDomain[I <: HeapIdentifier[I]](val rel : SymbolicOrderRelationshipsDomain[I], val waitlevel : CurrentWaitLevel[I]) extends CartesianProductDomain[SymbolicOrderRelationshipsDomain[I], CurrentWaitLevel[I], WaitOrderDomain[I]](rel, waitlevel) with SimplifiedSemanticDomain[WaitOrderDomain[I]] {
-	override def removeVariable(variable : Identifier) : WaitOrderDomain[I] = new WaitOrderDomain[I](this._1.removeVariable(variable), this._2);
-    
-    override def createVariable(variable : Identifier, typ : Type) : WaitOrderDomain[I] =  new WaitOrderDomain(this._1.createVariable(variable, typ), this._2); 
-	
-    override def assume(expr : Expression) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.assume(expr), this._2);
-
-    override def assign(variable : Identifier, expr : Expression) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.assign(variable, expr), this._2);
-
-    override def setToTop(variable : Identifier) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.setToTop(variable), this._2);
-
-    override def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id);
-    
-    override def factory() = new WaitOrderDomain[I](new SymbolicOrderRelationshipsDomain[I], new CurrentWaitLevel[I])
-    
-    def wait(id : I) : WaitOrderDomain[I] = new WaitOrderDomain(this._1, this._2.add(id))
-    
-    def release(id : I) : WaitOrderDomain[I] = new WaitOrderDomain(this._1, this._2.remove(id))
-}
-
 class SymbolicOrderRelationshipsDomain[I <: HeapIdentifier[I]] extends FunctionalDomain[(Node, Node), SetSymbolicOrderValues, SymbolicOrderRelationshipsDomain[I]] with SimplifiedSemanticDomain[SymbolicOrderRelationshipsDomain[I]]{
 	
 	def get(key : (Node, Node)) : SetSymbolicOrderValues = this.value.get(key) match {
@@ -149,4 +129,24 @@ class SymbolicOrderRelationshipsDomain[I <: HeapIdentifier[I]] extends Functiona
     }
 }
 
+
+class WaitOrderDomain[I <: HeapIdentifier[I]](val rel : SymbolicOrderRelationshipsDomain[I], val waitlevel : CurrentWaitLevel[I]) extends CartesianProductDomain[SymbolicOrderRelationshipsDomain[I], CurrentWaitLevel[I], WaitOrderDomain[I]](rel, waitlevel) with SimplifiedSemanticDomain[WaitOrderDomain[I]] {
+	override def removeVariable(variable : Identifier) : WaitOrderDomain[I] = new WaitOrderDomain[I](this._1.removeVariable(variable), this._2);
+    
+    override def createVariable(variable : Identifier, typ : Type) : WaitOrderDomain[I] =  new WaitOrderDomain(this._1.createVariable(variable, typ), this._2); 
+	
+    override def assume(expr : Expression) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.assume(expr), this._2);
+
+    override def assign(variable : Identifier, expr : Expression) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.assign(variable, expr), this._2);
+
+    override def setToTop(variable : Identifier) : WaitOrderDomain[I] = new WaitOrderDomain(this._1.setToTop(variable), this._2);
+
+    override def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id);
+    
+    override def factory() = new WaitOrderDomain[I](new SymbolicOrderRelationshipsDomain[I], new CurrentWaitLevel[I])
+    
+    def wait(id : I) : WaitOrderDomain[I] = new WaitOrderDomain(this._1, this._2.add(id))
+    
+    def release(id : I) : WaitOrderDomain[I] = new WaitOrderDomain(this._1, this._2.remove(id))
+}
 class WaitOrderInferenceException(message : String) extends Exception(message)
