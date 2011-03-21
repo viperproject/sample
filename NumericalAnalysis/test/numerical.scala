@@ -40,5 +40,6 @@ class SimpleExamples {
 		} else {
 			w = w + f;
 		}
+		w = i;
 	}
 }
