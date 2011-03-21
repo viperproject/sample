@@ -26,4 +26,19 @@ class SimpleExamples {
 			k=i;
 		else k=j;
 	}
+	def ex5(i : Int) = {
+		var x : Int = 0;
+		var y : Int = 3;
+		var w : Int = 5;
+		var t : Int = 1;
+		var f : Int = 0;
+		x = i + 1;
+		y = x;
+		w = y;
+		if (x > 1) {
+			w = w + t;
+		} else {
+			w = w + f;
+		}
+	}
 }
