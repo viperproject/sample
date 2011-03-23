@@ -43,7 +43,7 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		        	var result = state.bottom(); 
 		        	for(exp <- index.getExpressions) {
 		        		val st = index.get(exp);
-		        		result=result.lub(result, state.setExpression(new SymbolicAbstractValue(new ArrayAccess(id, exp, thisExpr.getType()), state)));
+		        		result=result.lub(result, state.setExpression(new SymbolicAbstractValue(new ArrayAccess(id, exp, thisExpr.getType().getArrayElementsType().get), state)));
 		        	}
 		        	return Some(result);
 		      }

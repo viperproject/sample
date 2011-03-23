@@ -245,6 +245,11 @@ trait Type extends Lattice[Type] {
   def getPossibleFields() : Set[(String, Type)];
   
   /**
+   * If the current type represents an array, it returns the type of the elements contained in the array, None otherwise. 
+   */
+  def getArrayElementsType() : Option[Type];
+  
+  /**
    * This method returns <code>true</code> if and only if the current type can be only instance 
    * of one of the given types and none else.
    * For instance, suppose that:
