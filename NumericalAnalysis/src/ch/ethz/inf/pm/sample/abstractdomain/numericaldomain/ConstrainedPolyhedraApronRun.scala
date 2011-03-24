@@ -25,20 +25,20 @@ object ConstrianedPolyhedraApronRun {
 		SystemParameters.property = new ApronProperty;
 		
 		//Files paths
-		val f1 = "/home/pietro/Sample/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
+		val f1 = "/home/samlik/workspace/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
 		
 		ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 		
 		//EntryState
-		val domain=new Polka(true);
-		//val domain=new PplPoly(false);
+		//val domain=new Polka(true);
+		val domain=new PplPoly(false);
 		System.out.println(domain.getLibrary + " " + domain.getVersion)
 		
 		val coefSet = new HashSet[Int];
 		coefSet.add(-1);
 		coefSet.add(1);
 		
-		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 1);
+		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2);
 		val heapid = new ClassHeapIdentifier(null);
 		heapid.typ=SystemParameters.typ;
 		val heapDomain : NonRelationalHeapDomain[HeapId]= new NonRelationalHeapDomain[HeapId](heapid.getType, new HeapIdAndSetDomain(heapid), heapid);

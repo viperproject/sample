@@ -131,8 +131,8 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 		    	if (monomes.length > numOfVariables) {
 		    		
 		    		//-------------------------- Comment out----
-		    		println("Number of varilables in " + expr.toString + " is bigger than " + numOfVariables);
-		    		println("Therefore, " + expr.toString + " is not accepted");
+		    		//println("Number of varilables in " + expr.toString + " is bigger than " + numOfVariables);
+		    		//println("Therefore, " + expr.toString + " is not accepted");
 		    		//------------------------------------------
 		    		
 		    		return false;
@@ -142,8 +142,8 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 		    			 if (!coefficients.contains(index)) {
 		    				 
 		    				 //-------------------------- Comment out----
-		    				 println(index + " is not contained in " + coefficients.toString);
-		    				 println(expr.toString  + " does not satisfy given constriants.");
+		    				 //println(index + " is not contained in " + coefficients.toString);
+		    				 //println(expr.toString  + " does not satisfy given constriants.");
 		    				 //------------------------------------------
 		    				 
 		    				 return false;

@@ -30,15 +30,15 @@ class ExamplesForConstrainedPolyhedra {
 						while (x_04 < x_03 + i) {
 							x_04 = x_04 + 1;
 							while (x_05 < x_04 + i) {
-								x_05 = x_05 + 1;/*
+								x_05 = x_05 + 1;
 								while (x_06 < x_05 + i) {
 									x_06 = x_06 + 1;
 									while (x_07 < x_06 + i) {
 										x_07 = x_07 + 1;
 										while (x_08 < x_07 + i) {
-											x_04 = x_04 + 1;
+											x_08 = x_08 + 1;
 											while (x_09 < x_08 + i) {
-												x_01 = x_01 + 1;
+												x_09 = x_09 + 1;
 												while (x_10 < x_09 + i) {
 													x_10 = x_10 + 1;
 													while (x_11 < x_10 + i) {
@@ -52,7 +52,7 @@ class ExamplesForConstrainedPolyhedra {
 																	while (x_15 < x_14 + i) {
 																		x_15 = x_15 + 1;
 																		while (x_16 < x_15 + i) {
-																			x_17 = x_16 + 1;
+																			x_16 = x_16 + 1;
 																		}
 																	}
 																}
@@ -63,15 +63,14 @@ class ExamplesForConstrainedPolyhedra {
 											}
 										}
 									}
-								}*/
+								}
 							}
 						}
 					}
 				}
 			}
-			x_00 = x_17 + 2;
-			x_17 = (x_17 + 1) * (-1);
-		}
-		
+		}	
+		x_00 = x_17 + 2;
+		x_17 = (x_17 + 1) * (-1);
 	}
 }
