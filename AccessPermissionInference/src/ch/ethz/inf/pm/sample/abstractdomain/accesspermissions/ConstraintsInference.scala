@@ -7,10 +7,10 @@ import ch.ethz.inf.pm.sample.abstractdomain._;
 import lpsolve._;
 
 object Settings {
-	var writeLevel=new SimpleVal(100);
-	var readLevel=new Multiply(1, Epsilon);
 	var unsoundInhaling : Boolean = false;
 	var unsoundDischarging : Boolean = false;
+	var permissionType : PermissionsType = null;
+	
 	
 	  
   //The lower integer value, the higher priority
@@ -19,7 +19,38 @@ object Settings {
   var priorityPredicates : Int = 2;
 }
 
-sealed abstract class Constraint
+
+sealed trait PermissionsType {
+	def ensureWriteLevel(level : ArithmeticExpression) : Constraint;
+	def ensureReadLevel(level : ArithmeticExpression) : Constraint;
+	def maxLevel : ArithmeticExpression;
+	def minLevel : ArithmeticExpression;
+}
+
+case object FractionalPermissions extends PermissionsType {
+	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Eq(level, new SimpleVal(1));
+	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Greater(level, new Multiply(1, Epsilon));
+	override def maxLevel : ArithmeticExpression = new SimpleVal(100)
+	override def minLevel : ArithmeticExpression = new SimpleVal(0)
+}
+
+case object CountingPermissions extends PermissionsType {
+	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Geq(new SimpleVal(0), level);
+	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Geq(level, new SimpleVal(0));
+	override def maxLevel : ArithmeticExpression = new SimpleVal(0)
+	override def minLevel : ArithmeticExpression = new SimpleVal(-1000)//TODO:What should be there?
+}
+
+case object ChalicePermissions extends PermissionsType {
+	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Eq(level, new SimpleVal(100));
+	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Geq(level, new Multiply(1, Epsilon));
+	override def maxLevel : ArithmeticExpression = new SimpleVal(1)
+	override def minLevel : ArithmeticExpression = new SimpleVal(0)
+}
+
+
+
+sealed trait Constraint
 
 case class Eq(left : ArithmeticExpression, right : ArithmeticExpression) extends Constraint {
   override def toString()=left.toString()+"="+right.toString();
@@ -28,6 +59,11 @@ case class Eq(left : ArithmeticExpression, right : ArithmeticExpression) extends
 case class Geq(left : ArithmeticExpression, right : ArithmeticExpression) extends Constraint {
   override def toString()=left.toString()+">="+right.toString();
 }
+
+case class Greater(left : ArithmeticExpression, right : ArithmeticExpression) extends Constraint {
+  override def toString()=left.toString()+">"+right.toString();
+}
+
 
 sealed abstract trait ArithmeticExpression 
 
@@ -198,20 +234,12 @@ object ConstraintsInference {
 	  var intPart : Int = value.toInt;
 	  var floatPart : Double = value-(intPart.toDouble);
 	  var nEpsilons : Int =0;
-	  //var result="";
-	  /*if(floatPart > 0/5 && (1-floatPart)/(epsilon/100)==0) {
-	 	  floatPart=0;
-	 	  intPart=intPart+1;
-	 	  nEpsilons=0;
-	  }*/
 	  if(floatPart>0.5) {
 	 	  nEpsilons=0-getNEpsilons(1-floatPart, epsilon);
 	 	  intPart=1+intPart;
-	 	  //result=result+(intPart.toString)+" - "+(nEpsilons.toString())+" epsilon";
 	  }
 	  else {  
 	   nEpsilons=getNEpsilons(floatPart, epsilon);
-	   //result=result+(intPart.toString)+" + "+(nEpsilons.toString())+" epsilon";
 	  }
 	  return (intPart, nEpsilons);
   }

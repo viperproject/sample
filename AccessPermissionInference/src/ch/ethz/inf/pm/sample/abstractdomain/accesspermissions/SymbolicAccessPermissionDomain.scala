@@ -431,7 +431,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   
   private def inhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
-	if(! id.getType().toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(Settings.writeLevel, new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
+	if(! id.getType().toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(Settings.permissionType.maxLevel, new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
 	if(! Settings.unsoundInhaling && ! id.representSingleVariable) //In order to be sound, I cannot inhale on heap summary nodes 
 		return this;
 	if(actual.equals(this.top()))
@@ -440,6 +440,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   };
   private def exhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
+	//TODO:Is this right?
 	if(! id.getType().toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(ConstraintsInference.convert(actual), ConstraintsInference.convert(p)));
 	if(actual.equals(this.top()))
 		return this.add(id, new SymbolicLevelPermission(p));
@@ -454,7 +455,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
       var result=this;
       for(add <- id.asInstanceOf[HeapIdAndSetDomain[I]].value) {
     	//the permission should be 100%
-    	ConstraintsInference.addConstraint(new Eq(Settings.writeLevel, ConstraintsInference.convert(this.get(add))));
+    	ConstraintsInference.addConstraint(new Eq(Settings.permissionType.maxLevel, ConstraintsInference.convert(this.get(add))));
         result=result.remove(add);
       }
       return result;
@@ -492,7 +493,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   
   def assign(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = {
     if(! variable.getType().toString().equals("Chalice") && ! variable.isInstanceOf[VariableIdentifier])
-    	ConstraintsInference.addConstraint(new Eq(Settings.writeLevel, ConstraintsInference.convert(this.get(variable))));
+    	ConstraintsInference.addConstraint(Settings.permissionType.ensureWriteLevel(ConstraintsInference.convert(this.get(variable))));
     return this
   }
 
@@ -502,7 +503,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   
   def access(field : Identifier) : SymbolicPermissionsDomain[I] = {
     if(! field.getType().toString().equals("Chalice") && ! field.isInstanceOf[VariableIdentifier]) 
-    	ConstraintsInference.addConstraint(new Geq(ConstraintsInference.convert(this.get(field)), Settings.readLevel));
+    	ConstraintsInference.addConstraint(Settings.permissionType.ensureReadLevel(ConstraintsInference.convert(this.get(field))));
     return this
     }
   
