@@ -20,13 +20,14 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
         }
 	    case _ => throw new MethodSemanticException("asInstanceOf cannot have parameters")
 	  } 
-   	  case "==" => parameters match {
+   	  //TODO: this conflicts with == over Int, I should have a hierarchy over the native semantics!!!
+   	  /*case "==" => parameters match {
 	    case p1 :: Nil => typeparameters match {
 	      case Nil => return Some(state.setExpression(thisExpr.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.==, state, returnedtype)));
           case _ => throw new MethodSemanticException("asInstanceOf must have exactly one type parameters")
         }
 	    case _ => None//throw new MethodSemanticException("asInstanceOf cannot have parameters")
-	  }
+	  }*/
       case "this" => parameters match {
         case Nil => return Some(state.setExpression(thisExpr));
          case _ => return this.analyzeConstructor(thisExpr, parameters, state, returnedtype)

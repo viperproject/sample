@@ -489,7 +489,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       }
       
       def getArrayElementsType() : Option[oorepresentation.Type] = 
-    	  if(typ.toString().substring(0, 5).equals("Array"))
+    	  if(typ.toString().length>=5 && typ.toString().substring(0, 5).equals("Array"))
     	 	  Some(new ScalaType(typ.typeArgs.iterator.next))
     	  else None;
   }
