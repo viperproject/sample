@@ -8,13 +8,13 @@ object ScalaClasses {
 	var classes : List[ClassDefinition] = Nil;
 }
 
-class ScalaCompiler extends Compiler {
-
+object ScalaCompiler extends Compiler {
 	def compileFile(path : String) : List[ClassDefinition] = {
 		SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil;
   	    //SystemParameters.typ is initialized inside the parser
 		
 	    val settings = new Settings
+    settings.classpath.value = System.getProperty("java.class.path")
 
         // WORK
 	    val command = new CompilerCommand(List(path), settings) {
