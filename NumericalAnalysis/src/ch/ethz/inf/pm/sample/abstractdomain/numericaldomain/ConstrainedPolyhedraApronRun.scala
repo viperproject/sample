@@ -11,7 +11,7 @@ import apron._;
 
 object ConstrianedPolyhedraApronRun {
 	
-	System.out.println("ConstrianedPolyhedraApronRun");
+	System.out.println("ConstrainedPolyhedraApronRun");
 
 	type HeapId = ClassHeapIdentifier;
 	
