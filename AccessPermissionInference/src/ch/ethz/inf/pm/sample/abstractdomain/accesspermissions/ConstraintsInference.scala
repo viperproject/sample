@@ -121,7 +121,7 @@ object ConstraintsInference {
       }
   }
   
-  def addPostconditionConstraints(s : State) : Unit = this.addPostconditionConstraints(s._1._1, SystemParameters.currentClass.getName(), SystemParameters.currentMethod, s._1._2._1, s._1._2._2); 
+  def addPostconditionConstraints(s : State, className : Type, methodName : String) : Unit = this.addPostconditionConstraints(s._1._1, className.getName(), methodName, s._1._2._1, s._1._2._2); 
   
   def addPostconditionConstraints(p : Permissions, classe : String, method : String, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) = {
     for(variable <- p.value.keySet) {
@@ -317,6 +317,11 @@ object ConstraintsInference {
   }
   
   private def extractConstraint(constraint : Constraint, variables : List[SymbolicValue]) : (String, Int, Int) = constraint match {
+    case Greater(left, right) =>
+      val (leftvars, lefti) = extractExpressions(left, variables);
+      val (rightvars, righti) = extractExpressions(right, variables);
+      var resultingarray = subtractArrays(leftvars, rightvars);
+      return (arrayToString(resultingarray), righti-lefti, LpSolve.GE)//TODO: This is wrong!
     case Geq(left, right) =>
       val (leftvars, lefti) = extractExpressions(left, variables);
       val (rightvars, righti) = extractExpressions(right, variables);
@@ -374,6 +379,7 @@ object ConstraintsInference {
   private def extractVariables(c : Constraint) : Set[SymbolicValue] = c match {
     case Eq(left, right) => return extractVariables(left)++extractVariables(right)
     case Geq(left, right) => return extractVariables(left)++extractVariables(right)
+    case Greater(left, right) => return extractVariables(left)++extractVariables(right)
   }
   
   private def extractVariables(a : ArithmeticExpression) : Set[SymbolicValue] = a match {

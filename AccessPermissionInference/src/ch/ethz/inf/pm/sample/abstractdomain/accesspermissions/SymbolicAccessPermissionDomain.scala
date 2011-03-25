@@ -88,7 +88,8 @@ case class SymbolicAbstractPredicates(val c : String, val name : String, p : Pat
   override def factory() : SymbolicValue = new SymbolicAbstractPredicates(c, name, p);
 }
 
-case class SymbolicPreCondition(val className : String, val methodName : String, p : Path) extends SymbolicValue(p) { 
+case class SymbolicPreCondition(val className : String, val methodName : String, p : Path) extends SymbolicValue(p) {
+	assert(className!=null && methodName!=null)
   override def toString() = "pre("+className.toString()+"."+methodName.toString()+", "+path.toString()+")";
   override def hashCode() = methodName.hashCode();
   override def equals(a : Any) : Boolean = a match {
@@ -99,6 +100,7 @@ case class SymbolicPreCondition(val className : String, val methodName : String,
 }
 
 case class SymbolicPostCondition(val className : String, val methodName : String, p : Path) extends SymbolicValue(p) { 
+	assert(className!=null && methodName!=null)
   override def toString() = "post("+className.toString()+"."+methodName.toString()+", "+path.toString()+")";
   override def hashCode() = methodName.hashCode();
   override def equals(a : Any) : Boolean = a match {

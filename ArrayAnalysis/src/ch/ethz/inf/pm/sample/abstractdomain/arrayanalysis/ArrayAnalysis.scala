@@ -61,6 +61,7 @@ object ArrayAnalysis {
 	entryvalue=new AbstractValue(Some(entryState), Some(SystemParameters.typ.asInstanceOf[Type]))
 	entryState =new State(entrydomain, entryvalue)
 	
+	ch.ethz.inf.pm.sample.Main.verbose=false; 
 	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState);
   }
 }

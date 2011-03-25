@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.util.Timer
 
 object Main {
+	var verbose : Boolean = true;
   	var classes : List[ClassDefinition]= Nil;
 	def compile(files : List[String]) = {
 	    for(f <- files) 
@@ -19,12 +20,17 @@ object Main {
 	    	SystemParameters.currentClass = c.name.getThisType();
 	     	val methods = toAnalyze.apply(c.name.toString());
 	        for(x <- c.methods)
-	        	if(methods.contains(x.name.toString()))
+	        	if(methods.contains(x.name.toString())) {
+	        		SystemParameters.currentMethod = x.name.toString();
 				    SystemParameters.property.check(c.name.getThisType(), x.name.toString(), x.asInstanceOf[MethodDeclaration].forwardSemantics[S](entryState), output);
+				    SystemParameters.currentMethod = null;
+	        	}
 	      }
 	    SystemParameters.property.finalizeChecking();
-	    System.out.println(SystemParameters.output.output()+"STATISTICS\n"+SystemParameters.output.statistics())
-	    System.out.println("Time of analyisis: " + Timer.stop);
+	    if(verbose) {
+	    	System.out.println(SystemParameters.output.output()+"STATISTICS\n"+SystemParameters.output.statistics())
+	    	System.out.println("Time of analyisis: " + Timer.stop);
+	    }
      }
     
 }
