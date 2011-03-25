@@ -22,7 +22,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	
 	private def constraintContains(c : Lincons1, variable : String) : Boolean = {
 		for(term <- c.getLinterms )
-			if(term.getVariable().equals(variable))
+			if(term.getVariable().equals(variable) && !term.getCoefficient.toString.equals("0"))
 				return true;
 		return false;
 	}
