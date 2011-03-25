@@ -35,13 +35,15 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	
 	override def assign (variable : Identifier, expr : Expression) : ConstrainedPolyhedra = {
 		val apInterface = super.assign(variable, expr);
-    println(variable.toString + " = " + expr.toString);
+    
+		/*
+		println(variable.toString + " = " + expr.toString);
     for (linCons <- state.toLincons(domain)) {
       for (term <- linCons.getLinterms) {
         print(term.getCoefficient() + term.getVariable.toString + " ");
       }
       println("");
-    }
+    }*/
 		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 	}
 	
