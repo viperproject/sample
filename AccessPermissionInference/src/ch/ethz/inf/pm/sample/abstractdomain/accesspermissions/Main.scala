@@ -38,8 +38,8 @@ object Main {
 	SystemParameters.property = new InferenceProperty;
 	
 	//Files paths
-	val f1 = "C:\\Users\\Pietro\\workspaceSample\\AccessPermissionInference\\test\\Chalice\\Chalice.scala";
-	val f2 = "C:\\Users\\Pietro\\workspaceSample\\AccessPermissionInference\\test\\ChaliceExamples\\RunningExample.scala";
+	val f1 = "C:\\Users\\Pietro\\Sample\\AccessPermissionInference\\test\\Chalice\\Chalice.scala";
+	val f2 = "C:\\Users\\Pietro\\Sample\\AccessPermissionInference\\test\\ChaliceExamples\\RunningExample.scala";
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: f2 :: Nil);
 	

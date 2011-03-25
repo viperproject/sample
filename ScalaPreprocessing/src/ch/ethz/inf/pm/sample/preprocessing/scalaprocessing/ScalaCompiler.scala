@@ -14,7 +14,7 @@ class ScalaCompiler extends Compiler {
   	    //SystemParameters.typ is initialized inside the parser
 		
 	    val settings = new Settings
-    settings.classpath.value = System.getProperty("java.class.path")
+      settings.classpath.value = System.getProperty("java.class.path")
 
         // WORK
 	    val command = new CompilerCommand(List(path), settings) {

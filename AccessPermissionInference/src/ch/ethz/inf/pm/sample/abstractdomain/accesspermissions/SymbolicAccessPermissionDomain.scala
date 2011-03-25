@@ -185,7 +185,7 @@ class CountedSymbolicValues(val n : IntOrTop, val s : SymbolicValue) {
   override def hashCode() = n.hashCode();
   
   override def equals(a : Any) : Boolean = a match {
-    case b : CountedSymbolicValues => return n.equals(b.n) && ((b.s==null && s==null) || s.equals(b.s));
+    case b : CountedSymbolicValues => return n.equals(b.n) && ((b.s==null && s==null) || (! (b.s==null || s==null)) || s.equals(b.s));
     case _ => return false;
   }
   
@@ -262,7 +262,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
       if(el.s==null) el.n match {
         case WrappedInt(i) => return i;
       }
-    return 0;
+    return Settings.permissionType.minLevel;
   }
   
   override def maxPermission() : Int = {
@@ -272,7 +272,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
         case WrappedInt(i) => return i;
       }
     }
-    return 100;
+    return Settings.permissionType.maxLevel;
   }
   
   override def glb(a : SymbolicLevelPermission, b : SymbolicLevelPermission) : SymbolicLevelPermission = {
@@ -433,7 +433,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   
   private def inhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
-	if(! id.getType().toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(Settings.permissionType.maxLevel, new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
+	if(! id.getType().toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(new SimpleVal(Settings.permissionType.maxLevel), new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
 	if(! Settings.unsoundInhaling && ! id.representSingleVariable) //In order to be sound, I cannot inhale on heap summary nodes 
 		return this;
 	if(actual.equals(this.top()))
@@ -457,7 +457,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
       var result=this;
       for(add <- id.asInstanceOf[HeapIdAndSetDomain[I]].value) {
     	//the permission should be 100%
-    	ConstraintsInference.addConstraint(new Eq(Settings.permissionType.maxLevel, ConstraintsInference.convert(this.get(add))));
+    	ConstraintsInference.addConstraint(new Eq(new SimpleVal(Settings.permissionType.maxLevel), ConstraintsInference.convert(this.get(add))));
         result=result.remove(add);
       }
       return result;
@@ -512,7 +512,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   def backwardAccess(field : Identifier) : SymbolicPermissionsDomain[I] = throw new PermissionsException("Backward analysis not yet supported");
   
   def assume(expr : Expression) : SymbolicPermissionsDomain[I] = this
-  def createVariable(variable : Identifier, typ : Type) : SymbolicPermissionsDomain[I] = return this.setPermissionLevel(variable, 100);
+  def createVariable(variable : Identifier, typ : Type) : SymbolicPermissionsDomain[I] = return this.setPermissionLevel(variable, Settings.permissionType.maxLevel);
   def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) : (SymbolicPermissionsDomain[I], Map[Identifier, List[String]]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil))

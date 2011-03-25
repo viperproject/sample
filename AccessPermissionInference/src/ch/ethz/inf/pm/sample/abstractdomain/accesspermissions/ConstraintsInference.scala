@@ -23,29 +23,29 @@ object Settings {
 sealed trait PermissionsType {
 	def ensureWriteLevel(level : ArithmeticExpression) : Constraint;
 	def ensureReadLevel(level : ArithmeticExpression) : Constraint;
-	def maxLevel : ArithmeticExpression;
-	def minLevel : ArithmeticExpression;
+	def maxLevel : Int;
+	def minLevel : Int;
 }
 
 case object FractionalPermissions extends PermissionsType {
 	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Eq(level, new SimpleVal(1));
-	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Greater(level, new Multiply(1, Epsilon));
-	override def maxLevel : ArithmeticExpression = new SimpleVal(100)
-	override def minLevel : ArithmeticExpression = new SimpleVal(0)
+	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Greater(level, new SimpleVal(0));
+	override def maxLevel : Int = 1
+	override def minLevel : Int = 0
 }
 
 case object CountingPermissions extends PermissionsType {
 	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Geq(new SimpleVal(0), level);
 	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Geq(level, new SimpleVal(0));
-	override def maxLevel : ArithmeticExpression = new SimpleVal(0)
-	override def minLevel : ArithmeticExpression = new SimpleVal(-1000)//TODO:What should be there?
+	override def maxLevel : Int = 0
+	override def minLevel : Int = -1000//TODO:What should be there?
 }
 
 case object ChalicePermissions extends PermissionsType {
 	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Eq(level, new SimpleVal(100));
 	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Geq(level, new Multiply(1, Epsilon));
-	override def maxLevel : ArithmeticExpression = new SimpleVal(1)
-	override def minLevel : ArithmeticExpression = new SimpleVal(0)
+	override def maxLevel : Int = 100
+	override def minLevel : Int = 0
 }
 
 
@@ -180,7 +180,7 @@ object ConstraintsInference {
         	}
         	else {
         		//solver.setInt(i, true); //All permissions are integer values
-        		solver.setBounds(i, 0, 100);
+        		solver.setBounds(i, Settings.permissionType.minLevel, Settings.permissionType.maxLevel);
         	}
         }
         //This is just to shutdown output on stdout and it does not work!!!
