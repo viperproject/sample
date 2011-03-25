@@ -35,7 +35,7 @@ object ApronRun {
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 	
 	//EntryState
-	//val domain=new Polka(true);
+	//val domain=new Polka(false);
 	val domain=new PplPoly(false);
 	val numerical = new ApronInterface(new Abstract1(domain, new Environment()), domain);
 	val heapid = new ClassHeapIdentifier(null);
@@ -49,5 +49,6 @@ object ApronRun {
 			      
 
 	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState);
+	
   }
 }

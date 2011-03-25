@@ -9,8 +9,6 @@ import ch.ethz.inf.pm.sample.gui._
 import ch.ethz.inf.pm.sample.property._;
 import apron._;
 
-import scala.collection.mutable.HashSet
-
 object ConstrianedPolyhedraApronRun {
 	
 	System.out.println("ConstrianedPolyhedraApronRun");
@@ -30,15 +28,15 @@ object ConstrianedPolyhedraApronRun {
 		ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 		
 		//EntryState
-		//val domain=new Polka(true);
+		//val domain=new Polka(false);
 		val domain=new PplPoly(false);
 		System.out.println(domain.getLibrary + " " + domain.getVersion)
 		
-		val coefSet = new HashSet[Int];
-		coefSet.add(-1);
-		coefSet.add(1);
+		var coefSet = Set.empty[Int];
+		coefSet.+=(-1);
+		coefSet.+=(1);
 		
-		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2);
+		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[Identifier]);
 		val heapid = new ClassHeapIdentifier(null);
 		heapid.typ=SystemParameters.typ;
 		val heapDomain : NonRelationalHeapDomain[HeapId]= new NonRelationalHeapDomain[HeapId](heapid.getType, new HeapIdAndSetDomain(heapid), heapid);

@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import scala.collection.mutable.HashSet
 
 /**
  * Constrined Polyhedra Abstract Domain.
@@ -16,8 +15,13 @@ import scala.collection.mutable.HashSet
  */
 class ConstrainedPolyhedra(	val cpstate : Abstract1, 
 							val cpdomain : Manager, 
-							val coefficients : HashSet[Int],
-							val numOfVariables: Int) extends ApronInterface(cpstate, cpdomain) {
+							val coefficients : Set[Int],
+							val numOfVariables: Int,
+							val setOfIdentifiers: Set[Identifier]) extends ApronInterface(cpstate, cpdomain) {
+	
+	private val checkVariableSet : Boolean = !(setOfIdentifiers.isEmpty);
+	private val checkCoef : Boolean = !(coefficients.isEmpty);
+	private val checkNumOfVariables = !(numOfVariables < 1);
 	
 	
 	/*
@@ -31,7 +35,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	
 	override def assign (variable : Identifier, expr : Expression) : ConstrainedPolyhedra = {
 		val apInterface = super.assign(variable, expr);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 	}
 	
 	/**
@@ -42,50 +46,50 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 		if (isExpressionAccepted(expr)) {
 			assumeWithoutConstraints(expr);
 		} else {
-			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables);
+			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 		}		
 	}
 	
 	override def bottom() : ConstrainedPolyhedra = {
 		val apInterface = super.bottom();
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 	}
 	
 	override def createVariable (variable : Identifier, typ : Type) : ConstrainedPolyhedra = {
 		val apInterface = super.createVariable(variable, typ);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 	}
 	
 	override def factory() : ConstrainedPolyhedra = top();
 	
 	override def glb(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
 		val apInterface = super.glb(left, right);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 	}
 	
 	override def lub(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
 		val apInterface = super.lub(left, right);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 	}
 	
 	override def removeVariable(variable : Identifier) : ConstrainedPolyhedra = { 
 		val apInterface = super.removeVariable(variable);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables,this.setOfIdentifiers);
 	}
 	
 	override def setToTop(variable : Identifier) : ConstrainedPolyhedra = {
 		val apInterface = super.setToTop(variable);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 	}
 	
 	override def top() : ConstrainedPolyhedra = {
 		val apInterface = super.top;
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables); 
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers); 
 	}
 	
 	override def widening(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
 		val apInterface = super.widening(left, right);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables,this.setOfIdentifiers);
 	}
 	
 	/*
@@ -103,7 +107,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	 */
 	private def assumeWithoutConstraints(expr : Expression) : ConstrainedPolyhedra = {
 		val apInterface = super.assume(expr);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables);
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
 	}
 	
 	/**
@@ -115,43 +119,43 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	private def isExpressionAccepted(expr : Expression) : Boolean = {
 		
 		// In the case we haven't passed in any constraints, we accept all expressions
-		if (coefficients.isEmpty || numOfVariables == 0) {
+		if (checkVariableSet || checkCoef || checkNumOfVariables) {
+			
+			/* Now we check whether the expressions is within the given constraints 
+			 * (coefficients and number of variables per inequality)
+			 */ 
+			Normalizer.conditionalExpressionToMonomes(expr) match {
+			    case None => {
+			    	System.out.println(expr.getClass.toString + " " + expr.toString  + "is not supproted or is not of a right type");
+			    	return false;
+			    }
+			    case Some((monomes, constant)) => {
+			    	if (checkNumOfVariables && monomes.length > numOfVariables) {
+			    		
+			    		//-------------------------- Comment out----
+			    		//println("Number of varilables in " + expr.toString + " is bigger than " + numOfVariables);
+			    		//println("Therefore, " + expr.toString + " is not accepted");
+			    		//------------------------------------------
+			    		
+			    		return false;
+			    	} else {
+			    		 for(monome <- monomes) {
+			    			 val (index, variable) = monome;
+			    			 if (   (checkCoef && !coefficients.contains(index))  
+			    				 || (checkVariableSet && !setOfIdentifiers.contains(variable))) {			    				 
+			    				 //-------------------------- Comment out----
+			    				 //println(index + " is not contained in " + coefficients.toString);
+			    				 //println(expr.toString  + " does not satisfy given constriants.");
+			    				 //------------------------------------------			    				 
+			    				 return false;
+			    			 }
+			    		 }
+			    	}
+			    	return true;
+			    }
+			}
+		} else {
 			return true;
-		}
-		
-		/* Now we check whether the expressions is within the given constraints 
-		 * (coefficients and number of variables per inequality)
-		 */ 
-		Normalizer.conditionalExpressionToMonomes(expr) match {
-		    case None => {
-		    	System.out.println(expr.getClass.toString + " " + expr.toString  + "is not supproted or is not of a right type");
-		    	return false;
-		    }
-		    case Some((monomes, constant)) => {
-		    	if (monomes.length > numOfVariables) {
-		    		
-		    		//-------------------------- Comment out----
-		    		//println("Number of varilables in " + expr.toString + " is bigger than " + numOfVariables);
-		    		//println("Therefore, " + expr.toString + " is not accepted");
-		    		//------------------------------------------
-		    		
-		    		return false;
-		    	} else {
-		    		 for(monome <- monomes) {
-		    			 val (index, variable) = monome;
-		    			 if (!coefficients.contains(index)) {
-		    				 
-		    				 //-------------------------- Comment out----
-		    				 //println(index + " is not contained in " + coefficients.toString);
-		    				 //println(expr.toString  + " does not satisfy given constriants.");
-		    				 //------------------------------------------
-		    				 
-		    				 return false;
-		    			 }
-		    		 }
-		    	}
-		    	return true;
-		    }
 		}
 	}
 }
