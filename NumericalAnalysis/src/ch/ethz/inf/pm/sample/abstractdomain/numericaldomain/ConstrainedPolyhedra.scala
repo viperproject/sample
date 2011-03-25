@@ -38,7 +38,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
     println(variable.toString + " = " + expr.toString);
     for (linCons <- state.toLincons(domain)) {
       for (term <- linCons.getLinterms) {
-        print(term.getVariable.toString + " ");
+        print(term.getCoefficient() + term.getVariable.toString + " ");
       }
       println("");
     }
