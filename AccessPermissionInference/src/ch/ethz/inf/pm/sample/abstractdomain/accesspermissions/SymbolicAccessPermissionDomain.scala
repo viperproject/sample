@@ -185,7 +185,7 @@ class CountedSymbolicValues(val n : IntOrTop, val s : SymbolicValue) {
   override def hashCode() = n.hashCode();
   
   override def equals(a : Any) : Boolean = a match {
-    case b : CountedSymbolicValues => return n.equals(b.n) && ((b.s==null && s==null) || (! (b.s==null || s==null)) || s.equals(b.s));
+    case b : CountedSymbolicValues => return n.equals(b.n) && ((b.s==null && s==null) || (b.s!=null && s!=null &&  s.equals(b.s)));
     case _ => return false;
   }
   
@@ -232,10 +232,10 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
   private def addElement(s : Set[CountedSymbolicValues], el : CountedSymbolicValues) : Set[CountedSymbolicValues] = {
     var result=s;
     if(el.n.isInstanceOf[WrappedInt] && el.n.asInstanceOf[WrappedInt].i!=0)
-    	result=result+el;
+    	result=result.+(el);
     return result;
   }
-  
+
   override def toString() : String = {
     if(isBottom) return "_|_";
     if(value.isEmpty) return "0";

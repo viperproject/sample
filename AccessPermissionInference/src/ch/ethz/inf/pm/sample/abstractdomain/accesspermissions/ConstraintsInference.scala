@@ -25,6 +25,8 @@ sealed trait PermissionsType {
 	def ensureReadLevel(level : ArithmeticExpression) : Constraint;
 	def maxLevel : Int;
 	def minLevel : Int;
+  def float : Boolean;
+  def epsilon : Boolean;
 }
 
 case object FractionalPermissions extends PermissionsType {
@@ -32,6 +34,8 @@ case object FractionalPermissions extends PermissionsType {
 	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Greater(level, new SimpleVal(0));
 	override def maxLevel : Int = 1
 	override def minLevel : Int = 0
+  override def float : Boolean = true;
+  override def epsilon : Boolean = true;
 }
 
 case object CountingPermissions extends PermissionsType {
@@ -39,6 +43,8 @@ case object CountingPermissions extends PermissionsType {
 	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Geq(level, new SimpleVal(0));
 	override def maxLevel : Int = 0
 	override def minLevel : Int = -1000//TODO:What should be there?
+  override def float : Boolean = false;
+  override def epsilon : Boolean = false;
 }
 
 case object ChalicePermissions extends PermissionsType {
@@ -46,6 +52,8 @@ case object ChalicePermissions extends PermissionsType {
 	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Geq(level, new Multiply(1, Epsilon));
 	override def maxLevel : Int = 100
 	override def minLevel : Int = 0
+  override def float : Boolean = true;
+  override def epsilon : Boolean = false;
 }
 
 
@@ -167,19 +175,19 @@ object ConstraintsInference {
    def bbfunc(problem : LpSolve, userhandle : Object, buf : Int) : Int = 0
    def msgfunc(problem : LpSolve, userhandle : Object, buf : Int) : Unit = {}
    }
-  def solve(constraints : Set[Constraint]) : Map[SymbolicValue, (Int, Int)] = {
+  def solve(constraints : Set[Constraint]) : Map[SymbolicValue, (Double, Int)] = {
       try {
         val vars : List[SymbolicValue] = this.extractVariables(constraints).toList;
         val solver : LpSolve= LpSolve.makeLp(0, vars.size);
           
         for(i <- 1 to vars.size) {
-        	if(vars.apply(i-1).equals(Epsilon)) {
+        	if(Settings.permissionType.epsilon && vars.apply(i-1).equals(Epsilon)) {
         		val min = 0.00001//Double.Epsilon
         		val max = 1 //Because in this case the Epsilon would be "lost" (because of floating point rounding) and anyway there will be a stricter constraints afterwards
         		solver.setBounds(i, min, max);
         	}
         	else {
-        		//solver.setInt(i, true); //All permissions are integer values
+        		if(! Settings.permissionType.float) solver.setInt(i, true); //All permissions are integer values
         		solver.setBounds(i, Settings.permissionType.minLevel, Settings.permissionType.maxLevel);
         	}
         }
@@ -194,7 +202,7 @@ object ConstraintsInference {
         
         this.addObjectiveFunction(vars, solver);
         
-        this.addEpsilonConstraint(vars, solver);
+        if(Settings.permissionType.epsilon) this.addEpsilonConstraint(vars, solver);
         solver.printLp();
         solver.setMinim();
         // solve the problem
@@ -210,15 +218,24 @@ object ConstraintsInference {
         else {
 	        val variables : Array[Double]= solver.getPtrVariables();
 	        assert(variables.size==vars.size);
-	        var result : Map[SymbolicValue, (Int, Int)] = Map.empty;
-	        val epsilon = this.extractEpsilon(vars, variables);
-	        for (i <- 0 to variables.length-1) {
-	        	if(variables(i)>0) {
-	        	  val (intPart, nEpsilons)=stringWithEpsilon(variables(i), epsilon)
-	        	  System.out.println("Value of " + vars.apply(i) + " = " + intPart + " + "+nEpsilons+"epsilon (float value:"+variables(i)+")");
-	        	  result=result+((vars.apply(i), (intPart, nEpsilons)));
-	           }
-	        }
+	        var result : Map[SymbolicValue, (Double, Int)] = Map.empty;
+	        if(Settings.permissionType.epsilon) {
+            val epsilon = this.extractEpsilon(vars, variables)
+            for (i <- 0 to variables.length-1) {
+              if(variables(i)>0) {
+                val (intPart, nEpsilons)=stringWithEpsilon(variables(i), epsilon)
+                System.out.println("Value of " + vars.apply(i) + " = " + intPart + " + "+nEpsilons+"epsilon (float value:"+variables(i)+")");
+                result=result+((vars.apply(i), (intPart, nEpsilons)));
+               }
+            }
+          }
+          else
+            for (i <- 0 to variables.length-1) {
+              if(variables(i)>0) {
+                System.out.println("Value of " + vars.apply(i) + " = " + variables(i));
+                result=result+((vars.apply(i), (variables(i), 0)));
+               }
+            }
 	        // delete the problem and free memory
 	        solver.deleteLp();
 	        return result;
@@ -315,13 +332,15 @@ object ConstraintsInference {
 	  }
 	  return max;
   }
-  
-  private def extractConstraint(constraint : Constraint, variables : List[SymbolicValue]) : (String, Int, Int) = constraint match {
+
+  val lowestValue : Double = 0.1;
+
+  private def extractConstraint(constraint : Constraint, variables : List[SymbolicValue]) : (String, Double, Int) = constraint match {
     case Greater(left, right) =>
       val (leftvars, lefti) = extractExpressions(left, variables);
       val (rightvars, righti) = extractExpressions(right, variables);
       var resultingarray = subtractArrays(leftvars, rightvars);
-      return (arrayToString(resultingarray), righti-lefti, LpSolve.GE)//TODO: This is wrong!
+      return (arrayToString(resultingarray), righti-lefti+lowestValue, LpSolve.GE)//TODO: This is wrong!
     case Geq(left, right) =>
       val (leftvars, lefti) = extractExpressions(left, variables);
       val (rightvars, righti) = extractExpressions(right, variables);
@@ -389,8 +408,8 @@ object ConstraintsInference {
   }
   
   
-  def giveLoopInvariants(exs : Iterator[ControlFlowGraphExecution[State]], substitution : Map[SymbolicValue, (Int, Int)]) : Map[ProgramPoint, Map[Statement, (Int, Int)]] = {
-    var result : Map[ProgramPoint, Map[Statement, (Int, Int)]] = Map.empty;
+  def giveLoopInvariants(exs : Iterator[ControlFlowGraphExecution[State]], substitution : Map[SymbolicValue, (Double, Int)]) : Map[ProgramPoint, Map[Statement, (Double, Int)]] = {
+    var result : Map[ProgramPoint, Map[Statement, (Double, Int)]] = Map.empty;
     for(ex <- exs) {                                                                                        
 	    for(i <- 0 to ex.cfg.nodes.length-1) {
 	      if(ex.cfg.initialBlockInLoop(i)) {
@@ -403,12 +422,12 @@ object ConstraintsInference {
     return result;
   }
   
-  def inferPermissions(state : State, substitution : Map[SymbolicValue, (Int, Int)]) : Map[Statement, (Int, Int)] = {
+  def inferPermissions(state : State, substitution : Map[SymbolicValue, (Double, Int)]) : Map[Statement, (Double, Int)] = {
     val ownedPermissions : Permissions=state._1._1;
     val environment =state._1._2._1
     val store =state._1._2._2
     
-    var result : Map[Statement, (Int, Int)]=Map.empty;
+    var result : Map[Statement, (Double, Int)]=Map.empty;
     for(el <- ownedPermissions.value.keySet) 
       reach(el, environment, store) match {
         case Some( (x : Variable) :: Nil) => result=result+((x, this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)));
@@ -426,8 +445,8 @@ object ConstraintsInference {
     return result;
   }
   
-  def symbolicPermissionToInt(level : SymbolicLevelPermission, substitution : Map[SymbolicValue, (Int, Int)]) : (Int, Int) = {
-    var result1 : Int = 0;
+  def symbolicPermissionToInt(level : SymbolicLevelPermission, substitution : Map[SymbolicValue, (Double, Int)]) : (Double, Int) = {
+    var result1 : Double = 0;
     var result2 : Int = 0;
     for(el <- level.value) {
       if(el.n==Top) throw new PermissionsException("I can't compute the loop invariant with top values");

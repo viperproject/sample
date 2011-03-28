@@ -26,6 +26,7 @@ object ReachabilityAnalysis {
 
   //It returns a path to go from "from" to "to". The second component of the pair is false iff "to" is not reachable from "from" 
   def reachable(from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= {
+    if(from.equals(to)) return (Nil, false);
 	  considered=Set.empty[ProgramPointHeapIdentifier];
 	  reachable1(from, to, env, store);
   }
