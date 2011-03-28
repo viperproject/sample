@@ -428,7 +428,7 @@ abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <:
     result
   }
   
-  final def widening(l : T, r : T) : T = {
+  def widening(l : T, r : T) : T = {
     val result : T = this.factory();
     result.d1=d1.widening(l._1, r._1)
     result.d2=d2.widening(l._2, r._2)
