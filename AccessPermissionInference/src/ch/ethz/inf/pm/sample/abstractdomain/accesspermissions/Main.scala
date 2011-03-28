@@ -17,14 +17,14 @@ object Main {
   type AbstractValue = SymbolicAbstractValue[State];
   type HeapAndAnother = HeapAndAnotherDomain[Permissions, HeapDomain, HeapId];
 
-  private val methods : List[String] = "Try" :: "Inc" :: "main" :: "at" :: "size" :: "setLeft" :: "setRight" :: "shift" :: "getLeft" :: "getRight" :: "main2" :: "main3" :: "main4" :: Nil;
+  private val methods : List[String] = "get" :: "set" :: "cuncurrentSet" :: "twoParallelSets" :: "Try" :: "Inc" :: "main" :: "at" :: "size" :: "setLeft" :: "setRight" :: "shift" :: "getLeft" :: "getRight" :: "main2" :: "main3" :: "main4" :: Nil;
 
   def main(args : Array[String]) : Unit = {
 	//Particular parameters of the analysis
 	Settings.unsoundInhaling = true;
 	Settings.unsoundDischarging = true;
-	Settings.priorityContracts = 1;
-	Settings.priorityInvariants = 2;
+	Settings.priorityContracts = 2;
+	Settings.priorityInvariants = 1;
 	Settings.priorityPredicates = 3;
 	Settings.permissionType = FractionalPermissions;
 	NonRelationalHeapDomainSettings.unsoundEntryState = true;
@@ -39,7 +39,7 @@ object Main {
 	
 	//Files paths
 	val f1 = "C:\\Users\\Pietro\\Sample\\AccessPermissionInference\\test\\Chalice\\Chalice.scala";
-	val f2 = "C:\\Users\\Pietro\\Sample\\AccessPermissionInference\\test\\ChaliceExamples\\RunningExample.scala";
+	val f2 = "C:\\Users\\Pietro\\Sample\\AccessPermissionInference\\test\\ChaliceExamples\\TestCases.scala";
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: f2 :: Nil);
 	

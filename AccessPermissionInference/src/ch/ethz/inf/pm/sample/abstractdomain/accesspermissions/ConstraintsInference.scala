@@ -35,7 +35,7 @@ case object FractionalPermissions extends PermissionsType {
 	override def maxLevel : Int = 1
 	override def minLevel : Int = 0
   override def float : Boolean = true;
-  override def epsilon : Boolean = true;
+  override def epsilon : Boolean = false;
 }
 
 case object CountingPermissions extends PermissionsType {
@@ -53,7 +53,7 @@ case object ChalicePermissions extends PermissionsType {
 	override def maxLevel : Int = 100
 	override def minLevel : Int = 0
   override def float : Boolean = true;
-  override def epsilon : Boolean = false;
+  override def epsilon : Boolean = true;
 }
 
 
