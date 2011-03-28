@@ -105,21 +105,21 @@ public class TypeExtractor {
      * @return Scala list of access modifiers
      */
     public static scala.collection.immutable.List<Modifier> getModifiers(int accessflags) {
-    	scala.collection.immutable.List<Modifier> mods = ScalaFromJavaHelper.list();
+    	scala.collection.immutable.List<Modifier> mods = scala.collection.immutable.List.empty();
         try {
             if((accessflags & 1024) != 0)
-                mods = mods.$plus((Modifier)new AbstractModifier$());
+                mods = mods.$colon$colon((Modifier)AbstractModifier$.MODULE$);
             if((accessflags & 1) != 0)
-                mods = mods.$plus((Modifier)new PublicModifier$());
+                mods = mods.$colon$colon((Modifier)PublicModifier$.MODULE$);
             if((accessflags & 2) != 0)
-                mods = mods.$plus((Modifier)new PrivateModifier$());
+                mods = mods.$colon$colon((Modifier)PrivateModifier$.MODULE$);
             if((accessflags & 4) != 0)
-                mods = mods.$plus((Modifier)new ProtectedModifier$());
+                mods = mods.$colon$colon((Modifier)ProtectedModifier$.MODULE$);
             if((accessflags & 16) != 0)
-                mods = mods.$plus((Modifier)new FinalModifier$());
+                mods = mods.$colon$colon((Modifier)FinalModifier$.MODULE$);
             // BIGNOTE: trait as interface
             if((accessflags & 512) != 0)
-                mods = mods.$plus((Modifier)new TraitModifier$());
+                mods = mods.$colon$colon((Modifier)TraitModifier$.MODULE$);
             // BIGNOTE: there is no ObjectModifier for static
         }
         catch(Exception e) {

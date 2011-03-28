@@ -226,6 +226,8 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
   def backwardSemantics[S <: State[S]](state : S) : S= new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
   
   override protected def nodeToString(node : List[Statement]) = ToStringUtilities.listToDotCommaRepresentationSingleLine(node);
+
+  override def addNode(st : scala.collection.immutable.List[Statement]) = super.addNode(st);//Work-around for Java interfacing
   
   override def toSingleLineString() : String = {
     if(this.nodes.size!=1) return toString();

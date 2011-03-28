@@ -14,4 +14,8 @@ public class JavaClassIdentifier implements ClassIdentifier {
     public JavaClassIdentifier(String name) {
         this.mName = name;
     }
+
+    public JavaType getThisType() {
+        return null;
+    }
 }

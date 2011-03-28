@@ -3,7 +3,8 @@ package javatosimple;
 //import javatosimple.SimpleClasses.JavaMethodIdentifier;
 
 import ch.ethz.inf.pm.sample.abstractdomain.*;
-import listhelperlib.*;
+//import listhelperlib.*;
+import scala.*;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -32,6 +33,8 @@ import javatosimple.SimpleClasses.JavaClassIdentifier;
 import javatosimple.SimpleClasses.JavaType;
 import javatosimple.SimpleClasses.JavaProgramPoint;
 import javatosimple.SimpleClasses.JavaMethodIdentifier;
+import scala.None;
+import scala.math.ScalaNumber;
 
 /**
  * The ClassFileParser loads and parses a given Java classfile and generates a
@@ -122,17 +125,17 @@ public class ClassFileParser {
         cp = mClassfile.getConstPool();
 
         // get AccessModifiers of given class
-        scala.List<Modifier> classmodifiers = TypeExtractor.getModifiers(this.mClassfile.getAccessFlags());
+        scala.collection.immutable.List<Modifier> classmodifiers = TypeExtractor.getModifiers(this.mClassfile.getAccessFlags());
 
         // get superclass
-        scala.List<ClassIdentifier> extendedclasses = (new listhelperlib.ScalaListHelperClass<ClassIdentifier>()).getEmptyList();
-        extendedclasses = extendedclasses.$plus((ClassIdentifier)new JavaClassIdentifier(this.mClassfile.getSuperclass()));
+        scala.collection.immutable.List<ClassIdentifier> extendedclasses = scala.collection.immutable.List.empty();
+        extendedclasses = extendedclasses.$colon$colon((ClassIdentifier)new JavaClassIdentifier(this.mClassfile.getSuperclass()));
 
         // get package name
         String packageName = this.mClassfile.getName().substring(0, this.mClassfile.getName().lastIndexOf("."));
 
         // get FieldDeclarations of given class
-        scala.List<FieldDeclaration> fielddeclarations = (new listhelperlib.ScalaListHelperClass<FieldDeclaration>()).getEmptyList();
+        scala.collection.immutable.List<FieldDeclaration> fielddeclarations = scala.collection.immutable.List.empty();
         List<FieldInfo> fields = this.mClassfile.getFields();
         int fieldnum = 0;
         for (Iterator i = fields.iterator(); i.hasNext(); ) {
@@ -161,12 +164,12 @@ public class ClassFileParser {
             }
 
             jpp = new JavaProgramPoint(this.mClassfileName, "::field_info", fieldnum-1);
-            fielddeclarations = fielddeclarations.$plus(
+            fielddeclarations = fielddeclarations.$colon$colon(
                     new FieldDeclaration(
                         jpp,
                         TypeExtractor.getModifiers(fi.getAccessFlags()),
                         //TODO: the variable identifier now requires a type.
-                        new Variable(jpp, new VariableIdentifier(fi.getName(), null)),
+                        new Variable(jpp, new VariableIdentifier(fi.getName(), new JavaType("TODO"))),
                         new JavaType(fi.getDescriptor()),
                         rv
                     )
@@ -176,23 +179,23 @@ public class ClassFileParser {
         // get MethodDeclarations of given class
         List<MethodInfo> methods = this.mClassfile.getMethods();
 
-        scala.List<MethodDeclaration> methoddeclarations = (new listhelperlib.ScalaListHelperClass<MethodDeclaration>()).getEmptyList();
+        scala.collection.immutable.List<MethodDeclaration> methoddeclarations = scala.collection.immutable.List.empty();
         int methodnum = 0;
         for (Iterator i = methods.iterator(); i.hasNext(); ) {
             MethodInfo mi = (MethodInfo)i.next();
             methodnum++;
             // get VariableDeclarations of arguments of a given method
-            scala.List<VariableDeclaration> arguments = (new listhelperlib.ScalaListHelperClass<VariableDeclaration>()).getEmptyList();
+            scala.collection.immutable.List<VariableDeclaration> arguments = scala.collection.immutable.List.empty();
             te = new TypeExtractor(mi.getDescriptor());
             for(int j = 0; j < te.getParameterCount(); j++) {
                 jpp =  new JavaProgramPoint(this.mClassfileName, "::method_info", methodnum-1);
-                arguments = arguments.$plus(
+                arguments = arguments.$colon$colon(
                         new VariableDeclaration(
                             jpp,
                             //TODO: the variable identifier now requires a type.
                             new Variable(
                                 jpp,
-                                new VariableIdentifier(mi.getName()+"arg#"+Integer.toString(j), null)
+                                new VariableIdentifier(mi.getName()+"arg#"+Integer.toString(j), new JavaType("TODO"))
                             ),
                             new JavaType(te.getParamterType(j)),
                             null
@@ -205,16 +208,16 @@ public class ClassFileParser {
             if(((mi.getAccessFlags() & AccessFlag.ABSTRACT) == 0) && ((mi.getAccessFlags() & AccessFlag.NATIVE) == 0))
                 methodbody = this.parseMethod(mi);
 
-            methoddeclarations = methoddeclarations.$plus(
+            methoddeclarations = methoddeclarations.$colon$colon(
                     new MethodDeclaration(
                         new JavaProgramPoint(this.mClassfileName, "::method_info", methodnum-1),
+                        null,
                         TypeExtractor.getModifiers(mi.getAccessFlags()),
                         new JavaMethodIdentifier(mi.getName()),
                         null,
                         null,
                         null,
                         methodbody,
-                        null,
                         null,
                         null
                     )
@@ -230,7 +233,8 @@ public class ClassFileParser {
                 extendedclasses,
                 fielddeclarations,
                 methoddeclarations,
-                new JavaPackageIdentifier(packageName)
+                new JavaPackageIdentifier(packageName),
+                null
         );
 
         //System.out.print("\n\n----------------------------------------------------------\n"
@@ -333,8 +337,8 @@ public class ClassFileParser {
             jpp = new JavaProgramPoint(this.mClassfileName, methodname, index);
 
             // helping varariables to create Statements
-            scala.List<Statement> obj;
-            scala.List<Statement> param;
+            scala.collection.immutable.List<Statement> obj;
+            scala.collection.immutable.List<Statement> param;
             TypedStatement op4, op3, op2, op1;
             int varindex;
 
@@ -909,18 +913,18 @@ public class ClassFileParser {
                     }
 
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus((Statement)
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon((Statement)
                             new Variable(
                                 jpp,
                               //TODO: the variable identifier now requires a type.
-                                new VariableIdentifier("val" + Integer.toString(varindex) + "#" + localtypes.get(varindex).getRevision(), null)
+                                new VariableIdentifier("val" + Integer.toString(varindex) + "#" + localtypes.get(varindex).getRevision(), new JavaType("TODO"))
                             )
                     );
 
                     // parameter list
-                    param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    param = param.$plus((Statement)
+                    param = scala.collection.immutable.List.empty();
+                    param = param.$colon$colon((Statement)
                             new NumericalConstant(
                                 jpp,
                                 Integer.toString(offset),
@@ -1201,12 +1205,12 @@ public class ClassFileParser {
                             break;
                     }
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus((Statement)new New(jpp, statype));
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon((Statement)new New(jpp, statype));
 
                     // parameter list
-                    param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    param = param.$plus(((TypedStatement)opsta.pop()).getStatement());
+                    param = scala.collection.immutable.List.empty();
+                    param = param.$colon$colon(((TypedStatement)opsta.pop()).getStatement());
 
                     // NOTE: Used MethodCall to initialize as a constructor
                     opsta.push(
@@ -1233,12 +1237,12 @@ public class ClassFileParser {
                     statype = new JavaType("[" + te.objectType(cp.getClassInfo(offset)));
 
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus((Statement)new New(jpp, statype));
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon((Statement)new New(jpp, statype));
 
                     // parameter list
-                    param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    param = param.$plus(((TypedStatement)opsta.pop()).getStatement());
+                    param = scala.collection.immutable.List.empty();
+                    param = param.$colon$colon(((TypedStatement)opsta.pop()).getStatement());
 
                     // BIGNOTE: Used MethodCall to initialize as a constructor
                     opsta.push(
@@ -1264,8 +1268,8 @@ public class ClassFileParser {
                     op1 = (TypedStatement)opsta.pop();
 
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus(op1.getStatement());
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon(op1.getStatement());
 
                     statype = new JavaType("I");
                     opsta.push(
@@ -1300,12 +1304,12 @@ public class ClassFileParser {
                     op1 = (TypedStatement)opsta.peek();
 
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus(op1.getStatement());
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon(op1.getStatement());
 
                     // parameter list
-                    param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    param = param.$plus((Statement)new NumericalConstant(jpp, te.objectType(cp.getClassInfo(offset)), new JavaType("Ljava/lang/String;")));
+                    param = scala.collection.immutable.List.empty();
+                    param = param.$colon$colon((Statement)new NumericalConstant(jpp, te.objectType(cp.getClassInfo(offset)), new JavaType("Ljava/lang/String;")));
 
                     __flushids(
                             (Statement)new MethodCall(
@@ -1328,12 +1332,12 @@ public class ClassFileParser {
                     op1 = (TypedStatement)opsta.pop();
 
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus(op1.getStatement());
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon(op1.getStatement());
 
                     // parameter list
-                    param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    param = param.$plus((Statement)new NumericalConstant(jpp, te.objectType(cp.getClassInfo(offset)), new JavaType("Ljava/lang/String;")));
+                    param = scala.collection.immutable.List.empty();
+                    param = param.$colon$colon((Statement)new NumericalConstant(jpp, te.objectType(cp.getClassInfo(offset)), new JavaType("Ljava/lang/String;")));
 
                     statype = new JavaType("I");
                     opsta.push(
@@ -1365,8 +1369,8 @@ public class ClassFileParser {
                     op1 = (TypedStatement)opsta.pop();
 
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus(op1.getStatement());
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon(op1.getStatement());
 
                     __flushids((Statement)new MethodCall(
                                         jpp,
@@ -1394,15 +1398,15 @@ public class ClassFileParser {
                     int dimensions = ci.byteAt(index+3);
 
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus((Statement)new New(jpp, statype));
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon((Statement)new New(jpp, statype));
 
                     // parameter list
-                    param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
+                    param = scala.collection.immutable.List.empty();
                     String methodtype = "(";
 
                     for(int i = 0; i<dimensions; i++) {
-                        param = param.$plus(((TypedStatement)opsta.pop()).getStatement());
+                        param = param.$colon$colon(((TypedStatement)opsta.pop()).getStatement());
                         methodtype = methodtype + "I";
                     }
                     
@@ -1436,13 +1440,13 @@ public class ClassFileParser {
                     if(op==198)
                         functionname = "==";
                     // object list
-                    obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    obj = obj.$plus(op1.getStatement());
+                    obj = scala.collection.immutable.List.empty();
+                    obj = obj.$colon$colon(op1.getStatement());
 
                     // BIGNOTE: what is the correct type of null?
                     // parameter list
-                    param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                    param = param.$plus((Statement)new NumericalConstant(jpp, "null", new JavaType("Ljava/lang/Object;")));
+                    param = scala.collection.immutable.List.empty();
+                    param = param.$colon$colon((Statement)new NumericalConstant(jpp, "null", new JavaType("Ljava/lang/Object;")));
 
                     __flushids(
                             (Statement)
@@ -1508,7 +1512,7 @@ public class ClassFileParser {
         opsta.push(new TypedStatement(new Variable(
                                             jpp,
                                             //TODO: the variable identifier now requires a type.
-                                            new VariableIdentifier("val" + Integer.toString(number) + "#" + localtypes.get(number).getRevision(), null)
+                                            new VariableIdentifier("val" + Integer.toString(number) + "#" + localtypes.get(number).getRevision(), new JavaType("TODO"))
                                       ),
                                       statype)
                   );
@@ -1527,7 +1531,7 @@ public class ClassFileParser {
                 s1 = new Assignment(
                         jpp,
                       //TODO: the variable identifier now requires a type.
-                        new Variable(jpp, new VariableIdentifier("val"+number+"#" + localtypes.get(number).getRevision(), null)),
+                        new Variable(jpp, new VariableIdentifier("val"+number+"#" + localtypes.get(number).getRevision(), new JavaType("TODO"))),
                         op1.getStatement()
                 );
         }
@@ -1544,7 +1548,7 @@ public class ClassFileParser {
                         new Variable(
                             jpp,
                             //TODO: the variable identifier now requires a type.
-                            new VariableIdentifier("val"+number+"#" + localtypes.get(number).getRevision(), null)
+                            new VariableIdentifier("val"+number+"#" + localtypes.get(number).getRevision(), new JavaType("TODO"))
                         ),
                         localtypes.get(number).getJavaType(),
                         op1.getStatement()
@@ -1561,11 +1565,11 @@ public class ClassFileParser {
         TypedStatement op2 = (TypedStatement)opsta.pop();
         TypedStatement op1 = (TypedStatement)opsta.pop();
 
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
-        scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        param = param.$plus(op2.getStatement());
+        scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
+        param = param.$colon$colon(op2.getStatement());
 
         JavaType statype = new JavaType(type);
         opsta.push(new TypedStatement(new MethodCall( jpp,
@@ -1593,13 +1597,13 @@ public class ClassFileParser {
         TypedStatement op2 = ((TypedStatement)opsta.pop());
         TypedStatement op1 = ((TypedStatement)opsta.pop());
 
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
         // parameter list: index and value
-        scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        param = param.$plus(op2.getStatement());
-        param = param.$plus(op3.getStatement());
+        scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
+        param = param.$colon$colon(op2.getStatement());
+        param = param.$colon$colon(op3.getStatement());
 
         __flushids(
                 (Statement)new MethodCall(
@@ -1630,12 +1634,12 @@ public class ClassFileParser {
         TypedStatement op1 = (TypedStatement)opsta.pop();
 
         // object list
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
         // parameter list
-        scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        param = param.$plus(op2.getStatement());
+        scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
+        param = param.$colon$colon(op2.getStatement());
 
         JavaType statype = new JavaType(returntype);
         opsta.push(
@@ -1668,12 +1672,12 @@ public class ClassFileParser {
         TypedStatement op1 = (TypedStatement)opsta.pop();
 
         // object list
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
         // parameter list
-        scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        param = param.$plus(op2.getStatement());
+        scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
+        param = param.$colon$colon(op2.getStatement());
 
         JavaType statype = new JavaType(type);
         opsta.push(
@@ -1706,8 +1710,8 @@ public class ClassFileParser {
         TypedStatement op1 = (TypedStatement)opsta.pop();
 
         // object list
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
         JavaType statype = new JavaType(returntype);
         JavaType mcall = new JavaType("()"+returntype);
@@ -1740,12 +1744,12 @@ public class ClassFileParser {
         TypedStatement op1 = (TypedStatement)opsta.pop();
 
         // object list
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
         // parameter list
-        scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        param = param.$plus((Statement)new NumericalConstant(jpp, Integer.toString(0), new JavaType("I")));
+        scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
+        param = param.$colon$colon((Statement)new NumericalConstant(jpp, Integer.toString(0), new JavaType("I")));
 
         __flushids(
                 (Statement)
@@ -1776,12 +1780,12 @@ public class ClassFileParser {
         TypedStatement op1 = (TypedStatement)opsta.pop();
 
         // object list
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
         // parameter list
-        scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        param = param.$plus(op2.getStatement());
+        scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
+        param = param.$colon$colon(op2.getStatement());
 
         __flushids(
                 (Statement)
@@ -1807,14 +1811,14 @@ public class ClassFileParser {
      * @param isstatic do we have a static field?
      */
     private void __readfield(int offset, boolean isstatic) {
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
 
         if(isstatic)
         	//TODO: the variable identifier now requires a type.
-            obj = obj.$plus((Statement)new Variable(jpp, new VariableIdentifier(cp.getFieldrefClassName(offset), null)));
+            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(cp.getFieldrefClassName(offset), new JavaType("TODO"))));
         else {
             TypedStatement op1 = (TypedStatement)opsta.pop();
-            obj = obj.$plus(op1.getStatement());
+            obj = obj.$colon$colon(op1.getStatement());
         }
 
         JavaType statype = new JavaType(cp.getFieldrefType(offset));
@@ -1841,13 +1845,13 @@ public class ClassFileParser {
     private void __writefield(int offset, boolean isstatic) {
         TypedStatement op2 = (TypedStatement)opsta.pop();
 
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
         if(isstatic)
         	//TODO: the variable identifier now requires a type.
-            obj = obj.$plus((Statement)new Variable(jpp, new VariableIdentifier(cp.getFieldrefClassName(offset), null)));
+            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(cp.getFieldrefClassName(offset), new JavaType("TODO"))));
         else {
             TypedStatement op1 = (TypedStatement)opsta.pop();
-            obj = obj.$plus(op1.getStatement());
+            obj = obj.$colon$colon(op1.getStatement());
         }
 
         __flushids(
@@ -1888,18 +1892,18 @@ public class ClassFileParser {
             methodname=cp.getMethodrefName(offset);
             methodtype=cp.getMethodrefType(offset);
         }
-        scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
+        scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
         for(int i = 0; i < te.getParameterCount(); i++) {
             param = param.$colon$colon(((TypedStatement)opsta.pop()).getStatement());
         }
         // object list
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
         if(isstatic)
         	//TODO: the variable identifier now requires a type.
-            obj = obj.$plus((Statement)new Variable(jpp, new VariableIdentifier(classname, null)));
+            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(classname, new JavaType("TODO"))));
         else{
             TypedStatement op1 = (TypedStatement)opsta.pop();
-            obj = obj.$plus(op1.getStatement());
+            obj = obj.$colon$colon(op1.getStatement());
         }
         
         // introduce a temporary variable to cope with side effects of functions
@@ -1908,14 +1912,14 @@ public class ClassFileParser {
         opsta.push(
                 new TypedStatement(
                 	//TODO: the variable identifier now requires a type.
-                    new Variable(jpp, new VariableIdentifier("#tempfun" + classname + Integer.toString(tempfunctionvariable), null)),
+                    new Variable(jpp, new VariableIdentifier("#tempfun" + classname + Integer.toString(tempfunctionvariable), new JavaType("TODO"))),
                     statype
                 )
         );
         __flushids(
                 new Assignment( jpp,
                 						//TODO: The variable identifier now requires also a type. 
-                                        new Variable(jpp, new VariableIdentifier("#tempfun" + classname + Integer.toString(tempfunctionvariable), null)),
+                                        new Variable(jpp, new VariableIdentifier("#tempfun" + classname + Integer.toString(tempfunctionvariable), new JavaType("TODO"))),
                                         new MethodCall(
                                             jpp,
                                             new FieldAccess (
@@ -1951,8 +1955,8 @@ public class ClassFileParser {
         TypedStatement op1 = (TypedStatement)opsta.pop();
 
         // object list
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
         // parse each entry
         int jmpid = -1;
@@ -1965,8 +1969,8 @@ public class ClassFileParser {
             ins.push(__getactualindex(jmpid));
 
             // parameter list
-            scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-            param = param.$plus((Statement)new NumericalConstant(jpp, Integer.toString(jmpid), new JavaType("I")));
+            scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
+            param = param.$colon$colon((Statement)new NumericalConstant(jpp, Integer.toString(jmpid), new JavaType("I")));
 
             Statement st = (Statement)
                                 new MethodCall(
@@ -2015,8 +2019,8 @@ public class ClassFileParser {
         TypedStatement op1 = (TypedStatement)opsta.pop();
 
         // object list
-        scala.List<Statement> obj = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-        obj = obj.$plus(op1.getStatement());
+        scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
+        obj = obj.$colon$colon(op1.getStatement());
 
         // parse each entry
         int jmpid = -1;
@@ -2031,8 +2035,8 @@ public class ClassFileParser {
                 ins.push(__getactualindex(jmpid));
 
                 // parameter list
-                scala.List<Statement> param = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                param = param.$plus((Statement)new NumericalConstant(jpp, Integer.toString(match), new JavaType("I")));
+                scala.collection.immutable.List<Statement> param = scala.collection.immutable.List.empty();
+                param = param.$colon$colon((Statement)new NumericalConstant(jpp, Integer.toString(match), new JavaType("I")));
 
                 Statement st = (Statement)
                                     new MethodCall(
@@ -2131,7 +2135,8 @@ public class ClassFileParser {
         Map<Integer, Integer> insertedjumps = new HashMap();
 
         // Scalalist for building the block/node
-        scala.List<Statement> stalist = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
+        scala.collection.immutable.List<Statement> stalist = scala.collection.immutable.List$.MODULE$.empty();
+scala.collection.immutable.List.empty();
 
         int insjmpid = -1;
 
@@ -2164,13 +2169,13 @@ public class ClassFileParser {
                 while(!staids.isEmpty())
                     statonode.put((Integer)staids.pop(), nodeid);
                 stalist = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
-                stalist = stalist.$plus(st);
+                stalist = stalist.$colon$colon(st);
                 staids.push(stid);
                 insjmpid = stid;
             }
             // if source: add current statement and then finish block
             else if(source) {
-                stalist = stalist.$plus(st);
+                stalist = stalist.$colon$colon(st);
                 staids.push(stid);
                 int nodeid = cfg.addNode(stalist);
 
@@ -2180,7 +2185,7 @@ public class ClassFileParser {
             }
             // just add the current statement to the current block
             else {
-                stalist = stalist.$plus(st);
+                stalist = stalist.$colon$colon(st);
                 staids.push(stid);
             }
             */
@@ -2192,10 +2197,10 @@ public class ClassFileParser {
 	            int nodeid = cfg.addNode(stalist);
 	            while(!staids.isEmpty())
 	                statonode.put((Integer)staids.pop(), nodeid);
-	            stalist = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
+	            stalist = scala.collection.immutable.List.empty();
 	         }
 	         // just add the current statement to the current block
-	         stalist = stalist.$plus(st);
+	         stalist = stalist.$colon$colon(st);
 	         staids.push(stid);
 	         if(insjmpid == -2)
 	           insjmpid = stid;
@@ -2204,7 +2209,7 @@ public class ClassFileParser {
 	            int nodeid = cfg.addNode(stalist);
 	            while(!staids.isEmpty())
 	                statonode.put((Integer)staids.pop(), nodeid);
-	            stalist = (new listhelperlib.ScalaListHelperClass<Statement>()).getEmptyList();
+	            stalist = scala.collection.immutable.List.empty();
 	         }
 
         }
@@ -2219,8 +2224,8 @@ public class ClassFileParser {
         for(Map.Entry<String,String> edge : unconditionaljumps.entrySet()) {
             int from = statonode.get(instostaid.get(edge.getKey()));
             int to = statonode.get(instostaid.get(edge.getValue()));
-
-            cfg.addEdge(from, to, (new listhelperlib.ScalaListHelperClass<java.lang.Boolean>()).getNone());
+            Option<Boolean> a = scala.Option.apply(null);
+            cfg.addEdge(from, to, a);
         }
         for(Map.Entry<String,String> edge : truejumps.entrySet()) {
             int from = statonode.get(instostaid.get(edge.getKey()));
@@ -2237,7 +2242,8 @@ public class ClassFileParser {
         for(Map.Entry<Integer,Integer> edge : insertedjumps.entrySet()) {
             int from = statonode.get(edge.getKey());
             int to = statonode.get(edge.getValue());
-            if(from!=to && cfg.getEdgesExitingFrom(from).size()==0) cfg.addEdge(from, to, (new listhelperlib.ScalaListHelperClass<java.lang.Boolean>()).getNone());
+            Option<Boolean> a = scala.Option.apply(null);
+            if(from!=to && cfg.getEdgesExitingFrom(from).size()==0) cfg.addEdge(from, to, a);
         }
         
     }

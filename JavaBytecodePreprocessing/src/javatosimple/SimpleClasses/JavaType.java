@@ -2,6 +2,8 @@ package javatosimple.SimpleClasses;
 
 import ch.ethz.inf.pm.sample.oorepresentation.Type;
 import scala.collection.immutable.Set;
+import scala.Option;
+import scala.Some;
 
 
 /**
@@ -28,7 +30,7 @@ public class JavaType implements Type {
         return true;
     }
     
-    public scala.Set<(String, Type)> getPossibleFields() {
+    public Set/*<(String, Type)>*/ getPossibleFields() {
     	return null;
     }
     
@@ -43,6 +45,10 @@ public class JavaType implements Type {
     }
     public boolean isObject() {
         return true;
+    }
+
+    public scala.Option getArrayElementsType() {
+        return new Some(this);
     }
     /* methods from Lattice interface */
     public Type bottom() {
