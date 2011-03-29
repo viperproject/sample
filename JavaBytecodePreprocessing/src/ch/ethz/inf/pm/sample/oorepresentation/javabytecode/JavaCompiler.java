@@ -29,6 +29,10 @@ public class JavaCompiler implements ch.ethz.inf.pm.sample.oorepresentation.Comp
         return list;
     }
 
+    public String getLabel() {
+        return "Java bytecode";
+    }
+
     private void parseFile(File f) {
         if(f.isDirectory()) {
             for(File f1 : f.listFiles())
