@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.preprocessing.scalaprocessing
+package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 import ch.ethz.inf.pm.sample._
 import scala.tools.nsc._
@@ -9,6 +9,8 @@ object ScalaClasses {
 }
 
 class ScalaCompiler extends Compiler {
+  def getLabel() : String = "Scala"
+
 	def compileFile(path : String) : List[ClassDefinition] = {
 		SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil;
   	    //SystemParameters.typ is initialized inside the parser

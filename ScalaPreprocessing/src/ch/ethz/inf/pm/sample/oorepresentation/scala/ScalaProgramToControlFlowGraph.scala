@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.preprocessing.scalaprocessing
+package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 import scala.tools.nsc._
 import scala.tools.nsc.symtab._;
@@ -6,7 +6,6 @@ import scala.tools.nsc.ast._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import scala.RemoveGetterSetter
 
 //import ch.ethz.inf.pm.sample.gui._
 import ch.ethz.inf.pm.sample.property._
