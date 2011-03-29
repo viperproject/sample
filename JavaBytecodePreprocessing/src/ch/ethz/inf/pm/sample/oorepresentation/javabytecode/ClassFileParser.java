@@ -1,11 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.javabytecode;
 
-//import javatosimple.SimpleClasses.JavaMethodIdentifier;
-
 import ch.ethz.inf.pm.sample.abstractdomain.*;
-//import listhelperlib.*;
-import javatosimple.*;
-import javatosimple.LocalVariableType;
 import scala.*;
 
 import java.io.BufferedInputStream;
@@ -30,11 +25,6 @@ import javassist.bytecode.AccessFlag;
 import javassist.bytecode.ConstPool;
 import javassist.bytecode.ExceptionTable;
 import javassist.bytecode.FieldInfo;
-import javatosimple.SimpleClasses.JavaPackageIdentifier;
-import javatosimple.SimpleClasses.JavaClassIdentifier;
-import javatosimple.SimpleClasses.JavaType;
-import javatosimple.SimpleClasses.JavaProgramPoint;
-import javatosimple.SimpleClasses.JavaMethodIdentifier;
 import scala.None;
 import scala.math.ScalaNumber;
 
@@ -72,7 +62,7 @@ public class ClassFileParser {
     private List<Statement> parsedStatements;
 
     // list for tracking local variable types
-    private List<javatosimple.LocalVariableType> localtypes;
+    private List<LocalVariableType> localtypes;
 
     // adding method parameter types
     private TypeExtractor te;
@@ -281,13 +271,13 @@ public class ClassFileParser {
 
         // for non-static methods the first variable is 'this'
         if( (minfo.getAccessFlags() & AccessFlag.STATIC) == 0 ) {
-            localtypes.set(0, new javatosimple.LocalVariableType(this.mClassfile.getName()));
+            localtypes.set(0, new LocalVariableType(this.mClassfile.getName()));
             staoff = 1;
         }
 
         int in = 0;
         for(int i = 0; i < te.getParameterCount(); i++) {
-            localtypes.set(in+staoff, new javatosimple.LocalVariableType(te.getParamterType(i)));
+            localtypes.set(in+staoff, new LocalVariableType(te.getParamterType(i)));
             // double and long use 'two variable' spots
             if(te.getParamterType(i).equals("J") || te.getParamterType(i).equals("D"))
                 in++;

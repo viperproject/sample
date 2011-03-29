@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.javabytecode;
 
 import ch.ethz.inf.pm.sample.oorepresentation.ClassDefinition;
-import javatosimple.ClassFileParser;
 
 import java.io.File;
 

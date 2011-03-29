@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.javabytecode;
 
-import ch.ethz.inf.pm.sample.oorepresentation.Modifier;
+import ch.ethz.inf.pm.sample.oorepresentation.*;
 
 import java.util.ArrayList;
 

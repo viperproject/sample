@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.javabytecode;
 
 import ch.ethz.inf.pm.sample.oorepresentation.Statement;
-import javatosimple.SimpleClasses.JavaType;
 
 /**
  *
