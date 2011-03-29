@@ -6,6 +6,8 @@ import scala.tools.nsc.ast._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
+import scala.RemoveGetterSetter
+
 //import ch.ethz.inf.pm.sample.gui._
 import ch.ethz.inf.pm.sample.property._
 import java.util.ArrayList
