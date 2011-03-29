@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.preprocessing.scalaprocessing
+package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 
 import ch.ethz.inf.pm.sample.abstractdomain._
