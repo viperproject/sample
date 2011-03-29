@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing._
+import ch.ethz.inf.pm.sample.oorepresentation.scalalang._
 import ch.ethz.inf.pm.sample.gui._
 import ch.ethz.inf.pm.sample.property._;
 
