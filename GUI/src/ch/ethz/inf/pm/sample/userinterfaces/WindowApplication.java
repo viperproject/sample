@@ -25,21 +25,8 @@ public class WindowApplication {
     private JPanel Sample;
     private JButton parametersButton;
     private JButton parametersButton1;
-    private JComboBox propertyBox;
 
     public WindowApplication() {
-        analysisComboBox.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                int i=0;
-                if(e.getActionCommand().equals("comboBoxChanged") && e.getSource()==analysisComboBox) {
-                    propertyBox=new JComboBox();
-                    Set<Property> properties=(Set<Property>) getSelectedAnalysis().getProperties();
-                    Iterator<Property> it=properties.toIterator();
-                    while(it.hasNext())
-                        propertyBox.addItem(((Property)it.next()).getLabel());
-                }
-            }
-        });
     }
 
     private Analysis getSelectedAnalysis() {
