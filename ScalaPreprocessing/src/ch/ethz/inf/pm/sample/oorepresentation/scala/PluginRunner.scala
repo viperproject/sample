@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 import scala.tools.nsc.{Global, Settings, SubComponent}
-import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing._
 import scala.tools.nsc.transform.Erasure
 import scala.tools.nsc.reporters.{ConsoleReporter, Reporter}
 import java.util.Properties
