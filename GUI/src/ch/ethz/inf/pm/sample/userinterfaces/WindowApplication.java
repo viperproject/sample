@@ -1,6 +1,13 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
 
 import javax.swing.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import ch.ethz.inf.pm.sample.abstractdomain.Analysis;
+import ch.ethz.inf.pm.sample.property.Property;
+import scala.collection.Iterator;
+import scala.collection.immutable.Set;
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,6 +25,30 @@ public class WindowApplication {
     private JPanel Sample;
     private JButton parametersButton;
     private JButton parametersButton1;
+    private JComboBox propertyBox;
+
+    public WindowApplication() {
+        analysisComboBox.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int i=0;
+                if(e.getActionCommand().equals("comboBoxChanged") && e.getSource()==analysisComboBox) {
+                    propertyBox=new JComboBox();
+                    Set<Property> properties=(Set<Property>) getSelectedAnalysis().getProperties();
+                    Iterator<Property> it=properties.toIterator();
+                    while(it.hasNext())
+                        propertyBox.addItem(((Property)it.next()).getLabel());
+                }
+            }
+        });
+    }
+
+    private Analysis getSelectedAnalysis() {
+        String s=analysisComboBox.getSelectedItem().toString();
+        for(int i=0; i<InstalledPlugins.analyses.length; i++)
+            if(s.equals(InstalledPlugins.analyses[i].getLabel()))
+                return InstalledPlugins.analyses[i];
+        throw new Error();
+    }
 
     public static void main(String[] args) {
         JFrame frame = new JFrame("WindowApplication");
