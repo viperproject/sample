@@ -16,6 +16,9 @@ private object CollectedResults {
 }
 
 class InferenceProperty extends Property {
+
+
+    def getLabel() : String = "Inference";
 	
 	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));

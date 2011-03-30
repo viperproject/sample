@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.property._
 
 class AccessPermissionsAnalysis extends Analysis {
   override def getLabel() = "Access permissions inference"
@@ -31,4 +32,6 @@ class AccessPermissionsAnalysis extends Analysis {
   }
 
   override def getInitialState[S <: SemanticDomain[S]]() : S = new SymbolicPermissionsDomain().asInstanceOf[S];
+
+  override def getProperties() : Set[Property] = Set.empty+new InferenceProperty();
 }
