@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.userinterfaces
+/*package ch.ethz.inf.pm.sample.userinterfaces
 
 import ch.ethz.inf.pm.sample._
 import scala.tools.nsc.CompilerCommand
@@ -72,3 +72,4 @@ object NonRelationalNumericalDomainAndHeapAnalysis {
      }
 
 }
+*/
