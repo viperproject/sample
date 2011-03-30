@@ -44,7 +44,7 @@ object ShowGraph extends Property
 	private val emptySpace : Int = 20;
   	private val spaceSingleCharacter : Int = 7;
   
-  	
+  	def getLabel() : String = "Show CFG";
   	def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) = Show(result);
   	def finalizeChecking() : Unit = Unit;
    	def Show[S <: State[S]](a : Any) : Unit = a match {
