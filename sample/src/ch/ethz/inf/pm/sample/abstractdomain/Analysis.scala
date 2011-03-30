@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
+import ch.ethz.inf.pm.sample.property.Property
+
 /**
  * An <code>Analysis</code> represents the interface to provide an analysis to Sample
  *
@@ -45,4 +47,11 @@ trait Analysis {
    @return the initial state
   */
   def getInitialState[S <: SemanticDomain[S]]() : S;
+
+  /**
+   This method returns the set of the properties that can be applied to this analysis
+
+   @return the possible properties
+  */
+  def getProperties() : Set[Property];
 }

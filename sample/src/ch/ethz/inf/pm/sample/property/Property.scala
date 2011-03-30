@@ -6,15 +6,18 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import java.io.PrintStream
 
 trait Property {
+  def getLabel() : String;
   def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
   def finalizeChecking() : Unit;
 }
 
 trait Visitor {
+  def getLabel() : String;
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit;
 }
 
 class SingleStatementProperty(visitor : Visitor) extends Property {
+  def getLabel() : String = visitor.getLabel();
   def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 	SystemParameters.currentClass = className;
 	SystemParameters.currentMethod = methodName;
@@ -70,6 +73,8 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
 }
 
 class MatchErrorVisitor extends Visitor {
+
+  def getLabel() : String = "Match error";
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
     case Throw(pp, st) => 
       st.normalize() match {
@@ -90,6 +95,8 @@ class MatchErrorVisitor extends Visitor {
 }
 
 class CastingVisitor extends Visitor {
+
+  def getLabel() : String = "Dynamic castings"
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = {
     val st=statement.normalize();
     st match {
