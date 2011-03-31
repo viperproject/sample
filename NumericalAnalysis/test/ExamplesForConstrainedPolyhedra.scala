@@ -70,7 +70,7 @@ class ExamplesForConstrainedPolyhedra {
 				}
 			}
 		}	
-		x_00 = x_17 + 2;
+		x_00 = x_17 + 2 - i;
 		x_17 = (x_17 + 1) * (-1);
 	}
 }

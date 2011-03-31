@@ -13,12 +13,12 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Milos Novacek
  *
  */
-class ConstrainedPolyhedra(	val cpstate : Abstract1, 
+class ConstrainedPolyhedra(	val cpstate : Abstract1,
 							val cpdomain : Manager, 
 							val coefficients : Set[Int],
 							val numOfVariables: Int,
-							val setOfIdentifiers: Set[Identifier]) extends ApronInterface(cpstate, cpdomain) {
-	
+							val setOfIdentifiers: Set[String]) extends ApronInterface(cpstate, cpdomain) {
+
 	private val checkVariableSet : Boolean = !(setOfIdentifiers.isEmpty);
 	private val checkCoef : Boolean = !(coefficients.isEmpty);
 	private val checkNumOfVariables = !(numOfVariables < 1);
@@ -34,17 +34,14 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 
 	
 	override def assign (variable : Identifier, expr : Expression) : ConstrainedPolyhedra = {
-		val apInterface = super.assign(variable, expr);
-    
-		/*
-		println(variable.toString + " = " + expr.toString);
-    for (linCons <- state.toLincons(domain)) {
-      for (term <- linCons.getLinterms) {
-        print(term.getCoefficient() + term.getVariable.toString + " ");
-      }
-      println("");
-    }*/
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+		if (!checkVariableSet || setOfIdentifiers.contains(variable.getName)) {
+			val apInterface = super.assign(variable, expr);
+			//new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+			checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers));
+		} else {
+			//println("this should not be executed");
+			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables, this.setOfIdentifiers)
+		}
 	}
 	
 	/**
@@ -151,7 +148,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 			    		 for(monome <- monomes) {
 			    			 val (index, variable) = monome;
 			    			 if (   (checkCoef && !coefficients.contains(index))  
-			    				 || (checkVariableSet && !setOfIdentifiers.contains(variable))) {			    				 
+			    				 || (checkVariableSet && !setOfIdentifiers.contains(variable.getName))) {
 			    				 //-------------------------- Comment out----
 			    				 //println(index + " is not contained in " + coefficients.toString);
 			    				 //println(expr.toString  + " does not satisfy given constriants.");
@@ -160,11 +157,47 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 			    			 }
 			    		 }
 			    	}
+					//println(expr.toString + " satisfies the constraints")
 			    	return true;
 			    }
 			}
 		} else {
+			//println("we do not have any constraints");
 			return true;
 		}
 	}
+
+	  private def checkAndRemoveLinConstraints(cp : ConstrainedPolyhedra) : ConstrainedPolyhedra = {
+	//	  println("__________________________________")
+		  var linCons = Set.empty[Lincons1];
+		  for (linCon <- cp.state.toLincons(domain)) {
+			  var addCon = true;
+			  var numOfCoef = 0;
+			  for (term <- linCon.getLinterms) {
+				  val termCoef = term.getCoefficient.toString.toInt;
+				  if (termCoef != 0) {
+					  numOfCoef = numOfCoef + 1;
+				  }
+				  if (checkCoef) {
+					  if (!coefficients.contains(termCoef) && termCoef != 0) {
+						  addCon = false;
+					  }
+				  }
+				  if (checkVariableSet && !setOfIdentifiers.contains(term.getVariable) && termCoef != 0) {
+					  addCon = false;
+				  }
+			  }
+			  if (checkNumOfVariables && numOfCoef > numOfVariables) {
+				  addCon = false;
+			  }
+			  if (addCon) {
+				  linCons.+=(linCon);
+			  }
+		  }
+		  var newState = new Abstract1(cp.domain, cp.state.getEnvironment, true);
+		  if (!linCons.isEmpty) {
+			  newState = new Abstract1(domain, linCons.toArray);
+		  }
+		  new ConstrainedPolyhedra(newState, cp.cpdomain, cp.coefficients, cp.numOfVariables, cp.setOfIdentifiers);
+	  }
 }

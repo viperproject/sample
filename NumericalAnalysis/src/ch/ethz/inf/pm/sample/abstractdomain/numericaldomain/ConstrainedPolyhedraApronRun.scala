@@ -4,10 +4,9 @@ import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing._
-import ch.ethz.inf.pm.sample.gui._
-import ch.ethz.inf.pm.sample.property._;
-import apron._;
+
+import apron._
+import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
 
 object ConstrianedPolyhedraApronRun {
 	
@@ -36,7 +35,8 @@ object ConstrianedPolyhedraApronRun {
 		coefSet.+=(-1);
 		coefSet.+=(1);
 		
-		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[Identifier]);
+		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[String]);
+		//val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, Set.empty[Int], 0, Set.empty[String]);
 		val heapid = new ClassHeapIdentifier(null);
 		heapid.typ=SystemParameters.typ;
 		val heapDomain : NonRelationalHeapDomain[HeapId]= new NonRelationalHeapDomain[HeapId](heapid.getType, new HeapIdAndSetDomain(heapid), heapid);

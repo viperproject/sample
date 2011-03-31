@@ -4,16 +4,20 @@ import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing._
 import ch.ethz.inf.pm.sample.gui._
 import ch.ethz.inf.pm.sample.property._;
-import apron._;
+import apron._
+import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
 
 class ApronProperty extends Property {
+	override def getLabel() : String = {
+		//TODO: return something sensible here
+		return "";
+	}
 	
-	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
+	override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
 	  
-	  override def finalizeChecking() : Unit = Unit
+	override def finalizeChecking() : Unit = Unit
 	   
 }
 
@@ -30,7 +34,7 @@ object ApronRun {
 	SystemParameters.property = new ApronProperty;
 	
 	//Files paths
-	val f1 = "/home/samlik/workspace/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
+	val f1 = "/home/samlik/IdeaProjects/Semper/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 	
