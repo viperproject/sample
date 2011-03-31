@@ -21,7 +21,7 @@ object SystemParameters {
   var compiler : Compiler = null;
   var property : Property = null;
 
-  
+  def setProperty(p : Property) = property=p;
   def getForwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, true);
   
   def getBackwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, false);
