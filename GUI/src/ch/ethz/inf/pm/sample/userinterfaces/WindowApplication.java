@@ -5,9 +5,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import ch.ethz.inf.pm.sample.abstractdomain.Analysis;
-import ch.ethz.inf.pm.sample.property.Property;
-import scala.collection.Iterator;
-import scala.collection.immutable.Set;
 
 /**
  * Created by IntelliJ IDEA.
@@ -23,10 +20,20 @@ public class WindowApplication {
     private JTextField methodsTextField;
     private JTextField filesTextField;
     private JPanel Sample;
-    private JButton parametersButton;
-    private JButton parametersButton1;
+    private JButton analysisParameters;
+    private JButton heapParameters;
 
     public WindowApplication() {
+        analysisParameters.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                int i=0;
+                if(e.getSource()==analysisParameters) {
+                    AnalysisParameters a = new AnalysisParameters(getSelectedAnalysis());
+                    a.pack();
+                    a.setVisible(true);
+                }
+            }
+        });
     }
 
     private Analysis getSelectedAnalysis() {

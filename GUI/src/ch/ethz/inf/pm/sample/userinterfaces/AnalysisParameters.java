@@ -68,9 +68,8 @@ public class AnalysisParameters extends JDialog {
             while(it1.hasNext()) {
                 Property p=(Property) it1.next();
                 if(p.getLabel().equals(this.propertyBox.getSelectedItem()))
-                    SystemParameters.property=p;
+                    SystemParameters.setProperty(p);
             }
-
         dispose();
     }
 
@@ -91,6 +90,7 @@ public class AnalysisParameters extends JDialog {
             Tuple2<String, Boolean> tuple = (Tuple2<String, Boolean>) it.next();
             if(((Boolean) tuple._2).booleanValue()) {
                 JTextField f=new JTextField(5);
+                f.setText("0");
                 integerParameters.put((String) tuple._1, f);
                 mainPanel.add(new JLabel((String) tuple._1));
                 mainPanel.add(f,c);
