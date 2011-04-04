@@ -27,12 +27,12 @@ class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends ProgramPoin
   catch {
 	  case _ => -1
   }
-  
+
   override def equals(o : Any) : Boolean = o match {
     case x : ScalaProgramPoint => x.row==row && x.column==column;
     case _ => false;
   }
-  
+
   override def toString() : String = {
     var result : String ="";
     if(row != -1)
@@ -49,14 +49,14 @@ class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends ProgramPoin
 abstract class Named(name : String) {
 
   def getName() : String = name
-  
+
   override def equals(o : Any) : Boolean = o match {
     case x : Named => x.getName().equals(name) && x.getClass().equals(this.getClass())
     case _ => false;
   }
-  
+
   override def hashCode() : Int = name.hashCode();
-  
+
   override def toString() = name
 }
 
@@ -78,14 +78,14 @@ object Performances {
 class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent {
   import global._
   import java.util.Timer
-  
+
   override val runsAfter = "dce" :: Nil
 
   val phaseName = "scala2cfg"
-	
+
   def newPhase(prev: Phase): Phase = new TraverserPhase(prev)
-   
-     
+
+
   class TraverserPhase(prev: Phase) extends StdPhase(prev) {
 	def apply(unit: CompilationUnit) {
 	    SystemParameters.currentFile=unit.source.file.toString
@@ -96,13 +96,13 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
   def transformProgram(program : Tree, pack : PackageIdentifier) : List[ClassDefinition]= program match {
     case PackageDef(name, stats) => extractListClassDefinitions(stats, new ScalaPackageIdentifier(name.name.decode, pack))
   }
-  
+
   private def extractListClassDefinitions(list : List[Tree], pack : PackageIdentifier) : List[ClassDefinition] = list match {
     case Nil => Nil
     case x :: list2 if (x.isInstanceOf[ClassDef]) => extractClassDefinition(x, pack) :: extractListClassDefinitions(list2, pack);
     case x :: list2 if (x.isInstanceOf[PackageDef])  => transformProgram(x, pack) ::: extractListClassDefinitions(list2, pack);
   }
-    
+
   private def extractClassDefinition(program : Tree, pack : PackageIdentifier) : ClassDefinition = program match {
     case ClassDef(mods, name, tparams, Template(parents, self, body)) =>
       val programpoint : ScalaProgramPoint = new ScalaProgramPoint(program.pos);
@@ -114,10 +114,10 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       val classname : String=name.decode;
       new ClassDefinition(programpoint, extractModifiers(mods), new ScalaClassIdentifier(name decode, currentType), parametricTypes, extend, members._1, members._2, pack, null)
       //TODO: I have to consider also parents, and self!
-      
+
     case _ => throw new ScalaException("I expected a class definition\n"+program.toString())
   }
-  
+
   private def extractClassMembers(members : List[Tree], currentType : ch.ethz.inf.pm.sample.oorepresentation.Type) : (List[FieldDeclaration], List[MethodDeclaration]) = {
     var fields : List[FieldDeclaration] = Nil;
     var methods : List[MethodDeclaration] = Nil;
@@ -131,7 +131,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
     }
     (fields, methods)
   }
-  
+
   private def transformClassElement(program : Tree, currentType : ch.ethz.inf.pm.sample.oorepresentation.Type) : ClassElements = program match {
     case DefDef(mods, name, tparams, vparamss, tpt, rhs) =>
       val programPoint : ScalaProgramPoint = new ScalaProgramPoint(program.pos);
@@ -143,14 +143,14 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       cfg.setNode(index, sts)
       new MethodDeclaration(programPoint,  currentType, extractModifiers(mods), new ScalaMethodIdentifier(name.decode), parametricTypes, arguments, returnType, RemoveGetterSetter.cleanCFG(cfg), null, null)
     //TODO pre and post conditions and class invariants
-      
-    case ValDef(mods, name, tpt, rhs) => 
+
+    case ValDef(mods, name, tpt, rhs) =>
       var stringname : String = name.decode;
       while(stringname.charAt(stringname.length-1)==' ')
     	  stringname=stringname.substring(0, stringname.length-1);
       new FieldDeclaration(new ScalaProgramPoint(program.pos),  extractModifiers(mods), new Variable(new ScalaProgramPoint(program.pos), new VariableIdentifier(stringname, new ScalaType(tpt.tpe))), extractType(tpt), extractCFG(rhs) )
-  } 
-  
+  }
+
   /**It collects the label defined during the program by LabelDef statements*/
   private var definedLabel : scala.collection.mutable.Map[String, Int] = new HashMap[String, Int]();
 
@@ -167,20 +167,20 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
   private def bodyToCFG(body : Tree, cfg : ControlFlowGraph, statementsUntilHere : List[Statement], currentblock : Int) : (ControlFlowGraph, List[Statement], Int, Boolean) = body match {
     case Block(stat, expr) => stat match {
       case Nil => bodyToCFG(expr, cfg, statementsUntilHere, currentblock)
-      case x :: following =>  
+      case x :: following =>
       	val (cfg1, sts, block, goon)=bodyToCFG(x, cfg, statementsUntilHere, currentblock)
         if(goon)
         	bodyToCFG(new Block(following, expr), cfg1, sts, block)
         else (cfg1, sts, block, goon)
     }
-    
+
 	case Try(block, catches, finalizer) => bodyToCFG(block, cfg, statementsUntilHere, currentblock)
  // TODO: I have to consider also try-catch-finalize!
- 
-	case If(cond, thenp, elsep) => 
+
+	case If(cond, thenp, elsep) =>
 	  //CFG of the condition
       val (cfg1, sts, block, gooncond)=bodyToCFG(cond, cfg, statementsUntilHere, currentblock)
-      cfg1.setNode(block, sts)      
+      cfg1.setNode(block, sts)
       //Adding the block for then and else branches and computing their CFG
       val thenind : Int = cfg1.addNode(Nil);
       val (thcfg, thsts, thblock, goonth) = bodyToCFG(thenp, cfg1, Nil, thenind)
@@ -199,43 +199,43 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       if(goonel)
     	  elcfg.addEdge(elblock, followingBlock, None)
       (elcfg, Nil, followingBlock, goonth || goonel)
-      
 
-    case LabelDef(name, params, rhs) => 
+
+    case LabelDef(name, params, rhs) =>
       cfg.setNode(currentblock, statementsUntilHere);
       val chooseBlock : Int = cfg.addNode(Nil);
       definedLabel=definedLabel.+((name decode, chooseBlock));
       cfg.addEdge(currentblock, chooseBlock, None)
       bodyToCFG(rhs, cfg, Nil, chooseBlock)
-  
-      
+
+
     case ValDef(mods, name, tpt, rhs) => (cfg, statementsUntilHere ::: extractVariableDefinition(body) :: Nil, currentblock, true);
     //TODO: I have to consider also mods!
-    
 
-    case Assign(lhs, rhs) => 
+
+    case Assign(lhs, rhs) =>
       (cfg, statementsUntilHere ::: new Assignment(new ScalaProgramPoint(body.pos), extractCFG(lhs), extractCFG(rhs)) :: Nil, currentblock, true)
       //bodyToCFG(rhs, cfg, statementsUntilHere ::: new Assignment(new ScalaProgramPoint(body.pos), extractCFG(lhs), extractCFG(rhs)) :: Nil, currentblock)
-      
-    case Return(expr) => 
+
+    case Return(expr) =>
       (cfg, statementsUntilHere ::: extractCFG(expr) :: Nil , currentblock, false)
-      
-      
+
+
     /*case Match(selector, cases) =>
       val st : Switch = new Switch(new ScalaProgramPoint(body.pos), extractCFG(selector))
       for(CaseDef(pat, guard, body) <- cases)
         st.addCase(extractCFG(pat), extractCFG(guard), extractCFG(body))
       (cfg, statementsUntilHere ::: st :: Nil , currentblock, true)*/
-     
-    case Throw(expr) => 
+
+    case Throw(expr) =>
       (cfg, statementsUntilHere ::: new oorepresentation.Throw(new ScalaProgramPoint(body.pos), extractCFG(expr)) :: Nil , currentblock, false)
- 
+
     case EmptyTree => (cfg, statementsUntilHere, currentblock, true)
-    
+
     //Typed should be removed by explicit outer, but it does not... I forget type information
     case Typed(what, typed) => bodyToCFG(what, cfg, statementsUntilHere, currentblock)
-    
-    case Apply(TypeApply(x, targs), args) => 
+
+    case Apply(TypeApply(x, targs), args) =>
       (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), extractCFG(x), extractListTypes(targs), extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
     case Apply(x, args) =>
       val calledMethod : Statement = extractCFG(x).normalize();
@@ -246,19 +246,19 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         (cfg, statementsUntilHere, currentblock, false)
       }
       else
-    	  if(x.toString().equals("scala.Int.box") && args.size==1) //If it's the boxing of an integer, we can ignore that 
+    	  if(x.toString().equals("scala.Int.box") && args.size==1) //If it's the boxing of an integer, we can ignore that
     	 	  return (cfg, statementsUntilHere ::: extractListCFG(args), currentblock, true)
     	  else return (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
- 
-    case Ident(name) => 
+
+    case Ident(name) =>
       (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier(name decode, new ScalaType(body.tpe))) :: Nil , currentblock, true)
-    case Super(qual, mix) => 
+    case Super(qual, mix) =>
       (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("super", new ScalaType(body.tpe))) :: Nil , currentblock, true)
     //TODO: I have to consider also qual and mix
-    case Select(ArrayValue(elemtpt, trees), field) => 
+    case Select(ArrayValue(elemtpt, trees), field) =>
       (cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractListCFG(trees), field decode, new ScalaType(elemtpt.tpe)) :: Nil , currentblock, true)
     //TODO: I forget the types in elemtpt
-    case Select(a, field) => 
+    case Select(a, field) =>
       if(body.toString.equals("scala.runtime.BoxedUnit.UNIT")) //Ad hoc method to put a Unit value and remove the results of method calls. I wanted to ignore it.
     	  return (cfg, statementsUntilHere, currentblock, true)
       val member=a.tpe.member(field);
@@ -268,56 +268,56 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       val fieldName=field.decode.replace(" ", "");//remove useless blank spaces, not allowed in fields' names
       val res=(cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractCFG(a) :: Nil, fieldName, tpe) :: Nil , currentblock, true)
       res;
-    case Literal(value : Constant) => 
+    case Literal(value : Constant) =>
       (cfg, statementsUntilHere ::: new NumericalConstant(new ScalaProgramPoint(body.pos), value.stringValue, new ScalaType(value.tpe)) :: Nil , currentblock, true)
     //TODO: Support also other numerical type, not only int!
-    case x : This => 
+    case x : This =>
       (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("this", new ScalaType(x.tpe))) :: Nil , currentblock, true)
     case New(tpt) => (
       cfg, statementsUntilHere ::: new oorepresentation.New(new ScalaProgramPoint(body.pos), extractType(tpt)) :: Nil , currentblock, true)
-    
+
     case x => throw new ScalaException("Invalid statement:\n"+x toString)
-      
+
   }
 
   private def extractCFG(body : Tree) : ControlFlowGraph = {
       val cfg : ControlFlowGraph = new ControlFlowGraph(new ScalaProgramPoint(body.pos))
       val (cfg1, sts, block, goon)=bodyToCFG(body, cfg, Nil, cfg.addNode(Nil))
       cfg1.setNode(block, sts)
-      cfg1 
+      cfg1
   }
   private def extractListCFG(list : List[Tree]) : List[ControlFlowGraph] = list match {
     case Nil => Nil
     case x :: list2 => x match {
       //TODO: I forget the types of the parameters
-      case ArrayValue(elemtpt, trees) => extractListCFG(trees) ::: extractListCFG(list2) 
-      case _ => extractCFG(x) :: extractListCFG(list2) 
+      case ArrayValue(elemtpt, trees) => extractListCFG(trees) ::: extractListCFG(list2)
+      case _ => extractCFG(x) :: extractListCFG(list2)
     }
   }
-  
+
   private def extractListTypes(list : List[Tree]) : List[ScalaType] = list match {
     case Nil => Nil
-    case x :: list2 => extractType(x) :: extractListTypes(list2) 
+    case x :: list2 => extractType(x) :: extractListTypes(list2)
   }
-  
+
   private def extractType(body : Tree) : ScalaType = body match {
-    case _ => new ScalaType(body.tpe)      
+    case _ => new ScalaType(body.tpe)
   }
-  
+
   private def extractListVariableDeclarations(list : List[Tree]) : List[VariableDeclaration] = list match {
     case Nil => Nil
-    case x :: list2 => extractVariableDefinition(x) :: extractListVariableDeclarations(list2) 
+    case x :: list2 => extractVariableDefinition(x) :: extractListVariableDeclarations(list2)
   }
-  
+
   private def extractListListVariableDeclarations(list : List[List[Tree]]) : List[List[VariableDeclaration]] = list match {
     case Nil => Nil
-    case x :: list2 => extractListVariableDeclarations(x) :: extractListListVariableDeclarations(list2) 
+    case x :: list2 => extractListVariableDeclarations(x) :: extractListListVariableDeclarations(list2)
   }
-  
+
   private def extractVariableDefinition(definition : Tree) : VariableDeclaration = definition match {
     case ValDef(mods, name, tpt, rhs) => new VariableDeclaration(new ScalaProgramPoint(definition.pos), new Variable(new ScalaProgramPoint(definition.pos), new VariableIdentifier(name.decode, extractType(tpt))), extractType(tpt), extractCFG(rhs) )
-  }  
-  
+  }
+
   private def extractModifiers(mod : Modifiers) : List[Modifier] = {
    var result : List[Modifier] = Nil;
    if(mod.isCovariant) result = result ::: CovariantModifier :: Nil
@@ -338,10 +338,10 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
    if(mod.isPublic) result = result ::: PublicModifier :: Nil
    result
   }
-  
+
   class ScalaType(val typ : global.Type) extends oorepresentation.Type {
 	  val sym=if(typ!=null) typ.typeSymbol else null;
-	  val parameters= if(typ!=null) 
+	  val parameters= if(typ!=null)
 		  				try{
 		  				  typeParamsToExistentials(typ.typeSymbol, typ.typeSymbol.typeParams)
 		  				}
@@ -351,29 +351,29 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
                        else null;
 	  var isTop : Boolean = false;
       var isBottom : Boolean = false;
-    
+
       override def toString() = getName()
-      
+
       override def getName() : String = {
         if(isTop) return "Any";
         if(isBottom) return "Nothing";
         return typ.typeSymbol.name.decode;
       }
-      
+
       override def isStatic() : Boolean = {
         if(this.isTop || this.isBottom || typ==null || typ.typeSymbolDirect==NoSymbol)
           return false
         else
           return typ.typeSymbolDirect.isStatic;
       }
-      
+
       final override def factory() = top();
-      
+
       def this() = {
         this(null)
         isTop=true;
       }
-      
+
       def lub(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
         if(l==null) return r;
         if(r==null) return l;
@@ -384,9 +384,9 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         try{
           new ScalaType(global.lub(left.typ :: right.typ :: Nil))
         }
-        catch { case e : Exception => System.out.println("Overapproximation on types because of bug in Scala libraries"); top();} 
+        catch { case e : Exception => System.out.println("Overapproximation on types because of bug in Scala libraries"); top();}
       }
-      
+
       def glb(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
         val (left, right)=cast(l, r);
         if(left.isBottom || right.isBottom) return bottom();
@@ -394,21 +394,21 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         if(right.isTop) return left;
         new ScalaType(global.glb(left.typ :: right.typ :: Nil))
       }
-      
+
       def cast(l : oorepresentation.Type, r : oorepresentation.Type) = {
         if((! l.isInstanceOf[ScalaType]) || (! r.isInstanceOf[ScalaType]))
           throw new ScalaException("Types are not congruent!");
         (l.asInstanceOf[ScalaType], r.asInstanceOf[ScalaType])
       }
-      
+
       def cast(l : oorepresentation.Type) = {
         if(! l.isInstanceOf[ScalaType])
           throw new ScalaException("Types are not congruent!");
         l.asInstanceOf[ScalaType]
       }
-            
+
       def widening(left : oorepresentation.Type, right : oorepresentation.Type) : oorepresentation.Type = lub(left, right)
-      
+
       def top() : oorepresentation.Type = new ScalaType(); //TODO: Any, problems interfacing with scala compiler
       def bottom() : oorepresentation.Type = { //TODO: Nothing, problems interfacing with scala compiler
         val result : ScalaType=new ScalaType();
@@ -416,9 +416,9 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         result.isTop=false;
         result
       }
-      
+
       override def equals(a : Any) : Boolean = a match {
-        case x : ScalaType => 
+        case x : ScalaType =>
           if(this.isTop==true && x.isTop == true) return true;
           if(this.isBottom==true && x.isBottom == true) return true;
           if(this.isTop==true || x.isTop == true || this.isBottom==true || x.isBottom == true) return false;
@@ -429,7 +429,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
           return this.typ.typeSymbolDirect.equals(x.typ.typeSymbolDirect)
         case _ => return false;
       }
-      
+
       def lessEqual(right : oorepresentation.Type) : Boolean =  {
         val r=cast(right);
         if(r.isTop) return true;
@@ -439,22 +439,22 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         if(this.equals(r)) return true;
         return this.typ <:< r.typ || this.typ =:= r.typ
       }
-      
+
       def isObject() : Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;
         return ! this.isNumericalType();
       }
-      
+
       def isNumericalType() : Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;
         return typ.typeSymbol.name.decode.equals("Int");
       }
-      
+
       def isBottomExcluding(types : Set[oorepresentation.Type]) : Boolean = {
         for(t <- types)
-          if(this.lessEqual(t)) 
+          if(this.lessEqual(t))
             return true;
         //typ.typeSymbol.children returns Empty iff it's not a sealed class, the set of childred otherwise
         if(typ==null || typ.typeSymbol==null || typ.typeSymbol.children==null) return false;
@@ -467,7 +467,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
             return true;
         }
       }
-      
+
       def getPossibleFields() : Set[(String, oorepresentation.Type)] = {
         if(! this.isObject) return Set.empty[(String, oorepresentation.Type)];
         if(this.isTop) return Set.empty[(String, oorepresentation.Type)]; //We suppose that Any does not have fields
@@ -488,13 +488,13 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         }
         result;
       }
-      
-      def getArrayElementsType() : Option[oorepresentation.Type] = 
+
+      def getArrayElementsType() : Option[oorepresentation.Type] =
     	  if(typ.toString().length>=5 && typ.toString().substring(0, 5).equals("Array"))
     	 	  Some(new ScalaType(typ.typeArgs.iterator.next))
     	  else None;
   }
-    
+
 }
 
 class ScalaException(message : String) extends Exception(message)
