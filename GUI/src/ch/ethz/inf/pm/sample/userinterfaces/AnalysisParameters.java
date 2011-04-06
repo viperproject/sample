@@ -2,15 +2,19 @@ package ch.ethz.inf.pm.sample.userinterfaces;
 
 import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.Analysis;
+import ch.ethz.inf.pm.sample.abstractdomain.HeapDomain;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.AccessPermissionsAnalysis;
 import ch.ethz.inf.pm.sample.property.Property;
 import scala.Tuple2;
 import scala.collection.Iterator;
 import scala.collection.immutable.Set;
+import scala.runtime.Int;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.HashMap;
 
 public class AnalysisParameters extends JDialog {
@@ -59,17 +63,18 @@ public class AnalysisParameters extends JDialog {
     private void onOK() {
 // add your code here
         for(String key : this.integerParameters.keySet())
-            analysis.setIntegerParameter(key, Integer.parseInt(this.integerParameters.get(key).getText()));
+            analysis.setParameter(key, Integer.parseInt(this.integerParameters.get(key).getText()));
         for(String key : this.booleanParameters.keySet())
-            analysis.setBooleanParameter(key, this.booleanParameters.get(key).isSelected());
+            analysis.setParameter(key, this.booleanParameters.get(key).isSelected());
+        for(String key : this.listParameters.keySet())
+            analysis.setParameter(key, this.listParameters.get(key).getSelectedItem());
         Set<Property> properties=(Set<Property>) analysis.getProperties();
-        propertyBox=new JComboBox();
         Iterator<Property> it1=(Iterator<Property>) properties.toIterator();
-            while(it1.hasNext()) {
-                Property p=(Property) it1.next();
-                if(p.getLabel().equals(this.propertyBox.getSelectedItem()))
-                    SystemParameters.setProperty(p);
-            }
+        while(! (analysis instanceof HeapDomain) && it1.hasNext()) {
+           Property p=(Property) it1.next();
+           if(p.getLabel().equals(this.propertyBox.getSelectedItem()))
+               SystemParameters.setProperty(p);
+        }
         dispose();
     }
 
@@ -81,34 +86,48 @@ public class AnalysisParameters extends JDialog {
 
     private HashMap<String, JTextField> integerParameters = new HashMap<String, JTextField>();
     private HashMap<String, JCheckBox> booleanParameters = new HashMap<String, JCheckBox>();
+    private HashMap<String, JComboBox> listParameters = new HashMap<String, JComboBox>();
 
     private void initialize() {
         GridBagConstraints c = new GridBagConstraints();
         c.gridwidth = GridBagConstraints.REMAINDER;
-        Iterator<Tuple2<String, Boolean>> it = (Iterator<Tuple2<String, Boolean>>) analysis.parameters().iterator();
+        Iterator<Tuple2<String, Object>> it = (Iterator<Tuple2<String, Object>>) analysis.parameters().iterator();
         while(it.hasNext()) {
-            Tuple2<String, Boolean> tuple = (Tuple2<String, Boolean>) it.next();
-            if(((Boolean) tuple._2).booleanValue()) {
-                JTextField f=new JTextField(5);
-                f.setText("0");
-                integerParameters.put((String) tuple._1, f);
-                mainPanel.add(new JLabel((String) tuple._1));
-                mainPanel.add(f,c);
+            Tuple2<String, Object> tuple = (Tuple2<String, Object>) it.next();
+            JComponent f;
+            if(tuple._2 instanceof Integer) {
+                f=new JFormattedTextField(new DecimalFormat("####"));
+                ((JTextField) f).setColumns(5);
+                ((JTextField) f).setText(tuple._2.toString());
+                integerParameters.put((String) tuple._1, (JTextField) f);
             }
-            else  {
-                JCheckBox f=new JCheckBox();
-                booleanParameters.put((String) tuple._1, f);
-                mainPanel.add(new JLabel((String) tuple._1));
-                mainPanel.add(f, c);
+            else if(tuple._2 instanceof Boolean) {
+                f=new JCheckBox();
+                ((JCheckBox) f).setSelected(((Boolean) tuple._2).booleanValue());
+                booleanParameters.put((String) tuple._1, (JCheckBox) f);
             }
+            else if(tuple._2 instanceof scala.collection.immutable.List) {
+                scala.collection.immutable.List l = (scala.collection.immutable.List) tuple._2;
+                f = new JComboBox();
+                for(int i=0; i<l.size(); i++)
+                    ((JComboBox) f).addItem(l.apply(i));
+                listParameters.put((String) tuple._1, (JComboBox) f);
+            }
+            else throw new Error("Parameters " + tuple._1 +" of type "+tuple._2+" is not supported");
+            JLabel label=new JLabel((String) tuple._1);
+            label.setHorizontalAlignment(SwingConstants.LEFT);
+            mainPanel.add(label);
+            mainPanel.add(f,c);
         }
-        Set<Property> properties=(Set<Property>) analysis.getProperties();
-        propertyBox=new JComboBox();
-        Iterator<Property> it1=(Iterator<Property>) properties.toIterator();
-            while(it1.hasNext())
-                 propertyBox.addItem(((Property)it1.next()).getLabel());
-        mainPanel.add(new JLabel((String) "Property"));
-        mainPanel.add(propertyBox, c);
+        if(! (analysis instanceof HeapDomain)) {
+            Set<Property> properties=(Set<Property>) analysis.getProperties();
+            propertyBox=new JComboBox();
+            Iterator<Property> it1=(Iterator<Property>) properties.toIterator();
+                while(it1.hasNext())
+                     propertyBox.addItem(((Property)it1.next()).getLabel());
+            mainPanel.add(new JLabel((String) "Property"));
+            mainPanel.add(propertyBox, c);
+        }
     }
 
 
