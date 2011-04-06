@@ -2,8 +2,11 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.property.Property
+import ch.ethz.inf.pm.sample.gui.ShowGraph
 
 abstract sealed class TopHeapIdentifier(typ : Type) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ) {
+    override def getLabel() = "Top";
 	  override def getNullNode() = new NullHeapIdentifier(typ.top()); 
 }
 
@@ -61,6 +64,13 @@ case class StaticHeapIdentifier(typ2 : Type) extends TopHeapIdentifier(typ2) {
 
 //Approximates all the concrete references with just one abstract element
 class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDomain, TopHeapIdentifier] {
+  override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
+  override def getLabel() : String = "Top domain"
+  override def parameters() : List[(String, Object)] = Nil
+  override def setParameter(label : String, value : Any) : Unit = Unit;
+  override def getInitialState() = new ReallyApproximatedHeapDomain();
+  override def getProperties() : Set[Property] = Set.empty+ShowGraph;
+
   private var isBottom = false;
   final override def factory() = top();
   def getStringOfId(id : Identifier) : String = this.toString()
@@ -103,6 +113,8 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
 
 //Approximates all the concrete references with just one abstract element. In addition, it tracks references to static objects
 class OnlyStaticReferenceHeapDomain extends ReallyApproximatedHeapDomain {
+  override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
+  override def getLabel() : String = "Only static references"
   private var isBottom = false;
    
   override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : TopHeapIdentifier = {

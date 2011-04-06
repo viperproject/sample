@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint;
 
 
 class FieldHeapIdentifier(val obj : Type, val field : String, value : Type) extends ClassHeapIdentifier(value) {
+  override def getLabel() = "Class";
   override def getField() = throw new Exception("Not supported")
 	override def isNormalized() : Boolean = false;
     override def toString() : String = obj.getName()+"."+field;
@@ -22,6 +23,7 @@ class ClassNullNodeHeapIdentifier(typ : Type) extends ClassHeapIdentifier(typ) {
 }
 
 class ClassHeapIdentifier(val value : Type) extends NonRelationalHeapIdentifier[ClassHeapIdentifier](value) {
+  override def getLabel() = "Class";
 	override def getNullNode() = new ClassNullNodeHeapIdentifier(value.top()); 
 	override def getField() = throw new Exception("Not supported")
 	override def isNormalized() : Boolean = true;
