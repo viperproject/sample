@@ -219,6 +219,7 @@ public class ClassFileParser {
         // generate ClassDefinition
         this.mClassdefinition = new ClassDefinition(
                 new JavaProgramPoint(this.mClassfileName,"::classfile",0),
+                null,
                 classmodifiers,
                 new JavaClassIdentifier(this.mClassfileName),
                 null,

@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.javabytecode;
 
-import ch.ethz.inf.pm.sample.oorepresentation.ClassDefinition;
+import ch.ethz.inf.pm.sample.oorepresentation.*;
 
 import java.io.File;
 
@@ -22,6 +22,10 @@ public class JavaCompiler implements ch.ethz.inf.pm.sample.oorepresentation.Comp
     public static void main(String[] args) throws Exception {
         new JavaCompiler().parseFile(new File("C:\\Users\\Pietro\\Desktop\\fdas"));
         System.out.print("done\nGood:"+good+"\nBad:"+bad+"\nTime:"+time+"\n");
+    }
+
+    public scala.collection.immutable.List<NativeMethodSemantics> getNativeMethodsSemantics() {
+        return scala.collection.immutable.List.empty();
     }
 
     public scala.collection.immutable.List<ClassDefinition> compileFile(String path) {
