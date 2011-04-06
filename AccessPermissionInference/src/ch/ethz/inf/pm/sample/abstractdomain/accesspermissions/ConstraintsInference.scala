@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._;
 import lpsolve._;
 
 object Settings {
+
 	var unsoundInhaling : Boolean = false;
 	var unsoundDischarging : Boolean = false;
 	var permissionType : PermissionsType = null;
