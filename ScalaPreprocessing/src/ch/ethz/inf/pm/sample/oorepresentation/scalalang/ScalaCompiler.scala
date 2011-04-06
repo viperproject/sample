@@ -9,7 +9,10 @@ object ScalaClasses {
 }
 
 class ScalaCompiler extends Compiler {
+
   def getLabel() : String = "Scala"
+
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics);
 
 	def compileFile(path : String) : List[ClassDefinition] = {
 		SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil;

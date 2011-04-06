@@ -112,7 +112,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       val extend : List[ClassIdentifier] = Nil;
       val members : (List[FieldDeclaration], List[MethodDeclaration]) = extractClassMembers(body, currentType);
       val classname : String=name.decode;
-      new ClassDefinition(programpoint, extractModifiers(mods), new ScalaClassIdentifier(name decode, currentType), parametricTypes, extend, members._1, members._2, pack, null)
+      new ClassDefinition(programpoint, currentType, extractModifiers(mods), new ScalaClassIdentifier(name decode, currentType), parametricTypes, extend, members._1, members._2, pack, null)
       //TODO: I have to consider also parents, and self!
 
     case _ => throw new ScalaException("I expected a class definition\n"+program.toString())
