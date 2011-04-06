@@ -206,7 +206,7 @@ abstract class Identifier(var typ : Type) extends Expression {
    */
   def getField() : Option[String];
   
-  override def getType() : Type = typ;
+  override def getType() : Type =  if(typ==null && SystemParameters.typ!=null) SystemParameters.typ.top(); else typ;
   
   /**
    Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete

@@ -16,12 +16,18 @@ object SystemParameters {
   var currentClass : Type = null;
   var currentMethod : String = null;
   var semanticsComputing : Boolean = false;
-  
+  var progressOutput : ProgressOutput = null;
   var typ : Type = null;
   var compiler : Compiler = null;
   var property : Property = null;
 
+  def getType() = typ;
+
+  def addNativeMethodsSemantics(l : List[NativeMethodSemantics]) = nativeMethodsSemantics=nativeMethodsSemantics:::l;
+
   def setProperty(p : Property) = property=p;
+  def setCompiler(c : Compiler) = compiler=c;
+  def setProgressOutput(p : ProgressOutput) = progressOutput=p;
   def getForwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, true);
   
   def getBackwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, false);
@@ -67,6 +73,10 @@ object SystemParameters {
 	  return result;
 	}
   
+}
+
+trait ProgressOutput {
+  def appendString(s : String);
 }
 
 object AnalysisTimer {

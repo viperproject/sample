@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.property.Property
+import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
 
 /**
  * An <code>Analysis</code> represents the interface to provide an analysis to Sample
@@ -8,7 +9,7 @@ import ch.ethz.inf.pm.sample.property.Property
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait Analysis {
+trait Analysis[T <: SemanticDomain[T]] {
 
   /**
    This method returns a short name for the analysis
@@ -20,33 +21,25 @@ trait Analysis {
   /**
    This method returns the set of the parameters of the analysis
 
-   @return a set containing the name of the parameters and a boolean
-   parameter (true iff the parameter is an integer, false iff it is a boolean)
+   @return a set containing the name of the parameters and an object representing the type of the parameter.
+   The supported options are: Int, Boolean, or a List of strings
   */
-  def parameters() : Set[(String, Boolean)];
+  def parameters() : List[(String, Any)];
 
   /**
-   This method sets an integer parameter
+  This method sets a parameter
 
    @param label the name of the parameter
    @param value the new value for the parameter
   */
-  def setIntegerParameter(label : String, value : Int) : Unit;
-
-  /**
-   This method sets a boolean parameter
-
-   @param label the name of the parameter
-   @param value the new value for the parameter
-  */
-  def setBooleanParameter(label : String, value : Boolean) : Unit;
+  def setParameter(label : String, value : Any) : Unit;
 
   /**
    This method returns the state that has to be used to start the analysis
 
    @return the initial state
   */
-  def getInitialState[S <: SemanticDomain[S]]() : S;
+  def getInitialState() : T;
 
   /**
    This method returns the set of the properties that can be applied to this analysis
@@ -54,4 +47,13 @@ trait Analysis {
    @return the possible properties
   */
   def getProperties() : Set[Property];
+
+  /**
+   This method returns the list of the semantics of "native" methods. By native methods
+   we identify all the methods whose semantics is defined by hand and not through pre
+   and post conditions
+
+   @return a (possibly empty) list of methods' semantics
+  */
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics];
 }

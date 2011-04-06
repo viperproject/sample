@@ -177,7 +177,8 @@ class FieldDeclaration(
  * @version 0.1
  */
 class ClassDefinition(
-                      programpoint : ProgramPoint, 
+                      programpoint : ProgramPoint,
+                      val typ : Type,
                       modifiers : List[Modifier],
                       val name : ClassIdentifier,
                       parametricTypes : List[Type], 

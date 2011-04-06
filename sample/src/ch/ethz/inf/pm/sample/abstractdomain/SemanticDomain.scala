@@ -10,7 +10,8 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @since 0.1
  */
 trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
-  
+
+
   /**
    This method returns representing the value of the given identifier
   

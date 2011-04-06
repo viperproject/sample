@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
  * @author Pietro Ferrara
  * @version 0.1
  */
-trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends SemanticDomain[T]  {
+trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends SemanticDomain[T] with Analysis[T] {
   
   /**
    This method creates an object of a given type
