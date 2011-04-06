@@ -10,10 +10,7 @@ import apron._
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
 
 class ApronProperty extends Property {
-	override def getLabel() : String = {
-		//TODO: return something sensible here
-		return "";
-	}
+	override def getLabel() : String = "Show graph"
 	
 	override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
 	  

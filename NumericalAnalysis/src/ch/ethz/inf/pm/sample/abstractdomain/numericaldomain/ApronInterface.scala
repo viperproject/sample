@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.property.Property
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
 	
@@ -166,6 +167,24 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 			case ArithmeticOperator.!= => return ArithmeticOperator.==
 			case ArithmeticOperator.> => return ArithmeticOperator.<=
 	}
+}
+
+
+class ApronAnalysis extends Analysis[ApronInterface] {
+  var domain : Manager=null;
+  def getLabel() : String = "Apron numerical analysis";
+  def parameters() : List[(String, Any)] = List(("Domain", List("Interval", "PPL", "Octagons", "Polka")));
+  def setParameter(label : String, value : Any) = label match {
+    case "Domain" => value match {
+      case "Interval" => domain = new Box();
+      case "PPL" => domain = new PplPoly(false);
+      case "Octagons" => domain = new Octagon();
+      case "Polka" => domain = new Polka(false);
+    }
+  }
+  def getInitialState() : ApronInterface = new ApronInterface(new Abstract1(domain, new Environment()), domain);
+  def getProperties() : Set[Property] = Set.empty+new ApronProperty();
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
 }
 
 class ApronException(s : String) extends Exception(s);

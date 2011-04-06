@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import scala.Math
+import ch.ethz.inf.pm.sample.property.Property
 
 
 trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends Lattice[N] {
@@ -354,4 +355,20 @@ class Interval(val left : Int, val right: Int) extends NonRelationalNumericalDom
   def valueGEQ(value : Interval) : Interval = return new Interval(value.left, Math.MAX_INT);
   
   def valueLEQ(value : Interval) : Interval = new Interval(Math.MIN_INT, value.right);
+}
+
+
+class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] extends Analysis[BoxedNonRelationalNumericalDomain[D]] {
+  var domain : NonRelationalNumericalDomain[D]=null;
+  def getLabel() : String = "Numerical nonrelational analysis";
+  def parameters() : List[(String, Any)] = List(("Domain", List("Sign", "Interval")));
+  def setParameter(label : String, value : Any) = label match {
+    case "Domain" => value match {
+      case "Sign" => domain = new Sign(SignValues.T).asInstanceOf[D];
+      case "Interval" => domain = new Interval(0, 0).asInstanceOf[D];
+    }
+  }
+  def getInitialState() : BoxedNonRelationalNumericalDomain[D] = new BoxedNonRelationalNumericalDomain(domain.asInstanceOf[D]);
+  def getProperties() : Set[Property] = Set.empty+new ApronProperty();
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
 }
