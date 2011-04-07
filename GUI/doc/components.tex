@@ -1,0 +1,86 @@
+\documentclass[11pt]{article}
+\oddsidemargin 0.0cm
+\evensidemargin 0.0cm
+\textwidth 16.0cm
+\headheight 0.0cm
+\topmargin 0.0cm
+\textheight 19.0cm
+
+\usepackage[final]{listings}
+
+\lstset{language={Java},mathescape=true,flexiblecolumns=true,basicstyle=\sffamily\small,numberstyle=\footnotesize,stepnumber=1,numbersep=2pt}
+
+\newcommand{\ScalaAnalyzer}{\ensuremath{\mathsf{Sample}}}
+\newcommand{\statement}[1]{\lstinline{#1}}
+\newcommand{\Java}{\ensuremath{\mathsf{Java}}}
+\newcommand{\Scala}{\ensuremath{\mathsf{Scala}}}
+
+\newcommand{\cfunction}[1]{\ensuremath{\mathit{#1}}}
+\newcommand{\dom}[1]{\ensuremath{\cfunction{dom}(#1)}}
+\newcommand{\cset}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\cel}[1]{\ensuremath{\mathsf{#1}}}
+\newcommand{\aset}[1]{\cset{\overline{#1}}}
+\newcommand{\ael}[1]{\cel{\overline{#1}}}
+
+
+%\renewcommand{\familydefault}{\sfdefault}
+\begin{document}
+\title{The main components of \ScalaAnalyzer}
+
+\author{
+Pietro Ferrara\\
+ETH Zurich\\
+\texttt{pietro.ferrara@inf.ethz.ch}
+}
+
+\maketitle
+
+\begin{abstract}
+In this document we describe the interfaces that has to be implemented in order to develop and plug in the Graphic User Interface (GUI) a component. A component could be a compiler, a semantic analysis, or a heap analysis.
+\end{abstract}
+
+
+\section{\statement{Analysis}}
+\begin{lstlisting}
+package ch.ethz.inf.pm.sample.abstractdomain
+
+trait Analysis[T <: SemanticDomain[T]] {
+  def getLabel() : String;
+  def parameters() : List[(String, Any)];
+  def setParameter(label : String, value : Any) : Unit;
+  def getInitialState() : T;
+  def getProperties() : Set[Property];
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics];
+}
+\end{lstlisting}
+
+\section{\statement{Compiler}}
+\begin{lstlisting}
+package ch.ethz.inf.pm.sample.oorepresentation
+
+trait Compiler {
+	def compileFile(path : String) : List[ClassDefinition];
+  def getLabel() : String;
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics];
+}
+\end{lstlisting}
+
+\section{\statement{SystemParameters}}
+\begin{lstlisting}
+package ch.ethz.inf.pm.sample
+
+object SystemParameters {
+  val wideningLimit : Int;
+  var currentClass : Type = null;
+  var currentMethod : String = null;
+  var progressOutput : Output = null;
+  var analysisOutput : Output = null;
+  var typ : Type = null;
+}
+\end{lstlisting}
+
+
+\end{document}
+
+
+

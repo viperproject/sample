@@ -8,7 +8,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 
-import ch.ethz.inf.pm.sample.ProgressOutput;
+import ch.ethz.inf.pm.sample.Output;
+import ch.ethz.inf.pm.sample.StringCollector;
 import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain;
@@ -108,45 +109,73 @@ public class WindowApplication {
         private JTextArea taskOutput;
 
         //This class is used to collect the output of the analysis over the text area
-        public class TextAreaProgress implements ProgressOutput {
+        public class TextAreaProgress implements Output {
             public void appendString(String s) {
                  taskOutput.append("\n"+s);
+            }
+            public String getString() {
+                return taskOutput.getText();
             }
         }
 
         //This class is used to run the analysis while updating the progress bar
         class Task extends SwingWorker<Void, Void> {
             // The core of the analysis
-            public Void doInBackground() {
-                SystemParameters.setProgressOutput(new TextAreaProgress());
-                taskOutput.append("\nSetting up the parameters of the analysis");
-                Analysis s = getSelectedAnalysis();
-                HeapDomain heap = getSelectedHeapAnalysis();
-                SystemParameters.addNativeMethodsSemantics(s.getNativeMethodsSemantics());
-                SystemParameters.addNativeMethodsSemantics(heap.getNativeMethodsSemantics());
-                SystemParameters.setCompiler(getSelectedCompiler());
-                setProgress(10);
-                taskOutput.append("\nCompiling the files");
-                ch.ethz.inf.pm.sample.Main.compile(file);
-                setProgress(40);
-                taskOutput.append("\nCreating the initial state of the analysis");
-                HeapDomain heapDomain = getSelectedHeapAnalysis();
-                if(heapDomain instanceof NonRelationalHeapDomain) {
-                    ((NonRelationalHeapDomain) heapDomain).setType(SystemParameters.getType());
+            public Void doInBackground() throws Exception {
+                try{
+                    SystemParameters.setProgressOutput(new TextAreaProgress());
+                    SystemParameters.setAnalysisOutput(new StringCollector());
+                    SystemParameters.heapTimer().reset();
+                    SystemParameters.domainTimer().reset();
+                    taskOutput.append("\nSetting up the parameters of the analysis");
+                    Analysis s = getSelectedAnalysis();
+                    HeapDomain heap = getSelectedHeapAnalysis();
+                    ch.ethz.inf.pm.sample.oorepresentation.Compiler compiler=getSelectedCompiler();
+                    if(s==null || heap==null || compiler==null) return null;
+                    SystemParameters.addNativeMethodsSemantics(s.getNativeMethodsSemantics());
+                    SystemParameters.addNativeMethodsSemantics(heap.getNativeMethodsSemantics());
+                    SystemParameters.setCompiler(compiler);
+                    setProgress(10);
+                    taskOutput.append("\nCompiling the files");
+                    ch.ethz.inf.pm.sample.Timer tcompiler=new ch.ethz.inf.pm.sample.Timer();
+                    tcompiler.start();
+                    ch.ethz.inf.pm.sample.Main.compile(file);
+                    tcompiler.stop();
+                    setProgress(40);
+                    taskOutput.append("\nCreating the initial state of the analysis");
+                    HeapDomain heapDomain = getSelectedHeapAnalysis();
+                    if(heapDomain instanceof NonRelationalHeapDomain) {
+                        ((NonRelationalHeapDomain) heapDomain).setType(SystemParameters.getType());
+                    }
+                    SemanticDomain domain = (SemanticDomain) getSelectedAnalysis().getInitialState();
+                    HeapAndAnotherDomain entrydomain  = new HeapAndAnotherDomain(domain, heapDomain);
+                    SymbolicAbstractValue entryvalue =new SymbolicAbstractValue(scala.Option.apply(null), scala.Option.apply(null));
+                    GenericAbstractState entryState =new GenericAbstractState(entrydomain, entryvalue);
+                    entryvalue =new SymbolicAbstractValue(new Some(entryState), new Some(SystemParameters.getType()));
+                    entryState =new GenericAbstractState(entrydomain, entryvalue);
+                    setProgress(50);
+                    taskOutput.append("\nRunning the analysis");
+                    ch.ethz.inf.pm.sample.Timer t=new ch.ethz.inf.pm.sample.Timer();
+                    t.start();
+                    ch.ethz.inf.pm.sample.Main.analyze(methods, entryState);
+                    t.stop();
+                    setProgress(100);
+                    taskOutput.append("\nAnalysis ended");
+                    JOptionPane.showMessageDialog(null, "Analysis successfully ended", "Analysis", JOptionPane.INFORMATION_MESSAGE);
+                    SystemParameters.analysisOutput().appendString("Times spent by the compiler:"+tcompiler.totalTime()+" msec");
+                    SystemParameters.analysisOutput().appendString("Times spent by the overall analysis:"+t.totalTime()+" msec");
+                    SystemParameters.analysisOutput().appendString("Times spent by the heap analysis:"+SystemParameters.heapTimer().totalTime()+" msec");
+                    SystemParameters.analysisOutput().appendString("Times spent by the other analysis:"+SystemParameters.domainTimer().totalTime()+" msec");
+                    AnalysisResults dialog = new AnalysisResults();
+                    dialog.pack();
+                    dialog.setVisible(true);
+                    System.exit(0);
+                    return null;
                 }
-                SemanticDomain domain = (SemanticDomain) getSelectedAnalysis().getInitialState();
-                HeapAndAnotherDomain entrydomain  = new HeapAndAnotherDomain(domain, heapDomain);
-                SymbolicAbstractValue entryvalue =new SymbolicAbstractValue(scala.Option.apply(null), scala.Option.apply(null));
-                GenericAbstractState entryState =new GenericAbstractState(entrydomain, entryvalue);
-                entryvalue =new SymbolicAbstractValue(new Some(entryState), new Some(SystemParameters.getType()));
-                entryState =new GenericAbstractState(entrydomain, entryvalue);
-                setProgress(50);
-                taskOutput.append("\nRunning the analysis");
-                ch.ethz.inf.pm.sample.Main.analyze(methods, entryState);
-                setProgress(100);
-                taskOutput.append("\nAnalysis ended");
-                JOptionPane.showMessageDialog(null, "Analysis successfully ended", "Analysis", JOptionPane.INFORMATION_MESSAGE);
-                return null;
+                catch(Exception e) {
+                    JOptionPane.showMessageDialog(null, "Error during the analysis", "Error", JOptionPane.ERROR_MESSAGE);
+                    throw e;
+                }
             }
         }
         public ProgressBar() {
@@ -195,7 +224,8 @@ public class WindowApplication {
         for(int i=0; i<InstalledPlugins.analyses.length; i++)
             if(s.equals(InstalledPlugins.analyses[i].getLabel()))
                 return InstalledPlugins.analyses[i];
-        throw new Error();
+        JOptionPane.showMessageDialog(null, "The analysis you have chosen does not exists", "Unknown analyze", JOptionPane.ERROR_MESSAGE);
+        return null;
     }
 
     private HeapDomain getSelectedHeapAnalysis() {
@@ -203,7 +233,8 @@ public class WindowApplication {
         for(int i=0; i<InstalledPlugins.heapanalyses.length; i++)
             if(s.equals(InstalledPlugins.heapanalyses[i].getLabel()))
                 return InstalledPlugins.heapanalyses[i];
-        throw new Error();
+        JOptionPane.showMessageDialog(null, "The heap analysis you have chosen does not exists", "Unknown analysis", JOptionPane.ERROR_MESSAGE);
+        return null;
     }
 
     private ch.ethz.inf.pm.sample.oorepresentation.Compiler getSelectedCompiler() {
@@ -211,7 +242,8 @@ public class WindowApplication {
         for(int i=0; i<InstalledPlugins.compilers.length; i++)
             if(s.equals(InstalledPlugins.compilers[i].getLabel()))
                 return InstalledPlugins.compilers[i];
-        throw new Error();
+        JOptionPane.showMessageDialog(null, "The compiler you have chosen does not exists", "Unknown compiler", JOptionPane.ERROR_MESSAGE);
+        return null;
     }
 
     public static void main(String[] args) {
