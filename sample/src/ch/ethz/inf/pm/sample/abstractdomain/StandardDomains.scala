@@ -435,8 +435,8 @@ abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <:
     result
   }
   
-  final def lessEqual(r : T) : Boolean = d1.lessEqual(r._1) && d2.lessEqual(r._2)
- 
+  def lessEqual(r : T) : Boolean = d1.lessEqual(r._1) && d2.lessEqual(r._2)
+
   override def equals(a : Any) : Boolean = a match {
     case right : T => 
 	    this._1.equals(right._1) &&

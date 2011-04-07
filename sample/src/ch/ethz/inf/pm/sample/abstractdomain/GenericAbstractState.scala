@@ -4,7 +4,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
 
-/** 
+/**
  * An abstract semantic domain that combines and heap and another semantic domain.
  * The intuition is that the heap domain takes care of approximating the heap structure, while the 
  * semantic domain has to manage the information of its interest without taking care of field accesses
@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample._
  * @author Pietro Ferrara
  * @since 0.1
  */
-class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](n1 : N, h1 : H) extends SemanticCartesianProductDomain[N, H, HeapAndAnotherDomain[N, H, I]](n1, h1) with SemanticDomain[HeapAndAnotherDomain[N, H, I]]{
+class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](n1 : N, h1 : H) extends SemanticCartesianProductDomain[N, H, HeapAndAnotherDomain[N, H, I]](n1, h1) {
   
   def getStringOfId(id : Identifier) : String = d1.getStringOfId(id)
   
@@ -26,15 +26,182 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def factory() = new HeapAndAnotherDomain(d1.factory(), d2.factory());
   
   override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) = {
-    var (s2, ids) = this._2.createVariableForParameter(variable, typ, path);
+    SystemParameters.domainTimer.start();
+    val (s2, ids) = this._2.createVariableForParameter(variable, typ, path);
+    SystemParameters.domainTimer.stop();
     var s1 = this._1;
     val i = null;
     s1=s1.createVariableForParameter(variable, typ, path)._1
     //We recursively create the entry state for all the entry abstract nodes.
+    SystemParameters.heapTimer.start();
     for(id <- ids.keys)
       s1=s1.createVariableForParameter(id, typ, ids.apply(id))._1;
+    SystemParameters.heapTimer.stop();
     (new HeapAndAnotherDomain[N, H, I](s1, s2), ids)
   }
+
+
+  //---------------------------------------------------
+  //The following part is the same of SemanticCartesianProduct. It is there only for profiling purposes.
+
+  type T = HeapAndAnotherDomain[N, H, I];
+
+  override def setToTop(variable : Identifier) : T = {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.setToTop(variable)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.setToTop(variable)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+ override def assign(variable : Identifier, expr : Expression) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.assign(variable, expr)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.assign(variable, expr)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+ override def setParameter(variable : Identifier, expr : Expression) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.setParameter(variable, expr)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.setParameter(variable, expr)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+ override def assume(expr : Expression) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.assume(expr)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.assume(expr)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+ override def createVariable(variable : Identifier, typ : Type) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.createVariable(variable, typ)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.createVariable(variable, typ)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+ override def removeVariable(variable : Identifier) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.removeVariable(variable)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.removeVariable(variable)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+ override def access(field : Identifier) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.access(field)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.access(field)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+ override def backwardAccess(field : Identifier) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.backwardAccess(field)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.backwardAccess(field)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+ override def backwardAssign(variable : Identifier, expr : Expression) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.backwardAssign(variable, expr)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.backwardAssign(variable, expr)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
+ override def top() : T = {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.top()
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.top()
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
+ override def bottom() : T = {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.bottom()
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.bottom()
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
+ override def lub(l : T, r : T) : T = {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.lub(l._1, r._1)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.lub(l._2, r._2)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
+ override def glb(l : T, r : T) : T = {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.glb(l._1, r._1)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.glb(l._2, r._2)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
+ override def widening(l : T, r : T) : T = {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    result.d1=d1.widening(l._1, r._1)
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d2=d2.widening(l._2, r._2)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
+ override def lessEqual(r : T) : Boolean = {
+    SystemParameters.heapTimer.start();
+    var b : Boolean = d1.lessEqual(r._1);
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    b = b && d2.lessEqual(r._2)
+    SystemParameters.domainTimer.stop();
+    return b;
+  }
+
 }
 
 /** 

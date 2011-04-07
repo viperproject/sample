@@ -16,7 +16,10 @@ object SystemParameters {
   var currentClass : Type = null;
   var currentMethod : String = null;
   var semanticsComputing : Boolean = false;
-  var progressOutput : ProgressOutput = null;
+  var progressOutput : Output = null;
+  var analysisOutput : Output = null;
+  val heapTimer : Timer = new Timer;
+  val domainTimer : Timer = new Timer;
   var typ : Type = null;
   var compiler : Compiler = null;
   var property : Property = null;
@@ -27,7 +30,8 @@ object SystemParameters {
 
   def setProperty(p : Property) = property=p;
   def setCompiler(c : Compiler) = compiler=c;
-  def setProgressOutput(p : ProgressOutput) = progressOutput=p;
+  def setProgressOutput(p : Output) = progressOutput=p;
+  def setAnalysisOutput(p : Output) = analysisOutput=p;
   def getForwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, true);
   
   def getBackwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, false);
@@ -75,11 +79,23 @@ object SystemParameters {
   
 }
 
-trait ProgressOutput {
+trait Output {
   def appendString(s : String);
+  def getString() : String;
 }
 
-object AnalysisTimer {
+class StringCollector extends Output {
+  var s : String="";
+  override def appendString(s: String): Unit = {
+    this.s=this.s+"\n" + s
+  }
+
+  override def getString: String = {
+    return this.s
+  }
+}
+
+class Timer {
 	var lastValue : Option[Long] = None
 	var totalTime : Long = 0;
   	
