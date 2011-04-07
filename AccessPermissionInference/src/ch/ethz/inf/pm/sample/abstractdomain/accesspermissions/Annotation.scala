@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.SystemParameters
 
 object Annotation {
 	var monitorInvariants : Map[String, Map[FieldAccess, Int]] = Map.empty;
@@ -17,22 +18,22 @@ object Annotation {
  	var loopinvariants : Map[ProgramPoint, Map[FieldAccess, Int]] = Map.empty;
 
  	def printAnnotation() = {
- 	  System.out.println("Predicates\n------------------------\n");
+ 	  SystemParameters.analysisOutput.appendString("Predicates\n------------------------\n");
  	  var classes=this.unifySets[String](monitorInvariants.keySet, preconditions.keySet);
  	  classes=this.unifySets[String](classes, postconditions.keySet);
  	  for(key <- predicates.keySet)
- 		  System.out.println(key+"\n"+this.localConditionToString(predicates.apply(key)))
- 	  System.out.println("Loop invariants\n------------------------\n"+this.extractMethods(loopinvariants));
+ 		  SystemParameters.analysisOutput.appendString(key+"\n"+this.localConditionToString(predicates.apply(key)))
+ 	  SystemParameters.analysisOutput.appendString("Loop invariants\n------------------------\n"+this.extractMethods(loopinvariants));
       for(classe <- classes) {
- 	    System.out.println("Class: "+classe+"\n------------------------");
+ 	    SystemParameters.analysisOutput.appendString("Class: "+classe+"\n------------------------");
  	    if(monitorInvariants.keySet.contains(classe))
- 	    	System.out.println("Monitor invariants\n------------------------\n"+this.localConditionToString(monitorInvariants.apply(classe)));
+ 	    	SystemParameters.analysisOutput.appendString("Monitor invariants\n------------------------\n"+this.localConditionToString(monitorInvariants.apply(classe)));
  	    for(method <- this.unifySets[String](extractMethods(preconditions, classe), extractMethods(postconditions, classe)) ) {
-	 	    System.out.println("Method: "+method+"\n------------------------");
+	 	    SystemParameters.analysisOutput.appendString("Method: "+method+"\n------------------------");
 	 	    if(preconditions.keySet.contains(classe))
-	 	    	System.out.println("Preconditions\n------------------------\n"+this.extractMethods(preconditions, classe, method));
+	 	    	SystemParameters.analysisOutput.appendString("Preconditions\n------------------------\n"+this.extractMethods(preconditions, classe, method));
 	 	    if(postconditions.keySet.contains(classe))
-	 	    	System.out.println("Postconditions\n------------------------\n"+this.extractMethods(postconditions, classe, method));
+	 	    	SystemParameters.analysisOutput.appendString("Postconditions\n------------------------\n"+this.extractMethods(postconditions, classe, method));
  	      
  	    }
  	  }

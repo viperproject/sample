@@ -34,7 +34,7 @@ class InferenceProperty extends Property {
 	    if(solution!=null) {
 	      val loopInvariants=ConstraintsInference.giveLoopInvariants(CollectedResults.r.values.iterator, solution);
 	      LPTimer.stop();
-	      System.out.println("LOOP INVARIANTS\n--------------------\n"+loopInvariants.toString());
+	      SystemParameters.analysisOutput.appendString("LOOP INVARIANTS\n--------------------\n"+loopInvariants.toString());
 	    }
 	    else LPTimer.stop();
 	  }
@@ -50,7 +50,7 @@ private object LPTimer {
   
  	def stop() = lastValue match {
  	  case Some(l) => totalTime=totalTime+(System.currentTimeMillis()-l)
- 	  case None => System.out.println("Timer not started before!");
+ 	  case None => SystemParameters.analysisOutput.appendString("Timer not started before!");
     }
  	
  	def reset() = totalTime=0; lastValue=None;

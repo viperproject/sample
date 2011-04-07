@@ -102,8 +102,6 @@ object ConstraintsInference {
   def getConstraints() = constraints;
   
   def addConstraint(c : Constraint) = {
-	  /*if(c.isInstanceOf[Geq] && c.asInstanceOf[Geq].left.equals(new SimpleVal(0)))
-	 	  System.out.println("Here we are");*/
     if(SystemParameters.semanticsComputing)
       constraints=constraints+c;
   }
@@ -159,15 +157,15 @@ object ConstraintsInference {
   }
   
   def printConstraints() = {
-    System.out.println("INFERRED CONSTRAINTS\n---------------------\n\n");
+    SystemParameters.analysisOutput.appendString("INFERRED CONSTRAINTS\n---------------------\n\n");
     for(c <- constraints)
-      System.out.println(c.toString());
+      SystemParameters.analysisOutput.appendString(c.toString());
   }
   
   def printConstraints(constraints : Set[Constraint]) = {
-    System.out.println("INFERRED CONSTRAINTS\n---------------------\n\n");
+    SystemParameters.analysisOutput.appendString("INFERRED CONSTRAINTS\n---------------------\n\n");
     for(c <- constraints)
-      System.out.println(c.toString());
+      SystemParameters.analysisOutput.appendString(c.toString());
   }
   
   private object Log extends LogListener with AbortListener with MsgListener with BbListener {
@@ -210,10 +208,10 @@ object ConstraintsInference {
         solver.solve();
         val obj=solver.getObjective();
         // print solution
-        //System.out.println("Value of objective function: " + solver.getObjective());
+        //SystemParameters.analysisOutput.appendString("Value of objective function: " + solver.getObjective());
           
         if(solver.getObjective>=1.0E30) {//I don't know way, but lpsolve returns 1.0E30 when minimizing an unfeasible model
-          System.out.println("The system is unfeasible, so we cannot infer access permissions for the given program");
+          SystemParameters.analysisOutput.appendString("The system is unfeasible, so we cannot infer access permissions for the given program");
           return null;
         }
         else {
@@ -225,7 +223,7 @@ object ConstraintsInference {
             for (i <- 0 to variables.length-1) {
               if(variables(i)>0) {
                 val (intPart, nEpsilons)=stringWithEpsilon(variables(i), epsilon)
-                System.out.println("Value of " + vars.apply(i) + " = " + intPart + " + "+nEpsilons+"epsilon (float value:"+variables(i)+")");
+                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + intPart + " + "+nEpsilons+"epsilon (float value:"+variables(i)+")");
                 result=result+((vars.apply(i), (intPart, nEpsilons)));
                }
             }
@@ -233,7 +231,7 @@ object ConstraintsInference {
           else
             for (i <- 0 to variables.length-1) {
               if(variables(i)>0) {
-                System.out.println("Value of " + vars.apply(i) + " = " + variables(i));
+                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + variables(i));
                 result=result+((vars.apply(i), (variables(i), 0)));
                }
             }
@@ -316,7 +314,7 @@ object ConstraintsInference {
         case x if x.equals(Epsilon) => {
         	//We impose that (2*maxIndex(Epsilon)+1)*Epsilon<=1
         	//We take 2* to understand if we have to add or subtract epsilons, +1 to impose < instead of <= 
-        	System.out.println("Massimo epsilon "+this.getMax(i+1, solver));
+        	SystemParameters.analysisOutput.appendString("Massimo epsilon "+this.getMax(i+1, solver));
         	val ind=2*this.getMax(i+1, solver)+1; 
         	s=s+ind.toString()+" ";
         	}
