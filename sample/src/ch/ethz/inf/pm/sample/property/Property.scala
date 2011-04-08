@@ -5,17 +5,18 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import java.io.PrintStream
 
+//TODO:Comment it
 trait Property {
   def getLabel() : String;
   def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
   def finalizeChecking() : Unit;
 }
-
+//TODO:Comment it
 trait Visitor {
   def getLabel() : String;
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit;
 }
-
+//TODO:Comment it
 class SingleStatementProperty(visitor : Visitor) extends Property {
   def getLabel() : String = visitor.getLabel();
   def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
@@ -72,6 +73,7 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
   
 }
 
+//TODO:Remove it
 class MatchErrorVisitor extends Visitor {
 
   def getLabel() : String = "Match error";
@@ -93,7 +95,7 @@ class MatchErrorVisitor extends Visitor {
     case _ => 
   }
 }
-
+//TODO:Remove it
 class CastingVisitor extends Visitor {
 
   def getLabel() : String = "Dynamic castings"

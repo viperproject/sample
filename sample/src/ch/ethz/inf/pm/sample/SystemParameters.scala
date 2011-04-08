@@ -4,24 +4,73 @@ import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
+/**
+ * <code>SystemParameters</code> contains all the parameters of Sample
+ *
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
 object SystemParameters {
+
+  /**
+   The number of iterations after whom widening is applied
+  */
   val wideningLimit : Int = 5;
+  /**
+   The path of the file currently analyzed
+  */
   var currentFile : String = "<not yet initialized>";
+  //TODO:Remove it
   val output : OutputCollector = new OutputCollector();
+  //TODO:Remove it
   val outputCasting : OutputCollector = new OutputCollector();
+  //TODO:Remove it
   val outputMatchError : OutputCollector = new OutputCollector();
+  //TODO:Remove it
   var analyzedClasses : Int = 0;
+  //TODO:Remove it
   var analyzedMethods : Int = 0;
-  var nativeMethodsSemantics : List[NativeMethodSemantics] = /*BooleanNativeMethodSemantics :: IntegerNativeMethodSemantics :: ObjectNativeMethodSemantics :: */Nil;
+  /**
+   The semantics of methods defined by hand
+  */
+  var nativeMethodsSemantics : List[NativeMethodSemantics] = Nil;
+  /**
+   The class currently analyzed
+  */
   var currentClass : Type = null;
+  /**
+   The method currently analyzed
+  */
   var currentMethod : String = null;
+  //TODO:Remove it
   var semanticsComputing : Boolean = false;
+  /**
+   The output for the window that shows the progresses of the analysis
+  */
   var progressOutput : Output = null;
+  /**
+   The output for the window that shows the results of the analysis
+  */
   var analysisOutput : Output = null;
+  /**
+   The timer that collects the amount of time spent by the heap abstraction
+  */
   val heapTimer : Timer = new Timer;
+  /**
+   The timer that collects the amount of time spent by the semantic analysis
+  */
   val domainTimer : Timer = new Timer;
+  /**
+   An instance of the current type system
+  */
   var typ : Type = null;
+  /**
+   The compiler used to compile the given files
+  */
   var compiler : Compiler = null;
+  /**
+   The checked property
+  */
   var property : Property = null;
 
   def getType() = typ;
@@ -32,6 +81,8 @@ object SystemParameters {
   def setCompiler(c : Compiler) = compiler=c;
   def setProgressOutput(p : Output) = progressOutput=p;
   def setAnalysisOutput(p : Output) = analysisOutput=p;
+
+  //TODO:This and the following methods should not be there
   def getForwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, true);
   
   def getBackwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, false);
@@ -79,6 +130,7 @@ object SystemParameters {
   
 }
 
+//TODO:Comment the following code
 trait Output {
   def appendString(s : String);
   def getString() : String;

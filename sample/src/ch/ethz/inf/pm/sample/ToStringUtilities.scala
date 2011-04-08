@@ -5,6 +5,8 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 
 import scala.collection.mutable.HashMap
 
+//TODO:Comment or remove this code
+
 trait SingleLineRepresentation {
   def toSingleLineString() : String
 }
