@@ -1,10 +1,4 @@
 \documentclass[11pt]{article}
-\oddsidemargin 0.0cm
-\evensidemargin 0.0cm
-\textwidth 16.0cm
-\headheight 0.0cm
-\topmargin 0.0cm
-\textheight 19.0cm
 
 \usepackage[final]{listings}
 
@@ -36,11 +30,11 @@ ETH Zurich\\
 \maketitle
 
 \begin{abstract}
-In this document we describe the interfaces that has to be implemented in order to develop and plug in the Graphic User Interface (GUI) a component. A component could be a compiler, a semantic analysis, or a heap analysis.
+In this document we describe the interfaces that has to be implemented in order to develop and plug in the Graphic User Interface (GUI) a component. A component could be a compiler, a semantic analysis, or a heap analysis. The scaladoc contains the description in details of each method and field.
 \end{abstract}
 
 
-\section{\statement{Analysis}}
+\section{Analysis}
 \begin{lstlisting}
 package ch.ethz.inf.pm.sample.abstractdomain
 
@@ -54,18 +48,25 @@ trait Analysis[T <: SemanticDomain[T]] {
 }
 \end{lstlisting}
 
-\section{\statement{Compiler}}
+The \statement{Analysis} trait is aimed at providing all the material to run the analysis. This consists essentially in the parameters of the analysis (e.g., which particular numerical domain we want to apply - box, polka, PPL, ...), which properties we can check (e.g., division by zero), the definition of the semantics of particular method calls (e.g., Int.+(Int)), an instance of the abstract state of the analysis, and a short string (label) to represent the analysis (e.g., \textquotedblleft numerical relational analysis\textquotedblright).
+
+A heap analysis has to implement this interface as well, but it is expected to return an instance of a \statement{HeapDomain} instead of an instance of a \statement{SemanticDomain} (remember that \statement{HeapDomain[T] <: SemanticDomain[T]}).
+
+\section{Compiler}
 \begin{lstlisting}
 package ch.ethz.inf.pm.sample.oorepresentation
 
 trait Compiler {
-	def compileFile(path : String) : List[ClassDefinition];
+  def compileFile(path : String) : List[ClassDefinition];
   def getLabel() : String;
   def getNativeMethodsSemantics() : List[NativeMethodSemantics];
 }
 \end{lstlisting}
 
-\section{\statement{SystemParameters}}
+The \statement{Compiler} trait  isaimed at providing all the material to run the compiler. This consists in a method that compiles all the files contained in a path, the definition of the semantics of particular method calls (e.g., Int.+(Int)), and a short string (label) to represent the compiler (e.g., \textquotedblleft Java compiler\textquotedblright).
+
+
+\section{SystemParameters}
 \begin{lstlisting}
 package ch.ethz.inf.pm.sample
 
@@ -73,12 +74,13 @@ object SystemParameters {
   val wideningLimit : Int;
   var currentClass : Type = null;
   var currentMethod : String = null;
+  var typ : Type = null;
   var progressOutput : Output = null;
   var analysisOutput : Output = null;
-  var typ : Type = null;
 }
 \end{lstlisting}
 
+\statement{SystemParameters} contains the main parameters of \ScalaAnalyzer. These are used to provide some inputs to the different parts of the analysis, and to let the analysis give some outputs to \ScalaAnalyzer. In particular, \statement{SystemParameters} contains the limit on the number of iterations after whom widening has to be applied, the class and the method currently under analysis, an instance of the type, and the output for the windows showing the progresses and the results of the analysis.
 
 \end{document}
 
