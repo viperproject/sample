@@ -98,8 +98,8 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
     result=result+((id, path ::: id.toString() :: Nil));
     (this, result);
   } 
-  override def createObject(typ : Type, pp : ProgramPoint) : SingleHeapIdentifier=new SingleHeapIdentifier(typ);
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : TopHeapIdentifier=new SingleHeapIdentifier(heapIdentifier.getType());
+  override def createObject(typ : Type, pp : ProgramPoint) : (SingleHeapIdentifier, ReallyApproximatedHeapDomain)=(new SingleHeapIdentifier(typ), this);
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (TopHeapIdentifier, ReallyApproximatedHeapDomain)=(new SingleHeapIdentifier(heapIdentifier.getType()), this);
   
   override def assume(expr : Expression) = this //TODO: for now there is nothing about the heap structure
   
@@ -117,12 +117,12 @@ class OnlyStaticReferenceHeapDomain extends ReallyApproximatedHeapDomain {
   override def getLabel() : String = "Only static references"
   private var isBottom = false;
    
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : TopHeapIdentifier = {
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (TopHeapIdentifier, ReallyApproximatedHeapDomain) = {
     if(typ.isStatic())
-       return new StaticHeapIdentifier(typ)
+       return (new StaticHeapIdentifier(typ), this)
     //if(heapIdentifier.isTop())
     //  return new StaticHeapIdentifier(typ.top()); 
-    return new SingleHeapIdentifier(typ);
+    return (new SingleHeapIdentifier(typ), this);
   }
   
   override def access(field : Identifier)=this;

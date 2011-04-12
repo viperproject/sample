@@ -202,7 +202,8 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	    val c = typ.getPossibleFields;
 	    for((field, typ2) <- c) {
 	      val adds = cod.convert(dom.createAddressForParameter(typ2));
-	      val fieldAdd=result.getFieldIdentifier(cod.convert(obj), field, typ2);
+        //I can ignore newHeap since it's equal to result as it is not changed by getFieldIdentifier
+	      val (fieldAdd, newHeap)=result.getFieldIdentifier(cod.convert(obj), field, typ2);
 	      for(id : I <- fieldAdd.value) {
 	    	  result=new NonRelationalHeapDomain(result._1, result._2.add(id, adds), cod, dom);
 	    	  ids=ids+((id, path ::: field :: Nil));
@@ -341,9 +342,9 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       return new NonRelationalHeapDomain(this._1, result, cod, dom);
   }  
   
-  override def createObject(typ : Type, pp : ProgramPoint) : HeapIdAndSetDomain[I] = cod.convert(dom.createAddress(typ, pp));
+  override def createObject(typ : Type, pp : ProgramPoint) : (HeapIdAndSetDomain[I], NonRelationalHeapDomain[I]) = (cod.convert(dom.createAddress(typ, pp)), this);
   
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : HeapIdAndSetDomain[I] = this.evalFieldAccess(heapIdentifier, name, typ);
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (HeapIdAndSetDomain[I], NonRelationalHeapDomain[I]) = (this.evalFieldAccess(heapIdentifier, name, typ), this);
   
   private def evalFieldAccess[S <: State[S]](expr : Expression, field : String, typ : Type) : HeapIdAndSetDomain[I] = expr match {
     case obj : VariableIdentifier => return extractField(this.get(obj), field, typ)
