@@ -230,10 +230,12 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def createObject(typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
     //It discharges on the heap analysis the creation of the object and its fields
-    val createdLocation=this._1._2.createObject(typ, pp)
-    var result=this._1.createVariable(createdLocation, typ);
+    var (createdLocation, newHeap)=this._1._2.createObject(typ, pp)
+    var result=new HeapAndAnotherDomain[N, H, I](this._1._1, newHeap);
+    result=result.createVariable(createdLocation, typ);
     for((field, typ2) <- typ.getPossibleFields()) {
-     val address = this._1._2.getFieldIdentifier(createdLocation, field, typ2);
+     val (address, newHeap2) = result._2.getFieldIdentifier(createdLocation, field, typ2);
+     result=new HeapAndAnotherDomain[N, H, I](result._1, newHeap2);
      //It asks the semantic domain to simply create the initial value for the given identifier
      result=result.createVariable(address, typ2);
     }
@@ -243,9 +245,10 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def createObjectForParameter(typ : Type, pp : ProgramPoint, path : List[String]) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
     //It discharges on the heap analysis the creation of the object and its fields
-    val createdLocation=this._1._2.createObject(typ, pp)
+    val (createdLocation, newHeap)=this._1._2.createObject(typ, pp)
+    var result=new HeapAndAnotherDomain[N, H, I](this._1._1, newHeap);
      //It asks the semantic domain to simply create the initial value for the given identifier
-    val (result, ids)=this._1.createVariableForParameter(createdLocation, typ, path);
+    val (result1, ids)=result.createVariableForParameter(createdLocation, typ, path);
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result, this._2).removeExpression()));
   }
   
@@ -407,8 +410,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     for(obj : SymbolicAbstractValue[GenericAbstractState[N,H,I]] <- objs) {
     	//For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
       	for(expr <- obj.getExpressions) {
-     	  val heapid : I = obj.get(expr)._1._2.getFieldIdentifier(expr, field, typ);
-     	  val accessed=obj.get(expr)._1.access(heapid);
+     	  val (heapid, newHeap) = obj.get(expr)._1._2.getFieldIdentifier(expr, field, typ);
+        var result2=new HeapAndAnotherDomain[N, H, I](obj.get(expr)._1._1, newHeap);
+     	  val accessed=result2.access(heapid);
      	  val state=new GenericAbstractState(accessed, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed, this._2)));
      	  result=result.lub(result, state);
         }
@@ -422,8 +426,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     for(obj : SymbolicAbstractValue[GenericAbstractState[N,H,I]] <- objs) {
     	//For each object that is potentially accessed, it computes the backward semantics of the field access and it considers the upper bound
      	for(expr <- obj.getExpressions) {
-     	  val heapid : I = obj.get(expr)._1._2.getFieldIdentifier(expr, field, typ);
-     	  val accessed=obj.get(expr)._1.backwardAccess(heapid);
+     	  val (heapid, newHeap) = obj.get(expr)._1._2.getFieldIdentifier(expr, field, typ);
+        var result2=new HeapAndAnotherDomain[N, H, I](obj.get(expr)._1._1, newHeap);
+     	  val accessed=result2.backwardAccess(heapid);
      	  val state=new GenericAbstractState(accessed, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed, this._2)));
      	  result=result.lub(result, state);
         }
