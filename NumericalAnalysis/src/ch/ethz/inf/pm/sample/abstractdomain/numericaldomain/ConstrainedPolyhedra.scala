@@ -132,8 +132,10 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 			 */ 
 			Normalizer.conditionalExpressionToMonomes(expr) match {
 			    case None => {
-			    	System.out.println(expr.getClass.toString + " " + expr.toString  + "is not supproted or is not of a right type");
-			    	return false;
+					//TODO: implement this properly, uncomment the two lines below and comment the last one
+			    	//System.out.println(expr.getClass.toString + " " + expr.toString  + " is not supproted or is not of a right type");
+					//return false;
+			    	return true;
 			    }
 			    case Some((monomes, constant)) => {
 			    	if (checkNumOfVariables && monomes.length > numOfVariables) {
@@ -168,7 +170,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	}
 
 	  private def checkAndRemoveLinConstraints(cp : ConstrainedPolyhedra) : ConstrainedPolyhedra = {
-	//	  println("__________________________________")
+//		  println("INVOKED")
 		  var linCons = Set.empty[Lincons1];
 		  for (linCon <- cp.state.toLincons(domain)) {
 			  var addCon = true;
