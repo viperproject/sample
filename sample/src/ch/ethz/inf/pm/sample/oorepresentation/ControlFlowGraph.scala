@@ -224,7 +224,51 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
   def forwardSemantics[S <: State[S]](state : S) : S= new ControlFlowGraphExecution[S](this, state).forwardSemantics(state).exitState()
   
   def backwardSemantics[S <: State[S]](state : S) : S= new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
-  
+
+
+  /**
+   * Return an ordered list of indexes that could be used for the computation of
+   * fixpoints over CFG.
+   * There is not guarantee that this sequence will give better results than others
+   * since it is based on some heuristics and should be deeply tested.
+   *
+   * @return A sequence of all the indexes of the CFG
+   */
+  def getIterativeSequence() : List[Int] = this.getIterativeSequence(Nil, Nil, 0);
+
+  private def getIterativeSequence(alreadyVisited : List[Int], pendingBlocks : List[Int], next : Int) : List[Int] = {
+    //We consider the next blocks that have not yet been visited
+    def exitNodes = this.getEdgesExitingFrom(next);
+    def exitNodesNotVisited = exitNodes.--(alreadyVisited);
+    if(! exitNodesNotVisited.isEmpty) {
+      //We take the minimum since we expect to be the optimal one (heuristic)
+      val min = this.getMin(exitNodesNotVisited);
+      return next :: getIterativeSequence(alreadyVisited:::next::Nil, pendingBlocks++(exitNodesNotVisited-min), min);
+    }
+    else {
+      def pendingNodesNotVisited = pendingBlocks.--(alreadyVisited);
+      if(pendingNodesNotVisited.isEmpty) {
+        //We are at the end!
+        assert(this.nodes.size==alreadyVisited.size+1);
+        return next :: Nil;
+      }
+      else  {
+        //Otherwise we consider the minimum of the pendingBlocks
+        val min = this.getMin(pendingNodesNotVisited.toSet);
+        return next :: getIterativeSequence(alreadyVisited:::next::Nil, pendingBlocks++(exitNodesNotVisited-min), min);
+      }
+    }
+  }
+
+  private def getMin(l : Set[Int]) : Int = {
+    assert(! l.isEmpty)
+    var min : Int = 0-1;
+    for(el <- l)
+      if(min==0-1 || el<min) min=el;
+    assert(min>=0);
+    return min;
+  }
+
   override protected def nodeToString(node : List[Statement]) = ToStringUtilities.listToDotCommaRepresentationSingleLine(node);
 
   override def addNode(st : scala.collection.immutable.List[Statement]) = super.addNode(st);//Work-around for Java interfacing
@@ -289,7 +333,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
     }
   }
   
-  def forwardSemantics(initialState : S) : ControlFlowGraphExecution[S] = this.semantics(initialState, None, forwardsingleIteration);
+  def forwardSemantics(initialState : S) : ControlFlowGraphExecution[S] =this.semantics(initialState, None, forwardOptimizedSingleIteration);
+  //this.semantics(initialState, None, forwardsingleIteration);
   
   def definiteBackwardSemantics(exitState : S) : ControlFlowGraphExecution[S] = this.semantics(exitState, None, definiteBackwardsingleIteration);
   
@@ -378,7 +423,60 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
     }
     next
   }
-  
+
+  private def forwardOptimizedSingleIteration(prev : ControlFlowGraphExecution[S], lastresult : Option[ControlFlowGraphExecution[S]], initialState : S) : ControlFlowGraphExecution[S] = {
+    var next : ControlFlowGraphExecution[S] = new ControlFlowGraphExecution[S](cfg, state);
+    val l = cfg.getIterativeSequence();
+    for(j <- 0 to l.size-1) {
+      val i : Int = l.apply(j);
+      var entry : S =
+        if(i==0)
+          initialState;
+        else optimizedEntryState(prev, next, i);
+      entry = lastresult match {
+        case Some(x) => x.getExecution(i) match {
+          case null => entry
+          case l => entry.glb(l.first, entry)
+        }
+        case None => entry
+      }
+      val res : List[S] = if(! entry.equals(state.bottom())) {
+        lastresult match {
+          case Some(x) => x.getExecution(i) match {
+            case null => this.forwardBlockSemantics(entry, None, cfg.nodes.apply(i));
+            case l => this.forwardBlockSemantics(entry, Some(l), cfg.nodes.apply(i));
+          }
+          case None => this.forwardBlockSemantics(entry, None, cfg.nodes.apply(i));
+        }
+      }
+      else entry :: Nil;
+      next.nodes=next.nodes ::: res :: Nil
+    }
+    next
+  }
+
+  private def optimizedEntryState(prev : ControlFlowGraphExecution[S], current: ControlFlowGraphExecution[S], index : Int) : S = {
+    var result : S = state.bottom();
+    for((from, to, weight) <- cfg.edges) {
+      if(to equals(index)) {
+        //Try to see if we have already computed the given block...
+        var pointedBy : List[S] = current.getExecution(from);
+        //..and if not we take the results of the previous iteration
+        if(pointedBy==null || pointedBy==Nil)
+          pointedBy=prev.getExecution(from);
+        if(pointedBy!=null && pointedBy!=Nil){
+          if(weight==None)
+            result=result.lub(result, pointedBy.last)
+          else if(weight.get == true)
+            result=result.lub(result, pointedBy.last.testTrue())
+          else
+              result=result.lub(result, pointedBy.last.testFalse())
+        }
+      }
+    }
+    result;
+  }
+
   private def definiteBackwardsingleIteration(prev : ControlFlowGraphExecution[S], lastresult : Option[ControlFlowGraphExecution[S]], endingState : S) : ControlFlowGraphExecution[S] = {
     var next : ControlFlowGraphExecution[S] = new ControlFlowGraphExecution[S](cfg, state);
     for(i <- 0 to cfg.nodes.size-1) {
