@@ -56,4 +56,10 @@ trait Analysis[T <: SemanticDomain[T]] {
    @return a (possibly empty) list of methods' semantics
   */
   def getNativeMethodsSemantics() : List[NativeMethodSemantics];
+
+  /**
+   This method resets the analysis before starting it. It can be used to clean static
+   fields before re-running the analysis.
+  */
+  def reset() : Unit;
 }

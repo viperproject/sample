@@ -10,6 +10,8 @@ object Main {
 	var verbose : Boolean = true;
   	var classes : List[ClassDefinition]= Nil;
 
+  def reset() = classes=Nil;
+
 
   def compile(f : File) = classes=classes ::: SystemParameters.compiler.compileFile(f.getAbsolutePath());
 
