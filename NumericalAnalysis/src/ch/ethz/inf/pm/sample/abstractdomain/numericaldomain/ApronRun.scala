@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.gui._
+import ch.ethz.inf.pm.sample.userinterfaces._
 import ch.ethz.inf.pm.sample.property._;
 import apron._
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;

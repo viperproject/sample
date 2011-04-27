@@ -369,6 +369,7 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
     }
   }
   def getInitialState() : BoxedNonRelationalNumericalDomain[D] = new BoxedNonRelationalNumericalDomain(domain.asInstanceOf[D]);
+  override def reset() : Unit = Unit;
   def getProperties() : Set[Property] = Set.empty+new ApronProperty();
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
 }

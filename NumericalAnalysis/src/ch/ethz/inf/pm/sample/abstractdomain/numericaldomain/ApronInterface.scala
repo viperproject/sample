@@ -182,6 +182,7 @@ class ApronAnalysis extends Analysis[ApronInterface] {
       case "Polka" => domain = new Polka(false);
     }
   }
+  def reset() : Unit = Unit;
   def getInitialState() : ApronInterface = new ApronInterface(new Abstract1(domain, new Environment()), domain);
   def getProperties() : Set[Property] = Set.empty+new ApronProperty();
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
