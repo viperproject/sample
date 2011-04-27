@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
-import ch.ethz.inf.pm.sample.gui.ShowGraph
+import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 
 abstract sealed class TopHeapIdentifier(typ : Type) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ) {
     override def getLabel() = "Top";
@@ -64,6 +64,7 @@ case class StaticHeapIdentifier(typ2 : Type) extends TopHeapIdentifier(typ2) {
 
 //Approximates all the concrete references with just one abstract element
 class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDomain, TopHeapIdentifier] {
+  override def reset() : Unit = Unit;
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
   override def getLabel() : String = "Top domain"
   override def parameters() : List[(String, Object)] = Nil
@@ -113,6 +114,7 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
 
 //Approximates all the concrete references with just one abstract element. In addition, it tracks references to static objects
 class OnlyStaticReferenceHeapDomain extends ReallyApproximatedHeapDomain {
+  override def reset() : Unit = Unit;
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
   override def getLabel() : String = "Only static references"
   private var isBottom = false;

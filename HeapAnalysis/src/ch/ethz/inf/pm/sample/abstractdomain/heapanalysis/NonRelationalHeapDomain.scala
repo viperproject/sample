@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import gui.ShowGraph
+import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 import property.Property
 
 object NonRelationalHeapDomainSettings {
@@ -113,6 +113,7 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
 
 //Approximates all the concrete references created at the same point of the program with a unique abstract reference
 class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : VariableEnv[I], heap : HeapEnv[I], val cod : HeapIdAndSetDomain[I], dom : I) extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], NonRelationalHeapDomain[I]](env, heap) with HeapDomain[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]] {
+  override def reset() : Unit = Unit;
   def setType(t : Type) = {
     env.typ=t;
     heap.typ=t;
