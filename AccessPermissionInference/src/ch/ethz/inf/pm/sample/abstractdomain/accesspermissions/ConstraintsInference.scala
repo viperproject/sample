@@ -8,6 +8,8 @@ import lpsolve._;
 
 object Settings {
 
+  val lowestValue : Double = 0.1;
+
 	var unsoundInhaling : Boolean = false;
 	var unsoundDischarging : Boolean = false;
 	var permissionType : PermissionsType = null;
@@ -231,7 +233,7 @@ object ConstraintsInference {
           else
             for (i <- 0 to variables.length-1) {
               if(variables(i)>0) {
-                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + variables(i));
+                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + clean(variables(i)));
                 result=result+((vars.apply(i), (variables(i), 0)));
                }
             }
@@ -244,6 +246,16 @@ object ConstraintsInference {
       case e => e.printStackTrace(); return null;
     }
     
+  }
+
+  //Clean imprecision due to floating approximation in LP solving
+  private def clean(d : Double) : Double = {
+     if(d % Settings.lowestValue != 0) {
+       if(d % Settings.lowestValue>Settings.lowestValue/2)
+         return d+(Settings.lowestValue-d % Settings.lowestValue)
+       else return d-d % Settings.lowestValue
+     }
+    else return d;
   }
   
   def stringWithEpsilon(value : Double, epsilon : Double) : (Int, Int) = {
@@ -332,14 +344,12 @@ object ConstraintsInference {
 	  return max;
   }
 
-  val lowestValue : Double = 0.1;
-
   private def extractConstraint(constraint : Constraint, variables : List[SymbolicValue]) : (String, Double, Int) = constraint match {
     case Greater(left, right) =>
       val (leftvars, lefti) = extractExpressions(left, variables);
       val (rightvars, righti) = extractExpressions(right, variables);
       var resultingarray = subtractArrays(leftvars, rightvars);
-      return (arrayToString(resultingarray), righti-lefti+lowestValue, LpSolve.GE)//TODO: This is wrong!
+      return (arrayToString(resultingarray), righti-lefti+Settings.lowestValue, LpSolve.GE)//TODO: This is wrong!
     case Geq(left, right) =>
       val (leftvars, lefti) = extractExpressions(left, variables);
       val (rightvars, righti) = extractExpressions(right, variables);

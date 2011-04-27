@@ -36,6 +36,7 @@ object Main {
 	//Mandatory global settings
 	SystemParameters.compiler = new ScalaCompiler;
 	SystemParameters.property = new InferenceProperty;
+
 	
 	//Files paths
 	val f1 = "C:\\Users\\Pietro\\Sample\\AccessPermissionInference\\test\\Chalice\\Chalice.scala";

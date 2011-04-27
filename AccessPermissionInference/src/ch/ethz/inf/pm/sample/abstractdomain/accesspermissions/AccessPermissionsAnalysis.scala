@@ -8,10 +8,16 @@ class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends Ana
 
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(ChaliceNativeMethodSemantics)
 
+  override def reset() = {
+    ConstraintsInference.emptyConstraints;
+    CollectedResults.constraints=Set.empty
+    CollectedResults.r=Map.empty;
+  };
+
   override def getLabel() = "Access permissions inference"
 
   override def parameters() : List[(String, Any)] =
-    List((("Unsound inhaling", false)), (("Unsound discharging", false)), (("Priority of contracts", 1)), (("Priority of monitor invariants", 2)), (("Priority of abstract predicates", 3)), (("Type of permissions", List("Chalice", "Fractional", "Counting"))))
+    List((("Unsound inhaling", true)), (("Unsound discharging", true)), (("Priority of contracts", 1)), (("Priority of monitor invariants", 2)), (("Priority of abstract predicates", 3)), (("Type of permissions", List("Chalice", "Fractional", "Counting"))))
 
   override def setParameter(label : String, value : Any) : Unit = label match {
     case "Priority of contracts" => Settings.priorityContracts = value.asInstanceOf[Int];
