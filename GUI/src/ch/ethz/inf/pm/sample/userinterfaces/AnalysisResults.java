@@ -11,6 +11,9 @@ public class AnalysisResults extends JDialog {
     private JTextArea resultPane1;
 
     public AnalysisResults() {
+
+
+
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
@@ -20,7 +23,9 @@ public class AnalysisResults extends JDialog {
                 onOK();
             }
         });
+
         resultPane1.setText(SystemParameters.analysisOutput().getString());
+        //setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
 
 // call onCancel() when cross is clicked
         //setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);

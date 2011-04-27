@@ -68,7 +68,7 @@ public class WindowApplication {
                 //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
                 //Create and set up the content pane.
-                JComponent newContentPane = new ProgressBar();
+                JComponent newContentPane = new ProgressBar(frame);
                 newContentPane.setOpaque(true); //content panes must be opaque
                 frame.setContentPane(newContentPane);
 
@@ -123,13 +123,16 @@ public class WindowApplication {
             // The core of the analysis
             public Void doInBackground() throws Exception {
                 try{
+                    ch.ethz.inf.pm.sample.Main.reset();
                     SystemParameters.setProgressOutput(new TextAreaProgress());
                     SystemParameters.setAnalysisOutput(new StringCollector());
                     SystemParameters.heapTimer().reset();
                     SystemParameters.domainTimer().reset();
                     taskOutput.append("\nSetting up the parameters of the analysis");
                     Analysis s = getSelectedAnalysis();
+                    s.reset();
                     HeapDomain heap = getSelectedHeapAnalysis();
+                    heap.reset();
                     ch.ethz.inf.pm.sample.oorepresentation.Compiler compiler=getSelectedCompiler();
                     if(s==null || heap==null || compiler==null) return null;
                     SystemParameters.addNativeMethodsSemantics(s.getNativeMethodsSemantics());
@@ -162,6 +165,7 @@ public class WindowApplication {
                     setProgress(100);
                     taskOutput.append("\nAnalysis ended");
                     JOptionPane.showMessageDialog(null, "Analysis successfully ended", "Analysis", JOptionPane.INFORMATION_MESSAGE);
+                    frame.dispose();
                     SystemParameters.analysisOutput().appendString("Times spent by the compiler:"+tcompiler.totalTime()+" msec");
                     SystemParameters.analysisOutput().appendString("Times spent by the overall analysis:"+t.totalTime()+" msec");
                     SystemParameters.analysisOutput().appendString("Times spent by the heap analysis:"+SystemParameters.heapTimer().totalTime()+" msec");
@@ -169,7 +173,7 @@ public class WindowApplication {
                     AnalysisResults dialog = new AnalysisResults();
                     dialog.pack();
                     dialog.setVisible(true);
-                    System.exit(0);
+                    //System.exit(0);
                     return null;
                 }
                 catch(Exception e) {
@@ -178,8 +182,10 @@ public class WindowApplication {
                 }
             }
         }
-        public ProgressBar() {
+        JFrame frame;
+        public ProgressBar(JFrame frame) {
             super(new BorderLayout());
+            this.frame=frame;
             //The progress bar
             progressBar = new JProgressBar(0, 100);
             progressBar.setValue(0);
@@ -202,7 +208,6 @@ public class WindowApplication {
             task = new Task();
             task.addPropertyChangeListener(this);
             task.execute();
-
         }
 
         /**
