@@ -82,7 +82,7 @@ case class Add(left : ArithmeticExpression, right : ArithmeticExpression) extend
   override def toString()=left.toString()+"+"+right.toString();
 }
 
-case class SimpleVal(value : Int) extends Constraint with ArithmeticExpression {
+case class SimpleVal(value : Double) extends Constraint with ArithmeticExpression {
   override def toString()=value.toString();
 }
 
@@ -204,15 +204,15 @@ object ConstraintsInference {
         this.addObjectiveFunction(vars, solver);
         
         if(Settings.permissionType.epsilon) this.addEpsilonConstraint(vars, solver);
-        solver.printLp();
         solver.setMinim();
+        //this.printSolverConstraints(solver, vars);
         // solve the problem
         solver.solve();
         val obj=solver.getObjective();
         // print solution
         //SystemParameters.analysisOutput.appendString("Value of objective function: " + solver.getObjective());
           
-        if(solver.getObjective>=1.0E30) {//I don't know way, but lpsolve returns 1.0E30 when minimizing an unfeasible model
+        if(solver.getObjective>=1.0E30) {//I don't know why, but lpsolve returns 1.0E30 when minimizing an unfeasible model
           SystemParameters.analysisOutput.appendString("The system is unfeasible, so we cannot infer access permissions for the given program");
           return null;
         }
@@ -246,6 +246,28 @@ object ConstraintsInference {
       case e => e.printStackTrace(); return null;
     }
     
+  }
+
+  def printSolverConstraints(solver : LpSolve, vars : List[SymbolicValue]) = {
+    var arr : Array[Double] = new Array[Double](solver.getNcolumns()+1);
+    val j : Int = 0;
+    for(j <- 0 to solver.getNrows) {
+      solver.getRow(j, arr)
+      val i : Int = 0;
+      for(i <- 1 to arr.length-1) {
+        if(arr.apply(i)!= 0.0)
+          System.out.print(arr.apply(i)+"*"+vars.apply(i-1));
+      };
+      solver.getConstrType(j) match {
+        case LpSolve.GE => System.out.print(">=")
+        case LpSolve.LE => System.out.print("<=")
+        case LpSolve.EQ => System.out.print("==")
+        case x => System.out.print("<UNKNOW OPERATOR "+x+">")
+      }
+      System.out.print(solver.getRh(j)+"\n");
+    }
+    //for(c <- solver.getConstraints())
+
   }
 
   //Clean imprecision due to floating approximation in LP solving
@@ -369,11 +391,11 @@ object ConstraintsInference {
     return result;
   }
   
-  private def extractExpressions(a : ArithmeticExpression, vars : List[SymbolicValue]) : (Array[Int], Int) = a match {
+  private def extractExpressions(a : ArithmeticExpression, vars : List[SymbolicValue]) : (Array[Int], Double) = a match {
     case Add(left, right) =>
       val (a1, i1) = this.extractExpressions(left, vars);
       val (a2, i2) = this.extractExpressions(right, vars);
-      return (addArrays(a1, a2), i1-i2);
+      return (addArrays(a1, a2), i1+i2);
     case SimpleVal(value) => return (new Array[Int](vars.size), value)
     case Multiply(mul, right) => 
       val result = new Array[Int](vars.size);
