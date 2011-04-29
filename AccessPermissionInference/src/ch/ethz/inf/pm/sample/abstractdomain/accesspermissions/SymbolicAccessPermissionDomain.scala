@@ -8,8 +8,8 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 
 
 trait LevelPermission {
-  def maxPermission() : Int;
-  def minPermission() : Int;
+  def maxPermission() : Double;
+  def minPermission() : Double;
 }
 
 trait PermissionsDomain[P <: PermissionsDomain[P]] extends SemanticDomain[P] {
@@ -20,7 +20,7 @@ trait PermissionsDomain[P <: PermissionsDomain[P]] extends SemanticDomain[P] {
   def free(id : Identifier) : P;
   def inhale(id : Identifier, p : Int) : P;
   def exhale(id : Identifier, p : Int) : P;
-  def setPermissionLevel(id : Identifier, p : Int) : P;
+  def setPermissionLevel(id : Identifier, p : Double) : P;
 }
 
 
@@ -110,72 +110,81 @@ case class SymbolicPostCondition(val className : String, val methodName : String
   override def factory() : SymbolicValue = new SymbolicPostCondition(className, methodName, p);
 }
 
-sealed abstract class IntOrTop {
-  def max(a: IntOrTop, b : IntOrTop) = a match {
+sealed abstract class DoubleOrTop {
+  def max(a: DoubleOrTop, b : DoubleOrTop) = a match {
     case Top => Top
-    case WrappedInt(i) => b match {
+    case WrappedDouble(i) => b match {
       case Top => Top
-      case WrappedInt(i2) => WrappedInt(Math.max(i, i2))
+      case WrappedDouble(i2) => WrappedDouble(Math.max(i, i2))
     }
   }
   
-  def min(a: IntOrTop, b : IntOrTop) = a match {
+  def min(a: DoubleOrTop, b : DoubleOrTop) = a match {
     case Top => b
-    case WrappedInt(i) => b match {
+    case WrappedDouble(i) => b match {
       case Top => a
-      case WrappedInt(i2) => WrappedInt(Math.min(i, i2))
+      case WrappedDouble(i2) => WrappedDouble(Math.min(i, i2))
     }
   }
   
-  def >=(b : IntOrTop) = this match {
+  def >=(b : DoubleOrTop) = this match {
     case Top => true
-    case WrappedInt(i) => b match {
+    case WrappedDouble(i) => b match {
       case Top => false;
-      case WrappedInt(i2) => i>=i2
+      case WrappedDouble(i2) => i>=i2
     }
   }
   
-  def +(b : IntOrTop) : IntOrTop = this match {
+  def +(b : DoubleOrTop) : DoubleOrTop = this match {
     case Top => Top
-    case WrappedInt(i) => b match {
+    case WrappedDouble(i) => b match {
       case Top => Top;
-      case WrappedInt(i2) => WrappedInt(i+i2)
+      case WrappedDouble(i2) => WrappedDouble(i+i2)
     }
   }
   
-  def -(b : IntOrTop) : IntOrTop = this match {
+  def -(b : DoubleOrTop) : DoubleOrTop = this match {
     case Top => Top
-    case WrappedInt(i) => b match {
+    case WrappedDouble(i) => b match {
       case Top => Top;
-      case WrappedInt(i2) => WrappedInt(i-i2)
+      case WrappedDouble(i2) => WrappedDouble(i-i2)
     }
   }
   
   override def toString() = this match {
     case Top => "Uknown"
-    case WrappedInt(i) => i.toString();
+    case WrappedDouble(i) => i.toString();
   }
   
   override def hashCode() = this match {
     case Top => 0
-    case WrappedInt(i) => i
+    case WrappedDouble(i) => i.toInt
   }
   
-  
-}
-case object Top extends IntOrTop 
 
-case class WrappedInt(val i : Int) extends IntOrTop {
+}
+
+case object Top extends DoubleOrTop
+
+case class WrappedDouble(val i : Double) extends DoubleOrTop  {
   override def equals(a : Any) : Boolean = a match {
-    case WrappedInt(i1) => return i==i1;
+    case WrappedDouble(i1) => return i==i1;
     case _ => return false;
   }
 }
 
 
-class CountedSymbolicValues(val n : IntOrTop, val s : SymbolicValue) {
+class WrappedInt(val i : Int) {
+  override def equals(a : Any) : Boolean = a match {
+    case WrappedDouble(i1) => return i==i1;
+    case _ => return false;
+  }
+}
+
+
+class CountedSymbolicValues(val n : DoubleOrTop, val s : SymbolicValue) {
   
-  def this(i : Int) = this(WrappedInt(i), null);
+  def this(i : Double) = this(WrappedDouble(i), null);
   
   override def toString() = s match {
     case null => n.toString();
@@ -231,7 +240,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
   
   private def addElement(s : Set[CountedSymbolicValues], el : CountedSymbolicValues) : Set[CountedSymbolicValues] = {
     var result=s;
-    if(el.n.isInstanceOf[WrappedInt] && el.n.asInstanceOf[WrappedInt].i!=0)
+    if(el.n.isInstanceOf[WrappedDouble] && el.n.asInstanceOf[WrappedDouble].i!=0)
     	result=result.+(el);
     return result;
   }
@@ -257,19 +266,19 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
     case _ => return false;
   }
   
-  override def minPermission() : Int = {
+  override def minPermission() : Double = {
     for(el <- value)
       if(el.s==null) el.n match {
-        case WrappedInt(i) => return i;
+        case WrappedDouble(i) => return i;
       }
     return Settings.permissionType.minLevel;
   }
   
-  override def maxPermission() : Int = {
+  override def maxPermission() : Double = {
     if(value.size==1) {
       val el = value.elements.next();
       if(el.s==null) el.n match {
-        case WrappedInt(i) => return i;
+        case WrappedDouble(i) => return i;
       }
     }
     return Settings.permissionType.maxLevel;
@@ -381,7 +390,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
     }
     if(! added) v.n match {
       case Top => throw new PermissionsException("I cannot subtract a potentially unbounded number of symbolic values")
-      case WrappedInt(i) => result=this.addElement(result, new CountedSymbolicValues(new WrappedInt(-i), v.s));
+      case WrappedDouble(i) => result=this.addElement(result, new CountedSymbolicValues(new WrappedDouble(-i), v.s));
     }
     return new SymbolicLevelPermission(result)
   }
@@ -457,16 +466,16 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
       var result=this;
       for(add <- id.asInstanceOf[HeapIdAndSetDomain[I]].value) {
     	//the permission should be 100%
-    	ConstraintsInference.addConstraint(new Eq(new SimpleVal(Settings.permissionType.maxLevel), ConstraintsInference.convert(this.get(add))));
+    	ConstraintsInference.addConstraint(new Eq(new SimpleVal(Settings.permissionType.writeLevel), ConstraintsInference.convert(this.get(add))));
         result=result.remove(add);
       }
       return result;
     }
     else return super.remove(id);
   
-  override def inhale(id : Identifier, p : SymbolicValue) : SymbolicPermissionsDomain[I] = this.inhale(id, new CountedSymbolicValues(new WrappedInt(1), p));
+  override def inhale(id : Identifier, p : SymbolicValue) : SymbolicPermissionsDomain[I] = this.inhale(id, new CountedSymbolicValues(new WrappedDouble(1), p));
   
-  override def exhale(id : Identifier, p : SymbolicValue) : SymbolicPermissionsDomain[I] = this.exhale(id, new CountedSymbolicValues(new WrappedInt(1), p));
+  override def exhale(id : Identifier, p : SymbolicValue) : SymbolicPermissionsDomain[I] = this.exhale(id, new CountedSymbolicValues(new WrappedDouble(1), p));
   
   //private def inhale(id : Identifier, p : SymbolicLevelPermission) : SymbolicPermissionsDomain[I] = this.add(id, this.get(id)++p)
   
@@ -487,7 +496,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
       else return return new SymbolicLevelPermission().top();
   }
   
-  def setPermissionLevel(variable : Identifier, l : Int) : SymbolicPermissionsDomain[I] = this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(l)));
+  def setPermissionLevel(variable : Identifier, l : Double) : SymbolicPermissionsDomain[I] = this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(l)));
   
   def setToTop(variable : Identifier) : SymbolicPermissionsDomain[I] = this
   
@@ -512,14 +521,14 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   def backwardAccess(field : Identifier) : SymbolicPermissionsDomain[I] = throw new PermissionsException("Backward analysis not yet supported");
   
   def assume(expr : Expression) : SymbolicPermissionsDomain[I] = this
-  def createVariable(variable : Identifier, typ : Type) : SymbolicPermissionsDomain[I] = return this.setPermissionLevel(variable, Settings.permissionType.maxLevel);
+  def createVariable(variable : Identifier, typ : Type) : SymbolicPermissionsDomain[I] = return this.setPermissionLevel(variable, Settings.permissionType.writeLevel);
   def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) : (SymbolicPermissionsDomain[I], Map[Identifier, List[String]]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil))
     if(! variable.isInstanceOf[VariableIdentifier])
 	    variable.getField() match {
-		    case None => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedInt(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path ::: Nil))))), result);
-		    case Some(s) => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedInt(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path  ::: /*s :: */Nil))))), result);
+		    case None => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path ::: Nil))))), result);
+		    case Some(s) => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path  ::: /*s :: */Nil))))), result);
 		  }
     else return (this, result);
   }
