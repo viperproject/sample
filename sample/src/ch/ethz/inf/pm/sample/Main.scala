@@ -52,9 +52,10 @@ object Main {
 	        	if(methods.contains(x.name.toString())) {
               SystemParameters.progressOutput.appendString("Analyzing method "+x.name.toString()+" in class "+c.name.toString());
 	        		SystemParameters.currentMethod = x.name.toString();
+              val s = x.asInstanceOf[MethodDeclaration].forwardSemantics[S](entryState);
               SystemParameters.progressOutput.appendString("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
               SystemParameters.progressOutput.appendString("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
-				      SystemParameters.property.check(c.name.getThisType(), x.name.toString(), x.asInstanceOf[MethodDeclaration].forwardSemantics[S](entryState), output);
+				      SystemParameters.property.check(c.name.getThisType(), x.name.toString(), s, output);
               SystemParameters.progressOutput.appendString("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
 				      SystemParameters.currentMethod = null;
 	        	}
