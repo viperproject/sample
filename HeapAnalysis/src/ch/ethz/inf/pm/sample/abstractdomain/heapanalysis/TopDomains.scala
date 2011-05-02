@@ -88,9 +88,15 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
     result.isBottom=true;
     result;
   }
-  override def lub(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = this
-  override def glb(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = this
-  override def widening(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = this
+  override def lub(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = {
+    if(left.isBottom && right.isBottom) return bottom();
+    else return new ReallyApproximatedHeapDomain();
+  }
+  override def glb(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = {
+    if(left.isBottom || right.isBottom) return bottom();
+    else left;
+  }
+  override def widening(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = lub(left, right)
   override def lessEqual(r : ReallyApproximatedHeapDomain) : Boolean = true
   
   override def createVariable(id : Identifier, typ : Type)=this
