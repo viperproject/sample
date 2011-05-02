@@ -239,14 +239,14 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
   private def getIterativeSequence(alreadyVisited : List[Int], pendingBlocks : List[Int], next : Int) : List[Int] = {
     //We consider the next blocks that have not yet been visited
     def exitNodes = this.getEdgesExitingFrom(next);
-    def exitNodesNotVisited = exitNodes.--(alreadyVisited);
+    def exitNodesNotVisited = exitNodes.--(alreadyVisited).-(next);
     if(! exitNodesNotVisited.isEmpty) {
       //We take the minimum since we expect to be the optimal one (heuristic)
       val min = this.getMin(exitNodesNotVisited);
       return next :: getIterativeSequence(alreadyVisited:::next::Nil, pendingBlocks++(exitNodesNotVisited-min), min);
     }
     else {
-      def pendingNodesNotVisited = pendingBlocks.--(alreadyVisited);
+      def pendingNodesNotVisited = pendingBlocks.--(alreadyVisited).-(next);
       if(pendingNodesNotVisited.isEmpty) {
         //We are at the end!
         assert(this.nodes.size==alreadyVisited.size+1);
@@ -333,7 +333,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
     }
   }
   
-  def forwardSemantics(initialState : S) : ControlFlowGraphExecution[S] =this.semantics(initialState, None, forwardOptimizedSingleIteration);
+  def forwardSemantics(initialState : S) : ControlFlowGraphExecution[S] =
+  this.semantics(initialState, None, forwardOptimizedSingleIteration);
   //this.semantics(initialState, None, forwardsingleIteration);
   
   def definiteBackwardSemantics(exitState : S) : ControlFlowGraphExecution[S] = this.semantics(exitState, None, definiteBackwardsingleIteration);
