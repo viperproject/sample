@@ -178,6 +178,9 @@ public class WindowApplication {
                 }
                 catch(Exception e) {
                     JOptionPane.showMessageDialog(null, "Error during the analysis", "Error", JOptionPane.ERROR_MESSAGE);
+                    System.out.println(e.toString());
+                    e.printStackTrace();
+                    progressBar.setVisible(false);
                     throw e;
                 }
             }
