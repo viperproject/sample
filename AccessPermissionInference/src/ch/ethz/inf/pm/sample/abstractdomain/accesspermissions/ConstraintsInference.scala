@@ -490,12 +490,12 @@ object ConstraintsInference {
     for(el <- level.value) {
       if(el.n==Top) throw new PermissionsException("I can't compute the loop invariant with top values");
       if(el.s==null) {
-    	  result1=result1+el.n.asInstanceOf[WrappedInt].i;
-    	  result2=result2+el.n.asInstanceOf[WrappedInt].i;
+    	  result1=result1+el.n.asInstanceOf[WrappedDouble].i;
+    	  result2=result2+el.n.asInstanceOf[WrappedDouble].i.toInt;
       }
       	else if(substitution.keySet.contains(el.s)) {
-      			result1=result1+el.n.asInstanceOf[WrappedInt].i*substitution(el.s)._1;
-      			result2=result2+el.n.asInstanceOf[WrappedInt].i*substitution(el.s)._2;
+      			result1=result1+el.n.asInstanceOf[WrappedDouble].i*substitution(el.s)._1;
+      			result2=result2+(el.n.asInstanceOf[WrappedDouble].i*substitution(el.s)._2).toInt;
       	}
     }
     return (result1, result2);
@@ -563,11 +563,13 @@ object ConstraintsInference {
         k match {
           case x : SimpleProgramPointHeapIdentifier => 
             return reach1(x, env, store);
-          case FieldAndProgramPoint(pp, field, typ) => reach1(pp, env, store) match {
-            case Some(x) => return Some(new FieldAccess(null, x :: Nil, field, null));
-            case None => 
-        }
-    }    
+          case FieldAndProgramPoint(pp, field, typ) =>
+            if(! pp.equals(id))
+            reach1(pp, env, store) match {
+              case Some(x) => return Some(new FieldAccess(null, x :: Nil, field, null));
+              case None =>
+          }
+    }
     return None;
   }
   
