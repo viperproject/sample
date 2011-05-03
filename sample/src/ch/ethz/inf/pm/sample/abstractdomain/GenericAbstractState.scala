@@ -35,7 +35,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     //We recursively create the entry state for all the entry abstract nodes.
     SystemParameters.heapTimer.start();
     for(id <- ids.keys)
-      s1=s1.createVariableForParameter(id, typ, ids.apply(id))._1;
+      if(!id.equals(variable))
+        s1=s1.createVariableForParameter(id, typ, ids.apply(id))._1;
     SystemParameters.heapTimer.stop();
     (new HeapAndAnotherDomain[N, H, I](s1, s2), ids)
   }
@@ -290,7 +291,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	    el._1 match {
 	      case variable : Identifier => {
 	        for(assigned <- x.value) {
-	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.createVariableForParameter(variable, typ, Nil)._1, this._2);
+            val r = assigned._2._1.createVariableForParameter(variable, typ, Nil);
+            val left = r._1;
+	        	val done=new GenericAbstractState[N,H,I](left, this._2);
 	        	result=result.lub(result, done);
 		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom()), this.removeExpression()))
 	        }

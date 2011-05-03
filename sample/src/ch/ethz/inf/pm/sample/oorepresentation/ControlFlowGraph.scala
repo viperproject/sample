@@ -343,16 +343,19 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
     var iteration : Int = 1;
     var prev : ControlFlowGraphExecution[S] = new ControlFlowGraphExecution[S](cfg, initialState);
     prev.nodes = Nil
+    //System.out.println("Iteration n."+iteration);
     var next : ControlFlowGraphExecution[S]=singleIteration(prev, lastresult, initialState).lub(prev);
     while(! next.lessEqual(prev)) {
       prev=next;
       iteration=iteration+1;
+      //System.out.println("Iteration n."+iteration);
       if(iteration > SystemParameters.wideningLimit) {
     	  val result=singleIteration(prev, lastresult, initialState)
     	  next=prev.widening(result);
       }
       else next=singleIteration(prev, lastresult, initialState).lub(prev);
     }
+    //System.out.println("End of the analysis");
     next.edges=cfg.edges; //TODO: This should be in the constructor and not here!
     next
   }
@@ -425,11 +428,18 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
     next
   }
 
+  private def getList[S](size : Int, el : S) : List[S] = size match {
+    case 0 => Nil
+    case _ => el :: getList(size-1, el);
+  }
+
   private def forwardOptimizedSingleIteration(prev : ControlFlowGraphExecution[S], lastresult : Option[ControlFlowGraphExecution[S]], initialState : S) : ControlFlowGraphExecution[S] = {
     var next : ControlFlowGraphExecution[S] = new ControlFlowGraphExecution[S](cfg, state);
+    next.nodes = getList[List[S]](this.cfg.nodes.size, Nil);
     val l = cfg.getIterativeSequence();
     for(j <- 0 to l.size-1) {
       val i : Int = l.apply(j);
+      //System.out.println("Semantics of block n."+i);
       var entry : S =
         if(i==0)
           initialState;
@@ -451,7 +461,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
         }
       }
       else entry :: Nil;
-      next.nodes=next.nodes ::: res :: Nil
+      next.setNode(i, res);
     }
     next
   }
