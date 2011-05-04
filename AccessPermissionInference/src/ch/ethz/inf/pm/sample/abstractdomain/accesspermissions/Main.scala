@@ -45,7 +45,7 @@ object Main {
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: f2 :: Nil);
 	
 	//EntryState
-	val heapid : ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(SystemParameters.typ);
+	val heapid : ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(SystemParameters.typ, null);
 	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new HeapIdAndSetDomain(heapid), heapid);
 	val domain : Permissions =new SymbolicPermissionsDomain();
 	val entrydomain  = new HeapAndAnother(domain, heapDomain);
