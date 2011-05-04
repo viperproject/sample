@@ -5,12 +5,12 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 
-abstract sealed class TopHeapIdentifier(typ : Type) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ) {
+abstract sealed class TopHeapIdentifier(typ : Type, pp : ProgramPoint) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ, pp) {
     override def getLabel() = "Top";
-	  override def getNullNode() = new NullHeapIdentifier(typ.top()); 
+	  override def getNullNode(pp : ProgramPoint) = new NullHeapIdentifier(typ.top(), pp);
 }
 
-case class NullHeapIdentifier(typ2 : Type) extends TopHeapIdentifier(typ2) {
+case class NullHeapIdentifier(typ2 : Type, pp1 : ProgramPoint) extends TopHeapIdentifier(typ2, pp1) {
 	  override def getField() : Option[String] = None;
 	  override def isNormalized() : Boolean = true;
 	  override def representSingleVariable()=true;
@@ -20,14 +20,14 @@ case class NullHeapIdentifier(typ2 : Type) extends TopHeapIdentifier(typ2) {
 	    case _ => false
 	  }
 	  override def factory() = this;
-      override def createAddress(typ : Type, pp : ProgramPoint)=new SingleHeapIdentifier(typ);
-      override def createAddressForParameter(typ : Type)=new SingleHeapIdentifier(typ);
-      override def extractField(obj : TopHeapIdentifier, field : String, typ : Type)=new SingleHeapIdentifier(typ);
-      override def accessStaticObject(typ : Type)=new StaticHeapIdentifier(typ);
+      override def createAddress(typ : Type, pp : ProgramPoint)=new SingleHeapIdentifier(typ, pp);
+      override def createAddressForParameter(typ : Type, pp : ProgramPoint)=new SingleHeapIdentifier(typ, pp);
+      override def extractField(obj : TopHeapIdentifier, field : String, typ : Type)=new SingleHeapIdentifier(typ, obj.getProgramPoint);
+      override def accessStaticObject(typ : Type, pp : ProgramPoint)=new StaticHeapIdentifier(typ, pp);
 	  override def hashCode() : Int = 0;
 }
 
-case class SingleHeapIdentifier(typ2 : Type) extends TopHeapIdentifier(typ2) {
+case class SingleHeapIdentifier(typ2 : Type, pp1 : ProgramPoint) extends TopHeapIdentifier(typ2, pp1) {
 	  override def getField() : Option[String] = None;
 	  override def isNormalized() : Boolean = true;
 	  override def representSingleVariable()=false;
@@ -38,13 +38,13 @@ case class SingleHeapIdentifier(typ2 : Type) extends TopHeapIdentifier(typ2) {
 	  }
 	  override def factory() = this;
       override def createAddress(typ : Type, pp : ProgramPoint)=this;
-      override def createAddressForParameter(typ : Type)=this;
+      override def createAddressForParameter(typ : Type, pp : ProgramPoint)=this;
       override def extractField(obj : TopHeapIdentifier, field : String, typ : Type)=this;
-      override def accessStaticObject(typ : Type)=this;
+      override def accessStaticObject(typ : Type, pp : ProgramPoint)=this;
 	  override def hashCode() : Int = 0;
 }
 
-case class StaticHeapIdentifier(typ2 : Type) extends TopHeapIdentifier(typ2) {
+case class StaticHeapIdentifier(typ2 : Type, pp1 : ProgramPoint) extends TopHeapIdentifier(typ2, pp1) {
 	  override def getField() : Option[String] = None;
 	  override def isNormalized() : Boolean = true;
 	  override def getName() = if(typ.equals(typ.top())) "#abstractReference#" else "#"+typ.getName+"#";
@@ -53,11 +53,11 @@ case class StaticHeapIdentifier(typ2 : Type) extends TopHeapIdentifier(typ2) {
 	    case x : StaticHeapIdentifier => typ.equals(x.typ)
 	    case _ => false
 	  }
-	  override def factory() = new StaticHeapIdentifier(typ.top());
-      override def createAddress(typ : Type, pp : ProgramPoint)=new StaticHeapIdentifier(typ.top());
-      override def createAddressForParameter(typ : Type)=new StaticHeapIdentifier(typ.top());
-      override def accessStaticObject(typ : Type)=StaticHeapIdentifier(typ);
-      override def extractField(obj : TopHeapIdentifier, field : String, typ : Type)=new StaticHeapIdentifier(typ.top());
+	  override def factory() = new StaticHeapIdentifier(typ.top(), this.getProgramPoint);
+    override def createAddress(typ : Type, pp : ProgramPoint)=new StaticHeapIdentifier(typ.top(), pp);
+      override def createAddressForParameter(typ : Type, pp : ProgramPoint)=new StaticHeapIdentifier(typ.top(), pp);
+      override def accessStaticObject(typ : Type, pp : ProgramPoint)=StaticHeapIdentifier(typ, pp);
+      override def extractField(obj : TopHeapIdentifier, field : String, typ : Type)=new StaticHeapIdentifier(typ.top(), obj.getProgramPoint);
 	  override def hashCode() : Int = 0;
 	  override def getType() = typ;
 }
@@ -105,8 +105,8 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
     result=result+((id, path ::: id.toString() :: Nil));
     (this, result);
   } 
-  override def createObject(typ : Type, pp : ProgramPoint) : (SingleHeapIdentifier, ReallyApproximatedHeapDomain)=(new SingleHeapIdentifier(typ), this);
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (TopHeapIdentifier, ReallyApproximatedHeapDomain)=(new SingleHeapIdentifier(heapIdentifier.getType()), this);
+  override def createObject(typ : Type, pp : ProgramPoint) : (SingleHeapIdentifier, ReallyApproximatedHeapDomain)=(new SingleHeapIdentifier(typ, pp), this);
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (TopHeapIdentifier, ReallyApproximatedHeapDomain)=(new SingleHeapIdentifier(heapIdentifier.getType(), heapIdentifier.getProgramPoint), this);
   
   override def assume(expr : Expression) = this //TODO: for now there is nothing about the heap structure
   
@@ -127,10 +127,10 @@ class OnlyStaticReferenceHeapDomain extends ReallyApproximatedHeapDomain {
    
   override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (TopHeapIdentifier, ReallyApproximatedHeapDomain) = {
     if(typ.isStatic())
-       return (new StaticHeapIdentifier(typ), this)
+       return (new StaticHeapIdentifier(typ, heapIdentifier.getProgramPoint), this)
     //if(heapIdentifier.isTop())
     //  return new StaticHeapIdentifier(typ.top()); 
-    return (new SingleHeapIdentifier(typ), this);
+    return (new SingleHeapIdentifier(typ, heapIdentifier.getProgramPoint), this);
   }
   
   override def access(field : Identifier)=this;

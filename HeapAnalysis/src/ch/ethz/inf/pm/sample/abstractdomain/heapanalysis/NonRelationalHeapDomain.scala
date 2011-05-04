@@ -45,7 +45,7 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom :
   
 }
 
-final class HeapIdAndSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) extends NonRelationalHeapIdentifier[HeapIdAndSetDomain[I]](id.getType) with SetDomain[I, HeapIdAndSetDomain[I]] {
+final class HeapIdAndSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) extends NonRelationalHeapIdentifier[HeapIdAndSetDomain[I]](id.getType, id.getProgramPoint) with SetDomain[I, HeapIdAndSetDomain[I]] {
   def getField() : Option[String] = if(value.size==1) return value.elements.next.getField() else return None;
   override def getLabel() = id.getLabel;
 
@@ -54,7 +54,7 @@ final class HeapIdAndSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) exte
 	  case _ => return super.equals(x);
   }
   
-  def getNullNode() : HeapIdAndSetDomain[I] = new HeapIdAndSetDomain(id.getNullNode());
+  def getNullNode(p : ProgramPoint) : HeapIdAndSetDomain[I] = new HeapIdAndSetDomain(id.getNullNode(p));
   
   def convert(add : I) : HeapIdAndSetDomain[I] = new HeapIdAndSetDomain(add).add(add);
   override def getType() : Type = {
@@ -76,7 +76,7 @@ final class HeapIdAndSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) exte
       result=result.add(add);
     return result;
   }
-  def createAddressForParameter(typ : Type) : HeapIdAndSetDomain[I] = this.factory().add(id.createAddressForParameter(typ))
+  def createAddressForParameter(typ : Type, pp : ProgramPoint) : HeapIdAndSetDomain[I] = this.factory().add(id.createAddressForParameter(typ, pp))
   def createAddress(typ : Type, pp : ProgramPoint) : HeapIdAndSetDomain[I] = this.factory().add(id.createAddress(typ, pp))
   def extractField(obj : HeapIdAndSetDomain[I], field : String, typ : Type) : HeapIdAndSetDomain[I] = {
       var result=this.factory();
@@ -85,7 +85,7 @@ final class HeapIdAndSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) exte
       }
       return result;
     }
-  def accessStaticObject(typ : Type) : HeapIdAndSetDomain[I] = this.factory().add(id.accessStaticObject(typ));
+  def accessStaticObject(typ : Type, pp : ProgramPoint) : HeapIdAndSetDomain[I] = this.factory().add(id.accessStaticObject(typ, pp));
   
   def factory() : HeapIdAndSetDomain[I]=new HeapIdAndSetDomain[I](id);
   
@@ -99,13 +99,13 @@ final class HeapIdAndSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) exte
 } 
 
 
-abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](typ1 : Type) extends HeapIdentifier[I](typ1) {
+abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](typ1 : Type, pp : ProgramPoint) extends HeapIdentifier[I](typ1, pp) {
   def getLabel() : String;
   def createAddress(typ : Type, pp : ProgramPoint) : I;
-  def createAddressForParameter(typ : Type) : I;
+  def createAddressForParameter(typ : Type, p : ProgramPoint) : I;
   def extractField(obj : I, field : String, typ : Type) : I;
-  def accessStaticObject(typ : Type) : I;
-  def getNullNode() : I;
+  def accessStaticObject(typ : Type, p : ProgramPoint) : I;
+  def getNullNode(p : ProgramPoint) : I;
   def isNormalized() : Boolean;
   def factory() : I;
 }
@@ -173,7 +173,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	    var result=this.createVariable(variable, typ);
 	    var ids : Map[Identifier, List[String]] = Map.empty[Identifier, List[String]];
 	    alreadyInitialized = Set.empty[I];
-	    this.initializeObject(x, dom.createAddressForParameter(typ), typ, result, path ::: variable.toString() :: Nil);
+	    this.initializeObject(x, dom.createAddressForParameter(typ, x.getProgramPoint), typ, result, path ::: variable.toString() :: Nil);
       }
       else {
         var result = Map.empty[Identifier, List[String]];
@@ -202,7 +202,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	    alreadyInitialized=alreadyInitialized+obj;
 	    val c = typ.getPossibleFields;
 	    for((field, typ2) <- c) {
-	      val adds = cod.convert(dom.createAddressForParameter(typ2));
+	      val adds = cod.convert(dom.createAddressForParameter(typ2, x.getProgramPoint));
         //I can ignore newHeap since it's equal to result as it is not changed by getFieldIdentifier
 	      val (fieldAdd, newHeap)=result.getFieldIdentifier(cod.convert(obj), field, typ2);
 	      for(id : I <- fieldAdd.value) {
@@ -389,7 +389,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     if(obj.isTop) {//We manage the case in which we use the object to access a static object -> useful in Scala
       if(typ != null && typ.isStatic) {
     	  typ.isStatic;
-        return result.add(dom.accessStaticObject(typ));
+        return result.add(dom.accessStaticObject(typ, obj.getProgramPoint));
       }
     }
     val accessed = this.normalize(obj);
@@ -408,7 +408,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       for(addr <- x.value)
         result=result.lub(result, this._2.get(addr));
       return result;
-    case Constant("null", typ) => return cod.convert(dom.getNullNode());
+    case Constant("null", typ, pp) => return cod.convert(dom.getNullNode(pp));
     
     case x => return cod.top();
   }
