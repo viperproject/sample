@@ -161,7 +161,7 @@ public class ClassFileParser {
                         jpp,
                         TypeExtractor.getModifiers(fi.getAccessFlags()),
                         //TODO: the variable identifier now requires a type.
-                        new Variable(jpp, new VariableIdentifier(fi.getName(), new JavaType("TODO"))),
+                        new Variable(jpp, new VariableIdentifier(fi.getName(), new JavaType("TODO"), jpp)),
                         new JavaType(fi.getDescriptor()),
                         rv
                     )
@@ -187,7 +187,7 @@ public class ClassFileParser {
                             //TODO: the variable identifier now requires a type.
                             new Variable(
                                 jpp,
-                                new VariableIdentifier(mi.getName()+"arg#"+Integer.toString(j), new JavaType("TODO"))
+                                new VariableIdentifier(mi.getName()+"arg#"+Integer.toString(j), new JavaType("TODO"), jpp)
                             ),
                             new JavaType(te.getParamterType(j)),
                             null
@@ -911,7 +911,7 @@ public class ClassFileParser {
                             new Variable(
                                 jpp,
                               //TODO: the variable identifier now requires a type.
-                                new VariableIdentifier("val" + Integer.toString(varindex) + "#" + localtypes.get(varindex).getRevision(), new JavaType("TODO"))
+                                new VariableIdentifier("val" + Integer.toString(varindex) + "#" + localtypes.get(varindex).getRevision(), new JavaType("TODO"), jpp)
                             )
                     );
 
@@ -1505,7 +1505,7 @@ public class ClassFileParser {
         opsta.push(new TypedStatement(new Variable(
                                             jpp,
                                             //TODO: the variable identifier now requires a type.
-                                            new VariableIdentifier("val" + Integer.toString(number) + "#" + localtypes.get(number).getRevision(), new JavaType("TODO"))
+                                            new VariableIdentifier("val" + Integer.toString(number) + "#" + localtypes.get(number).getRevision(), new JavaType("TODO"), jpp)
                                       ),
                                       statype)
                   );
@@ -1524,7 +1524,7 @@ public class ClassFileParser {
                 s1 = new Assignment(
                         jpp,
                       //TODO: the variable identifier now requires a type.
-                        new Variable(jpp, new VariableIdentifier("val"+number+"#" + localtypes.get(number).getRevision(), new JavaType("TODO"))),
+                        new Variable(jpp, new VariableIdentifier("val"+number+"#" + localtypes.get(number).getRevision(), new JavaType("TODO"), jpp)),
                         op1.getStatement()
                 );
         }
@@ -1541,7 +1541,7 @@ public class ClassFileParser {
                         new Variable(
                             jpp,
                             //TODO: the variable identifier now requires a type.
-                            new VariableIdentifier("val"+number+"#" + localtypes.get(number).getRevision(), new JavaType("TODO"))
+                            new VariableIdentifier("val"+number+"#" + localtypes.get(number).getRevision(), new JavaType("TODO"), jpp)
                         ),
                         localtypes.get(number).getJavaType(),
                         op1.getStatement()
@@ -1808,7 +1808,7 @@ public class ClassFileParser {
 
         if(isstatic)
         	//TODO: the variable identifier now requires a type.
-            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(cp.getFieldrefClassName(offset), new JavaType("TODO"))));
+            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(cp.getFieldrefClassName(offset), new JavaType("TODO"), jpp)));
         else {
             TypedStatement op1 = (TypedStatement)opsta.pop();
             obj = obj.$colon$colon(op1.getStatement());
@@ -1841,7 +1841,7 @@ public class ClassFileParser {
         scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
         if(isstatic)
         	//TODO: the variable identifier now requires a type.
-            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(cp.getFieldrefClassName(offset), new JavaType("TODO"))));
+            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(cp.getFieldrefClassName(offset), new JavaType("TODO"), jpp)));
         else {
             TypedStatement op1 = (TypedStatement)opsta.pop();
             obj = obj.$colon$colon(op1.getStatement());
@@ -1893,7 +1893,7 @@ public class ClassFileParser {
         scala.collection.immutable.List<Statement> obj = scala.collection.immutable.List.empty();
         if(isstatic)
         	//TODO: the variable identifier now requires a type.
-            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(classname, new JavaType("TODO"))));
+            obj = obj.$colon$colon((Statement)new Variable(jpp, new VariableIdentifier(classname, new JavaType("TODO"), jpp)));
         else{
             TypedStatement op1 = (TypedStatement)opsta.pop();
             obj = obj.$colon$colon(op1.getStatement());
@@ -1905,14 +1905,14 @@ public class ClassFileParser {
         opsta.push(
                 new TypedStatement(
                 	//TODO: the variable identifier now requires a type.
-                    new Variable(jpp, new VariableIdentifier("#tempfun" + classname + Integer.toString(tempfunctionvariable), new JavaType("TODO"))),
+                    new Variable(jpp, new VariableIdentifier("#tempfun" + classname + Integer.toString(tempfunctionvariable), new JavaType("TODO"), jpp)),
                     statype
                 )
         );
         __flushids(
                 new Assignment( jpp,
                 						//TODO: The variable identifier now requires also a type. 
-                                        new Variable(jpp, new VariableIdentifier("#tempfun" + classname + Integer.toString(tempfunctionvariable), new JavaType("TODO"))),
+                                        new Variable(jpp, new VariableIdentifier("#tempfun" + classname + Integer.toString(tempfunctionvariable), new JavaType("TODO"), jpp)),
                                         new MethodCall(
                                             jpp,
                                             new FieldAccess (
