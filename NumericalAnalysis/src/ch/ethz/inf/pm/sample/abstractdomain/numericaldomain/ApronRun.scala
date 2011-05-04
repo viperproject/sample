@@ -39,7 +39,7 @@ object ApronRun {
 	//val domain=new Polka(false);
 	val domain=new PplPoly(false);
 	val numerical = new ApronInterface(new Abstract1(domain, new Environment()), domain);
-	val heapid = new ClassHeapIdentifier(null);
+	val heapid = new ClassHeapIdentifier(null, null);
 	heapid.typ=SystemParameters.typ;
 	val heapDomain : NonRelationalHeapDomain[HeapId]= new NonRelationalHeapDomain[HeapId](heapid.getType, new HeapIdAndSetDomain(heapid), heapid);
 	val entrydomain  = new HeapAndAnotherDomain[ApronInterface, NonRelationalHeapDomain[HeapId], HeapIdAndSetDomain[HeapId]](numerical, heapDomain);
