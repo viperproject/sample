@@ -107,7 +107,7 @@ class MethodDeclaration(
   private def initializeParameters[S <: State[S]](state : S, parameters : List[List[VariableDeclaration]]) : S = {
     SystemParameters.semanticsComputing=false;
     var result : S = state;
-    result=new Variable(programpoint, new VariableIdentifier("this", ownerType)).forwardSemantics[S](result)
+    result=new Variable(programpoint, new VariableIdentifier("this", ownerType, programpoint)).forwardSemantics[S](result)
     val variable=result.getExpression();
     result=result.removeExpression().createVariableForParameter(variable, ownerType);
     for(lv <- parameters)

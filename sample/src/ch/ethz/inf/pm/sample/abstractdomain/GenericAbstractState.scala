@@ -260,7 +260,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     new GenericAbstractState(this._1, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](Some(this), r1.typ))
   }
   
-  def createVariable(x : SymbolicAbstractValue[GenericAbstractState[N,H,I]], typ : Type) : GenericAbstractState[N,H,I] = {
+  def createVariable(x : SymbolicAbstractValue[GenericAbstractState[N,H,I]], typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] = {
     if(this.isBottom) return this;
     if(x.value.size != 1 || x.value.elements.next._1.isInstanceOf[VariableIdentifier]==false) 
       throw new SymbolicSemanticException("Cannot declare multiple variables together");
@@ -272,7 +272,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	        for(assigned <- x.value) {
 	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.createVariable(variable, typ), this._2);
 	        	result=result.lub(result, done);
-		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom()), this.removeExpression()))
+		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), pp), this.removeExpression()))
 	        }
 	      }
 	      case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -295,7 +295,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
             val left = r._1;
 	        	val done=new GenericAbstractState[N,H,I](left, this._2);
 	        	result=result.lub(result, done);
-		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom()), this.removeExpression()))
+		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
 	        }
 	      }
 	      case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -315,7 +315,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	        for(assigned <- right.value) {
 	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.assign(variable, assigned._1), this._2);
 	        	result=result.lub(result, done);
-		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom()), this.removeExpression()))
+		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
 	        }
 	      }
 	      case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -335,7 +335,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	        for(assigned <- right.value) {
 	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.backwardAssign(variable, assigned._1), this._2);
 	        	result=result.lub(result, done);
-		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom()), this.removeExpression()))
+		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
 	        }
 	      }
 	      case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -356,7 +356,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	        for(assigned <- right.value) {
 	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.setParameter(variable, assigned._1), this._2);
 	        	result=result.lub(result, done);
-		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom()), this.removeExpression()))
+		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
 	        }
 	      }
 	      case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -373,9 +373,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	    el._1 match {
 	      case variable : Identifier => {
 	        for(previousState <- x.value) {
-	        	val done=new GenericAbstractState[N,H,I](previousState._2._1.removeVariable(variable), new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom()), this.removeExpression()));
+	        	val done=new GenericAbstractState[N,H,I](previousState._2._1.removeVariable(variable), new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()));
 	        	result=result.lub(result, done);
-		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom()), this.removeExpression()))
+		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
 	        }
 	      }
 	      case _ => throw new SymbolicSemanticException("I can remove only variables")
@@ -386,9 +386,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   
   def throws(throwed : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) : GenericAbstractState[N,H,I] = this.bottom() //TODO: Support exceptions 
    
-  def evalNumericalConstant(value : String, typ : Type) : GenericAbstractState[N,H,I] = {
+  def evalNumericalConstant(value : String, typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] = {
     if(this.isBottom) return this;
-    this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new Constant(value, typ), this.removeExpression()))
+    this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new Constant(value, typ, pp), this.removeExpression()))
   }
   
   def getVariableValue(id : Identifier) : GenericAbstractState[N,H,I] = {

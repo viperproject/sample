@@ -151,7 +151,7 @@ case class VariableDeclaration(programpoint : ProgramPoint, val variable : Varia
       var variableEval : S = variable.forwardSemantics[S](state)
       val varExpr = variableEval.getExpression()
       variableEval = variableEval.removeExpression()
-      var state1 = variableEval createVariable(varExpr, typ);
+      var state1 = variableEval createVariable(varExpr, typ, programpoint);
       if(right!=null) {
         var rightEval : S = right.forwardSemantics[S](state1)
         val rightExpr = rightEval.getExpression()
@@ -164,8 +164,8 @@ case class VariableDeclaration(programpoint : ProgramPoint, val variable : Varia
     override def backwardSemantics[S <: State[S]](state : S) : S = {
       var st=state;
       if(right!=null)
-        st=new Assignment(programpoint, new Variable(programpoint, new VariableIdentifier(variable.getName(), typ)), right).backwardSemantics[S](st);
-      return st.removeVariable(st.getExpression().createVariable(variable, st, typ));
+        st=new Assignment(programpoint, new Variable(programpoint, new VariableIdentifier(variable.getName(), typ, programpoint)), right).backwardSemantics[S](st);
+      return st.removeVariable(st.getExpression().createVariable(variable, st, typ, programpoint));
     }
 
     override def toString() : String = "declare "+ToStringUtilities.toStringIfNotNull(typ)+" "+variable.toString()+ToStringUtilities.assignedIfNotNull(right);
@@ -338,9 +338,9 @@ case class NumericalConstant(pp : ProgramPoint, value : String, typ : Type) exte
 	 * @param state the initial state
 	 * @return the initial state 
 	 */
-    override def forwardSemantics[S <: State[S]](state : S) : S = state.evalNumericalConstant(value, typ)
+    override def forwardSemantics[S <: State[S]](state : S) : S = state.evalNumericalConstant(value, typ, pp)
     
-    override def backwardSemantics[S <: State[S]](state : S) : S = state.evalNumericalConstant(value, typ)
+    override def backwardSemantics[S <: State[S]](state : S) : S = state.evalNumericalConstant(value, typ, pp)
       
     override def toString() : String = value;
     

@@ -106,10 +106,11 @@ trait State[S <: State[S]] extends Lattice[S] {
    Creates a variable
    
    @param x The name of the variable
-   @param pp The static type of the variable  
+   @param typ The static type of the variable                                    \
+   @param pp The program point that creates the variable
    @return The abstract state after the creation of the variable
    */
-  def createVariable(x : SymbolicAbstractValue[S], typ : Type) : S
+  def createVariable(x : SymbolicAbstractValue[S], typ : Type, pp : ProgramPoint) : S
   
   /**
    Creates a variable for a parameter
@@ -212,9 +213,10 @@ trait State[S <: State[S]] extends Lattice[S] {
    
    @param value The string representing the numerical constant
    @param typ The type of the numerical constant
+   @param pp The program point that contains the constant
    @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
    */
-  def evalNumericalConstant(value : String, typ : Type) : S
+  def evalNumericalConstant(value : String, typ : Type, pp : ProgramPoint) : S
   
   /**
    Assumes that a boolean expression holds

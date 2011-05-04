@@ -62,8 +62,9 @@ object AbstractOperatorIdentifiers extends Enumeration {
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract sealed class Expression {
+abstract sealed class Expression(val p : ProgramPoint) {
   def getType() : Type;
+  def getProgramPoint() : ProgramPoint = p;
 }
 
 
@@ -74,7 +75,7 @@ abstract sealed class Expression {
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class NegatedBooleanExpression(val thisExpr : Expression) extends Expression {
+case class NegatedBooleanExpression(val thisExpr : Expression) extends Expression(thisExpr.getProgramPoint) {
   override def getType() = thisExpr.getType();
   override def hashCode() : Int = thisExpr.hashCode();
   override def equals(o : Any) = o match {
@@ -96,7 +97,7 @@ case class NegatedBooleanExpression(val thisExpr : Expression) extends Expressio
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class AbstractOperator(val thisExpr : Expression, val parameters : Set[List[Expression]], val typeparameters : List[Type], val op : AbstractOperatorIdentifiers.Value, val returntyp : Type) extends Expression {
+case class AbstractOperator(val thisExpr : Expression, val parameters : Set[List[Expression]], val typeparameters : List[Type], val op : AbstractOperatorIdentifiers.Value, val returntyp : Type) extends Expression(thisExpr.getProgramPoint) {
   override def getType() = returntyp;
   override def hashCode() : Int = thisExpr.hashCode();
   override def equals(o : Any) = o match {
@@ -116,7 +117,7 @@ case class AbstractOperator(val thisExpr : Expression, val parameters : Set[List
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class BinaryBooleanExpression(val left : Expression, val right : Expression, op : BooleanOperator.Value, val returntyp : Type) extends Expression {
+case class BinaryBooleanExpression(val left : Expression, val right : Expression, op : BooleanOperator.Value, val returntyp : Type) extends Expression(left.getProgramPoint) {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -136,7 +137,7 @@ case class BinaryBooleanExpression(val left : Expression, val right : Expression
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class BinaryArithmeticExpression(val left : Expression, val right : Expression, val op : ArithmeticOperator.Value, returntyp : Type) extends Expression {
+case class BinaryArithmeticExpression(val left : Expression, val right : Expression, val op : ArithmeticOperator.Value, returntyp : Type) extends Expression(left.getProgramPoint) {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -155,7 +156,7 @@ case class BinaryArithmeticExpression(val left : Expression, val right : Express
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticOperator.Value, val returntyp : Type) extends Expression {
+case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticOperator.Value, val returntyp : Type) extends Expression(left.getProgramPoint) {
   override def getType() = returntyp;
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -173,11 +174,11 @@ case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticO
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class Constant(val constant : String, val typ : Type) extends Expression {
+case class Constant(val constant : String, val typ : Type, pp : ProgramPoint) extends Expression(pp) {
   override def getType() = typ;
   override def hashCode() : Int = constant.hashCode();
   override def equals(o : Any) = o match {
-    case Constant(c, t) => constant.equals(c) && typ.equals(t) 
+    case Constant(c, t, pp) => constant.equals(c) && typ.equals(t)
     case _ => false
   }
   override def toString() = constant
@@ -190,7 +191,7 @@ case class Constant(val constant : String, val typ : Type) extends Expression {
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract class Identifier(var typ : Type) extends Expression {
+abstract class Identifier(var typ : Type, pp : ProgramPoint) extends Expression(pp) {
 	
   /**
    Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
@@ -225,7 +226,7 @@ abstract class Identifier(var typ : Type) extends Expression {
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class VariableIdentifier(var name : String, typ1 : Type) extends Identifier(typ1) {
+case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint) extends Identifier(typ1, pp) {
 	if(typ1==null) throw new Exception("The type of variables has to be specified");
   override def getName() = name.toString
   override def toString() = getName();
@@ -236,7 +237,7 @@ case class VariableIdentifier(var name : String, typ1 : Type) extends Identifier
   override def representSingleVariable()=true;
   
   override def equals(o : Any) = o match {
-    case VariableIdentifier(n, t) => name.equals(n) //&& typ.equals(t) 
+    case VariableIdentifier(n, t, pp) => name.equals(n) //&& typ.equals(t)
     case _ => false
   }
 }
@@ -248,7 +249,7 @@ case class VariableIdentifier(var name : String, typ1 : Type) extends Identifier
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type) extends Identifier(typ1) 
+abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type, pp : ProgramPoint) extends Identifier(typ1, pp)
 
 
 /** 
@@ -259,7 +260,7 @@ abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type) extends 
  * @author Pietro Ferrara
  * @since 0.1
  */
-class LengthArray(val id : Identifier, typ : Type) extends Identifier(typ) {
+class LengthArray(val id : Identifier, typ : Type) extends Identifier(typ, id.getProgramPoint) {
   def getName() : String = id.toString()+".length"
   def getField() : Option[String] = None;
   def representSingleVariable() = id.representSingleVariable();
@@ -280,7 +281,7 @@ class LengthArray(val id : Identifier, typ : Type) extends Identifier(typ) {
  * @author Pietro Ferrara
  * @since 0.1
  */
-class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) extends Identifier(typ) {
+class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) extends Identifier(typ, id.getProgramPoint) {
   def getName() : String = id.toString()+"["+index.toString()+"]"
   def getField() : Option[String] = None;
   def representSingleVariable() = false //maybe id.representSingleVariable(); is more precise?
@@ -300,7 +301,7 @@ class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) exten
  * @author Pietro Ferrara
  * @since 0.1
  */
-class ArrayCreation(val size : Expression, val typ1 : Type) extends Identifier(typ1) {
+class ArrayCreation(val size : Expression, val typ1 : Type) extends Identifier(typ1, size.getProgramPoint) {
   def getName() : String = "new "+typ1.toString()+"("+size.toString()+")"
   def getField() : Option[String] = None;
   def representSingleVariable() = true;
@@ -319,11 +320,11 @@ class ArrayCreation(val size : Expression, val typ1 : Type) extends Identifier(t
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class UnitExpression(typ : Type) extends Expression {
+case class UnitExpression(typ : Type, pp : ProgramPoint) extends Expression(pp) {
   override def hashCode() : Int = 0;
   override def getType() : Type = typ;
   override def equals(o : Any) = o match {
-    case UnitExpression(t) => true 
+    case UnitExpression(t, pp) => true
     case _ => false
   }
   override def toString() = "Unit"
@@ -443,9 +444,9 @@ object Normalizer {
         case _ => None
       }
       
-    case Constant(c, t) =>  return Some(Nil, Integer.valueOf(c).intValue())
+    case Constant(c, t, pp) =>  return Some(Nil, Integer.valueOf(c).intValue())
     
-    case UnitExpression(t) => return None;
+    case UnitExpression(t, pp) => return None;
     
     case x : AbstractOperator => return None;
     

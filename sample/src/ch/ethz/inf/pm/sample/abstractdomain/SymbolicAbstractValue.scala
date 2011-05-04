@@ -96,9 +96,9 @@ class SymbolicAbstractValue[S <: State[S]]() extends FunctionalDomain[Expression
    * @param ty The type of the variable 
    * @return A SymbolicAbstractValue containing [variable -> state]
    */
- def createVariable[W <: State[W]](variable : Variable, state : W, ty : Type): SymbolicAbstractValue[S]= {
+ def createVariable[W <: State[W]](variable : Variable, state : W, ty : Type, pp : ProgramPoint): SymbolicAbstractValue[S]= {
     var result = new SymbolicAbstractValue[S](this.st, Some(ty));
-    result=result.add(new VariableIdentifier(variable.getName(), ty), state.asInstanceOf[S]);
+    result=result.add(new VariableIdentifier(variable.getName(), ty, pp), state.asInstanceOf[S]);
     return result;
   }
  
