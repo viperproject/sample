@@ -26,9 +26,9 @@ public class InstalledPlugins {
         heapanalyses=new HeapDomain[5];
         heapanalyses[0]=new ReallyApproximatedHeapDomain();
         heapanalyses[1]=new OnlyStaticReferenceHeapDomain();
-        heapanalyses[2]=createNonRelationalHeapDomain(new SingleHeapIdentifier(null));
-        heapanalyses[3]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null));
-        heapanalyses[4]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null));
+        heapanalyses[2]=createNonRelationalHeapDomain(new SingleHeapIdentifier(null, null));
+        heapanalyses[3]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
+        heapanalyses[4]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
     }
 
     private static NonRelationalHeapDomain createNonRelationalHeapDomain(NonRelationalHeapIdentifier id) {
