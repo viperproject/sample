@@ -227,7 +227,7 @@ public class WindowApplication {
 
     }
 
-    private Analysis getSelectedAnalysis() {
+    private SemanticAnalysis getSelectedAnalysis() {
         String s=analysisComboBox.getSelectedItem().toString();
         for(int i=0; i<InstalledPlugins.analyses.length; i++)
             if(s.equals(InstalledPlugins.analyses[i].getLabel()))
