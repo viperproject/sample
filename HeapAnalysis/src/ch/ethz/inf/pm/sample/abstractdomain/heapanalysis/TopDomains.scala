@@ -63,7 +63,7 @@ case class StaticHeapIdentifier(typ2 : Type, pp1 : ProgramPoint) extends TopHeap
 }
 
 //Approximates all the concrete references with just one abstract element
-class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDomain, TopHeapIdentifier] {
+class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDomain, TopHeapIdentifier] with HeapAnalysis[ReallyApproximatedHeapDomain, TopHeapIdentifier] {
   override def reset() : Unit = Unit;
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
   override def getLabel() : String = "Top domain"
@@ -75,40 +75,38 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
   private var isBottom = false;
   final override def factory() = top();
   def getStringOfId(id : Identifier) : String = this.toString()
-  override def access(field : Identifier)=this;
-  override def backwardAccess(field : Identifier)=this;
-  override def assign(variable : Identifier, expr : Expression) : ReallyApproximatedHeapDomain = this;
-  override def backwardAssign(variable : Identifier, expr : Expression) : ReallyApproximatedHeapDomain = this;
-  override def setParameter(variable : Identifier, expr : Expression) : ReallyApproximatedHeapDomain = assign(variable, expr);                                                                                                               
-  override def setToTop(variable : Identifier) : ReallyApproximatedHeapDomain = this;
-  override def removeVariable(variable : Identifier) : ReallyApproximatedHeapDomain = this;
+  override def assign(variable : Identifier, expr : Expression) = (this, new Replacement);
+  override def backwardAssign(variable : Identifier, expr : Expression) = (this, new Replacement);
+  override def setParameter(variable : Identifier, expr : Expression) = assign(variable, expr);
+  override def setToTop(variable : Identifier) = (this, new Replacement);
+  override def removeVariable(variable : Identifier) = (this, new Replacement);
   override def top() : ReallyApproximatedHeapDomain = this
   override def bottom() : ReallyApproximatedHeapDomain = {
     val result=new ReallyApproximatedHeapDomain();
     result.isBottom=true;
     result;
   }
-  override def lub(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = {
-    if(left.isBottom && right.isBottom) return bottom();
-    else return new ReallyApproximatedHeapDomain();
+  override def heaplub(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = {
+    if(left.isBottom && right.isBottom) (bottom(), new Replacement);
+    else (new ReallyApproximatedHeapDomain(), new Replacement);
   }
-  override def glb(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = {
-    if(left.isBottom || right.isBottom) return bottom();
-    else left;
+  override def heapglb(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = {
+    if(left.isBottom || right.isBottom) (bottom(), new Replacement);
+    else (left, new Replacement);
   }
-  override def widening(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) : ReallyApproximatedHeapDomain = lub(left, right)
+  override def heapwidening(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = heaplub(left, right)
   override def lessEqual(r : ReallyApproximatedHeapDomain) : Boolean = true
   
-  override def createVariable(id : Identifier, typ : Type)=this
+  override def createVariable(id : Identifier, typ : Type)=(this, new Replacement)
   override def createVariableForParameter(id : Identifier, typ : Type, path : List[String])={
     var result = Map.empty[Identifier, List[String]];
     result=result+((id, path ::: id.toString() :: Nil));
-    (this, result);
+    (this, result, new Replacement);
   } 
-  override def createObject(typ : Type, pp : ProgramPoint) : (SingleHeapIdentifier, ReallyApproximatedHeapDomain)=(new SingleHeapIdentifier(typ, pp), this);
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (TopHeapIdentifier, ReallyApproximatedHeapDomain)=(new SingleHeapIdentifier(heapIdentifier.getType(), heapIdentifier.getProgramPoint), this);
+  override def createObject(typ : Type, pp : ProgramPoint) =(new SingleHeapIdentifier(typ, pp), this, new Replacement);
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) =(new SingleHeapIdentifier(heapIdentifier.getType(), heapIdentifier.getProgramPoint), this, new Replacement);
   
-  override def assume(expr : Expression) = this //TODO: for now there is nothing about the heap structure
+  override def assume(expr : Expression) = (this, new Replacement) //TODO: for now there is nothing about the heap structure
   
   override def toString() : String = "#abstractReference#"
   
@@ -125,17 +123,15 @@ class OnlyStaticReferenceHeapDomain extends ReallyApproximatedHeapDomain {
   override def getLabel() : String = "Only static references"
   private var isBottom = false;
    
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (TopHeapIdentifier, ReallyApproximatedHeapDomain) = {
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) = {
     if(typ.isStatic())
-       return (new StaticHeapIdentifier(typ, heapIdentifier.getProgramPoint), this)
+       (new StaticHeapIdentifier(typ, heapIdentifier.getProgramPoint), this, new Replacement)
     //if(heapIdentifier.isTop())
     //  return new StaticHeapIdentifier(typ.top()); 
-    return (new SingleHeapIdentifier(typ, heapIdentifier.getProgramPoint), this);
+    (new SingleHeapIdentifier(typ, heapIdentifier.getProgramPoint), this, new Replacement);
   }
   
-  override def access(field : Identifier)=this;
-  
-  override def createVariable(id : Identifier, typ : Type)=this;
+  override def createVariable(id : Identifier, typ : Type)=(this, new Replacement);
   
   override def toString() : String = "#abstractReference#"
   
