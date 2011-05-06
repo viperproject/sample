@@ -53,7 +53,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	      if(pexpr.size!=1) return None;
 	      val predicate=pexpr.elements.next();
 	      predicate match {
-	        case Constant(s, typ) => operator match {
+	        case Constant(s, typ, pp) => operator match {
 		         case "fold" =>  
 				      if(ids.size == 1)
 					      for(exp <- ids)
@@ -69,7 +69,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			      if(y.getExpressions().size != 1) return None;
 				    //It applies pre and post conditions if these exist
 			      y.getExpressions().elements.next() match {
-			        case Constant(s, typ) => 
+			        case Constant(s, typ, pp) =>
 					    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
 					    var result=castedState._1._1;
 				        for(exp <- x.getExpressions)
@@ -92,7 +92,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			      if(y.getExpressions().size != 1) return None;
 				    //It applies pre and post conditions if these exist
 			      y.getExpressions().elements.next() match {
-			        case Constant(s, typ) =>  
+			        case Constant(s, typ, pp) =>
 					    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
 					    var result=castedState._1._1;
 				        for(exp <- x.getExpressions)

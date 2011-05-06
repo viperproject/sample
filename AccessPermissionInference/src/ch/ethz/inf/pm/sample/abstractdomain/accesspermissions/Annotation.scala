@@ -253,9 +253,9 @@ object Annotation {
 	  var p = s._1._1;
 	  var h = s._1._2;
 	  for((s, t) <- id.getType().getPossibleFields()) {
-      //Maybe this won't work if newHeap!=h
+      //TODO:Maybe this won't work if newHeap!=h
       //I have to test it with TVLA
-		  var (fieldId, newHeap) = h.getFieldIdentifier(id, s, t);
+		  var (fieldId, newHeap, rep) = h.getFieldIdentifier(id, s, t);
 	 	  p = p.free(fieldId);
 	  }
 	  return p;

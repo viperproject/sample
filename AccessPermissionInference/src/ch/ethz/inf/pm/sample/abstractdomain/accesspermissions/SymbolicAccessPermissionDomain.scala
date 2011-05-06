@@ -419,6 +419,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
 }
 
 class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends BoxedDomain[SymbolicLevelPermission, SymbolicPermissionsDomain[I]] with PermissionsDomain[SymbolicPermissionsDomain[I]] with AddressedDomain[I]{
+  override def merge(s : Replacement) = if(s.isEmpty) this; else throw new PermissionsException("Merge not yet supported");
 
   def keys() = value.keySet;
   

@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
 
-class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends Analysis[SymbolicPermissionsDomain[I]] {
+class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends SemanticAnalysis[SymbolicPermissionsDomain[I]] {
 
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(ChaliceNativeMethodSemantics)
 
