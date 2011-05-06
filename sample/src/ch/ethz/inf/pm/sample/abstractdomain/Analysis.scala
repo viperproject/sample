@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait Analysis[T <: SemanticDomain[T]] {
+trait Analysis {
 
   /**
    This method returns a short name for the analysis
@@ -35,13 +35,6 @@ trait Analysis[T <: SemanticDomain[T]] {
   def setParameter(label : String, value : Any) : Unit;
 
   /**
-   This method returns the state that has to be used to start the analysis
-
-   @return the initial state
-  */
-  def getInitialState() : T;
-
-  /**
    This method returns the set of the properties that can be applied to this analysis
 
    @return the possible properties
@@ -62,4 +55,34 @@ trait Analysis[T <: SemanticDomain[T]] {
    fields before re-running the analysis.
   */
   def reset() : Unit;
+}
+
+/**
+ * An <code>Analysis</code> represents the interface to provide a semantic analysis to Sample
+ *
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
+trait SemanticAnalysis[T <: SemanticDomain[T]] extends Analysis {
+  /**
+   This method returns the state that has to be used to start the analysis
+
+   @return the initial state
+  */
+  def getInitialState() : T;
+}
+
+/**
+ * An <code>Analysis</code> represents the interface to provide a heap analysis to Sample
+ *
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
+trait HeapAnalysis[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis {
+  /**
+   This method returns the state that has to be used to start the analysis
+
+   @return the initial state
+  */
+  def getInitialState() : T;
 }

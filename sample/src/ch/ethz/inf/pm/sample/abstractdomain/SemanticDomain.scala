@@ -11,6 +11,14 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  */
 trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
 
+  /**
+   For each set of identifiers in the domain of f, this method merges these identifiers
+   into the given one.
+
+   @param f The identifiers to merge
+   @return the state after the merge
+   */
+  def merge(f : Replacement) : T;
 
   /**
    This method returns representing the value of the given identifier
@@ -132,3 +140,4 @@ trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends Semanti
 
 
 class SymbolicSemanticException(message : String) extends Exception(message)
+class SemanticException(message : String) extends Exception(message)
