@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
+  override def merge(r : Replacement) = if(r.isEmpty) this; else throw new ApronException("Merge not yet implemented");
 	
 	override def getStringOfId (id : Identifier) : String = {
 		var result : String = "";
@@ -121,7 +122,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	
 	private def toTexpr1Node(e : Expression) : Texpr1Node = e match {
 		case x : Identifier => new Texpr1VarNode(x.getName);
-		case Constant(v, typ) => new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
+		case Constant(v, typ, p) => new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
 		case BinaryArithmeticExpression(left, right, op, typ) => new Texpr1BinNode(this.convertArithmeticOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
 		case UnaryArithmeticExpression(left, op, typ) => op match {
 			case ArithmeticOperator.- => new Texpr1UnNode(Texpr1UnNode.OP_NEG, this.toTexpr1Node(left))
@@ -170,7 +171,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 }
 
 
-class ApronAnalysis extends Analysis[ApronInterface] {
+class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
   var domain : Manager=null;
   def getLabel() : String = "Apron numerical analysis";
   def parameters() : List[(String, Any)] = List(("Domain", List("Interval", "PPL", "Octagons", "Polka")));

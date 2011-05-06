@@ -16,6 +16,7 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 }
 
 class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom : N) extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]() with NumericalDomain[BoxedNonRelationalNumericalDomain[N]] {
+  override def merge(r : Replacement) = if(r.isEmpty) this; else throw new SemanticException("Merge not yet implemented");
   final def factory() = new BoxedNonRelationalNumericalDomain[N](dom.factory());
     
   def get(key : Identifier) : N = value.get(key) match {
@@ -61,7 +62,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => return dom.divide(eval(left), eval(right));
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => return dom.subtract(eval(left), eval(right));
     case BinaryArithmeticExpression(left, right, op, typ) => dom.top() //TODO: implement it!!! 
-    case Constant(constant, typ) => try { return dom.evalConstant(Integer.valueOf(constant).intValue());} catch {case _ => return dom.top();}
+    case Constant(constant, typ, pp) => try { return dom.evalConstant(Integer.valueOf(constant).intValue());} catch {case _ => return dom.top();}
     case x : Identifier => this.get(x)
   }
     
@@ -358,7 +359,7 @@ class Interval(val left : Int, val right: Int) extends NonRelationalNumericalDom
 }
 
 
-class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] extends Analysis[BoxedNonRelationalNumericalDomain[D]] {
+class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] extends SemanticAnalysis[BoxedNonRelationalNumericalDomain[D]] {
   var domain : NonRelationalNumericalDomain[D]=null;
   def getLabel() : String = "Numerical nonrelational analysis";
   def parameters() : List[(String, Any)] = List(("Domain", List("Sign", "Interval")));
