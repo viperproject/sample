@@ -29,6 +29,9 @@ object ApronRun {
 	//Mandatory global settings
 	SystemParameters.compiler = new ScalaCompiler;
 	SystemParameters.property = new ApronProperty;
+
+	SystemParameters.analysisOutput = new ApronOutput();
+	SystemParameters.progressOutput = new ApronOutput();
 	
 	//Files paths
 	val f1 = "/home/samlik/IdeaProjects/Semper/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
@@ -52,4 +55,16 @@ object ApronRun {
 	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState);
 	
   }
+
+
+}
+
+class ApronOutput extends Output {
+	def getString(): String = {
+		return "";
+	}
+
+	def appendString(s: String) = {
+		//do nothing
+	}
 }

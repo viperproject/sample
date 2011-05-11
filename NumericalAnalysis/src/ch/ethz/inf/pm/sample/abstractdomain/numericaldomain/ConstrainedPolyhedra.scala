@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.property.Property
 
 /**
  * Constrined Polyhedra Abstract Domain.
@@ -49,11 +50,14 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	 * that satisfy the given constraints.
 	 */
 	override def assume(expr : Expression) : ConstrainedPolyhedra = {
+		val apInterface = super.assume(expr);
+		checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers));
+		/*
 		if (isExpressionAccepted(expr)) {
 			assumeWithoutConstraints(expr);
 		} else {
 			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
-		}		
+		}	*/
 	}
 	
 	override def bottom() : ConstrainedPolyhedra = {
@@ -202,4 +206,30 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 		  }
 		  new ConstrainedPolyhedra(newState, cp.cpdomain, cp.coefficients, cp.numOfVariables, cp.setOfIdentifiers);
 	  }
+}
+
+
+class ConstrainedPolyhedraAnalysis extends SemanticAnalysis[ApronInterface] {
+	var domain : Manager=null;
+	def getLabel() : String = "Constrained Polyhedra analysis";
+	def parameters() : List[(String, Any)] = List(("Domain", List("Interval", "PPL", "Octagons", "Polka")));
+	def setParameter(label : String, value : Any) = label match {
+	case "Domain" => value match {
+		case "Interval" => domain = new Box();
+		case "PPL" => domain = new PplPoly(false);
+		case "Octagons" => domain = new Octagon();
+		case "Polka" => domain = new Polka(false);
+		}
+	}
+	def reset() : Unit = Unit;
+	var coefSet = Set.empty[Int];
+	coefSet.+=(-1);
+	coefSet.+=(1);
+	coefSet.+=(0);
+	coefSet.+=(2);
+	coefSet.+=(-2);
+
+	def getInitialState() : ApronInterface = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[String]);
+	def getProperties() : Set[Property] = Set.empty+new ApronProperty();
+	def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
 }
