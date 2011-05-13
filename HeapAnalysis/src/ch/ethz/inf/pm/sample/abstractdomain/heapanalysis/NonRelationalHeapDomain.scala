@@ -123,6 +123,8 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     dom.typ=t;
     cod.typ=t;
   }
+  override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Expression, index : Expression, state : S, typ : Type)
+  = throw new SemanticException("Non relational heap domains do not support arrays");
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
   override def getLabel() : String = "Heap Domain:"+dom.getLabel();
   override def parameters() : List[(String, Any)] = List((("Unsound entry state"), false), (("Max. number of entry nodes"), 10))
@@ -289,11 +291,11 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	    else (heap, ids);
   }*/
   
-  override def setParameter(variable : Identifier, expr : Expression) = this.assign(variable, expr);
+  override def setParameter(variable : Identifier, expr : Expression) = this.assign(variable, expr, null);
   
   override def backwardAssign(variable : Identifier, expr : Expression) = (this, new Replacement)
   
-  override def assign(variable : Identifier, expr : Expression) : (NonRelationalHeapDomain[I], Replacement) = {
+  override def assign[S <: SemanticDomain[S]](variable : Identifier, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
     if(! variable.getType.isObject) return (this, new Replacement);//It does not modify the heap
     variable match {
 	    case x : VariableIdentifier => 

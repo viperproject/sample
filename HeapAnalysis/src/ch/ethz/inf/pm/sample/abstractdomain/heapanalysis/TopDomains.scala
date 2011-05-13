@@ -75,11 +75,13 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
   private var isBottom = false;
   final override def factory() = top();
   def getStringOfId(id : Identifier) : String = this.toString()
-  override def assign(variable : Identifier, expr : Expression) = (this, new Replacement);
+  override def assign[S <: SemanticDomain[S]](variable : Identifier, expr : Expression, state : S) = (this, new Replacement);
   override def backwardAssign(variable : Identifier, expr : Expression) = (this, new Replacement);
-  override def setParameter(variable : Identifier, expr : Expression) = assign(variable, expr);
+  override def setParameter(variable : Identifier, expr : Expression) = assign(variable, expr, null);
   override def setToTop(variable : Identifier) = (this, new Replacement);
   override def removeVariable(variable : Identifier) = (this, new Replacement);
+  override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Expression, index : Expression, state : S, typ : Type)
+  = (new SingleHeapIdentifier(arrayIdentifier.getType(), arrayIdentifier.getProgramPoint), this, new Replacement)
   override def top() : ReallyApproximatedHeapDomain = this
   override def bottom() : ReallyApproximatedHeapDomain = {
     val result=new ReallyApproximatedHeapDomain();
