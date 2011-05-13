@@ -33,7 +33,7 @@ object SystemParameters {
   /**
    The semantics of methods defined by hand
   */
-  var nativeMethodsSemantics : List[NativeMethodSemantics] = Nil;
+  var nativeMethodsSemantics : List[NativeMethodSemantics] = ArrayNativeMethodSemantics :: Nil;
   /**
    The class currently analyzed
   */

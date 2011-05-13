@@ -65,7 +65,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
  override def assign(variable : Identifier, expr : Expression) : T= {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (d,r)=d2.assign(variable, expr)
+    val (d,r)=d2.assign(variable, expr, d1)
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
@@ -436,6 +436,20 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     }
     result
   }
+
+  def getArrayCell(obj : List[SymbolicAbstractValue[GenericAbstractState[N,H,I]]], index : List[SymbolicAbstractValue[GenericAbstractState[N,H,I]]], typ : Type) : GenericAbstractState[N,H,I] =
+  throw new SemanticException("Arrays not yet implemented")
+  //Should use the methods of the heap domain to obtain the heap id of the cell
+  		        	/*if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
+		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
+		        	val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
+		        	var result = state.bottom();
+		        	for(exp <- index.getExpressions) {
+		        		val st = index.get(exp);
+		        		result=result.lub(result, state.setExpression(new SymbolicAbstractValue(new ArrayAccess(id, exp, thisExpr.getType().getArrayElementsType().get), state)));
+		        	}
+		        	return Some(result);*/
+
   
   def backwardGetFieldValue(objs : List[SymbolicAbstractValue[GenericAbstractState[N,H,I]]], field : String, typ : Type) : GenericAbstractState[N,H,I] = {
     if(this.isBottom) return this;

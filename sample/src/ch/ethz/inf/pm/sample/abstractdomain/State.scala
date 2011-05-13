@@ -180,7 +180,18 @@ trait State[S <: State[S]] extends Lattice[S] {
    @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
    */
   def getFieldValue(obj : List[SymbolicAbstractValue[S]], field : String, typ : Type) : S
-  
+
+
+   /**
+   Accesses a field of an object
+
+   @param obj The object on which the field access is performed
+   @param field The name of the field
+   @param typ The type of the field
+   @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
+   */
+  def getArrayCell(obj : List[SymbolicAbstractValue[S]], index : List[SymbolicAbstractValue[S]], typ : Type) : S
+
   /**
    Performs the backward semantics of a variable access
    

@@ -2,15 +2,19 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 /**
- * A <code>Replacement</code> is a map from sets of identifiers to identifier.
+ * A <code>Replacement</code> is a map from sets of identifiers to sets of identifiers.
  * Each relation in the map represents the set of identifiers that should be
- * merged into the given id.
+ * merged into the given set of ids.
  *
+ * For instance, merge([{a, b} -> {c}]) in a state in which a->[0..0] and b->[1..1] will produce
+ * a state in which c -> [0..0] lub [1..1] = [0..1] and there are no a and b
+ * merge([{a} -> {b, c}]) in a state in which a->[0..0] will produce
+ * a state in which b -> [0..0] and c -> [0..0] and there is no a
  *
  * @author Pietro Ferrara
  * @version 0.1
  */
-class Replacement extends scala.collection.mutable.HashMap[Set[Identifier], Identifier]
+class Replacement extends scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]
 
 /**
  * A <code>HeapDomain</code> is a domain aimed at tracking information
@@ -42,6 +46,20 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
   def getFieldIdentifier(objectIdentifier : Expression, name : String, typ : Type) : (I, T, Replacement);
 
   /**
+   This method returns the identifier of the cell of an array
+
+   @param arrayIdentifier the identifier of the array to be accessed
+   @param index the index used to access the array
+   @param state the state of the semantic domain at that point. This could be useful to precisely
+   analyze inside which bounds of the array the access is
+   @param typ the type of the accessed cell
+   @return the identifier of accessed cell, the state of the heap after that (since we could create new
+   abstract ids when accessing the array in order to be more precise), and the eventual replacements (e.g.,
+   if the heap analyzed has summarize or splitted some cells)
+   */
+  def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Expression, index : Expression, state : S, typ : Type) : (I, T, Replacement);
+
+  /**
    This method sets to top a given variable
 
    @param variable the variable to be set to top
@@ -54,9 +72,11 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
 
    @param variable the variable to be assigned
    @param expr the expression to be assigned
-   @return the state after this action
+   @param state the state of the semantic domain at that point
+   @return the state after this action and the eventual replacements (e.g.,
+   if the heap analyzed has summarize or splitted some cells)
    */
-  def assign(variable : Identifier, expr : Expression) : (T, Replacement);
+  def assign[S <: SemanticDomain[S]](variable : Identifier, expr : Expression, state : S) : (T, Replacement);
 
   /**
    This method set a paramenter (usually the parameter passed to a method) to the given expression
@@ -166,7 +186,6 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    @return true iff <code>this</code> is less or equal than <code>r</code>
    */
   def lessEqual(r : T) : Boolean
-
 }
 
 trait AddressedDomain[I <: HeapIdentifier[I]] {
