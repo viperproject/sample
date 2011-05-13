@@ -9,12 +9,14 @@ import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing._
+import ch.ethz.inf.pm.sample.oorepresentation.scalalang._
 import ch.ethz.inf.pm.sample.property._
-import ch.ethz.inf.pm.sample.gui._
+import ch.ethz.inf.pm.sample.userinterfaces._
 
 
 class ArrayProperty extends Property {
+
+    def getLabel() : String = "Show graph"
 	
 	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
 	  
@@ -52,7 +54,7 @@ object ArrayAnalysis {
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 	
-	val heapid = new SingleHeapIdentifier(null);
+	val heapid = new SingleHeapIdentifier(null, null);
 	heapid.typ=SystemParameters.typ.asInstanceOf[Type];
 	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new HeapIdAndSetDomain[TopHeapIdentifier](heapid), heapid);
 	val entrydomain  = new HeapAndAnother(numericalDomain, heapDomain);
