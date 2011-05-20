@@ -76,6 +76,7 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
   final override def factory() = top();
   def getStringOfId(id : Identifier) : String = this.toString()
   override def assign[S <: SemanticDomain[S]](variable : Identifier, expr : Expression, state : S) = (this, new Replacement);
+  override def assignField(variable : Identifier, field : String, expr : Expression) = (this, new Replacement);
   override def backwardAssign(variable : Identifier, expr : Expression) = (this, new Replacement);
   override def setParameter(variable : Identifier, expr : Expression) = assign(variable, expr, null);
   override def setToTop(variable : Identifier) = (this, new Replacement);
@@ -88,15 +89,15 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
     result.isBottom=true;
     result;
   }
-  override def heaplub(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = {
+  override def lubWithReplacement(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = {
     if(left.isBottom && right.isBottom) (bottom(), new Replacement);
     else (new ReallyApproximatedHeapDomain(), new Replacement);
   }
-  override def heapglb(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = {
+  override def glbWithReplacement(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = {
     if(left.isBottom || right.isBottom) (bottom(), new Replacement);
     else (left, new Replacement);
   }
-  override def heapwidening(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = heaplub(left, right)
+  override def wideningWithReplacement(left : ReallyApproximatedHeapDomain, right : ReallyApproximatedHeapDomain) = lubWithReplacement(left, right)
   override def lessEqual(r : ReallyApproximatedHeapDomain) : Boolean = true
   
   override def createVariable(id : Identifier, typ : Type)=(this, new Replacement)

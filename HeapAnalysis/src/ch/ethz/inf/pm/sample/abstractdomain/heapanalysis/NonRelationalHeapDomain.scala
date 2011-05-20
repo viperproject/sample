@@ -113,9 +113,9 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
 
 //Approximates all the concrete references created at the same point of the program with a unique abstract reference
 class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : VariableEnv[I], heap : HeapEnv[I], val cod : HeapIdAndSetDomain[I], dom : I) extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], NonRelationalHeapDomain[I]](env, heap) with HeapDomain[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]] with HeapAnalysis[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]]{
-  override def heaplub(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.lub(left, right), new Replacement)
-  override def heapglb(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.glb(left, right), new Replacement)
-  override def heapwidening(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.widening(left, right), new Replacement)
+  override def lubWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.lub(left, right), new Replacement)
+  override def glbWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.glb(left, right), new Replacement)
+  override def wideningWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.widening(left, right), new Replacement)
   override def reset() : Unit = Unit;
   def setType(t : Type) = {
     env.typ=t;
@@ -294,7 +294,11 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def setParameter(variable : Identifier, expr : Expression) = this.assign(variable, expr, null);
   
   override def backwardAssign(variable : Identifier, expr : Expression) = (this, new Replacement)
-  
+
+  override def assignField(variable : Identifier, s : String, expr : Expression) : (NonRelationalHeapDomain[I], Replacement) =
+    this.assign(this.getFieldIdentifier(variable, s, expr.getType)._1, expr, null);
+  //We ignore the other parts since getting a field does not modify a non relational heap domain
+
   override def assign[S <: SemanticDomain[S]](variable : Identifier, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
     if(! variable.getType.isObject) return (this, new Replacement);//It does not modify the heap
     variable match {
