@@ -3,7 +3,10 @@
 
 package ch.ethz.inf.pm.sample.abstractdomain
 
-/** 
+import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.oorepresentation._
+
+/**
  * The representation of a functional domain, that is, a domain that is represented by a function whose
  * codomain is a lattice. The lattice operators are the functional extensions of the lattice operators of
  * the codomain.
@@ -14,9 +17,6 @@ package ch.ethz.inf.pm.sample.abstractdomain
  * @author Pietro Ferrara
  * @since 0.1
  */
-import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.oorepresentation._
-
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] extends Lattice[T] {
   override def factory() : T;
   
@@ -373,6 +373,202 @@ trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
     if(right.isTop) return true;
     right.value.subsetOf(this.value)
   }  
+}
+
+trait FunctionalDomainWithReplacement[K, V <: LatticeWithReplacement[V], T <: FunctionalDomainWithReplacement[K, V, T]] extends LatticeWithReplacement[T] {
+  override def factory() : T;
+
+  var value : Map[K, V]=Map.empty[K, V]
+  var isBottom : Boolean = false;
+
+  /**
+   * Adds [key->value] to the domain
+   * @param key The key
+   * @param value The value
+   * @return The state of the domain after the assignment
+   */
+  def add(key : K, value : V) : T = {
+    val result : T = this.factory();
+    result.value=this.value+((key, value));
+    result
+  }
+
+  /**
+   * Returns the value of key. It is not implemented since in some domains if the domain is not defined on the given
+   * key we have a top value, in some others we have a bottom value. So we decided to let to the particular instance
+   * of the domain the opportunity to define it in order to have a total function (that is more convenient when
+   * defining the other lattice operators).
+   *
+   * @param key The key
+   * @return The value related to the given key
+   */
+  def get(key : K) : V;
+
+  /**
+   * Removes the key from the domain.
+   * @param key The key to be removed
+   * @return The state of the domain after the kays has been removed
+   */
+  def remove(key : K) : T = {
+    val result : T = this.factory();
+    result.value=this.value-(key);
+    result
+  }
+
+  /**
+   * Computes the upper bound between two states. It is defined by:
+   * left \sqcup right = [k -> left(k) \sqcup right(k) : k \in dom(left) \cup dom(right)]
+   * @param left One of the two operands
+   * @param right The other operand
+   * @return The upper bound of left and right
+   */
+  def lubWithReplacement(left : T, right : T) : (T, Replacement) = {
+    if(left.equals(this.bottom())) return (right, new Replacement);
+    if(right.equals(this.bottom())) return (left, new Replacement);
+    if(left.equals(this.top()) || right.equals(this.top())) return (this.top(), new Replacement);
+    val (res, replacement)= upperBoundFunctionalLifting(left, right);
+    val result = this.factory();
+    result.value=res
+    (result, replacement)
+  }
+
+
+  /**
+   * Computes the lower bound between two states. It is defined by:
+   * left \sqcap right = [k -> left(k) \sqcap right(k) : k \in dom(left) \cap dom(right)]
+   * @param left One of the two operands
+   * @param right The other operand
+   * @return The lower bound of left and right
+   */
+  def glbWithReplacement(left : T, right : T) : (T, Replacement) =  {
+    if(left.equals(this.bottom()) || right.equals(this.bottom())) return (this.bottom(), new Replacement);
+    if(left.equals(this.top())) return (right, new Replacement);
+    if(right.equals(this.top())) return (left, new Replacement);
+    var result : Map[K, V]  = Map.empty[K, V]
+    var replacement : Replacement = null;
+    for( el <- left.value.keySet++right.value.keySet ) {
+      val (r, repl) = left.get(el).glbWithReplacement(left.get(el), right.get(el));
+      result=result+((el, r));
+      if(replacement==null)
+        replacement=repl;
+      else replacement = replacement.glb(replacement, repl);
+    }
+    val domain=this.factory()
+    domain.value=result
+    (domain, replacement)
+  }
+
+  /**
+   * Computes the widening between two states. It is defined by:
+   * left \nable right = [k -> left(k) \nabla right(k) : k \in dom(left) \cup dom(right)]
+   * @param left The left operand
+   * @param right The right operand
+   * @return The upper bound of left and right
+   */
+  override def wideningWithReplacement(left : T, right : T) : (T, Replacement) =  {
+	if(left.isBottom && right.isBottom) return (this.bottom(), new Replacement);
+	if(left.isBottom) return (right, new Replacement);
+	if(right.isBottom) return (left, new Replacement);
+    val (res, replacement)= wideningFunctionalLifting(left, right);
+    val result = this.factory();
+    result.value=res
+    (result, replacement)
+  }
+
+  /**
+   * Implements the partial ordering between two states of functional domains. It is defined by:
+   * this \leq r <==> \forall k \in dom(this) : this(k) \leq r(k)
+   * @param r The right operand
+   * @return true iff this is less or equal than t
+   */
+  override def lessEqual(r : T) : Boolean = {
+    //case bottom
+    if(this.isBottom) return true;
+    if(r.isBottom) return false;
+    for(variable <- this.value.keySet)
+      if(! this.get(variable).lessEqual(r.get(variable)) )
+        return false;
+    for(variable <- r.value.keySet)
+      if(! this.get(variable).lessEqual(r.get(variable)) )
+        return false;
+    return true;
+  }
+
+  override def equals(a : Any) : Boolean = a match {
+    case right : T =>
+	    //case bottom
+	    if(this.isBottom && right.isBottom) return true;
+	    if(this.isBottom || right.isBottom) return false;
+	    if(this.value.keySet.equals(right.value.keySet)) {
+	      for(variable <- this.value.keySet)
+	        if(! this.value.get(variable).get.equals(right.value.get(variable).get) )
+	          return false;
+	      return true;
+	    }
+	    else return false
+    case _ => false
+  }
+
+  override def toString() : String = {
+    if(isBottom) return "_|_";
+    else return ToStringUtilities.mapToString(value);
+  }
+
+  def top() : T = {
+    var result : T=this.factory();
+    result.value=Map.empty[K, V]
+    for(key <- this.value.keySet)
+      result=result.add(key, this.get(key).top())
+    result
+  }
+
+  final def bottom() : T = {
+    val result : T = this.factory()
+    result.isBottom=true;
+    result
+  }
+
+  private def wideningFunctionalLifting(f1 : T, f2 : T) : (Map[K, V], Replacement) = {
+    var result : Map[K, V]  = Map.empty[K, V]
+    var replacement : Replacement = new Replacement();
+    for( el <- f1.value.keySet ) {
+      f2.value.get(el) match {
+        case Some(x) =>
+          val (r, r2) : (V, Replacement) = x.wideningWithReplacement(f1.value.get(el).get, x);
+          result=result+((el, r));
+          replacement=r2.lub(r2, replacement);
+        case None => result=result+((el, f1.value.get(el).get));
+      }
+    }
+    for( el <- f2.value.keySet ) {
+      f1.value.get(el) match {
+        case Some(x) =>
+        case None => result=result+((el, f2.get(el)))
+      }
+    }
+    (result, replacement)
+  }
+
+  private def upperBoundFunctionalLifting(f1 : T, f2 : T) : (Map[K, V], Replacement) = {
+    var result : Map[K, V]  = Map.empty[K, V]
+    var replacement : Replacement = new Replacement();
+    for( el <- f1.value.keySet ) {
+      f2.value.get(el) match {
+        case Some(x) =>
+          val (r, repl) = x.lubWithReplacement(f1.value.get(el).get, x);
+          result=result+((el, r))
+          replacement=repl.lub(repl, replacement);
+        case None => result=result+((el, f1.value.get(el).get));
+      }
+    }
+    for( el <- f2.value.keySet ) {
+      f1.value.get(el) match {
+        case Some(x) =>
+        case None => result=result+((el, f2.get(el)))
+      }
+    }
+    (result, replacement)
+  }
 }
 
 

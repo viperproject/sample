@@ -14,7 +14,26 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara
  * @version 0.1
  */
-class Replacement extends scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]
+class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]) extends  {
+  def this() {
+    this(new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]());
+  }
+  //I'm not sure if this cast is fine
+  def lub(l : Replacement, r : Replacement) : Replacement = new Replacement(l.value.++(r.value));
+
+  def glb(l : Replacement, r : Replacement) : Replacement = new Replacement(
+    l.value.retain( {
+        case (a, b) => r.value.keySet.contains(a) && r.value.apply(a).equals(b);
+      }
+    )
+  )
+
+  def isEmpty() = value.isEmpty;
+
+  def keySet() = value.keySet;
+
+  def apply(k : Set[Identifier]) = value.apply(k);
+}
 
 /**
  * A <code>HeapDomain</code> is a domain aimed at tracking information
@@ -24,7 +43,7 @@ class Replacement extends scala.collection.mutable.HashMap[Set[Identifier], Set[
  * @author Pietro Ferrara
  * @version 0.1
  */
-trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis {
+trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis with LatticeWithReplacement[T] {
 
   /**
    This method creates an object of a given type
@@ -77,6 +96,17 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    if the heap analyzed has summarize or splitted some cells)
    */
   def assign[S <: SemanticDomain[S]](variable : Identifier, expr : Expression, state : S) : (T, Replacement);
+
+  /**
+   This method assigns a given field of a given objectto the given expression
+
+   @param obj the object whose field has to be assigned
+   @param field the field to be assigned
+   @param expr the expression to be assigned
+   @return the state after this action and the eventual replacements (e.g.,
+   if the heap analyzed has summarize or splitted some cells)
+   */
+  def assignField(obj : Identifier, field : String, expr : Expression) : (T, Replacement);
 
   /**
    This method set a paramenter (usually the parameter passed to a method) to the given expression
@@ -134,58 +164,6 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    */
   def backwardAssign(variable : Identifier, expr : Expression) : (T, Replacement);
 
-    /**
-   Returns a new instance of the lattice
-   @return A new instance of the current object
-   */
-  def factory() : T;
-
-  /**
-   Returns the top value of the lattice
-   @return The top value, that is, a value x that is greater or equal than any other value
-   */
-  def top() : T
-
-  /**
-   Returns the bottom value of the lattice
-   @return The bottom value, that is, a value x that is less or equal than any other value
-   */
-  def bottom() : T
-
-  /**
-   Computes the upper bound of two elements
-
-   @param left One of the two values
-   @param right The other value
-   @return The least upper bound, that is, an element that is greater or equal than the two arguments
-   */
-  def heaplub(left : T, right : T) : (T, Replacement)
-
-  /**
-   Computes the greatest lower bound of two elements
-
-   @param left One of the two values
-   @param right The other value
-   @return The greatest upper bound, that is, an element that is less or equal than the two arguments, and greater or equal than any other lower bound of the two arguments
-   */
-  def heapglb(left : T, right : T) : (T, Replacement)
-
-  /**
-   Computes widening of two elements
-
-   @param left The previous value
-   @param right The new value
-   @return The widening of <code>left</code> and <code>right</code>
-   */
-  def heapwidening(left : T, right : T) : (T, Replacement)
-
-  /**
-   Returns true iff <code>this</code> is less or equal than <code>r</code>
-
-   @param r The value to compare
-   @return true iff <code>this</code> is less or equal than <code>r</code>
-   */
-  def lessEqual(r : T) : Boolean
 }
 
 trait AddressedDomain[I <: HeapIdentifier[I]] {

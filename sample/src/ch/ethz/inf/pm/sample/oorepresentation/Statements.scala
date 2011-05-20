@@ -95,13 +95,23 @@ case class Assignment(programpoint : ProgramPoint, left : Statement, right : Sta
        * assigned to <code>right</code> 
 	   */
       override def forwardSemantics[S <: State[S]](state : S) : S = {
-        val stateleft : S = left.forwardSemantics[S](state)
-        val exprleft = stateleft.getExpression();
-        stateleft.removeExpression();
-        val stateright : S = right.forwardSemantics[S](stateleft)
-        val exprright = stateright.getExpression();
-        stateright.removeExpression();
-        stateright.assignVariable(exprleft, exprright)
+        if(left.isInstanceOf[FieldAccess]) {
+          val castedLeft = left.asInstanceOf[FieldAccess];
+          val (listObjs, state1) = UtilitiesOnStates.forwardExecuteListStatements[S](state, castedLeft.objs)
+          val stateright : S = right.forwardSemantics[S](state1)
+          val exprright = stateright.getExpression();
+          stateright.removeExpression();
+          return stateright.assignField(listObjs, castedLeft.field, exprright)
+        }
+        else {
+          val stateleft : S = left.forwardSemantics[S](state)
+          val exprleft = stateleft.getExpression();
+          stateleft.removeExpression();
+          val stateright : S = right.forwardSemantics[S](stateleft)
+          val exprright = stateright.getExpression();
+          stateright.removeExpression();
+          return stateright.assignVariable(exprleft, exprright)
+        }
       }
       
       //the backward semantics of x=E is S[|havoc x|](S[|x==E||](\sigma)) 

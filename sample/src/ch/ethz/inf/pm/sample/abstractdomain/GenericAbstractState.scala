@@ -73,6 +73,20 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.domainTimer.stop();
     result
   }
+
+  def assignField(variable : Identifier, field : String, expr : Expression, typ : Type) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    val (id, h, r1) = d2.getFieldIdentifier(variable, field, typ)
+    val (d,r2)=h.assignField(variable, field, expr)
+    result.d2=h;
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d1=d1.merge(r1.lub(r1, r2)).assign(id, expr)
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
  override def setParameter(variable : Identifier, expr : Expression) : T= {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
@@ -174,7 +188,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
  override def lub(l : T, r : T) : T = {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (d, rep) =d2.heaplub(l.d2, r.d2)
+    val (d, rep) =d2.lubWithReplacement(l.d2, r.d2)
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
@@ -186,7 +200,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
  override def glb(l : T, r : T) : T = {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (d, rep) =d2.heapglb(l.d2, r.d2)
+    val (d, rep) =d2.glbWithReplacement(l.d2, r.d2)
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
@@ -198,7 +212,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
  override def widening(l : T, r : T) : T = {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (d, rep) =d2.heapwidening(l.d2, r.d2)
+    val (d, rep) =d2.wideningWithReplacement(l.d2, r.d2)
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
@@ -325,15 +339,37 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     for(el <- x.value) {
     	//For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
 	    el._1 match {
-	      case variable : Identifier => {
+	      case variable : VariableIdentifier => {
 	        for(assigned <- right.value) {
 	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.assign(variable, assigned._1), this._2);
 	        	result=result.lub(result, done);
 		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
 	        }
 	      }
-	      case _ => throw new SymbolicSemanticException("I can assign only variables")
+	      case _ => throw new SymbolicSemanticException("I can assign only variables here")
        }
+    }
+    result
+  }
+
+  def assignField(x : List[SymbolicAbstractValue[GenericAbstractState[N,H,I]]], field : String, right : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) : GenericAbstractState[N,H,I] = {
+    if(this.isBottom) return this;
+    if(right.isTop) return top();
+    var result : GenericAbstractState[N,H,I] = this.bottom();
+    for(obj <- x) {
+      for(el <- obj.value) {
+    	  //For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
+	      el._1 match {
+	        case variable : Identifier => {
+	          for(assigned <- right.value) {
+	        	  val done=new GenericAbstractState[N,H,I](assigned._2._1.assignField(variable, field, assigned._1, right.getType(this)), this._2);
+	        	  result=result.lub(result, done);
+		          result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
+	          }
+	        }
+	        case _ => throw new SymbolicSemanticException("I can assign only fields here")
+        }
+      }
     }
     result
   }

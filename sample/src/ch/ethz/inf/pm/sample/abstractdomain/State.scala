@@ -129,6 +129,16 @@ trait State[S <: State[S]] extends Lattice[S] {
    @return The abstract state after the assignment
    */
   def assignVariable(x : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S]) : S
+
+  /**
+   Assigns an expression to a field of an object
+
+   @param obj The object whose field is assigned
+   @param field The assigned field
+   @param right The assigned expression
+   @return The abstract state after the assignment
+   */
+  def assignField(obj : List[SymbolicAbstractValue[S]], field : String, right : SymbolicAbstractValue[S]) : S
   
   /**
    Assigns an expression to an initial parameter
@@ -273,6 +283,71 @@ trait State[S <: State[S]] extends Lattice[S] {
    */
   def removeExpression() : S
 
+}
+
+
+/**
+ * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
+ * that when joins, meets or widens returns a replacement.
+ *
+ * @param <T> The current type of the LatticeWithReplacement
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
+trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
+
+  /**
+   Returns a new instance of the lattice
+   @return A new instance of the current object
+   */
+  def factory() : T;
+
+  /**
+   Returns the top value of the lattice
+   @return The top value, that is, a value x that is greater or equal than any other value
+   */
+  def top() : T
+
+  /**
+   Returns the bottom value of the lattice
+   @return The bottom value, that is, a value x that is less or equal than any other value
+   */
+  def bottom() : T
+
+  /**
+     Computes the upper bound of two elements
+
+     @param left One of the two values
+     @param right The other value
+     @return The least upper bound, that is, an element that is greater or equal than the two arguments
+     */
+    def lubWithReplacement(left : T, right : T) : (T, Replacement)
+
+    /**
+     Computes the greatest lower bound of two elements
+
+     @param left One of the two values
+     @param right The other value
+     @return The greatest upper bound, that is, an element that is less or equal than the two arguments, and greater or equal than any other lower bound of the two arguments
+     */
+    def glbWithReplacement(left : T, right : T) : (T, Replacement)
+
+    /**
+     Computes widening of two elements
+
+     @param left The previous value
+     @param right The new value
+     @return The widening of <code>left</code> and <code>right</code>
+     */
+    def wideningWithReplacement(left : T, right : T) : (T, Replacement)
+
+  /**
+   Returns true iff <code>this</code> is less or equal than <code>r</code>
+
+   @param r The value to compare
+   @return true iff <code>this</code> is less or equal than <code>r</code>
+   */
+  def lessEqual(r : T) : Boolean
 }
 
 /** 
