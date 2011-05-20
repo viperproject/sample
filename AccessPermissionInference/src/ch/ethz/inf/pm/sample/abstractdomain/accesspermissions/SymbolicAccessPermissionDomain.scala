@@ -467,7 +467,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
       var result=this;
       for(add <- id.asInstanceOf[HeapIdAndSetDomain[I]].value) {
     	//the permission should be 100%
-    	ConstraintsInference.addConstraint(new Eq(new SimpleVal(Settings.permissionType.writeLevel), ConstraintsInference.convert(this.get(add))));
+    	ConstraintsInference.addConstraint(new Eq(new SimpleVal(Settings.permissionType.maxLevel), ConstraintsInference.convert(this.get(add))));
         result=result.remove(add);
       }
       return result;
@@ -522,7 +522,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   def backwardAccess(field : Identifier) : SymbolicPermissionsDomain[I] = throw new PermissionsException("Backward analysis not yet supported");
   
   def assume(expr : Expression) : SymbolicPermissionsDomain[I] = this
-  def createVariable(variable : Identifier, typ : Type) : SymbolicPermissionsDomain[I] = return this.setPermissionLevel(variable, Settings.permissionType.writeLevel);
+  def createVariable(variable : Identifier, typ : Type) : SymbolicPermissionsDomain[I] = return this.setPermissionLevel(variable, Settings.permissionType.maxLevel);
   def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) : (SymbolicPermissionsDomain[I], Map[Identifier, List[String]]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil))

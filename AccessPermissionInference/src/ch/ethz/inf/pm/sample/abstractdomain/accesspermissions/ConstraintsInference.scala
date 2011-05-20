@@ -26,7 +26,6 @@ object Settings {
 sealed trait PermissionsType {
 	def ensureWriteLevel(level : ArithmeticExpression) : Constraint;
 	def ensureReadLevel(level : ArithmeticExpression) : Constraint;
-	def writeLevel : Double;
 	def maxLevel : Double;
 	def minLevel : Double;
   def float : Boolean;
@@ -36,22 +35,16 @@ sealed trait PermissionsType {
 case object FractionalPermissions extends PermissionsType {
 	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Eq(level, new SimpleVal(1));
 	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Greater(level, new SimpleVal(0));
-	override def writeLevel : Double = 1
 	override def maxLevel : Double = 1
 	override def minLevel : Double = 0
   override def float : Boolean = true;
   override def epsilon : Boolean = false;
 }
 
-//In order to support the model in which inhale == + and exhale == - we have that:
-// 1000 is a total permission
-// n<1000 is a total permission from whom 1000-n read permissions have been given away
-// n>1000 represents n-1000 read permissions
 case object CountingPermissions extends PermissionsType {
-	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Eq(new SimpleVal(this.writeLevel), level);
+	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Eq(new SimpleVal(this.maxLevel), level);
 	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Geq(level, new SimpleVal(this.minLevel+1));
-	override def writeLevel : Double = 1000
-	override def maxLevel : Double = 1999
+	override def maxLevel : Double = 1000
 	override def minLevel : Double = 0
   override def float : Boolean = false;
   override def epsilon : Boolean = false;
@@ -60,7 +53,6 @@ case object CountingPermissions extends PermissionsType {
 case object ChalicePermissions extends PermissionsType {
 	override def ensureWriteLevel(level : ArithmeticExpression) : Constraint = new Eq(level, new SimpleVal(100));
 	override def ensureReadLevel(level : ArithmeticExpression) : Constraint = new Geq(level, new Multiply(1, Epsilon));
-	override def writeLevel : Double = 100
 	override def maxLevel : Double = 100
 	override def minLevel : Double = 0
   override def float : Boolean = true;
@@ -213,7 +205,7 @@ object ConstraintsInference {
         
         if(Settings.permissionType.epsilon) this.addEpsilonConstraint(vars, solver);
         solver.setMinim();
-        //this.printSolverConstraints(solver, vars);
+        this.printSolverConstraints(solver, vars);
         // solve the problem
         solver.solve();
         val obj=solver.getObjective();

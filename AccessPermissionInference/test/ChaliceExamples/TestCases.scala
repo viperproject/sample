@@ -16,11 +16,12 @@ object Chalice {
 class Cell {
   var x : Int = 0;
 
-  def get() : Int = return x;
-  def set(v : Int) = x=v;
-  def cuncurrentSet(x : Int) = {
+  //def get() : Int = return x;
+  //def set(v : Int) = x=v;
+  def concurrentSet(x : Int) = {
     Chalice.acquire(this);
-    this.set(x);
+    //this.set(x);
+    this.x=x;
     Chalice.release(this);
   }
 
