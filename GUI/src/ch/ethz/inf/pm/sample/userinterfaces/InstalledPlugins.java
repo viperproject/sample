@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.userinterfaces;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumericalAnalysis;
+import ch.ethz.inf.pm.sample.abstractdomain.posdomain.PosDomainAnalysis;
 import ch.ethz.inf.pm.sample.oorepresentation.*;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
@@ -18,10 +19,11 @@ public class InstalledPlugins {
         compilers[0]=new ScalaCompiler();
         compilers[1]=new JavaCompiler();
 
-        analyses=new SemanticAnalysis[3];
+        analyses=new SemanticAnalysis[4];
         analyses[0]=new AccessPermissionsAnalysis();
         analyses[1]=new NonRelationalNumericalAnalysis();
         analyses[2]=new ApronAnalysis();
+        analyses[3]=new PosDomainAnalysis();
 
         heapanalyses=new HeapDomain[5];
         heapanalyses[0]=new ReallyApproximatedHeapDomain();
