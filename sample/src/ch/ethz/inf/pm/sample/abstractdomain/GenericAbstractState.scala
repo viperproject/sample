@@ -19,6 +19,8 @@ import ch.ethz.inf.pm.sample._
 class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](private var d1 : N, private var d2 : H) extends SemanticDomain[HeapAndAnotherDomain[N, H, I]]{
 
 
+  override def toString() : String = "Heap state:\n"+d2.toString()+"\nSemantic state:\n"+d1.toString();
+
   type T = HeapAndAnotherDomain[N, H, I];
 
   def _1() = d1;
