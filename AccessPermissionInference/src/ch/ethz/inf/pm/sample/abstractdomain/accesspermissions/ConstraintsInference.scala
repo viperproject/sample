@@ -30,6 +30,7 @@ sealed trait PermissionsType {
 	def minLevel : Double;
   def float : Boolean;
   def epsilon : Boolean;
+  def permissionToString(value : Double, epsilon : Option[Double]) : String;
 }
 
 case object FractionalPermissions extends PermissionsType {
@@ -39,6 +40,7 @@ case object FractionalPermissions extends PermissionsType {
 	override def minLevel : Double = 0
   override def float : Boolean = true;
   override def epsilon : Boolean = false;
+  override def permissionToString(value : Double, epsilon : Option[Double]) : String = value.toString();;
 }
 
 case object CountingPermissions extends PermissionsType {
@@ -48,6 +50,12 @@ case object CountingPermissions extends PermissionsType {
 	override def minLevel : Double = 0
   override def float : Boolean = false;
   override def epsilon : Boolean = false;
+  override def permissionToString(value : Double, epsilon : Option[Double]) : String =
+    if(value==0.0) return "0";
+      else if(value<=(maxLevel-minLevel)/2) return value.toInt.toString+" read permissions";
+        else if(maxLevel-value!=0)
+            return "write permission -"+(maxLevel-value).toInt.toString+" read permissions";
+          else return "write permission";
 }
 
 case object ChalicePermissions extends PermissionsType {
@@ -57,6 +65,46 @@ case object ChalicePermissions extends PermissionsType {
 	override def minLevel : Double = 0
   override def float : Boolean = true;
   override def epsilon : Boolean = true;
+  override def permissionToString(value : Double, epsilon : Option[Double]) : String = {
+    val (intval, epsval) = stringWithEpsilon(value, epsilon.get);
+    var result : String = "";
+    if(intval!=0)
+      result=result+intval.toString()+" ";
+    if(epsval!=0)
+      result=result+epsval.toString()+" epsilons";
+    return result;
+  }
+
+  private def stringWithEpsilon(value : Double, epsilon : Double) : (Int, Int) = {
+	  var intPart : Int = value.toInt;
+	  var floatPart : Double = value-(intPart.toDouble);
+	  var nEpsilons : Int =0;
+	  if(floatPart>0.5) {
+	 	  nEpsilons=0-getNEpsilons(1-floatPart, epsilon);
+	 	  intPart=1+intPart;
+	  }
+	  else {
+	   nEpsilons=getNEpsilons(floatPart, epsilon);
+	  }
+	  return (intPart, nEpsilons);
+  }
+
+    private def getNEpsilons(v : Double, epsilon : Double) : Int = {
+	   var nEpsilons : Int = (v/epsilon).toInt;
+	   var approximation : Double = v-(nEpsilons.toFloat*epsilon)
+     if(epsilon==0-1.0) {
+      if(v<=0.00001)
+        return 0;
+      else throw new SemanticException("Epsilon not computed")
+     }
+	   if(Math.abs(approximation)>epsilon/2) {
+	 	  if(approximation>0)
+	 	 	  nEpsilons=nEpsilons+1
+	      else nEpsilons=nEpsilons-1
+	   }
+	   return nEpsilons;
+  }
+
 }
 
 
@@ -176,7 +224,7 @@ object ConstraintsInference {
    def bbfunc(problem : LpSolve, userhandle : Object, buf : Int) : Int = 0
    def msgfunc(problem : LpSolve, userhandle : Object, buf : Int) : Unit = {}
    }
-  def solve(constraints : Set[Constraint]) : Map[SymbolicValue, (Double, Int)] = {
+  def solve(constraints : Set[Constraint]) : (Map[SymbolicValue, Double], Option[Double]) = {
       try {
         val vars : List[SymbolicValue] = this.extractVariables(constraints).toList;
         val solver : LpSolve= LpSolve.makeLp(0, vars.size);
@@ -203,7 +251,8 @@ object ConstraintsInference {
         
         this.addObjectiveFunction(vars, solver);
         
-        if(Settings.permissionType.epsilon) this.addEpsilonConstraint(vars, solver);
+        if(Settings.permissionType.epsilon)
+          this.addEpsilonConstraint(vars, solver);
         solver.setMinim();
         this.printSolverConstraints(solver, vars);
         // solve the problem
@@ -219,27 +268,17 @@ object ConstraintsInference {
         else {
 	        val variables : Array[Double]= solver.getPtrVariables();
 	        assert(variables.size==vars.size);
-	        var result : Map[SymbolicValue, (Double, Int)] = Map.empty;
-	        if(Settings.permissionType.epsilon) {
-            val epsilon = this.extractEpsilon(vars, variables)
-            for (i <- 0 to variables.length-1) {
+	        var result : Map[SymbolicValue, Double] = Map.empty;
+	        val epsilon = if(Settings.permissionType.epsilon) Some(this.extractEpsilon(vars, variables)) else None;
+          for (i <- 0 to variables.length-1) {
               if(variables(i)>0) {
-                val (intPart, nEpsilons)=stringWithEpsilon(variables(i), epsilon)
-                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + intPart + " + "+nEpsilons+"epsilon (float value:"+variables(i)+")");
-                result=result+((vars.apply(i), (intPart, nEpsilons)));
+                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + Settings.permissionType.permissionToString(variables(i), epsilon));
+                result=result+((vars.apply(i), variables(i)));
                }
-            }
           }
-          else
-            for (i <- 0 to variables.length-1) {
-              if(variables(i)>0) {
-                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + clean(variables(i)));
-                result=result+((vars.apply(i), (variables(i), 0)));
-               }
-            }
 	        // delete the problem and free memory
 	        solver.deleteLp();
-	        return result;
+	        return (result, epsilon);
         }
     }
     catch {
@@ -279,37 +318,15 @@ object ConstraintsInference {
      }
     else return d;
   }
+
   
-  def stringWithEpsilon(value : Double, epsilon : Double) : (Int, Int) = {
-	  var intPart : Int = value.toInt;
-	  var floatPart : Double = value-(intPart.toDouble);
-	  var nEpsilons : Int =0;
-	  if(floatPart>0.5) {
-	 	  nEpsilons=0-getNEpsilons(1-floatPart, epsilon);
-	 	  intPart=1+intPart;
-	  }
-	  else {  
-	   nEpsilons=getNEpsilons(floatPart, epsilon);
-	  }
-	  return (intPart, nEpsilons);
-  }
-  
-  private def getNEpsilons(v : Double, epsilon : Double) : Int = {
-	   var nEpsilons : Int = (v/epsilon).toInt;
-	   var approximation : Double = v-(nEpsilons.toFloat*epsilon) 
-	   if(Math.abs(approximation)>epsilon/2) {
-	 	  if(approximation>0)
-	 	 	  nEpsilons=nEpsilons+1
-	      else nEpsilons=nEpsilons-1
-	   }
-	   return nEpsilons;
-  }
+
   
   private def extractEpsilon(vars : List[SymbolicValue], variables : Array[Double]) : Double = {
 	     for(i <- 0 to vars.size-1)
         	if(vars.apply(i).equals(Epsilon))
         		return variables.apply(i);
-	     return 0;
+        return -1.0;
   }
       
   private def produceString(i : Int, size : Int) : String = {
@@ -331,11 +348,11 @@ object ConstraintsInference {
     var s : String = "";
     for(v <- variables) {
       v match {
-        case x : SymbolicMonitorInvariant => s=s+Settings.priorityInvariants.toString()+" ";
-        case x : SymbolicAbstractPredicates => s=s+Settings.priorityPredicates.toString()+" ";
-        case x : SymbolicPreCondition => s=s+Settings.priorityContracts.toString()+" ";
-        case x : SymbolicPostCondition => s=s+Settings.priorityContracts.toString()+" ";
-        case x if x.equals(Epsilon) => s=s+"-2 ";
+        case x : SymbolicMonitorInvariant => s=s+(Settings.priorityInvariants).toString()+" ";
+        case x : SymbolicAbstractPredicates => s=s+(Settings.priorityPredicates).toString()+" ";
+        case x : SymbolicPreCondition => s=s+(Settings.priorityContracts).toString()+" ";
+        case x : SymbolicPostCondition => s=s+(Settings.priorityContracts).toString()+" ";
+        case x if x.equals(Epsilon) => s=s+"-100000 ";
       }
     } 
     solver.strSetObjFn(s);
@@ -348,7 +365,7 @@ object ConstraintsInference {
         case x if x.equals(Epsilon) => {
         	//We impose that (2*maxIndex(Epsilon)+1)*Epsilon<=1
         	//We take 2* to understand if we have to add or subtract epsilons, +1 to impose < instead of <= 
-        	SystemParameters.analysisOutput.appendString("Massimo epsilon "+this.getMax(i+1, solver));
+        	SystemParameters.analysisOutput.appendString("Max epsilon "+this.getMax(i+1, solver));
         	val ind=2*this.getMax(i+1, solver)+1; 
         	s=s+ind.toString()+" ";
         	}
@@ -439,8 +456,8 @@ object ConstraintsInference {
   }
   
   
-  def giveLoopInvariants(exs : Iterator[ControlFlowGraphExecution[State]], substitution : Map[SymbolicValue, (Double, Int)]) : Map[ProgramPoint, Map[Statement, (Double, Int)]] = {
-    var result : Map[ProgramPoint, Map[Statement, (Double, Int)]] = Map.empty;
+  def giveLoopInvariants(exs : Iterator[ControlFlowGraphExecution[State]], substitution : Map[SymbolicValue, Double]) : Map[ProgramPoint, Map[Statement, Double]] = {
+    var result : Map[ProgramPoint, Map[Statement, Double]] = Map.empty;
     for(ex <- exs) {                                                                                        
 	    for(i <- 0 to ex.cfg.nodes.length-1) {
 	      if(ex.cfg.initialBlockInLoop(i)) {
@@ -452,22 +469,34 @@ object ConstraintsInference {
     }
     return result;
   }
-  
-  def inferPermissions(state : State, substitution : Map[SymbolicValue, (Double, Int)]) : Map[Statement, (Double, Int)] = {
+
+  def printLoopInvariants(l : Map[ProgramPoint, Map[Statement, Double]], epsilon : Option[Double]) = {
+    SystemParameters.analysisOutput.appendString("\nLOOP INVARIANTS\n--------------------\n\n");
+    for(pp <- l.keySet) {
+      SystemParameters.analysisOutput.appendString("Loop at "+pp.toString()+"\n");
+      val f = l.apply(pp);
+      for(s <- f.keySet)
+        SystemParameters.analysisOutput.appendString("Value of " + s + " = " + Settings.permissionType.permissionToString(f.apply(s), epsilon)+"\n");
+      SystemParameters.analysisOutput.appendString("\n");
+
+    }
+  }
+
+  def inferPermissions(state : State, substitution : Map[SymbolicValue, Double]) : Map[Statement, Double] = {
     val ownedPermissions : Permissions=state._1._1;
     val environment =state._1._2._1
     val store =state._1._2._2
     
-    var result : Map[Statement, (Double, Int)]=Map.empty;
+    var result : Map[Statement, Double]=Map.empty;
     for(el <- ownedPermissions.value.keySet) 
       reach(el, environment, store) match {
         case Some( (x : Variable) :: Nil) => result=result+((x, this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)));
         case Some(x) => 
           for(field <- selectFieldAccesses(x)) {
 	        if(result.keys.iterator.contains(field)) {
-	        	val (r1, r2)=this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)
-	        	val (v1, v2)=result.get(field).get
-	        	result=result+((field, (Math.max(r1, v1), Math.max(r2, v2))));
+	        	val r1=this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)
+	        	val v1=result.get(field).get
+	        	result=result+((field, Math.max(r1, v1)));
 	        }
 	        else result=result+((field, this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)));
 	       }
@@ -476,21 +505,18 @@ object ConstraintsInference {
     return result;
   }
   
-  def symbolicPermissionToInt(level : SymbolicLevelPermission, substitution : Map[SymbolicValue, (Double, Int)]) : (Double, Int) = {
-    var result1 : Double = 0;
-    var result2 : Int = 0;
+  def symbolicPermissionToInt(level : SymbolicLevelPermission, substitution : Map[SymbolicValue, Double]) : Double = {
+    var result : Double = 0;
     for(el <- level.value) {
       if(el.n==Top) throw new PermissionsException("I can't compute the loop invariant with top values");
       if(el.s==null) {
-    	  result1=result1+el.n.asInstanceOf[WrappedDouble].i;
-    	  result2=result2+el.n.asInstanceOf[WrappedDouble].i.toInt;
+    	  result=result+el.n.asInstanceOf[WrappedDouble].i;
       }
       	else if(substitution.keySet.contains(el.s)) {
-      			result1=result1+el.n.asInstanceOf[WrappedDouble].i*substitution(el.s)._1;
-      			result2=result2+(el.n.asInstanceOf[WrappedDouble].i*substitution(el.s)._2).toInt;
+      			result=result+el.n.asInstanceOf[WrappedDouble].i*substitution(el.s);
       	}
     }
-    return (result1, result2);
+    return result;
   }
   
   

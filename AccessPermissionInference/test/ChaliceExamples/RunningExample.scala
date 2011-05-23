@@ -29,7 +29,6 @@ class Worker1(var c : Cell) {
 		c.c1;//it simulates the ensure
 	}
 }
-
 class Worker2(var c : Cell) {
 	def Inc() {
 		Chalice.acquire(c);
@@ -39,7 +38,6 @@ class Worker2(var c : Cell) {
 		c.c2;//it simulates the ensure
 	}
 }
-
 object RunningExample {
   def main() : Unit = {
 	  val c : Cell = new Cell();

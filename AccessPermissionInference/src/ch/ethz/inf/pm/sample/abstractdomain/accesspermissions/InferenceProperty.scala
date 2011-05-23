@@ -22,19 +22,19 @@ class InferenceProperty extends Property {
 	
 	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));
-	 	  ShowGraph.Show(result);
+	 	  //ShowGraph.Show(result);
 		  ConstraintsInference.addPostconditionConstraints(result.exitState().asInstanceOf[ConstraintsInference.State], className, methodName);
 		  CollectedResults.constraints=CollectedResults.constraints.union(ConstraintsInference.getConstraints());
 	  }
 	  
 	  override def finalizeChecking() : Unit = {
 	    LPTimer.start();
-	    val solution=ConstraintsInference.solve(CollectedResults.constraints);
+	    val (solution, epsilon)=ConstraintsInference.solve(CollectedResults.constraints);
 	    ConstraintsInference.printConstraints(CollectedResults.constraints);
 	    if(solution!=null) {
 	      val loopInvariants=ConstraintsInference.giveLoopInvariants(CollectedResults.r.values.iterator, solution);
+        ConstraintsInference.printLoopInvariants(loopInvariants, epsilon);
 	      LPTimer.stop();
-	      SystemParameters.analysisOutput.appendString("LOOP INVARIANTS\n--------------------\n"+loopInvariants.toString());
 	    }
 	    else LPTimer.stop();
 	  }

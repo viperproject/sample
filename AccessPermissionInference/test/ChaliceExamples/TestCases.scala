@@ -18,7 +18,7 @@ class Cell {
 
   //def get() : Int = return x;
   //def set(v : Int) = x=v;
-  def concurrentSet(x : Int) = {
+  def set(x : Int) = {
     Chalice.acquire(this);
     //this.set(x);
     this.x=x;
