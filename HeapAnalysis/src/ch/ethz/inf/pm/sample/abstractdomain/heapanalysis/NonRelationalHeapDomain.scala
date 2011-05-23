@@ -7,8 +7,8 @@ import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 import property.Property
 
 object NonRelationalHeapDomainSettings {
-	var unsoundEntryState : Boolean = false;
-	var maxInitialNodes : Int = -1;
+	var unsoundEntryState : Boolean = true;
+	var maxInitialNodes : Int = 10;
 }
 
 class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : HeapIdAndSetDomain[I]) extends FunctionalDomain[I, HeapIdAndSetDomain[I], HeapEnv[I]] {
@@ -127,7 +127,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   = throw new SemanticException("Non relational heap domains do not support arrays");
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
   override def getLabel() : String = "Heap Domain:"+dom.getLabel();
-  override def parameters() : List[(String, Any)] = List((("Unsound entry state"), false), (("Max. number of entry nodes"), 10))
+  override def parameters() : List[(String, Any)] = List((("Unsound entry state"), true), (("Max. number of entry nodes"), 10))
   override def setParameter(label : String, value : Any) : Unit = label match {
     case "Unsound entry state" => NonRelationalHeapDomainSettings.unsoundEntryState=value.asInstanceOf[Boolean];
     case "Max. number of entry nodes" => NonRelationalHeapDomainSettings.maxInitialNodes=value.asInstanceOf[Int];
