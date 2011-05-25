@@ -60,9 +60,10 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    @param objectIdentifier the identifier of the object to be accessed
    @param field the name of the field
    @param typ the type of the accessed field
+   @param pp the program point that accesses the field
    @return the identifier of accessed field and the state of the heap after that
    */ 
-  def getFieldIdentifier(objectIdentifier : Expression, name : String, typ : Type) : (I, T, Replacement);
+  def getFieldIdentifier(objectIdentifier : Expression, name : String, typ : Type, pp : ProgramPoint) : (I, T, Replacement);
 
   /**
    This method returns the identifier of the cell of an array

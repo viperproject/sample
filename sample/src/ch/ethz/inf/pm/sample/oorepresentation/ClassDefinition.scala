@@ -243,7 +243,7 @@ trait Type extends Lattice[Type] {
   /**
    * If the current type represents a class, it returns the list of the possible fields, an empty set otherwise. 
    */
-  def getPossibleFields() : Set[(String, Type)];
+  def getPossibleFields() : Set[Identifier];
   
   /**
    * If the current type represents an array, it returns the type of the elements contained in the array, None otherwise. 
