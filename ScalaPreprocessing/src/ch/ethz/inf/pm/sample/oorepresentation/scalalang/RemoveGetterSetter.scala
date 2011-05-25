@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 import ch.ethz.inf.pm.sample.oorepresentation._
+import java.util.NavigableMap
 
 object RemoveGetterSetter {
 
@@ -46,9 +47,9 @@ object RemoveGetterSetter {
                 	 t=t.lub(t, obj.asInstanceOf[MethodCall].returnedType);
                  else t=t.top();
                if(! t.equals(t.top()))
-	               for((n, t) <- t.getPossibleFields()) {
-	                 if(field.equals(n))
-	                   return new FieldAccess(pp1, cleanedObjs, field, t);
+	               for(n <- t.getPossibleFields()) {
+	                 if(field.equals(n.getName()))
+	                   return new FieldAccess(pp1, cleanedObjs, field, n.getType());
 	               }
              case _ => 
              	//System.out.println("Look at this:\n"+st.toString);

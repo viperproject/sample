@@ -47,7 +47,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
       case x => parameters match {
         case Nil => 
           val fields=thisExpr.getType().getPossibleFields();
-          for((field, t) <- fields) {
+          for(field <- fields) {
             if(field.equals(x)) {
 		          val fieldAccess=state.getFieldValue(thisExpr :: Nil, x, returnedtype);
 		          return Some(fieldAccess);
@@ -99,9 +99,9 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
        parameters match {
           case Nil =>
           	  val fields=thisExpr.getType().getPossibleFields();
-	          for((field, t) <- fields) {
+	          for(field <- fields) {
 	            if(field.equals(x)) {
-			          val fieldAccess=state.backwardGetFieldValue(thisExpr :: Nil, field, returnedtype.top())
+			          val fieldAccess=state.backwardGetFieldValue(thisExpr :: Nil, field.getName(), returnedtype.top())
 			          return Some(fieldAccess);
 		        }
 	         }

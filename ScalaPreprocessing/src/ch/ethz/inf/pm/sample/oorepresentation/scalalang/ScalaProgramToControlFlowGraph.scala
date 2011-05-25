@@ -468,10 +468,10 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         }
       }
 
-      def getPossibleFields() : Set[(String, oorepresentation.Type)] = {
-        if(! this.isObject) return Set.empty[(String, oorepresentation.Type)];
-        if(this.isTop) return Set.empty[(String, oorepresentation.Type)]; //We suppose that Any does not have fields
-        var result = Set.empty[(String, oorepresentation.Type)];
+      def getPossibleFields() : Set[Identifier] = {
+        if(! this.isObject) return Set.empty[Identifier];
+        if(this.isTop) return Set.empty[Identifier]; //We suppose that Any does not have fields
+        var result = Set.empty[Identifier];
         var scope : Scope = typ.decls;
         for(el <- scope.toList) {
           val variable=el.isVariable;
@@ -482,7 +482,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
             	var name=el.name.decode;
             	if(name.charAt(name.size-1).equals(' '))
             		name=name.substring(0, name.size-1);
-            	result=result+((name, new ScalaType(typ)));
+            	result=result+(new VariableIdentifier(name, new ScalaType(typ), new ScalaProgramPoint(el.pos)));
              }
             }
         }
