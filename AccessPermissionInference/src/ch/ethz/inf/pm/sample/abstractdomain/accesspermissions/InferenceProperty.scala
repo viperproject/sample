@@ -5,6 +5,9 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import sun.security.util.Resources_de
+import javax.annotation.Resource
+
 //import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing.plugin._
 import ch.ethz.inf.pm.sample.userinterfaces._
 import ch.ethz.inf.pm.sample.property._;
@@ -29,13 +32,15 @@ class InferenceProperty extends Property {
 	  
 	  override def finalizeChecking() : Unit = {
 	    LPTimer.start();
-	    val (solution, epsilon)=ConstraintsInference.solve(CollectedResults.constraints);
-	    ConstraintsInference.printConstraints(CollectedResults.constraints);
-	    if(solution!=null) {
-	      val loopInvariants=ConstraintsInference.giveLoopInvariants(CollectedResults.r.values.iterator, solution);
+      val res = ConstraintsInference.solve(CollectedResults.constraints);
+	    if(res!=null) {
+        val solution=res._1
+        val epsilon=res._2
+        ConstraintsInference.printConstraints(CollectedResults.constraints);
+        val loopInvariants=ConstraintsInference.giveLoopInvariants(CollectedResults.r.values.iterator, solution);
         ConstraintsInference.printLoopInvariants(loopInvariants, epsilon);
-	      LPTimer.stop();
-	    }
+        LPTimer.stop();
+      }
 	    else LPTimer.stop();
 	  }
 	   

@@ -130,19 +130,19 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  case className => {
 	 	if(operator.equals("==")) //to avoid comparison between references
 	 		return new Some(state);
-	    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
-	    var result=castedState._1._1;
-        for(exp <- thisExpr.getExpressions)
-			    	  exp match {
-			    	    case id : Identifier => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
-			    	  }
-        for(exp <- thisExpr.getExpressions)
-			    	  exp match {
-			    	    case id : Identifier => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
-			    	  }
-        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](result, castedState._1._2);
-	    val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]] 
-	    return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](d1, entryvalue).asInstanceOf[S])
+	  val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
+	  var result=castedState._1._1;
+    for(exp <- thisExpr.getExpressions)
+		  exp match {
+		    case id : Identifier => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
+		  }
+    for(exp <- thisExpr.getExpressions)
+		  exp match {
+		    case id : Identifier => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
+		  }
+    val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](result, castedState._1._2);
+	  val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]]
+	  return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](d1, entryvalue).asInstanceOf[S])
 	    //It applies pre and post conditions if these exist
 	    /*val methodName=operator;
 	  	val prepostcondition = this.getPrePostConditions(className, methodName);

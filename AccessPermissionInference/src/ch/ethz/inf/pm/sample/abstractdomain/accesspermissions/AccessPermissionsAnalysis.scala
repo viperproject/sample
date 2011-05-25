@@ -17,7 +17,7 @@ class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends Sem
   override def getLabel() = "Access permissions inference"
 
   override def parameters() : List[(String, Any)] =
-    List((("Unsound inhaling", true)), (("Unsound discharging", true)), (("Priority of contracts", 1)), (("Priority of monitor invariants", 2)), (("Priority of abstract predicates", 3)), (("Type of permissions", List("Chalice", "Fractional", "Counting"))))
+    List((("Unsound inhaling", true)), (("Unsound discharging", true)), (("Priority of contracts", 3)), (("Priority of monitor invariants", 2)), (("Priority of abstract predicates", 1)), (("Type of permissions", List("Chalice", "Fractional", "Counting"))))
 
   override def setParameter(label : String, value : Any) : Unit = label match {
     case "Priority of contracts" => Settings.priorityContracts = value.asInstanceOf[Int];
