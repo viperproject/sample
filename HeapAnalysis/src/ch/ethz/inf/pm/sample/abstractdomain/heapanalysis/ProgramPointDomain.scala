@@ -3,9 +3,15 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
+import scala.Some
 
 object ParameterIds {
-	var n : Int = 0;
+  var map = Map.empty[String, Int];
+  def get(method : String) : Int = map.get(method) match {
+    case None => map=map+((method, 1)); return 0;
+    case Some(x) => map=map+((method, x+1)); return x;
+  }
+  def reset() : Unit = map=Map.empty[String, Int];
 }
 
 sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) extends NonRelationalHeapIdentifier[ProgramPointHeapIdentifier](t, pp1) {
@@ -22,10 +28,8 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
   override def accessStaticObject(t : Type, pp : ProgramPoint) : ProgramPointHeapIdentifier=new StaticProgramPointHeapIdentifier(t, pp);
   override def createAddress(t : Type, p : ProgramPoint) : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(p, t);
   override def createAddressForParameter(t : Type, p : ProgramPoint) : ProgramPointHeapIdentifier=
-	  if(NonRelationalHeapDomainSettings.unsoundEntryState) {
-	 	  ParameterIds.n=ParameterIds.n+1
-	 	  new UnsoundParameterHeapIdentifier(t, Math.min(ParameterIds.n, NonRelationalHeapDomainSettings.maxInitialNodes), p);
-	  }
+	  if(NonRelationalHeapDomainSettings.unsoundEntryState)
+	 	  new UnsoundParameterHeapIdentifier(t, Math.min(ParameterIds.get(SystemParameters.currentMethod), NonRelationalHeapDomainSettings.maxInitialNodes), p);
 	  else new ParameterHeapIdentifier(t, p);
   override def hashCode() : Int = 1;  
   override def getNullNode(p : ProgramPoint) = new NullProgramPointHeapIdentifier(t.top(), p);

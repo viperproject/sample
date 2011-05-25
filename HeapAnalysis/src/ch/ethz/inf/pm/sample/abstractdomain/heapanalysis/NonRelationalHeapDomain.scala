@@ -116,7 +116,10 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def lubWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.lub(left, right), new Replacement)
   override def glbWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.glb(left, right), new Replacement)
   override def wideningWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.widening(left, right), new Replacement)
-  override def reset() : Unit = Unit;
+  override def reset() : Unit = {
+     if(NonRelationalHeapDomainSettings.unsoundEntryState)
+       ParameterIds.reset()
+  }
   def setType(t : Type) = {
     env.typ=t;
     heap.typ=t;
@@ -203,15 +206,15 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
      
 	    alreadyInitialized=alreadyInitialized+obj;
 	    val c = typ.getPossibleFields;
-	    for((field, typ2) <- c) {
-	      val adds = cod.convert(dom.createAddressForParameter(typ2, x.getProgramPoint));
+	    for(field <- c) {
+	      val adds = cod.convert(dom.createAddressForParameter(field.getType(), x.getProgramPoint));
         //I can ignore newHeap since it's equal to result as it is not changed by getFieldIdentifier
         //in the same way I ignore rep
-	      val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(cod.convert(obj), field, typ2);
+	      val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(cod.convert(obj), field.getName(), field.getType(), field.getProgramPoint());
 	      for(id : I <- fieldAdd.value) {
 	    	  result=new NonRelationalHeapDomain(result._1, result._2.add(id, adds), cod, dom);
-	    	  ids=ids+((id, path ::: field :: Nil));
-	    	  val r=initializeObject(id, id, id.getType, result, path ::: field :: Nil)
+	    	  ids=ids+((id, path ::: (field.getName()) :: Nil));
+	    	  val r=initializeObject(id, id, id.getType, result, path ::: (field.getName()) :: Nil)
 	    	  alreadyInitialized=alreadyInitialized+id;
 	    	  result=r._1;
 	    	  ids=r._2++ids;//This order is quite important: in this way we keep the shortest path to arrive to an abstract node!
@@ -296,7 +299,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def backwardAssign(variable : Identifier, expr : Expression) = (this, new Replacement)
 
   override def assignField(variable : Identifier, s : String, expr : Expression) : (NonRelationalHeapDomain[I], Replacement) =
-    this.assign(this.getFieldIdentifier(variable, s, expr.getType)._1, expr, null);
+    this.assign(this.getFieldIdentifier(variable, s, expr.getType, variable.getProgramPoint())._1, expr, null);
   //We ignore the other parts since getting a field does not modify a non relational heap domain
 
   override def assign[S <: SemanticDomain[S]](variable : Identifier, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
@@ -352,7 +355,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   
   override def createObject(typ : Type, pp : ProgramPoint) : (HeapIdAndSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (cod.convert(dom.createAddress(typ, pp)), this, new Replacement);
   
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) : (HeapIdAndSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (this.evalFieldAccess(heapIdentifier, name, typ), this, new Replacement);
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type, pp : ProgramPoint) : (HeapIdAndSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (this.evalFieldAccess(heapIdentifier, name, typ), this, new Replacement);
   
   private def evalFieldAccess[S <: State[S]](expr : Expression, field : String, typ : Type) : HeapIdAndSetDomain[I] = expr match {
     case obj : VariableIdentifier => return extractField(this.get(obj), field, typ)

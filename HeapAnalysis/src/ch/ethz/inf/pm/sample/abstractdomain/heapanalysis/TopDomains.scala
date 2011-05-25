@@ -107,7 +107,7 @@ class ReallyApproximatedHeapDomain extends HeapDomain[ReallyApproximatedHeapDoma
     (this, result, new Replacement);
   } 
   override def createObject(typ : Type, pp : ProgramPoint) =(new SingleHeapIdentifier(typ, pp), this, new Replacement);
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) =(new SingleHeapIdentifier(heapIdentifier.getType(), heapIdentifier.getProgramPoint), this, new Replacement);
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type, pp : ProgramPoint) =(new SingleHeapIdentifier(heapIdentifier.getType(), heapIdentifier.getProgramPoint), this, new Replacement);
   
   override def assume(expr : Expression) = (this, new Replacement) //TODO: for now there is nothing about the heap structure
   
@@ -126,7 +126,7 @@ class OnlyStaticReferenceHeapDomain extends ReallyApproximatedHeapDomain {
   override def getLabel() : String = "Only static references"
   private var isBottom = false;
    
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type) = {
+  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type, pp : ProgramPoint) = {
     if(typ.isStatic())
        (new StaticHeapIdentifier(typ, heapIdentifier.getProgramPoint), this, new Replacement)
     //if(heapIdentifier.isTop())

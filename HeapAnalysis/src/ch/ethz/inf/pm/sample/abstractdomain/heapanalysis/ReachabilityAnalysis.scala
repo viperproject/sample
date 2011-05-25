@@ -38,9 +38,9 @@ object ReachabilityAnalysis {
     		  case (path, true) => return (/*x.toString()::*/path, true);
     		  case _ =>
     		}
-    		for((field, typ) <- from.getType().getPossibleFields())
-    			reachable(new FieldAndProgramPoint(hi, field, typ), to, env, store) match {
-    			  case (path, true) => return (/*x.toString()::*/field::path, true);
+    		for(field <- from.getType().getPossibleFields())
+    			reachable(new FieldAndProgramPoint(hi, field.getName(), field.getType()), to, env, store) match {
+    			  case (path, true) => return (/*x.toString()::*/field.getName()::path, true);
     			  case _ =>
     			}
     	}
@@ -83,8 +83,8 @@ object ReachabilityAnalysis {
   }
   
   private def isAccessibleThroughField[I <: NonRelationalHeapIdentifier[I]](from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[String] = {
-    for((field, typ) <- from.getType().getPossibleFields()) {
-      if(from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field, typ).equals(to)) return Some(field);
+    for(field <- from.getType().getPossibleFields()) {
+      if(from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field.getName(), field.getType()).equals(to)) return Some(field.getName());
     }
     return None;
   }
