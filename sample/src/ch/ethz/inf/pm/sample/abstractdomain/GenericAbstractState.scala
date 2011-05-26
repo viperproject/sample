@@ -252,7 +252,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
  */
 class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](n1 : HeapAndAnotherDomain[N, H, I], r1 : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) extends
   CartesianProductDomain[HeapAndAnotherDomain[N, H, I], SymbolicAbstractValue[GenericAbstractState[N,H,I]], GenericAbstractState[N,H,I]](n1, r1) with State[GenericAbstractState[N,H,I]] with SingleLineRepresentation {
-  
+
+  def getSemanticDomainState() : N = n1._1();
   def factory() = new GenericAbstractState(this._1.top(), this._2.top());
   def getHeap() : H = d1.getHeap();
   def getSemanticDomain() : N = d1.getSemanticDomain();
