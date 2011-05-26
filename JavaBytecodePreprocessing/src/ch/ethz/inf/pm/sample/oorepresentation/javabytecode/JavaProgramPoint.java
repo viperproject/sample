@@ -33,4 +33,12 @@ public class JavaProgramPoint extends ProgramPoint {
     public boolean equals(JavaProgramPoint p2) {
         return (this.classname.equals(p2.classname) && this.block.equals(p2.block) && this.row == p2.row);
     }
+
+    public int getColumn() {
+        return 0;
+    }
+
+    public int getLine() {
+        return row;
+    }
 }
