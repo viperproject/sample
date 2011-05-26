@@ -28,6 +28,10 @@ class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends ProgramPoin
 	  case _ => -1
   }
 
+  override def getColumn() = column;
+
+  override def getLine() = row;
+
   override def equals(o : Any) : Boolean = o match {
     case x : ScalaProgramPoint => x.row==row && x.column==column;
     case _ => false;
