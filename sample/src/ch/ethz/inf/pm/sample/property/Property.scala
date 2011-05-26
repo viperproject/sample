@@ -84,9 +84,9 @@ class MatchErrorVisitor extends Visitor {
           for(obj <- method.asInstanceOf[FieldAccess].objs) {
             obj.normalize match {
               case New(pp, typ) if(typ.getName.equals("MatchError"))=> 
-              	if(state.equals(state.bottom()))
-                 printer.add(new Validated(pp, SystemParameters.currentFile, "Exception MatchError is unreachable"))
-               else printer.add(new NotValidated(pp, SystemParameters.currentFile, "Exception MatchError may be reachable"))
+              	if(! state.equals(state.bottom()))
+                 printer.add(new ValidatedProgramPoint(pp, "Exception MatchError is unreachable"))
+               else printer.add(new WarningProgramPoint(pp, "Exception MatchError may be reachable"))
               case _ =>
             }
           }     
@@ -111,11 +111,11 @@ class CastingVisitor extends Visitor {
 	    		for(obj <- listObjs) {
 	    			val result = conditionedState.setExpression(conditionedState.getExpression.createAbstractOperator(obj, Nil, parametricTypes, AbstractOperatorIdentifiers.isInstanceOf, conditionedState, st.asInstanceOf[MethodCall].returnedType));
 	    			if(! (result.testFalse().equals(result.bottom))) {
-	    				printer.add(new NotValidated(pp, SystemParameters.currentFile, "Unsafe casting, statement "+st.toString))
+	    				printer.add(new WarningProgramPoint(pp, "Unsafe casting, statement "+st.toString))
 	    				return
 	    			}
 	    		}
-	    		printer.add(new Validated(pp, SystemParameters.currentFile, "Safe casting"))
+	    		printer.add(new ValidatedProgramPoint(pp, "Safe casting"))
 	    		case _ => throw new PropertyException("asInstanceOf must have exactly one type parameters")
     		}
     		case _ => throw new PropertyException("asInstanceOf cannot have parameters")

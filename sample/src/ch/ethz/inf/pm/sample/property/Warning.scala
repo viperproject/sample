@@ -2,54 +2,91 @@ package ch.ethz.inf.pm.sample.property
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-abstract sealed class Warning
+trait Warning
+trait Validated
 
-case class NotValidated(val pp : ProgramPoint, val file : String, val message : String) extends Warning {
+abstract sealed class Output {
+  override def hashCode() : Int = 1;
+}
+
+case class WarningProgramPoint(val pp : ProgramPoint, val message : String) extends Output with Warning {
 
   override def equals(o : Any) : Boolean = o match {
-    case x: NotValidated => return x.pp.equals(pp) && x.file.equals(file) && x.message.equals(message)
+    case x: WarningProgramPoint => return x.pp.equals(pp) && x.message.equals(message)
     case _ => false
   }
   
-  override def toString() : String = "Warning, file "+file+" "+pp+": "+message 
-  
+  override def toString() : String = "Warning: "+message+" at line "+pp.getLine()+" column "+pp.getColumn()
 }
 
-case class Validated(val pp : ProgramPoint, val file : String, val message : String) extends Warning {
+case class ValidatedProgramPoint(val pp : ProgramPoint, val message : String) extends Output with Validated {
 
   override def equals(o : Any) : Boolean = o match {
-    case x: Validated => return x.pp.equals(pp) && x.file.equals(file) && x.message.equals(message)
+    case x: ValidatedProgramPoint => return x.pp.equals(pp) && x.message.equals(message)
     case _ => false
   }
-  
-  override def toString() : String = "Correct, file "+file+" "+pp+": "+message 
-  
+
+  override def toString() : String = "Validated: "+message+" at line "+pp.getLine()+" column "+pp.getColumn()
 }
+
+case class WarningMethod(val classe : Type, val method : String, val message : String) extends Output with Warning {
+
+  override def equals(o : Any) : Boolean = o match {
+    case x: WarningMethod => return x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
+    case _ => false
+  }
+
+  override def toString() : String = "Warning: "+message+" on method "+method+" of class "+classe.getName()
+}
+
+case class ValidatedMethod(val classe : Type, val method : String, val message : String) extends Output with Validated {
+
+  override def equals(o : Any) : Boolean = o match {
+    case x: ValidatedMethod => return x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
+    case _ => false
+  }
+
+  override def toString() : String = "Validated: "+message+" on method "+method+" of class "+classe.getName()
+}
+
+case class InferredContract(val c : Annotation) extends Output
 
 class OutputCollector {
-  var warnings : Set[Warning] = Set.empty[Warning];
+  var warnings : Set[Output] = Set.empty[Output];
   
-  def add(a : Warning) : Unit = warnings=warnings+a;
-  
-  def statistics() : String = {
-    var notvalidated : Double = 0;
-    var validated : Double = 0;
-    for(warning <- warnings) {
-      warning match {
-        case x : Validated => validated=validated+1;
-        case x : NotValidated => notvalidated=notvalidated+1;
-      }
-    }
-    val total=validated+notvalidated;
-    val precision : Double=if(total==0) 100 else (validated/total)*100;
-    "Checked: "+total+"\nValidated :"+validated+"\nNot validated: "+notvalidated+"\nPrecision: "+precision+"%";
-  }
-  
+  def add(a : Output) : Unit = warnings=warnings+a;
+
   def output() : String = {
     var result = "";
     for(warning <- warnings)
       result=result+warning.toString()+"\n"
     result
   }
-  
+
+  def validated() : Int = {
+    var c : Int = 0;
+    for(w <- warnings) w match {
+      case x : Validated => c = c+1;
+      case _ =>
+    }
+    return c;
+  }
+
+  def notvalidated() : Int = {
+    var c : Int = 0;
+    for(w <- warnings) w match {
+      case x : Validated => c = c+1;
+      case _ =>
+    }
+    return c;
+  }
+
+  def inferredcontracts() : Int = {
+    var c : Int = 0;
+    for(w <- warnings) w match {
+      case x : InferredContract => c = c+1;
+      case _ =>
+    }
+    return c;
+  }
 }

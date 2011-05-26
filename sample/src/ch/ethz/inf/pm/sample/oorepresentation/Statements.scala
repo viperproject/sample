@@ -12,7 +12,10 @@ import ch.ethz.inf.pm.sample.ToStringUtilities
  * @author Pietro Ferrara
  * @version 0.1
  */
-abstract class ProgramPoint
+abstract class ProgramPoint {
+  def getLine() : Int;
+  def getColumn() : Int;
+}
 
 /** 
  * This class represents all the sequential statements of 

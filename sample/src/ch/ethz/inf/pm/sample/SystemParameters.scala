@@ -47,11 +47,11 @@ object SystemParameters {
   /**
    The output for the window that shows the progresses of the analysis
   */
-  var progressOutput : Output = null;
+  var progressOutput : ScreenOutput = null;
   /**
    The output for the window that shows the results of the analysis
   */
-  var analysisOutput : Output = null;
+  var analysisOutput : ScreenOutput = null;
   /**
    The timer that collects the amount of time spent by the heap abstraction
   */
@@ -79,8 +79,8 @@ object SystemParameters {
 
   def setProperty(p : Property) = property=p;
   def setCompiler(c : Compiler) = compiler=c;
-  def setProgressOutput(p : Output) = progressOutput=p;
-  def setAnalysisOutput(p : Output) = analysisOutput=p;
+  def setProgressOutput(p : ScreenOutput) = progressOutput=p;
+  def setAnalysisOutput(p : ScreenOutput) = analysisOutput=p;
 
   //TODO:This and the following methods should not be there
   def getForwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, true);
@@ -131,12 +131,12 @@ object SystemParameters {
 }
 
 //TODO:Comment the following code
-trait Output {
+trait ScreenOutput {
   def appendString(s : String);
   def getString() : String;
 }
 
-class StringCollector extends Output {
+class StringCollector extends ScreenOutput {
   var s : String="";
   override def appendString(s: String): Unit = {
     this.s=this.s+"\n" + s
