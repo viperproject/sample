@@ -272,7 +272,7 @@ object ConstraintsInference {
 	        val epsilon = if(Settings.permissionType.epsilon) Some(this.extractEpsilon(vars, variables)) else None;
           for (i <- 0 to variables.length-1) {
               if(variables(i)>0) {
-                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + Settings.permissionType.permissionToString(variables(i), epsilon));
+                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + Settings.permissionType.permissionToString(clean(variables(i)), epsilon));
                 result=result+((vars.apply(i), variables(i)));
                }
           }
