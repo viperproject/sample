@@ -8,7 +8,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 
-import ch.ethz.inf.pm.sample.Output;
+import ch.ethz.inf.pm.sample.ScreenOutput;
 import ch.ethz.inf.pm.sample.StringCollector;
 import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
@@ -109,7 +109,7 @@ public class WindowApplication {
         private JTextArea taskOutput;
 
         //This class is used to collect the output of the analysis over the text area
-        public class TextAreaProgress implements Output {
+        public class TextAreaProgress implements ScreenOutput{
             public void appendString(String s) {
                  taskOutput.append("\n"+s);
             }
