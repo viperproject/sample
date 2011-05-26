@@ -59,7 +59,7 @@ object ApronRun {
 
 }
 
-class ApronOutput extends Output {
+class ApronOutput extends ScreenOutput {
 	def getString(): String = {
 		return "";
 	}
