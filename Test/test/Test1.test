@@ -1,0 +1,30 @@
+methods="setX getX swap concurrentSetX concurrentSetYWithPredicates concurrentSetXWithPredicates loopSetX"
+set analysis = "Access permissions inference"
+set property = "Inference"
+set analysis Permissions = "Chalice"
+set analysis PriorityOfContracts = 3
+set analysis PriorityOfMonitorInvariants = 2
+set analysis PriorityOfAbstractPredicates = 1
+set heap analysis = "Heap Domain:Program point"
+
+inferredContract(precondition(Test1, setX, "acc(this.x, 100)"))
+inferredContract(postcondition(Test1, setX, "acc(this.x, 100)"))
+
+inferredContract(precondition(Test1, getX, "acc(this.x, 1 epsilons)"))
+inferredContract(postcondition(Test1, getX, "acc(this.x, 1 epsilons)"))
+
+inferredContract(precondition(Test1, swap, "acc(this.x, 100)"))
+inferredContract(postcondition(Test1, swap, "acc(this.x, 100)"))
+inferredContract(precondition(Test1, swap, "acc(this.y, 100)"))
+inferredContract(postcondition(Test1, swap, "acc(this.y, 100)"))
+
+inferredContract(invariant(Test1, "acc(this.x, 100)"))
+
+inferredContract(predicate(Test1, p, "acc(this.y, 100)"))
+
+inferredContract(precondition(Test1, loopSetX, "acc(this.x, 100)"))
+inferredContract(postcondition(Test1, loopSetX, "acc(this.x, 100)"))
+inferredContract(precondition(Test1, loopSetX, "acc(this.y, 1 epsilons)"))
+inferredContract(postcondition(Test1, loopSetX, "acc(this.y, 1 epsilons)"))
+inferredContract(loopinvariant(56, 19, "acc(this.x, 100)"))
+inferredContract(loopinvariant(56, 19, "acc(this.y, 1 epsilons)"))
