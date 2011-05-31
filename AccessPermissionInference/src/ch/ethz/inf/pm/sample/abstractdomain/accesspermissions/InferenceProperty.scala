@@ -25,38 +25,34 @@ class InferenceProperty extends Property {
 	
 	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));
-	 	  //ShowGraph.Show(result);
 		  ConstraintsInference.addPostconditionConstraints(result.exitState().asInstanceOf[ConstraintsInference.State], className, methodName);
 		  CollectedResults.constraints=CollectedResults.constraints.union(ConstraintsInference.getConstraints());
 	  }
 	  
-	  override def finalizeChecking() : Unit = {
-	    LPTimer.start();
+	  override def finalizeChecking(printer : OutputCollector) : Unit = {
       val res = ConstraintsInference.solve(CollectedResults.constraints);
 	    if(res!=null) {
         val solution=res._1
         val epsilon=res._2
-        ConstraintsInference.printConstraints(CollectedResults.constraints);
+        for(s <- solution.keySet) {
+          val perm : String =Settings.permissionType.permissionToString(ConstraintsInference.clean(solution.apply(s)), epsilon);
+          s match {
+            case SymbolicMonitorInvariant(c, p) => printer.add(new InferredContract(new Invariant(c, "acc("+s.path+", "+perm+")")));
+            case SymbolicAbstractPredicates(c, name, p) => printer.add(new InferredContract(new Predicate(c, name, "acc("+s.path+", "+perm+")")))
+            case SymbolicPreCondition(c, m, p) => printer.add(new InferredContract(new PreCondition(c, m, "acc("+s.path+", "+perm+")")))
+            case SymbolicPostCondition(c, m, p) => printer.add(new InferredContract(new PostCondition(c, m, "acc("+s.path+", "+perm+")")))
+            case Epsilon =>
+          }
+        }
         val loopInvariants=ConstraintsInference.giveLoopInvariants(CollectedResults.r.values.iterator, solution);
-        ConstraintsInference.printLoopInvariants(loopInvariants, epsilon);
-        LPTimer.stop();
-      }
-	    else LPTimer.stop();
-	  }
-	   
-}
-
-
-private object LPTimer {
-	var lastValue : Option[Long] = None
-	var totalTime : Long = 0;
-  	
- 	def start() = lastValue=Some(System.currentTimeMillis())
-  
- 	def stop() = lastValue match {
- 	  case Some(l) => totalTime=totalTime+(System.currentTimeMillis()-l)
- 	  case None => SystemParameters.analysisOutput.appendString("Timer not started before!");
+        for(pp <- loopInvariants.keySet) {
+          val f : Map[Statement, Double] = loopInvariants.apply(pp);
+          for(statement <- f.keySet) {
+            val perm : String =Settings.permissionType.permissionToString(f.apply(statement), epsilon);
+            printer.add(new InferredContract(new LoopInvariant(pp, "acc("+statement.toString+", "+perm+")")))
+          }
+        }
+	    }
     }
- 	
- 	def reset() = totalTime=0; lastValue=None;
+	   
 }

@@ -69,7 +69,7 @@ case object ChalicePermissions extends PermissionsType {
     val (intval, epsval) = stringWithEpsilon(value, epsilon.get);
     var result : String = "";
     if(intval!=0)
-      result=result+intval.toString()+" ";
+      result=result+intval.toString();
     if(epsval!=0)
       result=result+epsval.toString()+" epsilons";
     return result;
@@ -217,13 +217,7 @@ object ConstraintsInference {
     for(c <- constraints)
       SystemParameters.analysisOutput.appendString(c.toString());
   }
-  
-  private object Log extends LogListener with AbortListener with MsgListener with BbListener {
-   def logfunc(problem : LpSolve, userhandle : Object, buf : String) : Unit = {}
-   def abortfunc(problem : LpSolve, userhandle : Object) : Boolean = true
-   def bbfunc(problem : LpSolve, userhandle : Object, buf : Int) : Int = 0
-   def msgfunc(problem : LpSolve, userhandle : Object, buf : Int) : Unit = {}
-   }
+
   def solve(constraints : Set[Constraint]) : (Map[SymbolicValue, Double], Option[Double]) = {
       try {
         val vars : List[SymbolicValue] = this.extractVariables(constraints).toList;
@@ -310,7 +304,7 @@ object ConstraintsInference {
   }
 
   //Clean imprecision due to floating approximation in LP solving
-  private def clean(d : Double) : Double = {
+  def clean(d : Double) : Double = {
      if(d % Settings.lowestApproximation != 0) {
        if(d % Settings.lowestApproximation>Settings.lowestApproximation/2)
          return d+(Settings.lowestApproximation-d % Settings.lowestApproximation)
@@ -338,6 +332,7 @@ object ConstraintsInference {
   }
   
   private def addConstraints(constraints : Set[Constraint], variables : List[SymbolicValue], solver : LpSolve) = {
+    val l = constraints;
     for(c <- constraints) {
       val (s, i, op) = this.extractConstraint(c, variables);
       solver.strAddConstraint(s, op, i);

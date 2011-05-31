@@ -17,15 +17,15 @@ class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends Sem
   override def getLabel() = "Access permissions inference"
 
   override def parameters() : List[(String, Any)] =
-    List((("Unsound inhaling", true)), (("Unsound discharging", true)), (("Priority of contracts", 3)), (("Priority of monitor invariants", 2)), (("Priority of abstract predicates", 1)), (("Type of permissions", List("Chalice", "Fractional", "Counting"))))
+    List((("Unsound inhaling", true)), (("Unsound discharging", true)), (("PriorityOfContracts", 3)), (("PriorityOfMonitorInvariants", 2)), (("PriorityOfAbstractPredicates", 1)), (("Permissions", List("Chalice", "Fractional", "Counting"))))
 
   override def setParameter(label : String, value : Any) : Unit = label match {
-    case "Priority of contracts" => Settings.priorityContracts = value.asInstanceOf[Int];
-    case "Priority of monitor invariants" => Settings.priorityInvariants = value.asInstanceOf[Int];
-    case "Priority of abstract predicates" => Settings.priorityPredicates = value.asInstanceOf[Int];
+    case "PriorityOfContracts" => Settings.priorityContracts = value.asInstanceOf[Int];
+    case "PriorityOfMonitorInvariants" => Settings.priorityInvariants = value.asInstanceOf[Int];
+    case "PriorityOfAbstractPredicates" => Settings.priorityPredicates = value.asInstanceOf[Int];
     case "Unsound inhaling" => Settings.unsoundInhaling = value.asInstanceOf[Boolean];
     case "Unsound discharging" => Settings.unsoundDischarging = value.asInstanceOf[Boolean];
-    case "Type of permissions" => value match {
+    case "Permissions" => value match {
       case "Fractional" => Settings.permissionType = FractionalPermissions;
       case "Counting" => Settings.permissionType = CountingPermissions;
       case "Chalice" => Settings.permissionType = ChalicePermissions;
@@ -34,5 +34,8 @@ class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends Sem
 
   override def getInitialState() : SymbolicPermissionsDomain[I] = new SymbolicPermissionsDomain[I]();
 
-  override def getProperties() : Set[Property] = Set.empty+new InferenceProperty();
+  override def getProperties() : Set[Property] = {
+    var result = Set.empty+new InferenceProperty();
+    result++(Set.empty+new ShowGraphAndContractsProperty())
+  };
 }

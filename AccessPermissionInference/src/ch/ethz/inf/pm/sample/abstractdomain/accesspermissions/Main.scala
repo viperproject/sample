@@ -54,6 +54,6 @@ object Main {
 	entryvalue =new AbstractValue(Some(entryState), Some(SystemParameters.typ))
 	entryState =new State(entrydomain, entryvalue)
 
-	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState);
+	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);
   }
 }
