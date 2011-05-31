@@ -11,8 +11,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
 
 public class InstalledPlugins {
     public static ch.ethz.inf.pm.sample.oorepresentation.Compiler[] compilers;
-    public static SemanticAnalysis[] analyses;
-    public static HeapDomain[] heapanalyses;
+    public static SemanticAnalysis<?>[] analyses;
+    public static HeapDomain<?, ?>[] heapanalyses;
 
     static  {
         compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[2];

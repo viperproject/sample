@@ -46,7 +46,7 @@ object ShowGraph extends Property
   
   	def getLabel() : String = "Show CFG";
   	def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) = Show(result);
-  	def finalizeChecking() : Unit = Unit;
+  	def finalizeChecking(printer : OutputCollector) : Unit = Unit;
    	def Show[S <: State[S]](a : Any) : Unit = a match {
    	  case graph: ControlFlowGraphExecution[S] => new ShowControlFlowGraphExecution(graph)
       case graph: ControlFlowGraph => new Show(ShowGraph.ControlFlowGraphJGraph(graph), true, -1, -1);

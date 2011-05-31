@@ -129,12 +129,4 @@ public class AnalysisParameters extends JDialog {
             mainPanel.add(propertyBox, c);
         }
     }
-
-
-    public static void main(String[] args) {
-        AnalysisParameters dialog = new AnalysisParameters(new AccessPermissionsAnalysis());
-        dialog.pack();
-        dialog.setVisible(true);
-        System.exit(0);
-    }
 }

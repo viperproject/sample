@@ -13,6 +13,7 @@ import ch.ethz.inf.pm.sample.StringCollector;
 import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain;
+import ch.ethz.inf.pm.sample.property.OutputCollector;
 import scala.None;
 import scala.Some;
 import scala.collection.immutable.List;
@@ -160,7 +161,7 @@ public class WindowApplication {
                     taskOutput.append("\nRunning the analysis");
                     ch.ethz.inf.pm.sample.Timer t=new ch.ethz.inf.pm.sample.Timer();
                     t.start();
-                    ch.ethz.inf.pm.sample.Main.analyze(methods, entryState);
+                    ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector());
                     t.stop();
                     setProgress(100);
                     taskOutput.append("\nAnalysis ended");
