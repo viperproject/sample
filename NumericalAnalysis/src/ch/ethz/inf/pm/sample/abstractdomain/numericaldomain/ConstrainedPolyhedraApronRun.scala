@@ -6,7 +6,9 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
 import apron._
-import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
+import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler
+import property.OutputCollector
+;
 
 object ConstrianedPolyhedraApronRun {
 	
@@ -47,6 +49,6 @@ object ConstrianedPolyhedraApronRun {
 		entryState =new GenericAbstractState[ApronInterface, NonRelationalHeapDomain[HeapId], HeapIdAndSetDomain[HeapId]](entrydomain, entryvalue)
 				      
 	
-		ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState);
+		ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);
 	  }
 }
