@@ -4,7 +4,7 @@ import scala.util.parsing.combinator.JavaTokenParsers
 import java.io.FileReader
 import java.lang.Boolean
 
-object ExpectedOutputParser extends JavaTokenParsers  {
+class ExpectedOutputParser extends JavaTokenParsers  {
 
   val BOOL : Parser[Boolean] = ("true" | "false") ^^ {
     case "true" => true;
@@ -108,6 +108,31 @@ object ExpectedOutputParser extends JavaTokenParsers  {
 
   def parse(f : FileReader) : (List[String], String, String, Set[(String, Any)], String, Set[(String, Any)], Set[ExpectedOutput]) = {
     val res : ParseResult[(List[String], String, String, Set[(String, Any)], String, Set[(String, Any)], Set[ExpectedOutput])] = this.parseAll(testCases, f);
+    if(res.isEmpty) {
+      System.out.println("Error while parsing the test file");
+      System.out.println(res.toString);
+      return null;
+    }
+    else return res.get;
+  };
+
+  val analysisSettings : Parser[(List[String], String, String, Set[(String, Any)], String, Set[(String, Any)])] =
+    meth ~ analysis ~ property ~ listParameters ~ heapanalysis ~ listHeapParameters ^^ {
+      case a ~ b ~ c ~ d ~ e ~ f => (a, b, c, d, e, f)
+    }
+
+  def parseAnalysisSettings(f : FileReader) : (List[String], String, String, Set[(String, Any)], String, Set[(String, Any)]) = {
+    val res : ParseResult[(List[String], String, String, Set[(String, Any)], String, Set[(String, Any)])] = this.parseAll(analysisSettings, f);
+    if(res.isEmpty) {
+      System.out.println("Error while parsing the test file");
+      System.out.println(res.toString);
+      return null;
+    }
+    else return res.get;
+  };
+
+  def parseOnlyTestResults(f : FileReader) : Set[ExpectedOutput] = {
+    val res : ParseResult[Set[ExpectedOutput]] = this.parseAll(listOutputs, f);
     if(res.isEmpty) {
       System.out.println("Error while parsing the test file");
       System.out.println(res.toString);
