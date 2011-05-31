@@ -10,6 +10,7 @@ object Main {
 	var verbose : Boolean = true;
   	var classes : List[ClassDefinition]= Nil;
 
+
   def reset() = classes=Nil;
 
 
@@ -21,8 +22,8 @@ object Main {
 	    for(f <- files) 
 	    	classes=classes ::: SystemParameters.compiler.compileFile(f);
 	}
-    def analyze[S <: State[S]](toAnalyze : List[String], entryState : S) : Unit = {
-      this.analyze( _ => toAnalyze.toSet, entryState);
+    def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : Unit = {
+      this.analyze( _ => toAnalyze.toSet, entryState, output);
     	/*Timer.start;
 	    var output = new OutputCollector();
 	    for(c <- classes) {
@@ -42,9 +43,8 @@ object Main {
 	    }*/
      }
 	
-    def analyze[S <: State[S]](toAnalyze : String => Set[String], entryState : S) : Unit = {
+    def analyze[S <: State[S]](toAnalyze : String => Set[String], entryState : S, output : OutputCollector) : Unit = {
     	Timer.start;
-	    var output = new OutputCollector();
 	    for(c <- classes) {
 	    	SystemParameters.currentClass = c.name.getThisType();
 	     	val methods = toAnalyze.apply(c.name.toString());
@@ -61,7 +61,7 @@ object Main {
 	        	}
 	      }
       SystemParameters.progressOutput.appendString("Finalizing the checking the property");
-	    SystemParameters.property.finalizeChecking();
+	    SystemParameters.property.finalizeChecking(output);
       SystemParameters.progressOutput.appendString("End of the checking of the property");
 	    if(verbose) {
 	    	System.out.println(SystemParameters.output.output()+"STATISTICS\nProperty validated:"+SystemParameters.output.validated()+"\nWarnings:"+SystemParameters.output.notvalidated()+"\nInferred contracts:"+SystemParameters.output.inferredcontracts())

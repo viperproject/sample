@@ -9,7 +9,7 @@ import java.io.PrintStream
 trait Property {
   def getLabel() : String;
   def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
-  def finalizeChecking() : Unit;
+  def finalizeChecking(printer : OutputCollector) : Unit;
 }
 //TODO:Comment it
 trait Visitor {
@@ -37,7 +37,7 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
           }
         }
       }
-  override def finalizeChecking() : Unit = Unit;
+  override def finalizeChecking(printer : OutputCollector) : Unit = Unit;
   def checkStatement[S <: State[S]](className : Type, methodName : String, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
         	  	case Assignment(programpoint, left, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)

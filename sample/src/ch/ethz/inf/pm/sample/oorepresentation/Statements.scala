@@ -247,7 +247,11 @@ case class FieldAccess(pp : ProgramPoint, val objs : List[Statement], val field 
       
     override def hashCode() : Int = field.hashCode
     
-    override def toString() : String = if(objs!=null) objs.toString()+"."+field; else "."+field;
+    override def toString() : String = if(objs!=null) {
+      if(objs.size==1)
+        return objs.iterator.next.toString()+"."+field
+      else return objs.toString()+"."+field
+    }; else "."+field;
                                                                                  
     override def toSingleLineString() : String = {
       var result : String ="";

@@ -1,16 +1,56 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
-import ch.ethz.inf.pm.sample.abstractdomain.Expression
+abstract sealed class Annotation(val exp : String) {
+  override def hashCode() : Int = 1;
 
+  override def equals(o : Any) : Boolean = o match {
+    case x: Annotation => return x.exp.equals(exp)
+    case _ => false
+  }
 
-//TODO: Implement equals, toString, hashCode
+}
 
-abstract sealed class Annotation(val classe : Type, val exp : Expression)
+case class Invariant(val classe : String, e : String) extends Annotation(e) {
+  override def equals(o : Any) : Boolean = o match {
+    case x: Invariant => return x.classe.equals(classe) && super.equals(x);
+    case _ => false
+  }
 
-case class Invariant(c : Type, e : Expression) extends Annotation(c, e)
+    override def toString() = "Invariant of class "+classe+": "+exp;
+}
 
-case class Predicate(c : Type, val predName : String, e : Expression) extends Annotation(c, e)
+case class Predicate(val classe : String, val predName : String, e : String) extends Annotation(e) {
+  override def equals(o : Any) : Boolean = o match {
+    case x: Predicate => return x.classe.equals(classe) && x.predName.equals(predName) && super.equals(x);
+    case _ => false
+  }
 
-case class Precondition(c : Type, val methodName : String, e : Expression) extends Annotation(c, e)
+    override def toString() = "Predicate "+predName+" in class "+classe+": "+exp;
+}
 
-case class Postcondition(c : Type, val methodName : String, e : Expression) extends Annotation(c, e)
+case class PreCondition(val classe : String, val methodName : String, e : String) extends Annotation(e) {
+    override def equals(o : Any) : Boolean = o match {
+      case x: PreCondition => return x.classe.equals(classe) && x.methodName.equals(methodName) && super.equals(x);
+      case _ => false
+    }
+
+    override def toString() = "Precondition in class "+classe+" of method "+methodName+": "+exp;
+}
+
+case class PostCondition(val classe : String, val methodName : String, e : String) extends Annotation(e) {
+    override def equals(o : Any) : Boolean = o match {
+      case x: PostCondition => return x.classe.equals(classe) && x.methodName.equals(methodName) && super.equals(x);
+      case _ => false
+    }
+
+    override def toString() = "Postcondition in class "+classe+" of method "+methodName+": "+exp;
+}
+
+case class LoopInvariant(val pp : ProgramPoint, e : String) extends Annotation(e) {
+    override def equals(o : Any) : Boolean = o match {
+      case x: LoopInvariant => return x.pp.equals(pp) && super.equals(x);
+      case _ => false
+    }
+
+    override def toString() = "Loop invariant at line "+pp.getLine()+" and "+pp.getColumn()+": "+exp;
+}
