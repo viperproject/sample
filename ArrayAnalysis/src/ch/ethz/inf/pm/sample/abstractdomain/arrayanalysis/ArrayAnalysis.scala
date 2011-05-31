@@ -20,7 +20,7 @@ class ArrayProperty extends Property {
 	
 	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
 	  
-	  override def finalizeChecking() : Unit = Unit
+	  override def finalizeChecking(printer : OutputCollector) : Unit = Unit
 	   
 }
 
@@ -64,6 +64,6 @@ object ArrayAnalysis {
 	entryState =new State(entrydomain, entryvalue)
 	
 	ch.ethz.inf.pm.sample.Main.verbose=false; 
-	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState);
+	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);
   }
 }
