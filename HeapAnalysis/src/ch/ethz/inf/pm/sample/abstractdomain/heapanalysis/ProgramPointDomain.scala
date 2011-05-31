@@ -46,7 +46,7 @@ case class NullProgramPointHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends
   }
   override def toString() : String = "null"
   
-  override def factory() : ProgramPointHeapIdentifier=new NullProgramPointHeapIdentifier(getType().top(), this.getProgramPoint);
+  override def factory() : ProgramPointHeapIdentifier=new NullProgramPointHeapIdentifier(getType(), this.getProgramPoint);
   override def representSingleVariable() : Boolean=true;
   override def clone() : Object =new NullProgramPointHeapIdentifier(t2, this.getProgramPoint);
 }

@@ -8,7 +8,7 @@ import property.Property
 
 object NonRelationalHeapDomainSettings {
 	var unsoundEntryState : Boolean = true;
-	var maxInitialNodes : Int = 10;
+	var maxInitialNodes : Int = 5;
 }
 
 class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : HeapIdAndSetDomain[I]) extends FunctionalDomain[I, HeapIdAndSetDomain[I], HeapEnv[I]] {
