@@ -248,7 +248,7 @@ object ConstraintsInference {
         if(Settings.permissionType.epsilon)
           this.addEpsilonConstraint(vars, solver);
         solver.setMinim();
-        this.printSolverConstraints(solver, vars);
+        //this.printSolverConstraints(solver, vars);
         // solve the problem
         solver.solve();
         val obj=solver.getObjective();
