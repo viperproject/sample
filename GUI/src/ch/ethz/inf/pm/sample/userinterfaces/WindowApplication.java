@@ -14,6 +14,7 @@ import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain;
 import ch.ethz.inf.pm.sample.property.OutputCollector;
+import ch.ethz.inf.pm.sample.tracepartitioning.PartitionedState;
 import scala.None;
 import scala.Some;
 import scala.collection.immutable.List;
@@ -35,6 +36,7 @@ public class WindowApplication {
     private JButton analyzeButton;
     private JButton selectFileButton;
     private JButton addMethodButton;
+    private JCheckBox partitionedStateCheckBox;
     private File file=null;
     private List<String> methods = List.empty();
     ProgressMonitor progressMonitor;
@@ -161,7 +163,9 @@ public class WindowApplication {
                     taskOutput.append("\nRunning the analysis");
                     ch.ethz.inf.pm.sample.Timer t=new ch.ethz.inf.pm.sample.Timer();
                     t.start();
-                    ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector());
+                    if(partitionedStateCheckBox.isSelected())
+                        ch.ethz.inf.pm.sample.Main.analyze(methods, new PartitionedState(entryState), new OutputCollector());
+                    else ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector());
                     t.stop();
                     setProgress(100);
                     taskOutput.append("\nAnalysis ended");

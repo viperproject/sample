@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.userinterfaces
 
 
+
 import ch.ethz.inf.pm.sample._;
 import com.mxgraph.view._
 import com.mxgraph.swing._
@@ -9,16 +10,16 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.geom.Rectangle2D;
+import java.awt.{GridLayout, Dimension, Toolkit}
 import javax.swing._
-import java.awt.Dimension
+import java.awt.event._
+import tracepartitioning._
 
 private class Show extends JFrame {
   def this(g : JComponent, exitonclose : Boolean, height : Int, width : Int) = {
     this()
-    g.setPreferredSize(new Dimension(g.getPreferredSize.getWidth.toInt+70, g.getPreferredSize.getHeight.toInt+70));
+    g.setPreferredSize(new Dimension((g.getPreferredSize.getWidth*1.1).toInt, (g.getPreferredSize.getHeight*1.1).toInt));
     val scrollBar : JScrollPane=new JScrollPane(g,ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
     this.add(scrollBar);
     if(exitonclose) this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -145,12 +146,10 @@ object ShowGraph extends Property
 					  val castedcell = cell.asInstanceOf[mxCell];
 					  var i : Int = 0;
 					  while(i < vertixes.length) {
-					    if(cell==vertixes.apply(i)) {
+					    if(cell==vertixes.apply(i))
 					      ShowGraph.stateToGraph(s.apply(i))
-					    }
 					    i=i+1;
 					  }
-					  
 					}
 				}
 			});
@@ -161,13 +160,12 @@ object ShowGraph extends Property
    	private class ShowNonRelationalHeapState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]] {
 	  def this(state : GenericAbstractState[N, H, I]) = {
 	    this()
-     
-	    //var addresses : Set[I]= state.getHeap().getAddresses;
+
 	  	val (graph, idToVertix) : (mxGraph, Map[Identifier, Object])= ShowGraph.nonRelationalHeapStateToGraph[I, N](state.getHeap().asInstanceOf[NonRelationalHeapDomain[I]], state.getSemanticDomain());
 	   	val graphComponent : mxGraphComponent = new mxGraphComponent(graph);
 	    graphComponent.getGraphControl().addMouseListener(new MouseAdapter()
 			{
-			
+
 				override def mouseReleased(e : MouseEvent)
 				{
 					val cell : Object = graphComponent.getCellAt(e.getX(), e.getY());
@@ -181,13 +179,13 @@ object ShowGraph extends Property
 					      val ids = idToVertix.keySet
 					      for(id <- ids)
 					    	  if(idToVertix.apply(id)==cell) {
-					    		  val label=state.getStringOfId(id); 
+					    		  val label=state.getStringOfId(id);
 					    		  new Show(new JLabel(label), false, singleLine*countLines(label), maxLineLength(label)*spaceSingleCharacter)
 					    	  }
 					    }
 					    i=i+1;
 					  }
-					  
+
 					}
 				}
 			});
@@ -297,10 +295,10 @@ object ShowGraph extends Property
 	try {
 		var index : Int = 0;
 		val variables = heap.getVariables;
-		val addresses = 
-			if(s.isInstanceOf[AddressedDomain[I]]) 
-				s.asInstanceOf[AddressedDomain[I]].getAddresses()++heap.getAddresses 
-			else heap.getAddresses;   
+		val addresses =
+			if(s.isInstanceOf[AddressedDomain[I]])
+				s.asInstanceOf[AddressedDomain[I]].getAddresses()++heap.getAddresses
+			else heap.getAddresses;
   		//Create the nodes for variables
 		for(node <- variables) {
 			val (vertix, h) = createVertix(node, index, leftspace, yposition+ygap, graph, ! node.representSingleVariable, "ellipse")
@@ -340,16 +338,55 @@ object ShowGraph extends Property
 	}
 	(graph, idToVertix)
   }
-  
+
   
   private def stateToGraph[S <: State[S], N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state : S) = state match {
-    case s : GenericAbstractState[N, H, I] => genericStateToGraph(s); 
+    case s : GenericAbstractState[N, H, I] => genericStateToGraph(s);
+    case s : PartitionedState[_] => partitionedStateToJComponent(s)
     case _ => new Show(stateToString(state), false, -1, -1);
   }
   
   private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state : GenericAbstractState[N, H, I]) = state match {
     case _ if state.getHeap().isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[GenericAbstractState[N, H,I]]) 
     case _ => new Show(stateToString(state), false, -1, -1);
+  }
+
+
+  private def partitionedStateToJComponent[S <: State[S]](state : PartitionedState[S]) = new ShowPartitionedState(state)
+
+  private class ShowPartitionedState[S <: State[S]] {
+      def this(state : PartitionedState[S]) = {
+        this()
+
+        val leaves : List[(List[Directive[S]], Option[S], String)] = flatPartitioning(state.partitioning, Nil);
+        var result : JPanel = new JPanel();
+        result.setLayout(new GridLayout(leaves.size, 1));
+        for((d, l, s) <- leaves) {
+          var b : JButton = new JButton("Directive:"+d.mkString(", "));
+          b.addActionListener(new ActionListener() {
+            def actionPerformed(e : ActionEvent) {
+            {
+              if (e.getSource() == b)
+                if(l!=None)
+                 stateToGraph(l.get);
+                else new Show(new JLabel(s), false, -1, -1);
+            }
+          }
+         });
+          result.add(b);
+        }
+        new Show(result, false, -1, -1);
+    }
+
+    private def flatPartitioning[S <: State[S]](p : Partitioning[S], l : List[Directive[S]]) : List[(List[Directive[S]], Option[S], String)] = p match {
+      case Leaf(s) => (l, Some(s), "") :: Nil;
+      case Node(d, children) =>
+        var result : List[(List[Directive[S]], Option[S], String)] = Nil;
+        for(c <- children)
+          result = result ::: flatPartitioning (c, l ::: d :: Nil);
+        return result;
+      case x : Supremum[S] => (l, None, x.toString()) :: Nil
+    }
   }
   
   private def stateToString[S <: State[S]](state : S) : JComponent = {
