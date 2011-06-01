@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.userinterfaces
 
 
-import javax.swing.JFrame;
 import ch.ethz.inf.pm.sample._;
 import com.mxgraph.view._
 import com.mxgraph.swing._
@@ -10,24 +9,25 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import java.awt.Toolkit;
+
 import java.awt.event.MouseAdapter;
-import java.awt.event.MouseListener;
 import java.awt.event.MouseEvent;
-import java.awt.geom.Rectangle2D;
 import javax.swing._
+import java.awt.Dimension
 
 private class Show extends JFrame {
   def this(g : JComponent, exitonclose : Boolean, height : Int, width : Int) = {
     this()
+    g.setPreferredSize(new Dimension(g.getPreferredSize.getWidth.toInt+70, g.getPreferredSize.getHeight.toInt+70));
     val scrollBar : JScrollPane=new JScrollPane(g,ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS,ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
     this.add(scrollBar);
     if(exitonclose) this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    if( (height > 500 || width > 500) || height <= 0 || width <= 0)
+    //if( (height > 500 || width > 500) || height <= 0 || width <= 0)
 	    //(2|4) is a workaround for JFrame.MAXIMIZED_BOTH, since it does not see this final constant field in class Frame
-	    this.setExtendedState(this.getExtendedState() | (2|4) )
-    else
-      this.setSize(width+100, height+100);
+	  //  this.setExtendedState(this.getExtendedState() | (2|4) )
+    //else
+    if(height <= 0 || width <= 0)  this.setSize(500, 800);
+    else this.setSize(width+100, height+100);
 	this.setVisible(true);
 	this.validate();
   }
