@@ -128,7 +128,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  case "Boolean" => return new Some(state); //TODO: Potentially not sound
    
 	  case className => {
-	 	if(operator.equals("==")) //to avoid comparison between references
+	 	if(operator.equals("==") || operator.equals("!=") || operator.equals("$asInstanceOf") || operator.equals("$isInstanceOf")) //to avoid comparison between references and type casts
 	 		return new Some(state);
 	  val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
 	  var result=castedState._1._1;
