@@ -5,21 +5,70 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import java.io.PrintStream
 
-//TODO:Comment it
+/**
+ * The check of a property
+ *
+ * @author Pietro Ferrara
+ * @version 0.1
+ */
 trait Property {
+
+  	/**
+	   * A short label to identify and display the property
+	   */
   def getLabel() : String;
-  def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
+
+   	/**
+	   * Check the property over the abstract results of a single method
+	   *
+	   * @param classe the class
+	   * @param methodName the name of the method
+	   * @param result the abstract result
+	   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
+	   */
+  def check[S <: State[S]](classe : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
+
+   	/**
+	   * The finalizing of the property after that all methods have been checked
+	   *
+	   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
+	   */
   def finalizeChecking(printer : OutputCollector) : Unit;
 }
-//TODO:Comment it
+
+/**
+ * A visitor that checks the property over a single state
+ *
+ * @author Pietro Ferrara
+ * @version 0.1
+ */
 trait Visitor {
+
+  	/**
+	   * A short label to identify and display the property
+	   */
   def getLabel() : String;
+
+    /**
+	   * Check the property over a single state
+	   *
+	   * @param state the abstract state
+	   * @param statement the statement that was executed after the given abstract state
+	   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
+	   */
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit;
 }
-//TODO:Comment it
-class SingleStatementProperty(visitor : Visitor) extends Property {
-  def getLabel() : String = visitor.getLabel();
-  def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+
+/**
+ * The class that has to be used to check the property over single states
+ *
+ * @param visitor the visitor that will check the property over single abstract states
+ * @author Pietro Ferrara
+ * @version 0.1
+ */
+final class SingleStatementProperty(visitor : Visitor) extends Property {
+  override final def getLabel() : String = visitor.getLabel();
+  override final def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 	SystemParameters.currentClass = className;
 	SystemParameters.currentMethod = methodName;
     for(i <- 0 to result.nodes.size-1)
@@ -37,8 +86,8 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
           }
         }
       }
-  override def finalizeChecking(printer : OutputCollector) : Unit = Unit;
-  def checkStatement[S <: State[S]](className : Type, methodName : String, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
+  override final  def finalizeChecking(printer : OutputCollector) : Unit = Unit;
+  private def checkStatement[S <: State[S]](className : Type, methodName : String, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
         	  	case Assignment(programpoint, left, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  		this.checkStatement(className, methodName, visitor, state, left, printer)
@@ -66,63 +115,11 @@ class SingleStatementProperty(visitor : Visitor) extends Property {
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  		checkStatement(className, methodName, visitor,state, expr, printer)
         	  	case x : ControlFlowGraph =>
-        	  		//This should be already there!!!
         	  		val result=new ControlFlowGraphExecution[S](x, state).forwardSemantics(state);
         	  		this.check(className, methodName, result, printer);
         	  }
   
 }
 
-//TODO:Remove it
-class MatchErrorVisitor extends Visitor {
-
-  def getLabel() : String = "Match error";
-  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
-    case Throw(pp, st) => 
-      st.normalize() match {
-        case MethodCall(pp, method , parametricTypes, returnedType, parameters) if(method.isInstanceOf[FieldAccess] && method.asInstanceOf[FieldAccess].field.equals("this")) =>
-          for(obj <- method.asInstanceOf[FieldAccess].objs) {
-            obj.normalize match {
-              case New(pp, typ) if(typ.getName.equals("MatchError"))=> 
-              	if(! state.equals(state.bottom()))
-                 printer.add(new ValidatedProgramPoint(pp, "Exception MatchError is unreachable"))
-               else printer.add(new WarningProgramPoint(pp, "Exception MatchError may be reachable"))
-              case _ =>
-            }
-          }     
-        case _ => 
-      }
-    case _ => 
-  }
-}
-//TODO:Remove it
-class CastingVisitor extends Visitor {
-
-  def getLabel() : String = "Dynamic castings"
-  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = {
-    val st=statement.normalize();
-    st match {
-    	case MethodCall(pp, method , parametricTypes, parameters, returnedType) =>
-    	if(method.isInstanceOf[FieldAccess] && method.asInstanceOf[FieldAccess].field.equals("$asInstanceOf"))
-    		parameters match {
-    		case Nil => parametricTypes match {
-	    		case t :: Nil => 
-	    		val (listObjs, conditionedState) : (List[SymbolicAbstractValue[S]], S) = UtilitiesOnStates.forwardExecuteListStatements[S](state, method.asInstanceOf[FieldAccess].objs )
-	    		for(obj <- listObjs) {
-	    			val result = conditionedState.setExpression(conditionedState.getExpression.createAbstractOperator(obj, Nil, parametricTypes, AbstractOperatorIdentifiers.isInstanceOf, conditionedState, st.asInstanceOf[MethodCall].returnedType));
-	    			if(! (result.testFalse().equals(result.bottom))) {
-	    				printer.add(new WarningProgramPoint(pp, "Unsafe casting, statement "+st.toString))
-	    				return
-	    			}
-	    		}
-	    		printer.add(new ValidatedProgramPoint(pp, "Safe casting"))
-	    		case _ => throw new PropertyException("asInstanceOf must have exactly one type parameters")
-    		}
-    		case _ => throw new PropertyException("asInstanceOf cannot have parameters")
-    	}
-    	case _ => 
-   }
- }
-}
 
 class PropertyException(s : String) extends Exception(s)
