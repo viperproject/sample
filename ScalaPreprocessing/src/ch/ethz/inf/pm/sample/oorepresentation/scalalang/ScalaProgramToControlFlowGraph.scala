@@ -486,7 +486,8 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
             	var name=el.name.decode;
             	if(name.charAt(name.size-1).equals(' '))
             		name=name.substring(0, name.size-1);
-            	result=result+(new VariableIdentifier(name, new ScalaType(typ), new ScalaProgramPoint(el.pos)));
+            	if((! name.equals("$isInstanceOf")) && (! name.equals("$asInstanceOf")) )
+                result=result+(new VariableIdentifier(name, new ScalaType(typ), new ScalaProgramPoint(el.pos)));
              }
             }
         }
