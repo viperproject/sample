@@ -163,10 +163,11 @@ object Run {
       case e : FileNotFoundException =>
     }
     SystemParameters.setCompiler(this.getCompiler(splitExtension(sourceCodeFile)._2))
+    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
     ch.ethz.inf.pm.sample.Main.compile(sourceCodeFile)
     val output: OutputCollector = new OutputCollector;
     ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, output)
-    val result = output.warnings
+    val result = output.outputs
     (expectedOutput, result)
   }
 
