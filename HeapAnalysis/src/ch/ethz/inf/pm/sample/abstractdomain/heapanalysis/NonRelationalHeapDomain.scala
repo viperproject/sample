@@ -112,7 +112,10 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
 
 
 //Approximates all the concrete references created at the same point of the program with a unique abstract reference
-class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : VariableEnv[I], heap : HeapEnv[I], val cod : HeapIdAndSetDomain[I], dom : I) extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], NonRelationalHeapDomain[I]](env, heap) with HeapDomain[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]] with HeapAnalysis[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]]{
+class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : VariableEnv[I], heap : HeapEnv[I], val cod : HeapIdAndSetDomain[I], dom : I)
+    extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], NonRelationalHeapDomain[I]](env, heap)
+    with HeapDomain[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]]
+    with HeapAnalysis[NonRelationalHeapDomain[I], HeapIdAndSetDomain[I]] {
   override def lubWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.lub(left, right), new Replacement)
   override def glbWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.glb(left, right), new Replacement)
   override def wideningWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.widening(left, right), new Replacement)
@@ -224,76 +227,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
         }
 	  else (heap, Map.empty[Identifier, List[String]], new Replacement);
   }
-  
- /* override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String])  =  variable match {
-    case x : VariableIdentifier =>
-      if(typ.isObject) {
-	    var result=this.createVariable(variable, typ);
-	    var ids : Map[Identifier, List[String]] = Map.empty[Identifier, List[String]];
-	    val add : I = dom.createAddressForParameter(typ)
-	    ids=ids+((add, path ::: variable.toString()::Nil));
-	    val newAdd=cod.convert(add);
-	    for(add <- this.getAddresses)
-	      if(add.getType().lessEqual(typ))
-	        newAdd.add(add);
-	    result=new NonRelationalHeapDomain(result._1.add(x, newAdd), result._2, cod, dom);
-	    //if(typ.isObject) {
-	      for((field, typ2) <- typ.getPossibleFields) {
-	    	  val adds = cod.convert(dom.createAddressForParameter(typ2));
-	    	  val fieldAdd=this.getFieldIdentifier(cod.convert(add), field, typ2);
-	    	  for(id : I <- fieldAdd.value) {
-	    		  result=new NonRelationalHeapDomain(result._1, result._2.add(id, adds), cod, dom);
-	    		  ids=ids+((id, path ::: variable.toString() :: field :: Nil));
-	    		  alreadyInitialized = Map.empty[I, List[String]];
-	    		  val r=initializeObject(id, id.getType, result, path ::: variable.toString() :: field :: Nil)
-	    		  result=r._1;
-	    		  ids=ids++r._2;
-	    		  ids=ids++alreadyInitialized;
-	    	  }
-	      }
-	    //}
-	    (result, ids)
-      }
-      else {
-        var result = Map.empty[Identifier, List[String]];
-        result=result+((variable, variable.toString() :: Nil ))
-        (this, result);
-        }
-     case x : HeapIdentifier[I] => {
-    	 throw new Exception("This should not happen!");
-    	 /*var result = Map.empty[Identifier, List[String]];
-    	 result=result+((x, x.toString() :: Nil ))
-    	 (this, result);*/
-        }
-  }
-  
-  
-  private var alreadyInitialized : Map[I, List[String]] = Map.empty[I, List[String]];
-  private def initializeObject(obj : I, typ : Type, heap : NonRelationalHeapDomain[I], path : List[String]) : (NonRelationalHeapDomain[I], Map[Identifier, List[String]]) = {
-	    var ids : Map[Identifier, List[String]] = Map.empty[Identifier, List[String]];
-	    if(typ.isObject && ! alreadyInitialized.contains(obj)) {
-          alreadyInitialized=alreadyInitialized+((obj, path)); //To avoid infinite loops during the initialization
-		  var result=heap;
-   	      for((field, typ2) <- typ.getPossibleFields) {
-	    	  val adds = cod.convert(dom.createAddressForParameter(typ2));
-	    	  val fieldAdd=result.getFieldIdentifier(result.get(cod.convert(obj)), field, typ2);
-	    	  for(id : I <- fieldAdd.value) {
-	    		  result=new NonRelationalHeapDomain(result._1, result._2.add(id, adds), cod, dom);
-	    		  ids=ids+((id, path));
-	    		  val r =initializeObject(id, id.getType, result, path ::: field :: Nil);
-	    		  ids=ids++r._2;
-	    		  result=r._1;
-	    	  	}
-	      }
-          (result, ids);
-        }
-	    /*else if(! alreadyInitialized.contains(obj)) {
-	    		  ids=ids+((id, path ::: field :: Nil));
-	      
-	    } */ 
-	    else (heap, ids);
-  }*/
-  
+
   override def setParameter(variable : Identifier, expr : Expression) = this.assign(variable, expr, null);
   
   override def backwardAssign(variable : Identifier, expr : Expression) = (this, new Replacement)
@@ -425,5 +359,5 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   
   override def assume(expr : Expression) = 
     (this, new Replacement) //TODO: for now there is nothing about the heap structure
-  
+
 }
