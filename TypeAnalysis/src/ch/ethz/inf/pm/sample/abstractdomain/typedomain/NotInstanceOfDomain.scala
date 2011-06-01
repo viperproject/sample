@@ -56,6 +56,9 @@ class SetExcludedTypes extends SetDomain[Type, SetExcludedTypes] {
 }
 
 class NotInstanceOfDomain(typ : Type) extends BoxedDomain[SetExcludedTypes, NotInstanceOfDomain]() with SemanticDomain[NotInstanceOfDomain] {
+
+  def merge(f : Replacement) = if(f.isEmpty()) this else throw new TypeDomainException("Merging not yet supported");
+
   override def factory() : NotInstanceOfDomain = new NotInstanceOfDomain(typ);
 
   def assume(expr : Expression) : NotInstanceOfDomain = expr match {
