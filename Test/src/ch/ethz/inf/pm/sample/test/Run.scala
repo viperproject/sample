@@ -13,6 +13,7 @@ import scala.Some
 import ch.ethz.inf.pm.sample.{Main, StringCollector, SystemParameters}
 
 object Run {
+  var verbose = false;
 
   /**
    * The automatic run of test cases receive some parameters:
@@ -24,6 +25,7 @@ object Run {
    *     the actual results and the last ones. The file will be places in <dir>. By default it
    *     is "resultLast.test"
    * - "-i" specifies that we want to infer the output of the tests and not to compare them.
+   * - "-v" will produce a verbose output on the console
    *
    * The analysis without "-i" will put for each source code file f contained in the given directory
    * a file f.test_last with the results of the current run. In addition, it will store the comparison
@@ -51,6 +53,8 @@ object Run {
       case None => "resultLast.test"
       case Some(s) => s
     }
+
+    verbose = if(args.contains("-v")) true else false;
     val inference : Boolean = if(args.contains("-i")) true else false;
     System.out.println("Starting the tests")
 
@@ -92,18 +96,20 @@ object Run {
             Main.reset();
             analysis.reset();
             heapanalysis.reset();
-            if(file2.isDirectory)
-              iteratorOverFiles(file2, f);
-            else {
+            if(! file2.isDirectory) {
               val (pathFile, extensionFile) = splitExtension(file2)
-              if(extensionFile.equals("scala") || extensionFile.equals("class"))
+              if(canBeParserized(extensionFile)) {
+                if (verbose) System.out.println("Begin of file "+file2.getAbsolutePath);
                 f(file2, new File(pathFile+".test"), methods, entryState);
+                if (verbose) System.out.println("End of file "+file2.getAbsolutePath);
+              }
             };
           }
         }
         catch {
           case e : FileNotFoundException => System.out.println("Directory "+file.getPath()+" does not contain a settings.test.");
-          case e => System.out.println("Settings.test in directory "+file.getPath()+" is malformed.");
+          case e : TestException => System.out.println("Error while setting the parameters of the tests."); e.printStackTrace();
+          case e => System.out.println("Settings.test in directory "+file.getPath()+" is malformed."); e.printStackTrace();
         }
         finally {
           //Iterate over the subdirectories
@@ -113,8 +119,13 @@ object Run {
         }
       }
     }
-    else {
-      };
+  }
+
+  private def canBeParserized(extension : String) : Boolean = {
+    for(a <- InstalledPlugins.compilers)
+      if(a.extensions().contains(extension))
+        return true;
+    return false
   }
 
   //Return the path and the extension of the given file
@@ -235,10 +246,11 @@ object Run {
   }
 
   //Given the extension, return the compiler to parser it
-  //TODO: I should put it inside the specification of the compiler
-  private def getCompiler(s : String) : Compiler = s match {
-    case "scala" => return new ScalaCompiler();
-    case "class" => return new JavaCompiler();
+  private def getCompiler(s : String) : Compiler = {
+    for(a <- InstalledPlugins.compilers)
+      if(a.extensions().contains(s))
+        return a;
+    throw new TestException("Compiler not found");
   }
 
   //Return the heap analysis represented by the given string using the labels of the existing heap analyses
@@ -246,7 +258,7 @@ object Run {
     for(a <- InstalledPlugins.heapanalyses)
       if(a.getLabel().equals(s))
         return a.asInstanceOf[HeapDomain[T, I]];
-    throw new Exception();
+    throw new TestException("Heap analysis not found");
   }
 
   //Return the analysis represented by the given string using the labels of the existing analyses
@@ -254,7 +266,7 @@ object Run {
     for(a <- InstalledPlugins.analyses)
       if(a.getLabel().equals(s))
         return a;
-    return null;
+    throw new TestException("Analysis not found");
   }
 
   //Return the property represented by the given string using the labels of the existing properties
@@ -262,7 +274,7 @@ object Run {
     for(p1 : Property <- a.getProperties())
       if(p1.getLabel().equals(p))
         return p1;
-    return null;
+    throw new TestException("Property not found");
   }
 
   //Check if the output matches the expected output, and returns the set of missing expected outputs, outputs
@@ -281,3 +293,5 @@ object Run {
     return (missedExpectedOutput, notCoveredOutput, matched);
   }
 }
+
+class TestException(s : String) extends Exception(s)
