@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
+import java.io.StringWriter
+
 /**
  * A <code>Compiler</code> represents the interface to provide a compiler from a language to Simple
  *
@@ -16,6 +18,13 @@ trait Compiler {
    @return the list of the class definitions contained in the given path
   */
 	def compileFile(path : String) : List[ClassDefinition];
+
+  /**
+   This method specifies which extensions are supported by this compiler
+
+   @return the list of the extensions that are parsed by this compiler
+  */
+  def extensions() : List[String];
 
   /**
    This method returns a short description of the compiler.

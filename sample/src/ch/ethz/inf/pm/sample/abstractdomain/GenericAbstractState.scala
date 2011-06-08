@@ -79,9 +79,9 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def assignField(variable : Identifier, field : String, expr : Expression, typ : Type, pp : ProgramPoint) : T= {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (id, h, r1) = d2.getFieldIdentifier(variable, field, typ, pp)
-    val (h2,r2)=h.assignField(variable, field, expr)
-    result.d2=h2;
+    val (h2,r2)=d2.assignField(variable, field, expr)
+    val (id, h, r1) = h2.getFieldIdentifier(variable, field, typ, pp)
+    result.d2=h;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
     result.d1=d1.merge(r1.lub(r1, r2)).assign(id, expr)
