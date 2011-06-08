@@ -1,8 +1,10 @@
 package ch.ethz.inf.pm.sample.oorepresentation.javabytecode;
 
 import ch.ethz.inf.pm.sample.oorepresentation.*;
+import com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel;
 
 import java.io.File;
+import java.util.List;
 
 /**
  *
@@ -35,6 +37,10 @@ public class JavaCompiler implements ch.ethz.inf.pm.sample.oorepresentation.Comp
 
     public String getLabel() {
         return "Java bytecode";
+    }
+
+    public scala.collection.immutable.List<String> extensions() {
+        return scala.collection.immutable.List.empty().$colon$colon("class");
     }
 
     private void parseFile(File f) {
