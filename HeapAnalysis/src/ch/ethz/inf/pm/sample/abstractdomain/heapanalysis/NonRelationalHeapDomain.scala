@@ -133,10 +133,10 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   = throw new SemanticException("Non relational heap domains do not support arrays");
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
   override def getLabel() : String = "Heap Domain:"+dom.getLabel();
-  override def parameters() : List[(String, Any)] = List((("Unsound entry state"), true), (("Max. number of entry nodes"), 10))
+  override def parameters() : List[(String, Any)] = List((("UnsoundEntryState"), true), (("MaxEntryNodes"), 10))
   override def setParameter(label : String, value : Any) : Unit = label match {
-    case "Unsound entry state" => NonRelationalHeapDomainSettings.unsoundEntryState=value.asInstanceOf[Boolean];
-    case "Max. number of entry nodes" => NonRelationalHeapDomainSettings.maxInitialNodes=value.asInstanceOf[Int];
+    case "UnsoundEntryState" => NonRelationalHeapDomainSettings.unsoundEntryState=value.asInstanceOf[Boolean];
+    case "MaxEntryNodes" => NonRelationalHeapDomainSettings.maxInitialNodes=value.asInstanceOf[Int];
   };
   override def getInitialState() = new NonRelationalHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
   override def getProperties() : Set[Property] = Set.empty+ShowGraph;
