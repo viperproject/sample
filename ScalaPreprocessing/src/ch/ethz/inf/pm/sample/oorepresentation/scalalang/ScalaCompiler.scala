@@ -12,6 +12,8 @@ class ScalaCompiler extends Compiler {
 
   def getLabel() : String = "Scala"
 
+   def extensions() : List[String] = "scala" :: Nil;
+
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics);
 
 	def compileFile(path : String) : List[ClassDefinition] = {
@@ -20,6 +22,8 @@ class ScalaCompiler extends Compiler {
 		
 	    val settings = new Settings
       settings.classpath.value = System.getProperty("java.class.path")
+
+
 
         // WORK
 	    val command = new CompilerCommand(List(path), settings) {
