@@ -37,6 +37,8 @@ public class WindowApplication {
     private JButton selectFileButton;
     private JButton addMethodButton;
     private JCheckBox partitionedStateCheckBox;
+    private JButton addIfDirectiveButton;
+    private JButton addMergeDirectiveButton;
     private File file=null;
     private List<String> methods = List.empty();
     ProgressMonitor progressMonitor;
@@ -51,6 +53,28 @@ public class WindowApplication {
                 }
             }
         });
+
+        addIfDirectiveButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if(e.getSource()==addIfDirectiveButton) {
+                    AddIfDirective a = new AddIfDirective();
+                    a.pack();
+                    a.setVisible(true);
+                }
+            }
+        });
+
+
+        addMergeDirectiveButton.addActionListener(new ActionListener() {
+            public void actionPerformed(ActionEvent e) {
+                if(e.getSource()==addMergeDirectiveButton) {
+                    AddMergeDirective a = new AddMergeDirective();
+                    a.pack();
+                    a.setVisible(true);
+                }
+            }
+        });
+
         analyzeButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 if(e.getSource()==analyzeButton) {
