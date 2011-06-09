@@ -15,17 +15,23 @@ import scala.tools.nsc.plugins.PluginComponent
 //import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
 class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends ProgramPoint {
-  val row : Int = try{
+  var row : Int = try{
 	  pos.line
   }
   catch {
 	  case _ => -1
   }
-  val column : Int  = try{
+  var column : Int  = try{
 	  pos.column
   }
   catch {
 	  case _ => -1
+  }
+
+  def this(r : Int, c : Int) ={
+    this(null);
+    row=r;
+    column=c;
   }
 
   override def getColumn() = column;
