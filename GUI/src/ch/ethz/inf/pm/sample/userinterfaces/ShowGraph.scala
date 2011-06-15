@@ -294,42 +294,46 @@ object ShowGraph extends Property
     var idToVertix : Map[Identifier, Object] = Map.empty[Identifier, Object];
 	try {
 		var index : Int = 0;
-		val variables = heap.getVariables;
-		val addresses =
-			if(s.isInstanceOf[AddressedDomain[I]])
-				s.asInstanceOf[AddressedDomain[I]].getAddresses()++heap.getAddresses
-			else heap.getAddresses;
+		val ids = s.getIds()++heap.getIds()
   		//Create the nodes for variables
-		for(node <- variables) {
-			val (vertix, h) = createVertix(node, index, leftspace, yposition+ygap, graph, ! node.representSingleVariable, "ellipse")
-			idToVertix+=((node, vertix));
-			yposition=yposition+ygap*2+h;
-			index=index+1;
+		for(node <- ids) {
+      if(node.isInstanceOf[VariableIdentifier]) {
+			  val (vertix, h) = createVertix(node, index, leftspace, yposition+ygap, graph, ! node.representSingleVariable, "ellipse")
+			  idToVertix+=((node, vertix));
+			  yposition=yposition+ygap*2+h;
+			  index=index+1;
+      }
 		}
 		yposition=ygap;
 		val xposition : Int = leftspace+200;
 		//Create the nodes for abstract addresses
-		for(node <- addresses) {
-			val (vertix, h) = createVertix(node, index, xposition, yposition+ygap, graph, ! node.representSingleVariable, "ellipse")
-			yposition=yposition+ygap*2+h;
-			idToVertix+=((node, vertix));
-			index=index+1;
+		for(node <- ids) {
+      if(! node.isInstanceOf[VariableIdentifier]) {
+        val (vertix, h) = createVertix(node, index, xposition, yposition+ygap, graph, ! node.representSingleVariable, "ellipse")
+        yposition=yposition+ygap*2+h;
+        idToVertix+=((node, vertix));
+        index=index+1;
+      }
 		}
-		for(variable <- variables) {
-			val res : HeapIdAndSetDomain[I] = heap.get(variable);
-			val from = idToVertix.apply(variable);
-			for(add <- res.value) {
-			  val to = idToVertix.apply(add);
-			  graph.insertEdge(graph.getDefaultParent(), "("+from+","+to+")", "", from, to, "edgeStyle=elbowEdgeStyle");
-			}
+		for(variable <- ids) {
+      if(variable.isInstanceOf[VariableIdentifier]) {
+        val res : HeapIdSetDomain[I] = heap.get(variable.asInstanceOf[VariableIdentifier]);
+        val from = idToVertix.apply(variable);
+        for(add <- res.value) {
+          val to = idToVertix.apply(add);
+          graph.insertEdge(graph.getDefaultParent(), "("+from+","+to+")", "", from, to, "edgeStyle=elbowEdgeStyle");
+        }
+      }
 		}
-		for(add2 <- addresses) {
-			val res : HeapIdAndSetDomain[I] = heap.get(heap.cod.convert(add2));
-			val from = idToVertix.apply(add2);
-			for(add3 <- res.value) {
-			  val to = idToVertix.apply(add3);
-			  graph.insertEdge(graph.getDefaultParent(), "("+from+","+to+")", "", from, to, "edgeStyle=elbowEdgeStyle");
-			}
+		for(add2 <- ids) {
+      if(! add2.isInstanceOf[VariableIdentifier]) {
+        val res : HeapIdSetDomain[I] = heap.get(add2.asInstanceOf[I]);
+        val from = idToVertix.apply(add2);
+        for(add3 <- res.value) {
+          val to = idToVertix.apply(add3);
+          graph.insertEdge(graph.getDefaultParent(), "("+from+","+to+")", "", from, to, "edgeStyle=elbowEdgeStyle");
+        }
+      }
 		}
 	}
 	finally

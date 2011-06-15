@@ -162,8 +162,10 @@ public class WindowApplication {
                     heap.reset();
                     ch.ethz.inf.pm.sample.oorepresentation.Compiler compiler=getSelectedCompiler();
                     if(s==null || heap==null || compiler==null) return null;
+                    SystemParameters.resetNativeMethodsSemantics();
                     SystemParameters.addNativeMethodsSemantics(s.getNativeMethodsSemantics());
                     SystemParameters.addNativeMethodsSemantics(heap.getNativeMethodsSemantics());
+                    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics());
                     SystemParameters.setCompiler(compiler);
                     setProgress(10);
                     taskOutput.append("\nCompiling the files");

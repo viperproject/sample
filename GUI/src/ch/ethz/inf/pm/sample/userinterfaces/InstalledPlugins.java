@@ -25,17 +25,15 @@ public class InstalledPlugins {
         analyses[2]=new ApronAnalysis();
         //analyses[3]=new PosDomainAnalysis();
 
-        heapanalyses=new HeapDomain[5];
-        heapanalyses[0]=new ReallyApproximatedHeapDomain();
-        heapanalyses[1]=new OnlyStaticReferenceHeapDomain();
-        heapanalyses[2]=createNonRelationalHeapDomain(new SingleHeapIdentifier(null, null));
-        heapanalyses[3]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
-        heapanalyses[4]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
+        heapanalyses=new HeapDomain[3];
+        heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
+        heapanalyses[1]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
+        heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
     }
 
     private static NonRelationalHeapDomain createNonRelationalHeapDomain(NonRelationalHeapIdentifier id) {
         Type typ=null;
-        HeapIdAndSetDomain ids = new HeapIdAndSetDomain(id);
+        MaybeHeapIdSetDomain ids = new MaybeHeapIdSetDomain(id);
         VariableEnv env= new VariableEnv(typ, ids);
         HeapEnv heap= new HeapEnv(typ, ids);
         return new NonRelationalHeapDomain(env, heap, ids, id);
