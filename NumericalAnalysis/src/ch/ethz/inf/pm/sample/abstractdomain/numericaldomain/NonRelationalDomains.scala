@@ -16,6 +16,7 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 }
 
 class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom : N) extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]() with NumericalDomain[BoxedNonRelationalNumericalDomain[N]] {
+  //def getIds : Set[Identifier] = this.value.keySet.asInstanceOf[Set[Identifier]];
   override def merge(r : Replacement) : BoxedNonRelationalNumericalDomain[N] = {
     if(r.isEmpty) return this;
     var result : BoxedNonRelationalNumericalDomain[N] = this.clone.asInstanceOf[BoxedNonRelationalNumericalDomain[N]];
@@ -94,6 +95,12 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     case BinaryArithmeticExpression(left, right, op, typ) => dom.top() //TODO: implement it!!! 
     case Constant(constant, typ, pp) => try { return dom.evalConstant(Integer.valueOf(constant).intValue());} catch {case _ => return dom.top();}
     case x : Identifier => this.get(x)
+    case xs : HeapIdSetDomain[_] =>
+      var result=dom.bottom();
+      //TODO:Distinguish between definite and maybe
+      for(x <- xs.value)
+        result=result.lub(result, this.get(x));
+      result;
   }
     
   override def assume(expr : Expression) : BoxedNonRelationalNumericalDomain[N]= Normalizer.conditionalExpressionToMonomes(expr) match {

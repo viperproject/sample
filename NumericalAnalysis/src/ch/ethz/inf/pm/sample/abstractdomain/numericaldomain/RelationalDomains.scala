@@ -17,6 +17,8 @@ class UpperBoundRightPart extends InverseSetDomain[Identifier, UpperBoundRightPa
 }
 
 class UpperBound extends RelationalNumericalDomain[UpperBound] with BoxedDomain[UpperBoundRightPart, UpperBound] {
+  //def getIds : Set[Identifier] = this.value.keySet.asInstanceOf[Set[Identifier]];
+
   override def merge(r : Replacement) = if(r.isEmpty) this; else throw new SemanticException("Merge not yet implemented");
 	
 	def this(v : Map[Identifier, UpperBoundRightPart]) {

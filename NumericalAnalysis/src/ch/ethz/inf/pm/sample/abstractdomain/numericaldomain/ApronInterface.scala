@@ -7,7 +7,10 @@ import ch.ethz.inf.pm.sample.property.Property
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
   override def merge(r : Replacement) = if(r.isEmpty) this; else throw new ApronException("Merge not yet implemented");
-	
+
+  //TODO
+  def getIds : Set[Identifier] = Set.empty[Identifier];
+
 	override def getStringOfId (id : Identifier) : String = {
 		var result : String = "";
 		for(c <- this.state.toLincons(domain)) {
