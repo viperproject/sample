@@ -6,11 +6,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.Compiler
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler
 import ch.ethz.inf.pm.sample.oorepresentation.javabytecode.JavaCompiler
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain
-import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.property._
 import java.io._
 import scala.Some
 import ch.ethz.inf.pm.sample.{Main, StringCollector, SystemParameters}
+import ch.ethz.inf.pm.sample.abstractdomain._
 
 object Run {
   var verbose = false;
@@ -26,6 +26,8 @@ object Run {
    *     is "resultLast.test"
    * - "-i" specifies that we want to infer the output of the tests and not to compare them.
    * - "-v" will produce a verbose output on the console
+   * - "-dl" will delete the results of the last run
+   * - "-de" will delete the expected results
    *
    * The analysis without "-i" will put for each source code file f contained in the given directory
    * a file f.test_last with the results of the current run. In addition, it will store the comparison
@@ -39,12 +41,23 @@ object Run {
   def main[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](args : Array[String]) = {
     val originalResult : StringCollector = new StringCollector;
     val lastResult : StringCollector = new StringCollector;
+    var terminate : Boolean = false;
+    val inference : Boolean = if(args.contains("-i")) true else false;
     val directory = getArg("-p", args) match {
       case None =>
         System.out.println("You should explicitly specify the directory that contains the test cases");
         "C:\\Users\\Pietro\\Sample\\Test\\test\\AccessPermissions\\"
       case Some(s) => s
     }
+    if(args.contains("-dl")) {
+      terminate=true;
+      iteratorOverFiles[N, H, I](new File(directory), delete[I, H, N]("test_last", _, _, _, _, originalResult, lastResult, inference));
+    }
+    if(args.contains("-de")) {
+      terminate=true;
+      iteratorOverFiles[N, H, I](new File(directory), delete[I, H, N]("test", _, _, _, _, originalResult, lastResult, inference));
+    }
+    if(terminate) exit(0);
     val originalFile = getArg("-o", args) match {
       case None => "resultOriginal.test"
       case Some(s) => s
@@ -55,11 +68,12 @@ object Run {
     }
 
     verbose = if(args.contains("-v")) true else false;
-    val inference : Boolean = if(args.contains("-i")) true else false;
     System.out.println("Starting the tests")
 
     iteratorOverFiles[N, H, I](new File(directory), runSingle[N, H, I](_, _, _, _, originalResult, lastResult, inference));
 
+    new File(directory+originalFile).delete();
+    new File(directory+lastFile).delete();
     writeStringInFile(directory+originalFile, originalResult.getString);
     writeStringInFile(directory+lastFile, lastResult.getString);
     System.out.println("Tests ended")
@@ -146,6 +160,7 @@ object Run {
     val heapan: H = this.getHeapAnalysis(heapanalysis).asInstanceOf[H];
     for ((id, value) <- heapanalysisParameters)
       heapan.setParameter(id, value);
+    SystemParameters.resetNativeMethodsSemantics();
     SystemParameters.addNativeMethodsSemantics(an.getNativeMethodsSemantics)
     SystemParameters.addNativeMethodsSemantics(heapan.getNativeMethodsSemantics)
     if (heapan.isInstanceOf[NonRelationalHeapDomain[_]]) {
@@ -190,6 +205,21 @@ object Run {
       output.appendString("Some expected outputs are not produced:\n" + missingExpected.mkString("\n"));
     if (!missingWarnings.isEmpty)
       output.appendString("Some outputs were not expected:\n" + missingWarnings.mkString("\n"));
+  }
+
+
+  //Run the tests over a single file, and compare the obtained results with the expected ones.
+  private def delete[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](extension : String, sourceCodeFile : File, testFile : File, methods : List[String], entryState : GenericAbstractState[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
+    val filepath = splitExtension(sourceCodeFile)._1;  ;
+    try {
+        val lastResult = new File(filepath+"."+extension)
+        if(! lastResult.delete())
+          System.out.println("I cannot delete "+lastResult.getPath);
+        else System.out.println(lastResult.getPath+" deleted");
+    }
+    catch {
+      case _ => //It means the file didn't exist, that is, it's the first time we run the analysis
+    }
   }
 
   //Run the tests over a single file, and compare the obtained results with the expected ones.
