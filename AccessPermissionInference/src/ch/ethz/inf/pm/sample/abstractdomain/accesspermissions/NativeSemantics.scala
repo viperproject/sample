@@ -5,13 +5,14 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
- 
+import java.util.spi.LocaleServiceProvider
+
 object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
   type P = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
 
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = thisExpr.getType().toString() match {
 	  case "Chalice" =>
-	    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]
+	    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]]
 	    var result : P=castedState._1._1;
 	    parameters match {
 	    case x :: Nil =>
@@ -21,6 +22,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			      for(exp <- ids)
 			    	  exp match {
 			    	    case id : Identifier => result = Annotation.exhaleInvariants(exp.asInstanceOf[Identifier], exp.getType().getName(), castedState)
+			    	    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhaleInvariants(exp.asInstanceOf[MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]], exp.getType().getName(), castedState)
 			    	  }
 		    case "unshare" => 
 		      /*if(ids.size == 1) 
@@ -28,22 +30,24 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			    	  exp match {
 			    	    case id : Identifier => result = Annotation.inhaleInvariants(exp.asInstanceOf[Identifier], exp.getType().getName(), castedState)
 			    	  }*/
-		    	//TODO: add the constraints
 		    case "acquire" =>  
 		      if(ids.size == 1) 
 			      for(exp <- ids)
 			    	  exp match {
-			    	    case id : Identifier => result = Annotation.inhaleInvariants(exp.asInstanceOf[Identifier], exp.getType().getName(), castedState)
+			    	    case id : Identifier => result = Annotation.inhaleInvariants(id, exp.getType().getName(), castedState)
+                case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhaleInvariants(id, exp.getType().getName(), castedState)
 			    	  }
 		    case "release" =>  
 			      for(exp <- ids)
 			    	  exp match {
-			    	    case id : Identifier => result = Annotation.exhaleInvariants(exp.asInstanceOf[Identifier], exp.getType().getName(), castedState)
+			    	    case id : Identifier => result = Annotation.exhaleInvariants(id, exp.getType().getName(), castedState)
+                case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.exhaleInvariants(id, exp.getType().getName(), castedState)
 			    	  }
 		    case "free" =>
 		    	  for(exp <- ids)
 		    	 	  exp match {
-		    	 	  	case id : Identifier => result = Annotation.exhaleEverything(exp.asInstanceOf[Identifier], castedState) 
+		    	 	  	case id : Identifier => result = Annotation.exhaleEverything(id, castedState)
+		    	 	  	case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhaleEverything(id, castedState)
 		    	  	  }
 	      }
     
@@ -58,27 +62,30 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 				      if(ids.size == 1)
 					      for(exp <- ids)
 					    	  exp match {
-					    	    case id : Identifier => result = Annotation.exhalePredicate(exp.asInstanceOf[Identifier], s, castedState)
+					    	    case id : Identifier => result = Annotation.exhalePredicate(id, s, castedState)
+                    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhalePredicate(id, s, castedState)
 					    	  }
 		         case "unfold" =>  
 					  for(exp <- ids)
 					  	  exp match {
-					   	    case id : Identifier => result = Annotation.inhalePredicate(exp.asInstanceOf[Identifier], s, castedState)
+					   	    case id : Identifier => result = Annotation.inhalePredicate(id, s, castedState)
+                  case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhalePredicate(id, s, castedState)
 					  	  }
 			    case "fork" =>
 			      if(y.getExpressions().size != 1) return None;
 				    //It applies pre and post conditions if these exist
 			      y.getExpressions().elements.next() match {
 			        case Constant(s, typ, pp) =>
-					    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
+					    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]];
 					    var result=castedState._1._1;
 				        for(exp <- x.getExpressions)
 							    	  exp match {
 							    	    case id : Identifier => result = Annotation.exhalePrecondition(id, x.getType().toString(), s, castedState, result);
+                        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, x.getType().toString(), s, castedState, result);
 							    	  }
-				        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](result, castedState._1._2);
-					    val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]] 
-					    return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](d1, entryvalue).asInstanceOf[S])
+				        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
+					    val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]]]
+					    return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
 					    /*val methodName=s;
 					    val className=x.getType().toString();
 					    if(this.getPrePostConditions(className, methodName)==None) return None;
@@ -93,15 +100,16 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 				    //It applies pre and post conditions if these exist
 			      y.getExpressions().elements.next() match {
 			        case Constant(s, typ, pp) =>
-					    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
+					    val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]];
 					    var result=castedState._1._1;
 				        for(exp <- x.getExpressions)
 							    	  exp match {
 							    	    case id : Identifier => result = Annotation.inhalePostcondition(id, x.getType().toString(), s, castedState, result);
+                        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => Annotation.inhalePostcondition(id, x.getType().toString(), s, castedState, result);
 							    	  }
-				        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](result, castedState._1._2);
-					    val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]] 
-					    return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](d1, entryvalue).asInstanceOf[S])
+				        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
+					    val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]]]
+					    return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
 					    /*val methodName=s;
 					    val className=x.getType().toString();
 					    if(this.getPrePostConditions(className, methodName)==None) return None;
@@ -115,13 +123,13 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	      } 
 	    case _ => None 
 	  }
-      val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](result, castedState._1._2);
-	  val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]] 
+      val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
+	  val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]]]
 	  //new SymbolicAbstractValue[GenericAbstractState[PermissionsDomain, ProgramPointHeapDomain, SetProgramPointHeapIdentifier]](None, None)
 	  //We suppose that S = GenericAbstractState[PermissionsDomain, ProgramPointHeapDomain, SetProgramPointHeapIdentifier]
 	  //On the other hand, we want to be more flexible, that is, we want to reuse all the other parts of this class even if
 	  //the state is not like that, and Chalice class is not used.
-	  return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](d1, entryvalue).asInstanceOf[S])
+	  return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
       
 	  case "Int" => return new Some(state);
    
@@ -130,19 +138,21 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  case className => {
 	 	if(operator.equals("==") || operator.equals("!=") || operator.equals("$asInstanceOf") || operator.equals("$isInstanceOf")) //to avoid comparison between references and type casts
 	 		return new Some(state);
-	  val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
+	  val castedState=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]];
 	  var result=castedState._1._1;
     for(exp <- thisExpr.getExpressions)
 		  exp match {
 		    case id : Identifier => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
+        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
 		  }
     for(exp <- thisExpr.getExpressions)
 		  exp match {
 		    case id : Identifier => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
+		    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
 		  }
-    val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](result, castedState._1._2);
-	  val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]]]
-	  return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]](d1, entryvalue).asInstanceOf[S])
+    val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
+	  val entryvalue =thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]]]
+	  return new Some(new GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
 	    //It applies pre and post conditions if these exist
 	    /*val methodName=operator;
 	  	val prepostcondition = this.getPrePostConditions(className, methodName);
@@ -158,13 +168,13 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  	else return inhale[S, P](solvedPostcondition, exhaled.get);*/
 	  }
 	}
-	
+	       /*
 	/** 
 	* Inhale several permissions (the ones that are in a pre or post condition) on a state
 	*/
 	private def inhale[S<:State[S], P <: PermissionsDomain[P]](cond : Map[SymbolicAbstractValue[S], Int], state : S) : Option[S]= {
-	  //I suppose the state is GenericAbstractState[PermissionsDomain, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
-	  var result=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
+	  //I suppose the state is GenericAbstractState[PermissionsDomain, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]
+	  var result=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]];
 	  for(s <- cond.keySet) {
 	    if(s.getExpressions().size==1) {
 	      val id = s.getExpressions().elements.next;
@@ -182,8 +192,8 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	* Inhale several permissions on a state
 	*/
 	private def exhale[S<:State[S], P <: PermissionsDomain[P]](cond : Map[SymbolicAbstractValue[S], Int], state : S) : Option[S] = {
-	  //I suppose the state is GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
-	  var result=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]];
+	  //I suppose the state is GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]
+	  var result=state.asInstanceOf[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]];
 	  for(s <- cond.keySet) {
 	    if(s.getExpressions().size==1) {
 	      val id = s.getExpressions().elements.next;
@@ -196,7 +206,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  }
 	  return Some(result.asInstanceOf[S])
 	}
- 
+         */
 	/**
 	* Given the parameters of a method, the (pre/post)conditions, and the arguments passed to the method, it returns a map relating
 	* each symbolic abstract value to the level permission that is related to that

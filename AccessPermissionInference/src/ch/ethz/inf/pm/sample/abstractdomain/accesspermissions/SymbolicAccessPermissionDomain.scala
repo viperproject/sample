@@ -418,7 +418,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
   
 }
 
-class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends BoxedDomain[SymbolicLevelPermission, SymbolicPermissionsDomain[I]] with PermissionsDomain[SymbolicPermissionsDomain[I]] with AddressedDomain[I]{
+class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends BoxedDomain[SymbolicLevelPermission, SymbolicPermissionsDomain[I]] with PermissionsDomain[SymbolicPermissionsDomain[I]] {
   override def merge(s : Replacement) = if(s.isEmpty) this; else throw new PermissionsException("Merge not yet supported");
 
   def keys() = value.keySet;
@@ -426,15 +426,15 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   def getAddresses() : Set[I] = {
     var result : Set[I] = Set.empty[I];
     for(id <- this.keys())
-      if(id.isInstanceOf[HeapIdAndSetDomain[I]]) result=result++id.asInstanceOf[HeapIdAndSetDomain[I]].value; 
+      if(id.isInstanceOf[HeapIdSetDomain[I]]) result=result++id.asInstanceOf[HeapIdSetDomain[I]].value;
       else if(id.isInstanceOf[I]) result=result+id.asInstanceOf[I];//let's hope... (thanks Java erasure!!!)
     return result;
   }
 
   override def add(key : Identifier, value : SymbolicLevelPermission) : SymbolicPermissionsDomain[I] = {
-    if(key.isInstanceOf[HeapIdAndSetDomain[I]]) {
+    if(key.isInstanceOf[HeapIdSetDomain[I]]) {
       var result=this;
-      for(add <- key.asInstanceOf[HeapIdAndSetDomain[I]].value)
+      for(add <- key.asInstanceOf[HeapIdSetDomain[I]].value)
         result=result.add(add, value);
       return result;
     }
@@ -463,9 +463,9 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   override def exhale(id : Identifier, p : Int) : SymbolicPermissionsDomain[I] = this.exhale(id, new CountedSymbolicValues(p));
   
   override def free(id : Identifier) : SymbolicPermissionsDomain[I] =
-    if(id.isInstanceOf[HeapIdAndSetDomain[I]]) {
+    if(id.isInstanceOf[HeapIdSetDomain[I]]) {
       var result=this;
-      for(add <- id.asInstanceOf[HeapIdAndSetDomain[I]].value) {
+      for(add <- id.asInstanceOf[HeapIdSetDomain[I]].value) {
     	//the permission should be 100%
     	ConstraintsInference.addConstraint(new Eq(new SimpleVal(Settings.permissionType.maxLevel), ConstraintsInference.convert(this.get(add))));
         result=result.remove(add);
@@ -485,9 +485,9 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   def get(variable : Identifier) : SymbolicLevelPermission = this.value.get(variable) match {
     case Some(x) => x;
     case None => 
-      if(variable.isInstanceOf[HeapIdAndSetDomain[I]]) {
+      if(variable.isInstanceOf[HeapIdSetDomain[I]]) {
 	      var result = new SymbolicLevelPermission().bottom();
-	      for(id <- variable.asInstanceOf[HeapIdAndSetDomain[I]].value)
+	      for(id <- variable.asInstanceOf[HeapIdSetDomain[I]].value)
 	        this.value.get(id) match {
 	          case Some(y) => result=result.lub(result, y);
 	          case None => return new SymbolicLevelPermission().top();

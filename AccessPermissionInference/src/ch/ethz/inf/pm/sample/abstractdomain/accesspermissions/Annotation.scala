@@ -117,7 +117,7 @@ object Annotation {
  	def inhalePredicate[P <: PermissionsDomain[P]](
  					  id : Identifier,
                       predicate : String,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
 	  var p = s._1._1;
 	  if(predicates.keys.toList.contains(predicate))
@@ -125,21 +125,43 @@ object Annotation {
 	  else return this.inhaleReachable(id, s._1._1, s._1._2._1, s._1._2._2, SymbolicAbstractPredicates(id.getType().toString(), predicate, null));
 	}
 
+ 	def inhalePredicate[P <: PermissionsDomain[P]](
+ 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      predicate : String,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
+	) : P = {
+     var result : P = s._1._1.bottom()
+     for(loc <- id.value)
+       result=result.lub(result, this.inhalePredicate(loc, predicate, s));
+     return result;
+ }
+
  	def exhalePredicate[P <: PermissionsDomain[P]](
  					  id : Identifier,
                       predicate : String,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P =  {
 	  var p = s._1._1;
 	  if(predicates.keys.toList.contains(predicate))
 	    return this.exhaleFieldsPermissions(id, predicates.get(predicate).get, p, s)
 	  else return this.exhaleReachable(id, s._1._1, s._1._2._1, s._1._2._2, SymbolicAbstractPredicates(id.getType().toString(), predicate, null));
 	}
- 
+
+  def exhalePredicate[P <: PermissionsDomain[P]](
+ 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      predicate : String,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
+	) : P =  {
+    var result = s._1._1.bottom();
+    for(loc <- id.value)
+      result=result.lub(result, this.exhalePredicate(loc, predicate, s));
+    return result;
+	}
+
 	def inhaleInvariants[P <: PermissionsDomain[P]](
 					  id : Identifier, 
                       t : String,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
 	  var p = s._1._1;
 	  if(monitorInvariants.keys.toList.contains(t))
@@ -147,11 +169,22 @@ object Annotation {
 	  else return this.inhaleReachable(id, s._1._1, s._1._2._1, s._1._2._2, SymbolicMonitorInvariant(t, null));
 	}
    
- 	def exhalePrecondition[P <: PermissionsDomain[P]](
+ 	def inhaleInvariants[P <: PermissionsDomain[P]](
+					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      t : String,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
+	) : P = {
+     var result : P = s._1._1.bottom()
+     for(loc <- id.value)
+       result=result.lub(result, this.inhaleInvariants(loc, t, s));
+     return result;
+	}
+
+  def exhalePrecondition[P <: PermissionsDomain[P]](
 					  id : Identifier,
                       className : String,
                       methodName : String,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]],
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
                       p : P
 	) : P = {
  	  if(methodName.equals("this")) return p; //Avoiding constructors
@@ -161,13 +194,27 @@ object Annotation {
 	  else throw new PermissionsException("Not yet supported");
 	  //return this.exhaleCondition(id, s._1._1, s._1._2._1, s._1._2._2);
 	}
+
+
+  def exhalePrecondition[P <: PermissionsDomain[P]](
+                      id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      className : String,
+                      methodName : String,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
+                      p : P
+	) : P =  {
+    var result = s._1._1.bottom();
+    for(loc <- id.value)
+      result=result.lub(result, this.exhalePrecondition(loc, className, methodName, s, p));
+    return result;
+	}
  
 
  	def inhalePrecondition[P <: PermissionsDomain[P]](
 					  id : Identifier,
                       className : String,
                       methodName : String,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]],
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
                       p : P
 	) : P = {
 	  if(methodName.equals("this")) return p; //Avoiding constructors
@@ -176,12 +223,27 @@ object Annotation {
 	  else throw new PermissionsException("Not yet supported");
 	  //return this.exhaleCondition(id, s._1._1, s._1._2._1, s._1._2._2);
 	}
+
+
+  def inhalePrecondition[P <: PermissionsDomain[P]](
+ 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      className : String,
+                      methodName : String,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
+                      p : P
+ ) : P = {
+    var result : P = s._1._1.bottom()
+     for(loc <- id.value)
+       result=result.lub(result, this.inhalePrecondition(loc, className, methodName, s, p));
+     return result;
+ }
+
   
  	def exhalePostcondition[P <: PermissionsDomain[P]](
 					  id : Identifier,
                       className : String,
                       methodName : String,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]],
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
                       p : P
 	) : P = {
 	  if(methodName.equals("this")) return p; //Avoiding constructors
@@ -190,13 +252,25 @@ object Annotation {
 	  else throw new PermissionsException("Not yet supported");
 	  //return this.exhaleCondition(id, s._1._1, s._1._2._1, s._1._2._2);
 	}
- 
+
+  def exhalePostcondition[P <: PermissionsDomain[P]](
+                      id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      className : String,
+                      methodName : String,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
+                      p : P
+	) : P =  {
+    var result = s._1._1.bottom();
+    for(loc <- id.value)
+      result=result.lub(result, this.exhalePostcondition(loc, className, methodName, s, p));
+    return result;
+	}
 
  	def inhalePostcondition[P <: PermissionsDomain[P]](
 					  id : Identifier,
                       className : String,
                       methodName : String,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]],
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
                       p : P
 	) : P = {
 	  if(methodName.equals("this")) return p; //Avoiding constructors
@@ -205,6 +279,20 @@ object Annotation {
 	  else throw new PermissionsException("Not yet supported");
 	  //return this.exhaleCondition(id, s._1._1, s._1._2._1, s._1._2._2);
 	}
+
+  def inhalePostcondition[P <: PermissionsDomain[P]](
+ 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      className : String,
+                      methodName : String,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier],
+                      p : P
+ ) : P = {
+    var result : P = s._1._1.bottom()
+     for(loc <- id.value)
+       result=result.lub(result, this.inhalePostcondition(loc, className, methodName, s, p));
+     return result;
+ }
+
   
   	private def getPreCondition(className : String, methodName : String) : Option[Map[FieldAccess, Int]] = {
 	  	val classPreconditions=Annotation.preconditions.get(className);
@@ -226,7 +314,7 @@ object Annotation {
 					  id : Identifier,
 					  localInv : Map[FieldAccess, Int],
 					  domain : P,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
 		var p = domain;
 	  	for(field <- localInv.keys)
@@ -237,7 +325,7 @@ object Annotation {
  	def exhaleInvariants[P <: PermissionsDomain[P]](
 					  id : Identifier, 
                       t : String,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P =  {
 	  var p = s._1._1;
 	  if(monitorInvariants.keys.toList.contains(t))
@@ -245,10 +333,22 @@ object Annotation {
 	  else return this.exhaleReachable(id, s._1._1, s._1._2._1, s._1._2._2, SymbolicMonitorInvariant(t, null));
 	  //else return p;
 	}
+
+
+  def exhaleInvariants[P <: PermissionsDomain[P]](
+ 					  id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      t : String,
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
+	) : P =  {
+    var result = s._1._1.bottom();
+    for(loc <- id.value)
+      result=result.lub(result, this.exhaleInvariants(loc, t, s));
+    return result;
+	}
    
  	def exhaleEverything[P <: PermissionsDomain[P]](
 					  id : Identifier,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P =  {
 	  var p = s._1._1;
 	  var h = s._1._2;
@@ -256,16 +356,28 @@ object Annotation {
       //TODO:Maybe this won't work if newHeap!=h
       //I have to test it with TVLA
 		  var (fieldId, newHeap, rep) = h.getFieldIdentifier(id, s.getName(), s.getType(), s.getProgramPoint());
-	 	  p = p.free(fieldId);
+      for(singleId <- fieldId.value)
+	 	    p = p.free(singleId);
 	  }
 	  return p;
+	}
+
+
+  def exhaleEverything[P <: PermissionsDomain[P]](
+                      id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier],
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
+	) : P =  {
+    var result = s._1._1.bottom();
+    for(loc <- id.value)
+      result=result.lub(result, this.exhaleEverything(loc, s));
+    return result;
 	}
  	
   	private def exhaleFieldsPermissions[P <: PermissionsDomain[P]](
 					  id : Identifier,
 					  localInv : Map[FieldAccess, Int],
 					  domain : P,
-                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+                      s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
 		var p = domain;
 	  	for(field <- localInv.keys)
@@ -278,7 +390,7 @@ object Annotation {
 	  field : List[String],
 	  p: Int, 
 	  pd : P, 
-	  s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+	  s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
 	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression(), field, s);
         val exprs = id1.getExpressions();
@@ -294,7 +406,7 @@ object Annotation {
 	  field : List[String],
 	  p: Int, 
 	  pd : P, 
-	  s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]
+	  s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
 	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression(), field, s);
         val exprs = id1.getExpressions();
@@ -306,11 +418,14 @@ object Annotation {
  
  	private def exhaleReachable[P <: PermissionsDomain[P]](id : Identifier, state : P, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier], s : SymbolicValue) : P = {
  	  var result=state;
- 	  val addresses=if(state.isInstanceOf[AddressedDomain[ProgramPointHeapIdentifier]]) state.asInstanceOf[AddressedDomain[ProgramPointHeapIdentifier]].getAddresses++store.getAddresses++env.getAddresses; else store.getAddresses++env.getAddresses;  
+ 	  val addresses= state.getIds()++store.getIds++env.getIds
  	  val it=addresses.elements;
  	  while(it.hasNext) { //the for(... <- ...) was not effective for debugging purposes :(
  		  it.next match {
- 		    case x : VariableIdentifier => result=this.exhaleReachable(env.get(x), state, env, store, s);
+ 		    case x : VariableIdentifier => /*{
+           for(singleId <- env.get(x).value)
+             result=this.exhaleReachable(singleId, result, env, store, s)
+         };                              */
  		    case x : FieldAndProgramPoint =>
 		    	  ReachabilityAnalysis.reachable(id, x, env, store) match {
 		    	    case (/*in :: */path, true) => result=result.exhale(x, s.factory().setPath(new Path("this" :: path))); //To express the constraint on the local object
@@ -325,11 +440,14 @@ object Annotation {
    	
   private def inhaleReachable[P <: PermissionsDomain[P]](id : Identifier, state : P, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier], s : SymbolicValue) : P = {
  	  var result=state;
- 	  val addresses=if(state.isInstanceOf[AddressedDomain[ProgramPointHeapIdentifier]]) state.asInstanceOf[AddressedDomain[ProgramPointHeapIdentifier]].getAddresses++store.getAddresses++env.getAddresses; else store.getAddresses++env.getAddresses;
+ 	  val addresses=state.getIds()++store.getIds++env.getIds
  	  val it=addresses.elements;
  	  while(it.hasNext) { //the for(... <- ...) was not effective for debugging purposes :(
  		  it.next match {
- 		    case x : VariableIdentifier => result=this.inhaleReachable(env.get(x), state, env, store, s);
+ 		    case x : VariableIdentifier => /*{
+           for(singleId <- env.get(x).value)
+             result=this.inhaleReachable(singleId, result, env, store, s)
+         };*/
  		    case x : FieldAndProgramPoint =>
 		    	  ReachabilityAnalysis.reachable(id, x, env, store) match {
 		    	    case (/*in :: */path, true) => 
@@ -346,7 +464,7 @@ object Annotation {
  	//private def exhaleSingleUnknown[P <: PermissionsDomain[P]](state : P, id : Identifier) : P = state.setMinimalPermissionLevel(id, 0);
  	//private def inhaleSingleUnknown[P <: PermissionsDomain[P]](state : P, id : Identifier) : P = state.setMaximalPermissionLevel(id, 100);
  
- 	private def accessSequenceOfFields[P <: PermissionsDomain[P]](thisExpr : SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]], fields : List[String], s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]) : SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], HeapIdAndSetDomain[ProgramPointHeapIdentifier]]] = fields match {
+ 	private def accessSequenceOfFields[P <: PermissionsDomain[P]](thisExpr : SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]], fields : List[String], s : GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]) : SymbolicAbstractValue[GenericAbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]] = fields match {
  	  case Nil => thisExpr;
  	  case "this" :: x1 => accessSequenceOfFields(thisExpr, x1, s); 
  	  case x :: x1 => accessSequenceOfFields(s.getFieldValue(thisExpr :: Nil, x, null).getExpression(), x1, s);

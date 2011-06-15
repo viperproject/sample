@@ -143,7 +143,7 @@ object ConstraintsInference {
 
   
   type Permissions = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
-  type HeapId = HeapIdAndSetDomain[ProgramPointHeapIdentifier];
+  type HeapId = ProgramPointHeapIdentifier;
   type HeapDomain = NonRelationalHeapDomain[ProgramPointHeapIdentifier];
   type State = GenericAbstractState[Permissions, HeapDomain, HeapId];
   
@@ -527,7 +527,7 @@ object ConstraintsInference {
    */
   def reach(id : Identifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[List[Statement]]= id match {
     case x : VariableIdentifier => Some(new Variable(null, x) :: Nil)
-    case x : HeapIdAndSetDomain[ProgramPointHeapIdentifier] => 
+    /*case x : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] =>
       var result : List[Statement] = Nil;
       var something : Boolean=false;
       for(v <- x.value)
@@ -544,7 +544,7 @@ object ConstraintsInference {
         }
       if(something) 
         Some(result); 
-      else None;
+      else None;   */
     case x : ProgramPointHeapIdentifier => 
       var result : List[Statement] = Nil;
       var something : Boolean=false;

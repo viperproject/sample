@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.property._;
 
 object Main {
   type Permissions = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
-  type HeapId = HeapIdAndSetDomain[ProgramPointHeapIdentifier];
+  type HeapId = ProgramPointHeapIdentifier;
   type HeapDomain = NonRelationalHeapDomain[ProgramPointHeapIdentifier];
   type State = GenericAbstractState[Permissions, HeapDomain, HeapId];
   type AbstractValue = SymbolicAbstractValue[State];
@@ -30,7 +30,7 @@ object Main {
 	NonRelationalHeapDomainSettings.unsoundEntryState = true;
 	NonRelationalHeapDomainSettings.maxInitialNodes = 10;
 	
-	SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ChaliceNativeMethodSemantics :: Nil;
+	SystemParameters.addNativeMethodsSemantics(ChaliceNativeMethodSemantics :: Nil);
 	
 	
 	//Mandatory global settings
@@ -46,7 +46,7 @@ object Main {
 	
 	//EntryState
 	val heapid : ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(SystemParameters.typ, null);
-	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new HeapIdAndSetDomain(heapid), heapid);
+	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain(heapid), heapid);
 	val domain : Permissions =new SymbolicPermissionsDomain();
 	val entrydomain  = new HeapAndAnother(domain, heapDomain);
 	var entryvalue =new AbstractValue(None, None)
