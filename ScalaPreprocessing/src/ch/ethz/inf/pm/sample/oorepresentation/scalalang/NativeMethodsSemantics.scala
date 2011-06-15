@@ -133,8 +133,8 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
 		else
 			//Possible reference comparison
 			operator match {
-			  case "==" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.==, returnedtype);
-			  case "!=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.!=, returnedtype);
+			  case "==" => return createReferenceComparisonExpression[S](state, thisExpr, parameters, ArithmeticOperator.==, returnedtype);
+			  case "!=" => return createReferenceComparisonExpression[S](state, thisExpr, parameters, ArithmeticOperator.!=, returnedtype);
 			  case _ => None;
 			}
  
@@ -149,7 +149,11 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
 	    case _ => None
     }
 
- 
+  private def createReferenceComparisonExpression[S <: State[S]](state : S, thisExpr : SymbolicAbstractValue[S], parameters : List[SymbolicAbstractValue[S]], operator : ArithmeticOperator.Value, returnedtype : Type) : Option[S] = parameters match {
+      case x :: Nil => new Some(state.setExpression(thisExpr.createReferenceComparisonExpression(thisExpr, x, operator, state, returnedtype)));
+      case _ => None
+    }
+
 }
 
 

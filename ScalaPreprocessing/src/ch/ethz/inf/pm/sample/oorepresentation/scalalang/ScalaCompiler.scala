@@ -17,7 +17,7 @@ class ScalaCompiler extends Compiler {
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics);
 
 	def compileFile(path : String) : List[ClassDefinition] = {
-		SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil;
+		SystemParameters.addNativeMethodsSemantics(ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil);
   	    //SystemParameters.typ is initialized inside the parser
 		
 	    val settings = new Settings
