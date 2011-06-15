@@ -11,15 +11,17 @@ object ReachabilityAnalysis {
   def reach(to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : (List[String], Boolean)= {
 	  var result : List[String] = Nil;
 	  var b : Boolean = false;
-	  for(id <- env.getVariables) {
-	 	  reachable(id, to, env, store) match {
-	 	 	  case (l, true) =>
-	 	 	   if(result.size ==0 || l.size < result.size) {
-	 	 	  	   result=l;
-	 	 	  	   b=true;
-	 	 	   }
-	 	 	  case _ =>
-	 	  }
+	  for(id <- env.getIds) {
+	 	  if(id.isInstanceOf[VariableIdentifier]) {
+         reachable(id, to, env, store) match {
+           case (l, true) =>
+             if(result.size ==0 || l.size < result.size) {
+               result=l;
+               b=true;
+             }
+           case _ =>
+         }
+       }
 	  }
 	  return (result, b);
   }
@@ -67,7 +69,7 @@ object ReachabilityAnalysis {
 		    	}
 	    }
         return (Nil, false);
-    case x : HeapIdAndSetDomain[ProgramPointHeapIdentifier] =>
+    /*case x : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] =>
       if(x.value.contains(to)) return (Nil, true);
       for(k <- x.value) {
         val res=store.get(k).value
@@ -79,7 +81,7 @@ object ReachabilityAnalysis {
 	    		  case _ =>
 	    		}
       }
-      return (Nil, false);
+      return (Nil, false);*/
   }
   
   private def isAccessibleThroughField[I <: NonRelationalHeapIdentifier[I]](from : Identifier, to : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[String] = {

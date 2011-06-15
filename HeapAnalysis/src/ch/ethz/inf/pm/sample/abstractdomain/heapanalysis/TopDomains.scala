@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
-
+                       /*
 abstract sealed class TopHeapIdentifier(typ : Type, pp : ProgramPoint) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ, pp) {
     override def getLabel() = "Top";
 	  override def getNullNode(pp : ProgramPoint) = new NullHeapIdentifier(typ.top(), pp);
@@ -142,4 +142,4 @@ class OnlyStaticReferenceHeapDomain extends ReallyApproximatedHeapDomain {
     case x : OnlyStaticReferenceHeapDomain => this.isBottom==x.isBottom
     case _ => false;
   }
-}
+}*/
