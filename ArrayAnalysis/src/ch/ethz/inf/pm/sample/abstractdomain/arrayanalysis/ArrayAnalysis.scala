@@ -28,7 +28,7 @@ object ArrayAnalysis {
   
 	
 
-  type HeapId = HeapIdAndSetDomain[TopHeapIdentifier];
+  type HeapId = TopHeapIdentifier;
   type HeapDomain = NonRelationalHeapDomain[TopHeapIdentifier];
   type State = GenericAbstractState[AVP2010Analysis, HeapDomain, HeapId];
   type AbstractValue = SymbolicAbstractValue[State];
@@ -42,7 +42,7 @@ object ArrayAnalysis {
   
   def analyze(method : String, file : String, numericalDomain : AVP2010Analysis) : Unit = {
 	  
-	SystemParameters.nativeMethodsSemantics=SystemParameters.nativeMethodsSemantics ::: ArrayNativeMethodSemantics :: Nil;
+	SystemParameters.addNativeMethodsSemantics(ArrayNativeMethodSemantics :: Nil);
   
 	//Mandatory global settings
 	SystemParameters.compiler = new ScalaCompiler;
@@ -54,9 +54,9 @@ object ArrayAnalysis {
 	
 	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 	
-	val heapid = new SingleHeapIdentifier(null, null);
+	val heapid = new TopHeapIdentifier(null, null);
 	heapid.typ=SystemParameters.typ.asInstanceOf[Type];
-	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new HeapIdAndSetDomain[TopHeapIdentifier](heapid), heapid);
+	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain[TopHeapIdentifier](heapid), heapid);
 	val entrydomain  = new HeapAndAnother(numericalDomain, heapDomain);
 	var entryvalue =new AbstractValue(None, Some(SystemParameters.typ.asInstanceOf[Type]))
 	var entryState =new State(entrydomain, entryvalue)
