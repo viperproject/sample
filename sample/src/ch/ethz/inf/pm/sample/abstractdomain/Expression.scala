@@ -62,7 +62,7 @@ object AbstractOperatorIdentifiers extends Enumeration {
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract sealed class Expression(val p : ProgramPoint) {
+abstract class Expression(val p : ProgramPoint) {
   def getType() : Type;
   def getProgramPoint() : ProgramPoint = p;
 }
@@ -122,6 +122,26 @@ case class BinaryBooleanExpression(val left : Expression, val right : Expression
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
     case BinaryBooleanExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o) 
+    case _ => false
+  }
+  override def toString() = left.toString() + op.toString() + right.toString()
+}
+
+/**
+ * A comparison between reference, that is, left==right or left!=right
+ *
+ * @param left One of the operands
+ * @param right The other operand
+ * @param op The identifier of the operation
+ * @param typ The type of the returned value
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
+case class ReferenceComparisonExpression(val left : Expression, val right : Expression, val op : ArithmeticOperator.Value, returntyp : Type) extends Expression(left.getProgramPoint) {
+  override def getType() = returntyp;
+  override def hashCode() : Int = left.hashCode();
+  override def equals(o : Any) = o match {
+    case ReferenceComparisonExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o)
     case _ => false
   }
   override def toString() = left.toString() + op.toString() + right.toString()

@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
+import com.sun.deploy.security.MozillaJSSDSASignature.NONEwithDSA
 
 /**
  * An abstract semantic domain that combines and heap and another semantic domain.
@@ -32,7 +33,9 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   
   def getHeap() : H = return d2;
   def getSemanticDomain() : N = return d1;
-  
+
+  def getIds() = this._1.getIds()++this._2.getIds();
+
   def factory() = new HeapAndAnotherDomain(d1.factory(), d2.factory());
   
   override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) = {
@@ -68,10 +71,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
     val (d,r)=d2.assign(variable, expr, d1)
-    result.d2=d;
+    val (d3, r1) = d.endOfAssignment();
+    result.d2=d3;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=d1.merge(r).assign(variable, expr)
+    result.d1=d1.merge(r.lub(r, r1)).assign(variable, expr)
     SystemParameters.domainTimer.stop();
     result
   }
@@ -81,10 +85,23 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.heapTimer.start();
     val (h2,r2)=d2.assignField(variable, field, expr)
     val (id, h, r1) = h2.getFieldIdentifier(variable, field, typ, pp)
-    result.d2=h;
+    val (h3, r3)= h.endOfAssignment();
+    result.d2=h3;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=d1.merge(r1.lub(r1, r2)).assign(id, expr)
+    result.d1=d1.merge(r1.lub(r1.lub(r1, r2), r3));
+    var newd1 : Option[N]= None;
+    if(id.isTop)
+      newd1 = Some(result.d1.top());
+    else
+      for(singleheapid <- id.value) {
+        if(newd1==None)
+          newd1=Some(result.d1.assign(singleheapid, expr))
+        else newd1=Some(id.combinator(newd1.get, result.d1.assign(singleheapid, expr)))
+      }
+    if(newd1==None)
+      throw new SemanticException("You should assign to something")
+    result.d1=newd1.get;
     SystemParameters.domainTimer.stop();
     result
   }
@@ -264,13 +281,38 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     //It discharges on the heap analysis the creation of the object and its fields
     var (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
     var result=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap);
-    result=result.createVariable(createdLocation, typ);
+    var newresult : Option[HeapAndAnotherDomain[N, H, I]]= None;
+
+    for(singleLoc <- createdLocation.value)
+      if(newresult==None)
+        newresult=Some(result.createVariable(singleLoc, typ));
+      else newresult=Some(createdLocation.combinator(newresult.get, result.createVariable(singleLoc, typ)));
+    if(newresult==None)
+      throw new SemanticException("You must assign to something")
+    result=newresult.get
+    newresult=None;
+    var result3 : Option[HeapAndAnotherDomain[N, H, I]] = None;
     for(field <- typ.getPossibleFields()) {
-     val (address, newHeap2, rep1) = result._2.getFieldIdentifier(createdLocation, field.getName(), field.getType(), field.getProgramPoint());
-     result=new HeapAndAnotherDomain[N, H, I](result._1.merge(rep1), newHeap2);
-     //It asks the semantic domain to simply create the initial value for the given identifier
-     result=result.createVariable(address, field.getType());
+        for(singleLoc <- createdLocation.value) {
+         var newresult2 : Option[HeapAndAnotherDomain[N, H, I]] = None;
+         val (address, newHeap2, rep1) = result._2.getFieldIdentifier(singleLoc, field.getName(), field.getType(), field.getProgramPoint());
+         var result2=new HeapAndAnotherDomain[N, H, I](result._1.merge(rep1), newHeap2);
+         //It asks the semantic domain to simply create the initial value for the given identifier
+          for(singleadd <- address.value) {
+           if(newresult2==None)
+             newresult2=Some(result2.createVariable(singleadd, field.getType()));
+           else newresult2=Some(address.combinator(newresult2.get, result2.createVariable(singleadd, field.getType())));
+          }
+          if(newresult2==None)
+            throw new SemanticException("You must assign to something")
+          if(result3==None)
+            result3=Some(newresult2.get);
+          else result3=Some(createdLocation.combinator(result3.get, newresult2.get));
+        }
     }
+    //An object could have no fields, so that's acceptable to have result3==None here
+    if(result3!=None)
+      result=result3.get;
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result, this._2).removeExpression()));
   }
   
@@ -279,9 +321,17 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     //It discharges on the heap analysis the creation of the object and its fields
     val (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
     var result=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap);
+    var newresult : Option[HeapAndAnotherDomain[N, H, I]] = None;
      //It asks the semantic domain to simply create the initial value for the given identifier
-    val (result1, ids)=result.createVariableForParameter(createdLocation, typ, path);
-    this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result, this._2).removeExpression()));
+    for(singleLoc <- createdLocation.value) {
+      val (result1, ids)=result.createVariableForParameter(singleLoc, typ, path);
+      if(newresult==None)
+        newresult=Some(result1)
+      else newresult=Some(createdLocation.combinator(newresult.get, result1))
+    }
+    if(newresult==None)
+      throw new SymbolicSemanticException("You must have created something")
+    this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(newresult.get, this._2).removeExpression()));
   }
   
   def getExpression() : SymbolicAbstractValue[GenericAbstractState[N,H,I]] = getResult
@@ -359,7 +409,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def assignField(x : List[SymbolicAbstractValue[GenericAbstractState[N,H,I]]], field : String, right : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) : GenericAbstractState[N,H,I] = {
     if(this.isBottom) return this;
-    var result : GenericAbstractState[N,H,I] = this.bottom();
+    var result : Option[GenericAbstractState[N,H,I]] = None;
     if(right.isTop) {
       var t : GenericAbstractState[N,H,I] = this.getFieldValue(x, field, right.getType(this));
       return t.setVariableToTop(t.getExpression).removeExpression()
@@ -371,15 +421,31 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	        case variable : Identifier => {
 	          for(assigned <- right.value) {
 	        	  val done=new GenericAbstractState[N,H,I](assigned._2._1.assignField(variable, field, assigned._1, right.getType(this), variable.getProgramPoint() ), this._2);
-	        	  result=result.lub(result, done);
-		          result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
+              if(result==None)
+                result=Some(done)
+	        	  else result=Some(done.lub(result.get, done));
+		          //result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
 	          }
 	        }
-	        case _ => throw new SymbolicSemanticException("I can assign only fields here")
+          case heapid : HeapIdSetDomain[I] => {
+	          for(assigned <- right.value) {
+              for(variable <- heapid.value) {
+                val done=new GenericAbstractState[N,H,I](assigned._2._1.assignField(variable, field, assigned._1, right.getType(this), variable.getProgramPoint() ), this._2);
+                if(result==None)
+                  result=Some(done)
+	        	    else result=Some(heapid.combinator(result.get, done));
+                //result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
+              }
+	          }
+	        }
+
+	        case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
         }
       }
     }
-    result
+    if(result==None)
+      throw new SymbolicSemanticException(("You should assign something to something"))
+    result.get.removeExpression();
   }
    
   def backwardAssignVariable(x : SymbolicAbstractValue[GenericAbstractState[N,H,I]], right : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) : GenericAbstractState[N,H,I] = {
@@ -473,8 +539,16 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       	for(expr <- obj.getExpressions) {
      	  val (heapid, newHeap, rep) = obj.get(expr)._1._2.getFieldIdentifier(expr, field, typ, expr.getProgramPoint());
         var result2=new HeapAndAnotherDomain[N, H, I](obj.get(expr)._1._1.merge(rep), newHeap);
-     	  val accessed=result2.access(heapid);
-     	  val state=new GenericAbstractState(accessed, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed, this._2)));
+        var accessed : Option[HeapAndAnotherDomain[N, H, I]]=None
+
+        for(singleLoc <- heapid.value) {
+          if(accessed == None)
+     	      accessed=Some(result2.access(singleLoc));
+          else accessed=Some(heapid.combinator(accessed.get, result2.access(singleLoc)));
+        }
+        if(accessed == None)
+          throw new SymbolicSemanticException("You must have accessed something");
+     	  val state=new GenericAbstractState(accessed.get, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed.get, this._2)));
      	  result=result.lub(result, state);
         }
     }
@@ -503,8 +577,15 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
      	for(expr <- obj.getExpressions) {
      	  val (heapid, newHeap, rep) = obj.get(expr)._1._2.getFieldIdentifier(expr, field, typ, expr.getProgramPoint());
         var result2=new HeapAndAnotherDomain[N, H, I](obj.get(expr)._1._1.merge(rep), newHeap);
-     	  val accessed=result2.backwardAccess(heapid);
-     	  val state=new GenericAbstractState(accessed, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed, this._2)));
+        var accessed : Option[HeapAndAnotherDomain[N, H, I]]=None
+        for(singleLoc <- heapid.value) {
+          if(accessed == None)
+     	      accessed=Some(result2.backwardAccess(singleLoc));
+          else accessed=Some(heapid.combinator(accessed.get, result2.backwardAccess(singleLoc)));
+        }
+        if(accessed == None)
+          throw new SymbolicSemanticException("You must have accessed something");
+     	  val state=new GenericAbstractState(accessed.get, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed.get, this._2)));
      	  result=result.lub(result, state);
         }
     }
@@ -516,9 +597,21 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     var result : GenericAbstractState[N,H,I] = this.bottom();
     for(expr <- x.value) {
     	//For each variable that is forgotten, it computes the semantics and it considers the upper bound
-    	if(! expr._1.isInstanceOf[Identifier]) throw new SymbolicSemanticException("Not a variable")
+    	if(expr._1.isInstanceOf[Identifier]) {
         val variable : Identifier = expr._1.asInstanceOf[Identifier] 
         result=result.lub(result, new GenericAbstractState(this._1.setToTop(variable), this._2));
+      }
+      else if(expr._1.isInstanceOf[HeapIdSetDomain[I]]) {
+        var newresult : Option[HeapAndAnotherDomain[N, H, I]] = None;
+        for(id <- expr._1.asInstanceOf[HeapIdSetDomain[I]].value) {
+          if(newresult==None)
+            newresult=Some(this._1.setToTop(id))
+          else newresult=Some(expr._1.asInstanceOf[HeapIdSetDomain[I]].combinator(newresult.get, this._1.setToTop(id)));
+        }
+        if(newresult==None) throw new SymbolicSemanticException("You have to set something to top")
+        else result=result.lub(result, new GenericAbstractState(newresult.get, this._2));
+      }
+      else throw new SymbolicSemanticException("Not a variable")
     }
     result;
   }

@@ -115,6 +115,13 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
    @return the state before variable=expr
    */
   def backwardAssign(variable : Identifier, expr : Expression) : T;
+
+  /**
+   This method returns all the ids over whom the SemanticDomain is defined
+
+   @return all ids contained in the abstract domain
+   */
+  def getIds() : scala.collection.Set[Identifier]
 }
 
 /** 

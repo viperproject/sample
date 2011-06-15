@@ -64,7 +64,7 @@ object Main {
 	    SystemParameters.property.finalizeChecking(output);
       SystemParameters.progressOutput.appendString("End of the checking of the property");
 	    if(verbose) {
-	    	System.out.println(SystemParameters.output.output()+"STATISTICS\nProperty validated:"+SystemParameters.output.validated()+"\nWarnings:"+SystemParameters.output.notvalidated()+"\nInferred contracts:"+SystemParameters.output.inferredcontracts())
+	    	System.out.println(output.output()+"\nSTATISTICS\nProperty validated:"+output.validated()+"\nWarnings:"+output.notvalidated()+"\nInferred contracts:"+output.inferredcontracts())
 	    	System.out.println("Time of analyisis: " + Timer.stop);
 	    }
      }

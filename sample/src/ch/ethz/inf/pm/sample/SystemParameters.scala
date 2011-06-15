@@ -20,20 +20,10 @@ object SystemParameters {
    The path of the file currently analyzed
   */
   var currentFile : String = "<not yet initialized>";
-  //TODO:Remove it
-  val output : OutputCollector = new OutputCollector();
-  //TODO:Remove it
-  val outputCasting : OutputCollector = new OutputCollector();
-  //TODO:Remove it
-  val outputMatchError : OutputCollector = new OutputCollector();
-  //TODO:Remove it
-  var analyzedClasses : Int = 0;
-  //TODO:Remove it
-  var analyzedMethods : Int = 0;
   /**
    The semantics of methods defined by hand
   */
-  var nativeMethodsSemantics : List[NativeMethodSemantics] = ArrayNativeMethodSemantics :: Nil;
+  private var nativeMethodsSemantics : List[NativeMethodSemantics] = ArrayNativeMethodSemantics :: Nil;
   /**
    The class currently analyzed
   */
@@ -75,7 +65,17 @@ object SystemParameters {
 
   def getType() = typ;
 
-  def addNativeMethodsSemantics(l : List[NativeMethodSemantics]) = nativeMethodsSemantics=nativeMethodsSemantics:::l;
+  def addNativeMethodsSemantics(l : List[NativeMethodSemantics]) = {
+    for(s1 <- l) {
+      var already = false;
+      for(s2 <- nativeMethodsSemantics)
+        if(s1==s2) already=true;
+      if(! already)
+       nativeMethodsSemantics=nativeMethodsSemantics:::s1::Nil
+    }
+  }
+
+  def resetNativeMethodsSemantics() : Unit =  nativeMethodsSemantics=Nil
 
   def setProperty(p : Property) = property=p;
   def setCompiler(c : Compiler) = compiler=c;

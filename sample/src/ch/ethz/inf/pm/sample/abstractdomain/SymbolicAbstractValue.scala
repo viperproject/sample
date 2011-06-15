@@ -118,6 +118,23 @@ class SymbolicAbstractValue[S <: State[S]]() extends FunctionalDomain[Expression
         result=result.add(new BinaryArithmeticExpression(expleft._1, expright._1, op, ty), state.asInstanceOf[S]);
     return result;
   }
+
+    /**
+   * A helper function that creates a binary expression
+   * @param left The left operand
+   * @param right The right operand
+   * @param op The operator
+   * @param state The abstract state when the expression is created
+   * @param ty The type of the value returned by the expression
+   * @return A SymbolicAbstractValue containing [left <op> right -> state]
+   */
+  def createReferenceComparisonExpression[W <: State[W]](left : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S], op : ArithmeticOperator.Value, state : W, ty : Type): SymbolicAbstractValue[S]= {
+    var result = new SymbolicAbstractValue[S](this.st, Some(ty));
+    for(expleft <- left.value)
+      for(expright <- right.value)
+        result=result.add(new ReferenceComparisonExpression(expleft._1, expright._1, op, ty), state.asInstanceOf[S]);
+    return result;
+  }
   
   /**
    * A helper function that creates a boolean binary expression  

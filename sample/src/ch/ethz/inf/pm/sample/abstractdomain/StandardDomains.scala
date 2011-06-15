@@ -210,6 +210,9 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
  * @since 0.1
  */
 trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]] extends FunctionalDomain[Identifier, V, T] {
+
+  def getIds = this.value.keySet;
+
   def getStringOfId(id : Identifier) : String = this.get(id).toString();
   
   def getAddresses[I <: HeapIdentifier[I]]() = {
@@ -271,6 +274,19 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     if(this.isTop) return this.top();
     var result = factory();
     result.value=value+v;
+    result;
+  }
+
+
+  /**
+   * Adds an element to the set. Formally, return = old(this) \cup {v}
+   * @param v The element to be added
+   * @return The abstract state with the given element as well.
+   */
+  def add(v : T) : T = {
+    if(this.isTop) return this.top();
+    var result = factory();
+    result.value=value++v.value;
     result;
   }
   
@@ -674,6 +690,9 @@ abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: R
  * @since 0.1
  */
 abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]](a1 : T1, a2 : T2) extends CartesianProductDomain[T1, T2, T](a1, a2) with SemanticDomain[T] {
+
+ def getIds = this._1.getIds()++this._2.getIds();
+
  def setToTop(variable : Identifier) : T = {
     val result : T = this.factory();
     result.d1=d1.setToTop(variable)

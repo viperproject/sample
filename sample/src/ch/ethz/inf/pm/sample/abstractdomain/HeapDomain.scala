@@ -52,7 +52,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    @param pp The point of the program that creates the reference
    @return the identifier of the created object and the state of the heap after that
    */ 
-  def createObject(typ : Type, pp : ProgramPoint) : (I, T, Replacement);
+  def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
   
   /**
    This method returns the identifier of the field of an object
@@ -63,7 +63,16 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    @param pp the program point that accesses the field
    @return the identifier of accessed field and the state of the heap after that
    */ 
-  def getFieldIdentifier(objectIdentifier : Expression, name : String, typ : Type, pp : ProgramPoint) : (I, T, Replacement);
+  def getFieldIdentifier(objectIdentifier : Expression, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
+
+  /**
+   This method is used to signal that we have ended to assign something. For instance,
+   in TVLA we could create some temporary nodes when assigning. This method signals to
+   TVLA to drop all these temporary nodes.
+
+   @return the state of the heap after the action and a replacement
+   */
+   def endOfAssignment() : (T, Replacement);
 
   /**
    This method returns the identifier of the cell of an array
@@ -77,7 +86,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    abstract ids when accessing the array in order to be more precise), and the eventual replacements (e.g.,
    if the heap analyzed has summarize or splitted some cells)
    */
-  def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Expression, index : Expression, state : S, typ : Type) : (I, T, Replacement);
+  def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Expression, index : Expression, state : S, typ : Type) : (HeapIdSetDomain[I], T, Replacement);
 
   /**
    This method sets to top a given variable
@@ -165,8 +174,79 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    */
   def backwardAssign(variable : Identifier, expr : Expression) : (T, Replacement);
 
+  /**
+   This method returns all the ids over whom the HeapDomain is defined
+
+   @return all ids contained in the heap
+   */
+  def getIds() : scala.collection.Set[Identifier]
+
 }
 
-trait AddressedDomain[I <: HeapIdentifier[I]] {
-  def getAddresses() : Set[I];
+sealed abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](id : I) extends Expression(null) with /*HeapIdentifier[HeapIdSetDomain[I]](id.getType, id.getProgramPoint) with*/ SetDomain[I, HeapIdSetDomain[I]]{
+
+  //override def getField() : Option[String] = if(value.size==1) return value.elements.next.getField() else return None;
+
+  override def equals(x : Any) : Boolean = x match {
+	  case x : I => if(value.size==1) return x.equals(value.elements.next); else return false;
+	  case _ => return super.equals(x);
+  }
+
+  /*override def getType() : Type = {
+    var res=typ.bottom();
+    for(a <- this.value)
+      res=res.lub(res, a.getType());
+    return res;
+  }
+
+  override def getName() : String = this.toString();
+    */
+
+  def convert(add : I) : HeapIdSetDomain[I];
+  override def factory() : HeapIdSetDomain[I];
+  //Used to now if it's definite - glb - or maybe - lub.
+  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S;
+  //override def representSingleVariable() : Boolean;
+}
+
+
+final class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](id : I) extends HeapIdSetDomain[I](id) {
+
+  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add).add(add);
+  override def getType() : Type = {
+    var res=id.getType().bottom();
+    for(a <- this.value)
+      res=res.lub(res, a.getType());
+    return res;
+  }
+
+  def factory() : HeapIdSetDomain[I]=new MaybeHeapIdSetDomain[I](id);
+
+  /*def representSingleVariable() : Boolean = {
+    if(this.value.size==1)
+      return this.value.elements.next.representSingleVariable();
+    else return false;
+  } */
+  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2);
+}
+
+final class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](id : I) extends HeapIdSetDomain[I](id) {
+
+  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add).add(add);
+  override def getType() : Type = {
+    var res=id.getType().bottom();
+    for(a <- this.value)
+      res=res.glb(res, a.getType());
+    return res;
+  }
+
+  def factory() : HeapIdSetDomain[I]=new DefiniteHeapIdSetDomain[I](id);
+
+ /* def representSingleVariable() : Boolean = {
+    for(el <- this.value)
+      if(! el.representSingleVariable())
+        return false;
+    return true;
+  }*/
+  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s1, s2);
 }
