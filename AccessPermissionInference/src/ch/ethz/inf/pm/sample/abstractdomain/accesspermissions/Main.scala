@@ -46,7 +46,7 @@ object Main {
 	
 	//EntryState
 	val heapid : ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(SystemParameters.typ, null);
-	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain(heapid), heapid);
+	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain(), heapid);
 	val domain : Permissions =new SymbolicPermissionsDomain();
 	val entrydomain  = new HeapAndAnother(domain, heapDomain);
 	var entryvalue =new AbstractValue(None, None)
