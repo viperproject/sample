@@ -33,7 +33,7 @@ public class InstalledPlugins {
 
     private static NonRelationalHeapDomain createNonRelationalHeapDomain(NonRelationalHeapIdentifier id) {
         Type typ=null;
-        MaybeHeapIdSetDomain ids = new MaybeHeapIdSetDomain(id);
+        MaybeHeapIdSetDomain ids = new MaybeHeapIdSetDomain();
         VariableEnv env= new VariableEnv(typ, ids);
         HeapEnv heap= new HeapEnv(typ, ids);
         return new NonRelationalHeapDomain(env, heap, ids, id);
