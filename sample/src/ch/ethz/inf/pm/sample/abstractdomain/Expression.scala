@@ -211,7 +211,7 @@ case class Constant(val constant : String, val typ : Type, pp : ProgramPoint) ex
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract class Identifier(var typ : Type, pp : ProgramPoint) extends Expression(pp) {
+abstract class Identifier(var typ : Type, pp : ProgramPoint) extends Expression(pp) with Assignable {
 	
   /**
    Returns the name of the identifier. We suppose that if two identifiers return the same name if and only

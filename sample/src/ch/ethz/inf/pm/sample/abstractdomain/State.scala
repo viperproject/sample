@@ -179,7 +179,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param id The variable to access
    @return The abstract state obtained after accessing the variable, that is, the state that contains as expression the symbolic representation of the value of the given variable
    */
-  def getVariableValue(id : Identifier) : S
+  def getVariableValue(id : Assignable) : S
   
   /**
    Accesses a field of an object
@@ -208,7 +208,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param id The accessed variable
    @return The abstract state obtained BEFORE accessing the variable   
    */  
-  def backwardGetVariableValue(id : Identifier) : S
+  def backwardGetVariableValue(id : Assignable) : S
   
   /**
    Performs the backward semantics of a field access
