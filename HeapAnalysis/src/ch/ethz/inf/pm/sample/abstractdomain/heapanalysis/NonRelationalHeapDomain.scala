@@ -135,7 +135,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     dom.typ=t;
     //cod.typ=t;
   }
-  override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Expression, index : Expression, state : S, typ : Type)
+  override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Assignable, index : Expression, state : S, typ : Type)
   = throw new SemanticException("Non relational heap domains do not support arrays");
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
   override def getLabel() : String = "Heap Domain:"+dom.getLabel();
@@ -174,12 +174,12 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 
   def get(key : I) : HeapIdSetDomain[I] = this._2.get(key);
 
-  override def createVariable(variable : Identifier, typ : Type) =  variable match {
+  override def createVariable(variable : Assignable, typ : Type) =  variable match {
     case x : VariableIdentifier => (new NonRelationalHeapDomain(this._1.add(x, cod.bottom()), this._2, cod, dom), new Replacement);
-    case x : HeapIdentifier[I] => (this, new Replacement)
+    case x : HeapIdSetDomain[I] => (this, new Replacement)
   }
 
-   override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String])  =  variable match {
+   override def createVariableForParameter(variable : Assignable, typ : Type, path : List[String])  =  variable match {
     case x : VariableIdentifier =>
       if(typ.isObject) {
 	    var (result, r)=this.createVariable(variable, typ); //r will be always empty, so I ignore it
@@ -189,7 +189,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       }
       else {
         var result = Map.empty[Identifier, List[String]];
-        result=result+((variable, variable.toString() :: Nil ))
+        result=result+((x, variable.toString() :: Nil ))
         (new NonRelationalHeapDomain(this._1.add(x.asInstanceOf[VariableIdentifier], cod.bottom()), this._2, cod, dom), result, new Replacement);
         }
      case x : HeapIdentifier[I] => {throw new Exception("This should not happen!");}
@@ -232,11 +232,11 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	  else (heap, Map.empty[Identifier, List[String]], new Replacement);
   }
 
-  override def setParameter(variable : Identifier, expr : Expression) = this.assign(variable, expr, null);
+  override def setParameter(variable : Assignable, expr : Expression) = this.assign(variable, expr, null);
   
-  override def backwardAssign(variable : Identifier, expr : Expression) = (this, new Replacement)
+  override def backwardAssign(variable : Assignable, expr : Expression) = (this, new Replacement)
 
-  override def assignField(variable : Identifier, s : String, expr : Expression) : (NonRelationalHeapDomain[I], Replacement) = {
+  override def assignField(variable : Assignable, s : String, expr : Expression) : (NonRelationalHeapDomain[I], Replacement) = {
     var result=this.bottom();
     val ids = this.getFieldIdentifier(variable, s, expr.getType, variable.getProgramPoint())._1;
     for(id <- ids.value)
@@ -245,7 +245,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
   //We ignore the other parts since getting a field does not modify a non relational heap domain
 
-  override def assign[S <: SemanticDomain[S]](variable : Identifier, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
+  override def assign[S <: SemanticDomain[S]](variable : Assignable, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
     if(! variable.getType.isObject) return (this, new Replacement);//It does not modify the heap
     variable match {
 	    case x : VariableIdentifier => 
@@ -285,7 +285,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     }
   }
   
-  override def setToTop(variable : Identifier) = variable match  {
+  override def setToTop(variable : Assignable) = variable match  {
     case x : VariableIdentifier => (new NonRelationalHeapDomain(this._1.add(x, cod.top()), this._2, cod, dom), new Replacement)
     case x : HeapIdSetDomain[I] =>;
       var result=this._2;
@@ -296,7 +296,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       (new NonRelationalHeapDomain(this._1, this._2.add(x, cod.top()), cod, dom), new Replacement)
   }  
   
-  override def removeVariable(variable : Identifier) = variable match  {
+  override def removeVariable(variable : Assignable) = variable match  {
     case x : VariableIdentifier => (new NonRelationalHeapDomain(this._1.remove(x), this._2, cod, dom), new Replacement)
     case x : HeapIdSetDomain[I] =>;
       var result=this._2;
@@ -307,9 +307,9 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   
   override def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (cod.convert(dom.createAddress(typ, pp)), this, new Replacement);
   
-  override def getFieldIdentifier(heapIdentifier : Expression, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (this.evalFieldAccess(heapIdentifier, name, typ), this, new Replacement);
+  override def getFieldIdentifier(heapIdentifier : Assignable, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (this.evalFieldAccess(heapIdentifier, name, typ), this, new Replacement);
   
-  private def evalFieldAccess[S <: State[S]](expr : Expression, field : String, typ : Type) : HeapIdSetDomain[I] = expr match {
+  private def evalFieldAccess[S <: State[S]](expr : Assignable, field : String, typ : Type) : HeapIdSetDomain[I] = expr match {
     case obj : VariableIdentifier => return extractField(this.get(obj), field, typ)
     
     case obj : HeapIdSetDomain[I] => {
