@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * A <code>Replacement</code> is a map from sets of identifiers to sets of identifiers.
@@ -188,7 +189,7 @@ trait Assignable {
   def getType() : Type;
 }
 
-sealed abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](id : I) extends Expression(null) with SetDomain[I, HeapIdSetDomain[I]] with Assignable{
+sealed abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression(null) with SetDomain[I, HeapIdSetDomain[I]] with Assignable{
 
   override def equals(x : Any) : Boolean = x match {
 	  case x : I => if(value.size==1) return x.equals(value.elements.next); else return false;
@@ -202,32 +203,32 @@ sealed abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](id : I) extends Ex
 }
 
 
-final class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](id : I) extends HeapIdSetDomain[I](id) {
+final class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
 
-  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add).add(add);
+  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain().add(add);
   override def getType() : Type = {
-    var res=id.getType().bottom();
+    var res=SystemParameters.getType().bottom();
     for(a <- this.value)
       res=res.lub(res, a.getType());
     return res;
   }
 
-  def factory() : HeapIdSetDomain[I]=new MaybeHeapIdSetDomain[I](id);
+  def factory() : HeapIdSetDomain[I]=new MaybeHeapIdSetDomain[I]();
 
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2);
 }
 
-final class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](id : I) extends HeapIdSetDomain[I](id) {
+final class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
 
-  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add).add(add);
+  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain().add(add);
   override def getType() : Type = {
-    var res=id.getType().top();
+    var res=SystemParameters.getType().top();
     for(a <- this.value)
       res=res.glb(res, a.getType());
     return res;
   }
 
-  def factory() : HeapIdSetDomain[I]=new DefiniteHeapIdSetDomain[I](id);
+  def factory() : HeapIdSetDomain[I]=new DefiniteHeapIdSetDomain[I]();
 
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s1, s2);
 }
