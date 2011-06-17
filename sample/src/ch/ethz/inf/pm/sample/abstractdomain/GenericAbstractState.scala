@@ -42,7 +42,6 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val (s2, ids, r) = this.d2.createVariableForParameter(variable, typ, path);
     SystemParameters.heapTimer.stop();
     var s1 = this.d1;
-    val i = null;
     s1=applyToAssignable[N](variable, s1, _.createVariableForParameter(_, typ, path)._1);
     variable match {
       case x : VariableIdentifier =>
@@ -325,6 +324,8 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
          val (address, newHeap2, rep1) = result2._2.getFieldIdentifier(createdLocation, field.getName(), field.getType(), field.getProgramPoint());
          result2=new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep1), newHeap2).createVariable(address, field.getType());
     }
+    val (h, rep2) = result2._2.endOfAssignment()
+    result2 = new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), h);
     //An object could have no fields, so that's acceptable to have result3==None here
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result2, this._2).removeExpression()));
   }
