@@ -435,13 +435,19 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	        }
           case heapid : HeapIdSetDomain[I] => {
 	          for(assigned <- right.value) {
-              for(variable <- heapid.value) {
+              val done=new GenericAbstractState[N,H,I](assigned._2._1.assignField(heapid, field, assigned._1, right.getType(this), heapid.getProgramPoint() ), this._2);
+              if(result==None)
+                result=Some(done)
+	        	  else result=Some(done.lub(result.get, done));
+
+
+              /*for(variable <- heapid.value) {
                 val done=new GenericAbstractState[N,H,I](assigned._2._1.assignField(variable, field, assigned._1, right.getType(this), variable.getProgramPoint() ), this._2);
                 if(result==None)
                   result=Some(done)
 	        	    else result=Some(heapid.combinator(result.get, done));
                 //result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
-              }
+              }*/
 	          }
 	        }
 

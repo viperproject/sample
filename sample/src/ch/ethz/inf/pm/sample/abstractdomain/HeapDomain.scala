@@ -189,7 +189,7 @@ trait Assignable {
   def getType() : Type;
 }
 
-sealed abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression(null) with SetDomain[I, HeapIdSetDomain[I]] with Assignable{
+abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression(null) with SetDomain[I, HeapIdSetDomain[I]] with Assignable{
 
   override def equals(x : Any) : Boolean = x match {
 	  case x : I => if(value.size==1) return x.equals(value.elements.next); else return false;
@@ -203,7 +203,7 @@ sealed abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression
 }
 
 
-final class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
+class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
 
   def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain().add(add);
   override def getType() : Type = {
@@ -218,7 +218,7 @@ final class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2);
 }
 
-final class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
+class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
 
   def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain().add(add);
   override def getType() : Type = {
