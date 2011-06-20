@@ -75,7 +75,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
     result.d1=d1.merge(r)
-    result.d1=applyToAssignable[N](variable, this.d1, _.setToTop(_));
+    result.d1=applyToAssignable[N](variable, result.d1, _.setToTop(_));
     SystemParameters.domainTimer.stop();
     result
   }
@@ -88,7 +88,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
     result.d1=d1.merge(r.lub(r, r1))
-    result.d1=applyToAssignable[N](variable, this.d1, _.assign(_, expr));
+    result.d1=applyToAssignable[N](variable, result.d1, _.assign(_, expr));
     SystemParameters.domainTimer.stop();
     result
   }
@@ -127,7 +127,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
     result.d1=d1.merge(r)
-    result.d1=applyToAssignable[N](variable, this.d1, _.setParameter(_, expr));
+    result.d1=applyToAssignable[N](variable, result.d1, _.setParameter(_, expr));
     SystemParameters.domainTimer.stop();
     result
   }
@@ -192,7 +192,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
     result.d1=d1.merge(r);
-    result.d1=applyToAssignable[N](variable, this.d1, _.backwardAssign(_, expr));
+    result.d1=applyToAssignable[N](variable, result.d1, _.backwardAssign(_, expr));
     SystemParameters.domainTimer.stop();
     result
   }
