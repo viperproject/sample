@@ -87,7 +87,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=d3;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=d1.merge(r.lub(r, r1))
+    result.d1=d1.merge(r).merge(r1)
     result.d1=applyToAssignable[N](variable, result.d1, _.assign(_, expr));
     SystemParameters.domainTimer.stop();
     result
@@ -102,7 +102,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=h3;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=d1.merge(r1.lub(r1.lub(r1, r2), r3));
+    result.d1=d1.merge(r2).merge(r1).merge(r3);
     var newd1 : Option[N]= None;
     if(id.isTop)
       newd1 = Some(result.d1.top());

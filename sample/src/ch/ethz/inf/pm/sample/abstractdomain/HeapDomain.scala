@@ -19,7 +19,6 @@ class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], 
   def this() {
     this(new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]());
   }
-  //I'm not sure if this cast is fine
   def lub(l : Replacement, r : Replacement) : Replacement = new Replacement(l.value.++(r.value));
 
   def glb(l : Replacement, r : Replacement) : Replacement = new Replacement(
