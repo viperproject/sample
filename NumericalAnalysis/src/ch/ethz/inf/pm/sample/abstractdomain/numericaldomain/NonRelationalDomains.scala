@@ -19,7 +19,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
   //def getIds : Set[Identifier] = this.value.keySet.asInstanceOf[Set[Identifier]];
   override def merge(r : Replacement) : BoxedNonRelationalNumericalDomain[N] = {
     if(r.isEmpty) return this;
-    var result : BoxedNonRelationalNumericalDomain[N] = this.clone.asInstanceOf[BoxedNonRelationalNumericalDomain[N]];
+    var result : BoxedNonRelationalNumericalDomain[N] = this.clone;
     val removedVariables : scala.collection.Set[Identifier]= flatten(r.keySet);
     //We remove the variables from the result state
     for(v <- removedVariables)
@@ -35,6 +35,12 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     }
     return result;
   };
+  override def clone() : BoxedNonRelationalNumericalDomain[N] = {
+    val result = this.factory();
+    for(k <- this.value.keySet)
+      result.value=result.value+((k, this.value.apply(k)));
+    return result;
+  }
   private def merge(id : Identifier, v : N) : BoxedNonRelationalNumericalDomain[N] = {
     if(this.value.keySet.contains(id))
       return this.add(id, v.lub(v, this.get(id)));
