@@ -104,7 +104,6 @@ final class SingleStatementProperty(visitor : Visitor) extends Property {
         	  	case MethodCall(pp, method, parametricTypes, parameters, returnedType) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  		checkStatement(className, methodName, visitor, state, method, printer)
-        	  		var lastState=method.forwardSemantics[S](state);
         	  		for(par <- parameters)
         	  		  checkStatement(className, methodName, visitor,state, par, printer)
         	  	case New(pp, typ) =>

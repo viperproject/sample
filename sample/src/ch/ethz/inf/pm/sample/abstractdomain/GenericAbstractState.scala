@@ -256,6 +256,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
  override def lessEqual(r : T) : Boolean = {
+    if(this.d1.lessEqual(this.d1.bottom()) || this.d2.lessEqual(this.d2.bottom())) return true;
+    if(r.d1.lessEqual(r.d1.bottom()) || r.d2.lessEqual(r.d2.bottom())) return false;
     SystemParameters.domainTimer.start();
     var b : Boolean = d1.lessEqual(r.d1);
     SystemParameters.domainTimer.stop();

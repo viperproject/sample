@@ -142,7 +142,7 @@ class OutputCollector {
   def notvalidated() : Int = {
     var c : Int = 0;
     for(w <- outputs) w match {
-      case x : Validated => c = c+1;
+      case x : Warning => c = c+1;
       case _ =>
     }
     return c;

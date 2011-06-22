@@ -434,7 +434,7 @@ object Normalizer {
    @param exp The expression to be reduced to monomes
    @return  None if the given expression cannot be reduced to a linear form, Some(E, c) if it can be reduced to E+c (where E is \sum a_i x_i) 
    */
-  def arithmeticExpressionToMonomes(exp : Expression) : Option[(List[(Int, Identifier)], Int)] = exp match {
+  def arithmeticExpressionToMonomes[I <: HeapIdentifier[I]](exp : Expression) : Option[(List[(Int, Identifier)], Int)] = exp match {
     case BinaryArithmeticExpression(left, right, op, typ) => 
       val l : Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left);
       val r : Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(right);
@@ -470,7 +470,11 @@ object Normalizer {
     
     case x : AbstractOperator => return None;
     
-    case x : Identifier => return Some(((1, x.asInstanceOf[Identifier])::Nil, 0))
+    case x : Identifier => return Some(((1, x)::Nil, 0))
+
+    case x : HeapIdSetDomain[I] =>
+      if(x.value.size!=1) return None;
+        else return Some(((1, x.value.iterator.next())::Nil, 0))
   }
   
   private def compactOnTheLeft(left : (List[(Int, Identifier)], Int), right : (List[(Int, Identifier)], Int)) : (List[(Int, Identifier)], Int) = (left._1 ::: transform(right._1, (x : Int)=> -x ), left._2-right._2) 
