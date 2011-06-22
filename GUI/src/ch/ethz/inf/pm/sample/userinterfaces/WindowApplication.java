@@ -189,14 +189,16 @@ public class WindowApplication {
                     taskOutput.append("\nRunning the analysis");
                     ch.ethz.inf.pm.sample.Timer t=new ch.ethz.inf.pm.sample.Timer();
                     t.start();
+                    OutputCollector output = new OutputCollector();
                     if(partitionedStateCheckBox.isSelected())
-                        ch.ethz.inf.pm.sample.Main.analyze(methods, new PartitionedState(entryState), new OutputCollector());
-                    else ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector());
+                        ch.ethz.inf.pm.sample.Main.analyze(methods, new PartitionedState(entryState), output);
+                    else ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, output);
                     t.stop();
                     setProgress(100);
                     taskOutput.append("\nAnalysis ended");
                     JOptionPane.showMessageDialog(null, "Analysis successfully ended", "Analysis", JOptionPane.INFORMATION_MESSAGE);
                     frame.dispose();
+                    SystemParameters.analysisOutput().appendString(output.output());
                     SystemParameters.analysisOutput().appendString("Times spent by the compiler:"+tcompiler.totalTime()+" msec");
                     SystemParameters.analysisOutput().appendString("Times spent by the overall analysis:"+t.totalTime()+" msec");
                     SystemParameters.analysisOutput().appendString("Times spent by the heap analysis:"+SystemParameters.heapTimer().totalTime()+" msec");
