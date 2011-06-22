@@ -1,9 +1,8 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
-import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import scala.Math
-import ch.ethz.inf.pm.sample.property.Property
-
+import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
+import ch.ethz.inf.pm.sample.abstractdomain._
 
 trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends Lattice[N] {
 	def evalConstant(value : Int) : N;
@@ -13,6 +12,7 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 	def divide(leftExpr : N, rightExpr : N) : N;
 	def valueGEQ(value : N) : N;
 	def valueLEQ(value : N) : N;
+  def intersect(value : N) : Boolean;
 }
 
 class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom : N) extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]() with NumericalDomain[BoxedNonRelationalNumericalDomain[N]] {
@@ -110,7 +110,16 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
   }
     
   override def assume(expr : Expression) : BoxedNonRelationalNumericalDomain[N]= Normalizer.conditionalExpressionToMonomes(expr) match {
-    case None => return this;
+    case None =>
+      expr match {
+        case BinaryArithmeticExpression(left, right, ArithmeticOperator.==, typ) =>
+          val l : N = this.eval(left)
+          val r : N = this.eval(right)
+          if(! l.intersect(r))
+            return this.bottom();
+        case _ => return this;
+      }
+      return this;
     case Some((monomes, constant)) =>
       var stateResult : BoxedNonRelationalNumericalDomain[N] = this;
       for(monome <- monomes) {
@@ -159,6 +168,7 @@ class Top extends NonRelationalNumericalDomain[Top] {
   def divide(leftExpr : Top, rightExpr : Top) : Top = this;
   def valueGEQ(value : Top) : Top = this;
   def valueLEQ(value : Top) : Top = this;
+  def intersect(value : Top) : Boolean = true;
 }
 
 
@@ -172,6 +182,13 @@ object SignValues extends Enumeration {
 }
 
 class Sign(val value : SignValues.Value) extends NonRelationalNumericalDomain[Sign] {
+
+  def intersect(value : Sign) : Boolean = {
+    if(this.value==SignValues.BOT || value.value==SignValues.BOT) return false;
+    if(this.value==SignValues.T || value.value==SignValues.T) return true;
+    if(this.value==value.value) return true;
+    else return false;
+  }
 
   final override def factory() = top();
   
@@ -269,6 +286,13 @@ class Sign(val value : SignValues.Value) extends NonRelationalNumericalDomain[Si
 }
 
 class Interval(val left : Int, val right: Int) extends NonRelationalNumericalDomain[Interval] {
+
+
+  def intersect(value : Interval) : Boolean = {
+    if(this.right < value.left || value.right < this.left) return false;
+    else return true;
+  }
+
   final override def factory() = top();
   
   override def toString() : String = {
@@ -379,10 +403,11 @@ class Interval(val left : Int, val right: Int) extends NonRelationalNumericalDom
   }
   
   def divide(leftExpr : Interval, rightExpr : Interval) : Interval = {
-    val a = leftExpr.left/rightExpr.left;
-    val b = leftExpr.left/rightExpr.right
-    val c = leftExpr.right/rightExpr.left
-    val d = leftExpr.right/rightExpr.right
+    if(rightExpr.left==0 && rightExpr.right==0) return leftExpr.bottom();
+    val a = leftExpr.left/(if(rightExpr.left==0) 1 else rightExpr.left);
+    val b = leftExpr.left/(if(rightExpr.right==0) 0-1 else rightExpr.right);
+    val c = leftExpr.right/(if(rightExpr.left==0) 1 else rightExpr.left);
+    val d = leftExpr.right/(if(rightExpr.right==0) 0-1 else rightExpr.right);
     var result=new Interval(min(a, b, c, d), max(a, b, c, d));
     if(leftExpr.left<0 && leftExpr.right>0) //It contains 0
       result=result.lub(result, new Interval(0, 0))
@@ -414,6 +439,6 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
   }
   def getInitialState() : BoxedNonRelationalNumericalDomain[D] = new BoxedNonRelationalNumericalDomain(domain.asInstanceOf[D]);
   override def reset() : Unit = Unit;
-  def getProperties() : Set[Property] = Set.empty+new ApronProperty();
+  def getProperties() : Set[Property] = (Set.empty+(new ApronProperty()))++(Set.empty+(new SingleStatementProperty(DivisionByZero)));
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
 }
