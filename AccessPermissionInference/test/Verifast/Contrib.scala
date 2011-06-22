@@ -47,26 +47,25 @@ class Session(var c : Counter, var lock : Semaphore, var first : Boolean) {
     Chalice.release(lock);
     Chalice.fold(this, "Session");
   }
-
   def main() = {
     val c : Counter = new Counter();
-    c.init(0);
-    Chalice.fold(c, "Counter");
+    //c.init(0);
+    //Chalice.fold(c, "Counter");
     val lock : Semaphore = new Semaphore();
     val session1 : Session = new Session();
-    session1.init(c, lock, true);
+    //session1.init(c, lock, true);
     Chalice.fold(session1, "Session");
     Chalice.fork(session1, "run");
-    val session2 : Session = new Session();
+    //val session2 : Session = new Session();
     session1.init(c, lock, false);
-    Chalice.fold(session2, "Session");
-    Chalice.fork(session2, "run");
-    Chalice.join(session1, "run");
-    Chalice.join(session2, "run");
-    Chalice.unfold(session1, "Session");
-    Chalice.unfold(session2, "Session");
-    Chalice.unfold(c, "Counter");
-    c.value;
+    //Chalice.fold(session2, "Session");
+    //Chalice.fork(session2, "run");
+    //Chalice.join(session1, "run");
+    //Chalice.join(session2, "run");
+    //Chalice.unfold(session1, "Session");
+    //Chalice.unfold(session2, "Session");
+    //Chalice.unfold(c, "Counter");
+    //c.value;
   }
 
 }

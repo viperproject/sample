@@ -62,7 +62,7 @@ class CellDefault {
 class IntervalDefault {
   var left: CellDefault = null;
   var right: CellDefault = null;
-
+                    /*
   def init(l: Int, r: Int) =
     //requires acc(left) && acc(right);
     //ensures valid;
@@ -72,7 +72,7 @@ class IntervalDefault {
     right = new CellDefault;
     right.init(r);
   }
-
+                       */
   def setLeft(l: Int) =
     //requires valid;
     //ensures valid;

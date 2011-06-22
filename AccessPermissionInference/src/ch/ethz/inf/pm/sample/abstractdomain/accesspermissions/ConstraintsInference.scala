@@ -220,6 +220,7 @@ object ConstraintsInference {
 
   def solve(constraints : Set[Constraint]) : (Map[SymbolicValue, Double], Option[Double]) = {
       try {
+        System.out.println(constraints.mkString("\n"))
         val vars : List[SymbolicValue] = this.extractVariables(constraints).toList;
         val solver : LpSolve= LpSolve.makeLp(0, vars.size);
           
