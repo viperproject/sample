@@ -46,7 +46,7 @@ object Run {
     val directory = getArg("-p", args) match {
       case None =>
         System.out.println("You should explicitly specify the directory that contains the test cases");
-        "C:\\Users\\Pietro\\Sample\\Test\\test\\AccessPermissions\\"
+        "C:\\Users\\Pietro\\Sample\\Test\\test\\HeapAnalysis\\"
       case Some(s) => s
     }
     if(args.contains("-dl")) {

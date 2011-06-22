@@ -23,25 +23,31 @@ class CellDefault {
     //ensures valid
   {
     x = v;
+    Chalice.fold(this, "valid");
   }
 
   def set(v: Int) =
     //requires valid
     //ensures valid
   {
+    Chalice.unfold(this, "valid");
     x = v;
+    Chalice.fold(this, "valid");
   }
   
   def increment() =
     //requires valid;
     //ensures valid;
   {
+    Chalice.unfold(this, "valid");
     x = x + 1;
+    Chalice.fold(this, "valid");
   }
 
   def dispose() =
     //requires valid
   {
+    Chalice.unfold(this, "valid");
     Chalice.free(this);
   }
 
@@ -49,7 +55,10 @@ class CellDefault {
     //requires valid;
   	//ensures valid;
   {
-    x
+    Chalice.unfold(this, "valid");
+    val result= x
+    Chalice.fold(this, "valid");
+    result
   }
 
   //predicate valid {
@@ -62,7 +71,7 @@ class CellDefault {
 class IntervalDefault {
   var left: CellDefault = null;
   var right: CellDefault = null;
-
+                    /*
   def init(l: Int, r: Int) =
     //requires acc(left) && acc(right);
     //ensures valid;
@@ -72,7 +81,7 @@ class IntervalDefault {
     right = new CellDefault;
     right.init(r);
   }
-
+                       */
   def setLeft(l: Int) =
     //requires valid;
     //ensures valid;
