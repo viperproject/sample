@@ -35,6 +35,11 @@ object SystemParameters {
   //TODO:Remove it
   var semanticsComputing : Boolean = false;
   /**
+   * Ir true Sample supposes that if we invoke numerical methods like + on an object of any type we are
+   * performing arithmetical operations
+   */
+  var ignoreTypeForNumericalMethods : Boolean = false;
+  /**
    The cfg currently under analysis
   */
   var currentCFG : ControlFlowGraph = null;
