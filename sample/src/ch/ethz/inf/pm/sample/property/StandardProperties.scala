@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.property
 
-import runtime.TraitSetter
 import ch.ethz.inf.pm.sample.oorepresentation.{FieldAccess, MethodCall, Statement}
 import ch.ethz.inf.pm.sample.abstractdomain._
 
