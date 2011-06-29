@@ -3,7 +3,8 @@ package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
- 
+import ch.ethz.inf.pm.sample.SystemParameters
+
 object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = operator match {
 	  case "$isInstanceOf" => parameters match {
@@ -115,7 +116,7 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
   	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
   
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = 
-		if(thisExpr.getType().toString().equals("Int"))
+		if(thisExpr.getType().toString().equals("Int") || SystemParameters.ignoreTypeForNumericalMethods)
 			operator match {
 			  case ">=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>=, returnedtype);
 			  case "<=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.<=, returnedtype);
