@@ -121,12 +121,14 @@ class MethodDeclaration(
   }
   
   def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
+    SystemParameters.currentCFG=body;
     val result=initializeParameters[S](state, arguments);
     SystemParameters.currentMethod=name.toString();
     SystemParameters.semanticsComputing=true;
     val r=new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
     SystemParameters.semanticsComputing=false;
     SystemParameters.currentMethod=null;
+    SystemParameters.currentCFG=null;
     return r;
   }
   

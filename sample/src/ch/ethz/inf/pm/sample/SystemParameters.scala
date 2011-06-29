@@ -35,6 +35,10 @@ object SystemParameters {
   //TODO:Remove it
   var semanticsComputing : Boolean = false;
   /**
+   The cfg currently under analysis
+  */
+  var currentCFG : ControlFlowGraph = null;
+  /**
    The output for the window that shows the progresses of the analysis
   */
   var progressOutput : ScreenOutput = null;
