@@ -112,9 +112,9 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
           newd1=Some(result.d1.assign(singleheapid, expr))
         else newd1=Some(id.combinator(newd1.get, result.d1.assign(singleheapid, expr)))
       }
-    if(newd1==None)
-      throw new SemanticException("You should assign to something")
-    result.d1=newd1.get;
+    if(newd1!=None)
+      result.d1=newd1.get; //throw new SemanticException("You should assign to something")
+    else result.d1=result.d1;
     SystemParameters.domainTimer.stop();
     result
   }
