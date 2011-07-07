@@ -3,3 +3,7 @@ PAPERS ABOUT SAMPLE
 FMOODS2010-typeanalysis
 Static Type Analysis of Pattern Matching by Abstract Interpretation
 This paper presents a type analysis implemented in Sample. This analysis is focused on the prove of some properties of code containing pattern matchings in Scala.
+
+ICFEM11-StringAnalysis
+Static Analysis of String Values
+This paper presents several analyses over string values. These analyses range from simple ones (the contained surely or possibly contained in a string, the prefix and the suffix) to something more complex (briks and string graphs). This work is Giulia Costantini's master thesis, and it is cosigned by Pietro and Agostino Cortesi.
