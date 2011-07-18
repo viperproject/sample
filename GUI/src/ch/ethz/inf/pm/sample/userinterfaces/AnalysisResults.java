@@ -8,12 +8,9 @@ import java.awt.event.*;
 public class AnalysisResults extends JDialog {
     private JPanel contentPane;
     private JButton buttonOK;
-    private JTextArea resultPane1;
+	private JEditorPane resultPane;
 
-    public AnalysisResults() {
-
-
-
+    public AnalysisResults(String results) {
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
@@ -24,22 +21,13 @@ public class AnalysisResults extends JDialog {
             }
         });
 
-        resultPane1.setText(SystemParameters.analysisOutput().getString());
-        //setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
-
-// call onCancel() when cross is clicked
-        //setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+		results = results.replaceAll("\\n", "<br/>\n");
+		results = results.replaceAll("Warning", "<font color=\"red\"><b>Warning</b></font>");
+		results = results.replaceAll("Validated", "<b>Validated</b>");
+        resultPane.setText(results);
     }
 
     private void onOK() {
-// add your code here
         dispose();
-    }
-
-    public static void main(String[] args) {
-        AnalysisResults dialog = new AnalysisResults();
-        dialog.pack();
-        dialog.setVisible(true);
-        System.exit(0);
     }
 }

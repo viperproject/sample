@@ -25,6 +25,10 @@ public class AnalysisParameters extends JDialog {
     private Analysis analysis;
     private JComboBox propertyBox;
 
+	public static final int OK = 1;
+	public static final int CANCEL = -1;
+	private int response = OK;
+
     public AnalysisParameters(Analysis a) {
         this.analysis=a;
         initialize();
@@ -44,7 +48,6 @@ public class AnalysisParameters extends JDialog {
             }
         });
 
-// call onCancel() when cross is clicked
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
             public void windowClosing(WindowEvent e) {
@@ -52,7 +55,6 @@ public class AnalysisParameters extends JDialog {
             }
         });
 
-// call onCancel() on ESCAPE
         contentPane.registerKeyboardAction(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
                 onCancel();
@@ -61,7 +63,8 @@ public class AnalysisParameters extends JDialog {
     }
 
     private void onOK() {
-// add your code here
+		response = OK;
+
         for(String key : this.integerParameters.keySet())
             analysis.setParameter(key, Integer.parseInt(this.integerParameters.get(key).getText()));
         for(String key : this.booleanParameters.keySet())
@@ -75,14 +78,14 @@ public class AnalysisParameters extends JDialog {
            if(p.getLabel().equals(this.propertyBox.getSelectedItem()))
                SystemParameters.setProperty(p);
         }
+
         dispose();
     }
 
     private void onCancel() {
-// add your code here if necessary
+		response = CANCEL;
         dispose();
     }
-
 
     private HashMap<String, JTextField> integerParameters = new HashMap<String, JTextField>();
     private HashMap<String, JCheckBox> booleanParameters = new HashMap<String, JCheckBox>();
@@ -91,6 +94,9 @@ public class AnalysisParameters extends JDialog {
     private void initialize() {
         GridBagConstraints c = new GridBagConstraints();
         c.gridwidth = GridBagConstraints.REMAINDER;
+		c.fill = GridBagConstraints.HORIZONTAL;
+		c.insets = new Insets(5, 5, 5, 5);
+
         Iterator<Tuple2<String, Object>> it = (Iterator<Tuple2<String, Object>>) analysis.parameters().iterator();
         while(it.hasNext()) {
             Tuple2<String, Object> tuple = (Tuple2<String, Object>) it.next();
@@ -129,4 +135,8 @@ public class AnalysisParameters extends JDialog {
             mainPanel.add(propertyBox, c);
         }
     }
+
+	public int getResponse() {
+		return response;
+	}
 }

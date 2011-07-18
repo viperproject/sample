@@ -1,4 +1,5 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
+import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumericalAnalysis;
@@ -6,8 +7,13 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumeric
 import ch.ethz.inf.pm.sample.oorepresentation.*;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
+import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.javabytecode.*;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
+import scala.collection.immutable.List;
+
+import java.io.File;
+import java.io.FileWriter;
 
 public class InstalledPlugins {
     public static ch.ethz.inf.pm.sample.oorepresentation.Compiler[] compilers;
@@ -38,5 +44,33 @@ public class InstalledPlugins {
         HeapEnv heap= new HeapEnv(typ, ids);
         return new NonRelationalHeapDomain(env, heap, ids, id);
     }
+
+	static void generateTopType(Compiler c) throws Exception {
+		String suffix = "";
+
+		if (c instanceof ScalaCompiler) suffix = ".scala";
+		if (c instanceof JavaCompiler) suffix = ".java";
+
+		File file = File.createTempFile("Dummy", suffix);
+
+		String className = file.getName().substring(0, file.getName().length() - suffix.length());
+		String source = "class " + className + " {}";
+
+		// Write source
+		FileWriter out = new FileWriter(file);
+		out.write(source);
+		out.close();
+
+		List<ClassDefinition> classes = c.compileFile(file.getAbsolutePath());
+		if (classes.length() > 0) {
+			SystemParameters.typ_$eq(classes.head().typ().top());
+		} else {
+			throw new Exception("Could not generate type information");
+		}
+
+		// Remove files
+		File classFile = new File(className + ".class");
+		if (classFile.exists()) classFile.delete();
+	}
 
 }
