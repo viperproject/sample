@@ -80,7 +80,17 @@ trait Lattice[T <: Lattice[T]] {
  * @since 0.1
  */
 trait State[S <: State[S]] extends Lattice[S] {
-	
+
+  /**
+   Signals that we are going to analyze the statement at program point pp
+   This is particularly important to eventually partition a state following
+   the specified directives
+
+   @param pp The point of the program that is going to be analyzed
+   @return The abstract state eventually modified
+   */
+  def before(pp : ProgramPoint) : S
+
   /**
    Creates an object
    

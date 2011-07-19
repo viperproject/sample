@@ -572,12 +572,39 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
   
   private def forwardBlockSemantics(entryState : S, prev : Option[List[S]], block : List[Statement]) : List[S] = block match {
     case x :: xs => prev match {
-      case None => entryState :: forwardBlockSemantics(x.forwardSemantics[S](entryState), None, xs)
+      case None =>
+					val modifiedState = entryState.before(identifyingPP(x))
+					modifiedState :: forwardBlockSemantics(x.forwardSemantics(modifiedState), None, xs)
+        entryState :: forwardBlockSemantics(x.forwardSemantics[S](entryState), None, xs)
       case Some(y :: ys) => entryState ::forwardBlockSemantics(x.forwardSemantics[S](entryState.glb(entryState, y)), Some(ys), xs)
     }
     case Nil => entryState :: Nil
   }
-  
+
+	/**
+	 * Returns a program point uniquely identifying a single statement as used in
+	 * the block semantics (!). The computation finds the leftmost involved program
+	 * point.
+	 *
+	 * @param s A statement as used in the block semantics
+	 * @return The leftmost involved program point
+	 */
+	private def identifyingPP(s: Statement): ProgramPoint = s match {
+		case Assignment(pp, l, r) => (pp :: identifyingPP(l) :: identifyingPP(r) :: Nil).min
+		case MethodCall(pp, m, _, p, _) => (pp :: identifyingPP(m) :: p.map(identifyingPP)).min
+		case VariableDeclaration(pp, v, _, r) => (pp :: identifyingPP(v) :: identifyingPP(r) :: Nil).min
+		case FieldAccess(pp, s, _, _) => (pp :: s.map(identifyingPP)).min
+		case _ => s.getPC
+	}
+
+	private implicit val programPointOrdering = new Ordering[ProgramPoint] {
+		def compare(p1: ProgramPoint, p2: ProgramPoint): Int = p1.getLine.compare(p2.getLine) match {
+			case -1 => -1
+			case 0 => p1.getColumn.compare(p2.getColumn)
+			case 1 => 1
+		}
+	}
+
   def lessEqual(right : ControlFlowGraphExecution[S]) : Boolean = lessEqualOnLists[List[S]](this.nodes, right.nodes, checkBlockLessEqual)
   
   private def checkBlockLessEqual(left : List[S], right : List[S]) : Boolean = lessEqualOnLists[S](left, right, lessEqualOnStates)

@@ -314,6 +314,9 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def getSemanticDomain() : N = d1.getSemanticDomain();
   def isBottom() : Boolean = this._1.equals(this._1.bottom()) || this._2.equals(this._2.bottom());
   def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id)
+
+  def before(pp : ProgramPoint) = this;
+
   def createObject(typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
     //It discharges on the heap analysis the creation of the object and its fields
