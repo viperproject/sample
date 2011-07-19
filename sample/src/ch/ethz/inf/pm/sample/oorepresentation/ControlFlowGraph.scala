@@ -575,7 +575,6 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
       case None =>
 					val modifiedState = entryState.before(identifyingPP(x))
 					modifiedState :: forwardBlockSemantics(x.forwardSemantics(modifiedState), None, xs)
-        entryState :: forwardBlockSemantics(x.forwardSemantics[S](entryState), None, xs)
       case Some(y :: ys) => entryState ::forwardBlockSemantics(x.forwardSemantics[S](entryState.glb(entryState, y)), Some(ys), xs)
     }
     case Nil => entryState :: Nil
