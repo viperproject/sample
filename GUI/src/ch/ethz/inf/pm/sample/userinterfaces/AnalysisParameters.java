@@ -3,18 +3,15 @@ package ch.ethz.inf.pm.sample.userinterfaces;
 import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.Analysis;
 import ch.ethz.inf.pm.sample.abstractdomain.HeapDomain;
-import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.AccessPermissionsAnalysis;
 import ch.ethz.inf.pm.sample.property.Property;
 import scala.Tuple2;
 import scala.collection.Iterator;
 import scala.collection.immutable.Set;
-import scala.runtime.Int;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.util.HashMap;
 
 public class AnalysisParameters extends JDialog {
