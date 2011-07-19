@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.property.Property
+import ch.ethz.inf.pm.sample.property._;
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
   override def merge(r : Replacement) = if(r.isEmpty) this; else throw new ApronException("Merge not yet implemented");
@@ -59,9 +59,24 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		val st = state.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, state.getEnvironment()), null);
 		new ApronInterface(st, domain);
 	}
-	override def assume(expr : Expression) : ApronInterface = {
-		val st = state.meetCopy(domain, this.toTcons1(expr, this.state.getEnvironment()));
-		new ApronInterface(st, domain);
+	override def assume(expr : Expression) : ApronInterface = expr match {
+    case BinaryBooleanExpression(left, right, op, typ) => op match {
+			case BooleanOperator.&& => val l = assume(left); l.glb(l, assume(right))
+			case BooleanOperator.|| => val l = assume(left); l.lub(l, assume(right))
+		}
+		case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op, typ)) => {
+			val nl = NegatedBooleanExpression(left)
+			val nr = NegatedBooleanExpression(right)
+			val nop = op match {
+				case BooleanOperator.&& => BooleanOperator.||
+				case BooleanOperator.|| => BooleanOperator.&&
+			}
+			assume(BinaryBooleanExpression(nl, nr, nop, typ))
+		}
+		case _ => {
+			val st = state.meetCopy(domain, this.toTcons1(expr, this.state.getEnvironment()));
+			new ApronInterface(st, domain);
+		}
 	}
 
 	override def factory() : ApronInterface = top();
@@ -87,10 +102,17 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(right.state.isTop(domain)) return right;
 		if(left.state.isBottom(domain)) return right;
 		if(right.state.isBottom(domain)) return left;
-		val st = left.state.joinCopy(domain, right.state);
-		new ApronInterface(st, domain);
+		try {
+			val st = left.state.joinCopy(domain, right.state);
+			new ApronInterface(st, domain);
+		} catch {
+			case _ => {
+				println("WARNING: incompatible environments.")
+				top()	// TODO fix this, but how?
+			}
+		}
 	}
-	
+
 	override def glb(left : ApronInterface, right : ApronInterface) : ApronInterface =  {
 		if(left.state.isBottom(domain)) return left;
 		if(right.state.isBottom(domain)) return right;
@@ -188,7 +210,12 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
   }
   def reset() : Unit = Unit;
   def getInitialState() : ApronInterface = new ApronInterface(new Abstract1(domain, new Environment()), domain);
-  def getProperties() : Set[Property] = Set.empty+new ApronProperty();
+  def getProperties() : Set[Property] = Set(
+		new ApronProperty(),
+		new SingleStatementProperty(DivisionByZero),
+		new SingleStatementProperty(new LowerBoundedValue("y", 0)),
+		new SingleStatementProperty(new BoundedValue("y", -4, 4))
+	);
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
 }
 
