@@ -41,6 +41,7 @@ object ApronRun {
 	//EntryState
 	//val domain=new Polka(false);
 	val domain=new PplPoly(false);
+	//val domain = new Octagon();
 	val numerical = new ApronInterface(new Abstract1(domain, new Environment()), domain);
 	val heapid = new ClassHeapIdentifier(null, null);
 	heapid.typ=SystemParameters.typ;
@@ -53,6 +54,8 @@ object ApronRun {
 			      
 
 	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);
+
+	System.out.println("Semantic time: " + SystemParameters.domainTimer.totalTime);
 	
   }
 
