@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation._
 
 object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 	
@@ -10,36 +9,33 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		      case "this" => parameters match {
 		        case x :: Nil =>
 		        	if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
-		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
+		        	//if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
 		        	//val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
-		        	var result = state.bottom(); 
+		        	var result = state.bottom();
+              val r1 = state.createObject(returnedtype, programpoint);
+              val hid = r1.getExpression();
 		        	for(exp <- x.getExpressions) {
-		        		val st = x.get(exp);
-		        		result=result.lub(result, state.setExpression(new SymbolicAbstractValue(new ArrayCreation(exp, thisExpr.getType()), state)));
+                var r2 = r1.bottom();
+                val arrayId = r1.getExpression();
+                for(e1 <- arrayId.getExpressions())
+                  for(heapid <- e1.asInstanceOf[HeapIdSetDomain[_]].value)
+                    r2=r2.lub(r2, arrayId.get(e1).assignVariable(new SymbolicAbstractValue(new LengthArray(heapid.asInstanceOf[Identifier], returnedtype.top()), arrayId.get(e1)), x))
+		        		result=result.lub(result, r2);
 		        	}
-		        	//val arrayLength = new SymbolicAbstractValue(new LengthArray(), state)
-		        	//val tempResult=result.assignVariable(x, x)
-		        	return Some(result);
+              var newExpr = new SymbolicAbstractValue[S]();
+              for(exp <- hid.getExpressions())
+                newExpr=newExpr.add(exp, result);
+		        	return Some(result.setExpression(newExpr));
 		      }
 		      case "update" => parameters match {
-		     	case index :: value :: Nil => 
-		        	if(thisExpr.getExpressions().size != 1) throw new ArrayAnalysisException("This is not yet supported!");
-		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new ArrayAnalysisException("This is not yet supported!");
-		        	val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
-		        	var result = state.bottom(); 
-		        	for(ind <- index.getExpressions) {
-		        		for(valu <- value.getExpressions()) {
-		        			val st = value.get(valu);
-		        			result=result.lub(result, state.assignVariable(new SymbolicAbstractValue(new ArrayAccess(id, ind, thisExpr.getType()), result), value))
-		        		}
-		        	}
-		        	return Some(result);
+		     	case index :: value :: Nil =>
+		        	return Some(state.assignArrayCell(thisExpr, index, value, returnedtype));
 		      }
 		      case "apply" => parameters match {
 		     	case index :: Nil =>
               thisExpr.getType(state).getArrayElementsType match {
                 case None => throw new ArrayAnalysisException("The expressions should be an array");
-                case Some(s) => return Some(state.getArrayCell(thisExpr :: Nil, index :: Nil, s))
+                case Some(s) => return Some(state.getArrayCell(thisExpr, index, s))
               }
 		      }
 		      case "length" => parameters match {

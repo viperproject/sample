@@ -118,6 +118,19 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    */
   def assignField(obj : Assignable, field : String, expr : Expression) : (T, Replacement);
 
+
+  /**
+   This method assigns a given field of a given objectto the given expression
+
+   @param obj the array whose cell has to be assigned
+   @param index the index to be assigned
+   @param expr the expression to be assigned
+   @param state the state of the semantic domain (useful to refine eventually the splitting of the array)
+   @return the state after this action and the eventual replacements (e.g.,
+   if the heap analyzed has summarize or splitted some cells)
+   */
+  def assignArrayCell[S <: SemanticDomain[S]](obj : Assignable, index : Expression, expr : Expression, state : S) : (T, Replacement);
+
   /**
    This method set a paramenter (usually the parameter passed to a method) to the given expression
 

@@ -149,6 +149,17 @@ trait State[S <: State[S]] extends Lattice[S] {
    @return The abstract state after the assignment
    */
   def assignField(obj : List[SymbolicAbstractValue[S]], field : String, right : SymbolicAbstractValue[S]) : S
+
+  /**
+   Assign a cell of an array
+
+   @param obj The object on which the array assignment
+   @param index The assigned index
+   @param typ The type of the cell
+   @param right The assigned expression
+   @return The abstract state obtained after the array cell assignment
+   */
+  def assignArrayCell(obj : SymbolicAbstractValue[S], index : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S], typ : Type) : S
   
   /**
    Assigns an expression to an initial parameter
@@ -210,7 +221,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param typ The type of the field
    @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
    */
-  def getArrayCell(obj : List[SymbolicAbstractValue[S]], index : List[SymbolicAbstractValue[S]], typ : Type) : S
+  def getArrayCell(obj : SymbolicAbstractValue[S], index : SymbolicAbstractValue[S], typ : Type) : S
 
   /**
    Performs the backward semantics of a variable access

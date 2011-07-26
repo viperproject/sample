@@ -280,10 +280,8 @@ abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type, pp : Pro
  * @author Pietro Ferrara
  * @since 0.1
  */
-class LengthArray(val id : Identifier, typ : Type) extends Identifier(typ, id.getProgramPoint) {
-  def getName() : String = id.toString()+".length"
-  def getField() : Option[String] = None;
-  def representSingleVariable() = id.representSingleVariable();
+class LengthArray(val id : Identifier, typ : Type) extends VariableIdentifier(id.toString+".length", typ, id.getProgramPoint) {
+  override def representSingleVariable() = id.representSingleVariable();
   override def toString() : String = this.getName();
   override def equals(obj : Any) : Boolean = obj match {
 	  case x : LengthArray => return x.id.equals(id);
@@ -301,7 +299,8 @@ class LengthArray(val id : Identifier, typ : Type) extends Identifier(typ, id.ge
  * @author Pietro Ferrara
  * @since 0.1
  */
-class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) extends Identifier(typ, id.getProgramPoint) {
+/*class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) extends Expression(id.getProgramPoint) {
+  def getType() : Type = typ;
   def getName() : String = id.toString()+"["+index.toString()+"]"
   def getField() : Option[String] = None;
   def representSingleVariable() = false //maybe id.representSingleVariable(); is more precise?
@@ -311,7 +310,7 @@ class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) exten
 	  case _ => return false;
   }
   override def hashCode() = 1;
-}
+}*/
 
 /** 
  * The identifier of the creation of an array
@@ -321,7 +320,8 @@ class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) exten
  * @author Pietro Ferrara
  * @since 0.1
  */
-class ArrayCreation(val size : Expression, val typ1 : Type) extends Identifier(typ1, size.getProgramPoint) {
+/*class ArrayCreation(val size : Expression, val typ1 : Type) extends Expression(size.getProgramPoint) {
+  def getType() : Type = typ1;
   def getName() : String = "new "+typ1.toString()+"("+size.toString()+")"
   def getField() : Option[String] = None;
   def representSingleVariable() = true;
@@ -331,7 +331,7 @@ class ArrayCreation(val size : Expression, val typ1 : Type) extends Identifier(t
 	  case _ => return false;
   }
   override def hashCode() = 1;
-}
+}*/
 
 /** 
  * The unit expression, that represents the absence of a concrete expression.
@@ -476,7 +476,7 @@ object Normalizer {
       if(x.value.size!=1) return None;
         else return Some(((1, x.value.iterator.next())::Nil, 0))
   }
-  
+
   private def compactOnTheLeft(left : (List[(Int, Identifier)], Int), right : (List[(Int, Identifier)], Int)) : (List[(Int, Identifier)], Int) = (left._1 ::: transform(right._1, (x : Int)=> -x ), left._2-right._2) 
   
   private def transform(monome : List[(Int, Identifier)], f : Int => Int) : List[(Int, Identifier)] = monome match {

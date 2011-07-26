@@ -119,6 +119,32 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result
   }
 
+  def assignArrayCell(variable : Assignable, index : Expression, expr : Expression, typ : Type) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    val (h2,r2)=d2.assignArrayCell(variable, index, expr, d1)
+    val (id, h, r1) = h2.getArrayCell(variable, index, d1, typ)
+    val (h3, r3)= h.endOfAssignment();
+    result.d2=h3;
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d1=d1.merge(r2).merge(r1).merge(r3);
+    var newd1 : Option[N]= None;
+    if(id.isTop)
+      newd1 = Some(result.d1.top());
+    else
+      for(singleheapid <- id.value) {
+        if(newd1==None)
+          newd1=Some(result.d1.assign(singleheapid, expr))
+        else newd1=Some(id.combinator(newd1.get, result.d1.assign(singleheapid, expr)))
+      }
+    if(newd1!=None)
+      result.d1=newd1.get; //throw new SemanticException("You should assign to something")
+    else result.d1=result.d1;
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
  def setParameter(variable : Assignable, expr : Expression) : T= {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
@@ -556,9 +582,51 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result
   }
 
-  def getArrayCell(obj : List[SymbolicAbstractValue[GenericAbstractState[N,H,I]]], index : List[SymbolicAbstractValue[GenericAbstractState[N,H,I]]], typ : Type) : GenericAbstractState[N,H,I] =
-  throw new SemanticException("Arrays not yet implemented")
-  
+  def getArrayCell(obj : SymbolicAbstractValue[GenericAbstractState[N,H,I]], index : SymbolicAbstractValue[GenericAbstractState[N,H,I]], typ : Type) : GenericAbstractState[N,H,I] = {
+    if(this.isBottom) return this;
+    var result : GenericAbstractState[N,H,I] = this.bottom();
+    	//For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
+    for(expr <- obj.getExpressions) {
+      if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here");
+      for(indexexpr <- index.getExpressions()) {
+        val (heapid, newHeap, rep) = obj.get(expr)._1._2.getArrayCell(expr.asInstanceOf[Assignable], indexexpr, obj.get(expr)._1._1, typ);
+        var result2=new HeapAndAnotherDomain[N, H, I](obj.get(expr)._1._1.merge(rep), newHeap);
+        val accessed=result2.access(heapid);
+        val state=new GenericAbstractState(accessed, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed, this._2)));
+        result=result.lub(result, state);
+      }
+    }
+    result
+  }
+
+  def assignArrayCell(obj : SymbolicAbstractValue[GenericAbstractState[N,H,I]], index : SymbolicAbstractValue[GenericAbstractState[N,H,I]], right : SymbolicAbstractValue[GenericAbstractState[N,H,I]], typ : Type) : GenericAbstractState[N,H,I] = {
+    if(this.isBottom) return this;
+    var result : Option[GenericAbstractState[N,H,I]] = None;
+    if(right.isTop) {
+      var t : GenericAbstractState[N,H,I] = this.getArrayCell(obj, index, right.getType(this));
+      return t.setVariableToTop(t.getExpression).removeExpression()
+    }
+    for(el <- obj.getExpressions()) {
+     //For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
+	    el match {
+	      case variable : Assignable => {
+          for(indexexpr <- index.getExpressions()) {
+            for(assigned <- right.value) {
+              val done=new GenericAbstractState[N,H,I](assigned._2._1.assignArrayCell(variable, indexexpr, assigned._1, right.getType(this)), this._2);
+              if(result==None)
+                result=Some(done)
+              else result=Some(done.lub(result.get, done));
+            }
+          }
+	      }
+        case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
+      }
+    }
+    if(result==None)
+      throw new SymbolicSemanticException(("You should assign something to something"))
+    result.get.removeExpression();
+  }
+
   def backwardGetFieldValue(objs : List[SymbolicAbstractValue[GenericAbstractState[N,H,I]]], field : String, typ : Type) : GenericAbstractState[N,H,I] = {
     if(this.isBottom) return this;
     var result : GenericAbstractState[N,H,I] = this.bottom();
