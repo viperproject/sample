@@ -35,6 +35,7 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
   override def getNullNode(p : ProgramPoint) = new NullProgramPointHeapIdentifier(t.top(), p);
   override def getName() : String=this.toString();
   override def isNormalized() : Boolean = true;
+  override def getArrayCell(array : Assignable, index : Expression) = new ArrayTopIdentifier();
 }
 
 case class NullProgramPointHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -63,6 +64,20 @@ case class SimpleProgramPointHeapIdentifier(val pp1 : ProgramPoint, t2 : Type) e
   override def factory() : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(this.pp, this.getType());
   override def representSingleVariable() : Boolean=false;//TODO: Improve the precision here!
   override def clone() : Object =new SimpleProgramPointHeapIdentifier(pp, this.getType());
+}
+
+case class ArrayTopIdentifier() extends ProgramPointHeapIdentifier(null, null) {
+  def getField() : Option[String] = None;
+  override def isNormalized() : Boolean = true;
+  override def equals(x : Any) : Boolean = x match {
+    case ArrayTopIdentifier() => return true
+    case _ => return false
+  }
+  override def toString() : String = "Array ID"
+
+  override def factory() : ProgramPointHeapIdentifier=new ArrayTopIdentifier();
+  override def representSingleVariable() : Boolean=false;
+  override def clone() : Object =new ArrayTopIdentifier();
 }
 
 case class ParameterHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {

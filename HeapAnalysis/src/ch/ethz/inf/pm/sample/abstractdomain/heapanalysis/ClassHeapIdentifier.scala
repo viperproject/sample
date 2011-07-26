@@ -1,8 +1,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.HeapIdentifier;
+
 import ch.ethz.inf.pm.sample.oorepresentation.Type;
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint;
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.{SemanticException, Expression, Assignable, HeapIdentifier}
+;
 
 
 class FieldHeapIdentifier(val obj : Type, val field : String, value : Type, pp : ProgramPoint) extends ClassHeapIdentifier(value, pp) {
@@ -41,6 +43,7 @@ class ClassHeapIdentifier(val value : Type, pp : ProgramPoint) extends NonRelati
       case a1 : ClassHeapIdentifier => this.value.equals(a1.value);
       case _ => false;
     }
+    override def getArrayCell(array : Assignable, index : Expression) = throw new SemanticException("Not yet supported")
     override def hashCode() : Int = 1;
     override def toString() : String = return this.getName();
 }

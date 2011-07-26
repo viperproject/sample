@@ -106,6 +106,7 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
   def createAddress(typ : Type, pp : ProgramPoint) : I;
   def createAddressForParameter(typ : Type, p : ProgramPoint) : I;
   def extractField(obj : I, field : String, typ : Type) : I;
+  def getArrayCell(array : Assignable, index : Expression) : I;
   def accessStaticObject(typ : Type, p : ProgramPoint) : I;
   def getNullNode(p : ProgramPoint) : I;
   def isNormalized() : Boolean;
@@ -136,7 +137,17 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     //cod.typ=t;
   }
   override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Assignable, index : Expression, state : S, typ : Type)
-  = throw new SemanticException("Non relational heap domains do not support arrays");
+    = (new MaybeHeapIdSetDomain().convert(dom.getArrayCell(arrayIdentifier, index)), this, new Replacement);
+
+
+  def assignArrayCell[S <: SemanticDomain[S]](obj : Assignable, index : Expression, expr : Expression, state : S) = {
+    var result=this.bottom();
+    val ids = this.getArrayCell(obj, index, state, expr.getType())._1;
+    for(id <- ids.value)
+      result=result.lub(result, this.assign(id, expr, null)._1);
+    (result, new Replacement);
+  }
+
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
   override def getLabel() : String = "Heap Domain:"+dom.getLabel();
   override def parameters() : List[(String, Any)] = List((("UnsoundEntryState"), true), (("MaxEntryNodes"), 10))
@@ -248,6 +259,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def assign[S <: SemanticDomain[S]](variable : Assignable, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
     if(! variable.getType.isObject) return (this, new Replacement);//It does not modify the heap
     variable match {
+      case x : LengthArray => (this, new Replacement())//Assigning the length of an array does not change the heap structure
 	    case x : VariableIdentifier => 
 	      try {
 	        expr match {
@@ -281,7 +293,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	      for(addr <- x.value/*this.normalize(x).value*/)
 	        result=result.add(addr, value.lub(this.normalize(value), this._2.get(addr)))
 	      return (new NonRelationalHeapDomain(this._1, result, cod, dom), new Replacement);
-	    case x : ArrayAccess => return (this, new Replacement);//We skip array access, because of AVP2010 project
+	    //case x : ArrayAccess => return (this, new Replacement);//We skip array access, because of AVP2010 project
     }
   }
   
@@ -385,6 +397,8 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 }
 
 case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ2, pp2) {
+
+    override def getArrayCell(array : Assignable, index : Expression) = this;
     override def getLabel() = "Top";
 	  override def getNullNode(pp : ProgramPoint) = this
 	  override def getField() : Option[String] = None;
