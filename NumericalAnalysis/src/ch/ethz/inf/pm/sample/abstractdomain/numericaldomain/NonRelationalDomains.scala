@@ -107,6 +107,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
       for(x <- xs.value)
         result=result.lub(result, this.get(x));
       result;
+    case x : Expression => dom.top();
   }
     
   override def assume(expr : Expression) : BoxedNonRelationalNumericalDomain[N]= Normalizer.conditionalExpressionToMonomes(expr) match {
