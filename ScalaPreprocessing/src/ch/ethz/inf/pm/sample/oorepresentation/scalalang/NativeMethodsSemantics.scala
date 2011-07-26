@@ -60,10 +60,10 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 	}
 	
 	def analyzeConstructor[S <: State[S]](thisExpr : SymbolicAbstractValue[S], parameters : List[SymbolicAbstractValue[S]], state : S, returnedType : Type) : Option[S] = returnedType.toString() match {
-	  case "Array" => parameters match {
+	  case "Array" => None /*parameters match {
 		        case x :: Nil =>
 		        	if(thisExpr.getExpressions().size != 1) throw new MethodSemanticException("This is not yet supported!");
-		        	if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new MethodSemanticException("This is not yet supported!");
+		        	//if(! thisExpr.getExpressions().iterator.next.isInstanceOf[Identifier]) throw new MethodSemanticException("This is not yet supported!");
 		        	//val id : Identifier = thisExpr.getExpressions().iterator.next.asInstanceOf[Identifier];
 		        	var result = state.bottom(); 
 		        	for(exp <- x.getExpressions) {
@@ -73,7 +73,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 		        	//val arrayLength = new SymbolicAbstractValue(new LengthArray(), state)
 		        	//val tempResult=result.assignVariable(x, x)
 		        	return Some(result);
-		      }
+		      }  */
 	  case _ => new Some(state.setExpression(thisExpr));//or None? It depends, this is used to call the contructor...
 	}
  

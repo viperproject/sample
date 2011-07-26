@@ -14,7 +14,7 @@ class ScalaCompiler extends Compiler {
 
    def extensions() : List[String] = "scala" :: Nil;
 
-  def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics);
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics, ArrayNativeMethodSemantics);
 
 	def compileFile(path : String) : List[ClassDefinition] = {
 		SystemParameters.addNativeMethodsSemantics(ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil);
