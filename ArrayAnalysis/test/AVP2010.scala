@@ -15,7 +15,7 @@ class AVP2010 {
 	
 	def example2(arr : Array[Int]) = {
 		//proprieta' semplice: tutti gli accessi all'array sono corretti
-		if(arr.length > 10 ) {
+		//if(arr.length > 10 ) {
 			arr(0)=5;
 			arr(1)=3;
 			var i : Int = 2 ;
@@ -23,7 +23,7 @@ class AVP2010 {
 				arr(i)=i*2;
 				i=i+1;
 			}
-		}
+		//}
 	}
 	
 	def example3(arr : Array[Int]) = {
