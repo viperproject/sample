@@ -252,7 +252,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=d1.merge(rep).lub(l.d1, r.d1)
+    val s = d1.lub(l.d1, r.d1)
+    result.d1 = s.merge(rep)
     SystemParameters.domainTimer.stop();
     result
   }
@@ -264,7 +265,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=d1.merge(rep).glb(l.d1, r.d1)
+    val s = d1.glb(l.d1, r.d1)
+   result.d1= s.merge(rep)
     SystemParameters.domainTimer.stop();
     result
   }
@@ -276,7 +278,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=d1.merge(rep).widening(l.d1, r.d1)
+    val s = d1.widening(l.d1, r.d1)
+    result.d1= s.merge(rep)
     SystemParameters.domainTimer.stop();
     result
   }
@@ -355,8 +358,8 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
          val (address, newHeap2, rep1) = result2._2.getFieldIdentifier(createdLocation, field.getName(), field.getType(), field.getProgramPoint());
          result2=new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep1), newHeap2).createVariable(address, field.getType());
     }
-    val (h, rep2) = result2._2.endOfAssignment()
-    result2 = new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), h);
+    //val (h, rep2) = result2._2.endOfAssignment()
+    //result2 = new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), h);
     //An object could have no fields, so that's acceptable to have result3==None here
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result2, this._2).removeExpression()));
   }

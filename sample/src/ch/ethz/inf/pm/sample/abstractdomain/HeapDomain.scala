@@ -1,6 +1,8 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.util.UndirectedGraph
+
 
 /**
  * A <code>Replacement</code> is a map from sets of identifiers to sets of identifiers.
@@ -15,11 +17,29 @@ import ch.ethz.inf.pm.sample.SystemParameters
  * @author Pietro Ferrara
  * @version 0.1
  */
-class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]) extends  {
+class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]) {
   def this() {
     this(new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]());
   }
-  def lub(l : Replacement, r : Replacement) : Replacement = new Replacement(l.value.++(r.value));
+
+  /**
+   * Compute lub of replacements. Note that this was developed with the interval domain in mind
+   * (may be too specific for that case).
+   * @author Raphael Fuchs
+   */
+  def lub(l : Replacement, r : Replacement) : Replacement = {
+    type Entry = (Set[Identifier], Set[Identifier])
+    def adjacent(x: Entry, y: Entry): Boolean = x != y && !(x._2 intersect y._2).isEmpty
+
+    val entries = (l.value.toList ++ r.value.toList).distinct
+    val g = UndirectedGraph.build(entries, adjacent _)
+    val lubEntries =
+      for (component <- g.getComponents) yield {
+        component reduceLeft {(l:Entry, r:Entry) => (l._1 union r._1, l._2 union r._2) }
+      }
+
+    new Replacement(scala.collection.mutable.HashMap(lubEntries: _*))
+  }
 
   def glb(l : Replacement, r : Replacement) : Replacement = new Replacement(
     l.value.retain( {
@@ -33,6 +53,14 @@ class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], 
   def keySet() = value.keySet;
 
   def apply(k : Set[Identifier]) = value.apply(k);
+
+  /**
+   * Prett-print replacement in the notation described above
+   */
+  override def toString = {
+    val lines = for ((k,v) <- value) yield k.mkString("{",",","}") + "->" + v.mkString("{",",","}")
+    lines.mkString(", ")
+  }
 }
 
 /**
