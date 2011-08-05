@@ -14,7 +14,7 @@ import javax.swing._
 import java.awt.event._
 import tracepartitioning._
 import com.mxgraph.util.mxConstants
-import java.awt.{Font, GridLayout, Dimension, Toolkit}
+import java.awt.{Color, GridLayout, Dimension, Toolkit}
 
 private class Show extends JFrame {
 	def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
@@ -333,6 +333,132 @@ object ShowGraph extends Property {
 	}
 
 
+  /**
+   * ShowTVSHeapState displays a graphical representation of the TVSHeap domain's state.
+   * For every three-valued structure it draws a graph using jgraphx
+   *
+   * @author: Raphael Fuchs
+   */
+  private class ShowTVSHeapState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]] {
+    def this(state: GenericAbstractState[N, H, I]) = {
+      this ()
+
+      val heap = state.getHeap().asInstanceOf[TVSHeap]
+      val b: Box = new Box(BoxLayout.Y_AXIS)
+
+      for (struct <- heap.structures) {
+        val (graph, idToVertex): (mxGraph, Map[Identifier, Object]) = TVSStructureToGraph(heap, struct, state.getSemanticDomain());
+        val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
+        graphComponent.getGraphControl.addMouseListener(new ClickIdentifierListener(graphComponent, state, idToVertex))
+        graphComponent.setBorder(BorderFactory.createLineBorder(Color.black))
+        b.add(graphComponent)
+      }
+
+      new Show(b, false, -1, -1)
+    }
+
+
+    /**
+     * Listener for clicking on the identifiers in the heap graph. Brings up a small windows with the associated
+     * semantic state.
+     */
+      private class ClickIdentifierListener[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]]
+                                                    (graph: mxGraphComponent,
+                                                     state: GenericAbstractState[N, H, I],
+                                                     idToVertix: Map[Identifier, Object]) extends MouseAdapter {
+
+        override def mouseReleased(e: MouseEvent) = {
+          val cell: Object = graph.getCellAt(e.getX(), e.getY());
+          if (cell != null) {
+            val castedcell = cell.asInstanceOf[mxCell];
+            var i: Int = 0;
+            val vertixes = idToVertix.values;
+            for (vertix <- vertixes) {
+              if (cell == vertix) {
+                val ids = idToVertix.keySet
+                for (id <- ids)
+                  if (idToVertix.apply(id) == cell) {
+                    val label = state.getStringOfId(id);
+                    new Show(new JLabel(label), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
+                  }
+              }
+              i = i + 1;
+            }
+
+          }
+        }
+      }
+
+    /**
+     *  TVSStructureToGraph visualizes one particular three-valued structure (tvs) as a graph
+     */
+    private def TVSStructureToGraph[N <: SemanticDomain[N],T <: NodeName](heap: TVSHeap, tvs: TVS[T], s: N): (mxGraph, Map[Identifier, Object]) = {
+      val graph: mxGraph = defaultGraphSettings()
+      var idToVertix: Map[Identifier, Object] = Map.empty[Identifier, Object];
+      var xposition: Int = leftspace
+      var yposition: Int = ygap
+      var index: Int = 0;
+
+      // program variables
+      val numericalVars = s.getIds().collect {case v: VariableIdentifier if(!v.typ.isObject) => v }
+      for (v <- (heap.variables ++ heap.tempVariables ++ numericalVars)) {
+          val label = v.toString()
+          val w: Double = 1.5 * maxLineLength(label) * spaceSingleCharacter
+          val h: Double = 1.5 * singleLine * countLines(label);
+          val cell = graph.insertVertex(graph.getDefaultParent(), index.toString, label, xposition, yposition, w, h,
+            "shape=rectangle;fillColor=#FFFFFF;strokeWidth=1;strokeColor=#000000");
+          yposition = yposition + ygap * 2 + h.toInt;
+          idToVertix += ((v, cell));
+          index = index + 1;
+      }
+      xposition += 200
+      yposition = ygap
+
+      // heap nodes
+      for (node <- tvs.nodes) {
+          val label = node.toString
+          val w: Double = 1.5 * maxLineLength(label) * spaceSingleCharacter
+          val h: Double = 1.5 * singleLine * countLines(label);
+          var style = "shape=ellipse;fillColor=#FFFFFF;strokeWidth=1;strokeColor=#000000"
+          if (tvs.summarization.values.contains(node))
+            style += ";dashed=1"
+          val cell = graph.insertVertex(graph.getDefaultParent(), index.toString, label, xposition, yposition, w, h, style);
+          yposition = yposition + ygap * 2 + h.toInt;
+          idToVertix += ((node, cell));
+          index = index + 1;
+      }
+
+      // edges from program variables
+      for (v <- (heap.variables ++ heap.tempVariables)) {
+        val from = idToVertix.apply(v)
+        tvs.programVariables(v.toString).value match {
+          case Some(n) =>
+            val to = idToVertix(n)
+            graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle");
+          case None =>
+        }
+       }
+
+      // edges between nodes (field references)
+      for ((fname,fp) <- tvs.fields) {
+        for ((l, (r, truth)) <- fp.values) {
+          val from = idToVertix(l)
+          val to = idToVertix(r)
+          val decodedFieldName = fname.split('_')
+          val fieldlabel = if (decodedFieldName.size == 2) decodedFieldName(1) + " field" else fname
+          var style = "edgeStyle=elbowEdgeStyle"
+          if (truth == Kleene.Unknown)
+            style += ";dashed=1"
+          graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", fieldlabel, from, to, style);
+        }
+       }
+
+      graph.getModel().endUpdate();
+      (graph, idToVertix)
+    }
+  }
+
+
 	private def stateToGraph[S <: State[S], N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: S) = state match {
 		case s: GenericAbstractState[N, H, I] => genericStateToGraph(s);
 		case s: PartitionedState[_] => partitionedStateToJComponent(s)
@@ -341,6 +467,7 @@ object ShowGraph extends Property {
 
 	private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: GenericAbstractState[N, H, I]) = state match {
 		case _ if state.getHeap().isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
+    case _ if state.getHeap().isInstanceOf[TVSHeap] => new ShowTVSHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
 		case _ => new Show(stateToString(state), false, -1, -1);
 	}
 

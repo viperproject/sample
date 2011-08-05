@@ -10,6 +10,9 @@ import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.javabytecode.*;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
+import it.unive.dsi.stringanalysis.BricksAnalysis;
+import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
+import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
 import scala.collection.immutable.List;
 
 import java.io.File;
@@ -25,16 +28,20 @@ public class InstalledPlugins {
         compilers[0]=new ScalaCompiler();
         compilers[1]=new JavaCompiler();
 
-        analyses=new SemanticAnalysis[3];
+        analyses=new SemanticAnalysis[6];
         analyses[0]=new AccessPermissionsAnalysis();
         analyses[1]=new NonRelationalNumericalAnalysis();
         analyses[2]=new ApronAnalysis();
+        analyses[3]=new PrefixAndSuffixAnalysis();
+        analyses[4]=new BricksAnalysis();
+        analyses[5]=new SurelyAndMaybeContainedCharactersAnalysis();
         //analyses[3]=new PosDomainAnalysis();
 
-        heapanalyses=new HeapDomain[3];
+        heapanalyses=new HeapDomain[4];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
         heapanalyses[1]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
         heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
+        heapanalyses[3]=new TVSHeap();
     }
 
     private static NonRelationalHeapDomain createNonRelationalHeapDomain(NonRelationalHeapIdentifier id) {
