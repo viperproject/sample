@@ -16,7 +16,8 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 }
 
 class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom : N) extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]() with NumericalDomain[BoxedNonRelationalNumericalDomain[N]] {
-  //def getIds : Set[Identifier] = this.value.keySet.asInstanceOf[Set[Identifier]];
+
+  /*
   override def merge(r : Replacement) : BoxedNonRelationalNumericalDomain[N] = {
     if(r.isEmpty) return this;
     var result : BoxedNonRelationalNumericalDomain[N] = this.clone;
@@ -53,6 +54,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     }
     return result;
   }
+  */
 
   final def factory() = new BoxedNonRelationalNumericalDomain[N](dom.factory());
     
@@ -440,6 +442,6 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
   }
   def getInitialState() : BoxedNonRelationalNumericalDomain[D] = new BoxedNonRelationalNumericalDomain(domain.asInstanceOf[D]);
   override def reset() : Unit = Unit;
-  def getProperties() : Set[Property] = (Set.empty+(new ApronProperty()))++(Set.empty+(new SingleStatementProperty(DivisionByZero)));
+  def getProperties() : Set[Property] = Set(new ApronProperty(), new SingleStatementProperty(DivisionByZero));
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
 }
