@@ -3,7 +3,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 class DynamicTypeDomain(typ : Type) extends BoxedDomain[Type, DynamicTypeDomain]() with SemanticDomain[DynamicTypeDomain] {
-  def merge(f : Replacement) = if(f.isEmpty()) this else throw new TypeDomainException("Merging not yet supported");
+  //def merge(f : Replacement) = if(f.isEmpty()) this else throw new TypeDomainException("Merging not yet supported");
   final override def factory() = new DynamicTypeDomain(typ);
   override def assume(expr : Expression) : DynamicTypeDomain = expr match { 
     case AbstractOperator(t, parameters, typeparameters, AbstractOperatorIdentifiers.isInstanceOf, typ) =>
