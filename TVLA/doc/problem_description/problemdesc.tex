@@ -1,0 +1,67 @@
+%
+% Bachelor Thesis, Problem Description
+% NOTE: compiles with XeTeX only
+%
+
+\documentclass[12pt,a4paper]{article}
+
+% PDF SETUP
+\usepackage[dvipdfm, colorlinks, breaklinks, 
+            pdftitle={Interfacing TVLA and SAMPLE},
+            pdfauthor={Fuchs, Raphael}
+            ]{hyperref}
+\usepackage{fontspec}
+
+% DOCUMENT LAYOUT
+\usepackage{geometry} 
+\geometry{a4paper, bottom=38mm} 
+%\setlength\parindent{0in}
+%\usepackage{multicol}
+%\setlength{\columnsep}{20pt}
+
+\usepackage[english]{babel}
+\usepackage{blindtext}
+
+
+% FONTS
+\usepackage{xcolor}
+\usepackage{xunicode}
+\usepackage{xltxtra}
+\defaultfontfeatures{Mapping=tex-text}
+\setromanfont{Palatino LT Std}
+%\renewcommand{\familydefault}{\sfdefault}
+
+% SECTION HEADINGS
+\usepackage{sectsty}
+\definecolor{Heading}{HTML}{00335b}
+\sectionfont{\large \bfseries \color{Heading}}
+\subsectionfont{\normalsize \bfseries \color{Heading}}
+
+\begin{document}
+
+\title{\bfseries \color{Heading} Interfacing TVLA and SAMPLE\\ \vspace{0.5cm}
+  \Large{Problem Description}}
+\author{Raphael Fuchs\\
+  \texttt{fuchsra@student.ethz.ch}}
+\date{\today}
+\maketitle
+
+\section*{Background}
+TVLA \footnote{Three-Valued-Logic Analyzer,\, \url{http://www.cs.tau.ac.il/~tvla/}} is a framework to define, implement and execute shape analyses. Shape analysis allows to statically infer properties about heap-allocated data structures, such as reachability of heap cells through pointers. Over the past 10 years, several shape analyses have been defined and implemented in TVLA. The results of this scientific work have often been published at the best conferences. 
+
+Sample (Static Analysis of Multiple LanguagEs) is a generic static analyzer based on the abstract interpretation theory, developed at the Chair of Programming Methodology at ETH in the last 2 years. It supports and already contains a wide range of different analyses and can be used for multiple programming languages. 
+
+\section*{Core Task} 
+The goal of this bachelor thesis is to extend Sample with more powerful heap analysis capabilities. This will be achieved by interfacing it with TVLA.
+
+The implementation will consist of an infrastructure to communicate with the TVLA tool. In particular, this will mean to implement a parser for tvs files (these are the files used by TVLA to represent the shape of the heap) and to represent these heap data structures in Sample. Furthermore, a set of \textit{update formulae} which describe the effect of executing program statements on heap structures needs to be provided in order to fully exploit the power of the TVLA engine. These formulae will represent the semantics of the operators required by Sample (e.g., field access and field update).  
+
+\section*{Possible Extensions}
+Depending on the time left, possible extensions of this work may include the following:
+\begin{itemize}
+  \item  TVLA's abstraction of program semantics is guided  by \textit{instrumentation predicates}. The right choice of these predicates is crucial in order to obtain precise results. Therefore, various predicates should be evaluated, possibly balancing efficiency with precision.
+  \item Apply the analysis to a wide set of benchmarks
+  \item Develop a set of common predicates to specify more precise analyses of the most common data structures (such as lists, trees and DAGs).
+\end{itemize}
+
+\end{document}

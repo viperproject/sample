@@ -1,0 +1,14 @@
+- explanation of Sample
+- some background/theory of TVLA
+
+
+- purpose and structure of a HeapDomain in Scala
+
+- intuitively explain mapping of higher-level concepts like fiel accesses to basic TVLA operations 
+
+- temporary variables etc.
+
+- naming problem: introduction of program points
+
+
+- relationship to numerical domain / other semantic domains

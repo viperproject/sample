@@ -1,0 +1,25 @@
+%n = {n3,n1,n4}
+%p = {
+  // program variable predicates
+  end = { n3:1 }
+  start = { n1:1 }
+  t = {  }
+  this = {  }
+  unknown = {  }
+  // field predicates
+  field_i = { n3->n4:1 }
+  field_n = { n1->n3:1 }
+  // summarization
+  sm = {  }
+  // naming predicates
+  n1 = { n1:1 }
+  n3 = { n3:1 }
+  n4 = { n4:1 }
+  // transitive reachability
+  t[field_i] = { n3 -> n3 :1, n3->n4:1, n1->n1:1, n4->n4:1 }
+  t[field_n] = { n3->n3:1, n1->n3:1, n1->n1:1, n4->n4:1 }
+  // variable reachability
+  // sharing
+  is[field_i] = {  }
+  is[field_n] = {  }
+}

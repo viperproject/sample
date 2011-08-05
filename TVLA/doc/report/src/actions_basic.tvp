@@ -1,0 +1,38 @@
+%action setVariableNull(target) {
+	{
+		target(v) = 0 
+	}
+}
+
+// set a field
+%action setField(target,field,source) {
+	%f { target(v), source(v) }
+	{
+		field(v_1, v_2) = field(v_1, v_2) | target(v_1) & source(v_2)
+	}
+}
+
+%action extractField(destination,target,field) {
+	%f { foreach(f in Fields) { 
+			E(v_1,v_2) target(v_1) & field(v_1,v_2) & t[f](v_2,v) 
+		 }
+	} 
+
+	{
+		destination(v) = E(v_1) target(v_1) & field(v_1, v)
+	}
+}
+
+%action createObject(target) {
+%new
+{
+target(v) = isNew(v)
+    foreach (f in Fields) {
+    t[f](v_1, v_2) = (isNew(v_1) ? v_1 == v_2 : t[f](v_1, v_2))
+    is[f](v) = is[f](v)
+    r[f, target](v) = isNew(v)
+    foreach(z in PVar-{target}) {
+    r[f,z](v) = r[f,z](v)
+    }
+    }}
+}
