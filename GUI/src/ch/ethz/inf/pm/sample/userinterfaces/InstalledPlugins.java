@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
 import ch.ethz.inf.pm.sample.SystemParameters;
+import ch.ethz.inf.pm.sample.abstractdomain.clientsideinference.SymbolicIntervalsAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumericalAnalysis;
@@ -28,13 +29,14 @@ public class InstalledPlugins {
         compilers[0]=new ScalaCompiler();
         compilers[1]=new JavaCompiler();
 
-        analyses=new SemanticAnalysis[6];
+        analyses=new SemanticAnalysis[7];
         analyses[0]=new AccessPermissionsAnalysis();
         analyses[1]=new NonRelationalNumericalAnalysis();
         analyses[2]=new ApronAnalysis();
         analyses[3]=new PrefixAndSuffixAnalysis();
         analyses[4]=new BricksAnalysis();
         analyses[5]=new SurelyAndMaybeContainedCharactersAnalysis();
+        analyses[6]=new SymbolicIntervalsAnalysis();
         //analyses[3]=new PosDomainAnalysis();
 
         heapanalyses=new HeapDomain[4];
