@@ -8,16 +8,17 @@ class StringList {
 }
 
 class Test {
-  def ex1(i : Int, b : Boolean) = {
-     //var j : Int = 0;
+  def ex1(b : Boolean) : StringList = {
+     var c : String = "a";
      var l : StringList = new StringList();
-     l.c="a";
-     //var h = l;
-     if(b) {
-       //l.next=new StringList();
-       //l=l.next;
-       l.c = "ab";
+     l.c=c;
+     var h = l;
+     while(b) {
+       l.next=new StringList();
+       l=l.next;
+       c="b"+c;
+       l.c = c;
      }
-     //return h;
+     return h;
   }
 }
