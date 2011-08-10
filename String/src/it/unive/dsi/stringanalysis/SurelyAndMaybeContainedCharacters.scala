@@ -9,7 +9,7 @@ class SurelyAndMaybeContainedCharacters(protected var a1 : SurelyContainedCharac
                                     SurelyAndMaybeContainedCharacters](a1,a2)
      with SimplifiedSemanticDomain[SurelyAndMaybeContainedCharacters]
  {
-      override def merge(r : Replacement) = if(r.isEmpty) this; else throw new SemanticException("Merge not yet implemented");
+      override def merge(r : Replacement) = new SurelyAndMaybeContainedCharacters(this.d1.merge(r), this.d2.merge(r));
 
        def factory() : SurelyAndMaybeContainedCharacters = new SurelyAndMaybeContainedCharacters(
     		   new SurelyContainedCharacters(), new MaybeContainedCharacters()); 

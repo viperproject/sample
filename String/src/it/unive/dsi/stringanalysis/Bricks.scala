@@ -106,7 +106,7 @@ class BricksDomain extends Lattice[BricksDomain]
      if(left.isTop || right.isTop)
     	 return top();
     
-     Console.print("lub between " + left.toString() + " and " + right.toString());
+     //Console.print("lub between " + left.toString() + " and " + right.toString());
      
      var newLeft : BricksDomain = this.factory();
      var newRight : BricksDomain = this.factory();
@@ -181,8 +181,8 @@ class BricksDomain extends Lattice[BricksDomain]
      if(left.isTop || right.isTop)
     	 return top();
 
-     if(!(left.lessEqual(right) && right.lessEqual(left)))
-    	 Console.print("widening between " + left + " and " + right );
+     //if(!(left.lessEqual(right) && right.lessEqual(left)))
+    	// Console.print("widening between " + left + " and " + right );
      var newLeft : BricksDomain = this.factory();
 	 var newRight : BricksDomain = this.factory();
 	 newLeft.bricksList = left.bricksList;
@@ -366,7 +366,6 @@ class BricksDomain extends Lattice[BricksDomain]
 class Bricks extends SimplifiedSemanticDomain[Bricks] with BoxedDomain[BricksDomain, Bricks] 
 {
    def factory() : Bricks = new Bricks();
-   override def merge(r : Replacement) = if(r.isEmpty) this; else throw new SemanticException("Merge not yet implemented");
    def setToTop(variable : Identifier) : Bricks = this.remove(variable);
    def assign(variable : Identifier, expr : Expression) : Bricks = this.add(variable, this.eval(expr));
    def assume(expr : Expression) : Bricks = this;

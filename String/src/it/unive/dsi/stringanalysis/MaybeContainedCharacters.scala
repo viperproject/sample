@@ -9,7 +9,6 @@ class SetCharacters extends SetDomain[Char, SetCharacters] {
 
 class MaybeContainedCharacters extends SimplifiedSemanticDomain[MaybeContainedCharacters] 
      with BoxedDomain[SetCharacters, MaybeContainedCharacters] {
-  override def merge(r : Replacement) = if(r.isEmpty) this; else throw new SemanticException("Merge not yet implemented");
 
   def factory() : MaybeContainedCharacters = new MaybeContainedCharacters();
   /*

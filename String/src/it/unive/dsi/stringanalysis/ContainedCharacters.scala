@@ -9,7 +9,7 @@ class InverseSetCharacters extends InverseSetDomain[Char, InverseSetCharacters] 
 
 class SurelyContainedCharacters extends SimplifiedSemanticDomain[SurelyContainedCharacters] 
      with BoxedDomain[InverseSetCharacters, SurelyContainedCharacters] {
-  override def merge(r : Replacement) = if(r.isEmpty) this; else throw new SemanticException("Merge not yet implemented");
+
   def factory() : SurelyContainedCharacters = new SurelyContainedCharacters ();
   
   /*
