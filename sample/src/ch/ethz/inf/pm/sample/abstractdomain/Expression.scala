@@ -269,8 +269,7 @@ case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint)
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type, pp : ProgramPoint) extends Identifier(typ1, pp)
-
+abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type, val pp : ProgramPoint) extends Identifier(typ1, pp)
 
 /** 
  * The identifier of the length of an array

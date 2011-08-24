@@ -33,9 +33,9 @@ class TVP(heap: TVSHeap) {
   /**
    * the variable predicates declarations (both normal and temporary variables)
    */
-  var programVariables: Set[String] = (heap.variables ++ heap.tempVariables) map {
+  var programVariables: Set[String] = ((heap.variables ++ heap.tempVariables) map {
     _.name
-  }
+  })+("left")
 
   /**
    * field predicate declarations
@@ -61,6 +61,7 @@ class TVP(heap: TVSHeap) {
    * reachability-from-variable predicate declarations
    */
   var variableReachability: Set[String] = for(f <- fields; v <- programVariables) yield "r["+f+","+v+"]"
+
 
   /**
    * shared-ness predicate declarations

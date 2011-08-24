@@ -573,6 +573,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
  * TVSHeapIDSet contains a set of definite heap locations.
  * Additionally, it carries the name of a temporary that may be used later to access the
  * nodes in the TVS again.
+ *
  */
 class TVSHeapIDSet(val pointedBy: String) extends DefiniteHeapIdSetDomain[NodeName]
 

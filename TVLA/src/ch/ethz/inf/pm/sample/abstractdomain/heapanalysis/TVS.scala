@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.{HeapIdentifier, Identifier}
 
+
 //================================================================================
 // Three-Valued Structures
 //================================================================================
@@ -69,6 +70,7 @@ class TVS[N <: NodeName] {
   var sharing: Map[String, UnaryPredicate[N]] = Map.empty
 
 
+
   /**
    * Renaming of the heap nodes to other names.
    * TVLA gives us a TVS with names that do not make much sense.
@@ -95,6 +97,7 @@ class TVS[N <: NodeName] {
     result.variableReachability = variableReachability mapValues {
       _.translateNames(tf)
     }
+
 
     result.sharing = sharing mapValues {
       _.translateNames(tf)
@@ -146,6 +149,7 @@ class TVS[N <: NodeName] {
 
     val sname = "is["+field +"]"
     result.sharing += sname -> new UnaryPredicate(sname, Map())
+
 
     for ((_,v) <- programVariables) {
       val rn = "r[" + field + "," + v.name + "]"

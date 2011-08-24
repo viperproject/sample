@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumericalAnalysis;
 //import ch.ethz.inf.pm.sample.abstractdomain.posdomain.PosDomainAnalysis;
+import ch.ethz.inf.pm.sample.abstractdomain.posdomain.PosDomainAnalysis;
 import ch.ethz.inf.pm.sample.oorepresentation.*;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
@@ -29,7 +30,7 @@ public class InstalledPlugins {
         compilers[0]=new ScalaCompiler();
         compilers[1]=new JavaCompiler();
 
-        analyses=new SemanticAnalysis[7];
+        analyses=new SemanticAnalysis[8];
         analyses[0]=new AccessPermissionsAnalysis();
         analyses[1]=new NonRelationalNumericalAnalysis();
         analyses[2]=new ApronAnalysis();
@@ -37,7 +38,7 @@ public class InstalledPlugins {
         analyses[4]=new BricksAnalysis();
         analyses[5]=new SurelyAndMaybeContainedCharactersAnalysis();
         analyses[6]=new SymbolicIntervalsAnalysis();
-        //analyses[3]=new PosDomainAnalysis();
+        analyses[7]=new PosDomainAnalysis();
 
         heapanalyses=new HeapDomain[4];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));

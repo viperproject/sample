@@ -5,6 +5,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import com.sun.corba.se.spi.ior.IORFactories
 
 /**
  * The representation of a functional domain, that is, a domain that is represented by a function whose
@@ -67,7 +68,8 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
   def lub(left : T, right : T) : T = {
     if(left.equals(this.bottom())) return right;
     if(right.equals(this.bottom())) return left;
-    if(left.equals(this.top()) || right.equals(this.top())) return this.top();
+    //if(left.equals(this.top()) || right.equals(this.top())) return this.top();
+    if(left.equals(right)) return left;
     val res : Map[K, V]= upperBoundFunctionalLifting(left, right);
     val result = this.factory();
     result.value=res

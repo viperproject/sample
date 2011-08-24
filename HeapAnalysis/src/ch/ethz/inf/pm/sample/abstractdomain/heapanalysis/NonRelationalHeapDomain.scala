@@ -23,6 +23,9 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
     }
     return result;
   }
+
+  override def lub(l : HeapEnv[I], r : HeapEnv[I]) = super.lub(l, r);
+
   def get(key : I) : HeapIdSetDomain[I] = this.value.get(key) match {
     case None => dom.bottom(); //TODO: This is not sound!!!
     case Some(x) => x
@@ -265,14 +268,14 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	        expr match {
 	          case value : HeapIdSetDomain[I] =>
 	            var result=this._1;
-	            for(heapid <- this.normalize(value).value)
-	            	if(value.value.size==1)
+	            //for(heapid <- this.normalize(value).value)
+	            //	if(value.value.size==1)
 	            		result=result.add(x, this.normalize(value));
-	            	else result=result.add(x, value.lub(this.normalize(value), this._1.get(x)));
+	            //	else result=result.add(x, value.lub(this.normalize(value), this._1.get(x)));
 	            (new NonRelationalHeapDomain(result, this._2, cod, dom), new Replacement);
 	          case _ =>
 	            val value=this.eval(expr);
-	            (new NonRelationalHeapDomain(this._1.add(x, value.lub(this._1.get(x), this.normalize(value))), this._2, cod, dom), new Replacement)
+	            (new NonRelationalHeapDomain(this._1.add(x, this.normalize(value)), this._2, cod, dom), new Replacement)
 	        }
 	      }
 	      catch {

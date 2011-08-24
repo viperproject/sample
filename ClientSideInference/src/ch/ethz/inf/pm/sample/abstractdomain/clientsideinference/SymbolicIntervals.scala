@@ -5,9 +5,14 @@ import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, Type}
 import ch.ethz.inf.pm.sample.property.Property
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 import com.sun.xml.internal.bind.v2.model.core.NonElement
+import com.sun.org.apache.bcel.internal.generic.VariableLengthInstruction
 
 object Settings {
-  def symbolicInt[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] : T = new LinearSum(new Summation(Map.empty[S, Coefficient[T, S]]), 0).asInstanceOf[T];
+  def symbolicInt[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] : T =
+    new LinearSum(
+      new Summation(Map.empty[S, Coefficient[T, S]], new IntervalsSymbolicValues("a", SymbolicContractTypes.min).asInstanceOf[S]),
+      0,
+      new IntervalsSymbolicValues("a", SymbolicContractTypes.min).asInstanceOf[S]).asInstanceOf[T];
 }
 
 
@@ -21,11 +26,12 @@ case object MinusInfinity extends BoundOrInfinity[Nothing] {
   def get = throw new SemanticException("Not allowed")
 }
 case class Bound[T](val g : T) extends BoundOrInfinity[T] {
+  if(g==null) throw new SymbolicIntException("Not allowed");
   def get=g;
 }
 
 class SingleSymbolicInterval[T <: SymbolicInt[T, S], S <: SymbolicValue[S]](val l : BoundOrInfinity[T], val r : BoundOrInfinity[T]) extends Lattice[SingleSymbolicInterval[T, S]]{
-  assert(l!=PlusInfinity && r!=MinusInfinity)
+  if(l==PlusInfinity || r==MinusInfinity) throw new SymbolicIntException("Not allowed");
 
   private def isTop= ! isBottom && l == MinusInfinity && r == PlusInfinity
   private var isBottom=false;
@@ -60,6 +66,7 @@ class SingleSymbolicInterval[T <: SymbolicInt[T, S], S <: SymbolicValue[S]](val 
     if(left.isBottom || right.isBottom) return bottom();
     if(left.isTop) return right;
     if(right.isTop) return left;
+    if(left.equals(right)) return left;
     var newleft =
       if(left.l==MinusInfinity) right.l
       else if(right.l==MinusInfinity) left.l
@@ -75,6 +82,7 @@ class SingleSymbolicInterval[T <: SymbolicInt[T, S], S <: SymbolicValue[S]](val 
     if(left.isTop || right.isTop) return top();
     if(left.isBottom) return right;
     if(right.isBottom) return left;
+    if(left.equals(right)) return left;
     var newleft =
       if(left.l==MinusInfinity || right.l==MinusInfinity) MinusInfinity
       else Bound(left.l.get.min(left.l.get, right.l.get))
@@ -150,6 +158,18 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
     else new Bound(l.get.-(l.get, r.get));
   }
 
+  private def *(l : BoundOrInfinity[T], r : BoundOrInfinity[T]) = {
+    //TODO: this is unsound, +inf*-1!
+    if(l==PlusInfinity || r==PlusInfinity) PlusInfinity;
+    else if(l==MinusInfinity || r==MinusInfinity) MinusInfinity;
+    else {
+      val result = l.get.*(l.get, r.get);
+      if(result==null)
+        PlusInfinity
+      else new Bound(result);
+    }
+  }
+
   private def min(l : BoundOrInfinity[T], r : BoundOrInfinity[T]) = {
     if(l==MinusInfinity || r==MinusInfinity) MinusInfinity;
     else if(l==PlusInfinity) r;
@@ -177,18 +197,8 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
       if(l.equals(l.top()) || r.equals(r.top())) return l.top();
       op match {
         case ArithmeticOperator.+ => return new SingleSymbolicInterval[T, S](this.+(l.l, r.l), this.+(l.r, r.r))
-        case ArithmeticOperator.- =>
-          val c1 = this.-(l.l, r.l)
-          val c2 = this.-(l.l, r.r)
-          val c3 = this.-(l.r, r.l)
-          val c4 = this.-(l.r, r.r)
-          val min1 = this.min(c1, c2)
-          val min2 = this.min(c3, c4)
-          val min = this.min(min1, min2);
-          val max1 = this.max(c1, c2)
-          val max2 = this.max(c3, c4)
-          val max = this.max(max1, max2);
-          return new SingleSymbolicInterval[T, S](min, max)
+        case ArithmeticOperator.- => return combineArithmeticOperator(l, r, this.-(_, _))
+        case ArithmeticOperator.* => return combineArithmeticOperator(l, r, this.*(_, _))
       }
     case x : VariableIdentifier => this.get(x);
     case Constant(v, typ, pp) =>  new SingleSymbolicInterval(
@@ -196,6 +206,20 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
         Bound(Settings.symbolicInt.factory(Integer.parseInt(v)))
       )
 
+  }
+
+  private def combineArithmeticOperator(l : SingleSymbolicInterval[T, S], r : SingleSymbolicInterval[T, S], f : (BoundOrInfinity[T], BoundOrInfinity[T]) => BoundOrInfinity[T]) : SingleSymbolicInterval[T, S] = {
+          val c1 = f(l.l, r.l)
+          val c2 = f(l.l, r.r)
+          val c3 = f(l.r, r.l)
+          val c4 = f(l.r, r.r)
+          val min1 = this.min(c1, c2)
+          val min2 = this.min(c3, c4)
+          val min = this.min(min1, min2);
+          val max1 = this.max(c1, c2)
+          val max2 = this.max(c3, c4)
+          val max = this.max(max1, max2);
+          return new SingleSymbolicInterval[T, S]( if(min == PlusInfinity) MinusInfinity else min, if(max == MinusInfinity) PlusInfinity else max)
   }
 
   def get(key: Identifier) = this.value.get(key) match {

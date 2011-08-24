@@ -40,7 +40,7 @@ object TVLARunner {
   val inputTVP = "program.tvp"
   val outputTVS = "out.tvs"
   val properties = "tvla.properties"
-  val tvlaCommand = "tvla"
+  val tvlaCommand = "tvla.bat"
 
 
   //================================================================================
@@ -169,6 +169,7 @@ object TVLARunner {
    * Run TVLA in the same process by invoking its main method
    */
   private def runMain() {
+    println("Running TVLA")
     val t1 = System.currentTimeMillis()
     tvla.Runner.main(Array(inputTVP, inputTVS, "-props", properties))
     val t2 = System.currentTimeMillis()
@@ -176,13 +177,14 @@ object TVLARunner {
     tvla.Runner.reset()
     val t3 = System.currentTimeMillis()
     totalResetTime += t3 - t2
+    println("End of TVLA run")
   }
 
   /**
    * Run TVLA in a separate Java VM
    */
   private def runProcess() {
-    val builder = new ProcessBuilder
+    var builder = new ProcessBuilder
     builder.command(tvlaCommand, inputTVP, inputTVS)
     val t1 = System.currentTimeMillis()
     val process = builder.start()
