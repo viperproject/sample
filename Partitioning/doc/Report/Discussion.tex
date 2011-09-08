@@ -1,0 +1,92 @@
+\begin{chapter}{Future Work and Conclusion}
+	\label{chapter:Discussion}
+
+	To conclude, this chapter addresses some of the remaining questions still left open in Section \ref{section:OpenQuestions}. Based on the these issues, Section \ref{section:PossibleExtensions} proposes possible extensions. Finally, Section \ref{section:Conclusion} concludes this report with some final remarks.
+
+	% OPEN QUESTIONS
+
+	\begin{section}{Open Questions}
+		\label{section:OpenQuestions}
+
+		While the implementation provides a solid framework, the bigger picture has so far been neglected. This section tries to address some of the issues that come up when thinking about the future of \sample in the context of the trace partitioning extension.
+		
+		% Creating Directives
+
+		\begin{subsection}{Creating Directives}
+			It is unclear how directives should be generated. The user interface that is currently part of the \sample project provides a convenient way of specifying directives for the analysis of small methods but this approach is impractical for larger projects.
+
+			The companion object for the \code{Directive} class contains a parser that recognizes the directives presented in this report. A modified compiler/preprocessor might take advantage of this facility to generate directives from annotations in the code. While annotations are certainly easier to handle than using a user interface, this simply shifts the problem of generating directives to an earlier phase. I personally do not think that the manual generation of annotations has a future. As if having to write annotations was not bad enough, the dynamic nature of trace partitioning does not even guarantee that the directive is actually followed during the analysis. For the programmer unfamiliar with the inner workings of \sample this means nothing less than having to deal with additional code clutter whose benefits are highly uncertain at best. Considering how badly annotation mechanisms, even those with clear benefits, are received, it is unlikely that this would ever be adopted in a broader community. If the goal is to make the static analysis accessible to non-specialized personnel the process has to be at least partially automated. 
+
+			A possible remedy for this problem are heuristics that generate the directives automatically. Rival and Mauborgne propose a few example strategies such as always partitioning the outermost conditional or unrolling the outermost loop to some fixed degree. These two example heuristics are, however, fairly obvious. To come up with a heuristic that automatically inserts a \code{PartitionValue} is a lot more complicated. For types with limited possible values, that is \code{Boolean} or \code{Enum}, it might make sense to just partition into every possible value. For a standard \code{Integer} this is already prohibitively expensive and makes nesting of directives practically impossible. A slightly more useful strategy would split integers into a negative, positive and zero range. The special handling of the zero might make sense, but other than that it is hard to come up with any convincing reason as to why the analysis should automatically generate such an arbitrary directive.
+		\end{subsection}
+
+		% Integrating Directives
+
+		\begin{subsection}{Integrating Directives}
+			The presented implementation is extensible and coming up with and implementing new directives is not difficult (see Section \ref{section:PossibleExtensions}). A further challenge will therefore be how to account for this fact, making integration of new directives easy. The design of such a mechanism would, however, be largely dependent on the kind general interface, if any, \sample will provide in the future.
+		\end{subsection}
+	\end{section}
+
+	% POSSIBLE EXTENSIONS 
+
+	\begin{section}{Possible Extensions}
+		\label{section:PossibleExtensions}
+
+		Trace partitioning opens up a wide field for possible future extensions. Some of them directly resolve problems presented in the previous section, others build upon the new trace partition implementation.
+
+		% Heuristics
+
+		\begin{subsection}{Heuristics}
+			As described before, heuristics generating directives should be a priority for the future development. The big problem with heuristics is that they are directive specific. Their usefulness might vary among different kinds of software and it is furthermore unclear how different directives influence each other. All these complexities, and of course the complexity of the nature of a heuristic itself, make empirical research inevitable. This in turn will make the development of heuristics both time intensive and probably error prone as well.
+		\end{subsection}
+
+		% New Directives
+
+		\begin{subsection}{New Directives}
+			A further extension would be to provide more directives. The framework is fairly flexible and generating a new directive is as simple as creating a subclass of \code{Directive}. The more constricted \code{PartitionCondition} also provides a very flexible mechanism to generate new directives. Recall, this directive splits the current state into leaves where each leaf represents an assumption taken from a list of assumptions. These assumptions are provided in form of \code{Expression} objects representing arbitrary arithmetic, boolean and, newly introduced at the time of this writing, reference expressions and their negations.
+
+			One possible application outside the domain of trace partitioning could be as simple as ensuring the precondition of a method before its analysis with a single expression. Taking this thought further, negating this precondition could also be used to check whether it is actually a necessary requirement.
+		\end{subsection}
+
+		% Domain Specific Directives
+
+		\begin{subsection}{Domain Specific Directives}
+			The new directives presented so far solely rely on the abstract state interface which is extremely general. Though quite extensive, the \code{Expression} interface might not be specific enough to represent certain properties of interest. It limits the kind of partitions to numerical, boolean and reference statements. A possible extension could be to look into directives that are specific to the underlying guest domain. 
+			
+			Having a generic abstract state necessarily includes a heap analysis. This could, for example, be used to distinguish traces where some reference is certain to be \code{null} and traces where it is not. A similar partitioning on the heap domain could discriminate traces where two variables are certainly aliases of each other and traces where that is guaranteed not to be the case.
+
+			Considering the diversity of abstract interpretation, the possibilities using this kind of extension seem almost infinite.
+		\end{subsection}
+	\end{section}
+
+	% CONCLUSION
+
+	\begin{section}{Conclusion}
+		\label{section:Conclusion}
+
+		Overall, I am content with the quality of the implementation and documentation this project has produced. There are, however, still a few shortcomings that I would like to address in this section. 
+		
+		% Shortcomings
+
+		\begin{subsection}{Shortcomings}
+			As I have already pointed out, the concrete implementation of the \code{PartitionWhile} directive does not strike me as conceptually beautiful. Since beauty lies in the eye of the beholder and considering the ridiculous standards most programmers have when it comes to elegance of code, it is a reasonable compromise. 
+			
+			Furthermore, the testing suite for the extension is not quite as extensive as I would like it to be. This strikes me as important since especially the basic operations of the partitioned state are already quite complex and hence an implementation is prone to errors. At the time of this writing the project is still ongoing and more time for testing is definitely allocated. Moreover, the continuous use of the project has improved my overall confidence in the correctness of the implementation. Of course, usage is no substitute for proper testing.
+		\end{subsection}
+
+		% Experience
+
+		\begin{subsection}{Experience}
+			Looking back, I have collected valuable experiences during this project. The subject has proven to be, especially in the beginning, fairly challenging. The occasional frustration from having to understand complicated, formal mathematical descriptions was usually compensated with a better understanding of what is even after six months still an interesting topic. 
+
+			The design and implementation gave me a chance to contribute to a bigger project written in a language I was only somewhat familiar with. While demanding, the experience has been rewarding both in terms of learning to work my way through a large code base and at the same time learning a new language.
+		\end{subsection}
+
+		% Contribution
+
+		\begin{subsection}{Contribution}
+			The main contribution of this thesis is arguably more the groundwork for than the actual exploration of new frontiers. However, it is my sincere hope that this report, apart from documenting my project, provides an easy and accessible introduction to the topic of trace partitioning. Furthermore, I hope that the implementation will provide the basis for future research. New subjects to explore are certainly not hard to find.
+		\end{subsection}
+	\end{section}
+
+\end{chapter}

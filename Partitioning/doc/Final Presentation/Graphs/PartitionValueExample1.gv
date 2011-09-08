@@ -1,0 +1,28 @@
+graph PartitionValueExample1 {
+	color=white;
+	fontsize=8.0;
+	fontname="Monospace";
+	margin=0.01;
+
+	node [shape=record, style=rounded, fontsize=10, fontname="Monospace", height=0.6];
+
+	subgraph cluster_1 {
+		label="p";
+		a [label="x ↦ [-inf,-2]\ni ↦ [0,0]"];
+	}
+
+	subgraph cluster_2 {
+		label="q";
+		b [label="x ↦ [-1,1]\ni ↦ [1,1]"];
+	}
+
+	subgraph cluster_3 {
+		label="r";
+		c [label="x ↦ [2,inf]\ni ↦ [2,2]"];
+	}
+
+	subgraph cluster_4 {
+		label="p ⊔ q ⊔ r";
+		d [label="x ↦ ⊤\ni ↦ [0,2]"];
+	}
+}

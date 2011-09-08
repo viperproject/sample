@@ -1,0 +1,14 @@
+graph TypeHierarchy {
+	margin=0.01;
+	height=1;
+
+	node [shape=plaintext];
+
+	t -- A -- b;
+	t -- B;
+	B -- C -- b;
+	B -- D -- b;
+
+	t [label="⊤"];
+	b [label="⊥"];
+}

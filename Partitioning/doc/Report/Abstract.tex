@@ -1,0 +1,6 @@
+\chapter*{Abstract}
+	\label{Abstract}
+
+	Trace Partitioning, as presented by Xavier Rival and Laurent Mauborgne in \cite{mauborgne:rival05}, describes an abstract domain according to the abstract interpretation theory. Most existing static analyses based on abstract interpretation adopt a ``reachable states'' abstraction. Instead, trace partitioning also allows to dynamically keep track of information on how these states are reached. Making it possible to distinguish between states at the same location that were computed by following a different flow of control can lead to a considerable gain in terms of precision.
+
+	This report describes the trace partitioning domain implementation and integration into \sample, a novel generic static analyzer. \sample already contains an analysis based on reachable state semantics and was developed over the last two years by the \copm at \ethz. 

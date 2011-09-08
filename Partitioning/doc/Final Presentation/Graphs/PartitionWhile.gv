@@ -1,0 +1,23 @@
+digraph PartitionWhile {
+	margin=0.01;
+	fontsize=8.0;
+	fontname="Monospace";
+	color=white;
+
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+
+	i0 -> i1 [label="While(inf)"];
+	i0 -> i2 [label="While(0)"];
+	i0 -> i3 [label="While(1)"];
+	i0 -> i4 [label="While(2)"];
+	i0 -> i5 [label="While(3)"];
+
+	i0 [label="PartitionWhile(pp, 3)"];
+	i1 [label="⊥"];
+	i2 [label="s"];
+	i3 [label="⊥"];
+	i4 [label="⊥"];
+	i5 [label="⊥"];
+}

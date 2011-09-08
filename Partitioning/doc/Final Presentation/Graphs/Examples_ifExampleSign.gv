@@ -1,0 +1,20 @@
+digraph PositiveCFG {
+	margin=0.01;
+
+	node [shape=plaintext, label="", height=0.01, width=0.01]; s t;
+	node [fontsize=10.0, shape=record, style=rounded, height=0.6, width=1.4, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+	s -> n0;
+	n0 -> n1 [label="true"];
+	n0 -> n2 [label="false"];
+	n1 -> n3;
+	n2 -> n3;
+	n3 -> t;
+
+	n0 [label="{sign ↦ [-∞,∞] | sign ↦ [0,0]}"];
+	n1 [label="{sign ↦ [0,0] | sign ↦ [-1,-1]}"];
+	n2 [label="{sign ↦ [0,0] | sign ↦ [1,1]}"];
+	n3 [label="{sign ↦ [-1,1] | sign ↦ [-1,1]}"];
+}
+

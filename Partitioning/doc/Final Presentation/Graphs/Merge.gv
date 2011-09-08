@@ -1,0 +1,24 @@
+digraph Merge {
+	margin=0.01;
+	fontsize=8.0;
+
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+	subgraph cluster_initial {
+		color=white;
+
+		i0 -> i1 [label="If(true)"];
+		i0 -> i2 [label="If(false)"];
+
+		i0 [label="PartitionIf(pp)"];
+		i1 [label="s"];
+		i2 [label="t"];
+	}
+
+	subgraph cluster_final {
+		color=white;
+
+		f0 [label="s ⊔ t"];
+	}
+}

@@ -1,0 +1,16 @@
+graph SignLattice {
+	margin=0.01;
+	height=1;
+
+	node [shape=plaintext];
+
+	t -- p -- b;
+	t -- z -- b;
+	t -- n -- b;
+
+	t [label="⊤"];
+	b [label="⊥"];
+	p [label="+"];
+	z [label="0"];
+	n [label="-"];
+}

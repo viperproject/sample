@@ -1,0 +1,221 @@
+\newif\ifPDF
+\ifx\pdfoutput\undefined\PDFfalse
+\else\ifnum\pdfoutput > 0\PDFtrue
+   \else\PDFfalse
+   \fi
+\fi
+
+
+% Misc packages
+
+\usepackage{multicol}
+\usepackage{url}
+
+% Some math stuff
+
+\usepackage{fleqn}
+\usepackage{amsfonts,amssymb,amsmath,amsthm}
+\usepackage{subfigure}
+\usepackage{galois}
+\usepackage{stmaryrd}
+\usepackage{mathabx}
+\usepackage{cases}
+
+% Fonts
+\usepackage{txfonts}
+\usepackage{pifont}
+
+% Theorems
+\newtheoremstyle{definition}
+	{1em}
+	{1em}
+	{\itshape}
+	{}
+	{\itshape}
+	{.}
+	{0.5em}
+	{}
+
+\newtheoremstyle{example}
+	{1em}
+	{1em}
+	{}
+	{}
+	{\itshape}
+	{.}
+	{0.5em}
+	{}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}[chapter]
+\newtheorem{theorem}{Theorem}[chapter]
+\theoremstyle{example}
+\newtheorem{example}{Example}[chapter]
+
+% Font goodness
+
+\usepackage[T1]{fontenc}
+\usepackage[latin1]{inputenc}
+\usepackage{babel}
+\usepackage{type1cm}
+\usepackage{bbm}
+\usepackage{ae,aecompl,aeguill}
+
+\renewcommand{\familydefault}{\sfdefault}
+
+% Graphics
+
+\ifPDF
+	\usepackage[pdftex]{graphicx,color}
+\else
+	\usepackage[dvips]{graphicx}
+\fi
+
+% Listings
+
+\usepackage{listing}
+\usepackage{listings}
+
+\lstdefinelanguage{scala}{
+	morekeywords={abstract,case,catch,class,def,%
+	do,else,extends,false,final,finally,%
+	for,if,implicit,import,match,mixin,%
+	new,null,object,override,package,%
+	private,protected,requires,return,sealed,%
+	super,this,throw,trait,true,try,%
+	type,val,var,while,with,yield},
+	otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+	sensitive=true,
+	morecomment=[l]{//},
+	morecomment=[n]{/*}{*/},
+	morestring=[b]",
+	morestring=[b]',
+	morestring=[b]"""
+}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{
+	language=scala,
+%	aboveskip=5pt,
+%	belowskip=5pt,
+%	showstringspaces=false,
+	columns=flexible,
+	basicstyle={\ttfamily},
+	numbers=left,
+	numberstyle={\small},
+	keywordstyle=\color{blue},
+	commentstyle=\color{dkgreen},
+	stringstyle=\color{mauve},
+%	frame=tb,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=true,
+	tabsize=4
+}
+
+% Figures
+
+\usepackage{float}
+
+% Header and footer style
+
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\renewcommand{\chaptermark}[1]{\markboth{\thechapter\ #1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+\fancyhf{}
+\fancyhead[LE,RO]{\bfseries\thepage}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\renewcommand{\headrulewidth}{0.5pt}
+\addtolength{\headheight}{0.5pt}
+\fancypagestyle{plain}{%
+   \fancyhf{}
+   \fancyfoot[C]{\bfseries \thepage}
+   \fancyhead{}%get rid of headers on plain pages
+   \renewcommand{\headrulewidth}{0pt} % an the line
+}
+
+
+
+% Links
+
+\ifPDF
+  \usepackage[pdftex]{hyperref}
+\else
+  \usepackage[dvips]{hyperref}
+\fi
+
+\hypersetup{%
+   hyperindex=true,
+   pagebackref=true,
+   %  colorlinks=false, % for final version
+   colorlinks=true,
+   bookmarks=true,
+   bookmarksopen=false,
+   bookmarksnumbered=true,
+   pdftitle={\sctTitle},
+   pdfauthor={\sctAuthor},
+   pdfkeywords={\sctKeywords ETH Zurich Computer Science Chair of Programming Methodology}
+}
+
+
+% Title page
+\newcommand{\makescttitlepage}{
+	\thispagestyle{empty}
+	{
+		\vspace*{\fill}
+		\vspace*{\fill}
+
+		\sffamily 
+
+		\begin{center}
+			\textbf{\huge
+				\sctTitle
+			}
+
+			\vspace{\fill}
+
+			{\huge \sctAuthor}
+
+			\vspace{\fill}
+
+			{\Large \sctReportType}
+
+			\vspace{\fill}
+
+			{\Large Chair of Programming Methodology} \\
+			{\Large Department of Computer Science} \\
+			{\Large ETH Zurich}\\[5mm]
+			{\Large \url{http://www.pm.inf.ethz.ch/}}
+
+			\vspace{\fill}
+
+			{\Large \sctDate}
+		\end{center}
+
+		\vspace{\fill}
+		\noindent
+		\textbf{Supervised by:} \\
+		\hspace*{1cm} \sctSupervisor \\
+		\hspace*{1cm} Prof.~Dr.~Peter~M\"{u}ller \\
+
+		\vspace{\fill}
+
+		%\hspace{-2cm}
+		\noindent
+		\begin{minipage}[b]{10cm}
+		\textbf{\large Chair of Programming Methodology}\\
+		\includegraphics[width=3cm]{inf-logo}
+		\end{minipage}
+		\hfill
+		\includegraphics[width=4.5cm]{ethlogo_black}
+
+	}
+	\newpage
+}
+

@@ -1,0 +1,40 @@
+\documentclass[10pt,a4paper,english,twoside]{book}
+\usepackage{a4wide}
+
+
+% Comment this out for final version
+\usepackage[first,bottomafter,light]{draftcopy}
+\draftcopyName{Draft $Id: sct-template.tex,v 1.3 2005/05/10 11:18:41 dietlw Exp dietlw $}{120}
+
+\newcommand{\sctTitle}{Disjunction on Demand}
+\newcommand{\sctAuthor}{Dominik Gabi}
+\newcommand{\sctSupervisor}{Dr. Pietro Ferrara}
+\newcommand{\sctReportType}{Master's Thesis}
+\newcommand{\sctDate}{Spring 2011}
+\newcommand{\sctKeywords}{Abstract Interpretation, Trace Partitioning, Sample}
+
+\input{Project}
+\input{Macros}
+
+
+\begin{document}
+	\makescttitlepage
+
+	\input{Abstract}
+	\input{Acknowledgments}
+
+	\tableofcontents
+	\newpage
+
+	\input{Introduction}
+	\input{AbstractInterpretation}
+	\input{TracePartitioning}
+	\input{Sample}
+	\input{Extension}
+	\input{Evaluation}
+	\input{Discussion}
+
+	\bibliographystyle{plain}
+	\bibliography{Report}
+
+\end{document}

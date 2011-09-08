@@ -1,0 +1,20 @@
+digraph PartitionWhileControlFlow {
+//	rankdir=LR;
+	margin=0.01;
+	
+	node [shape=plaintext, label="", height=0.01]; s t;
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+	s -> n0;
+	n0 -> n1 [label="apply"];
+	n1 -> n2 [label="testTrue"];
+	n2 -> n0;
+	n1 -> n3 [label="testFalse"];
+	n3 -> t;
+
+	n1 [label="①", style="rounded,filled"];
+	n2 [label="②"];
+	n0 [label="③"];
+	n3 [label="④"];
+}

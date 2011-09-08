@@ -1,0 +1,101 @@
+
+\newif\ifPDF
+\ifx\pdfoutput\undefined\PDFfalse
+\else\ifnum\pdfoutput > 0\PDFtrue
+   \else\PDFfalse
+   \fi
+\fi
+
+% Beamer
+
+\usetheme{Szeged}
+\usecolortheme{beaver}
+
+\setbeamertemplate{headline}{}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{}
+
+\AtBeginSection[]{\begin{frame}\tableofcontents[currentsection]\end{frame}}
+
+% Misc packages
+
+\usepackage{multicol}
+\usepackage{url}
+
+% Some math stuff
+
+\usepackage{fleqn}
+\usepackage{amsfonts,amssymb,amsmath,amsthm}
+\usepackage{subfigure}
+\usepackage{galois}
+\usepackage{stmaryrd}
+\usepackage{mathabx}
+\usepackage{cases}
+
+% Fonts
+\usepackage{txfonts}
+\usepackage{pifont}
+
+% Font goodness
+
+\usepackage[T1]{fontenc}
+\usepackage[latin1]{inputenc}
+\usepackage{type1cm}
+\usepackage{bbm}
+\usepackage{ae,aecompl,aeguill}
+
+% Graphics
+
+\usepackage{graphicx,color}
+
+% Listings
+
+\usepackage{listing}
+\usepackage{listings}
+
+\lstdefinelanguage{scala}{
+	morekeywords={abstract,case,catch,class,def,%
+	do,else,extends,false,final,finally,%
+	for,if,implicit,import,match,mixin,%
+	new,null,object,override,package,%
+	private,protected,requires,return,sealed,%
+	super,this,throw,trait,true,try,%
+	type,val,var,while,with,yield},
+	otherkeywords={=>,<-,<\%,<:,>:,\#,@},
+	sensitive=true,
+	morecomment=[l]{//},
+	morecomment=[n]{/*}{*/},
+	morestring=[b]",
+	morestring=[b]',
+	morestring=[b]"""
+}
+
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+\lstset{
+	language=scala,
+%	aboveskip=5pt,
+%	belowskip=5pt,
+%	showstringspaces=false,
+	columns=flexible,
+	basicstyle={\ttfamily},
+	numbers=left,
+	numberstyle={\small},
+	keywordstyle=\color{blue},
+	commentstyle=\color{dkgreen},
+	stringstyle=\color{mauve},
+%	frame=tb,
+	captionpos=b,
+	breaklines=true,
+	breakatwhitespace=true,
+	tabsize=4
+}
+
+% Figures
+
+\usepackage{float}
+
+
+

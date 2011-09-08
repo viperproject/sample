@@ -1,0 +1,19 @@
+digraph PartitionValue {
+	margin=0.01;
+	fontsize=8.0;
+	fontname="Monospace";
+	color=white;
+
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+
+	i0 -> i1 [label="Condition\n(-inf <= x && x <= -1)"];
+	i0 -> i2 [label="Condition\n(x == 0)"];
+	i0 -> i3 [label="Condition\n(1 <= x && x <= inf)"];
+
+	i0 [label="PartitionValue(pp, context)"];
+	i1 [label="s.assume(-inf \<= x && x \<= 1)"];
+	i2 [label="s.assume(x == 0)"];
+	i3 [label="s.assume(1 \<= x && x \<= inf)"];
+}

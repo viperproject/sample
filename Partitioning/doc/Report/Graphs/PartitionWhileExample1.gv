@@ -1,0 +1,26 @@
+digraph PartitionWhileExample {
+	margin=0.01;
+	fontsize=14.0;
+	color=white;
+
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+	subgraph cluster_a {
+		label="①";
+		color=white;
+
+		i0 -> i1 [label="While(inf)"];
+		i0 -> i2 [label="While(0)"];
+		i0 -> i3 [label="While(1)"];
+		i0 -> i4 [label="While(2)"];
+		i0 -> i5 [label="While(3)"];
+
+		i0 [label="PartitionWhile((7,16), 3)"];
+		i1 [label="⊥"];
+		i2 [label="i ↦ 0"];
+		i3 [label="i ↦ 1"];
+		i4 [label="i ↦ 2"];
+		i5 [label="i ↦ 3"];
+	}
+}

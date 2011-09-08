@@ -1,0 +1,23 @@
+digraph PartitionValue {
+	margin=0.01;
+	fontsize=8.0;
+	fontname="Monospace";
+	color=white;
+
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+	subgraph cluster_p {
+		color=white;
+		label="p ⊔ q ⊔ r";
+
+		i0 -> i1 [label="Condition\n(-inf <= x && x <= -2)"];
+		i0 -> i2 [label="Condition\n(-1 \<= x && x \<= 1)"];
+		i0 -> i3 [label="Condition\n(2 <= x && x <= inf)"];
+
+		i0 [label="PartitionValue((2,13), context)"];
+		i1 [label="x ↦ [-inf,-2]\ni ↦ [0,0]"];
+		i2 [label="x ↦ [-1,1]\ni ↦ [1,1]"];
+		i3 [label="x ↦ [2,inf]\ni ↦ [2,2]"];
+	}
+}

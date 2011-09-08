@@ -1,0 +1,42 @@
+This is a short guide on how to use run Sample with the examples provided in
+Examples.scala. To load the file click the "File..." button and select it from
+this directory.
+
+1. ifExample
+This example demonstrates the PartitionIf directive. To run without the
+directive simply add the "ifExample" method select "Apron numerical analysis" for
+the analysis and click "Analyze!". When asked about the property select the
+"DivisionByZero" property. The analysis should report an invalid division.
+
+Now, run the same analysis again, but this time with a PartitionIf directive
+for the program point at row 5, column 21 and it should validate the division
+to be safe.
+
+
+2. valueExample
+This time, add the "valueExample" method to the methods list, once more
+select the "Apron numerical analysis" and press the "Analyze!" button. The
+property of interest of this analysis is the "Bounded variable" property for
+positive y. Select the property and click "Ok". The analysis should report a
+warning for the assignment on line 25.
+
+The PartitionValue directive can help prove this property with the following
+parameters: The position is row 15, column 21 and the variable we would like to
+partition over is "x". The intervals are (-inf,-2) where the interpolated
+function is -1 - x, (-1, 1) where the function is 0 and finally (2, inf) where
+the function is -1 + x.
+
+Run the analysis and this time the previously failed assignment should validate.
+
+
+3. whileExample
+This example once more computes the value of a piece-wise linear interpolation.
+But this time, the index for the parameters is computed in a while loop based on
+the value of x.
+
+Add the "whileExample" method and run the "Apron numerical analysis" with the
+"Bounded variable" property for -4 <= y <= 4. The analysis does terminate with
+a warning.
+
+However, once we add a PartitionWhile directive for the position (35, 24)
+unrolling 3 iterations it should validate.

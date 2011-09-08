@@ -1,0 +1,69 @@
+digraph PositiveExtendedTransitionSystem {
+	fontsize=8.0;
+	margin=0.01;
+
+	subgraph cluster_original {
+		label="";
+		color=white;
+
+		node [shape=plaintext, label="", width=0.01, height=0.01]; o0 on;
+		node [shape=record, style=rounded, fontsize=8.0, height=0.5, width=0.5];
+		edge [fontsize=6.0];
+
+		o0 -> o1;
+		o1 -> o2 [label="true"];
+		o1 -> o3 [label="false"];
+		o2 -> o4;
+		o3 -> o4;
+		o4 -> on;
+
+		o1 [label="l2"];
+		o2 [label="l4"];
+		o3 [label="l6"];
+		o4 [label="l8"];
+	}
+
+	subgraph cluster_trivial {
+		label="T";
+		color=white;
+
+		node [shape=plaintext, label="", width=0.01, height=0.01]; t0 tn;
+		node [shape=record, style=rounded, fontsize=8.0, height=0.5, width=0.5];
+		edge [fontsize=6.0];
+
+		t0 -> t1;
+		t1 -> t2 [label="true"];
+		t1 -> t3 [label="false"];
+		t2 -> t4;
+		t3 -> t4;
+		t4 -> tn;
+
+		t1 [label="l2, t"];
+		t2 [label="l4, t"];
+		t3 [label="l6, t"];
+		t4 [label="l8, t"];
+	}
+
+	subgraph cluster_extended {
+		label="T'";
+		color=white;
+
+		node [shape=plaintext, label="", width=0.01, height=0.01]; e0 en;
+		node [shape=record, style=rounded, fontsize=8.0, height=0.5, width=0.5];
+		edge [fontsize=6.0];
+
+		e0 -> e1;
+		e1 -> e2 [label="true"];
+		e1 -> e3 [label="false"];
+		e2 -> e4;
+		e3 -> e5;
+		e4 -> en;
+		e5 -> en;
+
+		e1 [label="l2, t0"];
+		e2 [label="l4, t1"];
+		e3 [label="l6, t2"];
+		e4 [label="l8, t1"];
+		e5 [label="l8, t2"];
+	}
+}

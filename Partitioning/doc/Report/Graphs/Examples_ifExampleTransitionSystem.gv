@@ -1,0 +1,29 @@
+digraph PositiveTransitionSystem {
+	rankdir=LR;
+	margin=0.01;
+
+	node [shape=plaintext, label="", width=0.01]; i0 i1 f0 f1;
+	node [shape=record, style=rounded, fontsize=8.0, height=0.5, width=0.5];
+	edge [fontsize=6.0];
+
+	i1 -> n0;
+	n0 -> n1 [label="x<0 ? true"];
+	n1 -> n2;
+	n2 -> f1;
+
+	i0 -> p0;
+	p0 -> p1 [label="x<0 ? false"];
+	p1 -> p2;
+	p2 -> f0;
+
+
+	n0 [label="{x ↦ -2\nsign ↦ _\nresult ↦ _ | x ↦ -2\nsign ↦ _\nresult ↦ _ }"]
+	n1 [label="{x ↦ -2\nsign ↦ _\nresult ↦ _ | x ↦ -2\nsign ↦ -1\nresult ↦ _}"]
+	n2 [label="{x ↦ -2\nsign ↦ -1\nresult ↦ _ | x ↦ -2\nsign ↦ -1\nresult ↦ 2}"]
+
+	p0 [label="{x ↦ 2\nsign ↦ _\nresult ↦ _ | x ↦ 2\nsign ↦ _\nresult ↦ _ }"]
+	p1 [label="{x ↦ 2\nsign ↦ _\nresult ↦ _ | x ↦ 2\nsign ↦ 1\nresult ↦ _}"]
+	p2 [label="{x ↦ 2\nsign ↦ 1\nresult ↦ _ | x ↦ 2\nsign ↦ 1\nresult ↦ 2}"]
+
+}
+

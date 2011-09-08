@@ -1,0 +1,36 @@
+\begin{chapter}{Introduction}
+	\label{chapter:introduction}
+
+	\emph{Change is the only constant.}\footnote{Heraclitus (ca. 535 BC - 475 BC)} Unlike in other fields, no deep knowledge of the computing industry is required to acknowledge what the Greek philosophers knew long before the first computer was ever invented. It is doubtful though, that the Greeks ever imagined the pace at which change has happened over the past seventy years.
+
+	\begin{section}{Motivation}
+		One of the big changes that has happened during this time is a steady increase in complexity, both in hardware and in software. During the sixties of the last century the idea was introduced that programs can be described and reasoned about using mathematical models \cite{floyd67, hoare69}. This insight has lead to the development of a wide variation of formal methods that have been applied with varying degrees of success. 
+		
+		In hardware design \emph{Model Checking} has become a standard procedure. This is understandable given the cost of possible errors. The situation in software is a different one. While having a long tradition in compiler design and safety critical projects, formal methods generally have a hard stand. Although \emph{Static Analysis} is performed during every compilation of a program, the properties analyzed are usually limited to rather simple properties such as type checks. Looking at common development environments, there is clearly a gap between what is being developed in academia and what is used in day to day life in the industry.
+
+		However, there seems to be an ongoing shift in opinion. Relying ever more on distributed services using the internet has lead to a fragile environment whose exploits are getting more and more attention from the mainstream media. This makes correctness in software no longer a luxury that can only be afforded by military and banking institutions but a necessity for an increasing number of businesses.
+
+		This is obviously good news for everyone involved in research, but also for everyone who has -- as I have plenty of times -- ever struggled with a bug that could have easily been detected by an automatic tool. 
+	\end{section}
+
+	\begin{section}{Goals}
+		\emph{Abstract Interpretation} is a framework describing in a very general way how to soundly approximate mathematical models. \sample is a tool for static analysis based on abstract interpretation that is currently being developed by the \copm at \ethz. The goal of this thesis is to extend \sample with \emph{Trace Partitioning}, a mechanism within abstract interpretation supplying the analysis with information about the history of control flow, thereby tracking disjunctive information and significantly improving overall precision.
+	\end{section}
+
+	\begin{section}{Prerequisites and Terminology}
+		The programming language used in \sample, in this project as well as in the code listings of this report, is \scala. Generally, apart from the pattern matching mechanism often used in functional programming, I try to use as few language specific features as possible and the code samples should be fairly easy to understand without any prior knowledge of \scala. Nonetheless, should the need arise, the reader is referred to \cite{wiki:scala} for further information.
+
+		Diagrams depicting software elements are in \uml, for which the Wikipedia article provides a good overview at \cite{wiki:uml}. Since there does not seem to be a standard on how to use \uml with \scala, I use the following conventions:
+
+		\begin{itemize}
+			\item Traits are indicated using the stereotype notation \code{\guillemotleft trait\guillemotright}.
+			\item Case classes (used in pattern matching) are indicated using the stereotype \code{\guillemotleft case\guillemotright}.
+			\item Type parameters used in inheritance hierarchies are also indicated using the stereotype notation on the arrow (\code{\guillemotleft D\guillemotright}).
+		\end{itemize}
+	\end{section}
+
+	\begin{section}{Outline}
+		The rest of this thesis is organized as follows. Chapters \ref{chapter:AbstractInterpretation} and \ref{chapter:TracePartitioning} will present the necessary theoretical background for this thesis. The former discusses abstract interpretation in general whereas the latter focuses on the trace partitioning mechanism. Chapter \ref{chapter:Sample} presents an overview of \sample. The implementation of the trace partitioning mechanism is presented in Chapter \ref{chapter:Extension}, followed by examples demonstrating its application and a short evaluation in Chapter \ref{chapter:Evaluation}. Finally, Chapter \ref{chapter:Discussion} discusses the remaining open questions, makes suggestions for possible future extensions and concludes.
+	\end{section}
+
+\end{chapter}

@@ -1,0 +1,38 @@
+digraph PartitionIf {
+	margin=0.01;
+	fontsize=14.0;
+
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+	
+	subgraph cluster_initial {
+		label="①";
+		color=white;
+
+		i0 [label="s"];
+	}
+
+	subgraph cluster_applied {
+		label="②";
+		color=white;
+
+		a0 -> a1 [label="If(true)"];
+		a0 -> a2 [label="If(false)"];
+
+		a0 [label="PartitionIf(pp)"];
+		a1 [label="s"];
+		a2 [label="s"];
+	}
+
+	subgraph cluster_final {
+		label="③";
+		color=white;
+
+		f0 -> f1 [label="If(true)"];
+		f0 -> f2 [label="If(false)"];
+
+		f0 [label="PartitionIf(pp)"];
+		f1 [label="s.testTrue"];
+		f2 [label="⊥", shape=plaintext];
+	}
+}

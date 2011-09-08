@@ -1,0 +1,43 @@
+digraph PartitionIflub {
+	margin=0.01;
+	fontsize=8.0;
+
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+	subgraph cluster_p {
+		label="p";
+		color=white;
+
+		p0 -> p1 [label="If(true)"];
+		p0 -> p2 [label="If(false)"];
+
+		p0 [label="PartitionIf(pp)"];
+		p1 [label="s"];
+		p2 [label="⊥", shape=plaintext];
+	}
+	
+	subgraph cluster_q {
+		label="q";
+		color=white;
+
+		q0 -> q1 [label="If(true)"];
+		q0 -> q2 [label="If(false)"];
+
+		q0 [label="PartitionIf(pp)"];
+		q1 [label="⊥", shape=plaintext];
+		q2 [label="t"];
+	}
+	
+	subgraph cluster_l {
+		label="p ⊔ q";
+		color=white;
+
+		l0 -> l1 [label="If(true)"];
+		l0 -> l2 [label="If(false)"];
+
+		l0 [label="PartitionIf(pp)"];
+		l1 [label="s ⊔ ⊥"];
+		l2 [label="⊥ ⊔ t"];
+	}
+}

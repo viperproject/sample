@@ -1,0 +1,43 @@
+digraph PartitionWhile {
+	margin=0.01;
+	fontsize=8.0;
+	color=white;
+
+	node [fontsize=10.0, height=0.3, shape=record, style=rounded, fontname="Monospace"];
+	edge [fontsize=8.0, fontname="Monospace"];
+
+
+	subgraph cluster_initial {
+		label="p"
+
+		i0 -> i1 [label="While(inf)"];
+		i0 -> i2 [label="While(0)"];
+		i0 -> i3 [label="While(1)"];
+		i0 -> i4 [label="While(2)"];
+		i0 -> i5 [label="While(3)"];
+
+		i0 [label="PartitionWhile(pp, 3)"];
+		i1 [label="⊥"];
+		i2 [label="s"];
+		i3 [label="t"];
+		i4 [label="u"];
+		i5 [label="v"];
+	}
+
+	subgraph cluster_true {
+		label="p.testTrue"
+
+		t10 -> t11 [label="While(inf)"];
+		t10 -> t12 [label="While(0)"];
+		t10 -> t13 [label="While(1)"];
+		t10 -> t14 [label="While(2)"];
+		t10 -> t15 [label="While(3)"];
+
+		t10 [label="PartitionWhileComputing(pp, 3)"];
+		t11 [label="v"];
+		t12 [label="⊥"];
+		t13 [label="s"];
+		t14 [label="t"];
+		t15 [label="u"];
+	}
+}

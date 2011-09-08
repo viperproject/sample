@@ -1,0 +1,13 @@
+graph PartitionValueExample1 {
+	color=white;
+	fontsize=8.0;
+	fontname="Monospace";
+	margin=0.01;
+
+	node [shape=record, style=rounded, fontsize=10, fontname="Monospace", height=0.6];
+
+	subgraph cluster_4 {
+		label="s.apply(Merge((12,9), src))";
+		d [label="x ↦ ⊤\ni ↦ [0,2]\ny ↦ [0,inf]"];
+	}
+}
