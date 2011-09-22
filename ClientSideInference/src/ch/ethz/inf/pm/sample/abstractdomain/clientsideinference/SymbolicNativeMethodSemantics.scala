@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 
-object SymbolicIntervalsNativeMethodSemantics extends NativeMethodSemantics {
+object SymbolicNativeMethodSemantics extends NativeMethodSemantics {
 
   def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = thisExpr.getType().toString() match {
     case "Int" => return new Some(state);

@@ -1,8 +1,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain.clientsideinference
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{Throw, Type}
-
+import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, Type}
+import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
+import ch.ethz.inf.pm.sample.property.Property
+import com.sun.org.omg.CORBA.IdentifierHelper
 
 object DBMSetting {
   private var idToIndex : Map[Identifier, Int] = Map.empty;
@@ -16,9 +18,23 @@ object DBMSetting {
     if(this.idToIndex.keySet.contains(id))
       this.idToIndex.apply(id);
     else {this.idToIndex=this.idToIndex+((id, nextFreeInt)); nextFreeInt=nextFreeInt+1; nextFreeInt-1;}
+
+  def getId(index : Int) : Identifier = {
+    for(id <- idToIndex.keySet)
+      if(idToIndex.apply(id)==index)
+        return id;
+    throw new SymbolicDBMException("Unknown index")
+  }
+
+  def symbolicInt[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] : T =
+    new LinearSum(
+      new Summation(Map.empty[S, Coefficient[T, S]], new IntervalsSymbolicValues("a", SymbolicContractTypes.min).asInstanceOf[S]),
+      0,
+      new IntervalsSymbolicValues("a", SymbolicContractTypes.min).asInstanceOf[S]).asInstanceOf[T];
+
 }
 
-class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends SimplifiedSemanticDomain[SymbolicDBM[T, S]] {
+class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends SimplifiedSemanticDomain[SymbolicDBM[T, S]] {
   var matrix : Map[(Int, Int), T] = Map.empty;
   var isBottom : Boolean = false;
 
@@ -49,9 +65,29 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends Simplif
 
   def createVariable(variable: Identifier, typ: Type) = this;
 
-  def assume(expr: Expression) = this;
+  def assume(expr: Expression) : SymbolicDBM[T, S] =
+    if(isBottom) this;
+    else
+      expr match {
+        case BinaryArithmeticExpression(
+          BinaryArithmeticExpression(id1, id2, ArithmeticOperator.-, r),
+          Constant(c, ty, pp),
+          ArithmeticOperator.<=,
+          returntyp) if id1.isInstanceOf[Identifier] && id2.isInstanceOf[Identifier] =>
+            val index1 = DBMSetting.getIndex(id1.asInstanceOf[Identifier]);
+            val index2 = DBMSetting.getIndex(id2.asInstanceOf[Identifier]);
+            if(! matrix.keySet.contains((index1, index2)))
+              return new SymbolicDBM(matrix.+(((index1, index2), DBMSetting.symbolicInt.factory(Integer.parseInt(c)))));
+            else {
+              val oldValue : T = matrix.apply((index1, index2));
+              val newValue = oldValue.min(oldValue, DBMSetting.symbolicInt.factory(Integer.parseInt(c)));
+              return new SymbolicDBM(matrix.+(((index1, index2), newValue)));
+            }
+        case _ => return this;
+      }
 
-  def assign(variable: Identifier, expr: Expression) =
+
+  def assign(variable: Identifier, expr: Expression) : SymbolicDBM[T, S] =
     if(isBottom) this;
     else
       expr match {
@@ -80,6 +116,22 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends Simplif
               }
           }
           else this.removeVariable(variable);
+        case AbstractMethodCall(thisExpr, parameters, calledMethod, retType) =>
+          val assignedIndex = DBMSetting.getIndex(variable);
+          var newMatrix = this.matrix;
+
+          for(p <- parameters)
+            p match {
+              case x : Identifier =>
+                val pIndex = DBMSetting.getIndex(x);
+                //Rename is missing here!
+                newMatrix = newMatrix +
+                            (((assignedIndex, pIndex), DBMSetting.symbolicInt.factory(new DBMSymbolicValue(calledMethod, variable, p)))) +
+                            (((pIndex, assignedIndex), DBMSetting.symbolicInt.factory(new DBMSymbolicValue(calledMethod, p, variable))))
+
+            }
+          return new SymbolicDBM(newMatrix)
+
   }
 
   def top() : SymbolicDBM[T,S] = new SymbolicDBM[T, S]();
@@ -132,45 +184,60 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends Simplif
 
   def getIds() = DBMSetting.getIDS();
 
-  def getStringOfId(id: Identifier) : String = throw new SymbolicDBMException("TODO")
-  def merge(f: Replacement) : SymbolicDBM[T,S] = throw new SymbolicDBMException("Merge not yet supported")
+  def getStringOfId(id: Identifier) : String = {
+    if(! DBMSetting.containID(id))
+      return "T";
+    var result : String = "";
+    val index = DBMSetting.getIndex(id);
+    for((id1, id2) <- this.matrix.keySet)
+      if(id1==index || id2==index)
+        result = result + constraintToString(id1, id2, this.matrix.apply((id1, id2)))+" ; ";
+    if(result.equals("")) return "T";
+    else return result;
+  }
+
+  override def toString() : String = {
+    var result = "";
+    for(key <- matrix.keySet)
+      result = result + constraintToString (key._1, key._2, this.matrix.apply(key)) + " ;\n";
+    return result;
+  }
+
+  private def constraintToString(v1 : Int, v2 : Int, v : T) : String = DBMSetting.getId(v1)+" - "+DBMSetting.getId(v2) + " < " + v.toString;
+
+  def merge(f: Replacement) : SymbolicDBM[T,S] =
+    if(f.isEmpty()) return this
+    else throw new SymbolicDBMException("Merge not yet supported")
 
 }
 
 
 class SymbolicDBMException(s : String) extends Exception(s)
 
-       /*
-object SymbolicContractTypes extends Enumeration {
-  val min = Value("min");
-  val max = Value("max");
-}
-
-class IntervalsSymbolicValues(val method : String, val typ : SymbolicContractTypes.Value) extends SymbolicValue[IntervalsSymbolicValues] {
+class DBMSymbolicValue(val method : String, val v1 : Identifier, val v2 : Identifier) extends SymbolicValue[DBMSymbolicValue] {
   override def equals(o : Any) = o match {
-    case x : IntervalsSymbolicValues => method.equals(x.method) && typ.equals(x.typ);
+    case x : DBMSymbolicValue => method.equals(x.method) && v1.equals(x.v1) && v2.equals(x.v2);
     case _ => false;
   }
 
-  def <=(a: IntervalsSymbolicValues, b : IntervalsSymbolicValues) : Boolean =
-    a.method.equals(b.method) && a.typ==SymbolicContractTypes.min && b.typ==SymbolicContractTypes.max
+  def <=(a: DBMSymbolicValue, b : DBMSymbolicValue) : Boolean = false;
 
-  override def toString() = "C( "+method+", "+typ+")"
+  override def toString() = "C( "+method+", "+v1+", "+v2+")"
 }
 
-class SymbolicIntervalsAnalysis[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends SemanticAnalysis[SymbolicIntervals[T, S]] {
+class SymbolicDBMAnalysis[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends SemanticAnalysis[SymbolicDBM[T, S]] {
 
-  override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(SymbolicIntervalsNativeMethodSemantics)
+  override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(SymbolicNativeMethodSemantics)
 
   override def reset() = Unit;
 
-  override def getLabel() = "Symbolic intervals inference"
+  override def getLabel() = "Symbolic DBM inference"
 
   override def parameters() : List[(String, Any)] = Nil;
 
   override def setParameter(label : String, value : Any) : Unit = throw new SymbolicIntException("Paramters not supported")
 
-  override def getInitialState() : SymbolicIntervals[T, S] = new SymbolicIntervals[T, S]();
+  override def getInitialState() : SymbolicDBM[T, S] = new SymbolicDBM[T, S]();
 
   override def getProperties() : Set[Property] = Set(ShowGraph);
-}*/
+}

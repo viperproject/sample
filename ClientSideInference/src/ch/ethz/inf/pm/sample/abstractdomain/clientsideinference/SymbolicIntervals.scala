@@ -251,7 +251,7 @@ class IntervalsSymbolicValues(val method : String, val typ : SymbolicContractTyp
 
 class SymbolicIntervalsAnalysis[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends SemanticAnalysis[SymbolicIntervals[T, S]] {
 
-  override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(SymbolicIntervalsNativeMethodSemantics)
+  override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(SymbolicNativeMethodSemantics)
 
   override def reset() = Unit;
 
