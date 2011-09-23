@@ -249,7 +249,7 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
       def pendingNodesNotVisited = pendingBlocks.--(alreadyVisited).-(next);
       if(pendingNodesNotVisited.isEmpty) {
         //We are at the end!
-        assert(this.nodes.size==alreadyVisited.size+1);
+        //assert(this.nodes.size==alreadyVisited.size+1);
         return next :: Nil;
       }
       else  {
