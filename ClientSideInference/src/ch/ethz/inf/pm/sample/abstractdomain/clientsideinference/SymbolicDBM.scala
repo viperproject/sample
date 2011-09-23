@@ -141,17 +141,17 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
   def lub(left: SymbolicDBM[T,S], right: SymbolicDBM[T,S]) : SymbolicDBM[T,S] = {
     if(left.isBottom) return right;
     if(right.isBottom) return left;
-    var newMatrix : Map[(Int, Int), T] = matrix;
+    var newMatrix : Map[(Int, Int), T] = Map.empty;
     for(id <- left.matrix.keySet**(right.matrix.keySet))
-      newMatrix=newMatrix+((id, left.matrix.apply(id).min(left.matrix.apply(id), right.matrix.apply(id))));
+      newMatrix=newMatrix+((id, left.matrix.apply(id).max(left.matrix.apply(id), right.matrix.apply(id))));
     return new SymbolicDBM(newMatrix);
   }
 
   def glb(left: SymbolicDBM[T,S], right: SymbolicDBM[T,S]) : SymbolicDBM[T,S] = {
     if(left.isBottom || right.isBottom) return this.bottom();
-    var newMatrix : Map[(Int, Int), T] = matrix;
+    var newMatrix : Map[(Int, Int), T] = Map.empty;
     for(id <- left.matrix.keySet**(right.matrix.keySet))
-      newMatrix=newMatrix+((id, left.matrix.apply(id).max(left.matrix.apply(id), right.matrix.apply(id))));
+      newMatrix=newMatrix+((id, left.matrix.apply(id).min(left.matrix.apply(id), right.matrix.apply(id))));
     for(id <- left.matrix.keySet--(right.matrix.keySet))
       newMatrix=newMatrix+((id, left.matrix.apply(id)));
     for(id <- right.matrix.keySet--(left.matrix.keySet))
@@ -162,7 +162,7 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
   def widening(left: SymbolicDBM[T,S], right: SymbolicDBM[T,S]) : SymbolicDBM[T,S] = {
     if(left.isBottom) return right;
     if(right.isBottom) return left;
-    var newMatrix : Map[(Int, Int), T] = matrix;
+    var newMatrix : Map[(Int, Int), T] = Map.empty;
     for(id <- left.matrix.keySet**(right.matrix.keySet)) {
       if(left.matrix.apply(id).equals(right.matrix.apply(id)))
         newMatrix=newMatrix+((id, left.matrix.apply(id)));
@@ -173,6 +173,7 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
   def lessEqual(r: SymbolicDBM[T,S]) : Boolean =  {
     if(this.isBottom) return true;
     if(r.isBottom) return false;
+    if(this.matrix.equals(r.matrix)) return true;
     var newMatrix : Map[(Int, Int), T] = matrix;
     for(id <- r.matrix.keySet)
       if(! this.matrix.keySet.contains(id) || ! this.matrix.apply(id).<=(this.matrix.apply(id), r.matrix.apply(id)))
