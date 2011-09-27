@@ -33,13 +33,13 @@ object SymbolicNativeMethodSemantics extends NativeMethodSemantics {
     return new Some(new GenericAbstractState(d1, thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[SD, H, HI]]]).asInstanceOf[S])
   }
 
-  private def parsToVariableId[S <: State[S]](pars : List[SymbolicAbstractValue[S]]) : List[VariableIdentifier]= pars match {
+  private def parsToVariableId[S <: State[S]](pars : List[SymbolicAbstractValue[S]]) : List[Expression]= pars match {
     case x :: xs =>
       val exprs = x.getExpressions()
       if(exprs.size!=1) throw new SemanticException("Not yet supported")
       val id = exprs.iterator.next();
-      if(! id.isInstanceOf[VariableIdentifier]) throw new SemanticException("Not yet supported")
-      id.asInstanceOf[VariableIdentifier] :: parsToVariableId(xs);
+      //if(! id.isInstanceOf[VariableIdentifier]) throw new SemanticException("Not yet supported")
+      id/*.asInstanceOf[VariableIdentifier]*/ :: parsToVariableId(xs);
     case Nil => Nil;
   }
 
@@ -48,6 +48,6 @@ object SymbolicNativeMethodSemantics extends NativeMethodSemantics {
 }
 
 
-case class AbstractMethodCall(val thisExpr : VariableIdentifier, val parameters : List[VariableIdentifier], val calledMethod : String, val retType : Type) extends Expression(thisExpr.getProgramPoint) {
+case class AbstractMethodCall(val thisExpr : VariableIdentifier, val parameters : List[Expression], val calledMethod : String, val retType : Type) extends Expression(thisExpr.getProgramPoint) {
   def getType() = retType;
 }

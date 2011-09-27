@@ -1,14 +1,19 @@
 package ch.ethz.inf.pm.sample.abstractdomain.clientsideinference
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, Type}
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 import ch.ethz.inf.pm.sample.property.Property
-import com.sun.org.omg.CORBA.IdentifierHelper
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, MethodDeclaration, NativeMethodSemantics, Type}
 
 object DBMSetting {
   private var idToIndex : Map[Identifier, Int] = Map.empty;
   private var nextFreeInt : Int = 0;
+
+  def reset() = {
+    this.nextFreeInt=0;
+    this.idToIndex=Map.empty;
+  }
 
   def containID(id : Identifier) : Boolean = idToIndex.keySet.contains(id)
 
@@ -25,18 +30,45 @@ object DBMSetting {
         return id;
     throw new SymbolicDBMException("Unknown index")
   }
-
-  def symbolicInt[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] : T =
-    new LinearSum(
-      new Summation(Map.empty[S, Coefficient[T, S]], new IntervalsSymbolicValues("a", SymbolicContractTypes.min).asInstanceOf[S]),
-      0,
-      new IntervalsSymbolicValues("a", SymbolicContractTypes.min).asInstanceOf[S]).asInstanceOf[T];
-
 }
 
 class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends SimplifiedSemanticDomain[SymbolicDBM[T, S]] {
   var matrix : Map[(Int, Int), T] = Map.empty;
   var isBottom : Boolean = false;
+
+  override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) : (SymbolicDBM[T, S], Map[Identifier, List[String]]) = {
+    if(! typ.isNumericalType()) return super.createVariableForArgument(variable, typ, path);
+    if(typ.isNumericalType() && ! path.isEmpty) throw new SymbolicDBMException("Not yet supported");
+    var (state, d2) = super.createVariableForArgument(variable, typ, path);
+    var resultMatrix = state.matrix;
+    val varIndex = DBMSetting.getIndex(variable);
+    //We suppose that the variables already created are all parameters of the current method
+    for(id <- DBMSetting.getIDS()) {
+      if(! id.equals(variable)) {
+        val otherVarIndex = DBMSetting.getIndex(id);
+        resultMatrix=resultMatrix+
+            (((varIndex, otherVarIndex),
+              SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(
+                      SystemParameters.currentClass.getName(),
+                      SystemParameters.currentMethod,
+                      TypeOfContracts.precondition,
+                      variable,
+                      id
+                      )
+              )))+
+            (((otherVarIndex, varIndex),
+              SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(
+                      SystemParameters.currentClass.getName(),
+                      SystemParameters.currentMethod,
+                      TypeOfContracts.precondition,
+                      id,
+                      variable
+                      )
+              )))
+      }
+    }
+    (new SymbolicDBM(resultMatrix), d2)
+  }
 
   private def this(m : Map[(Int, Int), T]) = {
     this();
@@ -77,15 +109,14 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
             val index1 = DBMSetting.getIndex(id1.asInstanceOf[Identifier]);
             val index2 = DBMSetting.getIndex(id2.asInstanceOf[Identifier]);
             if(! matrix.keySet.contains((index1, index2)))
-              return new SymbolicDBM(matrix.+(((index1, index2), DBMSetting.symbolicInt.factory(Integer.parseInt(c)))));
+              return new SymbolicDBM(matrix.+(((index1, index2), SymbolicSettings.symbolicInt.factory(Integer.parseInt(c)))));
             else {
               val oldValue : T = matrix.apply((index1, index2));
-              val newValue = oldValue.min(oldValue, DBMSetting.symbolicInt.factory(Integer.parseInt(c)));
+              val newValue = oldValue.min(oldValue, SymbolicSettings.symbolicInt.factory(Integer.parseInt(c)));
               return new SymbolicDBM(matrix.+(((index1, index2), newValue)));
             }
         case _ => return this;
       }
-
 
   def assign(variable: Identifier, expr: Expression) : SymbolicDBM[T, S] =
     if(isBottom) this;
@@ -117,21 +148,41 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
           }
           else this.removeVariable(variable);
         case AbstractMethodCall(thisExpr, parameters, calledMethod, retType) =>
-          val assignedIndex = DBMSetting.getIndex(variable);
-          var newMatrix = this.matrix;
-
-          for(p <- parameters)
-            p match {
-              case x : Identifier =>
-                val pIndex = DBMSetting.getIndex(x);
-                //Rename is missing here!
-                newMatrix = newMatrix +
-                            (((assignedIndex, pIndex), DBMSetting.symbolicInt.factory(new DBMSymbolicValue(calledMethod, variable, p)))) +
-                            (((pIndex, assignedIndex), DBMSetting.symbolicInt.factory(new DBMSymbolicValue(calledMethod, p, variable))))
-
-            }
+          var newMatrix : Map[(Int, Int), T] = this.matrix;
+          val (classe, renaming) = SymbolicSettings.rename(calledMethod, thisExpr, parameters)
+          for(i <- 0 to parameters.size-1) {
+            val (expr, nameInMethod) = renaming.apply(i);
+            newMatrix=newMatrix++this.transformToSymbSum(classe.getName(), expr, variable, calledMethod, nameInMethod);
+          }
           return new SymbolicDBM(newMatrix)
+        case _ => return this.removeVariable(variable);
 
+  }
+
+  private def transformToSymbSum(classe : String, expr : Expression, variable : Identifier, calledMethod : String, nameInMethod : Identifier) : Map[(Int, Int), T] = expr match {
+    case p : Identifier =>
+      val assignedIndex = DBMSetting.getIndex(variable);
+      val pIndex = DBMSetting.getIndex(nameInMethod);
+      return Map.empty+
+        (((assignedIndex, pIndex), SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint()), p)))) +
+        (((pIndex, assignedIndex), SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, p, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint())))))
+    //Check that
+    case BinaryArithmeticExpression(p : Identifier, right : Constant, ArithmeticOperator.-, returntyp) =>
+      val assignedIndex = DBMSetting.getIndex(variable);
+      val pIndex = DBMSetting.getIndex(nameInMethod);
+      var symbInt1 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint()), p));
+      symbInt1=symbInt1.+(symbInt1, SymbolicSettings.symbolicInt.factory(Integer.parseInt(right.constant)));
+      var symbInt2 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, p, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint())));
+      symbInt2=symbInt2.-(symbInt2, SymbolicSettings.symbolicInt.factory(Integer.parseInt(right.constant)));
+      return Map.empty+(((assignedIndex, pIndex), symbInt1))+(((pIndex, assignedIndex), symbInt2));
+    case BinaryArithmeticExpression(p : Identifier, right : Constant, ArithmeticOperator.+, returntyp) =>
+      val assignedIndex = DBMSetting.getIndex(variable);
+      val pIndex = DBMSetting.getIndex(nameInMethod);
+      var symbInt1 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint()), p));
+      symbInt1=symbInt1.-(symbInt1, SymbolicSettings.symbolicInt.factory(Integer.parseInt(right.constant)));
+      var symbInt2 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, p, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint())));
+      symbInt2=symbInt2.+(symbInt2, SymbolicSettings.symbolicInt.factory(Integer.parseInt(right.constant)));
+      return Map.empty+(((assignedIndex, pIndex), symbInt1))+(((pIndex, assignedIndex), symbInt2));
   }
 
   def top() : SymbolicDBM[T,S] = new SymbolicDBM[T, S]();
@@ -212,25 +263,26 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
 
 }
 
-
-class SymbolicDBMException(s : String) extends Exception(s)
-
-class DBMSymbolicValue(val method : String, val v1 : Identifier, val v2 : Identifier) extends SymbolicValue[DBMSymbolicValue] {
-  override def equals(o : Any) = o match {
-    case x : DBMSymbolicValue => method.equals(x.method) && v1.equals(x.v1) && v2.equals(x.v2);
-    case _ => false;
-  }
+class DBMSymbolicValue(val classe : String, val method : String, var typ : TypeOfContracts.Value, val v1 : Identifier, val v2 : Identifier) extends SymbolicValue[DBMSymbolicValue] {
 
   def <=(a: DBMSymbolicValue, b : DBMSymbolicValue) : Boolean = false;
 
-  override def toString() = "C( "+method+", "+v1+", "+v2+")"
+  override def toString() = typ+"( "+classe+", "+method+", "+v1+", "+v2+")"
+
+  override def hashCode() : Int = v1.hashCode();
+
+  override def equals(o : Any) = o match {
+    case x : DBMSymbolicValue =>
+      this.v1.equals(x.v1) && this.v2.equals(x.v2) && this.method.equals(x.method) && this.classe.equals(x.classe) && this.typ.equals(x.typ)
+    case _ => false
+  }
 }
 
 class SymbolicDBMAnalysis[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends SemanticAnalysis[SymbolicDBM[T, S]] {
 
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(SymbolicNativeMethodSemantics)
 
-  override def reset() = Unit;
+  override def reset() = DBMSetting.reset();
 
   override def getLabel() = "Symbolic DBM inference"
 
@@ -242,3 +294,5 @@ class SymbolicDBMAnalysis[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends
 
   override def getProperties() : Set[Property] = Set(ShowGraph);
 }
+
+class SymbolicDBMException(s : String) extends Exception(s)

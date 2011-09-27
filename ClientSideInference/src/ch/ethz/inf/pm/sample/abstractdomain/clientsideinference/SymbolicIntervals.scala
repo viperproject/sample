@@ -1,20 +1,13 @@
 package ch.ethz.inf.pm.sample.abstractdomain.clientsideinference
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, Type}
 import ch.ethz.inf.pm.sample.property.Property
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 import com.sun.xml.internal.bind.v2.model.core.NonElement
 import com.sun.org.apache.bcel.internal.generic.VariableLengthInstruction
-
-object Settings {
-  def symbolicInt[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] : T =
-    new LinearSum(
-      new Summation(Map.empty[S, Coefficient[T, S]], new IntervalsSymbolicValues("a", SymbolicContractTypes.min).asInstanceOf[S]),
-      0,
-      new IntervalsSymbolicValues("a", SymbolicContractTypes.min).asInstanceOf[S]).asInstanceOf[T];
-}
-
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, MethodDeclaration, NativeMethodSemantics, Type}
+import collection.immutable.Map._
 
 sealed abstract class BoundOrInfinity[+T] {
   def get : T;
@@ -134,6 +127,17 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
     return result;
   }
 
+  override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) : (SymbolicIntervals[T, S], Map[Identifier, List[String]]) = {
+    if(! typ.isNumericalType()) return super.createVariableForArgument(variable, typ, path);
+    if(typ.isNumericalType() && ! path.isEmpty) throw new SymbolicDBMException("Not yet supported");
+    var (state, d2) = super.createVariableForArgument(variable, typ, path);
+    state.value=state.value+((variable, new SingleSymbolicInterval(
+        Bound(SymbolicSettings.symbolicInt.factory(new IntervalsSymbolicValues(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, TypeOfContracts.precondition, variable, SymbolicContractTypes.min))),
+        Bound(SymbolicSettings.symbolicInt.factory(new IntervalsSymbolicValues(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, TypeOfContracts.precondition, variable, SymbolicContractTypes.max)))
+      )))
+    (state, d2)
+  }
+
   def setToTop(variable: Identifier) = this.removeVariable(variable)
 
   def createVariable(variable: Identifier, typ: Type) = this;
@@ -142,7 +146,7 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
 
   def assign(variable: Identifier, expr: Expression) = {
     var result = this.factory();
-    result.value=this.value+((variable, this.eval(expr)));
+    result.value=this.value+((variable, this.eval(expr, variable)));
     result;
   }
 
@@ -184,15 +188,16 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
     else new Bound(l.get.max(l.get, r.get));
   }
 
-  private def eval(expr : Expression) : SingleSymbolicInterval[T, S] = expr match {
+  private def eval(expr : Expression, id : Identifier) : SingleSymbolicInterval[T, S] = expr match {
     case AbstractMethodCall(thisExpr, parameters, calledMethod, retType) =>
+      //TODO: thisExpr.getName() could be wrong since it could refer to the implementation of the method on a superclass
       new SingleSymbolicInterval(
-        Bound(Settings.symbolicInt.factory(new IntervalsSymbolicValues(calledMethod, SymbolicContractTypes.min))),
-        Bound(Settings.symbolicInt.factory(new IntervalsSymbolicValues(calledMethod, SymbolicContractTypes.max)))
+        Bound(SymbolicSettings.symbolicInt.factory(new IntervalsSymbolicValues(thisExpr.getName(), calledMethod, TypeOfContracts.postcondition, id, SymbolicContractTypes.min))),
+        Bound(SymbolicSettings.symbolicInt.factory(new IntervalsSymbolicValues(thisExpr.getName(), calledMethod, TypeOfContracts.postcondition, id, SymbolicContractTypes.max)))
       )
     case BinaryArithmeticExpression(left, right, op, returntyp) =>
-      val l = this.eval(left)
-      val r = this.eval(right)
+      val l = this.eval(left, id)
+      val r = this.eval(right, id)
       if(l.equals(l.bottom()) || r.equals(r.bottom())) return l.bottom();
       if(l.equals(l.top()) || r.equals(r.top())) return l.top();
       op match {
@@ -202,10 +207,9 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
       }
     case x : VariableIdentifier => this.get(x);
     case Constant(v, typ, pp) =>  new SingleSymbolicInterval(
-        Bound(Settings.symbolicInt.factory(Integer.parseInt(v))),
-        Bound(Settings.symbolicInt.factory(Integer.parseInt(v)))
+        Bound(SymbolicSettings.symbolicInt.factory(Integer.parseInt(v))),
+        Bound(SymbolicSettings.symbolicInt.factory(Integer.parseInt(v)))
       )
-
   }
 
   private def combineArithmeticOperator(l : SingleSymbolicInterval[T, S], r : SingleSymbolicInterval[T, S], f : (BoundOrInfinity[T], BoundOrInfinity[T]) => BoundOrInfinity[T]) : SingleSymbolicInterval[T, S] = {
@@ -237,16 +241,19 @@ object SymbolicContractTypes extends Enumeration {
   val max = Value("max");
 }
 
-class IntervalsSymbolicValues(val method : String, val typ : SymbolicContractTypes.Value) extends SymbolicValue[IntervalsSymbolicValues] {
+class IntervalsSymbolicValues(val classe : String, val method : String, val typeOfContracts : TypeOfContracts.Value, val id : Identifier, val typ : SymbolicContractTypes.Value) extends SymbolicValue[IntervalsSymbolicValues] {
   override def equals(o : Any) = o match {
-    case x : IntervalsSymbolicValues => method.equals(x.method) && typ.equals(x.typ);
+    case x : IntervalsSymbolicValues =>
+      id.equals(x.id) && classe.equals(x.classe) && method.equals(x.method) && typeOfContracts.equals(x.typeOfContracts)&& typ.equals(x.typ);
     case _ => false;
   }
+
+  override def hashCode() : Int = method.hashCode();
 
   def <=(a: IntervalsSymbolicValues, b : IntervalsSymbolicValues) : Boolean =
     a.method.equals(b.method) && a.typ==SymbolicContractTypes.min && b.typ==SymbolicContractTypes.max
 
-  override def toString() = "C( "+method+", "+typ+")"
+  override def toString() = typeOfContracts+"( "+classe+", "+method+", "+id+", "+typ+")"
 }
 
 class SymbolicIntervalsAnalysis[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends SemanticAnalysis[SymbolicIntervals[T, S]] {
