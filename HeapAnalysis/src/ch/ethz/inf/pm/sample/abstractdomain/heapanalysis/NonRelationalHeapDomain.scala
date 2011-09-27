@@ -107,9 +107,11 @@ final class MaybeHeapIdSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) ex
 abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](typ1 : Type, pp : ProgramPoint) extends HeapIdentifier[I](typ1, pp) {
   def getLabel() : String;
   def createAddress(typ : Type, pp : ProgramPoint) : I;
-  def createAddressForParameter(typ : Type, p : ProgramPoint) : I;
+  def createAddressForArgument(typ : Type, p : ProgramPoint) : I;
   def extractField(obj : I, field : String, typ : Type) : I;
   def getArrayCell(array : Assignable, index : Expression) : I;
+  def getArrayLength(array : Assignable) : I;
+  def createArray(length : Expression, typ : Type, p : ProgramPoint) : I = this.createAddress(typ, p);
   def accessStaticObject(typ : Type, p : ProgramPoint) : I;
   def getNullNode(p : ProgramPoint) : I;
   def isNormalized() : Boolean;
@@ -129,6 +131,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def lubWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.lub(left, right), new Replacement)
   override def glbWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.glb(left, right), new Replacement)
   override def wideningWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.widening(left, right), new Replacement)
+  override def lessEqualWithReplacement(right : NonRelationalHeapDomain[I]) = (this.lessEqual(right), new Replacement)
   override def reset() : Unit = {
      if(NonRelationalHeapDomainSettings.unsoundEntryState)
        ParameterIds.reset()
@@ -142,6 +145,11 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Assignable, index : Expression, state : S, typ : Type)
     = (new MaybeHeapIdSetDomain().convert(dom.getArrayCell(arrayIdentifier, index)), this, new Replacement);
 
+  override def createArray(length : Expression, typ : Type, pp : ProgramPoint)
+    = (new MaybeHeapIdSetDomain().convert(dom.createArray(length, typ, pp)), this, new Replacement);
+
+  override def getArrayLength(id : Assignable)
+    = (new MaybeHeapIdSetDomain().convert(dom.getArrayLength(id)), this, new Replacement);
 
   def assignArrayCell[S <: SemanticDomain[S]](obj : Assignable, index : Expression, expr : Expression, state : S) = {
     var result=this.bottom();
@@ -193,13 +201,13 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     case x : HeapIdSetDomain[I] => (this, new Replacement)
   }
 
-   override def createVariableForParameter(variable : Assignable, typ : Type, path : List[String])  =  variable match {
+   override def createVariableForArgument(variable : Assignable, typ : Type, path : List[String])  =  variable match {
     case x : VariableIdentifier =>
       if(typ.isObject) {
 	    var (result, r)=this.createVariable(variable, typ); //r will be always empty, so I ignore it
 	    var ids : Map[Identifier, List[String]] = Map.empty[Identifier, List[String]];
 	    alreadyInitialized = Set.empty[I];
-	    this.initializeObject(x, dom.createAddressForParameter(typ, x.getProgramPoint), typ, result, path ::: variable.toString() :: Nil);
+	    this.initializeObject(x, dom.createAddressForArgument(typ, x.getProgramPoint), typ, result, path ::: variable.toString() :: Nil);
       }
       else {
         var result = Map.empty[Identifier, List[String]];
@@ -228,7 +236,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	    alreadyInitialized=alreadyInitialized+obj;
 	    val c = typ.getPossibleFields;
 	    for(field <- c) {
-	      val adds = cod.convert(dom.createAddressForParameter(field.getType(), x.getProgramPoint));
+	      val adds = cod.convert(dom.createAddressForArgument(field.getType(), x.getProgramPoint));
         //I can ignore newHeap since it's equal to result as it is not changed by getFieldIdentifier
         //in the same way I ignore rep
 	      val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(cod.convert(obj), field.getName(), field.getType(), field.getProgramPoint());
@@ -246,7 +254,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	  else (heap, Map.empty[Identifier, List[String]], new Replacement);
   }
 
-  override def setParameter(variable : Assignable, expr : Expression) = this.assign(variable, expr, null);
+  override def setArgument(variable : Assignable, expr : Expression) = this.assign(variable, expr, null);
   
   override def backwardAssign(variable : Assignable, expr : Expression) = (this, new Replacement)
 
@@ -262,7 +270,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def assign[S <: SemanticDomain[S]](variable : Assignable, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
     if(! variable.getType.isObject) return (this, new Replacement);//It does not modify the heap
     variable match {
-      case x : LengthArray => (this, new Replacement())//Assigning the length of an array does not change the heap structure
+      //case x : LengthArray => (this, new Replacement())//Assigning the length of an array does not change the heap structure
 	    case x : VariableIdentifier => 
 	      try {
 	        expr match {
@@ -402,6 +410,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ2, pp2) {
 
     override def getArrayCell(array : Assignable, index : Expression) = this;
+    override def getArrayLength(array : Assignable) = this;
     override def getLabel() = "Top";
 	  override def getNullNode(pp : ProgramPoint) = this
 	  override def getField() : Option[String] = None;
@@ -414,7 +423,7 @@ case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelatio
 	  }
 	  override def factory() = this;
       override def createAddress(typ : Type, pp : ProgramPoint)=this;
-      override def createAddressForParameter(typ : Type, pp : ProgramPoint)=this;
+      override def createAddressForArgument(typ : Type, pp : ProgramPoint)=this;
       override def extractField(obj : TopHeapIdentifier, field : String, typ : Type)=this;
       override def accessStaticObject(typ : Type, pp : ProgramPoint)=this;
 	  override def hashCode() : Int = 0;

@@ -29,22 +29,22 @@ class ClassHeapIdentifier(val value : Type, pp : ProgramPoint) extends NonRelati
 	override def getNullNode(p : ProgramPoint) = new ClassNullNodeHeapIdentifier(value.top(), p);
 	override def getField() = throw new Exception("Not supported")
 	override def isNormalized() : Boolean = true;
-    override def factory() : ClassHeapIdentifier=new ClassHeapIdentifier(this.value, this.getProgramPoint);
-    override def extractField(h : ClassHeapIdentifier, s : String, t : Type) : ClassHeapIdentifier=new FieldHeapIdentifier(h.value, s, t, h.getProgramPoint);
-    override def accessStaticObject(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
-    override def createAddress(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
-    override def createAddressForParameter(t : Type, p : ProgramPoint) : ClassHeapIdentifier=
-    	new ClassHeapIdentifier(t, p);
-    override def representSingleVariable() : Boolean=false;
-    override def getName() : String=value.getName();
-    override def clone() : Object =new ClassHeapIdentifier(this.value, this.getProgramPoint);
-    override def equals(a : Any) :  Boolean = a match {
-      case a1 : FieldHeapIdentifier => false;
-      case a1 : ClassHeapIdentifier => this.value.equals(a1.value);
-      case _ => false;
-    }
-    override def getArrayCell(array : Assignable, index : Expression) = throw new SemanticException("Not yet supported")
-    override def hashCode() : Int = 1;
-    override def toString() : String = return this.getName();
+  override def factory() : ClassHeapIdentifier=new ClassHeapIdentifier(this.value, this.getProgramPoint);
+  override def extractField(h : ClassHeapIdentifier, s : String, t : Type) : ClassHeapIdentifier=new FieldHeapIdentifier(h.value, s, t, h.getProgramPoint);
+  override def accessStaticObject(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
+  override def createAddress(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
+  override def createAddressForArgument(t : Type, p : ProgramPoint) : ClassHeapIdentifier=	new ClassHeapIdentifier(t, p);
+  override def representSingleVariable() : Boolean=false;
+  override def getName() : String=value.getName();
+  override def clone() : Object =new ClassHeapIdentifier(this.value, this.getProgramPoint);
+  override def equals(a : Any) :  Boolean = a match {
+    case a1 : FieldHeapIdentifier => false;
+    case a1 : ClassHeapIdentifier => this.value.equals(a1.value);
+    case _ => false;
+  }
+  override def getArrayCell(array : Assignable, index : Expression) = throw new SemanticException("Not yet supported")
+  override def getArrayLength(array : Assignable) = throw new SemanticException("Not yet supported")
+  override def hashCode() : Int = 1;
+  override def toString() : String = return this.getName();
 }
  

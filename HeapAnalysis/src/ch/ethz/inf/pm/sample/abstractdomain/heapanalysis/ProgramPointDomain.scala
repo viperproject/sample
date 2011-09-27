@@ -27,7 +27,7 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
   }
   override def accessStaticObject(t : Type, pp : ProgramPoint) : ProgramPointHeapIdentifier=new StaticProgramPointHeapIdentifier(t, pp);
   override def createAddress(t : Type, p : ProgramPoint) : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(p, t);
-  override def createAddressForParameter(t : Type, p : ProgramPoint) : ProgramPointHeapIdentifier=
+  override def createAddressForArgument(t : Type, p : ProgramPoint) : ProgramPointHeapIdentifier=
 	  if(NonRelationalHeapDomainSettings.unsoundEntryState)
 	 	  new UnsoundParameterHeapIdentifier(t, Math.min(ParameterIds.get(SystemParameters.currentMethod), NonRelationalHeapDomainSettings.maxInitialNodes), p);
 	  else new ParameterHeapIdentifier(t, p);
@@ -36,6 +36,7 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
   override def getName() : String=this.toString();
   override def isNormalized() : Boolean = true;
   override def getArrayCell(array : Assignable, index : Expression) = new ArrayTopIdentifier();
+  override def getArrayLength(array : Assignable) = new ArrayTopIdentifier();
 }
 
 case class NullProgramPointHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
