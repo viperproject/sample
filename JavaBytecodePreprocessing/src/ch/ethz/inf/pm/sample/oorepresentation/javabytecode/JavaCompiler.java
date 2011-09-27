@@ -2,6 +2,10 @@ package ch.ethz.inf.pm.sample.oorepresentation.javabytecode;
 
 import ch.ethz.inf.pm.sample.oorepresentation.*;
 import com.sun.java.swing.plaf.nimbus.NimbusLookAndFeel;
+import org.omg.PortableInterceptor.NON_EXISTENT;
+import scala.None;
+import scala.Option;
+import scala.Tuple2;
 
 import java.io.File;
 import java.util.List;
@@ -37,6 +41,11 @@ public class JavaCompiler implements ch.ethz.inf.pm.sample.oorepresentation.Comp
 
     public String getLabel() {
         return "Java bytecode";
+    }
+
+    //TODO:Implement it
+    public Option<Tuple2<MethodDeclaration, Type>> getMethod(String name, Type classType, scala.collection.immutable.List<Type> parameters) {
+      return null;
     }
 
     public scala.collection.immutable.List<String> extensions() {
