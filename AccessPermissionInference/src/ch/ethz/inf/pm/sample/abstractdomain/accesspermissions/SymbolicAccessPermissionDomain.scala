@@ -511,7 +511,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
 
   def backwardAssign(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = throw new PermissionsException("Backward analysis not yet supported");
   
-  def setParameter(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = this
+  def setArgument(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = this
   
   def access(field : Identifier) : SymbolicPermissionsDomain[I] = {
     if(! field.getType().toString().equals("Chalice") && ! field.isInstanceOf[VariableIdentifier]) 
@@ -523,7 +523,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] extends Box
   
   def assume(expr : Expression) : SymbolicPermissionsDomain[I] = this
   def createVariable(variable : Identifier, typ : Type) : SymbolicPermissionsDomain[I] = return this.setPermissionLevel(variable, Settings.permissionType.maxLevel);
-  def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) : (SymbolicPermissionsDomain[I], Map[Identifier, List[String]]) = {
+  def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) : (SymbolicPermissionsDomain[I], Map[Identifier, List[String]]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil))
     if(! variable.isInstanceOf[VariableIdentifier])
