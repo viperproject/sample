@@ -323,7 +323,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    * The structure is decided by looking at the type and comparing it with the hard-coded types here.
    * For now, we just support an acyclic, singly-linked list "AcyclicList"
    */
-  def createVariableForParameter(variable: Assignable, typ: Type, path: List[String]): (TVSHeap, Map[Identifier, List[String]], Replacement) = {
+  def createVariableForArgument(variable: Assignable, typ: Type, path: List[String]): (TVSHeap, Map[Identifier, List[String]], Replacement) = {
     variable match {
       case v: TVSHeapIDSet => (this, Map(), new Replacement)
       case v: VariableIdentifier =>
@@ -436,11 +436,11 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   /**
    * Some support for a <= relation on heap states
    */
-  def lessEqual(r: TVSHeap): Boolean = {
-    if (this.isBottom) return true;
-    if (r.isTop) return true;
+  def lessEqualWithReplacement(r: TVSHeap): (Boolean, Replacement) = {
+    if (this.isBottom) return (true, new Replacement());
+    if (r.isTop) return (true, new Replacement());
 
-    this.equals(r)
+    (this.equals(r), new Replacement())
   }
 
   /**
@@ -547,13 +547,16 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
   def getIds(): Set[Identifier] = null
 
+  def wideningWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = (left, new Replacement)
+
 
   // not implemented
   def backwardAssign(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
   def backwardAccess(field: Assignable) = throw new NotImplementedException("not implemented yet")
-  def setParameter(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
-  def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S) = null
-  def wideningWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = (left, new Replacement)
+  override def setArgument(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
+  def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S) = throw new NotImplementedException("not implemented yet")
+  def createArray(length: Expression, typ: Type, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
+  def getArrayLength(arrayIdentifier: Assignable) = throw new NotImplementedException("not implemented yet")
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
         typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
 

@@ -37,31 +37,31 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def factory() = new HeapAndAnotherDomain[N, H, I](d1.factory(), d2.factory());
   
-  def createVariableForParameter(variable : Assignable, typ : Type, path : List[String]) = {
+  def createVariableForArgument(variable : Assignable, typ : Type, path : List[String]) = {
     SystemParameters.heapTimer.start();
-    val (s2, ids, r) = this.d2.createVariableForParameter(variable, typ, path);
+    val (s2, ids, r) = this.d2.createVariableForArgument(variable, typ, path);
     SystemParameters.heapTimer.stop();
     var s1 = this.d1;
-    s1=applyToAssignable[N](variable, s1, _.createVariableForParameter(_, typ, path)._1);
+    s1=applyToAssignable[N](variable, s1, _.createVariableForArgument(_, typ, path)._1);
     variable match {
       case x : VariableIdentifier =>
-        s1=s1.createVariableForParameter(x, typ, path)._1
+        s1=s1.createVariableForArgument(x, typ, path)._1
       case x : HeapIdSetDomain[I] =>
         var first : Boolean = true;
         for(singleid <- x.value)
           if(first) {
             first=false;
-            s1=s1.createVariableForParameter(singleid, typ, path)._1;
+            s1=s1.createVariableForArgument(singleid, typ, path)._1;
           }
           else
-            s1=x.combinator(s1, s1.createVariableForParameter(singleid, typ, path)._1);
+            s1=x.combinator(s1, s1.createVariableForArgument(singleid, typ, path)._1);
     }
     //We recursively create the entry state for all the entry abstract nodes.
     SystemParameters.domainTimer.start();
     s1=s1.merge(r)
     for(id <- ids.keys)
       if(!id.equals(variable))
-        s1=s1.createVariableForParameter(id, typ, ids.apply(id))._1;
+        s1=s1.createVariableForArgument(id, typ, ids.apply(id))._1;
     SystemParameters.domainTimer.stop();
     (new HeapAndAnotherDomain[N, H, I](s1, s2), ids)
   }
@@ -145,15 +145,15 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result
   }
 
- def setParameter(variable : Assignable, expr : Expression) : T= {
+ def setArgument(variable : Assignable, expr : Expression) : T= {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (d, r) =d2.setParameter(variable, expr)
+    val (d, r) =d2.setArgument(variable, expr)
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
     result.d1=d1.merge(r)
-    result.d1=applyToAssignable[N](variable, result.d1, _.setParameter(_, expr));
+    result.d1=applyToAssignable[N](variable, result.d1, _.setArgument(_, expr));
     SystemParameters.domainTimer.stop();
     result
   }
@@ -285,14 +285,15 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
  override def lessEqual(r : T) : Boolean = {
-    if(this.d1.lessEqual(this.d1.bottom()) || this.d2.lessEqual(this.d2.bottom())) return true;
-    if(r.d1.lessEqual(r.d1.bottom()) || r.d2.lessEqual(r.d2.bottom())) return false;
-    SystemParameters.domainTimer.start();
-    var b : Boolean = d1.lessEqual(r.d1);
-    SystemParameters.domainTimer.stop();
+    if(this.d1.lessEqual(this.d1.bottom()) || this.d2.lessEqualWithReplacement(this.d2.bottom())._1) return true;
+    if(r.d1.lessEqual(r.d1.bottom()) || r.d2.lessEqualWithReplacement(r.d2.bottom())._1) return false;
     SystemParameters.heapTimer.start();
-    b = b && d2.lessEqual(r.d2)
+    var (b, rep) = d2.lessEqualWithReplacement(r.d2)
     SystemParameters.heapTimer.stop();
+    if(! b) return false;
+    SystemParameters.domainTimer.start();
+    b = d1.merge(rep).lessEqual(r.d1.merge(rep));
+    SystemParameters.domainTimer.stop();
     return b;
   }
 
@@ -346,6 +347,45 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def before(pp : ProgramPoint) = this;
 
+
+  def createArray(length : SymbolicAbstractValue[GenericAbstractState[N,H,I]], typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] =  {
+    if(this.isBottom) return this;
+    var result = this.bottom().d1;
+    var heapId : HeapIdSetDomain[I] = null;
+
+    for(exp <- length.getExpressions()) {
+      var (createdLocation, newHeap, rep)=length.get(exp)._1._2.createArray(exp, typ, pp);
+      result=result.lub(result, new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap));
+      heapId = heapId match {
+        case null => createdLocation;
+        case _ => heapId.lub(heapId, createdLocation);
+      }
+    }
+    if(heapId == null) return this.bottom();
+    else return this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapId, new GenericAbstractState(result, this._2).removeExpression()));
+  }
+
+  def getArrayLength(array : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) : GenericAbstractState[N,H,I] =  {
+    if(this.isBottom) return this;
+    var result = this.bottom().d1;
+    var heapId : HeapIdSetDomain[I] = null;
+
+    for(exp <- array.getExpressions()) {
+      exp match {
+        case id : Assignable =>
+          var (createdLocation, newHeap, rep)=array.get(exp)._1._2.getArrayLength(id);
+          result=result.lub(result, new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap));
+          heapId = heapId match {
+            case null => createdLocation;
+            case _ => heapId.lub(heapId, createdLocation);
+          }
+        case _ => throw new SymbolicSemanticException("Not allowed")
+      }
+    }
+    if(heapId == null) return this.bottom();
+    else return this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapId, new GenericAbstractState(result, this._2).removeExpression()));
+  }
+
   def createObject(typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
     //It discharges on the heap analysis the creation of the object and its fields
@@ -364,13 +404,13 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result2, this._2).removeExpression()));
   }
   
-  def createObjectForParameter(typ : Type, pp : ProgramPoint, path : List[String]) : GenericAbstractState[N,H,I] =  {
+  def createObjectForArgument(typ : Type, pp : ProgramPoint, path : List[String]) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
     //It discharges on the heap analysis the creation of the object and its fields
     val (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
     var result=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap);
      //It asks the semantic domain to simply create the initial value for the given identifier
-      val (result1, ids)=result.createVariableForParameter(createdLocation, typ, path);
+      val (result1, ids)=result.createVariableForArgument(createdLocation, typ, path);
       this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result1, this._2).removeExpression()));
   }
   
@@ -402,7 +442,29 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     return result;
   }
 
-  override def createVariableForParameter(x : SymbolicAbstractValue[GenericAbstractState[N,H,I]], typ : Type) : GenericAbstractState[N,H,I] = {
+
+  /*def createVariable(x : SymbolicAbstractValue[GenericAbstractState[N,H,I]], typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] = {
+    if(this.isBottom) return this;
+    if(x.value.size != 1 || x.value.elements.next._1.isInstanceOf[VariableIdentifier]==false)
+      throw new SymbolicSemanticException("Cannot declare multiple variables together");
+    var result=this.bottom();
+    for(el <- x.value) {
+    	//For each variable that is potentially created, it computes its semantics and it considers the upper bound
+	    el._1 match {
+	      case variable : Assignable => {
+	        for(assigned <- x.value) {
+	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.createVariable(variable, typ), this._2);
+	        	result=result.lub(result, done);
+		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), pp), this.removeExpression()))
+	        }
+	      }
+	      case _ => throw new SymbolicSemanticException("I can assign only variables")
+       }
+    }
+    return result;
+  }*/
+
+  override def createVariableForArgument(x : SymbolicAbstractValue[GenericAbstractState[N,H,I]], typ : Type) : GenericAbstractState[N,H,I] = {
     if(this.isBottom) return this;
     if(x.value.size != 1 || x.value.elements.next._1.isInstanceOf[VariableIdentifier]==false) 
       throw new SymbolicSemanticException("Cannot declare multiple variables together");
@@ -412,7 +474,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	    el._1 match {
 	      case variable : Assignable => {
 	        for(assigned <- x.value) {
-            val r = assigned._2._1.createVariableForParameter(variable, typ, Nil);
+            val r = assigned._2._1.createVariableForArgument(variable, typ, Nil);
             val left = r._1;
 	        	val done=new GenericAbstractState[N,H,I](left, this._2);
 	        	result=result.lub(result, done);
@@ -505,7 +567,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result
   }
   
-  def setParameter(x : SymbolicAbstractValue[GenericAbstractState[N,H,I]], right : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) : GenericAbstractState[N,H,I] = {
+  override def setArgument(x : SymbolicAbstractValue[GenericAbstractState[N,H,I]], right : SymbolicAbstractValue[GenericAbstractState[N,H,I]]) : GenericAbstractState[N,H,I] = {
     if(this.isBottom) return this;
     if(right.isTop) return top();
     var result : GenericAbstractState[N,H,I] = this.bottom();
@@ -515,7 +577,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	    el._1 match {
 	      case variable : Assignable => {
 	        for(assigned <- right.value) {
-	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.setParameter(variable, assigned._1), this._2);
+	        	val done=new GenericAbstractState[N,H,I](assigned._2._1.setArgument(variable, assigned._1), this._2);
 	        	result=result.lub(result, done);
 		        result=result.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
 	        }

@@ -79,9 +79,28 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    @param typ The type of the object to be created
    @param pp The point of the program that creates the reference
    @return the identifier of the created object and the state of the heap after that
-   */ 
+   */
   def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
-  
+
+
+  /**
+   This method creates an array
+
+   @param length the length of the array to be created
+   @param typ its type
+   @param pp the program point
+   @return the heap id of the array, the state after this action, and the replacement caused by the creation of the array
+   */
+  def createArray(length : Expression, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
+
+  /**
+   This method returns an id of the length of a given array
+
+   @param arrayId the id of the array we want to know the length
+   @return the heap id of the length of the array, the state after this action, and a replacement
+   */
+  def getArrayLength(arrayId : Assignable) : (HeapIdSetDomain[I], T, Replacement);
+
   /**
    This method returns the identifier of the field of an object
   
@@ -166,7 +185,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    @param expr the expression to set
    @return the state after this action
    */
-  def setParameter(variable : Assignable, expr : Expression) : (T, Replacement);
+  def setArgument(variable : Assignable, expr : Expression) : (T, Replacement);
 
   /**
    This method assumes that a given expression holds
@@ -194,7 +213,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
      to access them (this is useful for the heap domain that has to create abstract references to approximate
      the initial heap structure)
    */
-  def createVariableForParameter(variable : Assignable, typ : Type, path : List[String]) : (T, Map[Identifier, List[String]], Replacement);
+  def createVariableForArgument(variable : Assignable, typ : Type, path : List[String]) : (T, Map[Identifier, List[String]], Replacement);
 
   /**
    This method removed a variable

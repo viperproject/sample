@@ -60,7 +60,7 @@ class DynamicTypeDomain(typ : Type) extends BoxedDomain[Type, DynamicTypeDomain]
   def getType(variable : Identifier) = this.get(variable);
   override def createVariable(variable : Identifier, typ : Type) : DynamicTypeDomain = this.add(variable, typ);
   
-  override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) = {
+  override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil));
     (this.createVariable(variable, typ), result);
@@ -73,7 +73,7 @@ class DynamicTypeDomain(typ : Type) extends BoxedDomain[Type, DynamicTypeDomain]
   override def backwardAssign(variable : Identifier, expr : Expression) : DynamicTypeDomain = throw new TypeDomainException("Backward analysis not yet supported");;
                                                                                                                                                             
   def setToTop(variable : Identifier) : DynamicTypeDomain=this.remove(variable);
-  def setParameter(variable : Identifier, expr : Expression) : DynamicTypeDomain=this.assign(variable, expr)
+  override def setArgument(variable : Identifier, expr : Expression) : DynamicTypeDomain=this.assign(variable, expr)
 
            
 }

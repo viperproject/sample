@@ -537,17 +537,22 @@ trait FunctionalDomainWithReplacement[K, V <: LatticeWithReplacement[V], T <: Fu
    * @param r The right operand
    * @return true iff this is less or equal than t
    */
-  override def lessEqual(r : T) : Boolean = {
+  override def lessEqualWithReplacement(r : T) : (Boolean, Replacement) = {
     //case bottom
-    if(this.isBottom) return true;
-    if(r.isBottom) return false;
-    for(variable <- this.value.keySet)
-      if(! this.get(variable).lessEqual(r.get(variable)) )
-        return false;
-    for(variable <- r.value.keySet)
-      if(! this.get(variable).lessEqual(r.get(variable)) )
-        return false;
-    return true;
+    if(this.isBottom) return (true, new Replacement);
+    if(r.isBottom) return (false, new Replacement);
+    var rep : Replacement = new Replacement();
+    for(variable <- this.value.keySet) {
+      val (b1, r1) = this.get(variable).lessEqualWithReplacement(r.get(variable));
+      rep=rep.lub(rep, r1)
+      if(! b1) return (false, rep)
+    }
+    for(variable <- r.value.keySet) {
+      val (b1, r1) = this.get(variable).lessEqualWithReplacement(r.get(variable));
+      rep=rep.lub(rep, r1)
+      if(! b1) return (false, rep)
+    }
+    return (true, rep);
   }
 
   override def equals(a : Any) : Boolean = a match {
@@ -754,10 +759,10 @@ abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: Se
     result.d2=d2.assign(variable, expr)
     result
   }
- def setParameter(variable : Identifier, expr : Expression) : T= {
+ def setArgument(variable : Identifier, expr : Expression) : T= {
     val result : T = this.factory();
-    result.d1=d1.setParameter(variable, expr)
-    result.d2=d2.setParameter(variable, expr)
+    result.d1=d1.setArgument(variable, expr)
+    result.d2=d2.setArgument(variable, expr)
     result
   }
  def assume(expr : Expression) : T= {
@@ -772,10 +777,10 @@ abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: Se
     result.d2=d2.createVariable(variable, typ)
     result
   }
- def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) = {
+ def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) = {
     val result : T = this.factory();
-    var (a1, b1)=d1.createVariableForParameter(variable, typ, path)
-    var (a2, b2)=d2.createVariableForParameter(variable, typ, path)
+    var (a1, b1)=d1.createVariableForArgument(variable, typ, path)
+    var (a2, b2)=d2.createVariableForArgument(variable, typ, path)
     result.d1=a1;
     result.d2=a2;
     (result, b1++b2)
@@ -824,11 +829,11 @@ abstract class ReducedSemanticProductDomain[T1 <: SemanticDomain[T1], T2 <: Sema
  override def glb(l : T, r : T) : T = super.glb(l, r).reduce();
  override def setToTop(variable : Identifier) : T = super.setToTop(variable).reduce();
  override def assign(variable : Identifier, expr : Expression) : T = super.assign(variable, expr).reduce();
- override def setParameter(variable : Identifier, expr : Expression) : T = super.setParameter(variable, expr).reduce();
+ override def setArgument(variable : Identifier, expr : Expression) : T = super.setArgument(variable, expr).reduce();
  override def assume(expr : Expression) : T = super.assume(expr).reduce();
  override def createVariable(variable : Identifier, typ : Type) : T = super.createVariable(variable, typ).reduce();
- override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) = {
-   val (result, i)=super.createVariableForParameter(variable, typ, path);
+ override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) = {
+   val (result, i)=super.createVariableForArgument(variable, typ, path);
    (result.reduce(), i);
  }
  override def removeVariable(variable : Identifier) : T = super.removeVariable(variable).reduce();

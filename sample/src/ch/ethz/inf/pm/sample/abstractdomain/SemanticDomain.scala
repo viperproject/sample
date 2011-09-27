@@ -46,13 +46,13 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
   def assign(variable : Identifier, expr : Expression) : T;
   
   /**
-   This method set a paramenter (usually the parameter passed to a method) to the given expression
+   This method set an argument to the given expression
   
-   @param variable the variable to set
+   @param variable the argument to set
    @param expr the expression to set
    @return the state after this action
    */
-  def setParameter(variable : Identifier, expr : Expression) : T;
+  def setArgument(variable : Identifier, expr : Expression) : T;
   
   /**
    This method assumes that a given expression holds
@@ -72,16 +72,16 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
   def createVariable(variable : Identifier, typ : Type) : T;
   
   /**
-   This method creates a variable that is a parameter of the analyzed method
+   This method creates a variable that is an argument of the analyzed method
   
    @param variable the variable to be created
    @param typ its type
-   @return the state after this action and a map relating identifiers to the path starting with the parameter 
+   @return the state after this action and a map relating identifiers to the path starting with the argument
      to access them (this is useful for the heap domain that has to create abstract references to approximate 
      the initial heap structure)
    */
-  def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) : (T, Map[Identifier, List[String]]);
-  
+  def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) : (T, Map[Identifier, List[String]]);
+
   /**
    This method removed a variable
   
@@ -133,8 +133,8 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
  * @since 0.1
  */
 trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends SemanticDomain[T] {
-  override def setParameter(variable : Identifier, expr : Expression) : T = this.assign(variable, expr);
-  override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) : (T, Map[Identifier, List[String]]) = {
+  override def setArgument(variable : Identifier, expr : Expression) : T = this.assign(variable, expr);
+  override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) : (T, Map[Identifier, List[String]]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil));
     return (this.createVariable(variable, typ), result);

@@ -102,15 +102,15 @@ trait State[S <: State[S]] extends Lattice[S] {
   
   	
   /**
-   Creates an object for a parameter. Its semantics is different from <code>createObject</code> since this object is used
+   Creates an object for an argument. Its semantics is different from <code>createObject</code> since this object is used
    to create the initial state of the heap.  
    
-   @param typ The static type of the parameter
-   @param pp The point of the program that contains the declaration of the parameter
-   @param path One of the possible shortest path to reach this parameter   
-   @return The abstract state after the creation of the object for the paramenter
+   @param typ The static type of the argument
+   @param pp The point of the program that contains the declaration of the argument
+   @param path One of the possible shortest path to reach this argument
+   @return The abstract state after the creation of the object for the argument
    */
-  def createObjectForParameter(typ : Type, pp : ProgramPoint, path : List[String]) : S
+  def createObjectForArgument(typ : Type, pp : ProgramPoint, path : List[String]) : S
   
   /**
    Creates a variable
@@ -123,14 +123,14 @@ trait State[S <: State[S]] extends Lattice[S] {
   def createVariable(x : SymbolicAbstractValue[S], typ : Type, pp : ProgramPoint) : S
   
   /**
-   Creates a variable for a parameter
+   Creates a variable for an argument
    
-   @param x The name of the parameter
-   @param pp The static type of the parameter  
-   @return The abstract state after the creation of the parameter
+   @param x The name of the argument
+   @param pp The static type of the argument
+   @return The abstract state after the creation of the argument
    */  
-  def createVariableForParameter(x : SymbolicAbstractValue[S], typ : Type) : S
-    
+  def createVariableForArgument(x : SymbolicAbstractValue[S], typ : Type) : S
+
   /**
    Assigns an expression to a variable
    
@@ -139,6 +139,16 @@ trait State[S <: State[S]] extends Lattice[S] {
    @return The abstract state after the assignment
    */
   def assignVariable(x : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S]) : S
+
+  /**
+   Create an array of length
+
+   @param length The length of the array
+   @param typ The type of the array
+   @param length The program point that created the array
+   @return The abstract state after the creation of the array
+   */
+  def createArray(length : SymbolicAbstractValue[S], typ : Type, pp : ProgramPoint) : S
 
   /**
    Assigns an expression to a field of an object
@@ -162,13 +172,13 @@ trait State[S <: State[S]] extends Lattice[S] {
   def assignArrayCell(obj : SymbolicAbstractValue[S], index : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S], typ : Type) : S
   
   /**
-   Assigns an expression to an initial parameter
+   Assigns an expression to an argument
    
-   @param x The assigned parameter
+   @param x The assigned argument
    @param right The expression to be assigned
    @return The abstract state after the assignment
    */
-  def setParameter(x : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S]) : S
+  def setArgument(x : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S]) : S
   
   /**
    Forgets the value of a variable
@@ -222,6 +232,15 @@ trait State[S <: State[S]] extends Lattice[S] {
    @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
    */
   def getArrayCell(obj : SymbolicAbstractValue[S], index : SymbolicAbstractValue[S], typ : Type) : S
+
+
+  /**
+   Returns the identifier representing the length of the given array
+
+   @param array The array from which we want to access the length
+   @return A state that contains as expression the symbolic representation of the length of the given array
+   */
+  def getArrayLength(array : SymbolicAbstractValue[S]) : S
 
   /**
    Performs the backward semantics of a variable access
@@ -366,9 +385,9 @@ trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
    Returns true iff <code>this</code> is less or equal than <code>r</code>
 
    @param r The value to compare
-   @return true iff <code>this</code> is less or equal than <code>r</code>
+   @return true iff <code>this</code> is less or equal than <code>r</code>, and a replacement to compare the two states
    */
-  def lessEqual(r : T) : Boolean
+  def lessEqualWithReplacement(r : T) : (Boolean, Replacement)
 }
 
 /** 

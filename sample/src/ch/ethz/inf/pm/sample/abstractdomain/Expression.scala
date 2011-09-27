@@ -271,68 +271,7 @@ case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint)
  */
 abstract case class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type, val pp : ProgramPoint) extends Identifier(typ1, pp)
 
-/** 
- * The identifier of the length of an array
- * 
- * @param id The identifier of the array
- * @param typ The type (that is, integer)
- * @author Pietro Ferrara
- * @since 0.1
- */
-class LengthArray(val id : Identifier, typ : Type) extends VariableIdentifier(id.toString+".length", typ, id.getProgramPoint) {
-  override def representSingleVariable() = id.representSingleVariable();
-  override def toString() : String = this.getName();
-  override def equals(obj : Any) : Boolean = obj match {
-	  case x : LengthArray => return x.id.equals(id);
-	  case _ => return false;
-  }
-  override def hashCode() = 1;
-}
-
-/** 
- * The identifier of an array access
- * 
- * @param id The identifier of the array
- * @param index The index of the access
- * @param typ The type
- * @author Pietro Ferrara
- * @since 0.1
- */
-/*class ArrayAccess(val id : Identifier, val index : Expression, typ : Type) extends Expression(id.getProgramPoint) {
-  def getType() : Type = typ;
-  def getName() : String = id.toString()+"["+index.toString()+"]"
-  def getField() : Option[String] = None;
-  def representSingleVariable() = false //maybe id.representSingleVariable(); is more precise?
-  override def toString() : String = this.getName();
-  override def equals(obj : Any) : Boolean = obj match {
-	  case x : ArrayAccess => return x.id.equals(id) && x.index.equals(index);
-	  case _ => return false;
-  }
-  override def hashCode() = 1;
-}*/
-
-/** 
- * The identifier of the creation of an array
- * 
- * @param size The size of the array
- * @param typ The type of the value (e.g., Int[]) 
- * @author Pietro Ferrara
- * @since 0.1
- */
-/*class ArrayCreation(val size : Expression, val typ1 : Type) extends Expression(size.getProgramPoint) {
-  def getType() : Type = typ1;
-  def getName() : String = "new "+typ1.toString()+"("+size.toString()+")"
-  def getField() : Option[String] = None;
-  def representSingleVariable() = true;
-  override def toString() : String = this.getName();
-  override def equals(obj : Any) : Boolean = obj match {
-	  case x : ArrayCreation => return x.size.equals(size);
-	  case _ => return false;
-  }
-  override def hashCode() = 1;
-}*/
-
-/** 
+/**
  * The unit expression, that represents the absence of a concrete expression.
  * 
  * @param typ The unit type

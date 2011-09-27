@@ -104,25 +104,25 @@ class MethodDeclaration(
     
   
   
-  private def initializeParameters[S <: State[S]](state : S, parameters : List[List[VariableDeclaration]]) : S = {
+  private def initializeArgument[S <: State[S]](state : S, parameters : List[List[VariableDeclaration]]) : S = {
     SystemParameters.semanticsComputing=false;
     var result : S = state;
     result=new Variable(programpoint, new VariableIdentifier("this", ownerType, programpoint)).forwardSemantics[S](result)
     val variable=result.getExpression();
-    result=result.removeExpression().createVariableForParameter(variable, ownerType);
+    result=result.removeExpression().createVariableForArgument(variable, ownerType);
     for(lv <- parameters)
       for(variable <- lv) {
         result = variable.variable.forwardSemantics[S](result);
         val varExpr = result.getExpression();
         result=result.removeExpression();
-        result=result.createVariableForParameter(varExpr, variable.typ);
+        result=result.createVariableForArgument(varExpr, variable.typ);
       }
     return result;
   }
   
   def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
     SystemParameters.currentCFG=body;
-    val result=initializeParameters[S](state, arguments);
+    val result=initializeArgument[S](state, arguments);
     SystemParameters.currentMethod=name.toString();
     SystemParameters.semanticsComputing=true;
     val r=new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
@@ -137,7 +137,7 @@ class MethodDeclaration(
   }
   
   def combinedSemantics[S <: State[S]](entrystate : S, exitstate : S) : ControlFlowGraphExecution[S] = {
-    var result : S = initializeParameters[S](entrystate, arguments);
+    var result : S = initializeArgument[S](entrystate, arguments);
     new ControlFlowGraphExecution[S](body, entrystate).combinedSemantics(result, exitstate);
   }
 }
@@ -184,7 +184,7 @@ class ClassDefinition(
                       modifiers : List[Modifier],
                       val name : ClassIdentifier,
                       parametricTypes : List[Type], 
-                      extend : List[ClassIdentifier], 
+                      val extend : List[ClassIdentifier],
                       var fields : List[FieldDeclaration], 
                       var methods : List[MethodDeclaration],
                       pack : PackageIdentifier,

@@ -1,24 +1,16 @@
 abstract class Intervals {
-  def ex1(b1 : Int, b2 : Boolean) = {
-
-    var i = getRandom(b1);
-    //var j = getRandom1();
-    //var k = getRandom2();
-    while(b2)
-      i=i-1;
-    //k=k*2;
-    //k=j*i;
+  def ex1(i : Int, j : Int, k : Int) = {
   }
+
+  def ex2(kex2 : Int) = kex2;
 
   def fibonacci(i : Int) : Int = {
     var result = 0;
+    val k = 10;
     if(i==0)
       result=1;
     else
-    {
-      val j = i-1;
-      result=fibonacci(j);
-    }
+      result=fibonacci(k);
     return result;
   }
 

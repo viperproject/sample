@@ -101,10 +101,10 @@ class NotInstanceOfDomain(typ : Type) extends BoxedDomain[SetExcludedTypes, NotI
   }
   
  def assign(variable : Identifier, expr : Expression) : NotInstanceOfDomain=this; //TODO : I should refine it for assignments like x=y
- def setParameter(variable : Identifier, expr : Expression) : NotInstanceOfDomain=this;
+ override def setArgument(variable : Identifier, expr : Expression) : NotInstanceOfDomain=this;
  
  def createVariable(variable : Identifier, typ : Type) : NotInstanceOfDomain=this;
- def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) ={
+ override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) ={
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil));
     (this, result);

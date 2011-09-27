@@ -10,7 +10,7 @@ class StaticTypeDomain(typ : Type) extends BoxedDomain[Type, StaticTypeDomain]()
   override def assign(variable : Identifier, expr : Expression) : StaticTypeDomain = this
   def getType(variable : Identifier) = this.get(variable);
   override def createVariable(variable : Identifier, typ : Type) : StaticTypeDomain = this.add(variable, typ);
-  override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) = {
+  override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil));
     (this.createVariable(variable, typ), result);
@@ -29,6 +29,6 @@ class StaticTypeDomain(typ : Type) extends BoxedDomain[Type, StaticTypeDomain]()
                                                                                                                                                             
                                                                                                                                                                                                             
   def setToTop(variable : Identifier) : StaticTypeDomain=this;
-  def setParameter(variable : Identifier, expr : Expression) : StaticTypeDomain=this.assign(variable, expr)
+  override def setArgument(variable : Identifier, expr : Expression) : StaticTypeDomain=this.assign(variable, expr)
   override def top() = this;//Static typing cannot be erased by method calls
 }

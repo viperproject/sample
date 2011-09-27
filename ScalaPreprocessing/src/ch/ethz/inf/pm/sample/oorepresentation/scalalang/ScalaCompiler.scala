@@ -10,6 +10,8 @@ object ScalaClasses {
 
 class ScalaCompiler extends Compiler {
 
+  private var parsedclasses : List[ClassDefinition] = Nil;
+
   def getLabel() : String = "Scala"
 
    def extensions() : List[String] = "scala" :: Nil;
@@ -53,7 +55,38 @@ class ScalaCompiler extends Compiler {
 	    val runner = new PluginRunner(settings)
 	    val run = new runner.Run
 	    run.compile(command.files)
+      parsedclasses = parsedclasses ::: ScalaClasses.classes;
 	    return ScalaClasses.classes;
 	}
+
+  def getMethod(name : String, classType : Type, parameters : List[Type]) : Option[(MethodDeclaration, Type)] = {
+    getClassDeclaration(classType) match {
+      case Some(classe) =>
+        for(m <- classe.methods)
+          if(m.name.toString.equals(name) && m.arguments.size==parameters.size) {
+            var ok : Boolean = true;
+            for(i <- 0 to m.arguments.size-1) {
+              if(m.arguments.apply(i).size!=1) throw new ScalaException("Not yet supported")
+              if(! parameters.apply(i).lessEqual(m.arguments.apply(i).apply(0).typ))
+                ok=false;
+            }
+            if(ok) return new Some[(MethodDeclaration, Type)]((m, classType));
+          }
+        for(ext <- classe.extend)
+          getMethod(name, ext.getThisType(), parameters) match {
+            case Some(s) => return Some(s);
+            case None =>
+          }
+        return None;
+      case None => return None;
+    }
+  }
+
+  private def getClassDeclaration(t : Type) : Option[ClassDefinition] = {
+    for(c <- parsedclasses)
+      if(c.typ.equals(t))
+        return Some(c);
+    return None;
+  }
 	
 }

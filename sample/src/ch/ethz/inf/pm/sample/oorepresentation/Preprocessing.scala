@@ -19,6 +19,19 @@ trait Compiler {
   */
 	def compileFile(path : String) : List[ClassDefinition];
 
+
+
+  /**
+   This method returns the implementation of a given method
+
+   @param name the name of the method
+   @param classType the type of the class containing the method
+   @param parameters the type of the parameters
+   @return the implementation of the method and the class that contains it (it could be a superclass of the given class)
+           or None if the method was not found
+  */
+	def getMethod(name : String, classType : Type, parameters : List[Type]) : Option[(MethodDeclaration, Type)];
+
   /**
    This method specifies which extensions are supported by this compiler
 
