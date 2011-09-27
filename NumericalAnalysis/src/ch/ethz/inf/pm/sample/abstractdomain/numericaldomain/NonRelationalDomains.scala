@@ -67,7 +67,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
   override def createVariable(variable : Identifier, typ : Type) : BoxedNonRelationalNumericalDomain[N] = {
     return this.add(variable, dom.bottom());
   }
-  override def createVariableForParameter(variable : Identifier, typ : Type, path : List[String]) = {
+  override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil));
     (this.add(variable, dom.top()), result);
@@ -81,7 +81,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     this.remove(variable);
   }
   
-  override def setParameter(variable : Identifier, expr : Expression) : BoxedNonRelationalNumericalDomain[N]= this.assign(variable, expr);
+  override def setArgument(variable : Identifier, expr : Expression) : BoxedNonRelationalNumericalDomain[N]= this.assign(variable, expr);
   
   override def assign(variable : Identifier, expr : Expression) : BoxedNonRelationalNumericalDomain[N]= {
     if(variable.representSingleVariable)
