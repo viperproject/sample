@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
-import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
                        /*
 abstract sealed class TopHeapIdentifier(typ : Type, pp : ProgramPoint) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ, pp) {
     override def getLabel() = "Top";
