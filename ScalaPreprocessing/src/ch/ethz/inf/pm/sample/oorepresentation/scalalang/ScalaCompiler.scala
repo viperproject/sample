@@ -63,11 +63,11 @@ class ScalaCompiler extends Compiler {
     getClassDeclaration(classType) match {
       case Some(classe) =>
         for(m <- classe.methods)
-          if(m.name.toString.equals(name) && m.arguments.size==parameters.size) {
+          if(m.name.toString.equals(name) && m.arguments.apply(0).size==parameters.size) {
             var ok : Boolean = true;
-            for(i <- 0 to m.arguments.size-1) {
-              if(m.arguments.apply(i).size!=1) throw new ScalaException("Not yet supported")
-              if(! parameters.apply(i).lessEqual(m.arguments.apply(i).apply(0).typ))
+            if(m.arguments.size!=1) throw new ScalaException("Not yet supported")
+            for(i <- 0 to m.arguments.apply(0).size-1) {
+              if(! parameters.apply(i).lessEqual(m.arguments.apply(0).apply(i).typ))
                 ok=false;
             }
             if(ok) return new Some[(MethodDeclaration, Type)]((m, classType));
