@@ -387,7 +387,11 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
       if(from equals(i))
         isExitPoint=false;
       }
-      if(isExitPoint) result=result.lub(result, this.getExecution(i).last);
+      if(isExitPoint) this.getExecution(i) match {
+        case Nil =>
+        case x =>result=result.lub(result, this.getExecution(i).last);
+
+      }
     }
     result;
   }

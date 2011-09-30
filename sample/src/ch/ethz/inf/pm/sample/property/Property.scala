@@ -66,7 +66,7 @@ trait Visitor {
  * @author Pietro Ferrara
  * @version 0.1
  */
-final class SingleStatementProperty(visitor : Visitor) extends Property {
+final class SingleStatementProperty(val visitor : Visitor) extends Property {
   override final def getLabel() : String = visitor.getLabel();
   override final def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 	SystemParameters.currentClass = className;
