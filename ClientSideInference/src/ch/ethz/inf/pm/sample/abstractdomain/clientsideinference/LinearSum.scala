@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.clientsideinference
 
+import org.omg.CORBA.IRObject
+
 trait SymbolicInt[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] {
 
   def max(a : T, c : T) : T;
@@ -10,6 +12,7 @@ trait SymbolicInt[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] {
   def <=(a : T, b : T) : Boolean;
   def factory(s : S) : T;
   def factory(s : Int) : T;
+  def toArithmeticExpression() : ArithmeticExpression[S];
 }
 
 class Coefficient[T <: SymbolicInt[T, S], S <: SymbolicValue[S]](d1 : Int, d2 : Int) extends (Int, Int)(d1, d2) with SymbolicInt[Coefficient[T, S], S] {
@@ -34,6 +37,11 @@ class Coefficient[T <: SymbolicInt[T, S], S <: SymbolicValue[S]](d1 : Int, d2 : 
   }
   def factory(s : S) : Coefficient[T, S] = throw new SymbolicIntException("Not supported");
   def factory(s : Int) : Coefficient[T, S] = new Coefficient(s, s)
+
+  override def toArithmeticExpression() : ArithmeticExpression[S] = {
+    if(d1!=d2) throw new SymbolicIntException("Not yet supported");
+    else return new SimpleVal(d1);
+  }
 
   def isPositive() = d1>=0 && d2>=0;
   def isNegative() = d1<0 && d2<=0;
@@ -77,79 +85,20 @@ class Summation[T <: SymbolicInt[T, S], S <: SymbolicValue[S]](val m : Map[S, Co
     return true;
   }
 
+  def toArithmeticExpression() : ArithmeticExpression[S] = {
+    var result : ArithmeticExpression[S] = null;
+    for(s <- m.keySet)
+      if(result==null)
+        result=new Multiply[S](m.apply(s).toArithmeticExpression(), s)
+      else result=new Add(result, new Multiply[S](m.apply(s).toArithmeticExpression(), s))
+    if(result==null) return new SimpleVal[S](0)
+    else return result;
+  }
+
   def max(a : Summation[T, S], c : Summation[T, S]) : Summation[T, S] = refinedOperator(a, c, new Coefficient(0, 0).min(_, _),
     {case (a, b) => s.<=(b, a)})
-  /*{
-    var result : Map[S, Coefficient[T, S]] = Map.empty;
-    val coeff = new Coefficient[T, S](0, 0)
-    val bothDomains = a.m.keySet.intersect(c.m.keySet);
-    val onlyInA = a.m.keySet.--(c.m.keySet);
-    val onlyInC = c.m.keySet.--(a.m.keySet);
-    var remainingFromC = c.m.keySet.--(a.m.keySet);
-    for(val s : S <- bothDomains)
-      result=result+((s, coeff.max(a.get(s), c.get(s))));
-    for(val el1 <- onlyInA) {
-      var found : Boolean=false;
-      for(val el2 <- onlyInC)
-        if(!found && el1.<=(el1, el2) && a.get(el1).isPositive() && c.get(el2).isPositive()) {
-          remainingFromC=remainingFromC.-(el2);
-          result=result+((el2, coeff.max(a.get(el1), c.get(el2))));
-          found=true;
-        }
-      if(!found)
-        result=result+((el1, coeff.max(a.get(el1), c.get(el1))));
-    }
-    for(val el1 <- remainingFromC) {
-      var found : Boolean=false;
-      for(val el2 <- onlyInA)
-        if(!found && el1.<=(el1, el2) && a.get(el1).isPositive() && c.get(el2).isPositive()) {
-          result=result+((el2, coeff.max(a.get(el1), c.get(el2))));
-          found=true;
-        }
-      if(!found)
-        result=result+((el1, coeff.max(a.get(el1), c.get(el1))));
-    }
-    return new Summation(result);
-  }*/
 
   def min(a : Summation[T, S], c : Summation[T, S]) : Summation[T, S] = refinedOperator(a, c, new Coefficient(0, 0).min(_, _), s.<=(_, _))
-  /*{
-    var result : Map[S, Coefficient[T, S]] = Map.empty;
-    val coeff = new Coefficient[T, S](0, 0)
-    val bothDomains = a.m.keySet.intersect(c.m.keySet);
-    val onlyInA = a.m.keySet.--(c.m.keySet);
-    val onlyInC = c.m.keySet.--(a.m.keySet);
-    var remainingFromC = c.m.keySet.--(a.m.keySet);
-    var remainingFromA = a.m.keySet.--(c.m.keySet);
-    for(val s : S <- bothDomains)
-      result=result+((s, coeff.min(a.get(s), c.get(s))));
-    for(val el1 <- onlyInA) {
-      var found : Boolean=false;
-      for(val el2 <- onlyInC)
-        if(!found && el1.<=(el1, el2) && a.get(el1).isPositive() && c.get(el2).isPositive()) {
-          remainingFromC=remainingFromC.-(el2);
-          remainingFromA=remainingFromA.-(el1);
-          result=result+((el1, coeff.min(a.get(el1), c.get(el2))));
-          found=true;
-        }
-      //if(!found)
-      //  result=result+((el1, coeff.min(a.get(el1), c.get(el1))));
-    }
-    for(val el1 <- remainingFromC) {
-      var found : Boolean=false;
-      for(val el2 <- remainingFromA/*onlyInA*/)
-        if(!found && el1.<=(el1, el2) && a.get(el1).isPositive() && c.get(el2).isPositive()) {
-          remainingFromA=remainingFromA.-(el2);
-          result=result+((el1, coeff.min(a.get(el1), c.get(el2))));
-          found=true;
-        }
-      if(!found)
-        result=result+((el1, coeff.min(a.get(el1), c.get(el1))));
-    }
-    for(val el1 <- remainingFromA)
-        result=result+((el1, coeff.min(a.get(el1), c.get(el1))));
-    return new Summation(result);
-  }*/
 
   private def refinedOperator(a : Summation[T, S],
                               c : Summation[T, S],
@@ -231,6 +180,10 @@ class LinearSum[T <: SymbolicInt[T, S], S <: SymbolicValue[S]](val s : Summation
 
   def factory(s1 : S) : LinearSum[T, S] = new LinearSum(s.factory(s1), 0, this.sv)
   def factory(i : Int) : LinearSum[T, S] = new LinearSum(new Summation(Map.empty, sv), i, sv)
+
+  def toArithmeticExpression() : ArithmeticExpression[S] =
+    if(c!=0) new Add[S](s.toArithmeticExpression(), new SimpleVal[S](c))
+    else s.toArithmeticExpression();
 
   override def equals(o : Any) = o match {
     case x : LinearSum[T, S] => x.s.equals(s) && c == x.c;

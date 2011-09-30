@@ -20,17 +20,16 @@ object SymbolicNativeMethodSemantics extends NativeMethodSemantics {
 	}
 
   private def extractMethodCall[HI <: HeapIdentifier[HI], H <: HeapDomain[H, HI], SD <: SemanticDomain[SD], S <: State[S]](state: S, thisExpr: SymbolicAbstractValue[S], parameters : List[SymbolicAbstractValue[S]], method : String, retType : Type): Option[S] = {
-    var result = state.asInstanceOf[GenericAbstractState[SD, H, HI]]._1._1;
+    var result = state.bottom();
     for (exp <- thisExpr.getExpressions)
       exp match {
         case id: VariableIdentifier if id.getName().equals("this") =>
           val expr = new AbstractMethodCall(id, parsToVariableId(parameters), method, retType)
-          return Some(state.setExpression(new SymbolicAbstractValue[S](expr, state)));
-
+          result=result.lub(result, state.setExpression(new SymbolicAbstractValue[S](expr, state)));
         case _ => throw new SemanticException("Not yet supported")
       }
-    val d1 = new HeapAndAnotherDomain[SD, H, HI](result, state.asInstanceOf[GenericAbstractState[SD, H, HI]]._1._2);
-    return new Some(new GenericAbstractState(d1, thisExpr.top().asInstanceOf[SymbolicAbstractValue[GenericAbstractState[SD, H, HI]]]).asInstanceOf[S])
+    if(result.lessEqual(result.bottom())) return None;
+    else return Some(result);
   }
 
   private def parsToVariableId[S <: State[S]](pars : List[SymbolicAbstractValue[S]]) : List[Expression]= pars match {

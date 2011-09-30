@@ -2,9 +2,9 @@ package ch.ethz.inf.pm.sample.abstractdomain.clientsideinference
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
-import ch.ethz.inf.pm.sample.property.Property
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, MethodDeclaration, NativeMethodSemantics, Type}
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.property._
 
 object DBMSetting {
   private var idToIndex : Map[Identifier, Int] = Map.empty;
@@ -36,6 +36,8 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
   var matrix : Map[(Int, Int), T] = Map.empty;
   var isBottom : Boolean = false;
 
+  def get(v1 : Identifier, v2 : Identifier) : Option[T] = matrix.get((DBMSetting.getIndex(v1), DBMSetting.getIndex(v2)))
+
   override def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) : (SymbolicDBM[T, S], Map[Identifier, List[String]]) = {
     if(! typ.isNumericalType()) return super.createVariableForArgument(variable, typ, path);
     if(typ.isNumericalType() && ! path.isEmpty) throw new SymbolicDBMException("Not yet supported");
@@ -49,7 +51,7 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
         resultMatrix=resultMatrix+
             (((varIndex, otherVarIndex),
               SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(
-                      SystemParameters.currentClass.getName(),
+                      SystemParameters.currentClass,
                       SystemParameters.currentMethod,
                       TypeOfContracts.precondition,
                       variable,
@@ -58,7 +60,7 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
               )))+
             (((otherVarIndex, varIndex),
               SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(
-                      SystemParameters.currentClass.getName(),
+                      SystemParameters.currentClass,
                       SystemParameters.currentMethod,
                       TypeOfContracts.precondition,
                       id,
@@ -149,38 +151,38 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
           else this.removeVariable(variable);
         case AbstractMethodCall(thisExpr, parameters, calledMethod, retType) =>
           var newMatrix : Map[(Int, Int), T] = this.matrix;
-          val (classe, renaming) = SymbolicSettings.rename(calledMethod, thisExpr, parameters)
+          val (classe, renaming) = SymbolicSettings.rename(calledMethod, thisExpr, parameters, true)
           for(i <- 0 to parameters.size-1) {
             val (expr, nameInMethod) = renaming.apply(i);
-            newMatrix=newMatrix++this.transformToSymbSum(classe.getName(), expr, variable, calledMethod, nameInMethod);
+            newMatrix=newMatrix++this.transformToSymbSum(classe, expr, variable, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint()), calledMethod, nameInMethod, TypeOfContracts.postcondition);
           }
           return new SymbolicDBM(newMatrix)
         case _ => return this.removeVariable(variable);
 
   }
 
-  private def transformToSymbSum(classe : String, expr : Expression, variable : Identifier, calledMethod : String, nameInMethod : Identifier) : Map[(Int, Int), T] = expr match {
+  private def transformToSymbSum(classe : Type, expr : Expression, variable : Identifier, otherVar : Identifier, calledMethod : String, nameInMethod : Identifier, typ : TypeOfContracts.Value) : Map[(Int, Int), T] = expr match {
     case p : Identifier =>
       val assignedIndex = DBMSetting.getIndex(variable);
       val pIndex = DBMSetting.getIndex(nameInMethod);
       return Map.empty+
-        (((assignedIndex, pIndex), SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint()), p)))) +
-        (((pIndex, assignedIndex), SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, p, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint())))))
+        (((assignedIndex, pIndex), SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, typ, otherVar, p)))) +
+        (((pIndex, assignedIndex), SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, typ, p, otherVar))))
     //Check that
     case BinaryArithmeticExpression(p : Identifier, right : Constant, ArithmeticOperator.-, returntyp) =>
       val assignedIndex = DBMSetting.getIndex(variable);
       val pIndex = DBMSetting.getIndex(nameInMethod);
-      var symbInt1 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint()), p));
+      var symbInt1 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, typ, otherVar, p));
       symbInt1=symbInt1.+(symbInt1, SymbolicSettings.symbolicInt.factory(Integer.parseInt(right.constant)));
-      var symbInt2 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, p, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint())));
+      var symbInt2 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, typ, p, otherVar));
       symbInt2=symbInt2.-(symbInt2, SymbolicSettings.symbolicInt.factory(Integer.parseInt(right.constant)));
       return Map.empty+(((assignedIndex, pIndex), symbInt1))+(((pIndex, assignedIndex), symbInt2));
     case BinaryArithmeticExpression(p : Identifier, right : Constant, ArithmeticOperator.+, returntyp) =>
       val assignedIndex = DBMSetting.getIndex(variable);
       val pIndex = DBMSetting.getIndex(nameInMethod);
-      var symbInt1 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint()), p));
+      var symbInt1 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, typ, otherVar, p));
       symbInt1=symbInt1.-(symbInt1, SymbolicSettings.symbolicInt.factory(Integer.parseInt(right.constant)));
-      var symbInt2 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.postcondition, p, new VariableIdentifier("result", variable.getType(), variable.getProgramPoint())));
+      var symbInt2 : T = SymbolicSettings.symbolicInt.factory(new DBMSymbolicValue(classe, calledMethod, typ, p, otherVar));
       symbInt2=symbInt2.+(symbInt2, SymbolicSettings.symbolicInt.factory(Integer.parseInt(right.constant)));
       return Map.empty+(((assignedIndex, pIndex), symbInt1))+(((pIndex, assignedIndex), symbInt2));
   }
@@ -263,7 +265,7 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
 
 }
 
-class DBMSymbolicValue(val classe : String, val method : String, var typ : TypeOfContracts.Value, val v1 : Identifier, val v2 : Identifier) extends SymbolicValue[DBMSymbolicValue] {
+class DBMSymbolicValue(val classe : Type, val method : String, var typ : TypeOfContracts.Value, val v1 : Identifier, val v2 : Identifier) extends SymbolicValue[DBMSymbolicValue] {
 
   def <=(a: DBMSymbolicValue, b : DBMSymbolicValue) : Boolean = false;
 
@@ -278,7 +280,7 @@ class DBMSymbolicValue(val classe : String, val method : String, var typ : TypeO
   }
 }
 
-class SymbolicDBMAnalysis[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends SemanticAnalysis[SymbolicDBM[T, S]] {
+class SymbolicDBMAnalysis[T <: SymbolicInt[T, DBMSymbolicValue]] extends SemanticAnalysis[SymbolicDBM[T, DBMSymbolicValue]] {
 
   override def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(SymbolicNativeMethodSemantics)
 
@@ -290,9 +292,121 @@ class SymbolicDBMAnalysis[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends
 
   override def setParameter(label : String, value : Any) : Unit = throw new SymbolicIntException("Paramters not supported")
 
-  override def getInitialState() : SymbolicDBM[T, S] = new SymbolicDBM[T, S]();
+  override def getInitialState() : SymbolicDBM[T, DBMSymbolicValue] = new SymbolicDBM[T, DBMSymbolicValue]();
 
-  override def getProperties() : Set[Property] = Set(ShowGraph);
+  override def getProperties() : Set[Property] = Set(ShowGraph, new SymbolicDBMProperty(new ConstraintsInference[DBMSymbolicValue, T]()));
 }
 
 class SymbolicDBMException(s : String) extends Exception(s)
+
+
+class SymbolicDBMProperty[T <: SymbolicInt[T, DBMSymbolicValue]](val c : ConstraintsInference[DBMSymbolicValue, T]) extends Property {
+  val v = new SymbolicDBMMethodCallVisitor[T](c);
+  val property1 = new SingleStatementProperty(v)
+
+  def getLabel() : String = "Contract Inference for Symbolic DBMs";
+
+  def finalizeChecking(printer : OutputCollector) : Unit = c.printConstraints()
+
+  def check[S <: State[S]](classe : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+    property1.check(classe, methodName, result, printer);
+    def exitState = result.exitState();
+    for(exp <- exitState.getExpression().getExpressions()) {
+      val state = SymbolicDBMUtility.castState(exitState.getExpression().get(exp))
+      //val value = state._1.getSemanticDomain().asInstanceOf[SymbolicDBM[T, DBMSymbolicValue]].eval(exp, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()));
+      /*value.l match {
+        case Bound(t) => c.addConstraint(new Geq[DBMSymbolicValue](t.toArithmeticExpression(), new Multiply[DBMSymbolicValue](new SimpleVal[DBMSymbolicValue](1), new IntervalsSymbolicValues(classe, methodName, TypeOfContracts.postcondition, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()), SymbolicContractTypes.min))))
+        case _ => printer.add(new WarningMethod(classe, methodName, "Symbolic intervals have no information on the lower bound of the returned value at the end of the method. Therefore we cannot enforce any constraint on that."))
+      }
+
+      value.r match {
+        case Bound(t) => c.addConstraint(new Geq[DBMSymbolicValue](new Multiply[DBMSymbolicValue](new SimpleVal[DBMSymbolicValue](1), new IntervalsSymbolicValues(classe, methodName, TypeOfContracts.postcondition, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()), SymbolicContractTypes.max)), t.toArithmeticExpression()))
+        case _ => printer.add(new WarningMethod(classe, methodName, "Symbolic intervals have no information on the upper bound of the returned value at the end of the method. Therefore we cannot enforce any constraint on that."))
+      } */
+    }
+  }
+}
+
+class SymbolicDBMMethodCallVisitor[T <: SymbolicInt[T, DBMSymbolicValue]](val c : ConstraintsInference[DBMSymbolicValue, T]) extends Visitor {
+
+  def getLabel() : String = "Contract Inference for Symbolic DBMs";
+
+  def checkSingleStatement[S1 <: State[S1]](state : S1, statement : Statement, printer : OutputCollector) : Unit = statement match {
+    case x : MethodCall =>
+      val resultState = x.forwardSemantics(state);
+      for(exp <- resultState.getExpression().getExpressions())
+        exp match {
+          case AbstractMethodCall(thisExpr, parameters, calledMethod, retType) =>
+            val symbolicDBMState : SymbolicDBM[T, DBMSymbolicValue] = SymbolicDBMUtility.castState(resultState.getExpression().get(exp))._1.getSemanticDomain().asInstanceOf[SymbolicDBM[T, DBMSymbolicValue]];
+            //val (classeswapped, renamingswapped) = SymbolicSettings.rename(calledMethod, thisExpr, parameters, true)
+            val (classe, renaming) = SymbolicSettings.rename(calledMethod, thisExpr, parameters, false)
+            for(i <- 0 to parameters.size-1) {
+              val (v1expr, v1NameInMethod) = renaming.apply(i);
+              for(j <- 0 to parameters.size-1)
+                if(j!=i) {
+                  val (v2expr, v2NameInMethod) = renaming.apply(j);
+                  symbolicDBMState.get(v1NameInMethod, v2NameInMethod) match {
+                    case Some(intsum) =>
+                      var overallSum = intsum;
+                      overallSum=overallSum.+(overallSum, overallSum.factory(SymbolicDBMUtility.extractInt(v1expr, true)));
+                      overallSum=overallSum.+(overallSum, overallSum.factory(SymbolicDBMUtility.extractInt(v2expr, false)));
+                      c.addConstraint(new Geq[DBMSymbolicValue](overallSum.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.precondition, SymbolicDBMUtility.extractId(v1expr), SymbolicDBMUtility.extractId(v2expr))).toArithmeticExpression(), overallSum.toArithmeticExpression()))
+                    case None => printer.add(new WarningProgramPoint(statement.getPC(), "Symbolic DBM have no information on "+v1NameInMethod+"-"+v2NameInMethod+"<k that are passed as arguments to "+calledMethod+". Therefore we cannot enforce any constraint on that."))
+                  }
+                  symbolicDBMState.get(v2NameInMethod, v1NameInMethod) match {
+                    case Some(intsum) =>
+                      var overallSum = intsum;
+                      overallSum=overallSum.+(overallSum, overallSum.factory(SymbolicDBMUtility.extractInt(v2expr, true)));
+                      overallSum=overallSum.+(overallSum, overallSum.factory(SymbolicDBMUtility.extractInt(v1expr, false)));
+                      c.addConstraint(new Geq[DBMSymbolicValue](overallSum.factory(new DBMSymbolicValue(classe, calledMethod, TypeOfContracts.precondition, SymbolicDBMUtility.extractId(v2expr), SymbolicDBMUtility.extractId(v1expr))).toArithmeticExpression(), overallSum.toArithmeticExpression()))
+                    case None => printer.add(new WarningProgramPoint(statement.getPC(), "Symbolic DBM have no information on "+v2NameInMethod+"-"+v1NameInMethod+"<k that are passed as arguments to "+calledMethod+". Therefore we cannot enforce any constraint on that."))
+                  }
+                }
+              //val value = symbolicDBMState.get(nameInMethod);
+              /*value.l match {
+                case Bound(t) => c.addConstraint(new Geq[IntervalsSymbolicValues](t.toArithmeticExpression(), SymbolicIntervalsUtility.toArithmeticExpression(expr, classe, calledMethod, SymbolicContractTypes.min, TypeOfContracts.precondition)))
+                case _ => printer.add(new WarningProgramPoint(statement.getPC(), "Symbolic intervals have no information on the lower bound of variable "+nameInMethod+" that is passed as argument to "+calledMethod+". Therefore we cannot enforce any constraint on that."))
+              }
+              value.r match {
+                case Bound(t) => c.addConstraint(new Geq[IntervalsSymbolicValues](SymbolicIntervalsUtility.toArithmeticExpression(expr, classe, calledMethod, SymbolicContractTypes.max, TypeOfContracts.precondition), t.toArithmeticExpression()))
+                case _ => printer.add(new WarningProgramPoint(statement.getPC(), "Symbolic intervals have no information on the upper bound of variable "+nameInMethod+" that is passed as argument to "+calledMethod+". Therefore we cannot enforce any constraint on that."))
+              }*/
+            }
+          case _ =>
+        }
+    case _ =>
+  }
+
+}
+
+object SymbolicDBMUtility {
+
+  def extractInt(exp : Expression, swap : Boolean) : Int = exp match {
+    case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.+, returntyp) =>
+      return if(swap) 0-Integer.parseInt(right.constant) else Integer.parseInt(right.constant)
+    case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.-, returntyp) =>
+      return if(swap) Integer.parseInt(right.constant) else 0-Integer.parseInt(right.constant)
+    case id : Identifier =>
+      return 0
+  }
+
+  def extractId(exp : Expression) : Identifier = exp match {
+    case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.+, returntyp) =>
+      return left;
+    case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.-, returntyp) =>
+      return left;
+    case id : Identifier =>
+      return id
+  }
+
+  /*def toArithmeticExpression(exp : Expression, className : Type, methodName : String, minmax : SymbolicContractTypes.Value, typ : TypeOfContracts.Value) : ArithmeticExpression[DBMSymbolicValue] = exp match {
+    case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.+, returntyp) =>
+      return new Add(new Multiply[DBMSymbolicValue](new SimpleVal[DBMSymbolicValue](1), new IntervalsSymbolicValues(className, methodName, typ, left, minmax)), new SimpleVal[DBMSymbolicValue](Integer.parseInt(right.constant)))
+    case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.+, returntyp) =>
+      return new Add(new Multiply[DBMSymbolicValue](new SimpleVal[DBMSymbolicValue](1), new IntervalsSymbolicValues(className, methodName, typ, left, minmax)), new SimpleVal[DBMSymbolicValue](0-Integer.parseInt(right.constant)))
+    case id : Identifier =>
+      return new Multiply[DBMSymbolicValue](new SimpleVal[IntervalsSymbolicValues](1), new IntervalsSymbolicValues(className, methodName, typ, id, minmax))
+  }*/
+
+  def castState[S1 <: State[S1], H <: HeapDomain[H, I], I <: HeapIdentifier[I], T <: SymbolicInt[T, DBMSymbolicValue]](state : S1) = state.asInstanceOf[GenericAbstractState[SymbolicDBM[T, DBMSymbolicValue], H, I]];
+}
