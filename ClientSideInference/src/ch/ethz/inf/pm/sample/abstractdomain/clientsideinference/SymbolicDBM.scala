@@ -262,10 +262,22 @@ class SymbolicDBM[T <: SymbolicInt[T, S], S <: SymbolicValue[S]]() extends Simpl
   def merge(f: Replacement) : SymbolicDBM[T,S] =
     if(f.isEmpty()) return this
     else throw new SymbolicDBMException("Merge not yet supported")
-
 }
 
 class DBMSymbolicValue(val classe : Type, val method : String, var typ : TypeOfContracts.Value, val v1 : Identifier, val v2 : Identifier) extends SymbolicValue[DBMSymbolicValue] {
+
+  def minimize() : Boolean = {
+    if(this.typ==TypeOfContracts.precondition) {
+      if(SymbolicSettings.precondition==TypeOfInference.weakest)
+        return false;
+      else return true;
+    }
+    else {
+      if(SymbolicSettings.postcondition==TypeOfInference.weakest)
+        return false;
+      else return true;
+    }
+  }
 
   def <=(a: DBMSymbolicValue, b : DBMSymbolicValue) : Boolean = false;
 
@@ -288,32 +300,68 @@ class SymbolicDBMAnalysis[T <: SymbolicInt[T, DBMSymbolicValue]] extends Semanti
 
   override def getLabel() = "Symbolic DBM inference"
 
-  override def parameters() : List[(String, Any)] = Nil;
+  override def parameters() : List[(String, Any)] = List(("Precondition", List("Weakest", "Strongest")), ("Postcondition", List("Weakest", "Strongest")));
 
-  override def setParameter(label : String, value : Any) : Unit = throw new SymbolicIntException("Paramters not supported")
+  override def setParameter(label : String, value : Any) : Unit =   label match {
+    case "Precondition" => value match {
+      case "Weakest" => SymbolicSettings.precondition=TypeOfInference.weakest
+      case "Strongest" => SymbolicSettings.precondition=TypeOfInference.strongest
+    }
+    case "Postcondition" => value match {
+      case "Weakest" => SymbolicSettings.precondition=TypeOfInference.weakest
+      case "Strongest" => SymbolicSettings.precondition=TypeOfInference.strongest
+    }
+  }
 
   override def getInitialState() : SymbolicDBM[T, DBMSymbolicValue] = new SymbolicDBM[T, DBMSymbolicValue]();
 
-  override def getProperties() : Set[Property] = Set(ShowGraph, new SymbolicDBMProperty(new ConstraintsInference[DBMSymbolicValue, T]()));
+  override def getProperties() : Set[Property] = Set(ShowGraph, new ConstraintSolverProperty(new SymbolicDBMProperty(new ConstraintsInference[DBMSymbolicValue, T]())));
 }
 
 class SymbolicDBMException(s : String) extends Exception(s)
 
 
-class SymbolicDBMProperty[T <: SymbolicInt[T, DBMSymbolicValue]](val c : ConstraintsInference[DBMSymbolicValue, T]) extends Property {
+class SymbolicDBMProperty[T <: SymbolicInt[T, DBMSymbolicValue]](val c : ConstraintsInference[DBMSymbolicValue, T]) extends ConstraintsInferenceProperty[DBMSymbolicValue, T] {
   val v = new SymbolicDBMMethodCallVisitor[T](c);
   val property1 = new SingleStatementProperty(v)
 
   def getLabel() : String = "Contract Inference for Symbolic DBMs";
 
-  def finalizeChecking(printer : OutputCollector) : Unit = c.printConstraints()
+  def finalizeChecking(printer : OutputCollector) : Unit = Unit
+
+  def getConstraintsInference() : ConstraintsInference[DBMSymbolicValue, T] = c;
 
   def check[S <: State[S]](classe : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
     property1.check(classe, methodName, result, printer);
-    def exitState = result.exitState();
+    val exitState = result.exitState();
     for(exp <- exitState.getExpression().getExpressions()) {
+      val (renamedExp, varId) = SymbolicSettings.renameSingle(exp, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()), false)
       val state = SymbolicDBMUtility.castState(exitState.getExpression().get(exp))
-      //val value = state._1.getSemanticDomain().asInstanceOf[SymbolicDBM[T, DBMSymbolicValue]].eval(exp, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()));
+      val value = state._1.getSemanticDomain().asInstanceOf[SymbolicDBM[T, DBMSymbolicValue]];
+      for(constr <- value.matrix.keySet) {
+        if(constr._1.equals(DBMSetting.getIndex(varId))) {
+          val v : T = value.matrix.apply(constr)
+          val y =  DBMSetting.getId(constr._2);
+          renamedExp match {
+            case VariableIdentifier("result", typ, pp) =>
+              c.addConstraint(new Geq[DBMSymbolicValue](
+                new Multiply[DBMSymbolicValue](new SimpleVal[DBMSymbolicValue](1), new DBMSymbolicValue(classe, methodName, TypeOfContracts.postcondition, VariableIdentifier("result", typ, pp), y))
+                , v.toArithmeticExpression()));
+          }
+        }
+        if(constr._2.equals(DBMSetting.getIndex(varId))) {
+          val v : T = value.matrix.apply(constr)
+          val x =  DBMSetting.getId(constr._1);
+          renamedExp match {
+            case VariableIdentifier("result", typ, pp) =>
+              c.addConstraint(new Geq[DBMSymbolicValue](
+                new Multiply[DBMSymbolicValue](new SimpleVal[DBMSymbolicValue](1), new DBMSymbolicValue(classe, methodName, TypeOfContracts.postcondition, x, VariableIdentifier("result", typ, pp)))
+                , v.toArithmeticExpression()));
+          }
+        }
+      }
+      //TODO: I should add warnings for each missing relation, but I guess this would introduce too many alarms!
+
       /*value.l match {
         case Bound(t) => c.addConstraint(new Geq[DBMSymbolicValue](t.toArithmeticExpression(), new Multiply[DBMSymbolicValue](new SimpleVal[DBMSymbolicValue](1), new IntervalsSymbolicValues(classe, methodName, TypeOfContracts.postcondition, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()), SymbolicContractTypes.min))))
         case _ => printer.add(new WarningMethod(classe, methodName, "Symbolic intervals have no information on the lower bound of the returned value at the end of the method. Therefore we cannot enforce any constraint on that."))

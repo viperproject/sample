@@ -143,7 +143,7 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
 
   def assign(variable: Identifier, expr: Expression) = {
     var result = this.factory();
-    result.value=this.value+((variable, this.eval(expr, variable)));
+    result.value=this.value+((variable, this.eval(expr, variable.getType(), variable.getProgramPoint())));
     result;
   }
 
@@ -185,16 +185,16 @@ class SymbolicIntervals[T <: SymbolicInt[T, S], S <: SymbolicValue[S]] extends S
     else new Bound[T,S](l.get.max(l.get, r.get));
   }
 
-  def eval(expr : Expression, id : Identifier) : SingleSymbolicInterval[T, S] = expr match {
+  def eval(expr : Expression, typ : Type, pp : ProgramPoint) : SingleSymbolicInterval[T, S] = expr match {
     case AbstractMethodCall(thisExpr, parameters, calledMethod, retType) =>
       //TODO: thisExpr.getName() could be wrong since it could refer to the implementation of the method on a superclass
       new SingleSymbolicInterval(
-        Bound(SymbolicSettings.symbolicInt.factory(new IntervalsSymbolicValues(thisExpr.getType(), calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", id.getType(), id.getProgramPoint()), SymbolicContractTypes.min))),
-        Bound(SymbolicSettings.symbolicInt.factory(new IntervalsSymbolicValues(thisExpr.getType(), calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", id.getType(), id.getProgramPoint()), SymbolicContractTypes.max)))
+        Bound(SymbolicSettings.symbolicInt.factory(new IntervalsSymbolicValues(thisExpr.getType(), calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", typ, pp), SymbolicContractTypes.min))),
+        Bound(SymbolicSettings.symbolicInt.factory(new IntervalsSymbolicValues(thisExpr.getType(), calledMethod, TypeOfContracts.postcondition, new VariableIdentifier("result", typ, pp), SymbolicContractTypes.max)))
       )
     case BinaryArithmeticExpression(left, right, op, returntyp) =>
-      val l = this.eval(left, id)
-      val r = this.eval(right, id)
+      val l = this.eval(left, typ, pp)
+      val r = this.eval(right, typ, pp)
       if(l.equals(l.bottom()) || r.equals(r.bottom())) return l.bottom();
       if(l.equals(l.top()) || r.equals(r.top())) return l.top();
       op match {
@@ -245,6 +245,33 @@ class IntervalsSymbolicValues(val classe : Type, val method : String, val typeOf
     case _ => false;
   }
 
+  def minimize() : Boolean = {
+    if(this.typeOfContracts==TypeOfContracts.precondition) {
+      if(SymbolicSettings.precondition==TypeOfInference.weakest) {
+        if(this.typ==SymbolicContractTypes.min)
+          return true;
+        else return false;
+      }
+      else {
+        if(this.typ==SymbolicContractTypes.min)
+          return false;
+        else return true;
+      }
+    }
+    else {
+      if(SymbolicSettings.postcondition==TypeOfInference.weakest) {
+        if(this.typ==SymbolicContractTypes.min)
+          return true;
+        else return false;
+      }
+      else {
+        if(this.typ==SymbolicContractTypes.min)
+          return false;
+        else return true;
+      }
+    }
+  }
+
   override def hashCode() : Int = method.hashCode();
 
   def <=(a: IntervalsSymbolicValues, b : IntervalsSymbolicValues) : Boolean =
@@ -261,30 +288,41 @@ class SymbolicIntervalsAnalysis[T <: SymbolicInt[T, IntervalsSymbolicValues]] ex
 
   override def getLabel() = "Symbolic intervals inference"
 
-  override def parameters() : List[(String, Any)] = Nil;
+  override def parameters() : List[(String, Any)] = List(("Precondition", List("Weakest", "Strongest")), ("Postcondition", List("Weakest", "Strongest")));
 
-  override def setParameter(label : String, value : Any) : Unit = throw new SymbolicIntException("Paramters not supported")
+  override def setParameter(label : String, value : Any) : Unit =  label match {
+    case "Precondition" => value match {
+      case "Weakest" => SymbolicSettings.precondition=TypeOfInference.weakest
+      case "Strongest" => SymbolicSettings.precondition=TypeOfInference.strongest
+    }
+    case "Postcondition" => value match {
+      case "Weakest" => SymbolicSettings.precondition=TypeOfInference.weakest
+      case "Strongest" => SymbolicSettings.precondition=TypeOfInference.strongest
+    }
+  }
 
   override def getInitialState() : SymbolicIntervals[T, IntervalsSymbolicValues] = new SymbolicIntervals[T, IntervalsSymbolicValues]();
 
-  override def getProperties() : Set[Property] = Set(ShowGraph, new SymbolicIntervalsProperty(new ConstraintsInference[IntervalsSymbolicValues, T]()));
+  override def getProperties() : Set[Property] = Set(ShowGraph, new ConstraintSolverProperty(new SymbolicIntervalsProperty(new ConstraintsInference[IntervalsSymbolicValues, T]())));
 }
 
 
-class SymbolicIntervalsProperty[T <: SymbolicInt[T, IntervalsSymbolicValues]](val c : ConstraintsInference[IntervalsSymbolicValues, T]) extends Property {
+class SymbolicIntervalsProperty[T <: SymbolicInt[T, IntervalsSymbolicValues]](val c : ConstraintsInference[IntervalsSymbolicValues, T]) extends ConstraintsInferenceProperty[IntervalsSymbolicValues, T] {
   val v = new SymbolicIntervalsMethodCallVisitor[T](c);
   val property1 = new SingleStatementProperty(v)
 
   def getLabel() : String = "Contract Inference for Symbolic Intervals";
 
-  def finalizeChecking(printer : OutputCollector) : Unit = c.printConstraints()
+  def finalizeChecking(printer : OutputCollector) : Unit = Unit
+
+  def getConstraintsInference() : ConstraintsInference[IntervalsSymbolicValues, T] = c;
 
   def check[S <: State[S]](classe : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
     property1.check(classe, methodName, result, printer);
     def exitState = result.exitState();
     for(exp <- exitState.getExpression().getExpressions()) {
       val state = SymbolicIntervalsUtility .castState(exitState.getExpression().get(exp))
-      val value = state._1.getSemanticDomain().asInstanceOf[SymbolicIntervals[T, IntervalsSymbolicValues]].eval(exp, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()));
+      val value = state._1.getSemanticDomain().asInstanceOf[SymbolicIntervals[T, IntervalsSymbolicValues]].eval(exp, exp.getType(), exp.getProgramPoint());
       value.l match {
         case Bound(t) => c.addConstraint(new Geq[IntervalsSymbolicValues](t.toArithmeticExpression(), new Multiply[IntervalsSymbolicValues](new SimpleVal[IntervalsSymbolicValues](1), new IntervalsSymbolicValues(classe, methodName, TypeOfContracts.postcondition, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()), SymbolicContractTypes.min))))
         case _ => printer.add(new WarningMethod(classe, methodName, "Symbolic intervals have no information on the lower bound of the returned value at the end of the method. Therefore we cannot enforce any constraint on that."))
@@ -302,7 +340,28 @@ class SymbolicIntervalsMethodCallVisitor[T <: SymbolicInt[T, IntervalsSymbolicVa
 
   def getLabel() : String = "Contract Inference for Symbolic Intervals";
 
+  private def addSingleAssertion(e : Expression, state : SymbolicIntervals[T, IntervalsSymbolicValues], printer : OutputCollector) : Unit = e match {
+    case BinaryArithmeticExpression(left, right, ArithmeticOperator.>=,  returntyp) =>
+      val valueLeft = state.eval(left, left.getType(), left.getProgramPoint());
+      val valueRight = state.eval(right, right.getType(), right.getProgramPoint());
+      valueLeft.l match {
+        case Bound(l1) => valueRight.r match {
+          case Bound(r1) => c.addConstraint(new Geq[IntervalsSymbolicValues](l1.toArithmeticExpression(), r1.toArithmeticExpression()))
+          case _ => printer.add(new WarningProgramPoint(e.getProgramPoint(), "Symbolic intervals have no information on the upper bound of expression "+right+" that is in the assertion of "+e+". Therefore we cannot enforce any constraint on that."))
+        }
+        case _ => printer.add(new WarningProgramPoint(e.getProgramPoint(), "Symbolic intervals have no information on the lower bound of expression "+left+" that is in the assertion of "+e+". Therefore we cannot enforce any constraint on that."))
+      }
+    case BinaryArithmeticExpression(left, right, ArithmeticOperator.<=,  returntyp) =>
+      addSingleAssertion(new BinaryArithmeticExpression(right, left, ArithmeticOperator.>=,  returntyp), state, printer)
+    case _ =>
+      printer.add(new WarningProgramPoint(e.getProgramPoint(), "Symbolic intervals cannot manage expressions like "+e))
+  }
+
   def checkSingleStatement[S1 <: State[S1]](state : S1, statement : Statement, printer : OutputCollector) : Unit = statement match {
+    case MethodCall(pp, FieldAccess(pp1, FieldAccess(pp2, Variable(pp3, VariableIdentifier("this", pp4, typ4)) :: Nil, "Predef", typ2) :: Nil, "assert", typ), parametricTypes, p :: Nil, returnedType) =>
+      val exps = p.forwardSemantics(state).getExpression();
+      for(exp <- exps.getExpressions())
+        addSingleAssertion(exp, SymbolicIntervalsUtility.castState(exps.get(exp))._1.getSemanticDomain().asInstanceOf[SymbolicIntervals[T, IntervalsSymbolicValues]], printer);
     case x : MethodCall =>
       val resultState = x.forwardSemantics(state);
       for(exp <- resultState.getExpression().getExpressions())

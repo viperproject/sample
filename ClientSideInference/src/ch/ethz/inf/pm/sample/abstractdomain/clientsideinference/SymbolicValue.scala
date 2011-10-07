@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 trait SymbolicValue[T <: SymbolicValue[T]] {
   override def equals(o : Any) : Boolean;
   def <=(a : T, b : T) : Boolean;
+  def minimize() : Boolean;
 }
 
 object SymbolicSettings {
@@ -16,6 +17,10 @@ object SymbolicSettings {
       new Summation(Map.empty[S, Coefficient[T, S]], new IntervalsSymbolicValues(SystemParameters.typ.top(), "b", TypeOfContracts.precondition, new VariableIdentifier("v", SystemParameters.typ.top(), null), SymbolicContractTypes.min).asInstanceOf[S]),
       0,
       new IntervalsSymbolicValues(SystemParameters.typ.top(), "b", TypeOfContracts.precondition, new VariableIdentifier("v", SystemParameters.typ.top(), null), SymbolicContractTypes.min).asInstanceOf[S]).asInstanceOf[T];
+
+  var precondition : TypeOfInference.Value = TypeOfInference.weakest;
+
+  var postcondition : TypeOfInference.Value = TypeOfInference.strongest;
 
 
   /**
@@ -38,15 +43,25 @@ object SymbolicSettings {
       throw new SymbolicDBMException("Not allowed");
     var result : List[(Expression, Identifier)] = Nil;
     for(i <- 0 to parameters.size-1)
-      parameters.apply(i) match {
+      result = result ::: renameSingle (parameters.apply(i), methodNames.apply(i), swap) :: Nil;
+      /*parameters.apply(i) match {
         case id : Identifier => result = result ::: ((methodNames.apply(i), id)) :: Nil;
         case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.+, returntyp) =>
           result = result ::: ((BinaryArithmeticExpression(methodNames.apply(i), right, if(swap) ArithmeticOperator.- else ArithmeticOperator.+, returntyp), left)) :: Nil;
         case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.-, returntyp) =>
           result = result ::: ((BinaryArithmeticExpression(methodNames.apply(i), right, if(swap) ArithmeticOperator.+ else ArithmeticOperator.-, returntyp), left)) :: Nil;
-      }
+      } */
     return (classe, result);
   }
+
+  def renameSingle(exp : Expression, methodId : Identifier, swap : Boolean) : (Expression, Identifier) =
+    exp match {
+        case id : Identifier => return ((methodId, id));
+        case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.+, returntyp) =>
+          return ((BinaryArithmeticExpression(methodId, right, if(swap) ArithmeticOperator.- else ArithmeticOperator.+, returntyp), left));
+        case BinaryArithmeticExpression(left : Identifier, right : Constant, ArithmeticOperator.-, returntyp) =>
+         return ((BinaryArithmeticExpression(methodId, right, if(swap) ArithmeticOperator.+ else ArithmeticOperator.-, returntyp), left));
+    }
 
   private def exprsToTypes(expr : List[Expression]) : List[Type] = expr match {
     case x :: x1 => x.getType() :: exprsToTypes(x1);
@@ -64,4 +79,9 @@ object SymbolicSettings {
 object TypeOfContracts extends Enumeration {
   val precondition = Value("Pre");
   val postcondition = Value("Post");
+}
+
+object TypeOfInference extends Enumeration {
+  val weakest = Value("Weakest");
+  val strongest = Value("Strongest");
 }

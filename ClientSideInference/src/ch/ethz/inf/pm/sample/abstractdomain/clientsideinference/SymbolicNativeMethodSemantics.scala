@@ -12,7 +12,7 @@ object SymbolicNativeMethodSemantics extends NativeMethodSemantics {
 	  case "Boolean" => return new Some(state); //TODO: Potentially not sound
    
 	  case className => {
-	 	if(operator.equals("==") || operator.equals("!=") || operator.equals("$asInstanceOf") || operator.equals("$isInstanceOf")) //to avoid comparison between references and type casts
+	 	if(operator.equals("==") || operator.equals("!=") || operator.equals("$asInstanceOf") || operator.equals("$isInstanceOf") || operator.equals("assert")) //to avoid comparison between references and type casts
 	 		return new Some(state);
     return extractMethodCall(state, thisExpr, parameters, operator, returnedtype)
 
