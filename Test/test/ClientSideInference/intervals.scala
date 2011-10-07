@@ -1,17 +1,18 @@
 abstract class Intervals {
-  def ex1(i : Int, j : Int, k : Int) = {
+  def ex1(i : Int) : Int = {
+    assert(i>=1);
+    return i+1;
+//    val result2 = ex2(j);
+//    val result3 = ex2(k);
   }
 
-  def ex2(kex2 : Int) = kex2;
+  def ex2(iex2 : Int, jex2 : Int) = iex2;
 
   def fibonacci(i : Int) : Int = {
-    var result = 0;
-    val k = 10;
     if(i==0)
-      result=1;
+      return 1;
     else
-      result=fibonacci(k);
-    return result;
+      return fibonacci(i-1)+fibonacci(i-2);
   }
 
   def getRandom(v : Int) : Int;
