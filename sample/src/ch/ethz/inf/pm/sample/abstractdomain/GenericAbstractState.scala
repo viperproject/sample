@@ -248,7 +248,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
  override def lub(l : T, r : T) : T = {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (d, rep) =d2.lubWithReplacement(l.d2, r.d2)
+    val (d, rep) =d2.lubWithReplacement(l.d2, r.d2, l.d1, r.d1)
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
@@ -261,7 +261,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
  override def glb(l : T, r : T) : T = {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (d, rep) =d2.glbWithReplacement(l.d2, r.d2)
+    val (d, rep) =d2.glbWithReplacement(l.d2, r.d2, l.d1, r.d1)
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
@@ -274,7 +274,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
  override def widening(l : T, r : T) : T = {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
-    val (d, rep) =d2.wideningWithReplacement(l.d2, r.d2)
+    val (d, rep) =d2.wideningWithReplacement(l.d2, r.d2, l.d1, r.d1)
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();

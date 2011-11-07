@@ -71,7 +71,7 @@ class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], 
  * @author Pietro Ferrara
  * @version 0.1
  */
-trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis with LatticeWithReplacement[T] {
+trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis with HeapLattice[T] {
 
   /**
    This method creates an object of a given type

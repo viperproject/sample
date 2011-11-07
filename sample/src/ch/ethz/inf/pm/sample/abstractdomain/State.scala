@@ -328,6 +328,77 @@ trait State[S <: State[S]] extends Lattice[S] {
 
 /**
  * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
+ * for the heap analysis. It is similar to LatticeWithReplacement but lub, glb and widening require the state
+ * of the semantic domain in order to refine their precision.
+ *
+ * @param <T> The current type of the HeapLattice
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
+trait HeapLattice[T <: HeapLattice[T]] {
+
+  /**
+   Returns a new instance of the lattice
+   @return A new instance of the current object
+   */
+  def factory() : T;
+
+  /**
+   Returns the top value of the lattice
+   @return The top value, that is, a value x that is greater or equal than any other value
+   */
+  def top() : T
+
+  /**
+   Returns the bottom value of the lattice
+   @return The bottom value, that is, a value x that is less or equal than any other value
+   */
+  def bottom() : T
+
+  /**
+     Computes the upper bound of two elements
+
+     @param left One of the two values
+     @param right The other value
+     @param leftSemantic The state of the semantic domain on the left state
+     @param rightSemantic The state of the semantic domain on the right state
+     @return The least upper bound, that is, an element that is greater or equal than the two arguments
+     */
+    def lubWithReplacement[S <: SemanticDomain[S]](left : T, right : T, leftSemantic : S, rightSemantic : S) : (T, Replacement)
+
+    /**
+     Computes the greatest lower bound of two elements
+
+     @param left One of the two values
+     @param right The other value
+     @param leftSemantic The state of the semantic domain on the left state
+     @param rightSemantic The state of the semantic domain on the right state
+     @return The greatest upper bound, that is, an element that is less or equal than the two arguments, and greater or equal than any other lower bound of the two arguments
+     */
+    def glbWithReplacement[S <: SemanticDomain[S]](left : T, right : T, leftSemantic : S, rightSemantic : S) : (T, Replacement)
+
+    /**
+     Computes widening of two elements
+
+     @param left The previous value
+     @param right The new value
+     @param leftSemantic The state of the semantic domain on the left state
+     @param rightSemantic The state of the semantic domain on the right state
+     @return The widening of <code>left</code> and <code>right</code>
+     */
+    def wideningWithReplacement[S <: SemanticDomain[S]](left : T, right : T, leftSemantic : S, rightSemantic : S) : (T, Replacement)
+
+  /**
+   Returns true iff <code>this</code> is less or equal than <code>r</code>
+
+   @param r The value to compare
+   @return true iff <code>this</code> is less or equal than <code>r</code>, and a replacement to compare the two states
+   */
+  def lessEqualWithReplacement(r : T) : (Boolean, Replacement)
+}
+
+/**
+ * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
  * that when joins, meets or widens returns a replacement.
  *
  * @param <T> The current type of the LatticeWithReplacement
