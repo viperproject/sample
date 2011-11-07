@@ -447,7 +447,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    * Least upper bound of heap states left and right. Produces a Replacement to be used
    * by the semantic domain.
    */
-  def lubWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = {
+  def lubWithReplacement[S <: SemanticDomain[S]](left: TVSHeap, right: TVSHeap, leftSemantic : S, rightSemantic : S): (TVSHeap, Replacement) = {
     if (left.isTop || right.isTop) return (top(), new Replacement)
     if (left.isBottom) return (right, new Replacement)
     if (right.isBottom) return (left, new Replacement)
@@ -471,7 +471,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    * Some support for a greatest lower bound. Only the obvious cases are handled.
    * There seems to be no support in TVLA for this notion.
    */
-  def glbWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = {
+  def glbWithReplacement[S <: SemanticDomain[S]](left: TVSHeap, right: TVSHeap, leftSemantic : S, rightSemantic : S): (TVSHeap, Replacement) = {
     if (left.isBottom || right.isBottom)  (bottom(), new Replacement)
     else if (left.isTop)  (right, new Replacement)
     else if (right.isTop)  (left, new Replacement)
@@ -547,7 +547,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
   def getIds(): Set[Identifier] = null
 
-  def wideningWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = (left, new Replacement)
+  def wideningWithReplacement[S <: SemanticDomain[S]](left: TVSHeap, right: TVSHeap, leftSemantic : S, rightSemantic : S): (TVSHeap, Replacement) = (left, new Replacement)
 
 
   // not implemented
