@@ -128,9 +128,9 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def endOfAssignment() = (this, new Replacement());
 
   override def getIds : Set[Identifier] = (this._1.getIds++this._2.getIds).asInstanceOf[Set[Identifier]];
-  override def lubWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.lub(left, right), new Replacement)
-  override def glbWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.glb(left, right), new Replacement)
-  override def wideningWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = (this.widening(left, right), new Replacement)
+  override def lubWithReplacement[S <: SemanticDomain[S]](left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I], leftSemantic : S, rightSemantic : S) = (this.lub(left, right), new Replacement)
+  override def glbWithReplacement[S <: SemanticDomain[S]](left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I], leftSemantic : S, rightSemantic : S) = (this.glb(left, right), new Replacement)
+  override def wideningWithReplacement[S <: SemanticDomain[S]](left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I], leftSemantic : S, rightSemantic : S) = (this.widening(left, right), new Replacement)
   override def lessEqualWithReplacement(right : NonRelationalHeapDomain[I]) = (this.lessEqual(right), new Replacement)
   override def reset() : Unit = {
      if(NonRelationalHeapDomainSettings.unsoundEntryState)
