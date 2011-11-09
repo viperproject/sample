@@ -436,7 +436,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   /**
    * Some support for a <= relation on heap states
    */
-  def lessEqualWithReplacement(r: TVSHeap): (Boolean, Replacement) = {
+  def lessEqualWithReplacement[S <: SemanticDomain[S]](r: TVSHeap, thisSemantic : S, rSemantic : S): (Boolean, Replacement) = {
     if (this.isBottom) return (true, new Replacement());
     if (r.isTop) return (true, new Replacement());
 
