@@ -89,9 +89,10 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    @param length the length of the array to be created
    @param typ its type
    @param pp the program point
+   @param state the state of the semantic domain at that point.
    @return the heap id of the array, the state after this action, and the replacement caused by the creation of the array
    */
-  def createArray(length : Expression, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
+  def createArray[S <: SemanticDomain[S]](length : Expression, typ : Type, pp : ProgramPoint, state : S) : (HeapIdSetDomain[I], T, Replacement);
 
   /**
    This method returns an id of the length of a given array

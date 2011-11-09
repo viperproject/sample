@@ -555,7 +555,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def backwardAccess(field: Assignable) = throw new NotImplementedException("not implemented yet")
   override def setArgument(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
   def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S) = throw new NotImplementedException("not implemented yet")
-  def createArray(length: Expression, typ: Type, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
+  def createArray[S <: SemanticDomain[S]](length: Expression, typ: Type, pp: ProgramPoint, state : S) = throw new NotImplementedException("not implemented yet")
   def getArrayLength(arrayIdentifier: Assignable) = throw new NotImplementedException("not implemented yet")
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
         typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")

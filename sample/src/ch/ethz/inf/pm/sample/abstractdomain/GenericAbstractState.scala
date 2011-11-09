@@ -354,7 +354,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     var heapId : HeapIdSetDomain[I] = null;
 
     for(exp <- length.getExpressions()) {
-      var (createdLocation, newHeap, rep)=length.get(exp)._1._2.createArray(exp, typ, pp);
+      var (createdLocation, newHeap, rep)=length.get(exp)._1._2.createArray(exp, typ, pp, length.get(exp)._1._1);
       result=result.lub(result, new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap));
       heapId = heapId match {
         case null => createdLocation;
