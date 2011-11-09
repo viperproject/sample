@@ -392,9 +392,11 @@ trait HeapLattice[T <: HeapLattice[T]] {
    Returns true iff <code>this</code> is less or equal than <code>r</code>
 
    @param r The value to compare
+   @param thisSemantic The state of the semantic domain on the state of this
+   @param rSemantic The state of the semantic domain on the state of r
    @return true iff <code>this</code> is less or equal than <code>r</code>, and a replacement to compare the two states
    */
-  def lessEqualWithReplacement(r : T) : (Boolean, Replacement)
+  def lessEqualWithReplacement[S <: SemanticDomain[S]](r : T, thisSemantic : S, rSemantic : S) : (Boolean, Replacement)
 }
 
 /**

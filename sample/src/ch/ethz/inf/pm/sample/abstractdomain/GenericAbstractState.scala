@@ -285,10 +285,10 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
  override def lessEqual(r : T) : Boolean = {
-    if(this.d1.lessEqual(this.d1.bottom()) || this.d2.lessEqualWithReplacement(this.d2.bottom())._1) return true;
-    if(r.d1.lessEqual(r.d1.bottom()) || r.d2.lessEqualWithReplacement(r.d2.bottom())._1) return false;
+    if(this.d1.lessEqual(this.d1.bottom()) || this.d2.lessEqualWithReplacement(this.d2.bottom(), this.d1, this.d1.bottom())._1) return true;
+    if(r.d1.lessEqual(r.d1.bottom()) || r.d2.lessEqualWithReplacement(r.d2.bottom(), r.d1, r.d1.bottom())._1) return false;
     SystemParameters.heapTimer.start();
-    var (b, rep) = d2.lessEqualWithReplacement(r.d2)
+    var (b, rep) = d2.lessEqualWithReplacement(r.d2, this.d1, r.d1)
     SystemParameters.heapTimer.stop();
     if(! b) return false;
     SystemParameters.domainTimer.start();
