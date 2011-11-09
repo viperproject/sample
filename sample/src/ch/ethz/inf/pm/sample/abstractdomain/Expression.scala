@@ -521,6 +521,17 @@ object Normalizer {
     case _ => return false;
   }
 
+  /**
+   * This methods substitutes every occurrence of id in exp for subExp. There is no renaming ids.
+   * E.g. substitute(3x+1, x, y+1) == 3(y+1)+1
+   *      substitute(3x+1, x, x+y) == 3(x+y)+1
+   *      substitute(3x+1, y, y+1) == 3x+1
+   *
+   * @param exp is an expression to which we want to substitute id
+   * @param id is an id for which we want to substitute subExp in exp
+   * @param is an expression that we want to substitute exp for id
+   * @return an expression in which every id in exp is substituted with subExp
+   */
   def substitute[I <: HeapIdentifier[I]](exp: Expression, id: Identifier, subExp: Expression) : Expression = {
     if (exp.getType().equals(subExp.getType())) {
       throw new Exception("Can not substitute an expression of different type to an expression.");
