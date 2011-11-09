@@ -145,7 +145,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Assignable, index : Expression, state : S, typ : Type)
     = (new MaybeHeapIdSetDomain().convert(dom.getArrayCell(arrayIdentifier, index)), this, new Replacement);
 
-  override def createArray(length : Expression, typ : Type, pp : ProgramPoint)
+  override def createArray[S <: SemanticDomain[S]](length : Expression, typ : Type, pp : ProgramPoint, state : S)
     = (new MaybeHeapIdSetDomain().convert(dom.createArray(length, typ, pp)), this, new Replacement);
 
   override def getArrayLength(id : Assignable)
