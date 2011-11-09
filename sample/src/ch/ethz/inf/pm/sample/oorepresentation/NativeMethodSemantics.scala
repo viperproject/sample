@@ -8,7 +8,13 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		case "Array" => operator match {
 		      case "this" => parameters match {
 		        case x :: Nil =>
-              return Some(state.createArray(x, returnedtype, programpoint))
+              var newState = state.createArray(x, returnedtype, programpoint);
+              val arrayId = newState.getExpression();
+              newState = newState.getArrayLength(arrayId);
+              val arrayLengthId = newState.getExpression();
+              newState = newState.assignVariable(arrayLengthId, x);
+              return Some(newState);
+              //return Some(state.createArray(x, returnedtype, programpoint))
 		      }
 		      case "update" => parameters match {
 		     	case index :: value :: Nil =>
