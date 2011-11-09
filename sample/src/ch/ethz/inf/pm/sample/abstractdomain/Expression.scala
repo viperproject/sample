@@ -483,16 +483,9 @@ object Normalizer {
     /*
      * ARITHMETIC EXPRESSIONS
      */
-    case BinaryArithmeticExpression(left, right, op, typ) => {
-      val l: Boolean = contains(left, id);
-      val r: Boolean = contains(left, id);
-      return (l || r);
-    }
+    case BinaryArithmeticExpression(left, right, op, typ) => return contains[I](left, id) || contains[I](left, id);
 
-    case UnaryArithmeticExpression(left, op, typ) => {
-      val l: Boolean = contains(left, id);
-      return l;
-    }
+    case UnaryArithmeticExpression(left, op, typ) => return contains[I](left, id);
 
     case Constant(c, t, pp) => return false;
 
@@ -500,12 +493,12 @@ object Normalizer {
 
     case x : AbstractOperator => return false;
 
-    // I assume that the indentifiers are the same if they have the same name.
+    // I assume that the identifiers are the same if they have the same name.
     case x : Identifier => return id.getName().equals(x.getName());
 
     case x : HeapIdSetDomain[I] => {
       if (id.isInstanceOf[I]) {
-        return x.value.contains(id.asInstanceOf[I]);
+        return x.value.contains[I](id.asInstanceOf[I]);
       } else {
         return false;
       }
@@ -515,11 +508,17 @@ object Normalizer {
      * BOOLEAN EXPRESSIONS
      */
 
-    case BinaryBooleanExpression(left, right, op, typ) => {
-      val l: Boolean = contains(left, id);
-      val r: Boolean = contains(left, id);
-      return (l || r);
-    }
+    case BinaryBooleanExpression(left, right, op, typ) => return contains[I](left, id) || contains[I](left, id);
+
+    case NegatedBooleanExpression(x) => return contains[I](x, id);
+
+    /*
+     * REFERENCE EXPRESSIONS
+     */
+
+    case ReferenceComparisonExpression(left, right, op, typ) => return contains[I](left, id) || contains[I](right, id);
+
+    case _ => return false;
   }
   
 }
