@@ -428,7 +428,7 @@ object Normalizer {
 
 
   /**
-   * This methods normalizes an expression to a form c1*v+c2 where c1 and c2 are constants and v is an identifier.
+   * This methods normalizes an arithmetic expression to a form c1*v+c2 where c1 and c2 are constants and v is an identifier.
    * If such a normalization is not possible, null is returned.
    * E.g. 3x+2+x will be normalized to 4x+2 and x+y+1 will return null.
    *
@@ -498,7 +498,7 @@ object Normalizer {
 
     case x : HeapIdSetDomain[I] => {
       if (id.isInstanceOf[I]) {
-        return x.value.contains[I](id.asInstanceOf[I]);
+        return x.value.contains(id.asInstanceOf[I]);
       } else {
         return false;
       }
@@ -520,5 +520,112 @@ object Normalizer {
 
     case _ => return false;
   }
-  
+
+  def substitute[I <: HeapIdentifier[I]](exp: Expression, id: Identifier, subExp: Expression) : Expression = {
+    if (exp.getType().equals(subExp.getType())) {
+      throw new Exception("Can not substitute an expression of different type to an expression.");
+    }
+
+    if (contains[I](exp, id)) {
+      exp match {
+        /*
+         * ARITHMETIC EXPRESSIONS
+         */
+        case BinaryArithmeticExpression(left, right, op, typ) => {
+          return new BinaryArithmeticExpression(substitute[I](left, id, subExp), substitute[I](right, id, subExp), op, typ)
+        }
+
+        case UnaryArithmeticExpression(left, op, typ) => return substitute[I](left, id, subExp);
+
+        case Constant(c, t, pp) => return exp;
+
+        case UnitExpression(t, pp) => return exp;
+
+        case x : AbstractOperator => return exp;
+
+        // I assume that the identifiers are the same if they have the same name.
+        case x : Identifier => {
+          if (x.getName().equals(id.getName())) {
+            return subExp;
+          } else {
+            return exp;
+          }
+        }
+
+        case x : HeapIdSetDomain[I] => {
+          if (exp.isInstanceOf[I] && id.isInstanceOf[I] && x.value.contains(id.asInstanceOf[I])) {
+            return x.remove(id.asInstanceOf[I]).add(exp.asInstanceOf[I]);
+          } else {
+            return exp;
+          }
+        }
+
+        /*
+         * BOOLEAN EXPRESSIONS
+         */
+
+        case BinaryBooleanExpression(left, right, op, typ) => {
+          return new BinaryBooleanExpression(substitute[I](left, id, subExp), substitute[I](right, id, subExp), op, typ)
+        }
+
+        case NegatedBooleanExpression(x) => return substitute[I](x, id, subExp);
+
+        /*
+         * REFERENCE EXPRESSIONS
+         */
+
+        case ReferenceComparisonExpression(left, right, op, typ) => {
+          return new ReferenceComparisonExpression(substitute[I](left, id, subExp), substitute[I](right, id, subExp), op, typ)
+        }
+
+        case _ => throw new Exception("Can not substitute " + subExp.toString + " for " + id.getName() + " in " + exp.toString);
+      }
+    } else {
+      return exp;
+    }
+  }
+
+  /**
+   * This methods returns all the identifiers (variable identifiers, heapIds, ...) that occur in the given expression exp.
+   * E.g.: When exp=3x+4z+2 then getIdsForExpression(exp) will return {x,y}
+   *
+   * @param exp is the expression from which we want all the identifiers
+   * @return a set of identifiers that occur in the given expression
+   */
+  def getIdsForExpression[I <: HeapIdentifier[I]](exp: Expression): Set[Identifier] = exp match {
+
+    /*
+     * ARITHMETIC EXPRESSIONS
+     */
+    case BinaryArithmeticExpression(left, right, op, typ) => return getIdsForExpression[I](left).union(getIdsForExpression[I](right));
+
+    case UnaryArithmeticExpression(left, op, typ) => return getIdsForExpression[I](left);
+
+    case Constant(c, t, pp) => return Set.empty[Identifier];
+
+    case UnitExpression(t, pp) => return Set.empty[Identifier];
+
+    case x : AbstractOperator => return Set.empty[Identifier];
+
+    // I assume that the identifiers are the same if they have the same name.
+    case x : Identifier => return Set.empty[Identifier].+(x);
+
+    case x : HeapIdSetDomain[I] => return x.value.asInstanceOf[Set[Identifier]];
+
+    /*
+     * BOOLEAN EXPRESSIONS
+     */
+
+    case BinaryBooleanExpression(left, right, op, typ) => return getIdsForExpression[I](left).union(getIdsForExpression[I](right));
+
+    case NegatedBooleanExpression(x) => return getIdsForExpression[I](x);
+
+    /*
+     * REFERENCE EXPRESSIONS
+     */
+
+    case ReferenceComparisonExpression(left, right, op, typ) => return getIdsForExpression[I](left).union(getIdsForExpression[I](right));
+
+    case _ => return Set.empty[Identifier];
+  }
 }
