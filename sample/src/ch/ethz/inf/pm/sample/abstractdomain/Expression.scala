@@ -425,5 +425,101 @@ object Normalizer {
     case Nil => Nil;
     case (n, v) :: xs => (f(n), v) :: transform(xs, f)
   }
+
+
+  /**
+   * This methods normalizes an expression to a form c1*v+c2 where c1 and c2 are constants and v is an identifier.
+   * If such a normalization is not possible, null is returned.
+   * E.g. 3x+2+x will be normalized to 4x+2 and x+y+1 will return null.
+   *
+   * @param exp is an expression to be normalized
+   * @return None if the expression can not be normalized, otherwise it returns Some(normExp) represeting exp in the form c1*v+c2 where c1 and c2 are constants, v is an identifier and exp == normExp == c1*v+c2.
+   */
+  def normalizeToCoefVarCost(exp : Expression): Option[Expression] = {
+    exp match {
+      case x: Constant => {
+        return Some(exp);
+      }
+      case _ => {
+        Normalizer.arithmeticExpressionToMonomes(exp) match {
+          case None => {
+            return None;
+          }
+          case Some((monomes, const)) => {
+            val constExp = new Constant(const.toString, exp.getType(), exp.getProgramPoint());
+            monomes.length match {
+              case 0 => {
+                return Some(constExp);
+              }
+                // TODO: this should be reimplemented - ugly
+              case 1 => {
+                var result : BinaryArithmeticExpression = null;
+                for ((coef, id) <- monomes) {
+                  val coefExp = new Constant(coef.toString, exp.getType(), exp.getProgramPoint());
+                  val coefAndVarExp : BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.getType());
+                  result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.getType());
+                }
+                return Some(result);
+              }
+              case _ => {
+                return None;
+              }
+            }
+          }
+		    }
+      }
+    }
+	}
+
+  /**
+   * This methods returns if a given expression contains the given id. Two ids are the same if they have the same name.
+   *
+   * @param exp is an expression to check
+   * @param id is an Identifier that we should check
+   * @return true if id among identifiers in exp, false otherwise
+   */
+  def contains[I <: HeapIdentifier[I]](exp: Expression, id: Identifier): Boolean = exp match {
+
+    /*
+     * ARITHMETIC EXPRESSIONS
+     */
+    case BinaryArithmeticExpression(left, right, op, typ) => {
+      val l: Boolean = contains(left, id);
+      val r: Boolean = contains(left, id);
+      return (l || r);
+    }
+
+    case UnaryArithmeticExpression(left, op, typ) => {
+      val l: Boolean = contains(left, id);
+      return l;
+    }
+
+    case Constant(c, t, pp) => return false;
+
+    case UnitExpression(t, pp) => return false;
+
+    case x : AbstractOperator => return false;
+
+    // I assume that the indentifiers are the same if they have the same name.
+    case x : Identifier => return id.getName().equals(x.getName());
+
+    case x : HeapIdSetDomain[I] => {
+      if (id.isInstanceOf[I]) {
+        return x.value.contains(id.asInstanceOf[I]);
+      } else {
+        return false;
+      }
+    }
+
+    /*
+     * BOOLEAN EXPRESSIONS
+     */
+
+    case BinaryBooleanExpression(left, right, op, typ) => {
+      val l: Boolean = contains(left, id);
+      val r: Boolean = contains(left, id);
+      return (l || r);
+    }
+  }
   
 }
