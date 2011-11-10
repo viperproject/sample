@@ -189,6 +189,20 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
   }
 
   /**
+   * Creates an array in all leaf states.
+	 *
+   * @param length
+   * @param t
+   * @param pp
+   * @return The state after creating the array in all leaves
+   *
+   * @see #map
+   */
+	override def createArray(length : SymbolicAbstractValue[PartitionedState[D]], typ : Type, pp : ProgramPoint) : PartitionedState[D] = {
+    mapValue(length, (s, v) => s.createArray(v, typ, pp))
+  }
+
+  /**
    * Creates an object for a parameter in all leaf states.
 	 *
    * @param t
@@ -198,8 +212,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #map
    */
-	override def createObjectForParameter(t: Type, pp: ProgramPoint, path: List[String]): PartitionedState[D] = {
-		map(_.createObjectForParameter(t, pp, path))
+	override def createObjectForArgument(t: Type, pp: ProgramPoint, path: List[String]): PartitionedState[D] = {
+		map(_.createObjectForArgument(t, pp, path))
   }
 
   /**
@@ -227,8 +241,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValue
    */
-	override def createVariableForParameter(x: SymbolicAbstractValue[PartitionedState[D]], t: Type): PartitionedState[D] = {
-		mapValue(x, (s, v) => s.createVariableForParameter(v, t))
+	override def createVariableForArgument(x: SymbolicAbstractValue[PartitionedState[D]], t: Type): PartitionedState[D] = {
+		mapValue(x, (s, v) => s.createVariableForArgument(v, t))
   }
 
   /**
@@ -269,8 +283,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValues
    */
-	override def setParameter(x: SymbolicAbstractValue[PartitionedState[D]], r: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
-		mapValues(x, r, (s, ex, er) => s.setParameter(ex, er))
+	override def setArgument(x: SymbolicAbstractValue[PartitionedState[D]], r: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+		mapValues(x, r, (s, ex, er) => s.setArgument(ex, er))
   }
 
   /**
@@ -337,6 +351,19 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    */
 	override def getFieldValue(o: List[SymbolicAbstractValue[PartitionedState[D]]], f: String, t: Type): PartitionedState[D] = {
 		mapValueList(o, (s, v) => s.getFieldValue(v, f, t))
+  }
+
+  /**
+   * Gets the length of an array from all leaf states.
+	 *
+   * @param o
+   * @return The lub of all partitioned states after mapping all combinations
+   * of <code>o</code> and <code>i</code> on all leaves
+   *
+   * @see #mapValueLists
+   */
+	override def getArrayLength(o: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+    mapValue(o, (s, v) => s.getArrayLength(v))
   }
 
   /**
