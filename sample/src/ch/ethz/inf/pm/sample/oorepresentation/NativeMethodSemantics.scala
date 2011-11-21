@@ -13,6 +13,10 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
               newState = newState.getArrayLength(arrayId);
               val arrayLengthId = newState.getExpression();
               newState = newState.assignVariable(arrayLengthId, x);
+              var newSymbAV=new SymbolicAbstractValue[S]();
+              for(exp <- arrayId.getExpressions())
+                newSymbAV=newSymbAV.add(exp, newState);
+              newState=newState.setExpression(newSymbAV)
               return Some(newState);
               //return Some(state.createArray(x, returnedtype, programpoint))
 		      }

@@ -35,7 +35,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def getIds() = this._1.getIds()++this._2.getIds();
 
-  def factory() = new HeapAndAnotherDomain[N, H, I](d1.factory(), d2.factory());
+  def factory() = {
+//    assert(d1 != null);
+//    assert(d2 != null);
+    new HeapAndAnotherDomain[N, H, I](d1.factory(), d2.factory());
+  }
   
   def createVariableForArgument(variable : Assignable, typ : Type, path : List[String]) = {
     SystemParameters.heapTimer.start();
