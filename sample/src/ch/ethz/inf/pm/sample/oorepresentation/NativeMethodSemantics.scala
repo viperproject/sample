@@ -8,22 +8,30 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		case "Array" => operator match {
 		      case "this" => parameters match {
 		        case x :: Nil =>
-              if(x.getExpressions.size!=1) throw new SemanticException("Not yet supported")
-              var newState = x.get(x.getExpressions.iterator.next()).createArray(x, returnedtype, programpoint);
+              var newState = state.createArray(x, returnedtype, programpoint);
               val arrayId = newState.getExpression();
               newState = newState.getArrayLength(arrayId);
               val arrayLengthId = newState.getExpression();
-              var newSymbAV=new SymbolicAbstractValue[S]();
-              for(exp <- arrayId.getExpressions()) {
-                var parameter = new SymbolicAbstractValue[S]();
-                for(exp <- x.getExpressions()) {
-                  parameter=parameter.add(exp, arrayId.get(exp));
-                }
-                val tempState = arrayId.get(exp).assignVariable(arrayLengthId, parameter);
-                newSymbAV=newSymbAV.add(exp, tempState);
-              }
-              newState=newState.setExpression(newSymbAV)
+              newState = newState.assignVariable(arrayLengthId, x);
+              newState = newState.createArray(x, returnedtype, programpoint);
               return Some(newState);
+//
+//              if(x.getExpressions.size!=1) throw new SemanticException("Not yet supported")
+//              var newState = x.get(x.getExpressions.iterator.next()).createArray(x, returnedtype, programpoint);
+//              val arrayId = newState.getExpression();
+//              newState = newState.getArrayLength(arrayId);
+//              val arrayLengthId = newState.getExpression();
+//              var newSymbAV=new SymbolicAbstractValue[S]();
+//              for(exp <- arrayId.getExpressions()) {
+//                var parameter = new SymbolicAbstractValue[S]();
+//                for(exp <- x.getExpressions()) {
+//                  parameter=parameter.add(exp, arrayId.get(exp));
+//                }
+//                val tempState = arrayId.get(exp).assignVariable(arrayLengthId, parameter);
+//                newSymbAV=newSymbAV.add(exp, tempState);
+//              }
+//              newState=newState.setExpression(newSymbAV)
+//              return Some(newState);
               //return Some(state.createArray(x, returnedtype, programpoint))
 		      }
 		      case "update" => parameters match {
