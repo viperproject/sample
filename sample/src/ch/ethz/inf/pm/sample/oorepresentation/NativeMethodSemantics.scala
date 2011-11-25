@@ -12,8 +12,18 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
               val arrayId = newState.getExpression();
               newState = newState.getArrayLength(arrayId);
               val arrayLengthId = newState.getExpression();
-              newState = newState.assignVariable(arrayLengthId, x);
-              newState = newState.createArray(x, returnedtype, programpoint);
+              if(arrayLengthId.value.size!=1) throw new SemanticException("Not yet supported");
+              newState = arrayLengthId.value.iterator.next._2;
+              var newSymbAV = new SymbolicAbstractValue[S]();
+              var parameter = new SymbolicAbstractValue[S]();
+              for(exp2 <- x.getExpressions()) {
+                parameter=parameter.add(exp2, newState);
+              }
+              for(exp <- arrayId.getExpressions()) {
+                val tempState = newState.assignVariable(arrayLengthId, parameter);
+                newSymbAV=newSymbAV.add(exp, tempState);
+              }
+              newState=newState.setExpression(newSymbAV)
               return Some(newState);
 //
 //              if(x.getExpressions.size!=1) throw new SemanticException("Not yet supported")

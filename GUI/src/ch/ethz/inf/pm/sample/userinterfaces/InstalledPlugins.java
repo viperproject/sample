@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
 import ch.ethz.inf.pm.sample.SystemParameters;
+import ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis.POPL2011.ArrayHeapDomain;
 import ch.ethz.inf.pm.sample.abstractdomain.clientsideinference.SymbolicDBMAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.clientsideinference.SymbolicIntervalsAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
@@ -42,11 +43,12 @@ public class InstalledPlugins {
         analyses[7]=new SymbolicDBMAnalysis();
         analyses[8]=new PosDomainAnalysis();
 
-        heapanalyses=new HeapDomain[4];
+        heapanalyses=new HeapDomain[5];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
         heapanalyses[1]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
         heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
         heapanalyses[3]=new TVSHeap();
+        heapanalyses[4]=new ArrayHeapDomain();
     }
 
     private static NonRelationalHeapDomain createNonRelationalHeapDomain(NonRelationalHeapIdentifier id) {

@@ -13,13 +13,14 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 object HeapIdSetFunctionalLifting {
 
 
-  def applyGetFieldId[N <: SemanticDomain[N], I <: HeapIdentifier[I], H <: HeapDomain[H, I]](createdLocation: HeapIdSetDomain[I], result2: HeapAndAnotherDomain[N, H, I], field: Identifier): (HeapIdSetDomain[I], H, Replacement) = {
+  def applyGetFieldId[N <: SemanticDomain[N], I <: HeapIdentifier[I], H <: HeapDomain[H, I]](createdLocation: HeapIdSetDomain[I], result : HeapAndAnotherDomain[N, H, I], f : Assignable => (HeapIdSetDomain[I], H, Replacement)): (HeapIdSetDomain[I], H, Replacement) = {
     var ids: Option[HeapIdSetDomain[I]] = None
     var state: Option[H] = None
     var rep2: Replacement = new Replacement
 
     for (id <- createdLocation.value) {
-      val (address, newHeap2, rep1) = result2._2.getFieldIdentifier(id, field.getName(), field.getType(), field.getProgramPoint());
+      val (address, newHeap2, rep1) = f(id)
+      //result2._2.getFieldIdentifier(id, field.getName(), field.getType(), field.getProgramPoint());
       ids match {
         case None => ids = Some(address);
         case Some(s) => ids = Some(createdLocation.combinator(s, address));
@@ -28,7 +29,7 @@ object HeapIdSetFunctionalLifting {
       state match {
         case None => state = Some(newHeap2);
         case Some(s) =>
-          val (s1, rep3) = createdLocation.heapcombinator(s, newHeap2, result2._1, result2._1);
+          val (s1, rep3) = createdLocation.heapcombinator(s, newHeap2, result._1, result._1);
           state = Some(s1);
           rep2 = rep2.lub(rep2, rep3);
       }
