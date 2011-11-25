@@ -50,6 +50,8 @@ public class JavaType implements Type {
     public Option getArrayElementsType() {
         return new Some(this);
     }
+
+
     /* methods from Lattice interface */
     public Type bottom() {
         return null;
