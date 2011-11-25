@@ -3,10 +3,33 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.property._;
+import ch.ethz.inf.pm.sample.property._
+import sun.net.ftp.FtpProtocolException
+import com.sun.org.omg.CORBA.IdentifierHelper
+;
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
-  override def merge(r : Replacement) = if(r.isEmpty) this; else throw new ApronException("Merge not yet implemented");
+  override def merge(r : Replacement) : ApronInterface = {
+    if(r.isEmpty) return this;
+    var result = new Abstract1(domain, state.getEnvironment(), true);//state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
+		if(! result.isBottom(domain)) throw new ApronException("I'm not able to create a bottom state");
+    var idsInDomain : Set[Identifier] = Set.empty
+    var idsInCodomain : Set[Identifier] = Set.empty
+    for(I1 <- r.value.keySet) {
+      idsInDomain=idsInDomain++I1;
+      for(id2 : Identifier <- r.value.apply(I1)) {
+        idsInCodomain=idsInCodomain++I1;
+        for(id1 <- I1) {
+          val temp = this.state.substituteCopy(domain, id2.getName(), this.toTexpr1Intern(id1, state.getEnvironment), this.state);
+          result=result.joinCopy(domain, temp)
+        }
+      }
+    }
+    if(! result.isBottom(domain)) throw new ApronException("This should not happen");
+    for(id <- idsInDomain.--(idsInCodomain))
+      result=result.forgetCopy(domain, id.getName(), false);
+    return new ApronInterface(result, domain)
+  };
 
   //TODO
   def getIds : Set[Identifier] = Set.empty[Identifier];
