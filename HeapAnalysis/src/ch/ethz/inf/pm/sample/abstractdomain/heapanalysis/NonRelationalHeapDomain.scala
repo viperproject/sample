@@ -198,7 +198,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 
   override def createVariable(variable : Assignable, typ : Type) =  variable match {
     case x : VariableIdentifier => (new NonRelationalHeapDomain(this._1.add(x, cod.bottom()), this._2, cod, dom), new Replacement);
-    case x : HeapIdSetDomain[I] => (this, new Replacement)
+    case x : I => (this, new Replacement)
   }
 
    override def createVariableForArgument(variable : Assignable, typ : Type, path : List[String])  =  variable match {
@@ -239,7 +239,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	      val adds = cod.convert(dom.createAddressForArgument(field.getType(), x.getProgramPoint));
         //I can ignore newHeap since it's equal to result as it is not changed by getFieldIdentifier
         //in the same way I ignore rep
-	      val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(cod.convert(obj), field.getName(), field.getType(), field.getProgramPoint());
+	      val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName(), field.getType(), field.getProgramPoint());
 	      for(id : I <- fieldAdd.value) {
 	    	  result=new NonRelationalHeapDomain(result._1, result._2.add(id, adds), cod, dom);
 	    	  ids=ids+((id, path ::: (field.getName()) :: Nil));

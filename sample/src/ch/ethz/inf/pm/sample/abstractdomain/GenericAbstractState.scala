@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
+import util.HeapIdSetFunctionalLifting
 
 /**
  * An abstract semantic domain that combines and heap and another semantic domain.
@@ -307,16 +308,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     variable match {
       case x : VariableIdentifier =>
         return functor(state, x)
-      case x : HeapIdSetDomain[I] =>
-        var result : L = state;
-        var first : Boolean = true;
-        for(singleid <- x.value)
-          if(first) {
-            first=false;
-            result=functor(result, singleid)
-          }
-          else
-            result=x.combinator(result, functor(result, singleid));
+      case x : I =>
+        var result : L = functor(state, x)
         return result;
     }
   }
@@ -390,17 +383,19 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     else return this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapId, new GenericAbstractState(result, this._2).removeExpression()));
   }
 
+
   def createObject(typ : Type, pp : ProgramPoint) : GenericAbstractState[N,H,I] =  {
     if(this.isBottom) return this;
     //It discharges on the heap analysis the creation of the object and its fields
     var (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
     var result=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap);
 
-    result=result.createVariable(createdLocation, typ)
+    result=HeapIdSetFunctionalLifting.applyToSetHeapId(createdLocation, result.createVariable(_, typ));
     var result2 = result;
     for(field <- typ.getPossibleFields()) {
-         val (address, newHeap2, rep1) = result2._2.getFieldIdentifier(createdLocation, field.getName(), field.getType(), field.getProgramPoint());
-         result2=new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep1), newHeap2).createVariable(address, field.getType());
+      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, field)
+
+      result2=HeapIdSetFunctionalLifting.applyToSetHeapId(ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()));
     }
     //val (h, rep2) = result2._2.endOfAssignment()
     //result2 = new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), h);
@@ -414,7 +409,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
     var result=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap);
      //It asks the semantic domain to simply create the initial value for the given identifier
-      val (result1, ids)=result.createVariableForArgument(createdLocation, typ, path);
+      val (result1, ids)=HeapIdSetFunctionalLifting.applyToSetHeapIdAndFunction(createdLocation, result.createVariableForArgument(_, typ, path));
       this.setExpression(new SymbolicAbstractValue[GenericAbstractState[N,H,I]](createdLocation, new GenericAbstractState(result1, this._2).removeExpression()));
   }
   
@@ -535,7 +530,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 	        }
           case heapid : HeapIdSetDomain[I] => {
 	          for(assigned <- right.value) {
-              val done=new GenericAbstractState[N,H,I](assigned._2._1.assignField(heapid, field, assigned._1, right.getType(this), heapid.getProgramPoint() ), this._2);
+              val done=new GenericAbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, assigned._2._1.assignField(_, field, assigned._1, right.getType(this), heapid.getProgramPoint() )), this._2);
               if(result==None)
                 result=Some(done)
 	        	  else result=Some(done.lub(result.get, done));
@@ -640,10 +635,17 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     for(obj : SymbolicAbstractValue[GenericAbstractState[N,H,I]] <- objs) {
     	//For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
       	for(expr <- obj.getExpressions) {
-        if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here");
-     	  val (heapid, newHeap, rep) = obj.get(expr)._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint());
+        if(! (expr.isInstanceOf[Assignable] || expr.isInstanceOf[HeapIdSetDomain[I]]))
+          throw new SymbolicSemanticException("Only assignable objects should be here");
+     	  val (heapid, newHeap, rep) =
+           if(expr.isInstanceOf[Assignable])
+             obj.get(expr)._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint());
+          else HeapIdSetFunctionalLifting.applyGetFieldId(expr.asInstanceOf[HeapIdSetDomain[I]], obj.get(expr)._1, new VariableIdentifier(field, typ, expr.getProgramPoint()));
+
+
+             //HeapIdSetFunctionalLifting.applyToSetHeapId(, obj.get(expr)._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint()));
         var result2=new HeapAndAnotherDomain[N, H, I](obj.get(expr)._1._1.merge(rep), newHeap);
-        val accessed=result2.access(heapid);
+        val accessed=HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, result2.access(_));
      	  val state=new GenericAbstractState(accessed, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed, this._2)));
      	  result=result.lub(result, state);
         }
@@ -660,7 +662,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       for(indexexpr <- index.getExpressions()) {
         val (heapid, newHeap, rep) = obj.get(expr)._1._2.getArrayCell(expr.asInstanceOf[Assignable], indexexpr, obj.get(expr)._1._1, typ);
         var result2=new HeapAndAnotherDomain[N, H, I](obj.get(expr)._1._1.merge(rep), newHeap);
-        val accessed=result2.access(heapid);
+        val accessed=HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, result2.access(_));
         val state=new GenericAbstractState(accessed, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed, this._2)));
         result=result.lub(result, state);
       }
@@ -705,7 +707,7 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
         if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here");
      	  val (heapid, newHeap, rep) = obj.get(expr)._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint());
         var result2=new HeapAndAnotherDomain[N, H, I](obj.get(expr)._1._1.merge(rep), newHeap);
-        var accessed = result2.backwardAccess(heapid)
+        var accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, result2.backwardAccess(_));
      	  val state=new GenericAbstractState(accessed, new SymbolicAbstractValue[GenericAbstractState[N,H,I]](heapid, new GenericAbstractState(accessed, this._2)));
      	  result=result.lub(result, state);
         }
@@ -721,6 +723,11 @@ class GenericAbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     	if(expr._1.isInstanceOf[Assignable]) {
         val variable : Assignable = expr._1.asInstanceOf[Assignable]
         result=result.lub(result, new GenericAbstractState(this._1.setToTop(variable), this._2));
+      }
+      else if(expr._1.isInstanceOf[HeapIdSetDomain[I]]) {
+        val variable : HeapIdSetDomain[I] = expr._1.asInstanceOf[HeapIdSetDomain[I]]
+        result=result.lub(result, new GenericAbstractState(HeapIdSetFunctionalLifting.applyToSetHeapId(variable, this._1.setToTop(_)), this._2));
+
       }
       else throw new SymbolicSemanticException("Something assignable expected here")
     }

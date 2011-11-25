@@ -337,7 +337,8 @@ object Normalizer {
     
     case BinaryArithmeticExpression(left, right, op, typ) =>
       // TODO: Because x != null is treated as arithmetic and it crashes with NumberFormatException (because of null)
-      if (!left.getType.isNumericalType || !right.getType.isNumericalType)
+      if (left == null || right == null || left.getType() == null || right.getType() == null ||
+        !left.getType.isNumericalType || !right.getType.isNumericalType)
         return None
 
       val l : Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left);

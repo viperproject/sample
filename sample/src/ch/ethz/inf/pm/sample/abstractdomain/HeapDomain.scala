@@ -249,7 +249,7 @@ trait Assignable {
   def getType() : Type;
 }
 
-abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression(null) with SetDomain[I, HeapIdSetDomain[I]] with Assignable{
+abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression(null) with SetDomain[I, HeapIdSetDomain[I]] {
 
   override def equals(x : Any) : Boolean = x match {
 	  case x : I => if(value.size==1) return x.equals(value.elements.next); else return false;
@@ -260,6 +260,7 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression(null) 
 
   //Used to now if it's definite - glb - or maybe - lub.
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S;
+  def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement);
 }
 
 
@@ -276,6 +277,8 @@ class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
   def factory() : HeapIdSetDomain[I]=new MaybeHeapIdSetDomain[I]();
 
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2);
+
+  def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2, s1, s2);
 }
 
 class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
@@ -291,4 +294,6 @@ class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I]
   def factory() : HeapIdSetDomain[I]=new DefiniteHeapIdSetDomain[I]();
 
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s1, s2);
+
+  def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2, s1, s2);
 }
