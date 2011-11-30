@@ -98,6 +98,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		val st = newState.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, newState.getEnvironment()), null);
 		new ApronInterface(st, domain);
 	}
+
 	override def assume(expr : Expression) : ApronInterface = expr match {
     case BinaryBooleanExpression(left, right, op, typ) => op match {
 			case BooleanOperator.&& => val l = assume(left); l.glb(l, assume(right))
@@ -113,7 +114,14 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 			assume(BinaryBooleanExpression(nl, nr, nop, typ))
 		}
 		case _ => {
-			val st = state.meetCopy(domain, this.toTcons1(expr, this.state.getEnvironment()));
+      var expEnv = new Environment();
+      for (id <- expr.getIds(expr)) {
+        val v : Array[String] = new Array[String](1);
+        v.update(0, id.getName());
+        expEnv=expEnv.add(v, new Array[String](0));
+      }
+      val newState = state.changeEnvironmentCopy(domain, unionOfEvrinomnets(this.state.getEnvironment(), expEnv), false);
+			val st = newState.meetCopy(domain, this.toTcons1(expr, unionOfEvrinomnets(this.state.getEnvironment(), expEnv)));
 			new ApronInterface(st, domain);
 		}
 	}
@@ -280,7 +288,8 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
   def setParameter(label : String, value : Any) = label match {
     case "Domain" => value match {
       case "Interval" => domain = new Box();
-      case "PPL" => new PplPoly(false);
+        // FIXIT: Change back to PPL
+      case "PPL" => domain = new Polka(false) //new PplPoly(false);
       case "Octagons" => domain = new Octagon();
       case "Polka" => domain = new Polka(false);
     }
