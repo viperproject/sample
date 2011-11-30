@@ -65,6 +65,34 @@ object AbstractOperatorIdentifiers extends Enumeration {
 abstract class Expression(val p : ProgramPoint) {
   def getType() : Type;
   def getProgramPoint() : ProgramPoint = p;
+
+  /**
+   * This method returns a set of identifiers that are present in the given expression.
+   *
+   * @param expr - an expression for which we want to get the set of Identifiers
+   *
+   * @return a set of Identifiers present in the given Expression expr
+   */
+  def getIds(expr: Expression): Set[Identifier] = {
+    expr match {
+      case const: Constant =>
+        return Set.empty[Identifier]
+      case id: Identifier =>
+        return Set.empty[Identifier].+(id)
+      case BinaryArithmeticExpression(left, right, op, retTyp) =>
+        return getIds(left).union(getIds(right))
+      case BinaryBooleanExpression(left, right, op, retTyp) =>
+        return getIds(left).union(getIds(right))
+      case NegatedBooleanExpression(x) =>
+        return getIds(x)
+      case UnaryArithmeticExpression(x, op, retTyp) =>
+        return getIds(x)
+      case x: UnitExpression =>
+        return Set.empty[Identifier]
+      case x =>
+        throw new Exception(x.toString + " kind of an Expression is not covered.")
+    }
+  }
 }
 
 
