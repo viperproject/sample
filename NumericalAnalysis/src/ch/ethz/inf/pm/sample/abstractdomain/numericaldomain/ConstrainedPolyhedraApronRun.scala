@@ -5,9 +5,9 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
-import apron._
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler
 import property.OutputCollector
+import apron._
 ;
 
 object ConstrianedPolyhedraApronRun {
@@ -24,13 +24,13 @@ object ConstrianedPolyhedraApronRun {
 		SystemParameters.property = new ApronProperty;
 		
 		//Files paths
-		val f1 = "/home/samlik/IdeaProjects/Semper/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
+		val f1 = "/home/samlik/IdeaProjects/Sample/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
 		
 		ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
 		
 		//EntryState
 		//val domain=new Polka(false);
-		val domain=new PplPoly(false);
+		val domain=new Polka(false);
 		System.out.println(domain.getLibrary + " " + domain.getVersion)
 		
 		var coefSet = Set.empty[Int];

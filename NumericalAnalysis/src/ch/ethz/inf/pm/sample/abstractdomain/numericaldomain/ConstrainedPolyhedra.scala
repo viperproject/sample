@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
-import apron._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
+import apron._
 
 /**
  * Constrined Polyhedra Abstract Domain.
@@ -216,7 +216,7 @@ class ConstrainedPolyhedraAnalysis extends SemanticAnalysis[ApronInterface] {
 	def setParameter(label : String, value : Any) = label match {
 	case "Domain" => value match {
 		case "Interval" => domain = new Box();
-		case "PPL" => domain = new PplPoly(false);
+		case "PPL" => domain = new Polka(false);
 		case "Octagons" => domain = new Octagon();
 		case "Polka" => domain = new Polka(false);
 		}

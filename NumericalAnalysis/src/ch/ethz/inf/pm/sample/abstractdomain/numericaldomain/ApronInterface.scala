@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.property._
 import sun.net.ftp.FtpProtocolException
 import com.sun.org.omg.CORBA.IdentifierHelper
 import apron._
+import collection.mutable.ListBuffer
 ;
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
@@ -14,31 +15,81 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
   override def merge(r : Replacement) : ApronInterface = {
     if(r.isEmpty) return this;
     //else throw new ApronException("Not implemeneted")
-    var result = new Abstract1(domain, state.getEnvironment(), true);//state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
-		if(! result.isBottom(domain)) throw new ApronException("I'm not able to create a bottom state");
+    //state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
     var idsInDomain : Set[Identifier] = Set.empty
     var idsInCodomain : Set[Identifier] = Set.empty
+    var expandedState = this.state
+    for ((from,to) <- r.value) {
+      idsInDomain = idsInDomain.++(from)
+      idsInCodomain = idsInCodomain.++(to)
+      val idFromNamesList = ListBuffer.empty[String]
+      for (idFrom <- from) {
+        if (!expandedState.getEnvironment.hasVar(idFrom.getName()))
+          idFromNamesList.+=(idFrom.getName())
+      }
+      var newEnv = expandedState.getEnvironment.add(idFromNamesList.toArray[String], new Array[String](0))
+      expandedState = expandedState.changeEnvironmentCopy(domain, newEnv, false)
+      val idToNamesList = ListBuffer.empty[String]
+      for (idTo <- to) {
+        if (this.state.getEnvironment.getVars.contains(idTo.getName())) {
+          println (idTo.getName() + " already in Env and should be fresh")
+          for (s <- this.state.getEnvironment.getVars)
+            print (s + ", ")
+          println("")
+        }
+        if (!expandedState.getEnvironment.hasVar(idTo.getName()))
+          idToNamesList.+=(idTo.getName())
+//        else
+//          println(idTo.getName() + " is already in the environment")
+      }
+      if (!from.isEmpty) {
+        expandedState = expandedState.expandCopy(domain,from.iterator.next().getName(), idToNamesList.toArray[String])
+      } else {
+        // This means that elements in the set 'to' will be set to Top anyways
+        newEnv = expandedState.getEnvironment.add(idToNamesList.toArray[String], new Array[String](0))
+        expandedState = expandedState.changeEnvironmentCopy(domain, newEnv, false)
+      }
+    }
+    var result = new Abstract1(domain, expandedState.getEnvironment(), true)
     for(I1 <- r.value.keySet) {
-      idsInDomain=idsInDomain++I1;
-      for(id2 : Identifier <- r.value.apply(I1)) {
-        idsInCodomain=idsInCodomain++I1;
-        for(id1: Identifier <- I1) {
-          var newState = state;
-          if(! state.getEnvironment.hasVar(id2.getName()) || ! state.getEnvironment.hasVar(id1.getName())) {
-            newState = this.createVariable(id2, id2.getType()).createVariable(id1, id1.getType()).state;
-          }
-          var resEnv = unionOfEvrinomnets(newState.getEnvironment, result.getEnvironment);
-          newState = newState.changeEnvironmentCopy(domain, resEnv, false);
-          result = result.changeEnvironmentCopy(domain, resEnv, false);
+      for(id1 : Identifier <- r.value.apply(I1)) {
+        for(id2: Identifier <- I1) {
+          var newState = expandedState;
           var temp = newState.substituteCopy(domain, id2.getName(), this.toTexpr1Intern(id1, newState.getEnvironment), newState);
           result = result.joinCopy(domain, temp)
         }
       }
     }
     for(id <- idsInDomain.--(idsInCodomain)) {
-      result=result.forgetCopy(domain, id.getName(), false);
+      result=result.forgetCopy(domain, id.getName(), false)
     }
     return new ApronInterface(result, domain)
+
+//    var result = new Abstract1(domain, state.getEnvironment(), true)
+//		if(! result.isBottom(domain)) throw new ApronException("I'm not able to create a bottom state");
+//    var idsInDomain : Set[Identifier] = Set.empty
+//    var idsInCodomain : Set[Identifier] = Set.empty
+//    for(I1 <- r.value.keySet) {
+//      idsInDomain=idsInDomain++I1;
+//      for(id1 : Identifier <- r.value.apply(I1)) {
+//        idsInCodomain=idsInCodomain+(id1);
+//        for(id2: Identifier <- I1) {
+//          var newState = state;
+//          if(! state.getEnvironment.hasVar(id2.getName()) || ! state.getEnvironment.hasVar(id1.getName())) {
+//            newState = this.createVariable(id2, id2.getType()).createVariable(id1, id1.getType()).state;
+//          }
+//          var resEnv = unionOfEvrinomnets(newState.getEnvironment, result.getEnvironment);
+//          newState = newState.changeEnvironmentCopy(domain, resEnv, false);
+//          result = result.changeEnvironmentCopy(domain, resEnv, false);
+//          var temp = newState.substituteCopy(domain, id2.getName(), this.toTexpr1Intern(id1, newState.getEnvironment), newState);
+//          result = result.joinCopy(domain, temp)
+//        }
+//      }
+//    }
+//    for(id <- idsInDomain.--(idsInCodomain)) {
+//      result=result.forgetCopy(domain, id.getName(), false);
+//    }
+//    return new ApronInterface(result, domain)
   };
 
   //TODO
@@ -153,12 +204,17 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       val env = unionOfEvrinomnets(left.state.getEnvironment, right.state.getEnvironment);
       val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
       val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
-			val st = newLeft.state.joinCopy(domain, newRight.state);
+      val commonVars = left.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(right.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
+      val forgotLState = newLeft.state.forgetCopy(domain, commonVars.toArray[String], false)
+      val forgotRState = newRight.state.forgetCopy(domain, commonVars.toArray[String], false)
+      val finalLeft = forgotLState.meetCopy(domain, newRight.state)
+      val finalRight = forgotRState.meetCopy(domain, newLeft.state)
+			val st = finalLeft.joinCopy(domain, finalRight);
 			new ApronInterface(st, domain);
 		} catch {
 			case _ => {
 				throw new ApronException("WARNING: incompatible environments.")
-				top()	// TODO fix this, but how?
+				//top()	// TODO fix this, but how?
 			}
 		}
 	}
@@ -179,11 +235,20 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(left.state.isTop(domain) || right.state.isTop(domain)) return top();
 		if(left.state.isBottom(domain)) return right;
 		if(right.state.isBottom(domain)) return left;
+//    val env = unionOfEvrinomnets(left.state.getEnvironment, right.state.getEnvironment);
+//    val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
+//    val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
+//    var st = new Abstract1(domain, newLeft.state);
+//		st = st.widening(domain, newRight.state);
     val env = unionOfEvrinomnets(left.state.getEnvironment, right.state.getEnvironment);
     val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
     val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
-    var st = new Abstract1(domain, newLeft.state);
-		st = st.widening(domain, newRight.state);
+    val commonVars = left.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(right.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
+    val forgotLState = newLeft.state.forgetCopy(domain, commonVars.toArray[String], false)
+    val forgotRState = newRight.state.forgetCopy(domain, commonVars.toArray[String], false)
+    val finalLeft = forgotLState.meetCopy(domain, newRight.state)
+    val finalRight = forgotRState.meetCopy(domain, newLeft.state)
+    val st = finalLeft.widening(domain, finalRight)
 		new ApronInterface(st, domain);
 	}
 	
@@ -210,7 +275,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		case x : Identifier => new Texpr1VarNode(x.getName);
     case setId : HeapIdSetDomain[Identifier] =>
       if(setId.value.size!=1) throw new ApronException("Not yet supported")
-      new Texpr1VarNode(setId.value.iterator.next().getName());
+      else new Texpr1VarNode(setId.value.iterator.next().getName());
 		case Constant(v, typ, p) => new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
 		case BinaryArithmeticExpression(left, right, op, typ) => new Texpr1BinNode(this.convertArithmeticOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
 		case UnaryArithmeticExpression(left, op, typ) => op match {
