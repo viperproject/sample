@@ -3,8 +3,8 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
-import sun.net.ftp.FtpProtocolException
-import com.sun.org.omg.CORBA.IdentifierHelper
+//import sun.net.ftp.FtpProtocolException
+//import com.sun.org.omg.CORBA.IdentifierHelper
 import apron._
 import collection.mutable.ListBuffer
 ;
@@ -12,58 +12,112 @@ import collection.mutable.ListBuffer
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
 
 
+  private def idsToArrayOfStrings(set: Set[Identifier]): Array[String] = {
+    var stringList = List.empty[String]
+    for (v <- set) {
+      stringList = v.getName() :: stringList
+    }
+    return stringList.toArray[String]
+  }
+
   override def merge(r : Replacement) : ApronInterface = {
     if(r.isEmpty) return this;
-    //else throw new ApronException("Not implemeneted")
-    //state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
+
     var idsInDomain : Set[Identifier] = Set.empty
     var idsInCodomain : Set[Identifier] = Set.empty
-    var expandedState = this.state
+    var startingState = this.state
     for ((from,to) <- r.value) {
       idsInDomain = idsInDomain.++(from)
       idsInCodomain = idsInCodomain.++(to)
       val idFromNamesList = ListBuffer.empty[String]
       for (idFrom <- from) {
-        if (!expandedState.getEnvironment.hasVar(idFrom.getName()))
+        if (!startingState.getEnvironment.hasVar(idFrom.getName()))
           idFromNamesList.+=(idFrom.getName())
       }
-      var newEnv = expandedState.getEnvironment.add(idFromNamesList.toArray[String], new Array[String](0))
-      expandedState = expandedState.changeEnvironmentCopy(domain, newEnv, false)
-      val idToNamesList = ListBuffer.empty[String]
-      for (idTo <- to) {
-        if (this.state.getEnvironment.getVars.contains(idTo.getName())) {
-          println (idTo.getName() + " already in Env and should be fresh")
-          for (s <- this.state.getEnvironment.getVars)
-            print (s + ", ")
-          println("")
-        }
-        if (!expandedState.getEnvironment.hasVar(idTo.getName()))
-          idToNamesList.+=(idTo.getName())
-//        else
-//          println(idTo.getName() + " is already in the environment")
-      }
-      if (!from.isEmpty) {
-        expandedState = expandedState.expandCopy(domain,from.iterator.next().getName(), idToNamesList.toArray[String])
-      } else {
-        // This means that elements in the set 'to' will be set to Top anyways
-        newEnv = expandedState.getEnvironment.add(idToNamesList.toArray[String], new Array[String](0))
-        expandedState = expandedState.changeEnvironmentCopy(domain, newEnv, false)
-      }
+      var newEnv = startingState.getEnvironment.add(idFromNamesList.toArray[String], new Array[String](0))
+      startingState = startingState.changeEnvironmentCopy(domain, newEnv, false)
     }
-    var result = new Abstract1(domain, expandedState.getEnvironment(), true)
-    for(I1 <- r.value.keySet) {
-      for(id1 : Identifier <- r.value.apply(I1)) {
-        for(id2: Identifier <- I1) {
-          var newState = expandedState;
-          var temp = newState.substituteCopy(domain, id2.getName(), this.toTexpr1Intern(id1, newState.getEnvironment), newState);
-          result = result.joinCopy(domain, temp)
-        }
+    var result = new Abstract1(domain, startingState.getEnvironment, true)
+    for ((from,to) <- r.value) {
+      var newState = startingState
+      var shallowCopyVars = List.empty[String]
+      for (v <- from) {
+        val vPrime : Array[String] = new Array[String](1)
+			  vPrime.update(0, v.getName()+"$")
+        shallowCopyVars = shallowCopyVars.:+(v.getName()+"$")
+        newState = newState.expandCopy(domain, v.getName(), vPrime)
       }
+      // now we introduce id* into domain with values of one of the ids in "from"
+      val idStar = "idStar"
+      val aIdStar: Array[String] = new Array[String](1)
+			aIdStar.update(0, idStar)
+      newState = newState.expandCopy(domain, from.iterator.next().getName(), aIdStar)
+      // now we fold shallow copies into idStar
+      shallowCopyVars = idStar :: shallowCopyVars
+      newState = newState.foldCopy(domain, shallowCopyVars.toArray[String])
+      // now we expand id* to variables in "to"
+      val idsToStringArray: Array[String] = idsToArrayOfStrings(to)
+      newState = newState.expandCopy(domain, idStar, idsToStringArray)
+      // now we remove the temoprary variables form the environment
+      newState = newState.forgetCopy(domain, aIdStar, false)
+      newState = newState.changeEnvironmentCopy(domain, newState.getEnvironment.remove(aIdStar), false)
+      // we also need to extend the environment of result
+      result = result.expandCopy(domain, from.iterator.next().getName(), idsToStringArray)
+      result = result.joinCopy(domain, newState)
+      startingState = startingState.expandCopy(domain, from.iterator.next().getName(), idsToStringArray)
     }
     for(id <- idsInDomain.--(idsInCodomain)) {
       result=result.forgetCopy(domain, id.getName(), false)
     }
+//    result = result.minimizeEnvironmentCopy(domain)
     return new ApronInterface(result, domain)
+
+//    var idsInDomain : Set[Identifier] = Set.empty
+//    var idsInCodomain : Set[Identifier] = Set.empty
+//    var expandedState = this.state
+//    for ((from,to) <- r.value) {
+//      idsInDomain = idsInDomain.++(from)
+//      idsInCodomain = idsInCodomain.++(to)
+//      val idFromNamesList = ListBuffer.empty[String]
+//      for (idFrom <- from) {
+//        if (!expandedState.getEnvironment.hasVar(idFrom.getName()))
+//          idFromNamesList.+=(idFrom.getName())
+//      }
+//      var newEnv = expandedState.getEnvironment.add(idFromNamesList.toArray[String], new Array[String](0))
+//      expandedState = expandedState.changeEnvironmentCopy(domain, newEnv, false)
+//      val idToNamesList = ListBuffer.empty[String]
+//      for (idTo <- to) {
+//        if (this.state.getEnvironment.getVars.contains(idTo.getName())) {
+//          throw new ApronException(idTo.getName() + " already in Env and should be fresh")
+//        }
+//        if (!expandedState.getEnvironment.hasVar(idTo.getName()))
+//          idToNamesList.+=(idTo.getName())
+////        else
+////          println(idTo.getName() + " is already in the environment")
+//      }
+//      if (!from.isEmpty) {
+//        expandedState = expandedState.expandCopy(domain,from.iterator.next().getName(), idToNamesList.toArray[String])
+//      } else {
+//        // This means that elements in the set 'to' will be set to Top anyways
+//        newEnv = expandedState.getEnvironment.add(idToNamesList.toArray[String], new Array[String](0))
+//        expandedState = expandedState.changeEnvironmentCopy(domain, newEnv, false)
+//      }
+//    }
+//    var result = new Abstract1(domain, expandedState.getEnvironment(), true)
+//    for(I1 <- r.value.keySet) {
+//      for(id1 : Identifier <- r.value.apply(I1)) {
+//        for(id2: Identifier <- I1) {
+//          val newState = expandedState;
+//          val newTexpr1Intern = this.toTexpr1Intern(id1, newState.getEnvironment)
+//          val temp = newState.substituteCopy(domain, id2.getName(), newTexpr1Intern, null);
+//          result = result.joinCopy(domain, temp)
+//        }
+//      }
+//    }
+//    for(id <- idsInDomain.--(idsInCodomain)) {
+//      result=result.forgetCopy(domain, id.getName(), false)
+//    }
+//    return new ApronInterface(result, domain)
 
 //    var result = new Abstract1(domain, state.getEnvironment(), true)
 //		if(! result.isBottom(domain)) throw new ApronException("I'm not able to create a bottom state");
