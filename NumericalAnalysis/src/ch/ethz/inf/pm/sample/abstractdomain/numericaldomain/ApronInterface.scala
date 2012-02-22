@@ -73,6 +73,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       result=result.forgetCopy(domain, id.getName(), false)
     }
     // We minimize the environment in order to achieve better performance.
+    // This affect assign as there might b variable removed that are still in use.
     result = result.minimizeEnvironmentCopy(domain)
     return new ApronInterface(result, domain)
     /*
