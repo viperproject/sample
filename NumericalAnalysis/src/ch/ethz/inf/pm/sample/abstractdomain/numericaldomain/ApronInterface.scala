@@ -23,9 +23,9 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
   override def merge(r : Replacement) : ApronInterface = {
     if(r.isEmpty) return this;
 
-/*
- *    ------------- VERSION 3 ---------------
- */
+    /*
+     *    ------------- VERSION 3 ---------------
+     */
     var idsInDomain : Set[Identifier] = Set.empty
     var idsInCodomain : Set[Identifier] = Set.empty
     var startingState = this.state
@@ -75,14 +75,14 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
     // We minimize the environment in order to achieve better performance.
     result = result.minimizeEnvironmentCopy(domain)
     return new ApronInterface(result, domain)
-/*
- *    ------------- END OF VERSION 3 ---------------
- */
+    /*
+     *    ------------- END OF VERSION 3 ---------------
+     */
 
 
-/*
- *    ------------- VERSION 2 ---------------
- */
+    /*
+     *    ------------- VERSION 2 ---------------
+     */
 //    var idsInDomain : Set[Identifier] = Set.empty
 //    var idsInCodomain : Set[Identifier] = Set.empty
 //    var expandedState = this.state
@@ -129,14 +129,14 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 //      result=result.forgetCopy(domain, id.getName(), false)
 //    }
 //    return new ApronInterface(result, domain)
-/*
- *    ------------- END OF VERSION 2 ---------------
- */
+    /*
+     *    ------------- END OF VERSION 2 ---------------
+     */
 
 
-/*
- *    ------------- VERSION 1 ---------------
- */
+    /*
+     *    ------------- VERSION 1 ---------------
+     */
 //    var result = new Abstract1(domain, state.getEnvironment(), true)
 //		if(! result.isBottom(domain)) throw new ApronException("I'm not able to create a bottom state");
 //    var idsInDomain : Set[Identifier] = Set.empty
@@ -162,9 +162,9 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 //      result=result.forgetCopy(domain, id.getName(), false);
 //    }
 //    return new ApronInterface(result, domain)
-/*
- *    ------------- END OF VERSION 1 ---------------
- */
+    /*
+     *    ------------- END OF VERSION 1 ---------------
+     */
   };
 
   //TODO
