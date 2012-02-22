@@ -23,6 +23,9 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
   override def merge(r : Replacement) : ApronInterface = {
     if(r.isEmpty) return this;
 
+/*
+ *    ------------- VERSION 3 ---------------
+ */
     var idsInDomain : Set[Identifier] = Set.empty
     var idsInCodomain : Set[Identifier] = Set.empty
     var startingState = this.state
@@ -69,9 +72,17 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
     for(id <- idsInDomain.--(idsInCodomain)) {
       result=result.forgetCopy(domain, id.getName(), false)
     }
-//    result = result.minimizeEnvironmentCopy(domain)
+    // We minimize the environment in order to achieve better performance.
+    result = result.minimizeEnvironmentCopy(domain)
     return new ApronInterface(result, domain)
+/*
+ *    ------------- END OF VERSION 3 ---------------
+ */
 
+
+/*
+ *    ------------- VERSION 2 ---------------
+ */
 //    var idsInDomain : Set[Identifier] = Set.empty
 //    var idsInCodomain : Set[Identifier] = Set.empty
 //    var expandedState = this.state
@@ -92,8 +103,8 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 //        }
 //        if (!expandedState.getEnvironment.hasVar(idTo.getName()))
 //          idToNamesList.+=(idTo.getName())
-////        else
-////          println(idTo.getName() + " is already in the environment")
+//        else
+//          println(idTo.getName() + " is already in the environment")
 //      }
 //      if (!from.isEmpty) {
 //        expandedState = expandedState.expandCopy(domain,from.iterator.next().getName(), idToNamesList.toArray[String])
@@ -118,7 +129,14 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 //      result=result.forgetCopy(domain, id.getName(), false)
 //    }
 //    return new ApronInterface(result, domain)
+/*
+ *    ------------- END OF VERSION 2 ---------------
+ */
 
+
+/*
+ *    ------------- VERSION 1 ---------------
+ */
 //    var result = new Abstract1(domain, state.getEnvironment(), true)
 //		if(! result.isBottom(domain)) throw new ApronException("I'm not able to create a bottom state");
 //    var idsInDomain : Set[Identifier] = Set.empty
@@ -144,6 +162,9 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 //      result=result.forgetCopy(domain, id.getName(), false);
 //    }
 //    return new ApronInterface(result, domain)
+/*
+ *    ------------- END OF VERSION 1 ---------------
+ */
   };
 
   //TODO
@@ -194,12 +215,27 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		val st = state.forgetCopy(domain, variable.getName, false);
 		new ApronInterface(st, domain);
 	}
+
 	override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
     if(state.isBottom(domain)) return this.bottom;
     var newState = state;
 		if(! state.getEnvironment.hasVar(variable.getName())) {
       newState = this.createVariable(variable, variable.getType()).state;
     }
+
+    // ADED because of minimizing the environment in merge
+    // (i.e. some of the variables still in use might have been removed by merge as they were Top)
+    var newEnv = newState.getEnvironment;
+    for (id <- Normalizer.getIdsForExpression(expr)) {
+      if(! newEnv.hasVar(id.getName())) {
+        val v : Array[String] = new Array[String](1);
+        v.update(0, id.getName());
+        newEnv=newEnv.add(v, new Array[String](0));
+      }
+    }
+    newState = newState.changeEnvironmentCopy(domain, newEnv, false)
+    // END of the added code
+
 		val st = newState.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, newState.getEnvironment()), null);
 		new ApronInterface(st, domain);
 	}
