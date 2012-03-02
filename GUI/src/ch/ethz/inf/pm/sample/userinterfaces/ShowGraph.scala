@@ -7,6 +7,7 @@ import com.mxgraph.swing._
 import com.mxgraph.model._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis.POPL2011._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import java.awt.geom.Rectangle2D;
@@ -187,6 +188,75 @@ object ShowGraph extends Property {
 		}
 	}
 
+  private class ShowArrayAnalysisHeapState[N <: SemanticDomain[N]] {
+		def this(state: GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID], showSingleArr: Boolean, heapId: ArrayHeapID) = {
+			this ()
+
+      try {
+        if (!showSingleArr){
+          val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.arrayHeapStateToGraph[N](state.getHeap().asInstanceOf[ArrayHeapDomain], state.getSemanticDomain());
+          val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
+          graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
+
+            override def mouseReleased(e: MouseEvent) {
+              val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
+              if (cell != null) {
+                val vertixes = idToVertix.values;
+                for (vertix <- vertixes) {
+                  if (cell == vertix) {
+                    val ids = idToVertix.keySet
+                    for (id <- ids)
+                      if (idToVertix.apply(id) == cell) {
+                        if (id.isInstanceOf[ArrayHeapID] && id.asInstanceOf[ArrayHeapID].n == 0) {
+                          val label = state.getHeap().store.apply(id.asInstanceOf[ArrayHeapID]).toString()
+  //                        new Show(new JLabel(label), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
+                          new ShowArrayAnalysisHeapState(state, true, id.asInstanceOf[ArrayHeapID])
+                        }
+                      }
+                  }
+                }
+
+              }
+            }
+          });
+          new Show(graphComponent, false, -1, -1);
+        } else {
+          val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.arraySingleArrayToGraph[N](state.getHeap().asInstanceOf[ArrayHeapDomain], state.getSemanticDomain(), heapId);
+          val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
+          graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
+
+            override def mouseReleased(e: MouseEvent) {
+              val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
+              if (cell != null) {
+                val vertixes = idToVertix.values;
+                for (vertix <- vertixes) {
+                  if (cell == vertix) {
+                    val ids = idToVertix.keySet
+                    for (id <- ids)
+                      if (idToVertix.apply(id) == cell) {
+                        if (id.isInstanceOf[ArrayHeapID] && id.asInstanceOf[ArrayHeapID].n > 0) {
+//                          val label = state.getSemanticDomainState().getStringOfId(id)
+                          val label = state.getSemanticDomain().getStringOfId(id)
+                          new Show(new JLabel(label), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
+                        }
+                      }
+                  }
+                }
+
+              }
+            }
+          });
+          new Show(graphComponent, false, -1, -1);
+        }
+      } catch {
+        case e: Exception => new Show(stateToString(state), false, -1, -1)
+      }
+
+		}
+	}
+
+
+
 	private def ControlFlowGraphExecutiontoJGraph[S <: State[S]](wgraph: ControlFlowGraphExecution[S]): (mxGraph, List[Object]) = {
 		val graph: mxGraph = defaultGraphSettings();
 		var vertixes: List[Object] = Nil;
@@ -332,6 +402,119 @@ object ShowGraph extends Property {
 		(graph, idToVertix)
 	}
 
+//  private def arrayHeapVariablesToGraph[N <: SemanticDomain[N]]
+
+  private def arrayHeapStateToGraph[N <: SemanticDomain[N]](heap: ArrayHeapDomain, s: N): (mxGraph, Map[Identifier, Object]) = {
+		val graph: mxGraph = defaultGraphSettings();
+		var vertixes: List[Object] = Nil;
+		var yposition: Double = ygap;
+		var idToVertix: Map[Identifier, Object] = Map.empty[Identifier, Object];
+		try {
+			var index: Int = 0;
+			val ids = s.getIds() ++ heap.getVarIds()
+			//Create the nodes for variables
+			for (node <- ids) {
+				if (node.isInstanceOf[VariableIdentifier]) {
+					val (vertix, h) = createVertix(node, index, leftspace, yposition + ygap, graph, !node.representSingleVariable, "ellipse")
+					idToVertix += ((node, vertix));
+					yposition = yposition + ygap * 2 + h;
+					index = index + 1;
+				}
+			}
+			yposition = ygap;
+			val xposition: Int = leftspace + 200;
+			//Create the nodes for abstract addresses
+			for (node <- ids) {
+				if (!node.isInstanceOf[VariableIdentifier]) {
+					val (vertix, h) = createVertix(node, index, xposition, yposition + ygap, graph, !node.representSingleVariable, "ellipse")
+					yposition = yposition + ygap * 2 + h;
+					idToVertix += ((node, vertix));
+					index = index + 1;
+				}
+			}
+			for (variable <- ids) {
+				if (variable.isInstanceOf[VariableIdentifier]) {
+					val res: HeapIdSetDomain[ArrayHeapID] = heap.get(variable.asInstanceOf[VariableIdentifier]);
+					val from = idToVertix.apply(variable);
+					for (add <- res.value) {
+//						val to = heap.store.apply(add);
+            if (!idToVertix.keySet.contains(add)) {
+              val (vertix, h) = createVertix(add, index, xposition, yposition + ygap, graph, !add.representSingleVariable, "ellipse")
+              yposition = yposition + ygap * 2 + h;
+              idToVertix += ((add, vertix));
+              index = index + 1;
+            }
+            graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + idToVertix.apply(add)  + ")", "", from, idToVertix.apply(add), "edgeStyle=elbowEdgeStyle");
+					}
+				}
+			}
+			for (add2 <- ids) {
+//				if (!add2.isInstanceOf[VariableIdentifier]) {
+//					val res: HeapIdSetDomain[ArrayHeapID] = heap.get(add2.asInstanceOf[ArrayHeapID]);
+//					val from = idToVertix.apply(add2);
+//					for (add3 <- res.value) {
+//						val to = idToVertix.apply(add3);
+//						graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle");
+//					}
+//				}
+			}
+		}
+		finally {
+			graph.getModel().endUpdate();
+		}
+		return (graph, idToVertix)
+	}
+
+  private def arraySingleArrayToGraph[N <: SemanticDomain[N]](heap: ArrayHeapDomain, s: N, heapId: ArrayHeapID): (mxGraph, Map[Identifier, Object]) = {
+		val graph: mxGraph = defaultGraphSettings();
+		var vertixes: List[Object] = Nil;
+    var xposition: Double = leftspace;
+		var yposition: Double = ygap;
+		var idToVertix: Map[Identifier, Object] = Map.empty[Identifier, Object];
+    var boundToVertex: Map[MySegmentBounds, Object] = Map.empty[MySegmentBounds, Object]
+		try {
+
+      heap.store.get(heapId) match {
+        case None => {
+          throw new Exception("Heap ID does not have any single array in store.")
+        }
+        case Some(sa) => {
+          // We render the single array representation.
+          var index = 0;
+          val boundsIt = sa.bounds.iterator
+          val idsIt = sa.ids.iterator
+          while (boundsIt.hasNext || idsIt.hasNext) {
+            if (boundsIt.hasNext) {
+              val bound = boundsIt.next()
+              val label = bound.toString()
+              if (bound.hasQuestionmark()) {
+                val (vertix, h) = createVertix(bound, index, xposition, ygap, graph, false, "square")
+                boundToVertex += ((bound, vertix));
+              } else {
+                val (vertix, h) = createVertix(bound, index, xposition, ygap, graph, false, "rectangle")
+                boundToVertex += ((bound, vertix));
+              }
+              xposition = xposition + 1.5 * maxLineLength(label) * spaceSingleCharacter
+              index = index + 1;
+            }
+            if (idsIt.hasNext) {
+              val id = idsIt.next()
+              val label = id.toString()
+              val (vertix, h) = createVertix(id, index, xposition, ygap, graph, false, "ellipse")
+              idToVertix += ((id, vertix))
+              xposition = xposition + 1.5 * maxLineLength(label) * spaceSingleCharacter
+              index = index + 1;
+            }
+          }
+        }
+      }
+		}
+		finally {
+			graph.getModel().endUpdate();
+		}
+		return (graph, idToVertix)
+	}
+
 
   /**
    * ShowTVSHeapState displays a graphical representation of the TVSHeap domain's state.
@@ -459,6 +642,8 @@ object ShowGraph extends Property {
   }
 
 
+
+
 	private def stateToGraph[S <: State[S], N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: S) = state match {
 		case s: GenericAbstractState[N, H, I] => genericStateToGraph(s);
 		case s: PartitionedState[_] => partitionedStateToJComponent(s)
@@ -467,6 +652,7 @@ object ShowGraph extends Property {
 
 	private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: GenericAbstractState[N, H, I]) = state match {
 		case _ if state.getHeap().isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
+		case _ if state.getHeap().isInstanceOf[ArrayHeapDomain] => new ShowArrayAnalysisHeapState(state.asInstanceOf[GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID]], false, null)
     case _ if state.getHeap().isInstanceOf[TVSHeap] => new ShowTVSHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
 		case _ => new Show(stateToString(state), false, -1, -1);
 	}
@@ -512,8 +698,9 @@ object ShowGraph extends Property {
 	private def stateToString[S <: State[S]](state: S): JComponent = {
 		var s: String = "";
 		if (state.isInstanceOf[SingleLineRepresentation])
-			s = state.asInstanceOf[SingleLineRepresentation].toSingleLineString;
+ 			s = state.asInstanceOf[SingleLineRepresentation].toSingleLineString;
 		else s = state.toString;
 		new JLabel(s);
 	}
+
 }
