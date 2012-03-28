@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import arrayanalysis.POPL2011.ArrayHeapID
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
 import apron._
@@ -18,11 +19,12 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 							val cpdomain : Manager, 
 							val coefficients : Set[Int],
 							val numOfVariables: Int,
-							val setOfIdentifiers: Set[String]) extends ApronInterface(cpstate, cpdomain) {
+							val setOfStringOfID: Set[String],
+              val setOfIdentifiers: Set[Identifier]) extends ApronInterface(cpstate, cpdomain) {
 
-	private val checkVariableSet : Boolean = !(setOfIdentifiers.isEmpty);
-	private val checkCoef : Boolean = !(coefficients.isEmpty);
-	private val checkNumOfVariables = !(numOfVariables < 1);
+	private val checkVariableSet : Boolean = !(setOfStringOfID.isEmpty) || !(setOfIdentifiers.isEmpty)
+	private val checkCoef : Boolean = !(coefficients.isEmpty)
+	private val checkNumOfVariables = !(numOfVariables < 1)
 	
 	
 	/*
@@ -35,13 +37,13 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 
 	
 	override def assign (variable : Identifier, expr : Expression) : ConstrainedPolyhedra = {
-		if (!checkVariableSet || setOfIdentifiers.contains(variable.getName)) {
-			val apInterface = super.assign(variable, expr);
-			//new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
-			checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers));
+		if (checkVariableSet) {
+			val apInterface = super.assign(variable, expr)
+			//new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID)
+			checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers))
 		} else {
-			//println("this should not be executed");
-			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables, this.setOfIdentifiers)
+			//println("this should not be executed")
+			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 		}
 	}
 	
@@ -50,56 +52,56 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	 * that satisfy the given constraints.
 	 */
 	override def assume(expr : Expression) : ConstrainedPolyhedra = {
-		val apInterface = super.assume(expr);
-		checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers));
+		val apInterface = super.assume(expr)
+		checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers))
 		/*
 		if (isExpressionAccepted(expr)) {
-			assumeWithoutConstraints(expr);
+			assumeWithoutConstraints(expr)
 		} else {
-			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables, this.setOfStringOfID)
 		}	*/
 	}
 	
 	override def bottom() : ConstrainedPolyhedra = {
-		val apInterface = super.bottom();
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+		val apInterface = super.bottom()
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def createVariable (variable : Identifier, typ : Type) : ConstrainedPolyhedra = {
-		val apInterface = super.createVariable(variable, typ);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+		val apInterface = super.createVariable(variable, typ)
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
-	override def factory() : ConstrainedPolyhedra = top();
+	override def factory() : ConstrainedPolyhedra = top()
 	
 	override def glb(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
-		val apInterface = super.glb(left, right);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+		val apInterface = super.glb(left, right)
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def lub(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
-		val apInterface = super.lub(left, right);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+		val apInterface = super.lub(left, right)
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def removeVariable(variable : Identifier) : ConstrainedPolyhedra = { 
-		val apInterface = super.removeVariable(variable);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables,this.setOfIdentifiers);
+		val apInterface = super.removeVariable(variable)
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables,this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def setToTop(variable : Identifier) : ConstrainedPolyhedra = {
-		val apInterface = super.setToTop(variable);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+		val apInterface = super.setToTop(variable)
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def top() : ConstrainedPolyhedra = {
-		val apInterface = super.top;
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers); 
+		val apInterface = super.top
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def widening(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
-		val apInterface = super.widening(left, right);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables,this.setOfIdentifiers);
+		val apInterface = super.widening(left, right)
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables,this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	/*
@@ -116,8 +118,8 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	 * @return
 	 */
 	private def assumeWithoutConstraints(expr : Expression) : ConstrainedPolyhedra = {
-		val apInterface = super.assume(expr);
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfIdentifiers);
+		val apInterface = super.assume(expr)
+		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	/**
@@ -137,99 +139,117 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 			Normalizer.conditionalExpressionToMonomes(expr) match {
 			    case None => {
 					//TODO: implement this properly, uncomment the two lines below and comment the last one
-			    	//System.out.println(expr.getClass.toString + " " + expr.toString  + " is not supproted or is not of a right type");
-					//return false;
-			    	return true;
+			    	//System.out.println(expr.getClass.toString + " " + expr.toString  + " is not supproted or is not of a right type")
+					//return false
+			    	return true
 			    }
 			    case Some((monomes, constant)) => {
 			    	if (checkNumOfVariables && monomes.length > numOfVariables) {
 			    		
 			    		//-------------------------- Comment out----
-			    		//println("Number of varilables in " + expr.toString + " is bigger than " + numOfVariables);
-			    		//println("Therefore, " + expr.toString + " is not accepted");
+			    		//println("Number of varilables in " + expr.toString + " is bigger than " + numOfVariables)
+			    		//println("Therefore, " + expr.toString + " is not accepted")
 			    		//------------------------------------------
 			    		
-			    		return false;
+			    		return false
 			    	} else {
 			    		 for(monome <- monomes) {
-			    			 val (index, variable) = monome;
+			    			 val (index, variable) = monome
 			    			 if (   (checkCoef && !coefficients.contains(index))  
-			    				 || (checkVariableSet && !setOfIdentifiers.contains(variable.getName))) {
+			    				 || (checkVariableSet && !setOfStringOfID.contains(variable.getName))) {
 			    				 //-------------------------- Comment out----
-			    				 //println(index + " is not contained in " + coefficients.toString);
-			    				 //println(expr.toString  + " does not satisfy given constriants.");
+			    				 //println(index + " is not contained in " + coefficients.toString)
+			    				 //println(expr.toString  + " does not satisfy given constriants.")
 			    				 //------------------------------------------			    				 
-			    				 return false;
+			    				 return false
 			    			 }
 			    		 }
 			    	}
 					//println(expr.toString + " satisfies the constraints")
-			    	return true;
+			    	return true
 			    }
 			}
 		} else {
-			//println("we do not have any constraints");
-			return true;
+			//println("we do not have any constraints")
+			return true
 		}
 	}
 
-	  private def checkAndRemoveLinConstraints(cp : ConstrainedPolyhedra) : ConstrainedPolyhedra = {
+  private def isTermInIdSet(linterm: Linterm1): Boolean = {
+    for (id <- setOfIdentifiers) {
+      id match {
+        case x: ArrayHeapID => {
+          if (linterm.getVariable.contains(id.getProgramPoint().toString)) {
+            return true
+          }
+        }
+        case x: VariableIdentifier => {
+          if (linterm.getVariable.equals(x.getName())) {
+            return true
+          }
+        }
+      }
+    }
+    return false
+  }
+
+  private def checkAndRemoveLinConstraints(cp : ConstrainedPolyhedra) : ConstrainedPolyhedra = {
 //		  println("INVOKED")
-		  var linCons = Set.empty[Lincons1];
+		  var linCons = Set.empty[Lincons1]
 		  for (linCon <- cp.state.toLincons(domain)) {
-			  var addCon = true;
-			  var numOfCoef = 0;
+			  var addCon = true
+			  var numOfCoef = 0
 			  for (term <- linCon.getLinterms) {
-				  val termCoef = term.getCoefficient.toString.toInt;
+				  val termCoef = term.getCoefficient.toString.toInt
 				  if (termCoef != 0) {
-					  numOfCoef = numOfCoef + 1;
+					  numOfCoef = numOfCoef + 1
 				  }
 				  if (checkCoef) {
 					  if (!coefficients.contains(termCoef) && termCoef != 0) {
-						  addCon = false;
+						  addCon = false
 					  }
 				  }
-				  if (checkVariableSet && !setOfIdentifiers.contains(term.getVariable) && termCoef != 0) {
-					  addCon = false;
+				  if (checkVariableSet && !setOfStringOfID.contains(term.getVariable) && termCoef != 0 && !isTermInIdSet(term)) {
+					  addCon = false
 				  }
 			  }
 			  if (checkNumOfVariables && numOfCoef > numOfVariables) {
-				  addCon = false;
+				  addCon = false
 			  }
 			  if (addCon) {
-				  linCons.+=(linCon);
+				  linCons.+=(linCon)
 			  }
 		  }
-		  var newState = new Abstract1(cp.domain, cp.state.getEnvironment, true);
+		  var newState = new Abstract1(cp.domain, cp.state.getEnvironment, true)
 		  if (!linCons.isEmpty) {
-			  newState = new Abstract1(domain, linCons.toArray);
+			  newState = new Abstract1(domain, linCons.toArray)
 		  }
-		  new ConstrainedPolyhedra(newState, cp.cpdomain, cp.coefficients, cp.numOfVariables, cp.setOfIdentifiers);
+		  new ConstrainedPolyhedra(newState, cp.cpdomain, cp.coefficients, cp.numOfVariables, cp.setOfStringOfID, this.setOfIdentifiers)
 	  }
 }
 
 
 class ConstrainedPolyhedraAnalysis extends SemanticAnalysis[ApronInterface] {
-	var domain : Manager=null;
-	def getLabel() : String = "Constrained Polyhedra analysis";
-	def parameters() : List[(String, Any)] = List(("Domain", List("Interval", "PPL", "Octagons", "Polka")));
+	var domain : Manager=null
+	def getLabel() : String = "Constrained Polyhedra analysis"
+	def parameters() : List[(String, Any)] = List(("Domain", List("Interval", "PPL", "Octagons", "Polka")))
 	def setParameter(label : String, value : Any) = label match {
 	case "Domain" => value match {
-		case "Interval" => domain = new Box();
-		case "PPL" => domain = new Polka(false);
-		case "Octagons" => domain = new Octagon();
-		case "Polka" => domain = new Polka(false);
+		case "Interval" => domain = new Box()
+		case "PPL" => domain = new Polka(false)
+		case "Octagons" => domain = new Octagon()
+		case "Polka" => domain = new Polka(false)
 		}
 	}
-	def reset() : Unit = Unit;
-	var coefSet = Set.empty[Int];
-	coefSet.+=(-1);
-	coefSet.+=(1);
-	coefSet.+=(0);
-	coefSet.+=(2);
-	coefSet.+=(-2);
+	def reset() : Unit = Unit
+	var coefSet = Set.empty[Int]
+	coefSet.+=(-1)
+	coefSet.+=(1)
+	coefSet.+=(0)
+	coefSet.+=(2)
+	coefSet.+=(-2)
 
-	def getInitialState() : ApronInterface = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[String]);
-	def getProperties() : Set[Property] = Set.empty+new ApronProperty();
-	def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil;
+	def getInitialState() : ApronInterface = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[String], Set.empty[Identifier])
+	def getProperties() : Set[Property] = Set.empty+new ApronProperty()
+	def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil
 }

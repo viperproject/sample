@@ -37,7 +37,7 @@ object ConstrianedPolyhedraApronRun {
 		coefSet.+=(-1);
 		coefSet.+=(1);
 		
-		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[String]);
+		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[String], Set.empty[Identifier]);
 		//val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, Set.empty[Int], 0, Set.empty[String]);
 		val heapid = new ClassHeapIdentifier(null, null);
 		heapid.typ=SystemParameters.typ;
