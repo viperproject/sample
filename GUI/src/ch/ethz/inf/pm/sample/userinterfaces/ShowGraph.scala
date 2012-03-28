@@ -221,18 +221,19 @@ object ShowGraph extends Property {
           });
           new Show(graphComponent, false, -1, -1);
         } else {
-          val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.arraySingleArrayToGraph[N](state.getHeap().asInstanceOf[ArrayHeapDomain], state.getSemanticDomain(), heapId);
+          val (graph, idToVertix, boundsToVertex): (mxGraph, Map[Identifier, Object], Map[MySegmentBounds, Object]) = ShowGraph.arraySingleArrayToGraph[N](state.getHeap().asInstanceOf[ArrayHeapDomain], state.getSemanticDomain(), heapId);
           val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
           graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
 
             override def mouseReleased(e: MouseEvent) {
               val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
               if (cell != null) {
-                val vertixes = idToVertix.values;
+                val vertixes = idToVertix.values ++ boundsToVertex.values;
                 for (vertix <- vertixes) {
                   if (cell == vertix) {
                     val ids = idToVertix.keySet
-                    for (id <- ids)
+                    val bounds = boundsToVertex.keySet
+                    for (id <- ids) {
                       if (idToVertix.apply(id) == cell) {
                         if (id.isInstanceOf[ArrayHeapID] && id.asInstanceOf[ArrayHeapID].n > 0) {
 //                          val label = state.getSemanticDomainState().getStringOfId(id)
@@ -240,6 +241,25 @@ object ShowGraph extends Property {
                           new Show(new JLabel(label), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
                         }
                       }
+                    }
+                    for (bound <- bounds)  {
+                      if (boundsToVertex.apply(bound) == cell) {
+                        if (bound.isInstanceOf[MySegmentBounds]) {
+//                          val label = state.getSemanticDomainState().getStringOfId(id)
+                          var seenIds = Set.empty[Identifier]
+                          for (exp <- bound.getExpressions()) {
+                            for (expId <- Normalizer.getIdsForExpression(exp)) {
+                              seenIds += expId
+                            }
+                          }
+                          var label: String = "";
+                          for (expId <- seenIds) {
+                            label += "\n" + state.getSemanticDomain().getStringOfId(expId)
+                          }
+                          new Show(new JLabel(label), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
+                        }
+                      }
+                    }
                   }
                 }
 
@@ -465,11 +485,9 @@ object ShowGraph extends Property {
 		return (graph, idToVertix)
 	}
 
-  private def arraySingleArrayToGraph[N <: SemanticDomain[N]](heap: ArrayHeapDomain, s: N, heapId: ArrayHeapID): (mxGraph, Map[Identifier, Object]) = {
+  private def arraySingleArrayToGraph[N <: SemanticDomain[N]](heap: ArrayHeapDomain, s: N, heapId: ArrayHeapID): (mxGraph, Map[Identifier, Object], Map[MySegmentBounds, Object]) = {
 		val graph: mxGraph = defaultGraphSettings();
-		var vertixes: List[Object] = Nil;
     var xposition: Double = leftspace;
-		var yposition: Double = ygap;
 		var idToVertix: Map[Identifier, Object] = Map.empty[Identifier, Object];
     var boundToVertex: Map[MySegmentBounds, Object] = Map.empty[MySegmentBounds, Object]
 		try {
@@ -488,13 +506,13 @@ object ShowGraph extends Property {
               val bound = boundsIt.next()
               val label = bound.toString()
               if (bound.hasQuestionmark()) {
-                val (vertix, h) = createVertix(bound, index, xposition, ygap, graph, false, "square")
+                val (vertix, h) = createVertix(bound, index, xposition, ygap, graph, false, mxConstants.STYLE_DASHED)
                 boundToVertex += ((bound, vertix));
-              } else {
-                val (vertix, h) = createVertix(bound, index, xposition, ygap, graph, false, "rectangle")
+            } else {
+                val (vertix, h) = createVertix(bound, index, xposition, ygap, graph, false, mxConstants.SHAPE_RECTANGLE)
                 boundToVertex += ((bound, vertix));
               }
-              xposition = xposition + 1.5 * maxLineLength(label) * spaceSingleCharacter
+              xposition = xposition + maxLineLength(label) * spaceSingleCharacter + 5
               index = index + 1;
             }
             if (idsIt.hasNext) {
@@ -502,7 +520,7 @@ object ShowGraph extends Property {
               val label = id.toString()
               val (vertix, h) = createVertix(id, index, xposition, ygap, graph, false, "ellipse")
               idToVertix += ((id, vertix))
-              xposition = xposition + 1.5 * maxLineLength(label) * spaceSingleCharacter
+              xposition = xposition + maxLineLength(label) * spaceSingleCharacter + 5
               index = index + 1;
             }
           }
@@ -512,7 +530,7 @@ object ShowGraph extends Property {
 		finally {
 			graph.getModel().endUpdate();
 		}
-		return (graph, idToVertix)
+		return (graph, idToVertix, boundToVertex)
 	}
 
 
