@@ -183,6 +183,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	}
 	
 	override def toString() : String = {
+
     state.toString() //+ " ENV = " + state.getEnvironment.toString;
   };
 	
@@ -218,27 +219,27 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	}
 
 	override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
-    if(state.isBottom(domain)) return this.bottom;
-    var newState = state;
+    if(state.isBottom(domain)) return this.bottom
+    var newState = state
 		if(! state.getEnvironment.hasVar(variable.getName())) {
-      newState = this.createVariable(variable, variable.getType()).state;
+      newState = this.createVariable(variable, variable.getType()).state
     }
 
     // ADED because of minimizing the environment in merge
     // (i.e. some of the variables still in use might have been removed by merge as they were Top)
-    var newEnv = newState.getEnvironment;
+    var newEnv = newState.getEnvironment
     for (id <- Normalizer.getIdsForExpression(expr)) {
       if(! newEnv.hasVar(id.getName())) {
-        val v : Array[String] = new Array[String](1);
-        v.update(0, id.getName());
-        newEnv=newEnv.add(v, new Array[String](0));
+        val v : Array[String] = new Array[String](1)
+        v.update(0, id.getName())
+        newEnv=newEnv.add(v, new Array[String](0))
       }
     }
     newState = newState.changeEnvironmentCopy(domain, newEnv, false)
     // END of the added code
 
-		val st = newState.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, newState.getEnvironment()), null);
-		new ApronInterface(st, domain);
+		val st = newState.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, newState.getEnvironment()), null)
+		new ApronInterface(st, domain)
 	}
 
 	override def assume(expr : Expression) : ApronInterface = expr match {
@@ -356,6 +357,37 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		val result= newLeft.state.isIncluded(domain, newRight.state);
 		return result;
 	}
+
+  /**
+   * The method checks equivalence of two given expressions, left and right. If the method
+   * returns true, then left and right are definitely equivalent. If the method returns fasle,
+   * then left and right may or may not be equivalent. (e.g. left = [0,1] and right = [0,1],
+   * however, it can be the case that in concrete state left = 1 and right = 0)
+   *
+   * @param left - first expression
+   * @param right - second expression
+   *
+   * @return true if left and right are definitely equivalent, false otherwise
+   */
+  def areExpressionsEquivalent(left: Expression,  right: Expression): Boolean = {
+    // if the state is originally bottom, then we can't tell whether the expressions
+    // are equivalent, as we do not know where the bottom comes from.
+    if (this.isBottom(this)) {
+      return false
+    }
+    val checkState1 = this.assume(new BinaryArithmeticExpression(left, right, ArithmeticOperator.<, left.getType()))
+    val checkState2 = this.assume(new BinaryArithmeticExpression(right, left, ArithmeticOperator.<, left.getType()))
+    return this.isBottom(checkState1) && this.isBottom(checkState2)
+  }
+
+  /**
+   * This method returns true if the given state s is bottom. Otherwise it returns false
+   *
+   * @param s - a state to be checked whether it is bottom
+   *
+   * @return true if s is bottom, otherwise return false
+   */
+  def isBottom(s: ApronInterface) : Boolean = return s.lessEqual(this.bottom())
 	
 	private def toTexpr1Intern(e : Expression, env : apron.Environment) : Texpr1Intern = {
 		val e1 = this.toTexpr1Node(e);
