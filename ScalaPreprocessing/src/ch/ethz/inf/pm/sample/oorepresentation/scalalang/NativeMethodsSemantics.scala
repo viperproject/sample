@@ -128,6 +128,7 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
 		      case "*" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.*, returnedtype);
 		      case "-" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.-, returnedtype);
 		      case "/" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator./, returnedtype);
+          case "%" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.%, returnedtype);
 		      case "unary_-" => return createUnaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.-, returnedtype);
 			  case _ => None;
 			}
