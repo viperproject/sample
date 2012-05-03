@@ -22,6 +22,11 @@ object Main {
 	    for(f <- files) 
 	    	classes=classes ::: SystemParameters.compiler.compileFile(f);
 	}
+
+
+  def analyze[S <: State[S]](toAnalyze : String, entryState : S, output : OutputCollector) : Unit =
+      this.analyze( toAnalyze ::Nil, entryState, output);
+
     def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : Unit = {
       this.analyze( _ => toAnalyze.toSet, entryState, output);
     	/*Timer.start;
@@ -60,9 +65,11 @@ object Main {
 				      SystemParameters.currentMethod = null;
 	        	}
 	      }
-      SystemParameters.progressOutput.appendString("Finalizing the checking the property");
-	    SystemParameters.property.finalizeChecking(output);
-      SystemParameters.progressOutput.appendString("End of the checking of the property");
+      if(SystemParameters.property!=null) {
+        SystemParameters.progressOutput.appendString("Finalizing the checking the property");
+        SystemParameters.property.finalizeChecking(output);
+        SystemParameters.progressOutput.appendString("End of the checking of the property");
+      }
 	    if(verbose) {
 	    	System.out.println(output.output()+"\nSTATISTICS\nProperty validated:"+output.validated()+"\nWarnings:"+output.notvalidated()+"\nInferred contracts:"+output.inferredcontracts())
 	    	System.out.println("Time of analyisis: " + Timer.stop);

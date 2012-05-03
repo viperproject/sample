@@ -161,7 +161,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
     result
   }
   
-  final def bottom() : T = {
+  def bottom() : T = {
     val result : T = this.factory()
     result.isBottom=true;
     result
@@ -771,6 +771,13 @@ abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: Se
     result.d2=d2.assume(expr)
     result
   }
+
+ def merge(r : Replacement) : T= {
+    val result : T = this.factory();
+    result.d1=d1.merge(r)
+    result.d2=d2.merge(r)
+    result
+  }
  def createVariable(variable : Identifier, typ : Type) : T= {
     val result : T = this.factory();
     result.d1=d1.createVariable(variable, typ)
@@ -809,6 +816,7 @@ abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: Se
     result.d2=d2.backwardAssign(variable, expr)
     result
   }
+  def getStringOfId(id : Identifier) : String = "( "+d1.getStringOfId(id)+", "+d2.getStringOfId(id)+")"
 
   
 }
@@ -840,6 +848,7 @@ abstract class ReducedSemanticProductDomain[T1 <: SemanticDomain[T1], T2 <: Sema
  override def access(field : Identifier) : T = super.access(field).reduce();
  override def backwardAccess(field : Identifier) : T = super.backwardAccess(field).reduce();
  override def backwardAssign(variable : Identifier, expr : Expression) : T = super.backwardAssign(variable, expr).reduce();
+ override def merge(r : Replacement) : T = super.merge(r).reduce();
   
 }
 

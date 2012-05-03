@@ -14,6 +14,7 @@ object ArithmeticOperator extends Enumeration {
   val - = Value("-");
   val * = Value("*");
   val / = Value("/");
+  val % = Value("%");
   val >= = Value(">=");
   val <= = Value("<=");
   val == = Value("==");
