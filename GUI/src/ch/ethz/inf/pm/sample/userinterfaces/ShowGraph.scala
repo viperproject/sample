@@ -7,7 +7,6 @@ import com.mxgraph.swing._
 import com.mxgraph.model._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis.POPL2011._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import java.awt.geom.Rectangle2D;
@@ -16,6 +15,7 @@ import java.awt.event._
 import tracepartitioning._
 import com.mxgraph.util.mxConstants
 import java.awt.{Color, GridLayout, Dimension, Toolkit}
+import tools.nsc.doc.model.Public
 
 private class Show extends JFrame {
 	def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
@@ -45,6 +45,7 @@ object ShowGraph extends Property {
 	private val singleLine: Int = 19;
 	private val emptySpace: Int = 20;
 	private val spaceSingleCharacter: Int = 8;
+  var exitOnClose : Boolean=false;
 
 	def getLabel(): String = "Show CFG";
 
@@ -53,7 +54,7 @@ object ShowGraph extends Property {
 	def finalizeChecking(printer: OutputCollector): Unit = Unit;
 
 	def Show[S <: State[S]](a: Any): Unit = a match {
-		case graph: ControlFlowGraphExecution[S] => new ShowControlFlowGraphExecution(graph)
+		case graph: ControlFlowGraphExecution[S] => new ShowControlFlowGraphExecution(graph, exitOnClose)
 		case graph: ControlFlowGraph => new Show(ShowGraph.ControlFlowGraphJGraph(graph), true, -1, -1);
 		case state: S => ShowGraph.stateToGraph(state);
 		case _ => System.out.println("I do not know how to visualize this!")
@@ -108,7 +109,7 @@ object ShowGraph extends Property {
 	}
 
 	private class ShowControlFlowGraphExecution[S <: State[S]] {
-		def this(g: ControlFlowGraphExecution[S]) = {
+		def this(g: ControlFlowGraphExecution[S], exitOnClose : Boolean) = {
 			this ()
 			val (graph, vertixes): (mxGraph, List[Object]) = ShowGraph.ControlFlowGraphExecutiontoJGraph[S](g);
 			val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
@@ -127,7 +128,7 @@ object ShowGraph extends Property {
 					}
 				}
 			});
-			new Show(graphComponent, false, -1, -1);
+			new Show(graphComponent, exitOnClose, -1, -1);
 		}
 	}
 
@@ -188,7 +189,7 @@ object ShowGraph extends Property {
 		}
 	}
 
-  private class ShowArrayAnalysisHeapState[N <: SemanticDomain[N]] {
+  /*private class ShowArrayAnalysisHeapState[N <: SemanticDomain[N]] {
 		def this(state: GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID], showSingleArr: Boolean, heapId: ArrayHeapID) = {
 			this ()
 
@@ -275,7 +276,7 @@ object ShowGraph extends Property {
 		}
 	}
 
-
+           */
 
 	private def ControlFlowGraphExecutiontoJGraph[S <: State[S]](wgraph: ControlFlowGraphExecution[S]): (mxGraph, List[Object]) = {
 		val graph: mxGraph = defaultGraphSettings();
@@ -424,7 +425,7 @@ object ShowGraph extends Property {
 
 //  private def arrayHeapVariablesToGraph[N <: SemanticDomain[N]]
 
-  private def arrayHeapStateToGraph[N <: SemanticDomain[N]](heap: ArrayHeapDomain, s: N): (mxGraph, Map[Identifier, Object]) = {
+  /*private def arrayHeapStateToGraph[N <: SemanticDomain[N]](heap: ArrayHeapDomain, s: N): (mxGraph, Map[Identifier, Object]) = {
 		val graph: mxGraph = defaultGraphSettings();
 		var vertixes: List[Object] = Nil;
 		var yposition: Double = ygap;
@@ -484,7 +485,6 @@ object ShowGraph extends Property {
 		}
 		return (graph, idToVertix)
 	}
-
   private def arraySingleArrayToGraph[N <: SemanticDomain[N]](heap: ArrayHeapDomain, s: N, heapId: ArrayHeapID): (mxGraph, Map[Identifier, Object], Map[MySegmentBounds, Object]) = {
 		val graph: mxGraph = defaultGraphSettings();
     var xposition: Double = leftspace;
@@ -658,7 +658,7 @@ object ShowGraph extends Property {
       (graph, idToVertix)
     }
   }
-
+   */
 
 
 
@@ -670,8 +670,8 @@ object ShowGraph extends Property {
 
 	private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: GenericAbstractState[N, H, I]) = state match {
 		case _ if state.getHeap().isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
-		case _ if state.getHeap().isInstanceOf[ArrayHeapDomain] => new ShowArrayAnalysisHeapState(state.asInstanceOf[GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID]], false, null)
-    case _ if state.getHeap().isInstanceOf[TVSHeap] => new ShowTVSHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
+		//case _ if state.getHeap().isInstanceOf[ArrayHeapDomain] => new ShowArrayAnalysisHeapState(state.asInstanceOf[GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID]], false, null)
+    //case _ if state.getHeap().isInstanceOf[TVSHeap] => new ShowTVSHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
 		case _ => new Show(stateToString(state), false, -1, -1);
 	}
 
