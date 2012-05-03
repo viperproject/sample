@@ -20,7 +20,7 @@ abstract class AVPDomain[V <: Lattice[V], T <: AVPDomain[V, T]] extends Simplifi
   }
   override def add(variable : Identifier, value : V) : T = this.set(variable, value);
   override def setToTop(variable : Identifier) : T = throw new SemanticException("Not supported");
-  override def createVariable(variable : Identifier, typ : Type) = this.asInstanceOf[T];
+  override def createVariable(variable : Identifier, typ : Type) = this.set(variable, this.bottomValue().top());
   override def removeVariable(variable : Identifier) : T = throw new SemanticException("Not supported");
   override def getIds() : Set[Identifier] = this.value.keySet.toSet;
 
