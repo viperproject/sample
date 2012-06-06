@@ -9,5 +9,5 @@ class PrefixAndSuffix(protected var a1 : Prefix, protected var a2 : Suffix)
  {
        def factory() : PrefixAndSuffix = new PrefixAndSuffix(new Prefix(), new Suffix()); 
        override def merge(r : Replacement) = new PrefixAndSuffix(this.d1.merge(r), this.d2.merge(r));
-       def getStringOfId(id : Identifier) : String = d1.getStringOfId(id) + "; " + d2.getStringOfId(id);
+       override def getStringOfId(id : Identifier) : String = d1.getStringOfId(id) + "; " + d2.getStringOfId(id);
  }

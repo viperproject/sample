@@ -5,11 +5,11 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 
 
 class StaticAndDynamicTypeDomain(d1 : StaticTypeDomain, d2 : DynamicTypeDomain) extends ReducedSemanticProductDomain[StaticTypeDomain, DynamicTypeDomain, StaticAndDynamicTypeDomain](d1, d2) {
-  def merge(f : Replacement) = if(f.isEmpty()) this else throw new TypeDomainException("Merging not yet supported");
+  override def merge(f : Replacement) = if(f.isEmpty()) this else throw new TypeDomainException("Merging not yet supported");
 
   override def factory() : StaticAndDynamicTypeDomain = new StaticAndDynamicTypeDomain(d1.top(), d2.top());  
   
-  def getStringOfId(id : Identifier) : String = this.getType(id).toString();
+  override def getStringOfId(id : Identifier) : String = this.getType(id).toString();
   
   override def top() = super.top().reduce()
 
@@ -37,10 +37,10 @@ class StaticAndDynamicTypeDomain(d1 : StaticTypeDomain, d2 : DynamicTypeDomain) 
 }
 
 class TypeAndNotInstanceOfDomain(d1 : StaticAndDynamicTypeDomain, d2 : NotInstanceOfDomain) extends ReducedSemanticProductDomain[StaticAndDynamicTypeDomain, NotInstanceOfDomain, TypeAndNotInstanceOfDomain](d1, d2) {
-  def merge(f : Replacement) = if(f.isEmpty()) this else throw new TypeDomainException("Merging not yet supported");
+  override def merge(f : Replacement) = if(f.isEmpty()) this else throw new TypeDomainException("Merging not yet supported");
   override def factory() : TypeAndNotInstanceOfDomain = new TypeAndNotInstanceOfDomain(d1.top(), d2.top());  
   
-  def getStringOfId(id : Identifier) : String = this.getType(id).toString();
+  override def getStringOfId(id : Identifier) : String = this.getType(id).toString();
   
   def getType(variable : Identifier) : Type = this._1.getType(variable);
   override def toString() : String = {

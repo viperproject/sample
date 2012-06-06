@@ -193,7 +193,7 @@ object ConstraintsInference {
 	        case None =>
 	        case Some(s :: Nil) =>
 	          val string : List[String]=this.statementToListString(s);
-            if(string.size>0 && string.head.equals("this"))
+            //if(string.size>0 && string.head.equals("this"))
 	            constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(string))), expr);
 	      }
     }

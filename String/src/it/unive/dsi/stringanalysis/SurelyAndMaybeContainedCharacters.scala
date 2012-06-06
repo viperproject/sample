@@ -42,5 +42,5 @@ class SurelyAndMaybeContainedCharacters(protected var a1 : SurelyContainedCharac
          this.removeVariable(variable);
        }*/
        
-       def getStringOfId(id : Identifier) : String = "{" + d1.getStringOfId(id) + "}; {" + d2.getStringOfId(id) + "}";
+       override def getStringOfId(id : Identifier) : String = "{" + d1.getStringOfId(id) + "}; {" + d2.getStringOfId(id) + "}";
  }
