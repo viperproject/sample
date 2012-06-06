@@ -112,17 +112,84 @@ case class InferredContract(val c : Annotation) extends Output
 class OutputCollector {
   var outputs : Set[Output] = Set.empty[Output];
 
+
+  var preconditions = Map.empty[String, Map[String, String]];
+  var postconditions = Map.empty[String, Map[String, String]];
+  var invariants = Map.empty[String, String];
+  var predicates = Map.empty[String, Map[String, String]];
+
+  private def add(map : Map[String, Map[String, String]], classe : String, method : String, contract : String) : Map[String, Map[String, String]] = {
+    if(map.keySet.contains(classe)) {
+      if(map.apply(classe).keySet.contains(method)) {
+        return map+((classe, map.apply(classe)+((method, map.apply(classe).apply(method)+" && "+contract))))
+      }
+      else {
+        return map+((classe, map.apply(classe)+((method, contract))))
+      }
+    }
+    else {
+        return map+((classe, Map.empty[String, String]+((method, contract))))
+      }
+  }
+
+  private def addPrecondition(classe : String, method : String, contract : String) = preconditions=this.add(preconditions, classe, method, contract);
+  private def addPostcondition(classe : String, method : String, contract : String) = postconditions=this.add(postconditions, classe, method, contract);
+  private def addPredicate(classe : String, method : String, contract : String) = predicates=this.add(predicates, classe, method, contract);
+
+  private def addInvariant(classe : String, contract : String) = {
+    if(invariants.keySet.contains(classe))
+        invariants=invariants+((classe, invariants.apply(classe)+" && "+contract))
+    else
+        invariants=invariants+((classe, contract))
+  }
+
+  def output() : String = {
+    var result : String = "";
+    for(classe <- preconditions.keySet.++(postconditions.keySet)++(invariants.keySet)++(predicates.keySet)) {
+      result = result+"\n\nClass "+classe+"\n";
+      invariants.get(classe) match {
+        case Some(s) => result=result+"invariant "+s+"\n";
+        case None =>
+      }
+      predicates.get(classe) match {
+        case Some(s) =>
+          for(predicate <- s.keySet)
+            result=result+"predicate "+predicate+" "+s.apply(predicate)+"\n";
+        case None =>
+      }
+      preconditions.get(classe) match {
+        case Some(s) =>
+          for(method <- s.keySet)
+            result=result+"method "+method+" requires "+s.apply(method)+"\n";
+        case None =>
+      }
+      postconditions.get(classe) match {
+        case Some(s) =>
+          for(method <- s.keySet)
+            result=result+"method "+method+" ensures "+s.apply(method)+"\n";
+        case None =>
+      }
+    }
+    return result+"\n"+outputs.mkString("\n");
+  }
+
   	/**
 	   * Add an output
 	   *
 	   * @param a The output
 	   */
-  def add(a : Output) : Unit = outputs=outputs+a;
-
-  	/**
-	   * Return a string representing all the outputs
-	   */
-  def output() : String = outputs.mkString("\n")
+  def add(a : Output) : Unit = a match {
+    case InferredContract(c) => {
+      c match {
+        case Invariant(classe, e) => this.addInvariant(classe, e);
+        case Predicate(classe, name, e) => this.addPredicate(classe, name, e)
+        case PreCondition(classe, method, e) => this.addPrecondition(classe, method, e)
+        case PostCondition(classe, method, e) => this.addPostcondition(classe, method, e)
+        case _ => outputs=outputs+a;
+      }
+    }
+    case _ => outputs=outputs+a;
+  }
 
   	/**
 	   * Return the number of validated properties

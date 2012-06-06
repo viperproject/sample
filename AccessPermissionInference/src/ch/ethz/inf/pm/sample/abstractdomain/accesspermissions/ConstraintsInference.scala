@@ -193,7 +193,8 @@ object ConstraintsInference {
 	        case None =>
 	        case Some(s :: Nil) =>
 	          val string : List[String]=this.statementToListString(s);
-	          constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(string))), expr);
+            if(string.size>0 && string.head.equals("this"))
+	            constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(string))), expr);
 	      }
     }
   }
@@ -267,7 +268,7 @@ object ConstraintsInference {
 	        val epsilon = if(Settings.permissionType.epsilon) Some(this.extractEpsilon(vars, variables)) else None;
           for (i <- 0 to variables.length-1) {
               if(variables(i)>0) {
-                SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + Settings.permissionType.permissionToString(clean(variables(i)), epsilon));
+                //SystemParameters.analysisOutput.appendString("Value of " + vars.apply(i) + " = " + Settings.permissionType.permissionToString(clean(variables(i)), epsilon));
                 result=result+((vars.apply(i), variables(i)));
                }
           }
@@ -361,7 +362,7 @@ object ConstraintsInference {
         case x if x.equals(Epsilon) => {
         	//We impose that (2*maxIndex(Epsilon)+1)*Epsilon<=1
         	//We take 2* to understand if we have to add or subtract epsilons, +1 to impose < instead of <= 
-        	SystemParameters.analysisOutput.appendString("Max epsilon "+this.getMax(i+1, solver));
+        	//SystemParameters.analysisOutput.appendString("Max epsilon "+this.getMax(i+1, solver));
         	val ind=2*this.getMax(i+1, solver)+1; 
         	s=s+ind.toString()+" ";
         	}

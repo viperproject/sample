@@ -8,6 +8,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.geom.Path2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -55,6 +56,7 @@ public class WindowApplication {
 	private JTextField fileField;
 	private JButton addPreconditionButton;
 	private File file=null;
+    private static String path=".";
 
 	private DefaultListModel methodListModel = new DefaultListModel();
 	private DefaultListModel directiveListModel = new DefaultListModel();
@@ -91,7 +93,7 @@ public class WindowApplication {
 			@Override
             public void actionPerformed(ActionEvent e) {
 				try {
-					JFileChooser fc = new JFileChooser((new File(".")).getCanonicalPath());
+					JFileChooser fc = new JFileChooser((new File(path)).getCanonicalPath());
 					fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 					int returnVal = fc.showOpenDialog(mainFrame);
 					if (returnVal == JFileChooser.APPROVE_OPTION) {
@@ -474,7 +476,7 @@ public class WindowApplication {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 		} catch (Exception e) { e.printStackTrace(); }
-
+        if(args.length>0) path=args[0];
         mainFrame.setContentPane(initialize().Sample);
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         mainFrame.pack();

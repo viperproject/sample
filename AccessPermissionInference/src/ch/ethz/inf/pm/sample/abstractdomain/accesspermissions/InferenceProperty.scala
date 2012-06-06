@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import sun.security.util.Resources_de
 import javax.annotation.Resource
+import collection.immutable.Map._
 
 //import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing.plugin._
 import ch.ethz.inf.pm.sample.userinterfaces._
@@ -17,6 +18,7 @@ private object CollectedResults {
 	  var constraints : Set[Constraint] = Set.empty[Constraint];
   	  var r : Map[(String, String), ControlFlowGraphExecution[ConstraintsInference.State]] = Map.empty;
 }
+
 
 class InferenceProperty extends Property {
 
