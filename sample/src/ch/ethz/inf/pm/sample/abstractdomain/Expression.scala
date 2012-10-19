@@ -21,6 +21,7 @@ object ArithmeticOperator extends Enumeration {
   val != = Value("!=");
   val > = Value(">");
   val < = Value("<");
+  val to = Value("to"); // Non-deterministic operator a to b can evaluate to anything in [a,b]
 }
 
 /** 
@@ -424,6 +425,8 @@ object Normalizer {
         case ArithmeticOperator./ =>
           if(r.get._1.equals(Nil)) return Some(transform(l.get._1, (x : Int)=> x/r.get._2), l.get._2/r.get._2); 
           else return None;
+
+        case _ => None
         
       }
     

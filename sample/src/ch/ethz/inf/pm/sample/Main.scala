@@ -56,23 +56,23 @@ object Main {
 	        for(x <- c.methods)
 	        	if(methods.contains(x.name.toString())) {
               if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Analyzing method "+x.name.toString()+" in class "+c.name.toString());
-	        		SystemParameters.currentMethod = x.name.toString();
-              val s = x.asInstanceOf[MethodDeclaration].forwardSemantics[S](entryState);
+	        		SystemParameters.currentMethod = x.name.toString
+              val s = x.forwardSemantics[S](entryState)
               if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
               if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
 				      if(SystemParameters.property!=null) SystemParameters.property.check(c.name.getThisType(), x.name.toString(), s, output);
               if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
-				      SystemParameters.currentMethod = null;
+				      SystemParameters.currentMethod = null
 	        	}
 	      }
       if(SystemParameters.property!=null) {
-        SystemParameters.progressOutput.appendString("Finalizing the checking the property");
-        SystemParameters.property.finalizeChecking(output);
-        SystemParameters.progressOutput.appendString("End of the checking of the property");
+        SystemParameters.progressOutput.appendString("Finalizing the checking the property")
+        SystemParameters.property.finalizeChecking(output)
+        SystemParameters.progressOutput.appendString("End of the checking of the property")
       }
 	    if(verbose) {
 	    	System.out.println(output.output()+"\nSTATISTICS\nProperty validated:"+output.validated()+"\nWarnings:"+output.notvalidated()+"\nInferred contracts:"+output.inferredcontracts())
-	    	System.out.println("Time of analyisis: " + Timer.stop);
+	    	System.out.println("Time of analyisis: " + Timer.stop)
 	    }
      }
     

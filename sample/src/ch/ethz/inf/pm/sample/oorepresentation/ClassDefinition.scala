@@ -223,7 +223,7 @@ class PackageDefinition(programpoint : ProgramPoint, name : PackageIdentifier, c
 trait Type extends Lattice[Type] {
   
   /**
-   * This method returns <code>true</code> if and only if the current type is an object
+   * This method returns <code>true</code> if and only if the current type is not a primitive type
    */
   def isObject() : Boolean;
   
