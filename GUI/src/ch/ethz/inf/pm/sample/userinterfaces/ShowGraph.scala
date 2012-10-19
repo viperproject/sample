@@ -15,7 +15,8 @@ import java.awt.event._
 import tracepartitioning._
 import com.mxgraph.util.mxConstants
 import java.awt.{Color, GridLayout, Dimension, Toolkit}
-import tools.nsc.doc.model.Public
+import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
+import com.mxgraph.layout.mxIGraphLayout
 
 private class Show extends JFrame {
 	def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
@@ -293,6 +294,8 @@ object ShowGraph extends Property {
 			}
 			for (edge <- wgraph.cfg.edges)
 				createEdge(edge._1, edge._2, ToStringUtilities.optionToString(edge._3), vertixes, graph)
+
+      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
 		}
 		finally {
 			graph.getModel().endUpdate();
@@ -307,6 +310,7 @@ object ShowGraph extends Property {
 		var yposition: Double = ygap;
 		var xposition: Int = leftspace
 		try {
+
 			var index: Int = 0;
 			for (node <- cfg.nodes) {
 				val (vertix, h) = createVertix(node, index, xposition, yposition + ygap, graph, false, "rectangle")
@@ -317,7 +321,9 @@ object ShowGraph extends Property {
 			for (edge <- cfg.edges)
 				createEdge(edge._1, edge._2, ToStringUtilities.optionToString(edge._3), vertixes, graph)
 
-		}
+      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
+
+    }
 		finally {
 			graph.getModel().endUpdate();
 		}
@@ -343,7 +349,9 @@ object ShowGraph extends Property {
 				yposition = yposition + ygap * 2 + h;
 				index = index + 1;
 			}
-		}
+
+      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
+    }
 		finally {
 			graph.getModel().endUpdate();
 		}
@@ -416,7 +424,8 @@ object ShowGraph extends Property {
 					}
 				}
 			}
-		}
+      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
+    }
 		finally {
 			graph.getModel().endUpdate();
 		}
