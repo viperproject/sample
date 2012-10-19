@@ -1,5 +1,15 @@
 
+class MyNode(var next : MyNode, var value : Int)
+
+
 class SimpleExamples {
+
+  def ex() = {
+    var a = new MyNode(null, 1);
+    a.next = new MyNode(null, 2);
+    a.next.next = new MyNode(null, 2);
+  }
+
 	def ex1() = {
 		var i : Int = 1;
 		var j : Int = 2;
