@@ -68,9 +68,8 @@ object Run {
       case Some(s) => s
     }
 
-    verbose = if(args.contains("-v")) true else false;
+    verbose = args.contains("-v")
     System.out.println("Starting the tests")
-
     iteratorOverFiles[N, H, I](new File(directory), runSingle[N, H, I](_, _, _, _, originalResult, lastResult, inference));
 
     new File(directory+originalFile).delete();
@@ -84,7 +83,7 @@ object Run {
   private def getArg(p : String, args : Array[String]) : Option[String] = {
     for(i <- 0 to args.size-1)
       if(args(i).equals(p) && i <= args.size-2 && ! args(i+1).substring(0, 1).equals("-"))
-        return Some(args(i));
+        return Some(args(i+1));
     return None;
   }
 
@@ -98,7 +97,6 @@ object Run {
   //Iterate the given function over all the files and directories that are in the given path
   def iteratorOverFiles[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](file : File, f : (File, File, List[String], GenericAbstractState[N, H, I]) => Unit) : Unit = {
     if(file.isDirectory) {
-
       if(! file.getName.equals(".svn")) {
         try {
           val file3 : File = new File(file.getAbsolutePath+"\\settings.test");
