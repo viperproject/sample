@@ -120,25 +120,25 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param pp The program point that creates the variable
    @return The abstract state after the creation of the variable
    */
-  def createVariable(x : SymbolicAbstractValue[S], typ : Type, pp : ProgramPoint) : S
-  
+  def createVariable(x : ExpressionSet, typ : Type, pp : ProgramPoint) : S
+
   /**
    Creates a variable for an argument
-   
+
    @param x The name of the argument
    @param pp The static type of the argument
    @return The abstract state after the creation of the argument
-   */  
-  def createVariableForArgument(x : SymbolicAbstractValue[S], typ : Type) : S
+   */
+  def createVariableForArgument(x : ExpressionSet, typ : Type) : S
 
   /**
    Assigns an expression to a variable
-   
+
    @param x The assigned variable
    @param right The assigned expression
    @return The abstract state after the assignment
    */
-  def assignVariable(x : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S]) : S
+  def assignVariable(x : ExpressionSet, right : ExpressionSet) : S
 
   /**
    Create an array of length
@@ -148,7 +148,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param length The program point that created the array
    @return The abstract state after the creation of the array
    */
-  def createArray(length : SymbolicAbstractValue[S], typ : Type, pp : ProgramPoint) : S
+  def createArray(length : ExpressionSet, typ : Type, pp : ProgramPoint) : S
 
   /**
    Assigns an expression to a field of an object
@@ -158,7 +158,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param right The assigned expression
    @return The abstract state after the assignment
    */
-  def assignField(obj : List[SymbolicAbstractValue[S]], field : String, right : SymbolicAbstractValue[S]) : S
+  def assignField(obj : List[ExpressionSet], field : String, right : ExpressionSet) : S
 
   /**
    Assign a cell of an array
@@ -169,58 +169,58 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param right The assigned expression
    @return The abstract state obtained after the array cell assignment
    */
-  def assignArrayCell(obj : SymbolicAbstractValue[S], index : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S], typ : Type) : S
-  
+  def assignArrayCell(obj : ExpressionSet, index : ExpressionSet, right : ExpressionSet, typ : Type) : S
+
   /**
    Assigns an expression to an argument
-   
+
    @param x The assigned argument
    @param right The expression to be assigned
    @return The abstract state after the assignment
    */
-  def setArgument(x : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S]) : S
-  
+  def setArgument(x : ExpressionSet, right : ExpressionSet) : S
+
   /**
    Forgets the value of a variable
-   
+
    @param x The variable to be forgotten
    @return The abstract state obtained after forgetting the variable
    */
-  def setVariableToTop(x : SymbolicAbstractValue[S]) : S
-  
+  def setVariableToTop(x : ExpressionSet) : S
+
   /**
    Removes a variable
-   
+
    @param x The variable to be removed
    @return The abstract state obtained after removing the variable
    */
-  def removeVariable(x : SymbolicAbstractValue[S]) : S
-  
+  def removeVariable(x : ExpressionSet) : S
+
   /**
    Throws an exception
-   
+
    @param t The thrown exception
    @return The abstract state after the thrown
    */
-  def throws(t : SymbolicAbstractValue[S]) : S
-  
+  def throws(t : ExpressionSet) : S
+
   /**
    Gets the value of a variable
-   
+
    @param id The variable to access
    @return The abstract state obtained after accessing the variable, that is, the state that contains as expression the symbolic representation of the value of the given variable
    */
   def getVariableValue(id : Assignable) : S
-  
+
   /**
    Accesses a field of an object
-   
+
    @param obj The object on which the field access is performed
    @param field The name of the field
    @param typ The type of the field
    @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
    */
-  def getFieldValue(obj : List[SymbolicAbstractValue[S]], field : String, typ : Type) : S
+  def getFieldValue(obj : List[ExpressionSet], field : String, typ : Type) : S
 
 
    /**
@@ -231,7 +231,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param typ The type of the field
    @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
    */
-  def getArrayCell(obj : SymbolicAbstractValue[S], index : SymbolicAbstractValue[S], typ : Type) : S
+  def getArrayCell(obj : ExpressionSet, index : ExpressionSet, typ : Type) : S
 
 
   /**
@@ -240,85 +240,85 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param array The array from which we want to access the length
    @return A state that contains as expression the symbolic representation of the length of the given array
    */
-  def getArrayLength(array : SymbolicAbstractValue[S]) : S
+  def getArrayLength(array : ExpressionSet) : S
 
   /**
    Performs the backward semantics of a variable access
-   
+
    @param id The accessed variable
-   @return The abstract state obtained BEFORE accessing the variable   
-   */  
+   @return The abstract state obtained BEFORE accessing the variable
+   */
   def backwardGetVariableValue(id : Assignable) : S
-  
+
   /**
    Performs the backward semantics of a field access
-   
+
    @param obj The object on which the field access is performed
    @param field The name of the field
    @param typ The type of the field
    @return The abstract state obtained before the field access
    */
-  def backwardGetFieldValue(objs : List[SymbolicAbstractValue[S]], field : String, typ : Type) : S
-  
+  def backwardGetFieldValue(objs : List[ExpressionSet], field : String, typ : Type) : S
+
   /**
    Performs the backward semantics of an assignment
-   
+
    @param x The assigned variable
    @param right The assigned expression
    @return The abstract state before the assignment
    */
-  def backwardAssignVariable(x : SymbolicAbstractValue[S], right : SymbolicAbstractValue[S]) : S
-  
+  def backwardAssignVariable(x : ExpressionSet, right : ExpressionSet) : S
+
   /**
    Evaluates a numerical constant
-   
+
    @param value The string representing the numerical constant
    @param typ The type of the numerical constant
    @param pp The program point that contains the constant
    @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
    */
   def evalNumericalConstant(value : String, typ : Type, pp : ProgramPoint) : S
-  
+
   /**
    Assumes that a boolean expression holds
-   
-   @param cond The assumed expression 
+
+   @param cond The assumed expression
    @return The abstract state after assuming that the expression holds
    */
-  def assume(cond : SymbolicAbstractValue[S]) : S
-  
+  def assume(cond : ExpressionSet) : S
+
   /**
    Assumes that the current expression holds
-   
+
    @return The abstract state after assuming that the expression holds
    */
   def testTrue() : S
-  
+
   /**
    Assumes that the current expression does not hold
-   
+
    @return The abstract state after assuming that the expression does not hold
    */
   def testFalse() : S
-  
+
   /**
    Returns the current expression
-   
+
    @return The current expression
    */
-  def getExpression() : SymbolicAbstractValue[S]
-  
+  def getExpression() : ExpressionSet
+
   /**
    Sets the current expression
-   
+
    @param expr The current expression
    @return The abstract state after changing the current expression with the given one
    */
-  def setExpression(expr : SymbolicAbstractValue[S]) : S
-  
+  def setExpression(expr : ExpressionSet) : S
+
   /**
    Removes the current expression
-   
+
    @return The abstract state after removing the current expression
    */
   def removeExpression() : S
@@ -463,30 +463,27 @@ trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
   def lessEqualWithReplacement(r : T) : (Boolean, Replacement)
 }
 
-/** 
+/**
  * Some trivial helper functions that executes forward/backward semantics on single and list of states
  *
  * @author Pietro Ferrara
  * @since 0.1
  */
 object UtilitiesOnStates {
-   
-	def forwardExecuteStatement[S <: State[S]](state : S, statement : Statement) : (SymbolicAbstractValue[S], S)= {
+
+	def forwardExecuteStatement[S <: State[S]](state : S, statement : Statement) : (ExpressionSet, S)= {
 	  val finalState : S =statement.forwardSemantics[S](state);
 	  val expr=finalState.getExpression();
-	  var resultingState=finalState.bottom()
-	  for(exp <- expr.getExpressions())
-		  resultingState=resultingState.lub(resultingState, expr.get(exp));
-	  (expr, resultingState);
+	  (expr, finalState);
 	}
 
- 	def backwardExecuteStatement[S <: State[S]](state : S, statement : Statement) : (SymbolicAbstractValue[S], S)= {
+ 	def backwardExecuteStatement[S <: State[S]](state : S, statement : Statement) : (ExpressionSet, S)= {
 	  val finalState : S =statement.backwardSemantics[S](state);
 	  val expr=finalState.getExpression();
 	  (expr, finalState.removeExpression());
 	}
- 
-	def forwardExecuteListStatements[S <: State[S]](state : S, statements : List[Statement]) : (List[SymbolicAbstractValue[S]], S)= statements match {
+
+	def forwardExecuteListStatements[S <: State[S]](state : S, statements : List[Statement]) : (List[ExpressionSet], S)= statements match {
 	  case Nil => (Nil, state)
 	  case statement :: xs =>
 	  	val state1 : S =statement.forwardSemantics[S](state);
@@ -494,8 +491,8 @@ object UtilitiesOnStates {
 	  	val (otherExpr, finalState)= forwardExecuteListStatements[S](state1, xs)
 	  	(expr :: otherExpr, finalState.removeExpression());
 	}
- 
-	def backwardExecuteListStatements[S <: State[S]](state : S, statements : List[Statement]) : (List[SymbolicAbstractValue[S]], S)= statements match {
+
+	def backwardExecuteListStatements[S <: State[S]](state : S, statements : List[Statement]) : (List[ExpressionSet], S)= statements match {
 	  case Nil => (Nil, state)
 	  case statement :: xs =>
 	  	val state1 : S =statement.normalize().backwardSemantics[S](state);

@@ -3,8 +3,8 @@
   <component name="FacetManager">
     <facet type="scala" name="Scala">
       <configuration>
-        <option name="compilerLibraryLevel" value="Project" />
-        <option name="compilerLibraryName" value="scala-compiler" />
+        <option name="compilerLibraryLevel" value="Global" />
+        <option name="compilerLibraryName" value="scala-compiler-2.8.1" />
       </configuration>
     </facet>
   </component>
@@ -15,12 +15,12 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="Sample" />
     <orderEntry type="module" module-name="HeapAnalysis" />
+    <orderEntry type="module" module-name="sample" />
+    <orderEntry type="library" name="scala-library-2.8.1" level="application" />
     <orderEntry type="module" module-name="NumericalAnalysis" />
-    <orderEntry type="module" module-name="ScalaPreprocessing" />
+    <orderEntry type="module" module-name="Scala" />
     <orderEntry type="module" module-name="GUI" />
-    <orderEntry type="library" name="scala-library" level="project" />
   </component>
 </module>
 

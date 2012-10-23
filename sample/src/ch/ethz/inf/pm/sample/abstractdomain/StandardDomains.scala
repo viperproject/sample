@@ -286,7 +286,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     result
   }
   
-  final def bottom() : T = {
+  def bottom() : T = {
     val result : T = this.factory();
     result.isTop = false;
     result.isBottom=true;

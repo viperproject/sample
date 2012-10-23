@@ -127,7 +127,7 @@ case class Assignment(programpoint : ProgramPoint, left : Statement, right : Sta
         val exprright = stateright.getExpression();
         stateright=stateright.removeExpression();
         var result=stateright.setVariableToTop(exprleft);
-        val condition=result.getExpression().createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, result, exprleft.getType(state).top());//TODO type is wrong
+        val condition=ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top());//TODO type is wrong
         result=result.setExpression(condition);
         return result.testTrue().backwardAssignVariable(exprleft, exprright);
 	  }
@@ -178,7 +178,7 @@ case class VariableDeclaration(programpoint : ProgramPoint, val variable : Varia
       var st=state;
       if(right!=null)
         st=new Assignment(programpoint, new Variable(programpoint, new VariableIdentifier(variable.getName(), typ, programpoint)), right).backwardSemantics[S](st);
-      return st.removeVariable(st.getExpression().createVariable(variable, st, typ, programpoint));
+      return st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint));
     }
 
     override def toString() : String = "declare "+ToStringUtilities.toStringIfNotNull(typ)+" "+variable.toString()+ToStringUtilities.assignedIfNotNull(right);

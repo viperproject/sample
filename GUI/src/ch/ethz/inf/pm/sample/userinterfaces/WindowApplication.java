@@ -362,10 +362,8 @@ public class WindowApplication {
                     }
                     SemanticDomain domain = (SemanticDomain) getSelectedAnalysis().getInitialState();
                     HeapAndAnotherDomain entrydomain  = new HeapAndAnotherDomain(domain, heapDomain);
-                    SymbolicAbstractValue entryvalue =new SymbolicAbstractValue(scala.Option.apply(null), scala.Option.apply(null));
-                    GenericAbstractState entryState =new GenericAbstractState(entrydomain, entryvalue);
-                    entryvalue =new SymbolicAbstractValue(new Some(entryState), new Some(SystemParameters.getType()));
-                    entryState =new GenericAbstractState(entrydomain, entryvalue);
+                    ExpressionSet entryvalue =new ExpressionSet(SystemParameters.getType().top());
+                    AbstractState entryState =new AbstractState(entrydomain, entryvalue);
                     setProgress(50);
                     taskOutput.append("\nRunning the analysis");
                     ch.ethz.inf.pm.sample.Timer t=new ch.ethz.inf.pm.sample.Timer();

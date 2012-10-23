@@ -15,8 +15,7 @@ import java.awt.event._
 import tracepartitioning._
 import com.mxgraph.util.mxConstants
 import java.awt.{Color, GridLayout, Dimension, Toolkit}
-import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
-import com.mxgraph.layout.mxIGraphLayout
+import tools.nsc.doc.model.Public
 
 private class Show extends JFrame {
 	def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
@@ -158,10 +157,10 @@ object ShowGraph extends Property {
 	}
 
 	private class ShowNonRelationalHeapState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]] {
-		def this(state: GenericAbstractState[N, H, I]) = {
+		def this(state: AbstractState[N, H, I]) = {
 			this ()
 
-			val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.nonRelationalHeapStateToGraph[I, N](state.getHeap().asInstanceOf[NonRelationalHeapDomain[I]], state.getSemanticDomain());
+			val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.nonRelationalHeapStateToGraph[I, N](state.getHeapDomain().asInstanceOf[NonRelationalHeapDomain[I]], state.getSemanticDomain());
 			val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
 			graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
 
@@ -294,8 +293,6 @@ object ShowGraph extends Property {
 			}
 			for (edge <- wgraph.cfg.edges)
 				createEdge(edge._1, edge._2, ToStringUtilities.optionToString(edge._3), vertixes, graph)
-
-      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
 		}
 		finally {
 			graph.getModel().endUpdate();
@@ -310,7 +307,6 @@ object ShowGraph extends Property {
 		var yposition: Double = ygap;
 		var xposition: Int = leftspace
 		try {
-
 			var index: Int = 0;
 			for (node <- cfg.nodes) {
 				val (vertix, h) = createVertix(node, index, xposition, yposition + ygap, graph, false, "rectangle")
@@ -321,9 +317,7 @@ object ShowGraph extends Property {
 			for (edge <- cfg.edges)
 				createEdge(edge._1, edge._2, ToStringUtilities.optionToString(edge._3), vertixes, graph)
 
-      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
-
-    }
+		}
 		finally {
 			graph.getModel().endUpdate();
 		}
@@ -349,9 +343,7 @@ object ShowGraph extends Property {
 				yposition = yposition + ygap * 2 + h;
 				index = index + 1;
 			}
-
-      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
-    }
+		}
 		finally {
 			graph.getModel().endUpdate();
 		}
@@ -359,7 +351,7 @@ object ShowGraph extends Property {
 	}
 
 	private def toSimplifiedString[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](a: Any): String = a match {
-		case s: GenericAbstractState[N, H, I] => "Click here to see the abstract heap structure\n\nExpression:\n" + s.getExpression
+		case s: AbstractState[N, H, I] => "Click here to see the abstract heap structure\n\nExpression:\n" + s._2
 		case _ => return a.toString();
 	}
 
@@ -424,8 +416,7 @@ object ShowGraph extends Property {
 					}
 				}
 			}
-      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
-    }
+		}
 		finally {
 			graph.getModel().endUpdate();
 		}
@@ -672,13 +663,13 @@ object ShowGraph extends Property {
 
 
 	private def stateToGraph[S <: State[S], N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: S) = state match {
-		case s: GenericAbstractState[N, H, I] => genericStateToGraph(s);
+		case s: AbstractState[N, H, I] => genericStateToGraph(s);
 		case s: PartitionedState[_] => partitionedStateToJComponent(s)
 		case _ => new Show(stateToString(state), false, -1, -1);
 	}
 
-	private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: GenericAbstractState[N, H, I]) = state match {
-		case _ if state.getHeap().isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
+	private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: AbstractState[N, H, I]) = state match {
+		case _ if state.getHeapDomain().isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[AbstractState[N, H, I]])
 		//case _ if state.getHeap().isInstanceOf[ArrayHeapDomain] => new ShowArrayAnalysisHeapState(state.asInstanceOf[GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID]], false, null)
     //case _ if state.getHeap().isInstanceOf[TVSHeap] => new ShowTVSHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
 		case _ => new Show(stateToString(state), false, -1, -1);

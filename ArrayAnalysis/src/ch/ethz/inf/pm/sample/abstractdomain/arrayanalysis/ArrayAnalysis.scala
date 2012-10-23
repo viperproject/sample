@@ -30,8 +30,8 @@ object ArrayAnalysis {
 
   type HeapId = TopHeapIdentifier;
   type HeapDomain = NonRelationalHeapDomain[TopHeapIdentifier];
-  type State = GenericAbstractState[AVP2010Analysis, HeapDomain, HeapId];
-  type AbstractValue = SymbolicAbstractValue[State];
+  type State = AbstractState[AVP2010Analysis, HeapDomain, HeapId];
+  type AbstractValue = ExpressionSet;
   type HeapAndAnother = HeapAndAnotherDomain[AVP2010Analysis, HeapDomain, HeapId];
   
   type ConditionsSingleMethod = Map[String, Map[FieldAccess, Int]]
@@ -58,10 +58,8 @@ object ArrayAnalysis {
 	heapid.typ=SystemParameters.typ.asInstanceOf[Type];
 	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain[TopHeapIdentifier](), heapid);
 	val entrydomain  = new HeapAndAnother(numericalDomain, heapDomain);
-	var entryvalue =new AbstractValue(None, Some(SystemParameters.typ.asInstanceOf[Type]))
+	var entryvalue =new AbstractValue(SystemParameters.typ.top())
 	var entryState =new State(entrydomain, entryvalue)
-	entryvalue=new AbstractValue(Some(entryState), Some(SystemParameters.typ.asInstanceOf[Type]))
-	entryState =new State(entrydomain, entryvalue)
 	
 	ch.ethz.inf.pm.sample.Main.verbose=false; 
 	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);

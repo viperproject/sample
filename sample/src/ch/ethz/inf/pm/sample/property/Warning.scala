@@ -181,10 +181,10 @@ class OutputCollector {
   def add(a : Output) : Unit = a match {
     case InferredContract(c) => {
       c match {
-        case Invariant(classe, e) => this.addInvariant(classe, e);
-        case Predicate(classe, name, e) => this.addPredicate(classe, name, e)
-        case PreCondition(classe, method, e) => this.addPrecondition(classe, method, e)
-        case PostCondition(classe, method, e) => this.addPostcondition(classe, method, e)
+        case Invariant(classe, e) => this.addInvariant(classe, e); outputs=outputs+a;
+        case Predicate(classe, name, e) => this.addPredicate(classe, name, e); outputs=outputs+a;
+        case PreCondition(classe, method, e) => this.addPrecondition(classe, method, e); outputs=outputs+a;
+        case PostCondition(classe, method, e) => this.addPostcondition(classe, method, e); outputs=outputs+a;
         case _ => outputs=outputs+a;
       }
     }

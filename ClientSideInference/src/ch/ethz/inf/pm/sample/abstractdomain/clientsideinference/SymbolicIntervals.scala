@@ -320,8 +320,8 @@ class SymbolicIntervalsProperty[T <: SymbolicInt[T, IntervalsSymbolicValues]](va
   def check[S <: State[S]](classe : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
     property1.check(classe, methodName, result, printer);
     def exitState = result.exitState();
-    for(exp <- exitState.getExpression().getExpressions()) {
-      val state = SymbolicIntervalsUtility .castState(exitState.getExpression().get(exp))
+    for(exp <- exitState.getExpression().setOfExpressions) {
+      val state = SymbolicIntervalsUtility .castState(exitState)
       val value = state._1.getSemanticDomain().asInstanceOf[SymbolicIntervals[T, IntervalsSymbolicValues]].eval(exp, exp.getType(), exp.getProgramPoint());
       value.l match {
         case Bound(t) => c.addConstraint(new Geq[IntervalsSymbolicValues](t.toArithmeticExpression(), new Multiply[IntervalsSymbolicValues](new SimpleVal[IntervalsSymbolicValues](1), new IntervalsSymbolicValues(classe, methodName, TypeOfContracts.postcondition, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()), SymbolicContractTypes.min))))
@@ -360,14 +360,14 @@ class SymbolicIntervalsMethodCallVisitor[T <: SymbolicInt[T, IntervalsSymbolicVa
   def checkSingleStatement[S1 <: State[S1]](state : S1, statement : Statement, printer : OutputCollector) : Unit = statement match {
     case MethodCall(pp, FieldAccess(pp1, FieldAccess(pp2, Variable(pp3, VariableIdentifier("this", pp4, typ4)) :: Nil, "Predef", typ2) :: Nil, "assert", typ), parametricTypes, p :: Nil, returnedType) =>
       val exps = p.forwardSemantics(state).getExpression();
-      for(exp <- exps.getExpressions())
-        addSingleAssertion(exp, SymbolicIntervalsUtility.castState(exps.get(exp))._1.getSemanticDomain().asInstanceOf[SymbolicIntervals[T, IntervalsSymbolicValues]], printer);
+      for(exp <- exps.setOfExpressions)
+        addSingleAssertion(exp, SymbolicIntervalsUtility.castState(state)._1.getSemanticDomain().asInstanceOf[SymbolicIntervals[T, IntervalsSymbolicValues]], printer);
     case x : MethodCall =>
       val resultState = x.forwardSemantics(state);
-      for(exp <- resultState.getExpression().getExpressions())
+      for(exp <- resultState.getExpression().setOfExpressions)
         exp match {
           case AbstractMethodCall(thisExpr, parameters, calledMethod, retType) =>
-            val symbolicIntervalsState : SymbolicIntervals[T, IntervalsSymbolicValues] = SymbolicIntervalsUtility.castState(resultState.getExpression().get(exp))._1.getSemanticDomain().asInstanceOf[SymbolicIntervals[T, IntervalsSymbolicValues]];
+            val symbolicIntervalsState : SymbolicIntervals[T, IntervalsSymbolicValues] = SymbolicIntervalsUtility.castState(resultState)._1.getSemanticDomain().asInstanceOf[SymbolicIntervals[T, IntervalsSymbolicValues]];
             val (classe, renaming) = SymbolicSettings.rename(calledMethod, thisExpr, parameters, true)
             for(i <- 0 to parameters.size-1) {
               val (expr, nameInMethod) = renaming.apply(i);
@@ -399,5 +399,5 @@ object SymbolicIntervalsUtility {
       return new Multiply[IntervalsSymbolicValues](new SimpleVal[IntervalsSymbolicValues](1), new IntervalsSymbolicValues(className, methodName, typ, id, minmax))
   }
 
-  def castState[S1 <: State[S1], H <: HeapDomain[H, I], I <: HeapIdentifier[I], T <: SymbolicInt[T, IntervalsSymbolicValues]](state : S1) = state.asInstanceOf[GenericAbstractState[SymbolicIntervals[T, IntervalsSymbolicValues], H, I]];
+  def castState[S1 <: State[S1], H <: HeapDomain[H, I], I <: HeapIdentifier[I], T <: SymbolicInt[T, IntervalsSymbolicValues]](state : S1) = state.asInstanceOf[AbstractState[SymbolicIntervals[T, IntervalsSymbolicValues], H, I]];
 }

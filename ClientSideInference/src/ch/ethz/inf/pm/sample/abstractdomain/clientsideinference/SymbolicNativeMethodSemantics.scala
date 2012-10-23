@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 
 object SymbolicNativeMethodSemantics extends NativeMethodSemantics {
 
-  def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = thisExpr.getType().toString() match {
+  def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = thisExpr.getType().toString() match {
     case "Int" => return new Some(state);
    
 	  case "Boolean" => return new Some(state); //TODO: Potentially not sound
@@ -19,22 +19,22 @@ object SymbolicNativeMethodSemantics extends NativeMethodSemantics {
 	  }
 	}
 
-  private def extractMethodCall[HI <: HeapIdentifier[HI], H <: HeapDomain[H, HI], SD <: SemanticDomain[SD], S <: State[S]](state: S, thisExpr: SymbolicAbstractValue[S], parameters : List[SymbolicAbstractValue[S]], method : String, retType : Type): Option[S] = {
+  private def extractMethodCall[HI <: HeapIdentifier[HI], H <: HeapDomain[H, HI], SD <: SemanticDomain[SD], S <: State[S]](state: S, thisExpr: ExpressionSet, parameters : List[ExpressionSet], method : String, retType : Type): Option[S] = {
     var result = state.bottom();
-    for (exp <- thisExpr.getExpressions)
+    for (exp <- thisExpr.setOfExpressions)
       exp match {
         case id: VariableIdentifier if id.getName().equals("this") =>
           val expr = new AbstractMethodCall(id, parsToVariableId(parameters), method, retType)
-          result=result.lub(result, state.setExpression(new SymbolicAbstractValue[S](expr, state)));
+          result=result.lub(result, state.setExpression(new ExpressionSet(retType).add(expr)));
         case _ => throw new SemanticException("Not yet supported")
       }
     if(result.lessEqual(result.bottom())) return None;
     else return Some(result);
   }
 
-  private def parsToVariableId[S <: State[S]](pars : List[SymbolicAbstractValue[S]]) : List[Expression]= pars match {
+  private def parsToVariableId[S <: State[S]](pars : List[ExpressionSet]) : List[Expression]= pars match {
     case x :: xs =>
-      val exprs = x.getExpressions()
+      val exprs = x.setOfExpressions
       if(exprs.size!=1) throw new SemanticException("Not yet supported")
       val id = exprs.iterator.next();
       //if(! id.isInstanceOf[VariableIdentifier]) throw new SemanticException("Not yet supported")
@@ -42,7 +42,7 @@ object SymbolicNativeMethodSemantics extends NativeMethodSemantics {
     case Nil => Nil;
   }
 
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = 
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] =
 		throw new SemanticException("Backward semantics not yet supported");
 }
 

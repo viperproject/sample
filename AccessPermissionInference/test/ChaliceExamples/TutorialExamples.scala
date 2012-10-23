@@ -20,7 +20,6 @@ object Chalice {
  * K. R. M. Leino and P. Mueller and J. Smans: Verification of Concurrent Programs with Chalice
  * Foundations of Security Analysis and Design V, 2009.
  */
-/*
 
 /** Fig. 1 */
 class C100 {
@@ -44,6 +43,7 @@ class C100 {
  	def Dispose() = {Chalice.free(this)}
 }
 
+/*
 /** Fig. 2 */
 class Math(var n : Int) {
   

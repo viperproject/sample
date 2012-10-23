@@ -334,9 +334,9 @@ class SymbolicDBMProperty[T <: SymbolicInt[T, DBMSymbolicValue]](val c : Constra
   def check[S <: State[S]](classe : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
     property1.check(classe, methodName, result, printer);
     val exitState = result.exitState();
-    for(exp <- exitState.getExpression().getExpressions()) {
+    for(exp <- exitState.getExpression().setOfExpressions) {
       val (renamedExp, varId) = SymbolicSettings.renameSingle(exp, new VariableIdentifier("result", exp.getType(), exp.getProgramPoint()), false)
-      val state = SymbolicDBMUtility.castState(exitState.getExpression().get(exp))
+      val state = SymbolicDBMUtility.castState(exitState)
       val value = state._1.getSemanticDomain().asInstanceOf[SymbolicDBM[T, DBMSymbolicValue]];
       for(constr <- value.matrix.keySet) {
         if(constr._1.equals(DBMSetting.getIndex(varId))) {
@@ -382,10 +382,10 @@ class SymbolicDBMMethodCallVisitor[T <: SymbolicInt[T, DBMSymbolicValue]](val c 
   def checkSingleStatement[S1 <: State[S1]](state : S1, statement : Statement, printer : OutputCollector) : Unit = statement match {
     case x : MethodCall =>
       val resultState = x.forwardSemantics(state);
-      for(exp <- resultState.getExpression().getExpressions())
+      for(exp <- resultState.getExpression().setOfExpressions)
         exp match {
           case AbstractMethodCall(thisExpr, parameters, calledMethod, retType) =>
-            val symbolicDBMState : SymbolicDBM[T, DBMSymbolicValue] = SymbolicDBMUtility.castState(resultState.getExpression().get(exp))._1.getSemanticDomain().asInstanceOf[SymbolicDBM[T, DBMSymbolicValue]];
+            val symbolicDBMState : SymbolicDBM[T, DBMSymbolicValue] = SymbolicDBMUtility.castState(resultState)._1.getSemanticDomain().asInstanceOf[SymbolicDBM[T, DBMSymbolicValue]];
             //val (classeswapped, renamingswapped) = SymbolicSettings.rename(calledMethod, thisExpr, parameters, true)
             val (classe, renaming) = SymbolicSettings.rename(calledMethod, thisExpr, parameters, false)
             for(i <- 0 to parameters.size-1) {
@@ -456,5 +456,5 @@ object SymbolicDBMUtility {
       return new Multiply[DBMSymbolicValue](new SimpleVal[IntervalsSymbolicValues](1), new IntervalsSymbolicValues(className, methodName, typ, id, minmax))
   }*/
 
-  def castState[S1 <: State[S1], H <: HeapDomain[H, I], I <: HeapIdentifier[I], T <: SymbolicInt[T, DBMSymbolicValue]](state : S1) = state.asInstanceOf[GenericAbstractState[SymbolicDBM[T, DBMSymbolicValue], H, I]];
+  def castState[S1 <: State[S1], H <: HeapDomain[H, I], I <: HeapIdentifier[I], T <: SymbolicInt[T, DBMSymbolicValue]](state : S1) = state.asInstanceOf[AbstractState[SymbolicDBM[T, DBMSymbolicValue], H, I]];
 }

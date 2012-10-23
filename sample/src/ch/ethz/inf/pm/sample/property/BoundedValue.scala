@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.property
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * Created by IntelliJ IDEA.
@@ -40,7 +41,7 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 			case Some((l, r)) => {
 				val sl = l.forwardSemantics(s)
 				val sa = stmt.forwardSemantics(s)
-				for (pl <- sl.getExpression.getExpressions) {
+				for (pl <- sl.getExpression.setOfExpressions) {
 					pl match {
 						case VariableIdentifier(v, _, pp) => {
 							if (v == variable) {
@@ -50,7 +51,7 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 									BooleanOperator.&&,
 									null
 								)
-								if (!sa.lessEqual(sa.assume(new SymbolicAbstractValue(expr, sa)))) {
+								if (!sa.lessEqual(sa.assume(new ExpressionSet(SystemParameters.getType().top()).add(expr)))) {
 									out.add(new WarningProgramPoint(pp, "Possible unbounded assignment to " + v))
 								} else {
 									out.add(new ValidatedProgramPoint(pp, "Bounded assignment to " + v))

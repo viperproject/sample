@@ -5,9 +5,9 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 
 object StringSemantics extends NativeMethodSemantics {
   	def applyForwardNativeSemantics[S <: State[S]](
-		thisExpr : SymbolicAbstractValue[S], 
+		thisExpr : ExpressionSet, 
 		operator : String, 
-		parameters : List[SymbolicAbstractValue[S]], 
+		parameters : List[ExpressionSet], 
 		typeparameters : List[Type], 
 		returnedtype : Type,
     programpoint : ProgramPoint,
@@ -16,49 +16,49 @@ object StringSemantics extends NativeMethodSemantics {
      if(! thisExpr.getType().toString().equals("String")) return None;
      operator match {
 	  case "+" => 
-	    return Some(state.setExpression(thisExpr.createAbstractOperator(thisExpr, 
+	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, 
-             state, returnedtype)));
+             returnedtype)));
      case "concat" => 
-	    return Some(state.setExpression(thisExpr.createAbstractOperator(thisExpr, 
+	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, 
-             state, returnedtype)));
+             returnedtype)));
      case "substring" => 
-	    return Some(state.setExpression(thisExpr.createAbstractOperator(thisExpr, 
+	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, 
-             state, returnedtype)));     
+             returnedtype)));
      case "contains" => 
-	    return Some(state.setExpression(thisExpr.createAbstractOperator(thisExpr, 
+	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringContains, 
-             state, returnedtype)));     
+             returnedtype)));
      case "indexOf" => 
-	    return Some(state.setExpression(thisExpr.createAbstractOperator(thisExpr, 
+	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringIndexof, 
-             state, returnedtype))); 
+             returnedtype)));
      case "lastIndexOf" => 
-	    return Some(state.setExpression(thisExpr.createAbstractOperator(thisExpr, 
+	    return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr,
              parameters, typeparameters, AbstractOperatorIdentifiers.stringLastindexof, 
-             state, returnedtype))); 
+             returnedtype)));
   	  case _ => None
 	}
   }
   
   private def createBinaryArithmeticExpression[S <: State[S]]
-       (state : S, thisExpr : SymbolicAbstractValue[S], parameters : List[SymbolicAbstractValue[S]], 
+       (state : S, thisExpr : ExpressionSet, parameters : List[ExpressionSet], 
         operator : ArithmeticOperator.Value, returnedtype : Type) : Some[S] = parameters match {
-	    	case x :: Nil => new Some(state.setExpression(thisExpr.createBinaryExpression(thisExpr, x, operator, state, returnedtype)));
+	    	case x :: Nil => new Some(state.setExpression(ExpressionFactory.createBinaryExpression(thisExpr, x, operator, returnedtype)));
 	    	case _ => new Some(state.top())
   }
 
-  private def extractExpression[S <: State[S]](s : SymbolicAbstractValue[S]) : Option[Expression] = s.getExpressions() match {
+  private def extractExpression[S <: State[S]](s : ExpressionSet) : Option[Expression] = s.setOfExpressions match {
 	  case x if x.size==1 => return Some(x.elements.next)
 	  case _ => return None;
   }
    
 	def applyBackwardNativeSemantics[S <: State[S]](
-		thisExpr : SymbolicAbstractValue[S], 
+		thisExpr : ExpressionSet, 
 		operator : String, 
-		parameters : List[SymbolicAbstractValue[S]], 
+		parameters : List[ExpressionSet], 
 		typeparameters : List[Type], 
 		returnedtype : Type,
     programpoint : ProgramPoint,

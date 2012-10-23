@@ -38,9 +38,9 @@ class CastingVisitor extends Visitor {
     		parameters match {
     		case Nil => parametricTypes match {
 	    		case t :: Nil =>
-	    		val (listObjs, conditionedState) : (List[SymbolicAbstractValue[S]], S) = UtilitiesOnStates.forwardExecuteListStatements[S](state, method.asInstanceOf[FieldAccess].objs )
+	    		val (listObjs, conditionedState) : (List[ExpressionSet], S) = UtilitiesOnStates.forwardExecuteListStatements[S](state, method.asInstanceOf[FieldAccess].objs )
 	    		for(obj <- listObjs) {
-	    			val result = conditionedState.setExpression(conditionedState.getExpression.createAbstractOperator(obj, Nil, parametricTypes, AbstractOperatorIdentifiers.isInstanceOf, conditionedState, st.asInstanceOf[MethodCall].returnedType));
+	    			val result = conditionedState.setExpression(ExpressionFactory.createAbstractOperator(obj, Nil, parametricTypes, AbstractOperatorIdentifiers.isInstanceOf, st.asInstanceOf[MethodCall].returnedType));
 	    			if(! (result.testFalse().equals(result.bottom))) {
 	    				printer.add(new WarningProgramPoint(pp, "Unsafe casting, statement "+st.toString))
 	    				return

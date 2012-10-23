@@ -12,6 +12,7 @@ object Settings {
 
 	var unsoundInhaling : Boolean = false;
 	var unsoundDischarging : Boolean = false;
+  var dischargeEverythingOnPostcondition : Boolean = false;
 	var permissionType : PermissionsType = null;
 	
 	
@@ -145,7 +146,7 @@ object ConstraintsInference {
   type Permissions = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
   type HeapId = ProgramPointHeapIdentifier;
   type HeapDomain = NonRelationalHeapDomain[ProgramPointHeapIdentifier];
-  type State = GenericAbstractState[Permissions, HeapDomain, HeapId];
+  type State = AbstractState[Permissions, HeapDomain, HeapId];
   
   def emptyConstraints() = constraints=Set.empty[Constraint] 
   
@@ -194,7 +195,9 @@ object ConstraintsInference {
 	        case Some(s :: Nil) =>
 	          val string : List[String]=this.statementToListString(s);
             //if(string.size>0 && string.head.equals("this"))
-	            constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(string))), expr);
+	            if(Settings.dischargeEverythingOnPostcondition)
+                constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(string))), expr);
+              else constraints=constraints+new Geq(expr, new Multiply(1, new SymbolicPostCondition(classe, method, new Path(string))));
 	      }
     }
   }
@@ -221,7 +224,7 @@ object ConstraintsInference {
 
   def solve(constraints : Set[Constraint]) : (Map[SymbolicValue, Double], Option[Double]) = {
       try {
-        System.out.println(constraints.mkString("\n"))
+        //System.out.println(constraints.mkString("\n"))
         val vars : List[SymbolicValue] = this.extractVariables(constraints).toList;
         val solver : LpSolve= LpSolve.makeLp(0, vars.size);
           

@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.property
 
 import ch.ethz.inf.pm.sample.oorepresentation.{FieldAccess, MethodCall, Statement}
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,11 +19,10 @@ object DivisionByZero extends Visitor {
     case MethodCall(pp, FieldAccess(pp1, x :: Nil, "/", typ), parametricTypes, y :: Nil, returnedType) =>
       var state1 = x.forwardSemantics(state);
       state1 = y.forwardSemantics(state1);
-      for(divisor <- state1.getExpression().getExpressions()) {
+      for(divisor <- state1.getExpression().setOfExpressions) {
         if(! state1.assume(
-          new SymbolicAbstractValue[S](
-            new BinaryArithmeticExpression(divisor, new Constant("0", null, null), ArithmeticOperator.==, null),
-            state1
+          new ExpressionSet(SystemParameters.getType().top()).add(
+            new BinaryArithmeticExpression(divisor, new Constant("0", null, null), ArithmeticOperator.==, null)
             )
            ).lessEqual(state.bottom())) {
           printer.add(new WarningProgramPoint(statement.getPC(), "Possible division by 0"))

@@ -46,8 +46,8 @@ object Run {
     val directory = getArg("-p", args) match {
       case None =>
         System.out.println("You should explicitly specify the directory that contains the test cases");
-        //"C:\\Users\\Pietro\\Sample\\Test\\test\\HeapAnalysis\\"
-        "C:\\Users\\Pietro\\Sample\\Test\\test\\AccessPermissions\\"
+        "C:\\Users\\Pietro\\Sample\\Test\\test\\HeapAnalysis\\"
+        //"C:\\Users\\Pietro\\Sample\\Test\\test\\AccessPermissions\\"
       case Some(s) => s
     }
     if(args.contains("-dl")) {
@@ -95,14 +95,14 @@ object Run {
   }
 
   //Iterate the given function over all the files and directories that are in the given path
-  def iteratorOverFiles[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](file : File, f : (File, File, List[String], GenericAbstractState[N, H, I]) => Unit) : Unit = {
+  def iteratorOverFiles[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](file : File, f : (File, File, List[String], HeapAndAnotherDomain[N, H, I]) => Unit) : Unit = {
     if(file.isDirectory) {
       if(! file.getName.equals(".svn")) {
         try {
           val file3 : File = new File(file.getAbsolutePath+"\\settings.test");
-          val r : (List[String], GenericAbstractState[N, H, I], Analysis, H) = setAnalysisParameters(file3)
+          val r : (List[String], HeapAndAnotherDomain[N, H, I], Analysis, H) = setAnalysisParameters(file3)
           val methods: List[String] = r._1
-          var entryState: GenericAbstractState[N, H, I] = r._2
+          var entryState: HeapAndAnotherDomain[N, H, I] = r._2
           val analysis = r._3;
           val heapanalysis = r._4;
           for(file2 <- file.listFiles()) {
@@ -148,7 +148,7 @@ object Run {
   }
 
   //Parser the and set all the parameters of the analysis and set them
-  def setAnalysisParameters[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](testFile: File) : (List[String], GenericAbstractState[N, H, I], Analysis, H) = {
+  def setAnalysisParameters[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](testFile: File) : (List[String], HeapAndAnotherDomain[N, H, I], Analysis, H) = {
     val (methods, analysis, property, analysisParameters, heapanalysis, heapanalysisParameters) =
       new ExpectedOutputParser().parseAnalysisSettings(new FileReader(testFile));
     val an: SemanticAnalysis[N] = this.getAnalysis(analysis).asInstanceOf[SemanticAnalysis[N]];
@@ -167,16 +167,12 @@ object Run {
     }
     var domain = an.getInitialState
     var entrydomain = new HeapAndAnotherDomain[N, H, I](domain, heapan)
-    var entryvalue = new SymbolicAbstractValue[GenericAbstractState[N, H, I]](scala.Option.apply(null), scala.Option.apply(null))
-    var entryState = new GenericAbstractState[N, H, I](entrydomain, entryvalue)
-    entryvalue = new SymbolicAbstractValue(new Some(entryState), new Some(SystemParameters.getType))
-    entryState = new GenericAbstractState(entrydomain, entryvalue)
-    (methods, entryState, an, heapan)
+    (methods, entrydomain, an, heapan)
   }
 
   //Run the analysis and return the output
-  def initRun[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](testFile: File, sourceCodeFile: File, methods : List[String], entryState : GenericAbstractState[N, H, I]): (Set[ExpectedOutput], Set[Output]) = {
     SystemParameters.setProgressOutput(new StringCollector)
+  def initRun[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](testFile: File, sourceCodeFile: File, methods : List[String], entryDomain : HeapAndAnotherDomain[N, H, I]): (Set[ExpectedOutput], Set[Output]) = {
     SystemParameters.setAnalysisOutput(new StringCollector)
 
     //if the file specifying the results of the test does not exist, we suppose that we expect no output
@@ -191,7 +187,7 @@ object Run {
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
     ch.ethz.inf.pm.sample.Main.compile(sourceCodeFile)
     val output: OutputCollector = new OutputCollector;
-    ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, output)
+    ch.ethz.inf.pm.sample.Main.analyze(methods, new AbstractState[N, H, I](entryDomain, new ExpressionSet(SystemParameters.typ.top())), output)
     val result = output.outputs
     (expectedOutput, result)
   }
@@ -208,7 +204,7 @@ object Run {
 
 
   //Run the tests over a single file, and compare the obtained results with the expected ones.
-  private def delete[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](extension : String, sourceCodeFile : File, testFile : File, methods : List[String], entryState : GenericAbstractState[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
+  private def delete[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](extension : String, sourceCodeFile : File, testFile : File, methods : List[String], entryState : HeapAndAnotherDomain[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
     val filepath = splitExtension(sourceCodeFile)._1;  ;
     try {
         val lastResult = new File(filepath+"."+extension)
@@ -222,7 +218,7 @@ object Run {
   }
 
   //Run the tests over a single file, and compare the obtained results with the expected ones.
-  private def runSingle[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](sourceCodeFile : File, testFile : File, methods : List[String], entryState : GenericAbstractState[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
+  private def runSingle[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](sourceCodeFile : File, testFile : File, methods : List[String], entryState : HeapAndAnotherDomain[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
     val r = initRun(testFile, sourceCodeFile, methods, entryState)
     val expectedOutput: Set[ExpectedOutput] = r._1
     val result: Set[Output] = r._2

@@ -13,8 +13,8 @@ object Main {
   type Permissions = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
   type HeapId = ProgramPointHeapIdentifier;
   type HeapDomain = NonRelationalHeapDomain[ProgramPointHeapIdentifier];
-  type State = GenericAbstractState[Permissions, HeapDomain, HeapId];
-  type AbstractValue = SymbolicAbstractValue[State];
+  type State = AbstractState[Permissions, HeapDomain, HeapId];
+  type AbstractValue = ExpressionSet;
   type HeapAndAnother = HeapAndAnotherDomain[Permissions, HeapDomain, HeapId];
 
   private val methods : List[String] = "get" :: "set" :: "cuncurrentSet" :: "twoParallelSets" :: "Try" :: "Inc" :: "main" :: "at" :: "size" :: "setLeft" :: "setRight" :: "shift" :: "getLeft" :: "getRight" :: "main2" :: "main3" :: "main4" :: Nil;
@@ -49,10 +49,8 @@ object Main {
 	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain(), heapid);
 	val domain : Permissions =new SymbolicPermissionsDomain();
 	val entrydomain  = new HeapAndAnother(domain, heapDomain);
-	var entryvalue =new AbstractValue(None, None)
+	var entryvalue =new AbstractValue(SystemParameters.typ.top())
 	var entryState =new State(entrydomain, entryvalue)
-	entryvalue =new AbstractValue(Some(entryState), Some(SystemParameters.typ))
-	entryState =new State(entrydomain, entryvalue)
 
 	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);
   }

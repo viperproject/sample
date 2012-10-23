@@ -17,14 +17,16 @@ class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends Sem
   override def getLabel() = "Access permissions inference"
 
   override def parameters() : List[(String, Any)] =
-    List((("UnsoundInhaling", true)), (("UnsoundDischarging", true)), (("PriorityOfContracts", 3)), (("PriorityOfMonitorInvariants", 2)), (("PriorityOfAbstractPredicates", 1)), (("Permissions", List("Chalice", "Fractional", "Counting"))))
+    List((("DischargeEverythingOnPostconditions", false)), (("UnsoundInhaling", true)), (("UnsoundDischarging", true)), (("PriorityOfContracts", 3)), (("PriorityOfMonitorInvariants", 2)), (("PriorityOfAbstractPredicates", 1)), (("Permissions", List("Chalice", "Fractional", "Counting"))))
 
   override def setParameter(label : String, value : Any) : Unit = label match {
-    case "PriorityOfContracts" => Settings.priorityContracts = value.asInstanceOf[Int];
-    case "PriorityOfMonitorInvariants" => Settings.priorityInvariants = value.asInstanceOf[Int];
-    case "PriorityOfAbstractPredicates" => Settings.priorityPredicates = value.asInstanceOf[Int];
+      //Workaroud, problems with priority
+    case "PriorityOfContracts" => Settings.priorityContracts = value.asInstanceOf[Int]*value.asInstanceOf[Int]*value.asInstanceOf[Int];
+    case "PriorityOfMonitorInvariants" => Settings.priorityInvariants = value.asInstanceOf[Int]*value.asInstanceOf[Int]*value.asInstanceOf[Int];
+    case "PriorityOfAbstractPredicates" => Settings.priorityPredicates = value.asInstanceOf[Int]*value.asInstanceOf[Int]*value.asInstanceOf[Int];
     case "UnsoundInhaling" => Settings.unsoundInhaling = value.asInstanceOf[Boolean];
     case "UnsoundDischarging" => Settings.unsoundDischarging = value.asInstanceOf[Boolean];
+    case "DischargeEverythingOnPostconditions" => Settings.dischargeEverythingOnPostcondition = value.asInstanceOf[Boolean];
     case "Permissions" => value match {
       case "Fractional" => Settings.permissionType = FractionalPermissions;
       case "Counting" => Settings.permissionType = CountingPermissions;

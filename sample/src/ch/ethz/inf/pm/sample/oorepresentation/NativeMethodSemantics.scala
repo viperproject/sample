@@ -18,16 +18,15 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
               val arrayId = newState.getExpression();
               newState = newState.getArrayLength(arrayId);
               val arrayLengthId = newState.getExpression();
-              if(arrayLengthId.value.size!=1) throw new SemanticException("Not yet supported");
-              newState = arrayLengthId.value.iterator.next._2;
-              var newSymbAV = new SymbolicAbstractValue[S]();
-              var parameter = new SymbolicAbstractValue[S]();
-              for(exp2 <- x.getExpressions()) {
-                parameter=parameter.add(exp2, newState);
+              if(arrayLengthId.setOfExpressions.size!=1) throw new SemanticException("Not yet supported");
+              var newSymbAV = new ExpressionSet(arrayId.getType());
+              var parameter = new ExpressionSet(x.getType());
+              for(exp2 <- x.setOfExpressions) {
+                parameter=parameter.add(exp2);
               }
-              for(exp <- arrayId.getExpressions()) {
-                val tempState = newState.assignVariable(arrayLengthId, parameter);
-                newSymbAV=newSymbAV.add(exp, tempState);
+              for(exp <- arrayId.setOfExpressions) {
+                newState = newState.assignVariable(arrayLengthId, parameter);
+                newSymbAV=newSymbAV.add(exp);
               }
               newState=newState.setExpression(newSymbAV)
               return Some(newState);
@@ -56,7 +55,7 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		      }
 		      case "apply" => parameters match {
 		     	case index :: Nil =>
-              thisExpr.getType(state).getArrayElementsType match {
+              thisExpr.getType().getArrayElementsType match {
                 case None => throw new ArrayAnalysisException("The expressions should be an array");
                 case Some(s) => return Some(state.getArrayCell(thisExpr, index, s))
               }
@@ -70,7 +69,7 @@ object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 		case _ => return None;
 	}
 	
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S], operator : String, parameters : List[SymbolicAbstractValue[S]], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
 }
 
 class ArrayAnalysisException(s : String) extends Exception(s)
