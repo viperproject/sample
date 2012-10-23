@@ -26,6 +26,7 @@ import javassist.bytecode.ConstPool;
 import javassist.bytecode.ExceptionTable;
 import javassist.bytecode.FieldInfo;
 import scala.None;
+import scala.Option;
 import scala.math.ScalaNumber;
 
 /**
@@ -2217,7 +2218,7 @@ scala.collection.immutable.List.empty();
         for(Map.Entry<String,String> edge : unconditionaljumps.entrySet()) {
             int from = statonode.get(instostaid.get(edge.getKey()));
             int to = statonode.get(instostaid.get(edge.getValue()));
-            Option<Object> a = scala.Option.apply(null);
+            Option<Boolean> a = scala.Option.apply(null);
             cfg.addEdge(from, to, a);
         }
         for(Map.Entry<String,String> edge : truejumps.entrySet()) {
@@ -2235,7 +2236,7 @@ scala.collection.immutable.List.empty();
         for(Map.Entry<Integer,Integer> edge : insertedjumps.entrySet()) {
             int from = statonode.get(edge.getKey());
             int to = statonode.get(edge.getValue());
-            Option<Object> a = scala.Option.apply(null);
+            Option<Boolean> a = scala.Option.apply(null);
             if(from!=to && cfg.getEdgesExitingFrom(from).size()==0) cfg.addEdge(from, to, a);
         }
         

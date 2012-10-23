@@ -4,9 +4,9 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 
 object ArrayNativeMethodSemantics extends NativeMethodSemantics {
 	
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : SymbolicAbstractValue[S],
+	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet,
                                                  operator : String,
-                                                 parameters : List[SymbolicAbstractValue[S]],
+                                                 parameters : List[ExpressionSet],
                                                  typeparameters : List[Type],
                                                  returnedtype : Type,
                                                  programpoint : ProgramPoint,
