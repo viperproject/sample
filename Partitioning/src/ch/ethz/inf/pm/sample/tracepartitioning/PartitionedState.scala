@@ -14,6 +14,7 @@ package ch.ethz.inf.pm.sample.tracepartitioning
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.SystemParameters
 
 
 /**
@@ -63,7 +64,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 * in the leaf states. 
 	 */
 	lazy val programPoints: List[ProgramPoint] = {
-		getExpression.getExpressions.map(_.p).toList
+		getExpression.setOfExpressions.map(_.p).toList
 	}
 
 	/**
@@ -198,7 +199,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #map
    */
-	override def createArray(length : SymbolicAbstractValue[PartitionedState[D]], typ : Type, pp : ProgramPoint) : PartitionedState[D] = {
+	override def createArray(length : ExpressionSet, typ : Type, pp : ProgramPoint) : PartitionedState[D] = {
     mapValue(length, (s, v) => s.createArray(v, typ, pp))
   }
 
@@ -227,7 +228,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValue
    */
-	override def createVariable(x: SymbolicAbstractValue[PartitionedState[D]], t: Type, pp: ProgramPoint): PartitionedState[D] = {
+	override def createVariable(x: ExpressionSet, t: Type, pp: ProgramPoint): PartitionedState[D] = {
 		mapValue(x, (s, v) => s.createVariable(v, t, pp))
   }
 
@@ -241,7 +242,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValue
    */
-	override def createVariableForArgument(x: SymbolicAbstractValue[PartitionedState[D]], t: Type): PartitionedState[D] = {
+	override def createVariableForArgument(x: ExpressionSet, t: Type): PartitionedState[D] = {
 		mapValue(x, (s, v) => s.createVariableForArgument(v, t))
   }
 
@@ -255,7 +256,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValues
    */
-	override def assignVariable(x: SymbolicAbstractValue[PartitionedState[D]], r: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def assignVariable(x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = {
  		mapValues(x, r, (s, ex, er) => s.assignVariable(ex, er))
   }
 
@@ -269,7 +270,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValueLists
    */
-	override def assignField(o: List[SymbolicAbstractValue[PartitionedState[D]]], f: String, r: SymbolicAbstractValue[PartitionedState[D]]) = {
+	override def assignField(o: List[ExpressionSet], f: String, r: ExpressionSet) = {
 		mapValueLists(o, List(r), (s, xs, ys) => s.assignField(xs, f, ys.head))
   }
 
@@ -283,7 +284,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValues
    */
-	override def setArgument(x: SymbolicAbstractValue[PartitionedState[D]], r: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def setArgument(x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = {
 		mapValues(x, r, (s, ex, er) => s.setArgument(ex, er))
   }
 
@@ -296,7 +297,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValue
    */
-	override def setVariableToTop(x: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def setVariableToTop(x: ExpressionSet): PartitionedState[D] = {
 		mapValue(x, (s, v) => s.setVariableToTop(v))
   }
 
@@ -309,7 +310,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValue
    */
-	override def removeVariable(x: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def removeVariable(x: ExpressionSet): PartitionedState[D] = {
 		mapValue(x, (s, v) => s.removeVariable(v))
   }
 
@@ -322,7 +323,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValue
    */
-	override def throws(x: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def throws(x: ExpressionSet): PartitionedState[D] = {
 		mapValue(x, (s, v) => s.throws(v))
   }
 
@@ -349,7 +350,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValueList
    */
-	override def getFieldValue(o: List[SymbolicAbstractValue[PartitionedState[D]]], f: String, t: Type): PartitionedState[D] = {
+	override def getFieldValue(o: List[ExpressionSet], f: String, t: Type): PartitionedState[D] = {
 		mapValueList(o, (s, v) => s.getFieldValue(v, f, t))
   }
 
@@ -362,7 +363,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValueLists
    */
-	override def getArrayLength(o: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def getArrayLength(o: ExpressionSet): PartitionedState[D] = {
     mapValue(o, (s, v) => s.getArrayLength(v))
   }
 
@@ -377,7 +378,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValueLists
    */
-	override def getArrayCell(o: SymbolicAbstractValue[PartitionedState[D]], i: SymbolicAbstractValue[PartitionedState[D]], t: Type): PartitionedState[D] = {
+	override def getArrayCell(o: ExpressionSet, i: ExpressionSet, t: Type): PartitionedState[D] = {
     mapValues(o, i, (s, vx, vr) => s.getArrayCell(vx, vr, t))
   }
 
@@ -393,7 +394,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValueLists
    */
-	override def assignArrayCell(o: SymbolicAbstractValue[PartitionedState[D]], i: SymbolicAbstractValue[PartitionedState[D]], r: SymbolicAbstractValue[PartitionedState[D]], t: Type): PartitionedState[D] = {
+	override def assignArrayCell(o: ExpressionSet, i: ExpressionSet, r: ExpressionSet, t: Type): PartitionedState[D] = {
         mapValues(o, i, r, (s, vx, vi, vr) => s.assignArrayCell(vx, vi, vr, t))
   }
 
@@ -419,7 +420,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 *
 	 * @see #mapValueList
    */
-	override def backwardGetFieldValue(o: List[SymbolicAbstractValue[PartitionedState[D]]], f: String, t: Type): PartitionedState[D] = {
+	override def backwardGetFieldValue(o: List[ExpressionSet], f: String, t: Type): PartitionedState[D] = {
 		mapValueList(o, (s, v) => s.backwardGetFieldValue(v, f, t))
   }
 
@@ -432,7 +433,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 *
 	 * @see #mapValues
    */
-	override def backwardAssignVariable(x: SymbolicAbstractValue[PartitionedState[D]], r: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def backwardAssignVariable(x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = {
 		mapValues(x, r, (s, vx, vr) => s.backwardAssignVariable(vx, vr))
 	}
 
@@ -458,7 +459,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 *
 	 * @see #mapValue
    */
-	override def assume(c: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def assume(c: ExpressionSet): PartitionedState[D] = {
 		mapValue(c, (s, v) => s.assume(v))
 	}
 
@@ -493,10 +494,10 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 *
    * @return The symbolic abstract value
    */
-	override def getExpression: SymbolicAbstractValue[PartitionedState[D]] = {
-		var expr = new SymbolicAbstractValue[PartitionedState[D]](None, None)
-		for (s <- partitioning.states; e <- s.getExpression.getExpressions)
-			expr = expr.add(e, this)
+	override def getExpression: ExpressionSet = {
+		var expr = new ExpressionSet(SystemParameters.typ.top())//TODO:Maybe I could be more precise
+		for (s <- partitioning.states; e <- s.getExpression.setOfExpressions)
+			expr = expr.add(e)
 		expr
 	}
 
@@ -505,7 +506,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 *
    * @return The modified state
    */
-	override def setExpression(e: SymbolicAbstractValue[PartitionedState[D]]): PartitionedState[D] = {
+	override def setExpression(e: ExpressionSet): PartitionedState[D] = {
 		mapValue(e, (s, v) => s.setExpression(v))
 	}
 
@@ -541,11 +542,11 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * @return The least upper bound after applying the function with all possible
 	 * deterministic arguments to all leaves
    */
-	private[this] def mapValue(x: SymbolicAbstractValue[PartitionedState[D]], f: (D, SymbolicAbstractValue[D]) => D): PartitionedState[D] = {
+	private[this] def mapValue(x: ExpressionSet, f: (D, ExpressionSet) => D): PartitionedState[D] = {
 		val separate = for {
-      ex <- x.getExpressions
-      val px = x.get(ex).partitioning
-      val pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new SymbolicAbstractValue(ex, s2)))
+      ex <- x.setOfExpressions
+      val px = this.partitioning
+      val pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.getType()).add(ex)))
     } yield new PartitionedState(pc)
 
     lub(separate)
@@ -565,13 +566,13 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 *
 	 * @see #mapValue
    */
-  private[this] def mapValues(x: SymbolicAbstractValue[PartitionedState[D]], y: SymbolicAbstractValue[PartitionedState[D]], f: (D, SymbolicAbstractValue[D], SymbolicAbstractValue[D]) => D): PartitionedState[D] = {
+  private[this] def mapValues(x: ExpressionSet, y: ExpressionSet, f: (D, ExpressionSet, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
-      ex <- x.getExpressions
-      ey <- y.getExpressions
-      val px = x.get(ex).partitioning
-      val py = y.get(ey).partitioning
-      val pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new SymbolicAbstractValue(ex, ss(0)), new SymbolicAbstractValue(ey, ss(1))))
+      ex <- x.setOfExpressions
+      ey <- y.setOfExpressions
+      val px = this.partitioning
+      val py = this.partitioning
+      val pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey)))
     } yield new PartitionedState[D](pc)
 
     lub(separate)
@@ -592,15 +593,15 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 *
 	 * @see #mapValue
    */
-  private[this] def mapValues(x: SymbolicAbstractValue[PartitionedState[D]], y: SymbolicAbstractValue[PartitionedState[D]], z: SymbolicAbstractValue[PartitionedState[D]], f: (D, SymbolicAbstractValue[D], SymbolicAbstractValue[D], SymbolicAbstractValue[D]) => D): PartitionedState[D] = {
+  private[this] def mapValues(x: ExpressionSet, y: ExpressionSet, z: ExpressionSet, f: (D, ExpressionSet, ExpressionSet, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
-      ex <- x.getExpressions
-      ey <- y.getExpressions
-      ez <- z.getExpressions
-      val px = x.get(ex).partitioning
-      val py = y.get(ey).partitioning
-      val pz = z.get(ey).partitioning
-      val pc = partitioning.zipmap(List(px, py, pz), (s: D, ss: List[D]) => f(s, new SymbolicAbstractValue(ex, ss(0)), new SymbolicAbstractValue(ey, ss(1)), new SymbolicAbstractValue(ez, ss(2))))
+      ex <- x.setOfExpressions
+      ey <- y.setOfExpressions
+      ez <- z.setOfExpressions
+      val px = this.partitioning
+      val py = this.partitioning
+      val pz = this.partitioning
+      val pc = partitioning.zipmap(List(px, py, pz), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey), new ExpressionSet(z.getType()).add(ez)))
     } yield new PartitionedState[D](pc)
 
     lub(separate)
@@ -617,12 +618,12 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * @return The least upper bound after applying the function with all possible
 	 * deterministic argument lists to all leaves
    */
-	private[this] def mapValueList(xs: List[SymbolicAbstractValue[PartitionedState[D]]], f: (D, List[SymbolicAbstractValue[D]]) => D): PartitionedState[D] = {
+	private[this] def mapValueList(xs: List[ExpressionSet], f: (D, List[ExpressionSet]) => D): PartitionedState[D] = {
     val separate = for {
       cx <- combinations(xs)
-      val es = cx.map(_.getExpressions.head)
-      val ps = for ((e, v) <- es.zip(cx)) yield v.get(e).partitioning
-      val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield new SymbolicAbstractValue(e, t)))
+      val es = cx.map(_.setOfExpressions.head)
+      val ps = for ((e, v) <- es.zip(cx)) yield this.partitioning
+      val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield new ExpressionSet(e.getType()).add(e)))
     } yield new PartitionedState(pc)
 
     lub(separate)
@@ -640,17 +641,17 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 * @return The least upper bound after applying the function with all possible
 	 * combinations of all possible deterministic argument lists to all leaves
    */
-  private[this] def mapValueLists(xs: List[SymbolicAbstractValue[PartitionedState[D]]], ys: List[SymbolicAbstractValue[PartitionedState[D]]], f: (D, List[SymbolicAbstractValue[D]], List[SymbolicAbstractValue[D]]) => D): PartitionedState[D] = {
+  private[this] def mapValueLists(xs: List[ExpressionSet], ys: List[ExpressionSet], f: (D, List[ExpressionSet], List[ExpressionSet]) => D): PartitionedState[D] = {
     val separate = for {
       cx <- combinations(xs)
       cy <- combinations(ys)
       val n = cx.length
-      val es = cx.map(_.getExpressions.head):::cy.map(_.getExpressions.head)
-      val ps = for ((e, v) <- es.zip(cx:::cy)) yield v.get(e).partitioning
+      val es = cx.map(_.setOfExpressions.head):::cy.map(_.setOfExpressions.head)
+      val ps = for ((e, v) <- es.zip(cx:::cy)) yield this.partitioning
       val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => {
         f(s,
-        for ((e, t) <- es.zip(ss).take(n)) yield new SymbolicAbstractValue(e, t),
-        for ((e, t) <- es.zip(ss).drop(n)) yield new SymbolicAbstractValue(e, t))
+        for ((e, t) <- es.zip(ss).take(n)) yield new ExpressionSet(e.getType()).add(e),
+        for ((e, t) <- es.zip(ss).drop(n)) yield new ExpressionSet(e.getType()).add(e))
       })
     } yield new PartitionedState(pc)
 
@@ -666,8 +667,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 * @param xs The list of symbolic abstract values
 	 * @return The list of deterministic combinations of the argument
    */
-  private[this] def combinations(xs: List[SymbolicAbstractValue[PartitionedState[D]]]): List[List[SymbolicAbstractValue[PartitionedState[D]]]] = xs match {
-    case x::xs => (for (ex <- x.getExpressions; ps <- combinations(xs)) yield new SymbolicAbstractValue(ex, x.get(ex)) :: ps).toList
+  private[this] def combinations(xs: List[ExpressionSet]): List[List[ExpressionSet]] = xs match {
+    case x::xs => (for (ex <- x.setOfExpressions; ps <- combinations(xs)) yield new ExpressionSet(x.getType()).add(ex) :: ps).toList
     case Nil => Nil
   }
 
