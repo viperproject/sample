@@ -1,2 +1,0 @@
-To compile this project you need sample, GUI, HeapAnalysis, Partitioning, and ScalaPreprocessing.
-To build the jar containing all libraries and projects, you can create an artifact (http://blogs.jetbrains.com/idea/tag/artifacts/) in IntelliJ (Project settings -> artifacts -> + -> "from modules" and then you have to select <all modules> and select the right options). After that, under "Build" you'll have a "Build XXX artifact" that will compile your project and create the jar in the \out\artifacts directory of your project.
