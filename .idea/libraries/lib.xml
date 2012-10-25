@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="lib">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/TVLA/lib/commons-io-2.0.1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/TVLA/lib/trove-2.1.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/TVLA/lib/java_cup.jar!/" />
+      <root url="jar://$PROJECT_DIR$/TVLA/lib/tvla.jar!/" />
+      <root url="jar://$PROJECT_DIR$/TVLA/lib/cprep.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

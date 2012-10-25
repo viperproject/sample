@@ -15,9 +15,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="scala-library-2.8.1" level="application" />
     <orderEntry type="module" module-name="HeapAnalysis" />
-    <orderEntry type="module" module-name="sample" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
@@ -27,6 +25,8 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="module" module-name="Sample" />
+    <orderEntry type="library" name="scala-library-2.8.1" level="application" />
   </component>
 </module>
 

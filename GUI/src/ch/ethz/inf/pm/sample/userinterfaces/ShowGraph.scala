@@ -15,7 +15,7 @@ import java.awt.event._
 import tracepartitioning._
 import com.mxgraph.util.mxConstants
 import java.awt.{Color, GridLayout, Dimension, Toolkit}
-import tools.nsc.doc.model.Public
+
 
 private class Show extends JFrame {
 	def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {

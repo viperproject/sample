@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import arrayanalysis.POPL2011.ArrayHeapID
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.Property
 import apron._
@@ -175,10 +174,10 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 		}
 	}
 
-  private def isTermInIdSet(linterm: Linterm1): Boolean = {
+  private def isTermInIdSet[I<:HeapIdentifier[I]](linterm: Linterm1): Boolean = {
     for (id <- setOfIdentifiers) {
       id match {
-        case x: ArrayHeapID => {
+        case x: I => {
           if (linterm.getVariable.contains(id.getProgramPoint().toString)) {
             return true
           }

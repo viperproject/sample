@@ -4,7 +4,6 @@ import ch.ethz.inf.pm.sample.userinterfaces.InstalledPlugins
 import java.lang.Exception
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler
-import ch.ethz.inf.pm.sample.oorepresentation.javabytecode.JavaCompiler
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain
 import ch.ethz.inf.pm.sample.property._
 import java.io._

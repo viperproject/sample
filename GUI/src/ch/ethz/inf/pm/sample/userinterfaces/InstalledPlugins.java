@@ -1,18 +1,13 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
 import ch.ethz.inf.pm.sample.SystemParameters;
-import ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis.POPL2011.ArrayHeapDomain;
-import ch.ethz.inf.pm.sample.abstractdomain.clientsideinference.SymbolicDBMAnalysis;
-import ch.ethz.inf.pm.sample.abstractdomain.clientsideinference.SymbolicIntervalsAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumericalAnalysis;
 //import ch.ethz.inf.pm.sample.abstractdomain.posdomain.PosDomainAnalysis;
-import ch.ethz.inf.pm.sample.abstractdomain.posdomain.PosDomainAnalysis;
 import ch.ethz.inf.pm.sample.oorepresentation.*;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
-import ch.ethz.inf.pm.sample.oorepresentation.javabytecode.*;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
 import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
@@ -30,7 +25,6 @@ public class InstalledPlugins {
     static  {
         compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[2];
         compilers[0]=new ScalaCompiler();
-        compilers[1]=new JavaCompiler();
 
         analyses=new SemanticAnalysis[9];
         analyses[0]=new AccessPermissionsAnalysis();
@@ -39,16 +33,12 @@ public class InstalledPlugins {
         analyses[3]=new PrefixAndSuffixAnalysis();
         analyses[4]=new BricksAnalysis();
         analyses[5]=new SurelyAndMaybeContainedCharactersAnalysis();
-        analyses[6]=new SymbolicIntervalsAnalysis();
-        analyses[7]=new SymbolicDBMAnalysis();
-        analyses[8]=new PosDomainAnalysis();
 
         heapanalyses=new HeapDomain[5];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
         heapanalyses[1]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
         heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
         heapanalyses[3]=new TVSHeap();
-        heapanalyses[4]=new ArrayHeapDomain();
     }
 
     private static NonRelationalHeapDomain createNonRelationalHeapDomain(NonRelationalHeapIdentifier id) {
@@ -63,7 +53,6 @@ public class InstalledPlugins {
 		String suffix = "";
 
 		if (c instanceof ScalaCompiler) suffix = ".scala";
-		if (c instanceof JavaCompiler) suffix = ".java";
 
 		File file = File.createTempFile("Dummy", suffix);
 

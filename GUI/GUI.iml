@@ -9,9 +9,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="AccessPermissionInference" />
     <orderEntry type="module" module-name="HeapAnalysis" />
-    <orderEntry type="module" module-name="JavaBytecode" />
-    <orderEntry type="module" module-name="sample" />
-    <orderEntry type="module" module-name="Scala" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
@@ -30,7 +27,6 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="scala-library-2.8.1" level="application" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
@@ -50,21 +46,12 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="module" module-name="Matteo" />
     <orderEntry type="module" module-name="Partitioning" />
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/../Scala/lib/scala-compiler.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES />
-      </library>
-    </orderEntry>
     <orderEntry type="module" module-name="String" />
     <orderEntry type="module" module-name="TVLA" />
-    <orderEntry type="module" module-name="ClientSideInference" />
-    <orderEntry type="module" module-name="POPL11ArrayAnalysis" />
+    <orderEntry type="module" module-name="Sample" />
+    <orderEntry type="module" module-name="ArrayAnalysis" />
+    <orderEntry type="module" module-name="ScalaPreprocessing" />
   </component>
 </module>
 

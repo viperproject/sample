@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/AccessPermissionInference/AccessPermissionInference.iml" filepath="$PROJECT_DIR$/AccessPermissionInference/AccessPermissionInference.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ArrayAnalysis/ArrayAnalysis.iml" filepath="$PROJECT_DIR$/ArrayAnalysis/ArrayAnalysis.iml" />
+      <module fileurl="file://$PROJECT_DIR$/GUI/GUI.iml" filepath="$PROJECT_DIR$/GUI/GUI.iml" />
+      <module fileurl="file://$PROJECT_DIR$/HeapAnalysis/src/HeapAnalysis.iml" filepath="$PROJECT_DIR$/HeapAnalysis/src/HeapAnalysis.iml" />
+      <module fileurl="file://$PROJECT_DIR$/NumericalAnalysis/NumericalAnalysis.iml" filepath="$PROJECT_DIR$/NumericalAnalysis/NumericalAnalysis.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Partitioning/Partitioning.iml" filepath="$PROJECT_DIR$/Partitioning/Partitioning.iml" />
+      <module fileurl="file://$PROJECT_DIR$/sample/Sample.iml" filepath="$PROJECT_DIR$/sample/Sample.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ScalaPreprocessing/ScalaPreprocessing.iml" filepath="$PROJECT_DIR$/ScalaPreprocessing/ScalaPreprocessing.iml" />
+      <module fileurl="file://$PROJECT_DIR$/String/String.iml" filepath="$PROJECT_DIR$/String/String.iml" />
+      <module fileurl="file://$PROJECT_DIR$/TVLA/TVLA.iml" filepath="$PROJECT_DIR$/TVLA/TVLA.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Test/Test.iml" filepath="$PROJECT_DIR$/Test/Test.iml" />
+    </modules>
+  </component>
+</project>
+
