@@ -537,9 +537,9 @@ public class WindowApplication {
         if(!pref.method.isEmpty()) {
             methodListModel.addElement(pref.method);
         }
-        heapDomainComboBox.setSelectedIndex(pref.heapAnalysis);
-        compilerComboBox.setSelectedIndex(pref.compiler);
-        analysisComboBox.setSelectedIndex(pref.analysis);
+        if(pref.heapAnalysis < heapDomainComboBox.getItemCount()) heapDomainComboBox.setSelectedIndex(pref.heapAnalysis);
+        if(pref.compiler < compilerComboBox.getItemCount())  compilerComboBox.setSelectedIndex(pref.compiler);
+        if(pref.analysis < analysisComboBox.getItemCount())  analysisComboBox.setSelectedIndex(pref.analysis);
 
     }
 
