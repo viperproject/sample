@@ -15,6 +15,8 @@ import java.awt.event._
 import tracepartitioning._
 import com.mxgraph.util.mxConstants
 import java.awt.{Color, GridLayout, Dimension, Toolkit}
+import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
+import ch.ethz.inf.pm.td.domain.EnvironmentIdentifier
 
 
 private class Show extends JFrame {
@@ -293,6 +295,7 @@ object ShowGraph extends Property {
 			}
 			for (edge <- wgraph.cfg.edges)
 				createEdge(edge._1, edge._2, ToStringUtilities.optionToString(edge._3), vertixes, graph)
+      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
 		}
 		finally {
 			graph.getModel().endUpdate();
@@ -316,7 +319,7 @@ object ShowGraph extends Property {
 			}
 			for (edge <- cfg.edges)
 				createEdge(edge._1, edge._2, ToStringUtilities.optionToString(edge._3), vertixes, graph)
-
+      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
 		}
 		finally {
 			graph.getModel().endUpdate();
@@ -343,6 +346,7 @@ object ShowGraph extends Property {
 				yposition = yposition + ygap * 2 + h;
 				index = index + 1;
 			}
+      new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
 		}
 		finally {
 			graph.getModel().endUpdate();

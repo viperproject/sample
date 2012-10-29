@@ -11,10 +11,8 @@ import java.awt.event.ItemListener;
 import java.awt.geom.Path2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.io.File;
-import java.io.FileReader;
-import java.io.BufferedReader;
-import java.io.IOException;
+import java.io.*;
+import java.net.URL;
 
 import ch.ethz.inf.pm.sample.ScreenOutput;
 import ch.ethz.inf.pm.sample.StringCollector;
@@ -25,6 +23,8 @@ import ch.ethz.inf.pm.sample.property.OutputCollector;
 import ch.ethz.inf.pm.sample.tracepartitioning.Directive;
 import ch.ethz.inf.pm.sample.tracepartitioning.PartitionedState;
 import ch.ethz.inf.pm.sample.tracepartitioning.TracePartitioning;
+import ch.ethz.inf.pm.td.compiler.TouchCompiler;
+import ch.ethz.inf.pm.td.webapi.*;
 import scala.Option;
 import scala.Some;
 import scala.collection.immutable.List;
@@ -55,7 +55,13 @@ public class WindowApplication {
 	private JButton displayFileButton;
 	private JTextField fileField;
 	private JButton addPreconditionButton;
-	private File file=null;
+    private JButton newButton;
+    private JButton featuredButton;
+    private JButton searchButton;
+    private JButton topButton;
+    private JTextField urlField;
+    private JPanel tdPanel;
+    private File file=null;
     private static String path=".";
 
 	private DefaultListModel methodListModel = new DefaultListModel();
@@ -77,6 +83,11 @@ public class WindowApplication {
 				if (e.getStateChange() == ItemEvent.SELECTED) {
 					try {
 						InstalledPlugins.generateTopType(getSelectedCompiler());
+                        if(getSelectedCompiler() instanceof TouchCompiler) {
+                            tdPanel.setVisible(true);
+                        } else {
+                            tdPanel.setVisible(false);
+                        }
 					} catch (Exception ex) {
 						JOptionPane.showMessageDialog(mainFrame, ex, "Compiler error", JOptionPane.ERROR_MESSAGE);
 					}
@@ -125,7 +136,26 @@ public class WindowApplication {
 					} catch (Exception ex) {
 						JOptionPane.showMessageDialog(mainFrame, ex, "Error", JOptionPane.ERROR_MESSAGE);
 					}
-				}
+				} else if (!urlField.getText().isEmpty()) {
+                    try {
+                        URL url = new URL(urlField.getText());
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+                        StringBuffer lineBuffer = new StringBuffer();
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            lineBuffer.append(line);
+                            lineBuffer.append("\n");
+                        }
+                        reader.close();
+                        SourceDialog dialog = new SourceDialog(lineBuffer.toString());
+                        dialog.setTitle(urlField.getName());
+                        dialog.pack();
+                        dialog.setLocationRelativeTo(mainFrame);
+                        dialog.setVisible(true);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(mainFrame, ex, "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
 			}
 		});
 
@@ -269,7 +299,7 @@ public class WindowApplication {
 		analyzeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				if(file==null) {
+				if(file==null && !(getSelectedCompiler() instanceof TouchCompiler)) {
 					JOptionPane.showMessageDialog(null, "You should chose a file before starting the analysis", "File not chosen", JOptionPane.ERROR_MESSAGE);
 					return;
 				}
@@ -278,7 +308,9 @@ public class WindowApplication {
 					return;
 				}
 
-				AnalysisParameters a = new AnalysisParameters(getSelectedAnalysis());
+                storePreferences();
+
+                AnalysisParameters a = new AnalysisParameters(getSelectedAnalysis());
 				a.pack();
 				a.setLocationRelativeTo(mainFrame);
 				a.setVisible(true);
@@ -302,6 +334,27 @@ public class WindowApplication {
 			}
 		});
 
+        tdPanel.setVisible(false);
+        newButton.addActionListener(new ScriptFetcher(new NewScripts()));
+        featuredButton.addActionListener(new ScriptFetcher(new FeaturedScripts()));
+        searchButton.addActionListener(new ScriptFetcher(new ScriptSearch("...")));
+        topButton.addActionListener(new ScriptFetcher(new TopScripts()));
+
+    }
+
+    public class ScriptFetcher implements ActionListener {
+
+        private Scripts scr;
+
+        public ScriptFetcher(Scripts scr) {
+            this.scr = scr;
+        }
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            urlField.setText(scr.get().getCodeURL());
+            file = null;
+        }
     }
 
     //This class implements the progress bar displayed while running the analysis
@@ -352,7 +405,11 @@ public class WindowApplication {
                     taskOutput.append("\nCompiling the files");
                     ch.ethz.inf.pm.sample.Timer tcompiler=new ch.ethz.inf.pm.sample.Timer();
                     tcompiler.start();
-                    ch.ethz.inf.pm.sample.Main.compile(file);
+                    if (getSelectedCompiler() instanceof TouchCompiler && file == null) {
+                        ch.ethz.inf.pm.sample.Main.compile(urlField.getText());
+                    } else {
+                        ch.ethz.inf.pm.sample.Main.compile(file);
+                    }
                     tcompiler.stop();
                     setProgress(40);
                     taskOutput.append("\nCreating the initial state of the analysis");
@@ -470,6 +527,36 @@ public class WindowApplication {
         return null;
     }
 
+    private void loadPreferences() {
+
+        GuiPreferences pref = GuiPreferences.getSettings();
+        if(!pref.file.isEmpty()) {
+            file = new File(pref.file);
+            fileField.setText(file.getName());
+        }
+        if(!pref.method.isEmpty()) {
+            methodListModel.addElement(pref.method);
+        }
+        heapDomainComboBox.setSelectedIndex(pref.heapAnalysis);
+        compilerComboBox.setSelectedIndex(pref.compiler);
+        analysisComboBox.setSelectedIndex(pref.analysis);
+
+    }
+
+    private void storePreferences() {
+
+        GuiPreferences pref = new GuiPreferences();
+        if(file!=null) {
+            pref.file = file.getPath();
+        }
+        pref.method = methodList.getModel().getSize() > 0 ?  methodList.getModel().getElementAt(0).toString() : "";
+        pref.heapAnalysis = heapDomainComboBox.getSelectedIndex();
+        pref.compiler = compilerComboBox.getSelectedIndex();
+        pref.analysis = analysisComboBox.getSelectedIndex();
+        pref.putSettings();
+
+    }
+
     public static void main(String[] args) {
 		try {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -483,18 +570,20 @@ public class WindowApplication {
     }
 
     private static WindowApplication initialize() {
-        WindowApplication myapplication=new WindowApplication();
+        WindowApplication app = new WindowApplication();
 
         for(int i=0; i<InstalledPlugins.compilers.length; i++)
-            myapplication.compilerComboBox.addItem(InstalledPlugins.compilers[i].getLabel());
+            app.compilerComboBox.addItem(InstalledPlugins.compilers[i].getLabel());
 
         for(int i=0; i<InstalledPlugins.analyses.length; i++)
-            myapplication.analysisComboBox.addItem(InstalledPlugins.analyses[i].getLabel());
+            app.analysisComboBox.addItem(InstalledPlugins.analyses[i].getLabel());
 
         for(int i=0; i<InstalledPlugins.heapanalyses.length; i++)
-            myapplication.heapDomainComboBox.addItem(InstalledPlugins.heapanalyses[i].getLabel());
+            app.heapDomainComboBox.addItem(InstalledPlugins.heapanalyses[i].getLabel());
 
-        return myapplication;
+        app.loadPreferences();
+
+        return app;
     }
 
 }

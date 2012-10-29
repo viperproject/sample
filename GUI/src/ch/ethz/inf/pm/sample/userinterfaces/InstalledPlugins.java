@@ -3,12 +3,13 @@ import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumericalAnalysis;
-//import ch.ethz.inf.pm.sample.abstractdomain.posdomain.PosDomainAnalysis;
 import ch.ethz.inf.pm.sample.oorepresentation.*;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
+import ch.ethz.inf.pm.td.compiler.TouchCompiler;
+import ch.ethz.inf.pm.td.domain.TouchAnalysis;
 import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
@@ -23,16 +24,18 @@ public class InstalledPlugins {
     public static HeapDomain<?, ?>[] heapanalyses;
 
     static  {
-        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[1];
+        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[2];
         compilers[0]=new ScalaCompiler();
+        compilers[1]=new TouchCompiler();
 
-        analyses=new SemanticAnalysis[6];
-        analyses[0]=new AccessPermissionsAnalysis();
-        analyses[1]=new NonRelationalNumericalAnalysis();
+        analyses=new SemanticAnalysis[7];
+        analyses[0]=new NonRelationalNumericalAnalysis();
+        analyses[1]=new AccessPermissionsAnalysis();
         analyses[2]=new ApronAnalysis();
         analyses[3]=new PrefixAndSuffixAnalysis();
         analyses[4]=new BricksAnalysis();
         analyses[5]=new SurelyAndMaybeContainedCharactersAnalysis();
+        analyses[6]=new TouchAnalysis();
 
         heapanalyses=new HeapDomain[4];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
@@ -50,30 +53,43 @@ public class InstalledPlugins {
     }
 
 	static void generateTopType(Compiler c) throws Exception {
-		String suffix = "";
 
-		if (c instanceof ScalaCompiler) suffix = ".scala";
+		if (c instanceof ScalaCompiler || c instanceof JavaCompiler) {
+            String suffix = "";
+            if (c instanceof ScalaCompiler) suffix = ".scala";
+            if (c instanceof JavaCompiler) suffix = ".java";
 
-		File file = File.createTempFile("Dummy", suffix);
+            File file = File.createTempFile("Dummy", suffix);
 
-		String className = file.getName().substring(0, file.getName().length() - suffix.length());
-		String source = "class " + className + " {}";
+            String className = file.getName().substring(0, file.getName().length() - suffix.length());
+            String source = "class " + className + " {}";
 
-		// Write source
-		FileWriter out = new FileWriter(file);
-		out.write(source);
-		out.close();
+            // Write source
+            FileWriter out = new FileWriter(file);
+            out.write(source);
+            out.close();
 
-		List<ClassDefinition> classes = c.compileFile(file.getAbsolutePath());
-		if (classes.length() > 0) {
-			SystemParameters.typ_$eq(classes.head().typ().top());
-		} else {
-			throw new Exception("Could not generate type information");
-		}
+            List<ClassDefinition> classes = c.compileFile(file.getAbsolutePath());
+            if (classes.length() > 0) {
+                SystemParameters.typ_$eq(classes.head().typ().top());
+            } else {
+                throw new Exception("Could not generate type information");
+            }
 
-		// Remove files
-		File classFile = new File(className + ".class");
-		if (classFile.exists()) classFile.delete();
+            // Remove files
+            File classFile = new File(className + ".class");
+            if (classFile.exists()) classFile.delete();
+
+        } else if (c instanceof TouchCompiler) {
+
+            List<ClassDefinition> classes = ((TouchCompiler)c).compileString("","dummypub");
+            if (classes.length() > 0) {
+                SystemParameters.typ_$eq(classes.head().typ().top());
+            } else {
+                throw new Exception("Could not generate type information");
+            }
+
+        }
 	}
 
 }
