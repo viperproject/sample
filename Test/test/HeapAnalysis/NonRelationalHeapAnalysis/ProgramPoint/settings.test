@@ -1,0 +1,5 @@
+methods="ex1 ex2 ex3"
+set analysis = "Numerical nonrelational analysis"
+set property = "DivisionByZero"
+set analysis Domain = "Interval"
+set heap analysis = "Heap Domain:Program point"
