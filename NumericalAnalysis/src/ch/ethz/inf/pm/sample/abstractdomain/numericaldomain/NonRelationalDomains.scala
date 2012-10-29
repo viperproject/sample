@@ -134,59 +134,72 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 
   override def assume(expr: Expression): BoxedNonRelationalNumericalDomain[N] =
 
+    expr match {
 
-    Normalizer.conditionalExpressionToMonomes(expr) match {
-      case None =>
-        expr match {
-          case BinaryArithmeticExpression(left, right, op, typ) =>
-            val l: N = this.eval(left)
-            val r: N = this.eval(right)
-            op match {
-              case ArithmeticOperator.== => if(!l.intersect(r)) return this.bottom()
-              case ArithmeticOperator.<= => if(!l.intersect(l.valueLEQ(r))) return this.bottom()
-              case ArithmeticOperator.>= => if(!l.intersect(l.valueGEQ(r))) return this.bottom()
-              case ArithmeticOperator.> =>  if(!l.intersect(l.valueGreater(r))) return this.bottom()
-              case ArithmeticOperator.< =>  if(!l.intersect(l.valueLess(r))) return this.bottom()
-              case _ => return this
+      case BinaryBooleanExpression(left,right,op,_) => op match {
+        case BooleanOperator.&& => this.assume(left).assume(right)
+        case BooleanOperator.|| => lub(this.assume(left),this.assume(right))
+      }
+
+      // Boolean variables
+      case x: Identifier =>
+        this.add(x,dom.evalConstant(1)).intersect
+      case NegatedBooleanExpression(x:Identifier) =>
+        this.add(x,dom.evalConstant(0))
+
+      case _ => Normalizer.conditionalExpressionToMonomes(expr) match {
+        case None =>
+          expr match {
+            case BinaryArithmeticExpression(left, right, op, typ) =>
+              val l: N = this.eval(left)
+              val r: N = this.eval(right)
+              op match {
+                case ArithmeticOperator.== => if(!l.intersect(r)) return this.bottom()
+                case ArithmeticOperator.<= => if(!l.intersect(l.valueLEQ(r))) return this.bottom()
+                case ArithmeticOperator.>= => if(!l.intersect(l.valueGEQ(r))) return this.bottom()
+                case ArithmeticOperator.> =>  if(!l.intersect(l.valueGreater(r))) return this.bottom()
+                case ArithmeticOperator.< =>  if(!l.intersect(l.valueLess(r))) return this.bottom()
+                case _ => return this
+              }
+            case _ => return this
+          }
+          return this
+        case Some((monomes, constant)) =>
+          var stateResult: BoxedNonRelationalNumericalDomain[N] = this
+
+          // Check if it is trivially false, e.g. -1 >= 0
+          if(monomes.isEmpty && constant < 0)
+            return stateResult.bottom()
+
+          for (monome <- monomes) {
+            val (index, variable) = monome
+            var result = dom.evalConstant(constant)
+            for (monome1 <- monomes) {
+              if (!monome.equals(monome1))
+                result = dom.sum(result, dom.multiply(dom.evalConstant(monome1._1), eval(monome1._2)))
             }
-          case _ => return this
-        }
-        return this
-      case Some((monomes, constant)) =>
-        var stateResult: BoxedNonRelationalNumericalDomain[N] = this
-
-        // Check if it is trivially false, e.g. -1 >= 0
-        if(monomes.isEmpty && constant < 0)
-          return stateResult.bottom()
-
-        for (monome <- monomes) {
-          val (index, variable) = monome
-          var result = dom.evalConstant(constant)
-          for (monome1 <- monomes) {
-            if (!monome.equals(monome1))
-              result = dom.sum(result, dom.multiply(dom.evalConstant(monome1._1), eval(monome1._2)))
+            if (index >= 0) {
+              //k*x+n >= 0 => x >= -(n/k)
+              result = dom.divide(result, dom.evalConstant(index))
+              result = dom.subtract(dom.evalConstant(0), result)
+              val newValue = dom.glb(this.get(variable), dom.valueGEQ(result))
+              if (newValue.lessEqual(newValue.bottom()))
+                return stateResult.bottom()
+              stateResult = stateResult.add(variable, newValue)
+            }
+            else {
+              //-k*x+n >= 0 => x <= n/-k
+              result = dom.divide(result, dom.evalConstant(-index))
+              val oldvalue = this.get(variable)
+              val newRestraint = dom.valueLEQ(result)
+              val newValue = dom.glb(oldvalue, newRestraint)
+              if (newValue.lessEqual(newValue.bottom()))
+                return stateResult.bottom()
+              stateResult = stateResult.add(variable, newValue)
+            }
           }
-          if (index >= 0) {
-            //k*x+n >= 0 => x >= -(n/k)
-            result = dom.divide(result, dom.evalConstant(index))
-            result = dom.subtract(dom.evalConstant(0), result)
-            val newValue = dom.glb(this.get(variable), dom.valueGEQ(result))
-            if (newValue.lessEqual(newValue.bottom()))
-              return stateResult.bottom()
-            stateResult = stateResult.add(variable, newValue)
-          }
-          else {
-            //-k*x+n >= 0 => x <= n/-k
-            result = dom.divide(result, dom.evalConstant(-index))
-            val oldvalue = this.get(variable)
-            val newRestraint = dom.valueLEQ(result)
-            val newValue = dom.glb(oldvalue, newRestraint)
-            if (newValue.lessEqual(newValue.bottom()))
-              return stateResult.bottom()
-            stateResult = stateResult.add(variable, newValue)
-          }
-        }
-        return stateResult
+          return stateResult
+      }
     }
 
 }
