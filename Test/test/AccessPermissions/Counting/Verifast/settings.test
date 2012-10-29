@@ -1,0 +1,11 @@
+methods="init push pop getSpouse marry divorce hasNext next getLast increment run main getBalance deposit transferTo"
+set analysis = "Access permissions inference"
+set property = "Inference"
+set analysis Permissions = "Counting"
+set analysis PriorityOfContracts = 3
+set analysis PriorityOfMonitorInvariants = 2
+set analysis PriorityOfAbstractPredicates = 1
+set analysis UnsoundDischarging = true
+set analysis UnsoundInhaling = true
+set heap analysis = "Heap Domain:Program point"
+set heap MaxEntryNodes = 5
