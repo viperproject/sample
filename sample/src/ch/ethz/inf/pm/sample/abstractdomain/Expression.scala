@@ -157,6 +157,26 @@ case class BinaryBooleanExpression(val left : Expression, val right : Expression
   override def toString() = left.toString() + op.toString() + right.toString()
 }
 
+case class FalseExpression(val pp : ProgramPoint, val returntyp : Type) extends Expression(pp) {
+  override def getType() = returntyp;
+  override def hashCode() : Int = 0;
+  override def equals(o : Any) = o match {
+    case FalseExpression(pp, ty) => pp.equals(this.getProgramPoint())
+    case _ => false
+  }
+  override def toString() = "false"
+}
+
+case class TrueExpression(val pp : ProgramPoint, val returntyp : Type) extends Expression(pp) {
+  override def getType() = returntyp;
+  override def hashCode() : Int = 0;
+  override def equals(o : Any) = o match {
+    case TrueExpression(pp, ty) => pp.equals(this.getProgramPoint())
+    case _ => false
+  }
+  override def toString() = "true"
+}
+
 /**
  * A comparison between reference, that is, left==right or left!=right
  *

@@ -7,6 +7,7 @@ import silAST.methods._
 import implementations.Implementation
 import silAST.programs._
 import silAST.source._
+import silAST.symbols.logical.quantification.{Exists, Forall}
 import silAST.types._
 import symbols._
 
@@ -30,12 +31,12 @@ object ParseSILAST {
     val name : MethodIdentifier = parseMethodName(m.name);
     val parametricType : List[Type] = List.empty[Type];
     val arguments : List[List[VariableDeclaration]] = raiseList(
-      parseSeqOf[ProgramVariable, VariableDeclaration](m.signature.parameters.variables, parseProgramVariable(_)));
-    val returnedVariables : List[VariableDeclaration] = parseSeqOf[ProgramVariable, VariableDeclaration](m.signature.parameters.variables, parseProgramVariable(_))
+      parseSeqOf[ProgramVariable, VariableDeclaration](m.signature.parameters.variables, parseVariableDeclaration(_)));
+    val returnedVariables : List[VariableDeclaration] = parseSeqOf[ProgramVariable, VariableDeclaration](m.signature.parameters.variables, parseVariableDeclaration(_))
     if(returnedVariables.size>1) throw new SILParserException("Not yet supported")
     val returnedType : Type = returnedVariables.iterator.next().typ;
-    val precondition : ch.ethz.inf.pm.sample.abstractdomain.Expression = parseExpression(m.signature.precondition)
-    val postcondition : ch.ethz.inf.pm.sample.abstractdomain.Expression = parseExpression(m.signature.postcondition)
+    val precondition : ch.ethz.inf.pm.sample.abstractdomain.Expression = parseExpressionSequence(m.signature.precondition, parsePP(m.signature.precondition.sourceLocation))
+    val postcondition : ch.ethz.inf.pm.sample.abstractdomain.Expression = parseExpressionSequence(m.signature.postcondition, parsePP(m.signature.postcondition.sourceLocation))
     val cfgs : Set[ControlFlowGraph] = parseSetOf[Implementation, ControlFlowGraph](m.implementations.asInstanceOf[Set[Implementation]], parseImplementation(_))
     var result : Set[MethodDeclaration] = Set.empty[MethodDeclaration];
     for(cfg <- cfgs)
@@ -82,12 +83,19 @@ object ParseSILAST {
     }
   }
 
-  private def parseProgramVariable(p : ProgramVariable) : VariableDeclaration = {
+  private def parseVariableDeclaration(p : symbols.Variable) : VariableDeclaration = {
     val pp : ProgramPoint = this.parsePP(p.sourceLocation);
     val typ : Type = this.parseDataType(p.dataType)
     val variable : ch.ethz.inf.pm.sample.oorepresentation.Variable = new ch.ethz.inf.pm.sample.oorepresentation.Variable(pp, new VariableIdentifier(p.name, typ, pp))
     val right : Statement = null
     return new VariableDeclaration(pp, variable, typ, right);
+  }
+
+
+  private def parseVariable(p : symbols.Variable) : ch.ethz.inf.pm.sample.oorepresentation.Variable = {
+    val pp : ProgramPoint = this.parsePP(p.sourceLocation);
+    val typ : Type = this.parseDataType(p.dataType)
+    return new ch.ethz.inf.pm.sample.oorepresentation.Variable(pp, new VariableIdentifier(p.name, typ, pp))
   }
 
   private def parseDataType(p : DataType) : SILType = p match {
@@ -97,7 +105,49 @@ object ParseSILAST {
   }
 
 
-  private def parseExpression(p : ExpressionSequence) : ch.ethz.inf.pm.sample.abstractdomain.Expression= null
+  private def parseExpressionSequence(p : Seq[silAST.expressions.Expression], pp : ProgramPoint) : ch.ethz.inf.pm.sample.abstractdomain.Expression= {
+    if (p.size==0) return new ch.ethz.inf.pm.sample.abstractdomain.TrueExpression(pp, new SILType("Boolean"));
+    if (p.size==1) return parseExpression(p.apply(0));
+    return new BinaryBooleanExpression(parseExpression(p.apply(0)), parseExpressionSequence(p.drop(0), pp), BooleanOperator.&&, new SILType("Boolean"));
+  }
+
+  private def parseExpression(p : silAST.expressions.Expression) : ch.ethz.inf.pm.sample.abstractdomain.Expression= p match {
+    case x : FieldPermissionExpression => throw new SILParserException("Not yet implemented")
+    case x : PredicatePermissionExpression => throw new SILParserException("Not yet implemented")
+    case x : OldExpression => throw new SILParserException("Not yet implemented")
+    case x : UnfoldingExpression => throw new SILParserException("Not yet implemented")
+    case x : EqualityExpression => throw new SILParserException("Not yet implemented")
+    case x : UnaryExpression => throw new SILParserException("Not yet implemented")
+    case x : BinaryExpression => throw new SILParserException("Not yet implemented")
+    case x : DomainPredicateExpression => throw new SILParserException("Not yet implemented")
+    case x : QuantifierExpression => x.quantifier match {
+      case y : Forall => return new ForAllExpression(parsePP(x.sourceLocation), parseVariable(x.variable), parseExpression(x.expression));
+      case y : Exists => return new ExistExpression(parsePP(x.sourceLocation), parseVariable(x.variable), parseExpression(x.expression));
+    }
+    case x : silAST.expressions.TrueExpression => return new ch.ethz.inf.pm.sample.abstractdomain.TrueExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
+    case x : silAST.expressions.FalseExpression => return new ch.ethz.inf.pm.sample.abstractdomain.FalseExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
+
+    //NOT VISIBLE
+    //case x : PEqualityExpressionC => throw new SILParserException("Not yet implemented")
+    //case x : PUnaryExpressionC => throw new SILParserException("Not yet implemented")
+    //case x : PBinaryExpressionC => throw new SILParserException("Not yet implemented")
+    //case x : PDomainPredicateExpressionC => throw new SILParserException("Not yet implemented")
+    //case x : DEqualityExpressionC => throw new SILParserException("Not yet implemented")
+    //case x : DUnaryExpressionC => throw new SILParserException("Not yet implemented")
+    //case x : DBinaryExpressionC => throw new SILParserException("Not yet implemented")
+    //case x : DDomainPredicateExpressionC => throw new SILParserException("Not yet implemented")
+
+    //ALREADY COVERED
+    //case x : PDomainPredicateExpression => throw new SILParserException("Not yet implemented")
+    //case x : PPredicatePermissionExpression => throw new SILParserException("Not yet implemented")
+    //case x : PFieldPermissionExpression => throw new SILParserException("Not yet implemented")
+    //case x : PUnfoldingExpression => throw new SILParserException("Not yet implemented")
+    //case x : DQuantifierExpression => throw new SILParserException("Not yet implemented")
+    //case x : GEqualityExpression => throw new SILParserException("Not yet implemented")
+    //case x : GUnaryExpression => throw new SILParserException("Not yet implemented")
+    //case x : GBinaryExpression => throw new SILParserException("Not yet implemented")
+    //case x : GDomainPredicateExpression => throw new SILParserException("Not yet implemented")
+  }
 
   private def parseImplementation(p : Implementation) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph= null
 }
