@@ -60,6 +60,7 @@
     <orderEntry type="module" module-name="Sample" />
     <orderEntry type="module" module-name="ArrayAnalysis" />
     <orderEntry type="module" module-name="ScalaPreprocessing" />
+    <orderEntry type="module" module-name="TouchDevelopPreprocessing" />
   </component>
 </module>
 

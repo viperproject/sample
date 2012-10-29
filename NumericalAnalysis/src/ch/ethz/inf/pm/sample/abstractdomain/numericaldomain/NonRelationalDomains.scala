@@ -143,7 +143,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 
       // Boolean variables
       case x: Identifier =>
-        this.add(x,dom.evalConstant(1)).intersect
+        this.add(x,dom.evalConstant(1))
       case NegatedBooleanExpression(x:Identifier) =>
         this.add(x,dom.evalConstant(0))
 

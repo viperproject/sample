@@ -54,10 +54,8 @@ public class InstalledPlugins {
 
 	static void generateTopType(Compiler c) throws Exception {
 
-		if (c instanceof ScalaCompiler || c instanceof JavaCompiler) {
-            String suffix = "";
-            if (c instanceof ScalaCompiler) suffix = ".scala";
-            if (c instanceof JavaCompiler) suffix = ".java";
+		if (c instanceof ScalaCompiler) {
+            String suffix = ".scala";
 
             File file = File.createTempFile("Dummy", suffix);
 
