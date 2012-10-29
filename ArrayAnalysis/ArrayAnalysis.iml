@@ -3,7 +3,7 @@
   <component name="FacetManager">
     <facet type="scala" name="Scala">
       <configuration>
-        <option name="compilerLibraryLevel" value="Global" />
+        <option name="compilerLibraryLevel" value="Project" />
         <option name="compilerLibraryName" value="scala-compiler" />
       </configuration>
     </facet>
@@ -19,7 +19,7 @@
     <orderEntry type="module" module-name="NumericalAnalysis" />
     <orderEntry type="module" module-name="GUI" />
     <orderEntry type="module" module-name="Sample" />
-    <orderEntry type="library" name="scala-library" level="application" />
+    <orderEntry type="library" name="scala-library" level="project" />
   </component>
 </module>
 
