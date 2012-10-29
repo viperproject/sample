@@ -1,0 +1,152 @@
+package ch.ethz.inf.pm.td.webapi
+
+import net.liftweb.json._
+import java.util.NoSuchElementException
+import ch.ethz.inf.pm.td.webapi.URLFetcher._
+import ch.ethz.inf.pm.td.compiler.TouchException
+
+/**
+ * Fetches real scripts from the TouchDevelop website for testing purposes
+ *
+ * Lucas Brutschy
+ * Date: 05.07.12
+ * Time: 12:56
+ */
+
+case class Script (
+  time: Int,
+  id: String,
+  url: String,
+  name: String,
+  description: String,
+  userid: String,
+  username: String,
+  //userscore: Int,
+  //userhaspicture: Boolean,
+  //icon: String,
+  //iconbackground: String,
+  //iconurl: String,
+  //positivereviews: Int,
+  //subscribers: Int,
+  comments: Int,
+  screenshots: Int,
+  //capabilities: List[String],
+  //flows: List[String],
+  haserrors: Boolean,
+  rootid: String,
+  updateid: String,
+  ishidden: Boolean,
+  islibrary: Boolean,
+  installations: Int,
+  runs: Int,
+  screenshotthumburl: String,
+  screenshoturl: String) {
+
+  def getAstURL:String = Scripts.astURLfromPubID(id)
+  def getCodeURL:String = Scripts.codeURLfromPubID(id)
+
+}
+
+object Scripts {
+
+  val baseURL = "https://www.touchdevelop.com/api/"
+  val options = "?original=true"
+  val text = "/text"
+  val ast = "/ast"
+
+  def astURLfromPubID(pub:String):String = baseURL+pub+ast+options
+  def codeURLfromPubID(pub:String):String = baseURL+pub+text+options
+
+  def pubIDfromFilename(fileName:String):String = {
+    """([^/\\.]*)[.]([^/\\.]*)$""".r.findFirstMatchIn(fileName) match {
+      case Some(matc) => matc.group(1)
+      case _ => throw new TouchException("Filename regular expression did not match anything")
+    }
+  }
+
+  def pubIDfromURL(url:String):String = {
+    (baseURL+"""([^/]*)"""+text+"""\??.*""").r.findFirstMatchIn(url) match {
+      case Some(matc) => matc.group(1)
+      case _ => throw new TouchException("URL regular expression did not match anything")
+    }
+  }
+
+
+}
+
+class Scripts {
+
+  protected val service = "scripts?"
+
+  private var continuation:String = null
+  private var hasMore = true
+  private var scripts: List[Script] = Nil
+
+  implicit val formats = new DefaultFormats {
+    override val typeHintFieldName = "type"
+    override val typeHints = DowncasedTypeHints(List(classOf[Script]))
+  }
+
+  def reset() {
+    continuation = null
+    hasMore = true
+    scripts = Nil
+  }
+
+  def get():Script = {
+    scripts match {
+      case head :: tail => { scripts = tail; head }
+      case Nil => if (hasMore) {prepareMore(); get()} else throw new NoMoreScriptsException
+    }
+  }
+
+  def prepareMore() {
+    scripts = scripts ::: getNextScripts
+  }
+
+  private def getNextScripts: List[Script] = {
+
+    val url = if (continuation != null) Scripts.baseURL + service + "continuation=" + continuation else Scripts.baseURL + service
+    val json = parse(fetchFile(url))
+
+    continuation = (json \ "continuation").extract[String]
+    hasMore = continuation != null
+
+    for {
+      JObject(root) <- json
+      JField("items", JArray(items)) <- root
+      item <- items
+    } yield (item.extract[Script])
+
+  }
+
+}
+
+class TopScripts extends Scripts {
+  override protected val service = "top-scripts?"
+}
+
+class NewScripts extends Scripts {
+  override protected val service = "new-scripts?"
+}
+
+class FeaturedScripts extends Scripts {
+  override protected val service = "featured-scripts?"
+}
+
+class ScriptSearch(query:String) extends Scripts {
+  override protected val service = "search?q="+query+"&"
+}
+
+class NoMoreScriptsException extends Exception
+
+/** When reading the class name from the json type hint field, convert first char to upper case */
+case class DowncasedTypeHints(hints: List[Class[_]]) extends TypeHints {
+  def hintFor(msgClass: Class[_]): String = {
+    val shortNameIdx = msgClass.getName.lastIndexOf(".") + 1
+    msgClass.getName.substring(shortNameIdx, shortNameIdx + 1).toLowerCase +
+      msgClass.getName.substring(shortNameIdx + 1)
+  }
+
+  def classFor(hint: String) = hints find (hintFor(_) == hint)
+}
