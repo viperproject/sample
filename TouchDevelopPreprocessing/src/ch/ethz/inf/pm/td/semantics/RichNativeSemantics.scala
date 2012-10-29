@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.td.compiler
+package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, NativeMethodSemantics, Type}
@@ -7,6 +7,7 @@ import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.td.compiler.{TouchException, TouchType}
 
 /**
  *

@@ -1,10 +1,9 @@
 package ch.ethz.inf.pm.td.symbols
 
 import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.stdlib._
 import scala.collection._
 import ch.ethz.inf.pm.td.compiler.TouchException
-import util.parsing.input.{Position, Positional}
+import util.parsing.input.Position
 
 /**
  *

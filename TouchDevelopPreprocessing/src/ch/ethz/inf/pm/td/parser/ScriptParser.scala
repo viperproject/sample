@@ -6,6 +6,9 @@ import ch.ethz.inf.pm.td.compiler.TouchException
 
 object ScriptParser extends RegexParsers with PackratParsers {
 
+  /** not only ignore white space but also comments */
+  protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
+
   // Top Level and Meta Information
 
   lazy val script: PackratParser[Script] = positioned (
@@ -245,17 +248,21 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val rA:PackratParser[String] = ("→" | "->")
   lazy val numberLiteral:PackratParser[String] = ( "[0-9]+\\.?".r ||| """[0-9]*\.[0-9]+""".r )
-  lazy val stringLiteral:Parser[String] = "\"" ~> escapedString <~ "\""
   lazy val booleanLiteral: Parser[String] = ("true" | "false")
-  lazy val escapedString:Parser[String] = """[^"\\]*(\\.[^"\\]*)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
+  lazy val stringLiteral: Parser[String] =
+    ("\""+"""([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\"").r
+  //lazy val stringLiteral:PackratParser[String] = "\"" ~> escapedString <~ "\""
+  //lazy val escapedString:PackratParser[String] = """(?:[^"\\]+|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
+  //lazy val escapedString:Parser[String] = """[^"\\]*(\\.[^"\\]*)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
   lazy val ident: Parser[String] = """[a-zA-z@_](?:\w|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
 
   // Parser Interface
 
-  def removeComments(input:String):String = "(?m)[\\t ]*//[^\n\r]*$".r.replaceAllIn(input,"")
+//  def removeComments(input:String):String =
+//    "(?m)[\\t ]*//[^\n\r]*$".r.replaceAllIn(input,"")
 
   def apply(input: String):Script = {
-    parseAll(script,removeComments(input)) match {
+    parseAll(script,input) match {
       case Success(x,_) => x
       case y:ParseResult[Script] => throw new TouchException("Parsing failed "+y)
     }

@@ -2,8 +2,7 @@ package ch.ethz.inf.pm.td.symbols
 
 import ch.ethz.inf.pm.td.parser.{Scope, TypeName}
 import scala.collection
-import ch.ethz.inf.pm.td.compiler.TouchException
-import util.parsing.input.{Position, Positional}
+import util.parsing.input.Position
 
 /**
  *

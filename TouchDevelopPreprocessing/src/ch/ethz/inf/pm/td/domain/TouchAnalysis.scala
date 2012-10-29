@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.SemanticAnalysis
 import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
-import ch.ethz.inf.pm.td.compiler.Environment
+import ch.ethz.inf.pm.td.semantics.Environment
 
 /**
  * 

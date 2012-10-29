@@ -1,9 +1,8 @@
 package ch.ethz.inf.pm.td.domain
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{NumericalDomain, BoxedNonRelationalNumericalDomain, NonRelationalNumericalDomain, Interval}
-import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, Identifier}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
 
 /**
  *

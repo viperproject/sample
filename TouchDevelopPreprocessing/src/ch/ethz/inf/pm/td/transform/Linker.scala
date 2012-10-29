@@ -1,11 +1,8 @@
 package ch.ethz.inf.pm.td.transform
 
-import ch.ethz.inf.pm.td.webapi.{URLFetcher, Scripts}
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.td.parser.Script
-import collection.immutable
-import ch.ethz.inf.pm.td.compiler.TouchException
 
 /**
  *

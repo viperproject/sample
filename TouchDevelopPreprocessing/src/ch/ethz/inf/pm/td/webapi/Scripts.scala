@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.td.webapi
 
 import net.liftweb.json._
-import java.util.NoSuchElementException
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.compiler.TouchException
 
@@ -50,7 +49,7 @@ case class Script (
 object Scripts {
 
   val baseURL = "https://www.touchdevelop.com/api/"
-  val options = "?original=true"
+  val options = "" // "?original=true"
   val text = "/text"
   val ast = "/ast"
 

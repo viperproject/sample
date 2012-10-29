@@ -5,8 +5,8 @@ import io.Source
 import ch.ethz.inf.pm.td.parser.{Declaration, LibraryDefinition, Script, ScriptParser}
 import ch.ethz.inf.pm.td.symbols.Typer
 import ch.ethz.inf.pm.td.webapi.Scripts
-import tools.nsc.io.File
 import ch.ethz.inf.pm.td.transform.LoopRewriter
+import ch.ethz.inf.pm.td.semantics.TouchNativeMethodSemantics
 
 /**
  *

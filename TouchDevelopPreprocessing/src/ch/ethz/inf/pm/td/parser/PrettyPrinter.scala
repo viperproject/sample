@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.td.parser
 
-import util.parsing.input.Positional
 
 /**
  *
