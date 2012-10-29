@@ -439,7 +439,11 @@ object Normalizer {
         case _ => None
       }
       
-    case Constant(c, t, pp) =>  return Some(Nil, Integer.valueOf(c).intValue())
+    case Constant(c, t, pp) =>  try {
+      Some(Nil, Integer.valueOf(c).intValue())
+    } catch {
+      case e:NumberFormatException => None
+    }
     
     case UnitExpression(t, pp) => return None;
     

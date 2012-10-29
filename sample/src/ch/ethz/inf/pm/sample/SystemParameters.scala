@@ -124,7 +124,7 @@ object SystemParameters {
 			  return initialState.top();
 	  applyNativeSemantics(calledMethod, calledExpr, parametersExpr, typeparameters, returnedtype, resultingState1, programpoint, forward);
 	}
- 
+
 	private def applyNativeSemantics[S <: State[S]](invokedMethod : String, thisExpr : ExpressionSet, parametersExpr : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, state : S, programpoint : ProgramPoint, forward : Boolean) : S = {
 	  val sems=nativeMethodsSemantics
 	  var result = state.top();

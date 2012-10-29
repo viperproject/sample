@@ -311,6 +311,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
    * @return The abstract state with the given element as well.
    */
   def add(v : V) : T = {
+    this.isBottom = false;
     if(this.isTop) return this.top();
     var result = factory();
     result.value=value+v;
@@ -324,6 +325,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
    * @return The abstract state with the given element as well.
    */
   def add(v : T) : T = {
+    this.isBottom = false;
     if(this.isTop) return this.top();
     var result = factory();
     result.value=value++v.value;
@@ -710,7 +712,7 @@ abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <:
     case _ => false
   }
   
-  override def toString() = "Domain 1:\n"+this._1.toString+"\nDomain 2:\n"+this._2.toString;
+  override def toString() = "Cartesian,Left:\n"+ToStringUtilities.indent(this._1.toString)+"\nCartesian,Right:\n"+ToStringUtilities.indent(this._2.toString)
   
 }
 

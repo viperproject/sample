@@ -20,7 +20,7 @@ import util.HeapIdSetFunctionalLifting
 class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](private var d1 : N, private var d2 : H) extends Lattice[HeapAndAnotherDomain[N, H, I]]{
 
 
-  override def toString() : String = "Heap state:\n"+d2.toString()+"\nSemantic state:\n"+d1.toString();
+  override def toString() : String = "Heap state:\n"+ToStringUtilities.indent(d2.toString())+"\nSemantic state:\n"+ToStringUtilities.indent(d1.toString())
 
   type T = HeapAndAnotherDomain[N, H, I];
 

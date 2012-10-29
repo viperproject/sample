@@ -12,7 +12,9 @@ trait SingleLineRepresentation {
 }
 
 object ToStringUtilities {
-  
+
+  def indent(x:String):String = x.split("\n").map("  "+_).mkString("\n")
+
   def listStatementToCommasRepresentationSingleLine[S <: State[S]](list : List[Statement]) : String = list match {
     case x :: (y :: z) => x.toSingleLineString() + "," + listStatementToCommasRepresentationSingleLine(y :: z)
     case x :: Nil => x.toSingleLineString()
@@ -68,21 +70,25 @@ object ToStringUtilities {
     case None => ""
     case Some(x) => x.toString
   }
-  
+
+  /**
+   * Converts a map to a string of form
+   * K1 -> V1
+   * K2 -> V2
+   * ...
+   */
   def mapToString[T,K](map : Map[T,K]) : String = {
-    var result : String = "";
-    for(key <- map.keySet)
-      result=result+key.toString+" -> "+map.get(key).get+"\n";
+    var result : String = ""
+    for(key <- map.keySet) {
+      val k = if (key != null) key.toString else "null"
+      val v = if (map.get(key).get != null) map.get(key).get.toString else "null"
+      result=result+k+" -> "+v+"\n"
+    }
     result
   }
   
-  def setToString[T](set : Set[T]) : String = {
-    var result : String = "";
-    for(el <- set)
-      result=result+el+", ";
-    result
-  }
-  
+  def setToString[T](set : Set[T]) : String = set.mkString(",")
+
   def setOfListToString[T](set : Set[List[T]]) : String = {
     var result : String = "{";
     for(el <- set)

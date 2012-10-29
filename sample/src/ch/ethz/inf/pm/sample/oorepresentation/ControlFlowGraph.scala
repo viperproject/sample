@@ -437,7 +437,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
     case _ => el :: getList(size-1, el);
   }
 
-  private def forwardOptimizedSingleIteration(prev : ControlFlowGraphExecution[S], lastresult : Option[ControlFlowGraphExecution[S]], initialState : S) : ControlFlowGraphExecution[S] = {
+  private def forwardOptimizedSingleIteration(prev : ControlFlowGraphExecution[S],
+                                              lastresult : Option[ControlFlowGraphExecution[S]], initialState : S) : ControlFlowGraphExecution[S] = {
     var next : ControlFlowGraphExecution[S] = new ControlFlowGraphExecution[S](cfg, state);
     next.nodes = getList[List[S]](this.cfg.nodes.size, Nil);
     val l = cfg.getIterativeSequence();

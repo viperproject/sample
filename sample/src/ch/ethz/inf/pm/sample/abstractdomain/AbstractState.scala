@@ -108,6 +108,8 @@ class ExpressionSet(val typ : Type) extends CartesianProductDomain[Type, SetOfEx
       new SetOfExpressions()
     );
 
+  override def toString:String = "Type "+d1.toString()+": "+d2.toString()
+
 }
 
 class SetOfExpressions extends SetDomain[Expression, SetOfExpressions] {
@@ -562,7 +564,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   override def toString() : String = {
     if(isBottom) return "_|_";
     else this._1.toString+
-         "------------------------\n Expression on the top of the stack:\n"+this._2.toString
+         "\nExpression:\n"+ToStringUtilities.indent(this._2.toString)
   }
   
 }
