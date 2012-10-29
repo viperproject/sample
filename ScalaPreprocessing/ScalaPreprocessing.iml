@@ -3,7 +3,7 @@
   <component name="FacetManager">
     <facet type="scala" name="Scala">
       <configuration>
-        <option name="compilerLibraryLevel" value="Project" />
+        <option name="compilerLibraryLevel" value="Global" />
         <option name="compilerLibraryName" value="scala-compiler" />
       </configuration>
     </facet>
@@ -16,7 +16,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Sample" />
-    <orderEntry type="library" name="scala-library" level="project" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
@@ -26,6 +25,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="scala-library" level="application" />
   </component>
 </module>
 
