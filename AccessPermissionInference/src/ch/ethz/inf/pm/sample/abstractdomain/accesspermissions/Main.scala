@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang._
-import ch.ethz.inf.pm.sample.userinterfaces._
+//import ch.ethz.inf.pm.sample.userinterfaces._
 import ch.ethz.inf.pm.sample.property._;
 
 object Main {

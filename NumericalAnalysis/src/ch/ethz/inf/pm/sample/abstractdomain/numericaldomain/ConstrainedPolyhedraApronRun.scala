@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler
-import property.OutputCollector
+import property.{Property, OutputCollector}
 import apron._
 ;
 
@@ -21,7 +21,7 @@ object ConstrianedPolyhedraApronRun {
 	def main(args : Array[String]) : Unit = {
 		//Mandatory global settings
 		SystemParameters.compiler = new ScalaCompiler;
-		SystemParameters.property = new ApronProperty;
+		SystemParameters.property = new ApronProperty().asInstanceOf[Property];
 		
 		//Files paths
 		val f1 = "/home/samlik/IdeaProjects/Sample/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";

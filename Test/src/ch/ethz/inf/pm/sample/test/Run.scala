@@ -46,7 +46,7 @@ object Run {
       case None =>
         System.out.println("You should explicitly specify the directory that contains the test cases");
         //"C:\\Users\\Pietro\\Sample\\Test\\test\\HeapAnalysis\\"
-        "C:\\Users\\Pietro\\Sample\\Test\\test\\AccessPermissions\\"
+        "C:\\Users\\Pietro\\Desktop\\VersionForIMDEA\\sample\\Test\\test\\AccessPermissions\\"
       case Some(s) => s
     }
     if(args.contains("-dl")) {

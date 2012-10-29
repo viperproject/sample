@@ -38,6 +38,6 @@ class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends Sem
 
   override def getProperties() : Set[Property] = {
     var result = Set.empty+new InferenceProperty();
-    result++(Set.empty+new ShowGraphAndContractsProperty())
+    result++(Set.empty+new ShowGraphAndContractsProperty()).asInstanceOf[Set[Property]]
   };
 }

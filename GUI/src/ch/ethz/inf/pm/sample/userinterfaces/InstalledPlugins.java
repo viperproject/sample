@@ -23,10 +23,10 @@ public class InstalledPlugins {
     public static HeapDomain<?, ?>[] heapanalyses;
 
     static  {
-        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[2];
+        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[1];
         compilers[0]=new ScalaCompiler();
 
-        analyses=new SemanticAnalysis[9];
+        analyses=new SemanticAnalysis[6];
         analyses[0]=new AccessPermissionsAnalysis();
         analyses[1]=new NonRelationalNumericalAnalysis();
         analyses[2]=new ApronAnalysis();
@@ -34,7 +34,7 @@ public class InstalledPlugins {
         analyses[4]=new BricksAnalysis();
         analyses[5]=new SurelyAndMaybeContainedCharactersAnalysis();
 
-        heapanalyses=new HeapDomain[5];
+        heapanalyses=new HeapDomain[4];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
         heapanalyses[1]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
         heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));

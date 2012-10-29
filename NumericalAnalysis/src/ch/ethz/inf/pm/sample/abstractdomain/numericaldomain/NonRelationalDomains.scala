@@ -538,7 +538,7 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
 
   override def reset(): Unit = Unit
 
-  def getProperties(): Set[Property] = Set(new ApronProperty(), new SingleStatementProperty(DivisionByZero))
+  def getProperties(): Set[Property] = Set(new ApronProperty().asInstanceOf[Property], new SingleStatementProperty(DivisionByZero))
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 }

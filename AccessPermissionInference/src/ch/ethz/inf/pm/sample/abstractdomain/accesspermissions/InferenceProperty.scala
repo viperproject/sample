@@ -10,7 +10,7 @@ import javax.annotation.Resource
 import collection.immutable.Map._
 
 //import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing.plugin._
-import ch.ethz.inf.pm.sample.userinterfaces._
+//import ch.ethz.inf.pm.sample.userinterfaces._
 import ch.ethz.inf.pm.sample.property._;
 import java.io._
 

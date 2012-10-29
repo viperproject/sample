@@ -2,16 +2,29 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" readonly="true" id="f848f602-661f-47cc-9edd-634420415a99" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/HeapAnalysis/src/HeapAnalysis.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NumericalAnalysis/NumericalAnalysis.iml" afterPath="$PROJECT_DIR$/NumericalAnalysis/NumericalAnalysis.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/TVLA/TVLA.iml" afterPath="$PROJECT_DIR$/TVLA/TVLA.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/GUI/GUI.iml" afterPath="$PROJECT_DIR$/GUI/GUI.iml" />
+      <change type="DELETED" beforePath="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\Test\test\AccessPermissions\Fractional\settings.test" afterPath="" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/misc.xml" afterPath="$PROJECT_DIR$/.idea/misc.xml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/AccessPermissionInference/AccessPermissionInference.iml" afterPath="$PROJECT_DIR$/AccessPermissionInference/AccessPermissionInference.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Test/Test.iml" afterPath="$PROJECT_DIR$/Test/Test.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Partitioning/Partitioning.iml" afterPath="$PROJECT_DIR$/Partitioning/Partitioning.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/String/String.iml" afterPath="$PROJECT_DIR$/String/String.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/AccessPermissionsAnalysis.scala" afterPath="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/AccessPermissionsAnalysis.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/InferenceProperty.scala" afterPath="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/InferenceProperty.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/Main.scala" afterPath="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/Main.scala" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ArrayAnalysis/ArrayAnalysis.iml" afterPath="$PROJECT_DIR$/ArrayAnalysis/ArrayAnalysis.iml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/SIL/SIL.iml" afterPath="$PROJECT_DIR$/SIL/SIL.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/GUI/GUI.iml" afterPath="$PROJECT_DIR$/GUI/GUI.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/InstalledPlugins.java" afterPath="$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/InstalledPlugins.java" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/HeapAnalysis/src/HeapAnalysis.iml" afterPath="$PROJECT_DIR$/HeapAnalysis/src/HeapAnalysis.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NumericalAnalysis/NumericalAnalysis.iml" afterPath="$PROJECT_DIR$/NumericalAnalysis/NumericalAnalysis.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ApronInterface.scala" afterPath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ApronInterface.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ApronRun.scala" afterPath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ApronRun.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedra.scala" afterPath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedra.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedraApronRun.scala" afterPath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedraApronRun.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/NonRelationalDomains.scala" afterPath="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/NonRelationalDomains.scala" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Partitioning/Partitioning.iml" afterPath="$PROJECT_DIR$/Partitioning/Partitioning.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/ScalaPreprocessing/ScalaPreprocessing.iml" afterPath="$PROJECT_DIR$/ScalaPreprocessing/ScalaPreprocessing.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/String/String.iml" afterPath="$PROJECT_DIR$/String/String.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/TVLA/TVLA.iml" afterPath="$PROJECT_DIR$/TVLA/TVLA.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Test/Test.iml" afterPath="$PROJECT_DIR$/Test/Test.iml" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/Test/src/ch/ethz/inf/pm/sample/test/Run.scala" afterPath="$PROJECT_DIR$/Test/src/ch/ethz/inf/pm/sample/test/Run.scala" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/sample/Sample.iml" afterPath="$PROJECT_DIR$/sample/Sample.iml" />
     </list>
     <ignored path="sample.iws" />
@@ -25,7 +38,6 @@
   <component name="ChangesViewManager" flattened_view="true" show_ignored="false" />
   <component name="CreatePatchCommitExecutor">
     <option name="PATCH_PATH" value="" />
-    <option name="REVERSE_PATCH" value="false" />
   </component>
   <component name="DaemonCodeAnalyzer">
     <disable_hints />
@@ -71,46 +83,19 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="ShowGraph.scala" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/ShowGraph.scala">
+      <file leaf-file-name="WindowApplication.java" pinned="false" current="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/WindowApplication.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="17" column="0" selection-start="550" selection-end="550" vertical-scroll-proportion="0.0">
+            <state line="488" column="71" selection-start="18254" selection-end="18254" vertical-scroll-proportion="0.0">
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="ConstrainedPolyhedra.scala" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedra.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="193" column="66" selection-start="7983" selection-end="7983" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="InstalledPlugins.java" pinned="false" current="false" current-in-tab="false">
+      <file leaf-file-name="InstalledPlugins.java" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/InstalledPlugins.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state line="14" column="39" selection-start="899" selection-end="899" vertical-scroll-proportion="0.0">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="Run.scala" pinned="false" current="true" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/Test/src/ch/ethz/inf/pm/sample/test/Run.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="6" column="0" selection-start="249" selection-end="249" vertical-scroll-proportion="0.028099174">
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="ArrayAnalysis.scala" pinned="false" current="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/ArrayAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/arrayanalysis/ArrayAnalysis.scala">
-          <provider selected="true" editor-type-id="text-editor">
-            <state line="26" column="7" selection-start="904" selection-end="904" vertical-scroll-proportion="0.0">
+            <state line="36" column="37" selection-start="1688" selection-end="1688" vertical-scroll-proportion="0.43041238">
               <folding />
             </state>
           </provider>
@@ -128,9 +113,18 @@
       <list>
         <option value="$PROJECT_DIR$/Partitioning/src/ch/ethz/inf/pm/sample/tracepartitioning/TracePartitioning.scala" />
         <option value="$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/ShowGraph.scala" />
+        <option value="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/Main.scala" />
+        <option value="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/InferenceProperty.scala" />
+        <option value="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/AccessPermissionsAnalysis.scala" />
+        <option value="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/NonRelationalDomains.scala" />
+        <option value="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ApronInterface.scala" />
         <option value="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedra.scala" />
-        <option value="$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/InstalledPlugins.java" />
+        <option value="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedraApronRun.scala" />
+        <option value="$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/ShowGraphAndContractsProperty.scala" />
+        <option value="$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ApronRun.scala" />
+        <option value="$PROJECT_DIR$/HeapAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/heapanalysis/NonRelationalHeapDomain.scala" />
         <option value="$PROJECT_DIR$/Test/src/ch/ethz/inf/pm/sample/test/Run.scala" />
+        <option value="$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/InstalledPlugins.java" />
       </list>
     </option>
   </component>
@@ -157,6 +151,11 @@
   <component name="ProjectReloadState">
     <option name="STATE" value="0" />
   </component>
+  <component name="ProjectStructureProblems">
+    <ignored-problems>
+      <problem id="module-circular-dependency(project:general)" />
+    </ignored-problems>
+  </component>
   <component name="ProjectView">
     <navigator currentView="PackagesPane" proportions="" version="1" splitterProportion="0.5">
       <flattenPackages />
@@ -170,64 +169,12 @@
       <sortByType />
     </navigator>
     <panes>
-      <pane id="PackagesPane">
-        <subPane>
+      <pane id="Scope">
+        <subPane subId="Project Files">
           <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="sample" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="sample" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="Partitioning" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="sample" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="GUI" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="sample" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="GUI" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="ch.ethz.inf.pm.sample" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageElementNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="userinterfaces" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageElementNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="sample" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="GUI" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="ch.ethz.inf.pm.sample" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageElementNode" />
+            <PATH_ELEMENT USER_OBJECT="Root">
+              <option name="myItemId" value="" />
+              <option name="myItemType" value="" />
             </PATH_ELEMENT>
           </PATH>
         </subPane>
@@ -276,8 +223,91 @@
           </PATH>
         </subPane>
       </pane>
+      <pane id="PackagesPane">
+        <subPane>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Test" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="GUI" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="GUI" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ch.ethz.inf.pm.sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageElementNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="userinterfaces" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageElementNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="WindowApplication" />
+              <option name="myItemType" value="com.intellij.uiDesigner.projectView.FormNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="GUI" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ch.ethz.inf.pm.sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageElementNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="userinterfaces" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageElementNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="GUI" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageViewModuleNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="ch.ethz.inf.pm.sample" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PackageElementNode" />
+            </PATH_ELEMENT>
+          </PATH>
+        </subPane>
+      </pane>
       <pane id="Favorites" />
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -285,13 +315,47 @@
     <property name="project.structure.last.edited" value="Modules" />
     <property name="GoToClass.toSaveIncludeLibraries" value="false" />
     <property name="project.structure.proportion" value="0.15" />
+    <property name="recentsLimit" value="5" />
     <property name="MemberChooser.sorted" value="false" />
     <property name="MemberChooser.showClasses" value="true" />
     <property name="GoToClass.includeLibraries" value="false" />
     <property name="project.structure.side.proportion" value="0.2" />
+    <property name="dynamic.classpath" value="false" />
     <property name="MemberChooser.copyJavadoc" value="false" />
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Application.WindowApplication">
+    <configuration default="false" name="Run" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="ch.ethz.inf.pm.sample.test.Run" />
+      <option name="VM_PARAMETERS" />
+      <option name="PROGRAM_PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <module name="Test" />
+      <envs />
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method />
+    </configuration>
+    <configuration default="false" name="WindowApplication" type="Application" factoryName="Application" temporary="true">
+      <option name="MAIN_CLASS_NAME" value="ch.ethz.inf.pm.sample.userinterfaces.WindowApplication" />
+      <option name="VM_PARAMETERS" />
+      <option name="PROGRAM_PARAMETERS" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="false" />
+      <option name="ALTERNATIVE_JRE_PATH" />
+      <option name="ENABLE_SWING_INSPECTOR" value="false" />
+      <option name="ENV_VARIABLES" />
+      <option name="PASS_PARENT_ENVS" value="true" />
+      <module name="GUI" />
+      <envs />
+      <RunnerSettings RunnerId="Run" />
+      <ConfigurationWrapper RunnerId="Run" />
+      <method />
+    </configuration>
     <configuration default="true" type="#org.jetbrains.idea.devkit.run.PluginConfigurationType" factoryName="Plugin">
       <module name="" />
       <option name="VM_PARAMETERS" value="-Xmx512m -Xms256m -XX:MaxPermSize=250m" />
@@ -409,14 +473,22 @@
         <option name="Maven.BeforeRunTask" enabled="false" />
       </method>
     </configuration>
-    <list size="0" />
+    <list size="2">
+      <item index="0" class="java.lang.String" itemvalue="Application.Run" />
+      <item index="1" class="java.lang.String" itemvalue="Application.WindowApplication" />
+    </list>
     <configuration name="&lt;template&gt;" type="WebApp" default="true" selected="false">
       <Host>localhost</Host>
       <Port>5050</Port>
     </configuration>
   </component>
   <component name="ShelveChangesManager" show_recycled="false" />
-  <component name="SvnConfiguration" maxAnnotateRevisions="500">
+  <component name="SliceManager">
+    <option name="analysisUIOptions">
+      <AnalysisUIOptions />
+    </option>
+  </component>
+  <component name="SvnConfiguration" maxAnnotateRevisions="500" myUseAcceleration="nothing" myAutoUpdateAfterCommit="false" cleanupOnStartRun="true">
     <option name="USER" value="" />
     <option name="PASSWORD" value="" />
     <option name="mySSHConnectionTimeout" value="30000" />
@@ -431,9 +503,76 @@
     <option name="IGNORE_SPACES_IN_ANNOTATE" value="true" />
     <option name="SHOW_MERGE_SOURCES_IN_ANNOTATE" value="true" />
     <option name="FORCE_UPDATE" value="false" />
+    <option name="IGNORE_EXTERNALS" value="false" />
     <configuration useDefault="false">C:\Users\Pietro\AppData\Roaming\Subversion</configuration>
     <myIsUseDefaultProxy>false</myIsUseDefaultProxy>
     <supportedVersion>125</supportedVersion>
+  </component>
+  <component name="SvnFileUrlMappingImpl">
+    <option name="myMappingRoots">
+      <list>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\.idea" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\.idea" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\AccessPermissionInference" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\AccessPermissionInference" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\ArrayAnalysis" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\ArrayAnalysis" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\GUI" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\GUI" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\HeapAnalysis" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\HeapAnalysis" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\NumericalAnalysis" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\NumericalAnalysis" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\Partitioning" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\Partitioning" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\sample" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\sample" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\ScalaPreprocessing" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\ScalaPreprocessing" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\String" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\String" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\Test" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\Test" />
+        </SvnCopyRootSimple>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\TVLA" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample\TVLA" />
+        </SvnCopyRootSimple>
+      </list>
+    </option>
+    <option name="myMoreRealMappingRoots">
+      <list>
+        <SvnCopyRootSimple>
+          <option name="myVcsRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample" />
+          <option name="myCopyRoot" value="C:\Users\Pietro\Desktop\VersionForIMDEA\sample" />
+        </SvnCopyRootSimple>
+      </list>
+    </option>
   </component>
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
@@ -445,27 +584,27 @@
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1296" height="779" extended-state="6" />
-    <editor active="false" />
+    <editor active="true" />
     <layout>
       <window_info id="Changes" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="11" side_tool="false" content_ui="tabs" />
-      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
-      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
-      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
-      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Dependency Viewer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
-      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3292683" sideWeight="0.6707882" order="0" side_tool="false" content_ui="combo" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
-      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
-      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="JetGradle" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Palette" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
+      <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="9" side_tool="true" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Messages" active="true" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32921174" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
+      <window_info id="Messages" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.3279483" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
+      <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="1" side_tool="true" content_ui="tabs" />
+      <window_info id="Maven Projects" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
+      <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.3290008" sideWeight="0.6704362" order="0" side_tool="false" content_ui="combo" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" weight="0.32956383" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
+      <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
+      <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Dependency Viewer" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.33" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" weight="0.4" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
     </layout>
@@ -497,7 +636,16 @@
     <option name="SHOW_ONLY_CHANGED_IN_SELECTION_DIFF" value="true" />
     <option name="CHECK_COMMIT_MESSAGE_SPELLING" value="true" />
     <option name="DEFAULT_PATCH_EXTENSION" value="patch" />
+    <option name="SHORT_DIFF_HORISONTALLY" value="true" />
+    <option name="SHORT_DIFF_EXTRA_LINES" value="2" />
+    <option name="SOFT_WRAPS_IN_SHORT_DIFF" value="true" />
+    <option name="INCLUDE_TEXT_INTO_PATCH" value="false" />
+    <option name="INCLUDE_TEXT_INTO_SHELF" value="false" />
+    <option name="CREATE_PATCH_EXPAND_DETAILS_DEFAULT" value="true" />
+    <option name="SHOW_FILE_HISTORY_DETAILS" value="true" />
+    <option name="SHOW_VCS_ERROR_NOTIFICATIONS" value="true" />
     <option name="FORCE_NON_EMPTY_COMMENT" value="false" />
+    <option name="CLEAR_INITIAL_COMMIT_MESSAGE" value="false" />
     <option name="LAST_COMMIT_MESSAGE" />
     <option name="MAKE_NEW_CHANGELIST_ACTIVE" value="false" />
     <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="false" />
@@ -520,49 +668,114 @@
     <option name="FILTER_TARGETS" value="false" />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/ScalaPreprocessing/src/ch/ethz/inf/pm/sample/oorepresentation/scalalang/PluginRunner.scala">
+    <entry file="file://$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/Main.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="2" column="13" selection-start="71" selection-end="71" vertical-scroll-proportion="0.0" />
+        <state line="8" column="2" selection-start="372" selection-end="372" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Partitioning/src/ch/ethz/inf/pm/sample/tracepartitioning/TracePartitioning.scala">
+    <entry file="file://$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/InferenceProperty.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="17" column="0" selection-start="625" selection-end="625" vertical-scroll-proportion="0.0" />
+        <state line="12" column="2" selection-start="490" selection-end="490" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/HeapAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/heapanalysis/NonRelationalHeapDomain.scala">
+    <entry file="file://$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/AccessPermissionsAnalysis.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="5" column="37" selection-start="199" selection-end="199" vertical-scroll-proportion="0.22849463" />
+        <state line="40" column="87" selection-start="2484" selection-end="2484" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/SIL/src/ParseSILAST.scala">
+    <entry file="file://$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/NonRelationalDomains.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="3" column="7" selection-start="128" selection-end="128" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/ShowGraph.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="17" column="0" selection-start="550" selection-end="550" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedra.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="193" column="66" selection-start="7983" selection-end="7983" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/InstalledPlugins.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="14" column="39" selection-start="899" selection-end="899" vertical-scroll-proportion="0.0" />
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/ArrayAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/arrayanalysis/ArrayAnalysis.scala">
-      <provider selected="true" editor-type-id="text-editor">
-        <state line="26" column="7" selection-start="904" selection-end="904" vertical-scroll-proportion="0.0" />
+        <state line="540" column="62" selection-start="19902" selection-end="19925" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/Test/src/ch/ethz/inf/pm/sample/test/Run.scala">
       <provider selected="true" editor-type-id="text-editor">
-        <state line="6" column="0" selection-start="249" selection-end="249" vertical-scroll-proportion="0.028099174">
+        <state line="318" column="11" selection-start="16174" selection-end="16174" vertical-scroll-proportion="0.66019416">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/AccessPermissionInference/src/ch/ethz/inf/pm/sample/abstractdomain/accesspermissions/ShowGraphAndContractsProperty.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="6" column="29" selection-start="259" selection-end="259" vertical-scroll-proportion="0.3081571">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedraApronRun.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="23" column="51" selection-start="769" selection-end="769" vertical-scroll-proportion="0.31161472">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ApronInterface.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="487" column="46" selection-start="22374" selection-end="22374" vertical-scroll-proportion="0.32577905">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ConstrainedPolyhedra.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="251" column="56" selection-start="10039" selection-end="10039" vertical-scroll-proportion="0.6147309">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/NumericalAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/numericaldomain/ApronRun.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="5" column="60" selection-start="245" selection-end="291" vertical-scroll-proportion="0.045333333">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/HeapAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/heapanalysis/NonRelationalHeapDomain.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="4" column="55" selection-start="161" selection-end="215" vertical-scroll-proportion="0.045333333">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/ArrayAnalysis/src/ch/ethz/inf/pm/sample/abstractdomain/arrayanalysis/ArrayAnalysis.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="13" column="29" selection-start="532" selection-end="532" vertical-scroll-proportion="0.29333332">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/String/src/it/unive/dsi/stringanalysis/Analyses.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="5" column="31" selection-start="262" selection-end="262" vertical-scroll-proportion="0.22666667">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/sample/src/ch/ethz/inf/pm/sample/property/Property.scala">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="13" column="6" selection-start="279" selection-end="279" vertical-scroll-proportion="0.27466667">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/WindowApplication.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="488" column="71" selection-start="18254" selection-end="18254" vertical-scroll-proportion="0.0">
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/GUI/src/ch/ethz/inf/pm/sample/userinterfaces/InstalledPlugins.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state line="36" column="37" selection-start="1688" selection-end="1688" vertical-scroll-proportion="0.43041238">
           <folding />
         </state>
       </provider>
@@ -620,7 +833,7 @@
       </state>
       <state key="ModuleStructureConfigurable.UI">
         <settings>
-          <last-edited>Partitioning</last-edited>
+          <last-edited>Scala|GUI</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
@@ -644,7 +857,7 @@
       </state>
       <state key="ProjectLibrariesConfigurable.UI">
         <settings>
-          <last-edited>lib</last-edited>
+          <last-edited>scala-compiler</last-edited>
           <splitter-proportions>
             <option name="proportions">
               <list>
