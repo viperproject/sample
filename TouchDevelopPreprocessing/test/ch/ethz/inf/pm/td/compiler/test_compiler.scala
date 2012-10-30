@@ -23,6 +23,7 @@ def compiler(url:String) {
 }
 
 //TestRunner(new NewScripts,3,compiler)
-TestRunner("https://www.touchdevelop.com/api/qssc/text?original=true",compiler _)
+//TestRunner("https://www.touchdevelop.com/api/qssc/text?original=true",compiler _)
+TestRunner("https://www.touchdevelop.com/api/fdzm/text",compiler _)
 
 while(true) ();

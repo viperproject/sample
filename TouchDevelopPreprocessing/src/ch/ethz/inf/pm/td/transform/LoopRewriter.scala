@@ -52,6 +52,9 @@ object LoopRewriter {
         val bodyPrefix = AssignStatement(List(elemExp), Access(coll, "at", List(idxExp)))
         val bodyPostfix = AssignStatement(List(idxExp), Access(idxExp, "+", List(Literal(TypeName("Number"), "1"))))
         loopPrefix :: While(condition, bodyPrefix :: (body map (apply _)).flatten ::: bodyPostfix :: Nil) :: Nil
+      case i@If(cond,thenBody,elseBody) => List(i.copy(
+        thenBody = (thenBody map (apply _)).flatten,
+        elseBody = (elseBody map (apply _)).flatten))
       case _ => List(s)
     }
   }

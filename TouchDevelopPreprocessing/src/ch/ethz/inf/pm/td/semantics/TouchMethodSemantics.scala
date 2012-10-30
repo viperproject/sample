@@ -96,8 +96,8 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
           }
 
           case "wall" => operator match {
-            case "ask_number" => Some(Valid(Number)(state,pp))
-            case "ask_boolean" => Some(Valid(Boolean)(state,pp))
+            case "ask_number" => stateWith(state,valid(Number))
+            case "ask_boolean" => stateWith(state,valid(Boolean))
             case _ => None
           }
 

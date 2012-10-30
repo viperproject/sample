@@ -249,9 +249,8 @@ object ScriptParser extends RegexParsers with PackratParsers {
   lazy val rA:PackratParser[String] = ("→" | "->")
   lazy val numberLiteral:PackratParser[String] = ( "[0-9]+\\.?".r ||| """[0-9]*\.[0-9]+""".r )
   lazy val booleanLiteral: Parser[String] = ("true" | "false")
-  lazy val stringLiteral: Parser[String] =
-    ("\""+"""([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*"""+"\"").r
-  //lazy val stringLiteral:PackratParser[String] = "\"" ~> escapedString <~ "\""
+  lazy val stringLiteral:PackratParser[String] = "\"" ~> escapedString <~ "\"" ^^ (StringEscapeUtils.unescapeJava(_))
+  lazy val escapedString: Parser[String] = """([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r
   //lazy val escapedString:PackratParser[String] = """(?:[^"\\]+|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
   //lazy val escapedString:Parser[String] = """[^"\\]*(\\.[^"\\]*)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
   lazy val ident: Parser[String] = """[a-zA-z@_](?:\w|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_))

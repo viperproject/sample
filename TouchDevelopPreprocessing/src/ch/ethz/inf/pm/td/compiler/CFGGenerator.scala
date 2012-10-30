@@ -248,8 +248,8 @@ case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Iden
   override def toString():String = name
 
   def factory() = top()
-  def top() = { val res = TouchType("Bottom"); res.isTop = true; res }
-  def bottom() = { val res = TouchType("Top"); res.isBottom = true; res }
+  def top() = { val res = TouchType("Top"); res.isTop = true; res }
+  def bottom() = { val res = TouchType("Bottom"); res.isBottom = true; res }
   def lub(left: Type, right: Type) = if(left == right || right == bottom()) left else if (left == bottom()) right else top()
   def glb(left: Type, right: Type) = if(left == right || right == top()) left else if (left == top()) right else bottom()
   def widening(left: Type, right: Type) = lub(left,right)
@@ -257,7 +257,7 @@ case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Iden
   def isBottomExcluding(types: Set[Type]) = false
 
   def isObject() = (!isNumericalType())
-  def isNumericalType() = (name == "Number")
+  def isNumericalType() = (name == "Number") || (name == "Boolean")
   def isStatic() = isSingleton
   def getPossibleFields() = fields.toSet[Identifier]
   def getArrayElementsType() = None

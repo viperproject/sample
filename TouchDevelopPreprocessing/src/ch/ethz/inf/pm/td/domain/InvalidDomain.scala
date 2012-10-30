@@ -30,14 +30,14 @@ class BooleanInvalidDomain
   // Helper values
 
   private val domBottom = (new BooleanDomain()).bottom()
-  private val domTrue = (new BooleanDomain()).add(true)
-  private val domFalse = (new BooleanDomain()).add(false)
+  private val domInvalid = (new BooleanDomain()).add(true)
+  private val domValid = (new BooleanDomain()).add(false)
   private val domTop = (new BooleanDomain()).top()
 
   override def factory() = new BooleanInvalidDomain
 
   def setInvalid(variable:Identifier): BooleanInvalidDomain = {
-    this.remove(variable).add(variable,domTrue)
+    this.remove(variable).add(variable,domInvalid)
   }
 
   def canBeInvalid(variable:Identifier):Boolean = {
@@ -94,12 +94,14 @@ class BooleanInvalidDomain
       val l = eval(left)
       val r = eval(right)
       if (l.canBeTrue || r.canBeTrue) {
-        if (l.canBeFalse && r.canBeFalse) domTop else domTrue
+        if (l.canBeFalse && r.canBeFalse) domTop else domInvalid
       } else {
-        if (l.canBeFalse && r.canBeFalse) domFalse else domBottom
+        if (l.canBeFalse && r.canBeFalse) domValid else domBottom
       }
     case Constant(constant, typ, pp) =>
-      if (constant == "invalid") domTrue else domFalse
+      if (constant == "invalid") domInvalid else domValid
+    case HeapIdentifier(_,_) =>
+      domValid
     case x: Identifier =>
       this.get(x)
     case xs: HeapIdSetDomain[_] =>
@@ -122,7 +124,7 @@ class BooleanInvalidDomain
       val right = eval(b)
 
       // Does it evaluate to false? then set everything to bottom
-      if( (left == domTrue && right == domFalse) || (left == domFalse && right == domTrue)) bottom()
+      if( (left == domInvalid && right == domValid) || (left == domValid && right == domInvalid)) bottom()
       else (a,b) match {
         // Cases x = y, x = something, something = x
         case (x:Identifier, y:Identifier) =>
@@ -136,10 +138,10 @@ class BooleanInvalidDomain
 
     case NegatedBooleanExpression(BinaryArithmeticExpression(x:Identifier, Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
       // Case x != invalid
-      this.add(x,domBottom.intersect(domFalse,eval(x)))
+      this.add(x,domBottom.intersect(domValid,eval(x)))
     case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), x:Identifier, ArithmeticOperator.==, _)) =>
       // Case invalid != x
-      this.add(x,domBottom.intersect(domTrue,eval(x)))
+      this.add(x,domBottom.intersect(domInvalid,eval(x)))
     case BinaryBooleanExpression(left,right,op,typ) => op match {
       case BooleanOperator.&& => this.assume(left).assume(right)
       case BooleanOperator.|| => this.lub(this.assume(left),this.assume(right))

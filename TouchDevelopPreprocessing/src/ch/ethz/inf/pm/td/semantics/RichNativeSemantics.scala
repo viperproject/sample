@@ -41,6 +41,10 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
     RichExpression(new Constant("invalid",typ,null))
   }
 
+  def valid(typ:Type):RichExpression = {
+    RichExpression(new Constant("valid",typ,null))
+  }
+
   def updateState[S <: State[S]](s:S,e:ExpressionSet):ExpressionSet = {
     val numOfExpressions = (e.setOfExpressions.size)
     if (numOfExpressions != 1) throw new TouchException("Generic Abstract State fucked me over again!")
@@ -63,12 +67,14 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
    */
   def New[S <: State[S]](typ:TouchType, args:List[ExpressionSet])(implicit s:S, pp:ProgramPoint): S = {
     val (obj,state1) = exprOf(s.createObject(typ,pp))
-
     var curState = state1;
+
+    // Assign fields with given aruments
     for ((f,a) <- typ.getPossibleFields() zip args) {
-      // we need to make sure no "old" states are in the arguments or anywhere else
-      curState = state1.assignField(List(toExpressionSet(obj)),f.getName(),updateState(curState,a))
+      curState = curState.assignField(List(toExpressionSet(obj)),f.getName(),updateState(curState,a))
     }
+    // Make sure that our value is "valid"  now
+    curState = curState.assignVariable(toExpressionSet(obj),valid(typ))
 
     curState.setExpression(toExpressionSet(obj))
   }
@@ -79,10 +85,6 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
 
   def Top[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
     s.setExpression(new ExpressionSet(typ).top())
-  }
-
-  def Valid[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
-    s.setExpression(toRichExpression(-1000).to(toRichExpression(1000))) // TODO TODO TODO TODO
   }
 
   implicit def toRichExpression[S <: State[S]](value:ExpressionSet) : RichExpression = {

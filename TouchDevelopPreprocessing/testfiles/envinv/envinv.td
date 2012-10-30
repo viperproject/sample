@@ -4,7 +4,7 @@ action main() {
     $x := invalid->number; // returns an invalid number
 
     $y := 5 + $x; // This should be an error
-    $b := $a + 1; // This should not be an error 
+    $b := $a + 1; // This should work
 
     if ($a->is_invalid) then {
         $a := 5;
