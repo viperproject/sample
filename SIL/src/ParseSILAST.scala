@@ -183,9 +183,9 @@ object ParseSILAST {
     case x : LogicalVariableTerm => throw new SILParserException("Not yet supported")
     case x : NoPermissionTerm => throw new SILParserException("Not yet supported")
     case x : PermTerm => throw new SILParserException("Not yet supported")
-    case x : ProgramVariableTerm => throw new SILParserException("Not yet supported")
-    case x : OldTerm => throw new SILParserException("Not yet supported")
-    case x : UnfoldingTerm => throw new SILParserException("Not yet supported")
+    case x : ProgramVariableTerm => new VariableIdentifier(x.variable.name, parseDataType(x.variable.dataType), parsePP(x.sourceLocation))
+    case x : OldTerm => new OldExpression(parsePP(x.sourceLocation), parseTerm(x.term))
+    case x : UnfoldingTerm => new UnfoldingExpression(parsePP(x.sourceLocation), parseExpression(x.predicate).asInstanceOf[PredicatePermissionExpression], parseTerm(x.term))
   }
 
   private def parsePredicateLocation(p : PredicateLocation) : ch.ethz.inf.pm.sample.abstractdomain.Expression = null
