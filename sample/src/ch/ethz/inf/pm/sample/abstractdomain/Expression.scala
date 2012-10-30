@@ -33,6 +33,8 @@ object ArithmeticOperator extends Enumeration {
 object BooleanOperator extends Enumeration {
   val && = Value("&&");
   val || = Value("||");
+  val ==> = Value("==>");
+  val <==> = Value("<==>");
 }
 
 

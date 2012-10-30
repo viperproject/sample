@@ -2,14 +2,15 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import java.lang.Exception
 import silAST.expressions._
-import silAST.expressions.util._
 import silAST.methods._
 import implementations.Implementation
 import silAST.programs._
 import silAST.source._
-import silAST.symbols.logical.quantification.{Exists, Forall}
+import silAST.symbols.logical._
+import silAST.symbols.logical.quantification._
 import silAST.types._
 import symbols._
+import terms._
 
 
 object ParseSILAST {
@@ -112,17 +113,28 @@ object ParseSILAST {
   }
 
   private def parseExpression(p : silAST.expressions.Expression) : ch.ethz.inf.pm.sample.abstractdomain.Expression= p match {
-    case x : FieldPermissionExpression => throw new SILParserException("Not yet implemented")
-    case x : PredicatePermissionExpression => throw new SILParserException("Not yet implemented")
-    case x : OldExpression => throw new SILParserException("Not yet implemented")
-    case x : UnfoldingExpression => throw new SILParserException("Not yet implemented")
-    case x : EqualityExpression => throw new SILParserException("Not yet implemented")
-    case x : UnaryExpression => throw new SILParserException("Not yet implemented")
-    case x : BinaryExpression => throw new SILParserException("Not yet implemented")
-    case x : DomainPredicateExpression => throw new SILParserException("Not yet implemented")
+
+    //Predicate&C expressions
+    case x : silAST.expressions.FieldPermissionExpression => return new FieldPermissionExpression(parsePP(p.sourceLocation), parseFieldLocation(x.location), parseTerm(x.permission));
+    case x : silAST.expressions.PredicatePermissionExpression => return new PredicatePermissionExpression(parsePP(p.sourceLocation), parsePredicateLocation(x.location), parseTerm(x.permission));
+    case x : silAST.expressions.OldExpression => new OldExpression(parsePP(x.sourceLocation), parseExpression(x.expression))
+    case x : silAST.expressions.UnfoldingExpression => new UnfoldingExpression(parsePP(x.sourceLocation), parseExpression(x.location).asInstanceOf[PredicatePermissionExpression],parseExpression(x.expression))
+    case x : silAST.expressions.DomainPredicateExpression => new DomainPredicateExpression(parsePP(x.sourceLocation), x.predicate, parseSeqOf[Term, ch.ethz.inf.pm.sample.abstractdomain.Expression](x.arguments, parseTerm(_)));
     case x : QuantifierExpression => x.quantifier match {
       case y : Forall => return new ForAllExpression(parsePP(x.sourceLocation), parseVariable(x.variable), parseExpression(x.expression));
       case y : Exists => return new ExistExpression(parsePP(x.sourceLocation), parseVariable(x.variable), parseExpression(x.expression));
+    }
+
+    //Boolean expressions
+    case x : EqualityExpression => return new ReferenceComparisonExpression(parseTerm(x.term1), parseTerm(x.term2), ArithmeticOperator.==, new SILType("Boolean"));
+    case x : UnaryExpression => x.operator match {
+      case y : Not => return new NegatedBooleanExpression(parseExpression(x.operand1))
+    }
+    case x : BinaryExpression => x.operator match {
+      case y : Or => return new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.||, new SILType("Boolean"))
+      case y : And => return new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.&&, new SILType("Boolean"))
+      case y : Implication => return new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.==>, new SILType("Boolean"))
+      case y : Equivalence => return new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.==>, new SILType("Boolean"))
     }
     case x : silAST.expressions.TrueExpression => return new ch.ethz.inf.pm.sample.abstractdomain.TrueExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
     case x : silAST.expressions.FalseExpression => return new ch.ethz.inf.pm.sample.abstractdomain.FalseExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
@@ -148,6 +160,37 @@ object ParseSILAST {
     //case x : GBinaryExpression => throw new SILParserException("Not yet implemented")
     //case x : GDomainPredicateExpression => throw new SILParserException("Not yet implemented")
   }
+
+  /*private def parseUnaryConnective(p : UnaryConnective) : ArithmeticOperator.Value = p.name match {
+    case "+" => ArithmeticOperator.+
+    case "-" => ArithmeticOperator.-
+    case "*" => ArithmeticOperator.*
+    case "/" => ArithmeticOperator./
+    case "%" => ArithmeticOperator.%
+    case _ => throw new SILParserException("Operator "+p.name+" not yet supported")
+  }*/
+
+  private def parseTerm(p : Term) : ch.ethz.inf.pm.sample.abstractdomain.Expression = p match {
+    case x : CastTerm => throw new SILParserException("Not yet supported")
+    case x : DomainFunctionApplicationTerm => throw new SILParserException("Not yet supported")
+    case x : EpsilonPermissionTerm => throw new SILParserException("Not yet supported")
+    case x : FieldLocation => throw new SILParserException("Not yet supported")
+    case x : FieldReadTerm => throw new SILParserException("Not yet supported")
+    case x : FullPermissionTerm => throw new SILParserException("Not yet supported")
+    case x : FunctionApplicationTerm => throw new SILParserException("Not yet supported")
+    case x : IfThenElseTerm => throw new SILParserException("Not yet supported")
+    case x : IntegerLiteralTerm => throw new SILParserException("Not yet supported")
+    case x : LogicalVariableTerm => throw new SILParserException("Not yet supported")
+    case x : NoPermissionTerm => throw new SILParserException("Not yet supported")
+    case x : PermTerm => throw new SILParserException("Not yet supported")
+    case x : ProgramVariableTerm => throw new SILParserException("Not yet supported")
+    case x : OldTerm => throw new SILParserException("Not yet supported")
+    case x : UnfoldingTerm => throw new SILParserException("Not yet supported")
+  }
+
+  private def parsePredicateLocation(p : PredicateLocation) : ch.ethz.inf.pm.sample.abstractdomain.Expression = null
+
+  private def parseFieldLocation(p : FieldLocation) : ch.ethz.inf.pm.sample.abstractdomain.Expression = null
 
   private def parseImplementation(p : Implementation) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph= null
 }
