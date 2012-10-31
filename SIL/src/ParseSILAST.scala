@@ -1,9 +1,9 @@
-import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, VariableIdentifier}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import java.lang.Exception
 import silAST.expressions._
 import silAST.methods._
-import implementations.Implementation
+import implementations._
 import silAST.programs._
 import silAST.source._
 import silAST.symbols.logical._
@@ -36,9 +36,9 @@ object ParseSILAST {
     val returnedVariables : List[VariableDeclaration] = parseSeqOf[ProgramVariable, VariableDeclaration](m.signature.parameters.variables, parseVariableDeclaration(_))
     if(returnedVariables.size>1) throw new SILParserException("Not yet supported")
     val returnedType : Type = returnedVariables.iterator.next().typ;
-    val precondition : ch.ethz.inf.pm.sample.abstractdomain.Expression = parseExpressionSequence(m.signature.precondition, parsePP(m.signature.precondition.sourceLocation))
-    val postcondition : ch.ethz.inf.pm.sample.abstractdomain.Expression = parseExpressionSequence(m.signature.postcondition, parsePP(m.signature.postcondition.sourceLocation))
-    val cfgs : Set[ControlFlowGraph] = parseSetOf[Implementation, ControlFlowGraph](m.implementations.asInstanceOf[Set[Implementation]], parseImplementation(_))
+    val precondition : ch.ethz.inf.pm.sample.oorepresentation.Statement = parseExpressionSequence(m.signature.precondition, parsePP(m.signature.precondition.sourceLocation))
+    val postcondition : ch.ethz.inf.pm.sample.oorepresentation.Statement= parseExpressionSequence(m.signature.postcondition, parsePP(m.signature.postcondition.sourceLocation))
+    val cfgs : Set[ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph] = parseSetOf[Implementation, ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph](m.implementations.asInstanceOf[Set[Implementation]], parseImplementation(_))
     var result : Set[MethodDeclaration] = Set.empty[MethodDeclaration];
     for(cfg <- cfgs)
       result+=new MethodDeclaration(pp, ownerType, modifiers, name, parametricType, arguments, returnedType,cfg, precondition, postcondition);
@@ -88,7 +88,7 @@ object ParseSILAST {
     val pp : ProgramPoint = this.parsePP(p.sourceLocation);
     val typ : Type = this.parseDataType(p.dataType)
     val variable : ch.ethz.inf.pm.sample.oorepresentation.Variable = new ch.ethz.inf.pm.sample.oorepresentation.Variable(pp, new VariableIdentifier(p.name, typ, pp))
-    val right : Statement = null
+    val right : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
     return new VariableDeclaration(pp, variable, typ, right);
   }
 
@@ -106,38 +106,130 @@ object ParseSILAST {
   }
 
 
-  private def parseExpressionSequence(p : Seq[silAST.expressions.Expression], pp : ProgramPoint) : ch.ethz.inf.pm.sample.abstractdomain.Expression= {
-    if (p.size==0) return new ch.ethz.inf.pm.sample.abstractdomain.TrueExpression(pp, new SILType("Boolean"));
+  private def parseExpressionSequence(p : Seq[silAST.expressions.Expression], pp : ProgramPoint) : ch.ethz.inf.pm.sample.oorepresentation.Statement= {
+    if (p.size==0) return new NumericalConstant(pp, "true", new SILType("Boolean"));
     if (p.size==1) return parseExpression(p.apply(0));
-    return new BinaryBooleanExpression(parseExpression(p.apply(0)), parseExpressionSequence(p.drop(0), pp), BooleanOperator.&&, new SILType("Boolean"));
+    return new MethodCall(pp,
+      new FieldAccess(pp, parseExpression(p.apply(0)) :: Nil, "&&",null),
+        Nil,
+      parseExpressionSequence(p.drop(0), pp) :: Nil,
+      new SILType("Boolean")
+    )
   }
 
-  private def parseExpression(p : silAST.expressions.Expression) : ch.ethz.inf.pm.sample.abstractdomain.Expression= p match {
+  private def parseExpression(p : silAST.expressions.Expression) : ch.ethz.inf.pm.sample.oorepresentation.Statement= p match {
 
     //Predicate&C expressions
-    case x : silAST.expressions.FieldPermissionExpression => return new FieldPermissionExpression(parsePP(p.sourceLocation), parseFieldLocation(x.location), parseTerm(x.permission));
-    case x : silAST.expressions.PredicatePermissionExpression => return new PredicatePermissionExpression(parsePP(p.sourceLocation), parsePredicateLocation(x.location), parseTerm(x.permission));
-    case x : silAST.expressions.OldExpression => new OldExpression(parsePP(x.sourceLocation), parseExpression(x.expression))
-    case x : silAST.expressions.UnfoldingExpression => new UnfoldingExpression(parsePP(x.sourceLocation), parseExpression(x.location).asInstanceOf[PredicatePermissionExpression],parseExpression(x.expression))
-    case x : silAST.expressions.DomainPredicateExpression => new DomainPredicateExpression(parsePP(x.sourceLocation), x.predicate, parseSeqOf[Term, ch.ethz.inf.pm.sample.abstractdomain.Expression](x.arguments, parseTerm(_)));
-    case x : QuantifierExpression => x.quantifier match {
-      case y : Forall => return new ForAllExpression(parsePP(x.sourceLocation), parseVariable(x.variable), parseExpression(x.expression));
-      case y : Exists => return new ExistExpression(parsePP(x.sourceLocation), parseVariable(x.variable), parseExpression(x.expression));
-    }
+    case x : silAST.expressions.FieldPermissionExpression =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseFieldLocation(x.location) :: Nil, "fieldPermission",null),
+        Nil,
+        parseTerm(x.permission)::Nil,
+        new SILType("Chalice")
+      )
+      //Correspond to new FieldPermissionExpression(parsePP(p.sourceLocation), parseFieldLocation(x.location), parseTerm(x.permission));
+    case x : silAST.expressions.PredicatePermissionExpression =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parsePredicateLocation(x.location) :: Nil, "predicatePermission",null),
+        Nil,
+        parseTerm(x.permission)::Nil,
+        new SILType("Chalice")
+      )
+      //Correspond to return new PredicatePermissionExpression(parsePP(p.sourceLocation), parsePredicateLocation(x.location), parseTerm(x.permission));
+    case x : silAST.expressions.OldExpression =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.expression) :: Nil, "old",null),
+        Nil,
+        Nil,
+        new SILType("Chalice")
+      )
+      //Correspond to new OldExpression(parsePP(x.sourceLocation), parseExpression(x.expression))
+    case x : silAST.expressions.UnfoldingExpression =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.expression) :: Nil, "unfolding",null),
+        Nil,
+        parseExpression(x.location) :: Nil,
+        new SILType("Chalice")
+      )
+      //Correspond to new UnfoldingExpression(parsePP(x.sourceLocation), parseExpression(x.location).asInstanceOf[PredicatePermissionExpression],parseExpression(x.expression))
+    case x : silAST.expressions.DomainPredicateExpression =>  throw new SILParserException("Not yet supported")
+      //Correspond to new DomainPredicateExpression(parsePP(x.sourceLocation), x.predicate, parseSeqOf[Term, ch.ethz.inf.pm.sample.abstractdomain.Expression](x.arguments, parseTerm(_)));
 
     //Boolean expressions
-    case x : EqualityExpression => return new ReferenceComparisonExpression(parseTerm(x.term1), parseTerm(x.term2), ArithmeticOperator.==, new SILType("Boolean"));
+    case x : QuantifierExpression => x.quantifier match {
+      case y : Forall =>
+        return new MethodCall(parsePP(x.sourceLocation),
+          new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.expression) :: Nil, "forall",null),
+          Nil,
+          parseVariable(x.variable) :: Nil,
+          new SILType("Boolean")
+        )
+      //Correspond to new ForAllExpression(parsePP(x.sourceLocation), parseVariable(x.variable), parseExpression(x.expression));
+      case y : Exists =>
+        return new MethodCall(parsePP(x.sourceLocation),
+          new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.expression) :: Nil, "exists",null),
+          Nil,
+          parseVariable(x.variable) :: Nil,
+          new SILType("Boolean")
+        )
+      //Correspond to new ExistExpression(parsePP(x.sourceLocation), parseVariable(x.variable), parseExpression(x.expression));
+    }
+    case x : EqualityExpression =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.term1) :: Nil, "==",null),
+        Nil,
+        parseTerm(x.term2) :: Nil,
+        new SILType("Boolean")
+      )
+      //Correspond to new ReferenceComparisonExpression(parseTerm(x.term1), parseTerm(x.term2), ArithmeticOperator.==, new SILType("Boolean"));
     case x : UnaryExpression => x.operator match {
-      case y : Not => return new NegatedBooleanExpression(parseExpression(x.operand1))
+      case y : Not =>
+        return new MethodCall(parsePP(x.sourceLocation),
+          new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.operand1) :: Nil, "!",null),
+          Nil,
+          Nil,
+          new SILType("Boolean")
+        )
+        //Correspond to new NegatedBooleanExpression(parseExpression(x.operand1))
     }
     case x : BinaryExpression => x.operator match {
-      case y : Or => return new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.||, new SILType("Boolean"))
-      case y : And => return new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.&&, new SILType("Boolean"))
-      case y : Implication => return new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.==>, new SILType("Boolean"))
-      case y : Equivalence => return new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.==>, new SILType("Boolean"))
+      case y : Or =>
+        return new MethodCall(parsePP(x.sourceLocation),
+          new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.operand1) :: Nil, "||",null),
+          Nil,
+          parseExpression(x.operand2) :: Nil,
+          new SILType("Boolean")
+        )
+        //Correspond to new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.||, new SILType("Boolean"))
+      case y : And =>
+        return new MethodCall(parsePP(x.sourceLocation),
+          new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.operand1) :: Nil, "&&",null),
+            Nil,
+          parseExpression(x.operand2) :: Nil,
+          new SILType("Boolean")
+        )
+        //Correspond to new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.&&, new SILType("Boolean"))
+      case y : Implication =>
+        return new MethodCall(parsePP(x.sourceLocation),
+          new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.operand1) :: Nil, "==>",null),
+            Nil,
+          parseExpression(x.operand2) :: Nil,
+          new SILType("Boolean")
+        )
+        //Correspond to new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.==>, new SILType("Boolean"))
+      case y : Equivalence =>
+        return new MethodCall(parsePP(x.sourceLocation),
+          new FieldAccess(parsePP(x.sourceLocation), parseExpression(x.operand1) :: Nil, "<==>",null),
+            Nil,
+          parseExpression(x.operand2) :: Nil,
+          new SILType("Boolean")
+        )
+        //Correspond to new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.==>, new SILType("Boolean"))
     }
-    case x : silAST.expressions.TrueExpression => return new ch.ethz.inf.pm.sample.abstractdomain.TrueExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
-    case x : silAST.expressions.FalseExpression => return new ch.ethz.inf.pm.sample.abstractdomain.FalseExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
+    case x : silAST.expressions.TrueExpression => new NumericalConstant(parsePP(p.sourceLocation), "true", new SILType("Boolean"))
+      //Correspond to new ch.ethz.inf.pm.sample.abstractdomain.TrueExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
+    case x : silAST.expressions.FalseExpression => new NumericalConstant(parsePP(p.sourceLocation), "false", new SILType("Boolean"))
+      //Correspond to new ch.ethz.inf.pm.sample.abstractdomain.FalseExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
 
     //NOT VISIBLE
     //case x : PEqualityExpressionC => throw new SILParserException("Not yet implemented")
@@ -170,7 +262,7 @@ object ParseSILAST {
     case _ => throw new SILParserException("Operator "+p.name+" not yet supported")
   }*/
 
-  private def parseTerm(p : Term) : ch.ethz.inf.pm.sample.abstractdomain.Expression = p match {
+  private def parseTerm(p : Term) : ch.ethz.inf.pm.sample.oorepresentation.Statement = p match {
     case x : CastTerm => throw new SILParserException("Not yet supported")
     case x : DomainFunctionApplicationTerm => throw new SILParserException("Not yet supported")
     case x : EpsilonPermissionTerm => throw new SILParserException("Not yet supported")
@@ -183,16 +275,87 @@ object ParseSILAST {
     case x : LogicalVariableTerm => throw new SILParserException("Not yet supported")
     case x : NoPermissionTerm => throw new SILParserException("Not yet supported")
     case x : PermTerm => throw new SILParserException("Not yet supported")
-    case x : ProgramVariableTerm => new VariableIdentifier(x.variable.name, parseDataType(x.variable.dataType), parsePP(x.sourceLocation))
-    case x : OldTerm => new OldExpression(parsePP(x.sourceLocation), parseTerm(x.term))
-    case x : UnfoldingTerm => new UnfoldingExpression(parsePP(x.sourceLocation), parseExpression(x.predicate).asInstanceOf[PredicatePermissionExpression], parseTerm(x.term))
+    case x : ProgramVariableTerm => return parseProgramVariable(x.variable)
+    case x : OldTerm =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.term) :: Nil, "old",null),
+        Nil,
+        Nil,
+        new SILType("Chalice")
+      )
+      //Correspond to new OldExpression(parsePP(x.sourceLocation), parseTerm(x.term))
+    case x : UnfoldingTerm =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.term) :: Nil, "unfolding",null),
+        Nil,
+        parseExpression(x.predicate) :: Nil,
+        new SILType("Chalice")
+      )
+      //Correspond to new UnfoldingExpression(parsePP(x.sourceLocation), parseExpression(x.predicate).asInstanceOf[PredicatePermissionExpression], parseTerm(x.term))
   }
 
-  private def parsePredicateLocation(p : PredicateLocation) : ch.ethz.inf.pm.sample.abstractdomain.Expression = null
 
-  private def parseFieldLocation(p : FieldLocation) : ch.ethz.inf.pm.sample.abstractdomain.Expression = null
+  private def parseStatement(p : silAST.methods.implementations.Statement) : ch.ethz.inf.pm.sample.oorepresentation.Statement= p match {
+    //Standard statements
+    case x : AssignmentStatement => return new Assignment(parsePP(x.sourceLocation), parseProgramVariable(x.target), parseTerm(x.source))
+    case x : CallStatement =>
+      if(x.method.signature.results.size!=1) throw new SILParserException("Not yet supported")
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseProgramVariableSequence(x.targets)::Nil, x.method.name, null),
+        Nil,
+        parseSeqOf[Term, ch.ethz.inf.pm.sample.oorepresentation.Statement](x.arguments.args, parseTerm(_)),
+        parseDataType(x.method.signature.results.apply(1).dataType)
+      )
+    case x : NewStatement => return new New(parsePP(x.sourceLocation), parseDataType(x.dataType));
+    case x : FieldAssignmentStatement =>
+      return new Assignment(
+        parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseProgramVariable(x.target)::Nil, x.field.name, null),
+        parseTerm(x.source)
+      )
+
+    //Chalice/SIL statements represented by method calls
+    case x : ExhaleStatement =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new NumericalConstant(parsePP(x.sourceLocation),"exhale",new SILType("Unit")),
+        Nil,
+        parseExpression(x.expression) :: Nil,
+        new SILType("Unit")
+      )
+    case x : FoldStatement =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new NumericalConstant(parsePP(x.sourceLocation),"fold",new SILType("Unit")),
+        Nil,
+        parseTerm(x.permission) :: Nil,
+        new SILType("Unit")
+      )
+    case x : InhaleStatement =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new NumericalConstant(parsePP(x.sourceLocation),"inhale",new SILType("Unit")),
+        Nil,
+        parseExpression(x.expression) :: Nil,
+        new SILType("Unit")
+      )
+    case x : UnfoldStatement =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new NumericalConstant(parsePP(x.sourceLocation),"unfold",new SILType("Unit")),
+        Nil,
+        parseExpression(x.permissionExpression) :: Nil,
+        new SILType("Unit")
+      )
+  }
+
+
+  private def parseProgramVariable(p : ProgramVariable) : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
+
+  private def parseProgramVariableSequence(p : ProgramVariableSequence) : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
+
+  private def parsePredicateLocation(p : PredicateLocation) : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
+
+  private def parseFieldLocation(p : FieldLocation) : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
 
   private def parseImplementation(p : Implementation) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph= null
+
 }
 
 class SILProgramPoint(val row : Int, val column : Int) extends ProgramPoint {

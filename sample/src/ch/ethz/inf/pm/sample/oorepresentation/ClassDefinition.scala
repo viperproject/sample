@@ -87,8 +87,8 @@ class MethodDeclaration(
                       val arguments : List[List[VariableDeclaration]],
                       val returnType : Type,
                       val body : ControlFlowGraph,
-                      val precond : Expression,
-                      val postcond : Expression
+                      val precond : Statement,
+                      val postcond : Statement
               ) extends ClassElements 
 {
 

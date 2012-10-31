@@ -62,8 +62,8 @@ object CFGGenerator {
           val returnType : Type = null
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
           addStatementsToCFG(body,newBody)
-          val preCond : Expression = null
-          val postCond : Expression = null
+          val preCond : Statement = null
+          val postCond : Statement = null
           Some(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
         case _ => None
       }
