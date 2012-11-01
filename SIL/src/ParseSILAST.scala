@@ -230,52 +230,10 @@ object ParseSILAST {
       //Correspond to new ch.ethz.inf.pm.sample.abstractdomain.TrueExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
     case x : silAST.expressions.FalseExpression => new NumericalConstant(parsePP(p.sourceLocation), "false", new SILType("Boolean"))
       //Correspond to new ch.ethz.inf.pm.sample.abstractdomain.FalseExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
-
-    //NOT VISIBLE
-    //case x : PEqualityExpressionC => throw new SILParserException("Not yet implemented")
-    //case x : PUnaryExpressionC => throw new SILParserException("Not yet implemented")
-    //case x : PBinaryExpressionC => throw new SILParserException("Not yet implemented")
-    //case x : PDomainPredicateExpressionC => throw new SILParserException("Not yet implemented")
-    //case x : DEqualityExpressionC => throw new SILParserException("Not yet implemented")
-    //case x : DUnaryExpressionC => throw new SILParserException("Not yet implemented")
-    //case x : DBinaryExpressionC => throw new SILParserException("Not yet implemented")
-    //case x : DDomainPredicateExpressionC => throw new SILParserException("Not yet implemented")
-
-    //ALREADY COVERED
-    //case x : PDomainPredicateExpression => throw new SILParserException("Not yet implemented")
-    //case x : PPredicatePermissionExpression => throw new SILParserException("Not yet implemented")
-    //case x : PFieldPermissionExpression => throw new SILParserException("Not yet implemented")
-    //case x : PUnfoldingExpression => throw new SILParserException("Not yet implemented")
-    //case x : DQuantifierExpression => throw new SILParserException("Not yet implemented")
-    //case x : GEqualityExpression => throw new SILParserException("Not yet implemented")
-    //case x : GUnaryExpression => throw new SILParserException("Not yet implemented")
-    //case x : GBinaryExpression => throw new SILParserException("Not yet implemented")
-    //case x : GDomainPredicateExpression => throw new SILParserException("Not yet implemented")
   }
 
-  /*private def parseUnaryConnective(p : UnaryConnective) : ArithmeticOperator.Value = p.name match {
-    case "+" => ArithmeticOperator.+
-    case "-" => ArithmeticOperator.-
-    case "*" => ArithmeticOperator.*
-    case "/" => ArithmeticOperator./
-    case "%" => ArithmeticOperator.%
-    case _ => throw new SILParserException("Operator "+p.name+" not yet supported")
-  }*/
-
   private def parseTerm(p : Term) : ch.ethz.inf.pm.sample.oorepresentation.Statement = p match {
-    case x : CastTerm => throw new SILParserException("Not yet supported")
-    case x : DomainFunctionApplicationTerm => throw new SILParserException("Not yet supported")
-    case x : EpsilonPermissionTerm => throw new SILParserException("Not yet supported")
-    case x : FieldLocation => throw new SILParserException("Not yet supported")
-    case x : FieldReadTerm => throw new SILParserException("Not yet supported")
-    case x : FullPermissionTerm => throw new SILParserException("Not yet supported")
-    case x : FunctionApplicationTerm => throw new SILParserException("Not yet supported")
-    case x : IfThenElseTerm => throw new SILParserException("Not yet supported")
-    case x : IntegerLiteralTerm => throw new SILParserException("Not yet supported")
-    case x : LogicalVariableTerm => throw new SILParserException("Not yet supported")
-    case x : NoPermissionTerm => throw new SILParserException("Not yet supported")
-    case x : PermTerm => throw new SILParserException("Not yet supported")
-    case x : ProgramVariableTerm => return parseProgramVariable(x.variable)
+    case x : ProgramVariableTerm => return parseVariable(x.variable)
     case x : OldTerm =>
       return new MethodCall(parsePP(x.sourceLocation),
         new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.term) :: Nil, "old",null),
@@ -283,7 +241,7 @@ object ParseSILAST {
         Nil,
         new SILType("Chalice")
       )
-      //Correspond to new OldExpression(parsePP(x.sourceLocation), parseTerm(x.term))
+    //Correspond to new OldExpression(parsePP(x.sourceLocation), parseTerm(x.term))
     case x : UnfoldingTerm =>
       return new MethodCall(parsePP(x.sourceLocation),
         new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.term) :: Nil, "unfolding",null),
@@ -291,13 +249,48 @@ object ParseSILAST {
         parseExpression(x.predicate) :: Nil,
         new SILType("Chalice")
       )
-      //Correspond to new UnfoldingExpression(parsePP(x.sourceLocation), parseExpression(x.predicate).asInstanceOf[PredicatePermissionExpression], parseTerm(x.term))
+    //Correspond to new UnfoldingExpression(parsePP(x.sourceLocation), parseExpression(x.predicate).asInstanceOf[PredicatePermissionExpression], parseTerm(x.term))
+    case x : CastTerm =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.operand1) :: Nil, "$asInstanceOf",null),
+        parseDataType(x.newType) :: Nil,
+        Nil,
+        new SILType("Any")
+      )
+    case x : EpsilonPermissionTerm => new NumericalConstant(parsePP(x.sourceLocation), "epsilon", new SILType("PermissionValue"))
+    case x : FullPermissionTerm => new NumericalConstant(parsePP(x.sourceLocation), "full", new SILType("PermissionValue"))
+    case x : NoPermissionTerm => new NumericalConstant(parsePP(x.sourceLocation), "zero", new SILType("PermissionValue"))
+    case x : PermTerm =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(
+          parsePP(x.sourceLocation),
+          new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.location.receiver) :: Nil, x.location.asInstanceOf[FieldLocation].field.name,null) :: Nil,
+          "getPermission",
+          null
+        ),
+        Nil,
+        Nil,
+        new SILType("Chalice")
+      )
+    case x : FieldLocation => parseFieldLocation(x)
+    case x : FieldReadTerm => new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.location.receiver) :: Nil, x.location.field.name, parseDataType(x.location.field.dataType))
+    case x : FunctionApplicationTerm =>
+      return new MethodCall(parsePP(x.sourceLocation),
+        new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.receiver) :: Nil, x.function.name,null),
+        Nil,
+        parseSeqOf[Term, ch.ethz.inf.pm.sample.oorepresentation.Statement](x.arguments, parseTerm(_)),
+        parseDataType(x.function.resultType)
+      )
+    case x : IntegerLiteralTerm => new NumericalConstant(parsePP(x.sourceLocation), x.value.toString(), parseDataType(x.dataType))
+    case x : LogicalVariableTerm => parseVariable(x.variable)
+    case x : DomainFunctionApplicationTerm => throw new SILParserException("Not yet supported")
+    case x : IfThenElseTerm => throw new SILParserException("Not yet supported")
   }
 
 
   private def parseStatement(p : silAST.methods.implementations.Statement) : ch.ethz.inf.pm.sample.oorepresentation.Statement= p match {
     //Standard statements
-    case x : AssignmentStatement => return new Assignment(parsePP(x.sourceLocation), parseProgramVariable(x.target), parseTerm(x.source))
+    case x : AssignmentStatement => return new Assignment(parsePP(x.sourceLocation), parseVariable(x.target), parseTerm(x.source))
     case x : CallStatement =>
       if(x.method.signature.results.size!=1) throw new SILParserException("Not yet supported")
       return new MethodCall(parsePP(x.sourceLocation),
@@ -310,7 +303,7 @@ object ParseSILAST {
     case x : FieldAssignmentStatement =>
       return new Assignment(
         parsePP(x.sourceLocation),
-        new FieldAccess(parsePP(x.sourceLocation), parseProgramVariable(x.target)::Nil, x.field.name, null),
+        new FieldAccess(parsePP(x.sourceLocation), parseVariable(x.target)::Nil, x.field.name, null),
         parseTerm(x.source)
       )
 
@@ -346,15 +339,23 @@ object ParseSILAST {
   }
 
 
-  private def parseProgramVariable(p : ProgramVariable) : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
+  private def parseProgramVariableSequence(p : Seq[ProgramVariable]) : ch.ethz.inf.pm.sample.oorepresentation.Statement = p match {
+    case x :: y :: Nil => new FieldAccess(parsePP(x.sourceLocation), parseVariable(x) :: Nil, y.name, parseDataType(y.dataType))
+    case x :: Nil => parseVariable(x)
+    case y => new FieldAccess(parsePP(y.apply(0).sourceLocation), parseProgramVariableSequence(y.drop(y.size-1)) :: Nil, y.apply(y.size-1).name, parseDataType(y.apply(y.size-1).dataType))
+  }
 
-  private def parseProgramVariableSequence(p : ProgramVariableSequence) : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
 
-  private def parsePredicateLocation(p : PredicateLocation) : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
+  private def parsePredicateLocation(x : PredicateLocation) : ch.ethz.inf.pm.sample.oorepresentation.Statement =
+    new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.receiver) :: Nil, x.predicate.name, parseDataType(x.dataType))
 
-  private def parseFieldLocation(p : FieldLocation) : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
+  private def parseFieldLocation(x : FieldLocation) : ch.ethz.inf.pm.sample.oorepresentation.Statement =
+    new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.receiver) :: Nil, x.field.name, parseDataType(x.field.dataType))
 
-  private def parseImplementation(p : Implementation) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph= null
+  private def parseImplementation(p : Implementation) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph = throw new SILParserException("Not yet implemented")
+
+  private def parseControlFlowGraph(p : silAST.methods.implementations.ControlFlowGraph) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph=
+    parseImplementation(p.implementation)
 
 }
 

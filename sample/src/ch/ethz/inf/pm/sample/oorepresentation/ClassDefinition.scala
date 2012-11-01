@@ -72,8 +72,7 @@ case object PublicModifier extends Modifier
  * @param returnType the type of the returned value
  * @param body the control flow graph representing the body of the method
  * @param precond the preconditions
- * @param precond the postconditions
- * @param precond the invariants
+ * @param postcond the postconditions
  * 
  * @author Pietro Ferrara
  * @version 0.1
