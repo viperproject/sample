@@ -16,6 +16,7 @@ import terms._
 object ParseSILAST {
   def SILProgram2SimpleProgram(program : Program) : Set[MethodDeclaration]= {
     parseMethods(program.methods)
+    //TODO: all the rest of the program
   }
 
   private def parseMethods( m : scala.collection.Set[Method]) : Set[MethodDeclaration] = {
@@ -352,10 +353,52 @@ object ParseSILAST {
   private def parseFieldLocation(x : FieldLocation) : ch.ethz.inf.pm.sample.oorepresentation.Statement =
     new FieldAccess(parsePP(x.sourceLocation), parseTerm(x.receiver) :: Nil, x.field.name, parseDataType(x.field.dataType))
 
-  private def parseImplementation(p : Implementation) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph = throw new SILParserException("Not yet implemented")
+  private def parseImplementation(p : Implementation) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph = parseControlFlowGraph(p.body)
 
-  private def parseControlFlowGraph(p : silAST.methods.implementations.ControlFlowGraph) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph=
-    parseImplementation(p.implementation)
+  private def parseControlFlowGraph(p : silAST.methods.implementations.ControlFlowGraph) : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph= {
+    var (blocksindexes, edges, cfg, entryIndex) = parseInternalControlFlowGraph(p, Map.empty[Block, Int], Set.empty[CFGEdge], new ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph(parsePP(p.sourceLocation)));
+    for(edge <- edges)
+      cfg.addEdge(blocksindexes.apply(edge.source), blocksindexes.apply(edge.target), Some(true));
+    //TODO: should I set the entry node or it's always the first node?
+    return cfg;
+  }
+
+
+  private def parseInternalControlFlowGraph(p : silAST.methods.implementations.ControlFlowGraph, b : Map[Block, Int], e : Set[CFGEdge], c : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph) : (Map[Block, Int], Set[CFGEdge], ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph, Int)= {
+    var cfg : ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph = c;
+    var blocksindexes = b;
+    var edges : Set[CFGEdge] = e;
+    var initialindex : Int = -1;
+    for(b <- p.nodes) {
+      edges=edges++b.predecessors++b.successors;
+      b match {
+        case c : BasicBlock =>
+          val index=cfg.addNode(parseBasicBlock(c.statements));
+          blocksindexes=blocksindexes+((c, index));
+          if(initialindex== -1) initialindex=index;
+        case c : LoopBlock =>
+          val conditionindex = cfg.addNode(parseExpression(c.condition)::Nil);
+          if(initialindex== -1) initialindex=conditionindex;
+          val (b1, e1, c1, newindex)=parseInternalControlFlowGraph(c.body, blocksindexes, edges, cfg);
+          blocksindexes=b1;
+          edges=e1;
+          cfg=c1;
+          cfg.addEdge(conditionindex, newindex, None);
+      }
+    }
+    return (blocksindexes, edges, cfg, initialindex)
+  }
+
+
+
+  private def parseBasicBlock(p : Seq[silAST.methods.implementations.Statement]) : List[ch.ethz.inf.pm.sample.oorepresentation.Statement] = {
+    var result : List[ch.ethz.inf.pm.sample.oorepresentation.Statement] = Nil;
+    for(i <- 0 to p.size-1) {
+      if(i != p.size-1 || p.apply(i).isInstanceOf[ControlStatement])
+        result=result ::: parseStatement(p.apply(i)) :: Nil;
+    }
+    return result;
+  }
 
 }
 
