@@ -1,4 +1,6 @@
 import ch.ethz.inf.pm.sample.test.Run
+import ch.ethz.inf.pm.td.TestRunner
+import java.io.File
 
 /**
  *
@@ -7,4 +9,4 @@ import ch.ethz.inf.pm.sample.test.Run
  * Time: 4:31 PM
  *
  */
-Run.main(List("-v","-p","TouchDevelopPreprocessing\\testfiles\\board").toArray[String])
+TestRunner.runDirectory("board")

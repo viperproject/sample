@@ -17,4 +17,7 @@ def prnt(url:String) {
   //println(PrettyPrinter(s))
 }
 
-TestRunner(new Scripts,1000000,prnt)
+println(ScriptParser("action main() { $a = \"//\"; }" ))
+
+TestRunner("https://www.touchdevelop.com/api/dnbf/text",prnt _) // THE COMMENT BUG
+TestRunner(new Scripts,1000000,prnt _)

@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
 import ch.ethz.inf.pm.td.semantics.Environment
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 
 /**
  * 
@@ -15,7 +16,7 @@ import ch.ethz.inf.pm.td.semantics.Environment
  */
 class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomain[D]] {
 
-  var domain: NumericalDomain[D] = null
+  var domain: D = null.asInstanceOf[D]
 
   def getLabel(): String = "TouchDevelop analysis"
 
@@ -33,6 +34,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
   def getInitialState(): TouchDomain[D] = {
     var ret = new TouchDomain(domain.asInstanceOf[D]).top()
     for (e <- Environment.envs) {
+      ret = ret.createVariable(e,e.getType())
       ret = ret.setToTop(e)
     }
     ret

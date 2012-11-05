@@ -56,9 +56,9 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
 
         // Check if the object or an argument can be invalid - in this case, we must produce an error
         if (!thisExpr.getType().isStatic()) {
-          Error(thisExpr equal invalid(thisExpr.getType()), "Object might be invalid")(state,pp)
+          Error(thisExpr equal invalid(thisExpr.getType()), operator+": Object ("+thisExpr+") might be invalid")(state,pp)
           for (param <- parameters) {
-            Error(param equal invalid(param.getType()), "Parameter might be invalid")(state,pp)
+            Error(param equal invalid(param.getType()), operator+": Parameter ("+param+") might be invalid")(state,pp)
           }
         }
 
@@ -82,15 +82,15 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
 
           case "media" => operator match {
             case "create_board" =>
-              Error( parameters.head < 0 , "Argument might be negative" )(state,pp)
-              Some(New(Board,parameters.head,800)(state,pp)) // According to Windows Phone Spec.
+              val List(width) = parameters
+              Error( width < 0 , "create_board: Parameter width ("+width+") might be negative" )(state,pp)
+              Some(New(Board,width,800)(state,pp)) // According to Windows Phone Spec.
             case "create_full_board" =>
               Some(New(Board,480,800)(state,pp)) // According to Windows Phone Spec.
             case "create_picture" =>
-              val width = parameters(0)
-              val height = parameters(1)
-              Error( width < 0 , "Picture width might be negative" )(state,pp)
-              Error( height < 0 , "Picture height might be negative" )(state,pp)
+              val List(width,height) = parameters
+              Error( width < 0 , "create_picture: Picture width ("+width+") might be negative" )(state,pp)
+              Error( height < 0 , "create_picture: Picture height ("+height+") might be negative" )(state,pp)
               Some(New(Picture,parameters)(state,pp))
             case _ => None
           }
@@ -105,19 +105,19 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
             case "set_pixel" =>
               val List(x,y,color) = parameters
 
-              Error (x < 0, "set_pixel: X might be negative")(state,pp)
-              Error (y < 0, "set_pixel: Y might be negative")(state,pp)
-              Error (x > state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: X might be greater than width")(state,pp)
-              Error (y > state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Y might be greater than height")(state,pp)
+              Error (x < 0, "set_pixel: Parameter X ("+x+") might be negative")(state,pp)
+              Error (y < 0, "set_pixel: Parameter Y ("+y+") might be negative")(state,pp)
+              Error (x > state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: Parameter X ("+x+") might be greater than width")(state,pp)
+              Error (y > state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Parameter Y ("+y+") might be greater than height")(state,pp)
 
               Some(state)
             case "draw_text" =>
               val List(x,y,text,font,degree,color) = parameters
 
-              Error (x < 0, "set_pixel: X might be negative")(state,pp)
-              Error (y < 0, "set_pixel: Y might be negative")(state,pp)
-              Error (x > state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: X might be greater than width")(state,pp)
-              Error (y > state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Y might be greater than height")(state,pp)
+              Error (x < 0, "set_pixel: Parameter X ("+x+") might be negative")(state,pp)
+              Error (y < 0, "set_pixel: Parameter Y ("+y+") might be negative")(state,pp)
+              Error (x > state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: Parameter X ("+x+") might be greater than width")(state,pp)
+              Error (y > state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Parameter Y ("+y+") might be greater than height")(state,pp)
 
               Some(state)
             case _ => None

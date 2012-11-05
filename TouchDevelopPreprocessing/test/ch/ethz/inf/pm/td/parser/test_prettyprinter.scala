@@ -16,4 +16,4 @@ def prnt(url:String) {
   println(PrettyPrinter(s))
 }
 
-TestRunner("https://www.touchdevelop.com/api/qssc/text",prnt)
+TestRunner("https://www.touchdevelop.com/api/qssc/text",prnt _)

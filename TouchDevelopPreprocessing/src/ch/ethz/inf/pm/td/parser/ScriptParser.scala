@@ -7,7 +7,7 @@ import ch.ethz.inf.pm.td.compiler.TouchException
 object ScriptParser extends RegexParsers with PackratParsers {
 
   /** not only ignore white space but also comments */
-  protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
+  //protected override val whiteSpace = """(\s|//.*|(?m)/\*(\*(?!/)|[^*])*\*/)+""".r
 
   // Top Level and Meta Information
 
@@ -250,18 +250,44 @@ object ScriptParser extends RegexParsers with PackratParsers {
   lazy val numberLiteral:PackratParser[String] = ( "[0-9]+\\.?".r ||| """[0-9]*\.[0-9]+""".r )
   lazy val booleanLiteral: Parser[String] = ("true" | "false")
   lazy val stringLiteral:PackratParser[String] = "\"" ~> escapedString <~ "\"" ^^ (StringEscapeUtils.unescapeJava(_))
-  lazy val escapedString: Parser[String] = """([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r
-  //lazy val escapedString:PackratParser[String] = """(?:[^"\\]+|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
-  //lazy val escapedString:Parser[String] = """[^"\\]*(\\.[^"\\]*)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
+  //lazy val escapedString: Parser[String] = """([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r
+  lazy val escapedString:Parser[String] = """(?:[^"\\]+|\\.)*""".r
+  //lazy val escapedString:Parser[String] = """[^"\\]*(\\.[^"\\]*)*""".r
   lazy val ident: Parser[String] = """[a-zA-z@_](?:\w|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
 
+  /**
+   * Ugly function to remove comments from the code. But works
+   */
+  def removeComments(input:String):String = {
+    var s = input
+    def skipUntil(c:Char,i:Int):Int = {
+      var ret = i
+      while (ret<s.length() && s.charAt(ret) != c) ret = ret + 1
+      ret + 1
+    }
+    def skipUntilWithEscape(c:Char,i:Int):Int = {
+      var ret = i
+      while (ret<s.length() && (s.charAt(ret) != c || s.charAt(ret-1) == '\\')) ret = ret + 1
+        ret + 1
+    }
+    var i = 0
+    while (i < s.length) {
+      if (s.charAt(i) == '"') i = skipUntilWithEscape('"',i+1)
+      else {
+        if (s.charAt(i) == '/' && i+1<s.length() && s.charAt(i+1) == '/') {
+          val j = skipUntil('\n',i)
+          s = s.substring(0,i)+s.substring(j-1,s.length)
+        }
+        i = i + 1
+      }
+    }
+    s
+  }
+
   // Parser Interface
-
-//  def removeComments(input:String):String =
-//    "(?m)[\\t ]*//[^\n\r]*$".r.replaceAllIn(input,"")
-
   def apply(input: String):Script = {
-    parseAll(script,input) match {
+    val noCommentInput = removeComments(input)
+    parseAll(script,noCommentInput) match {
       case Success(x,_) => x
       case y:ParseResult[Script] => throw new TouchException("Parsing failed "+y)
     }

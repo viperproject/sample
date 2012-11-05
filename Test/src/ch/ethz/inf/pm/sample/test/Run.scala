@@ -98,7 +98,7 @@ object Run {
     if(file.isDirectory) {
       if(! file.getName.equals(".svn")) {
         try {
-          val file3 : File = new File(file.getAbsolutePath+"\\settings.test");
+          val file3 : File = new File(file.getAbsolutePath+File.separator+"settings.test");
           val r : (List[String], HeapAndAnotherDomain[N, H, I], Analysis, H) = setAnalysisParameters(file3)
           val methods: List[String] = r._1
           var entryState: HeapAndAnotherDomain[N, H, I] = r._2

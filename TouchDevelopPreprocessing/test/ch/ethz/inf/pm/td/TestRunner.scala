@@ -10,6 +10,8 @@ import heapanalysis.TopHeapIdentifier
 import numericaldomain.NonRelationalNumericalAnalysis
 import scala.Some
 import ch.ethz.inf.pm.sample.property.OutputCollector
+import ch.ethz.inf.pm.sample.test.Run
+import java.io.File
 
 /**
  *
@@ -45,6 +47,10 @@ object TestRunner {
     } catch {
       case e:TouchException => println(e.msg + " (Position: " + e.pos + ")"); e.printStackTrace()
     }
+  }
+
+  def runDirectory(dir:String) {
+    Run.main(List("-v","-p","TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator+dir).toArray[String])
   }
 
 }

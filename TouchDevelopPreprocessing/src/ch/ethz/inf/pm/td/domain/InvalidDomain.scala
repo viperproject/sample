@@ -98,6 +98,14 @@ class BooleanInvalidDomain
       } else {
         if (l.canBeFalse && r.canBeFalse) domValid else domBottom
       }
+    case BinaryNondeterministicExpression(left, right, _, typ) =>
+      val l = eval(left)
+      val r = eval(right)
+      if (l.canBeTrue || r.canBeTrue) {
+        if (l.canBeFalse && r.canBeFalse) domTop else domInvalid
+      } else {
+        if (l.canBeFalse && r.canBeFalse) domValid else domBottom
+    }
     case Constant(constant, typ, pp) =>
       if (constant == "invalid") domInvalid else domValid
     case HeapIdentifier(_,_) =>
@@ -135,7 +143,6 @@ class BooleanInvalidDomain
           this.add(x,domBottom.intersect(right,eval(y)))
         case _ => this
       }
-
     case NegatedBooleanExpression(BinaryArithmeticExpression(x:Identifier, Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
       // Case x != invalid
       this.add(x,domBottom.intersect(domValid,eval(x)))

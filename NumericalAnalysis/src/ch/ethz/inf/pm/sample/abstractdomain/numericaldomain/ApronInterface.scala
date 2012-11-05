@@ -3,10 +3,18 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
-//import sun.net.ftp.FtpProtocolException
-//import com.sun.org.omg.CORBA.IdentifierHelper
+
 import apron._
 import collection.mutable.ListBuffer
+import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
+import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
+import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
+import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 ;
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
@@ -151,7 +159,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 //          if(! state.getEnvironment.hasVar(id2.getName()) || ! state.getEnvironment.hasVar(id1.getName())) {
 //            newState = this.createVariable(id2, id2.getType()).createVariable(id1, id1.getType()).state;
 //          }
-//          var resEnv = unionOfEvrinomnets(newState.getEnvironment, result.getEnvironment);
+//          var resEnv = unionOfEnvironments(newState.getEnvironment, result.getEnvironment);
 //          newState = newState.changeEnvironmentCopy(domain, resEnv, false);
 //          result = result.changeEnvironmentCopy(domain, resEnv, false);
 //          var temp = newState.substituteCopy(domain, id2.getName(), this.toTexpr1Intern(id1, newState.getEnvironment), newState);
@@ -171,21 +179,85 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
   //TODO
   def getIds : Set[Identifier] = Set.empty[Identifier];
 
+  /**
+   * A custom, nicer textual representation.
+   */
+  def toString(cons:List[Lincons1]):String = {
+
+    val strs = (for (c <- cons) yield {
+
+      val (left,right) = (for (t <- c.getLinterms) yield {
+        val coeff = t.getCoefficient
+        val vari = t.getVariable
+        if (coeff.isEqual(1)) (Some(vari),None)
+        else if (coeff.isEqual(-1)) (None,Some("-"+vari))
+        else if (coeff.cmp(new DoubleScalar(0))>0) (Some(coeff.toString+vari),None)
+        else if (coeff.cmp(new DoubleScalar(0))<0) (None,Some(coeff.toString+vari))
+        else (None,None)
+      }).unzip
+
+      val const = c.getCst
+      val (constL,constR) =
+        if (const != null && !const.isZero)
+          if (const.cmp(new DoubleScalar(0))>0) (Some(const.toString),None)
+          else (None,Some(const.toString))
+        else (None,None)
+
+      val (leftX,rightX) = ((constL::left.toList).flatten,(constR::right.toList).flatten)
+      val (leftS,rightS) = (leftX.mkString(" + "),rightX.mkString(" + ").replace("-",""))
+      val (leftR,rightR) = (if (leftS.isEmpty) "0" else leftS, if (rightS.isEmpty) "0" else rightS )
+
+      if (leftR.compare(rightR) > 0 ) (leftR + opToStr(c.getKind) + rightR)
+      else (rightR + opToInvStr(c.getKind) + leftR)
+
+    })
+
+    val tmp = strs.toList.mkString("\n")
+
+    // This is super ugly but helps
+    val a = new scala.collection.mutable.HashSet[String]
+    for (str <- strs) {
+      val other = str.replace("<","?").replace(">","<").replace("?",">")
+      if (!a.contains(other)) {
+        a += str
+      } else {
+        val third = str.replace("<","=").replace(">","=").replace("==","=")
+        a.remove(other)
+        a += third
+      }
+    }
+
+    a.toList.mkString("\n").replace(">","&gt;").replace("<","&lt;")
+
+  }
+
+  private def opToStr(kind:Int):String = {
+    kind match {
+      case Lincons1.DISEQ => " != "
+      case Lincons1.EQ => " = "
+      case Lincons1.SUP => " > "
+      case Lincons1.SUPEQ => " >= "
+    }
+  }
+
+  private def opToInvStr(kind:Int):String = {
+    kind match {
+      case Lincons1.DISEQ => " = "
+      case Lincons1.EQ => " != "
+      case Lincons1.SUP => " < "
+      case Lincons1.SUPEQ => " <= "
+    }
+  }
+
+
+
 	override def getStringOfId (id : Identifier) : String = {
-		var result : String = "";
-		for(c <- this.state.toLincons(domain)) {
-			if(this.constraintContains(c, id.getName()))
-				result=result+" " + c.toString();
-		}
-		if(result.equals(""))
-			result="T";
-		return result;
+    toString(this.state.toLincons(domain).toList.filter(constraintContains(_,id.getName())))
 	}
 	
 	override def toString() : String = {
-
-    state.toString() //+ " ENV = " + state.getEnvironment.toString;
-  };
+    toString(this.state.toLincons(domain).toList)
+  }
 	
 	
 	private def constraintContains(c : Lincons1, variable : String) : Boolean = {
@@ -218,14 +290,76 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		new ApronInterface(st, domain);
 	}
 
-	override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
-    if(state.isBottom(domain)) return this.bottom
+  def removeNondeterminism ( label:String, expr: Expression ): (Expression, List[(Identifier,BinaryNondeterministicExpression)]) = {
+    expr match {
+      case BinaryArithmeticExpression(left,right,op,typ) =>
+        var (expL,varL) = removeNondeterminism(label+"L",left)
+        var (expR,varR) = removeNondeterminism(label+"R",right)
+        (BinaryArithmeticExpression(expL,expR,op,typ),varL:::varR)
+      case BinaryBooleanExpression(left,right,op,typ) =>
+        var (expL,varL) = removeNondeterminism(label+"L",left)
+        var (expR,varR) = removeNondeterminism(label+"R",right)
+        (BinaryBooleanExpression(expL,expR,op,typ),varL:::varR)
+      case ReferenceComparisonExpression(left,right,op,typ) =>
+        var (expL,varL) = removeNondeterminism(label+"L",left)
+        var (expR,varR) = removeNondeterminism(label+"R",right)
+        (ReferenceComparisonExpression(expL,expR,op,typ),varL:::varR)
+      case NegatedBooleanExpression(left) =>
+        var (expL,varL) = removeNondeterminism(label,left)
+        (NegatedBooleanExpression(expL),varL)
+      case UnaryArithmeticExpression(left,op,ret) =>
+        var (expL,varL) = removeNondeterminism(label,left)
+        (UnaryArithmeticExpression(expL,op,ret),varL)
+      case BinaryNondeterministicExpression(left,right,op,returnType) =>
+        var (expL,varL) = removeNondeterminism(label+"L",left)
+        var (expR,varR) = removeNondeterminism(label+"R",right)
+        var identifier = new VariableIdentifier(label,expr.getType(),expr.getProgramPoint())
+        (identifier,varL:::varR:::List((identifier,BinaryNondeterministicExpression(expL,expR,op,returnType))))
+      case x:Expression => (x,Nil)
+    }
+  }
+
+  def nondeterminismWrapper(expr:Expression, state:ApronInterface , someFunc: (Expression,ApronInterface) => ApronInterface) : ApronInterface = {
+
+    // Extract all non-deterministic expressions and store them in temporary variables
     var newState = state
-		if(! state.getEnvironment.hasVar(variable.getName())) {
+    val (newExpr, tempAssigns) = removeNondeterminism("tmp",expr)
+    for ((id,ndExpr) <- tempAssigns) {
+      ndExpr.op match {
+        case NondeterministicOperator.or =>
+          val newStateLeft = newState.assign(id,ndExpr.left)
+          val newStateRight = newState.assign(id,ndExpr.right)
+          newState = lub(newStateLeft,newStateRight)
+        case NondeterministicOperator.to =>
+          newState = newState.
+            createVariable(id,ndExpr.getType()).
+            assume(BinaryArithmeticExpression(id,ndExpr.left,ArithmeticOperator.>=,ndExpr.getType())).
+            assume(BinaryArithmeticExpression(id,ndExpr.right,ArithmeticOperator.<=,ndExpr.getType()))
+      }
+    }
+
+    newState = someFunc(newExpr,newState)
+
+    // Remove all temporary variables
+    for ((id,_) <- tempAssigns) {
+      newState = newState.removeVariable(id)
+    }
+
+    newState
+  }
+
+
+  override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
+
+    if(state.isBottom(domain)) return this.bottom
+
+    // Create variable if it does not exist
+    var newState = state
+    if(! state.getEnvironment.hasVar(variable.getName())) {
       newState = this.createVariable(variable, variable.getType()).state
     }
 
-    // ADED because of minimizing the environment in merge
+    // ADDED because of minimizing the environment in merge
     // (i.e. some of the variables still in use might have been removed by merge as they were Top)
     var newEnv = newState.getEnvironment
     for (id <- Normalizer.getIdsForExpression(expr)) {
@@ -238,9 +372,10 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
     newState = newState.changeEnvironmentCopy(domain, newEnv, false)
     // END of the added code
 
-		val st = newState.assignCopy(domain, variable.getName, this.toTexpr1Intern(expr, newState.getEnvironment()), null)
-		new ApronInterface(st, domain)
-	}
+    nondeterminismWrapper(expr, new ApronInterface(newState, domain), (someExpr,someState) => {
+      new ApronInterface(someState.state.assignCopy(domain, variable.getName, this.toTexpr1Intern(someExpr, someState.state.getEnvironment()), null),domain)
+    })
+  }
 
 	override def assume(expr : Expression) : ApronInterface = expr match {
     case BinaryBooleanExpression(left, right, op, typ) => op match {
@@ -258,14 +393,16 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		}
 		case _ => {
       var expEnv = new Environment();
-      for (id <- expr.getIds(expr)) {
+      for (id <- Normalizer.getIdsForExpression(expr)) {
         val v : Array[String] = new Array[String](1);
         v.update(0, id.getName());
         expEnv=expEnv.add(v, new Array[String](0));
       }
-      val newState = state.changeEnvironmentCopy(domain, unionOfEvrinomnets(this.state.getEnvironment(), expEnv), false);
-			val st = newState.meetCopy(domain, this.toTcons1(expr, unionOfEvrinomnets(this.state.getEnvironment(), expEnv)));
-			new ApronInterface(st, domain);
+      val newState = state.changeEnvironmentCopy(domain, unionOfEnvironments(this.state.getEnvironment(), expEnv), false);
+
+      nondeterminismWrapper(expr,new ApronInterface(newState,domain),(someExpr,someState) => {
+        new ApronInterface(someState.state.meetCopy(domain, this.toTcons1(someExpr, unionOfEnvironments(someState.state.getEnvironment(), expEnv))), domain)
+      })
 		}
 	}
 
@@ -293,7 +430,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(left.state.isBottom(domain)) return right;
 		if(right.state.isBottom(domain)) return left;
 		try {
-      val env = unionOfEvrinomnets(left.state.getEnvironment, right.state.getEnvironment);
+      val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
       val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
       val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
       val commonVars = left.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(right.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
@@ -316,7 +453,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(right.state.isBottom(domain)) return right;
 		if(left.state.isTop(domain)) return right;
 		if(right.state.isTop(domain)) return left;
-    val env = unionOfEvrinomnets(left.state.getEnvironment, right.state.getEnvironment);
+    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
     val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
     val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
 		val st = newLeft.state.meetCopy(domain, newRight.state);
@@ -327,12 +464,12 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(left.state.isTop(domain) || right.state.isTop(domain)) return top();
 		if(left.state.isBottom(domain)) return right;
 		if(right.state.isBottom(domain)) return left;
-//    val env = unionOfEvrinomnets(left.state.getEnvironment, right.state.getEnvironment);
+//    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
 //    val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
 //    val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
 //    var st = new Abstract1(domain, newLeft.state);
 //		st = st.widening(domain, newRight.state);
-    val env = unionOfEvrinomnets(left.state.getEnvironment, right.state.getEnvironment);
+    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
     val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
     val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
     val commonVars = left.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(right.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
@@ -349,7 +486,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(r.state.isTop(domain)) return true;
 		if(r.state.isBottom(domain)) return false;
 		if(this.state.isTop(domain)) return false;
-    val env = unionOfEvrinomnets(this.state.getEnvironment, r.state.getEnvironment);
+    val env = unionOfEnvironments(this.state.getEnvironment, r.state.getEnvironment);
     val newLeft = new ApronInterface(this.state.changeEnvironmentCopy(this.domain, env, false), this.domain)
     val newRight = new ApronInterface(r.state.changeEnvironmentCopy(r.domain, env, false), r.domain)
     if (newRight.state.getEnvironment.getVars.size != newLeft.state.getEnvironment.getVars.size)
@@ -393,8 +530,31 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		val e1 = this.toTexpr1Node(e);
 		return new Texpr1Intern(env, e1)
 	}
-	
-	private def toTexpr1Node(e : Expression) : Texpr1Node = e match {
+
+  private def topExpression() : Texpr1Node = {
+    val a = new apron.Interval(0,0)
+    val b = new DoubleScalar()
+    val c = new DoubleScalar()
+    b.setInfty(-1)
+    c.setInfty(1)
+    a.setInf(b)
+    a.setSup(c)
+    new Texpr1CstNode(a)
+  }
+
+  private def topConstraint(env : Environment) : Tcons1 = {
+    new Tcons1(Tcons1.EQ,new Texpr1Intern(env,new Texpr1CstNode(new DoubleScalar(0)))) // always true
+  }
+
+  private def bottomConstraint(env : Environment) : Tcons1 = {
+    new Tcons1(Tcons1.EQ,new Texpr1Intern(env,new Texpr1CstNode(new DoubleScalar(1)))) // always false
+  }
+
+  private def toTexpr1Node(e : Expression) : Texpr1Node = e match {
+    case Constant("invalid", typ, p) =>
+      topExpression() // SHOULD BE: BOTTOM. NOT IMPLEMENTABLE
+    case Constant("valid", typ, p) =>
+      topExpression()
 		case x : Identifier => new Texpr1VarNode(x.getName);
     case setId : HeapIdSetDomain[Identifier] =>
       if(setId.value.size!=1) throw new ApronException("Not yet supported")
@@ -414,6 +574,10 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	}
 	
 	private def toTcons1(e : Expression, env : Environment) : Tcons1 = e match {
+    case Constant("invalid", typ, p) =>
+      bottomConstraint(env)
+    case Constant("valid", typ, p) =>
+      topConstraint(env)
 		case BinaryArithmeticExpression(left, right, op, typ) =>
 			var localop = op;
 			var localleft = left;
@@ -435,7 +599,11 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 			}
 		case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
 			return toTcons1(BinaryArithmeticExpression(left, right, negateOperator(op), typ), env)
-	}
+    case NegatedBooleanExpression(x) =>
+      return toTcons1(BinaryArithmeticExpression(x, Constant("0",x.getType(),x.getProgramPoint()), ArithmeticOperator.==, x.getType()), env)
+    case x:Expression =>
+      return toTcons1(BinaryArithmeticExpression(x, Constant("0",x.getType(),x.getProgramPoint()), ArithmeticOperator.!=, x.getType()), env)
+  }
 
 	private def negateOperator(op : ArithmeticOperator.Value) : ArithmeticOperator.Value = op match {
 			case ArithmeticOperator.<= => return ArithmeticOperator.>
@@ -455,7 +623,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
    *
    * @return an environment that has variables from both (left, right) environments.
    */
-  private def unionOfEvrinomnets(left: Environment, right: Environment): Environment = {
+  private def unionOfEnvironments(left: Environment, right: Environment): Environment = {
     var resEnv = left
     for(v <- right.getVars) {
       if(! left.hasVar(v))  {

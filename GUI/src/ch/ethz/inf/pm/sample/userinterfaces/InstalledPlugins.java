@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.domain.TouchAnalysis;
+import ch.ethz.inf.pm.td.domain.TouchAnalysisWithApron;
 import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
@@ -28,7 +29,7 @@ public class InstalledPlugins {
         compilers[0]=new ScalaCompiler();
         compilers[1]=new TouchCompiler();
 
-        analyses=new SemanticAnalysis[7];
+        analyses=new SemanticAnalysis[8];
         analyses[0]=new NonRelationalNumericalAnalysis();
         analyses[1]=new AccessPermissionsAnalysis();
         analyses[2]=new ApronAnalysis();
@@ -36,6 +37,7 @@ public class InstalledPlugins {
         analyses[4]=new BricksAnalysis();
         analyses[5]=new SurelyAndMaybeContainedCharactersAnalysis();
         analyses[6]=new TouchAnalysis();
+        analyses[7]=new TouchAnalysisWithApron();
 
         heapanalyses=new HeapDomain[4];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));

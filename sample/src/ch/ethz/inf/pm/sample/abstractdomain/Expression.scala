@@ -21,7 +21,6 @@ object ArithmeticOperator extends Enumeration {
   val != = Value("!=");
   val > = Value(">");
   val < = Value("<");
-  val to = Value("to"); // Non-deterministic operator a to b can evaluate to anything in [a,b]
 }
 
 /** 
@@ -69,34 +68,6 @@ object AbstractOperatorIdentifiers extends Enumeration {
 abstract class Expression(val p : ProgramPoint) {
   def getType() : Type;
   def getProgramPoint() : ProgramPoint = p;
-
-  /**
-   * This method returns a set of identifiers that are present in the given expression.
-   *
-   * @param expr - an expression for which we want to get the set of Identifiers
-   *
-   * @return a set of Identifiers present in the given Expression expr
-   */
-  def getIds(expr: Expression): Set[Identifier] = {
-    expr match {
-      case const: Constant =>
-        return Set.empty[Identifier]
-      case id: Identifier =>
-        return Set.empty[Identifier].+(id)
-      case BinaryArithmeticExpression(left, right, op, retTyp) =>
-        return getIds(left).union(getIds(right))
-      case BinaryBooleanExpression(left, right, op, retTyp) =>
-        return getIds(left).union(getIds(right))
-      case NegatedBooleanExpression(x) =>
-        return getIds(x)
-      case UnaryArithmeticExpression(x, op, retTyp) =>
-        return getIds(x)
-      case x: UnitExpression =>
-        return Set.empty[Identifier]
-      case x =>
-        throw new Exception(x.toString + " kind of an Expression is not covered.")
-    }
-  }
 }
 
 
@@ -342,7 +313,9 @@ case class UnitExpression(typ : Type, pp : ProgramPoint) extends Expression(pp) 
 
 /** 
  * An helper object that perform some transformations to obtain simplified and standard numerical expressions.
- * 
+ *
+ * Eliminate nondeterministic expressions before calling this
+ *
  * @author Pietro Ferrara
  * @since 0.1
  */
@@ -577,6 +550,12 @@ object Normalizer {
 
     case ReferenceComparisonExpression(left, right, op, typ) => return contains[I](left, id) || contains[I](right, id);
 
+    /*
+    * NONDETERMINISTIC EXPRESSIONS
+    */
+
+    case BinaryNondeterministicExpression(left, right, op, typ) => return contains[I](left, id) || contains[I](right, id);
+
     case _ => return false;
   }
 
@@ -648,6 +627,14 @@ object Normalizer {
           return new ReferenceComparisonExpression(substitute[I](left, id, subExp), substitute[I](right, id, subExp), op, typ)
         }
 
+        /*
+        * NONDETERMINISTIC EXPRESSIONS
+        */
+
+        case BinaryNondeterministicExpression(left, right, op, typ) => {
+          return new BinaryNondeterministicExpression(substitute[I](left, id, subExp), substitute[I](right, id, subExp), op, typ)
+        }
+
         case _ => throw new Exception("Can not substitute " + subExp.toString + " for " + id.getName() + " in " + exp.toString);
       }
     } else {
@@ -696,6 +683,57 @@ object Normalizer {
 
     case ReferenceComparisonExpression(left, right, op, typ) => return getIdsForExpression[I](left).union(getIdsForExpression[I](right));
 
+    /*
+     * NONDETERMINISTIC EXPRESSIONS
+     */
+
+    case BinaryNondeterministicExpression(left,right,op,typ) => return getIdsForExpression[I](left).union(getIdsForExpression[I](right));
+
     case _ => return Set.empty[Identifier];
   }
+}
+
+/**
+ * Implements non-deterministic operations. These can be used to represent non-deterministic expressions on the
+ * stack of the state, e.g. the result of a math.random call.
+ *
+ * Note that not every numerical domain has direct support for this.
+ *
+ * @author Lucas Brutschy
+ *
+ */
+object NondeterministicOperator extends Enumeration {
+
+  /**
+   * Represents a nondeterministic choice between two expressions, e.g (a+3) or (b+3) or (invalid)
+   */
+  val or = Value("or")
+
+  /**
+   * Represents a nondeterministic choice in a given range (interval), e.g. 1 to (x+y)
+   */
+  val to = Value("to")
+
+}
+
+/**
+ *
+ * Represents an expression with a nondeterministic operator.
+ *
+ * @author Lucas Brutschy
+ *
+ */
+case class BinaryNondeterministicExpression(left : Expression, right : Expression, op : NondeterministicOperator.Value, returnType : Type) extends Expression(left.getProgramPoint()) {
+
+  override def getType() = returnType
+
+  override def hashCode() : Int = left.hashCode()
+
+  override def equals(o : Any) = o match {
+    case BinaryNondeterministicExpression(l, r, op2, ty) => left.equals(l) && right.equals(r) && op.equals(op2)
+    case _ => false
+  }
+
+  override def toString = left.toString + " " + op.toString + " " + right.toString
+
 }

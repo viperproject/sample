@@ -238,6 +238,7 @@ case class TouchClassIdentifier(name:String,typ:Type) extends Named(name) with C
 case class TouchProgramPoint(pos:Position) extends ProgramPoint {
   def getLine() = pos.line
   def getColumn() = pos.column
+  override def toString = "{"+pos.line+","+pos.column+"}"
 }
 
 case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named(name) with Type {

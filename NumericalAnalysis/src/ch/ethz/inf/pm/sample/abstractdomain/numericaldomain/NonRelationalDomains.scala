@@ -115,7 +115,8 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.*, typ) => return dom.multiply(eval(left), eval(right))
     case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => return dom.divide(eval(left), eval(right))
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => return dom.subtract(eval(left), eval(right))
-    case BinaryArithmeticExpression(left, right, ArithmeticOperator.to, typ) => return dom.nondet(eval(left),eval(right))
+    case BinaryNondeterministicExpression(left, right, NondeterministicOperator.to, typ) => return dom.nondet(eval(left),eval(right))
+    case BinaryNondeterministicExpression(left, right, NondeterministicOperator.or, typ) => dom.top() //TODO: implement it!!!
     case BinaryArithmeticExpression(left, right, op, typ) => dom.top() //TODO: implement it!!! 
     case Constant(constant, typ, pp) => try {
       return dom.evalConstant(Integer.valueOf(constant).intValue())

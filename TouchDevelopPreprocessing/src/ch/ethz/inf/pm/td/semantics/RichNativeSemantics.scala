@@ -147,8 +147,11 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
     def / (thatExpr : RichExpression) : RichExpression =
       RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator./, Number))
 
+    def or (thatExpr : RichExpression) : RichExpression =
+      RichExpression(new BinaryNondeterministicExpression(thisExpr,thatExpr,NondeterministicOperator.or,Number))
+
     def to (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr,thatExpr,ArithmeticOperator.to,Number))
+      RichExpression(new BinaryNondeterministicExpression(thisExpr,thatExpr,NondeterministicOperator.to,Number))
 
     def && (thatExpr : RichExpression) : RichExpression =
       RichExpression(new BinaryBooleanExpression(thisExpr,thatExpr,BooleanOperator.&&,Boolean))
