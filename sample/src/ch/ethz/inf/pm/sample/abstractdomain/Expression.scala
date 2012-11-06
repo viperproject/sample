@@ -443,7 +443,10 @@ object Normalizer {
     case UnitExpression(t, pp) => return None;
     
     case x : AbstractOperator => return None;
-    
+
+    case x : BinaryNondeterministicExpression => return None;
+
+
     case x : Identifier => return Some(((1, x)::Nil, 0))
 
     case x : HeapIdSetDomain[I] =>
