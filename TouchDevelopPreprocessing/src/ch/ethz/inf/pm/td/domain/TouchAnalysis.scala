@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.td.domain
 
-import ch.ethz.inf.pm.sample.abstractdomain.SemanticAnalysis
-import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
+import ch.ethz.inf.pm.sample.abstractdomain.{State, SemanticAnalysis}
+import ch.ethz.inf.pm.sample.property.{OutputCollector, DivisionByZero, SingleStatementProperty, Property}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
+import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraphExecution, Type, NativeMethodSemantics}
 import ch.ethz.inf.pm.td.semantics.Environment
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 
@@ -42,9 +42,18 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   override def reset() { Unit }
 
-  def getProperties(): Set[Property] = Set(new ApronProperty(), new SingleStatementProperty(DivisionByZero))
+  def getProperties(): Set[Property] = Set(new NoProperty())
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
 
+}
+
+/**
+ * Check the empty property
+ */
+class NoProperty extends Property {
+  def getLabel() = ""
+  def check[S <: State[S]](classT : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) {}
+  def finalizeChecking(printer : OutputCollector) {}
 }

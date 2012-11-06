@@ -178,7 +178,7 @@ object ShowGraph extends Property {
 								for (id <- ids)
 									if (idToVertix.apply(id) == cell) {
 										val label = state.getStringOfId(id);
-										new Show(new JLabel("<HTML>"+label.replace("\n","<BR>")+"<HTML>"), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
+										new Show(new JLabel("<HTML>"+label.replace(">","&gt;").replace("<","&lt;").replace("\n","<BR>")+"<HTML>"), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
 									}
 							}
 							i = i + 1;

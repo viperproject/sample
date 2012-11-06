@@ -14,6 +14,12 @@ import ch.ethz.inf.pm.td.symbols.{AbstractSymbolTable, Member}
  */
 trait ObsoleteStdLib extends AbstractSymbolTable {
 
+    // This is not obsolete but my own stuff
+    addSingleton("assert",List(
+      Member("is_true",List("Boolean"),"Nothing"),
+      Member("is_false",List("Boolean"),"Nothing")
+    ))
+
     addSingleton("colors",List(
       Member("rand","Color") // Renamed to 'random'
     ))

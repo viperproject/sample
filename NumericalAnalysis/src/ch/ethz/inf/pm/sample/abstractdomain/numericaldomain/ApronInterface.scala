@@ -227,7 +227,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       }
     }
 
-    a.toList.mkString("\n").replace(">","&gt;").replace("<","&lt;")
+    a.toList.sorted.mkString("\n")
 
   }
 
@@ -290,7 +290,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		new ApronInterface(st, domain);
 	}
 
-  def removeNondeterminism ( label:String, expr: Expression ): (Expression, List[(Identifier,BinaryNondeterministicExpression)]) = {
+  private def removeNondeterminism ( label:String, expr: Expression ): (Expression, List[(Identifier,BinaryNondeterministicExpression)]) = {
     expr match {
       case BinaryArithmeticExpression(left,right,op,typ) =>
         var (expL,varL) = removeNondeterminism(label+"L",left)
@@ -319,7 +319,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
     }
   }
 
-  def nondeterminismWrapper(expr:Expression, state:ApronInterface , someFunc: (Expression,ApronInterface) => ApronInterface) : ApronInterface = {
+  private def nondeterminismWrapper(expr:Expression, state:ApronInterface , someFunc: (Expression,ApronInterface) => ApronInterface) : ApronInterface = {
 
     // Extract all non-deterministic expressions and store them in temporary variables
     var newState = state
@@ -398,11 +398,17 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
         v.update(0, id.getName());
         expEnv=expEnv.add(v, new Array[String](0));
       }
-      val newState = state.changeEnvironmentCopy(domain, unionOfEnvironments(this.state.getEnvironment(), expEnv), false);
+      val unionEnv = unionOfEnvironments(this.state.getEnvironment(), expEnv)
+      val newState = state.changeEnvironmentCopy(domain, unionEnv, false);
 
-      nondeterminismWrapper(expr,new ApronInterface(newState,domain),(someExpr,someState) => {
-        new ApronInterface(someState.state.meetCopy(domain, this.toTcons1(someExpr, unionOfEnvironments(someState.state.getEnvironment(), expEnv))), domain)
+      val res = nondeterminismWrapper(expr,new ApronInterface(newState,domain),(someExpr,someState) => {
+        val unionEnv = unionOfEnvironments(someState.state.getEnvironment(), expEnv)
+        val constraint = this.toTcons1(someExpr, unionEnv)
+        val meetcopy = someState.state.meetCopy(domain, constraint)
+        (new ApronInterface(meetcopy, domain))
       })
+
+      res
 		}
 	}
 
@@ -559,7 +565,10 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
     case setId : HeapIdSetDomain[Identifier] =>
       if(setId.value.size!=1) throw new ApronException("Not yet supported")
       else new Texpr1VarNode(setId.value.iterator.next().getName());
-		case Constant(v, typ, p) => new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
+		case Constant(v, typ, p) =>
+      if (typ.isNumericalType())
+        new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
+      else topExpression()
 		case BinaryArithmeticExpression(left, right, op, typ) => new Texpr1BinNode(this.convertArithmeticOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
 		case UnaryArithmeticExpression(left, op, typ) => op match {
 			case ArithmeticOperator.- => new Texpr1UnNode(Texpr1UnNode.OP_NEG, this.toTexpr1Node(left))

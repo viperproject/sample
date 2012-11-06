@@ -136,7 +136,7 @@ object CFGGenerator {
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, bodyStart, Some(true))
         cfg.addEdge(condEnd, nextNode, Some(false))
-        cfg.addEdge(bodyEnd, nextNode, None)
+        cfg.addEdge(bodyEnd, condStart, None)
 
         cfg.setNode(curNode,newStatements)
         newStatements = Nil

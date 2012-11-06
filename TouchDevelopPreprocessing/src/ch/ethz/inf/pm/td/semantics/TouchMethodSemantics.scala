@@ -64,6 +64,12 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
 
         thisExpr.getType().toString() match {
 
+          case "assert" => operator match {
+            case "is_true" => Error ((parameters.head).not(), "Assertion "+parameters.head+" does not hold!")(state,pp); Some(state)
+            case "is_false" => Error (parameters.head, "Assertion not( "+parameters.head+" ) does not hold!")(state,pp); Some(state)
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
+          }
+
           // "code" refers to the methods of the current touch development script
           case "code" =>
             (for ( // THIS IS SIMPLIFIED, since it doesnt allow multiple functions of the same name but different classes
@@ -77,71 +83,11 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
 
           case "colors" => operator match {
             case "blue" => Some(New(Color,1,0,0,1)(state,pp))
-            case _ => None
+            case "rand" => Some(New(Color,1,toRichExpression(0) to toRichExpression(1),
+              toRichExpression(0) to toRichExpression(1),toRichExpression(0) to toRichExpression(1))(state,pp))
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
           }
 
-          case "media" => operator match {
-            case "create_board" =>
-              val List(width) = parameters
-              Error( width < 0 , "create_board: Parameter width ("+width+") might be negative" )(state,pp)
-              Some(New(Board,width,800)(state,pp)) // According to Windows Phone Spec.
-            case "create_full_board" =>
-              Some(New(Board,480,800)(state,pp)) // According to Windows Phone Spec.
-            case "create_picture" =>
-              val List(width,height) = parameters
-              Error( width < 0 , "create_picture: Picture width ("+width+") might be negative" )(state,pp)
-              Error( height < 0 , "create_picture: Picture height ("+height+") might be negative" )(state,pp)
-              Some(New(Picture,parameters)(state,pp))
-            case _ => None
-          }
-
-          case "wall" => operator match {
-            case "ask_number" => stateWith(state,valid(Number))
-            case "ask_boolean" => stateWith(state,valid(Boolean))
-            case _ => None
-          }
-
-          case "Picture" => operator match {
-            case "set_pixel" =>
-              val List(x,y,color) = parameters
-
-              Error (x < 0, "set_pixel: Parameter X ("+x+") might be negative")(state,pp)
-              Error (y < 0, "set_pixel: Parameter Y ("+y+") might be negative")(state,pp)
-              Error (x > state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: Parameter X ("+x+") might be greater than width")(state,pp)
-              Error (y > state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Parameter Y ("+y+") might be greater than height")(state,pp)
-
-              Some(state)
-            case "draw_text" =>
-              val List(x,y,text,font,degree,color) = parameters
-
-              Error (x < 0, "set_pixel: Parameter X ("+x+") might be negative")(state,pp)
-              Error (y < 0, "set_pixel: Parameter Y ("+y+") might be negative")(state,pp)
-              Error (x > state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: Parameter X ("+x+") might be greater than width")(state,pp)
-              Error (y > state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Parameter Y ("+y+") might be greater than height")(state,pp)
-
-              Some(state)
-            case _ => None
-          }
-
-          case "Boolean" => operator match {
-            case "and" => stateWith(state,thisExpr && parameters.head)
-            case "or" => stateWith(state,thisExpr && parameters.head)
-            case _ => None
-          }
-
-          case "Number" => operator match {
-            case "≥" => stateWith(state,thisExpr >= parameters.head)
-            case "≤" => stateWith(state,thisExpr <= parameters.head)
-            case "=" => stateWith(state,thisExpr equal parameters.head)
-            case "≠" => stateWith(state,thisExpr unequal parameters.head)
-            case ">" => stateWith(state,thisExpr > parameters.head)
-            case "<" => stateWith(state,thisExpr < parameters.head)
-            case "+" => stateWith(state,thisExpr + parameters.head)
-            case "*" => stateWith(state,thisExpr * parameters.head)
-            case "-" => stateWith(state,thisExpr - parameters.head)
-            case "/" => stateWith(state,thisExpr / parameters.head)
-            case _ => None
-          }
 
           case "invalid" => stateWith(state,operator match {
             //case "appointment" => invalid(Appointment)	                                                                    // Creates an invalid Appointment instance
@@ -209,8 +155,26 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
             case "π" => stateWith(state,toRichExpression(3.14159))
             case "random" =>
               val List(upperBound) = parameters
-              stateWith(state,toRichExpression(0) to upperBound)
-            case _ => None
+              stateWith(state,toRichExpression(0) to (upperBound - 1))
+            case "rand" =>
+              val List(upperBound) = parameters
+              stateWith(state,toRichExpression(0) to (upperBound - 1))
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
+          }
+
+          case "media" => operator match {
+            case "create_board" =>
+              val List(width) = parameters
+              Error( width < 0 , "create_board: Parameter width ("+width+") might be negative" )(state,pp)
+              Some(New(Board,width,800)(state,pp)) // According to Windows Phone Spec.
+            case "create_full_board" =>
+              Some(New(Board,480,800)(state,pp)) // According to Windows Phone Spec.
+            case "create_picture" =>
+              val List(width,height) = parameters
+              Error( width < 0 , "create_picture: Picture width ("+width+") might be negative" )(state,pp)
+              Error( height < 0 , "create_picture: Picture height ("+height+") might be negative" )(state,pp)
+              Some(New(Picture,parameters)(state,pp))
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
           }
 
           case "senses" => operator match {
@@ -222,15 +186,68 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
 
             case "motion" =>
               Error((RichExpression(Environment.hasAccelerometer)
-                  && RichExpression(Environment.hasCompass)
-                  && RichExpression(Environment.hasGyroscope)).not(),
+                && RichExpression(Environment.hasCompass)
+                && RichExpression(Environment.hasGyroscope)).not(),
                 "The mobile phone might not have the correct capabilities for this!")(state,pp)
               None
 
-            case _ => None
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
           }
 
-          case _ => None
+          case "wall" => operator match {
+            case "ask_number" => stateWith(state,valid(Number))
+            case "ask_boolean" => stateWith(state,valid(Boolean))
+            case "ask_string" => stateWith(state,valid(String))
+            case "clear" => Some(state)
+            case "create_text_box" => stateWith(state,valid(Number.top())) // TODO: Return some text box
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
+          }
+
+          case "Boolean" => operator match {
+            case "and" => stateWith(state,thisExpr && parameters.head)
+            case "or" => stateWith(state,thisExpr && parameters.head)
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
+          }
+
+          case "Number" => operator match {
+            case "≥" => stateWith(state,thisExpr >= parameters.head)
+            case "≤" => stateWith(state,thisExpr <= parameters.head)
+            case "=" => stateWith(state,thisExpr equal parameters.head)
+            case "≠" => stateWith(state,thisExpr unequal parameters.head)
+            case ">" => stateWith(state,thisExpr > parameters.head)
+            case "<" => stateWith(state,thisExpr < parameters.head)
+            case "+" => stateWith(state,thisExpr + parameters.head)
+            case "*" => stateWith(state,thisExpr * parameters.head)
+            case "-" => stateWith(state,thisExpr - parameters.head)
+            case "/" => stateWith(state,thisExpr / parameters.head)
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
+          }
+
+          case "Picture" => operator match {
+            case "set_pixel" =>
+              val List(x,y,color) = parameters
+
+              Error (x < 0, "set_pixel: Parameter X ("+x+") might be negative")(state,pp)
+              Error (y < 0, "set_pixel: Parameter Y ("+y+") might be negative")(state,pp)
+              Error (x >= state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: Parameter X ("+x+") might be greater than width")(state,pp)
+              Error (y >= state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Parameter Y ("+y+") might be greater than height")(state,pp)
+
+              Some(state)
+            case "draw_text" =>
+              val List(x,y,text,font,degree,color) = parameters
+
+              Error (x < 0, "set_pixel: Parameter X ("+x+") might be negative")(state,pp)
+              Error (y < 0, "set_pixel: Parameter Y ("+y+") might be negative")(state,pp)
+              Error (x >= state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: Parameter X ("+x+") might be greater than width")(state,pp)
+              Error (y >= state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Parameter Y ("+y+") might be greater than height")(state,pp)
+
+              Some(state)
+            case "save_to_library" => Some(Top(String)(state,pp)) // TODO: Update environment, we have a picture
+            case "update_on_wall" => Some(state) // TODO: Update environment, store reference?
+            case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
+          }
+
+          case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
 
         }
 

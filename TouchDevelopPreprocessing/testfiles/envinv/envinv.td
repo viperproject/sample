@@ -1,18 +1,18 @@
 action main() {
 
-    $a := wall->ask_number(""); // returns some valid number
-    $x := invalid->number; // returns an invalid number
+    $a := wall->ask_number("");
+    $x := invalid->number;
 
-    $y := 5 + $x; // This should be an error
-    $b := $a + 1; // This should work
+    $y := 5 + $x; // Error: x might be invalid
+    $b := $a + 1;
 
     if ($a->is_invalid) then {
         $a := 5;
     }
 
-    $b := $a + 1; // This should work
+    $b := $a + 1;
 
-    $c := senses->motion; // This should be an error
+    $c := senses->motion; // Error: might not have the correct capabilities for this
 
     if (senses->has_motion) then {
         $c := senses->motion; // This should work
