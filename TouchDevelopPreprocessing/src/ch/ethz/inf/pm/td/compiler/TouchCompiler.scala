@@ -28,19 +28,19 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       if (path.startsWith("http")) (Source.fromURL(path),Scripts.pubIDfromURL(path))
       else (Source.fromFile(path),Scripts.pubIDfromFilename(path))
     compileString(source.getLines().mkString("\n"),pubID)
-    parsedScripts
   }
 
   def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
     val script = LoopRewriter(ScriptParser(scriptStr))
     Typer.processScript(script)
-    parsedScripts = CFGGenerator.process(script,pubID) :: parsedScripts
+    var cfgs = List(CFGGenerator.process(script,pubID))
+    parsedScripts = cfgs ::: parsedScripts
     parsedIDs = parsedIDs + pubID
     val libIDs = discoverRequiredLibraries(script)
     for (id <- libIDs; if (!parsedIDs.contains(id))) {
-       compileFile(Scripts.codeURLfromPubID(id))
+       cfgs = cfgs ::: compileFile(Scripts.codeURLfromPubID(id))
     }
-    parsedScripts
+    cfgs
   }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
