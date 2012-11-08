@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import scala.Some
 import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCompiler}
+import ch.ethz.inf.pm.td.symbols.Member
 
 
 case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNativeSemantics {
@@ -82,9 +83,143 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
             }).head
 
           case "colors" => operator match {
-            case "blue" => Some(New(Color,1,0,0,1)(state,pp))
-            case "rand" => Some(New(Color,1,toRichExpression(0) to toRichExpression(1),
-              toRichExpression(0) to toRichExpression(1),toRichExpression(0) to toRichExpression(1))(state,pp))
+
+            // Gets the accent color in the current theme
+            case "accent" =>
+              Some(New(Color,1,0 to 1,0 to 1,0 to 1)(state,pp))
+
+            // Gets the background color in the current theme
+            case "background" =>
+              Some(New(Color,1,0 to 1,0 to 1,0 to 1)(state,pp))
+
+            // Gets the color that has the ARGB value of #FF000000
+            case "black" =>
+              Some(New(Color,1,0,0,0)(state,pp))
+
+            // Gets the color that has the ARGB value of #FF0000FF
+            case "blue" =>
+              Some(New(Color,1,0,0,1)(state,pp))
+
+            // Gets the color that has the ARGB value of #FFA52A2A
+            case "brown" =>
+              Some(New(Color,1,0.647, 0.165, 0.165)(state,pp)) // TODO: Precision?
+
+            // Gets the chrome color in the current theme (control background)
+            case "chrome" =>
+              Some(New(Color,1,0 to 1,0 to 1,0 to 1)(state,pp))
+
+            // Gets the color that has the ARGB value of #FF00FFFF
+            case "cyan" =>
+              Some(New(Color,1,0,1,1)(state,pp))
+
+            // Gets the color that has the ARGB value of #FFA9A9A9
+            case "dark_gray" =>
+              Some(New(Color,1,0.663,0.663,0.663)(state,pp)) // TODO: Precision?
+
+            // Gets the foreground color in the current theme
+            case "foreground" =>
+              Some(New(Color,1,0 to 1,0 to 1,0 to 1)(state,pp))
+
+            // Creates a color from the alpha, hue, saturation, brightness channels (0.0-1.0 range)
+            case "from_ahsb" =>
+              val List(a,h,s,b) = parameters
+              CheckInRangeInclusive(a,0,1,"from_ahsb","alpha")(state,pp)
+              CheckInRangeInclusive(h,0,1,"from_ahsb","hue")(state,pp)
+              CheckInRangeInclusive(s,0,1,"from_ahsb","saturation")(state,pp)
+              CheckInRangeInclusive(b,0,1,"from_ahsb","brightness")(state,pp)
+              // TODO: COMPUTE RGB
+              None
+
+            // Creates a color from the alpha, red, green, blue channels (0.0-1.0 range)
+            case "from_argb" =>
+              val List(a,r,g,b) = parameters
+              CheckInRangeInclusive(a,0,1,"from_argb","alpha")(state,pp)
+              CheckInRangeInclusive(r,0,1,"from_argb","red")(state,pp)
+              CheckInRangeInclusive(g,0,1,"from_argb","green")(state,pp)
+              CheckInRangeInclusive(b,0,1,"from_argb","blue")(state,pp)
+              Some(New(Color,a,r,g,b)(state,pp))
+
+            // Creates a color from the hue, saturation, brightness channels (0.0-1.0 range)
+            case "from_hsb" =>
+              val List(h,s,b) = parameters
+              CheckInRangeInclusive(h,0,1,"from_hsb","hue")(state,pp)
+              CheckInRangeInclusive(s,0,1,"from_hsb","saturation")(state,pp)
+              CheckInRangeInclusive(b,0,1,"from_hsb","brightness")(state,pp)
+              // TODO: COMPUTE RGB
+              None
+
+            // Creates a color from the red, green, blue channels (0.0-1.0 range)
+            case "from_rgb" =>
+              val List(r,g,b) = parameters
+              CheckInRangeInclusive(r,0,1,"from_rgb","red")(state,pp)
+              CheckInRangeInclusive(g,0,1,"from_rgb","green")(state,pp)
+              CheckInRangeInclusive(b,0,1,"from_rgb","blue")(state,pp)
+              Some(New(Color,1,r,g,b)(state,pp))
+
+            case "gray" => // Gets the color that has the ARGB value of #FF808080
+              Some(New(Color,1,0.502, 0.502, 0.502)(state,pp)) // TODO: Precision?
+
+            // Gets the color that has the ARGB value of #FF008000
+            case "green" =>
+              Some(New(Color,1,0, 0.502, 0)(state,pp)) // TODO: Precision?
+
+            // Indicates if the user is using a light theme in his phone
+            case "is_light_theme" =>
+              stateWith(state,Environment.isLightTheme)
+
+            //Gets the color that has the ARGB value of #FFD3D3D3
+            case "light_gray" =>
+              Some(New(Color, 1, 0.827, 0.827, 0.827)(state,pp)) // TODO: Precision?
+
+            // Computes an intermediate color
+            case "linear_gradient" =>
+              val List(colA,colB,frac) = parameters
+              CheckInRangeInclusive(frac,0,1,"linear_gradient","fraction")(state,pp)
+              // TODO: COMPUTE RGB
+              None
+
+            //Gets the color that has the ARGB value of #FFFF00FF
+            case "magenta" =>
+              Some(New(Color,1,1,0,1)(state,pp))
+
+            // Gets the color that has the ARGB value of #FFFFA500
+            case "orange" =>
+              Some(New(Color,1,1,0.647,0)(state,pp)) // TODO: Precision?
+
+            // Gets the color that has the ARGB value of #FF800080
+            case "purple" =>
+              Some(New(Color,1,0.502,0,0.502)(state,pp)) // TODO: Precision?
+
+            // Picks a random color                                                                       -
+            case "random" =>
+              Some(New(Color,1,0 to 1,0 to 1,0 to 1)(state,pp))
+
+            // Picks a random color (OBSOLETE)
+            case "rand" =>
+              Some(New(Color,1,0 to 1,0 to 1,0 to 1)(state,pp))
+
+            // Gets the color that has the ARGB value of #FFFF0000
+            case "red" =>
+              Some(New(Color,1,1,0,0)(state,pp))
+
+            // Gets the color that has the ARGB value of #FF704214
+            case "sepia" =>
+              Some(New(Color,1,0.439,0.259,0.078)(state,pp)) // TODO: Precision?
+
+            // Gets the subtle color in the current theme (light gray)
+            case "subtle" =>
+              Some(New(Color,1,0 to 1,0 to 1,0 to 1)(state,pp))
+
+            // Gets the color that has the ARGB value of #00FFFFFF
+            case "transparent" =>
+              Some(New(Color,0,1,1,1)(state,pp))
+
+            // Gets the color that has the ARGB value of #FFFFFFFF
+            case "white" => Some(New(Color,1,1,1,1)(state,pp))
+
+            // Gets the color that has the ARGB value of #FFFFFF00
+            case "yellow" => Some(New(Color,1,1,1,0)(state,pp))
+
             case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
           }
 
@@ -189,7 +324,7 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
                 && RichExpression(Environment.hasCompass)
                 && RichExpression(Environment.hasGyroscope)).not(),
                 "The mobile phone might not have the correct capabilities for this!")(state,pp)
-              None
+              Some(state)
 
             case _ => println(thisExpr.getType().toString()+"."+operator+" not implemented, topping at "+pp); None
           }
@@ -236,10 +371,10 @@ case class TouchNativeMethodSemantics(compiler:TouchCompiler) extends RichNative
             case "draw_text" =>
               val List(x,y,text,font,degree,color) = parameters
 
-              Error (x < 0, "set_pixel: Parameter X ("+x+") might be negative")(state,pp)
-              Error (y < 0, "set_pixel: Parameter Y ("+y+") might be negative")(state,pp)
-              Error (x >= state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "set_pixel: Parameter X ("+x+") might be greater than width")(state,pp)
-              Error (y >= state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "set_pixel: Parameter Y ("+y+") might be greater than height")(state,pp)
+              Error (x < 0, "draw_text: Parameter X ("+x+") might be negative")(state,pp)
+              Error (y < 0, "draw_text: Parameter Y ("+y+") might be negative")(state,pp)
+              Error (x >= state.getFieldValue(List(thisExpr),"width",Number).getExpression(), "draw_text: Parameter X ("+x+") might be greater than width")(state,pp)
+              Error (y >= state.getFieldValue(List(thisExpr),"height",Number).getExpression(), "draw_text: Parameter Y ("+y+") might be greater than height")(state,pp)
 
               Some(state)
             case "save_to_library" => Some(Top(String)(state,pp)) // TODO: Update environment, we have a picture

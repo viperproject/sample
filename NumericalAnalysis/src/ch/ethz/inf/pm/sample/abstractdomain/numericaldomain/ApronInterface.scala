@@ -334,6 +334,10 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
           newState = newState.
             createVariable(id,ndExpr.getType()).
             assume(BinaryArithmeticExpression(id,ndExpr.left,ArithmeticOperator.>=,ndExpr.getType())).
+            // Instead of a <= b use a < b + 1. This only works for integers. TODO: Make sound for floating point using epsilon
+            //assume(BinaryArithmeticExpression(id,
+              //BinaryArithmeticExpression(ndExpr.right,Constant("1",ndExpr.right.getType(),null),ArithmeticOperator.+,ndExpr.right.getType()),
+              //ArithmeticOperator.<,ndExpr.getType()))
             assume(BinaryArithmeticExpression(id,ndExpr.right,ArithmeticOperator.<=,ndExpr.getType()))
       }
     }
@@ -378,6 +382,11 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
   }
 
 	override def assume(expr : Expression) : ApronInterface = expr match {
+    // Boolean variables
+    case x: Identifier =>
+      assume(BinaryArithmeticExpression(x,Constant("0",x.getType(),x.getProgramPoint()),ArithmeticOperator.!=,null))
+    case NegatedBooleanExpression(x:Identifier) =>
+      assume(BinaryArithmeticExpression(x,Constant("0",x.getType(),x.getProgramPoint()),ArithmeticOperator.==,null))
     case BinaryBooleanExpression(left, right, op, typ) => op match {
 			case BooleanOperator.&& => val l = assume(left); l.glb(l, assume(right))
 			case BooleanOperator.|| => val l = assume(left); l.lub(l, assume(right))
@@ -470,21 +479,27 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		if(left.state.isTop(domain) || right.state.isTop(domain)) return top();
 		if(left.state.isBottom(domain)) return right;
 		if(right.state.isBottom(domain)) return left;
+
 //    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
 //    val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
 //    val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
 //    var st = new Abstract1(domain, newLeft.state);
 //		st = st.widening(domain, newRight.state);
-    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
-    val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
-    val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
-    val commonVars = left.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(right.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
-    val forgotLState = newLeft.state.forgetCopy(domain, commonVars.toArray[String], false)
-    val forgotRState = newRight.state.forgetCopy(domain, commonVars.toArray[String], false)
-    val finalLeft = forgotLState.meetCopy(domain, newRight.state)
-    val finalRight = forgotRState.meetCopy(domain, newLeft.state)
-    val st = finalLeft.widening(domain, finalRight)
-		new ApronInterface(st, domain);
+
+    // TODO: DOES NOT WORK DUE TO APRON BUG
+//    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
+//    val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
+//    val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
+//    val commonVars = left.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(right.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
+//    val forgotLState = newLeft.state.forgetCopy(domain, commonVars.toArray[String], false)
+//    val forgotRState = newRight.state.forgetCopy(domain, commonVars.toArray[String], false)
+//    val finalLeft = forgotLState.meetCopy(domain, newRight.state)
+//    val finalRight = forgotRState.meetCopy(domain, newLeft.state)
+//    val st = finalLeft.widening(domain, finalRight)
+
+    val st = left.state.widening(domain, right.state)
+
+    new ApronInterface(st, domain);
 	}
 	
 	override def lessEqual(r : ApronInterface) : Boolean = {
@@ -599,12 +614,18 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 				case ArithmeticOperator.<= => localleft = right; localright = left; localop = ArithmeticOperator.>=; 
 				case ArithmeticOperator.< => localleft = right; localright = left; localop = ArithmeticOperator.>;
 			}
-			val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(localleft, localright, ArithmeticOperator.-, null));
+			val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(localleft, localright, ArithmeticOperator.-, localleft.getType()));
 			localop match {
 				case ArithmeticOperator.>= => return new Tcons1(env, Tcons1.SUPEQ, expr1)
 				case ArithmeticOperator.== => return new Tcons1(env, Tcons1.EQ, expr1)
 				case ArithmeticOperator.!= => return new Tcons1(env, Tcons1.DISEQ, expr1)
-				case ArithmeticOperator.> => return new Tcons1(env, Tcons1.SUP, expr1)
+				case ArithmeticOperator.> =>
+          // TODO: FOR OCTAGONS THERE IS A BUG. THIS IS THE WORKAROUND
+          // Replace a > 0 by a - 1 >= 0. Only works for integers
+          val sExpr1 = new BinaryArithmeticExpression(localleft, localright, ArithmeticOperator.-, localleft.getType())
+          val sExpr2 = new BinaryArithmeticExpression(sExpr1, Constant("1",sExpr1.getType(),sExpr1.getProgramPoint()), ArithmeticOperator.-, sExpr1.getType())
+          return new Tcons1(env, Tcons1.SUPEQ, this.toTexpr1Node(sExpr2))
+          // return new Tcons1(env, Tcons1.SUP, expr1)
 			}
 		case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
 			return toTcons1(BinaryArithmeticExpression(left, right, negateOperator(op), typ), env)

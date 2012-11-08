@@ -23,7 +23,7 @@ class TouchAnalysisWithApron[D <: NumericalDomain[D]] extends TouchAnalysis[D] {
   /** Initialize with some arbitrary numerical domain. Extend this to APRON later */
   override def setParameter(label: String, value: Any) { label match {
     case "Domain" => value match {
-      case "ApronInterval" => domain = new ApronInterface(new Abstract1(new Box(), new apron.Environment()), new Box()).asInstanceOf[D]
+      case "ApronIntervals" => domain = new ApronInterface(new Abstract1(new Box(), new apron.Environment()), new Box()).asInstanceOf[D]
       case "ApronOctagons" => domain = new ApronInterface(new Abstract1(new Octagon(), new apron.Environment()), new Octagon()).asInstanceOf[D]
       case "ApronPolka" => domain = new ApronInterface(new Abstract1(new Polka(false), new apron.Environment()), new Polka(false)).asInstanceOf[D]
       case _ => super.setParameter(label,value)

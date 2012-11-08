@@ -17,12 +17,14 @@ object Environment {
   val Boolean = TouchType("Boolean")
   val Number = TouchType("Number")
 
-  val hasAccelerometer = new EnvironmentIdentifier("Accelerometer",Boolean)
-  val hasCompass = new EnvironmentIdentifier("Compass",Boolean)
-  val hasFrontCamera = new EnvironmentIdentifier("FrontCamera",Boolean)
-  val hasGyroscope = new EnvironmentIdentifier("Gyroscope",Boolean)
+  val hasAccelerometer = new EnvironmentIdentifier("hasAccelerometer",Boolean)
+  val hasCompass = new EnvironmentIdentifier("hasCompass",Boolean)
+  val hasFrontCamera = new EnvironmentIdentifier("hasFrontCamera",Boolean)
+  val hasGyroscope = new EnvironmentIdentifier("hasGyroscope",Boolean)
+  val isLightTheme = new EnvironmentIdentifier("isLightTheme",Boolean)
+  val noSongsInLibrary = new EnvironmentIdentifier("noSongsInLibrary",Number)
 
-  val envs = List(hasAccelerometer,hasCompass,hasFrontCamera,hasGyroscope)
+  val envs = List(hasAccelerometer,hasCompass,hasFrontCamera,hasGyroscope,isLightTheme,noSongsInLibrary)
 
 
 }

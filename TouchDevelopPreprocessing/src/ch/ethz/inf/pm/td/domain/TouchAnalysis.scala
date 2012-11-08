@@ -42,7 +42,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   override def reset() { Unit }
 
-  def getProperties(): Set[Property] = Set(new NoProperty())
+  def getProperties(): Set[Property] = Set(new ApronProperty().asInstanceOf[Property], new NoProperty())
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 

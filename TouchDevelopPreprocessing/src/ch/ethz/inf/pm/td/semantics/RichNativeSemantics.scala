@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.compiler.{TouchException, TouchType}
+import collection.immutable.Range.Inclusive
 
 /**
  *
@@ -62,6 +63,11 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
     }
   }
 
+  def CheckInRangeInclusive[S <: State[S]](expr:RichExpression, low:RichExpression, high:RichExpression, method:String, parameter:String)(implicit s:S, pp:ProgramPoint) {
+    Error(expr < low,method+": Parameter "+parameter+" ("+expr+") may be less than the lowest allowed value ("+low+")")(s,pp)
+    Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be less than the highest allowed value "+high+")")(s,pp)
+  }
+
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
@@ -93,6 +99,9 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
     else if (numOfExpressions < 1 ) toRichExpression(0).to(toRichExpression(1000)) // TODO TODO TODO TODO
     else RichExpression(value.setOfExpressions.head)
   }
+
+  implicit def toRichExpression(value:Inclusive) : RichExpression =
+    toRichExpression(value.head) to toRichExpression(value.last)
 
   implicit def toRichExpression(value:Int) : RichExpression =
     RichExpression(new Constant(value.toString,Number,null))
