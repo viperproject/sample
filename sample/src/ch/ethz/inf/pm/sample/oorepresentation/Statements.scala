@@ -213,6 +213,16 @@ case class Variable(programpoint : ProgramPoint, val id : Identifier) extends St
     override def toSingleLineString() : String = toString;
 }
 
+/**
+ * @author Daniel Schweizer
+ */
+case class OldVariable(val variable : Variable) extends Variable(variable.programpoint,
+  new VariableIdentifier("old_"+variable.id.getName(), variable.id.getType(), variable.id.getProgramPoint())) {
+
+  //override def getName() : String = "old_" + id.toString;
+
+}
+
 /** 
  * This class represents the access of a field of the form
  * <code>variable.field</code> where <code>typ</code> is the

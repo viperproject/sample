@@ -1,12 +1,17 @@
 package ch.ethz.inf.pm.td.compiler
 
-import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, MethodDeclaration, Type, ClassDefinition}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import io.Source
 import ch.ethz.inf.pm.td.parser.{Declaration, LibraryDefinition, Script, ScriptParser}
 import ch.ethz.inf.pm.td.symbols.Typer
 import ch.ethz.inf.pm.td.webapi.Scripts
 import ch.ethz.inf.pm.td.transform.LoopRewriter
 import ch.ethz.inf.pm.td.semantics.TouchNativeMethodSemantics
+import ch.ethz.inf.pm.td.parser.LibraryDefinition
+import ch.ethz.inf.pm.td.semantics.TouchNativeMethodSemantics
+import scala.Some
+import ch.ethz.inf.pm.td.parser.Script
+import ch.ethz.inf.pm.td.compiler.TouchException
 
 /**
  *
@@ -19,6 +24,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var parsedIDs : Set[String] = Set[String]()
   var parsedScripts : List[ClassDefinition] = Nil
+  var augmented : Boolean = false;
 
   /**
    Takes a path OR a URL
@@ -27,7 +33,55 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val (source,pubID) =
       if (path.startsWith("http")) (Source.fromURL(path),Scripts.pubIDfromURL(path))
       else (Source.fromFile(path),Scripts.pubIDfromFilename(path))
-    compileString(source.getLines().mkString("\n"),pubID)
+    if (!augmented) compileString(source.getLines().mkString("\n"),pubID);
+    else augment(compileString(source.getLines().mkString("\n"),pubID));
+  }
+
+  /**
+   * Daniel Schweizer
+   * Date: 16/Nov/12
+   */
+  private def augment(l: List[ClassDefinition]) = {
+    for (c <- l) {
+      for (m <- c.methods) {
+        val cfg = m.body
+        var i = 0
+        /*for (edge <- cfg.edges)  {
+          println(edge.toString()+"\n\n")
+        }  */
+        for (node <- cfg.nodes) {
+          if (cfg.blockInLoop(i)) {
+            println("node size before: "+node.size)
+            println("Block in loop: "+i+"\n"+node+"\n\n")
+            var oldValueAssignments: List[Statement] = Nil
+            for (statement <- node) {
+              statement match {
+                case a: Assignment => {
+                  println("Assignment found: "+a+"\n")
+                  a.left match {
+                    case v: Variable => {
+                      println("Variable found: "+v+"\n")
+                      oldValueAssignments = oldValueAssignments.::(new Assignment(a.programpoint, new OldVariable(v), v))
+                    }
+                    case f: FieldAccess => // todo
+                    case _ =>
+                  }
+                }
+                case _ =>
+              }
+            }
+            println("oldValueAssignments size: "+oldValueAssignments.size)
+            val newnode = node.:::(oldValueAssignments)
+            cfg.setNode(i, newnode)
+            println("node size after: "+node.size)
+          }
+
+          //else println("Block NOT in loop: "+i+"\n"+node+"\n\n")
+          i += 1
+        }
+      }
+    }
+    l
   }
 
   def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
