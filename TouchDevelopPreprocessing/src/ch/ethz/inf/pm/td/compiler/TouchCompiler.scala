@@ -24,7 +24,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var parsedIDs : Set[String] = Set[String]()
   var parsedScripts : List[ClassDefinition] = Nil
-  var augmented : Boolean = false;
+  var augmented : Boolean = true;
 
   /**
    Takes a path OR a URL
@@ -63,7 +63,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
                       println("Variable found: "+v+"\n")
                       oldValueAssignments = oldValueAssignments.::(new Assignment(a.programpoint, new OldVariable(v), v))
                     }
-                    case f: FieldAccess => // todo
+                    case f: FieldAccess => // nothing to do here (?)
+                    case m: MethodCall => // todo
                     case _ =>
                   }
                 }
@@ -75,7 +76,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
             cfg.setNode(i, newnode)
             println("node size after: "+node.size)
           }
-
           //else println("Block NOT in loop: "+i+"\n"+node+"\n\n")
           i += 1
         }
