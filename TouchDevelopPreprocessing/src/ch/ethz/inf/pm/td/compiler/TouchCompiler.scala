@@ -24,7 +24,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var parsedIDs : Set[String] = Set[String]()
   var parsedScripts : List[ClassDefinition] = Nil
-  var augmented : Boolean = true;
+  var augmented : Boolean = false;
 
   /**
    Takes a path OR a URL
