@@ -670,7 +670,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
   var domain : Manager=null;
   def getLabel() : String = "Apron numerical analysis";
-  def parameters() : List[(String, Any)] = List(("Domain", List("Interval", "PPL", "Octagons", "Polka")));
+  def parameters() : List[(String, Any)] = List(("Domain", List("Interval", "PPL", "Octagons", "Polka", "Linear equalities")));
   def setParameter(label : String, value : Any) = label match {
     case "Domain" => value match {
       case "Interval" => domain = new Box();
@@ -678,6 +678,7 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
       case "PPL" => domain = new Polka(false) //new PplPoly(false);
       case "Octagons" => domain = new Octagon();
       case "Polka" => domain = new Polka(false);
+      case "Linear equalities" => domain = new PolkaEq();
     }
   }
   def reset() : Unit = Unit;
