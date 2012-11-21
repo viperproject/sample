@@ -24,7 +24,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var parsedIDs : Set[String] = Set[String]()
   var parsedScripts : List[ClassDefinition] = Nil
-  var augmented : Boolean = false;
 
   /**
    Takes a path OR a URL
@@ -33,55 +32,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val (source,pubID) =
       if (path.startsWith("http")) (Source.fromURL(path),Scripts.pubIDfromURL(path))
       else (Source.fromFile(path),Scripts.pubIDfromFilename(path))
-    if (!augmented) compileString(source.getLines().mkString("\n"),pubID);
-    else augment(compileString(source.getLines().mkString("\n"),pubID));
-  }
-
-  /**
-   * Daniel Schweizer
-   * Date: 16/Nov/12
-   */
-  private def augment(l: List[ClassDefinition]) = {
-    for (c <- l) {
-      for (m <- c.methods) {
-        val cfg = m.body
-        var i = 0
-        /*for (edge <- cfg.edges)  {
-          println(edge.toString()+"\n\n")
-        }  */
-        for (node <- cfg.nodes) {
-          if (cfg.blockInLoop(i)) {
-            println("node size before: "+node.size)
-            println("Block in loop: "+i+"\n"+node+"\n\n")
-            var oldValueAssignments: List[Statement] = Nil
-            for (statement <- node) {
-              statement match {
-                case a: Assignment => {
-                  println("Assignment found: "+a+"\n")
-                  a.left match {
-                    case v: Variable => {
-                      println("Variable found: "+v+"\n")
-                      oldValueAssignments = oldValueAssignments.::(new Assignment(a.programpoint, new OldVariable(v), v))
-                    }
-                    case f: FieldAccess => // nothing to do here (?)
-                    case m: MethodCall => // todo
-                    case _ =>
-                  }
-                }
-                case _ =>
-              }
-            }
-            println("oldValueAssignments size: "+oldValueAssignments.size)
-            val newnode = node.:::(oldValueAssignments)
-            cfg.setNode(i, newnode)
-            println("node size after: "+node.size)
-          }
-          //else println("Block NOT in loop: "+i+"\n"+node+"\n\n")
-          i += 1
-        }
-      }
-    }
-    l
+    compileString(source.getLines().mkString("\n"),pubID)
   }
 
   def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {

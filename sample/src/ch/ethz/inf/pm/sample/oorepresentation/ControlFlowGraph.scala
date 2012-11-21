@@ -135,28 +135,6 @@ trait WeightedGraph[T, W] {
     return false;
   }
 
-  /**
-   * Daniel Schweizer
-   * Date: 16/Nov/12
-   */
-  def blockInLoop(index : Int) : Boolean = {
-    if(entryEdges(index).size <= 0) return false;
-    var prevEdges : Set[(Int, Int, Option[W])] = this.exitEdges(index);
-    var nextEdges : Set[(Int, Int, Option[W])] = prevEdges;
-
-    while(nextEdges.size>0) {
-      prevEdges=nextEdges;
-      nextEdges=Set.empty;
-      for((i1, i2, w) <- prevEdges) {
-        if(i1!=i2)
-          nextEdges=nextEdges++this.exitEdges(i2);
-        if(i2==index)
-          return true;
-      }
-    }
-    return false;
-  }
-
   override def toString() : String = {
     var result : String = ""
     var i : Int = 0;
