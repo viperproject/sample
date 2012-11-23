@@ -78,11 +78,11 @@ case object PublicModifier extends Modifier
  * @version 0.1
  */
 class MethodDeclaration(
-                      programpoint : ProgramPoint, 
-                      ownerType : Type,
-                      modifiers : List[Modifier],
-                      val name : MethodIdentifier, 
-                      parametricType : List[Type], 
+                      val programpoint : ProgramPoint,
+                      val ownerType : Type,
+                      val modifiers : List[Modifier],
+                      val name : MethodIdentifier,
+                      val parametricType : List[Type],
                       val arguments : List[List[VariableDeclaration]],
                       val returnType : Type,
                       val body : ControlFlowGraph,
@@ -153,12 +153,12 @@ class MethodDeclaration(
  * @version 0.1
  */
 class FieldDeclaration(
-                      programpoint : ProgramPoint, 
+                      programpoint : ProgramPoint,
                       modifiers : List[Modifier],
                       val name : Variable, 
-                      typ : Type,
+                      typ_ : Type,
                       right : Statement
-                      ) extends VariableDeclaration(programpoint, name, typ, right) with ClassElements {
+                      ) extends VariableDeclaration(programpoint, name, typ_, right) with ClassElements {
   
   override def toString() : String = "field "+ToStringUtilities.toStringIfNotNull(typ)+name.toString+ToStringUtilities.assignedIfNotNull(right);
   

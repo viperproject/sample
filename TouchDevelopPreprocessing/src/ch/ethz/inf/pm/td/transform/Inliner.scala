@@ -19,7 +19,7 @@ object Inliner {
   def inline(scr:Script):Script = {
     for(decl <- scr.declarations) {
       decl match {
-        case a@ActionDefinition(ident,_,_,_) => callableFunctions = callableFunctions + (ident -> a)
+        case a@ActionDefinition(ident,_,_,_,_) => callableFunctions = callableFunctions + (ident -> a)
         case _ => ()
       }
     }
@@ -28,7 +28,7 @@ object Inliner {
 
   def inline(decl:Declaration):Declaration = {
     decl match {
-      case a@ActionDefinition(ident,in,out,body) => a.copy(body = body flatMap (inline _))
+      case a@ActionDefinition(ident,in,out,body,_) => a.copy(body = body flatMap (inline _))
       case x => x
     }
   }
@@ -74,7 +74,7 @@ object Inliner {
         // }
         counter += 1
         callableFunctions.get(prop) match {
-          case Some(ActionDefinition(_,in,out,body)) =>
+          case Some(ActionDefinition(_,in,out,body,_)) =>
             if (out.length > 1) throw TouchException("Inliner does not support multiple return values for now")
 
             // First all renaming... inline might change counter

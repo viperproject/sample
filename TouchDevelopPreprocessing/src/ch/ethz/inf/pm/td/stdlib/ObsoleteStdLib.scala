@@ -14,14 +14,21 @@ import ch.ethz.inf.pm.td.symbols.{AbstractSymbolTable, Member}
  */
 trait ObsoleteStdLib extends AbstractSymbolTable {
 
-    // This is not obsolete but my own stuff
-    addSingleton("assert",List(
+
+    addSingleton("assert",List( // This is not obsolete but my own stuff
       Member("is_true",List("Boolean"),"Nothing"),
       Member("is_false",List("Boolean"),"Nothing")
     ))
-
+    addSingleton("bazaar",List(
+      Member("open","Nothing"), // Launches the bazaar.
+      Member("open_leaderboard","Nothing"), // Opens the leaderboard for the current script
+      Member("open_review","Nothing") // Opens the review page for the current script
+    ))
     addSingleton("colors",List(
       Member("rand","Color") // Renamed to 'random'
+    ))
+    addSingleton("media",List(
+      Member("create_full_board","Board")	//Creates a new game board that will take the entire screen when posted.
     ))
     addSingleton("math",List(
       Member("create_number_map","Number_Map"), // Use Collections->create number map instead.
@@ -31,10 +38,11 @@ trait ObsoleteStdLib extends AbstractSymbolTable {
     addSingleton("social",List(
       Member("contacts",List("String"), "Contact_Collection") // Retrieves the list of contacts
     ))
-    addSingleton("bazaar",List(
-      Member("open","Nothing"), // Launches the bazaar.
-      Member("open_leaderboard","Nothing"), // Opens the leaderboard for the current script
-      Member("open_review","Nothing") // Opens the review page for the current script
+    addSingleton("social",List(
+      Member("has_accelerometer","Boolean"),	//Indicates whether accelerometer is present on device
+      Member("has_compass","Boolean"),	//Indicates if the compass is available on the device
+      Member("has_front_camera","Boolean"),	//Indicates if this device has a front facing camera
+      Member("has_motion","Boolean")	//Indicates if the motion can be computed on the device. Motion requires accelerometer, compass and gyroscope.
     ))
     addSingleton("web",List(
       Member("link_deep_zoom",List("String"), "Link"), // Creates a multi-scale image from an image url

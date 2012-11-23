@@ -22,15 +22,28 @@ import collection.immutable.Range.Inclusive
  * 
  */
 
-trait RichNativeSemantics  extends NativeMethodSemantics {
+object ErrorReporter {
 
   var seenErrors = Set[(String,ProgramPoint)]()
 
-  val Boolean = TouchType("Boolean",false)
-  val Number = TouchType("Number",false)
+  def hasError(message:String,pp:ProgramPoint):Boolean = seenErrors.contains((message,pp))
 
-  def stateWith[S <: State[S]](s:S,e:Expression):Option[S] = {
-    Some(s.setExpression(toRichExpression(e)))
+  def reportError(message:String,pp:ProgramPoint) {
+    println(message+" at line "+pp.getLine()+", column "+pp.getColumn())
+    seenErrors += ((message,pp))
+  }
+
+}
+
+
+trait RichNativeSemantics extends NativeMethodSemantics {
+
+  def Expr[S <: State[S]](e:Expression)(implicit state:S, pp:ProgramPoint):S = {
+    state.setExpression(toRichExpression(e))
+  }
+
+  def Field[S <: State[S]](obj:RichExpression, field:VariableIdentifier)(implicit state:S, pp:ProgramPoint):RichExpression = {
+    state.getFieldValue(List(obj),field.getName(),field.getType()).getExpression()
   }
 
   def exprOf[S <: State[S]](s:S):(Expression,S) = {
@@ -52,13 +65,12 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
     toExpressionSet(e.setOfExpressions.head)
   }
 
-  def Error[S <: State[S]](expr:RichExpression, message:String)(implicit s:S, pp:ProgramPoint) {
-    if (!seenErrors.contains((message,pp))) {
+  def Error[S <: State[S]](expr:RichExpression, message:String)(implicit state:S, pp:ProgramPoint) {
+    if (!ErrorReporter.hasError(message,pp)) {
       // The next line is a fix for "bottom" expression, where I don't know where they come from.
-      val errorState = s.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
-      if(!errorState.lessEqual(s.bottom())) {
-        println(message+" at line "+pp.getLine()+", column "+pp.getColumn())
-        seenErrors += ((message,pp))
+      val errorState = state.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
+      if(!errorState.lessEqual(state.bottom())) {
+        ErrorReporter.reportError(message,pp)
       }
     }
   }
@@ -71,14 +83,20 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
-  def New[S <: State[S]](typ:TouchType, args:List[ExpressionSet])(implicit s:S, pp:ProgramPoint): S = {
+  def New[S <: State[S]](typ:TouchType, initials:Map[Identifier,ExpressionSet])(implicit s:S, pp:ProgramPoint): S = {
     val (obj,state1) = exprOf(s.createObject(typ,pp))
+    //if(state1.top().lessEqual(state1)) return state1
     var curState = state1;
 
-    // Assign fields with given aruments
-    for ((f,a) <- typ.getPossibleFields() zip args) {
+    // Assign fields with given arguments
+    for (f <- typ.getPossibleFields()) {
+      val a = initials.get(f) match {
+        case None => toExpressionSet(f.asInstanceOf[TouchField].default)
+        case Some(s) => s
+      }
       curState = curState.assignField(List(toExpressionSet(obj)),f.getName(),updateState(curState,a))
     }
+
     // Make sure that our value is "valid"  now
     curState = curState.assignVariable(toExpressionSet(obj),valid(typ))
 
@@ -86,28 +104,47 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
   }
 
   def New[S <: State[S]](typ:TouchType, args:RichExpression*)(implicit s:S, pp:ProgramPoint): S = {
-    New[S](typ,args map { x:RichExpression => toExpressionSet(x)} toList)(s,pp)
+    New[S](typ,(typ.getPossibleFieldsSorted() zip (args map { x:RichExpression => toExpressionSet(x)} toList)).toMap)(s,pp)
+  }
+
+  def New[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
+    New[S](typ,Map.empty[Identifier,ExpressionSet])(s,pp)
+  }
+
+  def Skip[S <: State[S]](implicit state:S, pp:ProgramPoint): S = state
+
+  def SetEnv[S <: State[S]](id:EnvironmentIdentifier,value:ExpressionSet)(implicit state:S, pp:ProgramPoint): S = {
+    state.assignVariable(new ExpressionSet(id.typ).add(id),value)
+  }
+
+  def AssignField[S <: State[S]](obj:ExpressionSet,field:Identifier,value:ExpressionSet)(implicit state:S, pp:ProgramPoint): S = {
+    state.assignField(List(obj),field.getName(),value)
   }
 
   def Top[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
     s.setExpression(new ExpressionSet(typ).top())
   }
 
+  def Unimplemented[S <: State[S]](method:String)(implicit state:S, pp:ProgramPoint): S = {
+    println(method+" not implemented, unsound from now on, at "+pp)
+    Skip[S]
+  }
+
   implicit def toRichExpression[S <: State[S]](value:ExpressionSet) : RichExpression = {
     val numOfExpressions = (value.setOfExpressions.size)
     if (numOfExpressions > 1) throw new TouchException("Generic Abstract State fucked me over again!")
-    else if (numOfExpressions < 1 ) toRichExpression(0).to(toRichExpression(1000)) // TODO TODO TODO TODO
+    else if (numOfExpressions < 1 ) toRichExpression(0).ndTo(toRichExpression(1000)) // TODO TODO TODO TODO
     else RichExpression(value.setOfExpressions.head)
   }
 
   implicit def toRichExpression(value:Inclusive) : RichExpression =
-    toRichExpression(value.head) to toRichExpression(value.last)
+    toRichExpression(value.head) ndTo toRichExpression(value.last)
 
   implicit def toRichExpression(value:Int) : RichExpression =
-    RichExpression(new Constant(value.toString,Number,null))
+    RichExpression(new Constant(value.toString,TNumber.typ,null))
 
   implicit def toRichExpression(value:Double) : RichExpression =
-    RichExpression(new Constant(value.toString,Number,null))
+    RichExpression(new Constant(value.toString,TNumber.typ,null))
 
 //  implicit def toSymbolicAbstractValue[S <: State[S]](value:RichExpression)(implicit s:S) : SymbolicAbstractValue[S] =
 //    new SymbolicAbstractValue[S](value.thisExpr,s)
@@ -121,53 +158,61 @@ trait RichNativeSemantics  extends NativeMethodSemantics {
   implicit def toExpressionSet(value:RichExpression) : ExpressionSet =
     (new ExpressionSet(value.thisExpr.getType())).add(value.thisExpr)
 
-  case class RichExpression(thisExpr : Expression) {
 
-    implicit def toExpression(value:RichExpression) : Expression =
-      value.thisExpr
+}
 
-    def <= (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.<=, Boolean))
+class TouchField(name:String, typ:TouchType, var default: RichExpression = null) extends VariableIdentifier(name,typ,null) {
 
-    def >= (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.>=,Boolean))
-
-    def < (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.<, Boolean))
-
-    def > (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.>, Boolean))
-
-    def equal (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.==, Boolean))
-
-    def unequal (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.!=, Boolean))
-
-    def + (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.+, Number))
-
-    def * (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.*, Number))
-
-    def - (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.-, Number))
-
-    def / (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator./, Number))
-
-    def or (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryNondeterministicExpression(thisExpr,thatExpr,NondeterministicOperator.or,Number))
-
-    def to (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryNondeterministicExpression(thisExpr,thatExpr,NondeterministicOperator.to,Number))
-
-    def && (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryBooleanExpression(thisExpr,thatExpr,BooleanOperator.&&,Boolean))
-
-    def || (thatExpr : RichExpression) : RichExpression =
-      RichExpression(new BinaryBooleanExpression(thisExpr,thatExpr,BooleanOperator.||,Boolean))
+  if (default == null) {
+    default = RichExpression(new Constant("valid",typ,null))
   }
 
 }
 
+case class RichExpression(thisExpr : Expression) {
+
+  implicit def toExpression(value:RichExpression) : Expression =
+    value.thisExpr
+
+  def <= (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.<=, TBoolean.typ))
+
+  def >= (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.>=,TBoolean.typ))
+
+  def < (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.<, TBoolean.typ))
+
+  def > (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.>, TBoolean.typ))
+
+  def equal (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.==, TBoolean.typ))
+
+  def unequal (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.!=, TBoolean.typ))
+
+  def + (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.+, TNumber.typ))
+
+  def * (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.*, TNumber.typ))
+
+  def - (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.-, TNumber.typ))
+
+  def / (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator./, TNumber.typ))
+
+  def or (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryNondeterministicExpression(thisExpr,thatExpr,NondeterministicOperator.or,TNumber.typ))
+
+  def ndTo (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryNondeterministicExpression(thisExpr,thatExpr,NondeterministicOperator.to,TNumber.typ))
+
+  def && (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryBooleanExpression(thisExpr,thatExpr,BooleanOperator.&&,TBoolean.typ))
+
+  def || (thatExpr : RichExpression) : RichExpression =
+    RichExpression(new BinaryBooleanExpression(thisExpr,thatExpr,BooleanOperator.||,TBoolean.typ))
+}

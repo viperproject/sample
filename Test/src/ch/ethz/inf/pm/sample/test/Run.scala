@@ -105,17 +105,21 @@ object Run {
           val analysis = r._3;
           val heapanalysis = r._4;
           for(file2 <- file.listFiles()) {
-            Main.reset();
-            analysis.reset();
-            heapanalysis.reset();
-            if(! file2.isDirectory) {
-              val (pathFile, extensionFile) = splitExtension(file2)
-              if(canBeParserized(extensionFile)) {
-                if (verbose) System.out.println("Begin of file "+file2.getAbsolutePath);
-                f(file2, new File(pathFile+".test"), methods, entryState);
-                if (verbose) System.out.println("End of file "+file2.getAbsolutePath);
-              }
-            };
+            try {
+              Main.reset();
+              analysis.reset();
+              heapanalysis.reset();
+              if(! file2.isDirectory) {
+                val (pathFile, extensionFile) = splitExtension(file2)
+                if(canBeParserized(extensionFile)) {
+                  if (verbose) System.out.println("Begin of file "+file2.getAbsolutePath);
+                  f(file2, new File(pathFile+".test"), methods, entryState);
+                  if (verbose) System.out.println("End of file "+file2.getAbsolutePath);
+                }
+              };
+            } catch {
+              case e:Exception => println("ERROR DURING ANALYSIS: "+e.getMessage())
+            }
           }
         }
         catch {

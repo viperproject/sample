@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.compiler
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.td._
-import parser.{TypeName, ExpressionStatement}
+import parser.{MetaStatement, TypeName, ExpressionStatement}
 import util.parsing.input.Position
 import ch.ethz.inf.pm.sample.SystemParameters
 
@@ -53,10 +53,11 @@ object CFGGenerator {
   private def findMethods(script:parser.Script,ownerType:Type):List[MethodDeclaration] = {
     (for (dec <- script.declarations) yield {
       dec match {
-        case act@parser.ActionDefinition(ident,in,out,body) =>
+        case act@parser.ActionDefinition(ident,in,out,body,isEvent) =>
           val programPoint : ProgramPoint = TouchProgramPoint(act.pos)
           val modifiers : List[Modifier] = Nil
-          val name : MethodIdentifier = TouchMethodIdentifier(ident)
+          val isPrivate = (body find {case MetaStatement("private",_) => true; case _ => false}) != None
+          val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=isEvent,isPrivate=isPrivate)
           val parametricType : List[Type] = Nil
           val arguments : List[List[VariableDeclaration]] = List(in map (parameterToVariableDeclaration _))
           val returnType : Type = null
@@ -227,7 +228,9 @@ case class TouchException(msg:String,pos:Position = null) extends Exception {
 }
 
 case class TouchPackageIdentifier() extends PackageIdentifier
-case class TouchMethodIdentifier(ident:String) extends MethodIdentifier {
+
+
+case class TouchMethodIdentifier(ident:String,isEvent:Boolean,isPrivate:Boolean) extends MethodIdentifier {
   override def toString:String = ident
 }
 
@@ -261,6 +264,7 @@ case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Iden
   def isNumericalType() = (name == "Number") || (name == "Boolean")
   def isStatic() = isSingleton
   def getPossibleFields() = fields.toSet[Identifier]
+  def getPossibleFieldsSorted() = fields
   def getArrayElementsType() = None
 
 }

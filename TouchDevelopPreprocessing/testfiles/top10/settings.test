@@ -1,0 +1,5 @@
+methods="main"
+set analysis = "TouchDevelop analysis with APRON"
+set property = ""
+set analysis Domain = "ApronOctagons"
+set heap analysis = "Heap Domain:Program point"

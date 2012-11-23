@@ -31,7 +31,7 @@ object Typer {
 
   def addGlobals(scope: Script, st:SymbolTable, thing:Declaration) {
     thing match {
-      case a@ActionDefinition(name, inParameters, outParameters, body) =>
+      case a@ActionDefinition(name, inParameters, outParameters, body,isEvent) =>
         st.addAction(name,inParameters,outParameters)
       case VariableDefinition(Parameter(name,kind), flags) =>
         st.addGlobalData(name,kind)
@@ -84,7 +84,7 @@ object Typer {
 
   def typeLocals(scope: Script, st:SymbolTable, thing:Declaration) {
     thing match {
-      case a@ActionDefinition(name, inParameters, outParameters, body) =>
+      case a@ActionDefinition(name, inParameters, outParameters, body,isEvent) =>
         st(a) = ScopeSymbolTable(a,null,Map.empty) ++ inParameters ++ outParameters
         for (smt <- body) processStatement(a,st,smt)
       case _ => Unit

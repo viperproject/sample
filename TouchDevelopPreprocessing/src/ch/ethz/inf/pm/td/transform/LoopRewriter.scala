@@ -31,7 +31,7 @@ object LoopRewriter {
 
   def apply(d: Declaration): Declaration = {
     d match {
-      case a@ActionDefinition(_, _, _, _) => a.copy(body = (a.body map (apply _)).flatten)
+      case a@ActionDefinition(_, _, _, _, _) => a.copy(body = (a.body map (apply _)).flatten)
       case _ => d
     }
   }
@@ -55,6 +55,8 @@ object LoopRewriter {
       case i@If(cond,thenBody,elseBody) => List(i.copy(
         thenBody = (thenBody map (apply _)).flatten,
         elseBody = (elseBody map (apply _)).flatten))
+      case w@While(cond,body) =>
+        List(w.copy(body = (body map (apply _)).flatten))
       case _ => List(s)
     }
   }

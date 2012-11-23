@@ -26,7 +26,10 @@ object ScriptParser extends RegexParsers with PackratParsers {
   // Actions, Events, Global Variables
 
   lazy val actionDefinition: PackratParser[ActionDefinition] = positioned (
-    ("action" ~> actionHeader ~ block | "event" ~> actionHeader ~ block) ^^ { case a~b => ActionDefinition(a._1,a._2,a._3,b) }
+    ("action" ~ actionHeader ~ block | "event" ~ actionHeader ~ block) ^^ {
+      case "action"~a~b => ActionDefinition(a._1,a._2,a._3,b,false)
+      case "event"~a~b => ActionDefinition(a._1,a._2,a._3,b,true)
+    }
   )
 
   lazy val actionHeader: PackratParser[(String,List[Parameter],List[Parameter])] = (

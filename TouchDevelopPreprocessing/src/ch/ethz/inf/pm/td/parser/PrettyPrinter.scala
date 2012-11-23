@@ -15,7 +15,9 @@ object PrettyPrinter {
   def apply(s:Script):String = (s.declarations map apply).mkString("\n\n")
 
   def apply(d:Declaration):String = { d match {
-    case ActionDefinition(ident,in,out,body) => "action "+ident+" ("+(in map apply).mkString(",")+") returns "+(out map apply).mkString(",")+
+    case ActionDefinition(ident,in,out,body,isEvent) =>
+      (if(isEvent) "event " else "action ")+
+      ident+" ("+(in map apply).mkString(",")+") returns "+(out map apply).mkString(",")+
       " {\n"+apply(body)+"\n}"
     case MetaDeclaration(ident,value) => "meta "+ident+" \""+value+"\""
     case VariableDefinition(variable,_) => "var "+apply(variable)

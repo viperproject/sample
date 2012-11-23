@@ -195,7 +195,8 @@ trait StdLib extends AbstractSymbolTable  {
   addSingleton("media", GenericTypes.gAlsoSingletons("media") :::List(	// Pictures and music...
     Member("choose_picture","Picture"),	//Chooses a picture from the media library
     Member("create_board",List("Number"),"Board"),	//Creates a new game board
-    Member("create_full_board","Board"),	//Creates a new game board that will take the entire screen when posted.
+    Member("create_landscape_board",List("Number","Number"),"Board"),	//Creates a new game board in landscape mode. On rotatable devices it will take the entire screen when posted.
+    Member("create_portrait_board",List("Number","Number"),"Board"),	//Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted.
     Member("create_picture",List("Number","Number"),"Picture"),	//Creates a new picture of the given size
     Member("icon",List("String"),"Picture"),	//Gets a 48x48 icon picture. Use 'media->icon names' to retrieve the list of names available.
     Member("icon_names","String_Collection"),	//Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings.
@@ -256,14 +257,11 @@ trait StdLib extends AbstractSymbolTable  {
     Member("current_location","Location"),	//Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations.
     Member("current_location_accurate","Location"),	//Gets the current phone location with the most accuracy. This includes using services that might charge money, or consuming higher levels of battery power or connection bandwidth.
     Member("front_camera","Camera"),	//Gets the front facing camera
-    Member("has_accelerometer","Boolean"),	//Indicates whether accelerometer is present on device
-    Member("has_compass","Boolean"),	//Indicates if the compass is available on the device
-    Member("has_front_camera","Boolean"),	//Indicates if this device has a front facing camera
     Member("has_gyroscope","Boolean"),	//Indicates if the gyroscope is available on the device
-    Member("has_motion","Boolean"),	//Indicates if the motion can be computed on the device. Motion requires accelerometer, compass and gyroscope.
     Member("heading","Number"),	//Gets the compass heading, in degrees, measured clockwise from the Earthâ€™s geographic north.
     Member("is_device_stable","Boolean"),	//Indicates whether the device is 'stable' (no movement for about 0.5 seconds)
     Member("motion","Motion"),	//Gets the current phone motion that combines data from the accelerometer, compass and gyroscope.
+    Member("orientation","Vector3"),	//Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma).
     Member("record_microphone","Sound"),	//Records audio using the microphone
     Member("rotation_speed","Vector3"),	//Gets the gyroscope rotational velocity around each axis of the device, in degrees per second.
     Member("take_camera_picture","Picture")	//Takes a picture and returns it. This picture does not contain the gps location.
@@ -321,6 +319,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("screenshot","Picture"),	//Takes a screenshot of the wall.
     Member("set_background",List("Color"),"Nothing"),	//Sets the wall background color.
     Member("set_background_picture",List("Picture"),"Nothing"),	//Sets the wall background picture. The picture will be resized and clipped to the screen background as needed.
+    Member("set_background_camera",List("Camera"),"Nothing"), //Sets the wall background camera.
     Member("set_foreground",List("Color"),"Nothing"),	//Sets the wall foreground color of elements.
     Member("set_reversed",List("Boolean"),"Nothing"),	//Reverses the elements on the wall and inserts new ones at the bottom.
     Member("set_subtitle",List("String"),"Nothing"),	//Sets the subtitle of the wall.
@@ -344,6 +343,8 @@ trait StdLib extends AbstractSymbolTable  {
     Member("html_encode",List("String"),"String"),	//Converts a text string into an HTML-encoded string
     Member("is_connected","Boolean"),	//Indicates whether any network connection is available
     Member("json",List("String"),"Json_Object"),	//Parses the string as a json object
+    Member("json_array","Json_Object"),	//Returns an empty json array
+    Member("json_object","Json_Object"),	//Returns an empty json object
     Member("link_image",List("String"),"Link"),	//Creates a link to an internet image
     Member("link_media",List("String"),"Link"),	//Creates a link to an internet audio/video
     Member("link_url",List("String","String"),"Link"),	//Creates a link to an internet page
@@ -395,6 +396,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("create_text",List("Number","Number","Number","String"),"Sprite"),	//Create a new text sprite.
     Member("evolve","Nothing"),	//Update positions of sprites on board.
     Member("height","Number"),	//Gets the height in pixels
+    Member("is_landscape","Boolean"), //Gets a value indicating if the board is designed to be viewed in landscape mode
     Member("set_background",List("Color"),"Nothing"),	//Sets the background color
     Member("set_background_camera",List("Camera"),"Nothing"),	//Sets the background camera
     Member("set_background_picture",List("Picture"),"Nothing"),	//Sets the background picture
@@ -1089,6 +1091,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("header_names","String_Collection"),	//Gets the names of the headers
     Member("method","String"),	//Gets whether it was a 'get' or a 'post'.
     Member("send","Web_Response"),	//Performs the request synchronously
+    Member("set_accept",List("String"),"Nothing"),	//Sets the Accept header type ('text/xml' for xml, 'application/json' for json).
     Member("set_compress",List("Boolean"),"Nothing"),	//Compresses the request content with gzip and sets the Content-Encoding header
     Member("set_content",List("String"),"Nothing"),	//Sets the content of a 'post' request
     Member("set_content_as_json",List("Json_Object"),"Nothing"),	//Sets the content of a 'post' request as the JSON tree

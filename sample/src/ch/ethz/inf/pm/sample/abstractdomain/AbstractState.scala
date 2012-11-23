@@ -427,7 +427,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
              //HeapIdSetFunctionalLifting.applyToSetHeapId(, obj.get(expr)._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint()));
         var result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap);
-        val accessed=HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, result2.access(_));
+        val accessed=if(heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, result2.access(_));
      	  val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid));
      	  result=result.lub(result, state);
         }

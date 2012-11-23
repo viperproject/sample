@@ -145,7 +145,7 @@ case class Assignment(programpoint : ProgramPoint, left : Statement, right : Sta
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class VariableDeclaration(programpoint : ProgramPoint, val variable : Variable, typ : Type, right : Statement) extends Statement(programpoint : ProgramPoint) {
+case class VariableDeclaration(programpoint : ProgramPoint, val variable : Variable, val typ : Type, right : Statement) extends Statement(programpoint : ProgramPoint) {
 
       /** 
        * It creates the variable relying on the method 

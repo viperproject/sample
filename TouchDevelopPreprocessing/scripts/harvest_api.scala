@@ -92,38 +92,69 @@ def splitLastColon(some:String) = {
   (some.substring(0,col).trim,some.substring(col+1).trim)
 }
 
+def argListToString(l:List[String]) = {
+  l.map({x:String => x.replace(" ","_")}).mkString(",")
+}
+
 def argListToScala(l:List[String]) = {
   "List("+ (l map ("\"" + _ + "\"") mkString ",") + ")"
 
 }
-
-println("  val api = API(List(")
 
 for ((thing,help,url) <- fetchMainInfo("https://www.touchdevelop.com/help/api")) {
 
   val fullURL = "https://www.touchdevelop.com"+ " ".r.replaceAllIn(url,"%20") // url encoding for stupids because the library is broken
   val subInfo = fetchSubInfo(fullURL)
 
-  if (thing.charAt(0).isUpper) print("    Type(\""+thing+"\", ")
-  else print("    Singleton(\""+thing+"\", ")
+  if (thing.charAt(0).isUpper) {
+    println(
+      """
+        |object TXXX {
+        |
+        |  val typName = "XXX"
+        |  val typ = TouchType(typName,isSingleton = false,List())
+        |
+        |}
+        |
+        |class TXXX extends Any {
+        |
+        |  def getTypeName = TXXX.typName
+        |
+        |  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+      """.stripMargin.replace("XXX",thing))
+  } else {
+    println(
+      """
+        |class SXXX extends Any {
+        |
+        |  def getTypeName = "YYY"
+        |
+        |  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+      """.stripMargin.replace("XXX",thing.replaceFirst(thing.charAt(0).toString,thing.charAt(0).toUpper.toString)).replace("YYY",thing))
+  }
+
 
   if (subInfo.length > 0) {
-    println("List(\t// "+help.trim)
     for ((property,signature,propHelp) <- subInfo) {
       val (args,returnVal) = splitLastColon(signature)
-      if (args.isEmpty) println("      Field(\""+property+"\",\""+returnVal+"\"),\t//"+propHelp.trim)
-      else {
-        val argList = args.substring(1,args.length-1).split(",") map (splitLastColon(_)._2)
-        println("      Method(\""+property+"\","+argListToScala(argList.toList)+",\""+returnVal+"\"),\t//"+propHelp.trim)
+      println("    /** "+propHelp.trim+" */")
+      println("    case \""+property.replace(" ","_")+"\" => ")
+      if (!args.isEmpty) {
+        val argList = args.substring(1,args.length-1).split(",") map (splitLastColon(_)._1.replace(" ","_"))
+        val typList = args.substring(1,args.length-1).split(",") map (splitLastColon(_)._2.replace(" ","_"))
+        println("      val List("+argListToString(argList.toList)+") = parameters // "+argListToString(typList.toList))
       }
+      if (returnVal != "Nothing") {
+        println("      New[S]("+returnVal.replace(" ","_")+".typ) // TODO")
+      } else {
+        println("      Skip; // TODO")
+      }
+      println()
     }
-    println("    )),")
-  } else {
-    println("Nil),\t// "+help.trim)
   }
+
+  println("  }")
+  println("}")
 }
-
-println("  ))")
-
 
 

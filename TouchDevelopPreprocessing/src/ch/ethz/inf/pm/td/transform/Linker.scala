@@ -64,7 +64,7 @@ object Linker {
 
     private def link(decl:Declaration):Declaration = {
       decl match {
-        case a@ActionDefinition(ident,in,out,body) => ActionDefinition(makeThisIdent(ident),in,out,body map (link _))
+        case a@ActionDefinition(ident,in,out,body,isEvent) => ActionDefinition(makeThisIdent(ident),in,out,body map (link _),isEvent)
         case d@VariableDefinition(ident,flags) => VariableDefinition(Parameter(makeThisIdent(ident.ident),ident.typeName),flags)
         case x => x
       }

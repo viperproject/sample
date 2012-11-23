@@ -1,4 +1,4 @@
-action main() {
+action theOther() {
 
     $width := math->random(100);
 
@@ -14,5 +14,16 @@ action main() {
     }
 
     $c := 1 / 0;
+
+    data→board := media→create_full_board;
+    data→board→post_to_wall;
+}
+
+var board : Board {
+}
+
+action main() {
+
+    code->theOther();
 
 }

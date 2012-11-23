@@ -19,7 +19,7 @@ case class Script (declarations:List[Declaration]) extends Positional
 sealed trait Scope extends Positional
 sealed trait Declaration extends Positional
 case class MetaDeclaration(ident:String,value:String) extends Declaration
-case class ActionDefinition(ident:String,inParameters:List[Parameter],outParameters:List[Parameter],body:List[Statement]) extends Declaration with Scope
+case class ActionDefinition(ident:String,inParameters:List[Parameter],outParameters:List[Parameter],body:List[Statement],isEvent:Boolean) extends Declaration with Scope
 case class VariableDefinition(variable:Parameter,flags:Map[String,Any]) extends Declaration
 case class TableDefinition(ident:String,typName:String,keys:List[Parameter],fields:List[Parameter]) extends Declaration
 
