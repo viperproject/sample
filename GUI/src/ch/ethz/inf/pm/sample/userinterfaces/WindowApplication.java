@@ -28,6 +28,7 @@ import ch.ethz.inf.pm.td.webapi.*;
 import scala.Option;
 import scala.Some;
 import scala.collection.immutable.List;
+import semper.sample.multithreading.MultithreadingAnalysis;
 
 /**
  * Created by IntelliJ IDEA.
@@ -428,9 +429,13 @@ public class WindowApplication {
                     OutputCollector output = new OutputCollector();
                     if (directiveListModel.size() > 0) {
                         ch.ethz.inf.pm.sample.Main.analyze(methods, new PartitionedState(entryState), output);
-					} else {
+					} else if(getSelectedAnalysis() instanceof MultithreadingAnalysis) {
+                        ((MultithreadingAnalysis) getSelectedAnalysis()).fixpointComputation(methods, (SemanticDomain) getSelectedAnalysis().getInitialState(), output, heapDomain, SystemParameters.getType());
+                    }
+                    else {
 						ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, output);
 					}
+                    //semper.sample.multithreading.Main.analyze(methods, entryState, output);
                     t.stop();
                     setProgress(100);
                     taskOutput.append("\nAnalysis ended");

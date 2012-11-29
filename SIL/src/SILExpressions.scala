@@ -1,4 +1,4 @@
-import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Expression}
 import ch.ethz.inf.pm.sample.oorepresentation.{Variable, ProgramPoint}
 import silAST.domains.DomainPredicate
 
@@ -10,6 +10,8 @@ class ForAllExpression(val pp : ProgramPoint, val v : Variable, val exp : Expres
     case _ => false;
   }
   override def toString() = "For all "+v.toString()+": "+exp.toString
+  def identifiers() : Set[Identifier] = exp.identifiers()+v.id;
+
 }
 
 class ExistExpression(val pp : ProgramPoint, val v : Variable, val exp : Expression) extends Expression(pp)  {
@@ -20,6 +22,7 @@ class ExistExpression(val pp : ProgramPoint, val v : Variable, val exp : Express
     case _ => false;
   }
   override def toString() = "Exists "+v.toString()+": "+exp.toString
+  def identifiers() : Set[Identifier] = exp.identifiers()+v.id;
 }
 
 class OldExpression(val pp : ProgramPoint, val exp : Expression) extends Expression(pp)  {
@@ -30,6 +33,7 @@ class OldExpression(val pp : ProgramPoint, val exp : Expression) extends Express
     case _ => false;
   }
   override def toString() = "old("+exp.toString+")"
+  def identifiers() : Set[Identifier] = exp.identifiers();
 }
 
 class FieldPermissionExpression(val pp : ProgramPoint, val location : Expression, val permission : Expression) extends Expression(pp)  {
@@ -40,6 +44,8 @@ class FieldPermissionExpression(val pp : ProgramPoint, val location : Expression
     case _ => false;
   }
   override def toString() = "acc("+location.toString+", "+permission.toString+")"
+
+  def identifiers() : Set[Identifier] = permission.identifiers()++location.identifiers();
 }
 
 class PredicatePermissionExpression(val pp : ProgramPoint, val predicate : Expression, val permission : Expression) extends Expression(pp)  {
@@ -50,6 +56,8 @@ class PredicatePermissionExpression(val pp : ProgramPoint, val predicate : Expre
     case _ => false;
   }
   override def toString() = "acc("+predicate.toString+", "+permission.toString+")"
+
+  def identifiers() : Set[Identifier] = permission.identifiers()++predicate.identifiers();
 }
 
 class UnfoldingExpression(val pp : ProgramPoint, val predicate : PredicatePermissionExpression, val permission : Expression) extends Expression(pp)  {
@@ -60,6 +68,7 @@ class UnfoldingExpression(val pp : ProgramPoint, val predicate : PredicatePermis
     case _ => false;
   }
   override def toString() = "unfolding "+predicate.toString+" in "+permission.toString+")"
+  def identifiers() : Set[Identifier] = permission.identifiers()++predicate.identifiers();
 }
 
 class DomainPredicateExpression(val pp : ProgramPoint, val predicate : DomainPredicate, val arguments : List[Expression]) extends Expression(pp)  {
@@ -70,4 +79,10 @@ class DomainPredicateExpression(val pp : ProgramPoint, val predicate : DomainPre
     case _ => false;
   }
   override def toString() = predicate.toString+"("+arguments.toString+")"
+  def identifiers() : Set[Identifier] = {
+    var result= Set.empty[Identifier]
+    for(a <- arguments)
+      result=result++a.identifiers();
+    result;
+  };
 }

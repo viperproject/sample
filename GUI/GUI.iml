@@ -52,6 +52,7 @@
     <orderEntry type="module" module-name="ArrayAnalysis" />
     <orderEntry type="module" module-name="ScalaPreprocessing" />
     <orderEntry type="module" module-name="TouchDevelopPreprocessing" />
+    <orderEntry type="module" module-name="Multithreading" />
   </component>
 </module>
 

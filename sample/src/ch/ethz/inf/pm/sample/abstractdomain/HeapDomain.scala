@@ -249,7 +249,9 @@ trait Assignable {
   def getType() : Type;
 }
 
-abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression(null) with SetDomain[I, HeapIdSetDomain[I]] {
+abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extends Expression(p1) with SetDomain[I, HeapIdSetDomain[I]] {
+
+  def this() = this(null);
 
   override def equals(x : Any) : Boolean = x match {
 	  case x : I => if(value.size==1) return x.equals(value.elements.next); else return false;
@@ -264,9 +266,10 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]] extends Expression(null) 
 }
 
 
-class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
+class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends HeapIdSetDomain[I](p2) {
+  def this() = this(null);
 
-  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain().add(add);
+  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.getProgramPoint()).add(add)
   override def getType() : Type = {
     var res=SystemParameters.getType().bottom();
     for(a <- this.value)
@@ -279,11 +282,14 @@ class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2);
 
   def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2, s1, s2);
+
+  def identifiers() : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }
 
-class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I] {
+class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends HeapIdSetDomain[I](p2) {
+  def this() = this(null);
 
-  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain().add(add);
+  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.getProgramPoint()).add(add);
   override def getType() : Type = {
     var res=SystemParameters.getType().top();
     for(a <- this.value)
@@ -296,4 +302,6 @@ class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]] extends HeapIdSetDomain[I]
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s1, s2);
 
   def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2, s1, s2);
+
+  def identifiers() : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }

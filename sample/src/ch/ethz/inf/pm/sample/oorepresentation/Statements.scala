@@ -417,33 +417,3 @@ case class EmptyStatement(programpoint : ProgramPoint) extends Statement(program
     
     override def toSingleLineString() : String = toString();
 }
-
-//TODO: delete it!!!
-/*
-case class Switch(programpoint : ProgramPoint, condition : Statement) extends Statement(programpoint : ProgramPoint) {
-	  var cases : List[(Statement, Statement, Statement)] = Nil
-   
-      def addCase(a : Statement, b: Statement, c: Statement) {
-        cases = cases ::: (a, b, c) :: Nil;
-      }
-      
-      override def forwardSemantics[S <: State[S]](state : S) : S = state //TODO: semantics of switch statement
-      
-      override def backwardSemantics[S <: State[S]](state : S) : S = state //TODO: semantics of switch statement
-      
-      override def toString() : String = {
-        var result : String="switch " + condition.toString()+" { \n";
-        for((a, b, c) <- cases) {
-          result=result+"case "+a+" if "+b+" => "+c+"\n"
-        }
-        return result+"}\n";
-      }
-      
-      override def toSingleLineString() : String = {
-        var result : String="switch " + condition.toSingleLineString()+" { \n";
-        for((a, b, c) <- cases) {
-          result=result+"case "+a.toSingleLineString()+" if "+b.toSingleLineString()+" => "+c.toSingleLineString()+"\n"
-        }
-        return result+"}\n";
-      }
-}*/

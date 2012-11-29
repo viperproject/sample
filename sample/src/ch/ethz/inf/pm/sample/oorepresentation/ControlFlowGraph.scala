@@ -224,6 +224,38 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
   
   def backwardSemantics[S <: State[S]](state : S) : S= new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
 
+  def happensBefore(pc1 : ProgramPoint, pc2 : ProgramPoint) : Boolean = {
+    var rowsAfterPc1 : Set[Int] = this.afterPC(pc1);
+    var rowsAfterPc2 : Set[Int] = this.afterPC(pc2);
+    return rowsAfterPc1.contains(pc2.getLine()) && ! rowsAfterPc2.contains(pc1.getLine());
+  }
+
+  private def afterPC(pc : ProgramPoint) : Set[Int] = {
+    var result : Set[Int] = Set.empty[Int];
+    var blocksalreadyvisited : Set[Int] = Set.empty[Int];
+    val startingBlock = giveBlockOf(pc)
+    if(startingBlock== -1) return Set.empty[Int];
+    var blockstovisit : Set[Int] = Set(startingBlock);
+    while(blockstovisit.size>0) {
+      var b = blockstovisit.first;
+      blockstovisit = blockstovisit - b;
+      blocksalreadyvisited = blocksalreadyvisited + b;
+      blockstovisit = blockstovisit ++ this.getEdgesExitingFrom(b)
+      for(st <- nodes.apply(b))
+        result=result+st.getPC().getLine();
+      blockstovisit=blockstovisit--blocksalreadyvisited;
+    }
+    return result;
+  }
+
+  private def giveBlockOf(pc : ProgramPoint) : Int = {
+    for(i <- 0 to nodes.size-1) {
+      for(st <- nodes.apply(i))
+        if(st.getPC()!=null && pc!=null && st.getPC().getLine()==pc.getLine())
+          return i
+    }
+    return -1;
+  }
 
   /**
    * Return an ordered list of indexes that could be used for the computation of

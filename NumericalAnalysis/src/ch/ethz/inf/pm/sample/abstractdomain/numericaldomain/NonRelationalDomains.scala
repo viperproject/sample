@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import scala.Math
 import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
 import ch.ethz.inf.pm.sample.abstractdomain._
+import semper.sample.multithreading.InterferenceInferenceProperty
 
 trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends Lattice[N] {
   def evalConstant(value: Int): N
@@ -70,7 +71,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
   }
   */
 
-  final def factory() = new BoxedNonRelationalNumericalDomain[N](dom.factory())
+  def factory() = new BoxedNonRelationalNumericalDomain[N](dom.factory())
 
   def get(key: Identifier): N = value.get(key) match {
     case None => dom.bottom()
@@ -110,14 +111,14 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 
   override def backwardAccess(field: Identifier) = this
 
-  private def eval(expr: Expression): N = expr match {
+  def eval(expr: Expression): N = expr match {
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.+, typ) => return dom.sum(eval(left), eval(right))
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.*, typ) => return dom.multiply(eval(left), eval(right))
     case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => return dom.divide(eval(left), eval(right))
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => return dom.subtract(eval(left), eval(right))
     case BinaryNondeterministicExpression(left, right, NondeterministicOperator.to, typ) => return dom.nondet(eval(left),eval(right))
     case BinaryNondeterministicExpression(left, right, NondeterministicOperator.or, typ) => dom.top() //TODO: implement it!!!
-    case BinaryArithmeticExpression(left, right, op, typ) => dom.top() //TODO: implement it!!! 
+    case BinaryArithmeticExpression(left, right, op, typ) => dom.top() //TODO: implement it!!!
     case Constant(constant, typ, pp) => try {
       return dom.evalConstant(Integer.valueOf(constant).intValue())
     } catch {
@@ -552,7 +553,7 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
 
   override def reset(): Unit = Unit
 
-  def getProperties(): Set[Property] = Set(new ApronProperty().asInstanceOf[Property], new SingleStatementProperty(DivisionByZero))
+  def getProperties(): Set[Property] = Set(new ApronProperty().asInstanceOf[Property], new SingleStatementProperty(DivisionByZero), new InterferenceInferenceProperty())
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 }

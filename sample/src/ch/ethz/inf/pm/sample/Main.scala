@@ -29,23 +29,6 @@ object Main {
 
     def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : Unit = {
       this.analyze( _ => toAnalyze.toSet, entryState, output);
-    	/*Timer.start;
-	    var output = new OutputCollector();
-	    for(c <- classes) {
-        SystemParameters.currentClass=c.typ;
-	        for(x <- c.methods)
-	        	if(toAnalyze.contains(x.name.toString())) {
-	        		SystemParameters.currentMethod = x.name.toString();
-				      SystemParameters.property.check(c.name.getThisType(), x.name.toString(), x.asInstanceOf[MethodDeclaration].forwardSemantics[S](entryState), output);
-				      SystemParameters.currentMethod = null;
-	        	}
-        SystemParameters.currentClass=null;
-	      }
-	    SystemParameters.property.finalizeChecking();
-	    if(verbose) {
-	    	System.out.println(SystemParameters.output.output()+"STATISTICS\n"+SystemParameters.output.statistics())
-	    	System.out.println("Time of analyisis: " + Timer.stop);
-	    }*/
      }
 	
     def analyze[S <: State[S]](toAnalyze : String => Set[String], entryState : S, output : OutputCollector) : Unit = {
