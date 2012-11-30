@@ -178,15 +178,15 @@ class FieldDeclaration(
  * @version 0.1
  */
 class ClassDefinition(
-                      programpoint : ProgramPoint,
+                      val programpoint : ProgramPoint,
                       val typ : Type,
-                      modifiers : List[Modifier],
+                      val modifiers : List[Modifier],
                       val name : ClassIdentifier,
-                      parametricTypes : List[Type], 
+                      val parametricTypes : List[Type],
                       val extend : List[ClassIdentifier],
                       var fields : List[FieldDeclaration], 
                       var methods : List[MethodDeclaration],
-                      pack : PackageIdentifier,
+                      val pack : PackageIdentifier,
                       val inv : Expression
                      )
 {

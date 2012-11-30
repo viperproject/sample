@@ -230,10 +230,11 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
     return rowsAfterPc1.contains(pc2.getLine()) && ! rowsAfterPc2.contains(pc1.getLine());
   }
 
-  private def afterPC(pc : ProgramPoint) : Set[Int] = {
+  private def afterPC(pc : ProgramPoint) : Set[Int] = afterBlock(giveBlockOf(pc))
+
+  def afterBlock(startingBlock : Int) : Set[Int] = {
     var result : Set[Int] = Set.empty[Int];
     var blocksalreadyvisited : Set[Int] = Set.empty[Int];
-    val startingBlock = giveBlockOf(pc)
     if(startingBlock== -1) return Set.empty[Int];
     var blockstovisit : Set[Int] = Set(startingBlock);
     while(blockstovisit.size>0) {
@@ -243,6 +244,26 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
       blockstovisit = blockstovisit ++ this.getEdgesExitingFrom(b)
       for(st <- nodes.apply(b))
         result=result+st.getPC().getLine();
+      blockstovisit=blockstovisit--blocksalreadyvisited;
+    }
+    return result;
+  }
+
+  def indexesafterBlockWithouthCurrentBlock(startingBlock : Int) : Set[Int] = {
+    var result : Set[Int] = Set.empty[Int];
+    var blocksalreadyvisited : Set[Int] = Set.empty[Int];
+    if(startingBlock== -1) return Set.empty[Int];
+    val exitedges = this.exitEdges(startingBlock);
+    var blockstovisit : Set[Int] = Set(startingBlock);
+    for(e <- exitedges)
+      if(e._3!=None && e._3.get==true)
+        blockstovisit=blockstovisit+e._2;
+    while(blockstovisit.size>0) {
+      var b = blockstovisit.first;
+      blockstovisit = blockstovisit - b;
+      blocksalreadyvisited = blocksalreadyvisited + b;
+      if(b!=startingBlock) blockstovisit = blockstovisit ++ this.getEdgesExitingFrom(b)
+      result=result+b;
       blockstovisit=blockstovisit--blocksalreadyvisited;
     }
     return result;

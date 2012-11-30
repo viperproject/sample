@@ -16,7 +16,7 @@ import tracepartitioning._
 import com.mxgraph.util.mxConstants
 import java.awt.{Color, GridLayout, Dimension, Toolkit}
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
-import ch.ethz.inf.pm.td.domain.EnvironmentIdentifier
+//import ch.ethz.inf.pm.td.domain.EnvironmentIdentifier
 
 
 private class Show extends JFrame {

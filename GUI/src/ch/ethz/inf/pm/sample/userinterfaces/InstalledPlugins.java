@@ -15,6 +15,7 @@ import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
 import scala.collection.immutable.List;
+import semper.sample.multithreading.AugmentedCompiler;
 import semper.sample.multithreading.MultithreadingAnalysis;
 
 import java.io.File;
@@ -26,9 +27,10 @@ public class InstalledPlugins {
     public static HeapDomain<?, ?>[] heapanalyses;
 
     static  {
-        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[2];
+        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[3];
         compilers[0]=new ScalaCompiler();
         compilers[1]=new TouchCompiler();
+        compilers[2]=new AugmentedCompiler();
 
         analyses=new SemanticAnalysis[9];
         analyses[0]=new NonRelationalNumericalAnalysis();

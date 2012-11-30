@@ -20,6 +20,7 @@
     <orderEntry type="library" name="scala-library" level="project" />
     <orderEntry type="module" module-name="Partitioning" />
     <orderEntry type="module" module-name="GUI" />
+    <orderEntry type="module" module-name="ScalaPreprocessing" />
   </component>
 </module>
 
