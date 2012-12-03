@@ -6,12 +6,10 @@ import ch.ethz.inf.pm.td.parser.{Declaration, LibraryDefinition, Script, ScriptP
 import ch.ethz.inf.pm.td.symbols.Typer
 import ch.ethz.inf.pm.td.webapi.Scripts
 import ch.ethz.inf.pm.td.transform.LoopRewriter
-import ch.ethz.inf.pm.td.semantics.TouchNativeMethodSemantics
+import ch.ethz.inf.pm.td.semantics._
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
-import ch.ethz.inf.pm.td.semantics.TouchNativeMethodSemantics
 import scala.Some
 import ch.ethz.inf.pm.td.parser.Script
-import ch.ethz.inf.pm.td.compiler.TouchException
 
 /**
  *
@@ -24,64 +22,24 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var parsedIDs : Set[String] = Set[String]()
   var parsedScripts : List[ClassDefinition] = Nil
-  var augmented : Boolean = false;
 
   /**
-   Takes a path OR a URL
+   *
+   * A runnable method is a method that can be executed directly by the user.
+   * It is the set of methods that should be analyzed.
+   *
    */
+  type RunnableMethods = Map[ClassDefinition,Set[RunnableMethodDeclaration]]
+  var runnableMethods : RunnableMethods = Map.empty
+
+  /**
+  Takes a path OR a URL
+    */
   def compileFile(path: String): List[ClassDefinition] = {
     val (source,pubID) =
       if (path.startsWith("http")) (Source.fromURL(path),Scripts.pubIDfromURL(path))
       else (Source.fromFile(path),Scripts.pubIDfromFilename(path))
-    if (!augmented) compileString(source.getLines().mkString("\n"),pubID);
-    else augment(compileString(source.getLines().mkString("\n"),pubID));
-  }
-
-  /**
-   * Daniel Schweizer
-   * Date: 16/Nov/12
-   */
-  private def augment(l: List[ClassDefinition]) = {
-    for (c <- l) {
-      for (m <- c.methods) {
-        val cfg = m.body
-        var i = 0
-        /*for (edge <- cfg.edges)  {
-          println(edge.toString()+"\n\n")
-        }  */
-        for (node <- cfg.nodes) {
-          if (cfg.blockInLoop(i)) {
-            println("node size before: "+node.size)
-            println("Block in loop: "+i+"\n"+node+"\n\n")
-            var oldValueAssignments: List[Statement] = Nil
-            for (statement <- node) {
-              statement match {
-                case a: Assignment => {
-                  println("Assignment found: "+a+"\n")
-                  a.left match {
-                    case v: Variable => {
-                      println("Variable found: "+v+"\n")
-                      oldValueAssignments = oldValueAssignments.::(new Assignment(a.programpoint, new OldVariable(v), v))
-                    }
-                    case f: FieldAccess => // nothing to do here (?)
-                    case m: MethodCall => // todo
-                    case _ =>
-                  }
-                }
-                case _ =>
-              }
-            }
-            println("oldValueAssignments size: "+oldValueAssignments.size)
-            val newnode = node.:::(oldValueAssignments)
-            cfg.setNode(i, newnode)
-            println("node size after: "+node.size)
-          }
-          //else println("Block NOT in loop: "+i+"\n"+node+"\n\n")
-          i += 1
-        }
-      }
-    }
-    l
+    compileString(source.getLines().mkString("\n"),pubID)
   }
 
   def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
@@ -92,13 +50,30 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     parsedIDs = parsedIDs + pubID
     val libIDs = discoverRequiredLibraries(script)
     for (id <- libIDs; if (!parsedIDs.contains(id))) {
-       cfgs = cfgs ::: compileFile(Scripts.codeURLfromPubID(id))
+      cfgs = cfgs ::: compileFile(Scripts.codeURLfromPubID(id))
     }
     cfgs
   }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
-    List(TouchNativeMethodSemantics(this))
+    List(
+      new SAssert(),
+      new SBazaar(),
+      new TBoard(),
+      new TBoolean(),
+      new SCode(this),
+      new TColor(),
+      new SColors(),
+      new SInvalid(),
+      new SMath(),
+      new SMedia(),
+      new TNumber(),
+      new TPicture(),
+      new TSprite(),
+      new SSenses(),
+      new SWall(),
+      new TVector3()
+    )
   }
 
   def extensions(): List[String] = List("td")
@@ -118,35 +93,51 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     })
   }
 
-  /** copy of scala method */
+  /**
+   * USING THIS METHOD, YOU GET THE SEMANTICS FOR A FUNCTION THAT IS CALLED FROM ANOTHER FUNCTION
+   */
+  def getCalledMethod(name: String, parameters: List[Type]): Option[MethodDeclaration] = {
+    val methods = parsedScripts.map(_.methods).flatten.filter
+    {x:MethodDeclaration => x.name.toString.equals(name) && x.arguments.apply(0).size==parameters.size}
+    if (methods.length == 1) {
+      val m = methods.head
+      var ok : Boolean = true
+      if(m.arguments.size!=1) throw new TouchException("Not yet supported")
+      for(i <- 0 to m.arguments.apply(0).size-1) {
+        if(! parameters.apply(i).lessEqual(m.arguments.apply(0).apply(i).typ))
+          ok=false
+      }
+      if(ok) return new Some(m)
+    }
+    None
+  }
+
+  /**
+   * USING THIS METHOD, YOU GET THE SEMANTICS FOR A RUNNABLE FUNCTION (WITH EVENT LOOP AFTERWARDS)
+   */
   def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
     getClassDeclaration(classType) match {
       case Some(classe) =>
-        for(m <- classe.methods)
+        for(m <- runnableMethods(classe))
           if(m.name.toString.equals(name) && m.arguments.apply(0).size==parameters.size) {
-            var ok : Boolean = true;
+            var ok : Boolean = true
             if(m.arguments.size!=1) throw new TouchException("Not yet supported")
             for(i <- 0 to m.arguments.apply(0).size-1) {
               if(! parameters.apply(i).lessEqual(m.arguments.apply(0).apply(i).typ))
-                ok=false;
+                ok=false
             }
-            if(ok) return new Some[(MethodDeclaration, Type)]((m, classType));
+            if(ok) return new Some[(MethodDeclaration, Type)]((m, classType))
           }
-        for(ext <- classe.extend)
-          getMethod(name, ext.getThisType(), parameters) match {
-            case Some(s) => return Some(s);
-            case None =>
-          }
-        return None;
-      case None => return None;
+        None
+      case None => None
     }
   }
 
   private def getClassDeclaration(t : Type) : Option[ClassDefinition] = {
     for(c <- parsedScripts)
       if(c.typ.equals(t))
-        return Some(c);
-    return None;
+        return Some(c)
+    None
   }
 
 }
