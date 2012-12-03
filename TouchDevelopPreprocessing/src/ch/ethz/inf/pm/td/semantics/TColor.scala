@@ -64,7 +64,7 @@ class TColor extends Any {
       val equalR = Field[S](this0,TColor.field_R) equal Field[S](other,TColor.field_R)
       val equalG = Field[S](this0,TColor.field_G) equal Field[S](other,TColor.field_G)
       val equalB = Field[S](this0,TColor.field_B) equal Field[S](other,TColor.field_B)
-      Expr(equalA && equalR && equalG && equalB)
+      Return(equalA && equalR && equalG && equalB)
 
     /** Makes a lighter color by a delta between 0 and 1. */
     case "lighten" =>

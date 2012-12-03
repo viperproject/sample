@@ -68,7 +68,7 @@ class TVector3 extends Any {
       val disSquare = x * x + y * y + z * z
       val distance = 0 ndTo (disSquare or 1)
       // PRECISION: Imprecise square root
-      Expr(distance)
+      Return(distance)
 
     /** Gets the length of the vector */
     case "length" =>
@@ -78,7 +78,7 @@ class TVector3 extends Any {
       val lenSquare = thisX * thisX + thisY * thisY + thisZ * thisZ
       val length = 0 ndTo (lenSquare or 1)
       // PRECISION: Imprecise square root
-      Expr(length)
+      Return(length)
 
     /** Linear interpolation between two vectors */
     case "linear_interpolation" =>
@@ -126,6 +126,6 @@ class TVector3 extends Any {
 
     /** Turns the vector into a string */
     case "to_string" =>
-      Expr(valid(TString.typ))
+      Return(Valid(TString.typ))
   }
 }

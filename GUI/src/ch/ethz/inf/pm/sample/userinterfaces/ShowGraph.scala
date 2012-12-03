@@ -16,8 +16,6 @@ import tracepartitioning._
 import com.mxgraph.util.mxConstants
 import java.awt.{Color, GridLayout, Dimension, Toolkit}
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
-//import ch.ethz.inf.pm.td.domain.EnvironmentIdentifier
-
 
 private class Show extends JFrame {
 	def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
@@ -51,12 +49,21 @@ object ShowGraph extends Property {
 
 	def getLabel(): String = "Show CFG";
 
-	def check[S <: State[S]](className: Type, methodName: String, result: ControlFlowGraphExecution[S], printer: OutputCollector) = Show(result);
+	def check[S <: State[S]](className: Type, methodName: String, result: ControlFlowGraphExecution[S], printer: OutputCollector) {
+    if (result.isInstanceOf[Summaries[S]]) {
+      // If we have interprocedural summaries, we also need to check our property on these summaries
+      val all = ("Main",result) :: (for((pp,sum) <- result.asInstanceOf[Summaries[S]].summaries) yield { (pp.toString,sum) }).toList
+      Show(all)
+    } else {
+      Show(result)
+    }
+  }
 
 	def finalizeChecking(printer: OutputCollector): Unit = Unit;
 
 	def Show[S <: State[S]](a: Any): Unit = a match {
-		case graph: ControlFlowGraphExecution[S] => new ShowControlFlowGraphExecution(graph, exitOnClose)
+    case graphs: List[(String,ControlFlowGraphExecution[S])] => new ShowControlFlowGraphExecutions(graphs, exitOnClose)
+		case graph: ControlFlowGraphExecution[S] => new ShowControlFlowGraphExecutions(List(("Single Function",graph)), exitOnClose)
 		case graph: ControlFlowGraph => new Show(ShowGraph.ControlFlowGraphJGraph(graph), true, -1, -1);
 		case state: S => ShowGraph.stateToGraph(state);
 		case _ => System.out.println("I do not know how to visualize this!")
@@ -110,29 +117,36 @@ object ShowGraph extends Property {
 		else graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", l, vertixes.apply(from), vertixes.apply(to), "edgeStyle=entityRelationEdgeStyle");
 	}
 
-	private class ShowControlFlowGraphExecution[S <: State[S]] {
-		def this(g: ControlFlowGraphExecution[S], exitOnClose : Boolean) = {
-			this ()
-			val (graph, vertixes): (mxGraph, List[Object]) = ShowGraph.ControlFlowGraphExecutiontoJGraph[S](g);
-			val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
-			graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
+  private class ShowControlFlowGraphExecutions[S <: State[S]] {
+    def this(gs: List[(String,ControlFlowGraphExecution[S])], exitOnClose : Boolean) = {
+      this ()
+      val components = for((s,g) <- gs) yield {
+        val (graph, vertixes): (mxGraph, List[Object]) = ShowGraph.ControlFlowGraphExecutiontoJGraph[S](g)
+        val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
+        graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
+          override def mouseReleased(e: MouseEvent) {
+            val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
+            if (cell != null) {
+              val castedcell = cell.asInstanceOf[mxCell]
+              var i: Int = 0
+              while (i < vertixes.size) {
+                if (vertixes.apply(i) == cell)
+                  new ShowCFGBlock(g.cfg.nodes.apply(i), g.nodes.apply(i))
+                i = i + 1
+              }
+            }
+          }
+        })
+        (graphComponent,s)
+      }
 
-				override def mouseReleased(e: MouseEvent) {
-					val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
-					if (cell != null) {
-						val castedcell = cell.asInstanceOf[mxCell];
-						var i: Int = 0;
-						while (i < vertixes.size) {
-							if (vertixes.apply(i) == cell)
-								new ShowCFGBlock(g.cfg.nodes.apply(i), g.nodes.apply(i));
-							i = i + 1;
-						}
-					}
-				}
-			});
-			new Show(graphComponent, exitOnClose, -1, -1);
-		}
-	}
+      val tabbedPane = new JTabbedPane()
+      for ((component,s) <- components) {
+        tabbedPane.addTab(s, null, component, "")
+      }
+      new Show(tabbedPane, exitOnClose, -1, -1)
+    }
+  }
 
 	private class ShowCFGBlock[S <: State[S]] {
 		def this(st: List[Statement], s: List[S]) = {

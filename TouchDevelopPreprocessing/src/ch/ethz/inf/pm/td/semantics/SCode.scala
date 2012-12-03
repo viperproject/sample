@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.compiler.{MethodSummaries, TouchCompiler}
 
 /**
  * User: lucas
@@ -18,7 +18,7 @@ class SCode(compiler:TouchCompiler) extends Any {
     // TODO: ARGUMENTS AND RETURN VALUES
     compiler.getCalledMethod(method,parameters map (_.getType())) match {
       case Some(methodDef) =>
-        methodDef.forwardSemantics(state).exitState()
+        MethodSummaries.collect(pp,methodDef,state)
       case None =>
         Unimplemented[S](this0.getType().toString+"."+method)
     }

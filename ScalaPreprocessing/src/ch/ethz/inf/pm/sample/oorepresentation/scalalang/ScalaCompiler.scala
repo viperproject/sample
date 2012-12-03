@@ -82,11 +82,18 @@ class ScalaCompiler extends Compiler {
     }
   }
 
+  def getMethods(name:String): List[(ClassDefinition,MethodDeclaration)] =
+    for (clazz <- parsedclasses; method <- clazz.methods; if method.name.toString == name) yield (clazz,method)
+
   private def getClassDeclaration(t : Type) : Option[ClassDefinition] = {
     for(c <- parsedclasses)
       if(c.typ.equals(t))
         return Some(c);
     return None;
+  }
+
+  def reset() {
+    parsedclasses = Nil
   }
 	
 }

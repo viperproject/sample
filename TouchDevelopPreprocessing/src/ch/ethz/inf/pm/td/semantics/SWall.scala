@@ -27,12 +27,12 @@ class SWall extends Any {
     /** Prompts the user with ok and cancel buttons */
     case "ask_boolean" =>
       val List(text,caption) = parameters // String,String
-      Expr[S](valid(TBoolean.typ))
+      Return[S](Valid(TBoolean.typ))
 
     /** Prompts the user to input a number */
     case "ask_number" =>
       val List(text) = parameters // String
-      Expr[S](valid(TNumber.typ))
+      Return[S](Valid(TNumber.typ))
 
     /** Prompts the user to input a string */
     case "ask_string" =>

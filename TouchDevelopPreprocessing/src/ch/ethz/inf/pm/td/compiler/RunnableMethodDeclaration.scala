@@ -38,19 +38,21 @@ class RunnableMethodDeclaration(
 
   override def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
 
+    MethodSummaries.reset()
+
     var curState = state;
 
     // Global state is invalid
     // TODO: Numbers, Booleans and Strings are not initialized to invalid but to 0, false, ""
     for (v <- globalData) {
-      val variable = VariableIdentifier(v.name.getName(),v.typ,programpoint_)
+      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.name.getName()),v.typ,programpoint_)
       val leftExpr = new ExpressionSet(v.typ).add(variable)
       val rightExpr = new ExpressionSet(v.typ).add(Constant("invalid",v.typ,programpoint_))
       curState = curState.createVariable(leftExpr,v.typ,programpoint_)
       curState = curState.assignVariable(leftExpr,rightExpr)
     }
 
-    lfp(curState, {(lastExecution:ControlFlowGraphExecution[S], initialState:S) =>
+    var result = lfp(curState, {(lastExecution:ControlFlowGraphExecution[S], initialState:S) =>
 
       // TODO: Copy global state from last execution
 
@@ -60,7 +62,8 @@ class RunnableMethodDeclaration(
       lfp(execution.exitState(),{s:S =>
         var cur = s
         for (e <- events) {
-          cur = cur.lub(cur,e.forwardSemantics(s).exitState())
+          val newState = MethodSummaries.collect(e.programpoint,e,s)
+          cur = cur.lub(cur,newState)
         }
         cur
       })
@@ -69,6 +72,10 @@ class RunnableMethodDeclaration(
 
     })
 
+    val resultWithSum = new ControlFlowGraphExecution[S](result.cfg,result.state) with Summaries[S]
+    resultWithSum.summaries = MethodSummaries.getSummaries.asInstanceOf[Map[ProgramPoint,ControlFlowGraphExecution[S]]]
+
+    resultWithSum
   }
 
   /**
@@ -110,3 +117,4 @@ class RunnableMethodDeclaration(
   }
 
 }
+

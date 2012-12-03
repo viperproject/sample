@@ -26,29 +26,32 @@ abstract class Any extends RichNativeSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
-    // Check if the object or an argument can be invalid - in this case, we must produce an error
-    if (!thisExpr.getType().isStatic()) {
-      Error(thisExpr equal invalid(thisExpr.getType()), operator+": Object ("+thisExpr+") might be invalid")(state,pp)
-    }
-    for (param <- parameters) {
-      Error(param equal invalid(param.getType()), operator+": Parameter ("+param+") might be invalid")(state,pp)
-    }
+      // Implementations of standard methods that can be invoked on any kind of object, even invalids.
 
-    // Implementations of standard methods that can be invoked on any kind of object, even invalids.
+      operator match {
 
-    operator match {
+        case "post_to_wall" => Some(state) // TODO: create reference from wall to this?
+        case "∥" => Some(state) // TODO: put a valid string on the stack
+        case "is_invalid" => Some(Return[S](thisExpr equal Invalid(thisExpr.getType())(pp))(state,pp))
 
-      case "post_to_wall" => Some(state) // TODO: create reference from wall to this?
-      case "∥" => Some(state) // TODO: put a valid string on the stack
-      case "is_invalid" => Some(Expr[S](thisExpr equal invalid(thisExpr.getType()))(state,pp))
+        // Delegate to concrete implementations
+        case _ =>
 
-      // Delegate to concrete implementations
-      case _ =>
-        if (thisExpr.getType().toString() == getTypeName)
-          Some(forwardSemantics(thisExpr,operator,parameters)(pp,state))
-        else None
+          if (thisExpr.getType().toString() == getTypeName) {
 
-    }
+            // Check if the object or an argument can be invalid - in this case, we must produce an error
+            if (!thisExpr.getType().isStatic()) {
+              Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator+": Object ("+thisExpr+") might be invalid")(state,pp)
+            }
+            for (param <- parameters) {
+              Error(param equal Invalid(param.getType())(pp), operator+": Parameter ("+param+") might be invalid")(state,pp)
+            }
+
+            Some(forwardSemantics(thisExpr,operator,parameters)(pp,state))
+
+          } else None
+
+      }
 
   }
 

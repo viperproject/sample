@@ -52,26 +52,55 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     for (id <- libIDs; if (!parsedIDs.contains(id))) {
       cfgs = cfgs ::: compileFile(Scripts.codeURLfromPubID(id))
     }
+    runnableMethods = runnableMethods ++ discoverRunnableMethods(cfgs)
     cfgs
+  }
+
+  /**
+   * Every method that is not part of a library and is not private is a runnable method
+   */
+  private def discoverRunnableMethods(classes:List[ClassDefinition]): RunnableMethods = {
+
+    var a:RunnableMethods = Map.empty
+
+    for (c <- classes) {
+      val events = c.methods filter {m:MethodDeclaration => m.name.asInstanceOf[TouchMethodIdentifier].isEvent}
+      val public = c.methods filter {m:MethodDeclaration => !m.name.asInstanceOf[TouchMethodIdentifier].isPrivate}
+      val global = c.fields
+
+      val runnable = (for (m <- public) yield {
+        new RunnableMethodDeclaration(events,global,m.programpoint,m.ownerType,m.modifiers,m.name,m.parametricType,m.arguments,m.returnType,m.body,m.precond,m.postcond)
+      }).toSet
+
+      a += ((c,runnable))
+    }
+
+    a
   }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
     List(
       new SAssert(),
       new SBazaar(),
-      new TBoard(),
-      new TBoolean(),
       new SCode(this),
-      new TColor(),
       new SColors(),
       new SInvalid(),
+      new SLocations(),
       new SMath(),
+      new SMaps(),
       new SMedia(),
+      new SSenses(),
+      new SWall(),
+      new TBoard(),
+      new TBoolean(),
+      new TColor(),
+      new TDateTime(),
+      new TLocation(),
+      new TLocation_Collection(),
+      new TMap(),
       new TNumber(),
       new TPicture(),
       new TSprite(),
-      new SSenses(),
-      new SWall(),
       new TVector3()
     )
   }
@@ -98,7 +127,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   def getCalledMethod(name: String, parameters: List[Type]): Option[MethodDeclaration] = {
     val methods = parsedScripts.map(_.methods).flatten.filter
-    {x:MethodDeclaration => x.name.toString.equals(name) && x.arguments.apply(0).size==parameters.size}
+      {x:MethodDeclaration => x.name.toString.equals(name) && x.arguments.apply(0).size==parameters.size}
     if (methods.length == 1) {
       val m = methods.head
       var ok : Boolean = true
@@ -133,11 +162,24 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     }
   }
 
+  def getMethods(name:String): List[(ClassDefinition,MethodDeclaration)] =
+    for (clazz <- parsedScripts
+         if runnableMethods.contains(clazz);
+         method <- runnableMethods.get(clazz).get
+         if method.name.toString == name) yield (clazz,method)
+
   private def getClassDeclaration(t : Type) : Option[ClassDefinition] = {
     for(c <- parsedScripts)
       if(c.typ.equals(t))
         return Some(c)
     None
   }
+
+  def reset() {
+    runnableMethods = Map.empty
+    parsedIDs = Set.empty
+    parsedScripts = Nil
+  }
+
 
 }

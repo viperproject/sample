@@ -16,7 +16,7 @@ class SBazaar extends Any {
 
     /** Gets the current score for the current script */
     case "leaderboard_score" =>
-      Expr[S](Environment.leaderboardScore) // Is always valid, even if no score was ever posted (then 0)
+      Return[S](Environment.leaderboardScore) // Is always valid, even if no score was ever posted (then 0)
 
     /** Posts the current game score to the script leaderboard */
     case "post_leaderboard_score" =>

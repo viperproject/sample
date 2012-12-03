@@ -62,6 +62,6 @@ object ArrayAnalysis {
 	var entryState =new State(entrydomain, entryvalue)
 	
 	ch.ethz.inf.pm.sample.Main.verbose=false; 
-	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);
+	ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector);
   }
 }

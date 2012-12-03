@@ -84,14 +84,14 @@ class TMap extends Any {
       // TODO: Check if already posted
       // PRECISION: We could implement this
       val state1 = AssignField(this0,TMap.field_zoom,1 ndTo 21)
-      AssignField(this0,TMap.field_center,valid(TLocation.typ))(state1,pp)
+      AssignField(this0,TMap.field_center,Valid(TLocation.typ))(state1,pp)
 
     case _ =>
 
       val fieldResult =
         if(parameters.length == 0)
           TMap.typ.getPossibleFieldsSorted().find(_.getName() == method) match {
-            case Some(field) => Some(Expr[S](Field[S](this0,field.asInstanceOf[VariableIdentifier])))
+            case Some(field) => Some(Return[S](Field[S](this0,field.asInstanceOf[VariableIdentifier])))
             case None =>
               TMap.typ.getPossibleFieldsSorted().find("set_"+_.getName() == method) match {
                 case Some(field) => Some(AssignField(this0,field.asInstanceOf[VariableIdentifier],parameters.head))

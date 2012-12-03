@@ -13,7 +13,7 @@ class ShowGraphAndContractsProperty extends Property {
 	
 	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));
-	 	  ShowGraph.Show(result);
+      ShowGraph.check(className,methodName,result,printer)
 		  ConstraintsInference.addPostconditionConstraints(result.exitState().asInstanceOf[ConstraintsInference.State], className, methodName);
 		  CollectedResults.constraints=CollectedResults.constraints.union(ConstraintsInference.getConstraints());
 	  }

@@ -127,14 +127,17 @@ object SystemParameters {
 
 	private def applyNativeSemantics[S <: State[S]](invokedMethod : String, thisExpr : ExpressionSet, parametersExpr : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, state : S, programpoint : ProgramPoint, forward : Boolean) : S = {
 	  val sems=nativeMethodsSemantics
-	  var result = state.top();
 	  for(sem <- sems) {
-		  val res : Option[S] = if(forward)
-			  sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
-          else sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
-	  	  if(res.isInstanceOf[Some[S]]) result=result.glb(result, res.get);
+		  val res =
+        if(forward) sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
+        else sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
+	  	res match {
+        case Some(s) => return s
+        case None => ()
       }
-	  return result;
+    }
+    println("Type "+thisExpr.getType()+" with method "+invokedMethod+" not implemented, topping at "+programpoint);
+	  state.top()
 	}
   
 }

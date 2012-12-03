@@ -14,11 +14,11 @@ class SSenses extends Any {
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
-    case "has_accelerometer" => Expr[S](Environment.hasAccelerometer)
-    case "has_compass" => Expr[S](Environment.hasCompass)
-    case "has_front_camera" => Expr[S](Environment.hasFrontCamera)
-    case "has_gyroscope" => Expr[S](Environment.hasGyroscope)
-    case "has_motion" => Expr[S](RichExpression(Environment.hasAccelerometer) && RichExpression(Environment.hasCompass) && RichExpression(Environment.hasGyroscope))
+    case "has_accelerometer" => Return[S](Environment.hasAccelerometer)
+    case "has_compass" => Return[S](Environment.hasCompass)
+    case "has_front_camera" => Return[S](Environment.hasFrontCamera)
+    case "has_gyroscope" => Return[S](Environment.hasGyroscope)
+    case "has_motion" => Return[S](RichExpression(Environment.hasAccelerometer) && RichExpression(Environment.hasCompass) && RichExpression(Environment.hasGyroscope))
 
     case "motion" =>
       Error((RichExpression(Environment.hasAccelerometer)

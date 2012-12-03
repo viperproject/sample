@@ -118,7 +118,7 @@ object Run {
                 }
               };
             } catch {
-              case e:Exception => println("ERROR DURING ANALYSIS: "+e.getMessage())
+              case e:Exception => println("ERROR DURING ANALYSIS: "+e.toString()); e.printStackTrace()
             }
           }
         }
@@ -187,6 +187,7 @@ object Run {
       case e : FileNotFoundException =>
     }
     SystemParameters.setCompiler(this.getCompiler(splitExtension(sourceCodeFile)._2))
+    SystemParameters.compiler.reset();
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
     ch.ethz.inf.pm.sample.Main.compile(sourceCodeFile)
     val output: OutputCollector = new OutputCollector;

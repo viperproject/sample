@@ -96,7 +96,7 @@ class SColors extends Any {
 
     // Indicates if the user is using a light theme in his phone
     case "is_light_theme" =>
-      Expr(Environment.isLightTheme)
+      Return(Environment.isLightTheme)
 
     //Gets the color that has the ARGB value of #FFD3D3D3
     case "light_gray" =>

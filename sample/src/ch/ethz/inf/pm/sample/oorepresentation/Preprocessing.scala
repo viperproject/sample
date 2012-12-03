@@ -19,7 +19,10 @@ trait Compiler {
   */
 	def compileFile(path : String) : List[ClassDefinition];
 
-
+  /**
+   Returns all possible candidates for a specific method name
+    */
+  def getMethods(name:String) : List[(ClassDefinition,MethodDeclaration)];
 
   /**
    This method returns the implementation of a given method
@@ -52,4 +55,10 @@ trait Compiler {
    @return the list of the semantics definitions
   */
   def getNativeMethodsSemantics() : List[NativeMethodSemantics];
+
+  /**
+   *  Reset
+   */
+  def reset()
+
 }

@@ -12,7 +12,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
 class ApronProperty extends ch.ethz.inf.pm.sample.property.Property {
 	override def getLabel() : String = "Show graph"
 	
-	override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
+	override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit =
+    ShowGraph.check(className,methodName,result,printer)
 	  
 	override def finalizeChecking(printer : OutputCollector) : Unit = Unit
 	   
@@ -51,7 +52,7 @@ object ApronRun {
 	var entryState =new AbstractState[ApronInterface, NonRelationalHeapDomain[HeapId], HeapId](entrydomain, entryvalue)
 			      
 
-	ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);
+	ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector);
 
 	System.out.println("Semantic time: " + SystemParameters.domainTimer.totalTime);
 	

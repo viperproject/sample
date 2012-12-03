@@ -8,4 +8,4 @@ import ch.ethz.inf.pm.td.TestRunner
  * Time: 4:31 PM
  *
  */
-TestRunner.runDirectory("waller")
+TestRunner.runDirectory("recursive")

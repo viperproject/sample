@@ -75,11 +75,11 @@ class TBoard extends Any {
 
     // Clears the background camera
     case "clear_background_camera" =>
-      AssignField(this0,TBoard.field_background_camera,invalid(TCamera.typ))
+      AssignField(this0,TBoard.field_background_camera,Invalid(TCamera.typ))
 
     // Clear the background picture
     case "clear_background_picture" =>
-      AssignField(this0,TBoard.field_background_picture,invalid(TPicture.typ))
+      AssignField(this0,TBoard.field_background_picture,Invalid(TPicture.typ))
 
     // Clear all queued events related to this board
     case "clear_events" =>
@@ -189,12 +189,12 @@ class TBoard extends Any {
 
     // Final touch velocity after touch ended
     case "touch_velocity" =>
-      New(TVector3.typ,valid(TNumber.typ),valid(TNumber.typ),0)
+      New(TVector3.typ,Valid(TNumber.typ),Valid(TNumber.typ),0)
       // TODO: Can this be invalid?
 
     // True if board is touched
     case "touched" =>
-      Expr[S](0 or 1)
+      Return[S](0 or 1)
 
     // Make updates visible.
     case "update_on_wall" =>
@@ -205,7 +205,10 @@ class TBoard extends Any {
       val fieldResult =
         if(parameters.length == 0)
           TBoard.typ.getPossibleFieldsSorted().find(_.getName() == method) match {
-            case Some(field) => Some(Expr[S](Field[S](this0,field.asInstanceOf[VariableIdentifier])))
+            case Some(field) =>
+              val fieldValue = Field[S](this0,field.asInstanceOf[VariableIdentifier])
+              val stateWithExpr = Return[S](fieldValue)
+              Some(stateWithExpr)
             case None => None
           }
         else None

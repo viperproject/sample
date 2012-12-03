@@ -38,32 +38,7 @@ object ErrorReporter {
 
 trait RichNativeSemantics extends NativeMethodSemantics {
 
-  def Expr[S <: State[S]](e:Expression)(implicit state:S, pp:ProgramPoint):S = {
-    state.setExpression(toRichExpression(e))
-  }
-
-  def Field[S <: State[S]](obj:RichExpression, field:VariableIdentifier)(implicit state:S, pp:ProgramPoint):RichExpression = {
-    state.getFieldValue(List(obj),field.getName(),field.getType()).getExpression()
-  }
-
-  def exprOf[S <: State[S]](s:S):(Expression,S) = {
-    val exp = s.getExpression().setOfExpressions.head
-    (exp,s)
-  }
-
-  def invalid(typ:Type):RichExpression = {
-    RichExpression(new Constant("invalid",typ,null))
-  }
-
-  def valid(typ:Type):RichExpression = {
-    RichExpression(new Constant("valid",typ,null))
-  }
-
-  def updateState[S <: State[S]](s:S,e:ExpressionSet):ExpressionSet = {
-    val numOfExpressions = (e.setOfExpressions.size)
-    if (numOfExpressions != 1) throw new TouchException("Generic Abstract State fucked me over again!")
-    toExpressionSet(e.setOfExpressions.head)
-  }
+  /*-- Checking for errors --*/
 
   def Error[S <: State[S]](expr:RichExpression, message:String)(implicit state:S, pp:ProgramPoint) {
     if (!ErrorReporter.hasError(message,pp)) {
@@ -80,55 +55,96 @@ trait RichNativeSemantics extends NativeMethodSemantics {
     Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be less than the highest allowed value "+high+")")(s,pp)
   }
 
+  /*-- Creating objects --*/
+
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
-  def New[S <: State[S]](typ:TouchType, initials:Map[Identifier,ExpressionSet])(implicit s:S, pp:ProgramPoint): S = {
-    val (obj,state1) = exprOf(s.createObject(typ,pp))
-    //if(state1.top().lessEqual(state1)) return state1
-    var curState = state1;
+  def New[S <: State[S]](typ:TouchType, initials:Map[Identifier,RichExpression])(implicit s:S, pp:ProgramPoint): S = {
+    var curState = s.createObject(typ,pp)
+    val obj = curState.getExpression()
 
     // Assign fields with given arguments
     for (f <- typ.getPossibleFields()) {
       val a = initials.get(f) match {
-        case None => toExpressionSet(f.asInstanceOf[TouchField].default)
-        case Some(s) => s
+        case None =>
+          val tF = f.asInstanceOf[TouchField]
+          //if (tF.isSummaryNode) {
+            // Summary Nodes are always initialized to an object with all bottom
+          //  NewSummary[S](tF.touchTyp)
+          //} else {
+            tF.default
+          //}
+        case Some(st) => st
       }
-      curState = curState.assignField(List(toExpressionSet(obj)),f.getName(),updateState(curState,a))
+      curState = curState.assignField(List(obj),f.getName(),a)
     }
 
     // Make sure that our value is "valid"  now
-    curState = curState.assignVariable(toExpressionSet(obj),valid(typ))
+    curState = curState.assignVariable(obj,Valid(typ))
 
-    curState.setExpression(toExpressionSet(obj))
+    curState.setExpression(obj)
   }
 
   def New[S <: State[S]](typ:TouchType, args:RichExpression*)(implicit s:S, pp:ProgramPoint): S = {
-    New[S](typ,(typ.getPossibleFieldsSorted() zip (args map { x:RichExpression => toExpressionSet(x)} toList)).toMap)(s,pp)
+    New[S](typ,(typ.getPossibleFieldsSorted() zip args).toMap)(s,pp)
   }
 
   def New[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
-    New[S](typ,Map.empty[Identifier,ExpressionSet])(s,pp)
+    New[S](typ,Map.empty[Identifier,RichExpression])(s,pp)
   }
 
-  def Skip[S <: State[S]](implicit state:S, pp:ProgramPoint): S = state
+  /*-- Misc --*/
+
+  def Return[S <: State[S]](e:Expression)(implicit state:S, pp:ProgramPoint):S = {
+    state.setExpression(toRichExpression(e))
+  }
 
   def SetEnv[S <: State[S]](id:EnvironmentIdentifier,value:ExpressionSet)(implicit state:S, pp:ProgramPoint): S = {
     state.assignVariable(new ExpressionSet(id.typ).add(id),value)
   }
 
+  /*-- Reading and writing of fields --*/
+
   def AssignField[S <: State[S]](obj:ExpressionSet,field:Identifier,value:ExpressionSet)(implicit state:S, pp:ProgramPoint): S = {
     state.assignField(List(obj),field.getName(),value)
   }
 
-  def Top[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
-    s.setExpression(new ExpressionSet(typ).top())
+  def Field[S <: State[S]](obj:RichExpression, field:VariableIdentifier)(implicit state:S, pp:ProgramPoint):RichExpression = {
+    state.getFieldValue(List(obj),field.getName(),field.getType()).getExpression()
   }
+
+  def JoinField[S <: State[S]](thiss:RichExpression,field:TouchField,value:RichExpression)(implicit s:S, pp:ProgramPoint): S = {
+    AssignField[S](thiss,field,Field[S](thiss,field) or value)
+  }
+
+  def BottomField[S <: State[S]](thiss:RichExpression,field:TouchField)(implicit s:S, pp:ProgramPoint): S = {
+    AssignField[S](thiss,field,Bottom(field.touchTyp))
+  }
+
+  def CopyOfField[S <: State[S]](thiss:RichExpression,field:TouchField)(implicit s:S, pp:ProgramPoint): RichExpression = {
+    Field[S](thiss,field) // TODO: IMPLEMENT
+  }
+
+  /*-- Skipping --*/
+
+  def Skip[S <: State[S]](implicit state:S, pp:ProgramPoint): S = state
 
   def Unimplemented[S <: State[S]](method:String)(implicit state:S, pp:ProgramPoint): S = {
     println(method+" not implemented, unsound from now on, at "+pp)
     Skip[S]
   }
+
+  /*-- Constants --*/
+
+  def True(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("true",TBoolean.typ,pp))
+  def False(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("false",TBoolean.typ,pp))
+  def Top(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).top())
+  def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
+  def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("invalid",typ,pp))
+  def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("valid",typ,pp))
+
+  /*-- Conversion --*/
 
   implicit def toRichExpression[S <: State[S]](value:ExpressionSet) : RichExpression = {
     val numOfExpressions = (value.setOfExpressions.size)
@@ -146,9 +162,6 @@ trait RichNativeSemantics extends NativeMethodSemantics {
   implicit def toRichExpression(value:Double) : RichExpression =
     RichExpression(new Constant(value.toString,TNumber.typ,null))
 
-//  implicit def toSymbolicAbstractValue[S <: State[S]](value:RichExpression)(implicit s:S) : SymbolicAbstractValue[S] =
-//    new SymbolicAbstractValue[S](value.thisExpr,s)
-
   implicit def toRichExpression(value:Expression) : RichExpression =
     RichExpression(value)
 
@@ -158,13 +171,13 @@ trait RichNativeSemantics extends NativeMethodSemantics {
   implicit def toExpressionSet(value:RichExpression) : ExpressionSet =
     (new ExpressionSet(value.thisExpr.getType())).add(value.thisExpr)
 
-
 }
 
-class TouchField(name:String, typ:TouchType, var default: RichExpression = null) extends VariableIdentifier(name,typ,null) {
+class TouchField(name:String, val touchTyp:TouchType, var default: RichExpression = null, val isSummaryNode:Boolean = false)
+  extends VariableIdentifier(name,touchTyp,null) {
 
   if (default == null) {
-    default = RichExpression(new Constant("valid",typ,null))
+    default = RichExpression(new Constant("valid",touchTyp,null))
   }
 
 }

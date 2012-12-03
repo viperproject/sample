@@ -47,6 +47,6 @@ object ConstrianedPolyhedraApronRun {
 		var entryState =new AbstractState[ApronInterface, NonRelationalHeapDomain[HeapId], HeapId](entrydomain, entryvalue)
 				      
 	
-		ch.ethz.inf.pm.sample.Main.analyze(_ match {case _ => methods.toSet}, entryState, new OutputCollector);
+		ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector);
 	  }
 }

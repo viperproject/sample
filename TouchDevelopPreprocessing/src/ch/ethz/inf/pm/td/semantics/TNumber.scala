@@ -22,16 +22,16 @@ class TNumber extends Any {
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
-    case "≥" => Expr(this0 >= parameters.head)
-    case "≤" => Expr(this0 <= parameters.head)
-    case "=" => Expr(this0 equal parameters.head)
-    case "≠" => Expr(this0 unequal parameters.head)
-    case ">" => Expr(this0 > parameters.head)
-    case "<" => Expr(this0 < parameters.head)
-    case "+" => Expr(this0 + parameters.head)
-    case "*" => Expr(this0 * parameters.head)
-    case "-" => Expr(this0 - parameters.head)
-    case "/" => Expr(this0 / parameters.head)
+    case "≥" => Return(this0 >= parameters.head)
+    case "≤" => Return(this0 <= parameters.head)
+    case "=" => Return(this0 equal parameters.head)
+    case "≠" => Return(this0 unequal parameters.head)
+    case ">" => Return(this0 > parameters.head)
+    case "<" => Return(this0 < parameters.head)
+    case "+" => Return(this0 + parameters.head)
+    case "*" => Return(this0 * parameters.head)
+    case "-" => Return(this0 - parameters.head)
+    case "/" => Return(this0 / parameters.head)
 
     case _ =>
       Unimplemented[S](this0.getType().toString+"."+method)

@@ -19,7 +19,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
 
-
   private def idsToArrayOfStrings(set: Set[Identifier]): Array[String] = {
     var stringList = List.empty[String]
     for (v <- set) {
@@ -355,8 +354,6 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 
   override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
 
-    if(state.isBottom(domain)) return this.bottom
-
     // Create variable if it does not exist
     var newState = state
     if(! state.getEnvironment.hasVar(variable.getName())) {
@@ -431,14 +428,12 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
   		}
   		return result;
   	}
+
 	override def bottom() : ApronInterface = {
-		var st = new Abstract1(domain, state.getEnvironment(), true);//state.meetCopy(domain, new Lincons1(state.getEnvironment(), false));
-  		//if(! st.isBottom(domain)) {
-  			//st = state.meetCopy(domain, new Tcons1(state.getEnvironment(), Tcons1.EQ, new Texpr1CstNode(new DoubleScalar(1.0))));
-  			if(! st.isBottom(domain))throw new ApronException("I'm not able to create a bottom state");
-  		//}
+		var st = new Abstract1(domain, state.getEnvironment(), true);
 		new ApronInterface(st, domain);
 	}
+
 	override def lub(left : ApronInterface, right : ApronInterface) : ApronInterface =  {
 		if(left.state.isTop(domain)) return left;
 		if(right.state.isTop(domain)) return right;
@@ -582,7 +577,11 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       else new Texpr1VarNode(setId.value.iterator.next().getName());
 		case Constant(v, typ, p) =>
       if (typ.isNumericalType())
-        new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
+        v match {
+          case "true" => new Texpr1CstNode(new DoubleScalar(1))
+          case "false" => new Texpr1CstNode(new DoubleScalar(0))
+          case _ => new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
+        }
       else topExpression()
 		case BinaryArithmeticExpression(left, right, op, typ) => new Texpr1BinNode(this.convertArithmeticOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
 		case UnaryArithmeticExpression(left, op, typ) => op match {

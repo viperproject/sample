@@ -301,3 +301,9 @@ trait NativeMethodSemantics {
 	   */
 	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] ;
 }
+
+trait Summaries[S <: State[S]] {
+
+  var summaries : Map[ProgramPoint,ControlFlowGraphExecution[S]] = Map.empty
+
+}
