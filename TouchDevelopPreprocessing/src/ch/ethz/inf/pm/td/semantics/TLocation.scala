@@ -48,7 +48,8 @@ object TLocation {
 
 class TLocation extends Any {
 
-  def getTypeName = TLocation.typName
+  def getTyp = TLocation.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -71,6 +72,9 @@ class TLocation extends Any {
     case "share" =>
       val List(network,message) = parameters // String,String
       Skip
+
+    case _ =>
+      MatchFields[S](this0,parameters,getTyp,method)
 
   }
 }

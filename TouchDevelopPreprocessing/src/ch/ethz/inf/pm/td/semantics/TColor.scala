@@ -32,7 +32,8 @@ object TColor {
 
 class TColor extends Any {
 
-  def getTypeName = TColor.typName
+  def getTyp = TColor.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -87,7 +88,7 @@ class TColor extends Any {
       New[S](TColor.typ,alpha,r,g,b)
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      MatchFields[S](this0,parameters,getTyp,method)
 
   }
 }

@@ -25,7 +25,8 @@ object TMap {
 
 class TMap extends Any {
 
-  def getTypeName = TMap.typName
+  def getTyp = TMap.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -87,23 +88,7 @@ class TMap extends Any {
       AssignField(this0,TMap.field_center,Valid(TLocation.typ))(state1,pp)
 
     case _ =>
-
-      val fieldResult =
-        if(parameters.length == 0)
-          TMap.typ.getPossibleFieldsSorted().find(_.getName() == method) match {
-            case Some(field) => Some(Return[S](Field[S](this0,field.asInstanceOf[VariableIdentifier])))
-            case None =>
-              TMap.typ.getPossibleFieldsSorted().find("set_"+_.getName() == method) match {
-                case Some(field) => Some(AssignField(this0,field.asInstanceOf[VariableIdentifier],parameters.head))
-                case None => None
-              }
-          }
-        else None
-
-      fieldResult match {
-        case Some(res) => res
-        case None => Unimplemented[S](this0.getType().toString+"."+method)
-      }
+      MatchFields[S](this0,parameters,getTyp,method)
 
   }
 }

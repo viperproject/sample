@@ -84,6 +84,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       new SBazaar(),
       new SCode(this),
       new SColors(),
+      new SCollections(),
       new SInvalid(),
       new SLocations(),
       new SMath(),
@@ -101,6 +102,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       new TNumber(),
       new TPicture(),
       new TSprite(),
+      new TTile(),
       new TVector3()
     )
   }

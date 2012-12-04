@@ -24,7 +24,8 @@ object TVector3 {
 
 class TVector3 extends Any {
 
-  def getTypeName = TVector3.typName
+  def getTyp = TVector3.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -127,5 +128,8 @@ class TVector3 extends Any {
     /** Turns the vector into a string */
     case "to_string" =>
       Return(Valid(TString.typ))
+
+    case _ =>
+      MatchFields[S](this0,parameters,getTyp,method)
   }
 }

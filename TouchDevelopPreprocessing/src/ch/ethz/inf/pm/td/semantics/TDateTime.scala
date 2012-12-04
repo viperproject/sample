@@ -18,7 +18,8 @@ object TDateTime {
 
 class TDateTime extends Any {
 
-  def getTypeName = TDateTime.typName
+  def getTyp = TDateTime.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -153,7 +154,7 @@ class TDateTime extends Any {
       New[S](TNumber.typ) // TODO
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      MatchFields[S](this0,parameters,getTyp,method)
 
   }
 }

@@ -59,7 +59,8 @@ object TSprite {
 
 class TSprite extends Any {
 
-  def getTypeName = TSprite.typName
+  def getTyp = TSprite.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -227,6 +228,9 @@ class TSprite extends Any {
     case "speed_towards" =>
       val List(other,magnitude) = parameters // Sprite,Number
       Skip; // TODO
+
+    case _ =>
+      MatchFields[S](this0,parameters,getTyp,method)
 
   }
 }

@@ -17,14 +17,15 @@ object TLocation_Collection {
   /** collection elements abstracted by a single element */
   val field_elem = new TouchField("elem", TLocation.typ, isSummaryNode = true)
 
-  val typName = "Location Collection"
+  val typName = "Location_Collection"
   val typ = TouchType(typName,isSingleton = false,List(field_count,field_elem))
 
 }
 
 class TLocation_Collection extends Any {
 
-  def getTypeName = TLocation_Collection.typName
+  def getTyp = TLocation_Collection.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -93,22 +94,7 @@ class TLocation_Collection extends Any {
       Skip // Sorting is invariant for (size,elem) abstraction
 
     case _ =>
-
-      val fieldResult =
-        if(parameters.length == 0)
-          TBoard.typ.getPossibleFieldsSorted().find(_.getName() == method) match {
-            case Some(field) =>
-              val fieldValue = Field[S](this0,field.asInstanceOf[VariableIdentifier])
-              val stateWithExpr = Return[S](fieldValue)
-              Some(stateWithExpr)
-            case None => None
-          }
-        else None
-
-      fieldResult match {
-        case Some(res) => res
-        case None => Unimplemented[S](this0.getType().toString+"."+method)
-      }
+      MatchFields[S](this0,parameters,getTyp,method)
 
   }
 }

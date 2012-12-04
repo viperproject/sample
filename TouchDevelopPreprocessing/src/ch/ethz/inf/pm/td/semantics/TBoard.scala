@@ -63,7 +63,8 @@ object TBoard {
 
 class TBoard extends Any {
 
-  def getTypeName = TBoard.typName
+  def getTyp = TBoard.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -201,22 +202,7 @@ class TBoard extends Any {
       state // TODO: Check if reference exists in wall?
 
     case _ =>
-
-      val fieldResult =
-        if(parameters.length == 0)
-          TBoard.typ.getPossibleFieldsSorted().find(_.getName() == method) match {
-            case Some(field) =>
-              val fieldValue = Field[S](this0,field.asInstanceOf[VariableIdentifier])
-              val stateWithExpr = Return[S](fieldValue)
-              Some(stateWithExpr)
-            case None => None
-          }
-        else None
-
-      fieldResult match {
-        case Some(res) => res
-        case None => Unimplemented[S](this0.getType().toString+"."+method)
-      }
+      MatchFields[S](this0,parameters,getTyp,method)
 
   }
 

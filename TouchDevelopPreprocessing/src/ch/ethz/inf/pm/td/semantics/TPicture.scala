@@ -21,7 +21,8 @@ object TPicture {
 
 class TPicture extends Any {
 
-  def getTypeName = TPicture.typName
+  def getTyp = TPicture.typ
+  def getTypeName = getTyp.name
 
   def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -52,8 +53,7 @@ class TPicture extends Any {
       Skip // TODO: Update environment, store reference?
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
-
+      MatchFields[S](this0,parameters,getTyp,method)
   }
 
 }

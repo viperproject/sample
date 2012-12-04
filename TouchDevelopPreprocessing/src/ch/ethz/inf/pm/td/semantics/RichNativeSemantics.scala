@@ -135,6 +135,27 @@ trait RichNativeSemantics extends NativeMethodSemantics {
     Skip[S]
   }
 
+  def MatchFields[S <: State[S]](this0: RichExpression, parameters:List[ExpressionSet], typ:TouchType, method:String)(implicit state:S, pp:ProgramPoint): S = {
+
+    val fieldResult =
+      if(parameters.length == 0)
+        typ.getPossibleFieldsSorted().find(_.getName() == method) match {
+          case Some(field) =>
+            val fieldValue = Field[S](this0,field.asInstanceOf[VariableIdentifier])
+            val stateWithExpr = Return[S](fieldValue)
+            Some(stateWithExpr)
+          case None => None
+        }
+      else None
+
+    fieldResult match {
+      case Some(res) => res
+      case None => Unimplemented[S](typ.toString+"."+method)
+    }
+
+  }
+
+
   /*-- Constants --*/
 
   def True(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("true",TBoolean.typ,pp))
