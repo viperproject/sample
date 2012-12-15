@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  *
@@ -13,11 +14,19 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * Date: 11/8/12
  * Time: 6:53 PM
  */
-class SWall extends Any {
 
-  def getTypeName = "wall"
+object SWall {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  val typName = "wall"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SWall extends AAny {
+
+  def getTyp = SWall.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Add a new button. icon must be the name of a built-in icon, text must be non-empty. */
     case "add_button" =>
@@ -141,5 +150,7 @@ class SWall extends Any {
       val List(m11,m12,m21,m22,offsetx,offsety) = parameters // Number,Number,Number,Number,Number,Number
       Skip; // TODO
 
+    case _ =>
+      super.forwardSemantics(this0,method,parameters)
   }
 }

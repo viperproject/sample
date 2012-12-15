@@ -24,7 +24,7 @@ object InterferenceInference {
              if(e.isInstanceOf[HeapIdSetDomain[I]])
                assignedids ++= e.asInstanceOf[HeapIdSetDomain[I]].value
            if(! assignedids.isEmpty)
-             result = add(result, statement.getPC(), assignedids, cfgex.nodes.apply(i).apply(indexstatement + 1).asInstanceOf[AbstractState[FlowSensitivePartitioning[V], _, _]].getSemanticDomain())
+             result = add(result, statement.getPC(), assignedids, cfgex.nodes.apply(i).apply(indexstatement + 1).asInstanceOf[AbstractState[FlowSensitivePartitioning[V], _, _]].getSemanticDomain)
          }
        }
      }

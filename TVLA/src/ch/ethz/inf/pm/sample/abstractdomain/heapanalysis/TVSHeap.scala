@@ -559,6 +559,12 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def getArrayLength(arrayIdentifier: Assignable) = throw new NotImplementedException("not implemented yet")
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
         typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
+  def createCollection[S <: SemanticDomain[S]](collTyp : Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, state:S) = throw new NotImplementedException("not implemented yet")
+  def assignCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S)= throw new NotImplementedException("not implemented yet")
+  def insertCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S)= throw new NotImplementedException("not implemented yet")
+  def removeCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S)= throw new NotImplementedException("not implemented yet")
+  def getCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S)= throw new NotImplementedException("not implemented yet")
+  def getCollectionLength[S <: SemanticDomain[S]](collection: Assignable, state:S) = throw new NotImplementedException("not implemented yet")
 
   // methods required by Analysis trait
   override def reset() {}

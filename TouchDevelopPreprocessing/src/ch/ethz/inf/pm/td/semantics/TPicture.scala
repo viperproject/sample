@@ -19,12 +19,11 @@ object TPicture {
 
 }
 
-class TPicture extends Any {
+class TPicture extends AAny {
 
   def getTyp = TPicture.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     case "set_pixel" =>
       val List(x,y,color) = parameters
@@ -53,7 +52,7 @@ class TPicture extends Any {
       Skip // TODO: Update environment, store reference?
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
   }
 
 }

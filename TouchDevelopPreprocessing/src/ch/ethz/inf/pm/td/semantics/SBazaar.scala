@@ -2,17 +2,26 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * User: lucas
  * Date: 11/22/12
  * Time: 1:17 PM
  */
-class SBazaar extends Any {
 
-  def getTypeName = "bazaar"
+object SBazaar {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  val typName = "bazaar"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SBazaar extends AAny {
+
+  def getTyp = SBazaar.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets the current score for the current script */
     case "leaderboard_score" =>
@@ -28,7 +37,7 @@ class SBazaar extends Any {
       Skip
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

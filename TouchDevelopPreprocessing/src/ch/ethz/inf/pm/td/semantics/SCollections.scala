@@ -2,17 +2,26 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * User: lucas
  * Date: 12/3/12
  * Time: 3:20 PM
  */
-class SCollections extends Any {
 
-  def getTypeName = "collections"
+object SCollections {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  val typName = "collections"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SCollections extends AAny {
+
+  def getTyp = SCollections.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Creates an empty link collection */
     //case "create_link_collection" =>
@@ -20,7 +29,7 @@ class SCollections extends Any {
 
     /** Creates an empty location collection */
     case "create_location_collection" =>
-      New[S](TLocation_Collection.typ) // TODO
+      New[S](TLocation_Collection.typ)
 
     /** Creates an empty message collection */
     //case "create_message_collection" =>
@@ -47,7 +56,7 @@ class SCollections extends Any {
     //  New[S](TString_Map.typ) // TODO
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      super.forwardSemantics(this0,method,parameters)
 
 
   }

@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -45,7 +45,7 @@ object TBoard {
   /** String name of the type */
   val typName = "Board"
 
-  val typ = TouchType(typName,isSingleton=false,List(
+  val typ = TouchCollection(typName,TNumber.typ,TSprite.typ,List(
     field_width,
     field_height,
     field_abstract_sprite,
@@ -61,18 +61,11 @@ object TBoard {
 
 }
 
-class TBoard extends Any {
+class TBoard extends ACollection {
 
   def getTyp = TBoard.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
-
-    // Gets the sprite indexed by i
-    case "at" =>
-      val List(i) = parameters
-      // "Sprite"
-      Skip
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     // Clears the background camera
     case "clear_background_camera" =>
@@ -85,9 +78,6 @@ class TBoard extends Any {
     // Clear all queued events related to this board
     case "clear_events" =>
       Skip
-
-    // Gets the sprite count (THIS IS A FIELD)
-    // case "count" => "Number"
 
     // Create an anchor sprite.
     case "create_anchor" =>
@@ -202,7 +192,7 @@ class TBoard extends Any {
       state // TODO: Check if reference exists in wall?
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 

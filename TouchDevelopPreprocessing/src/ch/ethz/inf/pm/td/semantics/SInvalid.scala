@@ -2,17 +2,26 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * User: lucas
  * Date: 11/8/12
  * Time: 6:53 PM
  */
-class SInvalid extends Any {
 
-  def getTypeName = "invalid"
+object SInvalid {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  val typName = "invalid"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SInvalid extends AAny {
+
+  def getTyp = SInvalid.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     //case "appointment" => Expr(invalid(Appointment.typ)) 	    	                                                                    // Creates an invalid Appointment instance
     //case "appointment_collection" => Expr(invalid(Appointment_Collection.typ)) 	     	                                              // Creates an invalid Appointment Collection instance
@@ -74,7 +83,7 @@ class SInvalid extends Any {
     //case "xml_object" => Expr(invalid(Xml_Object.typ)) 	    	                                                                      // Creates an invalid Xml Object instance
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 

@@ -176,7 +176,7 @@ object ShowGraph extends Property {
 		def this(state: AbstractState[N, H, I]) = {
 			this ()
 
-			val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.nonRelationalHeapStateToGraph[I, N](state.getHeapDomain().asInstanceOf[NonRelationalHeapDomain[I]], state.getSemanticDomain());
+			val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.nonRelationalHeapStateToGraph[I, N](state.getHeapDomain.asInstanceOf[NonRelationalHeapDomain[I]], state.getSemanticDomain);
 			val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
 			graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
 
@@ -687,7 +687,7 @@ object ShowGraph extends Property {
 	}
 
 	private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: AbstractState[N, H, I]) = state match {
-		case _ if state.getHeapDomain().isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[AbstractState[N, H, I]])
+		case _ if state.getHeapDomain.isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[AbstractState[N, H, I]])
 		//case _ if state.getHeap().isInstanceOf[ArrayHeapDomain] => new ShowArrayAnalysisHeapState(state.asInstanceOf[GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID]], false, null)
     //case _ if state.getHeap().isInstanceOf[TVSHeap] => new ShowTVSHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
 		case _ => new Show(stateToString(state), false, -1, -1);

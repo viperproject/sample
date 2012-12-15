@@ -7,7 +7,7 @@ import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.td.compiler.{TouchException, TouchType}
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchException, TouchType}
 import collection.immutable.Range.Inclusive
 
 /**
@@ -52,16 +52,19 @@ trait RichNativeSemantics extends NativeMethodSemantics {
 
   def CheckInRangeInclusive[S <: State[S]](expr:RichExpression, low:RichExpression, high:RichExpression, method:String, parameter:String)(implicit s:S, pp:ProgramPoint) {
     Error(expr < low,method+": Parameter "+parameter+" ("+expr+") may be less than the lowest allowed value ("+low+")")(s,pp)
-    Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be less than the highest allowed value "+high+")")(s,pp)
+    Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be greater than the highest allowed value "+high+")")(s,pp)
   }
-
-  /*-- Creating objects --*/
-
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
   def New[S <: State[S]](typ:TouchType, initials:Map[Identifier,RichExpression])(implicit s:S, pp:ProgramPoint): S = {
-    var curState = s.createObject(typ,pp)
+
+    var curState = typ match {
+      case col:TouchCollection =>
+        s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp)
+      case _ =>
+        s.createObject(typ,pp)
+    }
     val obj = curState.getExpression()
 
     // Assign fields with given arguments
@@ -70,8 +73,7 @@ trait RichNativeSemantics extends NativeMethodSemantics {
         case None =>
           val tF = f.asInstanceOf[TouchField]
           //if (tF.isSummaryNode) {
-            // Summary Nodes are always initialized to an object with all bottom
-          //  NewSummary[S](tF.touchTyp)
+          //
           //} else {
             tF.default
           //}
@@ -94,10 +96,32 @@ trait RichNativeSemantics extends NativeMethodSemantics {
     New[S](typ,Map.empty[Identifier,RichExpression])(s,pp)
   }
 
+  /*-- Collections --*/
+
+  def CollectionSize[S <: State[S]](collection:ExpressionSet)(implicit state:S, pp:ProgramPoint):ExpressionSet = {
+    state.getCollectionLength(collection).getExpression()
+  }
+
+  def CollectionAt[S <: State[S]](collection:ExpressionSet,index:ExpressionSet)(implicit state:S, pp:ProgramPoint):ExpressionSet = {
+    state.getCollectionCell(collection,index).getExpression()
+  }
+
+  def CollectionInsert[S <: State[S]](collection:ExpressionSet, index:ExpressionSet, right:ExpressionSet)(implicit state:S, pp:ProgramPoint):S = {
+    state.insertCollectionCell(collection,index,right)
+  }
+
+  def CollectionUpdate[S <: State[S]](collection:ExpressionSet, index:ExpressionSet, right:ExpressionSet)(implicit state:S, pp:ProgramPoint):S = {
+    state.assignCollectionCell(collection,index,right)
+  }
+
+  def CollectionRemove[S <: State[S]](collection:ExpressionSet, index:ExpressionSet)(implicit state:S, pp:ProgramPoint):S = {
+    state.removeCollectionCell(collection,index)
+  }
+
   /*-- Misc --*/
 
-  def Return[S <: State[S]](e:Expression)(implicit state:S, pp:ProgramPoint):S = {
-    state.setExpression(toRichExpression(e))
+  def Return[S <: State[S]](e:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
+    state.setExpression(e)
   }
 
   def SetEnv[S <: State[S]](id:EnvironmentIdentifier,value:ExpressionSet)(implicit state:S, pp:ProgramPoint): S = {
@@ -115,7 +139,12 @@ trait RichNativeSemantics extends NativeMethodSemantics {
   }
 
   def JoinField[S <: State[S]](thiss:RichExpression,field:TouchField,value:RichExpression)(implicit s:S, pp:ProgramPoint): S = {
-    AssignField[S](thiss,field,Field[S](thiss,field) or value)
+    if (field.isSummaryNode) {
+      // Assignment is weak!
+      AssignField[S](thiss,field,Field[S](thiss,field) or value)
+    } else {
+      throw new TouchException("Join field is only implemented for summary nodes");
+    }
   }
 
   def BottomField[S <: State[S]](thiss:RichExpression,field:TouchField)(implicit s:S, pp:ProgramPoint): S = {
@@ -139,12 +168,20 @@ trait RichNativeSemantics extends NativeMethodSemantics {
 
     val fieldResult =
       if(parameters.length == 0)
-        typ.getPossibleFieldsSorted().find(_.getName() == method) match {
+        // Getters
+        typ.getPossibleFieldsSorted().find(_.getName() == method ) match {
           case Some(field) =>
             val fieldValue = Field[S](this0,field.asInstanceOf[VariableIdentifier])
             val stateWithExpr = Return[S](fieldValue)
             Some(stateWithExpr)
           case None => None
+        }
+      else if (parameters.length == 1)
+        // Setters
+        typ.getPossibleFieldsSorted().find("set_"+_.getName() == method ) match {
+          case Some(field) =>
+            Some(AssignField[S](this0,field,parameters.head))
+          case None =>  None
         }
       else None
 
@@ -204,6 +241,8 @@ class TouchField(name:String, val touchTyp:TouchType, var default: RichExpressio
 }
 
 case class RichExpression(thisExpr : Expression) {
+
+  override def toString:String = thisExpr.toString()
 
   implicit def toExpression(value:RichExpression) : Expression =
     value.thisExpr

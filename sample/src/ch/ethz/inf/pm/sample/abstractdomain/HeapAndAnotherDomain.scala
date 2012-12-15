@@ -24,8 +24,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   type T = HeapAndAnotherDomain[N, H, I];
 
-  def _1() = d1;
-  def _2() = d2;
+  def _1 = d1;
+  def _2 = d2;
 
   def merge(r : Replacement) : T = if(r.isEmpty) return this; else throw new SemanticException("Merge not yet implemented");
   
@@ -150,7 +150,42 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result
   }
 
- def setArgument(variable : Assignable, expr : Expression) : T= {
+
+  /**
+  Assign a cell of an collection
+
+  @param collection The object on which the collection assignment
+  @param index The assigned index
+  @param right The assigned expression
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def assignCollectionCell(collection: Assignable, index: Expression, right: Expression): T = {
+    val result: T = this.factory()
+    SystemParameters.heapTimer.start()
+    val (h2, r2) = d2.assignCollectionCell(collection, index, right, d1)
+    val (id, h, r1) = h2.getCollectionCell(collection, index, r2)
+    val (h3, r3) = h.endOfAssignment()
+    result.d2 = h3
+    result.d1 = r2.merge(r3)
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
+    var newd1: Option[N] = None
+    if (id.isTop)
+      newd1 = Some(result.d1.top())
+    else
+      for (singleheapid <- id.value) {
+        if (newd1 == None)
+          newd1 = Some(result.d1.assign(singleheapid, right))
+        else newd1 = Some(id.combinator(newd1.get, result.d1.assign(singleheapid, right)))
+      }
+    if (newd1 != None)
+      result.d1 = newd1.get //throw new SemanticException("You should assign to something")
+    else result.d1 = result.d1
+    SystemParameters.domainTimer.stop()
+    result
+  }
+
+  def setArgument(variable : Assignable, expr : Expression) : T= {
     val result : T = this.factory();
     SystemParameters.heapTimer.start();
     val (d, r) =d2.setArgument(variable, expr)

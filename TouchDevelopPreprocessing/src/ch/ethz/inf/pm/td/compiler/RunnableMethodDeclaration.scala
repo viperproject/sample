@@ -40,7 +40,7 @@ class RunnableMethodDeclaration(
 
     MethodSummaries.reset()
 
-    var curState = state;
+    var curState = state
 
     // Global state is invalid
     // TODO: Numbers, Booleans and Strings are not initialized to invalid but to 0, false, ""

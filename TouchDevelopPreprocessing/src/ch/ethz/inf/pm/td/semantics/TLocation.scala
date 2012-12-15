@@ -46,13 +46,11 @@ object TLocation {
 
 }
 
-class TLocation extends Any {
+class TLocation extends AAny {
 
   def getTyp = TLocation.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
-
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Calculates the distance in meters */
     case "distance" =>
@@ -74,7 +72,7 @@ class TLocation extends Any {
       Skip
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

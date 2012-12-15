@@ -46,5 +46,9 @@ class ClassHeapIdentifier(val value : Type, pp : ProgramPoint) extends NonRelati
   override def getArrayLength(array : Assignable) = throw new SemanticException("Not yet supported")
   override def hashCode() : Int = 1;
   override def toString() : String = return this.getName();
+
+  override def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, pp:ProgramPoint) = throw new SemanticException("Not yet supported")
+  override def getCollectionCell(collection: Assignable, index:Expression) = throw new SemanticException("Not yet supported")
+  override def getCollectionLength(collection: Assignable) = throw new SemanticException("Not yet supported")
 }
  

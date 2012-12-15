@@ -242,6 +242,64 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    */
   def getIds() : scala.collection.Set[Identifier]
 
+  /**
+  Create a collection (set, map, list...)
+
+  @param collTyp The type of the collection
+  @param keyTyp The type of the key
+  @param valueTyp The type of the value
+  @param lengthTyp The type of the length of a collection (integer/ number)
+  @param tpp The program point of creation
+  @return The abstract state after the creation of the collection
+    */
+  def createCollection[S <: SemanticDomain[S]](collTyp : Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, state:S): (HeapIdSetDomain[I], T, S)
+
+  /**
+  Assign a cell of an collection
+
+  @param collection The object on which the collection assignment
+  @param index The assigned index
+  @param right The assigned expression
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def assignCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S): (T, S)
+
+  /**
+  Insert a cell of an collection at the given index
+
+  @param collection The object on which the collection assignment
+  @param index The assigned index
+  @param right The assigned expression
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def insertCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S): (T, S)
+
+  /**
+  Remove a cell of an collection
+
+  @param collection The object on which the collection assignment
+  @param index The assigned index
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def removeCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S): (T, S)
+
+  /**
+  Accesses a cell of a collection
+
+  @param collection The collection on which the cell access is performed
+  @param index The index(key) of the access.
+  @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
+    */
+  def getCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S): (HeapIdSetDomain[I], T, S)
+
+  /**
+  Returns the identifier representing the length of the given collection
+
+   @param collection The collection from which we want to access the length
+   @return A state that contains as expression the symbolic representation of the length of the given collection
+    */
+  def getCollectionLength[S <: SemanticDomain[S]](collection: Assignable, state:S): (HeapIdSetDomain[I], T, S)
+
 }
 
 trait Assignable {

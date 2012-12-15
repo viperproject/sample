@@ -2,17 +2,26 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * User: lucas
  * Date: 11/8/12
  * Time: 6:53 PM
  */
-class SAssert extends Any {
 
-  def getTypeName = "assert"
+object SAssert {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  val typName = "assert"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SAssert extends AAny {
+
+  def getTyp = SAssert.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Break if the given assertion does not hold */
     case "is_true" =>
@@ -25,7 +34,7 @@ class SAssert extends Any {
       Skip
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 

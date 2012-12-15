@@ -2,17 +2,26 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * User: lucas
  * Date: 11/8/12
  * Time: 6:53 PM
  */
-class SMath extends Any {
 
-  def getTypeName = "math"
+object SMath {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  val typName = "math"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SMath extends AAny {
+
+  def getTyp = SMath.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Returns the negative infinity */
     case "∞₋" =>
@@ -218,7 +227,7 @@ class SMath extends Any {
       Return[S](toRichExpression(3.14159)) // TODO: PRECISION?
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

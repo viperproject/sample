@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.td._
 import parser.{MetaStatement, TypeName, ExpressionStatement}
 import util.parsing.input.Position
-import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
 
 /**
  *
@@ -40,7 +40,10 @@ object CFGGenerator {
       dec match {
         case v@parser.VariableDefinition(variable,flags) =>
           val programPoint : ProgramPoint = TouchProgramPoint(v.pos)
-          val modifiers : List[Modifier] = Nil
+          val modifiers : List[Modifier] = (flags flatMap {
+            case ("is\\_resource",true) => Some(ResourceModifier)
+            case _ => None
+          }).toList
           val name : Variable = parameterToVariable(variable)
           val typ : Type = typeNameToType(variable.typeName)
           val right : Statement = null
@@ -268,3 +271,17 @@ case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Iden
   def getArrayElementsType() = None
 
 }
+
+case class TouchCollection(override val name:String,keyType:TouchType,valueType:TouchType, override val fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
+
+  def getValueType = valueType
+  def getKeyType = keyType
+
+}
+
+
+/**
+ * The resource modifier marks any field of a class that represents a preloaded artwork,
+ * mostly images loaded from URLs.
+ */
+case object ResourceModifier extends Modifier

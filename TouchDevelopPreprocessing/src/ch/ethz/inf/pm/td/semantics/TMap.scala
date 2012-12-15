@@ -23,12 +23,11 @@ object TMap {
 
 }
 
-class TMap extends Any {
+class TMap extends AAny {
 
   def getTyp = TMap.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Adds a polyline that passes through various geocoordinates */
     case "add_line" =>
@@ -88,7 +87,7 @@ class TMap extends Any {
       AssignField(this0,TMap.field_center,Valid(TLocation.typ))(state1,pp)
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

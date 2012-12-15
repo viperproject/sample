@@ -2,13 +2,14 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * User: Lucas Brutschy
  * Date: 11/8/12
  * Time: 5:36 PM
  */
-abstract class Any extends RichNativeSemantics {
+abstract class AAny extends RichNativeSemantics {
 
   /**
    * Backward semantics are empty for all native function for now
@@ -26,39 +27,37 @@ abstract class Any extends RichNativeSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
-      // Implementations of standard methods that can be invoked on any kind of object, even invalids.
+      if (thisExpr.getType().toString() == getTypeName) {
 
-      operator match {
-
-        case "post_to_wall" => Some(state) // TODO: create reference from wall to this?
-        case "∥" => Some(state) // TODO: put a valid string on the stack
-        case "is_invalid" => Some(Return[S](thisExpr equal Invalid(thisExpr.getType())(pp))(state,pp))
-
-        // Delegate to concrete implementations
-        case _ =>
-
-          if (thisExpr.getType().toString() == getTypeName) {
-
-            // Check if the object or an argument can be invalid - in this case, we must produce an error
-            if (!thisExpr.getType().isStatic()) {
+        // Check if the object or an argument can be invalid - in this case, we must produce an error
+        if(operator != "is_invalid") {
+          if (!thisExpr.getType().isStatic()) {
+            if (thisExpr.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
               Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator+": Object ("+thisExpr+") might be invalid")(state,pp)
             }
-            for (param <- parameters) {
+          }
+          for (param <- parameters) {
+            if (param.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
               Error(param equal Invalid(param.getType())(pp), operator+": Parameter ("+param+") might be invalid")(state,pp)
             }
+          }
+        }
 
-            Some(forwardSemantics(thisExpr,operator,parameters)(pp,state))
+        Some(forwardSemantics(thisExpr,operator,parameters)(pp,state))
 
-          } else None
-
-      }
+      } else None
 
   }
 
   /**
    * The string name of the current type
    */
-  def getTypeName:String
+  def getTypeName = getTyp.getName
+
+  /**
+   * The current type
+   */
+  def getTyp:TouchType
 
   /**
    * Implements forward semantics
@@ -69,6 +68,21 @@ abstract class Any extends RichNativeSemantics {
    * @param state // state after evaluation of the parameters
    * @return // state after evaluation of the method / operator
    */
-  def forwardSemantics[S <: State[S]](thisExpr:ExpressionSet,method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S
+  def forwardSemantics[S <: State[S]](this0:ExpressionSet,method:String,parameters:List[ExpressionSet])
+                                     (implicit pp:ProgramPoint,state:S):S = method match {
+
+    case "post_to_wall" =>
+      Skip // TODO: create reference from wall to this?
+
+    case "∥" =>
+      Return[S](Valid(TString.typ)(pp))(state,pp)
+
+    case "is_invalid" =>
+      Return[S](this0 equal Invalid(this0.getType())(pp))(state,pp)
+
+    case _ =>
+      MatchFields[S](this0,parameters,getTyp,method)
+
+  }
 
 }

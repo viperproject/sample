@@ -15,6 +15,7 @@ package ch.ethz.inf.pm.sample.tracepartitioning
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
+import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 
 /**
@@ -519,6 +520,29 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 		map(_.removeExpression)
   }
 
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
+  def getCollectionLength(collectionSet: ExpressionSet): PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
 
   /**
    * Maps a function transforming a leaf state and applies it to all leaves of

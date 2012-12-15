@@ -57,12 +57,11 @@ object TSprite {
 
 }
 
-class TSprite extends Any {
+class TSprite extends AAny {
 
   def getTyp = TSprite.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Delete sprite. */
     case "delete" =>
@@ -230,7 +229,7 @@ class TSprite extends Any {
       Skip; // TODO
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

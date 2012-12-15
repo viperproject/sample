@@ -583,7 +583,8 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
           case _ => new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
         }
       else topExpression()
-		case BinaryArithmeticExpression(left, right, op, typ) => new Texpr1BinNode(this.convertArithmeticOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
+    case BinaryArithmeticExpression(left, right, op, typ) =>
+      new Texpr1BinNode(this.convertArithmeticOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
 		case UnaryArithmeticExpression(left, op, typ) => op match {
 			case ArithmeticOperator.- => new Texpr1UnNode(Texpr1UnNode.OP_NEG, this.toTexpr1Node(left))
 		}

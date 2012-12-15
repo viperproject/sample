@@ -222,7 +222,6 @@ trait State[S <: State[S]] extends Lattice[S] {
    */
   def getFieldValue(obj : List[ExpressionSet], field : String, typ : Type) : S
 
-
    /**
    Accesses a field of an object
 
@@ -232,7 +231,6 @@ trait State[S <: State[S]] extends Lattice[S] {
    @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
    */
   def getArrayCell(obj : ExpressionSet, index : ExpressionSet, typ : Type) : S
-
 
   /**
    Returns the identifier representing the length of the given array
@@ -322,6 +320,64 @@ trait State[S <: State[S]] extends Lattice[S] {
    @return The abstract state after removing the current expression
    */
   def removeExpression() : S
+
+  /**
+  Create a collection (set, map, list...)
+
+  @param collTyp The type of the collection
+  @param keyTyp The type of the key
+  @param valueTyp The type of the value
+  @param lengthTyp The type of the length (integer/number)
+  @param tpp The program point of creation
+  @return The abstract state after the creation of the collection
+    */
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type,  tpp: ProgramPoint) : S
+
+  /**
+  Assign a cell of an collection
+
+  @param collectionSet The set of collection expressions
+  @param keySet The set of key expressions
+  @param rightSet The set of values
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet) : S
+
+  /**
+  Insert a cell of an collection at the given index
+
+  @param collectionSet The set of collection expressions
+  @param keySet The set of key expressions
+  @param rightSet The set of values
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet) : S
+
+  /**
+  Remove a cell of an collection
+
+  @param collectionSet The set of collection expressions
+  @param keySet The set of key expressions
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): S
+
+  /**
+  Accesses a cell of a collection
+
+  @param collectionSet The set of collection expressions
+  @param keySet The set of key expressions
+  @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
+    */
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet) : S
+
+  /**
+  Returns the identifier representing the length of the given collection
+   @param collectionSet The collection from which we want to access the length
+  @return A state that contains as expression the symbolic representation of the length of the given collection
+    */
+  def getCollectionLength(collectionSet: ExpressionSet) : S
+
 
 }
 

@@ -16,12 +16,11 @@ object TNumber {
 
 }
 
-class TNumber extends Any {
+class TNumber extends AAny {
 
   def getTyp = TNumber.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     case "≥" => Return(this0 >= parameters.head)
     case "≤" => Return(this0 <= parameters.head)
@@ -35,7 +34,7 @@ class TNumber extends Any {
     case "/" => Return(this0 / parameters.head)
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 

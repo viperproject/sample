@@ -106,55 +106,94 @@ for ((thing,help,url) <- fetchMainInfo("https://www.touchdevelop.com/help/api"))
   val fullURL = "https://www.touchdevelop.com"+ " ".r.replaceAllIn(url,"%20") // url encoding for stupids because the library is broken
   val subInfo = fetchSubInfo(fullURL)
 
+  println(
+    """
+      |package ch.ethz.inf.pm.td.semantics
+      |
+      |import ch.ethz.inf.pm.td.compiler.TouchType
+      |import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+      |import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+      |
+      |/**
+      | * Specifies the abstract semantics of XXX
+      | *
+      | * YYY
+      | *
+      | * @author Lucas Brutschy
+      | */ """.stripMargin.replace("XXX",thing).replace("YYY",help)
+  )
+
+
   if (thing.charAt(0).isUpper) {
     println(
       """
         |object TXXX {
         |
-        |  val typName = "XXX"
+        |  val typName = "YYY"
         |  val typ = TouchType(typName,isSingleton = false,List())
         |
         |}
         |
-        |class TXXX extends Any {
+        |class TXXX extends AAny {
         |
-        |  def getTypeName = TXXX.typName
+        |  def getTyp = TXXX.typ
         |
-        |  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
-      """.stripMargin.replace("XXX",thing))
+        |  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+        |                                     (implicit pp:ProgramPoint,state:S):S = method match {
+      """.stripMargin.replace("XXX",thing.replace(" ","_")).replace("YYY",thing))
   } else {
     println(
       """
-        |class SXXX extends Any {
+        |object SXXX {
         |
-        |  def getTypeName = "YYY"
+        |  val typName = "YYY"
+        |  val typ = TouchType(typName,isSingleton = true,List())
         |
-        |  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
-      """.stripMargin.replace("XXX",thing.replaceFirst(thing.charAt(0).toString,thing.charAt(0).toUpper.toString)).replace("YYY",thing))
+        |}
+        |
+        |class SXXX extends AAny {
+        |
+        |  def getTyp = SXXX.typ
+        |
+        |  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+        |                                     (implicit pp:ProgramPoint,state:S):S = method match {
+      """.stripMargin.replace("XXX",thing.replaceFirst(thing.charAt(0).toString,thing.charAt(0).toUpper.toString).replace(" ","_")).replace("YYY",thing))
   }
 
-
-  if (subInfo.length > 0) {
-    for ((property,signature,propHelp) <- subInfo) {
+  for ((property,signature,propHelp) <- subInfo) {
+    if(property != "is invalid" && property != "post to wall") {
       val (args,returnVal) = splitLastColon(signature)
       println("    /** "+propHelp.trim+" */")
-      println("    case \""+property.replace(" ","_")+"\" => ")
+      println("    // case \""+property.replace(" ","_")+"\" => ")
       if (!args.isEmpty) {
         val argList = args.substring(1,args.length-1).split(",") map (splitLastColon(_)._1.replace(" ","_"))
         val typList = args.substring(1,args.length-1).split(",") map (splitLastColon(_)._2.replace(" ","_"))
-        println("      val List("+argListToString(argList.toList)+") = parameters // "+argListToString(typList.toList))
+        println("    //   val List("+argListToString(argList.toList)+") = parameters // "+argListToString(typList.toList))
       }
       if (returnVal != "Nothing") {
-        println("      New[S]("+returnVal.replace(" ","_")+".typ) // TODO")
+        println("    //   Return[S](Valid(T"+returnVal.replace(" ","_")+".typ))")
       } else {
-        println("      Skip; // TODO")
+        println("    //   Skip;")
       }
+
+      // Is this just a getter for a field?
+      if (args.isEmpty && returnVal != "Nothing") {
+        println("    // DECLARATION AS FIELD: ")
+        println("    //   /** "+propHelp.trim+" */")
+        println("    //   field_"+property.replace(" ","_")+" = new TouchField(\""+property.replace(" ","_")+"\",T"+returnVal.replace(" ","_")+".typ)")
+      }
+
       println()
     }
   }
 
-  println("  }")
-  println("}")
+  println(
+    """    case _ =>
+      |      super.forwardSemantics(this0,method,parameters)
+      |
+      |  }
+      |}
+    """.stripMargin)
 }
 
 

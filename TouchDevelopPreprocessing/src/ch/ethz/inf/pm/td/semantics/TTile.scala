@@ -55,12 +55,11 @@ object TTile {
 
 }
 
-class TTile extends Any {
+class TTile extends AAny {
 
   def getTyp = TTile.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Clears the back icon image if any */
     case "clear_back_icon" =>
@@ -110,7 +109,7 @@ class TTile extends Any {
       AssignField[S](this0,TTile.field_title,title)
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

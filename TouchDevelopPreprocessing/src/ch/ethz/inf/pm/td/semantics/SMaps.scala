@@ -2,17 +2,26 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{State, ExpressionSet}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * User: lucas
  * Date: 11/26/12
  * Time: 1:09 PM
  */
-class SMaps extends Any {
 
-  def getTypeName = "maps"
+object SMaps {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  val typName = "maps"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SMaps extends AAny {
+
+  def getTyp = SMaps.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Creates a full screen Bing map. Use 'post to wall' to display it. */
@@ -39,6 +48,9 @@ class SMaps extends Any {
       val List(center,search,zoom) = parameters // Location,String,Number
       CheckInRangeInclusive[S](zoom,0,1,method,"zoom")
       Skip; // TODO
+
+    case _ =>
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

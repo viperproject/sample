@@ -125,14 +125,14 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   def factory() = new AbstractState(this._1.top(), this._2.top());
   //def getHeap() : H = d1.getHeap();
   //def getSemanticDomain() : N = d1.getSemanticDomain();
-  def isBottom() : Boolean = this._1.equals(this._1.bottom()) || this._2.equals(this._2.bottom());
+  def isBottom : Boolean = this._1.equals(this._1.bottom()) || this._2.equals(this._2.bottom());
   def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id)
-  def getState() = this._1;
+  def getState = this._1
 
-  def getSemanticDomain() = this._1._1();
-  def getHeapDomain() = this._1._2();
+  def getSemanticDomain = this._1._1
+  def getHeapDomain = this._1._2
 
-  def before(pp : ProgramPoint) = this;
+  def before(pp : ProgramPoint) = this
 
 
   def createArray(length : ExpressionSet, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] =  {
@@ -566,5 +566,111 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     else this._1.toString+
          "\nExpression:\n"+ToStringUtilities.indent(this._2.toString)
   }
-  
+
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, tpp: ProgramPoint): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+    val (heapId, newHeap, rep) = this._1._2.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, tpp, this._1._1)
+    val result = new HeapAndAnotherDomain[N, H, I](rep, newHeap)
+    if (heapId == null) this.bottom()
+    else this.setExpression(new ExpressionSet(collTyp).add(heapId)).setState(result)
+  }
+
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+    var result: Option[AbstractState[N, H, I]] = None
+    if (rightSet.isTop) {
+      val t: AbstractState[N, H, I] = this.getCollectionCell(collectionSet, keySet)
+      return t.setVariableToTop(t.getExpression()).removeExpression()
+    }
+    for (collection <- collectionSet.setOfExpressions;
+         key <- keySet.setOfExpressions;
+         right <- rightSet.setOfExpressions) {
+      collection match {
+        case variable: Assignable => {
+          val assigned = this._1.assignCollectionCell(variable, key, right)
+          val done = new AbstractState[N, H, I](assigned, this._2)
+          if (result == None) result = Some(done)
+          else result = Some(done.lub(result.get, done))
+        }
+        case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
+      }
+    }
+    if (result == None)
+      throw new SymbolicSemanticException(("You should assign something to something"))
+    result.get.removeExpression()
+  }
+
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+    var result = this.bottom().d1
+
+    for (collection <- collectionSet.setOfExpressions;
+         key <- keySet.setOfExpressions;
+         right <- rightSet.setOfExpressions) {
+      collection match {
+        case id: Assignable =>
+          val (newHeap, rep) = this._1._2.insertCollectionCell(id,key,right, this._1._1)
+          result = result.lub(result, new HeapAndAnotherDomain[N, H, I](rep, newHeap))
+        case _ => throw new SymbolicSemanticException("Not allowed")
+      }
+    }
+
+    this.removeExpression().setState(result)
+  }
+
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+    var result = this.bottom().d1
+
+    for (collection <- collectionSet.setOfExpressions;
+         key <- keySet.setOfExpressions) {
+      collection match {
+        case id: Assignable =>
+          val (newHeap, rep) = this._1._2.removeCollectionCell(id,key,this._1._1)
+          result = result.lub(result, new HeapAndAnotherDomain[N, H, I](rep, newHeap))
+        case _ => throw new SymbolicSemanticException("Not allowed")
+      }
+    }
+
+    this.removeExpression().setState(result)
+  }
+
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+    var result: AbstractState[N, H, I] = this.bottom()
+    for (expr <- collectionSet.setOfExpressions) {
+      if (!expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
+      for (keyExpr <- keySet.setOfExpressions) {
+        val assignable = expr.asInstanceOf[Assignable]
+        val (heapID, newHeap, rep) = this._1._2.getCollectionCell(assignable, keyExpr, this._1._1)
+        val result2 = new HeapAndAnotherDomain[N, H, I](rep, newHeap)
+        val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(heapID, result2.access(_))
+        val state = new AbstractState(accessed, new ExpressionSet(SystemParameters.getType().top()).add(heapID))
+        result = result.lub(result, state)
+      }
+    }
+    result
+  }
+
+  def getCollectionLength(collectionSet: ExpressionSet): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+    var result = this.bottom().d1
+    var heapId: HeapIdSetDomain[I] = null
+
+    for (collection <- collectionSet.setOfExpressions) {
+      collection match {
+        case id: Assignable =>
+          val (createdLocation, newHeap, rep) = this._1._2.getCollectionLength(id,this._1._1)
+          result = result.lub(result, new HeapAndAnotherDomain[N, H, I](rep, newHeap))
+          heapId = heapId match {
+            case null => createdLocation
+            case _ => heapId.lub(heapId, createdLocation)
+          }
+        case _ => throw new SymbolicSemanticException("Not allowed")
+      }
+    }
+    if (heapId == null) this.bottom()
+    else this.setExpression(new ExpressionSet(SystemParameters.getType().top()).add(heapId)).setState(result)
+  }
+
 }

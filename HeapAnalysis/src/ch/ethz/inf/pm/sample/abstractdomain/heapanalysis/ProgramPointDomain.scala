@@ -23,7 +23,9 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
     case x : ParameterHeapIdentifier => new FieldAndProgramPoint(x, s, t);
     case x : StaticProgramPointHeapIdentifier => new FieldAndProgramPoint(x, s, t);
     case x : UnsoundParameterHeapIdentifier => new FieldAndProgramPoint(x, s, t);
-    case _ => throw new Exception("Not allowed");
+    case x : CollectionIdentifier => new FieldAndProgramPoint(x, s, t);
+    case x : CollectionSummaryIdentifier => new FieldAndProgramPoint(x, s, t);
+    case _ => throw new SemanticException("Not allowed");
   }
   override def accessStaticObject(t : Type, pp : ProgramPoint) : ProgramPointHeapIdentifier=new StaticProgramPointHeapIdentifier(t, pp);
   override def createAddress(t : Type, p : ProgramPoint) : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(p, t);
@@ -37,6 +39,20 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
   override def isNormalized() : Boolean = true;
   override def getArrayCell(array : Assignable, index : Expression) = new ArrayTopIdentifier();
   override def getArrayLength(array : Assignable) = new ArrayTopIdentifier();
+
+  override def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp:ProgramPoint) =
+    new CollectionIdentifier(pp,collTyp,keyTyp,valueTyp,lengthTyp)
+
+  override def getCollectionCell(collection: Assignable, index:Expression) = collection match {
+    case x:CollectionIdentifier => new CollectionSummaryIdentifier(x)
+    case _ => throw new SemanticException("This is not a collection: "+collection.toString)
+  }
+
+  override def getCollectionLength(collection: Assignable) = collection match {
+      case x:CollectionIdentifier => new CollectionLengthIdentifier(x)
+      case _ => throw new SemanticException("This is not a collection: "+collection.toString)
+  }
+
 }
 
 case class NullProgramPointHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -65,6 +81,46 @@ case class SimpleProgramPointHeapIdentifier(val pp1 : ProgramPoint, t2 : Type) e
   override def factory() : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(this.pp, this.getType());
   override def representSingleVariable() : Boolean=false;//TODO: Improve the precision here!
   override def clone() : Object =new SimpleProgramPointHeapIdentifier(pp, this.getType());
+}
+
+case class CollectionIdentifier(override val pp:ProgramPoint,collTyp:Type,keyTyp:Type,valueTyp:Type,lengthTyp:Type) extends ProgramPointHeapIdentifier(collTyp, pp) {
+  def getField() : Option[String] = None
+  override def isNormalized() : Boolean = true
+  override def equals(x : Any) : Boolean = x match {
+    case CollectionIdentifier(ppX,collTypX,keyTypX,valueTypX,lengthTypX) => (pp==ppX && collTyp==collTypX
+      && keyTyp==keyTypX && valueTyp==valueTypX && lengthTyp == lengthTypX)
+    case _ => false
+  }
+  override def toString() : String = "Collection("+collTyp.toString+","+pp.toString+")"
+  override def factory() : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp,keyTyp,valueTyp,lengthTyp)
+  override def representSingleVariable() : Boolean=false
+  override def clone() : Object = new CollectionIdentifier(pp,collTyp,keyTyp,valueTyp,lengthTyp)
+}
+
+case class CollectionLengthIdentifier(coll:CollectionIdentifier) extends ProgramPointHeapIdentifier(coll.lengthTyp, coll.pp) {
+  def getField() : Option[String] = None
+  override def isNormalized() : Boolean = true
+  override def equals(x : Any) : Boolean = x match {
+    case CollectionLengthIdentifier(collX) => (coll.equals(collX))
+    case _ => false
+  }
+  override def toString() : String = "Length("+coll.pp+")"
+  override def factory() : ProgramPointHeapIdentifier=new CollectionLengthIdentifier(coll)
+  override def representSingleVariable():Boolean=false
+  override def clone() : Object = new CollectionLengthIdentifier(coll)
+}
+
+case class CollectionSummaryIdentifier(coll:CollectionIdentifier) extends ProgramPointHeapIdentifier(coll.valueTyp, coll.pp) {
+  def getField() : Option[String] = None
+  override def isNormalized() : Boolean = true
+  override def equals(x : Any) : Boolean = x match {
+    case CollectionSummaryIdentifier(collX) => (coll.equals(collX))
+    case _ => false
+  }
+  override def toString() : String = "Summary("+coll.pp+")"
+  override def factory() : ProgramPointHeapIdentifier=new CollectionSummaryIdentifier(coll)
+  override def representSingleVariable() : Boolean=false
+  override def clone() : Object = new CollectionSummaryIdentifier(coll)
 }
 
 case class ArrayTopIdentifier() extends ProgramPointHeapIdentifier(null, null) {

@@ -2,17 +2,26 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * User: lucas
  * Date: 11/8/12
  * Time: 6:53 PM
  */
-class SMedia extends Any {
 
-  def getTypeName = "media"
+object SMedia {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  val typName = "media"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SMedia extends AAny {
+
+  def getTyp = SMedia.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Chooses a picture from the media library */
     case "choose_picture" =>
@@ -88,7 +97,7 @@ class SMedia extends Any {
       New[S](TSongs.typ) // TODO
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

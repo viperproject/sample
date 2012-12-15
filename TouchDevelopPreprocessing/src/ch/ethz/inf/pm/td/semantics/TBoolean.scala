@@ -16,18 +16,17 @@ object TBoolean {
 
 }
 
-class TBoolean extends Any {
+class TBoolean extends AAny {
 
   def getTyp = TBoolean.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     case "and" => Return(this0 && parameters.head)
     case "or" => Return(this0 && parameters.head)
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 

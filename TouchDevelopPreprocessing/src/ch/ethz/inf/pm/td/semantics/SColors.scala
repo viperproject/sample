@@ -9,11 +9,19 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * Date: 11/8/12
  * Time: 6:53 PM
  */
-class SColors extends Any {
 
-  def getTypeName = "colors"
+object SColors {
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  val typName = "colors"
+  val typ = TouchType(typName, isSingleton = true)
+
+}
+
+class SColors extends AAny {
+
+  def getTyp = SColors.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     // Gets the accent color in the current theme
     case "accent" =>
@@ -158,7 +166,7 @@ class SColors extends Any {
       New(TColor.typ,1,1,1,0)
 
     case _ =>
-      Unimplemented[S](this0.getType().toString+"."+method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 

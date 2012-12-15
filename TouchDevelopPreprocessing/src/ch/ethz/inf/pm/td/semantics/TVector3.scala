@@ -22,12 +22,11 @@ object TVector3 {
 }
 
 
-class TVector3 extends Any {
+class TVector3 extends AAny {
 
   def getTyp = TVector3.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Adds a vector */
     case "add" =>
@@ -130,6 +129,6 @@ class TVector3 extends Any {
       Return(Valid(TString.typ))
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
   }
 }

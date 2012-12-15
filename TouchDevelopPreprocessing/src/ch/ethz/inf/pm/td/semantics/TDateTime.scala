@@ -16,12 +16,11 @@ object TDateTime {
 
 }
 
-class TDateTime extends Any {
+class TDateTime extends AAny {
 
   def getTyp = TDateTime.typ
-  def getTypeName = getTyp.name
 
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Returns a date that adds the specified number of days to the value of this instance. */
     case "add_days" =>
@@ -154,7 +153,7 @@ class TDateTime extends Any {
       New[S](TNumber.typ) // TODO
 
     case _ =>
-      MatchFields[S](this0,parameters,getTyp,method)
+      super.forwardSemantics(this0,method,parameters)
 
   }
 }

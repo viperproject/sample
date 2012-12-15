@@ -91,6 +91,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       new SMaps(),
       new SMedia(),
       new SSenses(),
+      new STime(),
       new SWall(),
       new TBoard(),
       new TBoolean(),
@@ -102,6 +103,10 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       new TNumber(),
       new TPicture(),
       new TSprite(),
+      new TSprite_Set(),
+      new TString(),
+      new TString_Collection(),
+      new TTextBox(),
       new TTile(),
       new TVector3()
     )

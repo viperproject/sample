@@ -5,6 +5,7 @@ import abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 import property.Property
+import util.HeapIdSetFunctionalLifting
 
 object NonRelationalHeapDomainSettings {
 	var unsoundEntryState : Boolean = true;
@@ -116,6 +117,11 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
   def getNullNode(p : ProgramPoint) : I;
   def isNormalized() : Boolean;
   def factory() : I;
+
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, pp:ProgramPoint): I
+  def getCollectionCell(collection: Assignable, index:Expression): I
+  def getCollectionLength(collection: Assignable): I
+
 }
 
 
@@ -331,7 +337,56 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (cod.convert(dom.createAddress(typ, pp)), this, new Replacement);
   
   override def getFieldIdentifier(heapIdentifier : Assignable, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (this.evalFieldAccess(heapIdentifier, name, typ), this, new Replacement);
-  
+
+  def createCollection[S <: SemanticDomain[S]](collTyp : Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, state:S) = {
+    val coll = dom.createCollection(collTyp, keyTyp, valueTyp,lengthTyp,tpp)
+    val length = dom.getCollectionLength(coll)
+    val newState = state.assign(length,Constant("0",lengthTyp,tpp))
+    (new MaybeHeapIdSetDomain().convert(coll), this, newState)
+  }
+
+  def assignCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S) = {
+    var result=this.bottom()
+    val ids = this.getCollectionCell(collection, index, state)._1
+    for(id <- ids.value) result=result.lub(result, this.assign(id, right, null)._1)
+    (result, state)
+  }
+
+  def insertCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S) = {
+    val (length,_,state1) = getCollectionLength(collection,state)
+    var curState = state1
+    for(lengthId <- length.identifiers()) {
+      curState = curState.assign(lengthId,BinaryArithmeticExpression(length,Constant("1",lengthId.getType(),null),ArithmeticOperator.+,lengthId.getType()))
+    }
+    var result=this.bottom()
+    val ids = this.getCollectionCell(collection, index, state)._1
+    for(id <- ids.value) result=result.lub(result, this.assign(id, right, null)._1)
+    (result, curState)
+  }
+
+  def removeCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S) = {
+    val length = dom.getCollectionLength(collection)
+    val newState = state.assign(length,BinaryArithmeticExpression(length,Constant("1",null,null),ArithmeticOperator.-,null))
+    (this, newState)
+  }
+
+  def getCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S) = {
+    def f(a:Assignable):HeapIdSetDomain[I] = new MaybeHeapIdSetDomain().convert(dom.getCollectionCell(a,index))
+    ((resolveVariables(collection,f(_))),this,state)
+  }
+
+  def getCollectionLength[S <: SemanticDomain[S]](collection: Assignable, state:S) = {
+    def f(a:Assignable):HeapIdSetDomain[I] = new MaybeHeapIdSetDomain().convert(dom.getCollectionLength(a))
+    ((resolveVariables(collection,f(_))),this,state)
+  }
+
+  private def resolveVariables(a: Assignable, f : Assignable => HeapIdSetDomain[I]):HeapIdSetDomain[I] = {
+    a match {
+      case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(d1.get(id),f)
+      case a:Assignable => f(a)
+    }
+  }
+
   private def evalFieldAccess[S <: State[S]](expr : Assignable, field : String, typ : Type) : HeapIdSetDomain[I] = expr match {
     case obj : VariableIdentifier => return extractField(this.get(obj), field, typ)
     
@@ -427,4 +482,10 @@ case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelatio
       override def extractField(obj : TopHeapIdentifier, field : String, typ : Type)=this;
       override def accessStaticObject(typ : Type, pp : ProgramPoint)=this;
 	  override def hashCode() : Int = 0;
+
+    def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, pp:ProgramPoint) = this
+    def getCollectionCell(collection: Assignable, index:Expression) = this
+    def getCollectionLength(collection: Assignable) = this
+
+
 }

@@ -1,16 +1,225 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.td.compiler.TouchType
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 /**
- * User: lucas
- * Date: 11/8/12
- * Time: 6:10 PM
+ * Specifies the abstract semantics of String
+ *
+ * A piece of text
+ *
+ * @author Lucas Brutschy
  */
+
 object TString {
 
   val typName = "String"
-  val typ = TouchType(typName,isSingleton = false)
+  val typ = TouchType(typName,isSingleton = false,List())
 
 }
+
+class TString extends AAny {
+
+  def getTyp = TString.typ
+
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+                                              (implicit pp:ProgramPoint,state:S):S = method match {
+
+    /** Concatenates two pieces of text */
+    // case "âˆ¥" => 
+    //   val List(right) = parameters // String
+    //   Return[S](Valid(TString.typ))
+
+    /** Gets the character at a specified index */
+    // case "at" => 
+    //   val List(index) = parameters // Number
+    //   Return[S](Valid(TString.typ))
+
+    /** Compares two pieces of text */
+    // case "compare" => 
+    //   val List(other) = parameters // String
+    //   Return[S](Valid(TNumber.typ))
+
+    /** Concatenates two pieces of text */
+    // case "concat" => 
+    //   val List(other) = parameters // String
+    //   Return[S](Valid(TString.typ))
+
+    /** Returns a value indicating if the second string is contained */
+    case "contains" =>
+       val List(value) = parameters // String
+       Return[S](Valid(TBoolean.typ))
+
+    /** Stores text in the clipboard */
+    // case "copy_to_clipboard" => 
+    //   Skip;
+
+    /** Returns the number of characters */
+    // case "count" => 
+    //   Return[S](Valid(TNumber.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Returns the number of characters */
+    //   field_count = new TouchField("count",TNumber.typ)
+
+    /** Determines whether the ending matches the specified string */
+    // case "ends_with" => 
+    //   val List(value) = parameters // String
+    //   Return[S](Valid(TBoolean.typ))
+
+    /** Checks if two strings are the same */
+    // case "equals" => 
+    //   val List(other) = parameters // String
+    //   Return[S](Valid(TBoolean.typ))
+
+    /** Returns the index of the first occurence if found starting at a given position */
+    // case "index_of" => 
+    //   val List(value,start) = parameters // String,Number
+    //   Return[S](Valid(TNumber.typ))
+
+    /** Inserts a string at a given position */
+    // case "insert" => 
+    //   val List(start,value) = parameters // Number,String
+    //   Return[S](Valid(TString.typ))
+
+    /** Indicates if the string is empty */
+    // case "is_empty" => 
+    //   Return[S](Valid(TBoolean.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Indicates if the string is empty */
+    //   field_is_empty = new TouchField("is_empty",TBoolean.typ)
+
+    /** Indicates if the string matches a regular expression */
+    // case "is_match_regex" => 
+    //   val List(pattern) = parameters // String
+    //   Return[S](Valid(TBoolean.typ))
+
+    /** Returns the index of the last occurence if found starting at a given position */
+    // case "last_index_of" => 
+    //   val List(value,start) = parameters // String,Number
+    //   Return[S](Valid(TNumber.typ))
+
+    /** Gets the strings matching the regex expression (pattern) */
+    // case "matches" => 
+    //   val List(pattern) = parameters // String
+    //   Return[S](Valid(TString_Collection.typ))
+
+    /** Returns the string with characters removed starting at a given index */
+    // case "remove" => 
+    //   val List(start) = parameters // Number
+    //   Return[S](Valid(TString.typ))
+
+    /** Returns a given string with a replacement */
+    // case "replace" => 
+    //   val List(old,new) = parameters // String,String
+    //   Return[S](Valid(TString.typ))
+
+    /** Replace every match of the regex according to the replacement string */
+    // case "replace_regex" => 
+    //   val List(pattern,replace) = parameters // String,String
+    //   Return[S](Valid(TString.typ))
+
+    /** Shares the string (email, sms, facebook, social or empty string to pick from a list) */
+    // case "share" => 
+    //   val List(network) = parameters // String
+    //   Skip;
+
+    /** Returns a string collection that contains the substrings in this string that are delimited by elements of a specified string. */
+    // case "split" => 
+    //   val List(separator) = parameters // String
+    //   Return[S](Valid(TString_Collection.typ))
+
+    /** Determines whether the beginning matches the specified string */
+    // case "starts_with" => 
+    //   val List(value) = parameters // String
+    //   Return[S](Valid(TBoolean.typ))
+
+    /** Returns a substring given a start index and a length */
+    // case "substring" => 
+    //   val List(start,length) = parameters // Number,Number
+    //   Return[S](Valid(TString.typ))
+
+    /** Parses the string as a boolean */
+    // case "to_boolean" => 
+    //   Return[S](Valid(TBoolean.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Parses the string as a boolean */
+    //   field_to_boolean = new TouchField("to_boolean",TBoolean.typ)
+
+    /** Parses the string as a color. */
+    // case "to_color" => 
+    //   Return[S](Valid(TColor.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Parses the string as a color. */
+    //   field_to_color = new TouchField("to_color",TColor.typ)
+
+    /** Parses the string as a date and time. */
+    // case "to_datetime" => 
+    //   Return[S](Valid(TDateTime.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Parses the string as a date and time. */
+    //   field_to_datetime = new TouchField("to_datetime",TDateTime.typ)
+
+    /** Parses the string as a geo coordinate. */
+    // case "to_location" => 
+    //   Return[S](Valid(TLocation.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Parses the string as a geo coordinate. */
+    //   field_to_location = new TouchField("to_location",TLocation.typ)
+
+    /** Returns a copy of this string converted to lowercase, using the casing rules of the current culture. */
+    // case "to_lower_case" => 
+    //   Return[S](Valid(TString.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Returns a copy of this string converted to lowercase, using the casing rules of the current culture. */
+    //   field_to_lower_case = new TouchField("to_lower_case",TString.typ)
+
+    /** Parses the string as a number */
+    // case "to_number" => 
+    //   Return[S](Valid(TNumber.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Parses the string as a number */
+    //   field_to_number = new TouchField("to_number",TNumber.typ)
+
+    /** Parses the string as a time (12:30:12) and returns the number of seconds. */
+    // case "to_time" => 
+    //   Return[S](Valid(TNumber.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Parses the string as a time (12:30:12) and returns the number of seconds. */
+    //   field_to_time = new TouchField("to_time",TNumber.typ)
+
+    /** Converts a single character string into its unicode number */
+    // case "to_unicode" => 
+    //   Return[S](Valid(TNumber.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Converts a single character string into its unicode number */
+    //   field_to_unicode = new TouchField("to_unicode",TNumber.typ)
+
+    /** Returns a copy of this string converted to uppercase, using the casing rules of the current culture. */
+    // case "to_upper_case" => 
+    //   Return[S](Valid(TString.typ))
+    // DECLARATION AS FIELD: 
+    //   /** Returns a copy of this string converted to uppercase, using the casing rules of the current culture. */
+    //   field_to_upper_case = new TouchField("to_upper_case",TString.typ)
+
+    /** Removes all leading and trailing occurrences of a set of characters specified in a string from the current string. */
+    // case "trim" => 
+    //   val List(chars) = parameters // String
+    //   Return[S](Valid(TString.typ))
+
+    /** Removes all trailing occurrences of a set of characters specified in a string from the current string. */
+    // case "trim_end" => 
+    //   val List(chars) = parameters // String
+    //   Return[S](Valid(TString.typ))
+
+    /** Removes all leading occurrences of a set of characters specified in a string from the current string. */
+    // case "trim_start" => 
+    //   val List(chars) = parameters // String
+    //   Return[S](Valid(TString.typ))
+
+    case _ =>
+      super.forwardSemantics(this0,method,parameters)
+
+  }
+}
+    
