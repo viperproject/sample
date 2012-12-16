@@ -3,9 +3,21 @@ package ch.ethz.inf.pm.td.compiler
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.td._
-import parser.{MetaStatement, TypeName, ExpressionStatement}
+import parser.ExpressionStatement
+import parser.MetaStatement
+import parser.TypeName
 import util.parsing.input.Position
 import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import scala.Some
+import ch.ethz.inf.pm.sample.oorepresentation.Variable
+import ch.ethz.inf.pm.sample.oorepresentation.NumericalConstant
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
+import ch.ethz.inf.pm.sample.oorepresentation.Assignment
+import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
+import ch.ethz.inf.pm.sample.oorepresentation.Statement
+import ch.ethz.inf.pm.sample.abstractdomain.Expression
 
 /**
  *
@@ -150,9 +162,13 @@ object CFGGenerator {
 
         newStatements = newStatements ::: expressionToStatement(expr) :: Nil
 
+      // case a@parser.AssignStatement(left,parser.Access(parser.SingletonReference("code"),prop,args)) =>
+
+        // In case of a local method call, we can have several return values.
+
       case a@parser.AssignStatement(left,right) =>
 
-        if (left.size != 1) throw TouchException("Not supported yet",statement.pos)
+        if (left.size != 1) throw TouchException("Not allowed",statement.pos)
 
         if (a.isVariableDeclaration) {
           val pc = TouchProgramPoint(left.head.pos)

@@ -5,9 +5,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.{TouchType, MethodSummaries, TouchCompiler}
 
 /**
- * User: lucas
- * Date: 11/8/12
- * Time: 6:53 PM
+ * Specifies the abstract semantics of code
+ *
+ * Lists actions defined in the current script
+ *
+ * @author Lucas Brutschy
  */
 
 object SCode {
@@ -23,10 +25,9 @@ class SCode(compiler:TouchCompiler) extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = {
 
-    // TODO: ARGUMENTS AND RETURN VALUES
     compiler.getCalledMethod(method,parameters map (_.getType())) match {
       case Some(methodDef) =>
-        MethodSummaries.collect(pp,methodDef,state)
+        MethodSummaries.collect(pp,methodDef,state,parameters)
       case _ =>
         super.forwardSemantics(this0,method,parameters)
     }

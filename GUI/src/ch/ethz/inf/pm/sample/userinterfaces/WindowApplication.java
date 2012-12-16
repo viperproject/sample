@@ -24,6 +24,7 @@ import ch.ethz.inf.pm.sample.tracepartitioning.Directive;
 import ch.ethz.inf.pm.sample.tracepartitioning.PartitionedState;
 import ch.ethz.inf.pm.sample.tracepartitioning.TracePartitioning;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
+import ch.ethz.inf.pm.td.domain.TouchAnalysis;
 import ch.ethz.inf.pm.td.webapi.*;
 import scala.Option;
 import scala.Some;
@@ -431,6 +432,8 @@ public class WindowApplication {
                         ch.ethz.inf.pm.sample.Main.analyze(methods, new PartitionedState(entryState), output);
 					} else if(getSelectedAnalysis() instanceof MultithreadingAnalysis) {
                         ((MultithreadingAnalysis) getSelectedAnalysis()).fixpointComputation(methods, (SemanticDomain) getSelectedAnalysis().getInitialState(), output, heapDomain, SystemParameters.getType());
+                    } else if(getSelectedAnalysis() instanceof TouchAnalysis) {
+                        ((TouchAnalysis) getSelectedAnalysis()).fixpointComputation(entryState, output);
                     }
                     else {
 						ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, output);

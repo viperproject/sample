@@ -10,6 +10,7 @@ import java.io._
 import scala.Some
 import ch.ethz.inf.pm.sample.{Main, StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.td.domain.TouchAnalysis
 
 object Run {
   var verbose = false;
@@ -51,11 +52,11 @@ object Run {
     }
     if(args.contains("-dl")) {
       terminate=true;
-      iteratorOverFiles[N, H, I](new File(directory), delete[I, H, N]("test_last", _, _, _, _, originalResult, lastResult, inference));
+      iteratorOverFiles[N, H, I](new File(directory), delete[I, H, N]("test_last", _, _, _, _, _, originalResult, lastResult, inference));
     }
     if(args.contains("-de")) {
       terminate=true;
-      iteratorOverFiles[N, H, I](new File(directory), delete[I, H, N]("test", _, _, _, _, originalResult, lastResult, inference));
+      iteratorOverFiles[N, H, I](new File(directory), delete[I, H, N]("test", _, _, _, _, _, originalResult, lastResult, inference));
     }
     if(terminate) exit(0);
     val originalFile = getArg("-o", args) match {
@@ -69,7 +70,7 @@ object Run {
 
     verbose = args.contains("-v")
     System.out.println("Starting the tests")
-    iteratorOverFiles[N, H, I](new File(directory), runSingle[N, H, I](_, _, _, _, originalResult, lastResult, inference));
+    iteratorOverFiles[N, H, I](new File(directory), runSingle[N, H, I](_, _, _, _, _, originalResult, lastResult, inference));
 
     new File(directory+originalFile).delete();
     new File(directory+lastFile).delete();
@@ -94,7 +95,7 @@ object Run {
   }
 
   //Iterate the given function over all the files and directories that are in the given path
-  def iteratorOverFiles[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](file : File, f : (File, File, List[String], HeapAndAnotherDomain[N, H, I]) => Unit) : Unit = {
+  def iteratorOverFiles[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](file : File, f : (File, File, List[String], Analysis, HeapAndAnotherDomain[N, H, I]) => Unit) : Unit = {
     if(file.isDirectory) {
       if(! file.getName.equals(".svn")) {
         try {
@@ -113,7 +114,7 @@ object Run {
                 val (pathFile, extensionFile) = splitExtension(file2)
                 if(canBeParserized(extensionFile)) {
                   if (verbose) System.out.println("Begin of file "+file2.getAbsolutePath);
-                  f(file2, new File(pathFile+".test"), methods, entryState);
+                  f(file2, new File(pathFile+".test"), methods, analysis, entryState);
                   if (verbose) System.out.println("End of file "+file2.getAbsolutePath);
                 }
               };
@@ -175,7 +176,7 @@ object Run {
 
   //Run the analysis and return the output
     SystemParameters.setProgressOutput(new StringCollector)
-  def initRun[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](testFile: File, sourceCodeFile: File, methods : List[String], entryDomain : HeapAndAnotherDomain[N, H, I]): (Set[ExpectedOutput], Set[Output]) = {
+  def initRun[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](testFile: File, sourceCodeFile: File, methods : List[String], analysis: Analysis, entryDomain : HeapAndAnotherDomain[N, H, I]): (Set[ExpectedOutput], Set[Output]) = {
     SystemParameters.setAnalysisOutput(new StringCollector)
 
     //if the file specifying the results of the test does not exist, we suppose that we expect no output
@@ -191,7 +192,12 @@ object Run {
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
     ch.ethz.inf.pm.sample.Main.compile(sourceCodeFile)
     val output: OutputCollector = new OutputCollector;
-    ch.ethz.inf.pm.sample.Main.analyze(methods, new AbstractState[N, H, I](entryDomain, new ExpressionSet(SystemParameters.typ.top())), output)
+    val entryState = new AbstractState[N, H, I](entryDomain, new ExpressionSet(SystemParameters.typ.top()))
+    if (analysis.isInstanceOf[TouchAnalysis[_]]) {
+      (analysis.asInstanceOf[TouchAnalysis[_]]).fixpointComputation(entryState, output)
+    } else {
+      ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, output)
+    }
     val result = output.outputs
     (expectedOutput, result)
   }
@@ -208,7 +214,7 @@ object Run {
 
 
   //Run the tests over a single file, and compare the obtained results with the expected ones.
-  private def delete[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](extension : String, sourceCodeFile : File, testFile : File, methods : List[String], entryState : HeapAndAnotherDomain[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
+  private def delete[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](extension : String, sourceCodeFile : File, testFile : File, methods : List[String], analysis: Analysis, entryState : HeapAndAnotherDomain[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
     val filepath = splitExtension(sourceCodeFile)._1;  ;
     try {
         val lastResult = new File(filepath+"."+extension)
@@ -222,8 +228,8 @@ object Run {
   }
 
   //Run the tests over a single file, and compare the obtained results with the expected ones.
-  private def runSingle[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](sourceCodeFile : File, testFile : File, methods : List[String], entryState : HeapAndAnotherDomain[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
-    val r = initRun(testFile, sourceCodeFile, methods, entryState)
+  private def runSingle[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](sourceCodeFile : File, testFile : File, methods : List[String], analysis: Analysis, entryState : HeapAndAnotherDomain[N, H, I], original : StringCollector, last : StringCollector, inference : Boolean) = {
+    val r = initRun(testFile, sourceCodeFile, methods, analysis, entryState)
     val expectedOutput: Set[ExpectedOutput] = r._1
     val result: Set[Output] = r._2
     original.appendString("File "+sourceCodeFile.getPath);

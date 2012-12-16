@@ -5,9 +5,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
- * User: lucas
- * Date: 11/22/12
- * Time: 1:17 PM
+ * Specifies the abstract semantics of bazaar
+ *
+ * Browse and review scripts from the bazaar
+ *
+ * @author Lucas Brutschy
  */
 
 object SBazaar {

@@ -61,7 +61,11 @@ class RunnableMethodDeclaration(
       lfp(execution.exitState(),{s:S =>
         var cur = s
         for (e <- events) {
-          val newState = MethodSummaries.collect(e.programpoint,e,s)
+          // TODO: We should come up with propert initializations here
+          val parameters = e.arguments.flatten.map( {
+            x:VariableDeclaration => new ExpressionSet(x.typ).add(new Constant("valid",x.typ,e.programpoint))
+          })
+          val newState = MethodSummaries.collect(e.programpoint,e,s,parameters)
           cur = cur.lub(cur,newState)
         }
         cur

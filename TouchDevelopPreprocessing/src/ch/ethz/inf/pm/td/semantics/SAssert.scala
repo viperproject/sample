@@ -5,9 +5,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
- * User: lucas
- * Date: 11/8/12
- * Time: 6:53 PM
+ * Specifies the abstract semantics of assertions
+ *
+ * Assertions are not part of the original TouchDevelop language, but are useful for debugging
+ *
+ * @author Lucas Brutschy
  */
 
 object SAssert {

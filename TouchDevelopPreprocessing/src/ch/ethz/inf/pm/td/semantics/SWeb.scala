@@ -37,9 +37,9 @@ class SWeb extends AAny {
     //   Return[S](Valid(TString.typ))
 
     /** Opens a web browser to a url */
-    // case "browse" => 
-    //   val List(url) = parameters // String
-    //   Skip;
+    case "browse" =>
+      val List(url) = parameters // String
+      Skip
 
     /** Gets a name of the currently connected network servicing Internet requests */
     // case "connection_name" => 

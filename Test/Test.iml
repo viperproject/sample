@@ -23,6 +23,7 @@
     <orderEntry type="module" module-name="Sample" />
     <orderEntry type="module" module-name="ScalaPreprocessing" />
     <orderEntry type="library" name="scala-library" level="project" />
+    <orderEntry type="module" module-name="TouchDevelopPreprocessing" />
   </component>
 </module>
 

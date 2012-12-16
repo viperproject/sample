@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ControlFlowGraphExecution, ProgramPoint}
-import ch.ethz.inf.pm.sample.abstractdomain.State
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Expression, State}
 
 /**
  * Stores summaries of methods. This is not thread-safe.
@@ -23,24 +23,25 @@ object MethodSummaries {
    * This updates the summary of a method. If our current summary is not general enough,
    * this will reanalyze the method.
    *
-   * TODO: Parameter rewriting should be done here.
-   *
    * @param callPoint The program point at which the method is called
    * @param callTarget The declaration of the method that is called
    * @param entryState The state when entering the method
    * @tparam S Our current abstract domain
    * @return The exit state of the method
    */
-  def collect[S <: State[S]](callPoint:ProgramPoint,callTarget:MethodDeclaration,entryState:S):S = {
+  def collect[S <: State[S]](callPoint:ProgramPoint,callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
+    val enteredState = enterFunction(callTarget,entryState,parameters)
     entries.get(callPoint) match {
       case Some(oldEntryState) =>
 
         // This is a recursive call (non top level).
         // Join the entry state and continue with previously recorded
         // exit + entryState (updates inside recursive calls are weak)
-        entries += ((callPoint,entryState.lub(entryState,oldEntryState.asInstanceOf[S])))
+        entries += ((callPoint,enteredState.lub(enteredState,oldEntryState.asInstanceOf[S])))
         summaries.get(callPoint) match {
-          case Some(prevExecution) => entryState.lub(prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState(),entryState)
+          case Some(prevExecution) =>
+            val exitedState = exitFunction(callTarget,prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState(),parameters)
+            entryState.lub(entryState,exitedState)
           case None => entryState
         }
 
@@ -49,10 +50,10 @@ object MethodSummaries {
         // This is a top-level call (recursive or non-recursive)
         // Record the effect of one iteration
 
-        entries += ((callPoint,entryState))
+        entries += ((callPoint,enteredState))
 
         var currentSummary = summaries.get(callPoint) match {
-          case Some(prevSummary) => callTarget.forwardSemantics(entryState).widening(prevSummary.asInstanceOf[ControlFlowGraphExecution[S]])
+          case Some(prevSummary) => callTarget.forwardSemantics(enteredState).widening(prevSummary.asInstanceOf[ControlFlowGraphExecution[S]])
           case None => callTarget.forwardSemantics(entryState)
 
         }
@@ -61,13 +62,13 @@ object MethodSummaries {
 
         // Are there more possible depths?
         while (!entries.get(callPoint).get.asInstanceOf[S].removeExpression().lessEqual(currentSummary.entryState().removeExpression())) {
-          currentSummary = currentSummary.widening(callTarget.forwardSemantics(entryState))
+          currentSummary = currentSummary.widening(callTarget.forwardSemantics(enteredState))
           summaries += ((callPoint,currentSummary))
         }
 
         entries = entries - callPoint
 
-        currentSummary.exitState()
+        exitFunction(callTarget,currentSummary.exitState(),parameters)
 
     }
   }
@@ -79,5 +80,20 @@ object MethodSummaries {
     summaries.get(pp).asInstanceOf[Option[ControlFlowGraphExecution[S]]]
 
   def getSummaries = summaries
+
+  private def enterFunction[S <: State[S]](callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
+    var curState = entryState
+    for ((decl,value) <- callTarget.arguments.flatten.zip(parameters)) {
+      curState = decl.forwardSemantics(curState)
+      val variable = curState.getExpression()
+      curState = curState.removeExpression()
+      curState = curState.assignVariable(variable,value)
+    }
+    curState
+  }
+
+  private def exitFunction[S <: State[S]](callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
+    entryState // TODO
+  }
 
 }

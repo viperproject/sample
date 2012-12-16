@@ -93,10 +93,12 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       new SSenses(),
       new STime(),
       new SWall(),
+      new SWeb(),
       new TBoard(),
       new TBoolean(),
       new TColor(),
       new TDateTime(),
+      new TJson_Object(),
       new TLocation(),
       new TLocation_Collection(),
       new TMap(),
@@ -168,6 +170,11 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       case None => None
     }
   }
+
+  def getRunnableMethods: List[(ClassDefinition,MethodDeclaration)] =
+    for (clazz <- parsedScripts
+         if runnableMethods.contains(clazz);
+         method <- runnableMethods.get(clazz).get) yield (clazz,method)
 
   def getMethods(name:String): List[(ClassDefinition,MethodDeclaration)] =
     for (clazz <- parsedScripts
