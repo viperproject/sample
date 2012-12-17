@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.td._
 import parser.ExpressionStatement
 import parser.MetaStatement
 import parser.TypeName
+import semantics.TouchField
 import util.parsing.input.Position
 import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
@@ -74,13 +75,15 @@ object CFGGenerator {
           val isPrivate = (body find {case MetaStatement("private",_) => true; case _ => false}) != None
           val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=isEvent,isPrivate=isPrivate)
           val parametricType : List[Type] = Nil
-          val arguments : List[List[VariableDeclaration]] = List(in map (parameterToVariableDeclaration _))
-          val returnType : Type = null
+          val arguments : List[List[VariableDeclaration]] =
+            List(in map (parameterToVariableDeclaration _), out map (parameterToVariableDeclaration _))
+          val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
           addStatementsToCFG(body,newBody)
           val preCond : Statement = null
           val postCond : Statement = null
-          Some(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
+          Some(new CallableMethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,
+            newBody,preCond,postCond))
         case _ => None
       }
     }).flatten
@@ -107,7 +110,7 @@ object CFGGenerator {
     VariableIdentifier(name,typ,programPoint)
   }
 
-  private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):Type = {
+  private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
     TouchType(typeName.ident, isSingleton)
   }
 
@@ -162,25 +165,43 @@ object CFGGenerator {
 
         newStatements = newStatements ::: expressionToStatement(expr) :: Nil
 
-      // case a@parser.AssignStatement(left,parser.Access(parser.SingletonReference("code"),prop,args)) =>
-
-        // In case of a local method call, we can have several return values.
-
       case a@parser.AssignStatement(left,right) =>
 
-        if (left.size != 1) throw TouchException("Not allowed",statement.pos)
+        if (left.size != 1) {
 
-        if (a.isVariableDeclaration) {
-          val pc = TouchProgramPoint(left.head.pos)
-          val ident = left.head match {
-            case parser.LocalReference(x) => VariableIdentifier(x,typeNameToType(left.head.typeName),pc)
-            case parser.GlobalReference(x) => VariableIdentifier(globalReferenceIdent(x),typeNameToType(left.head.typeName),pc)
+          right match {
+            case parser.Access(parser.SingletonReference("code"),prop,args) =>
+              val pc = TouchProgramPoint(left.head.pos)
+              val typ = TouchTuple(left map {case x:parser.LValue => typeNameToType(x.typeName)})
+              val ident = VariableIdentifier(tupleIdent(pc),typ,pc)
+              newStatements = newStatements ::: VariableDeclaration(TouchProgramPoint(statement.pos),
+                Variable(pc,ident),typ,expressionToStatement(right)) :: Nil
+              var x = 0
+              for(l <- left) {
+                x = x + 1
+                newStatements = newStatements ::: Assignment(pc,
+                  expressionToStatement(l), FieldAccess(pc, List(Variable(pc,ident)),"_"+x,typeNameToType(l.typeName)) ) :: Nil
+              }
+            case _ =>  throw TouchException("Not allowed",statement.pos)
           }
-          newStatements = newStatements ::: VariableDeclaration(TouchProgramPoint(statement.pos),
-            Variable(pc,ident),typeNameToType(left.head.typeName),expressionToStatement(right)) :: Nil
+
         } else {
-          newStatements = newStatements ::: Assignment(TouchProgramPoint(statement.pos),
-            expressionToStatement(left.head), expressionToStatement(right) ) :: Nil
+
+          if (a.isVariableDeclaration) {
+            val pc = TouchProgramPoint(left.head.pos)
+            val ident = left.head match {
+              case parser.LocalReference(x) =>
+                VariableIdentifier(x,typeNameToType(left.head.typeName),pc)
+              case parser.GlobalReference(x) =>
+                VariableIdentifier(globalReferenceIdent(x),typeNameToType(left.head.typeName),pc)
+            }
+            newStatements = newStatements ::: VariableDeclaration(TouchProgramPoint(statement.pos),
+              Variable(pc,ident),typeNameToType(left.head.typeName),expressionToStatement(right)) :: Nil
+          } else {
+            newStatements = newStatements ::: Assignment(TouchProgramPoint(statement.pos),
+              expressionToStatement(left.head), expressionToStatement(right) ) :: Nil
+          }
+
         }
 
       case _ => throw TouchException("Invalid statement",statement.pos)
@@ -224,6 +245,7 @@ object CFGGenerator {
 
   def scriptIdent(ident:String) = "__script_"+ident
   def globalReferenceIdent(ident:String) = "__data_"+ident
+  def tupleIdent(a:ProgramPoint) = "__tuple_"+a.getLine()+"_"+a.getColumn()
 
 }
 
@@ -287,6 +309,19 @@ case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Iden
   def getArrayElementsType() = None
 
 }
+
+object TouchTuple {
+  def apply(types:List[TouchType]):TouchTuple = {
+    var x = 0
+    val fields = for (typ <- types) yield {
+      x = x + 1
+      new TouchField("_"+x,typ)
+    }
+    TouchTuple(types.mkString(","),fields)
+  }
+}
+
+case class TouchTuple(override val name:String, override val fields:List[TouchField]) extends TouchType(name,false,fields)
 
 case class TouchCollection(override val name:String,keyType:TouchType,valueType:TouchType, override val fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
 

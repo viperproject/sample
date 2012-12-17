@@ -140,9 +140,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     if (methods.length == 1) {
       val m = methods.head
       var ok : Boolean = true
-      if(m.arguments.size!=1) throw new TouchException("Not yet supported")
-      for(i <- 0 to m.arguments.apply(0).size-1) {
-        if(! parameters.apply(i).lessEqual(m.arguments.apply(0).apply(i).typ))
+      for(i <- 0 to m.arguments(0).size-1) {
+        if(! parameters(i).lessEqual(m.arguments(0)(i).typ))
           ok=false
       }
       if(ok) return new Some(m)

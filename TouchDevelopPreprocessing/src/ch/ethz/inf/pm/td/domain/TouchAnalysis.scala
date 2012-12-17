@@ -58,11 +58,11 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
         SystemParameters.currentMethod = x.name.toString
         val s = x.forwardSemantics[S](entryState)
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
         if(SystemParameters.property!=null) {
+          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
           SystemParameters.property.check(c.name.getThisType(), x.name.toString(), s, output)
+          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
         }
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
         SystemParameters.currentMethod = null
     }
     if(SystemParameters.property!=null) {

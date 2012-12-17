@@ -1,17 +1,9 @@
 package ch.ethz.inf.pm.td
 
 import compiler.TouchException
-import compiler.TouchException
-import webapi.{Scripts, NoMoreScriptsException, NewScripts}
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.TopHeapIdentifier
-import ch.ethz.inf.pm.sample.SystemParameters
-import heapanalysis.TopHeapIdentifier
-import numericaldomain.NonRelationalNumericalAnalysis
-import scala.Some
-import ch.ethz.inf.pm.sample.property.OutputCollector
-import ch.ethz.inf.pm.sample.test.Run
-import java.io.File
+import domain.TouchRun
+import webapi.{Scripts, NoMoreScriptsException}
+import java.io.{FileFilter, FilenameFilter, File}
 
 /**
  *
@@ -21,6 +13,9 @@ import java.io.File
  *
  */
 object TestRunner {
+
+  def basePath:String = "TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator
+  def basePath(dir:String):String = basePath+dir+File.separator
 
   def apply(urls:List[String],func:(String => Unit)) {
     for (url <- urls) apply(url,func)
@@ -50,8 +45,17 @@ object TestRunner {
   }
 
   def runDirectory(dir:String) {
-    Run.main(List("-v","-p","TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator+dir).toArray[String])
+    TouchRun.main(new File(basePath(dir)).listFiles(
+      new FileFilter {
+        def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") }
+      }
+    ) map (basePath(dir)+_.getName) toList)
   }
+
+  def runFile(file:String) {
+    TouchRun.main(List(basePath+file))
+  }
+
 
 }
 

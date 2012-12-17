@@ -1,7 +1,8 @@
 package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ControlFlowGraphExecution, ProgramPoint}
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Expression, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{Constant, ExpressionSet, Expression, State}
+import ch.ethz.inf.pm.td.parser
 
 /**
  * Stores summaries of methods. This is not thread-safe.
@@ -30,18 +31,20 @@ object MethodSummaries {
    * @return The exit state of the method
    */
   def collect[S <: State[S]](callPoint:ProgramPoint,callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
-    val enteredState = enterFunction(callTarget,entryState,parameters)
+    val enteredState = enterFunction(callPoint,callTarget,entryState,parameters)
     entries.get(callPoint) match {
       case Some(oldEntryState) =>
 
         // This is a recursive call (non top level).
         // Join the entry state and continue with previously recorded
         // exit + entryState (updates inside recursive calls are weak)
-        entries += ((callPoint,enteredState.lub(enteredState,oldEntryState.asInstanceOf[S])))
+        val newEntryState = enteredState.lub(enteredState,oldEntryState.asInstanceOf[S])
+        entries += ((callPoint,newEntryState))
         summaries.get(callPoint) match {
           case Some(prevExecution) =>
-            val exitedState = exitFunction(callTarget,prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState(),parameters)
-            entryState.lub(entryState,exitedState)
+            val prevExitState = prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState()
+            val exitedState = exitFunction(callPoint,callTarget,prevExitState,parameters)
+            exitedState
           case None => entryState
         }
 
@@ -53,9 +56,11 @@ object MethodSummaries {
         entries += ((callPoint,enteredState))
 
         var currentSummary = summaries.get(callPoint) match {
-          case Some(prevSummary) => callTarget.forwardSemantics(enteredState).widening(prevSummary.asInstanceOf[ControlFlowGraphExecution[S]])
-          case None => callTarget.forwardSemantics(entryState)
-
+          case Some(prevSummary) =>
+            val prevSummaryCFG = prevSummary.asInstanceOf[ControlFlowGraphExecution[S]]
+            val newSummaryCFG = callTarget.forwardSemantics(enteredState)
+            newSummaryCFG.widening(prevSummaryCFG)
+          case None => callTarget.forwardSemantics(enteredState)
         }
 
         summaries += ((callPoint,currentSummary))
@@ -68,7 +73,7 @@ object MethodSummaries {
 
         entries = entries - callPoint
 
-        exitFunction(callTarget,currentSummary.exitState(),parameters)
+        exitFunction(callPoint,callTarget,currentSummary.exitState(),parameters)
 
     }
   }
@@ -81,19 +86,49 @@ object MethodSummaries {
 
   def getSummaries = summaries
 
-  private def enterFunction[S <: State[S]](callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
+  private def enterFunction[S <: State[S]](callPoint:ProgramPoint,callTarget:MethodDeclaration,entryState:S,
+                                           parameters:List[ExpressionSet]):S = {
+
     var curState = entryState
-    for ((decl,value) <- callTarget.arguments.flatten.zip(parameters)) {
+    val inParameters = callTarget.arguments(0)
+    for ((decl,value) <- inParameters.zip(parameters)) {
       curState = decl.forwardSemantics(curState)
-      val variable = curState.getExpression()
-      curState = curState.removeExpression()
-      curState = curState.assignVariable(variable,value)
+      val variable = decl.variable.id
+      curState = curState.assignVariable(new ExpressionSet(variable.getType()).add(variable),value)
     }
     curState
+
   }
 
-  private def exitFunction[S <: State[S]](callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
-    entryState // TODO
+  private def exitFunction[S <: State[S]](callPoint:ProgramPoint,callTarget:MethodDeclaration,entryState:S,
+                                          parameters:List[ExpressionSet]):S = {
+
+    val outParameters = callTarget.arguments(1)
+    var curState = entryState
+
+    if (outParameters.length > 1) {
+
+      // Create a tuple for storing the return values
+      val tupleType = TouchTuple(outParameters map (_.typ.asInstanceOf[TouchType]))
+      curState = curState.createObject(tupleType,callPoint)
+      val tuple = curState.getExpression()
+
+      // Assign fields of the tuple with given arguments
+      for ((f,a) <- tupleType.getPossibleFields().zip(outParameters)) {
+        curState = curState.assignField(List(tuple),f.getName(),new ExpressionSet(a.typ).add(a.variable.id))
+      }
+
+      // Set valid
+      curState = curState.assignVariable(tuple,new ExpressionSet(tupleType).add(Constant("valid",tupleType,callPoint)))
+
+      curState.setExpression(tuple)
+
+    } else if (outParameters.length == 1)  {
+      curState.setExpression(new ExpressionSet(outParameters.head.typ).add(outParameters.head.variable.id))
+    } else {
+      curState
+    }
+
   }
 
 }

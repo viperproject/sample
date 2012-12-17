@@ -6,7 +6,34 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import ch.ethz.inf.pm.td.parser.VariableDefinition
 
-/**
+class CallableMethodDeclaration(
+                                 programpoint_ : ProgramPoint,
+                                 ownerType_ : Type,
+                                 modifiers_ : List[Modifier],
+                                 name_ : MethodIdentifier,
+                                 parametricType_ : List[Type],
+                                 arguments_ : List[List[VariableDeclaration]],
+                                 returnType_ : Type,
+                                 body_ : ControlFlowGraph,
+                                 precond_ : Statement,
+                                 postcond_ : Statement)
+  extends MethodDeclaration( programpoint_, ownerType_, modifiers_, name_, parametricType_, arguments_, returnType_, body_, precond_, postcond_) {
+
+  override def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
+    SystemParameters.currentCFG=body
+    SystemParameters.currentMethod=name.toString
+    SystemParameters.semanticsComputing=true
+    val r=new ControlFlowGraphExecution[S](body, state).forwardSemantics(state)
+    SystemParameters.semanticsComputing=false
+    SystemParameters.currentMethod=null
+    SystemParameters.currentCFG=null
+    r
+  }
+}
+
+
+
+  /**
  *
  * A runnable method is a method that can be directly executed by the user. Usually this is the "main" method, but
  * in TouchDevelop, arbitrarily many such methods can be defined (all methods that are not defined "private" are
