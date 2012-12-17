@@ -200,16 +200,6 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     this.setExpression(new ExpressionSet(typ).add(createdLocation)).setState(result2);
   }
   
-  def createObjectForArgument(typ : Type, pp : ProgramPoint, path : List[String]) : AbstractState[N,H,I] =  {
-    if(this.isBottom) return this;
-    //It discharges on the heap analysis the creation of the object and its fields
-    val (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
-    var result=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap);
-     //It asks the semantic domain to simply create the initial value for the given identifier
-      val (result1, ids)=HeapIdSetFunctionalLifting.applyToSetHeapIdAndFunction(createdLocation, result.createVariableForArgument(_, typ, path));
-      this.setExpression(new ExpressionSet(typ).add(createdLocation)).setState(result1);
-  }
-  
   def getExpression() : ExpressionSet = getResult
   
   def removeExpression() : AbstractState[N,H,I] = {

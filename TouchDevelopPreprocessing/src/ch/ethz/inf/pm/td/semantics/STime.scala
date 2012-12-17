@@ -56,8 +56,8 @@ class STime extends AAny {
     //   Skip;
 
     /** Stops the execution and leaves the wall. */
-    // case "stop_and_close" => 
-    //   Skip;
+     case "stop_and_close" =>
+       Skip // TODO: Treat this explicitly in control flow - may cause false alarms
 
     /** Gets today's date without time */
     case "today" =>

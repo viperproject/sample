@@ -100,18 +100,6 @@ trait State[S <: State[S]] extends Lattice[S] {
    */
   def createObject(typ : Type, pp : ProgramPoint) : S
   
-  	
-  /**
-   Creates an object for an argument. Its semantics is different from <code>createObject</code> since this object is used
-   to create the initial state of the heap.  
-   
-   @param typ The static type of the argument
-   @param pp The point of the program that contains the declaration of the argument
-   @param path One of the possible shortest path to reach this argument
-   @return The abstract state after the creation of the object for the argument
-   */
-  def createObjectForArgument(typ : Type, pp : ProgramPoint, path : List[String]) : S
-  
   /**
    Creates a variable
    

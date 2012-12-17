@@ -8,7 +8,7 @@ import ch.ethz.inf.pm.sample.userinterfaces._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import apron.{Environment, Abstract1, Octagon}
-import numericaldomain.ApronInterface
+import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, NonRelationalNumericalDomain, ApronInterface}
 
 class TouchProperty extends ch.ethz.inf.pm.sample.property.Property {
   override def getLabel(): String = "Show graph"
@@ -21,6 +21,53 @@ class TouchProperty extends ch.ethz.inf.pm.sample.property.Property {
 }
 
 object TouchRun {
+
+  type HeapId = ProgramPointHeapIdentifier
+
+  def main(files: List[String]) {
+
+    if(files.isEmpty) {
+      println("No arguments given!")
+      exit()
+    }
+
+    SystemParameters.compiler = new TouchCompiler
+    SystemParameters.property = null
+
+    SystemParameters.compiler.reset()
+    SystemParameters.resetNativeMethodsSemantics()
+    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
+
+    SystemParameters.analysisOutput = new TouchOutput()
+    SystemParameters.progressOutput = new TouchOutput()
+
+    ch.ethz.inf.pm.sample.Main.compile(files)
+
+    //EntryState
+    val numerical = new TouchDomain(new BoxedNonRelationalNumericalDomain(new Interval(0,0)))
+    val heapID = new SimpleProgramPointHeapIdentifier(null,null)
+    heapID.typ = SystemParameters.typ
+
+    val heapDomain: NonRelationalHeapDomain[HeapId] =
+      new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
+    heapDomain.setParameter("UnsoundEntryState",false)
+
+    val entryDomain =
+      new HeapAndAnotherDomain[TouchDomain[BoxedNonRelationalNumericalDomain[Interval]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
+
+    val entryValue = new ExpressionSet(SystemParameters.typ.top())
+
+    val entryState = new AbstractState[TouchDomain[BoxedNonRelationalNumericalDomain[Interval]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+
+    val analysis = new TouchAnalysis[TouchDomain[BoxedNonRelationalNumericalDomain[Interval]]]
+    analysis.fixpointComputation(entryState, new OutputCollector)
+
+  }
+
+}
+
+
+object TouchApronRun {
 
   type HeapId = ProgramPointHeapIdentifier
 

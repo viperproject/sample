@@ -31,7 +31,7 @@ object LoopRewriter {
 
   def apply(d: Declaration): Declaration = {
     d match {
-      case a@ActionDefinition(_, _, _, _, _) => a.copy(body = (a.body map (apply _)).flatten)
+      case a@ActionDefinition(_, _, _, _, _) => a.copy(body = (a.body map (apply _)).flatten).copyPos(a)
       case _ => d
     }
   }

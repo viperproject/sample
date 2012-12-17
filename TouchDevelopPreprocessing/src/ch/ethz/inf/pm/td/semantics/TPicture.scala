@@ -14,11 +14,20 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TPicture {
 
+  /** Gets the width in pixels */
   val field_width = new TouchField("width", TNumber.typ)
+
+  /** Gets the height in pixels */
   val field_height = new TouchField("height", TNumber.typ)
 
+  /** Gets the location where the picture was taken; if any. */
+  val field_location = new TouchField("location",TLocation.typ)
+
+  /** Gets the date time where the picture was taken; if any. */
+  val field_date = new TouchField("date",TDateTime.typ)
+
   val typName = "Picture"
-  val typ = TouchType(typName,isSingleton = false,List(field_width,field_height))
+  val typ = TouchType(typName,isSingleton = false,List(field_width,field_height,field_location,field_date))
 
 }
 
@@ -41,9 +50,10 @@ class TPicture extends AAny {
     //   Skip;
 
     /** Changes the brightness of the picture. factor in [-1, 1]. */
-    // case "brightness" =>
-    //   val List(factor) = parameters // Number
-    //   Skip;
+     case "brightness" =>
+       val List(factor) = parameters // Number
+       CheckInRangeInclusive[S](factor,-1,1,"brightness","factor")
+       Skip
 
     /** Clears the picture to a given color */
     // case "clear" =>
@@ -53,9 +63,6 @@ class TPicture extends AAny {
     /** Returns a copy of the image */
     // case "clone" =>
     //   Return[S](Valid(TPicture.typ))
-    // DECLARATION AS FIELD:
-    //   /** Returns a copy of the image */
-    //   field_clone = new TouchField("clone",TPicture.typ)
 
     /** Recolors the picture with the background and foreground color, based on a color threshold between 0.0 and 1.0 */
     // case "colorize" =>
@@ -68,27 +75,17 @@ class TPicture extends AAny {
     //   Skip;
 
     /** Gets the number of pixels */
-    // case "count" =>
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD:
-    //   /** Gets the number of pixels */
-    //   field_count = new TouchField("count",TNumber.typ)
+     case "count" =>
+       Return[S](Field[S](this0,TPicture.field_width)*Field[S](this0,TPicture.field_height))
 
     /** Crops a sub-image */
     // case "crop" =>
     //   val List(left,top,width,height) = parameters // Number,Number,Number,Number
     //   Skip;
 
-    /** Gets the date time where the picture was taken; if any. */
-    // case "date" =>
-    //   Return[S](Valid(TDateTime.typ))
-    // DECLARATION AS FIELD:
-    //   /** Gets the date time where the picture was taken; if any. */
-    //   field_date = new TouchField("date",TDateTime.typ)
-
     /** Makes picture gray */
-    // case "desaturate" =>
-    //   Skip;
+    case "desaturate" =>
+      Skip
 
     /** Draws an elliptic border with a given color */
     // case "draw_ellipse" =>
@@ -96,24 +93,31 @@ class TPicture extends AAny {
     //   Skip;
 
     /** Draws a line between two points */
-    // case "draw_line" =>
-    //   val List(x1,y1,x2,y2,color,thickness) = parameters // Number,Number,Number,Number,Color,Number
-    //   Skip;
+    case "draw_line" =>
+      val List(x1,y1,x2,y2,color,thickness) = parameters // Number,Number,Number,Number,Color,Number
+      CheckInRangeInclusive[S](x1,0,Field[S](this0,TPicture.field_width),"draw_line","x1")
+      CheckInRangeInclusive[S](y1,0,Field[S](this0,TPicture.field_height),"draw_line","y1")
+      CheckInRangeInclusive[S](x2,0,Field[S](this0,TPicture.field_width),"draw_line","x2")
+      CheckInRangeInclusive[S](y2,0,Field[S](this0,TPicture.field_height),"draw_line","y2")
+      Skip
 
     /** Draws a rectangle border with a given color */
-    // case "draw_rect" =>
-    //   val List(left,top,width,height,angle,c,thickness) = parameters // Number,Number,Number,Number,Number,Color,Number
-    //   Skip;
+    case "draw_rect" =>
+      val List(left,top,width,height,angle,c,thickness) = parameters // Number,Number,Number,Number,Number,Color,Number
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"draw_rect","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"draw_rect","top")
+      CheckInRangeInclusive[S](left+width,0,Field[S](this0,TPicture.field_width),"draw_rect","left+width")
+      CheckInRangeInclusive[S](top+height,0,Field[S](this0,TPicture.field_height),"draw_rect","top+height")
+      CheckInRangeInclusive[S](angle,0,360,"draw_rect","angle")
+      Error (thickness < 0, "draw_text: Parameter Thickness ("+thickness+") might be negative")(state,pp)
+      Skip
 
     /** Draws some text border with a given color and font size */
     case "draw_text" =>
-      val List(x,y,text,font,degree,color) = parameters // Number,Number,String,Number,Number,Color
-
-      Error (x < 0, "draw_text: Parameter X ("+x+") might be negative")(state,pp)
-      Error (y < 0, "draw_text: Parameter Y ("+y+") might be negative")(state,pp)
-      Error (x >= Field[S](this0,TPicture.field_width), "draw_text: Parameter X ("+x+") might be greater than width")(state,pp)
-      Error (y >= Field[S](this0,TPicture.field_height), "draw_text: Parameter Y ("+y+") might be greater than height")(state,pp)
-
+      val List(left,top,text,font,angle,color) = parameters // Number,Number,String,Number,Number,Color
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"draw_text","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"draw_text","top")
+      CheckInRangeInclusive[S](angle,0,360,"draw_text","angle")
       Skip
 
     /** Fills a ellipse with a given color */
@@ -127,67 +131,47 @@ class TPicture extends AAny {
     //   Skip;
 
     /** Flips the picture horizontally */
-    // case "flip_horizontal" =>
-    //   Skip;
+    case "flip_horizontal" =>
+       Skip
 
     /** Flips the picture vertically */
-    // case "flip_vertical" =>
-    //   Skip;
-
-    /** Gets the height in pixels */
-    // case "height" =>
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD:
-    //   /** Gets the height in pixels */
-    //   field_height = new TouchField("height",TNumber.typ)
+    case "flip_vertical" =>
+       Skip
 
     /** Inverts the red, blue and green channels */
-    // case "invert" =>
-    //   Skip;
+    case "invert" =>
+       Skip
 
     /** Indicates if the picture width is greater than its height */
-    // case "is_panorama" =>
-    //   Return[S](Valid(TBoolean.typ))
-    // DECLARATION AS FIELD:
-    //   /** Indicates if the picture width is greater than its height */
-    //   field_is_panorama = new TouchField("is_panorama",TBoolean.typ)
-
-    /** Gets the location where the picture was taken; if any. */
-    // case "location" =>
-    //   Return[S](Valid(TLocation.typ))
-    // DECLARATION AS FIELD:
-    //   /** Gets the location where the picture was taken; if any. */
-    //   field_location = new TouchField("location",TLocation.typ)
+    case "is_panorama" =>
+       Return[S](Field[S](this0,TPicture.field_width)>Field[S](this0,TPicture.field_height))
 
     /** Gets the pixel color */
-    // case "pixel" =>
-    //   val List(left,top) = parameters // Number,Number
-    //   Return[S](Valid(TColor.typ))
+     case "pixel" =>
+       val List(x,y) = parameters // Number,Number
+       CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width),"pixel","x")
+       CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height),"pixel","y")
+       Return[S](Valid(TColor.typ))
 
     /** Resizes the picture to the given size in pixels */
-    // case "resize" =>
-    //   val List(width,height) = parameters // Number,Number
-    //   Skip;
+    case "resize" =>
+      val List(width,height) = parameters // Number,Number
+      val state1 = AssignField[S](this0,TPicture.field_height,height)
+      val state2 = AssignField[S](this0,TPicture.field_width,width)(state1,pp)
+      state2
 
     /** Saves the picture to the 'saved pictures' album. Returns the file name. */
     // case "save_to_library" =>
     //   Return[S](Valid(TString.typ))
-    // DECLARATION AS FIELD:
-    //   /** Saves the picture to the 'saved pictures' album. Returns the file name. */
-    //   field_save_to_library = new TouchField("save_to_library",TString.typ)
 
     /** Sets the pixel color at a given pixel */
     case "set_pixel" =>
       val List(x,y,color) = parameters // Number,Number,Color
-
-      Error (x < 0, "set_pixel: Parameter X ("+x+") might be negative")(state,pp)
-      Error (y < 0, "set_pixel: Parameter Y ("+y+") might be negative")(state,pp)
-      Error (x >= Field[S](this0,TPicture.field_width), "set_pixel: Parameter X ("+x+") might be greater than width")(state,pp)
-      Error (y >= Field[S](this0,TPicture.field_height), "set_pixel: Parameter Y ("+y+") might be greater than height")(state,pp)
-
+      CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width),"set_pixel","x")
+      CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height),"set_pixel","y")
       Skip
 
-    /** Shares this message ('' to pick from a list) */
+    /** Shares this message (empty string to pick from a list) */
     // case "share" =>
     //   val List(where,message) = parameters // String,String
     //   Skip;
@@ -200,13 +184,6 @@ class TPicture extends AAny {
     /** Refreshes the picture on the wall */
     // case "update_on_wall" =>
     //   Skip;
-
-    /** Gets the width in pixels */
-    // case "width" =>
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD:
-    //   /** Gets the width in pixels */
-    //   field_width = new TouchField("width",TNumber.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

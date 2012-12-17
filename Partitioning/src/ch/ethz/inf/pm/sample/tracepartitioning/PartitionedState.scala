@@ -205,20 +205,6 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
   }
 
   /**
-   * Creates an object for a parameter in all leaf states.
-	 *
-   * @param t
-   * @param pp
-   * @param path
-   * @return The state after creation of the object
-   *
-   * @see #map
-   */
-	override def createObjectForArgument(t: Type, pp: ProgramPoint, path: List[String]): PartitionedState[D] = {
-		map(_.createObjectForArgument(t, pp, path))
-  }
-
-  /**
    * Creates the variable in all leaf states.
 	 *
    * @param x

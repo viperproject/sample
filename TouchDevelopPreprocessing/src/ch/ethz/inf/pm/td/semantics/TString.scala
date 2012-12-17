@@ -110,9 +110,9 @@ class TString extends AAny {
     //   Return[S](Valid(TString.typ))
 
     /** Returns a given string with a replacement */
-    // case "replace" => 
-    //   val List(old,new) = parameters // String,String
-    //   Return[S](Valid(TString.typ))
+    case "replace" =>
+      val List(old,newV) = parameters // String,String
+      Return[S](Valid(TString.typ))
 
     /** Replace every match of the regex according to the replacement string */
     // case "replace_regex" => 
