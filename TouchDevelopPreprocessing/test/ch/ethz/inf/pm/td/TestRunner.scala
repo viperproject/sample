@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td
 
 import compiler.TouchException
-import domain.TouchRun
+import domain.{TouchApronRun, TouchRun}
 import webapi.{Scripts, NoMoreScriptsException}
 import java.io.{FileFilter, FilenameFilter, File}
 
@@ -54,6 +54,18 @@ object TestRunner {
 
   def runFile(file:String) {
     TouchRun.main(List(basePath+file))
+  }
+
+  def runDirectoryWithApron(dir:String) {
+    TouchApronRun.main(new File(basePath(dir)).listFiles(
+      new FileFilter {
+        def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") }
+      }
+    ) map (basePath(dir)+_.getName) toList)
+  }
+
+  def runFileWithApron(file:String) {
+    TouchApronRun.main(List(basePath+file))
   }
 
 

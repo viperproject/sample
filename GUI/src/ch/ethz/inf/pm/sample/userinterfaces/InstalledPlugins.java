@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
 import ch.ethz.inf.pm.td.compiler.SimpleTouchCompiler;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.domain.TouchAnalysis;
-import ch.ethz.inf.pm.td.domain.TouchAnalysisWithApron;
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron;
 import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;

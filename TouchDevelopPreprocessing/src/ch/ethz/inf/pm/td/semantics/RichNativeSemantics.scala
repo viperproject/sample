@@ -9,6 +9,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchException, TouchType}
 import collection.immutable.Range.Inclusive
+import RichExpression._
 
 /**
  *
@@ -201,6 +202,18 @@ trait RichNativeSemantics extends NativeMethodSemantics {
   def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
   def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("invalid",typ,pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("valid",typ,pp))
+}
+
+class TouchField(name:String, val touchTyp:TouchType, var default: RichExpression = null, val isSummaryNode:Boolean = false)
+  extends VariableIdentifier(name,touchTyp,null) {
+
+  if (default == null) {
+    default = RichExpression(new Constant("valid",touchTyp,null))
+  }
+
+}
+
+object RichExpression {
 
   /*-- Conversion --*/
 
@@ -231,21 +244,9 @@ trait RichNativeSemantics extends NativeMethodSemantics {
 
 }
 
-class TouchField(name:String, val touchTyp:TouchType, var default: RichExpression = null, val isSummaryNode:Boolean = false)
-  extends VariableIdentifier(name,touchTyp,null) {
-
-  if (default == null) {
-    default = RichExpression(new Constant("valid",touchTyp,null))
-  }
-
-}
-
 case class RichExpression(thisExpr : Expression) {
 
   override def toString:String = thisExpr.toString()
-
-  implicit def toExpression(value:RichExpression) : Expression =
-    value.thisExpr
 
   def <= (thatExpr : RichExpression) : RichExpression =
     RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.<=, TBoolean.typ))

@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{State, ExpressionSet}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import invoke.CallSite
+import RichExpression._
 
 /**
  * User: lucas

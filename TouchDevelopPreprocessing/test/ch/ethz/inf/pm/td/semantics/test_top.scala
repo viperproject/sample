@@ -3,7 +3,6 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.property.OutputCollector
 import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
 import ch.ethz.inf.pm.td.compiler.{TouchException, TouchCompiler}
-import ch.ethz.inf.pm.td.domain.TouchAnalysisWithApron
 import ch.ethz.inf.pm.td.TestRunner
 import ch.ethz.inf.pm.td.webapi.{TopScripts}
 import heapanalysis.{HeapEnv, VariableEnv, NonRelationalHeapDomain, NullProgramPointHeapIdentifier}
@@ -55,4 +54,4 @@ import scala.List
 //
 //}
 
-TestRunner.runDirectory("top10")
+TestRunner.runDirectoryWithApron("top10")

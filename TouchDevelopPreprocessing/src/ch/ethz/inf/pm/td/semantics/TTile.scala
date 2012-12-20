@@ -73,41 +73,6 @@ class TTile extends AAny {
     case "pin_to_start" =>
       Skip
 
-    /** Sets the back icon image, cropped to the tile size */
-    case "set_back_icon" =>
-      val List(pic) = parameters // Picture
-      AssignField[S](this0,TTile.field_back_icon,pic)
-
-    /** Sets the back title. */
-    case "set_back_title" =>
-      val List(title) = parameters // String
-      AssignField[S](this0,TTile.field_back_title,title)
-
-    /** Sets the background color for the front and back tile. */
-    case "set_background" =>
-      val List(color) = parameters // Color
-      AssignField[S](this0,TTile.field_background,color)
-
-    /** Sets the text content that shows on the back tile. */
-    case "set_content" =>
-      val List(content) = parameters // String
-      AssignField[S](this0,TTile.field_content,content)
-
-    /** Sets the counter; counters â‰¤ 0 are not displayed. */
-    case "set_counter" =>
-      val List(counter) = parameters // Number
-      AssignField[S](this0,TTile.field_counter,counter)
-
-    /** Sets the front icon image, cropped to the tile size */
-    case "set_icon" =>
-      val List(pic) = parameters // Picture
-      AssignField[S](this0,TTile.field_icon,pic)
-
-    /** Sets the front title. If empty, the tile will use the script name */
-    case "set_title" =>
-      val List(title) = parameters // String
-      AssignField[S](this0,TTile.field_title,title)
-
     case _ =>
       super.forwardSemantics(this0,method,parameters)
 

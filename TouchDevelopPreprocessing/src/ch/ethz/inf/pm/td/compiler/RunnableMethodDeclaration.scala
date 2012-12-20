@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Constant, VariableId
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import ch.ethz.inf.pm.td.parser.VariableDefinition
+import ch.ethz.inf.pm.td.analysis.MethodSummaries
 
 class CallableMethodDeclaration(
                                  programpoint_ : ProgramPoint,

@@ -9,6 +9,7 @@ import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import apron.{Environment, Abstract1, Octagon}
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, NonRelationalNumericalDomain, ApronInterface}
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron
 
 class TouchProperty extends ch.ethz.inf.pm.sample.property.Property {
   override def getLabel(): String = "Show graph"

@@ -1,3 +1,4 @@
+
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.td.compiler.TouchType
@@ -10,7 +11,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * A piece of text
  *
  * @author Lucas Brutschy
- */
+ */ 
 
 object TString {
 
@@ -24,8 +25,8 @@ class TString extends AAny {
   def getTyp = TString.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
-                                              (implicit pp:ProgramPoint,state:S):S = method match {
-
+                                     (implicit pp:ProgramPoint,state:S):S = method match {
+        
     /** Concatenates two pieces of text */
     // case "âˆ¥" => 
     //   val List(right) = parameters // String
@@ -47,9 +48,9 @@ class TString extends AAny {
     //   Return[S](Valid(TString.typ))
 
     /** Returns a value indicating if the second string is contained */
-    case "contains" =>
-       val List(value) = parameters // String
-       Return[S](Valid(TBoolean.typ))
+    // case "contains" => 
+    //   val List(value) = parameters // String
+    //   Return[S](Valid(TBoolean.typ))
 
     /** Stores text in the clipboard */
     // case "copy_to_clipboard" => 
@@ -60,7 +61,7 @@ class TString extends AAny {
     //   Return[S](Valid(TNumber.typ))
     // DECLARATION AS FIELD: 
     //   /** Returns the number of characters */
-    //   field_count = new TouchField("count",TNumber.typ)
+    //   val field_count = new TouchField("count",TNumber.typ)
 
     /** Determines whether the ending matches the specified string */
     // case "ends_with" => 
@@ -87,7 +88,7 @@ class TString extends AAny {
     //   Return[S](Valid(TBoolean.typ))
     // DECLARATION AS FIELD: 
     //   /** Indicates if the string is empty */
-    //   field_is_empty = new TouchField("is_empty",TBoolean.typ)
+    //   val field_is_empty = new TouchField("is_empty",TBoolean.typ)
 
     /** Indicates if the string matches a regular expression */
     // case "is_match_regex" => 
@@ -110,16 +111,16 @@ class TString extends AAny {
     //   Return[S](Valid(TString.typ))
 
     /** Returns a given string with a replacement */
-    case "replace" =>
-      val List(old,newV) = parameters // String,String
-      Return[S](Valid(TString.typ))
+    // case "replace" => 
+    //   val List(old,new) = parameters // String,String
+    //   Return[S](Valid(TString.typ))
 
     /** Replace every match of the regex according to the replacement string */
     // case "replace_regex" => 
     //   val List(pattern,replace) = parameters // String,String
     //   Return[S](Valid(TString.typ))
 
-    /** Shares the string (email, sms, facebook, social or empty string to pick from a list) */
+    /** Shares the string (email, sms, facebook, social or '' to pick from a list) */
     // case "share" => 
     //   val List(network) = parameters // String
     //   Skip;
@@ -144,63 +145,63 @@ class TString extends AAny {
     //   Return[S](Valid(TBoolean.typ))
     // DECLARATION AS FIELD: 
     //   /** Parses the string as a boolean */
-    //   field_to_boolean = new TouchField("to_boolean",TBoolean.typ)
+    //   val field_to_boolean = new TouchField("to_boolean",TBoolean.typ)
 
     /** Parses the string as a color. */
     // case "to_color" => 
     //   Return[S](Valid(TColor.typ))
     // DECLARATION AS FIELD: 
     //   /** Parses the string as a color. */
-    //   field_to_color = new TouchField("to_color",TColor.typ)
+    //   val field_to_color = new TouchField("to_color",TColor.typ)
 
     /** Parses the string as a date and time. */
     // case "to_datetime" => 
     //   Return[S](Valid(TDateTime.typ))
     // DECLARATION AS FIELD: 
     //   /** Parses the string as a date and time. */
-    //   field_to_datetime = new TouchField("to_datetime",TDateTime.typ)
+    //   val field_to_datetime = new TouchField("to_datetime",TDateTime.typ)
 
     /** Parses the string as a geo coordinate. */
     // case "to_location" => 
     //   Return[S](Valid(TLocation.typ))
     // DECLARATION AS FIELD: 
     //   /** Parses the string as a geo coordinate. */
-    //   field_to_location = new TouchField("to_location",TLocation.typ)
+    //   val field_to_location = new TouchField("to_location",TLocation.typ)
 
     /** Returns a copy of this string converted to lowercase, using the casing rules of the current culture. */
     // case "to_lower_case" => 
     //   Return[S](Valid(TString.typ))
     // DECLARATION AS FIELD: 
     //   /** Returns a copy of this string converted to lowercase, using the casing rules of the current culture. */
-    //   field_to_lower_case = new TouchField("to_lower_case",TString.typ)
+    //   val field_to_lower_case = new TouchField("to_lower_case",TString.typ)
 
     /** Parses the string as a number */
     // case "to_number" => 
     //   Return[S](Valid(TNumber.typ))
     // DECLARATION AS FIELD: 
     //   /** Parses the string as a number */
-    //   field_to_number = new TouchField("to_number",TNumber.typ)
+    //   val field_to_number = new TouchField("to_number",TNumber.typ)
 
     /** Parses the string as a time (12:30:12) and returns the number of seconds. */
     // case "to_time" => 
     //   Return[S](Valid(TNumber.typ))
     // DECLARATION AS FIELD: 
     //   /** Parses the string as a time (12:30:12) and returns the number of seconds. */
-    //   field_to_time = new TouchField("to_time",TNumber.typ)
+    //   val field_to_time = new TouchField("to_time",TNumber.typ)
 
     /** Converts a single character string into its unicode number */
     // case "to_unicode" => 
     //   Return[S](Valid(TNumber.typ))
     // DECLARATION AS FIELD: 
     //   /** Converts a single character string into its unicode number */
-    //   field_to_unicode = new TouchField("to_unicode",TNumber.typ)
+    //   val field_to_unicode = new TouchField("to_unicode",TNumber.typ)
 
     /** Returns a copy of this string converted to uppercase, using the casing rules of the current culture. */
     // case "to_upper_case" => 
     //   Return[S](Valid(TString.typ))
     // DECLARATION AS FIELD: 
     //   /** Returns a copy of this string converted to uppercase, using the casing rules of the current culture. */
-    //   field_to_upper_case = new TouchField("to_upper_case",TString.typ)
+    //   val field_to_upper_case = new TouchField("to_upper_case",TString.typ)
 
     /** Removes all leading and trailing occurrences of a set of characters specified in a string from the current string. */
     // case "trim" => 
@@ -217,9 +218,11 @@ class TString extends AAny {
     //   val List(chars) = parameters // String
     //   Return[S](Valid(TString.typ))
 
+    // FIELDS: , field_count, field_is_empty, field_to_boolean, field_to_color, field_to_datetime, field_to_location, field_to_lower_case, field_to_number, field_to_time, field_to_unicode, field_to_upper_case
+
     case _ =>
       super.forwardSemantics(this0,method,parameters)
 
   }
 }
-    
+      

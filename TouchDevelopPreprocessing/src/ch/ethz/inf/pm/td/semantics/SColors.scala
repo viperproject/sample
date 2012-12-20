@@ -3,11 +3,14 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import RichExpression._
 
 /**
- * User: lucas
- * Date: 11/8/12
- * Time: 6:53 PM
+ * Specifies the abstract semantics of colors
+ *
+ * New or built-in colors
+ *
+ * @author Lucas Brutschy
  */
 
 object SColors {
