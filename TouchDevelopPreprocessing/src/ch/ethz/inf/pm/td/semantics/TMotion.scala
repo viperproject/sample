@@ -15,8 +15,30 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TMotion {
 
+  /** Gets the linear acceleration of the device, in gravitational units. */
+  val field_acceleration = new TouchField("acceleration",TVector3.typ)
+
+  /** Gets the gravity vector associated with this reading. */
+  val field_gravity = new TouchField("gravity",TVector3.typ)
+
+  /** Gets the pitch of the attitude in degrees */
+  val field_pitch = new TouchField("pitch",TNumber.typ)
+
+  /** Gets the roll of the attitude in degrees */
+  val field_roll = new TouchField("roll",TNumber.typ)
+
+  /** Gets the device rotation speed in degrees per sec. */
+  val field_rotation_speed = new TouchField("rotation_speed",TVector3.typ)
+
+  /** Gets a timestamp indicating the time at which the reading was calculated. */
+  val field_time = new TouchField("time",TDateTime.typ)
+
+  /** Gets the yaw of the attitude in degrees */
+  val field_yaw = new TouchField("yaw",TNumber.typ)
+
   val typName = "Motion"
-  val typ = TouchType(typName,isSingleton = false,List())
+  val typ = TouchType(typName,isSingleton = false,List(field_acceleration, field_gravity, field_pitch, field_roll,
+    field_rotation_speed, field_time, field_yaw))
 
 }
 
@@ -26,57 +48,6 @@ class TMotion extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-        
-    /** Gets the linear acceleration of the device, in gravitational units. */
-    // case "acceleration" => 
-    //   Return[S](Valid(TVector3.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the linear acceleration of the device, in gravitational units. */
-    //   val field_acceleration = new TouchField("acceleration",TVector3.typ)
-
-    /** Gets the gravity vector associated with this reading. */
-    // case "gravity" => 
-    //   Return[S](Valid(TVector3.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the gravity vector associated with this reading. */
-    //   val field_gravity = new TouchField("gravity",TVector3.typ)
-
-    /** Gets the pitch of the attitude in degrees */
-    // case "pitch" => 
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the pitch of the attitude in degrees */
-    //   val field_pitch = new TouchField("pitch",TNumber.typ)
-
-    /** Gets the roll of the attitude in degrees */
-    // case "roll" => 
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the roll of the attitude in degrees */
-    //   val field_roll = new TouchField("roll",TNumber.typ)
-
-    /** Gets the device rotation speed in degrees per sec. */
-    // case "rotation_speed" => 
-    //   Return[S](Valid(TVector3.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the device rotation speed in degrees per sec. */
-    //   val field_rotation_speed = new TouchField("rotation_speed",TVector3.typ)
-
-    /** Gets a timestamp indicating the time at which the reading was calculated. */
-    // case "time" => 
-    //   Return[S](Valid(TDateTime.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets a timestamp indicating the time at which the reading was calculated. */
-    //   val field_time = new TouchField("time",TDateTime.typ)
-
-    /** Gets the yaw of the attitude in degrees */
-    // case "yaw" => 
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the yaw of the attitude in degrees */
-    //   val field_yaw = new TouchField("yaw",TNumber.typ)
-
-    // FIELDS: , field_acceleration, field_gravity, field_pitch, field_roll, field_rotation_speed, field_time, field_yaw
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

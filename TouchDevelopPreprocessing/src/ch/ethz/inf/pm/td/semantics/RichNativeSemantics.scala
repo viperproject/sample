@@ -107,6 +107,11 @@ trait RichNativeSemantics extends NativeMethodSemantics {
     state.getCollectionCell(collection,index).getExpression()
   }
 
+  // TODO: Implement this decently
+  def CollectionSummary[S <: State[S]](collection:ExpressionSet)(implicit state:S, pp:ProgramPoint):ExpressionSet = {
+    state.getCollectionCell(collection,toRichExpression(0)).getExpression()
+  }
+
   def CollectionInsert[S <: State[S]](collection:ExpressionSet, index:ExpressionSet, right:ExpressionSet)(implicit state:S, pp:ProgramPoint):S = {
     state.insertCollectionCell(collection,index,right)
   }
@@ -202,6 +207,9 @@ trait RichNativeSemantics extends NativeMethodSemantics {
   def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
   def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("invalid",typ,pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("valid",typ,pp))
+
+  // TODO: Implement this
+  def UnknownSize(typ:TouchCollection)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("valid",typ,pp))
 }
 
 class TouchField(name:String, val touchTyp:TouchType, var default: RichExpression = null, val isSummaryNode:Boolean = false)

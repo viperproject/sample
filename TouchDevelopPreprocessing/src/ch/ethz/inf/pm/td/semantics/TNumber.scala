@@ -6,9 +6,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichExpression._
 
 /**
- * User: lucas
- * Date: 11/8/12
- * Time: 6:08 PM
+ * Specifies the abstract semantics of Number
+ *
+ * A number (possibly negative and/or fractional)
+ *
+ * @author Lucas Brutschy
  */
 object TNumber {
 
@@ -33,6 +35,14 @@ class TNumber extends AAny {
     case "*" => Return(this0 * parameters.head)
     case "-" => Return(this0 - parameters.head)
     case "/" => Return(this0 / parameters.head)
+
+    /** Interprets a number as a unicode value and converts it to the single character string */
+    case "to_character" =>
+      Return[S](Valid(TString.typ))
+
+    /** Interprets the number as a ARGB (alpha, red, green, blue) color */
+    case "to_color" =>
+      Return[S](Valid(TColor.typ)) // TODO: This should be possible to implement
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)
