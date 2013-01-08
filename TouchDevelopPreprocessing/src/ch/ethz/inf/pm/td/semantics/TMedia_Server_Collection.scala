@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TMedia_Server_Collection {
 
   val typName = "Media Server Collection"
-  val typ = TouchType(typName,TNumber.typ,TMedia_Server.typ)
+  val typ = TouchCollection(typName,TNumber.typ,TMedia_Server.typ)
 
 }
 

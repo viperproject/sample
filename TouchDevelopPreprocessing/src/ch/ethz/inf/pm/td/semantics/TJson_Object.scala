@@ -1,6 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -26,9 +27,9 @@ class TJson_Object extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-        
+
     /** Gets the i-th json value */
-    // case "at" => 
+    // case "at" =>
     //   val List(index) = parameters // Number
     //   Return[S](Valid(TJson_Object.typ))
 

@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchException, TouchType}
 import collection.immutable.Range.Inclusive
-import RichExpression._
+import RichNativeSemantics._
 
 /**
  *
@@ -37,7 +37,7 @@ object ErrorReporter {
 }
 
 
-trait RichNativeSemantics extends NativeMethodSemantics {
+object RichNativeSemantics {
 
   /*-- Checking for errors --*/
 
@@ -51,6 +51,10 @@ trait RichNativeSemantics extends NativeMethodSemantics {
     }
   }
 
+  def Error[S <: State[S]](expr:RichExpression, method:String, message:String)(implicit state:S, pp:ProgramPoint) {
+    Error[S](expr,"When calling "+method+": "+message)
+  }
+
   def CheckInRangeInclusive[S <: State[S]](expr:RichExpression, low:RichExpression, high:RichExpression, method:String, parameter:String)(implicit s:S, pp:ProgramPoint) {
     Error(expr < low,method+": Parameter "+parameter+" ("+expr+") may be less than the lowest allowed value ("+low+")")(s,pp)
     Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be greater than the highest allowed value "+high+")")(s,pp)
@@ -58,7 +62,7 @@ trait RichNativeSemantics extends NativeMethodSemantics {
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
-  def New[S <: State[S]](typ:TouchType, initials:Map[Identifier,RichExpression])(implicit s:S, pp:ProgramPoint): S = {
+  def New[S <: State[S]](typ:TouchType, initials:scala.collection.immutable.Map[Identifier,RichExpression])(implicit s:S, pp:ProgramPoint): S = {
 
     var curState = typ match {
       case col:TouchCollection =>
@@ -99,28 +103,28 @@ trait RichNativeSemantics extends NativeMethodSemantics {
 
   /*-- Collections --*/
 
-  def CollectionSize[S <: State[S]](collection:ExpressionSet)(implicit state:S, pp:ProgramPoint):ExpressionSet = {
+  def CollectionSize[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
     state.getCollectionLength(collection).getExpression()
   }
 
-  def CollectionAt[S <: State[S]](collection:ExpressionSet,index:ExpressionSet)(implicit state:S, pp:ProgramPoint):ExpressionSet = {
+  def CollectionAt[S <: State[S]](collection:RichExpression,index:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
     state.getCollectionCell(collection,index).getExpression()
   }
 
   // TODO: Implement this decently
-  def CollectionSummary[S <: State[S]](collection:ExpressionSet)(implicit state:S, pp:ProgramPoint):ExpressionSet = {
+  def CollectionSummary[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
     state.getCollectionCell(collection,toRichExpression(0)).getExpression()
   }
 
-  def CollectionInsert[S <: State[S]](collection:ExpressionSet, index:ExpressionSet, right:ExpressionSet)(implicit state:S, pp:ProgramPoint):S = {
+  def CollectionInsert[S <: State[S]](collection:RichExpression, index:RichExpression, right:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
     state.insertCollectionCell(collection,index,right)
   }
 
-  def CollectionUpdate[S <: State[S]](collection:ExpressionSet, index:ExpressionSet, right:ExpressionSet)(implicit state:S, pp:ProgramPoint):S = {
+  def CollectionUpdate[S <: State[S]](collection:RichExpression, index:RichExpression, right:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
     state.assignCollectionCell(collection,index,right)
   }
 
-  def CollectionRemove[S <: State[S]](collection:ExpressionSet, index:ExpressionSet)(implicit state:S, pp:ProgramPoint):S = {
+  def CollectionRemove[S <: State[S]](collection:RichExpression, index:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
     state.removeCollectionCell(collection,index)
   }
 
@@ -201,6 +205,7 @@ trait RichNativeSemantics extends NativeMethodSemantics {
 
   /*-- Constants --*/
 
+  def StringCst(a:String)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant(a,TString.typ,pp))
   def True(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("true",TBoolean.typ,pp))
   def False(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("false",TBoolean.typ,pp))
   def Top(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).top())
@@ -210,18 +215,6 @@ trait RichNativeSemantics extends NativeMethodSemantics {
 
   // TODO: Implement this
   def UnknownSize(typ:TouchCollection)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("valid",typ,pp))
-}
-
-class TouchField(name:String, val touchTyp:TouchType, var default: RichExpression = null, val isSummaryNode:Boolean = false)
-  extends VariableIdentifier(name,touchTyp,null) {
-
-  if (default == null) {
-    default = RichExpression(new Constant("valid",touchTyp,null))
-  }
-
-}
-
-object RichExpression {
 
   /*-- Conversion --*/
 
@@ -250,6 +243,14 @@ object RichExpression {
   implicit def toExpressionSet(value:RichExpression) : ExpressionSet =
     (new ExpressionSet(value.thisExpr.getType())).add(value.thisExpr)
 
+}
+
+class TouchField(name:String, val touchTyp:TouchType, var default: RichExpression = null, val isSummaryNode:Boolean = false)
+  extends VariableIdentifier(name,touchTyp,null) {
+
+  if (default == null) {
+    default = RichExpression(new Constant("valid",touchTyp,null))
+  }
 }
 
 case class RichExpression(thisExpr : Expression) {
@@ -297,4 +298,7 @@ case class RichExpression(thisExpr : Expression) {
 
   def || (thatExpr : RichExpression) : RichExpression =
     RichExpression(new BinaryBooleanExpression(thisExpr,thatExpr,BooleanOperator.||,TBoolean.typ))
+
+  def not () : RichExpression =
+    RichExpression(new NegatedBooleanExpression(thisExpr))
 }

@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -16,30 +16,16 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TPage_Collection {
 
   val typName = "Page Collection"
-  val typ = TouchType(typName,isSingleton = false,List())
+  val typ = TouchCollection(typName,TNumber.typ,TPage.typ)
 
 }
 
-class TPage_Collection extends AAny {
+class TPage_Collection extends ACollection {
 
   def getTyp = TPage_Collection.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-        
-    /** Gets the pages at index */
-    // case "at" => 
-    //   val List(index) = parameters // Number
-    //   Return[S](Valid(TPage.typ))
-
-    /** Gets the number of pages */
-    // case "count" => 
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the number of pages */
-    //   val field_count = new TouchField("count",TNumber.typ)
-
-    // FIELDS: , field_count
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

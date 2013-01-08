@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{State, ExpressionSet}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**

@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.semantics.RichExpression._
 
 /**
  * Specifies the abstract semantics of social
@@ -92,21 +94,23 @@ class SSocial extends AAny {
     //   Return[S](Valid(TContact_Collection.typ))
 
     /** Searches for places nearby. The distance is in meters. */
-    // case "search_places_nearby" => 
-    //   val List(network,terms,location,distance) = parameters // String,String,Location,Number
-    //   Return[S](Valid(TPlace_Collection.typ))
+    case "search_places_nearby" =>
+      val List(network,terms,location,distance) = parameters // String,String,Location,Number
+      Error[S](toRichExpression(Environment.isConnected).not, "search_places_nearby",
+        "Check first if an internet connection is available")
+      Return[S](Valid(TPlace_Collection.typ))
 
     /** Opens the mail client */
-    // case "send_email" => 
-    //   val List(to,subject,body) = parameters // String,String,String
-    //   Skip;
+    case "send_email" =>
+       val List(to,subject,body) = parameters // String,String,String
+       // It's fine if we are offline here
+       Skip
 
     /** Opens the short message client (to, body) */
-    // case "send_sms" => 
-    //   val List(to,body) = parameters // String,String
-    //   Skip;
-
-    // FIELDS: , field_choose_contact, field_choose_email
+    case "send_sms" =>
+      val List(to,body) = parameters // String,String
+      // TODO: Maybe check if length < 140?
+      Skip
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

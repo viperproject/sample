@@ -1,16 +1,17 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
-import RichExpression._
+import RichNativeSemantics._
 
 /**
  * User: Lucas Brutschy
  * Date: 11/8/12
  * Time: 5:36 PM
  */
-abstract class AAny extends RichNativeSemantics {
+abstract class AAny extends NativeMethodSemantics {
 
   /**
    * Backward semantics are empty for all native function for now
@@ -71,6 +72,10 @@ abstract class AAny extends RichNativeSemantics {
    */
   def forwardSemantics[S <: State[S]](this0:ExpressionSet,method:String,parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
+
+    /** Updates any display of this map */
+    case "update_on_wall" =>
+      Skip // TODO: Update environment
 
     case "post_to_wall" =>
       Skip // TODO: create reference from wall to this?

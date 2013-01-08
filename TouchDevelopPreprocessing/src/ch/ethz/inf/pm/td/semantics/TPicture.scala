@@ -1,9 +1,10 @@
 package ch.ethz.inf.pm.td.semantics
 
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichExpression._
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Picture
@@ -16,16 +17,16 @@ import RichExpression._
 object TPicture {
 
   /** Gets the width in pixels */
-  val field_width = new TouchField("width", TNumber.typ)
+  val field_width = new TouchField("width", TNumber.typ,Valid(TNumber.typ)(null))
 
   /** Gets the height in pixels */
-  val field_height = new TouchField("height", TNumber.typ)
+  val field_height = new TouchField("height", TNumber.typ,Valid(TNumber.typ)(null))
 
   /** Gets the location where the picture was taken; if any. */
-  val field_location = new TouchField("location",TLocation.typ)
+  val field_location = new TouchField("location",TLocation.typ,Invalid(TLocation.typ)(null))
 
   /** Gets the date time where the picture was taken; if any. */
-  val field_date = new TouchField("date",TDateTime.typ)
+  val field_date = new TouchField("date",TDateTime.typ,Invalid(TLocation.typ)(null))
 
   val typName = "Picture"
   val typ = TouchType(typName,isSingleton = false,List(field_width,field_height,field_location,field_date))

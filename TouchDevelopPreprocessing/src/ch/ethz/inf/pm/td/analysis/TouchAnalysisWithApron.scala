@@ -2,7 +2,6 @@ package ch.ethz.inf.pm.td.analysis
 
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.td.domain.TouchAnalysis
 
 /**
  * 

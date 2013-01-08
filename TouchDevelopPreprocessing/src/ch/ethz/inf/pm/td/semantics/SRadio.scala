@@ -1,8 +1,9 @@
 
 package ch.ethz.inf.pm.td.semantics
 
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 /**
@@ -15,8 +16,14 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object SRadio {
 
+  /** Gets the frequency */
+  val field_frequency = new TouchField("frequency",TNumber.typ, Valid(TBoolean.typ)(null))
+
+  /** Indicates if the radio is on */
+  val field_is_playing = new TouchField("is_playing",TBoolean.typ, Valid(TBoolean.typ)(null))
+
   val typName = "radio"
-  val typ = TouchType(typName,isSingleton = true,List())
+  val typ = TouchType(typName,isSingleton = true,List(field_frequency, field_is_playing))
 
 }
 
@@ -26,47 +33,23 @@ class SRadio extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-        
-    /** Gets the frequency */
-    // case "frequency" => 
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the frequency */
-    //   val field_frequency = new TouchField("frequency",TNumber.typ)
-
-    /** Indicates if the radio is on */
-    // case "is_playing" => 
-    //   Return[S](Valid(TBoolean.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the radio is on */
-    //   val field_is_playing = new TouchField("is_playing",TBoolean.typ)
 
     /** Creates a link to a radio frequency */
-    // case "link_frequency" => 
-    //   val List(name,frequency) = parameters // String,Number
-    //   Return[S](Valid(TLink.typ))
-
-    /** Sets the frequency */
-    // case "set_frequency" => 
-    //   val List(frequency) = parameters // Number
-    //   Skip;
+    case "link_frequency" =>
+      val List(name,frequency) = parameters // String,Number
+      New[S](TLink.typ,Map(TLink.field_name.asInstanceOf[Identifier] -> toRichExpression(name), TLink.field_kind -> StringCst("radio")))
 
     /** Gets the signal strength */
-    // case "signal_strength" => 
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the signal strength */
-    //   val field_signal_strength = new TouchField("signal_strength",TNumber.typ)
+    case "signal_strength" =>
+      Return[S](Valid(TNumber.typ))
 
     /** Turns on the radio */
-    // case "start" => 
-    //   Skip;
+    case "start" =>
+      AssignField[S](this0,SRadio.field_is_playing,True)
 
     /** Turns off the radio */
-    // case "stop" => 
-    //   Skip;
-
-    // FIELDS: , field_frequency, field_is_playing, field_signal_strength
+    case "stop" =>
+      AssignField[S](this0,SRadio.field_is_playing,True)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

@@ -4,6 +4,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Number Map
@@ -31,15 +32,15 @@ class TNumber_Map extends AMutable_Collection {
 
     /** Computes the average of the values */
     case "avg" =>
-      Return[S](CollectionAt[S](this0,0))
+      Return[S](CollectionSummary[S](this0))
 
     /** Computes the maximum of the values */
     case "max" =>
-      Return[S](CollectionAt[S](this0,0))
+      Return[S](CollectionSummary[S](this0))
 
     /** Computes the minimum of the values */
     case "min" =>
-      Return[S](CollectionAt[S](this0,0))
+      Return[S](CollectionSummary[S](this0))
 
     /** Extracts the elements at indices between start (inclusive) and end (non-inclusive). */
     case "slice" =>
@@ -49,11 +50,7 @@ class TNumber_Map extends AMutable_Collection {
 
     /** Computes the sum of the values */
     case "sum" =>
-      Return[S]( (CollectionSize[S](this0)) * (CollectionAt[S](this0,0)))
-
-    /** Updates any display of this map */
-    case "update_on_wall" =>
-      Skip // TODO: Update environment
+      Return[S]( (CollectionSize[S](this0)) * (CollectionSummary[S](this0)))
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

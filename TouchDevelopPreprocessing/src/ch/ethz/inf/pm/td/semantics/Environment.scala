@@ -19,8 +19,9 @@ object Environment {
   val hasGyroscope = new EnvironmentIdentifier("hasGyroscope",TBoolean.typ,InitValid())
   val isLightTheme = new EnvironmentIdentifier("isLightTheme",TBoolean.typ,InitValid())
   val numberOfSongsInLibrary = new EnvironmentIdentifier("noSongsInLibrary",TNumber.typ,InitValid())
+  val isConnected = new EnvironmentIdentifier("isConnected",TBoolean.typ,InitValid())
 
-  val envs = List(leaderboardScore,hasAccelerometer,hasCompass,hasFrontCamera,hasGyroscope,isLightTheme,numberOfSongsInLibrary)
+  val envs = List(leaderboardScore,hasAccelerometer,hasCompass,hasFrontCamera,hasGyroscope,isLightTheme,numberOfSongsInLibrary,isConnected)
 
 }
 

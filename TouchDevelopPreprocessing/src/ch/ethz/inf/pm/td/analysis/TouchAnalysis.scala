@@ -6,11 +6,11 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraphExecution, Type, NativeMethodSemantics}
 import ch.ethz.inf.pm.td.semantics.Environment
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
-import semper.sample.multithreading.{ComputedInterference, Interferences, OtherThreads, FlowSensitivePartitioning}
 import ch.ethz.inf.pm.sample.abstractdomain.HeapIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.util.Timer
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.domain.TouchDomain
 
 /**
  * 

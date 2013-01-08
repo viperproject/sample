@@ -3,14 +3,13 @@ package ch.ethz.inf.pm.sample.test
 import ch.ethz.inf.pm.sample.userinterfaces.InstalledPlugins
 import java.lang.Exception
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler
-import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain
 import ch.ethz.inf.pm.sample.property._
 import java.io._
 import scala.Some
 import ch.ethz.inf.pm.sample.{Main, StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.td.domain.TouchAnalysis
+import ch.ethz.inf.pm.td.analysis.TouchAnalysis
 
 object Run {
   var verbose = false;

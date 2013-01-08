@@ -1,6 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -41,21 +42,21 @@ class SHome extends AAny {
         
     /** Choose a media player on the current wireless network */
     case "choose_player" =>
-      Error[S](CollectionSize[S](Field[S](this0,SHome.field_players)) == 0,
+      Error[S](CollectionSize[S](Field[S](this0,SHome.field_players)) equal 0,
         "The list of players the user choses from may be empty. Check if there are players in the network first")
-      Return[S](CollectionAt)
+      Return[S](CollectionSummary[S](Field[S](this0,SHome.field_players)))
 
     /** Choose a printer on the current wireless network */
     case "choose_printer" =>
-      Error[S](CollectionSize[S](Field[S](this0,SHome.field_printers)) == 0,
+      Error[S](CollectionSize[S](Field[S](this0,SHome.field_printers)) equal 0,
         "The list of printers the user choses from may be empty. Check if there are printers in the network first")
-      Return[S](Valid(TPrinter.typ))
+      Return[S](CollectionSummary[S](Field[S](this0,SHome.field_printers)))
 
     /** Choose a media server on the current wireless network */
     case "choose_server" =>
-      Error[S](CollectionSize[S](Field[S](this0,SHome.field_printers)) == 0,
+      Error[S](CollectionSize[S](Field[S](this0,SHome.field_servers)) equal 0,
         "The list of servers the user choses from may be empty. Check if there are servers in the network first")
-      Return[S](Valid(TMedia_Server.typ))
+      Return[S](CollectionSummary[S](Field[S](this0,SHome.field_servers)))
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

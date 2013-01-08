@@ -1,6 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -30,16 +31,10 @@ class SPhone extends AAny {
     /** Chooses an address from the contacts */
     // case "choose_address" => 
     //   Return[S](Valid(TLink.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Chooses an address from the contacts */
-    //   val field_choose_address = new TouchField("choose_address",TLink.typ)
 
     /** Chooses a phone number from the contact list */
     // case "choose_phone_number" => 
     //   Return[S](Valid(TLink.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Chooses a phone number from the contact list */
-    //   val field_choose_phone_number = new TouchField("choose_phone_number",TLink.typ)
 
     /** Starts a phone call */
     // case "dial_phone_number" => 
@@ -47,11 +42,8 @@ class SPhone extends AAny {
     //   Skip;
 
     /** Indicates if the phone is on 'battery' or 'external' power source. */
-    // case "power_source" => 
-    //   Return[S](Valid(TString.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the phone is on 'battery' or 'external' power source. */
-    //   val field_power_source = new TouchField("power_source",TString.typ)
+    case "power_source" =>
+      Return[S](StringCst("battery") or StringCst("external"))
 
     /** Allows the user to save the phone number */
     // case "save_phone_number" => 
@@ -59,11 +51,10 @@ class SPhone extends AAny {
     //   Skip;
 
     /** Vibrates the phone for ... seconds (0.02 minimum) */
-    // case "vibrate" => 
-    //   val List(seconds) = parameters // Number
-    //   Skip;
-
-    // FIELDS: , field_choose_address, field_choose_phone_number, field_power_source
+    case "vibrate" =>
+      val List(seconds) = parameters // Number
+      Error[S](toRichExpression(seconds) < 0.02, "vibrate", "Given amout of seconds may be too small")
+      Skip
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

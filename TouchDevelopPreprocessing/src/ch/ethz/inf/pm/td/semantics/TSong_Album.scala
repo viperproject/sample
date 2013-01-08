@@ -1,6 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -33,14 +34,14 @@ object TSong_Album {
   /** Gets the name of the album */
   val field_name = new TouchField("name",TString.typ)
 
-  /** Gets the songs */
-  val field_songs:TouchField = new TouchField("songs",TSongs.typ)
+  /** Gets the songs. TODO */
+  /*val field_songs:TouchField = new TouchField("songs",TSongs.typ)*/
 
   /** Gets the thumbnail picture */
   val field_thumbnail = new TouchField("thumbnail",TPicture.typ)
 
   val typName = "Song Album"
-  val typ = TouchType(typName,isSingleton = false,List(field_art, field_artist, field_duration, field_genre, field_has_art, field_name, field_songs, field_thumbnail))
+  val typ = TouchType(typName,isSingleton = false,List(field_art, field_artist, field_duration, field_genre, field_has_art, field_name, /*field_songs,*/ field_thumbnail))
 
 }
 

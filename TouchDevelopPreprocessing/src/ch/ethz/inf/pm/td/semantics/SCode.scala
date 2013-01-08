@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
-import ch.ethz.inf.pm.td.compiler.{TouchType, MethodSummaries, TouchCompiler}
+import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCompiler}
 
 /**
  * Specifies the abstract semantics of code
