@@ -628,15 +628,22 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): AbstractState[N, H, I] = {
     if (this.isBottom) return this
     var result: AbstractState[N, H, I] = this.bottom()
-    for (expr <- collectionSet.setOfExpressions) {
-      if (!expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
-      for (keyExpr <- keySet.setOfExpressions) {
-        val assignable = expr.asInstanceOf[Assignable]
-        val (heapID, newHeap, rep) = this._1._2.getCollectionCell(assignable, keyExpr, this._1._1)
-        val result2 = new HeapAndAnotherDomain[N, H, I](rep, newHeap)
-        val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(heapID, result2.access(_))
-        val state = new AbstractState(accessed, new ExpressionSet(SystemParameters.getType().top()).add(heapID))
-        result = result.lub(result, state)
+
+    def getCollectionCell(keyExpr:Expression)(assignable:Assignable):AbstractState[N, H, I] = {
+      val (heapID, newHeap, rep) = this._1._2.getCollectionCell(assignable, keyExpr, this._1._1)
+      val result2 = new HeapAndAnotherDomain[N, H, I](rep, newHeap)
+      val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(heapID, result2.access(_))
+      val state = new AbstractState(accessed, new ExpressionSet(SystemParameters.getType().top()).add(heapID))
+      result = result.lub(result, state)
+      result
+    }
+
+    for (expr <- collectionSet.setOfExpressions;
+         keyExpr <- keySet.setOfExpressions) {
+      expr match {
+        case id: Assignable => getCollectionCell(keyExpr)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(set, getCollectionCell(keyExpr))
+        case _ => throw new SymbolicSemanticException("Not allowed")
       }
     }
     result
@@ -647,15 +654,20 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     var result = this.bottom().d1
     var heapId: HeapIdSetDomain[I] = null
 
+    def getCollectionLength(id:Assignable):HeapIdSetDomain[I] = {
+      val (createdLocation, newHeap, rep) = this._1._2.getCollectionLength(id,this._1._1)
+      result = result.lub(result, new HeapAndAnotherDomain[N, H, I](rep, newHeap))
+      heapId = heapId match {
+        case null => createdLocation
+        case _ => heapId.lub(heapId, createdLocation)
+      }
+      heapId
+    }
+
     for (collection <- collectionSet.setOfExpressions) {
       collection match {
-        case id: Assignable =>
-          val (createdLocation, newHeap, rep) = this._1._2.getCollectionLength(id,this._1._1)
-          result = result.lub(result, new HeapAndAnotherDomain[N, H, I](rep, newHeap))
-          heapId = heapId match {
-            case null => createdLocation
-            case _ => heapId.lub(heapId, createdLocation)
-          }
+        case id: Assignable => getCollectionLength(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(set, getCollectionLength)
         case _ => throw new SymbolicSemanticException("Not allowed")
       }
     }

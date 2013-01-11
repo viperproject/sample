@@ -13,6 +13,12 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/test/ch/ethz/inf/pm/td/apron" />
+      <excludeFolder url="file://$MODULE_DIR$/test/ch/ethz/inf/pm/td/compiler" />
+      <excludeFolder url="file://$MODULE_DIR$/test/ch/ethz/inf/pm/td/parser" />
+      <excludeFolder url="file://$MODULE_DIR$/test/ch/ethz/inf/pm/td/semantics" />
+      <excludeFolder url="file://$MODULE_DIR$/test/ch/ethz/inf/pm/td/symbols" />
+      <excludeFolder url="file://$MODULE_DIR$/test/ch/ethz/inf/pm/td/transform" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

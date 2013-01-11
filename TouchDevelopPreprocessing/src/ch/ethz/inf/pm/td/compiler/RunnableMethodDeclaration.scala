@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import ch.ethz.inf.pm.td.parser.VariableDefinition
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
+import ch.ethz.inf.pm.td.semantics.{TouchField, RichNativeSemantics, AAny}
 
 class CallableMethodDeclaration(
                                  programpoint_ : ProgramPoint,
@@ -78,6 +79,17 @@ class RunnableMethodDeclaration(
       val rightExpr = new ExpressionSet(v.typ).add(Constant("invalid",v.typ,programpoint_))
       curState = curState.createVariable(leftExpr,v.typ,programpoint_)
       curState = curState.assignVariable(leftExpr,rightExpr)
+    }
+
+    // Initialize the fields of singletons
+    for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
+      val typ = sem.asInstanceOf[AAny].getTyp
+      if(typ.isSingleton) {
+        for (field <- typ.getPossibleFieldsSorted()) {
+          // curState = curState.field.asInstanceOf[TouchField].default
+          (); // TODO
+        }
+      }
     }
 
     val result = lfp(curState, {(lastExecution:ControlFlowGraphExecution[S], initialState:S) =>

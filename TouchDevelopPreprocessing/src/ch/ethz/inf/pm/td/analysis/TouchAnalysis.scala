@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.property.{OutputCollector, DivisionByZero, SingleStatementProperty, Property}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraphExecution, Type, NativeMethodSemantics}
-import ch.ethz.inf.pm.td.semantics.Environment
+import ch.ethz.inf.pm.td.semantics.{AAny, Environment}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.abstractdomain.HeapIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
