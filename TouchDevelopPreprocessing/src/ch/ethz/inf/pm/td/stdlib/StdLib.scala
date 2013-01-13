@@ -571,12 +571,10 @@ trait StdLib extends AbstractSymbolTable  {
     Member("to_string","String"),	//Converts to a string lat,long
     Member("vert_accuracy","Number")	//Gets the vertical accuracy of the coordinate
   ))
-  addType("Location_Collection", GenericTypes.gAny("Location_Collection") ::: List(	// A list of locations
+  addType("Location_Collection", GenericTypes.gCollection("Location_Collection","Location") ::: List(	// A list of locations
     Member("add",List("Location"),"Nothing"),	//Adds a location
     Member("add_many",List("Location_Collection"),"Nothing"),	//Adds many locations at once
-    Member("at",List("Number"),"Location"),	//Gets the i-th geo coordinate
     Member("clear","Nothing"),	//Clears the collection
-    Member("count","Number"),	//Gets the number of elements
     Member("index_of",List("Location","Number"),"Number"),	//Gets the index of the first occurrence of item. Returns -1 if not found or start is out of range.
     Member("insert_at",List("Number","Location"),"Nothing"),	//Inserts a location at position index. Does nothing if index is out of range.
     Member("random","Location"),	//Gets a random element from the collection. Returns invalid if the collection is empty.
@@ -809,9 +807,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("count","Number"),	//Gets the number of elements in the collection
     Member("random","Picture_Album")	//Gets a random item; invalid if collection is empty
   ))
-  addType("Pictures", GenericTypes.gAny("Pictures") ::: List(	// A collection of pictures
-    Member("at",List("Number"),"Picture"),	//Gets the item at position 'index'; invalid if index is out of bounds
-    Member("count","Number"),	//Gets the number of elements in the collection
+  addType("Pictures", GenericTypes.gCollection("Pictures","Picture") ::: List(	// A collection of pictures
     Member("find",List("String"),"Number"),	//Finds a picture by name and returns the index. Returns -1 if not found.
     Member("random","Picture"),	//Gets a random item; invalid if collection is empty
     Member("thumbnail",List("Number"),"Picture")	//Gets the thumbnail of i-th picture.

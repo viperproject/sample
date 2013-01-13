@@ -6,7 +6,8 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import ch.ethz.inf.pm.td.parser.VariableDefinition
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
-import ch.ethz.inf.pm.td.semantics.{TouchField, RichNativeSemantics, AAny}
+import ch.ethz.inf.pm.td.semantics.{TouchField, AAny}
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 class CallableMethodDeclaration(
                                  programpoint_ : ProgramPoint,
@@ -85,9 +86,10 @@ class RunnableMethodDeclaration(
     for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
       val typ = sem.asInstanceOf[AAny].getTyp
       if(typ.isSingleton) {
+        curState = curState.createObject(typ,TouchSingletonProgramPoint(typ.getName))
+        val obj = curState.getExpression()
         for (field <- typ.getPossibleFieldsSorted()) {
-          // curState = curState.field.asInstanceOf[TouchField].default
-          (); // TODO
+          curState = curState.assignField(List(obj),field.getName(),field.asInstanceOf[TouchField].default)
         }
       }
     }

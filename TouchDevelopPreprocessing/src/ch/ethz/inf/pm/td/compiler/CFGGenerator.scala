@@ -285,6 +285,12 @@ case class TouchProgramPoint(pos:Position) extends ProgramPoint {
   override def toString = "{"+pos.line+","+pos.column+"}"
 }
 
+case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
+  def getLine() = 0
+  def getColumn() = 0
+  override def toString = name
+}
+
 case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named(name) with Type {
 
   var isBottom = false;

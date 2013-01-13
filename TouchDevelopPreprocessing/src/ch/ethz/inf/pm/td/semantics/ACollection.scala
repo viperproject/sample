@@ -18,6 +18,10 @@ abstract class ACollection extends AAny {
       CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-1),method,"index")
       Return[S](CollectionAt[S](this0,index))
 
+    /** Creates a copy of the given collection. AUXILIARY FUNCTION FOR FOREACH LOOPS */
+    case "copy" =>
+      CollectionCopy[S](this0)
+
     /** Get random element */
     case "random" =>
       Error[S](CollectionSize[S](this0) equal 0,"random","Calling random on a collection which might be empty!")

@@ -36,7 +36,9 @@ object GenericTypes {
   )
 
   def gCollection(thisName:String,typ:String):List[Member] = gAny(thisName) ::: List(
-    Member("at",List("Number"),typ),
+    Member("at",List("Number"),typ), // FIXME: Other indexing
+    Member("at_index",List("Number"),typ),
+    Member("copy",List(),thisName),
     Member("count","Number")
   )
 

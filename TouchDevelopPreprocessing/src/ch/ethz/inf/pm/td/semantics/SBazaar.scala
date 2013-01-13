@@ -33,7 +33,7 @@ class SBazaar extends AAny {
     /** Posts the current game score to the script leaderboard */
     case "post_leaderboard_score" =>
       val List(score) = parameters // Number
-      SetEnv(Environment.leaderboardScore,score)
+      Assign(Environment.leaderboardScore,score)
 
     /** Posts the current game leaderboard to the wall */
     case "post_leaderboard_to_wall" =>
