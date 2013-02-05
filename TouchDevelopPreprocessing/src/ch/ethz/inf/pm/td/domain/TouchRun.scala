@@ -39,10 +39,10 @@ object TouchRun {
     SystemParameters.resetNativeMethodsSemantics()
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
-    SystemParameters.analysisOutput = new TouchOutput()
-    SystemParameters.progressOutput = new TouchOutput()
+    SystemParameters.analysisOutput = new StdOutOutput()
+    SystemParameters.progressOutput = new StdOutOutput()
 
-    ch.ethz.inf.pm.sample.Main.compile(files)
+    SystemParameters.compiler.compile(files)
 
     //EntryState
     val numerical = new TouchDomain(new BoxedNonRelationalNumericalDomain(new Interval(0,0)))
@@ -61,7 +61,7 @@ object TouchRun {
     val entryState = new AbstractState[TouchDomain[BoxedNonRelationalNumericalDomain[Interval]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
     val analysis = new TouchAnalysis[TouchDomain[BoxedNonRelationalNumericalDomain[Interval]]]
-    analysis.fixpointComputation(entryState, new OutputCollector)
+    analysis.analyze(Nil,entryState, new OutputCollector)
 
   }
 
@@ -86,10 +86,10 @@ object TouchApronRun {
     SystemParameters.resetNativeMethodsSemantics()
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
-    SystemParameters.analysisOutput = new TouchOutput()
-    SystemParameters.progressOutput = new TouchOutput()
+    SystemParameters.analysisOutput = new StdOutOutput()
+    SystemParameters.progressOutput = new StdOutOutput()
 
-    ch.ethz.inf.pm.sample.Main.compile(files)
+    SystemParameters.compiler.compile(files)
 
     //EntryState
     val domain = new Octagon()
@@ -109,18 +109,8 @@ object TouchApronRun {
     val entryState = new AbstractState[TouchDomain[ApronInterface], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
     val analysis = new TouchAnalysisWithApron[TouchDomain[ApronInterface]]
-    analysis.fixpointComputation(entryState, new OutputCollector)
+    analysis.analyze(Nil, entryState, new OutputCollector)
 
   }
 
-}
-
-class TouchOutput extends ScreenOutput {
-  def getString(): String = {
-    ""
-  }
-
-  def appendString(s: String) = {
-    println(s);
-  }
 }

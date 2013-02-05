@@ -131,9 +131,10 @@ object RichNativeSemantics {
   def CollectionCopy[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
     val state1 = New[S](collection.typ.asInstanceOf[TouchCollection])
     val newCollection = state1.getExpression().setOfExpressions.head
-    val state2 = Assign[S](CollectionSummary[S](newCollection).asInstanceOf[Identifier],CollectionSummary[S](collection))(state1,pp)
-    val state3 = Assign[S](CollectionSize[S](newCollection).asInstanceOf[Identifier],CollectionSize[S](collection))(state2,pp)
-    state3
+    val state2 = Assign[S](CollectionSummary[S](newCollection),CollectionSummary[S](collection))(state1,pp)
+    val state3 = Assign[S](CollectionSize[S](newCollection),CollectionSize[S](collection))(state2,pp)
+    val state4 = state3.setExpression(new ExpressionSet(newCollection.getType()).add(newCollection))
+    state4
   }
 
   /*-- Misc --*/
@@ -142,8 +143,8 @@ object RichNativeSemantics {
     state.setExpression(e)
   }
 
-  def Assign[S <: State[S]](id:Identifier,value:ExpressionSet)(implicit state:S, pp:ProgramPoint): S = {
-    state.assignVariable(new ExpressionSet(id.typ).add(id),value)
+  def Assign[S <: State[S]](id:Expression,value:ExpressionSet)(implicit state:S, pp:ProgramPoint): S = {
+    state.assignVariable(new ExpressionSet(id.getType()).add(id),value)
   }
 
   /*-- Reading and writing of fields --*/

@@ -14,6 +14,13 @@ abstract class ACollection extends AAny {
 
     /** Gets the i-th element */
     case "at" =>
+      // FIXME: Some collections are indexed non-numerically
+      val List(index) = parameters // Key_Type
+      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-1),method,"index")
+      Return[S](CollectionAt[S](this0,index))
+
+    /** Gets the i-th element */
+    case "at_index" =>
       val List(index) = parameters // Key_Type
       CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-1),method,"index")
       Return[S](CollectionAt[S](this0,index))

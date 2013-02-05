@@ -51,7 +51,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
-  def fixpointComputation[S <: State[S]](entryState : S, output : OutputCollector) = {
+  override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) = {
     Timer.start
     for ((c,x) <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getRunnableMethods) {
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Analyzing method "+x.name.toString()+" in class "+c.name.toString());

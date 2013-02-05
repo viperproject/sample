@@ -41,27 +41,27 @@ object ArrayAnalysis {
   private var methods : List[String] = Nil;//"ex1" /*:: "ex2" :: "ex3" :: "ex4" */:: Nil;
   
   def analyze(method : String, file : String, numericalDomain : AVP2010Analysis) : Unit = {
-	  
-	SystemParameters.addNativeMethodsSemantics(ArrayNativeMethodSemantics :: Nil);
-  
-	//Mandatory global settings
-	SystemParameters.compiler = new ScalaCompiler;
-	SystemParameters.property = new ArrayProperty;
-	methods = method :: Nil;
-	
-	//Files paths
-	val f1 = file;
-	
-	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
-	
-	val heapid = new TopHeapIdentifier(null, null);
-	heapid.typ=SystemParameters.typ.asInstanceOf[Type];
-	val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain[TopHeapIdentifier](), heapid);
-	val entrydomain  = new HeapAndAnother(numericalDomain, heapDomain);
-	var entryvalue =new AbstractValue(SystemParameters.typ.top())
-	var entryState =new State(entrydomain, entryvalue)
-	
-	ch.ethz.inf.pm.sample.Main.verbose=false; 
-	ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector);
+
+    SystemParameters.addNativeMethodsSemantics(ArrayNativeMethodSemantics :: Nil);
+
+    //Mandatory global settings
+    SystemParameters.compiler = new ScalaCompiler;
+    SystemParameters.property = new ArrayProperty;
+    methods = method :: Nil;
+
+    //Files paths
+    val f1 = file;
+
+    SystemParameters.compiler.compile(f1 :: Nil);
+
+    val heapid = new TopHeapIdentifier(null, null);
+    heapid.typ=SystemParameters.typ.asInstanceOf[Type];
+    val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain[TopHeapIdentifier](), heapid);
+    val entrydomain  = new HeapAndAnother(numericalDomain, heapDomain);
+    var entryvalue =new AbstractValue(SystemParameters.typ.top())
+    var entryState =new State(entrydomain, entryvalue)
+    var analyzer = new SimpleAnalyzer("ArrayAnalysis")
+
+    analyzer.analyze(methods, entryState, new OutputCollector);
   }
 }

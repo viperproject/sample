@@ -14,9 +14,7 @@ import java.beans.PropertyChangeListener;
 import java.io.*;
 import java.net.URL;
 
-import ch.ethz.inf.pm.sample.ScreenOutput;
-import ch.ethz.inf.pm.sample.StringCollector;
-import ch.ethz.inf.pm.sample.SystemParameters;
+import ch.ethz.inf.pm.sample.*;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain;
 import ch.ethz.inf.pm.sample.property.OutputCollector;
@@ -386,9 +384,8 @@ public class WindowApplication {
 						methods = methods.$colon$colon(method.toString());
 					}
 
-                    ch.ethz.inf.pm.sample.Main.reset();
-                    SystemParameters.setProgressOutput(new TextAreaProgress());
-                    SystemParameters.setAnalysisOutput(new StringCollector());
+                    SystemParameters.setProgressOutput(new CombinedOutput(new StdOutOutput(), new TextAreaProgress()));
+                    SystemParameters.setAnalysisOutput(new CombinedOutput(new StdOutOutput(), new TextAreaProgress()));
                     SystemParameters.heapTimer().reset();
                     SystemParameters.domainTimer().reset();
                     taskOutput.append("\nSetting up the parameters of the analysis");
@@ -408,9 +405,9 @@ public class WindowApplication {
                     ch.ethz.inf.pm.sample.Timer tcompiler=new ch.ethz.inf.pm.sample.Timer();
                     tcompiler.start();
                     if (getSelectedCompiler() instanceof TouchCompiler && file == null) {
-                        ch.ethz.inf.pm.sample.Main.compile(urlField.getText());
+                        getSelectedCompiler().compile(urlField.getText());
                     } else {
-                        ch.ethz.inf.pm.sample.Main.compile(file);
+                        getSelectedCompiler().compile(file);
                     }
                     tcompiler.stop();
                     setProgress(40);
@@ -429,16 +426,12 @@ public class WindowApplication {
                     t.start();
                     OutputCollector output = new OutputCollector();
                     if (directiveListModel.size() > 0) {
-                        ch.ethz.inf.pm.sample.Main.analyze(methods, new PartitionedState(entryState), output);
+                        getSelectedAnalysis().analyze(methods, new PartitionedState(entryState), output);
 					} else if(getSelectedAnalysis() instanceof MultithreadingAnalysis) {
                         ((MultithreadingAnalysis) getSelectedAnalysis()).fixpointComputation(methods, (SemanticDomain) getSelectedAnalysis().getInitialState(), output, heapDomain, SystemParameters.getType());
-                    } else if(getSelectedAnalysis() instanceof TouchAnalysis) {
-                        ((TouchAnalysis) getSelectedAnalysis()).fixpointComputation(entryState, output);
-                    }
-                    else {
-						ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, output);
+                    }  else {
+                        getSelectedAnalysis().analyze(methods, entryState, output);
 					}
-                    //semper.sample.multithreading.Main.analyze(methods, entryState, output);
                     t.stop();
                     setProgress(100);
                     taskOutput.append("\nAnalysis ended");

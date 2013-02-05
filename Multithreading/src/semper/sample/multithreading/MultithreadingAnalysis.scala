@@ -40,11 +40,11 @@ class MultithreadingAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S]
 
     SystemParameters.progressOutput.appendString("Start of the multithreading semantics")
     SystemParameters.progressOutput.appendString("Iteration 1")
-    ch.ethz.inf.pm.sample.Main.analyze(toAnalyze, entryState, output)
+    super.analyze(toAnalyze, entryState, output)
     finalize(heap);
     var prev : Interferences[D] = ComputedInterference.value.asInstanceOf[Interferences[D]];
     SystemParameters.progressOutput.appendString("Iteration 2")
-    ch.ethz.inf.pm.sample.Main.analyze(toAnalyze, entryState, output)
+    super.analyze(toAnalyze, entryState, output)
     finalize(heap);
     var next : Interferences[D]= ComputedInterference.value.asInstanceOf[Interferences[D]];
     //ComputedInterference.value=next;
@@ -55,7 +55,7 @@ class MultithreadingAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S]
       System.out.println("Iteration "+i)
       prev = if(i<=5) prev.lub(prev, next) else prev.widening(prev, next);
       ComputedInterference.value=prev.asInstanceOf[Interferences[Nothing]];
-      ch.ethz.inf.pm.sample.Main.analyze(toAnalyze, entryState, output)
+      super.analyze(toAnalyze, entryState, output)
       finalize(heap);
       next = ComputedInterference.value.asInstanceOf[Interferences[D]];
       //ComputedInterference.value=null;

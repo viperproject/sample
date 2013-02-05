@@ -270,35 +270,40 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     for(id <- ids.value)
       result=result.lub(result, this.assign(id, expr, null)._1);
     (result, new Replacement);
+    //We ignore the other parts since getting a field does not modify a non relational heap domain
   }
-  //We ignore the other parts since getting a field does not modify a non relational heap domain
 
   override def assign[S <: SemanticDomain[S]](variable : Assignable, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
-    if(! variable.getType.isObject) return (this, new Replacement);//It does not modify the heap
+
+    if(! variable.getType().isObject)
+      // It does not modify the heap
+      return (this, new Replacement)
+
     variable match {
-      //case x : LengthArray => (this, new Replacement())//Assigning the length of an array does not change the heap structure
-	    case x : VariableIdentifier => 
-	      try {
-	        expr match {
-	          case value : HeapIdSetDomain[I] =>
-	            var result=this._1;
-	            //for(heapid <- this.normalize(value).value)
-	            //	if(value.value.size==1)
-	            		result=result.add(x, this.normalize(value));
-	            //	else result=result.add(x, value.lub(this.normalize(value), this._1.get(x)));
-	            (new NonRelationalHeapDomain(result, this._2, cod, dom), new Replacement);
-	          case _ =>
-	            val value=this.eval(expr);
-	            (new NonRelationalHeapDomain(this._1.add(x, this.normalize(value)), this._2, cod, dom), new Replacement)
-	        }
-	      }
-	      catch {
-	      	case _ => this.setToTop(variable)
-	      }
+
+	    case x : VariableIdentifier =>
+        expr match {
+          case value : HeapIdSetDomain[I] =>
+            var result=this._1
+            //for(heapid <- this.normalize(value).value)
+            //	if(value.value.size==1)
+                result=result.add(x, this.normalize(value))
+            //	else result=result.add(x, value.lub(this.normalize(value), this._1.get(x)));
+            (new NonRelationalHeapDomain(result, this._2, cod, dom), new Replacement)
+          case _ =>
+            val value=this.eval(expr)
+            (new NonRelationalHeapDomain(this._1.add(x, this.normalize(value)), this._2, cod, dom), new Replacement)
+        }
 
 	    case x : I =>
 	      val value=this.eval(expr)
-	      var result=this._2.add(x, this.normalize(value))
+        // Brutschy: Following my understanding of the weak update implementation, we need the
+        //           following distinction between summary nodes and non-summary nodes
+	      var result =
+          if (x.representSingleVariable())
+            this._2.add(x, this.normalize(value))
+          else
+            this._2.add(x, this.get(x).add(this.normalize(value)))
 	      return (new NonRelationalHeapDomain(this._1, result, cod, dom), new Replacement);
 
 	    case x : HeapIdSetDomain[I] =>
@@ -310,7 +315,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 	      for(addr <- x.value/*this.normalize(x).value*/)
 	        result=result.add(addr, value.lub(this.normalize(value), this._2.get(addr)))
 	      return (new NonRelationalHeapDomain(this._1, result, cod, dom), new Replacement);
-	    //case x : ArrayAccess => return (this, new Replacement);//We skip array access, because of AVP2010 project
+
     }
   }
   

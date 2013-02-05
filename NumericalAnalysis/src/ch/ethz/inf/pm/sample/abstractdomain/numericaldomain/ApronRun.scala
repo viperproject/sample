@@ -36,8 +36,8 @@ object ApronRun {
 	
 	//Files paths
 	val f1 = "/home/samlik/IdeaProjects/Semper/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";
-	
-	ch.ethz.inf.pm.sample.Main.compile(f1 :: Nil);
+
+  SystemParameters.compiler.compile(f1 :: Nil);
 	
 	//EntryState
 	val domain=new Polka(false);
@@ -50,9 +50,9 @@ object ApronRun {
 	val entrydomain  = new HeapAndAnotherDomain[ApronInterface, NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain);
 	var entryvalue =new ExpressionSet(SystemParameters.typ.top())
 	var entryState =new AbstractState[ApronInterface, NonRelationalHeapDomain[HeapId], HeapId](entrydomain, entryvalue)
-			      
 
-	ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector);
+  var analyzer = new SimpleAnalyzer("ArrayAnalysis")
+  analyzer.analyze(methods, entryState, new OutputCollector);
 
 	System.out.println("Semantic time: " + SystemParameters.domainTimer.totalTime);
 	

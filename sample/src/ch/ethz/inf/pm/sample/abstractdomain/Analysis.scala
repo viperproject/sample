@@ -1,7 +1,10 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.property.Property
-import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
+import ch.ethz.inf.pm.sample.property.{OutputCollector, Property}
+import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, NativeMethodSemantics}
+import java.io.File
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.util.Timer
 
 /**
  * An <code>Analysis</code> represents the interface to provide an analysis to Sample
@@ -10,6 +13,33 @@ import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
  * @since 0.1
  */
 trait Analysis {
+  def analyze[S <: State[S]](toAnalyze : String, entryState : S, output : OutputCollector) : Unit =
+    this.analyze( toAnalyze ::Nil, entryState, output);
+
+  def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : Unit = {
+    Timer.start;
+    for (methodName <- toAnalyze) {
+      val methods = SystemParameters.compiler.getMethods(methodName)
+      for((c,x) <- methods) {
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Analyzing method "+x.name.toString()+" in class "+c.name.toString());
+        SystemParameters.currentMethod = x.name.toString
+        val s = x.forwardSemantics[S](entryState)
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
+        if(SystemParameters.property!=null) {
+          SystemParameters.property.check(c.name.getThisType(), x.name.toString(), s, output)
+        }
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
+        SystemParameters.currentMethod = null
+      }
+    }
+    if(SystemParameters.property!=null) {
+      SystemParameters.progressOutput.appendString("Finalizing the checking the property")
+      SystemParameters.property.finalizeChecking(output)
+      SystemParameters.progressOutput.appendString("End of the checking of the property")
+    }
+    System.out.println(output.output()+"STATISTICS [ Property validated:"+output.validated()+", Warnings:"+output.notvalidated()+", Inferred contracts:"+output.inferredcontracts()+", Time of analyisis: " + Timer.stop+" ]")
+  }
 
   /**
    This method returns a short name for the analysis
@@ -54,7 +84,7 @@ trait Analysis {
    This method resets the analysis before starting it. It can be used to clean static
    fields before re-running the analysis.
   */
-  def reset() : Unit;
+  def reset()
 }
 
 /**
@@ -85,4 +115,14 @@ trait HeapAnalysis[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analys
    @return the initial state
   */
   def getInitialState() : T;
+}
+
+/** A simple analyzer with a name. */
+class SimpleAnalyzer(label:String) extends Analysis {
+  def getLabel() = label
+  def parameters() : List[(String, Any)] = Nil
+  def setParameter(label : String, value : Any) {}
+  def getProperties() : Set[Property] = Set.empty[Property]
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil
+  def reset() {}
 }

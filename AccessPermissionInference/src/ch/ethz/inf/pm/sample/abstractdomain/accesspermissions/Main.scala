@@ -41,8 +41,8 @@ object Main {
 	//Files paths
 	val f1 = "C:\\Users\\Pietro\\Sample\\AccessPermissionInference\\test\\Chalice\\Chalice.scala";
 	val f2 = "C:\\Users\\Pietro\\Sample\\AccessPermissionInference\\test\\ChaliceExamples\\TestCases.scala";
-	
-	ch.ethz.inf.pm.sample.Main.compile(f1 :: f2 :: Nil);
+
+  SystemParameters.compiler.compile(f1 :: f2 :: Nil);
 	
 	//EntryState
 	val heapid : ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(SystemParameters.typ, null);
@@ -51,7 +51,7 @@ object Main {
 	val entrydomain  = new HeapAndAnother(domain, heapDomain);
 	var entryvalue =new AbstractValue(SystemParameters.typ.top())
 	var entryState =new State(entrydomain, entryvalue)
-
-	ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, new OutputCollector);
+  var analyzer = new SimpleAnalyzer("AccessPermissionInference")
+  analyzer.analyze(methods, entryState, new OutputCollector);
   }
 }

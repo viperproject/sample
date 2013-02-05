@@ -720,23 +720,10 @@ trait StdLib extends AbstractSymbolTable  {
     Member("to_color","Color"),	//Interprets the number as a ARGB (alpha, red, green, blue) color
     Member("to_string","String")	//Converts a number to a string
   ))
-  addType("Number_Collection", GenericTypes.gAny("Number_Collection") ::: List(	// A collection of numbers
-    Member("add",List("Number"),"Nothing"),	//Adds a number at the end of the collection
-    Member("add_many",List("Number_Collection"),"Nothing"),	//Adds many numbers at once
-    Member("at",List("Number"),"Number"),	//Gets the number at position index. Returns invalid if index is out of range
+  addType("Number_Collection", GenericTypes.gMutableCollection("Number_Collection","Number") ::: List(	// A collection of numbers
     Member("avg","Number"),	//Computes the average of the values
-    Member("clear","Nothing"),	//Clears the numbers
-    Member("contains",List("Number"),"Boolean"),	//Indicates if the collection contains the item
-    Member("count","Number"),	//Gets the number of items
-    Member("index_of",List("Number","Number"),"Number"),	//Gets the index of the first occurrence of a number. Returns -1 if not found or start is out of range.
-    Member("insert_at",List("Number","Number"),"Nothing"),	//Inserts a double at position index. Does nothing if index is out of range.
     Member("max","Number"),	//Computes the maximum of the values
     Member("min","Number"),	//Computes the minimum of the values
-    Member("random","Number"),	//Gets a random element from the collection. Returns invalid if the collection is empty.
-    Member("remove",List("Number"),"Boolean"),	//Removes the first occurrence of a number. Returns true if removed.
-    Member("remove_at",List("Number"),"Nothing"),	//Removes the number at position index.
-    Member("reverse","Nothing"),	//Reverses the items
-    Member("set_at",List("Number","Number"),"Nothing"),	//Sets the number at position index. Does nothing if the index is out of range.
     Member("sort","Nothing"),	//Sorts the numbers in this collection
     Member("sum","Number")	//Computes the sum of the values
   ))

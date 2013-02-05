@@ -159,6 +159,21 @@ class StringCollector extends ScreenOutput {
   }
 }
 
+class StdOutOutput extends ScreenOutput {
+  def getString(): String = {
+    ""
+  }
+
+  def appendString(s: String) {
+    println(s)
+  }
+}
+
+class CombinedOutput (a:ScreenOutput,b:ScreenOutput) extends ScreenOutput {
+  def getString(): String = a.getString() + b.getString()
+  def appendString(s: String) { a.appendString(s); b.appendString(s) }
+}
+
 class Timer {
 	var lastValue : Option[Long] = None
 	var totalTime : Long = 0;

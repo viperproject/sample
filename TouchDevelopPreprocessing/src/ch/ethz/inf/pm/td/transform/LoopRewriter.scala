@@ -78,7 +78,6 @@ object LoopRewriter {
         val idxExp = pos(LocalReference(annotateName(elem,"index")))
         val storedCollection = pos(LocalReference(annotateName(elem,"collection")))
         val elemExp = pos(LocalReference(elem))
-        val condition = pos(Access(idxExp, "<", List(pos(Access(coll, "count", Nil)))))
         val indexInit = pos(AssignStatement(List(idxExp), pos(Literal(pos(TypeName("Number")), "0"))))
         val collectionStore = pos(AssignStatement(List(storedCollection), pos(Access(coll,"copy",Nil))))
         val bodyPrefix = pos(AssignStatement(List(elemExp), pos(Access(storedCollection, "at_index", List(idxExp)))))
@@ -90,6 +89,7 @@ object LoopRewriter {
             List(pos(If(guardCondition,rewrittenBody,Nil)))
           case Nil => rewrittenBody
         }
+        val condition = pos(Access(idxExp, "<", List(pos(Access(storedCollection, "count", Nil)))))
         val whileLoop = pos(While(condition, bodyPrefix :: conditionalBody ::: bodyPostfix :: Nil))
         indexInit :: collectionStore :: whileLoop :: Nil
 

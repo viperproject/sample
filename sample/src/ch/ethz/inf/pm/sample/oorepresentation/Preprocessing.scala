@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
-import java.io.StringWriter
+import java.io.{File, StringWriter}
 
 /**
  * A <code>Compiler</code> represents the interface to provide a compiler from a language to Simple
@@ -60,5 +60,9 @@ trait Compiler {
    *  Reset
    */
   def reset()
+
+  def compile(file:String) { compileFile(file) }
+  def compile(file:File) { compileFile(file.getAbsolutePath) }
+  def compile(files:List[String]) { files.foreach(compile _) }
 
 }

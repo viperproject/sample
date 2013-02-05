@@ -7,7 +7,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain
 import ch.ethz.inf.pm.sample.property._
 import java.io._
 import scala.Some
-import ch.ethz.inf.pm.sample.{Main, StringCollector, SystemParameters}
+import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysis
 
@@ -106,7 +106,6 @@ object Run {
           val heapanalysis = r._4;
           for(file2 <- file.listFiles()) {
             try {
-              Main.reset();
               analysis.reset();
               heapanalysis.reset();
               if(! file2.isDirectory) {
@@ -189,14 +188,10 @@ object Run {
     SystemParameters.setCompiler(this.getCompiler(splitExtension(sourceCodeFile)._2))
     SystemParameters.compiler.reset();
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
-    ch.ethz.inf.pm.sample.Main.compile(sourceCodeFile)
+    SystemParameters.compiler.compile(sourceCodeFile)
     val output: OutputCollector = new OutputCollector;
     val entryState = new AbstractState[N, H, I](entryDomain, new ExpressionSet(SystemParameters.typ.top()))
-    if (analysis.isInstanceOf[TouchAnalysis[_]]) {
-      (analysis.asInstanceOf[TouchAnalysis[_]]).fixpointComputation(entryState, output)
-    } else {
-      ch.ethz.inf.pm.sample.Main.analyze(methods, entryState, output)
-    }
+    analysis.analyze(methods, entryState, output)
     val result = output.outputs
     (expectedOutput, result)
   }

@@ -4,6 +4,6 @@ action main () {
     $loc := locations->create_location(0, 5);
     $ls->add($loc);
     $ls->add($loc2);
-    $ls->remove($loc)->post_to_wall;
-    $ls->at(0)->longitude->post_to_wall;
+    $ls->remove($loc);
+    $expected0or5 := $ls->at(0)->longitude;
 }
