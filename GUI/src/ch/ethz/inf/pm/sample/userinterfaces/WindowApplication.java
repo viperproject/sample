@@ -303,7 +303,7 @@ public class WindowApplication {
 					JOptionPane.showMessageDialog(null, "You should chose a file before starting the analysis", "File not chosen", JOptionPane.ERROR_MESSAGE);
 					return;
 				}
-				if(methodListModel.size()==0) {
+				if(methodListModel.size()==0 && !(getSelectedCompiler() instanceof TouchCompiler)) {
 					JOptionPane.showMessageDialog(null, "You should chose which methods you want to analyze before starting the analysis", "Methods not chosen", JOptionPane.ERROR_MESSAGE);
 					return;
 				}
@@ -394,6 +394,7 @@ public class WindowApplication {
                     HeapDomain heap = getSelectedHeapAnalysis();
                     heap.reset();
                     ch.ethz.inf.pm.sample.oorepresentation.Compiler compiler=getSelectedCompiler();
+                    compiler.reset();
                     if(s==null || heap==null || compiler==null) return null;
                     SystemParameters.resetNativeMethodsSemantics();
                     SystemParameters.addNativeMethodsSemantics(s.getNativeMethodsSemantics());

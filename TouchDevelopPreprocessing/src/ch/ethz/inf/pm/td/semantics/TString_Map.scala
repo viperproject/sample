@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TString_Map {
 
-  val typName = "String Map"
+  val typName = "String_Map"
   val typ = TouchType(typName,isSingleton = false,List())
 
 }

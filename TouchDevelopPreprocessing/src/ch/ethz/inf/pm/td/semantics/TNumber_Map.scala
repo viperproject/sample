@@ -18,7 +18,7 @@ import RichNativeSemantics._
 
 object TNumber_Map {
 
-  val typName = "Number Map"
+  val typName = "Number_Map"
   val typ = TouchCollection(typName,TNumber.typ,TNumber.typ)
 
 }

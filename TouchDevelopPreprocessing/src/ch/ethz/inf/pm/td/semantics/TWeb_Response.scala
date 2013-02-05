@@ -25,7 +25,7 @@ object TWeb_Response {
   //   /** Gets the HTTP Status code of the request if any */
   //   val field_status_code = new TouchField("status_code",TNumber.typ)
 
-  val typName = "Web Response"
+  val typName = "Web_Response"
   val typ = TouchType(typName,isSingleton = false,List())
 
 

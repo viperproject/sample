@@ -36,7 +36,7 @@ object TMedia_Link {
   /** Gets the title if available */
   val field_title = new TouchField("title",TString.typ)
 
-  val typName = "Media Link"
+  val typName = "Media_Link"
   val typ = TouchType(typName,isSingleton = false,List(field_album, field_author, field_date, field_duration, field_kind, field_title))
 
 }

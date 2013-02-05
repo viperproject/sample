@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TPage_Collection {
 
-  val typName = "Page Collection"
+  val typName = "Page_Collection"
   val typ = TouchCollection(typName,TNumber.typ,TPage.typ)
 
 }

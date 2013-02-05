@@ -111,7 +111,12 @@ object CFGGenerator {
   }
 
   private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
-    TouchType(typeName.ident, isSingleton)
+    if (!typeName.ident.startsWith("__script_")) {
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].types.get(typeName.ident) match {
+        case Some(x) => x
+        case None => throw new TouchException("Could not find type "+typeName)
+      }
+    } else TouchType(typeName.ident,isSingleton)
   }
 
   private def addStatementsToCFG(statements:List[parser.Statement], cfg:ControlFlowGraph):(Int,Int) = {

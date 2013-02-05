@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.stdlib
 
-import ch.ethz.inf.pm.td.symbols.{AbstractSymbolTable, Member}
+import ch.ethz.inf.pm.td.symbols.{Member, AbstractSymbolTable}
 
 /**
  *
@@ -375,16 +375,12 @@ trait StdLib extends AbstractSymbolTable  {
     Member("status","String"),	//Gets your status (free, tentative, busy, outofoffice)
     Member("subject","String")	//Gets the subject
   ))
-  addType("Appointment_Collection", GenericTypes.gAny("Appointment_Collection") ::: List(	// A collection of appointments
-    Member("at",List("Number"),"Appointment"),	//Gets the appointment at index
-    Member("count","Number")	//Gets the number of appointments
+  addType("Appointment_Collection", GenericTypes.gCollection("Appointment_Collection","Appointment") ::: List(	// A collection of appointments
   ))
-  addType("Board", GenericTypes.gAny("Board") ::: List(	// A board to build 2D games
-    Member("at",List("Number"),"Sprite"),	//Gets the sprite indexed by i
+  addType("Board", GenericTypes.gCollection("Board","Sprite") ::: List(	// A board to build 2D games
     Member("clear_background_camera","Nothing"),	//Clears the background camera
     Member("clear_background_picture","Nothing"),	//Clear the background picture
     Member("clear_events","Nothing"),	//Clear all queued events related to this board
-    Member("count","Number"),	//Gets the sprite count
     Member("create_anchor",List("Number","Number"),"Sprite"),	//Create an anchor sprite.
     Member("create_boundary",List("Number"),"Nothing"),	//Create walls around the board at the given distance.
     Member("create_ellipse",List("Number","Number"),"Sprite"),	//Create a new ellipse sprite.
@@ -477,9 +473,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("work_email","Link"),	//Gets the work email if any
     Member("work_phone","Link")	//Gets the work phone number if any
   ))
-  addType("Contact_Collection", GenericTypes.gAny("Contact_Collection") ::: List(	// A collection of contacts
-    Member("at",List("Number"),"Contact"),	//Gets the contact at index
-    Member("count","Number")	//Gets the number of contacts
+  addType("Contact_Collection", GenericTypes.gCollection("Contact_Collection","Contact") ::: List(	// A collection of contacts
   ))
   addType("DateTime", GenericTypes.gAny("DateTime") ::: List(	// A combination of date and time
     Member("add_days",List("Number"),"DateTime"),	//Returns a date that adds the specified number of days to the value of this instance.
@@ -516,15 +510,11 @@ trait StdLib extends AbstractSymbolTable  {
     Member("name","String"),	//Gets the friendly name of the device
     Member("set_name",List("String"),"Nothing")	//Sets the friendly name of the device
   ))
-  addType("Device_Collection", GenericTypes.gAny("Device_Collection") ::: List(	// A collection of devices
-    Member("at",List("Number"),"Device"),	//Gets the device at index
-    Member("count","Number")	//Gets the number of devices
+  addType("Device_Collection", GenericTypes.gCollection("Device_Collection","Device") ::: List(	// A collection of devices
   ))
-  addType("Json_Object", GenericTypes.gAny("Json_Object") ::: List(	// A json data structure
-    Member("at",List("Number"),"Json_Object"),	//Gets the i-th json value
+  addType("Json_Object", GenericTypes.gCollection("Json_Object","Json_Object") ::: List(	// A json data structure
     Member("boolean",List("String"),"Boolean"),	//Gets a Member value as a boolean
     Member("contains_key",List("String"),"Boolean"),	//Indicates if the key exists
-    Member("count","Number"),	//Gets the number of values
     Member("field",List("String"),"Json_Object"),	//Gets a value by name
     Member("keys","String_Collection"),	//Gets the list of keys
     Member("kind","String"),	//Gets a json kind (string, number, object, array, boolean)
@@ -545,19 +535,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set_name",List("String"),"Nothing"),	//Sets the name
     Member("share",List("String"),"Nothing")	//Shares the link (email, sms, facebook, social or '' to pick from a list)
   ))
-  addType("Link_Collection", GenericTypes.gAny("Link_Collection") ::: List(	// A list of links
-    Member("add",List("Link"),"Nothing"),	//Adds a link
-    Member("add_many",List("Link_Collection"),"Nothing"),	//Adds many links at once
-    Member("at",List("Number"),"Link"),	//Gets the i-th link
-    Member("clear","Nothing"),	//Clears the collection
-    Member("count","Number"),	//Gets the number of elements
-    Member("index_of",List("Link","Number"),"Number"),	//Gets the index of the first occurrence of item. Returns -1 if not found or start is out of range.
-    Member("insert_at",List("Number","Link"),"Nothing"),	//Inserts a link at position index. Does nothing if index is out of range.
-    Member("random","Link"),	//Gets a random element from the collection. Returns invalid if the collection is empty.
-    Member("remove",List("Link"),"Boolean"),	//Removes the first occurrence of the link. Returns true if removed.
-    Member("remove_at",List("Number"),"Nothing"),	//Removes the link at position index.
-    Member("reverse","Nothing"),	//Reverses the order of the elements.
-    Member("set_at",List("Number","Link"),"Nothing")	//Sets the i-th link
+  addType("Link_Collection", GenericTypes.gMutableCollection("Link_Collection","Link") ::: List(	// A list of links
   ))
   addType("Location", GenericTypes.gAny("Location") ::: List(	// A geo coordinate (latitude, longitude, ...)
     Member("altitude","Number"),	//Gets the altitude of the coordinate
@@ -571,17 +549,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("to_string","String"),	//Converts to a string lat,long
     Member("vert_accuracy","Number")	//Gets the vertical accuracy of the coordinate
   ))
-  addType("Location_Collection", GenericTypes.gCollection("Location_Collection","Location") ::: List(	// A list of locations
-    Member("add",List("Location"),"Nothing"),	//Adds a location
-    Member("add_many",List("Location_Collection"),"Nothing"),	//Adds many locations at once
-    Member("clear","Nothing"),	//Clears the collection
-    Member("index_of",List("Location","Number"),"Number"),	//Gets the index of the first occurrence of item. Returns -1 if not found or start is out of range.
-    Member("insert_at",List("Number","Location"),"Nothing"),	//Inserts a location at position index. Does nothing if index is out of range.
-    Member("random","Location"),	//Gets a random element from the collection. Returns invalid if the collection is empty.
-    Member("remove",List("Location"),"Boolean"),	//Removes the first occurrence of the location. Returns true if removed.
-    Member("remove_at",List("Number"),"Nothing"),	//Removes the location at position index.
-    Member("reverse","Nothing"),	//Reverses the order of the elements.
-    Member("set_at",List("Number","Location"),"Nothing"),	//Sets the i-th geo coordinate
+  addType("Location_Collection", GenericTypes.gMutableCollection("Location_Collection","Location") ::: List(	// A list of locations
     Member("sort_by_distance",List("Location"),"Nothing")	//Sorts by distance to the location
   ))
   addType("Map", GenericTypes.gAny("Map") ::: List(	// A Bing map
@@ -608,9 +576,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("play","Nothing"),	//Plays or displays the media on the phone
     Member("title","String")	//Gets the title if available
   ))
-  addType("Media_Link_Collection", GenericTypes.gAny("Media_Link_Collection") ::: List(	// A list of media links on the home network
-    Member("at",List("Number"),"Media_Link"),	//Gets the i-th media link
-    Member("count","Number")	//Gets the number of elements
+  addType("Media_Link_Collection", GenericTypes.gCollection("Media_Link_Collection","Media_Link") ::: List(	// A list of media links on the home network
   ))
   addType("Media_Player", GenericTypes.gAny("Media_Player") ::: List(	// An audio/video player on the home network
     Member("active_media","String"),	//Gets the uri of the media currently active
@@ -634,9 +600,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("stop","Nothing"),	//Stops the current media if any.
     Member("volume","Number")	//Gets the current volume
   ))
-  addType("Media_Player_Collection", GenericTypes.gAny("Media_Player_Collection") ::: List(	// A collection of media players
-    Member("at",List("Number"),"Media_Player"),	//Gets the media player at index
-    Member("count","Number")	//Gets the number of media players
+  addType("Media_Player_Collection", GenericTypes.gCollection("Media_Player_Collection","Media_Player") ::: List(	// A collection of media players
   ))
   addType("Media_Server", GenericTypes.gAny("Media_Server") ::: List(	// A media server on the home network
     Member("choose_picture","Media_Link"),	//Chooses a picture
@@ -652,9 +616,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("songs","Media_Link_Collection"),	//Gets a list of all songs
     Member("videos","Media_Link_Collection")	//Gets a list of all videos
   ))
-  addType("Media_Server_Collection", GenericTypes.gAny("Media_Server_Collection") ::: List(	// A collection of media servers
-    Member("at",List("Number"),"Media_Server"),	//Gets the media player at index
-    Member("count","Number")	//Gets the number of media players
+  addType("Media_Server_Collection", GenericTypes.gCollection("Media_Server_Collection","Media_Server") ::: List(	// A collection of media servers
   ))
   addType("Message", GenericTypes.gAny("Message") ::: List(	// A post on a message board
     Member("from","String"),	//Gets the author
@@ -680,19 +642,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("to","String"),	//Gets the recipient
     Member("values","String_Map")	//Gets the additional values stored in the message
   ))
-  addType("Message_Collection", GenericTypes.gAny("Message_Collection") ::: List(	// A list of messages
-    Member("add",List("Message"),"Nothing"),	//Adds a Message
-    Member("add_many",List("Message_Collection"),"Nothing"),	//Adds a collection of Message items
-    Member("at",List("Number"),"Message"),	//Gets the i-th Message
-    Member("clear","Nothing"),	//Clears the collection
-    Member("count","Number"),	//Gets the number of elements
-    Member("index_of",List("Message","Number"),"Number"),	//Gets the index of the first occurrence of item. Returns -1 if not found or start is out of range.
-    Member("insert_at",List("Number","Message"),"Nothing"),	//Inserts a link at position index. Does nothing if index is out of range.
-    Member("random","Message"),	//Gets a random element from the collection. Returns invalid if the collection is empty.
-    Member("remove",List("Message"),"Boolean"),	//Removes the first occurrence of the message. Returns true if removed.
-    Member("remove_at",List("Number"),"Nothing"),	//Removes the message at position index.
-    Member("reverse","Nothing"),	//Reverses the order of the elements.
-    Member("set_at",List("Number","Message"),"Nothing"),	//Sets the i-th Message
+  addType("Message_Collection", GenericTypes.gMutableCollection("Message_Collection","Message") ::: List(	// A list of messages
     Member("sort_by_date","Nothing")	//Sorts from the newest to oldest
   ))
   addType("Motion", GenericTypes.gAny("Motion") ::: List(	// Describes the motion of the device
@@ -729,8 +679,10 @@ trait StdLib extends AbstractSymbolTable  {
   ))
   addType("Number_Map", GenericTypes.gAny("Number_Map") ::: List(	// A map of numbers to numbers
     Member("at",List("Number"),"Number"),	//Gets the element at index. Index may be any floating-point value.
+    Member("at_index",List("Number"),"Number"),	//Gets the element at index. Index may be any floating-point value.
     Member("avg","Number"),	//Computes the average of the values
     Member("count","Number"),	//Gets the number of elements
+    Member("copy","Number_Map"),	//Gets the number of elements
     Member("max","Number"),	//Computes the maximum of the values
     Member("min","Number"),	//Computes the minimum of the values
     Member("remove",List("Number"),"Nothing"),	//Removes the value at a given index
@@ -747,9 +699,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("page","Page"),	//Gets the page hosting this button
     Member("text","String")	//Gets the text
   ))
-  addType("Page_Collection", GenericTypes.gAny("Page_Collection") ::: List(	// A collection of page
-    Member("at",List("Number"),"Page"),	//Gets the pages at index
-    Member("count","Number")	//Gets the number of pages
+  addType("Page_Collection", GenericTypes.gCollection("Page_Collection","Page") ::: List(	// A collection of page
   ))
   addType("Picture", GenericTypes.gAny("Picture") ::: List(	// A picture
     Member("at",List("Number"),"Color"),	//Gets the pixel color at the given linear index
@@ -789,14 +739,10 @@ trait StdLib extends AbstractSymbolTable  {
     Member("name","String"),	//Gets the name of the album
     Member("pictures","Pictures")	//Gets the pictures
   ))
-  addType("Picture_Albums", GenericTypes.gAny("Picture_Albums") ::: List(	// A collection of picture albums
-    Member("at",List("Number"),"Picture_Album"),	//Gets the item at position 'index'; invalid if index is out of bounds
-    Member("count","Number"),	//Gets the number of elements in the collection
-    Member("random","Picture_Album")	//Gets a random item; invalid if collection is empty
+  addType("Picture_Albums", GenericTypes.gCollection("Picture_Albums","Picture_Album") ::: List(	// A collection of picture albums
   ))
   addType("Pictures", GenericTypes.gCollection("Pictures","Picture") ::: List(	// A collection of pictures
     Member("find",List("String"),"Number"),	//Finds a picture by name and returns the index. Returns -1 if not found.
-    Member("random","Picture"),	//Gets a random item; invalid if collection is empty
     Member("thumbnail",List("Number"),"Picture")	//Gets the thumbnail of i-th picture.
   ))
   addType("Place", GenericTypes.gAny("Place") ::: List(	// A named location
@@ -814,19 +760,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("source","String"),	//Gets the source of this place (facebook, touchdevelop)
     Member("to_string","String")	//Converts to a string name,lat,long
   ))
-  addType("Place_Collection", GenericTypes.gAny("Place_Collection") ::: List(	// A collection of places
-    Member("add",List("Place"),"Nothing"),	//Adds a place
-    Member("add_many",List("Place_Collection"),"Nothing"),	//Adds many places at once
-    Member("at",List("Number"),"Place"),	//Gets the i-th place
-    Member("clear","Nothing"),	//Clears the collection
-    Member("count","Number"),	//Gets the number of elements
-    Member("index_of",List("Place","Number"),"Number"),	//Gets the index of the first occurrence of item. Returns -1 if not found or start is out of range.
-    Member("insert_at",List("Number","Place"),"Nothing"),	//Inserts a place at position index. Does nothing if index is out of range.
-    Member("random","Place"),	//Gets a random element from the collection. Returns invalid if the collection is empty.
-    Member("remove",List("Place"),"Boolean"),	//Removes the first occurrence of a place. Returns true if removed.
-    Member("remove_at",List("Number"),"Nothing"),	//Removes the location at position index.
-    Member("reverse","Nothing"),	//Reverses the order of the elements.
-    Member("set_at",List("Number","Place"),"Nothing"),	//Sets the i-th place
+  addType("Place_Collection", GenericTypes.gMutableCollection("Place_Collection","Place") ::: List(	// A collection of places
     Member("sort_by_distance",List("Location"),"Nothing")	//Sorts the places by distance to the location
   ))
   addType("Playlist", GenericTypes.gAny("Playlist") ::: List(	// A song playlist
@@ -835,9 +769,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("play","Nothing"),	//Plays the songs in the playlist
     Member("songs","Songs")	//Gets the songs
   ))
-  addType("Playlists", GenericTypes.gAny("Playlists") ::: List(	// A collection of playlists
-    Member("at",List("Number"),"Playlist"),	//Gets i-th playlist
-    Member("count","Number")	//Gets the number of playlists
+  addType("Playlists", GenericTypes.gCollection("Playlists","Playlist") ::: List(	// A collection of playlists
   ))
   addType("Printer", GenericTypes.gAny("Printer") ::: List(	// A printer on the home network
     Member("device","Device"),	//Gets the detailled information about this device
@@ -848,9 +780,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("print_text",List("String"),"Nothing"),	//Queues a job to print the text.
     Member("state_reason","String")	//Indicates additional information about why the Printer is in its current state.
   ))
-  addType("Printer_Collection", GenericTypes.gAny("Printer_Collection") ::: List(	// A collection of printers
-    Member("at",List("Number"),"Printer"),	//Gets the printer at index
-    Member("count","Number")	//Gets the number of printers
+  addType("Printer_Collection", GenericTypes.gCollection("Printer_Collection","Printer") ::: List(	// A collection of printers
   ))
   addType("Song", GenericTypes.gAny("Song") ::: List(	// A song
     Member("album","Song_Album"),	//Gets the song album containing the song
@@ -875,16 +805,10 @@ trait StdLib extends AbstractSymbolTable  {
     Member("songs","Songs"),	//Gets the songs
     Member("thumbnail","Picture")	//Gets the thumbnail picture
   ))
-  addType("Song_Albums", GenericTypes.gAny("Song_Albums") ::: List(	// A collection of albums
-    Member("at",List("Number"),"Song_Album"),	//Gets the item at position 'index'; invalid if index is out of bounds
-    Member("count","Number"),	//Gets the number of elements in the collection
-    Member("random","Song_Album")	//Gets a random item; invalid if collection is empty
+  addType("Song_Albums", GenericTypes.gCollection("Song_Albums","Song_Album") ::: List(	// A collection of albums
   ))
-  addType("Songs", GenericTypes.gAny("Songs") ::: List(	// A collection of songs
-    Member("at",List("Number"),"Song"),	//Gets the item at position 'index'; invalid if index is out of bounds
-    Member("count","Number"),	//Gets the number of elements in the collection
-    Member("play","Nothing"),	//Plays the song.
-    Member("random","Song")	//Gets a random item; invalid if collection is empty
+  addType("Songs", GenericTypes.gCollection("Songs","Song") ::: List(	// A collection of songs
+    Member("play","Nothing")	//Plays the song.
   ))
   addType("Sound", GenericTypes.gAny("Sound") ::: List(	// A sound effect
     Member("duration","Number"),	//Gets the duration in seconds.
@@ -948,14 +872,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("x","Number"),	//Gets the x position in pixels
     Member("y","Number")	//Gets the y position in pixels
   ))
-  addType("Sprite_Set", GenericTypes.gAny("Sprite_Set") ::: List(	// A collection of sprites
-    Member("add",List("Sprite"),"Boolean"),	//Add sprite to set. Returns true if sprite was not already in set.
-    Member("add_from",List("Sprite_Set","Sprite"),"Boolean"),	//Add sprite to set and remove from old set. Returns true if sprite was in old set and not in new set.
-    Member("at",List("Number"),"Sprite"),	//Return sprite at given index.
-    Member("contains",List("Sprite"),"Boolean"),	//Returns true if sprite is in set.
-    Member("count","Number"),	//Returns the number of sprites in the set
-    Member("index_of",List("Sprite"),"Number"),	//Returns index of sprite in this set or -1 if not in set.
-    Member("remove",List("Sprite"),"Boolean"),	//Remove sprite from set. Returns true if sprite was in set.
+  addType("Sprite_Set", GenericTypes.gMutableCollection("Sprite_Set","Sprite") ::: List(	// A collection of sprites
     Member("remove_first","Sprite")	//Remove sprite that was added to set first.
   ))
   addType("String", GenericTypes.gAny("String") ::: List(	// A piece of text
@@ -992,26 +909,15 @@ trait StdLib extends AbstractSymbolTable  {
     Member("trim_end",List("String"),"String"),	//Removes all trailing occurrences of a set of characters specified in a string from the current string.
     Member("trim_start",List("String"),"String")	//Removes all leading occurrences of a set of characters specified in a string from the current string.
   ))
-  addType("String_Collection", GenericTypes.gAny("String_Collection") ::: List(	// A collection of strings
-    Member("add",List("String"),"Nothing"),	//Adds a string
-    Member("add_many",List("String_Collection"),"Nothing"),	//Adds many strings at once
-    Member("at",List("Number"),"String"),	//Gets the string at position index. Returns invalid if index is out of range
-    Member("clear","Nothing"),	//Clears the strings
-    Member("contains",List("String"),"Boolean"),	//Indicates if the collection contains the item
-    Member("count","Number"),	//Gets the number of strings
-    Member("index_of",List("String","Number"),"Number"),	//Gets the index of the first occurrence of a string. Returns -1 if not found or start is out of range.
-    Member("insert_at",List("Number","String"),"Nothing"),	//Inserts a string at position index. Does nothing if index is out of range.
+  addType("String_Collection", GenericTypes.gMutableCollection("String_Collection","String") ::: List(	// A collection of strings
     Member("join",List("String"),"String"),	//Concatenates the separator and items into a string
-    Member("random","String"),	//Gets a random element from the collection. Returns invalid if the collection is empty.
-    Member("remove",List("String"),"Boolean"),	//Removes the first occurrence of a string. Returns true if removed.
-    Member("remove_at",List("Number"),"Nothing"),	//Removes the string at position index.
-    Member("reverse","Nothing"),	//Reverses the items
-    Member("set_at",List("Number","String"),"Nothing"),	//Sets the string at position index. Does nothing if the index is out of range.
     Member("sort","Nothing")	//Sorts the strings in this collection
   ))
   addType("String_Map", GenericTypes.gAny("String_Map") ::: List(	// A map from strings to strings
     Member("at",List("String"),"String"),	//Gets the value at a given key; invalid if not found
+    Member("at_index",List("Number"),"String"),	//Gets the value at a given key; invalid if not found
     Member("count","Number"),	//Gets the number of elements in the map
+    Member("copy",List(),"String_Map"),
     Member("keys","String_Collection"),	//Gets the keys in the map
     Member("remove",List("String"),"Nothing"),	//Removes the value at a given key
     Member("set_at",List("String","String"),"Nothing"),	//Sets the value at a given key; invalid if not found
@@ -1097,13 +1003,11 @@ trait StdLib extends AbstractSymbolTable  {
     Member("request","Web_Request"),	//Gets the request associated to this response
     Member("status_code","Number")	//Gets the HTTP Status code of the request if any
   ))
-  addType("Xml_Object", GenericTypes.gAny("Xml_Object") ::: List(	// An xml element or collection of elements
-    Member("at",List("Number"),"Xml_Object"),	//Gets the i-th child element in the collection
+  addType("Xml_Object", GenericTypes.gCollection("Xml_Object","Xml_Object") ::: List(	// An xml element or collection of elements
     Member("attr",List("String"),"String"),	//Gets the value of the attribute
     Member("attr_names","String_Collection"),	//Gets the list of attribute names
     Member("child",List("String"),"Xml_Object"),	//Gets a first child element matching the fully qualified name
     Member("children",List("String"),"Xml_Object"),	//Gets a collection of child element matching the fully qualified name
-    Member("count","Number"),	//Gets the number of child element
     Member("create_name",List("String","String"),"String"),	//Creates a qualified full name from the namespace and local name
     Member("is_element","Boolean"),	//Indicates if this instance is an element or a filtered collection
     Member("local_name","String"),	//Gets the local name of this element

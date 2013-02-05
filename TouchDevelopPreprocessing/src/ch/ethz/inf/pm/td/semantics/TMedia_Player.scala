@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TMedia_Player {
 
-  val typName = "Media Player"
+  val typName = "Media_Player"
   val typ = TouchType(typName,isSingleton = false,List())
 
 }

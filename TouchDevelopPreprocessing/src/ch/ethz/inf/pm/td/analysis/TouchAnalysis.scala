@@ -53,7 +53,9 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) = {
     Timer.start
+    val methodSet = methods.toSet[String]
     for ((c,x) <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getRunnableMethods) {
+      if (methodSet.isEmpty || methodSet.contains(x.name.toString)) {
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Analyzing method "+x.name.toString()+" in class "+c.name.toString());
         SystemParameters.currentMethod = x.name.toString
         val s = x.forwardSemantics[S](entryState)
@@ -64,6 +66,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
           if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
         }
         SystemParameters.currentMethod = null
+      }
     }
     if(SystemParameters.property!=null) {
       SystemParameters.progressOutput.appendString("Finalizing the checking the property")

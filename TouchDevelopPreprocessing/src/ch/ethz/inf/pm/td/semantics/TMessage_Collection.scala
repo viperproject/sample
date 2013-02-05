@@ -16,7 +16,7 @@ import RichNativeSemantics._
 
 object TMessage_Collection {
 
-  val typName = "Message Collection"
+  val typName = "Message_Collection"
   val typ = TouchCollection(typName,TNumber.typ,TMessage.typ)
 
 }

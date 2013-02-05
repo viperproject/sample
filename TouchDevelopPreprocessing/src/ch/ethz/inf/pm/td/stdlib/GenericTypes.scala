@@ -17,6 +17,7 @@ object GenericTypes {
     Member("equals",List(thisName),"Boolean")
   )
 
+
   def gAny(thisName:String):List[Member] = gAlsoSingletons(thisName) ::: List(
     Member("is_invalid","Boolean"),
     Member("post_to_wall","Nothing")
@@ -36,10 +37,11 @@ object GenericTypes {
   )
 
   def gCollection(thisName:String,typ:String):List[Member] = gAny(thisName) ::: List(
-    Member("at",List("Number"),typ), // FIXME: Other indexing
+    Member("at",List("Number"),typ),
     Member("at_index",List("Number"),typ),
     Member("copy",List(),thisName),
-    Member("count","Number")
+    Member("count","Number"),
+    Member("random","Picture_Album")	// Gets a random item; invalid if collection is empty
   )
 
   def gField(thisName:String,typ:String):List[Member] = gAny(thisName) ::: List(
@@ -67,8 +69,9 @@ object GenericTypes {
 
   def gMutableCollection(thisName:String,typ:String):List[Member] = gCollection(thisName,typ) ::: List(
     Member("add",List(typ),"Nothing"),
-    Member("add_many",List(typ+"_Collection"),"Nothing"),
+    Member("add_many",List(thisName),"Nothing"),
     Member("clear","Nothing"),
+    Member("contains",List(typ),"Boolean"),	//Indicates if the collection contains the item
     Member("index_of",List(typ,"Number"),"Number"),
     Member("insert_at",List("Number",typ),"Nothing"),
     Member("random",typ),
@@ -77,6 +80,5 @@ object GenericTypes {
     Member("reverse","Nothing"),
     Member("set_at",List("Number",typ),"Nothing")
   )
-
 
 }

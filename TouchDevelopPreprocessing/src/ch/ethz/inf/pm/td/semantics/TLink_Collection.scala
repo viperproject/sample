@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TLink_Collection {
 
-  val typName = "Link Collection"
+  val typName = "Link_Collection"
   val typ = TouchCollection(typName,TNumber.typ,TLink.typ)
 
 }

@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TAppointment_Collection {
 
-  val typName = "Appointment Collection"
+  val typName = "Appointment_Collection"
   val typ = TouchType(typName,isSingleton = false,List())
 
 }

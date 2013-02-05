@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TPrinter_Collection {
 
-  val typName = "Printer Collection"
+  val typName = "Printer_Collection"
   val typ = TouchCollection(typName,TNumber.typ,TPrinter.typ)
 
 }

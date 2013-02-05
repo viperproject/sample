@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TJson_Object {
 
-  val typName = "Json Object"
+  val typName = "Json_Object"
   val typ = TouchType(typName,isSingleton = false,List())
 
 }

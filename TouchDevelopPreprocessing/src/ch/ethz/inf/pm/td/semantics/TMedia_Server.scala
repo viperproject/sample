@@ -31,7 +31,7 @@ object TMedia_Server {
   /** Gets a list of all videos */
   val field_videos = new TouchField("videos",TMedia_Link_Collection.typ)
 
-  val typName = "Media Server"
+  val typName = "Media_Server"
   val typ = TouchType(typName,isSingleton = false,List(field_device,field_name,field_pictures,field_songs,field_videos))
 
 }
