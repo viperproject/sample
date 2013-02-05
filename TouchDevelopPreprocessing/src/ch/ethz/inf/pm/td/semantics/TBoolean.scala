@@ -25,7 +25,7 @@ class TBoolean extends AAny {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
     case "and" => Return(this0 && parameters.head)
-    case "or" => Return(this0 && parameters.head)
+    case "or" => Return(this0 || parameters.head)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)
