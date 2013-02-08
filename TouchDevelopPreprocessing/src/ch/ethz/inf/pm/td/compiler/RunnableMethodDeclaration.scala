@@ -112,10 +112,10 @@ class RunnableMethodDeclaration(
       }
     }
 
-    val result = {//lfp(curState, {(lastExecution:ControlFlowGraphExecution[S], initialState:S) =>
+    val result = lfp(curState, {(lastExecution:ControlFlowGraphExecution[S], initialState:S) =>
 
       // TODO: Copy global state from last execution
-      val execution = new ControlFlowGraphExecution[S](body, state).forwardSemantics(curState)//initialState)
+      val execution = new ControlFlowGraphExecution[S](body, state).forwardSemantics(initialState)
 
       // Compute the fixpoint over all events
       lfp(execution.exitState(),{s:S =>
@@ -133,8 +133,7 @@ class RunnableMethodDeclaration(
 
       execution
 
-    }
-    //})
+    })
 
     val resultWithSum = new ControlFlowGraphExecution[S](result.cfg,result.state) with Summaries[S]
     resultWithSum.nodes = result.nodes

@@ -24,19 +24,23 @@ val scripts = for {
   item <- items
 } yield (item.extract[Script])
 
-val dir = "TouchDevelopPreprocessing/testfiles/"+userid
+val dir = new File("TouchDevelopPreprocessing/testfiles/"+userid)
 
-if (new File(dir).mkdir()) {
+if (dir.isDirectory || dir.mkdir()) {
 
   for( s <- scripts ) {
 
-    val p = new PrintWriter(new File(dir+"/"+s.id+".td"))
+    if ( !s.haserrors && !s.ishidden ) {
 
-    try {
+      val p = new PrintWriter(new File(dir+"/"+s.id+".td"))
 
-      p.println(fetchFile(s.getCodeURL))
+      try {
 
-    } finally { p.close() }
+        p.println(fetchFile(s.getCodeURL))
+
+      } finally { p.close() }
+
+    }
 
   }
 

@@ -26,8 +26,10 @@ object GenericTypes {
   def gIndex(thisName:String, keyTypes:List[String],valueType:String):List[Member] =
     if (keyTypes.size > 0) gAny(thisName) ::: List(
       Member("at",keyTypes,valueType),
+      Member("at_index",List("Number"),valueType),
       Member("count","Number"),
-      Member("clear","Nothing")
+      Member("clear","Nothing"),
+      Member("copy",thisName)
     ) else gAny(thisName) ::: List(
       Member("singleton",valueType)
     )

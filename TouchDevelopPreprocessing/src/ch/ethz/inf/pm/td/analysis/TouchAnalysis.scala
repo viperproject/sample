@@ -52,14 +52,13 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
   override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) {
-    Timer.start
     val methodSet = methods.toSet[String]
     for ((c,x) <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getRunnableMethods) {
       if (methodSet.isEmpty || methodSet.contains(x.name.toString)) {
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("<< Method: "+x.name.toString+" in class "+c.name.toString)
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("METHOD: "+c.name.toString+"."+x.name.toString)
         SystemParameters.currentMethod = x.name.toString
         val s = x.forwardSemantics[S](entryState)
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end(">> Method: "+x.name.toString+" in class "+c.name.toString)
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end()
         if(SystemParameters.property!=null) {
           SystemParameters.property.check(c.name.getThisType(), x.name.toString, s, output)
         }
@@ -69,7 +68,6 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     if(SystemParameters.property!=null) {
       SystemParameters.property.finalizeChecking(output)
     }
-    SystemParameters.progressOutput.put("Statistics [ Time of analysis: " + Timer.stop+" ]")
   }
 
 }

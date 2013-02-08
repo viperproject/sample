@@ -42,21 +42,27 @@ class SHome extends AAny {
         
     /** Choose a media player on the current wireless network */
     case "choose_player" =>
-      Error[S](CollectionSize[S](Field[S](this0,SHome.field_players)) equal 0,
-        "The list of players the user choses from may be empty. Check if there are players in the network first")
-      Return[S](CollectionSummary[S](Field[S](this0,SHome.field_players)))
+      IfPossible[S]( CollectionSize[S](Field[S](this0,SHome.field_players)) equal 0, then = {
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_players)) or Invalid(TMedia_Player.typ))
+      }, els = {
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_players)))
+      })
 
     /** Choose a printer on the current wireless network */
     case "choose_printer" =>
-      Error[S](CollectionSize[S](Field[S](this0,SHome.field_printers)) equal 0,
-        "The list of printers the user choses from may be empty. Check if there are printers in the network first")
-      Return[S](CollectionSummary[S](Field[S](this0,SHome.field_printers)))
+      IfPossible[S]( CollectionSize[S](Field[S](this0,SHome.field_printers)) equal 0, then = {
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_printers)) or Invalid(TPrinter.typ))
+      }, els = {
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_printers)))
+      })
 
     /** Choose a media server on the current wireless network */
     case "choose_server" =>
-      Error[S](CollectionSize[S](Field[S](this0,SHome.field_servers)) equal 0,
-        "The list of servers the user choses from may be empty. Check if there are servers in the network first")
-      Return[S](CollectionSummary[S](Field[S](this0,SHome.field_servers)))
+      IfPossible[S]( CollectionSize[S](Field[S](this0,SHome.field_servers)) equal 0, then = {
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_servers)) or Invalid(TMedia_Server.typ))
+      }, els = {
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_servers)))
+      })
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.util.Timer
 
 /**
  * <code>SystemParameters</code> contains all the parameters of Sample
@@ -149,9 +150,11 @@ abstract class ScreenOutput {
 
   private var indent = 0
 
-  def begin(s :String) { put(s); indent += 1 }
+  def begin(s :String) { put("{ "+s); Timer.start; indent += 1 }
   def put(s:String) { appendString("  "*indent + s.replace("\n","  "*indent + "\n")) }
-  def end(s:String) { indent -= 1; put(s) }
+  def end(s:String) { indent -= 1; put("} "+s+" (time: "+Timer.stop+")") }
+  def end() { end("") }
+  def reset() { indent = 0 }
 
 }
 

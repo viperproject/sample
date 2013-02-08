@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchCom
 import apron.{Environment, Abstract1, Octagon}
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, NonRelationalNumericalDomain, ApronInterface}
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysis, TouchAnalysisWithApron}
+import java.io.{StringWriter, PrintWriter}
 
 class TouchProperty extends ch.ethz.inf.pm.sample.property.Property {
   override def getLabel(): String = "Show graph"
@@ -65,10 +66,14 @@ object TouchRun {
         analysis.analyze(Nil,entryState, new OutputCollector)
       } catch {
         case e:UnsupportedLanguageFeatureException =>
-          println("Unsupported Language Feature: "+e.toString)
+          SystemParameters.progressOutput.put("UNSUPPORTED: Unsupported Language Feature: "+e.toString)
+          SystemParameters.progressOutput.reset()
         case e:Exception =>
-          println("Exception during analysis of "+file+": "+e.toString())
-          e.printStackTrace()
+          SystemParameters.progressOutput.put("ANALYSIS ERROR: Exception during analysis of "+file+": "+e.toString())
+          val sw = new StringWriter()
+          e.printStackTrace(new PrintWriter(sw))
+          SystemParameters.progressOutput.put(sw.toString)
+          SystemParameters.progressOutput.reset()
       }
 
     }
@@ -123,10 +128,14 @@ object TouchApronRun {
         analysis.analyze(Nil, entryState, new OutputCollector)
       } catch {
         case e:UnsupportedLanguageFeatureException =>
-          println("Unsupported Language Feature: "+e.toString)
+          SystemParameters.progressOutput.put("UNSUPPORTED: Unsupported Language Feature: "+e.toString)
+          SystemParameters.progressOutput.reset()
         case e:Exception =>
-          println("Exception during analysis of "+file+": "+e.toString())
-          e.printStackTrace()
+          SystemParameters.progressOutput.put("ANALYSIS ERROR: Exception during analysis of "+file+": "+e.toString())
+          val sw = new StringWriter()
+          e.printStackTrace(new PrintWriter(sw))
+          SystemParameters.progressOutput.put(sw.toString)
+          SystemParameters.progressOutput.reset()
       }
     }
   }

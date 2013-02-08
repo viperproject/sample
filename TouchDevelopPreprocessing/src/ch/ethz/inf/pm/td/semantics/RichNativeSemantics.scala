@@ -30,7 +30,7 @@ object ErrorReporter {
   def hasError(message:String,pp:ProgramPoint):Boolean = seenErrors.contains((message,pp))
 
   def reportError(message:String,pp:ProgramPoint) {
-    println(message+" at line "+pp.getLine()+", column "+pp.getColumn())
+    SystemParameters.progressOutput.put("ALARM: "+message+" at line "+pp.getLine()+", column "+pp.getColumn())
     seenErrors += ((message,pp))
   }
 
@@ -59,6 +59,16 @@ object RichNativeSemantics {
     Error(expr < low,method+": Parameter "+parameter+" ("+expr+") may be less than the lowest allowed value ("+low+")")(s,pp)
     Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be greater than the highest allowed value "+high+")")(s,pp)
   }
+
+  def IfPossible[S <: State[S]](expr:RichExpression, then: => S, els: => S)(implicit state:S, pp:ProgramPoint):S = {
+    val errorState = state.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
+    if(!errorState.lessEqual(state.bottom())) {
+      then
+    } else {
+      els
+    }
+  }
+
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
@@ -140,6 +150,28 @@ object RichNativeSemantics {
     }
   }
 
+  def Clone[S <: State[S]](obj:RichExpression)(implicit s:S, pp:ProgramPoint): S = {
+
+    var curState = New[S](obj.typ.asInstanceOf[TouchType])(s,pp)
+    val newObject = toRichExpression(curState.getExpression())
+
+    if (obj.typ.isInstanceOf[TouchCollection]) {
+      curState = Assign[S](CollectionSummary[S](newObject),CollectionSummary[S](obj))(curState,pp)
+      curState = Assign[S](CollectionSize[S](newObject),CollectionSize[S](obj))(curState,pp)
+    }
+
+    // Clone fields
+    for (f <- obj.typ.getPossibleFields()) {
+      val oldField = Field[S](obj,f)(curState,pp)
+      curState = Clone[S](oldField)(curState,pp)
+      val clonedContent = curState.getExpression()
+      curState = curState.assignField(List(newObject),f.getName(),clonedContent)
+    }
+
+    curState.setExpression(newObject)
+
+  }
+
   /*-- Collections --*/
 
   def CollectionSize[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
@@ -192,7 +224,7 @@ object RichNativeSemantics {
     state.assignField(List(obj),field.getName(),value)
   }
 
-  def Field[S <: State[S]](obj:RichExpression, field:VariableIdentifier)(implicit state:S, pp:ProgramPoint):RichExpression = {
+  def Field[S <: State[S]](obj:RichExpression, field:Identifier)(implicit state:S, pp:ProgramPoint):RichExpression = {
     state.getFieldValue(List(obj),field.getName(),field.getType()).getExpression()
   }
 
@@ -218,7 +250,7 @@ object RichNativeSemantics {
   def Skip[S <: State[S]](implicit state:S, pp:ProgramPoint): S = state
 
   def Unimplemented[S <: State[S]](method:String)(implicit state:S, pp:ProgramPoint): S = {
-    println(method+" not implemented, unsound from now on, at "+pp)
+    SystemParameters.progressOutput.put("UNSUPPORTED: "+method+" not implemented, unsound from now on, at "+pp)
     Skip[S]
   }
 
