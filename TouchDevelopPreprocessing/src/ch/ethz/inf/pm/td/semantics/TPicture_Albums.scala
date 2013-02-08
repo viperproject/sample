@@ -15,8 +15,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TPicture_Albums {
 
-  val typName = "Picture Albums"
-  val typ:TouchCollection = TouchCollection(typName,TNumber.typ,TPicture_Album.typ)
+  val typName = "Picture_Albums"
+  val typ = TouchCollection(typName,"Number","Picture_Album")
 
 }
 

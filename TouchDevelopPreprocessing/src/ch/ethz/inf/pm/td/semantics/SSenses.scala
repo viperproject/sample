@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 /**
@@ -28,25 +28,19 @@ class SSenses extends AAny {
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */
-    // case "acceleration_quick" =>
-    //   Return[S](Valid(TVector3.typ))
-    // DECLARATION AS FIELD:
-    //   /** Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */
-    //   field_acceleration_quick = new TouchField("acceleration_quick",TVector3.typ)
+    case "acceleration_quick" =>
+       Error[S](RichExpression(Environment.hasAccelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
+       New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
 
     /** Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */
-    // case "acceleration_smooth" =>
-    //   Return[S](Valid(TVector3.typ))
-    // DECLARATION AS FIELD:
-    //   /** Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */
-    //   field_acceleration_smooth = new TouchField("acceleration_smooth",TVector3.typ)
+    case "acceleration_smooth" =>
+       Error[S](RichExpression(Environment.hasAccelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
+       New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
 
     /** Gets filtered and temporally averaged accelerometer data using an arithmetic mean of the last 25 'optimally filtered' samples, so over 500ms at 50Hz on each axis, to virtually eliminate most sensor noise. This provides a very stable reading but it has also a very high latency and cannot be used for rapidly reacting UI. */
-    // case "acceleration_stable" =>
-    //   Return[S](Valid(TVector3.typ))
-    // DECLARATION AS FIELD:
-    //   /** Gets filtered and temporally averaged accelerometer data using an arithmetic mean of the last 25 'optimally filtered' samples, so over 500ms at 50Hz on each axis, to virtually eliminate most sensor noise. This provides a very stable reading but it has also a very high latency and cannot be used for rapidly reacting UI. */
-    //   field_acceleration_stable = new TouchField("acceleration_stable",TVector3.typ)
+    case "acceleration_stable" =>
+       Error[S](RichExpression(Environment.hasAccelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
+       New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
 
     /** Gets the primary camera if available */
     // case "camera" =>
@@ -124,11 +118,8 @@ class SSenses extends AAny {
     //   field_orientation = new TouchField("orientation",TVector3.typ)
 
     /** Records audio using the microphone */
-    // case "record_microphone" =>
-    //   Return[S](Valid(TSound.typ))
-    // DECLARATION AS FIELD:
-    //   /** Records audio using the microphone */
-    //   field_record_microphone = new TouchField("record_microphone",TSound.typ)
+    case "record_microphone" =>
+      New[S](TSound.typ)
 
     /** Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */
     // case "rotation_speed" =>

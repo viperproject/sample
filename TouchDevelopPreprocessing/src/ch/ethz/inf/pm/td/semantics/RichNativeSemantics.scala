@@ -93,12 +93,51 @@ object RichNativeSemantics {
     curState.setExpression(obj)
   }
 
+
   def New[S <: State[S]](typ:TouchType, args:RichExpression*)(implicit s:S, pp:ProgramPoint): S = {
     New[S](typ,(typ.getPossibleFieldsSorted() zip args).toMap)(s,pp)
   }
 
   def New[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
     New[S](typ,Map.empty[Identifier,RichExpression])(s,pp)
+  }
+
+  def Top[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
+    typ.name match {
+      case TNumber.typName => s.setExpression(Valid(TNumber.typ))
+      case TBoolean.typName => s.setExpression(True or False)
+      case _ =>
+
+        var curState = typ match {
+          case col:TouchCollection =>
+            s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp)
+          case _ =>
+            s.createObject(typ,pp)
+        }
+        val obj = curState.getExpression()
+
+        // Create summary node of collections
+        typ match {
+          case col:TouchCollection =>
+            curState = Top[S](col.getValueType)(curState,pp)
+            val topField = curState.getExpression()
+            curState = Assign[S](CollectionSummary[S](obj),topField)(curState,pp)
+          case _ => ()
+        }
+
+        // Assign fields with given arguments
+        for (f <- typ.getPossibleFields()) {
+          curState = Top[S](f.getType().asInstanceOf[TouchType])(curState,pp)
+          val topField = curState.getExpression()
+          curState = curState.assignField(List(obj),f.getName(),topField)
+        }
+
+        // Make sure that our value is "valid"  now
+        curState = curState.assignVariable(obj,Valid(typ))
+
+        curState.setExpression(obj)
+
+    }
   }
 
   /*-- Collections --*/
@@ -217,7 +256,6 @@ object RichNativeSemantics {
   def StringCst(a:String)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant(a,TString.typ,pp))
   def True(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("true",TBoolean.typ,pp))
   def False(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("false",TBoolean.typ,pp))
-  def Top(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).top())
   def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
   def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("invalid",typ,pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("valid",typ,pp))

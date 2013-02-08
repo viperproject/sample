@@ -24,6 +24,7 @@ import ch.ethz.inf.pm.sample.tracepartitioning.TracePartitioning;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.webapi.*;
 import ch.ethz.inf.pm.td.analysis.*;
+import org.apache.commons.lang3.StringUtils;
 import scala.Option;
 import scala.Some;
 import scala.collection.immutable.List;
@@ -365,9 +366,9 @@ public class WindowApplication {
         private JTextArea taskOutput;
 
         //This class is used to collect the output of the analysis over the text area
-        public class TextAreaProgress implements ScreenOutput{
+        public class TextAreaProgress extends ScreenOutput {
             public void appendString(String s) {
-                 taskOutput.append("\n"+s);
+                 taskOutput.append("\n" + s);
             }
             public String getString() {
                 return taskOutput.getText();
@@ -438,11 +439,11 @@ public class WindowApplication {
                     taskOutput.append("\nAnalysis ended");
                     frame.dispose();
 
-                    SystemParameters.analysisOutput().appendString(output.output() + "\n");
-                    SystemParameters.analysisOutput().appendString("Times spent by the compiler:"+tcompiler.totalTime()+" msec");
-                    SystemParameters.analysisOutput().appendString("Times spent by the overall analysis:"+t.totalTime()+" msec");
-                    SystemParameters.analysisOutput().appendString("Times spent by the heap analysis:"+SystemParameters.heapTimer().totalTime()+" msec");
-                    SystemParameters.analysisOutput().appendString("Times spent by the other analysis:"+SystemParameters.domainTimer().totalTime()+" msec");
+                    SystemParameters.analysisOutput().put(output.output() + "\n");
+                    SystemParameters.analysisOutput().put("Times spent by the compiler:" + tcompiler.totalTime() + " msec");
+                    SystemParameters.analysisOutput().put("Times spent by the overall analysis:" + t.totalTime() + " msec");
+                    SystemParameters.analysisOutput().put("Times spent by the heap analysis:" + SystemParameters.heapTimer().totalTime() + " msec");
+                    SystemParameters.analysisOutput().put("Times spent by the other analysis:" + SystemParameters.domainTimer().totalTime() + " msec");
 
                     AnalysisResults dialog = new AnalysisResults(SystemParameters.analysisOutput().getString());
                     dialog.pack();

@@ -26,6 +26,7 @@ class TBoolean extends AAny {
 
     case "and" => Return(this0 && parameters.head)
     case "or" => Return(this0 || parameters.head)
+    case "not" => Return(this0.not())
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

@@ -11,13 +11,18 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  *
  * A piece of text
  *
+ * Abstracted by its length
+ *
  * @author Lucas Brutschy
  */ 
 
 object TString {
 
+  /** Returns the number of characters */
+  val field_count = new TouchField("count",TNumber.typ)
+
   val typName = "String"
-  val typ = TouchType(typName,isSingleton = false,List())
+  val typ = TouchType(typName,isSingleton = false,List(field_count))
 
 }
 
@@ -27,16 +32,12 @@ class TString extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-        
-    /** Concatenates two pieces of text */
-    // case "âˆ¥" => 
-    //   val List(right) = parameters // String
-    //   Return[S](Valid(TString.typ))
 
     /** Gets the character at a specified index */
-    // case "at" => 
-    //   val List(index) = parameters // Number
-    //   Return[S](Valid(TString.typ))
+    case "at" =>
+      val List(index) = parameters // Number
+      CheckInRangeInclusive[S](index,0,Field[S](this0,TString.field_count) - 1,method,"index")
+      Return[S](Valid(TString.typ))
 
     /** Compares two pieces of text */
     // case "compare" => 
@@ -44,25 +45,22 @@ class TString extends AAny {
     //   Return[S](Valid(TNumber.typ))
 
     /** Concatenates two pieces of text */
-    // case "concat" => 
-    //   val List(other) = parameters // String
-    //   Return[S](Valid(TString.typ))
+    case "concat" =>
+      val List(other) = parameters // String
+      val state1 = New[S](TString.typ)
+      val newString = state1.getExpression()
+      val state2 = AssignField[S](newString,TString.field_count,
+        Field[S](this0,TString.field_count) + Field[S](other,TString.field_count))(state1,pp)
+      Return[S](Valid(TString.typ))(state2,pp)
 
     /** Returns a value indicating if the second string is contained */
-    // case "contains" => 
-    //   val List(value) = parameters // String
-    //   Return[S](Valid(TBoolean.typ))
+    case "contains" =>
+      val List(value) = parameters // String
+      Return[S](True or False)
 
     /** Stores text in the clipboard */
-    // case "copy_to_clipboard" => 
-    //   Skip;
-
-    /** Returns the number of characters */
-    // case "count" => 
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Returns the number of characters */
-    //   val field_count = new TouchField("count",TNumber.typ)
+    case "copy_to_clipboard" =>
+      Skip
 
     /** Determines whether the ending matches the specified string */
     // case "ends_with" => 
@@ -70,14 +68,14 @@ class TString extends AAny {
     //   Return[S](Valid(TBoolean.typ))
 
     /** Checks if two strings are the same */
-    // case "equals" => 
-    //   val List(other) = parameters // String
-    //   Return[S](Valid(TBoolean.typ))
+    case "equals" =>
+      val List(other) = parameters
+      Return[S]((Field[S](this0,TString.field_count) equal Field[S](other,TString.field_count)) or False)
 
     /** Returns the index of the first occurence if found starting at a given position */
-    // case "index_of" => 
-    //   val List(value,start) = parameters // String,Number
-    //   Return[S](Valid(TNumber.typ))
+    case "index_of" =>
+      val List(value,start) = parameters // String,Number
+      Return[S]((start ndTo (Field[S](this0,TString.field_count) - 1)) or Invalid(TNumber.typ))
 
     /** Inserts a string at a given position */
     // case "insert" => 
@@ -85,11 +83,8 @@ class TString extends AAny {
     //   Return[S](Valid(TString.typ))
 
     /** Indicates if the string is empty */
-    // case "is_empty" => 
-    //   Return[S](Valid(TBoolean.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the string is empty */
-    //   val field_is_empty = new TouchField("is_empty",TBoolean.typ)
+    case "is_empty" =>
+       Return[S](Field[S](this0,TString.field_count) equal 0)
 
     /** Indicates if the string matches a regular expression */
     // case "is_match_regex" => 
@@ -112,9 +107,10 @@ class TString extends AAny {
     //   Return[S](Valid(TString.typ))
 
     /** Returns a given string with a replacement */
-    // case "replace" => 
-    //   val List(old,new) = parameters // String,String
-    //   Return[S](Valid(TString.typ))
+    case "replace" =>
+       val List(old,newS) = parameters // String,String
+       Error[S](Field[S](old,TString.field_count) < 1,"replace","The string to be replaced might be empty")
+       New[S](TString.typ)
 
     /** Replace every match of the regex according to the replacement string */
     // case "replace_regex" => 

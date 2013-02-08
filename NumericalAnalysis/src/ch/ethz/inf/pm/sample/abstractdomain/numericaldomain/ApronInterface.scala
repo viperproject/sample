@@ -265,23 +265,38 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 				return true;
 		return false;
 	}
-		
+
+  /**
+   *
+   * Adds a new variable to the domain (the domains environmnet). We only add variables with numerical types.
+   *
+   * @param variable the variable to be created
+   * @param typ its type
+   * @return the state after this action
+   */
 	override def createVariable (variable : Identifier, typ : Type) : ApronInterface = {
-		var env = state.getEnvironment;
-		if(! env.hasVar(variable.getName())) {
-			val v : Array[String] = new Array[String](1);
-			v.update(0, variable.getName());
-			env=env.add(v, new Array[String](0));
-		}
-		return new ApronInterface(state.changeEnvironmentCopy(domain, env, false), domain);
+		if(!state.getEnvironment.hasVar(variable.getName()) && typ.isNumericalType()) {
+			val v : Array[String] = new Array[String](1)
+			v.update(0, variable.getName())
+			val env=state.getEnvironment.add(v, new Array[String](0))
+      new ApronInterface(state.changeEnvironmentCopy(domain, env, false), domain)
+		} else this
 	}
-	
-	override def removeVariable(variable : Identifier) : ApronInterface = { 
-		var env = state.getEnvironment;
-		val v : Array[String] = new Array[String](1);
-		v.update(0, variable.getName());
-		env=env.remove(v);
-		return new ApronInterface(state.changeEnvironmentCopy(domain, env, false), domain);
+
+  /**
+   *
+   * Removes a variable from the domain (the domains environment)
+   *
+   * @param variable the variable to be removed
+   * @return the state after this action
+   */
+	override def removeVariable(variable : Identifier) : ApronInterface = {
+    if (state.getEnvironment.hasVar(variable.getName())) {
+      val v : Array[String] = new Array[String](1)
+      v.update(0, variable.getName())
+      val env = state.getEnvironment.remove(v)
+      new ApronInterface(state.changeEnvironmentCopy(domain, env, false), domain)
+    } else this
 	}
 		
 	override def setToTop(variable : Identifier) : ApronInterface = {
@@ -354,28 +369,32 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 
   override def assign (variable : Identifier, expr : Expression) : ApronInterface = {
 
-    // Create variable if it does not exist
-    var newState = state
-    if(! state.getEnvironment.hasVar(variable.getName())) {
-      newState = this.createVariable(variable, variable.getType()).state
-    }
+    if (variable.getType().isNumericalType()) {
 
-    // ADDED because of minimizing the environment in merge
-    // (i.e. some of the variables still in use might have been removed by merge as they were Top)
-    var newEnv = newState.getEnvironment
-    for (id <- Normalizer.getIdsForExpression(expr)) {
-      if(! newEnv.hasVar(id.getName())) {
-        val v : Array[String] = new Array[String](1)
-        v.update(0, id.getName())
-        newEnv=newEnv.add(v, new Array[String](0))
+      // Create variable if it does not exist
+      var newState = state
+      if(! state.getEnvironment.hasVar(variable.getName())) {
+        newState = this.createVariable(variable, variable.getType()).state
       }
-    }
-    newState = newState.changeEnvironmentCopy(domain, newEnv, false)
-    // END of the added code
 
-    nondeterminismWrapper(expr, new ApronInterface(newState, domain), (someExpr,someState) => {
-      new ApronInterface(someState.state.assignCopy(domain, variable.getName, this.toTexpr1Intern(someExpr, someState.state.getEnvironment()), null),domain)
-    })
+      // ADDED because of minimizing the environment in merge
+      // (i.e. some of the variables still in use might have been removed by merge as they were Top)
+      var newEnv = newState.getEnvironment
+      for (id <- Normalizer.getIdsForExpression(expr)) {
+        if(! newEnv.hasVar(id.getName())) {
+          val v : Array[String] = new Array[String](1)
+          v.update(0, id.getName())
+          newEnv=newEnv.add(v, new Array[String](0))
+        }
+      }
+      newState = newState.changeEnvironmentCopy(domain, newEnv, false)
+      // END of the added code
+
+      nondeterminismWrapper(expr, new ApronInterface(newState, domain), (someExpr,someState) => {
+        new ApronInterface(someState.state.assignCopy(domain, variable.getName, this.toTexpr1Intern(someExpr, someState.state.getEnvironment()), null),domain)
+      })
+
+    } else this
   }
 
 	override def assume(expr : Expression) : ApronInterface = expr match {

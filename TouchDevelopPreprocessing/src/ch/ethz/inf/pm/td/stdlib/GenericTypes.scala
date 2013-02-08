@@ -41,7 +41,7 @@ object GenericTypes {
     Member("at_index",List("Number"),typ),
     Member("copy",List(),thisName),
     Member("count","Number"),
-    Member("random","Picture_Album")	// Gets a random item; invalid if collection is empty
+    Member("random",typ)	// Gets a random item; invalid if collection is empty
   )
 
   def gField(thisName:String,typ:String):List[Member] = gAny(thisName) ::: List(

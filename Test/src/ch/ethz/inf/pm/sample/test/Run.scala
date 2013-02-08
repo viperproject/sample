@@ -199,11 +199,11 @@ object Run {
   //Check the actual output w.r.t. the expected one and produce messages of warning or confirmation
   def checkOutput[I <: HeapIdentifier[I], H <: HeapDomain[H, I], N <: SemanticDomain[N]](expectedOutput : Set[ExpectedOutput], result : Set[Output], output : StringCollector) {
     val (missingExpected, missingWarnings, matched) = check(expectedOutput, result);
-    output.appendString(matched + " outputs were produced out of " + expectedOutput.size + " expected outputs.")
+    output.put(matched + " outputs were produced out of " + expectedOutput.size + " expected outputs.")
     if (!missingExpected.isEmpty)
-      output.appendString("Some expected outputs are not produced:\n" + missingExpected.mkString("\n"));
+      output.put("Some expected outputs are not produced:\n" + missingExpected.mkString("\n"));
     if (!missingWarnings.isEmpty)
-      output.appendString("Some outputs were not expected:\n" + missingWarnings.mkString("\n"));
+      output.put("Some outputs were not expected:\n" + missingWarnings.mkString("\n"));
   }
 
 
@@ -226,8 +226,8 @@ object Run {
     val r = initRun(testFile, sourceCodeFile, methods, analysis, entryState)
     val expectedOutput: Set[ExpectedOutput] = r._1
     val result: Set[Output] = r._2
-    original.appendString("File "+sourceCodeFile.getPath);
-    last.appendString("File "+sourceCodeFile.getPath);
+    original.put("File "+sourceCodeFile.getPath);
+    last.put("File "+sourceCodeFile.getPath);
     if(! inference) checkOutput(expectedOutput, result, original)
     val filepath = splitExtension(sourceCodeFile)._1;  ;
     try {

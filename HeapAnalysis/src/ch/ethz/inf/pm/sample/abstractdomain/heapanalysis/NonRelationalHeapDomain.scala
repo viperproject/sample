@@ -387,8 +387,10 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 
   private def resolveVariables(a: Assignable, f : Assignable => HeapIdSetDomain[I]):HeapIdSetDomain[I] = {
     a match {
-      case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(d1.get(id),f)
-      case a:Assignable => f(a)
+      case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(this.normalize(d1.get(id)),f)
+      case ids:HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.normalize(ids),f)
+      case id:I => HeapIdSetFunctionalLifting.applyToSetHeapId(this.normalize(new MaybeHeapIdSetDomain().convert(id)),f)
+      case _ => f(a)
     }
   }
 

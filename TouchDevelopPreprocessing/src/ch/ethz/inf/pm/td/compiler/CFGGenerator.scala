@@ -3,22 +3,34 @@ package ch.ethz.inf.pm.td.compiler
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.td._
+import parser._
 import parser.ExpressionStatement
 import parser.MetaStatement
+import parser.TableDefinition
 import parser.TypeName
 import semantics.TouchField
 import util.parsing.input.Position
-import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation.Statement
+import ch.ethz.inf.pm.sample.abstractdomain.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import scala.Some
 import ch.ethz.inf.pm.sample.oorepresentation.Variable
 import ch.ethz.inf.pm.sample.oorepresentation.NumericalConstant
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
+import ch.ethz.inf.pm.sample.oorepresentation.EmptyStatement
 import ch.ethz.inf.pm.sample.oorepresentation.Assignment
 import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
-import ch.ethz.inf.pm.sample.oorepresentation.Statement
-import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import scala.Some
+import ch.ethz.inf.pm.sample.oorepresentation.Variable
+import ch.ethz.inf.pm.sample.oorepresentation.NumericalConstant
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
+import ch.ethz.inf.pm.sample.oorepresentation.EmptyStatement
+import ch.ethz.inf.pm.sample.oorepresentation.Assignment
+import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
 
 /**
  *
@@ -32,6 +44,7 @@ object CFGGenerator {
   var curScriptName:String = ""
 
   def process(script:parser.Script, scriptName:String):ClassDefinition = {
+    detectUnsupportedScripts(script)
     curScriptName = scriptIdent(scriptName)
     val id = scriptIdent(scriptName)
     SystemParameters.typ=TouchType(scriptName,true)
@@ -41,12 +54,95 @@ object CFGGenerator {
     val name : ClassIdentifier = TouchClassIdentifier(id,typ)
     val parametricTypes : List[Type] = Nil
     val extend : List[ClassIdentifier] = Nil
+    //SystemParameters.compiler.asInstanceOf[TouchCompiler].types += findTypes(script)
     val fields : List[FieldDeclaration] = findFields(script)
     val methods : List[MethodDeclaration] = findMethods(script,typ)
     val pack : PackageIdentifier = TouchPackageIdentifier()
     val inv : Expression = null
     new ClassDefinition(programPoint, typ, modifiers, name, parametricTypes, extend, fields, methods, pack, inv)
   }
+
+  def detectUnsupportedScripts(script:parser.Script) {
+    for (dec <- script.declarations) {
+      dec match {
+        case x:TableDefinition=>
+          throw new UnsupportedLanguageFeatureException("The compiler does not support tables at the moment")
+        case x:LibraryDefinition =>
+          throw new UnsupportedLanguageFeatureException("The compiler does not support libraries at the moment")
+        case _ => ()
+      }
+    }
+  }
+
+  /**
+   *
+   * Discovers user-defined types such as Object, Table, Index, Decorator
+   * and adds those definitions to the compiler
+   *
+   * TODO TODO TODO
+   *
+   * @param script The script that is searched for type declarations
+   * @return A map from the types names to the type definitions
+   */
+//  private def findTypes(script:parser.Script):Map[String,TouchType] = {
+//
+//    var newTypes = Map.empty[String,TouchType]
+//    var newRecordFields = Set.empty[TouchField]
+//
+//    def addTouchType(name:String,members:List[Member]) {
+//      newTypes += (name,new TouchType(name,false,))
+//    }
+//
+//    def addRecordsField(field:Member) {
+//      newRecordFields += new TouchField(field.name,typeNameToType(field.retType))
+//    }
+//
+//    for (dec <- script.declarations) {
+//      dec match {
+//        case TableDefinition(ident,typeName,keys,fields) =>
+//
+//          for (field <- fields) {
+//            val fieldType = field.typeName.toString
+//            val noFieldType = fieldType.replace("_field","")
+//            if (noFieldType == "Number") addTouchType(fieldType,gNumberField(fieldType))
+//            else addTouchType(fieldType,GenericTypes.gField(fieldType,noFieldType))
+//          }
+//
+//          val fieldMembers = fields map {case parser.Parameter(x,typ) => Member(x,typ)}
+//
+//          typeName match {
+//            case "Object" =>
+//              addTouchType(ident,GenericTypes.gObject(ident,fieldMembers))
+//              addTouchType(ident+"_Collection",GenericTypes.gMutableCollection(ident+"_Collection",ident))
+//              addTouchType(ident+"_Constructor",List(Member("create",ident),Member("create_collection",ident+"_Collection")))
+//              addRecordsField(Member(ident,ident+"_Constructor"))
+//            case "Table" =>
+//              addTouchType(ident,GenericTypes.gRow(ident,fieldMembers))
+//              addTouchType(ident+"_Table",GenericTypes.gTable(ident+"_Table",ident))
+//              addRecordsField("records",List(Member(ident+"_table",ident+"_Table")))
+//            case "Index" =>
+//              val keyMembers = keys map {case Parameter(x,typ) => Member(x,typ)}
+//              val keyTypes = keys map {case Parameter(_,typ) => typ.toString}
+//              val fieldAndKeyMembers = fieldMembers ::: keyMembers
+//              addTouchType(ident,GenericTypes.gIndexMember(ident,fieldAndKeyMembers))
+//              addTouchType(ident+"_Index", GenericTypes.gIndex(ident+"_Index",keyTypes, ident))
+//              addRecordsField(Member(ident+"_index",ident+"_Index"))
+//            case "Decorator" =>
+//              if (keys.size != 1) throw TouchException("Decorators must have exactly one entry",thing.pos)
+//              val decoratedType = keys.head.typeName.toString
+//              val keyMembers = keys map {case Parameter(x,typ) => Member(x,typ)}
+//              val fieldAndKeyMembers = fieldMembers ::: keyMembers
+//              addTouchType(ident,GenericTypes.gIndexMember(ident,fieldAndKeyMembers))
+//              addTouchType(decoratedType+"_Decorator", GenericTypes.gIndex(decoratedType+"_Decorator",List(decoratedType), ident))
+//              addRecordsField(Member(decoratedType+"_decorator",decoratedType+"_Decorator"))
+//            case _ => throw TouchException("Table type "+typeName+" not supported",thing.pos)
+//
+//          }
+//      }
+//    }
+//
+//    newTypes
+//  }
 
   private def findFields(script:parser.Script):List[FieldDeclaration] = {
     (for (dec <- script.declarations) yield {
@@ -221,6 +317,8 @@ object CFGGenerator {
   private def expressionToStatement(expr:parser.Expression):Statement = {
 
     val pc = TouchProgramPoint(expr.pos)
+    if (expr == parser.SingletonReference("skip")) return EmptyStatement(pc)
+
     val typ = typeNameToType(expr.typeName)
 
     expr match {
@@ -273,6 +371,10 @@ case class TouchException(msg:String,pos:Position = null) extends Exception {
   override def toString:String = msg + " (Position: " + pos + ")"
 }
 
+case class UnsupportedLanguageFeatureException(msg:String) extends Exception {
+  override def toString:String = msg
+}
+
 case class TouchPackageIdentifier() extends PackageIdentifier
 
 
@@ -291,6 +393,12 @@ case class TouchProgramPoint(pos:Position) extends ProgramPoint {
 }
 
 case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
+  def getLine() = 0
+  def getColumn() = 0
+  override def toString = name
+}
+
+case class TouchInitializationProgramPoint(name:String) extends ProgramPoint {
   def getLine() = 0
   def getColumn() = 0
   override def toString = name
@@ -334,10 +442,11 @@ object TouchTuple {
 
 case class TouchTuple(override val name:String, override val fields:List[TouchField]) extends TouchType(name,false,fields)
 
-case class TouchCollection(override val name:String,keyType:TouchType,valueType:TouchType, override val fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
+case class TouchCollection(override val name:String,keyType:String,valueType:String, override val fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
 
-  def getValueType = valueType
-  def getKeyType = keyType
+  def getValueType =
+    SystemParameters.compiler.asInstanceOf[TouchCompiler].types(keyType)
+  def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(valueType)
 
 }
 

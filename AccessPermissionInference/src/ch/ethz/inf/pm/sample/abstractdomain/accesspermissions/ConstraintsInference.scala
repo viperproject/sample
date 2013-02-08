@@ -211,15 +211,15 @@ object ConstraintsInference {
   }
   
   def printConstraints() = {
-    SystemParameters.analysisOutput.appendString("INFERRED CONSTRAINTS\n---------------------\n\n");
+    SystemParameters.analysisOutput.put("INFERRED CONSTRAINTS\n---------------------\n\n");
     for(c <- constraints)
-      SystemParameters.analysisOutput.appendString(c.toString());
+      SystemParameters.analysisOutput.put(c.toString());
   }
   
   def printConstraints(constraints : Set[Constraint]) = {
-    SystemParameters.analysisOutput.appendString("INFERRED CONSTRAINTS\n---------------------\n\n");
+    SystemParameters.analysisOutput.put("INFERRED CONSTRAINTS\n---------------------\n\n");
     for(c <- constraints)
-      SystemParameters.analysisOutput.appendString(c.toString());
+      SystemParameters.analysisOutput.put(c.toString());
   }
 
   def solve(constraints : Set[Constraint]) : (Map[SymbolicValue, Double], Option[Double]) = {
@@ -261,7 +261,7 @@ object ConstraintsInference {
         //SystemParameters.analysisOutput.appendString("Value of objective function: " + solver.getObjective());
           
         if(solver.getObjective>=1.0E30) {//I don't know why, but lpsolve returns 1.0E30 when minimizing an unfeasible model
-          SystemParameters.analysisOutput.appendString("The system is unfeasible, so we cannot infer access permissions for the given program");
+          SystemParameters.analysisOutput.put("The system is unfeasible, so we cannot infer access permissions for the given program");
           return null;
         }
         else {
@@ -471,13 +471,13 @@ object ConstraintsInference {
   }
 
   def printLoopInvariants(l : Map[ProgramPoint, Map[Statement, Double]], epsilon : Option[Double]) = {
-    SystemParameters.analysisOutput.appendString("\nLOOP INVARIANTS\n--------------------\n\n");
+    SystemParameters.analysisOutput.put("\nLOOP INVARIANTS\n--------------------\n\n");
     for(pp <- l.keySet) {
-      SystemParameters.analysisOutput.appendString("Loop at "+pp.toString()+"\n");
+      SystemParameters.analysisOutput.put("Loop at "+pp.toString()+"\n");
       val f = l.apply(pp);
       for(s <- f.keySet)
-        SystemParameters.analysisOutput.appendString("Value of " + s + " = " + Settings.permissionType.permissionToString(f.apply(s), epsilon)+"\n");
-      SystemParameters.analysisOutput.appendString("\n");
+        SystemParameters.analysisOutput.put("Value of " + s + " = " + Settings.permissionType.permissionToString(f.apply(s), epsilon)+"\n");
+      SystemParameters.analysisOutput.put("\n");
 
     }
   }

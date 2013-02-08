@@ -38,12 +38,12 @@ class MultithreadingAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S]
       )
 
 
-    SystemParameters.progressOutput.appendString("Start of the multithreading semantics")
-    SystemParameters.progressOutput.appendString("Iteration 1")
+    SystemParameters.progressOutput.put("Start of the multithreading semantics")
+    SystemParameters.progressOutput.put("Iteration 1")
     super.analyze(toAnalyze, entryState, output)
     finalize(heap);
     var prev : Interferences[D] = ComputedInterference.value.asInstanceOf[Interferences[D]];
-    SystemParameters.progressOutput.appendString("Iteration 2")
+    SystemParameters.progressOutput.put("Iteration 2")
     super.analyze(toAnalyze, entryState, output)
     finalize(heap);
     var next : Interferences[D]= ComputedInterference.value.asInstanceOf[Interferences[D]];
@@ -51,7 +51,7 @@ class MultithreadingAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S]
     finalize();
     var i : Int = 3;
     while(! next.lessEqual(prev)) {
-      SystemParameters.progressOutput.appendString("Iteration "+i)
+      SystemParameters.progressOutput.put("Iteration "+i)
       System.out.println("Iteration "+i)
       prev = if(i<=5) prev.lub(prev, next) else prev.widening(prev, next);
       ComputedInterference.value=prev.asInstanceOf[Interferences[Nothing]];
@@ -61,7 +61,7 @@ class MultithreadingAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S]
       //ComputedInterference.value=null;
       i=i+1;
     }
-    SystemParameters.progressOutput.appendString("End of the multithreading semantics")
+    SystemParameters.progressOutput.put("End of the multithreading semantics")
   };
   private def finalize[N <: SemanticDomain[N], S <: State[S], I <: HeapIdentifier[I], H <: HeapDomain[H, I]](heap : HeapDomain[_, _]) = {
     for ((s, cfg) <-SystemParameters.property.asInstanceOf[InterferenceInferenceProperty].results)

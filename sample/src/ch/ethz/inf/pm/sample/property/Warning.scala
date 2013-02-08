@@ -170,7 +170,8 @@ class OutputCollector {
         case None =>
       }
     }
-    return result+"\n"+outputs.mkString("\n");
+    if (!result.isEmpty) result+"\n"+outputs.mkString("\n")
+    else outputs.mkString("\n")
   }
 
   	/**

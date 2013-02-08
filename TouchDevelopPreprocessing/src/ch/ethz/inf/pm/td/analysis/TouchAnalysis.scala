@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.abstractdomain.HeapIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.util.Timer
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.compiler.{TouchException, TouchCompiler}
 import ch.ethz.inf.pm.td.domain.TouchDomain
 
 /**
@@ -51,29 +51,25 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
-  override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) = {
+  override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) {
     Timer.start
     val methodSet = methods.toSet[String]
     for ((c,x) <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getRunnableMethods) {
       if (methodSet.isEmpty || methodSet.contains(x.name.toString)) {
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Analyzing method "+x.name.toString()+" in class "+c.name.toString());
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("<< Method: "+x.name.toString+" in class "+c.name.toString)
         SystemParameters.currentMethod = x.name.toString
         val s = x.forwardSemantics[S](entryState)
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
+        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end(">> Method: "+x.name.toString+" in class "+c.name.toString)
         if(SystemParameters.property!=null) {
-          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
-          SystemParameters.property.check(c.name.getThisType(), x.name.toString(), s, output)
-          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.appendString("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
+          SystemParameters.property.check(c.name.getThisType(), x.name.toString, s, output)
         }
         SystemParameters.currentMethod = null
       }
     }
     if(SystemParameters.property!=null) {
-      SystemParameters.progressOutput.appendString("Finalizing the checking the property")
       SystemParameters.property.finalizeChecking(output)
-      SystemParameters.progressOutput.appendString("End of the checking of the property")
     }
-    System.out.println(output.output()+"STATISTICS [ Property validated:"+output.validated()+", Warnings:"+output.notvalidated()+", Inferred contracts:"+output.inferredcontracts()+", Time of analyisis: " + Timer.stop+" ]")
+    SystemParameters.progressOutput.put("Statistics [ Time of analysis: " + Timer.stop+" ]")
   }
 
 }

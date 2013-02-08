@@ -58,9 +58,9 @@ class TPicture extends AAny {
        Skip
 
     /** Clears the picture to a given color */
-    // case "clear" =>
-    //   val List(color) = parameters // Color
-    //   Skip;
+    case "clear" =>
+       val List(color) = parameters // Color
+       Skip
 
     /** Returns a copy of the image */
     // case "clone" =>

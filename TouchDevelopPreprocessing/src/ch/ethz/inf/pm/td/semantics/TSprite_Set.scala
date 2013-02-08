@@ -13,7 +13,7 @@ import RichNativeSemantics._
 object TSprite_Set {
 
   val typName = "Sprite_Set"
-  val typ = TouchCollection(typName, TNumber.typ, TSprite.typ)
+  val typ = TouchCollection(typName, "Number", "Sprite")
 
 }
 

@@ -43,7 +43,7 @@ private object LPTimer {
   
  	def stop() = lastValue match {
  	  case Some(l) => totalTime=totalTime+(System.currentTimeMillis()-l)
- 	  case None => SystemParameters.analysisOutput.appendString("Timer not started before!");
+ 	  case None => SystemParameters.analysisOutput.put("Timer not started before!");
     }
  	
  	def reset() = totalTime=0; lastValue=None;

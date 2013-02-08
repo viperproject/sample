@@ -142,36 +142,56 @@ object SystemParameters {
   
 }
 
-//TODO:Comment the following code
-trait ScreenOutput {
-  def appendString(s : String);
-  def getString() : String;
+abstract class ScreenOutput {
+
+  def appendString(s : String)
+  def getString : String
+
+  private var indent = 0
+
+  def begin(s :String) { put(s); indent += 1 }
+  def put(s:String) { appendString("  "*indent + s.replace("\n","  "*indent + "\n")) }
+  def end(s:String) { indent -= 1; put(s) }
+
 }
 
 class StringCollector extends ScreenOutput {
-  var s : String="";
-  override def appendString(s: String): Unit = {
+
+  var s : String = ""
+
+  override def appendString(s: String) {
     this.s=this.s+"\n" + s
   }
 
   override def getString: String = {
-    return this.s
+    this.s
   }
+
 }
 
 class StdOutOutput extends ScreenOutput {
-  def getString(): String = {
+
+  override def getString: String = {
     ""
   }
 
-  def appendString(s: String) {
+  override def appendString(s: String) {
     println(s)
   }
+
 }
 
 class CombinedOutput (a:ScreenOutput,b:ScreenOutput) extends ScreenOutput {
-  def getString(): String = a.getString() + b.getString()
-  def appendString(s: String) { a.appendString(s); b.appendString(s) }
+
+  def getString: String = {
+    a.getString + b.getString
+  }
+
+  def appendString(s: String) {
+    a.appendString(s)
+    b.appendString(s)
+  }
+
 }
 
 class Timer {

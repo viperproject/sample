@@ -46,7 +46,7 @@ object TBoard {
   /** String name of the type */
   val typName = "Board"
 
-  val typ = TouchCollection(typName,TNumber.typ,TSprite.typ,List(
+  val typ = TouchCollection(typName,"Number","Sprite",List(
     field_width,
     field_height,
     field_abstract_sprite,

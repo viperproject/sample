@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -17,21 +17,16 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TJson_Object {
 
   val typName = "Json_Object"
-  val typ = TouchType(typName,isSingleton = false,List())
+  val typ = TouchCollection(typName,"Number","Json_Object")
 
 }
 
-class TJson_Object extends AAny {
+class TJson_Object extends ACollection {
 
   def getTyp = TJson_Object.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-
-    /** Gets the i-th json value */
-    // case "at" =>
-    //   val List(index) = parameters // Number
-    //   Return[S](Valid(TJson_Object.typ))
 
     /** Gets a field value as a boolean */
     // case "boolean" => 
@@ -43,17 +38,10 @@ class TJson_Object extends AAny {
     //   val List(key) = parameters // String
     //   Return[S](Valid(TBoolean.typ))
 
-    /** Gets the number of values */
-    // case "count" => 
-    //   Return[S](Valid(TNumber.typ))
-    // DECLARATION AS FIELD: 
-    //   /** Gets the number of values */
-    //   val field_count = new TouchField("count",TNumber.typ)
-
     /** Gets a value by name */
-    // case "field" => 
-    //   val List(key) = parameters // String
-    //   Return[S](Valid(TJson_Object.typ))
+    case "field" =>
+      val List(key) = parameters // String
+      Return[S](CollectionSummary[S](this0))
 
     /** Gets the list of keys */
     // case "keys" => 
@@ -63,9 +51,9 @@ class TJson_Object extends AAny {
     //   val field_keys = new TouchField("keys",TString_Collection.typ)
 
     /** Gets a json kind (string, number, object, array, boolean) */
-    // case "kind" => 
+    // case "kind" =>
     //   Return[S](Valid(TString.typ))
-    // DECLARATION AS FIELD: 
+    // DECLARATION AS FIELD:
     //   /** Gets a json kind (string, number, object, array, boolean) */
     //   val field_kind = new TouchField("kind",TString.typ)
 

@@ -37,6 +37,10 @@ class TNumber extends AAny {
     case "-" => Return(this0 - parameters.head)
     case "/" => Return(this0 / parameters.head)
 
+    case "and" => Return((this0 unequal 0) && parameters.head)
+    case "or" => Return((this0 unequal 0) || parameters.head)
+    case "not" => Return(this0 equal 0)
+
     /** Interprets a number as a unicode value and converts it to the single character string */
     case "to_character" =>
       Return[S](Valid(TString.typ))

@@ -73,6 +73,14 @@ class SMath extends AAny {
       val List(angle) = parameters // Number
       Return[S](Valid(TNumber.typ)) // TODO
 
+    /** OBSOLETE: Creates an empty number collection */
+    case "create_number_collection" =>
+      New[S](TNumber_Collection.typ)
+
+    /** OBSOLETE: Creates an empty number map */
+    case "create_number_map" =>
+      New[S](TNumber_Map.typ)
+
     /** Creates a 3D vector */
     case "create_vector3" =>
       val List(x,y,z) = parameters // Number,Number,Number

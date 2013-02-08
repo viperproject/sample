@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TDevice_Collection {
 
   val typName = "Device_Collection"
-  val typ = TouchCollection(typName,TNumber.typ,TDevice.typ)
+  val typ = TouchCollection(typName,"Number","Device")
 
 }
 

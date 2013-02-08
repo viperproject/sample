@@ -63,6 +63,6 @@ trait Compiler {
 
   def compile(file:String) { compileFile(file) }
   def compile(file:File) { compileFile(file.getAbsolutePath) }
-  def compile(files:List[String]) { files.foreach(compile _) }
+  def compile(files:List[String]) { files.foreach(compile _ ) }
 
 }

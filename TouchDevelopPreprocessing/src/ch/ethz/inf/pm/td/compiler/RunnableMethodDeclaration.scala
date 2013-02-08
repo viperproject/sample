@@ -6,11 +6,11 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import ch.ethz.inf.pm.td.parser.VariableDefinition
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
-import ch.ethz.inf.pm.td.semantics.{TouchField, AAny}
+import ch.ethz.inf.pm.td.semantics.{RichNativeSemantics, TouchField, AAny}
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 class CallableMethodDeclaration(
-                                 programpoint_ : ProgramPoint,
+                                 programPoint_ : ProgramPoint,
                                  ownerType_ : Type,
                                  modifiers_ : List[Modifier],
                                  name_ : MethodIdentifier,
@@ -18,9 +18,10 @@ class CallableMethodDeclaration(
                                  arguments_ : List[List[VariableDeclaration]],
                                  returnType_ : Type,
                                  body_ : ControlFlowGraph,
-                                 precond_ : Statement,
-                                 postcond_ : Statement)
-  extends MethodDeclaration( programpoint_, ownerType_, modifiers_, name_, parametricType_, arguments_, returnType_, body_, precond_, postcond_) {
+                                 precondition_ : Statement,
+                                 postcondition_ : Statement)
+  extends MethodDeclaration( programPoint_, ownerType_, modifiers_, name_, parametricType_, arguments_, returnType_,
+    body_, precondition_, postcondition_) {
 
   override def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
     SystemParameters.currentCFG=body
@@ -54,7 +55,7 @@ class CallableMethodDeclaration(
 class RunnableMethodDeclaration(
                                  events : Seq[MethodDeclaration],
                                  globalData : Seq[FieldDeclaration],
-                                 programpoint_ : ProgramPoint,
+                                 programPoint_ : ProgramPoint,
                                  ownerType_ : Type,
                                  modifiers_ : List[Modifier],
                                  name_ : MethodIdentifier,
@@ -62,9 +63,10 @@ class RunnableMethodDeclaration(
                                  arguments_ : List[List[VariableDeclaration]],
                                  returnType_ : Type,
                                  body_ : ControlFlowGraph,
-                                 precond_ : Statement,
-                                 postcond_ : Statement)
-  extends MethodDeclaration( programpoint_, ownerType_, modifiers_, name_, parametricType_, arguments_, returnType_, body_, precond_, postcond_) {
+                                 precondition_ : Statement,
+                                 postcondition_ : Statement)
+  extends MethodDeclaration( programPoint_, ownerType_, modifiers_, name_, parametricType_, arguments_, returnType_,
+    body_, precondition_, postcondition_) {
 
   override def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
 
@@ -73,31 +75,47 @@ class RunnableMethodDeclaration(
     var curState = state
 
     // Global state is invalid
-    // TODO: Numbers, Booleans and Strings are not initialized to invalid but to 0, false, ""
     for (v <- globalData) {
-      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.name.getName()),v.typ,programpoint_)
+
+      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.name.getName()),v.typ,programPoint_)
       val leftExpr = new ExpressionSet(v.typ).add(variable)
-      val rightExpr = new ExpressionSet(v.typ).add(Constant("invalid",v.typ,programpoint_))
-      curState = curState.createVariable(leftExpr,v.typ,programpoint_)
+      curState = curState.createVariable(leftExpr,v.typ,programPoint_)
+
+      // Numbers, Booleans and Strings are not initialized to invalid but to 0, false, ""
+      val rightVal = v.typ.getName() match {
+        case "String" => Constant("",v.typ,programPoint_)
+        case "Number" => Constant("0",v.typ,programPoint_)
+        case "Boolean" => Constant("false",v.typ,programPoint_)
+        case _ => Constant("invalid",v.typ,programPoint_)
+      }
+
+      val rightExpr = new ExpressionSet(v.typ).add(rightVal)
       curState = curState.assignVariable(leftExpr,rightExpr)
     }
 
-    // Initialize the fields of singletons
+    // Initialize the fields of singletons (the environment)
     for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
       val typ = sem.asInstanceOf[AAny].getTyp
       if(typ.isSingleton) {
+        // Create object
         curState = curState.createObject(typ,TouchSingletonProgramPoint(typ.getName))
         val obj = curState.getExpression()
+        // Create variable
+        val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName,typ,programPoint_))
+        curState = curState.createVariable(variable,typ,programPoint_)
+        curState = curState.assignVariable(variable,obj)
         for (field <- typ.getPossibleFieldsSorted()) {
-          curState = curState.assignField(List(obj),field.getName(),field.asInstanceOf[TouchField].default)
+          curState = RichNativeSemantics.Top[S](field.getType().asInstanceOf[TouchType])(curState,TouchInitializationProgramPoint(typ.getName+"->"+field.getName))
+          val expression = curState.getExpression()
+          curState = curState.assignField(List(obj),field.getName(),expression)
         }
       }
     }
 
-    val result = lfp(curState, {(lastExecution:ControlFlowGraphExecution[S], initialState:S) =>
+    val result = {//lfp(curState, {(lastExecution:ControlFlowGraphExecution[S], initialState:S) =>
 
       // TODO: Copy global state from last execution
-      val execution = new ControlFlowGraphExecution[S](body, state).forwardSemantics(initialState)
+      val execution = new ControlFlowGraphExecution[S](body, state).forwardSemantics(curState)//initialState)
 
       // Compute the fixpoint over all events
       lfp(execution.exitState(),{s:S =>
@@ -115,7 +133,8 @@ class RunnableMethodDeclaration(
 
       execution
 
-    })
+    }
+    //})
 
     val resultWithSum = new ControlFlowGraphExecution[S](result.cfg,result.state) with Summaries[S]
     resultWithSum.nodes = result.nodes

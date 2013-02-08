@@ -53,6 +53,15 @@
     <orderEntry type="module" module-name="ScalaPreprocessing" />
     <orderEntry type="module" module-name="TouchDevelopPreprocessing" />
     <orderEntry type="module" module-name="Multithreading" />
+    <orderEntry type="module-library">
+      <library>
+        <CLASSES>
+          <root url="jar://$MODULE_DIR$/../TouchDevelopPreprocessing/lib/commons-lang3-3.0.1.jar!/" />
+        </CLASSES>
+        <JAVADOC />
+        <SOURCES />
+      </library>
+    </orderEntry>
   </component>
 </module>
 

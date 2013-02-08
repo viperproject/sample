@@ -13,7 +13,7 @@ import RichNativeSemantics._
 object TLocation_Collection {
 
   val typName = "Location_Collection"
-  val typ = TouchCollection(typName,TNumber.typ,TLocation.typ)
+  val typ = TouchCollection(typName,"Number","Location")
 
 }
 
