@@ -51,7 +51,7 @@ object TMessage {
 
 
   val typName = "Message"
-  val typ = TouchType(typName,isSingleton = false,List(field_from, field_link, field_location, field_media_link,
+  val typ = new TouchType(typName,isSingleton = false,List(field_from, field_link, field_location, field_media_link,
     field_message, field_picture_link, field_source, field_time, field_title, field_to, field_values))
 
 }

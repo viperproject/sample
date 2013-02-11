@@ -42,7 +42,7 @@ object TLocation {
   val field_vert_accuracy = new TouchField("vert_accuracy", TNumber.typ)//, Invalid(TNumber.typ))
 
   val typName = "Location"
-  val typ = TouchType(typName,isSingleton = false,List(field_latitude,field_longitude,field_altitude,
+  val typ = new TouchType(typName,isSingleton = false,List(field_latitude,field_longitude,field_altitude,
       field_speed, field_hor_accuracy,field_vert_accuracy))
 
 }

@@ -29,7 +29,7 @@ object TPicture {
   val field_date = new TouchField("date",TDateTime.typ,Invalid(TLocation.typ)(null))
 
   val typName = "Picture"
-  val typ = TouchType(typName,isSingleton = false,List(field_width,field_height,field_location,field_date))
+  val typ = new TouchType(typName,isSingleton = false,List(field_width,field_height,field_location,field_date))
 
 }
 

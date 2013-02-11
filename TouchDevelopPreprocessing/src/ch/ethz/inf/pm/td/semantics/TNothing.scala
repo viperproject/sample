@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 object TNothing {
 
   val typName = "Nothing"
-  val typ = TouchType(typName,isSingleton = false)
+  val typ = new TouchType(typName,isSingleton = false)
 
 }
 

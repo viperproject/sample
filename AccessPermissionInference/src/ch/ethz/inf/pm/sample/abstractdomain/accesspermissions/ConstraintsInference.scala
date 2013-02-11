@@ -207,7 +207,7 @@ object ConstraintsInference {
     case Variable(pp, id) => return id.toString() :: Nil
     case x : FieldAccess =>
       if(x.objs.size != 1) throw new PermissionsException("This should NEVER happens HERE!");
-      else return statementToListString(x.objs.elements.next) ::: x.field :: Nil; 
+      else return statementToListString(x.objs.head) ::: x.field :: Nil;
   }
   
   def printConstraints() = {
@@ -461,8 +461,8 @@ object ConstraintsInference {
     for(ex <- exs) {                                                                                        
 	    for(i <- 0 to ex.cfg.nodes.length-1) {
 	      if(ex.cfg.initialBlockInLoop(i)) {
-	        val state = ex.nodes.apply(i).first;
-	        val pp = ex.cfg.nodes.apply(i).first.getPC();
+	        val state = ex.nodes.apply(i).head;
+	        val pp = ex.cfg.nodes.apply(i).head.getPC();
 	        result=result+((pp, inferPermissions(state, substitution)));
 	      }
 	    }

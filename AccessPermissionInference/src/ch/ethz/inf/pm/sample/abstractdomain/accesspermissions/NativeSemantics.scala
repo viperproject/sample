@@ -55,7 +55,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	      val ids = x.setOfExpressions;
 	      val pexpr=y.setOfExpressions;
 	      if(pexpr.size!=1) return None;
-	      val predicate=pexpr.elements.next();
+	      val predicate=pexpr.head;
 	      predicate match {
 	        case Constant(s, typ, pp) => operator match {
 		         case "fold" =>  
@@ -74,7 +74,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			    case "fork" =>
 			      if(y.setOfExpressions.size != 1) return None;
 				    //It applies pre and post conditions if these exist
-			      y.setOfExpressions.elements.next() match {
+			      y.setOfExpressions.head match {
 			        case Constant(s, typ, pp) =>
 					    val castedState=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]];
 					    var result=castedState._1._1;
@@ -98,7 +98,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 			    case "join" =>
 			      if(y.setOfExpressions.size != 1) return None;
 				    //It applies pre and post conditions if these exist
-			      y.setOfExpressions.elements.next() match {
+			      y.setOfExpressions.head match {
 			        case Constant(s, typ, pp) =>
 					    val castedState=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]];
 					    var result=castedState._1._1;
@@ -177,7 +177,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  var result=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]];
 	  for(s <- cond.keySet) {
 	    if(s.getExpressions().size==1) {
-	      val id = s.getExpressions().elements.next;
+	      val id = s.getExpressions().head
 	      if(id.isInstanceOf[Identifier]) {
 	    	  val newPerm=result._1._1.inhale(id.asInstanceOf[Identifier], cond.apply(s));
 	    	  result=new AbstractState(new HeapAndAnotherDomain(newPerm, result._1._2), result._2);
@@ -196,7 +196,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  var result=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]]];
 	  for(s <- cond.keySet) {
 	    if(s.getExpressions().size==1) {
-	      val id = s.getExpressions().elements.next;
+	      val id = s.getExpressions().head
 	      if(id.isInstanceOf[Identifier]) {
 	    	  val newPerm=result._1._1.exhale(id.asInstanceOf[Identifier], cond.apply(s));
 	    	  result=new AbstractState(new HeapAndAnotherDomain(newPerm, result._1._2), result._2);
@@ -216,10 +216,10 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	private def solveParameters[S <: State[S]](parameters : List[List[VariableDeclaration]], cond : Map[FieldAccess, Int], par : List[ExpressionSet], thisExpr : ExpressionSet, state : S) : Map[ExpressionSet, Int] = {
 	  var result : Map[ExpressionSet, Int] = Map.empty; 
 	  if(parameters.size>1) throw new Exception("This should not happen");
-	  val pars = parameters.elements.next;
+	  val pars = parameters.head;
 	  for(access <- cond.keySet) {
 	    if(access.objs.size==1) {
-	      val obj=access.objs.elements.next;
+	      val obj=access.objs.head;
 	      val p = extractParameter(obj);
 	      var p1 : ExpressionSet=null;
 	      if(p.getName().equals("this"))
@@ -240,7 +240,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	private def accessField[S <: State[S]](obj : ExpressionSet, field : Statement, state : S) : ExpressionSet = field match {
 	  case FieldAccess(pp, objs, field, typ) if(objs.size==1) => 
 	    if(objs.size>1) throw new Exception("This should not happen");
-	    val o=objs.elements.next;
+	    val o=objs.head
 	    val newState=state.getFieldValue(accessField(obj, o, state) :: Nil, field, typ);
 	    return newState.getExpression(); 
 	  case Variable(programpoint, id) => return obj;
@@ -250,7 +250,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	 * Return the identifier of the most leftwing access (e.g., this.a.m => this)
 	 */
 	private def extractParameter(s : Statement) : Identifier = s match {
-	  case FieldAccess(pp, objs, field, typ) if(objs.size==1) => return extractParameter(objs.elements.next); 
+	  case FieldAccess(pp, objs, field, typ) if(objs.size==1) => return extractParameter(objs.head);
 	  case Variable(programpoint, id) => return id;
 	}
    

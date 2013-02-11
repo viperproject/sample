@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample.oorepresentation._
-import scala.Math
 import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import semper.sample.multithreading.InterferenceInferenceProperty
@@ -394,17 +393,17 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
   override def toString(): String = {
     if (this.isBottom) return "_|_"
     var result: String = "["
-    if (left == Math.MIN_INT)
+    if (left == Integer.MIN_VALUE)
       result = result + "-oo"
     else result = result + left.toString()
     result = result + ".."
-    if (right == Math.MAX_INT)
+    if (right == Integer.MAX_VALUE)
       result = result + "+oo"
     else result = result + right.toString()
     result + "]"
   }
 
-  def top(): Interval = new Interval(Math.MIN_INT, Math.MAX_INT)
+  def top(): Interval = new Interval(Integer.MIN_VALUE, Integer.MAX_VALUE)
 
   def bottom(): Interval = new Interval(1, 0)
 
@@ -429,9 +428,9 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
   def widening(left: Interval, right: Interval): Interval = {
     var result = this.lub(left, right)
     if (right.left < left.left)
-      result = new Interval(Math.MIN_INT, result.right)
+      result = new Interval(Integer.MIN_VALUE, result.right)
     if (right.right > left.right)
-      result = new Interval(result.left, Math.MAX_INT)
+      result = new Interval(result.left, Integer.MAX_VALUE)
     result
   }
 
@@ -457,10 +456,10 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
     if (leftExpr.isBottom || rightExpr.isBottom) return new Interval(1, 0)
     var left = leftExpr.left + rightExpr.left
     var right = leftExpr.right + rightExpr.right
-    if (leftExpr.left == Math.MIN_INT || rightExpr.left == Math.MIN_INT)
-      left = Math.MIN_INT
-    if (leftExpr.right == Math.MAX_INT || rightExpr.right == Math.MAX_INT || (rightExpr.right + leftExpr.right) < rightExpr.right) //Last case for overflow
-      right = Math.MAX_INT
+    if (leftExpr.left == Integer.MIN_VALUE || rightExpr.left == Integer.MIN_VALUE)
+      left = Integer.MIN_VALUE
+    if (leftExpr.right == Integer.MAX_VALUE || rightExpr.right == Integer.MAX_VALUE || (rightExpr.right + leftExpr.right) < rightExpr.right) //Last case for overflow
+      right = Integer.MAX_VALUE
     return new Interval(left, right)
 
   }
@@ -469,10 +468,10 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
     if (leftExpr.isBottom || rightExpr.isBottom) return new Interval(1, 0)
     var left = leftExpr.left - rightExpr.left
     var right = leftExpr.right - rightExpr.right
-    if (leftExpr.left == Math.MIN_INT || rightExpr.left == Math.MIN_INT || (rightExpr.right - leftExpr.right) > rightExpr.right) //Last case for underflow
-      left = Math.MIN_INT
-    if (leftExpr.right == Math.MAX_INT || rightExpr.right == Math.MAX_INT)
-      right = Math.MAX_INT
+    if (leftExpr.left == Integer.MIN_VALUE || rightExpr.left == Integer.MIN_VALUE || (rightExpr.right - leftExpr.right) > rightExpr.right) //Last case for underflow
+      left = Integer.MIN_VALUE
+    if (leftExpr.right == Integer.MAX_VALUE || rightExpr.right == Integer.MAX_VALUE)
+      right = Integer.MAX_VALUE
     return new Interval(left, right)
   }
 
@@ -485,9 +484,9 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
     var result: Int = a * b
     if (result / a != b) {
       //Overflow
-      if (a >= 0 && b >= 0) result = Math.MAX_INT
-      else if (a <= 0 && b <= 0) result = Math.MAX_INT
-      else result = Math.MIN_INT
+      if (a >= 0 && b >= 0) result = Integer.MAX_VALUE
+      else if (a <= 0 && b <= 0) result = Integer.MAX_VALUE
+      else result = Integer.MIN_VALUE
     }
     return result
   }
@@ -513,9 +512,9 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
     if (rightExpr.left < 0 && rightExpr.right > 0) {
       //It contains 0
       if (leftExpr.right > 0)
-        result = new Interval(result.left, Math.MAX_INT)
+        result = new Interval(result.left, Integer.MAX_VALUE)
       if (leftExpr.left < 0)
-        result = new Interval(Math.MIN_INT, result.right)
+        result = new Interval(Integer.MIN_VALUE, result.right)
     }
     return result
   }
@@ -525,13 +524,13 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
     leftExpr.lub(leftExpr,rightExpr)
   }
 
-  def valueGEQ(value: Interval): Interval = return new Interval(value.left, Math.MAX_INT)
+  def valueGEQ(value: Interval): Interval = return new Interval(value.left, Integer.MAX_VALUE)
 
-  def valueLEQ(value: Interval): Interval = new Interval(Math.MIN_INT, value.right)
+  def valueLEQ(value: Interval): Interval = new Interval(Integer.MIN_VALUE, value.right)
 
-  def valueGreater(value: Interval): Interval = return new Interval(value.right + 1, Math.MAX_INT)
+  def valueGreater(value: Interval): Interval = return new Interval(value.right + 1, Integer.MAX_VALUE)
 
-  def valueLess(value: Interval): Interval = new Interval(Math.MIN_INT, value.left - 1)
+  def valueLess(value: Interval): Interval = new Interval(Integer.MIN_VALUE, value.left - 1)
 }
 
 

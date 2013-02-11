@@ -26,7 +26,7 @@ object TPlaylist {
   val field_songs = new TouchField("songs",TSongs.typ)
 
   val typName = "Playlist"
-  val typ = TouchType(typName,isSingleton = false,List(field_duration,field_name,field_songs))
+  val typ = new TouchType(typName,isSingleton = false,List(field_duration,field_name,field_songs))
 
 }
 

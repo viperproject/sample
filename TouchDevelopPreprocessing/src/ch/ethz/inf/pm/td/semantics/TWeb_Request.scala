@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TWeb_Request {
 
   val typName = "Web_Request"
-  val typ = TouchType(typName,isSingleton = false,List())
+  val typ = new TouchType(typName,isSingleton = false,List())
 
 }
 

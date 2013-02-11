@@ -124,7 +124,7 @@ object Run {
         catch {
           case e : FileNotFoundException => System.out.println("Directory "+file.getPath()+" does not contain a settings.test.");
           case e : TestException => System.out.println("Error while setting the parameters of the tests."); e.printStackTrace();
-          case e => System.out.println("Settings.test in directory "+file.getPath()+" is malformed."); e.printStackTrace();
+          case e : Throwable => System.out.println("Settings.test in directory "+file.getPath()+" is malformed."); e.printStackTrace();
         }
         finally {
           //Iterate over the subdirectories
@@ -217,7 +217,7 @@ object Run {
         else System.out.println(lastResult.getPath+" deleted");
     }
     catch {
-      case _ => //It means the file didn't exist, that is, it's the first time we run the analysis
+      case _ : Throwable => //It means the file didn't exist, that is, it's the first time we run the analysis
     }
   }
 
@@ -238,7 +238,7 @@ object Run {
       }
     }
     catch {
-      case _ => //It means the file didn't exist, that is, it's the first time we run the analysis
+      case _ : Throwable => //It means the file didn't exist, that is, it's the first time we run the analysis
     }
     if(! inference) writeStringInFile(filepath+".test_last", outputsToExpectedOutputs(result).mkString("\n"));
     else writeStringInFile(filepath+".test", outputsToExpectedOutputs(result).mkString("\n"));

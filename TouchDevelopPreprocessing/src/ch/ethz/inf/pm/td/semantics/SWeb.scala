@@ -24,7 +24,7 @@ object SWeb {
   val field_connection_type = new TouchField("connection_type",TString.typ)
 
   val typName = "web"
-  val typ = TouchType(typName,isSingleton = true,List(field_connection_name,field_connection_type))
+  val typ = new TouchType(typName,isSingleton = true,List(field_connection_name,field_connection_type))
 
 }
 

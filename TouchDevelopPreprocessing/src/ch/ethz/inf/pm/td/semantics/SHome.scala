@@ -29,7 +29,7 @@ object SHome {
   val field_servers = new TouchField("servers",TMedia_Server_Collection.typ)
 
   val typName = "home"
-  val typ = TouchType(typName,isSingleton = true,List(field_printers,field_servers))
+  val typ = new TouchType(typName,isSingleton = true,List(field_printers,field_servers))
 
 }
 

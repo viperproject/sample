@@ -15,7 +15,7 @@ import RichExpression._
 object SMath {
 
   val typName = "math"
-  val typ = TouchType(typName, isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true)
 
 }
 

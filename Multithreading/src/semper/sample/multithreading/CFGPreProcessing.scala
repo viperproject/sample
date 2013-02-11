@@ -50,7 +50,7 @@ object CFGPreProcessing {
        if (edge._3 != None && edge._3.get==false) {
          val edges = c.exitEdges(edge._1);
          if(edges.size==2) {
-           var newEdge = (edges - edge).first;
+           var newEdge = (edges - edge).head;
            if(newEdge._3!=None && ! newEdge._3.get.equals(edge._3.get)) {
              findLoop(c, edge._1) match {
                case Some(n) => result=result+((edge._1, n))

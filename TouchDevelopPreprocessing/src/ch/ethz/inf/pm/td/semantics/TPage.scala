@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TPage {
 
   val typName = "Page"
-  val typ = TouchType(typName,isSingleton = false,List())
+  val typ = new TouchType(typName,isSingleton = false,List())
 
 }
 

@@ -9,5 +9,5 @@ def typer(url:String) {
   Typer.processScript(ast)
 }
 
-TestRunner("https://www.touchdevelop.com/api/bohg/text",typer)
-TestRunner(new Scripts,1000,typer)
+TestRunner("https://www.touchdevelop.com/api/bohg/text",typer _)
+TestRunner(new Scripts,1000,typer _)

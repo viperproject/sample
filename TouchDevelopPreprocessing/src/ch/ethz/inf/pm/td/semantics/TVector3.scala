@@ -18,7 +18,7 @@ object TVector3 {
   val field_z = new TouchField("z", TNumber.typ)
 
   val typName = "Vector3"
-  val typ = TouchType(typName,isSingleton = false, List(field_x,field_y,field_z))
+  val typ = new TouchType(typName,isSingleton = false, List(field_x,field_y,field_z))
 
 }
 

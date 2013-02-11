@@ -53,11 +53,11 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom :
 }
 /*
 final class MaybeHeapIdSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) extends NonRelationalHeapIdentifier[MaybeHeapIdSetDomain[I]](id.getType, id.getProgramPoint) with SetDomain[I, MaybeHeapIdSetDomain[I]] {
-  def getField() : Option[String] = if(value.size==1) return value.elements.next.getField() else return None;
+  def getField() : Option[String] = if(value.size==1) return value.head.getField() else return None;
   override def getLabel() = id.getLabel;
 
   override def equals(x : Any) : Boolean = x match {
-	  case x : I => if(value.size==1) return x.equals(value.elements.next); else return false;
+	  case x : I => if(value.size==1) return x.equals(value.head); else return false;
 	  case _ => return super.equals(x);
   }
   
@@ -98,7 +98,7 @@ final class MaybeHeapIdSetDomain[I <: NonRelationalHeapIdentifier[I]](id : I) ex
   
   def representSingleVariable() : Boolean = {
     if(this.value.size==1)
-      return this.value.elements.next.representSingleVariable();
+      return this.value.head.representSingleVariable();
     else return false;
   }
   def getName() : String = this.toString();

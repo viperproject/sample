@@ -26,7 +26,7 @@ object TPicture_Album {
   val field_pictures = new TouchField("pictures",TPictures.typ)
 
   val typName = "Picture_Album"
-  val typ = TouchType(typName,isSingleton = false,List(field_albums, field_name, field_pictures))
+  val typ = new TouchType(typName,isSingleton = false,List(field_albums, field_name, field_pictures))
 
 }
 

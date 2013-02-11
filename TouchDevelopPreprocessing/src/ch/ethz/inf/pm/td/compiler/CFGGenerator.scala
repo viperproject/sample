@@ -47,7 +47,7 @@ object CFGGenerator {
     detectUnsupportedScripts(script)
     curScriptName = scriptIdent(scriptName)
     val id = scriptIdent(scriptName)
-    SystemParameters.typ=TouchType(scriptName,true)
+    SystemParameters.typ = new TouchType(scriptName,true)
     val programPoint : ProgramPoint = TouchProgramPoint(script.pos)
     val typ : Type = typeNameToType(TypeName(id), true)
     val modifiers : List[Modifier] = Nil
@@ -212,7 +212,7 @@ object CFGGenerator {
         case Some(x) => x
         case None => throw new TouchException("Could not find type "+typeName)
       }
-    } else TouchType(typeName.ident,isSingleton)
+    } else new TouchType(typeName.ident,isSingleton)
   }
 
   private def addStatementsToCFG(statements:List[parser.Statement], cfg:ControlFlowGraph):(Int,Int) = {
@@ -404,7 +404,7 @@ case class TouchInitializationProgramPoint(name:String) extends ProgramPoint {
   override def toString = name
 }
 
-case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named(name) with Type {
+class TouchType(name:String, val isSingleton:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named(name) with Type {
 
   var isBottom = false;
   var isTop = false;
@@ -412,8 +412,8 @@ case class TouchType(name:String, isSingleton:Boolean = false, fields: List[Iden
   override def toString():String = name
 
   def factory() = top()
-  def top() = { val res = TouchType("Top"); res.isTop = true; res }
-  def bottom() = { val res = TouchType("Bottom"); res.isBottom = true; res }
+  def top() = { val res = new TouchType("Top"); res.isTop = true; res }
+  def bottom() = { val res = new TouchType("Bottom"); res.isBottom = true; res }
   def lub(left: Type, right: Type) = if(left == right || right == bottom()) left else if (left == bottom()) right else top()
   def glb(left: Type, right: Type) = if(left == right || right == top()) left else if (left == top()) right else bottom()
   def widening(left: Type, right: Type) = lub(left,right)
@@ -440,9 +440,9 @@ object TouchTuple {
   }
 }
 
-case class TouchTuple(override val name:String, override val fields:List[TouchField]) extends TouchType(name,false,fields)
+case class TouchTuple(name:String, fields:List[TouchField]) extends TouchType(name,false,fields)
 
-case class TouchCollection(override val name:String,keyType:String,valueType:String, override val fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
+case class TouchCollection(name:String,keyType:String,valueType:String, fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
 
   def getValueType =
     SystemParameters.compiler.asInstanceOf[TouchCompiler].types(keyType)

@@ -17,7 +17,7 @@ import RichExpression._
 object SColors {
 
   val typName = "colors"
-  val typ = TouchType(typName, isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true)
 
 }
 

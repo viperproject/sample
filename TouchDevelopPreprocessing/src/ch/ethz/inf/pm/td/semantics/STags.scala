@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.td.semantics.RichExpression._
 object STags {
 
   val typName = "tags"
-  val typ = TouchType(typName,isSingleton = true,List())
+  val typ = new TouchType(typName,isSingleton = true,List())
 
 }
 

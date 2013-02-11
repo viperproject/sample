@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 object SInvalid {
 
   val typName = "invalid"
-  val typ = TouchType(typName, isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true)
 
 }
 

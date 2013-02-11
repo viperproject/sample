@@ -26,7 +26,7 @@ object TDevice {
   val field_name = new TouchField("name",TString.typ)
 
   val typName = "Device"
-  val typ = TouchType(typName,isSingleton = false,List(field_is_connected, field_manufacturer, field_name))
+  val typ = new TouchType(typName,isSingleton = false,List(field_is_connected, field_manufacturer, field_name))
 
 }
 

@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SSenses {
 
   val typName = "senses"
-  val typ = TouchType(typName,isSingleton = true,List())
+  val typ = new TouchType(typName,isSingleton = true,List())
 
 }
 

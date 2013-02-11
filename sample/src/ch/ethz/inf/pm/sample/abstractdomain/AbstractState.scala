@@ -209,7 +209,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   
   def createVariable(x : ExpressionSet, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] = {
     if(this.isBottom) return this;
-    if(x.setOfExpressions.size != 1 || x.setOfExpressions.elements.next.isInstanceOf[VariableIdentifier]==false)
+    if(x.setOfExpressions.size != 1 || x.setOfExpressions.head.isInstanceOf[VariableIdentifier]==false)
       throw new SymbolicSemanticException("Cannot declare multiple variables together");
     var result=this.bottom();
     for(el <- x.setOfExpressions) {
@@ -230,7 +230,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   override def createVariableForArgument(x : ExpressionSet, typ : Type) : AbstractState[N,H,I] = {
     if(this.isBottom) return this;
-    if(x.setOfExpressions.size != 1 || x.setOfExpressions.elements.next.isInstanceOf[VariableIdentifier]==false)
+    if(x.setOfExpressions.size != 1 || x.setOfExpressions.head.isInstanceOf[VariableIdentifier]==false)
       throw new SymbolicSemanticException("Cannot declare multiple variables together");
     var result=this.bottom();
     for(el <- x.setOfExpressions) {

@@ -51,7 +51,7 @@ object StringSemantics extends NativeMethodSemantics {
   }
 
   private def extractExpression[S <: State[S]](s : ExpressionSet) : Option[Expression] = s.setOfExpressions match {
-	  case x if x.size==1 => return Some(x.elements.next)
+	  case x if x.size==1 => return Some(x.head)
 	  case _ => return None;
   }
    

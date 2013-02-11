@@ -102,7 +102,7 @@ object TVLARunner {
       IOUtils.copy(TVLAProperties, new FileOutputStream(properties))
       (new File("user.properties")).createNewFile()
     } catch {
-      case e => println("TVLA settings could not be copied to the working directory")
+      case e : IOException => println("TVLA settings could not be copied to the working directory")
                 println(e.toString)
                 println(e.printStackTrace())
                 exit(1)

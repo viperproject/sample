@@ -113,7 +113,7 @@ object RichNativeSemantics {
   }
 
   def Top[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
-    typ.name match {
+    typ.getName match {
       case TNumber.typName => s.setExpression(Valid(TNumber.typ))
       case TBoolean.typName => s.setExpression(True or False)
       case _ =>

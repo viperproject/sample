@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TXml_Object {
 
   val typName = "Xml_Object"
-  val typ = TouchType(typName,isSingleton = false,List())
+  val typ = new TouchType(typName,isSingleton = false,List())
 
 }
 

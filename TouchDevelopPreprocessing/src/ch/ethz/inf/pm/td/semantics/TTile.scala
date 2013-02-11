@@ -41,7 +41,7 @@ object TTile {
   val field_width = new TouchField("width",TNumber.typ)
 
   val typName = "Tile"
-  val typ = TouchType(typName,isSingleton = false,List(
+  val typ = new TouchType(typName,isSingleton = false,List(
     field_back_icon,
     field_back_title,
     field_background,

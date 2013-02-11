@@ -238,7 +238,7 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
     if(startingBlock== -1) return Set.empty[Int];
     var blockstovisit : Set[Int] = Set(startingBlock);
     while(blockstovisit.size>0) {
-      var b = blockstovisit.first;
+      var b = blockstovisit.head;
       blockstovisit = blockstovisit - b;
       blocksalreadyvisited = blocksalreadyvisited + b;
       blockstovisit = blockstovisit ++ this.getEdgesExitingFrom(b)
@@ -259,7 +259,7 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
       if(e._3!=None && e._3.get==true)
         blockstovisit=blockstovisit+e._2;
     while(blockstovisit.size>0) {
-      var b = blockstovisit.first;
+      var b = blockstovisit.head;
       blockstovisit = blockstovisit - b;
       blocksalreadyvisited = blocksalreadyvisited + b;
       if(b!=startingBlock) blockstovisit = blockstovisit ++ this.getEdgesExitingFrom(b)
@@ -298,7 +298,7 @@ class ControlFlowGraph(val programpoint : ProgramPoint) extends Statement(progra
       return next :: getIterativeSequence(alreadyVisited:::next::Nil, pendingBlocks++(exitNodesNotVisited-min), min);
     }
     else {
-      def pendingNodesNotVisited = pendingBlocks.--(alreadyVisited).-(next);
+      def pendingNodesNotVisited = pendingBlocks.toSet.--(alreadyVisited).-(next);
       if(pendingNodesNotVisited.isEmpty) {
         //We are at the end!
         //assert(this.nodes.size==alreadyVisited.size+1);
@@ -465,7 +465,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
       entry = lastresult match {
         case Some(x) => x.getExecution(i) match {
           case null => entry
-          case l => entry.glb(l.first, entry)
+          case l => entry.glb(l.head, entry)
         }
         case None => entry
       }
@@ -504,7 +504,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
       entry = lastresult match {
         case Some(x) => x.getExecution(i) match {
           case null => entry
-          case l => entry.glb(l.first, entry)
+          case l => entry.glb(l.head, entry)
         }
         case None => entry
       }
@@ -587,7 +587,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
         val pointedBy : List[S] = prev.getExecution(to);
         //TODO: add looking at weight and conditions true and false!!!
         if(pointedBy!=null && pointedBy!=Nil){
-            result=result.glb(result, pointedBy.first)
+            result=result.glb(result, pointedBy.head)
         }
       }
     }
@@ -637,7 +637,15 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
     case Nil => entryState :: Nil
   }
 
-	/**
+  private implicit val programPointOrdering = new Ordering[ProgramPoint] {
+    def compare(p1: ProgramPoint, p2: ProgramPoint): Int = p1.getLine.compare(p2.getLine) match {
+      case -1 => -1
+      case 0 => p1.getColumn.compare(p2.getColumn)
+      case 1 => 1
+    }
+  }
+
+  /**
 	 * Returns a program point uniquely identifying a single statement as used in
 	 * the block semantics (!). The computation finds the leftmost involved program
 	 * point.
@@ -647,19 +655,10 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
 	 */
 	private def identifyingPP(s: Statement): ProgramPoint = s match {
 		case Assignment(pp, l, r) => (pp :: identifyingPP(l) :: identifyingPP(r) :: Nil).min
-
 		case MethodCall(pp, m, _, p, _) => (pp :: identifyingPP(m) :: p.map(identifyingPP)).min
 		case VariableDeclaration(pp, v, _, r) => (pp :: identifyingPP(v) :: identifyingPP(r) :: Nil).min
 		case FieldAccess(pp, s, _, _) => (pp :: s.map(identifyingPP)).min
 		case _ => s.getPC
-	}
-
-	private implicit val programPointOrdering = new Ordering[ProgramPoint] {
-		def compare(p1: ProgramPoint, p2: ProgramPoint): Int = p1.getLine.compare(p2.getLine) match {
-			case -1 => -1
-			case 0 => p1.getColumn.compare(p2.getColumn)
-			case 1 => 1
-		}
 	}
 
   def lessEqual(right : ControlFlowGraphExecution[S]) : Boolean = lessEqualOnLists[List[S]](this.nodes, right.nodes, checkBlockLessEqual)

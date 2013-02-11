@@ -34,7 +34,7 @@ object TPrinter {
   val field_is_idle = new TouchField("is_idle",TBoolean.typ)
 
   val typName = "Printer"
-  val typ = TouchType(typName,isSingleton = false,List(field_device, field_is_idle, field_is_processing,
+  val typ = new TouchType(typName,isSingleton = false,List(field_device, field_is_idle, field_is_processing,
     field_is_stopped, field_name, field_state_reason))
 
 }

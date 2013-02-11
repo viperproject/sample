@@ -25,7 +25,7 @@ object TPage_Button {
   val field_icon = new TouchField("icon",TString.typ)
 
   val typName = "Page_Button"
-  val typ = TouchType(typName,isSingleton = false,List(field_text,field_page,field_icon))
+  val typ = new TouchType(typName,isSingleton = false,List(field_text,field_page,field_icon))
 
 }
 

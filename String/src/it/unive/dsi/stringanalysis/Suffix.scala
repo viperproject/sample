@@ -107,7 +107,7 @@ class Suffix extends SimplifiedSemanticDomain[Suffix] with BoxedDomain[SuffixDom
     }
     case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, returntyp) =>
       if(parameters.size == 1)
-        parameters.elements.next match {
+        parameters.head match {
         	case p1 :: Nil => return this.eval(p1);
         	case _ => new SuffixDomain().top();
          }

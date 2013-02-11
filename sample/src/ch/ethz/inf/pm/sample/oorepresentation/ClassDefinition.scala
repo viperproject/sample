@@ -60,7 +60,6 @@ case object SealedModifier extends Modifier
 case object FinalModifier extends Modifier
 case object TraitModifier extends Modifier
 case object ImplicitModifier extends Modifier
-case object PublicModifier extends Modifier
 
 /** 
  * This class represents the declaration of a method.

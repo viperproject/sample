@@ -396,7 +396,7 @@ object Annotation {
         val exprs = id1.setOfExpressions;
         if(exprs.size!=1)
         	return pd;
-        val exp=exprs.elements.next();
+        val exp=exprs.head
 	    val perm=pd.inhale(exp.asInstanceOf[Identifier], p);
 	    return perm;
 	}
@@ -411,7 +411,7 @@ object Annotation {
 	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression(), field, s);
         val exprs = id1.setOfExpressions;
         var perm=pd;
-        for(exp <- exprs.elements )
+        for(exp <- exprs )
 	    	perm=perm.exhale(exp.asInstanceOf[Identifier], p);
 	    return perm;
 	}
@@ -419,7 +419,7 @@ object Annotation {
  	private def exhaleReachable[P <: PermissionsDomain[P]](id : Identifier, state : P, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier], s : SymbolicValue) : P = {
  	  var result=state;
  	  val addresses= state.getIds()++store.getIds++env.getIds
- 	  val it=addresses.elements;
+ 	  val it=addresses.iterator;
  	  while(it.hasNext) { //the for(... <- ...) was not effective for debugging purposes :(
  		  it.next match {
  		    case x : VariableIdentifier => /*{
@@ -441,7 +441,7 @@ object Annotation {
   private def inhaleReachable[P <: PermissionsDomain[P]](id : Identifier, state : P, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier], s : SymbolicValue) : P = {
  	  var result=state;
  	  val addresses=state.getIds()++store.getIds++env.getIds
- 	  val it=addresses.elements;
+ 	  val it=addresses.iterator;
  	  while(it.hasNext) { //the for(... <- ...) was not effective for debugging purposes :(
  		  it.next match {
  		    case x : VariableIdentifier => /*{

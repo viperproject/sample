@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 object SCollections {
 
   val typName = "collections"
-  val typ = TouchType(typName, isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true)
 
 }
 

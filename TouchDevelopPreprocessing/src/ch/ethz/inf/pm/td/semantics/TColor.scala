@@ -28,7 +28,7 @@ object TColor {
   val field_brightness = new TouchField("brightness",TNumber.typ)
 
   val typName = "Color"
-  val typ = TouchType(typName,isSingleton = false, List(field_A,field_R,field_B,field_G,field_hue,field_saturation,field_brightness))
+  val typ = new TouchType(typName,isSingleton = false, List(field_A,field_R,field_B,field_G,field_hue,field_saturation,field_brightness))
 
 }
 

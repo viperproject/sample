@@ -300,8 +300,8 @@ class BricksDomain extends Lattice[BricksDomain]
     while(!this.isNormalized()) {
     	
     	//RULE 1
-    	this.bricksList = this.bricksList.remove(b => b.isTop == false && 
-    			b.min == 0 && b.max == 0 && b.strings == Set.empty);
+    	this.bricksList = this.bricksList.filter(b => !(b.isTop == false &&
+    			b.min == 0 && b.max == 0 && b.strings == Set.empty))
     	if(this.bricksList.length == 0) {
     		this.isBottom = true;
     		return this;
@@ -389,7 +389,7 @@ class Bricks extends SimplifiedSemanticDomain[Bricks] with BoxedDomain[BricksDom
 	    }
 	    case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, returntyp) =>
 	      if(parameters.size == 1)
-	        parameters.elements.next match {
+	        parameters.head match {
 	        	case p1 :: Nil => 
 		        	val left = this.eval(thisExpr);
 		        	val right = this.eval(p1);
@@ -406,7 +406,7 @@ class Bricks extends SimplifiedSemanticDomain[Bricks] with BoxedDomain[BricksDom
 	      else return new BricksDomain().top();	
 	    case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) =>
 	      if(parameters.size!=1) return new BricksDomain().top();
-	      val l : List[Expression] = parameters.elements.next();
+	      val l : List[Expression] = parameters.head
 	      if(l.size != 2) return new BricksDomain().top();
 	      l.apply(0) match {
     	    case Constant(s1, _, _) =>

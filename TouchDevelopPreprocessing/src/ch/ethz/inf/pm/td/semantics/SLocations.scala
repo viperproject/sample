@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 object SLocations {
 
   val typName = "locations"
-  val typ = TouchType(typName, isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true)
 
 }
 

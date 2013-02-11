@@ -276,7 +276,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
   
   override def maxPermission() : Double = {
     if(value.size==1) {
-      val el = value.elements.next();
+      val el = value.head
       if(el.s==null) el.n match {
         case WrappedDouble(i) => return i;
       }

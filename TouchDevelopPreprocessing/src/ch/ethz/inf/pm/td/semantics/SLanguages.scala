@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SLanguages {
 
   val typName = "languages"
-  val typ = TouchType(typName,isSingleton = true,List())
+  val typ = new TouchType(typName,isSingleton = true,List())
 
 }
 

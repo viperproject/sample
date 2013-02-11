@@ -108,7 +108,7 @@ class BooleanInvalidDomain
     }
     case Constant(constant, typ, pp) =>
       if (constant == "invalid") domInvalid else domValid
-    case HeapIdentifier(_,_) =>
+    case i: HeapIdentifier[_] =>
       domValid
     case x: Identifier =>
       this.get(x)

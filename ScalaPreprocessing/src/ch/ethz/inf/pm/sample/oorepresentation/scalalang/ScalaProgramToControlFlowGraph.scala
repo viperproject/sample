@@ -330,22 +330,21 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 
   private def extractModifiers(mod : Modifiers) : List[Modifier] = {
    var result : List[Modifier] = Nil;
-   if(mod.isCovariant) result = result ::: CovariantModifier :: Nil
-   if(mod.isContravariant) result = result ::: ContravariantModifier :: Nil
-   if(mod.isPrivate) result = result ::: PrivateModifier :: Nil
-   if(mod.isProtected) result = result ::: ProtectedModifier :: Nil
-   if(mod.isVariable) result = result ::: VariableModifier :: Nil
-   if(mod.isArgument) result = result ::: ArgumentModifier :: Nil
-   if(mod.isAccessor) result = result ::: AccessorModifier :: Nil
-   if(mod.isOverride) result = result ::: OverrideModifier :: Nil
-   if(mod.isAbstract) result = result ::: AbstractModifier :: Nil
-   if(mod.isDeferred) result = result ::: DeferredModifier :: Nil
-   if(mod.isCase) result = result ::: CaseModifier :: Nil
-   if(mod.isSealed) result = result ::: SealedModifier :: Nil
-   if(mod.isFinal) result = result ::: FinalModifier :: Nil
-   if(mod.isTrait) result = result ::: TraitModifier :: Nil
-   if(mod.isImplicit) result = result ::: ImplicitModifier :: Nil
-   if(mod.isPublic) result = result ::: PublicModifier :: Nil
+   if(mod.hasFlag(Flags.COVARIANT)) result = result ::: CovariantModifier :: Nil
+   if(mod.hasFlag(Flags.CONTRAVARIANT)) result = result ::: ContravariantModifier :: Nil
+   if(mod.hasFlag(Flags.PRIVATE)) result = result ::: PrivateModifier :: Nil
+   if(mod.hasFlag(Flags.PROTECTED)) result = result ::: ProtectedModifier :: Nil
+   if(mod.hasFlag(Flags.MUTABLE)) result = result ::: VariableModifier :: Nil
+   if(mod.hasFlag(Flags.PARAM)) result = result ::: ArgumentModifier :: Nil
+   if(mod.hasFlag(Flags.ACCESSOR)) result = result ::: AccessorModifier :: Nil
+   if(mod.hasFlag(Flags.OVERRIDE)) result = result ::: OverrideModifier :: Nil
+   if(mod.hasFlag(Flags.ABSTRACT)) result = result ::: AbstractModifier :: Nil
+   if(mod.hasFlag(Flags.DEFERRED)) result = result ::: DeferredModifier :: Nil
+   if(mod.hasFlag(Flags.CASE)) result = result ::: CaseModifier :: Nil
+   if(mod.hasFlag(Flags.SEALED)) result = result ::: SealedModifier :: Nil
+   if(mod.hasFlag(Flags.FINAL)) result = result ::: FinalModifier :: Nil
+   if(mod.hasFlag(Flags.TRAIT)) result = result ::: TraitModifier :: Nil
+   if(mod.hasFlag(Flags.IMPLICIT)) result = result ::: ImplicitModifier :: Nil
    result
   }
 

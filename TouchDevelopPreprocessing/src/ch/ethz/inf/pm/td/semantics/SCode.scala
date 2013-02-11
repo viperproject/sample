@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCompiler}
 object SCode {
 
   val typName = "code"
-  val typ = TouchType(typName, isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true)
 
 }
 

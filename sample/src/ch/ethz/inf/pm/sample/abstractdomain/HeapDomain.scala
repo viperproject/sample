@@ -312,7 +312,7 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extend
   def this() = this(null);
 
   override def equals(x : Any) : Boolean = x match {
-	  case x : I => if(value.size==1) return x.equals(value.elements.next); else return false;
+	  case x : I => if(value.size==1) return x.equals(value.head); else return false;
 	  case _ => return super.equals(x);
   }
   def convert(add : I) : HeapIdSetDomain[I];

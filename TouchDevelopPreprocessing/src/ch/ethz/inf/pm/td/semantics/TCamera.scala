@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TCamera {
 
   val typName = "Camera"
-  val typ = TouchType(typName,isSingleton = false,List())
+  val typ = new TouchType(typName,isSingleton = false,List())
 
 }
 

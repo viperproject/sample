@@ -44,7 +44,7 @@ object TSong {
   val field_track = new TouchField("track",TNumber.typ)
 
   val typName = "Song"
-  val typ = TouchType(typName,isSingleton = false,List(field_album, field_artist, field_duration, field_genre, field_name, field_play_count, field_protected, field_rating, field_track))
+  val typ = new TouchType(typName,isSingleton = false,List(field_album, field_artist, field_duration, field_genre, field_name, field_play_count, field_protected, field_rating, field_track))
 
 }
 

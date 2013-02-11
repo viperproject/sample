@@ -38,7 +38,7 @@ object TMotion {
   val field_yaw = new TouchField("yaw",TNumber.typ)
 
   val typName = "Motion"
-  val typ = TouchType(typName,isSingleton = false,List(field_acceleration, field_gravity, field_pitch, field_roll,
+  val typ = new TouchType(typName,isSingleton = false,List(field_acceleration, field_gravity, field_pitch, field_roll,
     field_rotation_speed, field_time, field_yaw))
 
 }

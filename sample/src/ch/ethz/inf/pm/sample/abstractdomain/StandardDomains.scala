@@ -346,7 +346,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     if(left.isTop) return right;
     if(right.isTop) return left;
     val result : T = this.factory()
-    result.value=left.value**right.value;
+    result.value=left.value.intersect(right.value);
     result
   }
   
@@ -411,7 +411,7 @@ trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
     if(left.isBottom) return right;
     if(right.isBottom) return left;
     val result : T = this.factory()
-    result.value=left.value**right.value;
+    result.value=left.value.intersect(right.value);
     result
   }
   

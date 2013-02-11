@@ -22,7 +22,7 @@ object TString {
   val field_count = new TouchField("count",TNumber.typ)
 
   val typName = "String"
-  val typ = TouchType(typName,isSingleton = false,List(field_count))
+  val typ = new TouchType(typName,isSingleton = false,List(field_count))
 
 }
 

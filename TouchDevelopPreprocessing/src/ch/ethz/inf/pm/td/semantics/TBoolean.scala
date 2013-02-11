@@ -14,7 +14,7 @@ import RichExpression._
 object TBoolean {
 
   val typName = "Boolean"
-  val typ = TouchType(typName,isSingleton = false)
+  val typ = new TouchType(typName,isSingleton = false)
 
 }
 

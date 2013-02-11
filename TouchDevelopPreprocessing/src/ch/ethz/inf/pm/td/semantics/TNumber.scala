@@ -16,7 +16,7 @@ import RichExpression._
 object TNumber {
 
   val typName = "Number"
-  val typ = TouchType(typName,isSingleton = false)
+  val typ = new TouchType(typName,isSingleton = false)
 
 }
 

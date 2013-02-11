@@ -60,7 +60,7 @@ class Interferences[S <: SemanticDomain[S]] extends FunctionalDomain[String, Pro
 class ProgramPointAssignment[S <: SemanticDomain[S]] extends FunctionalDomain[ProgramPoint, AssignedIdentifiers[S], ProgramPointAssignment[S]] {
   def get(key: ProgramPoint): AssignedIdentifiers[S] = value.get(key) match {
     case None => if(this.value.keySet.size>0)
-        this.value.apply(this.value.keySet.first).bottom();
+        this.value.apply(this.value.keySet.head).bottom();
       else throw new SemanticException("Not supported")
     case Some(x) => x
   }
@@ -76,7 +76,7 @@ class AssignedIdentifiers[S <: SemanticDomain[S]](s : SetIdentifiers, v : FlowSe
 class FlowSensitivePartitioning[S <: SemanticDomain[S]] extends FunctionalDomain[OtherThreads, S, FlowSensitivePartitioning[S]] with SemanticDomain[FlowSensitivePartitioning[S]] {
   def get(key: OtherThreads): S = value.get(key) match {
     case None => if(this.value.keySet.size>0)
-      this.value.apply(this.value.keySet.first).bottom();
+      this.value.apply(this.value.keySet.head).bottom();
     else throw new SemanticException("Not supported")
     case Some(x) => x
   }
