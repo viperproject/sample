@@ -35,6 +35,9 @@ trait ObsoleteStdLib extends AbstractSymbolTable {
       Member("rand",List("Number"), "Number"), // Renamed to 'random'
       Member("rand_norm","Number") // Renamed to 'random normalized'
     ))
+    addSingleton("player",List(
+      Member("volume","Number")	//Gets player volume, from 0.0f (silence) to 1.0f (full volume relative to the current device volume). Setting the volume is no longer supported.
+    ))
     addSingleton("social",List(
       Member("contacts",List("String"), "Contact_Collection") // Retrieves the list of contacts
     ))

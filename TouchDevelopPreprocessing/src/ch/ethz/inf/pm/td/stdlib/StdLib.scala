@@ -17,6 +17,9 @@ trait StdLib extends AbstractSymbolTable  {
     Member("post_leaderboard_score",List("Number"),"Nothing"),	//Posts the current game score to the script leaderboard
     Member("post_leaderboard_to_wall","Nothing")	//Posts the current game leaderboard to the wall
   ))
+  addSingleton("box", GenericTypes.gAlsoSingletons("box") :::List(
+    Member("is_init","Boolean")
+  ))
   addSingleton("collections", GenericTypes.gAlsoSingletons("collections") :::List(	// Create collections of items.
     Member("create_link_collection","Link_Collection"),	//Creates an empty link collection
     Member("create_location_collection","Location_Collection"),	//Creates an empty location collection
@@ -237,8 +240,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set_shuffled",List("Boolean"),"Nothing"),	//Sets the shuffling on and off
     Member("set_sound_volume",List("Number"),"Nothing"),	//Sets the sound volume level from 0 (silent) to 1 (current volume)
     Member("sound_volume","Number"),	//Gets the sound volume for sounds from 0 (silent) to 1 (current volume)
-    Member("stop","Nothing"),	//Stops playing a song
-    Member("volume","Number")	//Gets player volume, from 0.0f (silence) to 1.0f (full volume relative to the current device volume). Setting the volume is no longer supported.
+    Member("stop","Nothing")	//Stops playing a song
   ))
   addSingleton("radio", GenericTypes.gAlsoSingletons("radio") :::List(	// Access to the radio
     Member("frequency","Number"),	//Gets the frequency
@@ -841,6 +843,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("opacity","Number"),	//Gets the opacity (between 0 transparent and 1 opaque)
     Member("overlap_with",List("Sprite_Set"),"Sprite_Set"),	//Returns the subset of sprites in the given set that overlap with sprite.
     Member("overlaps_with",List("Sprite"),"Boolean"),	//Do the sprites overlap
+    Member("picture","Picture"), // The picture on a picture sprite (if it is a picture sprite)
     Member("set_acceleration",List("Number","Number"),"Nothing"),	//Sets the acceleration in pixels/sec^2
     Member("set_acceleration_x",List("Number"),"Nothing"),	//Sets the x acceleration in pixels/sec^2
     Member("set_acceleration_y",List("Number"),"Nothing"),	//Sets the y acceleration in pixels/sec^2
@@ -863,6 +866,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set_width",List("Number"),"Nothing"),	//Sets the width in pixels
     Member("set_x",List("Number"),"Nothing"),	//Sets the x position in pixels
     Member("set_y",List("Number"),"Nothing"),	//Sets the y position in pixels
+    Member("set_z_index",List("Number"),"Nothing"),	//Sets the z-index of the sprite
     Member("show","Nothing"),	//Show sprite.
     Member("speed_towards",List("Sprite","Number"),"Nothing"),	//Sets sprite speed direction towards other sprite with given magnitude.
     Member("speed_x","Number"),	//Gets the speed along x in pixels/sec
@@ -870,7 +874,8 @@ trait StdLib extends AbstractSymbolTable  {
     Member("text","String"),	//The text on a text sprite (if it is a text sprite)
     Member("width","Number"),	//Gets the width in pixels
     Member("x","Number"),	//Gets the x position in pixels
-    Member("y","Number")	//Gets the y position in pixels
+    Member("y","Number"),	//Gets the y position in pixels
+    Member("z_index","Number") //Gets the z-index of the sprite
   ))
   addType("Sprite_Set", GenericTypes.gMutableCollection("Sprite_Set","Sprite") ::: List(	// A collection of sprites
     Member("remove_first","Sprite")	//Remove sprite that was added to set first.

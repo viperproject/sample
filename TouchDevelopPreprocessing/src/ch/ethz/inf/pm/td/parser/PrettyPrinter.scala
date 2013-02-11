@@ -46,6 +46,7 @@ object PrettyPrinter {
     case For(idx,bnd,body) => "for (0 <= "+idx+" < "+apply(bnd)+") {\n"+apply(body)+"\n}"
     case Foreach(elem,coll,_,body) => "foreach ("+elem+" in "+apply(coll)+") {\n"+apply(body)+"\n}"
     case While(cond,body) => "while ("+apply(cond)+") {\n"+apply(body)+"\n}"
+    case Box(body) => "do box {\n"+apply(body)+"\n}"
     case AssignStatement(left,right) => (left map apply).mkString(",") + ":=" + apply(right) + ";"
     case ExpressionStatement(expr) => apply(expr) + ";"
     case Skip() => "skip;"

@@ -50,6 +50,7 @@ case class TypeName(ident:String,library:Option[LibraryReference]=None) extends 
 
 sealed trait Statement extends CopyablePositional[Statement]
 case class Skip() extends Statement
+case class Box(body:List[Statement]) extends Statement with Scope
 case class For(boundLocal: String, upperBound: Expression, body: List[Statement]) extends Statement with Scope
 case class If(condition:Expression,thenBody:List[Statement],elseBody:List[Statement]) extends Statement with Scope
 case class Foreach(boundLocal: String, collection: Expression, guards: List[Expression], body: List[Statement]) extends Statement with Scope

@@ -114,7 +114,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   lazy val stmt: PackratParser[Statement] = positioned (
-    metaStmt | expressionStmt | assignStmt | ifStmt | whileStmt | forStmt | foreachStmt | skipStmt
+    metaStmt | expressionStmt | assignStmt | boxStmt | ifStmt | whileStmt | forStmt | foreachStmt | skipStmt
   )
 
   lazy val metaStmt: PackratParser[MetaStatement] = positioned (
@@ -131,6 +131,10 @@ object ScriptParser extends RegexParsers with PackratParsers {
   lazy val ifStmt: PackratParser[If] = positioned (
     "if" ~ expression ~ "then" ~ block ~ "else" ~ block ^^ {case _~e~_~b~_~c => If(e,b,c)}
     ||| "if" ~ expression ~ "then" ~ block ^^ {case _~e~_~b => If(e,b,Nil)}
+  )
+
+  lazy val boxStmt: PackratParser[Box] = positioned (
+    "do" ~ "box" ~ block ^^ {case _~_~b => Box(b)}
   )
 
   lazy val whileStmt: PackratParser[While] = positioned (
