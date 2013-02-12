@@ -607,6 +607,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		case UnaryArithmeticExpression(left, op, typ) => op match {
 			case ArithmeticOperator.- => new Texpr1UnNode(Texpr1UnNode.OP_NEG, this.toTexpr1Node(left))
 		}
+    case _ => new Texpr1CstNode(new DoubleScalar(0)) // todo delete
 	}
 	
 	private def convertArithmeticOperator(op : ArithmeticOperator.Value) : Int = op match {
@@ -648,6 +649,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 			}
 		case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
 			return toTcons1(BinaryArithmeticExpression(left, right, negateOperator(op), typ), env)
+    case NegatedBooleanExpression(NegatedBooleanExpression(x)) =>  toTcons1(x, env)
     case NegatedBooleanExpression(x) =>
       return toTcons1(BinaryArithmeticExpression(x, Constant("0",x.getType(),x.getProgramPoint()), ArithmeticOperator.==, x.getType()), env)
     case x:Expression =>
