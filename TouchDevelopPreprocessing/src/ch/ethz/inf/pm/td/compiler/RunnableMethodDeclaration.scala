@@ -105,7 +105,7 @@ class RunnableMethodDeclaration(
         curState = curState.createVariable(variable,typ,programPoint_)
         curState = curState.assignVariable(variable,obj)
         for (field <- typ.getPossibleFieldsSorted()) {
-          curState = RichNativeSemantics.Top[S](field.getType().asInstanceOf[TouchType])(curState,TouchInitializationProgramPoint(typ.getName+"->"+field.getName))
+          curState = RichNativeSemantics.Top[S](field.getType().asInstanceOf[TouchType])(curState,TouchInitializationProgramPoint(typ.getName+"."+field.getName))
           val expression = curState.getExpression()
           curState = curState.assignField(List(obj),field.getName(),expression)
         }

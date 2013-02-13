@@ -126,12 +126,16 @@ object RichNativeSemantics {
         }
         val obj = curState.getExpression()
 
-        // Create summary node of collections
         typ match {
           case col:TouchCollection =>
+            // Create summary node of collections
             curState = Top[S](col.getValueType)(curState,pp)
-            val topField = curState.getExpression()
-            curState = Assign[S](CollectionSummary[S](obj),topField)(curState,pp)
+            val topSummary = curState.getExpression()
+            curState = Assign[S](CollectionSummary[S](obj),topSummary)(curState,pp)
+            // Set size to top
+            curState = Top[S](TNumber.typ)(curState,pp)
+            val topSize = curState.getExpression()
+            curState = Assign[S](CollectionSize[S](obj),topSize)(curState,pp)
           case _ => ()
         }
 
