@@ -8,7 +8,7 @@ import parser.ExpressionStatement
 import parser.MetaStatement
 import parser.TableDefinition
 import parser.TypeName
-import semantics.TouchField
+import semantics.{TString, RichNativeSemantics, TouchField}
 import util.parsing.input.Position
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.Statement
@@ -331,7 +331,11 @@ object CFGGenerator {
         MethodCall(pc,field,Nil,args map (expressionToStatement(_)),typ)
 
       case parser.Literal(t,value) =>
-        NumericalConstant(pc,value,typ)
+        if (t.ident == "Number" || t.ident == "Boolean") {
+          NumericalConstant(pc,value,typ)
+        } else if (t.ident == "String") {
+          StringConstant(pc,value)
+        } else throw new TouchException("Literals with type "+t.ident+" do not exist")
 
       case parser.SingletonReference(singleton) =>
         Variable(pc,VariableIdentifier(singleton,typeNameToType(expr.typeName,true),pc))
@@ -404,6 +408,37 @@ case class TouchInitializationProgramPoint(name:String) extends ProgramPoint {
   override def toString = name
 }
 
+/**
+ *
+ * The deepening program point is used to generate more precise program point heap identifiers in case of
+ * deep allocation of objects.
+ *
+ * If for example, at one point we have to create an object (Picture) with its fields (e.g. location) at the same time,
+ * we don't want the Picture and the Location to be represented by the same heap identifier. For this purpose, we
+ * "deepen" the program point by extending it with a sequence of strings. The picture location of the Picture allocated
+ * at line 7, column 9 would then get the Heap Identifier (7,9)->location,
+ *
+ * To make sure this terminates, repeating sequences will get mapped to the corresponding prefix with only unique
+ * elements. For example, {7,9}->album->cover_picture->album will get mapped to {7,9}->album
+ *
+ */
+object DeepeningProgramPoint {
+  def apply(pp:ProgramPoint,name:String):(DeepeningProgramPoint,Boolean) = {
+    pp match {
+      case DeepeningProgramPoint(realPP,path) =>
+        if (path.contains(name)) (DeepeningProgramPoint(realPP,path.takeWhile(!_.equals(name)) ::: (name :: Nil)),true)
+        else (DeepeningProgramPoint(realPP,path ::: (name :: Nil)),false)
+      case _ => (DeepeningProgramPoint(pp,name :: Nil),false)
+    }
+  }
+}
+
+case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends ProgramPoint {
+  def getLine() = pp.getLine()
+  def getColumn() = pp.getColumn()
+  override def toString = pp+"("+path.mkString(",")+")"
+}
+
 class TouchType(name:String, val isSingleton:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named(name) with Type {
 
   var isBottom = false;
@@ -444,9 +479,8 @@ case class TouchTuple(name:String, fields:List[TouchField]) extends TouchType(na
 
 case class TouchCollection(name:String,keyType:String,valueType:String, fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
 
-  def getValueType =
-    SystemParameters.compiler.asInstanceOf[TouchCompiler].types(keyType)
-  def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(valueType)
+  def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(keyType)
+  def getValueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(valueType)
 
 }
 
@@ -456,3 +490,22 @@ case class TouchCollection(name:String,keyType:String,valueType:String, fields: 
  * mostly images loaded from URLs.
  */
 case object ResourceModifier extends Modifier
+
+
+/**
+ * This class represents a string literal in TouchDevelop
+ */
+case class StringConstant(pp : ProgramPoint, value : String) extends Statement(pp)  {
+
+  override def forwardSemantics[S <: State[S]](state : S) : S = {
+    RichNativeSemantics.New[S](TString.typ,Map(TString.field_count.asInstanceOf[Identifier] -> RichNativeSemantics.toRichExpression(value.length)))(state,pp)
+  }
+
+  override def backwardSemantics[S <: State[S]](state : S) : S = state
+
+  override def toString() : String = value
+
+  override def toSingleLineString() : String = toString()
+
+}
+

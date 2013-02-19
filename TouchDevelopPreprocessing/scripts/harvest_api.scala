@@ -180,7 +180,7 @@ for ((thing,help,url) <- fetchMainInfo("https://www.touchdevelop.com/help/api"))
           p.println("    //   val List("+argListToString(argList.toList)+") = parameters // "+argListToString(typList.toList))
         }
         if (returnVal != "Nothing") {
-          p.println("    //   Return[S](Valid(T"+returnVal.replace(" ","_")+".typ))")
+          p.println("    //   Top[S](T"+returnVal.replace(" ","_")+".typ)")
         } else {
           p.println("    //   Skip;")
         }

@@ -40,36 +40,36 @@ class TWeb_Response extends AAny {
 
     /** Reads the response body as a JSON tree */
     // case "content_as_json" =>
-    //   Return[S](Valid(TJson_Object.typ))
+    //   Top[S](TJson_Object.typ)
 
     /** Reads the response body as a picture */
     // case "content_as_picture" => 
-    //   Return[S](Valid(TPicture.typ))
+    //   Top[S](TPicture.typ)
 
     /** Reads the response body as a wave sound */
     // case "content_as_sound" => 
-    //   Return[S](Valid(TSound.typ))
+    //   Top[S](TSound.typ)
 
     /** Reads the response body as a XML tree */
     // case "content_as_xml" => 
-    //   Return[S](Valid(TXml_Object.typ))
+    //   Top[S](TXml_Object.typ)
 
     /** Gets the value of a given header */
     // case "header" =>
     //   val List(name) = parameters // String
     //   TODO: Rewrite to header
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     /** Gets the names of the headers */
     // case "header_names" => 
-    //   Return[S](Valid(TString_Collection.typ))
+    //   Top[S](TString_Collection.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the names of the headers */
     //   val field_header_names = new TouchField("header_names",TString_Collection.typ)
 
     /** Gets the request associated to this response */
     // case "request" => 
-    //   Return[S](Valid(TWeb_Request.typ))
+    //   Top[S](TWeb_Request.typ)
     // DECLARATION AS FIELD:
     //   /** Gets the request associated to this response */
     //   val field_request = new TouchField("request",TWeb_Request.typ)

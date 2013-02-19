@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoi
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * User: Lucas Brutschy
@@ -28,6 +29,11 @@ abstract class AAny extends NativeMethodSemantics {
   def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String,
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
+
+      if (state.lessEqual(state.bottom())) {
+        SystemParameters.progressOutput.put("State is bottom at "+pp)
+        return Some(state)
+      }
 
       if (thisExpr.getType().toString() == getTypeName) {
 
@@ -81,7 +87,7 @@ abstract class AAny extends NativeMethodSemantics {
       Skip // TODO: create reference from wall to this?
 
     case "∥" =>
-      Return[S](Valid(TString.typ)(pp))(state,pp)
+      Top[S](TString.typ)(state,pp)
 
     case "is_invalid" =>
       Return[S](this0 equal Invalid(this0.getType())(pp))(state,pp)

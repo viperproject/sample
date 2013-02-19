@@ -355,6 +355,8 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
   def lessEqual(right : T) : Boolean = {
     if(this.isBottom) return true;
     if(right.isTop) return true;
+    if(right.isBottom) return false;
+    if(this.isTop) return false;
     this.value.subsetOf(right.value)
   }
   
@@ -695,7 +697,10 @@ abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <:
   }
   
   def lessEqual(r : T) : Boolean = {
-      if(this._1.lessEqual(this._1.bottom()) || this._2.lessEqual(this._2.bottom())) return true;
+    val b1 = this._1.lessEqual(this._1.bottom())
+    val b2 = this._2.lessEqual(this._2.bottom())
+
+      if(b1 || b2) return true;
       if(r._1.lessEqual(r._1.bottom()) || r._2.lessEqual(r._2.bottom())) return false;
     d1.lessEqual(r._1) && d2.lessEqual(r._2)
   }

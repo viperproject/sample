@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import ch.ethz.inf.pm.td.parser.VariableDefinition
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
-import ch.ethz.inf.pm.td.semantics.{RichNativeSemantics, TouchField, AAny}
+import ch.ethz.inf.pm.td.semantics.{TString, RichNativeSemantics, TouchField, AAny}
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 class CallableMethodDeclaration(
@@ -83,7 +83,9 @@ class RunnableMethodDeclaration(
 
       // Numbers, Booleans and Strings are not initialized to invalid but to 0, false, ""
       val rightVal = v.typ.getName() match {
-        case "String" => Constant("",v.typ,programPoint_)
+        case "String" =>
+          curState = RichNativeSemantics.New[S](TString.typ)(curState,programPoint_)
+          curState.getExpression().setOfExpressions.head
         case "Number" => Constant("0",v.typ,programPoint_)
         case "Boolean" => Constant("false",v.typ,programPoint_)
         case _ => Constant("invalid",v.typ,programPoint_)
@@ -96,7 +98,7 @@ class RunnableMethodDeclaration(
     // Initialize the fields of singletons (the environment)
     for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
       val typ = sem.asInstanceOf[AAny].getTyp
-      if(typ.isSingleton) {
+      if(typ.isSingleton && SystemParameters.compiler.asInstanceOf[TouchCompiler].usedEnvironmentFragment.contains(typ.getName)) {
         // Create object
         curState = curState.createObject(typ,TouchSingletonProgramPoint(typ.getName))
         val obj = curState.getExpression()
@@ -105,25 +107,48 @@ class RunnableMethodDeclaration(
         curState = curState.createVariable(variable,typ,programPoint_)
         curState = curState.assignVariable(variable,obj)
         for (field <- typ.getPossibleFieldsSorted()) {
-          curState = RichNativeSemantics.Top[S](field.getType().asInstanceOf[TouchType])(curState,TouchInitializationProgramPoint(typ.getName+"."+field.getName))
-          val expression = curState.getExpression()
-          curState = curState.assignField(List(obj),field.getName(),expression)
+          if (SystemParameters.compiler.asInstanceOf[TouchCompiler].usedEnvironmentFragment.contains(typ.getName+"."+field.getName())) {
+            curState = RichNativeSemantics.Top[S](field.getType().asInstanceOf[TouchType])(curState,TouchInitializationProgramPoint(typ.getName+"."+field.getName))
+            val expression = curState.getExpression()
+            curState = curState.assignField(List(obj),field.getName(),expression)
+          }
         }
       }
     }
 
     val result = lfp(curState, {(lastExecution:ControlFlowGraphExecution[S], initialState:S) =>
 
+      var curInitialState = initialState
+
       // TODO: Copy global state from last execution
-      val execution = new ControlFlowGraphExecution[S](body, state).forwardSemantics(initialState)
+
+      // Initialize in-parameters to top
+      arguments.apply(0).foreach({
+        x:VariableDeclaration =>
+          curInitialState = x.forwardSemantics(curInitialState)
+          curInitialState = Top[S](x.typ.asInstanceOf[TouchType])(curInitialState,x.programpoint)
+          curInitialState = curInitialState.assignVariable(toExpressionSet(x.variable.id),curInitialState.getExpression())
+      })
+
+      // Initialize out-parameters to invalid
+      arguments.apply(1).foreach({
+        x:VariableDeclaration =>
+          curInitialState = x.forwardSemantics(curInitialState)
+          curInitialState = curInitialState.assignVariable(toExpressionSet(x.variable.id),Invalid(x.typ)(x.programpoint))
+      })
+
+      // Execute abstract semantics of the runnable method
+      val execution = new ControlFlowGraphExecution[S](body, state).forwardSemantics(curInitialState)
 
       // Compute the fixpoint over all events
       lfp(execution.exitState(),{s:S =>
         var cur = s
         for (e <- events) {
-          // TODO: We should come up with propert initializations here
+          var entryState = cur
           val parameters = e.arguments.flatten.map( {
-            x:VariableDeclaration => new ExpressionSet(x.typ).add(new Constant("valid",x.typ,e.programpoint))
+            x:VariableDeclaration =>
+              entryState = Top[S](x.typ.asInstanceOf[TouchType])(entryState,x.programpoint)
+              entryState.getExpression()
           })
           val newState = MethodSummaries.collect(e.programpoint,e,s,parameters)
           cur = cur.lub(cur,newState)

@@ -40,7 +40,8 @@ class SPhone extends AAny {
       val state1 = New[S](TLink.typ,Map(TLink.field_kind.asInstanceOf[Identifier] -> StringCst("phone number")))
       val valid = state1.getExpression()
       val invalid = Invalid(TLink.typ)
-      Return[S](valid or invalid)
+      val ret = Return[S](valid or invalid)
+      ret
 
     /** Starts a phone call */
     case "dial_phone_number" =>
@@ -60,7 +61,7 @@ class SPhone extends AAny {
     /** Vibrates the phone for ... seconds (0.02 minimum) */
     case "vibrate" =>
       val List(seconds) = parameters // Number
-      Error[S](toRichExpression(seconds) < 0.02, "vibrate", "Given amout of seconds may be too small")
+      Error[S](toRichExpression(seconds) < 0.02, "vibrate", "Given amount of seconds may be too small (must be >= 0.02)")
       Skip
 
     case _ =>

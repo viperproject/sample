@@ -31,18 +31,18 @@ class TString_Map extends AAny {
     /** Gets the value at a given key; invalid if not found */
     // case "at" => 
     //   val List(key) = parameters // String
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     /** Gets the number of elements in the map */
     // case "count" => 
-    //   Return[S](Valid(TNumber.typ))
+    //   Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the number of elements in the map */
     //   val field_count = new TouchField("count",TNumber.typ)
 
     /** Gets the keys in the map */
     // case "keys" => 
-    //   Return[S](Valid(TString_Collection.typ))
+    //   Top[S](TString_Collection.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the keys in the map */
     //   val field_keys = new TouchField("keys",TString_Collection.typ)

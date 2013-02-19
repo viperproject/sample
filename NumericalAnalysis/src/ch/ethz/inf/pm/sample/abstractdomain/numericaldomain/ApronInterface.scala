@@ -304,6 +304,36 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		new ApronInterface(st, domain);
 	}
 
+  private def removeFloats ( expr: Expression ): Expression = { expr match {
+    case Constant(s,t,p) =>
+      if(s.contains(".")) {
+        try {
+          val fl = s.toDouble
+          if (fl != Math.floor(fl))
+            BinaryNondeterministicExpression(
+              Constant(Math.floor(fl).toString,t,p),
+              Constant(Math.ceil(fl).toString,t,p),
+              NondeterministicOperator.to,t)
+          else expr
+        } catch {
+          case e:NumberFormatException => expr
+        }
+      } else expr
+    case BinaryArithmeticExpression(left,right,op,typ) =>
+      BinaryArithmeticExpression(removeFloats(left),removeFloats(right),op,typ)
+    case BinaryBooleanExpression(left,right,op,typ) =>
+      BinaryBooleanExpression(removeFloats(left),removeFloats(right),op,typ)
+    case ReferenceComparisonExpression(left,right,op,typ) =>
+      ReferenceComparisonExpression(removeFloats(left),removeFloats(right),op,typ)
+    case NegatedBooleanExpression(left) =>
+      NegatedBooleanExpression(removeFloats(left))
+    case UnaryArithmeticExpression(left,op,ret) =>
+      UnaryArithmeticExpression(removeFloats(left),op,ret)
+    case BinaryNondeterministicExpression(left,right,op,returnType) =>
+      BinaryNondeterministicExpression(removeFloats(left),removeFloats(right),op,returnType)
+    case e:Expression => e
+  }}
+
   private def removeNondeterminism ( label:String, expr: Expression ): (Expression, List[(Identifier,BinaryNondeterministicExpression)]) = {
     expr match {
       case BinaryArithmeticExpression(left,right,op,typ) =>
@@ -337,7 +367,8 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 
     // Extract all non-deterministic expressions and store them in temporary variables
     var newState = state
-    val (newExpr, tempAssigns) = removeNondeterminism("tmp",expr)
+    val noFloatingPointExpr = removeFloats(expr)
+    val (newExpr, tempAssigns) = removeNondeterminism("tmp",noFloatingPointExpr)
     for ((id,ndExpr) <- tempAssigns) {
       ndExpr.op match {
         case NondeterministicOperator.or =>
@@ -490,44 +521,30 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	}
 	
 	override def widening(left : ApronInterface, right : ApronInterface) : ApronInterface =  {
-		if(left.state.isTop(domain) || right.state.isTop(domain)) return top();
-		if(left.state.isBottom(domain)) return right;
-		if(right.state.isBottom(domain)) return left;
+		if(left.state.isTop(domain) || right.state.isTop(domain)) return top()
+		if(left.state.isBottom(domain)) return right
+		if(right.state.isBottom(domain)) return left
 
-//    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
-//    val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
-//    val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
-//    var st = new Abstract1(domain, newLeft.state);
-//		st = st.widening(domain, newRight.state);
-
-    // TODO: DOES NOT WORK DUE TO APRON BUG
-//    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment);
-//    val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
-//    val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
-//    val commonVars = left.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(right.state.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
-//    val forgotLState = newLeft.state.forgetCopy(domain, commonVars.toArray[String], false)
-//    val forgotRState = newRight.state.forgetCopy(domain, commonVars.toArray[String], false)
-//    val finalLeft = forgotLState.meetCopy(domain, newRight.state)
-//    val finalRight = forgotRState.meetCopy(domain, newLeft.state)
-//    val st = finalLeft.widening(domain, finalRight)
-
-    val st = left.state.widening(domain, right.state)
-
-    new ApronInterface(st, domain);
+    val env = unionOfEnvironments(left.state.getEnvironment, right.state.getEnvironment)
+    val newLeft = new ApronInterface(left.state.changeEnvironmentCopy(left.domain, env, false), left.domain)
+    val newRight = new ApronInterface(right.state.changeEnvironmentCopy(right.domain, env, false), right.domain)
+    var st = new Abstract1(domain, newLeft.state)
+		st = st.widening(domain, newRight.state)
+    new ApronInterface(st, domain)
 	}
 	
 	override def lessEqual(r : ApronInterface) : Boolean = {
-		if(this.state.isBottom(domain)) return true;
-		if(r.state.isTop(domain)) return true;
-		if(r.state.isBottom(domain)) return false;
-		if(this.state.isTop(domain)) return false;
-    val env = unionOfEnvironments(this.state.getEnvironment, r.state.getEnvironment);
+		if(this.state.isBottom(domain)) return true
+		if(r.state.isTop(domain)) return true
+		if(r.state.isBottom(domain)) return false
+		if(this.state.isTop(domain)) return false
+    val env = unionOfEnvironments(this.state.getEnvironment, r.state.getEnvironment)
     val newLeft = new ApronInterface(this.state.changeEnvironmentCopy(this.domain, env, false), this.domain)
     val newRight = new ApronInterface(r.state.changeEnvironmentCopy(r.domain, env, false), r.domain)
     if (newRight.state.getEnvironment.getVars.size != newLeft.state.getEnvironment.getVars.size)
       throw new ApronException("Different environments.")
-		val result= newLeft.state.isIncluded(domain, newRight.state);
-		return result;
+		val result= newLeft.state.isIncluded(domain, newRight.state)
+		result
 	}
 
   /**

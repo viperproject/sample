@@ -30,7 +30,7 @@ class SLanguages extends AAny {
         
     /** Gets the current language code, to be used in the 'translate' method. */
     // case "current_language" => 
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the current language code, to be used in the 'translate' method. */
     //   val field_current_language = new TouchField("current_language",TString.typ)
@@ -38,16 +38,16 @@ class SLanguages extends AAny {
     /** Automatically detects the language of a given text using Bing. */
     // case "detect_language" => 
     //   val List(text) = parameters // String
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     /** Extracts text in the picture using Project Hawaii from Microsoft Research. */
     // case "picture_to_text" => 
     //   val List(lang,pic) = parameters // String,Picture
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     /** Converts the microphone dictation to text using Project Hawaii from Microsoft Research. */
     // case "record_text" => 
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts the microphone dictation to text using Project Hawaii from Microsoft Research. */
     //   val field_record_text = new TouchField("record_text",TString.typ)
@@ -55,17 +55,17 @@ class SLanguages extends AAny {
     /** Speaks the text in the specified language using Bing. */
     // case "speak" => 
     //   val List(lang,text) = parameters // String,String
-    //   Return[S](Valid(TSound.typ))
+    //   Top[S](TSound.typ)
 
     /** Converts a sound to a text using Project Hawaii from Microsoft Research. */
     // case "speech_to_text" => 
     //   val List(lang,speech) = parameters // String,Sound
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     /** Translates some text between two languages using Bing. Empty source language to auto-detect. */
     // case "translate" => 
     //   val List(source_lang,target_lang,text) = parameters // String,String,String
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     // FIELDS: , field_current_language, field_record_text
 

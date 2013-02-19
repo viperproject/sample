@@ -53,7 +53,7 @@ class TPlace extends AAny {
 
     /** Converts to a string name,lat,long */
     case "to_string" =>
-      Return[S](Valid(TString.typ))
+      Top[S](TString.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

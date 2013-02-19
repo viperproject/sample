@@ -45,8 +45,7 @@ class TNumber_Map extends AMutable_Collection {
     /** Extracts the elements at indices between start (inclusive) and end (non-inclusive). */
     case "slice" =>
       val List(start,end) = parameters // Number,Number
-      // TODO: Copy of collection
-      Return[S](Valid(TNumber_Map.typ))
+      Clone[S](this0)
 
     /** Computes the sum of the values */
     case "sum" =>

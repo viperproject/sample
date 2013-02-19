@@ -30,28 +30,28 @@ class TCamera extends AAny {
         
     /** Gets the height of the camera image in pixels. */
     // case "height" => 
-    //   Return[S](Valid(TNumber.typ))
+    //   Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the height of the camera image in pixels. */
     //   val field_height = new TouchField("height",TNumber.typ)
 
     /** Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */
     // case "is_front" => 
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */
     //   val field_is_front = new TouchField("is_front",TBoolean.typ)
 
     /** Takes a low quality picture from the camera. */
     // case "preview" => 
-    //   Return[S](Valid(TPicture.typ))
+    //   Top[S](TPicture.typ)
     // DECLARATION AS FIELD: 
     //   /** Takes a low quality picture from the camera. */
     //   val field_preview = new TouchField("preview",TPicture.typ)
 
     /** Gets the width of the camera image in pixels. */
     // case "width" => 
-    //   Return[S](Valid(TNumber.typ))
+    //   Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the width of the camera image in pixels. */
     //   val field_width = new TouchField("width",TNumber.typ)

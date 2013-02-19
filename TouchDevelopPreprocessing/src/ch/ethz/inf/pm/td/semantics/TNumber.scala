@@ -43,11 +43,15 @@ class TNumber extends AAny {
 
     /** Interprets a number as a unicode value and converts it to the single character string */
     case "to_character" =>
-      Return[S](Valid(TString.typ))
+      Top[S](TString.typ)
+
+    /** Interprets a number as a unicode value and converts it to the single character string */
+    case "to_string" =>
+      Top[S](TString.typ)
 
     /** Interprets the number as a ARGB (alpha, red, green, blue) color */
     case "to_color" =>
-      Return[S](Valid(TColor.typ)) // TODO: This should be possible to implement
+      Top[S](TColor.typ) // TODO: This should be possible to implement
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

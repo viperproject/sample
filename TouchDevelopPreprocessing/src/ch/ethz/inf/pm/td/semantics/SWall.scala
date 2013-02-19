@@ -37,12 +37,12 @@ class SWall extends AAny {
     /** Prompts the user with ok and cancel buttons */
     case "ask_boolean" =>
       val List(text,caption) = parameters // String,String
-      Return[S](Valid(TBoolean.typ))
+      Top[S](TBoolean.typ)
 
     /** Prompts the user to input a number */
     case "ask_number" =>
       val List(text) = parameters // String
-      Return[S](Valid(TNumber.typ))
+      Top[S](TNumber.typ)
 
     /** Prompts the user to input a string */
     case "ask_string" =>

@@ -12,8 +12,8 @@ import ch.ethz.inf.pm.sample.abstractdomain.SetDomain
 class BooleanDomain extends SetDomain[Boolean,BooleanDomain] {
 
   override def factory() = new BooleanDomain()
-  def canBeTrue = value.contains(true)
-  def canBeFalse = value.contains(false)
+  def canBeTrue = isTop || value.contains(true)
+  def canBeFalse = isTop || value.contains(false)
 
   // intersection corresponds to glb
   def intersect(x : BooleanDomain, y : BooleanDomain) = {

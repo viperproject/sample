@@ -2,13 +2,16 @@ package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import io.Source
-import ch.ethz.inf.pm.td.parser.{Declaration, LibraryDefinition, Script, ScriptParser}
+import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.symbols.Typer
 import ch.ethz.inf.pm.td.webapi.Scripts
-import ch.ethz.inf.pm.td.transform.LoopRewriter
+import ch.ethz.inf.pm.td.transform.{Matcher, LoopRewriter}
 import ch.ethz.inf.pm.td.semantics._
-import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import scala.Some
+import scala.Some
+import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
+import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.td.parser.Script
 
 /**
@@ -22,7 +25,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var parsedIDs : Set[String] = Set[String]()
   var parsedScripts : List[ClassDefinition] = Nil
-  
+
   var types : Map[String,TouchType] = Map(
     SAssert.typName -> SAssert.typ,
     SBazaar.typName -> SBazaar.typ,
@@ -115,6 +118,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   type RunnableMethods = Map[ClassDefinition,Set[RunnableMethodDeclaration]]
   var runnableMethods : RunnableMethods = Map.empty
+  var usedEnvironmentFragment : Set[String] = Set.empty
 
   /**
   Takes a path OR a URL
@@ -129,6 +133,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
     val script = LoopRewriter(ScriptParser(scriptStr))
     Typer.processScript(script)
+    discoverUsedEnvironmentFragment(script)
     var cfgs = List(CFGGenerator.process(script,pubID))
     parsedScripts = cfgs ::: parsedScripts
     parsedIDs = parsedIDs + pubID
@@ -265,6 +270,37 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     })
   }
 
+  private def discoverUsedEnvironmentFragment(script:Script) {
+
+    def checkEnv (e:Expression) {
+      e match {
+        // A list of functions depending on the environment. TODO: Solve this properly
+        case Access(SingletonReference("home"),"choose_player",Nil) =>
+          usedEnvironmentFragment += "home"
+          usedEnvironmentFragment += "home.players"
+        case Access(SingletonReference("home"),"choose_printer",Nil) =>
+          usedEnvironmentFragment += "home"
+          usedEnvironmentFragment += "home.printers"
+        case Access(SingletonReference("home"),"choose_server",Nil) =>
+          usedEnvironmentFragment += "home"
+          usedEnvironmentFragment += "home.servers"
+        // Direct accesses to environment
+        case Access(SingletonReference(singleton),property,Nil) =>
+          types.get(singleton) match {
+            case Some(t) =>
+              if (t.isSingleton && t.getPossibleFieldsSorted().find(_.getName() == property).isDefined) {
+                usedEnvironmentFragment += singleton
+                usedEnvironmentFragment += (singleton+"."+property)
+              }
+            case None => throw TouchException("Unknown Singleton used here!")
+          }
+        case _ => ()
+      }
+    }
+
+    Matcher(script)( { _ => }, { _ => }, ( checkEnv _ ) )
+  }
+
   /**
    * USING THIS METHOD, YOU GET THE SEMANTICS FOR A FUNCTION THAT IS CALLED FROM ANOTHER FUNCTION
    */
@@ -325,6 +361,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   def reset() {
     runnableMethods = Map.empty
     parsedIDs = Set.empty
+    usedEnvironmentFragment = Set.empty
     parsedScripts = Nil
   }
 

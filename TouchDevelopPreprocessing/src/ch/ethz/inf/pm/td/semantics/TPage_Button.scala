@@ -39,7 +39,7 @@ class TPage_Button extends AAny {
     /** Gets a value indicating if both instances are equal */
     // case "equals" => 
     //   val List(page_button) = parameters // Page_Button
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

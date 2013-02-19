@@ -41,7 +41,7 @@ class SRadio extends AAny {
 
     /** Gets the signal strength */
     case "signal_strength" =>
-      Return[S](Valid(TNumber.typ))
+      Top[S](TNumber.typ)
 
     /** Turns on the radio */
     case "start" =>

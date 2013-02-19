@@ -31,14 +31,14 @@ class SSocial extends AAny {
         
     /** Chooses a contact from the contact list */
     // case "choose_contact" => 
-    //   Return[S](Valid(TContact.typ))
+    //   Top[S](TContact.typ)
     // DECLARATION AS FIELD: 
     //   /** Chooses a contact from the contact list */
     //   val field_choose_contact = new TouchField("choose_contact",TContact.typ)
 
     /** Chooses an email from the contact list */
     // case "choose_email" => 
-    //   Return[S](Valid(TLink.typ))
+    //   Top[S](TLink.typ)
     // DECLARATION AS FIELD: 
     //   /** Chooses an email from the contact list */
     //   val field_choose_email = new TouchField("choose_email",TLink.typ)
@@ -46,27 +46,27 @@ class SSocial extends AAny {
     /** Creates a new contact */
     // case "create_contact" => 
     //   val List(nickname) = parameters // String
-    //   Return[S](Valid(TContact.typ))
+    //   Top[S](TContact.typ)
 
     /** Creates a message to share */
     // case "create_message" => 
     //   val List(message) = parameters // String
-    //   Return[S](Valid(TMessage.typ))
+    //   Top[S](TMessage.typ)
 
     /** Creates a place */
     // case "create_place" => 
     //   val List(name,location) = parameters // String,Location
-    //   Return[S](Valid(TPlace.typ))
+    //   Top[S](TPlace.typ)
 
     /** Creates a link from an email */
     // case "link_email" => 
     //   val List(email_address) = parameters // String
-    //   Return[S](Valid(TLink.typ))
+    //   Top[S](TLink.typ)
 
     /** Creates a link from a phone number */
     // case "link_phone_number" => 
     //   val List(phone_number) = parameters // String
-    //   Return[S](Valid(TLink.typ))
+    //   Top[S](TLink.typ)
 
     /** Saves a new contact */
     // case "save_contact" => 
@@ -81,24 +81,24 @@ class SSocial extends AAny {
     /** Searches for recent messages in a social network (twitter, facebook) */
     // case "search" => 
     //   val List(network,terms) = parameters // String,String
-    //   Return[S](Valid(TMessage_Collection.typ))
+    //   Top[S](TMessage_Collection.typ)
 
     /** Searches for appointments in a given time range */
     // case "search_appointments" => 
     //   val List(start,end) = parameters // DateTime,DateTime
-    //   Return[S](Valid(TAppointment_Collection.typ))
+    //   Top[S](TAppointment_Collection.typ)
 
     /** Searches for contacts by name. */
     // case "search_contacts" => 
     //   val List(prefix) = parameters // String
-    //   Return[S](Valid(TContact_Collection.typ))
+    //   Top[S](TContact_Collection.typ)
 
     /** Searches for places nearby. The distance is in meters. */
     case "search_places_nearby" =>
       val List(network,terms,location,distance) = parameters // String,String,Location,Number
       Error[S](toRichExpression(Environment.isConnected).not, "search_places_nearby",
         "Check first if an internet connection is available")
-      Return[S](Valid(TPlace_Collection.typ))
+      Top[S](TPlace_Collection.typ)
 
     /** Opens the mail client */
     case "send_email" =>

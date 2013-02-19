@@ -1,13 +1,13 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, NativeMethodSemantics, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchException, TouchType}
+import ch.ethz.inf.pm.td.compiler.{DeepeningProgramPoint, TouchCollection, TouchException, TouchType}
 import collection.immutable.Range.Inclusive
 import RichNativeSemantics._
 
@@ -15,7 +15,6 @@ import RichNativeSemantics._
  *
  * This class defines a richer interface to interact with the current state. This enables us to specify the
  * abstract semantics of many of TouchDevelops native functions in a more natural way.
- *
  *
  * Lucas Brutschy
  * Date: 10/5/12
@@ -39,7 +38,11 @@ object ErrorReporter {
 
 object RichNativeSemantics {
 
-  /*-- Checking for errors --*/
+  /*-- Checking / Reporting errors --*/
+
+  def Error[S <: State[S]](method:String, message:String)(implicit state:S, pp:ProgramPoint) {
+    ErrorReporter.reportError("When calling "+method+": "+message,pp)
+  }
 
   def Error[S <: State[S]](expr:RichExpression, message:String)(implicit state:S, pp:ProgramPoint) {
     if (!ErrorReporter.hasError(message,pp)) {
@@ -126,28 +129,37 @@ object RichNativeSemantics {
         }
         val obj = curState.getExpression()
 
+        // Make sure that our value is "valid"  now
+        curState = curState.assignVariable(obj,Valid(typ))
+
         typ match {
           case col:TouchCollection =>
-            // Create summary node of collections
-            curState = Top[S](col.getValueType)(curState,pp)
-            val topSummary = curState.getExpression()
-            curState = Assign[S](CollectionSummary[S](obj),topSummary)(curState,pp)
-            // Set size to top
-            curState = Top[S](TNumber.typ)(curState,pp)
-            val topSize = curState.getExpression()
-            curState = Assign[S](CollectionSize[S](obj),topSize)(curState,pp)
+            val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__summary")
+            if (!referenceLoop1) {
+              // Create summary node of collections
+              curState = Top[S](col.getValueType)(curState,newPP1)
+              val topSummary = curState.getExpression()
+              curState = Assign[S](CollectionSummary[S](obj),topSummary)(curState,newPP1)
+            }
+            val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__size")
+            if (!referenceLoop2) {
+              // Set size to top
+              curState = Top[S](TNumber.typ)(curState,newPP2)
+              val topSize = curState.getExpression()
+              curState = Assign[S](CollectionSize[S](obj),topSize)(curState,newPP2)
+            }
           case _ => ()
         }
 
         // Assign fields with given arguments
         for (f <- typ.getPossibleFields()) {
-          curState = Top[S](f.getType().asInstanceOf[TouchType])(curState,pp)
-          val topField = curState.getExpression()
-          curState = curState.assignField(List(obj),f.getName(),topField)
+          val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
+          if (!referenceLoop) {
+            curState = Top[S](f.getType().asInstanceOf[TouchType])(curState,newPP)
+            val topField = curState.getExpression()
+            curState = curState.assignField(List(obj),f.getName(),topField)
+          }
         }
-
-        // Make sure that our value is "valid"  now
-        curState = curState.assignVariable(obj,Valid(typ))
 
         curState.setExpression(obj)
 
@@ -166,10 +178,13 @@ object RichNativeSemantics {
 
     // Clone fields
     for (f <- obj.typ.getPossibleFields()) {
-      val oldField = Field[S](obj,f)(curState,pp)
-      curState = Clone[S](oldField)(curState,pp)
-      val clonedContent = curState.getExpression()
-      curState = curState.assignField(List(newObject),f.getName(),clonedContent)
+      val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
+      if (!referenceLoop) {
+        val oldField = Field[S](obj,f)(curState,newPP)
+        curState = Clone[S](oldField)(curState,newPP)
+        val clonedContent = curState.getExpression()
+        curState = curState.assignField(List(newObject),f.getName(),clonedContent)
+      }
     }
 
     curState.setExpression(newObject)
@@ -232,29 +247,12 @@ object RichNativeSemantics {
     state.getFieldValue(List(obj),field.getName(),field.getType()).getExpression()
   }
 
-  def JoinField[S <: State[S]](thiss:RichExpression,field:TouchField,value:RichExpression)(implicit s:S, pp:ProgramPoint): S = {
-    if (field.isSummaryNode) {
-      // Assignment is weak!
-      AssignField[S](thiss,field,Field[S](thiss,field) or value)
-    } else {
-      throw new TouchException("Join field is only implemented for summary nodes");
-    }
-  }
-
-  def BottomField[S <: State[S]](thiss:RichExpression,field:TouchField)(implicit s:S, pp:ProgramPoint): S = {
-    AssignField[S](thiss,field,Bottom(field.touchTyp))
-  }
-
-  def CopyOfField[S <: State[S]](thiss:RichExpression,field:TouchField)(implicit s:S, pp:ProgramPoint): RichExpression = {
-    Field[S](thiss,field) // TODO: IMPLEMENT
-  }
-
   /*-- Skipping --*/
 
   def Skip[S <: State[S]](implicit state:S, pp:ProgramPoint): S = state
 
   def Unimplemented[S <: State[S]](method:String)(implicit state:S, pp:ProgramPoint): S = {
-    SystemParameters.progressOutput.put("UNSUPPORTED: "+method+" not implemented, unsound from now on, at "+pp)
+    println("UNSUPPORTED: "+method+" not implemented, unsound from now on, at "+pp)
     Skip[S]
   }
 
@@ -296,15 +294,11 @@ object RichNativeSemantics {
   def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("invalid",typ,pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("valid",typ,pp))
 
-  // TODO: Implement this
-  def UnknownSize(typ:TouchCollection)(implicit pp:ProgramPoint) :RichExpression = RichExpression(new Constant("valid",typ,pp))
-
   /*-- Conversion --*/
 
   implicit def toRichExpression[S <: State[S]](value:ExpressionSet) : RichExpression = {
     val numOfExpressions = (value.setOfExpressions.size)
-    if (numOfExpressions > 1) throw new TouchException("Generic Abstract State fucked me over again!")
-    else if (numOfExpressions < 1 ) toRichExpression(0).ndTo(toRichExpression(1000)) // TODO TODO TODO TODO
+    if (numOfExpressions != 1) throw new TouchException("Expected a non-empty, single element set of expressions here")
     else RichExpression(value.setOfExpressions.head)
   }
 
@@ -338,7 +332,7 @@ class TouchField(name:String, val touchTyp:TouchType, var default: RichExpressio
 
 case class RichExpression(thisExpr : Expression) {
 
-  override def toString:String = thisExpr.toString()
+  override def toString:String = thisExpr.toString
 
   def <= (thatExpr : RichExpression) : RichExpression =
     RichExpression(new BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.<=, TBoolean.typ))

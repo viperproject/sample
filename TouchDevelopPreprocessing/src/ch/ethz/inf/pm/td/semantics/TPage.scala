@@ -30,7 +30,7 @@ class TPage extends AAny {
     /** Gets a value indicating if the page is equal to the other */
     // case "equals" => 
     //   val List(other) = parameters // Page
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

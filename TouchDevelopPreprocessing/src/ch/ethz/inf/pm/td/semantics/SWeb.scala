@@ -38,12 +38,12 @@ class SWeb extends AAny {
     /** Decodes a string that has been base64-encoded */
     case "base64_decode" =>
       val List(text) = parameters // String
-      Return[S](Valid(TString.typ))
+      Top[S](TString.typ)
 
     /** Converts a string into an base64-encoded string */
     case "base64_encode" =>
       val List(text) = parameters // String
-      Return[S](Valid(TString.typ))
+      Top[S](TString.typ)
 
     /** Opens a web browser to a url */
     case "browse" =>
@@ -64,7 +64,7 @@ class SWeb extends AAny {
       Error[S](toRichExpression(Environment.isConnected).not,"download",
         "Check if the device is connected to the internet before using the connection")
       // TODO: Might be invalid
-      Return[S](Valid(TString.typ))
+      Top[S](TString.typ)
 
     /** Downloads a web service response as a JSON data structure (http get) */
     case "download_json" =>
@@ -109,12 +109,12 @@ class SWeb extends AAny {
     /** Decodes a string that has been HTML-encoded */
     case "html_decode" =>
       val List(html) = parameters // String
-      Return[S](Valid(TString.typ))
+      Top[S](TString.typ)
 
     /** Converts a text string into an HTML-encoded string */
     case "html_encode" =>
       val List(text) = parameters // String
-      Return[S](Valid(TString.typ))
+      Top[S](TString.typ)
 
     /** Indicates whether any network connection is available */
     case "is_connected" =>
@@ -144,12 +144,12 @@ class SWeb extends AAny {
     /** Creates a link to an internet audio/video */
     // case "link_media" => 
     //   val List(url) = parameters // String
-    //   Return[S](Valid(TLink.typ))
+    //   Top[S](TLink.typ)
 
     /** Creates a link to an internet page */
     // case "link_url" => 
     //   val List(name,url) = parameters // String,String
-    //   Return[S](Valid(TLink.typ))
+    //   Top[S](TLink.typ)
 
     /** Opens a connection settings page (airplanemode, bluetooth, wiki, cellular) */
     case "open_connection_settings" =>
@@ -172,71 +172,71 @@ class SWeb extends AAny {
       val List(terms) = parameters // String
       Error[S](toRichExpression(Environment.isConnected).not,"search",
         "Check if the device is connected to the internet before using the connection")
-      Return[S](Valid(TLink_Collection.typ)) // TODO
+      Top[S](TLink_Collection.typ) // TODO
 
     /** Searching images using Bing */
     case "search_images" =>
       val List(terms) = parameters // String
       Error[S](toRichExpression(Environment.isConnected).not,"search_images",
         "Check if the device is connected to the internet before using the connection")
-      Return[S](Valid(TLink_Collection.typ)) // TODO
+      Top[S](TLink_Collection.typ) // TODO
 
     /** Searching images near a location using Bing. Distance in meters, negative to ignore. */
     case "search_images_nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
       Error[S](toRichExpression(Environment.isConnected).not,"search_images_nearby",
         "Check if the device is connected to the internet before using the connection")
-      Return[S](Valid(TLink_Collection.typ)) // TODO
+      Top[S](TLink_Collection.typ) // TODO
 
     /** Searching the web near a location using Bing. Distance in meters, negative to ignore. */
     case "search_nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
       Error[S](toRichExpression(Environment.isConnected).not,"search_nearby",
         "Check if the device is connected to the internet before using the connection")
-      Return[S](Valid(TLink_Collection.typ)) // TODO
+      Top[S](TLink_Collection.typ) // TODO
 
     /** Searching news using Bing */
     case "search_news" =>
       val List(terms) = parameters // String
       Error[S](toRichExpression(Environment.isConnected).not,"search_news",
         "Check if the device is connected to the internet before using the connection")
-      Return[S](Valid(TLink_Collection.typ)) // TODO
+      Top[S](TLink_Collection.typ) // TODO
 
     /** Searching news near a location using Bing. Distance in meters, negative to ignore. */
     case "search_news_nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
       Error[S](toRichExpression(Environment.isConnected).not,"search_news_nearby",
         "Check if the device is connected to the internet before using the connection")
-      Return[S](Valid(TLink_Collection.typ)) // TODO
+      Top[S](TLink_Collection.typ) // TODO
 
     /** Uploads text to an internet page (http post) */
     case "upload" =>
       val List(url,body) = parameters // String,String
       Error[S](toRichExpression(Environment.isConnected).not,"upload",
         "Check if the device is connected to the internet before using the connection")
-      Return[S](Valid(TString.typ)) // TODO
+      Top[S](TString.typ) // TODO
 
     /** Uploads a picture to an internet page (http post) */
     case "upload_picture" =>
       val List(url,pic) = parameters // String,Picture
       Error[S](toRichExpression(Environment.isConnected).not,"upload_picture",
         "Check if the device is connected to the internet before using the connection")
-      Return[S](Valid(TString.typ)) // TODO
+      Top[S](TString.typ) // TODO
 
     /** Decodes a string that has been url-encoded */
     case "url_decode" =>
       val List(url) = parameters // String
-      Return[S](Valid(TString.typ)) // TODO
+      Top[S](TString.typ) // TODO
 
     /** Converts a text string into an url-encoded string */
     case "url_encode" =>
       val List(text) = parameters // String
-      Return[S](Valid(TString.typ)) // TODO
+      Top[S](TString.typ) // TODO
 
     /** Parses the string as a xml element */
     case "xml" =>
       val List(value) = parameters // String
-      Return[S](Valid(TXml_Object.typ)) // TODO
+      Top[S](TXml_Object.typ) // TODO
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

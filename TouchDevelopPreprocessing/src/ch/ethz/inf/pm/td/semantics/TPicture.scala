@@ -44,7 +44,7 @@ class TPicture extends AAny {
     /** Gets the pixel color at the given linear index */
     // case "at" =>
     //   val List(index) = parameters // Number
-    //   Return[S](Valid(TColor.typ))
+    //   Top[S](TColor.typ)
 
     /** Writes another picture at a given location. The opacity ranges from 0 (transparent) to 1 (opaque). */
     // case "blend" =>
@@ -153,7 +153,7 @@ class TPicture extends AAny {
        val List(x,y) = parameters // Number,Number
        CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width),"pixel","x")
        CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height),"pixel","y")
-       Return[S](Valid(TColor.typ))
+       New[S](TColor.typ)
 
     /** Resizes the picture to the given size in pixels */
     case "resize" =>
@@ -164,7 +164,7 @@ class TPicture extends AAny {
 
     /** Saves the picture to the 'saved pictures' album. Returns the file name. */
     // case "save_to_library" =>
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     /** Sets the pixel color at a given pixel */
     case "set_pixel" =>

@@ -32,7 +32,7 @@ class TString_Collection extends AMutable_Collection {
     /** Concatenates the separator and items into a string */
     case "join" =>
       val List(separator) = parameters // String
-      Return[S](Valid(TString.typ))
+      Top[S](TString.typ)
 
     /** Sorts the strings in this collection */
     case "sort" =>

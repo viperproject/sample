@@ -156,6 +156,21 @@ class BooleanInvalidDomain
     case _ => this
   }
 
+  override def toString():String = {
+    if (isBottom) return "_|_"
+    var result : String = ""
+    value.foreach { case (k,v) =>
+      if(v.canBeTrue)
+        if(v.canBeFalse)
+          result += k.toString+" may be invalid\n"
+        else
+          result += k.toString+" is invalid\n"
+      else
+        result += k.toString+" is BOTTOM\n"
+    }
+    result
+  }
+
 }
 
 abstract class NumericWithInvalidDomain[N <: NumericalDomain[N], I <: InvalidDomain[I], T <: NumericWithInvalidDomain[N,I,T]](var num:N,var inv:I)

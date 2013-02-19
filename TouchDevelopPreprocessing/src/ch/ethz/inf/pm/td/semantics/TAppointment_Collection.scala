@@ -31,11 +31,11 @@ class TAppointment_Collection extends AAny {
     /** Gets the appointment at index */
     // case "at" => 
     //   val List(index) = parameters // Number
-    //   Return[S](Valid(TAppointment.typ))
+    //   Top[S](TAppointment.typ)
 
     /** Gets the number of appointments */
     // case "count" => 
-    //   Return[S](Valid(TNumber.typ))
+    //   Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the number of appointments */
     //   val field_count = new TouchField("count",TNumber.typ)

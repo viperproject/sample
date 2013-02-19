@@ -127,7 +127,7 @@ class TVector3 extends AAny {
 
     /** Turns the vector into a string */
     case "to_string" =>
-      Return(Valid(TString.typ))
+      Top[S](TString.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

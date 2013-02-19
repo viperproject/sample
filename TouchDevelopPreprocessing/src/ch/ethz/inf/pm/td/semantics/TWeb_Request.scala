@@ -31,30 +31,30 @@ class TWeb_Request extends AAny {
     /** Indicates if both requests are the same instance. */
     // case "equals" => 
     //   val List(other) = parameters // Web_Request
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
 
     /** Gets the value of a given header */
     // case "header" => 
     //   val List(name) = parameters // String
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     /** Gets the names of the headers */
     // case "header_names" => 
-    //   Return[S](Valid(TString_Collection.typ))
+    //   Top[S](TString_Collection.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the names of the headers */
     //   val field_header_names = new TouchField("header_names",TString_Collection.typ)
 
     /** Gets whether it was a 'get' or a 'post'. */
     // case "method" => 
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets whether it was a 'get' or a 'post'. */
     //   val field_method = new TouchField("method",TString.typ)
 
     /** Performs the request synchronously */
     // case "send" => 
-    //   Return[S](Valid(TWeb_Response.typ))
+    //   Top[S](TWeb_Response.typ)
     // DECLARATION AS FIELD: 
     //   /** Performs the request synchronously */
     //   val field_send = new TouchField("send",TWeb_Response.typ)
@@ -111,7 +111,7 @@ class TWeb_Request extends AAny {
 
     /** Gets the url of the request */
     // case "url" => 
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the url of the request */
     //   val field_url = new TouchField("url",TString.typ)

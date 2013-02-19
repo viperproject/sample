@@ -45,35 +45,35 @@ class TMedia_Server extends AAny {
         
     /** Chooses a picture */
     case "choose_picture" =>
-      Return[S](Valid(TMedia_Link.typ))
+      Top[S](TMedia_Link.typ)  // TODO: or invalid
 
     /** Chooses a song */
     case "choose_song" =>
-      Return[S](Valid(TMedia_Link.typ))
+      Top[S](TMedia_Link.typ)  // TODO: or invalid
 
     /** Chooses a video or a movie */
     case "choose_video" =>
-      Return[S](Valid(TMedia_Link.typ))
+      Top[S](TMedia_Link.typ) // TODO: or invalid
 
     /** Searches for pictures in a particular date range. */
     case "search_pictures_by_date" =>
     val List(start,end) = parameters // DateTime,DateTime
-      Return[S](UnknownSize(TMedia_Link_Collection.typ))
+      Top[S](TMedia_Link_Collection.typ)
 
     /** Searches for songs */
     case "search_songs" =>
       val List(term) = parameters // String
-      Return[S](UnknownSize(TMedia_Link_Collection.typ))
+      Top[S](TMedia_Link_Collection.typ)
 
     /** Searches for videos */
     case "search_videos" =>
       val List(term) = parameters // String
-      Return[S](UnknownSize(TMedia_Link_Collection.typ))
+      Top[S](TMedia_Link_Collection.typ)
 
     /** Searches for videos in a particular date range. */
     case "search_videos_by_date" =>
       val List(start,end) = parameters // DateTime,DateTime
-      Return[S](UnknownSize(TMedia_Link_Collection.typ))
+      Top[S](TMedia_Link_Collection.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

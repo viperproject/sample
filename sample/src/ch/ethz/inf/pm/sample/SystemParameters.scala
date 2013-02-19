@@ -96,25 +96,26 @@ object SystemParameters {
   def getForwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, true);
   
   def getBackwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, false);
-  
-  private def getSemantics[S <: State[S]](state : S, methodCall : MethodCall, forward : Boolean) : S = {
-	  val body : Statement = methodCall.method.normalize();
-	  var result : S = state.bottom();
-	  //Method call used to represent a goto statement to a while label
-      if(body.isInstanceOf[Variable] && body.asInstanceOf[Variable].getName().length>=5 && body.asInstanceOf[Variable].getName().substring(0, 5).equals("while")) 
-        throw new Exception("This should not appear here!");//return state;
-      
-	  if(! body.isInstanceOf[FieldAccess]) return state; //TODO: Sometimes it is a variable, check if $this is implicit!
-	  val castedStatement : FieldAccess = body.asInstanceOf[FieldAccess]
-      val calledMethod : String = castedStatement.field
-      val parameters : List[Statement] = methodCall.parameters
-      val typeparameters : List[Type] = methodCall.parametricTypes
-      val returnedtype : Type = methodCall.returnedType
-      for(obj <- castedStatement.objs) {
-        result=result.lub(result, analyzeMethodCall[S](obj, calledMethod, parameters, typeparameters, returnedtype, state, methodCall.getPC(), forward))
-      }
-	  result;
-	}
+
+  private def getSemantics[S <: State[S]](state: S, methodCall: MethodCall, forward: Boolean): S = {
+    val body: Statement = methodCall.method.normalize();
+    var result: S = state.bottom();
+    //Method call used to represent a goto statement to a while label
+    if (body.isInstanceOf[Variable] && body.asInstanceOf[Variable].getName().length >= 5 && body.asInstanceOf[Variable].getName().substring(0, 5).equals("while"))
+      throw new Exception("This should not appear here!"); //return state;
+
+    if (!body.isInstanceOf[FieldAccess]) return state;
+    //TODO: Sometimes it is a variable, check if $this is implicit!
+    val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
+    val calledMethod: String = castedStatement.field
+    val parameters: List[Statement] = methodCall.parameters
+    val typeparameters: List[Type] = methodCall.parametricTypes
+    val returnedtype: Type = methodCall.returnedType
+    for (obj <- castedStatement.objs) {
+      result = result.lub(result, analyzeMethodCall[S](obj, calledMethod, parameters, typeparameters, returnedtype, state, methodCall.getPC(), forward))
+    }
+    result;
+  }
 	
 	private def analyzeMethodCall[S <: State[S]](obj : Statement, calledMethod : String, parameters : List[Statement], typeparameters : List[Type], returnedtype : Type, initialState : S, programpoint : ProgramPoint, forward : Boolean) : S = {
 	  val (calledExpr, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](initialState, obj);
@@ -137,7 +138,7 @@ object SystemParameters {
         case None => ()
       }
     }
-    println("Type "+thisExpr.getType()+" with method "+invokedMethod+" not implemented, topping at "+programpoint);
+    SystemParameters.progressOutput.put("Type "+thisExpr.getType()+" with method "+invokedMethod+" not implemented, topping at "+programpoint)
 	  state.top()
 	}
   
@@ -151,7 +152,7 @@ abstract class ScreenOutput {
   private var indent = 0
 
   def begin(s :String) { put("{ "+s); Timer.start; indent += 1 }
-  def put(s:String) { appendString("  "*indent + s.replace("\n","  "*indent + "\n")) }
+  def put(s:String) { appendString("  "*indent + s.replace("\n","\n  "*indent)) }
   def end(s:String) { indent -= 1; put("} "+s+" (time: "+Timer.stop+")") }
   def end() { end("") }
   def reset() { indent = 0 }

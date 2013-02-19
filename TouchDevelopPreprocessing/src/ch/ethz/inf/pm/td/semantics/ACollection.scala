@@ -31,13 +31,31 @@ abstract class ACollection extends AAny {
 
     /** Get random element */
     case "random" =>
-      Error[S](CollectionSize[S](this0) equal 0,"random","Calling random on a collection which might be empty!")
-      Return[S](CollectionSummary[S](this0))
+      IfPossible[S]( CollectionSize[S](this0) equal 0, then = {
+        IfPossible[S]( (CollectionSize[S](this0) equal 0).not(), then = {
+          Error[S]("random","The collection might be empty, cannot select a random element!")
+          Return[S](CollectionSummary[S](this0) or Invalid(this0.getType()))
+        }, els = {
+          Error[S]("random","The collection is always empty, can not select a random element!")
+          Return[S](Invalid(this0.getType()))
+        })
+      }, els = {
+        Return[S](CollectionSummary[S](this0))
+      })
 
     /** Get random element */
     case "rand" =>
-      Error[S](CollectionSize[S](this0) equal 0,"rand","Calling rand on a collection which might be empty!")
-      Return[S](CollectionSummary[S](this0))
+      IfPossible[S]( CollectionSize[S](this0) equal 0, then = {
+        IfPossible[S]( (CollectionSize[S](this0) equal 0).not(), then = {
+          Error[S]("rand","The collection might be empty, cannot select a random element!")
+          Return[S](CollectionSummary[S](this0) or Invalid(this0.getType()))
+        }, els = {
+          Error[S]("rand","The collection is always empty, can not select a random element!")
+          Return[S](Invalid(this0.getType()))
+        })
+      }, els = {
+        Return[S](CollectionSummary[S](this0))
+      })
 
     /** Returns the length of the collection*/
     case "count" =>

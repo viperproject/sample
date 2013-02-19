@@ -37,7 +37,8 @@ class SLocations extends AAny {
     /** Looks for an address near a location using Bing. */
     case "describe_location" =>
       val List(location) = parameters // Location
-      Return[S](Valid(TString.typ))
+      val ret = Top[S](TString.typ)
+      ret
 
     /** Looks for the coordinate of an address using Bing. */
     case "search_location" =>

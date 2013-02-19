@@ -45,7 +45,7 @@ class STime extends AAny {
 
     /** Gets the current time */
     case "now" =>
-       Return[S](Valid(TDateTime.typ))
+       Top[S](TDateTime.typ)
 
     /** Waits for a specified amount of seconds */
     case "sleep" =>
@@ -62,11 +62,11 @@ class STime extends AAny {
 
     /** Gets today's date without time */
     case "today" =>
-      Return[S](Valid(TDateTime.typ))
+      Top[S](TDateTime.typ)
 
     /** Gets tomorrow's date without time */
     case "tomorrow" =>
-       Return[S](Valid(TDateTime.typ))
+      Top[S](TDateTime.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

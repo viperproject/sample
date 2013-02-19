@@ -30,56 +30,56 @@ class TMedia_Player extends AAny {
         
     /** Gets the uri of the media currently active */
     // case "active_media" => 
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the uri of the media currently active */
     //   val field_active_media = new TouchField("active_media",TString.typ)
 
     /** Gets the detailled information about this device */
     // case "device" => 
-    //   Return[S](Valid(TDevice.typ))
+    //   Top[S](TDevice.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the detailled information about this device */
     //   val field_device = new TouchField("device",TDevice.typ)
 
     /** Indicates the media can be played, paused, resumed */
     // case "is_control_supported" => 
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Indicates the media can be played, paused, resumed */
     //   val field_is_control_supported = new TouchField("is_control_supported",TBoolean.typ)
 
     /** Indicates if the player is paused */
     // case "is_paused" => 
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Indicates if the player is paused */
     //   val field_is_paused = new TouchField("is_paused",TBoolean.typ)
 
     /** Indicates if the player is playing */
     // case "is_playing" => 
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Indicates if the player is playing */
     //   val field_is_playing = new TouchField("is_playing",TBoolean.typ)
 
     /** Indicates if the player is stopped */
     // case "is_stopped" => 
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Indicates if the player is stopped */
     //   val field_is_stopped = new TouchField("is_stopped",TBoolean.typ)
 
     /** Indicates if volume can be changed */
     // case "is_volume_supported" => 
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Indicates if volume can be changed */
     //   val field_is_volume_supported = new TouchField("is_volume_supported",TBoolean.typ)
 
     /** Gets the name of the audio/video player */
     // case "name" => 
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the name of the audio/video player */
     //   val field_name = new TouchField("name",TString.typ)
@@ -108,7 +108,7 @@ class TMedia_Player extends AAny {
 
     /** Gets the position in seconds whithin the active media */
     // case "play_position" => 
-    //   Return[S](Valid(TNumber.typ))
+    //   Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the position in seconds whithin the active media */
     //   val field_play_position = new TouchField("play_position",TNumber.typ)
@@ -128,7 +128,7 @@ class TMedia_Player extends AAny {
 
     /** Gets the status of the player */
     // case "status" => 
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the status of the player */
     //   val field_status = new TouchField("status",TString.typ)
@@ -139,7 +139,7 @@ class TMedia_Player extends AAny {
 
     /** Gets the current volume */
     // case "volume" => 
-    //   Return[S](Valid(TNumber.typ))
+    //   Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the current volume */
     //   val field_volume = new TouchField("volume",TNumber.typ)

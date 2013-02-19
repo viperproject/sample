@@ -31,12 +31,12 @@ class TJson_Object extends ACollection {
     /** Gets a field value as a boolean */
     // case "boolean" => 
     //   val List(key) = parameters // String
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
 
     /** Indicates if the key exists */
     // case "contains_key" => 
     //   val List(key) = parameters // String
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
 
     /** Gets a value by name */
     case "field" =>
@@ -45,14 +45,14 @@ class TJson_Object extends ACollection {
 
     /** Gets the list of keys */
     // case "keys" => 
-    //   Return[S](Valid(TString_Collection.typ))
+    //   Top[S](TString_Collection.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the list of keys */
     //   val field_keys = new TouchField("keys",TString_Collection.typ)
 
     /** Gets a json kind (string, number, object, array, boolean) */
     // case "kind" =>
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD:
     //   /** Gets a json kind (string, number, object, array, boolean) */
     //   val field_kind = new TouchField("kind",TString.typ)
@@ -60,42 +60,42 @@ class TJson_Object extends ACollection {
     /** Gets a field value as a number */
     // case "number" => 
     //   val List(key) = parameters // String
-    //   Return[S](Valid(TNumber.typ))
+    //   Top[S](TNumber.typ)
 
     /** Gets a field value as a string */
     // case "string" => 
     //   val List(key) = parameters // String
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
 
     /** Gets the field value as a time */
     // case "time" => 
     //   val List(key) = parameters // String
-    //   Return[S](Valid(TDateTime.typ))
+    //   Top[S](TDateTime.typ)
 
     /** Converts to a boolean (type must be boolean) */
     // case "to_boolean" => 
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts to a boolean (type must be boolean) */
     //   val field_to_boolean = new TouchField("to_boolean",TBoolean.typ)
 
     /** Converts to a number (type must be number) */
     // case "to_number" => 
-    //   Return[S](Valid(TNumber.typ))
+    //   Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts to a number (type must be number) */
     //   val field_to_number = new TouchField("to_number",TNumber.typ)
 
     /** Converts to a string (type must be string) */
     // case "to_string" => 
-    //   Return[S](Valid(TString.typ))
+    //   Top[S](TString.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts to a string (type must be string) */
     //   val field_to_string = new TouchField("to_string",TString.typ)
 
     /** Converts and parses to a date time (type must be string) */
     // case "to_time" => 
-    //   Return[S](Valid(TDateTime.typ))
+    //   Top[S](TDateTime.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts and parses to a date time (type must be string) */
     //   val field_to_time = new TouchField("to_time",TDateTime.typ)

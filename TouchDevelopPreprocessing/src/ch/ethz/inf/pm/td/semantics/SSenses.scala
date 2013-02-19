@@ -44,14 +44,14 @@ class SSenses extends AAny {
 
     /** Gets the primary camera if available */
     // case "camera" =>
-    //   Return[S](Valid(TCamera.typ))
+    //   Top[S](TCamera.typ)
     // DECLARATION AS FIELD:
     //   /** Gets the primary camera if available */
     //   field_camera = new TouchField("camera",TCamera.typ)
 
     /** Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */
     // case "current_location" =>
-    //   Return[S](Valid(TLocation.typ))
+    //   Top[S](TLocation.typ)
     // DECLARATION AS FIELD:
     //   /** Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */
     //   field_current_location = new TouchField("current_location",TLocation.typ)
@@ -63,7 +63,7 @@ class SSenses extends AAny {
 
     /** Gets the front facing camera if available */
     // case "front_camera" =>
-    //   Return[S](Valid(TCamera.typ))
+    //   Top[S](TCamera.typ)
     // DECLARATION AS FIELD:
     //   /** Gets the front facing camera if available */
     //   field_front_camera = new TouchField("front_camera",TCamera.typ)
@@ -93,11 +93,11 @@ class SSenses extends AAny {
     /** Gets the compass heading, in degrees, measured clockwise from the Earth's geographic north. */
      case "heading" =>
        Error[S](RichExpression(Environment.hasCompass).not(),"retrieving heading requires checking for a compass first!")
-       Return[S](Valid(TNumber.typ))
+       Top[S](TNumber.typ)
 
     /** Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */
     // case "is_device_stable" =>
-    //   Return[S](Valid(TBoolean.typ))
+    //   Top[S](TBoolean.typ)
     // DECLARATION AS FIELD:
     //   /** Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */
     //   field_is_device_stable = new TouchField("is_device_stable",TBoolean.typ)
@@ -112,7 +112,7 @@ class SSenses extends AAny {
 
     /** Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */
     // case "orientation" =>
-    //   Return[S](Valid(TVector3.typ))
+    //   Top[S](TVector3.typ)
     // DECLARATION AS FIELD:
     //   /** Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */
     //   field_orientation = new TouchField("orientation",TVector3.typ)
@@ -123,14 +123,14 @@ class SSenses extends AAny {
 
     /** Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */
     // case "rotation_speed" =>
-    //   Return[S](Valid(TVector3.typ))
+    //   Top[S](TVector3.typ)
     // DECLARATION AS FIELD:
     //   /** Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */
     //   field_rotation_speed = new TouchField("rotation_speed",TVector3.typ)
 
     /** Takes a picture and returns it. This picture does not contain the gps location. */
     // case "take_camera_picture" =>
-    //   Return[S](Valid(TPicture.typ))
+    //   Top[S](TPicture.typ)
     // DECLARATION AS FIELD:
     //   /** Takes a picture and returns it. This picture does not contain the gps location. */
     //   field_take_camera_picture = new TouchField("take_camera_picture",TPicture.typ)
