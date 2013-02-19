@@ -67,8 +67,8 @@ object CFGGenerator {
       dec match {
         case x:TableDefinition=>
           throw new UnsupportedLanguageFeatureException("The compiler does not support tables at the moment")
-        case x:LibraryDefinition =>
-          throw new UnsupportedLanguageFeatureException("The compiler does not support libraries at the moment")
+        //case x:LibraryDefinition =>
+        //  throw new UnsupportedLanguageFeatureException("The compiler does not support libraries at the moment")
         case _ => ()
       }
     }

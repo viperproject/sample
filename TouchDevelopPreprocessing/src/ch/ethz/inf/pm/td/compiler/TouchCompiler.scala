@@ -134,14 +134,15 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val script = LoopRewriter(ScriptParser(scriptStr))
     Typer.processScript(script)
     discoverUsedEnvironmentFragment(script)
-    var cfgs = List(CFGGenerator.process(script,pubID))
+    val main = CFGGenerator.process(script,pubID)
+    var cfgs = List(main)
     parsedScripts = cfgs ::: parsedScripts
     parsedIDs = parsedIDs + pubID
     val libIDs = discoverRequiredLibraries(script)
     for (id <- libIDs; if (!parsedIDs.contains(id))) {
       cfgs = cfgs ::: compileFile(Scripts.codeURLfromPubID(id))
     }
-    runnableMethods = runnableMethods ++ discoverRunnableMethods(cfgs)
+    runnableMethods = discoverRunnableMethods(List(main))
     cfgs
   }
 
@@ -169,6 +170,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
     List(
+      new Libraries(this),
       new SAssert(),
       new SBazaar(),
       new SCode(this),

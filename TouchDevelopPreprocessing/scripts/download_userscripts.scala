@@ -30,7 +30,7 @@ if (dir.isDirectory || dir.mkdir()) {
 
   for( s <- scripts ) {
 
-    if ( !s.haserrors && !s.ishidden ) {
+    if ( !s.haserrors ) {
 
       val p = new PrintWriter(new File(dir+"/"+s.id+".td"))
 

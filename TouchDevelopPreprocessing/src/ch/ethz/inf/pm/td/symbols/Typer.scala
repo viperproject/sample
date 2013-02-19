@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.symbols
 
 import ch.ethz.inf.pm.td.stdlib._
 import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchException}
 
 /**
  *
@@ -116,7 +116,6 @@ object Typer {
         processExpression(s,st,cond)
         for (smt <- body) processStatement(s,st,smt)
       case s@If(cond, thenBody, elseBody) =>
-        // FIXME: Currently then and else scopes are joined
         st(s) = ScopeSymbolTable(s,scope,Map.empty)
         processExpression(s,st,cond)
         for (smt <- thenBody) processStatement(s,st,smt)
@@ -146,7 +145,7 @@ object Typer {
             else is(retTypes.head)
           case l@LibraryReference(lib) =>
             val retTypes = st.resolveLib(lib,property,types,l.pos)
-            // subject.typeName = TypeName("__script_"+lib) // TODO
+            subject.typeName = TypeName("__script_"+lib)
             if (retTypes.length > 1) throw TouchException("Multiple return values "+retTypes+" in non-assignment expression",expr.pos)
             else if (retTypes.length < 1) is(TypeName("Nothing"))
             else is(retTypes.head)
@@ -163,6 +162,9 @@ object Typer {
   }
 
   def processMultiValExpression(scope: Scope, st:SymbolTable, expr:Expression):List[TypeName] = {
+
+    def is(typ:TypeName):TypeName = { expr.typeName = typ; typ }
+
     expr match {
       case Access(subject@SingletonReference("code"),action,args) =>
         val types = for(arg <- args) yield processExpression(scope,st,arg)
@@ -170,6 +172,7 @@ object Typer {
         st.resolveCode(action,types,subject.pos)
       case Access(l@LibraryReference(lib),action,args) =>
         val types = for(arg <- args) yield processExpression(scope,st,arg)
+        l.typeName = TypeName(CFGGenerator.scriptIdent(lib))
         st.resolveLib(lib,action,types,l.pos)
       case _ => List(processExpression(scope,st,expr))
     }
