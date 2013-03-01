@@ -16,8 +16,30 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TWeb_Request {
 
+  /** Reads the response body as a string */
+  val field_content = new TouchField("content",TString.typ)
+
+  /** Reads the response body as a JSON tree */
+  val field_content_as_json = new TouchField("content_as_json",TJson_Object.typ)
+
+  /** Reads the response body as a picture */
+  val field_content_as_picture = new TouchField("content_as_picture",TPicture.typ)
+
+  /** Reads the response body as a XML tree */
+  val field_content_as_xml = new TouchField("content_as_xml",TXml_Object.typ)
+
+  /** Stores the headers. This is actually not publicly accessible */
+  val field_header_storage = new TouchField("header_storage",TString_Map.typ)
+
+  /** Gets whether it was a 'get' or a 'post'. */
+  val field_method = new TouchField("method",TString.typ)
+
+  /** Gets the url of the request */
+  val field_url = new TouchField("url",TString.typ)
+
   val typName = "Web_Request"
-  val typ = new TouchType(typName,isSingleton = false,List())
+  val typ = new TouchType(typName,isSingleton = false,List(field_header_storage, field_method, field_url,
+    field_content, field_content_as_json, field_content_as_picture, field_content_as_xml))
 
 }
 
@@ -34,60 +56,27 @@ class TWeb_Request extends AAny {
     //   Top[S](TBoolean.typ)
 
     /** Gets the value of a given header */
-    // case "header" => 
-    //   val List(name) = parameters // String
-    //   Top[S](TString.typ)
+    case "header" =>
+      val List(name) = parameters // String
+      Return[S](CollectionAt[S](Field[S](this0,TWeb_Request.field_header_storage),name))
 
     /** Gets the names of the headers */
-    // case "header_names" => 
+    // case "header_names" =>
     //   Top[S](TString_Collection.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the names of the headers */
-    //   val field_header_names = new TouchField("header_names",TString_Collection.typ)
-
-    /** Gets whether it was a 'get' or a 'post'. */
-    // case "method" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets whether it was a 'get' or a 'post'. */
-    //   val field_method = new TouchField("method",TString.typ)
 
     /** Performs the request synchronously */
-    // case "send" => 
-    //   Top[S](TWeb_Response.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Performs the request synchronously */
-    //   val field_send = new TouchField("send",TWeb_Response.typ)
+    case "send" =>
+      Top[S](TWeb_Response.typ,Map(TWeb_Response.field_request -> this0))
 
     /** Sets the Accept header type ('text/xml' for xml, 'application/json' for json). */
-    // case "set_accept" => 
-    //   val List(type) = parameters // String
-    //   Skip;
+    case "set_accept" =>
+      val List(typ) = parameters // String
+      CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),StringCst("Accept"),typ)
 
     /** Compresses the request content with gzip and sets the Content-Encoding header */
     // case "set_compress" => 
     //   val List(value) = parameters // Boolean
-    //   Skip;
-
-    /** Sets the content of a 'post' request */
-    // case "set_content" => 
-    //   val List(content) = parameters // String
-    //   Skip;
-
-    /** Sets the content of a 'post' request as the JSON tree */
-    // case "set_content_as_json" => 
-    //   val List(json) = parameters // Json_Object
-    //   Skip;
-
-    /** Sets the content of a 'post' request as a JPEG encoded image. Quality from 0 (worse) to 1 (best). */
-    // case "set_content_as_picture" => 
-    //   val List(picture,quality) = parameters // Picture,Number
-    //   Skip;
-
-    /** Sets the content of a 'post' request as the XML tree */
-    // case "set_content_as_xml" => 
-    //   val List(xml) = parameters // Xml_Object
-    //   Skip;
+    //  CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),StringCst("Content-Encoding"),value)
 
     /** Sets the name and password for basic authentication. Requires an HTTPS URL, empty string clears. */
     // case "set_credentials" => 
@@ -95,28 +84,9 @@ class TWeb_Request extends AAny {
     //   Skip;
 
     /** Sets an HTML header value. Empty string clears the value */
-    // case "set_header" => 
-    //   val List(name,value) = parameters // String,String
-    //   Skip;
-
-    /** Sets the method as 'get' or 'post'. Default value is 'get'. */
-    // case "set_method" => 
-    //   val List(method) = parameters // String
-    //   Skip;
-
-    /** Sets the url of the request. Must be a valid internet address. */
-    // case "set_url" => 
-    //   val List(url) = parameters // String
-    //   Skip;
-
-    /** Gets the url of the request */
-    // case "url" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the url of the request */
-    //   val field_url = new TouchField("url",TString.typ)
-
-    // FIELDS: , field_header_names, field_method, field_send, field_url
+    case "set_header" =>
+      val List(name,value) = parameters // String,String
+      CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),name,value)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

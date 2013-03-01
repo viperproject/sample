@@ -81,7 +81,7 @@ object ExpressionFactory {
   
 }
 
-class ExpressionSet(val typ : Type) extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet](typ, new SetOfExpressions()) {
+class ExpressionSet(typ : Type) extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet](typ, new SetOfExpressions()) {
 
   def getType() : Type = this._1.glb(this._1, this.computeType())
 
@@ -121,12 +121,12 @@ class ExpressionSet(val typ : Type) extends CartesianProductDomain[Type, SetOfEx
     var result : SetOfExpressions = this._2.factory()
     for(key <- getSetOfExpressions)
       result=result.add(new NegatedBooleanExpression(key))
-    new ExpressionSet(this.typ, result)
+    new ExpressionSet(getType(), result)
   }
 
   def factory() : ExpressionSet =
     new ExpressionSet(
-      if(typ==null) {if(SystemParameters.typ!=null) SystemParameters.typ.top(); else null} else typ.top(),
+      if(getType()==null) {if(SystemParameters.typ!=null) SystemParameters.typ.top(); else null} else getType().top(),
       new SetOfExpressions()
     )
 

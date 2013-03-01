@@ -13,7 +13,7 @@ import RichNativeSemantics._
 object TString_Collection {
 
   val typName = "String_Collection"
-  val typ = TouchCollection(typName,"Number","String")
+  val typ = TouchCollection(typName,TNumber.typName,TString.typName)
 
 }
 
