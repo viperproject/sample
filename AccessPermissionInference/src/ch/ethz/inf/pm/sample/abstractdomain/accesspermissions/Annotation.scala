@@ -393,7 +393,7 @@ object Annotation {
 	  s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
 	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression(), field, s);
-        val exprs = id1.setOfExpressions;
+        val exprs = id1.getSetOfExpressions;
         if(exprs.size!=1)
         	return pd;
         val exp=exprs.head
@@ -409,7 +409,7 @@ object Annotation {
 	  s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
 	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression(), field, s);
-        val exprs = id1.setOfExpressions;
+        val exprs = id1.getSetOfExpressions;
         var perm=pd;
         for(exp <- exprs )
 	    	perm=perm.exhale(exp.asInstanceOf[Identifier], p);

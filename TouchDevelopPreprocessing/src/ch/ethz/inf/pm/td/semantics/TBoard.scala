@@ -186,7 +186,7 @@ class TBoard extends ACollection {
 
     // True if board is touched
     case "touched" =>
-      Return[S](0 or 1)
+      Return[S](True,False)
 
     // Make updates visible.
     case "update_on_wall" =>

@@ -67,9 +67,8 @@ class TVector3 extends AAny {
       val y = Field[S](this0,TVector3.field_y) - Field[S](other,TVector3.field_y)
       val z = Field[S](this0,TVector3.field_z) - Field[S](other,TVector3.field_z)
       val disSquare = x * x + y * y + z * z
-      val distance = 0 ndTo (disSquare or 1)
       // PRECISION: Imprecise square root
-      Return(distance)
+      Return[S](0 ndTo disSquare, 0 ndTo 1)
 
     /** Gets the length of the vector */
     case "length" =>
@@ -77,9 +76,8 @@ class TVector3 extends AAny {
       val thisY = Field[S](this0,TVector3.field_y)
       val thisZ = Field[S](this0,TVector3.field_z)
       val lenSquare = thisX * thisX + thisY * thisY + thisZ * thisZ
-      val length = 0 ndTo (lenSquare or 1)
       // PRECISION: Imprecise square root
-      Return(length)
+      Return[S](0 ndTo lenSquare,0 ndTo 1)
 
     /** Linear interpolation between two vectors */
     case "linear_interpolation" =>
@@ -124,10 +122,6 @@ class TVector3 extends AAny {
       val y = Field[S](this0,TVector3.field_y) - Field[S](other,TVector3.field_y)
       val z = Field[S](this0,TVector3.field_z) - Field[S](other,TVector3.field_z)
       New[S](TVector3.typ,x,y,z)
-
-    /** Turns the vector into a string */
-    case "to_string" =>
-      Top[S](TString.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

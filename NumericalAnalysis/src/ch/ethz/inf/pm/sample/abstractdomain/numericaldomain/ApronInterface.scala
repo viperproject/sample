@@ -609,7 +609,8 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       topExpression()
 		case x : Identifier => new Texpr1VarNode(x.getName);
     case setId : HeapIdSetDomain[Identifier] =>
-      if(setId.value.size!=1) throw new ApronException("Not yet supported")
+      if (setId.isTop) topExpression()
+      else if(setId.value.size!=1) throw new ApronException("Not yet supported")
       else new Texpr1VarNode(setId.value.iterator.next().getName());
 		case Constant(v, typ, p) =>
       if (typ.isNumericalType())
@@ -624,7 +625,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		case UnaryArithmeticExpression(left, op, typ) => op match {
 			case ArithmeticOperator.- => new Texpr1UnNode(Texpr1UnNode.OP_NEG, this.toTexpr1Node(left))
 		}
-    case _ => new Texpr1CstNode(new DoubleScalar(0)) // todo delete
+    case _ => throw new SemanticException("Unhandled expression type.")
 	}
 	
 	private def convertArithmeticOperator(op : ArithmeticOperator.Value) : Int = op match {

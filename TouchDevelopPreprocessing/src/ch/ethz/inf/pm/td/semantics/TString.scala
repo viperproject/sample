@@ -56,7 +56,7 @@ class TString extends AAny {
     /** Returns a value indicating if the second string is contained */
     case "contains" =>
       val List(value) = parameters // String
-      Return[S](True or False)
+      Return[S](True,False)
 
     /** Stores text in the clipboard */
     case "copy_to_clipboard" =>
@@ -70,12 +70,12 @@ class TString extends AAny {
     /** Checks if two strings are the same */
     case "equals" =>
       val List(other) = parameters
-      Return[S]((Field[S](this0,TString.field_count) equal Field[S](other,TString.field_count)) or False)
+      Return[S]((Field[S](this0,TString.field_count) equal Field[S](other,TString.field_count)),False)
 
     /** Returns the index of the first occurence if found starting at a given position */
     case "index_of" =>
       val List(value,start) = parameters // String,Number
-      Return[S]((start ndTo (Field[S](this0,TString.field_count) - 1)) or Invalid(TNumber.typ))
+      Return[S]((start ndTo (Field[S](this0,TString.field_count) - 1)),Invalid(TNumber.typ))
 
     /** Inserts a string at a given position */
     // case "insert" => 

@@ -8,9 +8,6 @@ import ch.ethz.inf.pm.td.webapi.Scripts
 import ch.ethz.inf.pm.td.transform.{Matcher, LoopRewriter}
 import ch.ethz.inf.pm.td.semantics._
 import scala.Some
-import scala.Some
-import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
-import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.td.parser.Script
 
@@ -118,7 +115,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   type RunnableMethods = Map[ClassDefinition,Set[RunnableMethodDeclaration]]
   var runnableMethods : RunnableMethods = Map.empty
-  var usedEnvironmentFragment : Set[String] = Set.empty
+  var relevantLibraryFields : Set[String] = Set.empty
 
   /**
   Takes a path OR a URL
@@ -133,7 +130,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
     val script = LoopRewriter(ScriptParser(scriptStr))
     Typer.processScript(script)
-    discoverUsedEnvironmentFragment(script)
     val main = CFGGenerator.process(script,pubID)
     var cfgs = List(main)
     parsedScripts = cfgs ::: parsedScripts
@@ -143,6 +139,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       cfgs = cfgs ::: compileFile(Scripts.codeURLfromPubID(id))
     }
     runnableMethods = discoverRunnableMethods(List(main))
+    relevantLibraryFields = RequiredLibraryFragmentAnalysis(cfgs)
     cfgs
   }
 
@@ -272,36 +269,48 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     })
   }
 
-  private def discoverUsedEnvironmentFragment(script:Script) {
-
-    def checkEnv (e:Expression) {
-      e match {
-        // A list of functions depending on the environment. TODO: Solve this properly
-        case Access(SingletonReference("home"),"choose_player",Nil) =>
-          usedEnvironmentFragment += "home"
-          usedEnvironmentFragment += "home.players"
-        case Access(SingletonReference("home"),"choose_printer",Nil) =>
-          usedEnvironmentFragment += "home"
-          usedEnvironmentFragment += "home.printers"
-        case Access(SingletonReference("home"),"choose_server",Nil) =>
-          usedEnvironmentFragment += "home"
-          usedEnvironmentFragment += "home.servers"
-        // Direct accesses to environment
-        case Access(SingletonReference(singleton),property,Nil) =>
-          types.get(singleton) match {
-            case Some(t) =>
-              if (t.isSingleton && t.getPossibleFieldsSorted().find(_.getName() == property).isDefined) {
-                usedEnvironmentFragment += singleton
-                usedEnvironmentFragment += (singleton+"."+property)
-              }
-            case None => throw TouchException("Unknown Singleton used here!")
-          }
-        case _ => ()
-      }
-    }
-
-    Matcher(script)( { _ => }, { _ => }, ( checkEnv _ ) )
-  }
+//  private def discoverUsedEnvironmentFragment(script:Script) {
+//
+//    def checkEnv (e:Expression) {
+//      e match {
+//        // A list of functions depending on the environment. TODO: Solve this properly
+//        case Access(SingletonReference("home"),"choose_player",Nil) =>
+//          usedEnvironmentFragment += "home"
+//          usedEnvironmentFragment += "home.players"
+//        case Access(SingletonReference("home"),"choose_printer",Nil) =>
+//          usedEnvironmentFragment += "home"
+//          usedEnvironmentFragment += "home.printers"
+//        case Access(SingletonReference("home"),"choose_server",Nil) =>
+//          usedEnvironmentFragment += "home"
+//          usedEnvironmentFragment += "home.servers"
+//        case Access(SingletonReference("senses"),"acceleration_quick",Nil) =>
+//          usedEnvironmentFragment += "senses"
+//          usedEnvironmentFragment += "senses.has_accelerometer"
+//        case Access(obj,property,params) =>
+//          val typ = obj.typeName.toString
+//          types.get(typ) match {
+//            case Some(t) =>
+//
+//              // Check if a field with the corresponding name exists.
+//              if (params.isEmpty && t.getPossibleFieldsSorted().find(_.getName() == property).isDefined) {
+//                if (t.isSingleton) usedEnvironmentFragment += typ
+//                usedEnvironmentFragment += (typ+"."+property)
+//              }
+//
+//              // Check if a setter with with the corresponding name exists.
+//              if (params.size == 1 && t.getPossibleFieldsSorted().find("set_"+_.getName() == property).isDefined) {
+//                if (t.isSingleton) usedEnvironmentFragment += typ
+//                usedEnvironmentFragment += (typ+"."+property.substring(4))
+//              }
+//
+//            case None => throw TouchException("Unknown type used here!")
+//          }
+//        case _ => ()
+//      }
+//    }
+//
+//    Matcher(script)( { _ => }, { _ => }, ( checkEnv _ ) )
+//  }
 
   /**
    * USING THIS METHOD, YOU GET THE SEMANTICS FOR A FUNCTION THAT IS CALLED FROM ANOTHER FUNCTION
@@ -363,7 +372,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   def reset() {
     runnableMethods = Map.empty
     parsedIDs = Set.empty
-    usedEnvironmentFragment = Set.empty
+    relevantLibraryFields = Set.empty
     parsedScripts = Nil
   }
 

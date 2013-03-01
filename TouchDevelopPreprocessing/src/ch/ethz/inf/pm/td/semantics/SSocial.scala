@@ -96,7 +96,7 @@ class SSocial extends AAny {
     /** Searches for places nearby. The distance is in meters. */
     case "search_places_nearby" =>
       val List(network,terms,location,distance) = parameters // String,String,Location,Number
-      Error[S](toRichExpression(Environment.isConnected).not, "search_places_nearby",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not, "search_places_nearby",
         "Check first if an internet connection is available")
       Top[S](TPlace_Collection.typ)
 

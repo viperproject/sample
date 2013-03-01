@@ -116,6 +116,7 @@ final class SingleStatementProperty(val visitor : Visitor) extends Property {
         	  	case x : ControlFlowGraph =>
         	  		val result=new ControlFlowGraphExecution[S](x, state).forwardSemantics(state);
         	  		this.check(className, methodName, result, printer);
+              case _ => () // TODO
         	  }
   
 }

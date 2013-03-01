@@ -41,7 +41,7 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 			case Some((l, r)) => {
 				val sl = l.forwardSemantics(s)
 				val sa = stmt.forwardSemantics(s)
-				for (pl <- sl.getExpression.setOfExpressions) {
+				for (pl <- sl.getExpression.getSetOfExpressions) {
 					pl match {
 						case VariableIdentifier(v, _, pp) => {
 							if (v == variable) {

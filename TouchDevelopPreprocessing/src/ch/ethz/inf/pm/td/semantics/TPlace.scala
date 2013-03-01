@@ -51,10 +51,6 @@ class TPlace extends AAny {
     case "check_in" =>
       Skip
 
-    /** Converts to a string name,lat,long */
-    case "to_string" =>
-      Top[S](TString.typ)
-
     case _ =>
       super.forwardSemantics(this0,method,parameters)
 

@@ -27,7 +27,7 @@ class TString_Collection extends AMutable_Collection {
     /** Indicates if the collection contains the item */
     case "contains" =>
       val List(item) = parameters // String
-      Return[S](True or False)
+      Top[S](TBoolean.typ)
 
     /** Concatenates the separator and items into a string */
     case "join" =>

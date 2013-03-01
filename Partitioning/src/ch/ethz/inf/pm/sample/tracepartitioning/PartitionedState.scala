@@ -65,7 +65,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 * in the leaf states. 
 	 */
 	lazy val programPoints: List[ProgramPoint] = {
-		getExpression.setOfExpressions.map(_.p).toList
+		getExpression.getSetOfExpressions.map(_.p).toList
 	}
 
 	/**
@@ -483,7 +483,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    */
 	override def getExpression: ExpressionSet = {
 		var expr = new ExpressionSet(SystemParameters.typ.top())//TODO:Maybe I could be more precise
-		for (s <- partitioning.states; e <- s.getExpression.setOfExpressions)
+		for (s <- partitioning.states; e <- s.getExpression.getSetOfExpressions)
 			expr = expr.add(e)
 		expr
 	}
@@ -554,7 +554,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    */
 	private[this] def mapValue(x: ExpressionSet, f: (D, ExpressionSet) => D): PartitionedState[D] = {
 		val separate = for {
-      ex <- x.setOfExpressions
+      ex <- x.getSetOfExpressions
       val px = this.partitioning
       val pc = partitioning.zipmap(px, (s1: D, s2: D) => f(s1, new ExpressionSet(x.getType()).add(ex)))
     } yield new PartitionedState(pc)
@@ -578,8 +578,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    */
   private[this] def mapValues(x: ExpressionSet, y: ExpressionSet, f: (D, ExpressionSet, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
-      ex <- x.setOfExpressions
-      ey <- y.setOfExpressions
+      ex <- x.getSetOfExpressions
+      ey <- y.getSetOfExpressions
       val px = this.partitioning
       val py = this.partitioning
       val pc = partitioning.zipmap(List(px, py), (s: D, ss: List[D]) => f(s, new ExpressionSet(x.getType()).add(ex), new ExpressionSet(y.getType()).add(ey)))
@@ -605,9 +605,9 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    */
   private[this] def mapValues(x: ExpressionSet, y: ExpressionSet, z: ExpressionSet, f: (D, ExpressionSet, ExpressionSet, ExpressionSet) => D): PartitionedState[D] = {
     val separate = for {
-      ex <- x.setOfExpressions
-      ey <- y.setOfExpressions
-      ez <- z.setOfExpressions
+      ex <- x.getSetOfExpressions
+      ey <- y.getSetOfExpressions
+      ez <- z.getSetOfExpressions
       val px = this.partitioning
       val py = this.partitioning
       val pz = this.partitioning
@@ -631,7 +631,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	private[this] def mapValueList(xs: List[ExpressionSet], f: (D, List[ExpressionSet]) => D): PartitionedState[D] = {
     val separate = for {
       cx <- combinations(xs)
-      val es = cx.map(_.setOfExpressions.head)
+      val es = cx.map(_.getSetOfExpressions.head)
       val ps = for ((e, v) <- es.zip(cx)) yield this.partitioning
       val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield new ExpressionSet(e.getType()).add(e)))
     } yield new PartitionedState(pc)
@@ -656,7 +656,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
       cx <- combinations(xs)
       cy <- combinations(ys)
       val n = cx.length
-      val es = cx.map(_.setOfExpressions.head):::cy.map(_.setOfExpressions.head)
+      val es = cx.map(_.getSetOfExpressions.head):::cy.map(_.getSetOfExpressions.head)
       val ps = for ((e, v) <- es.zip(cx:::cy)) yield this.partitioning
       val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => {
         f(s,
@@ -678,7 +678,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 * @return The list of deterministic combinations of the argument
    */
   private[this] def combinations(xs: List[ExpressionSet]): List[List[ExpressionSet]] = xs match {
-    case x::xs => (for (ex <- x.setOfExpressions; ps <- combinations(xs)) yield new ExpressionSet(x.getType()).add(ex) :: ps).toList
+    case x::xs => (for (ex <- x.getSetOfExpressions; ps <- combinations(xs)) yield new ExpressionSet(x.getType()).add(ex) :: ps).toList
     case Nil => Nil
   }
 

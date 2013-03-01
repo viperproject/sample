@@ -216,7 +216,7 @@ class SMath extends AAny {
     case "sqrt" =>
       val List(x) = parameters // Number
       Error[S](x < 0, "Might compute the square root of a negative number")
-      Return[S]((0 ndTo x) or (x ndTo 1)) // PRECISION: This is very rough
+      Return[S]((0 ndTo x),(x ndTo 1)) // PRECISION: This is very rough
 
     /** Returns the tangent of the specified angle (in radians) */
     case "tan" =>

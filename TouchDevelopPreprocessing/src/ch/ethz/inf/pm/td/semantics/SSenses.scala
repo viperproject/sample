@@ -15,8 +15,21 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object SSenses {
 
+  /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
+  val field_has_accelerometer = new TouchField("has_accelerometer",TBoolean.typ)
+
+  /** DEPRECATED. Test if the senses→heading is invalid instead */
+  val field_has_compass = new TouchField("has_compass",TBoolean.typ)
+
+  /** DEPRECATED. Test if the senses→front camera is invalid instead */
+  val field_has_front_camera = new TouchField("has_front_camera",TBoolean.typ)
+
+  /** Indicates if the gyroscope is available on the device */
+  val field_has_gyroscope = new TouchField("has_gyroscope",TBoolean.typ)
+
   val typName = "senses"
-  val typ = new TouchType(typName,isSingleton = true,List())
+  val typ = new TouchType(typName,isSingleton = true,
+    List(field_has_accelerometer,field_has_compass,field_has_front_camera,field_has_gyroscope))
 
 }
 
@@ -29,17 +42,17 @@ class SSenses extends AAny {
 
     /** Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */
     case "acceleration_quick" =>
-       Error[S](RichExpression(Environment.hasAccelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
+       Error[S](Field[S](this0,SSenses.field_has_accelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
        New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
 
     /** Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */
     case "acceleration_smooth" =>
-       Error[S](RichExpression(Environment.hasAccelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
+       Error[S](Field[S](this0,SSenses.field_has_accelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
        New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
 
     /** Gets filtered and temporally averaged accelerometer data using an arithmetic mean of the last 25 'optimally filtered' samples, so over 500ms at 50Hz on each axis, to virtually eliminate most sensor noise. This provides a very stable reading but it has also a very high latency and cannot be used for rapidly reacting UI. */
     case "acceleration_stable" =>
-       Error[S](RichExpression(Environment.hasAccelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
+       Error[S](Field[S](this0,SSenses.field_has_accelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
        New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
 
     /** Gets the primary camera if available */
@@ -68,31 +81,15 @@ class SSenses extends AAny {
     //   /** Gets the front facing camera if available */
     //   field_front_camera = new TouchField("front_camera",TCamera.typ)
 
-    /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
-    case "has_accelerometer" =>
-      Return[S](Environment.hasAccelerometer)
-
-    /** DEPRECATED. Test if the senses→heading is invalid instead */
-    case "has_compass" =>
-      Return[S](Environment.hasCompass)
-
-    /** DEPRECATED. Test if the senses→front camera is invalid instead */
-    case "has_front_camera" =>
-      Return[S](Environment.hasFrontCamera)
-
-    /** Indicates if the gyroscope is available on the device */
-    case "has_gyroscope" =>
-      Return[S](Environment.hasGyroscope)
-
     /** DEPRECATED. Test if the senses→motion is invalid instead. */
     case "has_motion" =>
-      Return[S](RichExpression(Environment.hasAccelerometer)
-        && RichExpression(Environment.hasCompass)
-        && RichExpression(Environment.hasGyroscope))
+      Return[S](Field[S](this0,SSenses.field_has_accelerometer)
+        && Field[S](this0,SSenses.field_has_compass)
+        && Field[S](this0,SSenses.field_has_gyroscope))
 
     /** Gets the compass heading, in degrees, measured clockwise from the Earth's geographic north. */
      case "heading" =>
-       Error[S](RichExpression(Environment.hasCompass).not(),"retrieving heading requires checking for a compass first!")
+       Error[S](Field[S](this0,SSenses.field_has_compass).not(),"retrieving heading requires checking for a compass first!")
        Top[S](TNumber.typ)
 
     /** Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */
@@ -104,9 +101,9 @@ class SSenses extends AAny {
 
     /** Gets the current motion that combines data from the accelerometer, compass and gyroscope if available. */
     case "motion" =>
-      Error((RichExpression(Environment.hasAccelerometer)
-        && RichExpression(Environment.hasCompass)
-        && RichExpression(Environment.hasGyroscope)).not(),
+      Error((Field[S](this0,SSenses.field_has_accelerometer)
+        && Field[S](this0,SSenses.field_has_compass)
+        && Field[S](this0,SSenses.field_has_gyroscope)).not(),
         "The mobile phone might not have the correct capabilities for this!")(state,pp)
       Skip
 

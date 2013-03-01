@@ -16,8 +16,11 @@ import RichExpression._
 
 object SColors {
 
+  // Indicates if the user is using a light theme in his phone
+  val field_is_light_theme = new TouchField("is_light_theme",TBoolean.typ)
+
   val typName = "colors"
-  val typ = new TouchType(typName, isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true,List(field_is_light_theme))
 
 }
 
@@ -105,10 +108,6 @@ class SColors extends AAny {
     // Gets the color that has the ARGB value of #FF008000
     case "green" =>
       New(TColor.typ,1,0, 0.502, 0) // TODO: Precision?
-
-    // Indicates if the user is using a light theme in his phone
-    case "is_light_theme" =>
-      Return(Environment.isLightTheme)
 
     //Gets the color that has the ARGB value of #FFD3D3D3
     case "light_gray" =>

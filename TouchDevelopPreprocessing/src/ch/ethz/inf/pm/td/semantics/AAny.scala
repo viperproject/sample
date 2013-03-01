@@ -31,8 +31,7 @@ abstract class AAny extends NativeMethodSemantics {
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
       if (state.lessEqual(state.bottom())) {
-        SystemParameters.progressOutput.put("State is bottom at "+pp)
-        return Some(state)
+        return Some(state.bottom())
       }
 
       if (thisExpr.getType().toString() == getTypeName) {
@@ -87,7 +86,10 @@ abstract class AAny extends NativeMethodSemantics {
       Skip // TODO: create reference from wall to this?
 
     case "∥" =>
-      Top[S](TString.typ)(state,pp)
+      Top[S](TString.typ)
+
+    case "to_string" =>
+      Top[S](TString.typ)
 
     case "is_invalid" =>
       Return[S](this0 equal Invalid(this0.getType())(pp))(state,pp)

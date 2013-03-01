@@ -2,6 +2,17 @@ package ch.ethz.inf.pm.td.domain
 
 import ch.ethz.inf.pm.sample.abstractdomain.SetDomain
 
+
+object BooleanDomain {
+
+  // Helper values
+  def domBottom = (new BooleanDomain()).bottom()
+  def domInvalid = (new BooleanDomain()).add(true)
+  def domValid = (new BooleanDomain()).add(false)
+  def domTop = (new BooleanDomain()).top()
+
+}
+
 /**
  * 
  * Lucas Brutschy

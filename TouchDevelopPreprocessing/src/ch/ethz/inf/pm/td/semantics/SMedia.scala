@@ -114,7 +114,7 @@ class SMedia extends AAny {
     /** Searches the Windows Phone Marketplace (type in applications or music) */
     case "search_marketplace" =>
       val List(terms,typ) = parameters // String,String
-      Error[S](toRichExpression(Environment.isConnected).not,"search_marketplace",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not,"search_marketplace",
         "Check if the device is connected to the internet before using the connection")
       Skip
 

@@ -154,13 +154,6 @@ class TDateTime extends AAny {
     //   /** Converts to the local time */
     //   val field_to_local_time = new TouchField("to_local_time",TDateTime.typ)
 
-    /** Converts a dates to a string */
-    // case "to_string" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Converts a dates to a string */
-    //   val field_to_string = new TouchField("to_string",TString.typ)
-
     /** Converts coordinated universal time */
     // case "to_universal_time" => 
     //   Top[S](TDateTime.typ)

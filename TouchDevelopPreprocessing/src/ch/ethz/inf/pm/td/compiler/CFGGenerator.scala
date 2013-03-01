@@ -150,7 +150,8 @@ object CFGGenerator {
         case v@parser.VariableDefinition(variable,flags) =>
           val programPoint : ProgramPoint = TouchProgramPoint(v.pos)
           val modifiers : List[Modifier] = (flags flatMap {
-            case ("is\\_resource",true) => Some(ResourceModifier)
+            case ("is\\_resource","true") => Some(ResourceModifier)
+            case ("readonly","true") => Some(ReadOnlyModifier)
             case _ => None
           }).toList
           val name : Variable = parameterToVariable(variable)
@@ -490,6 +491,7 @@ case class TouchCollection(name:String,keyType:String,valueType:String, fields: 
  * mostly images loaded from URLs.
  */
 case object ResourceModifier extends Modifier
+case object ReadOnlyModifier extends Modifier
 
 
 /**

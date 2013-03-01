@@ -27,8 +27,8 @@ class TSprite_Set extends AMutable_Collection {
     /** Add sprite to set. Returns true if sprite was not already in set. */
     case "add" =>
       val List(sprite) = parameters // Sprite
-      super.forwardSemantics(this0,method,parameters)
-      Return[S](True or False)
+      val state1 = super.forwardSemantics(this0,method,parameters)
+      Top[S](TBoolean.typ)(state1,pp)
 
     /** Add sprite to set and remove from old set. Returns true if sprite was in old set and not in new set. */
     //case "add_from" =>

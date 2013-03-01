@@ -153,7 +153,7 @@ class MethodDeclaration(
  */
 class FieldDeclaration(
                       programpoint : ProgramPoint,
-                      modifiers : List[Modifier],
+                      val modifiers : List[Modifier],
                       val name : Variable, 
                       typ_ : Type,
                       right : Statement

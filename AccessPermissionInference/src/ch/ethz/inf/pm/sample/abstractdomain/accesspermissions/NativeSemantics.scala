@@ -16,7 +16,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	    var result : P=castedState._1._1;
 	    parameters match {
 	    case x :: Nil =>
-	      val ids = x.setOfExpressions;
+	      val ids = x.getSetOfExpressions;
 	      operator match {
 		    case "share" =>   
 			      for(exp <- ids)
@@ -52,8 +52,8 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	      }
     
 	    case x :: y :: Nil =>
-	      val ids = x.setOfExpressions;
-	      val pexpr=y.setOfExpressions;
+	      val ids = x.getSetOfExpressions;
+	      val pexpr=y.getSetOfExpressions;
 	      if(pexpr.size!=1) return None;
 	      val predicate=pexpr.head;
 	      predicate match {
@@ -72,13 +72,13 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
                   case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhalePredicate(id, s, castedState)
 					  	  }
 			    case "fork" =>
-			      if(y.setOfExpressions.size != 1) return None;
+			      if(y.getSetOfExpressions.size != 1) return None;
 				    //It applies pre and post conditions if these exist
-			      y.setOfExpressions.head match {
+			      y.getSetOfExpressions.head match {
 			        case Constant(s, typ, pp) =>
 					    val castedState=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]];
 					    var result=castedState._1._1;
-				        for(exp <- x.setOfExpressions)
+				        for(exp <- x.getSetOfExpressions)
 							    	  exp match {
 							    	    case id : Identifier => result = Annotation.exhalePrecondition(id, x.getType().toString(), s, castedState, result);
                         case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, x.getType().toString(), s, castedState, result);
@@ -96,13 +96,13 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 					  	return exhale[S, P](solvedPrecondition, state);*/
 				}
 			    case "join" =>
-			      if(y.setOfExpressions.size != 1) return None;
+			      if(y.getSetOfExpressions.size != 1) return None;
 				    //It applies pre and post conditions if these exist
-			      y.setOfExpressions.head match {
+			      y.getSetOfExpressions.head match {
 			        case Constant(s, typ, pp) =>
 					    val castedState=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]];
 					    var result=castedState._1._1;
-				        for(exp <- x.setOfExpressions)
+				        for(exp <- x.getSetOfExpressions)
 							    	  exp match {
 							    	    case id : Identifier => result = Annotation.inhalePostcondition(id, x.getType().toString(), s, castedState, result);
                         case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => Annotation.inhalePostcondition(id, x.getType().toString(), s, castedState, result);
@@ -140,12 +140,12 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	 		return new Some(state);
 	  val castedState=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]];
 	  var result=castedState._1._1;
-    for(exp <- thisExpr.setOfExpressions)
+    for(exp <- thisExpr.getSetOfExpressions)
 		  exp match {
 		    case id : Identifier => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
         case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, className, operator, castedState, result);
 		  }
-    for(exp <- thisExpr.setOfExpressions)
+    for(exp <- thisExpr.getSetOfExpressions)
 		  exp match {
 		    case id : Identifier => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
 		    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);

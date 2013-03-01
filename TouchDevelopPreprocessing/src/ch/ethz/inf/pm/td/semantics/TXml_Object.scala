@@ -96,13 +96,6 @@ class TXml_Object extends AAny {
     //   /** Gets the namespace of this element */
     //   val field_namespace = new TouchField("namespace",TString.typ)
 
-    /** Gets an xml string */
-    // case "to_string" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets an xml string */
-    //   val field_to_string = new TouchField("to_string",TString.typ)
-
     /** Gets the concatenated text contents of this element */
     // case "value" => 
     //   Top[S](TString.typ)

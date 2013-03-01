@@ -41,8 +41,12 @@
         <CLASSES>
           <root url="jar://$MODULE_DIR$/lib/jgraphx.jar!/" />
         </CLASSES>
-        <JAVADOC />
-        <SOURCES />
+        <JAVADOC>
+          <root url="jar://$MODULE_DIR$/lib/jgraphx-doc.jar!/" />
+        </JAVADOC>
+        <SOURCES>
+          <root url="jar://$MODULE_DIR$/lib/jgraphx-src.jar!/" />
+        </SOURCES>
       </library>
     </orderEntry>
     <orderEntry type="module" module-name="Partitioning" />

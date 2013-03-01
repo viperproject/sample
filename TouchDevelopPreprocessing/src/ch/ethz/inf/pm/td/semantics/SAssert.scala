@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{State, ExpressionSet}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
@@ -17,8 +17,27 @@ object SAssert {
 
   val typName = "assert"
   val typ = new TouchType(typName, isSingleton = true)
+//
+//  val methods = Map(
+//    "is_true" -> new LibraryMethod("is_true") {
+//      def semantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+//        Error[S]((parameters.head).not(), "Assertion "+parameters.head+" does not hold!")
+//        Skip
+//      }
+//    }
+//
+//  )
 
 }
+
+//abstract class LibraryMethod(name:String) {
+//
+//  def getName:String = name
+//  def semantics[S <: State[S]](this0:ExpressionSet, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S
+//  def mayRead:List[TouchField] = Nil
+//  def mayWrite:List[TouchField] = Nil
+//
+//}
 
 class SAssert extends AAny {
 

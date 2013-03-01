@@ -20,7 +20,7 @@ object InterferenceInference {
            val state = assignment.left.forwardSemantics(cfgex.nodes.apply(i).apply(indexstatement));
            val assigned = state.getExpression();
            var assignedids : Set[Identifier] = Set.empty;
-           for(e <- assigned.setOfExpressions)
+           for(e <- assigned.getSetOfExpressions)
              if(e.isInstanceOf[HeapIdSetDomain[I]])
                assignedids ++= e.asInstanceOf[HeapIdSetDomain[I]].value
            if(! assignedids.isEmpty)

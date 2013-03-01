@@ -43,7 +43,7 @@ class SHome extends AAny {
     /** Choose a media player on the current wireless network */
     case "choose_player" =>
       IfPossible[S]( CollectionSize[S](Field[S](this0,SHome.field_players)) equal 0, then = {
-        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_players)) or Invalid(TMedia_Player.typ))
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_players)),Invalid(TMedia_Player.typ))
       }, els = {
         Return[S](CollectionSummary[S](Field[S](this0,SHome.field_players)))
       })
@@ -51,7 +51,7 @@ class SHome extends AAny {
     /** Choose a printer on the current wireless network */
     case "choose_printer" =>
       IfPossible[S]( CollectionSize[S](Field[S](this0,SHome.field_printers)) equal 0, then = {
-        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_printers)) or Invalid(TPrinter.typ))
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_printers)),Invalid(TPrinter.typ))
       }, els = {
         Return[S](CollectionSummary[S](Field[S](this0,SHome.field_printers)))
       })
@@ -59,7 +59,7 @@ class SHome extends AAny {
     /** Choose a media server on the current wireless network */
     case "choose_server" =>
       IfPossible[S]( CollectionSize[S](Field[S](this0,SHome.field_servers)) equal 0, then = {
-        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_servers)) or Invalid(TMedia_Server.typ))
+        Return[S](CollectionSummary[S](Field[S](this0,SHome.field_servers)),Invalid(TMedia_Server.typ))
       }, els = {
         Return[S](CollectionSummary[S](Field[S](this0,SHome.field_servers)))
       })

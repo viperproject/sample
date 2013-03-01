@@ -86,13 +86,6 @@ class TJson_Object extends ACollection {
     //   /** Converts to a number (type must be number) */
     //   val field_to_number = new TouchField("to_number",TNumber.typ)
 
-    /** Converts to a string (type must be string) */
-    // case "to_string" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Converts to a string (type must be string) */
-    //   val field_to_string = new TouchField("to_string",TString.typ)
-
     /** Converts and parses to a date time (type must be string) */
     // case "to_time" => 
     //   Top[S](TDateTime.typ)

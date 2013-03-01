@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchCompiler}
 import apron.{Environment, Abstract1, Octagon}
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, NonRelationalNumericalDomain, ApronInterface}
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysis, TouchAnalysisWithApron}
+import ch.ethz.inf.pm.td.analysis.{BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
 import java.io.{StringWriter, PrintWriter}
 
 class TouchProperty extends ch.ethz.inf.pm.sample.property.Property {
@@ -34,7 +34,7 @@ object TouchRun {
     }
 
     SystemParameters.compiler = new TouchCompiler
-    SystemParameters.property = null
+    SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
 
@@ -95,7 +95,7 @@ object TouchApronRun {
     }
 
     SystemParameters.compiler = new TouchCompiler
-    SystemParameters.property = null
+    SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
     SystemParameters.analysisOutput = new StdOutOutput()
     SystemParameters.progressOutput = new StdOutOutput()
 

@@ -23,8 +23,11 @@ object SWeb {
   /** Gets the type of the network servicing Internet requests (unknown, none, ethernet, wifi, mobile) */
   val field_connection_type = new TouchField("connection_type",TString.typ)
 
+  /** Indicates whether any network connection is available */
+  val field_is_connected = new TouchField("is_connected",TBoolean.typ)
+
   val typName = "web"
-  val typ = new TouchType(typName,isSingleton = true,List(field_connection_name,field_connection_type))
+  val typ = new TouchType(typName,isSingleton = true,List(field_connection_name,field_connection_type,field_is_connected))
 
 }
 
@@ -48,7 +51,7 @@ class SWeb extends AAny {
     /** Opens a web browser to a url */
     case "browse" =>
       val List(url) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"browse",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"browse",
         "Check if the device is connected to the internet before using the connection")
       // TODO: Might be invalid
       Skip
@@ -61,7 +64,7 @@ class SWeb extends AAny {
     /** Downloads the content of an internet page (http get) */
     case "download" =>
       val List(url) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"download",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download",
         "Check if the device is connected to the internet before using the connection")
       // TODO: Might be invalid
       Top[S](TString.typ)
@@ -69,7 +72,7 @@ class SWeb extends AAny {
     /** Downloads a web service response as a JSON data structure (http get) */
     case "download_json" =>
       val List(url) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"download_json",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download_json",
         "Check if the device is connected to the internet before using the connection")
       // TODO: Might be invalid
       New[S](TJson_Object.typ)
@@ -77,7 +80,7 @@ class SWeb extends AAny {
     /** Downloads a picture from internet */
     case "download_picture" =>
       val List(url) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"download_picture",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download_picture",
         "Check if the device is connected to the internet before using the connection")
       // TODO: Might be invalid
       New[S](TPicture.typ)
@@ -85,7 +88,7 @@ class SWeb extends AAny {
     /** Create a streamed song file from internet (download happens when playing) */
     case "download_song" =>
       val List(url,name) = parameters // String,String
-      Error[S](toRichExpression(Environment.isConnected).not,"download_song",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download_song",
         "Check if the device is connected to the internet before using the connection")
       // TODO: Might be invalid
       New[S](TSong.typ)
@@ -93,7 +96,7 @@ class SWeb extends AAny {
     /** Downloads a WAV sound file from internet */
     case "download_sound" =>
       val List(url) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"download_sound",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download_sound",
         "Check if the device is connected to the internet before using the connection")
       // TODO: Might be invalid
       New[S](TSound.typ)
@@ -101,7 +104,7 @@ class SWeb extends AAny {
     /** Parses the newsfeed string (RSS 2.0 or Atom 1.0) into a message collection */
     case "feed" =>
       val List(value) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"feed",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"feed",
         "Check if the device is connected to the internet before using the connection")
       // TODO: Might be invalid
       New[S](TMessage_Collection.typ)
@@ -115,10 +118,6 @@ class SWeb extends AAny {
     case "html_encode" =>
       val List(text) = parameters // String
       Top[S](TString.typ)
-
-    /** Indicates whether any network connection is available */
-    case "is_connected" =>
-      Return[S](Environment.isConnected)
 
     /** Parses the string as a json object */
     case "json" =>
@@ -163,63 +162,63 @@ class SWeb extends AAny {
     /** Plays an internet audio/video in full screen */
     case "play_media" =>
       val List(url) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"play_media",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not(),"play_media",
         "Check if the device is connected to the internet before using the connection")
       Skip
 
     /** Searching the web using Bing */
     case "search" =>
       val List(terms) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"search",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TLink_Collection.typ) // TODO
 
     /** Searching images using Bing */
     case "search_images" =>
       val List(terms) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"search_images",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_images",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TLink_Collection.typ) // TODO
 
     /** Searching images near a location using Bing. Distance in meters, negative to ignore. */
     case "search_images_nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
-      Error[S](toRichExpression(Environment.isConnected).not,"search_images_nearby",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_images_nearby",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TLink_Collection.typ) // TODO
 
     /** Searching the web near a location using Bing. Distance in meters, negative to ignore. */
     case "search_nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
-      Error[S](toRichExpression(Environment.isConnected).not,"search_nearby",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_nearby",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TLink_Collection.typ) // TODO
 
     /** Searching news using Bing */
     case "search_news" =>
       val List(terms) = parameters // String
-      Error[S](toRichExpression(Environment.isConnected).not,"search_news",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_news",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TLink_Collection.typ) // TODO
 
     /** Searching news near a location using Bing. Distance in meters, negative to ignore. */
     case "search_news_nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
-      Error[S](toRichExpression(Environment.isConnected).not,"search_news_nearby",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_news_nearby",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TLink_Collection.typ) // TODO
 
     /** Uploads text to an internet page (http post) */
     case "upload" =>
       val List(url,body) = parameters // String,String
-      Error[S](toRichExpression(Environment.isConnected).not,"upload",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"upload",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ) // TODO
 
     /** Uploads a picture to an internet page (http post) */
     case "upload_picture" =>
       val List(url,pic) = parameters // String,Picture
-      Error[S](toRichExpression(Environment.isConnected).not,"upload_picture",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"upload_picture",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ) // TODO
 

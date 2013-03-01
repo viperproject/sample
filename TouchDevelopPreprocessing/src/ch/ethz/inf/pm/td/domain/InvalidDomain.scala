@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
+import BooleanDomain._
 
 /**
  * 
@@ -27,13 +28,6 @@ class BooleanInvalidDomain
   extends BoxedDomain[BooleanDomain,BooleanInvalidDomain]
   with InvalidDomain[BooleanInvalidDomain] {
 
-  // Helper values
-
-  private val domBottom = (new BooleanDomain()).bottom()
-  private val domInvalid = (new BooleanDomain()).add(true)
-  private val domValid = (new BooleanDomain()).add(false)
-  private val domTop = (new BooleanDomain()).top()
-
   override def factory() = new BooleanInvalidDomain
 
   def setInvalid(variable:Identifier): BooleanInvalidDomain = {
@@ -49,9 +43,7 @@ class BooleanInvalidDomain
     case Some(x) => x
   }
 
-  override def createVariable(variable: Identifier, typ: Type): BooleanInvalidDomain = {
-    return this.add(variable, domBottom)
-  }
+  override def createVariable(variable: Identifier, typ: Type): BooleanInvalidDomain = return this
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     var result = Map.empty[Identifier, List[String]]
@@ -70,9 +62,10 @@ class BooleanInvalidDomain
   override def setArgument(variable: Identifier, expr: Expression): BooleanInvalidDomain = this.assign(variable, expr)
 
   override def assign(variable: Identifier, expr: Expression): BooleanInvalidDomain = {
-    if (variable.representSingleVariable)
-      this.add(variable, eval(expr))
-    else this.add(variable, this.get(variable).lub(this.get(variable), eval(expr)))
+    val res = eval(expr)
+    if (res.isBottom) bottom()
+    else if (variable.representSingleVariable) this.add(variable, res)
+    else this.add(variable, domBottom.lub(this.get(variable), res))
   }
 
   override def backwardAssign(variable: Identifier, expr: Expression): BooleanInvalidDomain = this
@@ -144,11 +137,13 @@ class BooleanInvalidDomain
         case _ => this
       }
     case NegatedBooleanExpression(BinaryArithmeticExpression(x:Identifier, Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
-      // Case x != invalid
-      this.add(x,domBottom.intersect(domValid,eval(x)))
+      val res = domBottom.intersect(domValid,eval(x))
+      if (res.isBottom) bottom()
+      else this.add(x,res)
     case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), x:Identifier, ArithmeticOperator.==, _)) =>
-      // Case invalid != x
-      this.add(x,domBottom.intersect(domInvalid,eval(x)))
+      val res = domBottom.intersect(domValid,eval(x))
+      if (res.isBottom) bottom()
+      else this.add(x,res)
     case BinaryBooleanExpression(left,right,op,typ) => op match {
       case BooleanOperator.&& => this.assume(left).assume(right)
       case BooleanOperator.|| => this.lub(this.assume(left),this.assume(right))

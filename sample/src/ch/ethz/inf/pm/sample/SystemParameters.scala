@@ -35,6 +35,11 @@ object SystemParameters {
   var currentMethod : String = null;
   //TODO:Remove it
   var semanticsComputing : Boolean = false;
+
+  var enableOutputOfAlarms : Boolean = true
+  var enableOutputOfPrecisionWarnings : Boolean = true
+  var enableOutputOfBottomWarnings : Boolean = true
+
   /**
    * Ir true Sample supposes that if we invoke numerical methods like + on an object of any type we are
    * performing arithmetical operations
@@ -138,7 +143,7 @@ object SystemParameters {
         case None => ()
       }
     }
-    SystemParameters.progressOutput.put("Type "+thisExpr.getType()+" with method "+invokedMethod+" not implemented, topping at "+programpoint)
+    Reporter.reportImprecision("Type "+thisExpr.getType()+" with method "+invokedMethod+" not implemented",programpoint)
 	  state.top()
 	}
   
@@ -210,4 +215,39 @@ class Timer {
     }
  	
  	def reset() = totalTime=0; lastValue=None;
+}
+
+
+
+object Reporter {
+
+  var seenErrors = Set[(String,ProgramPoint)]()
+  var seenImprecision = Set[(String,ProgramPoint)]()
+  var seenBottom = Set[(String,ProgramPoint)]()
+
+  def hasError(message:String,pp:ProgramPoint):Boolean = seenErrors.contains((message,pp))
+  def hasImprecision(message:String,pp:ProgramPoint):Boolean = seenImprecision.contains((message,pp))
+  def hasBottom(message:String,pp:ProgramPoint):Boolean = seenBottom.contains((message,pp))
+
+  def reportError(message:String,pp:ProgramPoint) {
+    if (!hasError(message,pp) && SystemParameters.enableOutputOfAlarms) {
+      SystemParameters.progressOutput.put("ALARM: "+message+" at line "+pp.getLine()+", column "+pp.getColumn())
+      seenErrors += ((message,pp))
+    }
+  }
+
+  def reportImprecision(message:String,pp:ProgramPoint) {
+    if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings) {
+      SystemParameters.progressOutput.put("PRECISION: "+message+" at line "+pp.getLine()+", column "+pp.getColumn())
+      seenImprecision += ((message,pp))
+    }
+  }
+
+  def reportBottom(message:String,pp:ProgramPoint) {
+    if (!hasBottom(message,pp) && SystemParameters.enableOutputOfBottomWarnings) {
+      SystemParameters.progressOutput.put("BOTTOM: "+message+" at line "+pp.getLine()+", column "+pp.getColumn())
+      seenBottom += ((message,pp))
+    }
+  }
+
 }

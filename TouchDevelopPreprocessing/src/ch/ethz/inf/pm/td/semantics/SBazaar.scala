@@ -15,8 +15,11 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 
 object SBazaar {
 
+  /** Gets the current score for the current script */
+  val field_leaderboard_score = new TouchField("leaderboard_score",TNumber.typ)
+
   val typName = "bazaar"
-  val typ = new TouchType(typName, isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true, List(field_leaderboard_score))
 
 }
 
@@ -26,14 +29,10 @@ class SBazaar extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
 
-    /** Gets the current score for the current script */
-    case "leaderboard_score" =>
-      Return[S](Environment.leaderboardScore) // Is always valid, even if no score was ever posted (then 0)
-
     /** Posts the current game score to the script leaderboard */
     case "post_leaderboard_score" =>
       val List(score) = parameters // Number
-      Assign(Environment.leaderboardScore,score)
+      Assign(Field[S](this0,SBazaar.field_leaderboard_score),score)
 
     /** Posts the current game leaderboard to the wall */
     case "post_leaderboard_to_wall" =>

@@ -85,10 +85,25 @@ class RunnableMethodDeclaration(
       val rightVal = v.typ.getName() match {
         case "String" =>
           curState = RichNativeSemantics.New[S](TString.typ)(curState,programPoint_)
-          curState.getExpression().setOfExpressions.head
+          curState.getExpression().getSetOfExpressions.head
         case "Number" => Constant("0",v.typ,programPoint_)
         case "Boolean" => Constant("false",v.typ,programPoint_)
-        case _ => Constant("invalid",v.typ,programPoint_)
+        case _ =>
+
+          // There are three types of global data:
+          //  (1) Regular global variables / objects, which are initialized to invalid
+          //  (2) Global objects that are read-only and are initialized to some default object (Tile)
+          //  (3) Global objects that represents read-only artwork that is initialized from some URL.
+          if(v.modifiers.contains(ResourceModifier)) {
+            curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState,programPoint_)
+            curState.getExpression().getSetOfExpressions.head
+          } else if (v.modifiers.contains(ReadOnlyModifier)) {
+            curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,programPoint_)
+            curState.getExpression().getSetOfExpressions.head
+          } else {
+            Constant("invalid",v.typ.asInstanceOf[TouchType],programPoint_)
+          }
+
       }
 
       val rightExpr = new ExpressionSet(v.typ).add(rightVal)
@@ -99,7 +114,7 @@ class RunnableMethodDeclaration(
     for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
       if(sem.isInstanceOf[AAny]) {
         val typ = sem.asInstanceOf[AAny].getTyp
-        if(typ.isSingleton && SystemParameters.compiler.asInstanceOf[TouchCompiler].usedEnvironmentFragment.contains(typ.getName)) {
+        if(typ.isSingleton && SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName)) {
           // Create object
           curState = curState.createObject(typ,TouchSingletonProgramPoint(typ.getName))
           val obj = curState.getExpression()
@@ -108,7 +123,7 @@ class RunnableMethodDeclaration(
           curState = curState.createVariable(variable,typ,programPoint_)
           curState = curState.assignVariable(variable,obj)
           for (field <- typ.getPossibleFieldsSorted()) {
-            if (SystemParameters.compiler.asInstanceOf[TouchCompiler].usedEnvironmentFragment.contains(typ.getName+"."+field.getName())) {
+            if (SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName+"."+field.getName())) {
               curState = RichNativeSemantics.Top[S](field.getType().asInstanceOf[TouchType])(curState,TouchInitializationProgramPoint(typ.getName+"."+field.getName))
               val expression = curState.getExpression()
               curState = curState.assignField(List(obj),field.getName(),expression)

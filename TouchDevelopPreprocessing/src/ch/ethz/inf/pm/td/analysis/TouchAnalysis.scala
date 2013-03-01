@@ -1,15 +1,12 @@
 package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.property.{OutputCollector, DivisionByZero, SingleStatementProperty, Property}
+import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ControlFlowGraphExecution, Type, NativeMethodSemantics}
-import ch.ethz.inf.pm.td.semantics.{AAny, Environment}
+import ch.ethz.inf.pm.sample.oorepresentation.{Statement, ControlFlowGraphExecution, Type, NativeMethodSemantics}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
-import ch.ethz.inf.pm.sample.abstractdomain.HeapIdentifier
-import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.util.Timer
-import ch.ethz.inf.pm.td.compiler.{TouchException, TouchCompiler}
+import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
+import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.domain.TouchDomain
 
 /**
@@ -35,19 +32,13 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     }
   }}
 
-  /** Initialize the environment to TOP for now. This is were you could implement assumptions about the environment */
   def getInitialState(): TouchDomain[D] = {
-    var ret = new TouchDomain(domain.asInstanceOf[D]).top()
-    for (e <- Environment.envs) {
-      ret = ret.createVariable(e,e.getType())
-      ret = ret.setToTop(e)
-    }
-    ret
+    new TouchDomain(domain).top()
   }
 
   override def reset() { Unit }
 
-  def getProperties(): Set[Property] = Set(new ApronProperty().asInstanceOf[Property], new NoProperty())
+  def getProperties(): Set[Property] = Set(new ApronProperty().asInstanceOf[Property], new SingleStatementProperty(new BottomVisitor), new NoProperty)
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
@@ -73,6 +64,28 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 }
 
 /**
+ * Check if something is bottom. Might be due to unreachable code.
+ */
+class BottomVisitor extends Visitor {
+
+  def getLabel() = "BottomChecker"
+
+  /**
+   * Check the property over a single state
+   *
+   * @param state the abstract state
+   * @param statement the statement that was executed after the given abstract state
+   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
+   */
+  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) {
+    if (state.lessEqual(state.bottom())) {
+      Reporter.reportBottom("State is bottom",statement.getPC())
+    }
+  }
+
+}
+
+/**
  * Check the empty property
  */
 class NoProperty extends Property {
@@ -80,3 +93,4 @@ class NoProperty extends Property {
   def check[S <: State[S]](classT : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) {}
   def finalizeChecking(printer : OutputCollector) {}
 }
+

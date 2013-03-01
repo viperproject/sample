@@ -46,4 +46,3 @@ class TDevice extends AAny {
 
   }
 }
-      
