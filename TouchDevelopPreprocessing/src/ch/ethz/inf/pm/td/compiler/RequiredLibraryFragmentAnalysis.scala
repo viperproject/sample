@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.semantics.TNumber
+import ch.ethz.inf.pm.td.analysis.MethodSummaries
 
 /**
  * User: lucas
@@ -17,9 +18,8 @@ object RequiredLibraryFragmentAnalysis {
   def apply(classes:List[ClassDefinition]):Set[String] = {
     spottedFields = Set.empty[String]
 
-    val enableOutputOfAlarms = SystemParameters.enableOutputOfAlarms
-    val enableOutputOfBottomWarnings = SystemParameters.enableOutputOfBottomWarnings
-    val enableOutputOfPrecisionWarnings = SystemParameters.enableOutputOfPrecisionWarnings
+    SystemParameters.resetOutput
+    MethodSummaries.reset[AccessCollectingState]()
     SystemParameters.enableOutputOfAlarms = false
     SystemParameters.enableOutputOfBottomWarnings = false
     SystemParameters.enableOutputOfPrecisionWarnings = false
@@ -27,11 +27,6 @@ object RequiredLibraryFragmentAnalysis {
     for (clazz <- classes; method <- clazz.methods) {
       method.forwardSemantics(new AccessCollectingState(SystemParameters.getType().top())).exitState()
     }
-
-    SystemParameters.enableOutputOfAlarms = enableOutputOfAlarms
-    SystemParameters.enableOutputOfBottomWarnings = enableOutputOfBottomWarnings
-    SystemParameters.enableOutputOfPrecisionWarnings = enableOutputOfPrecisionWarnings
-
     spottedFields
   }
 

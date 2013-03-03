@@ -15,6 +15,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object SSenses {
 
+  /** Gets the primary camera if available */
+  val field_camera = new TouchField("camera",TCamera.typ) // TODO: May be invalid at the beginning
+
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
   val field_has_accelerometer = new TouchField("has_accelerometer",TBoolean.typ)
 
@@ -29,7 +32,7 @@ object SSenses {
 
   val typName = "senses"
   val typ = new TouchType(typName,isSingleton = true,
-    List(field_has_accelerometer,field_has_compass,field_has_front_camera,field_has_gyroscope))
+    List(field_camera,field_has_accelerometer,field_has_compass,field_has_front_camera,field_has_gyroscope))
 
 }
 
@@ -54,13 +57,6 @@ class SSenses extends AAny {
     case "acceleration_stable" =>
        Error[S](Field[S](this0,SSenses.field_has_accelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
        Top[S](TVector3.typ)
-
-    /** Gets the primary camera if available */
-    // case "camera" =>
-    //   Top[S](TCamera.typ)
-    // DECLARATION AS FIELD:
-    //   /** Gets the primary camera if available */
-    //   field_camera = new TouchField("camera",TCamera.typ)
 
     /** Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */
     // case "current_location" =>

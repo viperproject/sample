@@ -22,12 +22,17 @@ object TestRunner {
   }
 
   def apply(scr:Scripts,num:Int,func:(String => Unit)) {
+    apply(scr,num,{ (id:String,url:String) => func(url) })
+  }
+
+  def apply(scr:Scripts,num:Int,func:((String,String) => Unit)) {
     try {
       for (i <- 1 to num) {
         val script = scr.get()
         if (!script.haserrors) {
           val url = script.getCodeURL
-          apply(url,func)
+          val id = script.id
+          apply(id,url,func)
         }
       }
     } catch {
@@ -37,8 +42,12 @@ object TestRunner {
   }
 
   def apply(url:String,func:(String=>Unit)) {
+    apply("",url,{(id:String,url:String) => func(url)})
+  }
+
+  def apply(id:String,url:String,func:((String,String)=>Unit)) {
     try {
-      func(url)
+      func(id,url)
     } catch {
       case e:TouchException => println(e.msg + " (Position: " + e.pos + ")"); e.printStackTrace()
     }

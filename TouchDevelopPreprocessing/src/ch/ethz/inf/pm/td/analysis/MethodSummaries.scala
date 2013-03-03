@@ -81,7 +81,10 @@ object MethodSummaries {
   }
 
 
-  def reset[S <: State[S]]() { summaries = Map.empty[ProgramPoint,ControlFlowGraphExecution[S]] }
+  def reset[S <: State[S]]() {
+    summaries = Map.empty[ProgramPoint,ControlFlowGraphExecution[S]]
+    entries = Map.empty[ProgramPoint,S]
+  }
 
   def apply[S <: State[S]](pp:ProgramPoint):Option[ControlFlowGraphExecution[S]] =
     summaries.get(pp).asInstanceOf[Option[ControlFlowGraphExecution[S]]]

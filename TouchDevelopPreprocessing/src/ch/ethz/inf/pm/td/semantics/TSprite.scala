@@ -48,6 +48,7 @@ object TSprite {
       field_location,
       field_mass,
       field_opacity,
+      field_picture,
       field_speed_x,
       field_speed_y,
       field_text,

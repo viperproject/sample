@@ -49,9 +49,11 @@ class SSocial extends AAny {
     //   Top[S](TContact.typ)
 
     /** Creates a message to share */
-    // case "create_message" => 
-    //   val List(message) = parameters // String
-    //   Top[S](TMessage.typ)
+    case "create_message" =>
+      val List(message) = parameters // String
+      New[S](TMessage.typ,Map(
+        TMessage.field_message -> message
+      ))
 
     /** Creates a place */
     // case "create_place" => 

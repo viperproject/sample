@@ -70,8 +70,6 @@ class RunnableMethodDeclaration(
 
   override def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
 
-    MethodSummaries.reset()
-
     var curState = state
 
     // Global state is invalid
