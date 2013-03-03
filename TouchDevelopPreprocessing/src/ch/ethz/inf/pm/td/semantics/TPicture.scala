@@ -163,8 +163,8 @@ class TPicture extends AAny {
       state2
 
     /** Saves the picture to the 'saved pictures' album. Returns the file name. */
-    // case "save_to_library" =>
-    //   Top[S](TString.typ)
+    case "save_to_library" =>
+      Top[S](TString.typ)
 
     /** Sets the pixel color at a given pixel */
     case "set_pixel" =>

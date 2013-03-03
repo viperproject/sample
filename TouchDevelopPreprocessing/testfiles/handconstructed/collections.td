@@ -5,5 +5,8 @@ action main () {
     $ls->add($loc);
     $ls->add($loc2);
     $ls->remove($loc);
-    $expected0or5 := $ls->at(0)->longitude;
+    assert->is_true($ls->at(0)->longitude = 0);
+    assert->is_true($ls->at(1)->longitude = 5);
+    assert->is_false($ls->at(1)->longitude = 0);
+    assert->is_false($ls->at(0)->longitude = 5);
 }

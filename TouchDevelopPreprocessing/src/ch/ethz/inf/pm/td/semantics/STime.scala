@@ -30,7 +30,14 @@ class STime extends AAny {
     /** Creates a new date instance */
     case "create" =>
       val List(year,month,day,hour,minute,second) = parameters // Number,Number,Number,Number,Number,Number
-      New[S](TDateTime.typ,year,month,day,hour,minute,second)
+      New[S](TDateTime.typ,Map(
+        TDateTime.field_year -> year,
+        TDateTime.field_month -> month,
+        TDateTime.field_day -> day,
+        TDateTime.field_hour -> hour,
+        TDateTime.field_minute -> minute,
+        TDateTime.field_second -> second
+      ))
 
     /** Aborts the execution if the condition is false. */
     case "fail_if_not" =>

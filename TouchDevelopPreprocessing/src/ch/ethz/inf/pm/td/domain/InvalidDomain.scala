@@ -161,7 +161,10 @@ class BooleanInvalidDomain
         else
           result += k.toString+" is invalid\n"
       else
-        result += k.toString+" is BOTTOM\n"
+        if(v.canBeFalse)
+          result += k.toString+" is valid\n"
+        else
+          result += k.toString+" is BOTTOM\n"
     }
     result
   }

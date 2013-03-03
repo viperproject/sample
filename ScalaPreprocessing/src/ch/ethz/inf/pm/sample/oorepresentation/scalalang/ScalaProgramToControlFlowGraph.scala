@@ -398,9 +398,9 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 
       def glb(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
         val (left, right)=cast(l, r);
-        if(left.isBottom || right.isBottom) return bottom();
-        if(left.isTop) return right;
-        if(right.isTop) return left;
+        if(left.isBottom || right.isBottom) return bottom()
+        if(left.isTop) return right
+        if(right.isTop) return left
         new ScalaType(global.glb(left.typ :: right.typ :: Nil))
       }
 

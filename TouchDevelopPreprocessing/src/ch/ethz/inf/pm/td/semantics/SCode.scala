@@ -28,7 +28,8 @@ class SCode(compiler:TouchCompiler) extends AAny {
 
     compiler.getCalledMethod(method,parameters map (_.getType())) match {
       case Some(methodDef) =>
-        MethodSummaries.collect(pp,methodDef,state,parameters)
+        val res = MethodSummaries.collect(pp,methodDef,state,parameters)
+        res
       case _ =>
         super.forwardSemantics(this0,method,parameters)
     }

@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.td.analysis
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ControlFlowGraphExecution, ProgramPoint}
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, ExpressionSet, State}
 import ch.ethz.inf.pm.td.compiler.{TouchType, TouchTuple}
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * Stores summaries of methods. This is not thread-safe.
@@ -32,7 +33,7 @@ object MethodSummaries {
    */
   def collect[S <: State[S]](callPoint:ProgramPoint,callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
     val enteredState = enterFunction(callPoint,callTarget,entryState,parameters)
-    entries.get(callPoint) match {
+    val result = entries.get(callPoint) match {
       case Some(oldEntryState) =>
 
         // This is a recursive call (non top level).
@@ -76,6 +77,7 @@ object MethodSummaries {
         exitFunction(callPoint,callTarget,currentSummary.exitState(),parameters)
 
     }
+    result
   }
 
 
@@ -92,7 +94,7 @@ object MethodSummaries {
     var curState = entryState
     val inParameters = callTarget.arguments(0)
     for ((decl,value) <- inParameters.zip(parameters)) {
-      curState = decl.forwardSemantics(curState)
+      //curState = decl.forwardSemantics(curState)
       val variable = decl.variable.id
       curState = curState.assignVariable(new ExpressionSet(variable.getType()).add(variable),value)
     }

@@ -7,11 +7,13 @@ action main() {
 
 action bla() {
     data->b := 3;
+    meta private;
 }
 
 action bla2() {
     data->a := data->a + 1;
     code->bla2();
+    meta private;
 }
 
 var a : Number {}

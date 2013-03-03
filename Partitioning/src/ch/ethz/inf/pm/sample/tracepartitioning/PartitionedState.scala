@@ -186,7 +186,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #map
    */
-	override def createObject(t: Type, pp: ProgramPoint): PartitionedState[D] = {
+	override def createObject(t: Type, pp: ProgramPoint, createFields : Boolean = true): PartitionedState[D] = {
 		map(_.createObject(t, pp))
   }
 

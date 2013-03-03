@@ -43,17 +43,17 @@ class SSenses extends AAny {
     /** Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */
     case "acceleration_quick" =>
        Error[S](Field[S](this0,SSenses.field_has_accelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
-       New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
+       Top[S](TVector3.typ)
 
     /** Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */
     case "acceleration_smooth" =>
        Error[S](Field[S](this0,SSenses.field_has_accelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
-       New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
+       Top[S](TVector3.typ)
 
     /** Gets filtered and temporally averaged accelerometer data using an arithmetic mean of the last 25 'optimally filtered' samples, so over 500ms at 50Hz on each axis, to virtually eliminate most sensor noise. This provides a very stable reading but it has also a very high latency and cannot be used for rapidly reacting UI. */
     case "acceleration_stable" =>
        Error[S](Field[S](this0,SSenses.field_has_accelerometer).not(),"retrieving acceleration requires checking for a accelerometer first!")
-       New[S](TVector3.typ,Map(TVector3.field_x.asInstanceOf[Identifier] -> Valid(TNumber.typ),TVector3.field_y -> Valid(TNumber.typ),TVector3.field_z -> Valid(TNumber.typ)))
+       Top[S](TVector3.typ)
 
     /** Gets the primary camera if available */
     // case "camera" =>

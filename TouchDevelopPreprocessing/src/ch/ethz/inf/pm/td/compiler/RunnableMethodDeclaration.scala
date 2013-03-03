@@ -115,20 +115,11 @@ class RunnableMethodDeclaration(
       if(sem.isInstanceOf[AAny]) {
         val typ = sem.asInstanceOf[AAny].getTyp
         if(typ.isSingleton && SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName)) {
-          // Create object
-          curState = curState.createObject(typ,TouchSingletonProgramPoint(typ.getName))
+          val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
+          curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
           val obj = curState.getExpression()
-          // Create variable
           val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName,typ,programPoint_))
-          curState = curState.createVariable(variable,typ,programPoint_)
-          curState = curState.assignVariable(variable,obj)
-          for (field <- typ.getPossibleFieldsSorted()) {
-            if (SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName+"."+field.getName())) {
-              curState = RichNativeSemantics.Top[S](field.getType().asInstanceOf[TouchType])(curState,TouchInitializationProgramPoint(typ.getName+"."+field.getName))
-              val expression = curState.getExpression()
-              curState = curState.assignField(List(obj),field.getName(),expression)
-            }
-          }
+          curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
         }
       }
     }

@@ -200,7 +200,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   }
 
 
-  def createObject(typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] =  {
+  def createObject(typ : Type, pp : ProgramPoint, createFields : Boolean = true) : AbstractState[N,H,I] =  {
     if(this.isBottom) return this
     //It discharges on the heap analysis the creation of the object and its fields
     var (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
@@ -208,10 +208,13 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
     result=HeapIdSetFunctionalLifting.applyToSetHeapId(createdLocation, result.createVariable(_, typ))
     var result2 = result
-    for(field <- typ.getPossibleFields()) {
-      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName(), field.getType(), field.getProgramPoint()))
 
-      result2=HeapIdSetFunctionalLifting.applyToSetHeapId(ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()))
+    if(createFields) {
+      for(field <- typ.getPossibleFields()) {
+        val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName(), field.getType(), field.getProgramPoint()))
+
+        result2=HeapIdSetFunctionalLifting.applyToSetHeapId(ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()))
+      }
     }
     //val (h, rep2) = result2._2.endOfAssignment()
     //result2 = new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), h)
@@ -653,7 +656,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       val (heapID, newHeap, rep) = this._1._2.getCollectionCell(assignable, keyExpr, this._1._1)
       val result2 = new HeapAndAnotherDomain[N, H, I](rep, newHeap)
       val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(heapID, result2.access(_))
-      val state = new AbstractState(accessed, new ExpressionSet(SystemParameters.getType().top()).add(heapID))
+      val state = new AbstractState(accessed, new ExpressionSet(heapID.getType()).add(heapID))
       result = result.lub(result, state)
       result
     }

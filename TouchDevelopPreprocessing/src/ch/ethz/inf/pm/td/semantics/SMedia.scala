@@ -57,48 +57,53 @@ class SMedia extends AAny {
     case "create_board" =>
       val List(height) = parameters // Number
       Error( height < 0 , "create_board", "Parameter height ("+height+") might be negative" )(state,pp)
-      New[S](TBoard.typ,Map[Identifier,RichExpression](
+      New[S](TBoard.typ,Map(
         TBoard.field_width -> 480,
-        TBoard.field_height -> height)) // According to Windows Phone Spec.
+        TBoard.field_height -> height
+      )) // According to Windows Phone Spec.
 
     /** Creates a new game board in landscape mode. On rotatable devices it will take the entire screen when posted. */
     case "create_full_board" =>
-      New[S](TBoard.typ,Map[Identifier,RichExpression](
+      New[S](TBoard.typ,Map(
         TBoard.field_width -> 480,
-        TBoard.field_height -> 800)) // According to Windows Phone Spec.
+        TBoard.field_height -> 800
+      )) // According to Windows Phone Spec.
 
     /** Creates a new game board in landscape mode. On rotatable devices it will take the entire screen when posted. */
     case "create_landscape_board" =>
       val List(width,height) = parameters // Number,Number
       Error( width < 0 , "create_landscape_board", "Width ("+width+") might be negative" )(state,pp)
       Error( height < 0 , "create_landscape_board", "Height ("+height+") might be negative" )(state,pp)
-      New[S](TBoard.typ,Map[Identifier,RichExpression](
+      New[S](TBoard.typ,Map(
         TBoard.field_width -> width,
-        TBoard.field_height -> height)) // According to Windows Phone Spec.
+        TBoard.field_height -> height
+      )) // According to Windows Phone Spec.
       // TODO: Landscape??
 
     case "create_picture" =>
       val List(width,height) = parameters // Number,Number
       Error( width < 0 , "create_picture", "Picture width ("+width+") might be negative" )(state,pp)
       Error( height < 0 , "create_picture", "Picture height ("+height+") might be negative" )(state,pp)
-      New[S](TPicture.typ,Map[Identifier,RichExpression](
+      New[S](TPicture.typ,Map(
         TPicture.field_width -> width,
-        TPicture.field_height -> height))
+        TPicture.field_height -> height
+      ))
 
     /** Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */
     case "create_portrait_board" =>
       val List(width,height) = parameters // Number,Number
       Error( width < 0 , "create_portrait_board", "Width ("+width+") might be negative" )(state,pp)
       Error( height < 0 , "create_portrait_board", "Height ("+height+") might be negative" )(state,pp)
-      New[S](TBoard.typ,Map[Identifier,RichExpression](
+      New[S](TBoard.typ,Map(
         TBoard.field_width -> width,
-        TBoard.field_height -> height))
+        TBoard.field_height -> height
+      ))
       // TODO: Portrait??
 
     /** Gets a 48x48 icon picture. Use 'media->icon names' to retrieve the list of names available. */
     case "icon" =>
       val List(name) = parameters // String
-      New[S](TPicture.typ,Map[Identifier,RichExpression](
+      New[S](TPicture.typ,Map(
         TPicture.field_width -> 48,
         TPicture.field_height -> 48
       ))
@@ -106,7 +111,7 @@ class SMedia extends AAny {
     /** Gets a 96x96 icon picture. Use 'media->icon names' to retrieve the list of names available. */
     case "large_icon" =>
       val List(name) = parameters // String
-      New[S](TPicture.typ,Map[Identifier,RichExpression](
+      New[S](TPicture.typ,Map(
         TPicture.field_width -> 96,
         TPicture.field_height -> 96
       ))

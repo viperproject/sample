@@ -61,7 +61,7 @@ object TestRunner {
       new FileFilter {
         def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") }
       }
-    ) map (basePath(dir)+_.getName) toList)
+    ).map(basePath(dir)+_.getName).toList.sortWith((a,b) => a.compare(b) > 0))
   }
 
   def runFileWithApron(file:String) {

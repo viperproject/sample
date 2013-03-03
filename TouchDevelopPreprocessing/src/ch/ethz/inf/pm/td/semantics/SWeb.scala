@@ -138,7 +138,9 @@ class SWeb extends AAny {
     /** Creates a link to an internet image */
     case "link_image" =>
       val List(url) = parameters // String
-      New[S](TLink.typ,Map(TLink.field_address.asInstanceOf[Identifier] -> toRichExpression(url)))
+      New[S](TLink.typ,Map(
+        TLink.field_address -> toRichExpression(url)
+      ))
 
     /** Creates a link to an internet audio/video */
     // case "link_media" => 

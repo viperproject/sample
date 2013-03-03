@@ -37,7 +37,10 @@ class SRadio extends AAny {
     /** Creates a link to a radio frequency */
     case "link_frequency" =>
       val List(name,frequency) = parameters // String,Number
-      New[S](TLink.typ,Map(TLink.field_name.asInstanceOf[Identifier] -> toRichExpression(name), TLink.field_kind -> StringCst("radio")))
+      New[S](TLink.typ,Map(
+        TLink.field_name-> toRichExpression(name),
+        TLink.field_kind -> StringCst("radio")
+      ))
 
     /** Gets the signal strength */
     case "signal_strength" =>

@@ -1,6 +1,0 @@
-methods="Waller"
-set analysis = "TouchDevelop analysis with APRON"
-set property = ""
-set analysis Domain = "ApronOctagons"
-set heap analysis = "Heap Domain:Program point"
-set heap UnsoundEntryState = false

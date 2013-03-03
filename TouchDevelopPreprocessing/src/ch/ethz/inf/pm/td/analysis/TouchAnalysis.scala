@@ -46,6 +46,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     val methodSet = methods.toSet[String]
     for ((c,x) <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getRunnableMethods) {
       if (methodSet.isEmpty || methodSet.contains(x.name.toString)) {
+        SystemParameters.resetOutput
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("METHOD: "+c.name.toString+"."+x.name.toString)
         SystemParameters.currentMethod = x.name.toString
         val s = x.forwardSemantics[S](entryState)

@@ -13,19 +13,19 @@ import RichExpression._
  */
 object TColor {
 
-  val field_A = new TouchField("A",TNumber.typ)
-  val field_R = new TouchField("R",TNumber.typ)
-  val field_G = new TouchField("G",TNumber.typ)
-  val field_B = new TouchField("B",TNumber.typ)
+  val field_A = new TouchField("A",TNumber.typ,(0 to 1))
+  val field_R = new TouchField("R",TNumber.typ,(0 to 1))
+  val field_G = new TouchField("G",TNumber.typ,(0 to 1))
+  val field_B = new TouchField("B",TNumber.typ,(0 to 1))
 
   // we also treat hue,saturation,brightness as fields.
   // since we are not able to convert between reps, ARGB is Top if initialized with HSB,
   // and HSB is TOP if initialized with ARGB.
   // PRECISION: Implement HSB / ARGB conversion
 
-  val field_hue = new TouchField("hue",TNumber.typ)
-  val field_saturation = new TouchField("saturation",TNumber.typ)
-  val field_brightness = new TouchField("brightness",TNumber.typ)
+  val field_hue = new TouchField("hue",TNumber.typ,(0 to 1))
+  val field_saturation = new TouchField("saturation",TNumber.typ,(0 to 1))
+  val field_brightness = new TouchField("brightness",TNumber.typ,(0 to 1))
 
   val typName = "Color"
   val typ = new TouchType(typName,isSingleton = false, List(field_A,field_R,field_B,field_G,field_hue,field_saturation,field_brightness))
@@ -46,7 +46,12 @@ class TColor extends AAny {
       val r = (1 - fraction) * Field[S](this0,TColor.field_R) + fraction * Field[S](other,TColor.field_R)
       val g = (1 - fraction) * Field[S](this0,TColor.field_G) + fraction * Field[S](other,TColor.field_G)
       val b = (1 - fraction) * Field[S](this0,TColor.field_B) + fraction * Field[S](other,TColor.field_B)
-      New[S](TColor.typ, a, r, g, b)
+      New[S](TColor.typ,Map(
+        TColor.field_A -> a,
+        TColor.field_R -> r,
+        TColor.field_G -> g,
+        TColor.field_B -> b
+      ))
 
     /** Makes a darker color by a delta between 0 and 1. */
     case "darken" =>
@@ -57,7 +62,12 @@ class TColor extends AAny {
       val r = Field[S](this0,TColor.field_R) - delta
       val g = Field[S](this0,TColor.field_G) - delta
       val b = Field[S](this0,TColor.field_B) - delta
-      New[S](TColor.typ,a,r,g,b)
+      New[S](TColor.typ,Map(
+        TColor.field_A -> a,
+        TColor.field_R -> r,
+        TColor.field_G -> g,
+        TColor.field_B -> b
+      ))
 
     /** Checks if the color is equal to the other */
     case "equals" =>
@@ -77,7 +87,12 @@ class TColor extends AAny {
       val r = Field[S](this0,TColor.field_R) + delta
       val g = Field[S](this0,TColor.field_G) + delta
       val b = Field[S](this0,TColor.field_B) + delta
-      New[S](TColor.typ,a,r,g,b)
+      New[S](TColor.typ,Map(
+        TColor.field_A -> a,
+        TColor.field_R -> r,
+        TColor.field_G -> g,
+        TColor.field_B -> b
+      ))
 
     /** Creates a new color by changing the alpha channel from 0 (transparent) to 1 (opaque). */
     case "make_transparent" =>
@@ -86,7 +101,12 @@ class TColor extends AAny {
       val r = Field[S](this0,TColor.field_R)
       val g = Field[S](this0,TColor.field_G)
       val b = Field[S](this0,TColor.field_B)
-      New[S](TColor.typ,alpha,r,g,b)
+      New[S](TColor.typ,Map(
+        TColor.field_A -> alpha,
+        TColor.field_R -> r,
+        TColor.field_G -> g,
+        TColor.field_B -> b
+      ))
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

@@ -62,23 +62,21 @@ object RichNativeSemantics {
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
-  def New[S <: State[S]](typ:TouchType, initials:Map[Identifier,RichExpression])(implicit s:S, pp:ProgramPoint): S = {
+  def New[S <: State[S]](typ:TouchType, initials:Map[TouchField,RichExpression] = Map.empty[TouchField,RichExpression])(implicit s:S, pp:ProgramPoint): S = {
 
     var curState = typ match {
       case col:TouchCollection =>
         s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp)
       case _ =>
-        s.createObject(typ,pp)
+        s.createObject(typ,pp,false)
     }
     val obj = curState.getExpression()
 
     // Assign fields with given arguments
-    for (f <- typ.getPossibleFields()) {
+    for (f <- typ.getPossibleTouchFields()) {
       if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
         val a = initials.get(f) match {
-          case None =>
-            val tF = f.asInstanceOf[TouchField]
-            tF.default
+          case None => f.default
           case Some(st) => st
         }
         curState = curState.assignField(List(obj),f.getName(),a)
@@ -91,16 +89,7 @@ object RichNativeSemantics {
     curState.setExpression(obj)
   }
 
-
-  def New[S <: State[S]](typ:TouchType, args:RichExpression*)(implicit s:S, pp:ProgramPoint): S = {
-    New[S](typ,(typ.getPossibleFieldsSorted() zip args).toMap)(s,pp)
-  }
-
-  def New[S <: State[S]](typ:TouchType)(implicit s:S, pp:ProgramPoint): S = {
-    New[S](typ,Map.empty[Identifier,RichExpression])(s,pp)
-  }
-
-  def Top[S <: State[S]](typ:TouchType, initials:Map[Identifier,RichExpression] = Map.empty[Identifier,RichExpression])(implicit s:S, pp:ProgramPoint): S = {
+  def Top[S <: State[S]](typ:TouchType, initials:Map[Identifier,RichExpression] = Map.empty[Identifier,RichExpression],recursive:Boolean = true)(implicit s:S, pp:ProgramPoint): S = {
     typ.getName match {
       case TNumber.typName => s.setExpression(Valid(TNumber.typ))
       case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(True).add(False))
@@ -110,44 +99,40 @@ object RichNativeSemantics {
           case col:TouchCollection =>
             s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp)
           case _ =>
-            s.createObject(typ,pp)
+            s.createObject(typ,pp,false)
         }
         val obj = curState.getExpression()
 
         // Make sure that our value is "valid"  now
         curState = curState.assignVariable(obj,Valid(typ))
 
-        typ match {
-          case col:TouchCollection =>
-            val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__summary")
-            if (!referenceLoop1) {
+        if(recursive) {
+          typ match {
+            case col:TouchCollection =>
+              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__summary")
               // Create summary node of collections
-              curState = Top[S](col.getValueType)(curState,newPP1)
+              curState = Top[S](col.getValueType,recursive = !referenceLoop1)(curState,newPP1)
               val topSummary = curState.getExpression()
               curState = Assign[S](CollectionSummary[S](obj),topSummary)(curState,newPP1)
-            }
-            val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__size")
-            if (!referenceLoop2) {
+              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__size")
               // Set size to top
-              curState = Top[S](TNumber.typ)(curState,newPP2)
+              curState = Top[S](TNumber.typ,recursive = !referenceLoop2)(curState,newPP2)
               val topSize = curState.getExpression()
               curState = Assign[S](CollectionSize[S](obj),topSize)(curState,newPP2)
-            }
-          case _ => ()
-        }
+            case _ => ()
+          }
 
-        // Assign fields with given arguments
-        for (f <- typ.getPossibleFields()) {
-          if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
-            initials.get(f) match {
-              case None =>
-                val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
-                if (!referenceLoop) {
-                  curState = Top[S](f.getType().asInstanceOf[TouchType])(curState,newPP)
+          // Assign fields with given arguments
+          for (f <- typ.getPossibleFields()) {
+            if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
+              initials.get(f) match {
+                case None =>
+                  val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
+                  curState = Top[S](f.getType().asInstanceOf[TouchType],recursive = !referenceLoop)(curState,newPP)
                   val topField = curState.getExpression()
                   curState = curState.assignField(List(obj),f.getName(),topField)
-                }
-              case Some(st) => curState = curState.assignField(List(obj),f.getName(),st)
+                case Some(st) => curState = curState.assignField(List(obj),f.getName(),st)
+              }
             }
           }
         }
@@ -157,25 +142,30 @@ object RichNativeSemantics {
     }
   }
 
-  def Clone[S <: State[S]](obj:RichExpression)(implicit s:S, pp:ProgramPoint): S = {
+  def Clone[S <: State[S]](obj:RichExpression, initials:Map[Identifier,RichExpression] = Map.empty[Identifier,RichExpression], recursive : Boolean = true)(implicit s:S, pp:ProgramPoint): S = {
 
     var curState = New[S](obj.getType().asInstanceOf[TouchType])(s,pp)
     val newObject = toRichExpression(curState.getExpression())
 
-    if (obj.getType().isInstanceOf[TouchCollection]) {
-      curState = Assign[S](CollectionSummary[S](newObject),CollectionSummary[S](obj))(curState,pp)
-      curState = Assign[S](CollectionSize[S](newObject),CollectionSize[S](obj))(curState,pp)
-    }
-
     // Clone fields
-    for (f <- obj.getType().getPossibleFields()) {
-      if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+f.getName())) {
-        val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
-        if (!referenceLoop) {
-          val oldField = Field[S](obj,f)(curState,newPP)
-          curState = Clone[S](oldField)(curState,newPP)
-          val clonedContent = curState.getExpression()
-          curState = curState.assignField(List(newObject),f.getName(),clonedContent)
+    if(recursive) {
+
+      if (obj.getType().isInstanceOf[TouchCollection]) {
+        curState = Assign[S](CollectionSummary[S](newObject),CollectionSummary[S](obj))(curState,pp)
+        curState = Assign[S](CollectionSize[S](newObject),CollectionSize[S](obj))(curState,pp)
+      }
+
+      for (f <- obj.getType().getPossibleFields()) {
+        if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+f.getName())) {
+          initials.get(f) match {
+            case None =>
+              val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
+              val oldField = Field[S](obj,f)(curState,newPP)
+              curState = Clone[S](oldField,recursive = !referenceLoop)(curState,newPP)
+              val clonedContent = curState.getExpression()
+              curState = curState.assignField(List(newObject),f.getName(),clonedContent)
+            case Some(st) => curState = curState.assignField(List(newObject),f.getName(),st)
+          }
         }
       }
     }
@@ -225,7 +215,8 @@ object RichNativeSemantics {
   def Return[S <: State[S]](e:RichExpression*)(implicit state:S, pp:ProgramPoint):S = {
     var set = new ExpressionSet(e.head.getType())
     for (ex <- e) { set = set.add(ex.thisExpr) }
-    state.setExpression(set)
+    val stateN = state.setExpression(set)
+    stateN
   }
 
   def Assign[S <: State[S]](id:RichExpression,value:RichExpression)(implicit state:S, pp:ProgramPoint): S = {
@@ -258,7 +249,7 @@ object RichNativeSemantics {
     val fieldResult =
       if(parameters.length == 0)
         // Getters
-        typ.getPossibleFieldsSorted().find(_.getName() == method ) match {
+        typ.getPossibleFields().find(_.getName() == method ) match {
           case Some(field) =>
             val fieldValue = Field[S](this0,field.asInstanceOf[VariableIdentifier])
             val stateWithExpr = Return[S](fieldValue)
@@ -267,7 +258,7 @@ object RichNativeSemantics {
         }
       else if (parameters.length == 1)
         // Setters
-        typ.getPossibleFieldsSorted().find("set_"+_.getName() == method ) match {
+        typ.getPossibleFields().find("set_"+_.getName() == method ) match {
           case Some(field) =>
             Some(AssignField[S](this0,field,parameters.head))
           case None =>  None

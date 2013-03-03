@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.compiler.TouchCollection
 
 /**
  * Represents a collection (this class contains common read operations. Extend AMutable_Collections to get write ops)
@@ -34,10 +35,10 @@ abstract class ACollection extends AAny {
       IfPossible[S]( CollectionSize[S](this0) equal 0, then = {
         IfPossible[S]( (CollectionSize[S](this0) equal 0).not(), then = {
           Error[S]("random","The collection might be empty, cannot select a random element!")
-          Return[S](CollectionSummary[S](this0),Invalid(this0.getType()))
+          Return[S](CollectionSummary[S](this0),Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))
         }, els = {
           Error[S]("random","The collection is always empty, can not select a random element!")
-          Return[S](Invalid(this0.getType()))
+          Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))
         })
       }, els = {
         Return[S](CollectionSummary[S](this0))

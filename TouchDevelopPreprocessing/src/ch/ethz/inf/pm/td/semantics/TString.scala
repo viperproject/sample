@@ -97,9 +97,9 @@ class TString extends AAny {
     //   Top[S](TNumber.typ)
 
     /** Gets the strings matching the regex expression (pattern) */
-    // case "matches" => 
-    //   val List(pattern) = parameters // String
-    //   Top[S](TString_Collection.typ)
+    case "matches" =>
+      val List(pattern) = parameters // String
+      Top[S](TString_Collection.typ)
 
     /** Returns the string with characters removed starting at a given index */
     // case "remove" => 
@@ -123,9 +123,9 @@ class TString extends AAny {
     //   Skip;
 
     /** Returns a string collection that contains the substrings in this string that are delimited by elements of a specified string. */
-    // case "split" => 
-    //   val List(separator) = parameters // String
-    //   Top[S](TString_Collection.typ)
+    case "split" =>
+      val List(separator) = parameters // String
+      Top[S](TString_Collection.typ)
 
     /** Determines whether the beginning matches the specified string */
     // case "starts_with" => 

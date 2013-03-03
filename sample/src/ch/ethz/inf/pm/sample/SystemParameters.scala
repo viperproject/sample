@@ -146,6 +146,15 @@ object SystemParameters {
     Reporter.reportImprecision("Type "+thisExpr.getType()+" with method "+invokedMethod+" not implemented",programpoint)
 	  state.top()
 	}
+
+  def resetOutput {
+    enableOutputOfAlarms = true
+    enableOutputOfPrecisionWarnings = true
+    enableOutputOfBottomWarnings = true
+    if (progressOutput != null) progressOutput.reset()
+    if (analysisOutput != null) analysisOutput.reset()
+    Reporter.reset
+  }
   
 }
 
@@ -248,6 +257,12 @@ object Reporter {
       SystemParameters.progressOutput.put("BOTTOM: "+message+" at line "+pp.getLine()+", column "+pp.getColumn())
       seenBottom += ((message,pp))
     }
+  }
+
+  def reset {
+    seenErrors = Set.empty[(String,ProgramPoint)]
+    seenBottom = Set.empty[(String,ProgramPoint)]
+    seenImprecision = Set.empty[(String,ProgramPoint)]
   }
 
 }

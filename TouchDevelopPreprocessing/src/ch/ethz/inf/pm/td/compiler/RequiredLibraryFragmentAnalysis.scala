@@ -55,7 +55,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.getType())
   def getExpression(): ExpressionSet = new ExpressionSet(myType).add(new UnitExpression(myType,null))
   def removeExpression(): AccessCollectingState = this.setType(SystemParameters.getType().top())
-  def createObject(typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
+  def createObject(typ: Type, pp: ProgramPoint, createFields : Boolean = true): AccessCollectingState = this.setType(typ)
   def evalNumericalConstant(value: String, typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
   def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.getType())
   def getCollectionLength(collectionSet: ExpressionSet): AccessCollectingState = this.setType(TNumber.typ)

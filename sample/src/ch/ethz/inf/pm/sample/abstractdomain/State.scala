@@ -98,7 +98,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param pp The point of the program that creates the object  
    @return The abstract state after the creation of the object
    */
-  def createObject(typ : Type, pp : ProgramPoint) : S
+  def createObject(typ : Type, pp : ProgramPoint, createFields : Boolean = true) : S
   
   /**
    Creates a variable

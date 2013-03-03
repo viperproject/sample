@@ -79,7 +79,9 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 
 
   override def createVariable(variable: Identifier, typ: Type): BoxedNonRelationalNumericalDomain[N] = {
-    return this.add(variable, dom.bottom())
+    if (variable.getType().isNumericalType()) {
+      return this.add(variable, dom.bottom())
+    } else this
   }
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
@@ -99,9 +101,11 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
   override def setArgument(variable: Identifier, expr: Expression): BoxedNonRelationalNumericalDomain[N] = this.assign(variable, expr)
 
   override def assign(variable: Identifier, expr: Expression): BoxedNonRelationalNumericalDomain[N] = {
-    if (variable.representSingleVariable)
-      this.add(variable, eval(expr))
-    else this.add(variable, this.get(variable).lub(this.get(variable), eval(expr)))
+    if (variable.getType().isNumericalType()) {
+      if (variable.representSingleVariable)
+        this.add(variable, eval(expr))
+      else this.add(variable, this.get(variable).lub(this.get(variable), eval(expr)))
+    } else this
   }
 
   override def backwardAssign(variable: Identifier, expr: Expression): BoxedNonRelationalNumericalDomain[N] = this

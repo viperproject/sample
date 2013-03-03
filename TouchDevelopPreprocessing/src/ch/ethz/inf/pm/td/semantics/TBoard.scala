@@ -16,12 +16,6 @@ object TBoard {
   /**  The height in pixels */
   val field_height = new TouchField("height", TNumber.typ)
 
-  /**  The contents of all sprites */
-  val field_abstract_sprite = new TouchField("abstract_sprite", TSprite.typ)
-
-  /**  The sprite count */
-  val field_count = new TouchField("count",TNumber.typ)
-
   /**  The background color */
   val field_background = new TouchField("background",TColor.typ)
 
@@ -49,8 +43,6 @@ object TBoard {
   val typ = TouchCollection(typName,"Number","Sprite",List(
     field_width,
     field_height,
-    field_abstract_sprite,
-    field_count,
     field_background,
     field_background_camera,
     field_background_picture,
@@ -167,21 +159,37 @@ class TBoard extends ACollection {
 
     // Current touch point
     case "touch_current" =>
-      New(TVector3.typ,0 ndTo Field[S](this0,TBoard.field_width), 0 ndTo Field[S](this0,TBoard.field_height), 0)
+      New(TVector3.typ,Map(
+        TVector3.field_x -> (0 ndTo Field[S](this0,TBoard.field_width)),
+        TVector3.field_y -> (0 ndTo Field[S](this0,TBoard.field_height)),
+        TVector3.field_z -> 0
+      ))
 
     // Last touch end point
     case "touch_end" =>
-      New(TVector3.typ,0 ndTo Field[S](this0,TBoard.field_width), 0 ndTo Field[S](this0,TBoard.field_height), 0)
+      New(TVector3.typ,Map(
+        TVector3.field_x -> (0 ndTo Field[S](this0,TBoard.field_width)),
+        TVector3.field_y -> (0 ndTo Field[S](this0,TBoard.field_height)),
+        TVector3.field_z -> 0
+      ))
       // TODO: Can this be invalid?
 
     // Last touch start point
     case "touch_start" =>
-      New(TVector3.typ,0 ndTo Field[S](this0,TBoard.field_width), 0 ndTo Field[S](this0,TBoard.field_height), 0)
+      New(TVector3.typ,Map(
+        TVector3.field_x -> (0 ndTo Field[S](this0,TBoard.field_width)),
+        TVector3.field_y -> (0 ndTo Field[S](this0,TBoard.field_height)),
+        TVector3.field_z -> 0
+      ))
       // TODO: Can this be invalid?
 
     // Final touch velocity after touch ended
     case "touch_velocity" =>
-      New(TVector3.typ,Valid(TNumber.typ),Valid(TNumber.typ),0)
+      New(TVector3.typ,Map(
+        TVector3.field_x -> Valid(TNumber.typ),
+        TVector3.field_y -> Valid(TNumber.typ),
+        TVector3.field_z -> 0
+      ))
       // TODO: Can this be invalid?
 
     // True if board is touched

@@ -112,7 +112,7 @@ case class CollectionLengthIdentifier(coll:CollectionIdentifier) extends Program
 
 case class CollectionSummaryIdentifier(coll:CollectionIdentifier) extends ProgramPointHeapIdentifier(coll.valueTyp, coll.pp) {
   def getField() : Option[String] = None
-  override def isNormalized() : Boolean = true
+  override def isNormalized() : Boolean = false
   override def equals(x : Any) : Boolean = x match {
     case CollectionSummaryIdentifier(collX) => (coll.equals(collX))
     case _ => false

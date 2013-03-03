@@ -10,7 +10,7 @@ import parser.TableDefinition
 import parser.TypeName
 import semantics.{TString, RichNativeSemantics, TouchField}
 import util.parsing.input.Position
-import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.{oorepresentation, SystemParameters}
 import ch.ethz.inf.pm.sample.oorepresentation.Statement
 import ch.ethz.inf.pm.sample.abstractdomain.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
@@ -450,8 +450,35 @@ class TouchType(name:String, val isSingleton:Boolean = false, fields: List[Ident
   def factory() = top()
   def top() = { val res = new TouchType("Top"); res.isTop = true; res }
   def bottom() = { val res = new TouchType("Bottom"); res.isBottom = true; res }
-  def lub(left: Type, right: Type) = if(left == right || right == bottom()) left else if (left == bottom()) right else top()
-  def glb(left: Type, right: Type) = if(left == right || right == top()) left else if (left == top()) right else bottom()
+
+  def lub(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
+    if(l==null) return r
+    if(r==null) return l
+    val (left, right)=cast(l, r)
+    if(left.isTop || right.isTop) return top()
+    if(left.isBottom) return right
+    if(right.isBottom) return left
+    if (!left.equals(right)) top()
+    else left
+  }
+
+  def glb(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
+    if(l==null) return r
+    if(r==null) return l
+    val (left, right)=cast(l, r)
+    if(left.isBottom || right.isBottom) return bottom()
+    if(left.isTop) return right
+    if(right.isTop) return left
+    if (!left.equals(right)) bottom()
+    else left
+  }
+
+  def cast(l : oorepresentation.Type, r : oorepresentation.Type) = {
+    if((! l.isInstanceOf[TouchType]) || (! r.isInstanceOf[TouchType]))
+      throw new TouchException("Types are not congruent!");
+    (l.asInstanceOf[TouchType], r.asInstanceOf[TouchType])
+  }
+
   def widening(left: Type, right: Type) = lub(left,right)
   def lessEqual(r: Type) = r == this || this.isBottom || r == top()
   def isBottomExcluding(types: Set[Type]) = false
@@ -460,7 +487,7 @@ class TouchType(name:String, val isSingleton:Boolean = false, fields: List[Ident
   def isNumericalType() = (name == "Number") || (name == "Boolean")
   def isStatic() = isSingleton
   def getPossibleFields() = fields.toSet[Identifier]
-  def getPossibleFieldsSorted() = fields
+  def getPossibleTouchFields() = fields.toSet[Identifier] map (_.asInstanceOf[TouchField])
   def getArrayElementsType() = None
 
 }
@@ -500,7 +527,9 @@ case object ReadOnlyModifier extends Modifier
 case class StringConstant(pp : ProgramPoint, value : String) extends Statement(pp)  {
 
   override def forwardSemantics[S <: State[S]](state : S) : S = {
-    RichNativeSemantics.New[S](TString.typ,Map(TString.field_count.asInstanceOf[Identifier] -> RichNativeSemantics.toRichExpression(value.length)))(state,pp)
+    RichNativeSemantics.New[S](TString.typ,Map(
+      TString.field_count -> RichNativeSemantics.toRichExpression(value.length)
+    ))(state,pp)
   }
 
   override def backwardSemantics[S <: State[S]](state : S) : S = state

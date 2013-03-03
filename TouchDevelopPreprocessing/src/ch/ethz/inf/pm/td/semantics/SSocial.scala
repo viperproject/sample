@@ -84,9 +84,9 @@ class SSocial extends AAny {
     //   Top[S](TMessage_Collection.typ)
 
     /** Searches for appointments in a given time range */
-    // case "search_appointments" => 
-    //   val List(start,end) = parameters // DateTime,DateTime
-    //   Top[S](TAppointment_Collection.typ)
+    case "search_appointments" =>
+      val List(start,end) = parameters // DateTime,DateTime
+      Top[S](TAppointment_Collection.typ)
 
     /** Searches for contacts by name. */
     // case "search_contacts" => 

@@ -84,7 +84,11 @@ class SMath extends AAny {
     /** Creates a 3D vector */
     case "create_vector3" =>
       val List(x,y,z) = parameters // Number,Number,Number
-      New[S](TVector3.typ,x,y,z)
+      New[S](TVector3.typ,Map(
+        TVector3.field_x -> x,
+        TVector3.field_y -> y,
+        TVector3.field_z -> z
+      ))
 
     /** Converts degrees into radians */
     case "deg_to_rad" =>

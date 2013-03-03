@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TJson_Object {
 
   val typName = "Json_Object"
-  val typ = TouchCollection(typName,"Number","Json_Object")
+  val typ = TouchCollection(typName,TString.typName,TJson_Object.typName)
 
 }
 
@@ -63,9 +63,9 @@ class TJson_Object extends ACollection {
     //   Top[S](TNumber.typ)
 
     /** Gets a field value as a string */
-    // case "string" => 
+    case "string" =>
     //   val List(key) = parameters // String
-    //   Top[S](TString.typ)
+       Top[S](TString.typ)
 
     /** Gets the field value as a time */
     // case "time" => 
@@ -73,22 +73,22 @@ class TJson_Object extends ACollection {
     //   Top[S](TDateTime.typ)
 
     /** Converts to a boolean (type must be boolean) */
-    // case "to_boolean" => 
-    //   Top[S](TBoolean.typ)
+    case "to_boolean" =>
+      Top[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts to a boolean (type must be boolean) */
     //   val field_to_boolean = new TouchField("to_boolean",TBoolean.typ)
 
     /** Converts to a number (type must be number) */
-    // case "to_number" => 
-    //   Top[S](TNumber.typ)
+    case "to_number" =>
+      Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts to a number (type must be number) */
     //   val field_to_number = new TouchField("to_number",TNumber.typ)
 
     /** Converts and parses to a date time (type must be string) */
-    // case "to_time" => 
-    //   Top[S](TDateTime.typ)
+    case "to_time" =>
+      Top[S](TDateTime.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts and parses to a date time (type must be string) */
     //   val field_to_time = new TouchField("to_time",TDateTime.typ)

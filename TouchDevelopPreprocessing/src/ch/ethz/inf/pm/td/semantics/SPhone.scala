@@ -30,12 +30,16 @@ class SPhone extends AAny {
         
     /** Chooses an address from the contacts */
     case "choose_address" =>
-      val state1 = New[S](TLink.typ,Map(TLink.field_kind.asInstanceOf[Identifier] -> StringCst("address"/*TODO*/)))
+      val state1 = New[S](TLink.typ,Map(
+        TLink.field_kind-> StringCst("address"/*TODO*/)
+      ))
       Return[S](state1.getExpression(),Invalid(TLink.typ))(state1,pp)
 
     /** Chooses a phone number from the contact list */
     case "choose_phone_number" =>
-      val state1 = New[S](TLink.typ,Map(TLink.field_kind.asInstanceOf[Identifier] -> StringCst("phone number")))
+      val state1 = New[S](TLink.typ,Map(
+        TLink.field_kind -> StringCst("phone number")
+      ))
       Return[S](state1.getExpression(),Invalid(TLink.typ))(state1,pp)
 
     /** Starts a phone call */

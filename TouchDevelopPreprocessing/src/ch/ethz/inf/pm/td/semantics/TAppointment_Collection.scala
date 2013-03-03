@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -17,30 +17,16 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TAppointment_Collection {
 
   val typName = "Appointment_Collection"
-  val typ = new TouchType(typName,isSingleton = false,List())
+  val typ = new TouchCollection(typName,TNumber.typName,TAppointment.typName)
 
 }
 
-class TAppointment_Collection extends AAny {
+class TAppointment_Collection extends ACollection {
 
   def getTyp = TAppointment_Collection.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-        
-    /** Gets the appointment at index */
-    // case "at" => 
-    //   val List(index) = parameters // Number
-    //   Top[S](TAppointment.typ)
-
-    /** Gets the number of appointments */
-    // case "count" => 
-    //   Top[S](TNumber.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the number of appointments */
-    //   val field_count = new TouchField("count",TNumber.typ)
-
-    // FIELDS: , field_count
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)
