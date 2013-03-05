@@ -3,6 +3,8 @@ package ch.ethz.inf.pm.td.output
 import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
 import java.io.{PrintWriter, BufferedWriter, FileWriter, File}
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import xml.Elem
 
 /**
  * User: lucas
@@ -42,30 +44,89 @@ object HTMLExporter {
           |    <script src="http://ie7-js.googlecode.com/svn/version/2.0(beta3)/IE7.js" type="text/javascript"></script>
           |  <![endif]-->
           |  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js" type="text/javascript"></script>
+          |  <script type="text/javascript">
+          |	$(document).ready(function() {
+          |			// Tooltip only Text
+          |			$('.masterTooltip').hover(function(){
+          |					// Hover over code
+          |					var title = $(this).attr('title');
+          |					$(this).data('tipText', title).removeAttr('title');
+          |					$('<p class="tooltip"></p>')
+          |					.text(title)
+          |					.appendTo('body')
+          |					.fadeIn('slow');
+          |			}, function() {
+          |					// Hover out code
+          |					$(this).attr('title', $(this).data('tipText'));
+          |					$('.tooltip').remove();
+          |			}).mousemove(function(e) {
+          |					var mousex = e.pageX + 20; //Get X coordinates
+          |					var mousey = e.pageY + 10; //Get Y coordinates
+          |					$('.tooltip')
+          |					.css({ top: mousey, left: mousex })
+          |			});
+          |	});
+          |	</script>
+          |	<style>
+          |	.tooltip {
+          |		display:none;
+          |		position:absolute;
+          |		border:1px solid #333;
+          |		background-color:#161616;
+          |		border-radius:5px;
+          |		padding:10px;
+          |		color:#fff;
+          |		font-size:12px Arial;
+          |	}
+          |	.masterTooltip {
+          |		color:red;
+          |	}
+          |	</style>
           |</head>
           |<body id="" class="">
         """.stripMargin)
 
       pw.println("<h1>Analysis results for script with the id "+compiler.mainID+"</h1>")
 
+
       for ((id,source) <- compiler.parsedSourceStrings) {
+        var annotations: Map[Integer,Elem] = Map.empty
+
+        for ((message,pp) <- Reporter.seenErrors) {
+          val pos = findPosition(id,source,pp)
+          if (pos != -1) {
+            val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
+            annotations = annotations + ((pos,xml))
+          }
+        }
+
+        for ((message,pp) <- Reporter.seenBottom) {
+          val pos = findPosition(id,source,pp)
+          if (pos != -1) {
+            val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
+            annotations = annotations + ((pos,xml))
+          }
+        }
+
+        for ((message,pp) <- Reporter.seenImprecision) {
+          val pos = findPosition(id,source,pp)
+          if (pos != -1) {
+            val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
+            annotations = annotations + ((pos,xml))
+          }
+        }
+
         pw.println(<h2>{id}</h2>)
-        pw.println(<pre>{source}</pre>)
-      }
-
-      for ((message,pp) <- Reporter.seenErrors) {
-        pw.println("Error: "+message)
-        pw.println("Program Point: "+pp)
-      }
-
-      for ((message,pp) <- Reporter.seenBottom) {
-        pw.println("Bottom: "+message)
-        pw.println("Program Point: "+pp)
-      }
-
-      for ((message,pp) <- Reporter.seenImprecision) {
-        pw.println("Imprecision: "+message)
-        pw.println("Program Point: "+pp)
+        pw.println(<pre>{
+            var lastPos = 0
+            (for (pos <- annotations.keySet.toList.sorted) yield {
+              val ret =
+                if (lastPos != pos) List(xml.Text(source.substring(lastPos,pos)),annotations.get(pos).get)
+                else List(annotations.get(pos).get)
+              lastPos = pos
+              ret
+            } ::: List(List(xml.Text(source.substring(lastPos))))).flatten
+        }</pre>)
       }
 
       pw.println(
@@ -87,6 +148,17 @@ object HTMLExporter {
       println("Failed to write analysis results")
     }
 
+  }
+
+  def findPosition(id:String,source:String,pp:ProgramPoint):Integer = {
+    var column = 0
+    var row = 1
+    for (i <- 0 until source.length) {
+      if (column == pp.getColumn() && row == pp.getLine()) return i
+      if(source.charAt(i).equals('\n')) { column = 0; row = row + 1; }
+      else column = column + 1
+    }
+    -1
   }
 
 }

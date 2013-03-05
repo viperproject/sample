@@ -26,7 +26,7 @@ public class InstalledPlugins {
     public static HeapDomain<?, ?>[] heapanalyses;
 
     static  {
-        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[4];
+        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[3];
         compilers[0]=new ScalaCompiler();
         compilers[1]=new TouchCompiler();
         compilers[2]=new AugmentedCompiler();
