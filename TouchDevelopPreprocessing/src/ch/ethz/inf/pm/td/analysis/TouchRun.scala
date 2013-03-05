@@ -15,7 +15,7 @@ import java.io.{StringWriter, PrintWriter}
 class TouchProperty extends ch.ethz.inf.pm.sample.property.Property {
   override def getLabel(): String = "Show graph"
 
-  override def check[S <: State[S]](className: Type, methodName: String, result: ControlFlowGraphExecution[S], printer: OutputCollector): Unit =
+  override def check[S <: State[S]](className: Type, methodName: MethodDeclaration, result: ControlFlowGraphExecution[S], printer: OutputCollector): Unit =
     ShowGraph.check(className, methodName, result, printer)
 
   override def finalizeChecking(printer: OutputCollector): Unit = Unit

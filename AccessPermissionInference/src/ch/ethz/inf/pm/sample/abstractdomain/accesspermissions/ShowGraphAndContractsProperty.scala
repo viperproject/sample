@@ -11,10 +11,10 @@ class ShowGraphAndContractsProperty extends Property {
 
     def getLabel() : String = "Show graphs and inferred contracts";
 	
-	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
-		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));
+	  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName.name.toString), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));
       ShowGraph.check(className,methodName,result,printer)
-		  ConstraintsInference.addPostconditionConstraints(result.exitState().asInstanceOf[ConstraintsInference.State], className, methodName);
+		  ConstraintsInference.addPostconditionConstraints(result.exitState().asInstanceOf[ConstraintsInference.State], className, methodName.name.toString);
 		  CollectedResults.constraints=CollectedResults.constraints.union(ConstraintsInference.getConstraints());
 	  }
 	  

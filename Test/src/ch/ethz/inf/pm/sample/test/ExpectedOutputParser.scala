@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.test
 
-import scala.util.parsing.combinator.JavaTokenParsers
+import
+scala.util.parsing.combinator.JavaTokenParsers
 import java.io.FileReader
 import java.lang.Boolean
 

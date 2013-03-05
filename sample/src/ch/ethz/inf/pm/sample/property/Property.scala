@@ -26,7 +26,7 @@ trait Property {
 	   * @param result the abstract result
 	   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
 	   */
-  def check[S <: State[S]](classe : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
+  def check[S <: State[S]](classe : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
 
    	/**
 	   * The finalizing of the property after that all methods have been checked
@@ -68,9 +68,9 @@ trait Visitor {
  */
 final class SingleStatementProperty(val visitor : Visitor) extends Property {
   override final def getLabel() : String = visitor.getLabel();
-  override final def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+  override final def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 	SystemParameters.currentClass = className;
-	SystemParameters.currentMethod = methodName;
+	SystemParameters.currentMethod = methodName.name.toString;
     for(i <- 0 to result.nodes.size-1)
         for(k <- 0 to result.cfg.nodes.apply(i).size-1) {
           val statement=result.cfg.nodes.apply(i).apply(k);
@@ -87,7 +87,7 @@ final class SingleStatementProperty(val visitor : Visitor) extends Property {
         }
       }
   override final  def finalizeChecking(printer : OutputCollector) : Unit = Unit;
-  private def checkStatement[S <: State[S]](className : Type, methodName : String, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
+  private def checkStatement[S <: State[S]](className : Type, methodName : MethodDeclaration, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
         	  	case Assignment(programpoint, left, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  		this.checkStatement(className, methodName, visitor, state, left, printer)

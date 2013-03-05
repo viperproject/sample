@@ -18,7 +18,7 @@ class ArrayProperty extends Property {
 
     def getLabel() : String = "Show graph"
 	
-	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
+	  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = ShowGraph.Show(result);
 	  
 	  override def finalizeChecking(printer : OutputCollector) : Unit = Unit
 	   

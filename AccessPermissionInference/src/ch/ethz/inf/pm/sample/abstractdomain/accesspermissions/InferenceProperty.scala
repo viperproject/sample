@@ -25,9 +25,9 @@ class InferenceProperty extends Property {
 
     def getLabel() : String = "Inference";
 	
-	  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
-		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));
-		  ConstraintsInference.addPostconditionConstraints(result.exitState().asInstanceOf[ConstraintsInference.State], className, methodName);
+	  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName.name.toString), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));
+		  ConstraintsInference.addPostconditionConstraints(result.exitState().asInstanceOf[ConstraintsInference.State], className, methodName.name.toString);
 		  CollectedResults.constraints=CollectedResults.constraints.union(ConstraintsInference.getConstraints());
 	  }
 	  

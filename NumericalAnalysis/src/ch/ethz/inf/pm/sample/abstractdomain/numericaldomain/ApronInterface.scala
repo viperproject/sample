@@ -25,6 +25,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       stringList = v.getName() :: stringList
     }
     return stringList.toArray[String]
+
   }
 
   override def merge(r : Replacement) : ApronInterface = {

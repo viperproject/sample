@@ -23,10 +23,10 @@ class InterferenceInferenceProperty extends Property {
 
   def getLabel() : String = "Interference inference";
 
-  override def check[S <: State[S]](className : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
-    SystemParameters.currentMethod=methodName;
+  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+    SystemParameters.currentMethod=methodName.name.toString;
     SystemParameters.currentCFG=result.cfg;
-    results = results + ((methodName, result));
+    results = results + ((methodName.name.toString, result));
     println("Method "+className.getName()+"."+methodName+"\nINTERFERENCES\n\n"+InterferenceInference.extractAssignedValue(result));
     SystemParameters.currentCFG=null;
     SystemParameters.currentMethod=null;

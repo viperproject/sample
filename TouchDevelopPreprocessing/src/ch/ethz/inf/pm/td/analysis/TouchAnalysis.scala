@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.analysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{Statement, ControlFlowGraphExecution, Type, NativeMethodSemantics}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
@@ -53,7 +53,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
         val s = x.forwardSemantics[S](entryState)
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end()
         if(SystemParameters.property!=null) {
-          SystemParameters.property.check(c.name.getThisType(), x.name.toString, s, output)
+          SystemParameters.property.check(c.name.getThisType(), x, s, output)
         }
         SystemParameters.currentMethod = null
       }
@@ -92,7 +92,7 @@ class BottomVisitor extends Visitor {
  */
 class NoProperty extends Property {
   def getLabel() = ""
-  def check[S <: State[S]](classT : Type, methodName : String, result : ControlFlowGraphExecution[S], printer : OutputCollector) {}
+  def check[S <: State[S]](classT : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) {}
   def finalizeChecking(printer : OutputCollector) {}
 }
 
