@@ -19,10 +19,10 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TString {
 
   /** Returns the number of characters */
-  val field_count = new TouchField("count",TNumber.typ)
+  //TODO val field_count = new TouchField("count",TNumber.typ)
 
   val typName = "String"
-  val typ = new TouchType(typName,isSingleton = false,List(field_count))
+  val typ = new TouchType(typName,isSingleton = false,List(/*TODO field_count*/))
 
 }
 
@@ -36,7 +36,7 @@ class TString extends AAny {
     /** Gets the character at a specified index */
     case "at" =>
       val List(index) = parameters // Number
-      CheckInRangeInclusive[S](index,0,Field[S](this0,TString.field_count) - 1,method,"index")
+      //TODO CheckInRangeInclusive[S](index,0,Field[S](this0,TString.field_count) - 1,method,"index")
       New[S](TString.typ)
 
     /** Compares two pieces of text */
@@ -46,12 +46,12 @@ class TString extends AAny {
 
     /** Concatenates two pieces of text */
     case "concat" =>
-      val List(other) = parameters // String
-      val state1 = New[S](TString.typ)
-      val newString = state1.getExpression()
-      val state2 = AssignField[S](newString,TString.field_count,
-        Field[S](this0,TString.field_count) + Field[S](other,TString.field_count))(state1,pp)
-      Top[S](TString.typ)(state2,pp)
+      //TODO val List(other) = parameters // String
+      //TODO val state1 = New[S](TString.typ)
+      //TODO val newString = state1.getExpression()
+      //TODO val state2 = AssignField[S](newString,TString.field_count,
+      //TODO   Field[S](this0,TString.field_count) + Field[S](other,TString.field_count))(state1,pp)
+      Top[S](TString.typ)//TODO (state2,pp)
 
     /** Returns a value indicating if the second string is contained */
     case "contains" =>
@@ -70,12 +70,14 @@ class TString extends AAny {
     /** Checks if two strings are the same */
     case "equals" =>
       val List(other) = parameters
-      Return[S]((Field[S](this0,TString.field_count) equal Field[S](other,TString.field_count)),False)
+      //TODO Return[S]((Field[S](this0,TString.field_count) equal Field[S](other,TString.field_count)),False)
+      Top[S](TBoolean.typ)
 
     /** Returns the index of the first occurence if found starting at a given position */
     case "index_of" =>
       val List(value,start) = parameters // String,Number
-      Return[S]((start ndTo (Field[S](this0,TString.field_count) - 1)),Invalid(TNumber.typ))
+      //TODO Return[S]((start ndTo (Field[S](this0,TString.field_count) - 1)),Invalid(TNumber.typ))
+      Top[S](TNumber.typ)
 
     /** Inserts a string at a given position */
     // case "insert" => 
@@ -84,7 +86,8 @@ class TString extends AAny {
 
     /** Indicates if the string is empty */
     case "is_empty" =>
-       Return[S](Field[S](this0,TString.field_count) equal 0)
+      //TODO Return[S](Field[S](this0,TString.field_count) equal 0)
+      Top[S](TBoolean.typ)
 
     /** Indicates if the string matches a regular expression */
     // case "is_match_regex" => 
@@ -109,7 +112,7 @@ class TString extends AAny {
     /** Returns a given string with a replacement */
     case "replace" =>
        val List(old,newS) = parameters // String,String
-       Error[S](Field[S](old,TString.field_count) < 1,"replace","The string to be replaced might be empty")
+       //TODO Error[S](Field[S](old,TString.field_count) < 1,"replace","The string to be replaced might be empty")
        New[S](TString.typ)
 
     /** Replace every match of the regex according to the replacement string */

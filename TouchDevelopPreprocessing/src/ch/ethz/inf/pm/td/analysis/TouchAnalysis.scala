@@ -6,8 +6,29 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.TouchDomain
+import ch.ethz.inf.pm.td.semantics.{AAny, TString, RichNativeSemantics}
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import numericaldomain.Top
+import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.td.output.HTMLExporter
 
 /**
  * 
@@ -42,25 +63,147 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
+  /**
+   *
+   * The execution model is to
+   *
+   * (1) Initialize the global state to invalid
+   * (2) Repeat:
+   *    (2.1) Reset the local state
+   *    (2.2) Run the method (interprocedurally)
+   *    (2.3) Compute lfp (lambda x -> lub_e\in E(e(x))) where E is the set of events
+   *
+   */
   override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) {
-    val methodSet = methods.toSet[String]
-    for ((c,x) <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getRunnableMethods) {
-      if (methodSet.isEmpty || methodSet.contains(x.name.toString)) {
-        SystemParameters.resetOutput
-        MethodSummaries.reset[S]()
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("METHOD: "+c.name.toString+"."+x.name.toString)
-        SystemParameters.currentMethod = x.name.toString
-        val s = x.forwardSemantics[S](entryState)
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end()
-        if(SystemParameters.property!=null) {
-          SystemParameters.property.check(c.name.getThisType(), x, s, output)
+
+    val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
+
+    // Set up the environment
+    SystemParameters.resetOutput
+    MethodSummaries.reset[S]()
+    SystemParameters.progressOutput.begin(" ANALYZING "+compiler.main.name)
+
+    // Set global state to invalid
+    var curState = entryState
+    for (v <- compiler.globalData) {
+
+      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.name.getName()),v.typ,v.programpoint)
+      val leftExpr = new ExpressionSet(v.typ).add(variable)
+      curState = curState.createVariable(leftExpr,v.typ,v.programpoint)
+
+      // Numbers, Booleans and Strings are not initialized to invalid but to 0, false, ""
+      val rightVal = v.typ.getName() match {
+        case "String" =>
+          curState = RichNativeSemantics.New[S](TString.typ)(curState,v.programpoint)
+          curState.getExpression().getSetOfExpressions.head
+        case "Number" => Constant("0",v.typ,v.programpoint)
+        case "Boolean" => Constant("false",v.typ,v.programpoint)
+        case _ =>
+
+          // There are three types of global data:
+          //  (1) Regular global variables / objects, which are initialized to invalid
+          //  (2) Global objects that are read-only and are initialized to some default object (Tile)
+          //  (3) Global objects that represents read-only artwork that is initialized from some URL.
+          if(v.modifiers.contains(ResourceModifier)) {
+            curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
+            curState.getExpression().getSetOfExpressions.head
+          } else if (v.modifiers.contains(ReadOnlyModifier)) {
+            curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
+            curState.getExpression().getSetOfExpressions.head
+          } else {
+            Constant("invalid",v.typ.asInstanceOf[TouchType],v.programpoint)
+          }
+
+      }
+
+      val rightExpr = new ExpressionSet(v.typ).add(rightVal)
+      curState = curState.assignVariable(leftExpr,rightExpr)
+    }
+
+    // Initialize the fields of singletons (the environment)
+    for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
+      if(sem.isInstanceOf[AAny]) {
+        val typ = sem.asInstanceOf[AAny].getTyp
+        if(typ.isSingleton && SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName)) {
+          val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
+          curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
+          val obj = curState.getExpression()
+          val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName,typ,singletonProgramPoint))
+          curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
         }
-        SystemParameters.currentMethod = null
       }
     }
-    if(SystemParameters.property!=null) {
+
+    // The first fixpoint, which is computed over several executions of the same script
+    val result = lfp(curState, {initialState:S =>
+
+      // TODO: Reset local state
+
+      // Execute abstract semantics of each public method (or the ones selected in the GUI)
+      val exitStates = for ((c,x) <- compiler.getPublicMethods) yield {
+        if (methods.isEmpty || methods.contains(x.name.toString)) {
+          Some(analyzeMethod(c,x,initialState))
+        } else None
+      }
+
+      // Compute the least upper bound of all public method exit states
+      val exitState = exitStates.flatten.foldLeft(initialState.bottom())({(
+         stateLeft:S,stateRight:S) => initialState.lub(stateLeft,stateRight)
+      })
+
+      // Compute the fixpoint over all events
+      lfp(exitState,{s:S =>
+        var cur = s
+        for ((c,e) <- compiler.events) {
+          cur = cur.lub(cur,analyzeMethod(c,e,s))
+        }
+        cur
+      })
+
+    })
+
+    // Check properties on the results
+    SystemParameters.progressOutput.end()
+    if (SystemParameters.property!=null) {
+      for ((pp,(clazz,method,cfgEx)) <- MethodSummaries.getSummaries) {
+        SystemParameters.property.check(clazz.name.getThisType(), method, cfgEx.asInstanceOf[ControlFlowGraphExecution[S]], output)
+      }
       SystemParameters.property.finalizeChecking(output)
     }
+
+    // Print some html
+    if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
+
+
+  }
+
+  private def analyzeMethod[S <: State[S]](callType:ClassDefinition,callTarget:MethodDeclaration,entryState:S):S = {
+
+
+    val exitState = MethodSummaries.collect[S](callTarget.programpoint,callType,callTarget,entryState,Nil)
+
+
+    exitState
+
+  }
+
+  /**
+   * Computes the least fix point for states
+   */
+  private def lfp[S <: State[S]](initialState:S,singleIteration:(S => S)):S = {
+
+    var iteration = 1
+    var prev = initialState
+    var cur = prev.lub(prev,singleIteration(prev))
+    while(!cur.lessEqual(prev)) {
+      prev = cur
+      iteration=iteration+1
+      if(iteration > SystemParameters.wideningLimit) cur = prev.widening(prev,singleIteration(prev))
+      else cur = prev.lub(prev,singleIteration(prev))
+    }
+
+    cur
+
   }
 
 }

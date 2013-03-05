@@ -71,7 +71,7 @@ class TWeb_Request extends AAny {
     /** Sets the Accept header type ('text/xml' for xml, 'application/json' for json). */
     case "set_accept" =>
       val List(typ) = parameters // String
-      CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),StringCst("Accept"),typ)
+      CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),String("Accept"),typ)
 
     /** Compresses the request content with gzip and sets the Content-Encoding header */
     // case "set_compress" => 

@@ -49,7 +49,6 @@ object TMessage {
   /** Gets the additional values stored in the message */
   val field_values = new TouchField("values",TString_Map.typ)
 
-
   val typName = "Message"
   val typ = new TouchType(typName,isSingleton = false,List(field_from, field_link, field_location, field_media_link,
     field_message, field_picture_link, field_source, field_time, field_title, field_to, field_values))

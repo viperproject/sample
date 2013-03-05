@@ -132,9 +132,19 @@ class TSprite extends AAny {
       AssignField[S](this0,TSprite.field_is_visible,toRichExpression(1))
 
     /** Sets sprite speed direction towards other sprite with given magnitude. */
-    //case "speed_towards" =>
-    //  val List(other,magnitude) = parameters // Sprite,Number
-    //  Skip; // TODO
+    case "speed_towards" =>
+      val List(other,magnitude) = parameters // Sprite,Number
+
+      //val newX = Field[S](other,TSprite.field_x) - Field[S](this0,TSprite.field_x)
+      //val newY = Field[S](other,TSprite.field_y) - Field[S](this0,TSprite.field_y)
+      //val normalizedX =
+      // other.pos - this.pos
+      //val state1 = CallApi[S](Field[S](other,TVector3.field_x),"subtract",List(Field))
+      // TODO: Not trivial, implement vector normalization first
+
+      val state1 = AssignField[S](this0,TSprite.field_speed_x,Valid(TNumber.typ))
+      val state2 = AssignField[S](this0,TSprite.field_speed_y,Valid(TNumber.typ))(state1,pp)
+      state2
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

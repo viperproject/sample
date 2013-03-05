@@ -17,16 +17,16 @@ import RichNativeSemantics._
 object TPicture {
 
   /** Gets the width in pixels */
-  val field_width = new TouchField("width", TNumber.typ,Valid(TNumber.typ)(null))
+  val field_width = new TouchField("width", TNumber.typ,TopInitializer())
 
   /** Gets the height in pixels */
-  val field_height = new TouchField("height", TNumber.typ,Valid(TNumber.typ)(null))
+  val field_height = new TouchField("height", TNumber.typ,TopInitializer())
 
   /** Gets the location where the picture was taken; if any. */
-  val field_location = new TouchField("location",TLocation.typ,Invalid(TLocation.typ)(null))
+  val field_location = new TouchField("location",TLocation.typ,InvalidInitializer())
 
   /** Gets the date time where the picture was taken; if any. */
-  val field_date = new TouchField("date",TDateTime.typ,Invalid(TLocation.typ)(null))
+  val field_date = new TouchField("date",TDateTime.typ,InvalidInitializer())
 
   val typName = "Picture"
   val typ = new TouchType(typName,isSingleton = false,List(field_width,field_height,field_location,field_date))

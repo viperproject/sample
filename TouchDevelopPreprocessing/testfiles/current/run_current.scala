@@ -6,4 +6,4 @@
 
 import ch.ethz.inf.pm.td.TestRunner._
 
-runDirectory("current")
+runDirectoryWithApron("current")

@@ -31,14 +31,14 @@ class SPhone extends AAny {
     /** Chooses an address from the contacts */
     case "choose_address" =>
       val state1 = New[S](TLink.typ,Map(
-        TLink.field_kind-> StringCst("address"/*TODO*/)
+        TLink.field_kind-> String("address"/*TODO*/)
       ))
       Return[S](state1.getExpression(),Invalid(TLink.typ))(state1,pp)
 
     /** Chooses a phone number from the contact list */
     case "choose_phone_number" =>
       val state1 = New[S](TLink.typ,Map(
-        TLink.field_kind -> StringCst("phone number")
+        TLink.field_kind -> String("phone number")
       ))
       Return[S](state1.getExpression(),Invalid(TLink.typ))(state1,pp)
 
@@ -49,7 +49,7 @@ class SPhone extends AAny {
 
     /** Indicates if the phone is on 'battery' or 'external' power source. */
     case "power_source" =>
-      Return[S](StringCst("battery"),StringCst("external"))
+      Return[S](String("battery"),String("external"))
 
     /** Allows the user to save the phone number */
     case "save_phone_number" =>

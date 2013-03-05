@@ -23,7 +23,7 @@ object TLink {
   val field_kind = new TouchField("kind",TString.typ)
 
   /** Gets the location if any */
-  val field_location = new TouchField("location",TLocation.typ)
+  val field_location = new TouchField("location",TLocation.typ,InvalidInitializer())
 
   /** Gets the name if any */
   val field_name = new TouchField("name",TString.typ)

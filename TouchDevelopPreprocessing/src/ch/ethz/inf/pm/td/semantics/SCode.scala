@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
 import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCompiler}
+import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
 
 /**
  * Specifies the abstract semantics of code
@@ -20,17 +21,18 @@ object SCode {
 
 }
 
-class SCode(compiler:TouchCompiler) extends AAny {
+class SCode extends AAny {
 
   def getTyp = SCode.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = {
 
-    compiler.getCalledMethod(method,parameters map (_.getType())) match {
-      case Some(methodDef) =>
-        val res = MethodSummaries.collect(pp,methodDef,state,parameters)
+    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethod(method,parameters map (_.getType())) match {
+      case Some((clazz,methodDef)) =>
+        val res = MethodSummaries.collect(pp,clazz,methodDef,state,parameters)
         res
       case _ =>
+        Reporter.hasImprecision("Could not find this method "+method,pp)
         super.forwardSemantics(this0,method,parameters)
     }
 

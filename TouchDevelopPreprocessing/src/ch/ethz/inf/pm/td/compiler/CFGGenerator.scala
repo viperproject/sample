@@ -10,7 +10,7 @@ import parser.TableDefinition
 import parser.TypeName
 import semantics.{TString, RichNativeSemantics, TouchField}
 import util.parsing.input.Position
-import ch.ethz.inf.pm.sample.{oorepresentation, SystemParameters}
+import ch.ethz.inf.pm.sample.{ToStringUtilities, oorepresentation, SystemParameters}
 import ch.ethz.inf.pm.sample.oorepresentation.Statement
 import ch.ethz.inf.pm.sample.abstractdomain.Expression
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
@@ -179,8 +179,7 @@ object CFGGenerator {
           addStatementsToCFG(body,newBody)
           val preCond : Statement = null
           val postCond : Statement = null
-          Some(new CallableMethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,
-            newBody,preCond,postCond))
+          Some(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
         case _ => None
       }
     }).flatten
@@ -210,7 +209,7 @@ object CFGGenerator {
   private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
     if (!typeName.ident.startsWith("__script_")) {
       SystemParameters.compiler.asInstanceOf[TouchCompiler].types.get(typeName.ident) match {
-        case Some(x) => x
+        case Some(x) => x.getTyp
         case None => throw new TouchException("Could not find type "+typeName)
       }
     } else new TouchType(typeName.ident,isSingleton)
@@ -358,18 +357,18 @@ object CFGGenerator {
 }
 
 
-abstract class Named(name : String) {
+abstract class Named {
 
-  def getName : String = name
+  def getName() : String
 
   override def equals(o : Any) : Boolean = o match {
-    case x : Named => x.getName.equals(name) && x.getClass.equals(this.getClass)
+    case x : Named => x.getName().equals(getName()) && x.getClass.equals(this.getClass)
     case _ => false
   }
 
-  override def hashCode() : Int = name.hashCode()
+  override def hashCode() : Int = getName().hashCode()
 
-  override def toString = name
+  override def toString = getName()
 }
 
 case class TouchException(msg:String,pos:Position = null) extends Exception {
@@ -382,13 +381,25 @@ case class UnsupportedLanguageFeatureException(msg:String) extends Exception {
 
 case class TouchPackageIdentifier() extends PackageIdentifier
 
+//class TouchClassDefinition(programpoint_ : ProgramPoint, typ_ : Type, modifiers_ : List[Modifier], name_ : ClassIdentifier,
+//                       parametricTypes_ : List[Type], extend_ : List[ClassIdentifier], fields_ : List[FieldDeclaration],
+//                       methods_ : List[MethodDeclaration], pack_ : PackageIdentifier, inv_ : Expression
+//                       ) extends ClassDefinition(programpoint_,typ_,modifiers_,name_,parametricTypes_,extend_,fields_,
+//                                  methods_,pack_,inv_)
+//{
+//
+//
+//
+//}
+
 
 case class TouchMethodIdentifier(ident:String,isEvent:Boolean,isPrivate:Boolean) extends MethodIdentifier {
   override def toString:String = ident
 }
 
-case class TouchClassIdentifier(name:String,typ:Type) extends Named(name) with ClassIdentifier {
+case class TouchClassIdentifier(name:String,typ:Type) extends Named with ClassIdentifier {
   def getThisType() = typ
+  override def getName() = name
 }
 
 case class TouchProgramPoint(pos:Position) extends ProgramPoint {
@@ -440,11 +451,12 @@ case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends Prog
   override def toString = pp+"("+path.mkString(",")+")"
 }
 
-class TouchType(name:String, val isSingleton:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named(name) with Type {
+class TouchType(name:String, val isSingleton:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named with Type {
 
   var isBottom = false;
   var isTop = false;
 
+  override def getName() = name
   override def toString():String = name
 
   def factory() = top()
@@ -507,8 +519,8 @@ case class TouchTuple(name:String, fields:List[TouchField]) extends TouchType(na
 
 case class TouchCollection(name:String,keyType:String,valueType:String, fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
 
-  def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(keyType)
-  def getValueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(valueType)
+  def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(keyType).getTyp
+  def getValueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(valueType).getTyp
 
 }
 
@@ -527,9 +539,7 @@ case object ReadOnlyModifier extends Modifier
 case class StringConstant(pp : ProgramPoint, value : String) extends Statement(pp)  {
 
   override def forwardSemantics[S <: State[S]](state : S) : S = {
-    RichNativeSemantics.New[S](TString.typ,Map(
-      TString.field_count -> RichNativeSemantics.toRichExpression(value.length)
-    ))(state,pp)
+    state.setExpression(new ExpressionSet(TString.typ).add(Constant(value,TString.typ,pp)))
   }
 
   override def backwardSemantics[S <: State[S]](state : S) : S = state

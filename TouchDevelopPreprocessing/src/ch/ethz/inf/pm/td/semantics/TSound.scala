@@ -21,13 +21,13 @@ object TSound {
   val field_duration = new TouchField("duration",TNumber.typ)
 
   /** Gets the panning, ranging from -1.0 (full left) to 1.0 (full right). */
-  val field_pan = new TouchField("pan",TNumber.typ,toRichExpression(-1) ndTo toRichExpression(1))
+  val field_pan = new TouchField("pan",TNumber.typ,ExpressionInitializer(-1 ndTo 1))
 
   /** Gets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */
-  val field_pitch = new TouchField("pitch",TNumber.typ,toRichExpression(-1) ndTo toRichExpression(1))
+  val field_pitch = new TouchField("pitch",TNumber.typ,ExpressionInitializer(-1 ndTo 1))
 
   /** Gets the volume from 0 (silent) to 1 (full volume) */
-  val field_volume = new TouchField("volume",TNumber.typ,toRichExpression(0) ndTo toRichExpression(1))
+  val field_volume = new TouchField("volume",TNumber.typ,ExpressionInitializer(-1 ndTo 1))
 
   val typName = "Sound"
   val typ = new TouchType(typName,isSingleton = false,List(field_duration, field_pan, field_pitch, field_volume))

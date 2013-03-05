@@ -13,19 +13,19 @@ import RichExpression._
  */
 object TColor {
 
-  val field_A = new TouchField("A",TNumber.typ,(0 to 1))
-  val field_R = new TouchField("R",TNumber.typ,(0 to 1))
-  val field_G = new TouchField("G",TNumber.typ,(0 to 1))
-  val field_B = new TouchField("B",TNumber.typ,(0 to 1))
+  val field_A = new TouchField("A",TNumber.typ,ExpressionInitializer(0 to 1))
+  val field_R = new TouchField("R",TNumber.typ,ExpressionInitializer(0 to 1))
+  val field_G = new TouchField("G",TNumber.typ,ExpressionInitializer(0 to 1))
+  val field_B = new TouchField("B",TNumber.typ,ExpressionInitializer(0 to 1))
 
   // we also treat hue,saturation,brightness as fields.
   // since we are not able to convert between reps, ARGB is Top if initialized with HSB,
   // and HSB is TOP if initialized with ARGB.
   // PRECISION: Implement HSB / ARGB conversion
 
-  val field_hue = new TouchField("hue",TNumber.typ,(0 to 1))
-  val field_saturation = new TouchField("saturation",TNumber.typ,(0 to 1))
-  val field_brightness = new TouchField("brightness",TNumber.typ,(0 to 1))
+  val field_hue = new TouchField("hue",TNumber.typ,ExpressionInitializer(0 to 1))
+  val field_saturation = new TouchField("saturation",TNumber.typ,ExpressionInitializer(0 to 1))
+  val field_brightness = new TouchField("brightness",TNumber.typ,ExpressionInitializer(0 to 1))
 
   val typName = "Color"
   val typ = new TouchType(typName,isSingleton = false, List(field_A,field_R,field_B,field_G,field_hue,field_saturation,field_brightness))

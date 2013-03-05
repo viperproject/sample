@@ -5,7 +5,6 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import sun.org.mozilla.javascript.internal.ast.ReturnStatement
 
 /**
  * Specifies the abstract semantics of Json Object

@@ -1,9 +1,15 @@
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, ControlFlowGraphExecution, ProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, ExpressionSet, State}
 import ch.ethz.inf.pm.td.compiler.{TouchType, TouchTuple}
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import scala.Some
 
 /**
  * Stores summaries of methods. This is not thread-safe.
@@ -13,7 +19,7 @@ object MethodSummaries {
   /**
    * Stores the summaries of called methods, program point specific
    */
-  private var summaries:Map[ProgramPoint,ControlFlowGraphExecution[_]] = Map.empty
+  private var summaries:Map[ProgramPoint,(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])] = Map.empty
 
   /**
    * Stores the entry states of a method that is currently on the stack (for recursive calls)
@@ -31,20 +37,24 @@ object MethodSummaries {
    * @tparam S Our current abstract domain
    * @return The exit state of the method
    */
-  def collect[S <: State[S]](callPoint:ProgramPoint,callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
-    val enteredState = enterFunction(callPoint,callTarget,entryState,parameters)
-    val result = entries.get(callPoint) match {
+  def collect[S <: State[S]](callPoint:ProgramPoint,callType:ClassDefinition,callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
+    val identifyingPP =
+      if(TouchAnalysisParameters.contextSensitiveInterproceduralAnalysis) callPoint
+      else callTarget.programpoint
+
+    var enteredState = enterFunction(identifyingPP,callTarget,entryState,parameters)
+    val result = entries.get(identifyingPP) match {
       case Some(oldEntryState) =>
 
         // This is a recursive call (non top level).
         // Join the entry state and continue with previously recorded
         // exit + entryState (updates inside recursive calls are weak)
         val newEntryState = enteredState.lub(enteredState,oldEntryState.asInstanceOf[S])
-        entries += ((callPoint,newEntryState))
-        summaries.get(callPoint) match {
-          case Some(prevExecution) =>
+        entries += ((identifyingPP,newEntryState))
+        summaries.get(identifyingPP) match {
+          case Some((_,_,prevExecution)) =>
             val prevExitState = prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState()
-            val exitedState = exitFunction(callPoint,callTarget,prevExitState,parameters)
+            val exitedState = exitFunction(identifyingPP,callTarget,prevExitState,parameters)
             exitedState
           case None => entryState
         }
@@ -54,40 +64,48 @@ object MethodSummaries {
         // This is a top-level call (recursive or non-recursive)
         // Record the effect of one iteration
 
-        entries += ((callPoint,enteredState))
+        entries += ((identifyingPP,enteredState))
 
-        var currentSummary = summaries.get(callPoint) match {
-          case Some(prevSummary) =>
-            val prevSummaryCFG = prevSummary.asInstanceOf[ControlFlowGraphExecution[S]]
-            val newSummaryCFG = callTarget.forwardSemantics(enteredState)
-            newSummaryCFG.widening(prevSummaryCFG)
-          case None => callTarget.forwardSemantics(enteredState)
+        var currentSummary = summaries.get(identifyingPP) match {
+          case Some((_,_,prevSummary)) =>
+            executeMethod(enteredState,callTarget,prevSummary.asInstanceOf[ControlFlowGraphExecution[S]])
+          case None =>
+            executeMethod(enteredState,callTarget,new ControlFlowGraphExecution[S](callTarget.body,enteredState))
         }
 
-        summaries += ((callPoint,currentSummary))
+        summaries += ((identifyingPP,(callType,callTarget,currentSummary)))
 
         // Are there more possible depths?
-        while (!entries.get(callPoint).get.asInstanceOf[S].removeExpression().lessEqual(currentSummary.entryState().removeExpression())) {
-          currentSummary = currentSummary.widening(callTarget.forwardSemantics(enteredState))
-          summaries += ((callPoint,currentSummary))
+        while (!entries.get(identifyingPP).get.asInstanceOf[S].removeExpression().lessEqual(enteredState.removeExpression())) {
+          enteredState = entries.get(identifyingPP).get.asInstanceOf[S]
+          currentSummary = executeMethod(enteredState,callTarget,currentSummary)
+          summaries += ((identifyingPP,(callType,callTarget,currentSummary)))
         }
 
-        entries = entries - callPoint
+        entries = entries - identifyingPP
 
-        exitFunction(callPoint,callTarget,currentSummary.exitState(),parameters)
+        exitFunction(identifyingPP,callTarget,currentSummary.exitState(),parameters)
 
     }
     result
   }
 
-
-  def reset[S <: State[S]]() {
-    summaries = Map.empty[ProgramPoint,ControlFlowGraphExecution[S]]
-    entries = Map.empty[ProgramPoint,S]
+  private def executeMethod[S <: State[S]](entryState:S, callTarget:MethodDeclaration, cfgEx:ControlFlowGraphExecution[S]):ControlFlowGraphExecution[S] = {
+    val callContext = (SystemParameters.currentMethod,SystemParameters.currentCFG)
+    SystemParameters.currentCFG = callTarget.body
+    SystemParameters.currentMethod = callTarget.name.toString
+    //SystemParameters.progressOutput.begin("METHOD: "+callTarget.name)
+    val newState = cfgEx.forwardSemantics(entryState)
+    //SystemParameters.progressOutput.end()
+    SystemParameters.currentCFG = callContext._2
+    SystemParameters.currentMethod = callContext._1
+    newState
   }
 
-  def apply[S <: State[S]](pp:ProgramPoint):Option[ControlFlowGraphExecution[S]] =
-    summaries.get(pp).asInstanceOf[Option[ControlFlowGraphExecution[S]]]
+  def reset[S <: State[S]]() {
+    summaries = Map.empty[ProgramPoint,(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[S])]
+    entries = Map.empty[ProgramPoint,S]
+  }
 
   def getSummaries = summaries
 
@@ -95,12 +113,37 @@ object MethodSummaries {
                                            parameters:List[ExpressionSet]):S = {
 
     var curState = entryState
-    val inParameters = callTarget.arguments(0)
-    for ((decl,value) <- inParameters.zip(parameters)) {
-      //curState = decl.forwardSemantics(curState)
-      val variable = decl.variable.id
-      curState = curState.assignVariable(new ExpressionSet(variable.getType()).add(variable),value)
+
+    if (parameters.length == callTarget.arguments.apply(0).length) {
+
+      // Initialize in-parameters to given parameters
+      val inParameters = callTarget.arguments(0)
+      for ((decl,value) <- inParameters.zip(parameters)) {
+        val variable = decl.variable.id
+        curState = curState.assignVariable(new ExpressionSet(variable.getType()).add(variable),value)
+      }
+
+    } else {
+
+      // Initialize in-parameters to top
+      callTarget.arguments.apply(0).foreach({
+        x:VariableDeclaration =>
+          if(TouchAnalysisParameters.argumentsToPublicMethodsValid) {
+            curState = Top[S](x.typ.asInstanceOf[TouchType])(curState,x.programpoint)
+          } else {
+            curState = TopWithInvalid[S](x.typ.asInstanceOf[TouchType])(curState,x.programpoint)
+          }
+          curState = curState.assignVariable(toExpressionSet(x.variable.id),curState.getExpression())
+      })
+
     }
+
+    // Initialize out-parameters to invalid
+    callTarget.arguments.apply(1).foreach({
+      x:VariableDeclaration =>
+        curState = curState.assignVariable(toExpressionSet(x.variable.id),Invalid(x.typ)(x.programpoint))
+    })
+
     curState
 
   }

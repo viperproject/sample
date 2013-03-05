@@ -9,8 +9,9 @@ import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchCompiler}
 import apron.{Environment, Abstract1, Octagon}
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, NonRelationalNumericalDomain, ApronInterface}
-import ch.ethz.inf.pm.td.analysis.{BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
 import java.io.{StringWriter, PrintWriter}
+import ch.ethz.inf.pm.td.output.HTMLExporter
 
 class TouchProperty extends ch.ethz.inf.pm.sample.property.Property {
   override def getLabel(): String = "Show graph"
@@ -94,6 +95,13 @@ object TouchApronRun {
       exit()
     }
 
+    // This is crazy: Increase the priority for the finalizer thread
+//    for(t <- Thread.getAllStackTraces().keySet()) {
+//      if (t.getName().equals("Finalizer")) {
+//        t.setPriority(Thread.MAX_PRIORITY)
+//      }
+//    }
+
     SystemParameters.compiler = new TouchCompiler
     SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
     SystemParameters.analysisOutput = new StdOutOutput()
@@ -126,6 +134,7 @@ object TouchApronRun {
 
         val analysis = new TouchAnalysisWithApron[TouchDomain[ApronInterface]]
         analysis.analyze(Nil, entryState, new OutputCollector)
+
       } catch {
         case e:UnsupportedLanguageFeatureException =>
           SystemParameters.progressOutput.put("UNSUPPORTED: Unsupported Language Feature: "+e.toString)

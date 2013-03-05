@@ -16,8 +16,36 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object SPlayer {
 
+
+  /** Gets the active song if any */
+  val field_active_song = new TouchField("active_song",TSong.typ)
+
+  /** Indicates if the player is muted */
+  val field_is_muted = new TouchField("is_muted",TBoolean.typ)
+
+  /** Indicates if the player is paused */
+  val field_is_paused = new TouchField("is_paused",TBoolean.typ)
+
+  /** Indicates if the player is playing a song */
+  val field_is_playing = new TouchField("is_playing",TBoolean.typ)
+
+  /** Indicates if the player is repeating */
+  val field_is_repeating = new TouchField("is_repeating",TBoolean.typ)
+
+  /** Indicates if the player is shuffled */
+  val field_is_shuffled = new TouchField("is_shuffled",TBoolean.typ)
+
+  /** Indicates if the player is stopped */
+  val field_is_stopped = new TouchField("is_stopped",TBoolean.typ)
+
+  /** Gets the position in seconds whithin the active song */
+  val field_play_position = new TouchField("play_position",TNumber.typ)
+
+  /** Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */
+  val field_sound_volume = new TouchField("sound_volume",TNumber.typ)
+
   val typName = "player"
-  val typ = new TouchType(typName,isSingleton = true,List())
+  val typ = new TouchType(typName,isSingleton = true,List(field_active_song, field_is_muted, field_is_paused, field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume))
 
 }
 
@@ -27,66 +55,22 @@ class SPlayer extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-        
-    /** Gets the active song if any */
-    // case "active_song" => 
-    //   Top[S](TSong.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the active song if any */
-    //   val field_active_song = new TouchField("active_song",TSong.typ)
-
-    /** Indicates if the player is muted */
-    // case "is_muted" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is muted */
-    //   val field_is_muted = new TouchField("is_muted",TBoolean.typ)
-
-    /** Indicates if the player is paused */
-    // case "is_paused" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is paused */
-    //   val field_is_paused = new TouchField("is_paused",TBoolean.typ)
-
-    /** Indicates if the player is playing a song */
-    // case "is_playing" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is playing a song */
-    //   val field_is_playing = new TouchField("is_playing",TBoolean.typ)
-
-    /** Indicates if the player is repeating */
-    // case "is_repeating" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is repeating */
-    //   val field_is_repeating = new TouchField("is_repeating",TBoolean.typ)
-
-    /** Indicates if the player is shuffled */
-    // case "is_shuffled" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is shuffled */
-    //   val field_is_shuffled = new TouchField("is_shuffled",TBoolean.typ)
-
-    /** Indicates if the player is stopped */
-    // case "is_stopped" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is stopped */
-    //   val field_is_stopped = new TouchField("is_stopped",TBoolean.typ)
 
     /** Moves to the next song in the queue of playing songs */
-    // case "next" => 
-    //   Skip;
+    case "next" =>
+      AssignField[S](this0,SPlayer.field_play_position,Field[S](this0,SPlayer.field_play_position) + 1)
 
     /** Pauses the currently playing song */
-    // case "pause" => 
-    //   Skip;
+    case "pause" =>
+      Error[S](Field[S](this0,SPlayer.field_is_playing) equal False,"resume","Player might not be playing")
+      var curState = state
+      curState = AssignField[S](this0,SPlayer.field_is_playing,False)(curState,pp)
+      curState = AssignField[S](this0,SPlayer.field_is_paused,True)(curState,pp)
+      curState = AssignField[S](this0,SPlayer.field_is_stopped,False)(curState,pp)
+      curState
 
     /** Plays a Song */
-    // case "play" => 
+    // case "play" =>
     //   val List(song) = parameters // Song
     //   Skip;
 
@@ -96,52 +80,47 @@ class SPlayer extends AAny {
     //   Skip;
 
     /** Plays a collection of songs */
-    // case "play_many" => 
+    // case "play_many" =>
     //   val List(songs) = parameters // Songs
     //   Skip;
 
-    /** Gets the position in seconds whithin the active song */
-    // case "play_position" => 
-    //   Top[S](TNumber.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the position in seconds whithin the active song */
-    //   val field_play_position = new TouchField("play_position",TNumber.typ)
-
     /** Moves to the previous song in the queue of playing songs */
-    // case "previous" => 
-    //   Skip;
+    case "previous" =>
+      AssignField[S](this0,SPlayer.field_play_position,Field[S](this0,SPlayer.field_play_position) - 1)
 
     /** Resumes a paused song */
-    // case "resume" => 
-    //   Skip;
+    case "resume" =>
+      Error[S](Field[S](this0,SPlayer.field_is_paused) equal False,"resume","Player might not be paused")
+      var curState = state
+      curState = AssignField[S](this0,SPlayer.field_is_playing,True)(curState,pp)
+      curState = AssignField[S](this0,SPlayer.field_is_paused,False)(curState,pp)
+      curState = AssignField[S](this0,SPlayer.field_is_stopped,False)(curState,pp)
+      curState
 
     /** Sets the repeating on and off */
-    // case "set_repeating" => 
-    //   val List(repeating) = parameters // Boolean
-    //   Skip;
+    case "set_repeating" =>
+      val List(repeating) = parameters // Boolean
+      AssignField[S](this0,SPlayer.field_is_repeating,repeating)
 
     /** Sets the shuffling on and off */
-    // case "set_shuffled" => 
-    //   val List(shuffled) = parameters // Boolean
-    //   Skip;
+    case "set_shuffled" =>
+      val List(shuffled) = parameters // Boolean
+      AssignField[S](this0,SPlayer.field_is_shuffled,shuffled)
 
     /** Sets the sound volume level from 0 (silent) to 1 (current volume) */
-    // case "set_sound_volume" => 
-    //   val List(x) = parameters // Number
-    //   Skip;
-
-    /** Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */
-    // case "sound_volume" => 
-    //   Top[S](TNumber.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */
-    //   val field_sound_volume = new TouchField("sound_volume",TNumber.typ)
+    case "set_sound_volume" =>
+      val List(x) = parameters // Number
+      CheckInRangeInclusive[S](x,0,1,"set_sound_volume","volume level")
+      super.forwardSemantics(this0,method,parameters)
 
     /** Stops playing a song */
-    // case "stop" => 
-    //   Skip;
-
-    // FIELDS: , field_active_song, field_is_muted, field_is_paused, field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume
+    case "stop" =>
+      Error[S](Field[S](this0,SPlayer.field_is_playing) equal False,"play","Player might not be playing")
+      var curState = state
+      curState = AssignField[S](this0,SPlayer.field_is_playing,False)(curState,pp)
+      curState = AssignField[S](this0,SPlayer.field_is_paused,False)(curState,pp)
+      curState = AssignField[S](this0,SPlayer.field_is_stopped,True)(curState,pp)
+      curState
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

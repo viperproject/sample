@@ -18,8 +18,9 @@ object SBazaar {
   /** Gets the current score for the current script */
   val field_leaderboard_score = new TouchField("leaderboard_score",TNumber.typ)
 
+  val fields = List(field_leaderboard_score)
   val typName = "bazaar"
-  val typ = new TouchType(typName, isSingleton = true, List(field_leaderboard_score))
+  val typ = new TouchType(typName, isSingleton = true)
 
 }
 

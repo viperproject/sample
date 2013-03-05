@@ -62,37 +62,53 @@ object RichNativeSemantics {
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
-  def New[S <: State[S]](typ:TouchType, initials:Map[TouchField,RichExpression] = Map.empty[TouchField,RichExpression])(implicit s:S, pp:ProgramPoint): S = {
-
-    var curState = typ match {
-      case col:TouchCollection =>
-        s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp)
+  def New[S <: State[S]](typ:TouchType, initials:Map[TouchField,RichExpression] = Map.empty[TouchField,RichExpression],recursive:Boolean = true)(implicit s:S, pp:ProgramPoint): S = {
+    typ.getName match {
+      case TNumber.typName => s.setExpression(Valid(TNumber.typ))
+      case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(True).add(False))
+      case TString.typName => s.setExpression(Valid(TString.typ))
       case _ =>
-        s.createObject(typ,pp,false)
-    }
-    val obj = curState.getExpression()
 
-    // Assign fields with given arguments
-    for (f <- typ.getPossibleTouchFields()) {
-      if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
-        val a = initials.get(f) match {
-          case None => f.default
-          case Some(st) => st
+        var curState = typ match {
+          case col:TouchCollection =>
+            s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp)
+          case _ =>
+            s.createObject(typ,pp,false)
         }
-        curState = curState.assignField(List(obj),f.getName(),a)
-      }
+        val obj = curState.getExpression()
+
+        if(recursive) {
+          // Assign fields with given arguments
+          for (f <- typ.getPossibleTouchFields()) {
+            if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
+              val (newPP, referenceLoop) = DeepeningProgramPoint(pp,"__summary")
+              val a = initials.get(f) match {
+                case None => f.default match {
+                  case InvalidInitializer() => Invalid(f.touchTyp)
+                  case TopInitializer() => curState = Top[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case TopWithInvalidInitializer() => curState = TopWithInvalid[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case NewInitializer() => curState = New[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case ExpressionInitializer(e) => e
+                }
+                case Some(st) => st
+              }
+              curState = curState.assignField(List(obj),f.getName(),a)
+            }
+          }
+        }
+
+        // Make sure that our value is "valid"  now
+        curState = curState.assignVariable(obj,Valid(typ))
+
+        curState.setExpression(obj)
     }
-
-    // Make sure that our value is "valid"  now
-    curState = curState.assignVariable(obj,Valid(typ))
-
-    curState.setExpression(obj)
   }
 
   def Top[S <: State[S]](typ:TouchType, initials:Map[Identifier,RichExpression] = Map.empty[Identifier,RichExpression],recursive:Boolean = true)(implicit s:S, pp:ProgramPoint): S = {
     typ.getName match {
       case TNumber.typName => s.setExpression(Valid(TNumber.typ))
       case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(True).add(False))
+      case TString.typName => s.setExpression(Valid(TString.typ))
       case _ =>
 
         var curState = typ match {
@@ -140,6 +156,16 @@ object RichNativeSemantics {
         curState.setExpression(obj)
 
     }
+  }
+
+  def TopWithInvalid[S <: State[S]](typ:TouchType,
+                                    initials:Map[Identifier,RichExpression] = Map.empty[Identifier,RichExpression],
+                                    recursive:Boolean = true)(implicit s:S, pp:ProgramPoint): S = {
+
+    val curState = Top[S](typ,initials,recursive)(s,pp)
+    val validResult = curState.getExpression()
+    Return[S](validResult,Invalid(typ))(curState,pp)
+
   }
 
   def Clone[S <: State[S]](obj:RichExpression, initials:Map[Identifier,RichExpression] = Map.empty[Identifier,RichExpression], recursive : Boolean = true)(implicit s:S, pp:ProgramPoint): S = {
@@ -212,6 +238,11 @@ object RichNativeSemantics {
 
   /*-- Misc --*/
 
+  def CallApi[S <: State[S]](obj:RichExpression,method:String,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {
+    val semantics = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(obj.getType().getName())
+    semantics.forwardSemantics(obj,method,parameters)(pp,state)
+  }
+
   def Return[S <: State[S]](e:RichExpression*)(implicit state:S, pp:ProgramPoint):S = {
     var set = new ExpressionSet(e.head.getType())
     for (ex <- e) { set = set.add(ex.thisExpr) }
@@ -275,7 +306,7 @@ object RichNativeSemantics {
 
   /*-- Constants --*/
 
-  def StringCst(a:String)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant(a,TString.typ,pp))
+  def String(a:String)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant(a,TString.typ,pp))
   def True(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("true",TBoolean.typ,pp))
   def False(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("false",TBoolean.typ,pp))
   def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
@@ -305,13 +336,15 @@ object RichNativeSemantics {
 
 }
 
-class TouchField(name:String, val touchTyp:TouchType, var default: RichExpression = null, val isSummaryNode:Boolean = false)
-  extends VariableIdentifier(name,touchTyp,null) {
+class TouchField(name:String, val touchTyp:TouchType, var default: Initializer = NewInitializer(), val isSummaryNode:Boolean = false)
+  extends VariableIdentifier(name,touchTyp,null)
 
-  if (default == null) {
-    default = toRichExpression(new Constant("valid",touchTyp,null))
-  }
-}
+trait Initializer
+case class InvalidInitializer() extends Initializer
+case class NewInitializer() extends Initializer
+case class TopInitializer() extends Initializer
+case class TopWithInvalidInitializer() extends Initializer
+case class ExpressionInitializer(e: RichExpression) extends Initializer
 
 case class RichExpression(thisExpr : ExpressionSet) {
 

@@ -8,7 +8,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
-import ch.ethz.inf.pm.td.compiler.SimpleTouchCompiler;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.analysis.*;
 import it.unive.dsi.stringanalysis.BricksAnalysis;
@@ -30,8 +29,7 @@ public class InstalledPlugins {
         compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[4];
         compilers[0]=new ScalaCompiler();
         compilers[1]=new TouchCompiler();
-        compilers[2]=new SimpleTouchCompiler();
-        compilers[3]=new AugmentedCompiler();
+        compilers[2]=new AugmentedCompiler();
 
         analyses=new SemanticAnalysis[9];
         analyses[0]=new NonRelationalNumericalAnalysis();

@@ -17,10 +17,10 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SRadio {
 
   /** Gets the frequency */
-  val field_frequency = new TouchField("frequency",TNumber.typ, Valid(TBoolean.typ)(null))
+  val field_frequency = new TouchField("frequency",TNumber.typ, NewInitializer())
 
   /** Indicates if the radio is on */
-  val field_is_playing = new TouchField("is_playing",TBoolean.typ, Valid(TBoolean.typ)(null))
+  val field_is_playing = new TouchField("is_playing",TBoolean.typ, NewInitializer())
 
   val typName = "radio"
   val typ = new TouchType(typName,isSingleton = true,List(field_frequency, field_is_playing))
@@ -39,7 +39,7 @@ class SRadio extends AAny {
       val List(name,frequency) = parameters // String,Number
       New[S](TLink.typ,Map(
         TLink.field_name-> toRichExpression(name),
-        TLink.field_kind -> StringCst("radio")
+        TLink.field_kind -> String("radio")
       ))
 
     /** Gets the signal strength */

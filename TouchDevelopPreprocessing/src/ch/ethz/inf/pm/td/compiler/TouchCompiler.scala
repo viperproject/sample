@@ -20,102 +20,99 @@ import ch.ethz.inf.pm.td.parser.Script
  */
 class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
+  var main : ClassDefinition = null
+  var mainID : String = null
   var parsedIDs : Set[String] = Set[String]()
   var parsedScripts : List[ClassDefinition] = Nil
-
-  var types : Map[String,TouchType] = Map(
-    SAssert.typName -> SAssert.typ,
-    SBazaar.typName -> SBazaar.typ,
-    SCode.typName -> SCode.typ,
-    SCollections.typName -> SCollections.typ,
-    SColors.typName -> SColors.typ,
-    SHome.typName -> SHome.typ,
-    SInvalid.typName -> SInvalid.typ,
-    SLanguages.typName -> SLanguages.typ,
-    SLocations.typName -> SLocations.typ,
-    SMaps.typName -> SMaps.typ,
-    SMath.typName -> SMath.typ,
-    SMedia.typName -> SMedia.typ,
-    SPhone.typName -> SPhone.typ,
-    SPlayer.typName -> SPlayer.typ,
-    SRadio.typName -> SRadio.typ,
-    SRecords.typName -> SRecords.typ,
-    SSenses.typName -> SSenses.typ,
-    SSocial.typName -> SSocial.typ,
-    STags.typName -> STags.typ,
-    STime.typName -> STime.typ,
-    SWall.typName -> SWall.typ,
-    SWeb.typName -> SWeb.typ,
-    TAppointment_Collection.typName -> TAppointment_Collection.typ,
-    TAppointment.typName -> TAppointment.typ,
-    TBoard.typName -> TBoard.typ,
-    TBoolean.typName -> TBoolean.typ,
-    TCamera.typName -> TCamera.typ,
-    TColor.typName -> TColor.typ,
-    TContact_Collection.typName -> TContact_Collection.typ,
-    TContact.typName -> TContact.typ,
-    TDateTime.typName -> TDateTime.typ,
-    TDevice_Collection.typName -> TDevice_Collection.typ,
-    TDevice.typName -> TDevice.typ,
-    TJson_Object.typName -> TJson_Object.typ,
-    TLink_Collection.typName -> TLink_Collection.typ,
-    TLink.typName -> TLink.typ,
-    TLocation_Collection.typName -> TLocation_Collection.typ,
-    TLocation.typName -> TLocation.typ,
-    TMap.typName -> TMap.typ,
-    TMedia_Link_Collection.typName -> TMedia_Link_Collection.typ,
-    TMedia_Link.typName -> TMedia_Link.typ,
-    TMedia_Player_Collection.typName -> TMedia_Player_Collection.typ,
-    TMedia_Player.typName -> TMedia_Player.typ,
-    TMedia_Server_Collection.typName -> TMedia_Server_Collection.typ,
-    TMedia_Server.typName -> TMedia_Server.typ,
-    TMessage_Collection.typName -> TMessage_Collection.typ,
-    TMessage.typName -> TMessage.typ,
-    TMotion.typName -> TMotion.typ,
-    TNothing.typName -> TNothing.typ,
-    TNumber_Collection.typName -> TNumber_Collection.typ,
-    TNumber_Map.typName -> TNumber_Map.typ,
-    TNumber.typName -> TNumber.typ,
-    TPage_Button.typName -> TPage_Button.typ,
-    TPage_Collection.typName -> TPage_Collection.typ,
-    TPage.typName -> TPage.typ,
-    TPicture_Album.typName -> TPicture_Album.typ,
-    TPicture_Albums.typName -> TPicture_Albums.typ,
-    TPicture.typName -> TPicture.typ,
-    TPictures.typName -> TPictures.typ,
-    TPlace_Collection.typName -> TPlace_Collection.typ,
-    TPlace.typName -> TPlace.typ,
-    TPlaylist.typName -> TPlaylist.typ,
-    TPlaylists.typName -> TPlaylists.typ,
-    TPrinter_Collection.typName -> TPrinter_Collection.typ,
-    TPrinter.typName -> TPrinter.typ,
-    TSong_Album.typName -> TSong_Album.typ,
-    TSong_Albums.typName -> TSong_Albums.typ,
-    TSong.typName -> TSong.typ,
-    TSongs.typName -> TSongs.typ,
-    TSound.typName -> TSound.typ,
-    TSprite.typName -> TSprite.typ,
-    TSprite_Set.typName -> TSprite_Set.typ,
-    TString_Collection.typName -> TString_Collection.typ,
-    TString_Map.typName -> TString_Map.typ,
-    TString.typName -> TString.typ,
-    TTextBox.typName -> TTextBox.typ,
-    TTile.typName -> TTile.typ,
-    TVector3.typName -> TVector3.typ,
-    TWeb_Request.typName -> TWeb_Request.typ,
-    TWeb_Response.typName -> TWeb_Response.typ,
-    TXml_Object.typName -> TXml_Object.typ
-  )
-
-  /**
-   *
-   * A runnable method is a method that can be executed directly by the user.
-   * It is the set of methods that should be analyzed.
-   *
-   */
-  type RunnableMethods = Map[ClassDefinition,Set[RunnableMethodDeclaration]]
-  var runnableMethods : RunnableMethods = Map.empty
+  var parsedSourceStrings : Map[String,String] = Map.empty
+  var publicMethods : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
+  var events : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
+  var globalData : Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields : Set[String] = Set.empty
+
+  var types : Map[String,AAny] = Map(
+    SAssert.typName -> new SAssert(),
+    SBazaar.typName -> new SBazaar(),
+    SCode.typName -> new SCode(),
+    SCollections.typName -> new SCollections(),
+    SColors.typName -> new SColors(),
+    SHome.typName -> new SHome(),
+    SInvalid.typName -> new SInvalid(),
+    SLanguages.typName -> new SLanguages(),
+    SLocations.typName -> new SLocations(),
+    SMaps.typName -> new SMaps(),
+    SMath.typName -> new SMath(),
+    SMedia.typName -> new SMedia(),
+    SPhone.typName -> new SPhone(),
+    SPlayer.typName -> new SPlayer(),
+    SRadio.typName -> new SRadio(),
+    SRecords.typName -> new SRecords(),
+    SSenses.typName -> new SSenses(),
+    SSocial.typName -> new SSocial(),
+    STags.typName -> new STags(),
+    STime.typName -> new STime(),
+    SWall.typName -> new SWall(),
+    SWeb.typName -> new SWeb(),
+    TAppointment_Collection.typName -> new TAppointment_Collection(),
+    TAppointment.typName -> new TAppointment(),
+    TBoard.typName -> new TBoard(),
+    TBoolean.typName -> new TBoolean(),
+    TCamera.typName -> new TCamera(),
+    TColor.typName -> new TColor(),
+    TContact_Collection.typName -> new TContact_Collection(),
+    TContact.typName -> new TContact(),
+    TDateTime.typName -> new TDateTime(),
+    TDevice_Collection.typName -> new TDevice_Collection(),
+    TDevice.typName -> new TDevice(),
+    TJson_Object.typName -> new TJson_Object(),
+    TLink_Collection.typName -> new TLink_Collection(),
+    TLink.typName -> new TLink(),
+    TLocation_Collection.typName -> new TLocation_Collection(),
+    TLocation.typName -> new TLocation(),
+    TMap.typName -> new TMap(),
+    TMedia_Link_Collection.typName -> new TMedia_Link_Collection(),
+    TMedia_Link.typName -> new TMedia_Link(),
+    TMedia_Player_Collection.typName -> new TMedia_Player_Collection(),
+    TMedia_Player.typName -> new TMedia_Player(),
+    TMedia_Server_Collection.typName -> new TMedia_Server_Collection(),
+    TMedia_Server.typName -> new TMedia_Server(),
+    TMessage_Collection.typName -> new TMessage_Collection(),
+    TMessage.typName -> new TMessage(),
+    TMotion.typName -> new TMotion(),
+    TNothing.typName -> new TNothing(),
+    TNumber_Collection.typName -> new TNumber_Collection(),
+    TNumber_Map.typName -> new TNumber_Map(),
+    TNumber.typName -> new TNumber(),
+    TPage_Button.typName -> new TPage_Button(),
+    TPage_Collection.typName -> new TPage_Collection(),
+    TPage.typName -> new TPage(),
+    TPicture_Album.typName -> new TPicture_Album(),
+    TPicture_Albums.typName -> new TPicture_Albums(),
+    TPicture.typName -> new TPicture(),
+    TPictures.typName -> new TPictures(),
+    TPlace_Collection.typName -> new TPlace_Collection(),
+    TPlace.typName -> new TPlace(),
+    TPlaylist.typName -> new TPlaylist(),
+    TPlaylists.typName -> new TPlaylists(),
+    TPrinter_Collection.typName -> new TPrinter_Collection(),
+    TPrinter.typName -> new TPrinter(),
+    TSong_Album.typName -> new TSong_Album(),
+    TSong_Albums.typName -> new TSong_Albums(),
+    TSong.typName -> new TSong(),
+    TSongs.typName -> new TSongs(),
+    TSound.typName -> new TSound(),
+    TSprite.typName -> new TSprite(),
+    TSprite_Set.typName -> new TSprite_Set(),
+    TString_Collection.typName -> new TString_Collection(),
+    TString_Map.typName -> new TString_Map(),
+    TString.typName -> new TString(),
+    TTextBox.typName -> new TTextBox(),
+    TTile.typName -> new TTile(),
+    TVector3.typName -> new TVector3(),
+    TWeb_Request.typName -> new TWeb_Request(),
+    TWeb_Response.typName -> new TWeb_Response(),
+    TXml_Object.typName -> new TXml_Object()
+  )
 
   /**
   Takes a path OR a URL
@@ -128,128 +125,48 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   }
 
   def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
+
+    mainID = pubID
+    parsedSourceStrings += ((pubID,scriptStr))
+
+    // Parse, rewrite, type and compile the script
     val script = LoopRewriter(ScriptParser(scriptStr))
     Typer.processScript(script)
-    val main = CFGGenerator.process(script,pubID)
+    main = CFGGenerator.process(script,pubID)
     var cfgs = List(main)
     parsedScripts = cfgs ::: parsedScripts
     parsedIDs = parsedIDs + pubID
+
+    // If we need libraries, download and compile them
     val libIDs = discoverRequiredLibraries(script)
     for (id <- libIDs; if (!parsedIDs.contains(id))) {
       cfgs = cfgs ::: compileFile(Scripts.codeURLfromPubID(id))
     }
-    runnableMethods = discoverRunnableMethods(List(main))
+
+    // We analyze public methods from the main class, events from the main class but globalData from all files (library)
+    publicMethods = (main.methods filter {
+      m:MethodDeclaration =>
+        !m.name.asInstanceOf[TouchMethodIdentifier].isPrivate && !m.name.asInstanceOf[TouchMethodIdentifier].isEvent
+    }).map((main,_)).toSet
+
+    events = (main.methods filter {
+      m:MethodDeclaration =>
+        m.name.asInstanceOf[TouchMethodIdentifier].isEvent
+    }).map((main,_)).toSet
+
+    globalData = Set.empty
+    for (c <- parsedScripts) {
+      globalData ++= c.fields
+    }
+
+    // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
     relevantLibraryFields = RequiredLibraryFragmentAnalysis(cfgs)
+
     cfgs
   }
 
-  /**
-   * Every method that is not part of a library and is not private is a runnable method
-   */
-  private def discoverRunnableMethods(classes:List[ClassDefinition]): RunnableMethods = {
-
-    var a:RunnableMethods = Map.empty
-
-    for (c <- classes) {
-      val events = c.methods filter {m:MethodDeclaration => m.name.asInstanceOf[TouchMethodIdentifier].isEvent}
-      val public = c.methods filter {m:MethodDeclaration => !m.name.asInstanceOf[TouchMethodIdentifier].isPrivate}
-      val global = c.fields
-
-      val runnable = (for (m <- public) yield {
-        new RunnableMethodDeclaration(events,global,m.programpoint,m.ownerType,m.modifiers,m.name,m.parametricType,m.arguments,m.returnType,m.body,m.precond,m.postcond)
-      }).toSet
-
-      a += ((c,runnable))
-    }
-
-    a
-  }
-
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
-    List(
-      new Libraries(this),
-      new SAssert(),
-      new SBazaar(),
-      new SCode(this),
-      new SCollections(),
-      new SColors(),
-      new SHome(),
-      new SInvalid(),
-      new SLanguages(),
-      new SLocations(),
-      new SMaps(),
-      new SMath(),
-      new SMedia(),
-      new SPhone(),
-      new SPlayer(),
-      new SRadio(),
-      new SRecords(),
-      new SSenses(),
-      new SSocial(),
-      new STags(),
-      new STime(),
-      new SWall(),
-      new SWeb(),
-      new TAppointment_Collection(),
-      new TAppointment(),
-      new TBoard(),
-      new TBoolean(),
-      new TCamera(),
-      new TColor(),
-      new TContact_Collection(),
-      new TContact(),
-      new TDateTime(),
-      new TDevice_Collection(),
-      new TDevice(),
-      new TJson_Object(),
-      new TLink_Collection(),
-      new TLink(),
-      new TLocation_Collection(),
-      new TLocation(),
-      new TMap(),
-      new TMedia_Link_Collection(),
-      new TMedia_Link(),
-      new TMedia_Player_Collection(),
-      new TMedia_Player(),
-      new TMedia_Server_Collection(),
-      new TMedia_Server(),
-      new TMessage_Collection(),
-      new TMessage(),
-      new TMotion(),
-      new TNothing(),
-      new TNumber_Collection(),
-      new TNumber_Map(),
-      new TNumber(),
-      new TPage_Button(),
-      new TPage_Collection(),
-      new TPage(),
-      new TPicture_Album(),
-      new TPicture_Albums(),
-      new TPicture(),
-      new TPictures(),
-      new TPlace_Collection(),
-      new TPlace(),
-      new TPlaylist(),
-      new TPlaylists(),
-      new TPrinter_Collection(),
-      new TPrinter(),
-      new TSong_Album(),
-      new TSong_Albums(),
-      new TSong(),
-      new TSongs(),
-      new TSound(),
-      new TSprite(),
-      new TSprite_Set(),
-      new TString_Collection(),
-      new TString_Map(),
-      new TString(),
-      new TTextBox(),
-      new TTile(),
-      new TVector3(),
-      new TWeb_Request(),
-      new TWeb_Response(),
-      new TXml_Object()
-    )
+    new Libraries() :: types.values.toList
   }
 
   def extensions(): List[String] = List("td")
@@ -269,55 +186,9 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     })
   }
 
-//  private def discoverUsedEnvironmentFragment(script:Script) {
-//
-//    def checkEnv (e:Expression) {
-//      e match {
-//        // A list of functions depending on the environment. TODO: Solve this properly
-//        case Access(SingletonReference("home"),"choose_player",Nil) =>
-//          usedEnvironmentFragment += "home"
-//          usedEnvironmentFragment += "home.players"
-//        case Access(SingletonReference("home"),"choose_printer",Nil) =>
-//          usedEnvironmentFragment += "home"
-//          usedEnvironmentFragment += "home.printers"
-//        case Access(SingletonReference("home"),"choose_server",Nil) =>
-//          usedEnvironmentFragment += "home"
-//          usedEnvironmentFragment += "home.servers"
-//        case Access(SingletonReference("senses"),"acceleration_quick",Nil) =>
-//          usedEnvironmentFragment += "senses"
-//          usedEnvironmentFragment += "senses.has_accelerometer"
-//        case Access(obj,property,params) =>
-//          val typ = obj.typeName.toString
-//          types.get(typ) match {
-//            case Some(t) =>
-//
-//              // Check if a field with the corresponding name exists.
-//              if (params.isEmpty && t.getPossibleFieldsSorted().find(_.getName() == property).isDefined) {
-//                if (t.isSingleton) usedEnvironmentFragment += typ
-//                usedEnvironmentFragment += (typ+"."+property)
-//              }
-//
-//              // Check if a setter with with the corresponding name exists.
-//              if (params.size == 1 && t.getPossibleFieldsSorted().find("set_"+_.getName() == property).isDefined) {
-//                if (t.isSingleton) usedEnvironmentFragment += typ
-//                usedEnvironmentFragment += (typ+"."+property.substring(4))
-//              }
-//
-//            case None => throw TouchException("Unknown type used here!")
-//          }
-//        case _ => ()
-//      }
-//    }
-//
-//    Matcher(script)( { _ => }, { _ => }, ( checkEnv _ ) )
-//  }
-
-  /**
-   * USING THIS METHOD, YOU GET THE SEMANTICS FOR A FUNCTION THAT IS CALLED FROM ANOTHER FUNCTION
-   */
-  def getCalledMethod(name: String, parameters: List[Type]): Option[MethodDeclaration] = {
+  def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
     val methods = parsedScripts.map(_.methods).flatten.filter
-      {x:MethodDeclaration => x.name.toString.equals(name) && x.arguments.apply(0).size==parameters.size}
+    {x:MethodDeclaration => x.name.toString.equals(name) && x.arguments.apply(0).size==parameters.size}
     if (methods.length == 1) {
       val m = methods.head
       var ok : Boolean = true
@@ -325,55 +196,44 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
         if(! parameters(i).lessEqual(m.arguments(0)(i).typ))
           ok=false
       }
-      if(ok) return new Some(m)
+      if(ok) return new Some((m,classType))
     }
     None
   }
 
-  /**
-   * USING THIS METHOD, YOU GET THE SEMANTICS FOR A RUNNABLE FUNCTION (WITH EVENT LOOP AFTERWARDS)
-   */
-  def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
-    getClassDeclaration(classType) match {
-      case Some(classe) =>
-        for(m <- runnableMethods(classe))
-          if(m.name.toString.equals(name) && m.arguments.apply(0).size==parameters.size) {
-            var ok : Boolean = true
-            if(m.arguments.size!=1) throw new TouchException("Not yet supported")
-            for(i <- 0 to m.arguments.apply(0).size-1) {
-              if(! parameters.apply(i).lessEqual(m.arguments.apply(0).apply(i).typ))
-                ok=false
-            }
-            if(ok) return new Some[(MethodDeclaration, Type)]((m, classType))
-          }
-        None
-      case None => None
-    }
+
+  def getMethod(name: String, parameters: List[Type]): Option[(ClassDefinition, MethodDeclaration)] = {
+    val matches = (for (clazz <- parsedScripts; method <- clazz.methods) yield {
+      if (method.name.toString.equals(name) && method.arguments.apply(0).size==parameters.size) {
+        var ok : Boolean = true
+        for(i <- 0 to method.arguments(0).size-1) {
+          if(! parameters(i).lessEqual(method.arguments(0)(i).typ))
+            ok=false
+        }
+        if(ok) return Some((clazz,method))
+        else None
+      } else None
+    }).flatten
+
+    if (matches.length == 1) matches.head
+    else None
   }
 
-  def getRunnableMethods: List[(ClassDefinition,MethodDeclaration)] =
-    for (clazz <- parsedScripts
-         if runnableMethods.contains(clazz);
-         method <- runnableMethods.get(clazz).get) yield (clazz,method)
+  def getPublicMethods: Set[(ClassDefinition,MethodDeclaration)] = publicMethods
 
   def getMethods(name:String): List[(ClassDefinition,MethodDeclaration)] =
-    for (clazz <- parsedScripts
-         if runnableMethods.contains(clazz);
-         method <- runnableMethods.get(clazz).get
-         if method.name.toString == name) yield (clazz,method)
-
-  private def getClassDeclaration(t : Type) : Option[ClassDefinition] = {
-    for(c <- parsedScripts)
-      if(c.typ.equals(t))
-        return Some(c)
-    None
-  }
+    (publicMethods filter (_._2.name.toString == name)).toList
 
   def reset() {
-    runnableMethods = Map.empty
+    mainID = null
+    main = null
+    publicMethods = Set.empty
+    events = Set.empty
+    globalData = Set.empty
     parsedIDs = Set.empty
     relevantLibraryFields = Set.empty
     parsedScripts = Nil
+    parsedSourceStrings = Map.empty
   }
 
 

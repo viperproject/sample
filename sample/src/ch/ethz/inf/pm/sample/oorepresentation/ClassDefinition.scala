@@ -117,7 +117,8 @@ class MethodDeclaration(
       }
     return result;
   }
-  
+
+  /** this is not run by the touchdevelop code! */
   def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
     SystemParameters.currentCFG=body;
     val result=initializeArgument[S](state, arguments);
@@ -301,8 +302,3 @@ trait NativeMethodSemantics {
 	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] ;
 }
 
-trait Summaries[S <: State[S]] {
-
-  var summaries : Map[ProgramPoint,ControlFlowGraphExecution[S]] = Map.empty
-
-}

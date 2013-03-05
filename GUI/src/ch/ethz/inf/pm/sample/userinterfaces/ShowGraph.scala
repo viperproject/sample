@@ -45,15 +45,7 @@ object ShowGraph extends Property {
   def getLabel(): String = "Show CFG";
 
   def check[S <: State[S]](className: Type, methodName: MethodDeclaration, result: ControlFlowGraphExecution[S], printer: OutputCollector) {
-    if (result.isInstanceOf[Summaries[S]]) {
-      // If we have interprocedural summaries, we also need to check our property on these summaries
-      val all = ("Main", result) :: (for ((pp, sum) <- result.asInstanceOf[Summaries[S]].summaries) yield {
-        (pp.toString, sum)
-      }).toList
-      Show(all)
-    } else {
-      Show(result)
-    }
+    Show(result)
   }
 
   def finalizeChecking(printer: OutputCollector): Unit = Unit;

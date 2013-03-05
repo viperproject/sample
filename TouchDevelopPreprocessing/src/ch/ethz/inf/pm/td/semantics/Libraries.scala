@@ -7,6 +7,7 @@ import scala.Error
 import scala.Some
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
 
 /**
  * Implements user-defined libraries
@@ -15,7 +16,7 @@ import ch.ethz.inf.pm.td.compiler.TouchCompiler
  * Date: 17.02.13
  * Time: 18:54
  */
-class Libraries(compiler:TouchCompiler) extends NativeMethodSemantics {
+class Libraries() extends NativeMethodSemantics {
 
   /**
    * Backward semantics are empty for all native function for now
@@ -33,10 +34,11 @@ class Libraries(compiler:TouchCompiler) extends NativeMethodSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
-    compiler.getCalledMethod(operator,parameters map (_.getType())) match {
-      case Some(methodDef) =>
-        Some(MethodSummaries.collect(pp,methodDef,state,parameters))
+    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethod(operator,parameters map (_.getType())) match {
+      case Some((clazz,methodDef)) =>
+        Some(MethodSummaries.collect(pp,clazz,methodDef,state,parameters))
       case _ =>
+        Reporter.hasImprecision("Could not find this method "+operator,pp)
         None
     }
 
