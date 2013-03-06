@@ -29,13 +29,6 @@
   <component name="SvnBranchConfigurationManager">
     <option name="myConfigurationMap">
       <map>
-        <entry key="$USER_HOME$/Desktop/Sample/branches/SIL">
-          <value>
-            <SvnBranchConfiguration>
-              <option name="trunkUrl" value="https://svn.inf.ethz.ch/svn/pmueller/pm-group/projects/semper/Sample/branches/SIL" />
-            </SvnBranchConfiguration>
-          </value>
-        </entry>
         <entry key="$PROJECT_DIR$">
           <value>
             <SvnBranchConfiguration>
