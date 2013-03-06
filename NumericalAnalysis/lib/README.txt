@@ -14,6 +14,6 @@ possibly go inside japron and do make install
 move the jars from /usr to your lib directory
 
 go to /usr/lib and create symbolic link from libapron.so.0 to
-libapron.so (same for boxD, octD ect.) MAYBE
+libapron.so (same for boxD, octD ect.)
 
 
