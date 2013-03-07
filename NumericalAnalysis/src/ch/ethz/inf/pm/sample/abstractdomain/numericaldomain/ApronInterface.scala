@@ -15,6 +15,15 @@ import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
+import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
+import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
+import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
+import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 ;
 
 class ApronInterface(val state : Abstract1, val domain : Manager) extends RelationalNumericalDomain[ApronInterface] {
@@ -277,9 +286,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
    */
 	override def createVariable (variable : Identifier, typ : Type) : ApronInterface = {
 		if(!state.getEnvironment.hasVar(variable.getName()) && typ.isNumericalType()) {
-			val v : Array[String] = new Array[String](1)
-			v.update(0, variable.getName())
-			val env=state.getEnvironment.add(v, new Array[String](0))
+      val env = addToEnvironment(state.getEnvironment,variable.getType(),variable.getName())
       new ApronInterface(state.changeEnvironmentCopy(domain, env, false), domain)
 		} else this
 	}
@@ -304,36 +311,6 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		val st = state.forgetCopy(domain, variable.getName, false);
 		new ApronInterface(st, domain);
 	}
-
-  private def removeFloats ( expr: Expression ): Expression = { expr match {
-    case Constant(s,t,p) =>
-      if(s.contains(".")) {
-        try {
-          val fl = s.toDouble
-          if (fl != Math.floor(fl))
-            BinaryNondeterministicExpression(
-              Constant(Math.floor(fl).toString,t,p),
-              Constant(Math.ceil(fl).toString,t,p),
-              NondeterministicOperator.to,t)
-          else expr
-        } catch {
-          case e:NumberFormatException => expr
-        }
-      } else expr
-    case BinaryArithmeticExpression(left,right,op,typ) =>
-      BinaryArithmeticExpression(removeFloats(left),removeFloats(right),op,typ)
-    case BinaryBooleanExpression(left,right,op,typ) =>
-      BinaryBooleanExpression(removeFloats(left),removeFloats(right),op,typ)
-    case ReferenceComparisonExpression(left,right,op,typ) =>
-      ReferenceComparisonExpression(removeFloats(left),removeFloats(right),op,typ)
-    case NegatedBooleanExpression(left) =>
-      NegatedBooleanExpression(removeFloats(left))
-    case UnaryArithmeticExpression(left,op,ret) =>
-      UnaryArithmeticExpression(removeFloats(left),op,ret)
-    case BinaryNondeterministicExpression(left,right,op,returnType) =>
-      BinaryNondeterministicExpression(removeFloats(left),removeFloats(right),op,returnType)
-    case e:Expression => e
-  }}
 
   private def removeNondeterminism ( label:String, expr: Expression ): (Expression, List[(Identifier,BinaryNondeterministicExpression)]) = {
     expr match {
@@ -368,8 +345,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 
     // Extract all non-deterministic expressions and store them in temporary variables
     var newState = state
-    val noFloatingPointExpr = removeFloats(expr)
-    val (newExpr, tempAssigns) = removeNondeterminism("tmp",noFloatingPointExpr)
+    val (newExpr, tempAssigns) = removeNondeterminism("tmp",expr)
     for ((id,ndExpr) <- tempAssigns) {
       ndExpr.op match {
         case NondeterministicOperator.or =>
@@ -414,9 +390,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       var newEnv = newState.getEnvironment
       for (id <- Normalizer.getIdsForExpression(expr)) {
         if(! newEnv.hasVar(id.getName())) {
-          val v : Array[String] = new Array[String](1)
-          v.update(0, id.getName())
-          newEnv=newEnv.add(v, new Array[String](0))
+          newEnv = addToEnvironment(newEnv,id.getType(),id.getName())
         }
       }
       newState = newState.changeEnvironmentCopy(domain, newEnv, false)
@@ -451,9 +425,7 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		case _ => {
       var expEnv = new Environment();
       for (id <- Normalizer.getIdsForExpression(expr)) {
-        val v : Array[String] = new Array[String](1);
-        v.update(0, id.getName());
-        expEnv=expEnv.add(v, new Array[String](0));
+        expEnv = addToEnvironment(expEnv,id.getType(),id.getName())
       }
       val unionEnv = unionOfEnvironments(this.state.getEnvironment(), expEnv)
       val newState = state.changeEnvironmentCopy(domain, unionEnv, false);
@@ -695,7 +667,14 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
    */
   private def unionOfEnvironments(left: Environment, right: Environment): Environment = {
     var resEnv = left
-    for(v <- right.getVars) {
+    for(v <- right.getRealVars) {
+      if(! left.hasVar(v))  {
+        val vA : Array[String] = new Array[String](1)
+        vA.update(0, v)
+        resEnv = resEnv.add(new Array[String](0), vA)
+      }
+    }
+    for(v <- right.getIntVars) {
       if(! left.hasVar(v))  {
         val vA : Array[String] = new Array[String](1)
         vA.update(0, v)
@@ -704,6 +683,14 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
     }
     resEnv
   }
+
+  private def addToEnvironment(env:Environment,typ:Type,varName:String):Environment = {
+    val v = new Array[String](1)
+    v(0) = varName
+    if(typ.isFloatingPointType()) env.add(new Array[String](0),v)
+    else env.add(v,new Array[String](0))
+  }
+
 }
 
 

@@ -94,9 +94,9 @@ object MethodSummaries {
     val callContext = (SystemParameters.currentMethod,SystemParameters.currentCFG)
     SystemParameters.currentCFG = callTarget.body
     SystemParameters.currentMethod = callTarget.name.toString
-    SystemParameters.progressOutput.begin("METHOD: "+callTarget.name)
+    //SystemParameters.progressOutput.begin("METHOD: "+callTarget.name)
     val newState = cfgEx.forwardSemantics(entryState)
-    SystemParameters.progressOutput.end()
+    //SystemParameters.progressOutput.end()
     SystemParameters.currentCFG = callContext._2
     SystemParameters.currentMethod = callContext._1
     newState

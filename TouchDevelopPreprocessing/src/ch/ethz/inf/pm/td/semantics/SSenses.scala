@@ -68,7 +68,7 @@ class SSenses extends AAny {
     /** Gets the current phone location with the most accuracy. This includes using services that might charge money,
       * or consuming higher levels of battery power or connection bandwidth. */
      case "current_location_accurate" =>
-       New[S](TLocation.typ)
+       TopWithInvalid[S](TLocation.typ)
 
     /** Gets the front facing camera if available */
     // case "front_camera" =>

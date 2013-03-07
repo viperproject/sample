@@ -32,7 +32,7 @@ class SCode extends AAny {
         val res = MethodSummaries.collect(pp,clazz,methodDef,state,parameters)
         res
       case _ =>
-        Reporter.hasImprecision("Could not find this method "+method,pp)
+        Reporter.reportImprecision("Could not find this method "+method,pp)
         super.forwardSemantics(this0,method,parameters)
     }
 

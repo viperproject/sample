@@ -232,6 +232,12 @@ trait Type extends Lattice[Type] {
   def isNumericalType() : Boolean;
 
   /**
+   * This method returns <code>true</code> if and only if the current type represents a float type
+   * We assume that also isNumericalType.
+   */
+  def isFloatingPointType() : Boolean
+
+  /**
    * This method returns <code>true</code> if and only if the current type is static, i.e. it represents only one runtime instance
    */
   def isStatic() : Boolean;

@@ -458,7 +458,13 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       def isNumericalType() : Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;
-        return typ.typeSymbol.name.decode.equals("Int");
+        return typ.typeSymbol.name.decode.equals("Int") || typ.typeSymbol.name.decode.equals("Float") || typ.typeSymbol.name.decode.equals("Double");
+      }
+
+      def isFloatingPointType() : Boolean = {
+        if(this.isTop) return true;
+        if(this.isBottom) return false;
+        return typ.typeSymbol.name.decode.equals("Float") || typ.typeSymbol.name.decode.equals("Double");
       }
 
       def isBottomExcluding(types : Set[oorepresentation.Type]) : Boolean = {
