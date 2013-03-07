@@ -34,13 +34,15 @@ class Libraries() extends NativeMethodSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
-    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethod(operator,parameters map (_.getType())) match {
-      case Some((clazz,methodDef)) =>
-        Some(MethodSummaries.collect(pp,clazz,methodDef,state,parameters))
-      case _ =>
-        Reporter.hasImprecision("Could not find this method "+operator,pp)
-        None
-    }
+    if (thisExpr.getType().getName().startsWith("__script_")) {
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(operator,thisExpr.getType(),parameters map (_.getType())) match {
+        case Some((clazz,methodDef)) =>
+          Some(MethodSummaries.collect(pp,clazz,methodDef,state,parameters))
+        case _ =>
+          Reporter.reportImprecision("Could not find this method "+operator,pp)
+          None
+      }
+    } else { None }
 
   }
 

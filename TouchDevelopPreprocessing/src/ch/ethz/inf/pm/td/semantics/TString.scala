@@ -44,6 +44,11 @@ class TString extends AAny {
     //   val List(other) = parameters // String
     //   Top[S](TNumber.typ)
 
+
+    /** Gets the length of the string */
+    case "count" =>
+      Top[S](TNumber.typ)
+
     /** Concatenates two pieces of text */
     case "concat" =>
       //TODO val List(other) = parameters // String

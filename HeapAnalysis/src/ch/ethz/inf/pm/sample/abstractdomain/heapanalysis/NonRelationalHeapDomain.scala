@@ -352,9 +352,13 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 
   def assignCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S) = {
     var result=this.bottom()
+    var curState = state
     val ids = this.getCollectionCell(collection, index, state)._1
-    for(id <- ids.value) result=result.lub(result, this.assign(id, right, null)._1)
-    (result, state)
+    for(id <- ids.value) {
+      curState = curState.lub(curState,curState.assign(id,right))
+      result=result.lub(result, this.assign(id, right, null)._1)
+    }
+    (result, curState)
   }
 
   def insertCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S) = {
@@ -365,7 +369,10 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     }
     var result=this.bottom()
     val ids = this.getCollectionCell(collection, index, state)._1
-    for(id <- ids.value) result=result.lub(result, this.assign(id, right, null)._1)
+    for(id <- ids.value) {
+      curState = curState.lub(curState,curState.assign(id,right))
+      result=result.lub(result, this.assign(id, right, null)._1)
+    }
     (result, curState)
   }
 

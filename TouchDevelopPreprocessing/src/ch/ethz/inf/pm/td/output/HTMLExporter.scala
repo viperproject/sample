@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.output
 
 import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
 import java.io.{PrintWriter, BufferedWriter, FileWriter, File}
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import xml.Elem
 
@@ -93,39 +93,46 @@ object HTMLExporter {
         var annotations: Map[Integer,Elem] = Map.empty
 
         for ((message,pp) <- Reporter.seenErrors) {
-          val pos = findPosition(id,source,pp)
-          if (pos != -1) {
-            val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
-            annotations = annotations + ((pos,xml))
+          val ppid = pp.asInstanceOf[TouchProgramPoint].getScriptID
+          if (ppid.equals(id)) {
+            val pos = findPosition(id,source,pp)
+            if (pos != -1) {
+              val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
+              annotations = annotations + ((pos,xml))
+            }
           }
         }
 
         for ((message,pp) <- Reporter.seenBottom) {
-          val pos = findPosition(id,source,pp)
-          if (pos != -1) {
-            val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
-            annotations = annotations + ((pos,xml))
+          if (pp.asInstanceOf[TouchProgramPoint].getScriptID.equals(id)) {
+            val pos = findPosition(id,source,pp)
+            if (pos != -1) {
+              val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
+              annotations = annotations + ((pos,xml))
+            }
           }
         }
 
         for ((message,pp) <- Reporter.seenImprecision) {
-          val pos = findPosition(id,source,pp)
-          if (pos != -1) {
-            val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
-            annotations = annotations + ((pos,xml))
+          if (pp.asInstanceOf[TouchProgramPoint].getScriptID.equals(id)) {
+            val pos = findPosition(id,source,pp)
+            if (pos != -1) {
+              val xml = <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />
+              annotations = annotations + ((pos,xml))
+            }
           }
         }
 
         pw.println(<h2>{id}</h2>)
         pw.println(<pre>{
             var lastPos = 0
-            (for (pos <- annotations.keySet.toList.sorted) yield {
+            ((for (pos <- annotations.keySet.toList.sorted) yield {
               val ret =
                 if (lastPos != pos) List(xml.Text(source.substring(lastPos,pos)),annotations.get(pos).get)
                 else List(annotations.get(pos).get)
               lastPos = pos
               ret
-            } ::: List(List(xml.Text(source.substring(lastPos))))).flatten
+            }) ::: List(List(xml.Text(source.substring(lastPos))))).flatten
         }</pre>)
       }
 
@@ -151,11 +158,11 @@ object HTMLExporter {
   }
 
   def findPosition(id:String,source:String,pp:ProgramPoint):Integer = {
-    var column = 0
+    var column = 1
     var row = 1
     for (i <- 0 until source.length) {
       if (column == pp.getColumn() && row == pp.getLine()) return i
-      if(source.charAt(i).equals('\n')) { column = 0; row = row + 1; }
+      if(source.charAt(i).equals('\n')) { column = 1; row = row + 1; }
       else column = column + 1
     }
     -1

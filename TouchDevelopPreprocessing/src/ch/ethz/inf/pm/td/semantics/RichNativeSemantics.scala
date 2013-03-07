@@ -64,9 +64,9 @@ object RichNativeSemantics {
    */
   def New[S <: State[S]](typ:TouchType, initials:Map[TouchField,RichExpression] = Map.empty[TouchField,RichExpression],recursive:Boolean = true)(implicit s:S, pp:ProgramPoint): S = {
     typ.getName match {
-      case TNumber.typName => s.setExpression(Valid(TNumber.typ))
-      case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(True).add(False))
-      case TString.typName => s.setExpression(Valid(TString.typ))
+      case TNumber.typName => s.setExpression(new ExpressionSet(TNumber.typ).add(Constant("0",TNumber.typ,pp)))
+      case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(False))
+      case TString.typName => s.setExpression(new ExpressionSet(TString.typ).add(Constant("",TString.typ,pp)))
       case _ =>
 
         var curState = typ match {
@@ -78,6 +78,16 @@ object RichNativeSemantics {
         val obj = curState.getExpression()
 
         if(recursive) {
+          typ match {
+            case col:TouchCollection =>
+              // Set size to zero.
+              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__size")
+              curState = New[S](TNumber.typ,recursive = !referenceLoop2)(curState,newPP2)
+              val newSize = curState.getExpression()
+              curState = Assign[S](CollectionSize[S](obj),newSize)(curState,newPP2)
+            case _ => ()
+          }
+
           // Assign fields with given arguments
           for (f <- typ.getPossibleTouchFields()) {
             if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
@@ -177,8 +187,10 @@ object RichNativeSemantics {
     if(recursive) {
 
       if (obj.getType().isInstanceOf[TouchCollection]) {
-        curState = Assign[S](CollectionSummary[S](newObject),CollectionSummary[S](obj))(curState,pp)
         curState = Assign[S](CollectionSize[S](newObject),CollectionSize[S](obj))(curState,pp)
+        if (!CollectionSummary[S](obj).isBottom) {
+          curState = Assign[S](CollectionSummary[S](newObject),CollectionSummary[S](obj))(curState,pp)
+        }
       }
 
       for (f <- obj.getType().getPossibleFields()) {

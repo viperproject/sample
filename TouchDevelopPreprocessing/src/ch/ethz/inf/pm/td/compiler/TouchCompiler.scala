@@ -22,7 +22,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var main : ClassDefinition = null
   var mainID : String = null
-  var parsedIDs : Set[String] = Set[String]()
+  var parsedNames : List[String] = Nil
   var parsedScripts : List[ClassDefinition] = Nil
   var parsedSourceStrings : Map[String,String] = Map.empty
   var publicMethods : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
@@ -124,24 +124,37 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     compileString(source.getLines().mkString("\n"),pubID)
   }
 
-  def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
+  def compileStringRecursive(scriptStr:String, pubID:String, libDef:Option[LibraryDefinition] = None): ClassDefinition = {
 
-    mainID = pubID
-    parsedSourceStrings += ((pubID,scriptStr))
-
-    // Parse, rewrite, type and compile the script
+    // compile
     val script = LoopRewriter(ScriptParser(scriptStr))
     Typer.processScript(script)
-    main = CFGGenerator.process(script,pubID)
-    var cfgs = List(main)
-    parsedScripts = cfgs ::: parsedScripts
-    parsedIDs = parsedIDs + pubID
+    var newCFG =  CFGGenerator.process(script,pubID,libDef)
+    var cfgs = List(newCFG)
 
-    // If we need libraries, download and compile them
-    val libIDs = discoverRequiredLibraries(script)
-    for (id <- libIDs; if (!parsedIDs.contains(id))) {
-      cfgs = cfgs ::: compileFile(Scripts.codeURLfromPubID(id))
+    // update fields
+    parsedScripts = parsedScripts ::: List(newCFG)
+    libDef match {
+      case Some(LibraryDefinition(name,_,_,_)) => parsedNames = parsedNames ::: List(name)
+      case None => parsedNames = parsedNames ::: List(pubID)
     }
+    parsedSourceStrings += ((pubID,scriptStr))
+
+    // recursive for libs
+    val libDefs = discoverRequiredLibraries(script)
+    // FIXME: This should actually be checking for parsed names not parsed ids, right?
+    for (lib <- libDefs; if (!parsedNames.contains(lib.name))) {
+      compileStringRecursive(Source.fromURL(Scripts.codeURLfromPubID(lib.pubID)).getLines().mkString("\n"),lib.pubID,Some(lib))
+    }
+
+    newCFG
+  }
+
+  def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
+
+    // Compile
+    main = compileStringRecursive(scriptStr,pubID)
+    mainID = pubID
 
     // We analyze public methods from the main class, events from the main class but globalData from all files (library)
     publicMethods = (main.methods filter {
@@ -160,9 +173,9 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     }
 
     // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
-    relevantLibraryFields = RequiredLibraryFragmentAnalysis(cfgs)
+    relevantLibraryFields = RequiredLibraryFragmentAnalysis(parsedScripts)
 
-    cfgs
+    parsedScripts
   }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
@@ -179,10 +192,10 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    * @param script The AST of a Script
    * @return A list of PublicIDs for the required libraries
    */
-  private def discoverRequiredLibraries(script:Script):List[String] = {
-    script.declarations.foldLeft(List[String]())( (ids:List[String],dec:Declaration) => dec match {
-      case LibraryDefinition(_,pubID,_,_) => pubID :: ids
-      case _ => ids
+  private def discoverRequiredLibraries(script:Script):List[LibraryDefinition] = {
+    script.declarations.foldLeft(List[LibraryDefinition]())( (libs:List[LibraryDefinition],dec:Declaration) => dec match {
+      case l@LibraryDefinition(_,_,_,_) => l :: libs
+      case _ => libs
     })
   }
 
@@ -201,9 +214,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     None
   }
 
-
-  def getMethod(name: String, parameters: List[Type]): Option[(ClassDefinition, MethodDeclaration)] = {
-    val matches = (for (clazz <- parsedScripts; method <- clazz.methods) yield {
+  def getMethodWithClassDefinition(name: String, classType: Type, parameters: List[Type]): Option[(ClassDefinition, MethodDeclaration)] = {
+    val matches = (for (clazz <- parsedScripts; if (clazz.typ.getName().equals(classType.getName())); method <- clazz.methods) yield {
       if (method.name.toString.equals(name) && method.arguments.apply(0).size==parameters.size) {
         var ok : Boolean = true
         for(i <- 0 to method.arguments(0).size-1) {
@@ -215,8 +227,18 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       } else None
     }).flatten
 
-    if (matches.length == 1) matches.head
-    else None
+    if (matches.length == 1)
+      matches.head
+    else if (matches.length == 0)
+      None
+    else throw new TouchException("Local or library call may resolve to multiple methods.")
+  }
+
+  def getMethod(name: String, parameters: List[Type]): Option[(ClassDefinition, MethodDeclaration)] = {
+    val matches = (for (clazz <- parsedScripts) yield getMethodWithClassDefinition(name,clazz.typ,parameters)).flatten
+    if (matches.length == 1) Some(matches.head)
+    else if (matches.length == 0) None
+    else throw new TouchException("Local or library call may resolve to multiple methods.")
   }
 
   def getPublicMethods: Set[(ClassDefinition,MethodDeclaration)] = publicMethods
@@ -225,12 +247,11 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     (publicMethods filter (_._2.name.toString == name)).toList
 
   def reset() {
-    mainID = null
     main = null
     publicMethods = Set.empty
     events = Set.empty
     globalData = Set.empty
-    parsedIDs = Set.empty
+    parsedNames = Nil
     relevantLibraryFields = Set.empty
     parsedScripts = Nil
     parsedSourceStrings = Map.empty

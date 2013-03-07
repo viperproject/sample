@@ -41,17 +41,22 @@ import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
  */
 object CFGGenerator {
 
+  var curPubID:String = ""
   var curScriptName:String = ""
 
-  def process(script:parser.Script, scriptName:String):ClassDefinition = {
+  def process(script:parser.Script, pubID:String, libDef:Option[LibraryDefinition] = None):ClassDefinition = {
     detectUnsupportedScripts(script)
-    curScriptName = scriptIdent(scriptName)
-    val id = scriptIdent(scriptName)
-    SystemParameters.typ = new TouchType(scriptName,true)
-    val programPoint : ProgramPoint = TouchProgramPoint(script.pos)
-    val typ : Type = typeNameToType(TypeName(id), true)
+    curPubID = pubID
+    libDef match {
+      case Some(LibraryDefinition(name,_,_,_)) => curScriptName = scriptIdent(name)
+      case None => curScriptName = scriptIdent(pubID)
+    }
+    val programPoint : ProgramPoint = mkTouchProgramPoint(script.pos)
+    val typ : Type = typeNameToType(TypeName(curScriptName), true)
+    SystemParameters.typ = typ
+
     val modifiers : List[Modifier] = Nil
-    val name : ClassIdentifier = TouchClassIdentifier(id,typ)
+    val name : ClassIdentifier = TouchClassIdentifier(curScriptName,typ)
     val parametricTypes : List[Type] = Nil
     val extend : List[ClassIdentifier] = Nil
     //SystemParameters.compiler.asInstanceOf[TouchCompiler].types += findTypes(script)
@@ -72,6 +77,10 @@ object CFGGenerator {
         case _ => ()
       }
     }
+  }
+
+  def mkTouchProgramPoint(pos:Position) = {
+    TouchProgramPoint(curPubID,pos)
   }
 
   /**
@@ -148,7 +157,7 @@ object CFGGenerator {
     (for (dec <- script.declarations) yield {
       dec match {
         case v@parser.VariableDefinition(variable,flags) =>
-          val programPoint : ProgramPoint = TouchProgramPoint(v.pos)
+          val programPoint : ProgramPoint = mkTouchProgramPoint(v.pos)
           val modifiers : List[Modifier] = (flags flatMap {
             case ("is\\_resource","true") => Some(ResourceModifier)
             case ("readonly","true") => Some(ReadOnlyModifier)
@@ -167,7 +176,7 @@ object CFGGenerator {
     (for (dec <- script.declarations) yield {
       dec match {
         case act@parser.ActionDefinition(ident,in,out,body,isEvent) =>
-          val programPoint : ProgramPoint = TouchProgramPoint(act.pos)
+          val programPoint : ProgramPoint = mkTouchProgramPoint(act.pos)
           val modifiers : List[Modifier] = Nil
           val isPrivate = (body find {case MetaStatement("private",_) => true; case _ => false}) != None
           val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=isEvent,isPrivate=isPrivate)
@@ -186,7 +195,7 @@ object CFGGenerator {
   }
 
   private def parameterToVariableDeclaration(parameter:parser.Parameter):VariableDeclaration = {
-    val programPoint : ProgramPoint = TouchProgramPoint(parameter.pos)
+    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter.pos)
     val variable : Variable = parameterToVariable(parameter)
     val typ : Type = typeNameToType(parameter.typeName)
     val right : Statement = null
@@ -194,7 +203,7 @@ object CFGGenerator {
   }
 
   private def parameterToVariable(parameter:parser.Parameter):Variable = {
-    val programPoint : ProgramPoint = TouchProgramPoint(parameter.pos)
+    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter.pos)
     val id : Identifier = parameterToVariableIdentifier(parameter)
     Variable(programPoint,id)
   }
@@ -202,7 +211,7 @@ object CFGGenerator {
   private def parameterToVariableIdentifier(parameter:parser.Parameter):VariableIdentifier = {
     val name : String = parameter.ident
     val typ : Type = typeNameToType(parameter.typeName)
-    val programPoint : ProgramPoint = TouchProgramPoint(parameter.pos)
+    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter.pos)
     VariableIdentifier(name,typ,programPoint)
   }
 
@@ -272,10 +281,10 @@ object CFGGenerator {
 
           right match {
             case parser.Access(parser.SingletonReference("code"),prop,args) =>
-              val pc = TouchProgramPoint(left.head.pos)
+              val pc = mkTouchProgramPoint(left.head.pos)
               val typ = TouchTuple(left map {case x:parser.LValue => typeNameToType(x.typeName)})
               val ident = VariableIdentifier(tupleIdent(pc),typ,pc)
-              newStatements = newStatements ::: VariableDeclaration(TouchProgramPoint(statement.pos),
+              newStatements = newStatements ::: VariableDeclaration(mkTouchProgramPoint(statement.pos),
                 Variable(pc,ident),typ,expressionToStatement(right)) :: Nil
               var x = 0
               for(l <- left) {
@@ -289,17 +298,17 @@ object CFGGenerator {
         } else {
 
           if (a.isVariableDeclaration) {
-            val pc = TouchProgramPoint(left.head.pos)
+            val pc = mkTouchProgramPoint(left.head.pos)
             val ident = left.head match {
               case parser.LocalReference(x) =>
                 VariableIdentifier(x,typeNameToType(left.head.typeName),pc)
               case parser.GlobalReference(x) =>
                 VariableIdentifier(globalReferenceIdent(x),typeNameToType(left.head.typeName),pc)
             }
-            newStatements = newStatements ::: VariableDeclaration(TouchProgramPoint(statement.pos),
+            newStatements = newStatements ::: VariableDeclaration(mkTouchProgramPoint(statement.pos),
               Variable(pc,ident),typeNameToType(left.head.typeName),expressionToStatement(right)) :: Nil
           } else {
-            newStatements = newStatements ::: Assignment(TouchProgramPoint(statement.pos),
+            newStatements = newStatements ::: Assignment(mkTouchProgramPoint(statement.pos),
               expressionToStatement(left.head), expressionToStatement(right) ) :: Nil
           }
 
@@ -316,7 +325,7 @@ object CFGGenerator {
 
   private def expressionToStatement(expr:parser.Expression):Statement = {
 
-    val pc = TouchProgramPoint(expr.pos)
+    val pc = mkTouchProgramPoint(expr.pos)
     if (expr == parser.SingletonReference("skip")) return EmptyStatement(pc)
 
     val typ = typeNameToType(expr.typeName)
@@ -402,19 +411,14 @@ case class TouchClassIdentifier(name:String,typ:Type) extends Named with ClassId
   override def getName() = name
 }
 
-case class TouchProgramPoint(pos:Position) extends ProgramPoint {
+case class TouchProgramPoint(scriptID:String, pos:Position) extends ProgramPoint {
+  def getScriptID:String = scriptID
   def getLine() = pos.line
   def getColumn() = pos.column
-  override def toString = "{"+pos.line+","+pos.column+"}"
+  override def toString = "{"+getScriptID+","+pos.line+","+pos.column+"}"
 }
 
 case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
-  def getLine() = 0
-  def getColumn() = 0
-  override def toString = name
-}
-
-case class TouchInitializationProgramPoint(name:String) extends ProgramPoint {
   def getLine() = 0
   def getColumn() = 0
   override def toString = name

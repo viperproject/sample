@@ -93,9 +93,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
       // Numbers, Booleans and Strings are not initialized to invalid but to 0, false, ""
       val rightVal = v.typ.getName() match {
-        case "String" =>
-          curState = RichNativeSemantics.New[S](TString.typ)(curState,v.programpoint)
-          curState.getExpression().getSetOfExpressions.head
+        case "String" => Constant("valid",v.typ,v.programpoint)
         case "Number" => Constant("0",v.typ,v.programpoint)
         case "Boolean" => Constant("false",v.typ,v.programpoint)
         case _ =>

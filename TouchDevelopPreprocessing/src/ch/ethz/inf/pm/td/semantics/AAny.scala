@@ -40,12 +40,12 @@ abstract class AAny extends NativeMethodSemantics {
         if(operator != "is_invalid") {
           if (!thisExpr.getType().isStatic()) {
             if (thisExpr.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
-              Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator+": Object might be invalid")(state,pp)
+              Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator,  "Object ("+thisExpr+") whose field/method is accessed might be invalid")(state,pp)
             }
           }
           for (param <- parameters) {
             if (param.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
-              Error(param equal Invalid(param.getType())(pp), operator+": Parameter might be invalid")(state,pp)
+              Error(param equal Invalid(param.getType())(pp), operator, "Parameter ("+param+") might be invalid")(state,pp)
             }
           }
         }
