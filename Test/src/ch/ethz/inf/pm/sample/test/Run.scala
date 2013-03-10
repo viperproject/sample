@@ -187,8 +187,8 @@ object Run {
     }
     SystemParameters.setCompiler(this.getCompiler(splitExtension(sourceCodeFile)._2))
     SystemParameters.compiler.reset();
-    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
     SystemParameters.compiler.compile(sourceCodeFile)
+    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
     val output: OutputCollector = new OutputCollector;
     val entryState = new AbstractState[N, H, I](entryDomain, new ExpressionSet(SystemParameters.typ.top()))
     analysis.analyze(methods, entryState, output)

@@ -23,7 +23,7 @@ object RemoveGetterSetter {
        case FieldAccess(pp, objs, field, typ) => return new FieldAccess(pp, cleanListStatement(objs), field, typ);
        case Variable(pp, id) => return st;
        case New(pp, typ) => return st;
-       case NumericalConstant(pp, value, typ) => return st;
+       case ConstantStatement(pp, value, typ) => return st;
        case MethodCall(pp, method, parametricTypes, parameters, returnedType) => method.normalize() match {
          case FieldAccess(pp1, objs, field, typ) =>
            if(field.length>=2 && field.substring(field.length-2, field.length).equals("_=")) //obj.field_=expr is adopted to assign fields

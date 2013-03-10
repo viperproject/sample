@@ -398,9 +398,6 @@ public class WindowApplication {
                     compiler.reset();
                     if(s==null || heap==null || compiler==null) return null;
                     SystemParameters.resetNativeMethodsSemantics();
-                    SystemParameters.addNativeMethodsSemantics(s.getNativeMethodsSemantics());
-                    SystemParameters.addNativeMethodsSemantics(heap.getNativeMethodsSemantics());
-                    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics());
                     SystemParameters.setCompiler(compiler);
                     setProgress(10);
                     taskOutput.append("\nCompiling the files");
@@ -411,6 +408,9 @@ public class WindowApplication {
                     } else {
                         getSelectedCompiler().compile(file);
                     }
+                    SystemParameters.addNativeMethodsSemantics(s.getNativeMethodsSemantics());
+                    SystemParameters.addNativeMethodsSemantics(heap.getNativeMethodsSemantics());
+                    SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics());
                     tcompiler.stop();
                     setProgress(40);
                     taskOutput.append("\nCreating the initial state of the analysis");

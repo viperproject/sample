@@ -347,7 +347,7 @@ case class New(pp : ProgramPoint, typ: Type) extends Statement(pp) {
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class NumericalConstant(pp : ProgramPoint, value : String, typ : Type) extends Statement(pp)  {
+case class ConstantStatement(pp : ProgramPoint, value : String, typ : Type) extends Statement(pp)  {
     /** 
      * It does nothing, since a numerical constant does not modify
      * the state of the computation
@@ -355,9 +355,9 @@ case class NumericalConstant(pp : ProgramPoint, value : String, typ : Type) exte
 	 * @param state the initial state
 	 * @return the initial state 
 	 */
-    override def forwardSemantics[S <: State[S]](state : S) : S = state.evalNumericalConstant(value, typ, pp)
+    override def forwardSemantics[S <: State[S]](state : S) : S = state.evalConstant(value, typ, pp)
     
-    override def backwardSemantics[S <: State[S]](state : S) : S = state.evalNumericalConstant(value, typ, pp)
+    override def backwardSemantics[S <: State[S]](state : S) : S = state.evalConstant(value, typ, pp)
       
     override def toString() : String = value;
     

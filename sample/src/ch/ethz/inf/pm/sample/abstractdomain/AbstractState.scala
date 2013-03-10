@@ -404,7 +404,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   
   def throws(throwed : ExpressionSet) : AbstractState[N,H,I] = this.bottom() //TODO: Support exceptions 
    
-  def evalNumericalConstant(value : String, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] = {
+  def evalConstant(value : String, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
     this.setExpression(new ExpressionSet(typ).add(new Constant(value, typ, pp)))
   }
@@ -432,7 +432,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     	//For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
       	for(expr <- obj.getSetOfExpressions) {
         if(! (expr.isInstanceOf[Assignable] || expr.isInstanceOf[HeapIdSetDomain[I]]))
-          throw new SymbolicSemanticException("Only assignable objects should be here")
+          return bottom()
      	  val (heapid, newHeap, rep) =
            if(expr.isInstanceOf[Assignable])
              this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint())

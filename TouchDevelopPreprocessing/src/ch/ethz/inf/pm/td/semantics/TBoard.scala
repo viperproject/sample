@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.TSprite
 
 /**
  * @author Lucas Brutschy
@@ -100,12 +101,19 @@ class TBoard extends ACollection {
     // Create a new picture sprite.
     case "create_picture" =>
       val List(picture) = parameters
-      New(TSprite.typ) // TODO: Initialize stuff
+      New(TSprite.typ,Map(
+        TSprite.field_width -> Field[S](picture,TPicture.field_width),
+        TSprite.field_height -> Field[S](picture,TPicture.field_height),
+        TSprite.field_picture -> picture
+      ))
 
     // Create a new rectangle sprite.
     case "create_rectangle" =>
       val List(width,height) = parameters
-      New(TSprite.typ) // TODO: Initialize stuff
+      New(TSprite.typ,Map(
+        TSprite.field_width -> width,
+        TSprite.field_height -> height
+      ))
 
     // Create a spring between the two sprites.
     case "create_spring" =>
@@ -114,12 +122,16 @@ class TBoard extends ACollection {
 
     // Create a new collection for sprites.
     case "create_sprite_set" =>
-      Skip // TODO: Return Sprite_Set
+      New[S](TSprite_Set.typ)
 
     // Create a new text sprite.
     case "create_text" =>
       val List(width,height,fontSize,text) = parameters
-      New(TSprite.typ) // TODO: Initialize stuff
+      New(TSprite.typ,Map(
+        TSprite.field_text -> text,
+        TSprite.field_width -> width,
+        TSprite.field_height -> height
+      ))
 
     // Update positions of sprites on board.
     case "evolve" =>

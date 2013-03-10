@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * Specifies the abstract semantics of Web Response
@@ -41,7 +42,7 @@ object TWeb_Response {
   val field_status_code = new TouchField("status_code",TNumber.typ)
 
   val typName = "Web_Response"
-  val typ = new TouchType(typName,isSingleton = false,List(field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml, field_request, field_status_code))
+  val typ = new TouchType(typName,isSingleton = false,List(field_header_storage, field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml, field_request, field_status_code))
 
 
 }
@@ -59,8 +60,9 @@ class TWeb_Response extends AAny {
       Return[S](CollectionAt[S](Field[S](this0,TWeb_Request.field_header_storage),name))
 
     /** Gets the names of the headers */
-    // case "header_names" => 
-    //   Top[S](TString_Collection.typ)
+    case "header_names" =>
+      Reporter.reportImprecision("Web_Response.header_names is a dummy",pp)
+      Top[S](TString_Collection.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

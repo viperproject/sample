@@ -139,7 +139,8 @@ object SystemParameters {
         if(forward) sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
         else sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
 	  	res match {
-        case Some(s) => return s
+        case Some(s) =>
+          return s
         case None => ()
       }
     }

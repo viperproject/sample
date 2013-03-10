@@ -263,7 +263,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    @param pp The program point that contains the constant
    @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
    */
-  def evalNumericalConstant(value : String, typ : Type, pp : ProgramPoint) : S
+  def evalConstant(value : String, typ : Type, pp : ProgramPoint) : S
 
   /**
    Assumes that a boolean expression holds

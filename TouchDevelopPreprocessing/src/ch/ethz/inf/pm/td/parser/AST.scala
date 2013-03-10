@@ -57,6 +57,7 @@ case class Foreach(boundLocal: String, collection: Expression, guards: List[Expr
 case class While(condition: Expression, body: List[Statement]) extends Statement with Scope
 case class MetaStatement(key: String, value: Any) extends Statement
 case class ExpressionStatement(expr: Expression) extends Statement
+case class WhereStatement(expr:Expression,handlerName:String,parameters:List[Parameter],body:List[Statement]) extends Statement with Scope
 case class AssignStatement(left:List[LValue],right:Expression) extends Statement {
   var isVariableDeclaration:Boolean = false
 }

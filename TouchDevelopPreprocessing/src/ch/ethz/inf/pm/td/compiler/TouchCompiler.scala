@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.td.semantics._
 import scala.Some
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.td.parser.Script
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  *
@@ -33,6 +34,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var types : Map[String,AAny] = Map(
     SAssert.typName -> new SAssert(),
     SBazaar.typName -> new SBazaar(),
+    SBox.typName -> new SBox(),
     SCode.typName -> new SCode(),
     SCollections.typName -> new SCollections(),
     SColors.typName -> new SColors(),
@@ -171,9 +173,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     for (c <- parsedScripts) {
       globalData ++= c.fields
     }
-
-    // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
-    relevantLibraryFields = RequiredLibraryFragmentAnalysis(parsedScripts)
 
     parsedScripts
   }

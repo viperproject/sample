@@ -34,10 +34,8 @@ abstract class ACollection extends AAny {
     case "random" =>
       IfPossible[S]( CollectionSize[S](this0) equal 0, then = {
         IfPossible[S]( (CollectionSize[S](this0) equal 0).not(), then = {
-          Error[S]("random","The collection might be empty, cannot select a random element!")
           Return[S](CollectionSummary[S](this0),Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))
         }, els = {
-          Error[S]("random","The collection is always empty, can not select a random element!")
           Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))
         })
       }, els = {
@@ -48,10 +46,8 @@ abstract class ACollection extends AAny {
     case "rand" =>
       IfPossible[S]( CollectionSize[S](this0) equal 0, then = {
         IfPossible[S]( (CollectionSize[S](this0) equal 0).not(), then = {
-          Error[S]("rand","The collection might be empty, cannot select a random element!")
           Return[S](CollectionSummary[S](this0),Invalid(this0.getType()))
         }, els = {
-          Error[S]("rand","The collection is always empty, can not select a random element!")
           Return[S](Invalid(this0.getType()))
         })
       }, els = {

@@ -43,7 +43,7 @@ object MethodSummaries {
       else callTarget.programpoint
 
     var enteredState = enterFunction(callPoint,callTarget,entryState,parameters)
-    val result = entries.get(callPoint) match {
+    val result = entries.get(identifyingPP) match {
       case Some(oldEntryState) =>
 
         // This is a recursive call (non top level).
@@ -77,7 +77,7 @@ object MethodSummaries {
 
         // Are there more possible depths?
         while (!entries.get(identifyingPP).get.asInstanceOf[S].removeExpression().lessEqual(enteredState.removeExpression())) {
-          enteredState = entries.get(callPoint).get.asInstanceOf[S]
+          enteredState = entries.get(identifyingPP).get.asInstanceOf[S]
           currentSummary = executeMethod(enteredState,callTarget,currentSummary)
           summaries += ((identifyingPP,(callType,callTarget,currentSummary)))
         }

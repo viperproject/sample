@@ -279,7 +279,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       val res=(cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractCFG(a) :: Nil, fieldName, tpe) :: Nil , currentblock, true)
       res;
     case Literal(value : Constant) =>
-      (cfg, statementsUntilHere ::: new NumericalConstant(new ScalaProgramPoint(body.pos), value.stringValue, new ScalaType(value.tpe)) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: new ConstantStatement(new ScalaProgramPoint(body.pos), value.stringValue, new ScalaType(value.tpe)) :: Nil , currentblock, true)
     //TODO: Support also other numerical type, not only int!
     case x : This =>
       (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("this", new ScalaType(x.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)

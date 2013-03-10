@@ -8,24 +8,9 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.TouchDomain
-import ch.ethz.inf.pm.td.semantics.{AAny, TString, RichNativeSemantics}
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import numericaldomain.Top
-import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.td.output.HTMLExporter
@@ -83,6 +68,13 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     MethodSummaries.reset[S]()
     SystemParameters.progressOutput.begin(" ANALYZING "+compiler.main.name)
 
+    // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
+    if(TouchAnalysisParameters.libraryFieldPruning) {
+      compiler.relevantLibraryFields = RequiredLibraryFragmentAnalysis(compiler.parsedScripts)
+      SystemParameters.resetOutput
+      MethodSummaries.reset[S]()
+    }
+
     // Set global state to invalid
     var curState = entryState
     for (v <- compiler.globalData) {
@@ -122,7 +114,9 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
       if(sem.isInstanceOf[AAny]) {
         val typ = sem.asInstanceOf[AAny].getTyp
-        if(typ.isSingleton && SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName)) {
+        if(typ.isSingleton &&
+          (!TouchAnalysisParameters.libraryFieldPruning ||
+          SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
           val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
           curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
           val obj = curState.getExpression()

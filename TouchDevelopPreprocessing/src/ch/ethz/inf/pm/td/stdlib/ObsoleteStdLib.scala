@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.stdlib
 
-import ch.ethz.inf.pm.td.symbols.{AbstractSymbolTable, Member}
+import ch.ethz.inf.pm.td.symbols.{Member, AbstractSymbolTable}
 
 
 /**
@@ -74,6 +74,9 @@ trait ObsoleteStdLib extends AbstractSymbolTable {
       Member("resume","Nothing"), // Not supported anymore
       Member("state","String"), // Not supported anymore
       Member("stop","Nothing") // Not supported anymore
+    ))
+    addType("String",List(
+      Member("@match",List("String"), "String_Collection") // NOT SURE.. appears often, not in the REF
     ))
     addType("String_Collection",List(
       Member("share",List("String"), "Nothing"), // Shares the content (email, sms, social)

@@ -18,7 +18,23 @@ trait StdLib extends AbstractSymbolTable  {
     Member("post_leaderboard_to_wall","Nothing")	//Posts the current game leaderboard to the wall
   ))
   addSingleton("box", GenericTypes.gAlsoSingletons("box") :::List(
-    Member("is_init","Boolean")
+    Member("is_init","Boolean"),
+    Member("set_horizontal_alignment",List("Number","Number"),"Nothing"),
+    Member("set_vertical_alignment",List("Number","Number"),"Nothing"),
+    Member("set_font_size",List("Number"),"Nothing"),
+    Member("set_margins",List("Number", "Number", "Number", "Number"),"Nothing"),
+    Member("set_padding",List("Number", "Number", "Number", "Number"),"Nothing"),
+    Member("set_background",List("Color"),"Nothing"),
+    Member("set_foreground",List("Color"),"Nothing"),
+    Member("set_border",List("Color", "Number"),"Nothing"),
+    Member("set_height",List("Number"),"Nothing"),
+    Member("set_width",List("Number"),"Nothing"),
+    Member("page_width",List(),"Number"),
+    Member("edit_text",List("Source", "Boolean"),"Nothing"),
+    Member("set_text_wrapping",List("Boolean", "Number"),"Nothing"),
+    Member("set_scrolling",List("Boolean", "Boolean"),"Nothing"),
+    Member("on_text_editing",List("Handler"),"Nothing"),
+    Member("use_horizontal_layout","Nothing")
   ))
   addSingleton("collections", GenericTypes.gAlsoSingletons("collections") :::List(	// Create collections of items.
     Member("create_link_collection","Link_Collection"),	//Creates an empty link collection

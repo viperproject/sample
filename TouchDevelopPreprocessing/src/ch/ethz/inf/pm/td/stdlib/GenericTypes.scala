@@ -17,7 +17,6 @@ object GenericTypes {
     Member("equals",List(thisName),"Boolean")
   )
 
-
   def gAny(thisName:String):List[Member] = gAlsoSingletons(thisName) ::: List(
     Member("is_invalid","Boolean"),
     Member("post_to_wall","Nothing")

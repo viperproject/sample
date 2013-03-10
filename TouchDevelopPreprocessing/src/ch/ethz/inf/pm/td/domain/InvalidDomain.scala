@@ -144,6 +144,8 @@ class BooleanInvalidDomain
       val res = domBottom.intersect(domValid,eval(x))
       if (res.isBottom) bottom()
       else this.add(x,res)
+    case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
+      bottom()
     case BinaryBooleanExpression(left,right,op,typ) => op match {
       case BooleanOperator.&& => this.assume(left).assume(right)
       case BooleanOperator.|| => this.lub(this.assume(left),this.assume(right))

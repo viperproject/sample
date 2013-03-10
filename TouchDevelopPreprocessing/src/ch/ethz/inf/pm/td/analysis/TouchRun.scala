@@ -44,8 +44,8 @@ object TouchRun {
       try {
         SystemParameters.compiler.reset()
         SystemParameters.resetNativeMethodsSemantics()
-        SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
         SystemParameters.compiler.compile(file)
+        SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
         //EntryState
         val numerical = new TouchDomain(new BoxedNonRelationalNumericalDomain(new Interval(0,0)))
@@ -112,8 +112,8 @@ object TouchApronRun {
       try {
         SystemParameters.compiler.reset()
         SystemParameters.resetNativeMethodsSemantics()
-        SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
         SystemParameters.compiler.compile(file)
+        SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
         //EntryState
         val domain = new Octagon()

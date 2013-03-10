@@ -11,6 +11,7 @@ import ch.ethz.inf.pm.td.compiler.TouchCollection
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.UnitExpression
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  *
@@ -27,27 +28,21 @@ object RichNativeSemantics {
 
   /*-- Checking / Reporting errors --*/
 
-  def Error[S <: State[S]](method:String, message:String)(implicit state:S, pp:ProgramPoint) {
-     Reporter.reportError("When calling "+method+": "+message,pp)
+  def Error[S <: State[S]](expr:RichExpression, message:String)(implicit state:S, pp:ProgramPoint):S = {
+    val errorState = state.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
+    if(!errorState.lessEqual(state.bottom())) {
+      Reporter.reportError(message,pp)
+      state.assume(expr.not())
+    } else state
   }
 
-  def Error[S <: State[S]](expr:RichExpression, message:String)(implicit state:S, pp:ProgramPoint) {
-    if (!Reporter.hasError(message,pp)) {
-      // The next line is a fix for "bottom" expression, where I don't know where they come from.
-      val errorState = state.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
-      if(!errorState.lessEqual(state.bottom())) {
-        Reporter.reportError(message,pp)
-      }
-    }
-  }
-
-  def Error[S <: State[S]](expr:RichExpression, method:String, message:String)(implicit state:S, pp:ProgramPoint) {
+  def Error[S <: State[S]](expr:RichExpression, method:String, message:String)(implicit state:S, pp:ProgramPoint):S = {
     Error[S](expr,"When calling "+method+": "+message)
   }
 
-  def CheckInRangeInclusive[S <: State[S]](expr:RichExpression, low:RichExpression, high:RichExpression, method:String, parameter:String)(implicit s:S, pp:ProgramPoint) {
-    Error(expr < low,method+": Parameter "+parameter+" ("+expr+") may be less than the lowest allowed value ("+low+")")(s,pp)
-    Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be greater than the highest allowed value "+high+")")(s,pp)
+  def CheckInRangeInclusive[S <: State[S]](expr:RichExpression, low:RichExpression, high:RichExpression, method:String, parameter:String)(implicit s:S, pp:ProgramPoint):S = {
+    val state1 = Error(expr < low,method+": Parameter "+parameter+" ("+expr+") may be less than the lowest allowed value ("+low+")")(s,pp)
+    Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be greater than the highest allowed value "+high+")")(state1,pp)
   }
 
   def IfPossible[S <: State[S]](expr:RichExpression, then: => S, els: => S)(implicit state:S, pp:ProgramPoint):S = {
@@ -90,7 +85,8 @@ object RichNativeSemantics {
 
           // Assign fields with given arguments
           for (f <- typ.getPossibleTouchFields()) {
-            if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
+            if(!TouchAnalysisParameters.libraryFieldPruning ||
+                SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,"__summary")
               val a = initials.get(f) match {
                 case None => f.default match {
@@ -150,7 +146,8 @@ object RichNativeSemantics {
 
           // Assign fields with given arguments
           for (f <- typ.getPossibleFields()) {
-            if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
+            if(!TouchAnalysisParameters.libraryFieldPruning ||
+              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
               initials.get(f) match {
                 case None =>
                   val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
@@ -194,7 +191,8 @@ object RichNativeSemantics {
       }
 
       for (f <- obj.getType().getPossibleFields()) {
-        if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+f.getName())) {
+        if(!TouchAnalysisParameters.libraryFieldPruning ||
+          SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+f.getName())) {
           initials.get(f) match {
             case None =>
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
@@ -225,6 +223,11 @@ object RichNativeSemantics {
   // TODO: Implement this decently
   def CollectionSummary[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
     state.getCollectionCell(collection,toRichExpression(0)).getExpression()
+  }
+
+  def CollectionClear[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
+    var curState = state.removeVariable(CollectionSummary[S](collection)(state,pp))
+    curState.assignVariable(CollectionSize[S](collection)(curState,pp),toRichExpression(0))
   }
 
   def CollectionInsert[S <: State[S]](collection:RichExpression, index:RichExpression, right:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
@@ -269,7 +272,8 @@ object RichNativeSemantics {
   /*-- Reading and writing of fields --*/
 
   def AssignField[S <: State[S]](obj:RichExpression,field:Identifier,value:RichExpression)(implicit state:S, pp:ProgramPoint): S = {
-    if(SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+field.getName())) {
+    if(!TouchAnalysisParameters.libraryFieldPruning ||
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+field.getName())) {
       state.assignField(List(obj),field.getName(),value)
     } else state
   }
@@ -283,8 +287,8 @@ object RichNativeSemantics {
   def Skip[S <: State[S]](implicit state:S, pp:ProgramPoint): S = state
 
   def Unimplemented[S <: State[S]](method:String)(implicit state:S, pp:ProgramPoint): S = {
-    Reporter.reportImprecision(method+" not implemented, unsound from now on",pp)
-    Skip[S]
+    Reporter.reportImprecision(method+" not implemented, going to top",pp)
+    state.top()
   }
 
   def MatchFields[S <: State[S]](this0: RichExpression, parameters:List[ExpressionSet], typ:TouchType, method:String)(implicit state:S, pp:ProgramPoint): S = {

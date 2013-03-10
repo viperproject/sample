@@ -26,4 +26,10 @@ object TouchAnalysisParameters {
    */
   val exportAsHtml = true
 
+  /**
+   * If this is enabled, only relevant fields (i.e. that are read in the program) of objects from the library will be
+   * represented.
+   */
+  val libraryFieldPruning = true
+
 }

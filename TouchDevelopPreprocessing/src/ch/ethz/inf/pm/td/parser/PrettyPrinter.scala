@@ -53,6 +53,8 @@ object PrettyPrinter {
     case MetaStatement(key, value) => "meta "+key+" "+value+";"
     case If(condition,thenBody,elseBody) => "if ("+apply(condition)+") {\n"+apply(thenBody)+"\n}" +
       (if (elseBody.length > 0 ) " else {\n"+apply(elseBody)+"\n}" else "")
+    case WhereStatement(expr,handlerName,parameters,body) => apply(expr)+" where "+handlerName+"("+
+      (parameters map apply).mkString(",")+") {\n"+apply(body)+"\n}"
   }}
 
   def apply(e:Expression):String = { e match {

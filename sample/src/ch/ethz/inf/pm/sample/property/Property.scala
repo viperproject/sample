@@ -108,7 +108,7 @@ final class SingleStatementProperty(val visitor : Visitor) extends Property {
         	  		  checkStatement(className, methodName, visitor,state, par, printer)
         	  	case New(pp, typ) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  	case NumericalConstant(pp, value, typ) =>
+        	  	case oorepresentation.ConstantStatement(pp, value, typ) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  	case Throw(programpoint, expr) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)

@@ -128,9 +128,14 @@ class TPicture extends AAny {
     //   Skip;
 
     /** Fills a rectangle with a given color */
-    // case "fill_rect" =>
-    //   val List(left,top,width,height,angle,color) = parameters // Number,Number,Number,Number,Number,Color
-    //   Skip;
+    case "fill_rect" =>
+      val List(left,top,width,height,angle,color) = parameters // Number,Number,Number,Number,Number,Color
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"fill_rect","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"fill_rect","top")
+      CheckInRangeInclusive[S](left+width,0,Field[S](this0,TPicture.field_width),"fill_rect","left+width")
+      CheckInRangeInclusive[S](top+height,0,Field[S](this0,TPicture.field_height),"fill_rect","top+height")
+      CheckInRangeInclusive[S](angle,0,360,"fill_rect","angle")
+      Skip
 
     /** Flips the picture horizontally */
     case "flip_horizontal" =>

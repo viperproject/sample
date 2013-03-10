@@ -108,7 +108,7 @@ object ParseSILAST {
 
 
   private def parseExpressionSequence(p : Seq[silAST.expressions.Expression], pp : ProgramPoint) : ch.ethz.inf.pm.sample.oorepresentation.Statement= {
-    if (p.size==0) return new NumericalConstant(pp, "true", new SILType("Boolean"));
+    if (p.size==0) return new ConstantStatement(pp, "true", new SILType("Boolean"));
     if (p.size==1) return parseExpression(p.apply(0));
     return new MethodCall(pp,
       new FieldAccess(pp, parseExpression(p.apply(0)) :: Nil, "&&",null),
@@ -227,9 +227,9 @@ object ParseSILAST {
         )
         //Correspond to new BinaryBooleanExpression(parseExpression(x.operand1), parseExpression(x.operand2), BooleanOperator.==>, new SILType("Boolean"))
     }
-    case x : silAST.expressions.TrueExpression => new NumericalConstant(parsePP(p.sourceLocation), "true", new SILType("Boolean"))
+    case x : silAST.expressions.TrueExpression => new ConstantStatement(parsePP(p.sourceLocation), "true", new SILType("Boolean"))
       //Correspond to new ch.ethz.inf.pm.sample.abstractdomain.TrueExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
-    case x : silAST.expressions.FalseExpression => new NumericalConstant(parsePP(p.sourceLocation), "false", new SILType("Boolean"))
+    case x : silAST.expressions.FalseExpression => new ConstantStatement(parsePP(p.sourceLocation), "false", new SILType("Boolean"))
       //Correspond to new ch.ethz.inf.pm.sample.abstractdomain.FalseExpression(parsePP(p.sourceLocation), new SILType("Boolean"));
   }
 
@@ -258,9 +258,9 @@ object ParseSILAST {
         Nil,
         new SILType("Any")
       )
-    case x : EpsilonPermissionTerm => new NumericalConstant(parsePP(x.sourceLocation), "epsilon", new SILType("PermissionValue"))
-    case x : FullPermissionTerm => new NumericalConstant(parsePP(x.sourceLocation), "full", new SILType("PermissionValue"))
-    case x : NoPermissionTerm => new NumericalConstant(parsePP(x.sourceLocation), "zero", new SILType("PermissionValue"))
+    case x : EpsilonPermissionTerm => new ConstantStatement(parsePP(x.sourceLocation), "epsilon", new SILType("PermissionValue"))
+    case x : FullPermissionTerm => new ConstantStatement(parsePP(x.sourceLocation), "full", new SILType("PermissionValue"))
+    case x : NoPermissionTerm => new ConstantStatement(parsePP(x.sourceLocation), "zero", new SILType("PermissionValue"))
     case x : PermTerm =>
       return new MethodCall(parsePP(x.sourceLocation),
         new FieldAccess(
@@ -282,7 +282,7 @@ object ParseSILAST {
         parseSeqOf[Term, ch.ethz.inf.pm.sample.oorepresentation.Statement](x.arguments, parseTerm(_)),
         parseDataType(x.function.resultType)
       )
-    case x : IntegerLiteralTerm => new NumericalConstant(parsePP(x.sourceLocation), x.value.toString(), parseDataType(x.dataType))
+    case x : IntegerLiteralTerm => new ConstantStatement(parsePP(x.sourceLocation), x.value.toString(), parseDataType(x.dataType))
     case x : LogicalVariableTerm => parseVariable(x.variable)
     case x : DomainFunctionApplicationTerm => throw new SILParserException("Not yet supported")
     case x : IfThenElseTerm => throw new SILParserException("Not yet supported")
@@ -311,28 +311,28 @@ object ParseSILAST {
     //Chalice/SIL statements represented by method calls
     case x : ExhaleStatement =>
       return new MethodCall(parsePP(x.sourceLocation),
-        new NumericalConstant(parsePP(x.sourceLocation),"exhale",new SILType("Unit")),
+        new ConstantStatement(parsePP(x.sourceLocation),"exhale",new SILType("Unit")),
         Nil,
         parseExpression(x.expression) :: Nil,
         new SILType("Unit")
       )
     case x : FoldStatement =>
       return new MethodCall(parsePP(x.sourceLocation),
-        new NumericalConstant(parsePP(x.sourceLocation),"fold",new SILType("Unit")),
+        new ConstantStatement(parsePP(x.sourceLocation),"fold",new SILType("Unit")),
         Nil,
         parseTerm(x.permission) :: Nil,
         new SILType("Unit")
       )
     case x : InhaleStatement =>
       return new MethodCall(parsePP(x.sourceLocation),
-        new NumericalConstant(parsePP(x.sourceLocation),"inhale",new SILType("Unit")),
+        new ConstantStatement(parsePP(x.sourceLocation),"inhale",new SILType("Unit")),
         Nil,
         parseExpression(x.expression) :: Nil,
         new SILType("Unit")
       )
     case x : UnfoldStatement =>
       return new MethodCall(parsePP(x.sourceLocation),
-        new NumericalConstant(parsePP(x.sourceLocation),"unfold",new SILType("Unit")),
+        new ConstantStatement(parsePP(x.sourceLocation),"unfold",new SILType("Unit")),
         Nil,
         parseExpression(x.permissionExpression) :: Nil,
         new SILType("Unit")

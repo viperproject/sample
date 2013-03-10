@@ -434,8 +434,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	 *
 	 * @see #map
    */
-	override def evalNumericalConstant(v: String, t: Type, pp: ProgramPoint): PartitionedState[D] = {
-		map(_.evalNumericalConstant(v, t, pp))
+	override def evalConstant(v: String, t: Type, pp: ProgramPoint): PartitionedState[D] = {
+		map(_.evalConstant(v, t, pp))
 	}
 
   /**

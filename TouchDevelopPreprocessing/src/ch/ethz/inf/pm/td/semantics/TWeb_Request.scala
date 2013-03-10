@@ -79,9 +79,9 @@ class TWeb_Request extends AAny {
     //  CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),StringCst("Content-Encoding"),value)
 
     /** Sets the name and password for basic authentication. Requires an HTTPS URL, empty string clears. */
-    // case "set_credentials" => 
-    //   val List(name,password) = parameters // String,String
-    //   Skip;
+    case "set_credentials" =>
+      val List(name,password) = parameters // String,String
+      Skip
 
     /** Sets an HTML header value. Empty string clears the value */
     case "set_header" =>

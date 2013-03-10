@@ -21,12 +21,12 @@ object CFGPreProcessing {
          loopsToPC = loopsToPC+((i, newpc));
          if(loops.keySet.contains(i)) {
            if (c.nodes.apply(i).size>0) pc = c.nodes.apply(i).head.getPC()
-           val newStatement = new Assignment(pc, new Variable(pc, new CounterLoopIdentifier(pc, pc)), new NumericalConstant(pc, "0", SystemParameters.typ.top()))
+           val newStatement = new Assignment(pc, new Variable(pc, new CounterLoopIdentifier(pc, pc)), new ConstantStatement(pc, "0", SystemParameters.typ.top()))
            modifiedblock = (newStatement :: Nil) ::: modifiedblock
          }
          for(id <- getExitLoopBlock(loops, i)) {
            val counterid = new Variable(newpc, new CounterLoopIdentifier(loopsToPC.apply(id), newpc))
-           val increment = new MethodCall(newpc, new FieldAccess(newpc, counterid::Nil, "+", SystemParameters.typ.top()), Nil, new NumericalConstant(newpc, "1", SystemParameters.typ.top())::Nil, SystemParameters.typ.top())
+           val increment = new MethodCall(newpc, new FieldAccess(newpc, counterid::Nil, "+", SystemParameters.typ.top()), Nil, new ConstantStatement(newpc, "1", SystemParameters.typ.top())::Nil, SystemParameters.typ.top())
            val newStatement = new Assignment(newpc, counterid, increment);
            modifiedblock = modifiedblock:::newStatement::Nil
          }

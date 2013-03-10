@@ -34,23 +34,25 @@ abstract class AAny extends NativeMethodSemantics {
         return Some(state.bottom())
       }
 
+      var curState = state
+
       if (thisExpr.getType().toString() == getTypeName) {
 
         // Check if the object or an argument can be invalid - in this case, we must produce an error
         if(operator != "is_invalid") {
           if (!thisExpr.getType().isStatic()) {
             if (thisExpr.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
-              Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator,  "Object ("+thisExpr+") whose field/method is accessed might be invalid")(state,pp)
+              curState = Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator,  "Object ("+thisExpr+") whose field/method is accessed might be invalid")(curState,pp)
             }
           }
           for (param <- parameters) {
             if (param.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
-              Error(param equal Invalid(param.getType())(pp), operator, "Parameter ("+param+") might be invalid")(state,pp)
+              curState = Error(param equal Invalid(param.getType())(pp), operator, "Parameter ("+param+") might be invalid")(curState,pp)
             }
           }
         }
 
-        Some(forwardSemantics(thisExpr,operator,parameters)(pp,state))
+        Some(forwardSemantics(thisExpr,operator,parameters)(pp,curState))
 
       } else None
 
