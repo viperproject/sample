@@ -526,6 +526,10 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     throw new NotImplementedException()
   }
 
+  def clearCollection(collectionSet: ExpressionSet) : PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
   def getCollectionLength(collectionSet: ExpressionSet): PartitionedState[D] = {
     throw new NotImplementedException()
   }

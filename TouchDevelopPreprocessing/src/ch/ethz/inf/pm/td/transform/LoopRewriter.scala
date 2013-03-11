@@ -97,6 +97,10 @@ object LoopRewriter {
         List(pos(If(cond,(thenBody map (apply _)).flatten,(elseBody map (apply _)).flatten)))
       case w@While(cond,body) =>
         List(pos(While(cond,(body map (apply _)).flatten)))
+      case w@Box(body) =>
+        List(pos(Box((body map (apply _)).flatten)))
+      case w@WhereStatement(expr,handler,parameters,body) =>
+        List(pos(WhereStatement(expr,handler,parameters,(body map (apply _)).flatten)))
       case _ =>
         List(s)
     }

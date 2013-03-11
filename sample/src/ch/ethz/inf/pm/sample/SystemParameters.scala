@@ -167,7 +167,7 @@ abstract class ScreenOutput {
   private var indent = 0
 
   def begin(s :String) { put("{ "+s); Timer.start; indent += 1 }
-  def put(s:String) { appendString("  "*indent + s.replace("\n","\n  "*indent)) }
+  def put(s:String) { appendString("  "*indent + s.replaceAll("[\n\r]+","\n  "*indent)) }
   def end(s:String) { indent -= 1; put("} "+s+" (time: "+Timer.stop+")") }
   def end() { end("") }
   def reset() { indent = 0 }

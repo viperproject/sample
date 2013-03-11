@@ -120,6 +120,14 @@ object Typer {
         processExpression(s,st,cond)
         for (smt <- thenBody) processStatement(s,st,smt)
         for (smt <- elseBody) processStatement(s,st,smt)
+      case s@Box(body) =>
+        st(s) = ScopeSymbolTable(s,scope,Map.empty)
+        for (smt <- body) processStatement(s,st,smt)
+      case s@WhereStatement(expr,handlerName,parameters,body) =>
+        st(s) = ScopeSymbolTable(s,scope,Map.empty) ++ parameters
+        st(scope) = st(scope) + (handlerName -> TypeName("Handler"))
+        processExpression(scope,st,expr)
+        for (smt <- body) processStatement(s,st,smt)
       case ExpressionStatement(expr) =>
         processMultiValExpression(scope,st,expr)
       case a@AssignStatement(left,right) =>
@@ -156,7 +164,7 @@ object Typer {
       case l@LocalReference(ident) => is(st.resolveLocal(scope,ident,l.pos))
       case g@GlobalReference(ident) => is(st.resolveData(ident,g.pos))
       case SingletonReference(singleton) => is(TypeName(singleton))
-      case l@LibraryReference(property) => throw TouchException("library reference not expected here",expr.pos)
+      case l@LibraryReference(property) => is(TypeName("Nothing"))
       case Literal(typ,_) => is(typ)
     }
   }

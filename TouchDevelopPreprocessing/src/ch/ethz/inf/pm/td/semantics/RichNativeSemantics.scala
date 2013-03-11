@@ -220,14 +220,12 @@ object RichNativeSemantics {
     state.getCollectionCell(collection,index).getExpression()
   }
 
-  // TODO: Implement this decently
   def CollectionSummary[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
-    state.getCollectionCell(collection,toRichExpression(0)).getExpression()
+    state.getCollectionCell(collection,Valid(TNumber.typ)).getExpression()
   }
 
   def CollectionClear[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
-    var curState = state.removeVariable(CollectionSummary[S](collection)(state,pp))
-    curState.assignVariable(CollectionSize[S](collection)(curState,pp),toRichExpression(0))
+    state.clearCollection(collection)
   }
 
   def CollectionInsert[S <: State[S]](collection:RichExpression, index:RichExpression, right:RichExpression)(implicit state:S, pp:ProgramPoint):S = {

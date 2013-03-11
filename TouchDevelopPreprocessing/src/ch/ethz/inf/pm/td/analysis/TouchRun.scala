@@ -71,9 +71,7 @@ object TouchRun {
           SystemParameters.progressOutput.reset()
         case e:Exception =>
           SystemParameters.progressOutput.put("ANALYSIS ERROR: Exception during analysis of "+file+": "+e.toString())
-          val sw = new StringWriter()
-          e.printStackTrace(new PrintWriter(sw))
-          SystemParameters.progressOutput.put(sw.toString)
+          for(line <- e.getStackTrace) SystemParameters.progressOutput.put(line.toString)
           SystemParameters.progressOutput.reset()
       }
 
@@ -141,9 +139,7 @@ object TouchApronRun {
           SystemParameters.progressOutput.reset()
         case e:Exception =>
           SystemParameters.progressOutput.put("ANALYSIS ERROR: Exception during analysis of "+file+": "+e.toString())
-          val sw = new StringWriter()
-          e.printStackTrace(new PrintWriter(sw))
-          SystemParameters.progressOutput.put(sw.toString)
+          for(line <- e.getStackTrace) SystemParameters.progressOutput.put(line.toString)
           SystemParameters.progressOutput.reset()
       }
     }

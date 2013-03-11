@@ -79,6 +79,7 @@ object GenericTypes {
     Member("remove",List(typ),"Boolean"),
     Member("remove_at",List("Number"),"Nothing"),
     Member("reverse","Nothing"),
+    Member("@reverse","Nothing"), // old name?
     Member("set_at",List("Number",typ),"Nothing")
   )
 

@@ -300,6 +300,12 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
     */
   def getCollectionLength[S <: SemanticDomain[S]](collection: Assignable, state:S): (HeapIdSetDomain[I], T, S)
 
+  /**
+   * Clears a collections
+   */
+  def clearCollection[S <: SemanticDomain[S]](collection: Assignable, state:S): (T, S)
+
+
 }
 
 trait Assignable {

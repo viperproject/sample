@@ -359,6 +359,12 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet) : S
 
+
+  /**
+   * Clears a collection
+   */
+  def clearCollection(collectionSet: ExpressionSet) : S
+
   /**
   Returns the identifier representing the length of the given collection
    @param collectionSet The collection from which we want to access the length

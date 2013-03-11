@@ -32,12 +32,14 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var relevantLibraryFields : Set[String] = Set.empty
 
   var types : Map[String,AAny] = Map(
+    SArt.typName -> new SArt(),
     SAssert.typName -> new SAssert(),
     SBazaar.typName -> new SBazaar(),
     SBox.typName -> new SBox(),
     SCode.typName -> new SCode(),
     SCollections.typName -> new SCollections(),
     SColors.typName -> new SColors(),
+    SData.typName -> new SData(),
     SHome.typName -> new SHome(),
     SInvalid.typName -> new SInvalid(),
     SLanguages.typName -> new SLanguages(),
@@ -145,7 +147,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     // recursive for libs
     val libDefs = discoverRequiredLibraries(script)
     // FIXME: This should actually be checking for parsed names not parsed ids, right?
-    for (lib <- libDefs; if (!parsedNames.contains(lib.name))) {
+    for (lib <- libDefs; if (!parsedNames.contains(lib.name) && !lib.pubID.isEmpty)) {
       compileStringRecursive(Source.fromURL(Scripts.codeURLfromPubID(lib.pubID)).getLines().mkString("\n"),lib.pubID,Some(lib))
     }
 

@@ -14,8 +14,8 @@ class ATable(tableTyp:TouchType,rowTyp:TouchType) extends ACollection {
 
     case "add_row" =>
       val state1 = New[S](rowTyp)
-      val row = state.getExpression()
-      val state2 = CollectionInsert[S](this0,CollectionSize[S](this0)-1,row)(state1,pp)
+      val row = state1.getExpression()
+      val state2 = CollectionInsert[S](this0,CollectionSize[S](this0)(state1,pp)-1,row)(state1,pp)
       Return[S](row)(state2,pp)
 
     case "clear" =>

@@ -62,6 +62,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): AccessCollectingState = this
   def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): AccessCollectingState = this
   def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): AccessCollectingState = this
+  def clearCollection(collectionSet: ExpressionSet): AccessCollectingState = this
   def testFalse(): AccessCollectingState = this
   def testTrue(): AccessCollectingState = this
   def assume(cond: ExpressionSet): AccessCollectingState = this

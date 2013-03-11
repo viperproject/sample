@@ -30,11 +30,16 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set_height",List("Number"),"Nothing"),
     Member("set_width",List("Number"),"Nothing"),
     Member("page_width",List(),"Number"),
+    Member("page_height",List(),"Number"),
     Member("edit_text",List("Source", "Boolean"),"Nothing"),
     Member("set_text_wrapping",List("Boolean", "Number"),"Nothing"),
     Member("set_scrolling",List("Boolean", "Boolean"),"Nothing"),
     Member("on_text_editing",List("Handler"),"Nothing"),
-    Member("use_horizontal_layout","Nothing")
+    Member("on_tapped",List("Handler"),"Nothing"),
+    Member("use_horizontal_layout","Nothing"),
+    Member("use_vertical_layout","Nothing"),
+    Member("set_bottom_margin",List("Number"),"Nothing"),
+    Member("stretch_width",List("Number"),"Nothing")
   ))
   addSingleton("collections", GenericTypes.gAlsoSingletons("collections") :::List(	// Create collections of items.
     Member("create_link_collection","Link_Collection"),	//Creates an empty link collection
@@ -275,7 +280,11 @@ trait StdLib extends AbstractSymbolTable  {
     Member("current_location","Location"),	//Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations.
     Member("current_location_accurate","Location"),	//Gets the current phone location with the most accuracy. This includes using services that might charge money, or consuming higher levels of battery power or connection bandwidth.
     Member("front_camera","Camera"),	//Gets the front facing camera
+    Member("has_motion","Boolean"),	// Indicates if the motion is available on the device
+    Member("has_accelerometer","Boolean"),	// Indicates if the accelerometer is available on the device
+    Member("has_front_camera","Boolean"),	// Indicates if the gyroscope is available on the device
     Member("has_gyroscope","Boolean"),	//Indicates if the gyroscope is available on the device
+    Member("has_compass","Boolean"),	//Indicates if the compass is available on the device
     Member("heading","Number"),	//Gets the compass heading, in degrees, measured clockwise from the Earthâ€™s geographic north.
     Member("is_device_stable","Boolean"),	//Indicates whether the device is 'stable' (no movement for about 0.5 seconds)
     Member("motion","Motion"),	//Gets the current phone motion that combines data from the accelerometer, compass and gyroscope.
@@ -350,6 +359,8 @@ trait StdLib extends AbstractSymbolTable  {
     Member("browse",List("String"),"Nothing"),	//Opens a web browser to a url
     Member("connection_name","String"),	//Gets a name of the currently connected network servicing Internet requests
     Member("connection_type","String"),	//Gets the type of the network servicing Internet requests (unknown, none, ethernet, wifi, mobile)
+    Member("csv",List("String","String"),"Json_Object"), // Parses a Command Separated Values document into a JsonObject where the `headers` is a string array of column names;
+                                                        // `records` is an array of rows where each row is itself an array of strings. The delimiter is inferred if not specified.
     Member("create_request",List("String"),"Web_Request"),	//Creates a web request
     Member("download",List("String"),"String"),	//Downloads the content of an internet page (http get)
     Member("download_json",List("String"),"Json_Object"),	//Downloads a web service response as a JSON data structure (http get)
@@ -850,7 +861,8 @@ trait StdLib extends AbstractSymbolTable  {
     Member("friction","Number"),	//Gets the fraction of speed loss between 0 and 1
     Member("height","Number"),	//Gets the height in pixels
     Member("hide","Nothing"),	//Hide sprite.
-    Member("is_visible","Boolean"),	//Returns true if sprite is not hidden
+    Member("is_visible","Boolean"),	// Returns true if sprite is not hidden
+    Member("is_deleted","Boolean"), // Returns true if sprite is deleted
     Member("location","Location"),	//Gets the geo location assigned to the sprite
     Member("mass","Number"),	//Gets the mass
     Member("move",List("Number","Number"),"Nothing"),	//Moves sprite.
@@ -894,12 +906,16 @@ trait StdLib extends AbstractSymbolTable  {
     Member("z_index","Number") //Gets the z-index of the sprite
   ))
   addType("Sprite_Set", GenericTypes.gMutableCollection("Sprite_Set","Sprite") ::: List(	// A collection of sprites
-    Member("remove_first","Sprite")	//Remove sprite that was added to set first.
+    Member("remove_first","Sprite"),	//Remove sprite that was added to set first.
+    Member("add_from",List("Sprite_Set","Sprite"),"Boolean"), // Add sprite to set and remove from old set. Returns true if sprite was in old set and not in new set.
+    Member("add",List("Sprite"),"Boolean"), // Add sprite to set. Returns true if sprite was not already in set.
+    Member("index_of",List("Sprite"),"Number") // Gets the index of the first occurence of item. Returns -1 if not found or start is out of range.
   ))
   addType("String", GenericTypes.gAny("String") ::: List(	// A piece of text
     Member("at",List("Number"),"String"),	//Gets the character at a specified index
     Member("compare",List("String"),"Number"),	//Compares two pieces of text
     Member("concat",List("String"),"String"),	//Concatenates two pieces of text
+    Member("copy","String"), // Copies the string
     Member("contains",List("String"),"Boolean"),	//Returns a value indicating if the second string is contained
     Member("copy_to_clipboard","Nothing"),	//Stores text in the clipboard
     Member("count","Number"),	//Returns the number of characters
@@ -1001,6 +1017,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("header_names","String_Collection"),	//Gets the names of the headers
     Member("method","String"),	//Gets whether it was a 'get' or a 'post'.
     Member("send","Web_Response"),	//Performs the request synchronously
+    Member("send_async",List("Handler"),"Web_Response"),	// Performs the request asynchronously
     Member("set_accept",List("String"),"Nothing"),	//Sets the Accept header type ('text/xml' for xml, 'application/json' for json).
     Member("set_compress",List("Boolean"),"Nothing"),	//Compresses the request content with gzip and sets the Content-Encoding header
     Member("set_content",List("String"),"Nothing"),	//Sets the content of a 'post' request

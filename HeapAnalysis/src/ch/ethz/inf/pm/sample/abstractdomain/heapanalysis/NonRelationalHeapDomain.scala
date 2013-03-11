@@ -337,6 +337,8 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       for(addr <- x.value)
         result=result.remove(addr)
       (new NonRelationalHeapDomain(this._1, result, cod, dom), new Replacement);
+    case x : I =>
+      (new NonRelationalHeapDomain(this._1,this._2.remove(x),cod,dom),new Replacement)
   }  
   
   override def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (cod.convert(dom.createAddress(typ, pp)), this, new Replacement);
@@ -377,8 +379,9 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   def removeCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S) = {
+    val colId = collection.asInstanceOf[CollectionIdentifier]
     val length = dom.getCollectionLength(collection)
-    val newState = state.assign(length,BinaryArithmeticExpression(length,Constant("1",null,null),ArithmeticOperator.-,null))
+    val newState = state.assign(length,BinaryArithmeticExpression(length,Constant("1",colId.lengthTyp,null),ArithmeticOperator.-,null))
     (this, newState)
   }
 
@@ -392,7 +395,29 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     ((resolveVariables(collection,f(_))),this,state)
   }
 
-  private def resolveVariables(a: Assignable, f : Assignable => HeapIdSetDomain[I]):HeapIdSetDomain[I] = {
+  def clearCollection[S <: SemanticDomain[S]](collection: Assignable, state:S) = {
+    var curState = state
+    var result = this
+    def clear(a:Assignable):S = {
+      val colId = a.asInstanceOf[CollectionIdentifier]
+      val length = dom.getCollectionLength(a)
+
+      curState = curState.assign(length,Constant("0",colId.lengthTyp,null))
+      val ids = result.getCollectionCell(a, Constant("valid",colId.lengthTyp,null), state)._1
+      for(id <- ids.value) {
+        if(result.getIds.contains(id)) {
+          val (newRes,r) = result.removeVariable(id)
+          result = newRes
+          curState = curState.merge(r)
+        }
+      }
+      curState
+    }
+    resolveVariables(collection,clear(_))
+    (result, curState)
+  }
+
+  private def resolveVariables[T <: Lattice[T]](a: Assignable, f : Assignable => T):T = {
     a match {
       case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(this.normalize(d1.get(id)),f)
       case ids:HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.normalize(ids),f)

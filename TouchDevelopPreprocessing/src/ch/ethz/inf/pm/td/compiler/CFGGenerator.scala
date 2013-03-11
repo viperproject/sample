@@ -6,7 +6,6 @@ import ch.ethz.inf.pm.td._
 import parser.Box
 import parser.ExpressionStatement
 import parser.LibraryDefinition
-import parser.LocalReference
 import parser.MetaStatement
 import parser.Parameter
 import parser.TableDefinition
@@ -97,28 +96,30 @@ object CFGGenerator {
       SRecords.typ = new TouchType(SRecords.typName,isSingleton = true, fields = SRecords.typ.getPossibleFields().toList ::: List(field))
     }
 
+    def createFieldMembers(fields:List[Parameter]): List[TouchField] = {
+      for (field <- fields) yield {
+        val noFieldType = typeNameToType(TypeName(field.typeName.toString.replace("_field","")))
+        val valueField = new TouchField("__value",noFieldType)
+        val fieldType = new TouchType(field.typeName.toString,fields=List(valueField))
+
+        if (noFieldType.getName().equals("Number"))
+          addTouchType(new ANumberField(fieldType,valueField))
+        else
+          addTouchType(new AField(fieldType,valueField))
+
+        new TouchField(field.ident,fieldType,NewInitializer())
+      }
+    }
+
     for (dec <- script.declarations) {
       dec match {
         case thing@TableDefinition(ident,typeName,keys,fields) =>
 
-          val fieldMembers = for (field <- fields) yield {
-
-            val noFieldType = typeNameToType(TypeName(field.typeName.toString.replace("_field","")))
-            val valueField = new TouchField("__value",noFieldType)
-            val fieldType = new TouchType(field.typeName.toString,fields=List(valueField))
-
-            if (noFieldType.getName().equals("Number"))
-              addTouchType(new ANumberField(fieldType,valueField))
-            else
-              addTouchType(new AField(fieldType,valueField))
-
-            new TouchField(field.ident,fieldType,NewInitializer())
-          }
 
           typeName match {
             case "Object" =>
 
-              val objectTyp = new TouchType(ident,fields = fieldMembers)
+              val objectTyp = new TouchType(ident,fields = createFieldMembers(fields))
               val collectionTyp = new TouchCollection(ident+"_Collection",TNumber.typName,ident)
               val constructorTyp = new TouchType(ident+"_Constructor")
 
@@ -130,7 +131,7 @@ object CFGGenerator {
 
             case "Table" =>
 
-              val rowTyp = new TouchType(ident,fields = fieldMembers)
+              val rowTyp = new TouchType(ident,fields = createFieldMembers(fields))
               val tableTyp = new TouchCollection(ident+"_Table",TNumber.typName,rowTyp.getName())
 
               addTouchType(new ARow(rowTyp))
@@ -141,7 +142,7 @@ object CFGGenerator {
             case "Index" =>
 
               val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typeNameToType(typ))}
-              val fieldAndKeyMembers = fieldMembers ::: keyMembers
+              val fieldAndKeyMembers = createFieldMembers(fields) ::: keyMembers
 
               val indexMemberType = new TouchType(ident,fields = fieldAndKeyMembers)
               val keyTypes = keyMembers map (_.getType().asInstanceOf[TouchType])
@@ -165,7 +166,7 @@ object CFGGenerator {
               if (keys.size != 1) throw TouchException("Decorators must have exactly one entry",thing.pos)
 
               val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typeNameToType(typ))}
-              val fieldAndKeyMembers = fieldMembers ::: keyMembers
+              val fieldAndKeyMembers = createFieldMembers(fields) ::: keyMembers
 
               val decoratedType = keyMembers.head.getType().asInstanceOf[TouchType]
               val decorationType = new TouchType(ident,fields = fieldAndKeyMembers)
@@ -315,8 +316,15 @@ object CFGGenerator {
 
         if (left.size != 1) {
 
+          // Multiple return values are only allowed for local calls (code->bla) and userlib calls (libs->bla)
+
           right match {
-            case parser.Access(parser.SingletonReference("code"),prop,args) =>
+            case parser.Access(obj,prop,args) =>
+              obj match {
+                case parser.SingletonReference("code") => ()
+                case parser.LibraryReference(_) => ()
+                case _ => throw TouchException("Not allowed",statement.pos)
+              }
               val pc = mkTouchProgramPoint(left.head.pos)
               val typ = TouchTuple(left map {case x:parser.LValue => typeNameToType(x.typeName)})
               val ident = VariableIdentifier(tupleIdent(pc),typ,pc)
@@ -384,9 +392,13 @@ object CFGGenerator {
 
         val newExpression = expr match {
 
-          case parser.Access(obj,property,List(LocalReference(handlerName))) =>
-            expressionToStatement(parser.Access(obj,property,
-              List(parser.Literal(parser.TypeName("Handler"),handlerMethodName))))
+          case parser.Access(obj,property,args) =>
+            val newArgs = args.map {
+              case e@parser.LocalReference(x) =>
+                if (x.equals(handlerName)) parser.Literal(parser.TypeName("Handler"),handlerMethodName) else e
+              case e:parser.Expression => e
+            }
+            expressionToStatement(parser.Access(obj,property,newArgs))
 
           case _  => throw TouchException("This where handler statement does not look like I expected it to look.")
 

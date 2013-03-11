@@ -35,6 +35,10 @@ class TSprite_Set extends AMutable_Collection {
     //  val List(old_set,sprite) = parameters // Sprite_Set,Sprite
     //  New[S](TBoolean.typ) // TODO
 
+    case "index_of" =>
+      val List(item) = parameters
+      Return[S](0 ndTo CollectionSize[S](this0))
+
     /** Remove sprite that was added to set first. */
     case "remove_first" =>
       Error[S](CollectionSize[S](this0) < 1, "Remove_first is called on a possibly empty set")

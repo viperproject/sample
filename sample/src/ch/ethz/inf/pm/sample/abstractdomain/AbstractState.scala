@@ -683,6 +683,27 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     result
   }
 
+  def clearCollection(collectionSet: ExpressionSet) : AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+    var result = this.bottom().d1
+
+    def clearCollection(result:HeapAndAnotherDomain[N, H, I])(id:Assignable):HeapAndAnotherDomain[N, H, I] = {
+      val (newHeap, rep) = this._1._2.clearCollection(id,this._1._1)
+      result.lub(result, new HeapAndAnotherDomain[N, H, I](rep, newHeap))
+    }
+
+    for (collection <- collectionSet.getSetOfExpressions) {
+      collection match {
+        case id: Assignable => result = clearCollection(result)(id)
+        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(set,clearCollection(result))
+        case _ => throw new SymbolicSemanticException("Not allowed")
+      }
+    }
+
+    this.removeExpression().setState(result)
+  }
+
+
   def getCollectionLength(collectionSet: ExpressionSet): AbstractState[N, H, I] = {
     if (this.isBottom) return this
     var result = this.bottom().d1
