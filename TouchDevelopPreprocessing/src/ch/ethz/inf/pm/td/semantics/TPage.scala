@@ -28,9 +28,9 @@ class TPage extends AAny {
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets a value indicating if the page is equal to the other */
-    // case "equals" => 
-    //   val List(other) = parameters // Page
-    //   Top[S](TBoolean.typ)
+    case "equals" =>
+       val List(other) = parameters // Page
+       Top[S](TBoolean.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

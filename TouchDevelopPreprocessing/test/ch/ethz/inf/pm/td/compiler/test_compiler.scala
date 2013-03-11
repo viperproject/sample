@@ -1,3 +1,4 @@
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 import ch.ethz.inf.pm.td.compiler.{TouchException, TouchCompiler}
 import ch.ethz.inf.pm.td.parser.ScriptParser
@@ -13,28 +14,28 @@ import java.io.File
  *
  */
 
-val comp = new TouchCompiler
+SystemParameters.compiler = new TouchCompiler
 
 def compiler(url:String) {
   println("== Compiling "+url)
-  val cds = comp.compileFile(url)
-  for(cd <- cds; m <- cd.methods) {
-    ShowGraph.ShowControlFlowGraph(m.body)
-  }
+  val cds = SystemParameters.compiler.compileFile(url)
+//  for(cd <- cds; m <- cd.methods) {
+//    ShowGraph.ShowControlFlowGraph(m.body)
+//  }
 }
 
 def compileFromFile(path:String) {
   println("== Compiling "+path)
-  val cds = comp.compileFile(path)
-  for(cd <- cds; m <- cd.methods) {
-    ShowGraph.ShowControlFlowGraph(m.body)
-  }
+  val cds = SystemParameters.compiler.compileFile(path)
+//  for(cd <- cds; m <- cd.methods) {
+//    ShowGraph.ShowControlFlowGraph(m.body)
+//  }
 }
 
 
-//TestRunner(new NewScripts,3,compiler)
+TestRunner(new NewScripts,100000,compiler _)
 //TestRunner("https://www.touchdevelop.com/api/qssc/text?original=true",compiler _)
 //TestRunner("https://www.touchdevelop.com/api/fdzm/text",compiler _)
-compileFromFile("TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator+"waller"+File.separator+"waller.td")
+//compileFromFile("TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator+"waller"+File.separator+"waller.td")
 
 while(true) ()

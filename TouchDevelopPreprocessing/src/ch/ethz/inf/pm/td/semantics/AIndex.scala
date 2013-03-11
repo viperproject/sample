@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.TouchType
 
-class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchType) extends AAny {
+class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchType) extends ACollection {
 
   def getTyp = indexType
 

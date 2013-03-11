@@ -169,7 +169,7 @@ object CFGGenerator {
 
               val decoratedType = keyMembers.head.getType().asInstanceOf[TouchType]
               val decorationType = new TouchType(ident,fields = fieldAndKeyMembers)
-              val decoratorType = new TouchType(decoratedType+"_Decorator")
+              val decoratorType = new TouchCollection(decoratedType+"_Decorator",decoratedType.getName(),decorationType.getName())
 
               addTouchType(new AIndexMember(decorationType))
               addTouchType(new AIndex(decoratorType,List(decoratedType),decorationType))
@@ -191,7 +191,8 @@ object CFGGenerator {
         case v@parser.VariableDefinition(variable,flags) =>
           val programPoint : ProgramPoint = mkTouchProgramPoint(v.pos)
           val modifiers : List[Modifier] = (flags flatMap {
-            case ("is\\_resource","true") => Some(ResourceModifier)
+            case ("is\\_resource","true") => Some(ResourceModifier) // old scripts have that
+            case ("is_resource","true") => Some(ResourceModifier)
             case ("readonly","true") => Some(ReadOnlyModifier)
             case _ => None
           }).toList
