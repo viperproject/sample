@@ -45,13 +45,10 @@ object RichNativeSemantics {
     Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be greater than the highest allowed value "+high+")")(state1,pp)
   }
 
-  def IfPossible[S <: State[S]](expr:RichExpression, then: => S, els: => S)(implicit state:S, pp:ProgramPoint):S = {
-    val errorState = state.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
-    if(!errorState.lessEqual(state.bottom())) {
-      then
-    } else {
-      els
-    }
+  def If[S <: State[S]](expr:RichExpression, Then: S => S, Else: S => S)(implicit state:S, pp:ProgramPoint):S = {
+    val thenState = state.assume( expr )
+    val elseState = state.assume( expr.not() )
+    state.lub(Then(thenState),Else(elseState))
   }
 
   /**

@@ -17,7 +17,7 @@ object TouchAnalysisParameters {
   val argumentsToPublicMethodsValid = false
 
   /**
-   * Context-sensitivity in the interprocedural analysis
+   * Context-sensitivity in the interprocedural analysis.
    */
   val contextSensitiveInterproceduralAnalysis = false
 
@@ -31,5 +31,27 @@ object TouchAnalysisParameters {
    * represented.
    */
   val libraryFieldPruning = true
+
+  /**
+   * The default behavior of TouchBoost is to initialize the global state to invalid ("first run")
+   * and then compute the fixpoint over an arbitrary number of script executions.
+   *
+   * When this option is set to true, we will initialize the global state to Top instead ("any run")
+   * and just analyze a single execution of the script. This is faster, but less precise.
+   *
+   * EXPERIMENTAL
+   */
+  val singleExecution = false
+
+  /**
+   * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary number of event occurrences
+   * for each execution.
+   *
+   * When this option is set to true, we will analyze each event once with the top global state.
+   *
+   * EXPERIMENTAL
+   */
+  val singleEventOccurrence = false
+
 
 }

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, ExpressionSet, State}
-import ch.ethz.inf.pm.td.compiler.{TouchType, TouchTuple}
+import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, TouchType, TouchTuple}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
@@ -128,7 +128,7 @@ object MethodSummaries {
       // Initialize in-parameters to top
       callTarget.arguments.apply(0).foreach({
         x:VariableDeclaration =>
-          if(TouchAnalysisParameters.argumentsToPublicMethodsValid) {
+          if(TouchAnalysisParameters.argumentsToPublicMethodsValid || callTarget.name.asInstanceOf[TouchMethodIdentifier].isEvent) {
             curState = Top[S](x.typ.asInstanceOf[TouchType])(curState,x.programpoint)
           } else {
             curState = TopWithInvalid[S](x.typ.asInstanceOf[TouchType])(curState,x.programpoint)

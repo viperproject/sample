@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SSenses {
 
   /** Gets the primary camera if available */
-  val field_camera = new TouchField("camera",TCamera.typ) // TODO: May be invalid at the beginning
+  val field_camera = new TouchField("camera",TCamera.typ,TopWithInvalidInitializer())
 
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
   val field_has_accelerometer = new TouchField("has_accelerometer",TBoolean.typ)
@@ -122,11 +122,17 @@ class SSenses extends AAny {
     //   field_rotation_speed = new TouchField("rotation_speed",TVector3.typ)
 
     /** Takes a picture and returns it. This picture does not contain the gps location. */
-    // case "take_camera_picture" =>
-    //   Top[S](TPicture.typ)
-    // DECLARATION AS FIELD:
-    //   /** Takes a picture and returns it. This picture does not contain the gps location. */
-    //   field_take_camera_picture = new TouchField("take_camera_picture",TPicture.typ)
+    case "take_camera_picture" =>
+      If[S](Field[S](this0,SSenses.field_camera) equal Invalid(TCamera.typ),
+        Then = {
+          Return[S](Invalid(TPicture.typ))(_,pp)
+        },
+        Else = {
+          Top[S](TPicture.typ,Map(
+            TPicture.field_location -> Invalid(TLocation.typ)
+          ))(_,pp)
+        }
+      )
 
 
     case _ =>

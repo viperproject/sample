@@ -308,8 +308,10 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 	}
 		
 	override def setToTop(variable : Identifier) : ApronInterface = {
-		val st = state.forgetCopy(domain, variable.getName, false);
-		new ApronInterface(st, domain);
+    if (state.getEnvironment.hasVar(variable.getName())) {
+      val st = state.forgetCopy(domain, variable.getName, false)
+      new ApronInterface(st, domain)
+    } else this
 	}
 
   private def removeNondeterminism ( label:String, expr: Expression ): (Expression, List[(Identifier,BinaryNondeterministicExpression)]) = {
@@ -595,6 +597,8 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       else topExpression()
     case BinaryArithmeticExpression(left, right, op, typ) =>
       new Texpr1BinNode(this.convertArithmeticOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
+    case BinaryBooleanExpression(left, right, op, typ) =>
+      new Texpr1BinNode(this.convertBooleanOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
 		case UnaryArithmeticExpression(left, op, typ) => op match {
 			case ArithmeticOperator.- => new Texpr1UnNode(Texpr1UnNode.OP_NEG, this.toTexpr1Node(left))
 		}
@@ -607,6 +611,12 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 		case ArithmeticOperator./ => Texpr1BinNode.OP_DIV
 		case ArithmeticOperator.* => Texpr1BinNode.OP_MUL
 	}
+
+  /** used when we assign a boolean value, e.g. flag = flag1 && flag2 */
+  private def convertBooleanOperator(op : BooleanOperator.Value) : Int = op match {
+    case BooleanOperator.&& => Texpr1BinNode.OP_MUL
+    case BooleanOperator.|| => Texpr1BinNode.OP_ADD
+  }
 	
 	private def toTcons1(e : Expression, env : Environment) : Tcons1 = e match {
     case Constant("invalid", typ, p) =>

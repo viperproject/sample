@@ -32,26 +32,18 @@ abstract class ACollection extends AAny {
 
     /** Get random element */
     case "random" =>
-      IfPossible[S]( CollectionSize[S](this0) equal 0, then = {
-        IfPossible[S]( (CollectionSize[S](this0) equal 0).not(), then = {
-          Return[S](CollectionSummary[S](this0),Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))
-        }, els = {
-          Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))
-        })
-      }, els = {
-        Return[S](CollectionSummary[S](this0))
+      If[S]( CollectionSize[S](this0) equal 0, Then = {
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_,pp)
+      }, Else = {
+        Return[S](CollectionSummary[S](this0))(_,pp)
       })
 
     /** Get random element */
     case "rand" =>
-      IfPossible[S]( CollectionSize[S](this0) equal 0, then = {
-        IfPossible[S]( (CollectionSize[S](this0) equal 0).not(), then = {
-          Return[S](CollectionSummary[S](this0),Invalid(this0.getType()))
-        }, els = {
-          Return[S](Invalid(this0.getType()))
-        })
-      }, els = {
-        Return[S](CollectionSummary[S](this0))
+      If[S]( CollectionSize[S](this0) equal 0, Then = {
+        Return[S](Invalid(this0.getType()))(_,pp)
+      }, Else = {
+        Return[S](CollectionSummary[S](this0))(_,pp)
       })
 
     /** Returns the length of the collection*/

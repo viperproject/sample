@@ -379,10 +379,14 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   def removeCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S) = {
-    val colId = collection.asInstanceOf[CollectionIdentifier]
-    val length = dom.getCollectionLength(collection)
-    val newState = state.assign(length,BinaryArithmeticExpression(length,Constant("1",colId.lengthTyp,null),ArithmeticOperator.-,null))
-    (this, newState)
+    var curState = state
+    def f(a:Assignable):S = {
+      val colId = a.asInstanceOf[CollectionIdentifier]
+      val length = dom.getCollectionLength(a)
+      curState = curState.assign(length,BinaryArithmeticExpression(length,Constant("1",colId.lengthTyp,null),ArithmeticOperator.-,null))
+      curState
+    }
+    (this, resolveVariables(collection,f(_)))
   }
 
   def getCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S) = {

@@ -83,13 +83,11 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
       val leftExpr = new ExpressionSet(v.typ).add(variable)
       curState = curState.createVariable(leftExpr,v.typ,v.programpoint)
 
-      // Numbers, Booleans and Strings are not initialized to invalid but to 0, false, ""
-      val rightVal = v.typ.getName() match {
-        case "String" => Constant("",v.typ,v.programpoint)
-        case "Number" => Constant("0",v.typ,v.programpoint)
-        case "Boolean" => Constant("false",v.typ,v.programpoint)
-        case _ =>
+      val rightVal =
+        if ( ! TouchAnalysisParameters.singleExecution ) {
 
+          // We analyze executions separately. In the first execution of the script, global fields are invalid
+          // except for the obvious exception (art, read-only, primitives)
           // There are three types of global data:
           //  (1) Regular global variables / objects, which are initialized to invalid
           //  (2) Global objects that are read-only and are initialized to some default object (Tile)
@@ -101,10 +99,29 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
             curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
             curState.getExpression().getSetOfExpressions.head
           } else {
-            Constant("invalid",v.typ.asInstanceOf[TouchType],v.programpoint)
+            v.typ.getName() match {
+              case "String" => Constant("",v.typ,v.programpoint)
+              case "Number" => Constant("0",v.typ,v.programpoint)
+              case "Boolean" => Constant("false",v.typ,v.programpoint)
+              case _ => Constant("invalid",v.typ.asInstanceOf[TouchType],v.programpoint)
+            }
           }
 
-      }
+        } else {
+
+          // We analyze one execution in top state.
+          if(v.modifiers.contains(ResourceModifier)) {
+            curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
+            curState.getExpression().getSetOfExpressions.head
+          } else if (v.modifiers.contains(ReadOnlyModifier)) {
+            curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
+            curState.getExpression().getSetOfExpressions.head
+          } else {
+            curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
+            curState.getExpression().getSetOfExpressions.head
+          }
+
+        }
 
       val rightExpr = new ExpressionSet(v.typ).add(rightVal)
       curState = curState.assignVariable(leftExpr,rightExpr)
@@ -118,7 +135,10 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
           (!TouchAnalysisParameters.libraryFieldPruning ||
           SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
           val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
-          curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
+          if(typ.getName() == "records")
+            curState = RichNativeSemantics.New[S](typ)(curState,singletonProgramPoint)
+          else
+            curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
           val obj = curState.getExpression()
           val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName,typ,singletonProgramPoint))
           curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
@@ -127,32 +147,11 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     }
 
     // The first fixpoint, which is computed over several executions of the same script
-    val result = lfp(curState, {initialState:S =>
-
-      // TODO: Reset local state
-
-      // Execute abstract semantics of each public method (or the ones selected in the GUI)
-      val exitStates = for ((c,x) <- compiler.getPublicMethods) yield {
-        if (methods.isEmpty || methods.contains(x.name.toString)) {
-          Some(analyzeMethod(c,x,initialState))
-        } else None
-      }
-
-      // Compute the least upper bound of all public method exit states
-      val exitState = exitStates.flatten.foldLeft(initialState.bottom())({(
-         stateLeft:S,stateRight:S) => initialState.lub(stateLeft,stateRight)
-      })
-
-      // Compute the fixpoint over all events
-      lfp(exitState,{s:S =>
-        var cur = s
-        for ((c,e) <- compiler.events) {
-          cur = cur.lub(cur,analyzeMethod(c,e,s))
-        }
-        cur
-      })
-
-    })
+    val result =
+      if ( ! TouchAnalysisParameters.singleExecution )
+        lfp(curState, analyzeExecution(compiler,methods)(_:S))
+      else
+        analyzeExecution(compiler,methods)(curState)
 
     // Check properties on the results
     SystemParameters.progressOutput.end()
@@ -169,11 +168,43 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   }
 
+  private def analyzeExecution[S <: State[S]](compiler:TouchCompiler,methods:List[String])(initialState:S):S = {
+
+    // Execute abstract semantics of each public method (or the ones selected in the GUI)
+    val exitStates = for ((c,x) <- compiler.getPublicMethods) yield {
+      if (methods.isEmpty || methods.contains(x.name.toString)) {
+        Some(analyzeMethod(c,x,initialState))
+      } else None
+    }
+
+    // Compute the least upper bound of all public method exit states
+    val exitState = exitStates.flatten.foldLeft(initialState.bottom())({
+      (stateLeft:S,stateRight:S) =>
+        initialState.lub(stateLeft,stateRight)
+    })
+
+    // Compute the fixpoint over all events
+    val result = if ( ! TouchAnalysisParameters.singleEventOccurrence ) {
+      lfp(exitState,analyzeEvents(compiler,methods)(_:S))
+    } else {
+      analyzeEvents(compiler,methods)(exitState)
+    }
+
+    result
+  }
+
+  private def analyzeEvents[S <: State[S]](compiler:TouchCompiler,methods:List[String])(s:S):S = {
+    var cur = s
+    for ((c,e) <- compiler.events) {
+      cur = cur.lub(cur,analyzeMethod(c,e,s))
+    }
+    cur
+  }
+
+
   private def analyzeMethod[S <: State[S]](callType:ClassDefinition,callTarget:MethodDeclaration,entryState:S):S = {
 
-
     val exitState = MethodSummaries.collect[S](callTarget.programpoint,callType,callTarget,entryState,Nil)
-
 
     exitState
 
