@@ -201,18 +201,10 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   }
 
   def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
-    val methods = parsedScripts.map(_.methods).flatten.filter
-    {x:MethodDeclaration => x.name.toString.equals(name) && x.arguments.apply(0).size==parameters.size}
-    if (methods.length == 1) {
-      val m = methods.head
-      var ok : Boolean = true
-      for(i <- 0 to m.arguments(0).size-1) {
-        if(! parameters(i).lessEqual(m.arguments(0)(i).typ))
-          ok=false
-      }
-      if(ok) return new Some((m,classType))
+    getMethodWithClassDefinition(name,classType,parameters) match {
+      case Some((cd,mf)) => Some((mf,cd.typ))
+      case None => None
     }
-    None
   }
 
   def getMethodWithClassDefinition(name: String, classType: Type, parameters: List[Type]): Option[(ClassDefinition, MethodDeclaration)] = {
@@ -232,13 +224,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       matches.head
     else if (matches.length == 0)
       None
-    else throw new TouchException("Local or library call may resolve to multiple methods.")
-  }
-
-  def getMethod(name: String, parameters: List[Type]): Option[(ClassDefinition, MethodDeclaration)] = {
-    val matches = (for (clazz <- parsedScripts) yield getMethodWithClassDefinition(name,clazz.typ,parameters)).flatten
-    if (matches.length == 1) Some(matches.head)
-    else if (matches.length == 0) None
     else throw new TouchException("Local or library call may resolve to multiple methods.")
   }
 

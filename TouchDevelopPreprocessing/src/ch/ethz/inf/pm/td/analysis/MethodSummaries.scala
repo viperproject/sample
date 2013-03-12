@@ -68,9 +68,9 @@ object MethodSummaries {
 
         var currentSummary = summaries.get(identifyingPP) match {
           case Some((_,_,prevSummary)) =>
-            executeMethod(enteredState,callTarget,prevSummary.asInstanceOf[ControlFlowGraphExecution[S]])
+            executeMethod(enteredState,callType,callTarget,prevSummary.asInstanceOf[ControlFlowGraphExecution[S]])
           case None =>
-            executeMethod(enteredState,callTarget,new ControlFlowGraphExecution[S](callTarget.body,enteredState))
+            executeMethod(enteredState,callType,callTarget,new ControlFlowGraphExecution[S](callTarget.body,enteredState))
         }
 
         summaries += ((identifyingPP,(callType,callTarget,currentSummary)))
@@ -78,7 +78,7 @@ object MethodSummaries {
         // Are there more possible depths?
         while (!entries.get(identifyingPP).get.asInstanceOf[S].removeExpression().lessEqual(enteredState.removeExpression())) {
           enteredState = entries.get(identifyingPP).get.asInstanceOf[S]
-          currentSummary = executeMethod(enteredState,callTarget,currentSummary)
+          currentSummary = executeMethod(enteredState,callType,callTarget,currentSummary)
           summaries += ((identifyingPP,(callType,callTarget,currentSummary)))
         }
 
@@ -90,13 +90,15 @@ object MethodSummaries {
     result
   }
 
-  private def executeMethod[S <: State[S]](entryState:S, callTarget:MethodDeclaration, cfgEx:ControlFlowGraphExecution[S]):ControlFlowGraphExecution[S] = {
-    val callContext = (SystemParameters.currentMethod,SystemParameters.currentCFG)
+  private def executeMethod[S <: State[S]](entryState:S, callType:ClassDefinition, callTarget:MethodDeclaration, cfgEx:ControlFlowGraphExecution[S]):ControlFlowGraphExecution[S] = {
+    val callContext = (SystemParameters.currentMethod,SystemParameters.currentCFG,SystemParameters.typ)
+    SystemParameters.typ = callType.typ
     SystemParameters.currentCFG = callTarget.body
     SystemParameters.currentMethod = callTarget.name.toString
     //SystemParameters.progressOutput.begin("METHOD: "+callTarget.name)
     val newState = cfgEx.forwardSemantics(entryState)
     //SystemParameters.progressOutput.end()
+    SystemParameters.typ = callContext._3
     SystemParameters.currentCFG = callContext._2
     SystemParameters.currentMethod = callContext._1
     newState

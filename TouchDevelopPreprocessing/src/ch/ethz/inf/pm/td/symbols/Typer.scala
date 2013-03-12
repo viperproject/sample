@@ -147,19 +147,19 @@ object Typer {
         val types = for(arg <- args) yield processExpression(scope,st,arg)
         subject match {
           case s@SingletonReference("code") =>
-            val retTypes = st.resolveCode(property,types,s.pos)
+            val retTypes = st.resolveCode(property.ident,types,s.pos)
             if (retTypes.length > 1) throw TouchException("Multiple return values "+retTypes+" in non-assignment expression",expr.pos)
             else if (retTypes.length < 1) is(TypeName("Nothing"))
             else is(retTypes.head)
           case l@LibraryReference(lib) =>
-            val retTypes = st.resolveLib(lib,property,types,l.pos)
+            val retTypes = st.resolveLib(lib,property.ident,types,l.pos)
             subject.typeName = TypeName("__script_"+lib)
             if (retTypes.length > 1) throw TouchException("Multiple return values "+retTypes+" in non-assignment expression",expr.pos)
             else if (retTypes.length < 1) is(TypeName("Nothing"))
             else is(retTypes.head)
           case _ =>
             val subtype = processExpression(scope,st,subject)
-            is(st.resolveAccess(subtype,property,types))
+            is(st.resolveAccess(subtype,property.ident,types))
         }
       case l@LocalReference(ident) => is(st.resolveLocal(scope,ident,l.pos))
       case g@GlobalReference(ident) => is(st.resolveData(ident,g.pos))
@@ -177,11 +177,11 @@ object Typer {
       case Access(subject@SingletonReference("code"),action,args) =>
         val types = for(arg <- args) yield processExpression(scope,st,arg)
         subject.typeName = TypeName("code")
-        st.resolveCode(action,types,subject.pos)
+        st.resolveCode(action.ident,types,subject.pos)
       case Access(l@LibraryReference(lib),action,args) =>
         val types = for(arg <- args) yield processExpression(scope,st,arg)
         l.typeName = TypeName(CFGGenerator.scriptIdent(lib))
-        st.resolveLib(lib,action,types,l.pos)
+        st.resolveLib(lib,action.ident,types,l.pos)
       case _ => List(processExpression(scope,st,expr))
     }
   }

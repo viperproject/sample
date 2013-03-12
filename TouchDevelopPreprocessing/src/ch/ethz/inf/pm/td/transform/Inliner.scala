@@ -73,7 +73,7 @@ object Inliner {
         //    __out_1->post_to_wall
         // }
         counter += 1
-        callableFunctions.get(prop) match {
+        callableFunctions.get(prop.ident) match {
           case Some(ActionDefinition(_,in,out,body,_)) =>
             if (out.length > 1) throw TouchException("Inliner does not support multiple return values for now")
 

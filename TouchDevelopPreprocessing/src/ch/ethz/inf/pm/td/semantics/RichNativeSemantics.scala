@@ -84,7 +84,7 @@ object RichNativeSemantics {
           for (f <- typ.getPossibleTouchFields()) {
             if(!TouchAnalysisParameters.libraryFieldPruning ||
                 SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
-              val (newPP, referenceLoop) = DeepeningProgramPoint(pp,"__summary")
+              val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
               val a = initials.get(f) match {
                 case None => f.default match {
                   case InvalidInitializer() => Invalid(f.touchTyp)

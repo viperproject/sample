@@ -64,7 +64,7 @@ case class AssignStatement(left:List[LValue],right:Expression) extends Statement
 
 sealed trait Expression extends CopyablePositional[Expression] with Typed
 
-case class Access(subject:Expression,property:String,args:List[Expression]) extends Expression
+case class Access(subject:Expression,property:Identifier,args:List[Expression]) extends Expression
 case class LibraryReference(ident:String) extends Expression
 case class Literal(typ:TypeName, value:String) extends Expression
 case class SingletonReference(singleton:String) extends Expression
@@ -72,3 +72,5 @@ case class SingletonReference(singleton:String) extends Expression
 sealed trait LValue extends Expression
 case class LocalReference(ident:String) extends LValue
 case class GlobalReference(ident:String) extends LValue
+
+case class Identifier(ident:String) extends CopyablePositional[Identifier]

@@ -175,48 +175,64 @@ object ScriptParser extends RegexParsers with PackratParsers {
   lazy val expression: PackratParser[Expression] = orExpression
 
   lazy val orExpression: PackratParser[Expression] = positioned (
-    andExpression ~ ("or" ~> orExpression).?
-      ^^ {case left~Some(right) => Access(left,"or",List(right)); case left~None => left}
+    andExpression ~ (orSymbol ~ orExpression).?
+      ^^ {case left~Some(op ~ right) => Access(left,op,List(right)); case left~None => left}
   )
+
+  lazy val orSymbol: PackratParser[Identifier] = positioned ("or" ^^ (Identifier(_)))
 
   lazy val andExpression: PackratParser[Expression] = positioned (
-    notExpression ~ ("and" ~> andExpression).?
-      ^^ {case left~Some(right) => Access(left,"and",List(right)); case left~None => left}
+    notExpression ~ (andSymbol ~ andExpression).?
+      ^^ {case left~Some(op ~ right) => Access(left,op,List(right)); case left~None => left}
   )
+
+  lazy val andSymbol: PackratParser[Identifier] = positioned ("and" ^^ (Identifier(_)))
 
   lazy val notExpression: PackratParser[Expression] = positioned (
-    ("not".r).* ~ comparisonExpression
-      ^^ {case nots~expr => if (nots.length % 2 == 1) Access(expr,"not",List()) else expr }
+    (notSymbol).* ~ comparisonExpression
+      ^^ {case nots~expr => if (nots.length % 2 == 1) Access(expr,nots.head,List()) else expr }
   )
+
+  lazy val notSymbol: PackratParser[Identifier] = positioned ("not" ^^ (Identifier(_)))
 
   lazy val comparisonExpression: PackratParser[Expression] = positioned (
-    concatenationExpression ~ (( "=" | "≠" | "<" | "≤" | ">" | "≥") ~ concatenationExpression).?
+    concatenationExpression ~ (compSymbol ~ concatenationExpression).?
       ^^ {case left~Some(op~right) => Access(left,op,List(right)); case left~None => left }
   )
+
+  lazy val compSymbol: PackratParser[Identifier] = positioned (( "=" | "≠" | "<" | "≤" | ">" | "≥") ^^ (Identifier(_)))
 
   lazy val concatenationExpression: PackratParser[Expression] = positioned (
-    addSubstrExpression ~ ("∥" ~> concatenationExpression).?
-      ^^ {case left~Some(right) => Access(left,"∥",List(right)); case left~None => left}
+    addSubstrExpression ~ (concatSymbol ~ concatenationExpression).?
+      ^^ {case left~Some(op~right) => Access(left,op,List(right)); case left~None => left}
   )
+
+  lazy val concatSymbol: PackratParser[Identifier] = positioned (( "∥" ) ^^ (Identifier(_)))
 
   lazy val addSubstrExpression: PackratParser[Expression] = positioned (
-    multDivExpression ~ (("+" | "-") ~ addSubstrExpression).?
+    multDivExpression ~ (addSubstrSymbol ~ addSubstrExpression).?
       ^^ {case left~Some(op~right) => Access(left,op,List(right)); case left~None => left }
   )
+
+  lazy val addSubstrSymbol: PackratParser[Identifier] = positioned (("+" | "-") ^^ (Identifier(_)))
 
   lazy val multDivExpression: PackratParser[Expression] = positioned (
-    negationExpression ~ (("*" | "/") ~ multDivExpression).?
+    negationExpression ~ (multDivSymbol ~ multDivExpression).?
       ^^ {case left~Some(op~right) => Access(left,op,List(right)); case left~None => left }
   )
 
+  lazy val multDivSymbol: PackratParser[Identifier] = positioned (("*" | "/")  ^^ (Identifier(_)))
+
   lazy val negationExpression: PackratParser[Expression] = positioned (
-    "-" ~> negationExpression
-      ^^ {case expr => Access(Literal(TypeName("Number"),"0"),"-",List(expr)) }
+    negationSymbol ~ negationExpression
+      ^^ {case op ~ expr => Access(Literal(TypeName("Number"),"0"),op,List(expr)) }
     ||| propertyAccess
   )
 
+  lazy val negationSymbol: PackratParser[Identifier] = positioned (("-")  ^^ (Identifier(_)))
+
   lazy val propertyAccess: PackratParser[Expression] = positioned (
-    propertyAccess ~ rA ~ ident ~ ("(" ~> repsep(expression,",") <~ ")").?
+    propertyAccess ~ rA ~ posIdent ~ ("(" ~> repsep(expression,",") <~ ")").?
       ^^ { case ex~_~prop~args => args match { case None => Access(ex,prop,Nil); case Some(x) => Access(ex,prop,x) }}
     ||| terminalExpression
   )
@@ -254,6 +270,13 @@ object ScriptParser extends RegexParsers with PackratParsers {
     booleanLiteral ^^ (Literal(TypeName("Boolean"),_))
     ||| stringLiteral ^^ (Literal(TypeName("String"),_))
     ||| numberLiteral ^^ (Literal(TypeName("Number"),_))
+  )
+
+  /**
+   * This can be used if we need a Position for a string
+   */
+  lazy val posIdent: PackratParser[Identifier] = positioned (
+    ident ^^ (Identifier(_))
   )
 
   // Tokens

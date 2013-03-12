@@ -27,7 +27,7 @@ class SCode extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = {
 
-    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethod(method,parameters map (_.getType())) match {
+    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method,SystemParameters.typ,parameters map (_.getType())) match {
       case Some((clazz,methodDef)) =>
         val res = MethodSummaries.collect(pp,clazz,methodDef,state,parameters)
         res

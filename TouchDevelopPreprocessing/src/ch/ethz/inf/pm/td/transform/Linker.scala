@@ -84,8 +84,8 @@ object Linker {
 
     private def link(expr:Expression):Expression = {
       expr match {
-        case Access(SingletonReference("code"),prop,args) => Access(SingletonReference("code"),makeThisIdent(prop),args map (link _))
-        case Access(LibraryReference(id),prop,args) => Access(SingletonReference("code"),makeLibIdent(id,prop),args map (link _))
+        case Access(SingletonReference("code"),prop,args) => Access(SingletonReference("code"),Identifier(makeThisIdent(prop.ident)),args map (link _))
+        case Access(LibraryReference(id),prop,args) => Access(SingletonReference("code"),Identifier(makeLibIdent(id,prop.ident)),args map (link _))
         case Access(subj,prop,args) => Access(link(subj),prop,args map (link _))
         case GlobalReference(ident) => GlobalReference(makeThisIdent(ident))
         case x => x

@@ -242,21 +242,21 @@ object Reporter {
 
   def reportError(message:String,pp:ProgramPoint) {
     if (!hasError(message,pp) && SystemParameters.enableOutputOfAlarms) {
-      SystemParameters.progressOutput.put("ALARM: "+message+" at line "+pp.getLine()+", column "+pp.getColumn())
+      SystemParameters.progressOutput.put("ALARM: "+message+" at "+pp.toString)
       seenErrors += ((message,pp))
     }
   }
 
   def reportImprecision(message:String,pp:ProgramPoint) {
     if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings) {
-      SystemParameters.progressOutput.put("PRECISION: "+message+" at line "+pp.getLine()+", column "+pp.getColumn())
+      SystemParameters.progressOutput.put("PRECISION: "+message+" at "+pp.toString)
       seenImprecision += ((message,pp))
     }
   }
 
   def reportBottom(message:String,pp:ProgramPoint) {
     if (!hasBottom(message,pp) && SystemParameters.enableOutputOfBottomWarnings) {
-      SystemParameters.progressOutput.put("BOTTOM: "+message+" at line "+pp.getLine()+", column "+pp.getColumn())
+      SystemParameters.progressOutput.put("BOTTOM: "+message+" at "+pp.toString)
       seenBottom += ((message,pp))
     }
   }

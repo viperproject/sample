@@ -55,8 +55,8 @@ object LoopRewriter {
         val storedBound = pos(LocalReference(annotateName(idx,"bound")))
         val indexInit = pos(AssignStatement(List(idxExp), pos(Literal(pos(TypeName("Number")), "0"))))
         val upperBoundStore = pos(AssignStatement(List(storedBound), bnd))
-        val condition = pos(Access(idxExp, "<", List(storedBound)))
-        val bodyPostfix = pos(AssignStatement(List(idxExp), pos(Access(idxExp, "+", List(pos(Literal(pos(TypeName("Number")), "1")))))))
+        val condition = pos(Access(idxExp, pos(Identifier("<")), List(storedBound)))
+        val bodyPostfix = pos(AssignStatement(List(idxExp), pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1")))))))
         indexInit :: upperBoundStore :: While(condition, (body map (apply _)).flatten ::: bodyPostfix :: Nil) :: Nil
 
       case f@Foreach(elem, coll, guards, body) =>
@@ -79,17 +79,17 @@ object LoopRewriter {
         val storedCollection = pos(LocalReference(annotateName(elem,"collection")))
         val elemExp = pos(LocalReference(elem))
         val indexInit = pos(AssignStatement(List(idxExp), pos(Literal(pos(TypeName("Number")), "0"))))
-        val collectionStore = pos(AssignStatement(List(storedCollection), pos(Access(coll,"copy",Nil))))
-        val bodyPrefix = pos(AssignStatement(List(elemExp), pos(Access(storedCollection, "at_index", List(idxExp)))))
-        val bodyPostfix = pos(AssignStatement(List(idxExp), pos(Access(idxExp, "+", List(pos(Literal(pos(TypeName("Number")), "1")))))))
+        val collectionStore = pos(AssignStatement(List(storedCollection), pos(Access(coll,pos(Identifier("copy")),Nil))))
+        val bodyPrefix = pos(AssignStatement(List(elemExp), pos(Access(storedCollection, pos(Identifier("at_index")), List(idxExp)))))
+        val bodyPostfix = pos(AssignStatement(List(idxExp), pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1")))))))
         val rewrittenBody = (body map (apply _)).flatten
         val conditionalBody = guards match {
           case head::tail =>
-            val guardCondition = tail.foldLeft(head)((left:Expression,right:Expression) => pos(Access(left,"and",List(right))))
+            val guardCondition = tail.foldLeft(head)((left:Expression,right:Expression) => pos(Access(left,pos(Identifier("and")),List(right))))
             List(pos(If(guardCondition,rewrittenBody,Nil)))
           case Nil => rewrittenBody
         }
-        val condition = pos(Access(idxExp, "<", List(pos(Access(storedCollection, "count", Nil)))))
+        val condition = pos(Access(idxExp, pos(Identifier("<")), List(pos(Access(storedCollection, pos(Identifier("count")), Nil)))))
         val whileLoop = pos(While(condition, bodyPrefix :: conditionalBody ::: bodyPostfix :: Nil))
         indexInit :: collectionStore :: whileLoop :: Nil
 

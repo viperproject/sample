@@ -62,18 +62,6 @@ object CFGGenerator {
     new ClassDefinition(programPoint, typ, modifiers, name, parametricTypes, extend, fields, methods, pack, inv)
   }
 
-//  def detectUnsupportedScripts(script:parser.Script) {
-//    for (dec <- script.declarations) {
-//      dec match {
-//        case x:TableDefinition=>
-//          throw new UnsupportedLanguageFeatureException("The compiler does not support tables at the moment")
-//        //case x:LibraryDefinition =>
-//        //  throw new UnsupportedLanguageFeatureException("The compiler does not support libraries at the moment")
-//        case _ => ()
-//      }
-//    }
-//  }
-
   def mkTouchProgramPoint(pos:Position) = {
     TouchProgramPoint(curPubID,pos)
   }
@@ -429,8 +417,8 @@ object CFGGenerator {
         Variable(pc,VariableIdentifier(ident,typ,pc))
 
       case parser.Access(subject,property,args) =>
-        val field = FieldAccess(pc,List(expressionToStatement(subject)),property,typeNameToType(subject.typeName))
-        MethodCall(pc,field,Nil,args map (expressionToStatement(_)),typ)
+        val field = FieldAccess(mkTouchProgramPoint(property.pos),List(expressionToStatement(subject)),property.ident,typeNameToType(subject.typeName))
+        MethodCall(mkTouchProgramPoint(property.pos),field,Nil,args map (expressionToStatement(_)),typ)
 
       case parser.Literal(t,value) =>
         if (t.ident == "Number" || t.ident == "Boolean" || t.ident == "String" || t.ident == "Handler") {
