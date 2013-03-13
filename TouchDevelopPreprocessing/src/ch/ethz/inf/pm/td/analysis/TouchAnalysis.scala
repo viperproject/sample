@@ -69,11 +69,13 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     SystemParameters.progressOutput.begin(" ANALYZING "+compiler.main.name)
 
     // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
+    SystemParameters.progressOutput.begin("Library fragment analysis")
     if(TouchAnalysisParameters.libraryFieldPruning) {
       compiler.relevantLibraryFields = RequiredLibraryFragmentAnalysis(compiler.parsedScripts)
       SystemParameters.resetOutput
       MethodSummaries.reset[S]()
     }
+    SystemParameters.progressOutput.end()
 
     // Set global state to invalid
     var curState = entryState

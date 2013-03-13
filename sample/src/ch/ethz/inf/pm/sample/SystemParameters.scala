@@ -103,7 +103,6 @@ object SystemParameters {
   def getBackwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, false);
 
   private def getSemantics[S <: State[S]](state: S, methodCall: MethodCall, forward: Boolean): S = {
-    Runtime.getRuntime.runFinalization()
     val body: Statement = methodCall.method.normalize();
     var result: S = state.bottom();
     //Method call used to represent a goto statement to a while label

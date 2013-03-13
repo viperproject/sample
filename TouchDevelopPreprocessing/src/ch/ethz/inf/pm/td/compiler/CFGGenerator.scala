@@ -329,20 +329,20 @@ object CFGGenerator {
 
         } else {
 
-          if (a.isVariableDeclaration) {
-            val pc = mkTouchProgramPoint(left.head.pos)
-            val ident = left.head match {
-              case parser.LocalReference(x) =>
-                VariableIdentifier(x,typeNameToType(left.head.typeName),pc)
-              case parser.GlobalReference(x) =>
-                VariableIdentifier(globalReferenceIdent(x),typeNameToType(left.head.typeName),pc)
-            }
-            newStatements = newStatements ::: VariableDeclaration(mkTouchProgramPoint(statement.pos),
-              Variable(pc,ident),typeNameToType(left.head.typeName),expressionToStatement(right)) :: Nil
-          } else {
+//          if (a.isVariableDeclaration) {
+//            val pc = mkTouchProgramPoint(left.head.pos)
+//            val ident = left.head match {
+//              case parser.LocalReference(x) =>
+//                VariableIdentifier(x,typeNameToType(left.head.typeName),pc)
+//              case parser.GlobalReference(x) =>
+//                VariableIdentifier(globalReferenceIdent(x),typeNameToType(left.head.typeName),pc)
+//            }
+//            newStatements = newStatements ::: VariableDeclaration(mkTouchProgramPoint(statement.pos),
+//              Variable(pc,ident),typeNameToType(left.head.typeName),expressionToStatement(right)) :: Nil
+//          } else {
             newStatements = newStatements ::: Assignment(mkTouchProgramPoint(statement.pos),
               expressionToStatement(left.head), expressionToStatement(right) ) :: Nil
-          }
+//          }
 
         }
 

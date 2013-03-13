@@ -10,11 +10,29 @@ import net.liftweb.json._
  * Set the userid below (e.g. pboj for the TouchDevelop Samples user)
  */
 
-val dirs = "pietrosnewbugs"
+val dirs = "pietrosanalbugs"
 
 val pubIDs = List(
-  "ymsh",
-  "tgwt"
+  "xmdj",
+  "skzfpehx",
+  "evvvcftn",
+  "aypvivip",
+  "hakfviol",
+  "txct",
+  "gjgbnarq",
+  "mjoz",
+  "jsnbazzf",
+  "uxurzxoq",
+  "jsqo",
+  "exgg",
+  "apzl",
+  "xmrsbtjg",
+  "qzrc",
+  "wvnp",
+  "ksbbguhv",
+  "xxusa",
+  "wjod",
+  "nukpa"
 )
 
 for (pubID <- pubIDs) {

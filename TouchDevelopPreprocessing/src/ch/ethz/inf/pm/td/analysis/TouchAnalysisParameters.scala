@@ -41,7 +41,7 @@ object TouchAnalysisParameters {
    *
    * EXPERIMENTAL
    */
-  val singleExecution = false
+  val singleExecution = true
 
   /**
    * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary number of event occurrences
@@ -51,7 +51,7 @@ object TouchAnalysisParameters {
    *
    * EXPERIMENTAL
    */
-  val singleEventOccurrence = false
+  val singleEventOccurrence = true
 
 
 }

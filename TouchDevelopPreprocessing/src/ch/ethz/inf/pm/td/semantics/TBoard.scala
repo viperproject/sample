@@ -54,11 +54,12 @@ object TBoard {
 
 }
 
-class TBoard extends ACollection {
+class TBoard extends AMutable_Collection {
 
   def getTyp = TBoard.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])
+                                              (implicit pp:ProgramPoint,state:S):S = method match {
 
     // Clears the background camera
     case "clear_background_camera" =>
@@ -74,7 +75,12 @@ class TBoard extends ACollection {
 
     // Create an anchor sprite.
     case "create_anchor" =>
-      New(TSprite.typ) // TODO: Initialize stuff
+      val state1 = New[S](TSprite.typ)
+      val obj = state1.getExpression()
+      val state2 = super.forwardSemantics[S](this0,"add",List(obj))(pp,state1)
+      val state3 = state2.setExpression(obj)
+      state3
+
 
     // Create walls around the board at the given distance.
     case "create_boundary" =>
@@ -84,7 +90,14 @@ class TBoard extends ACollection {
     // Create a new ellipse sprite.
     case "create_ellipse" =>
       val List(width,height) = parameters
-      New(TSprite.typ) // TODO: Initialize stuff
+      val state1 = New[S](TSprite.typ,Map(
+        TSprite.field_width -> width,
+        TSprite.field_height -> height
+      ))
+      val obj = state1.getExpression()
+      val state2 = super.forwardSemantics[S](this0,"add",List(obj))(pp,state1)
+      val state3 = state2.setExpression(obj)
+      state3
 
     // Create a line obstacle with given start point, and given extent. Elasticity is 0 for sticky, 1 for complete bounce.
     case "create_obstacle" =>
@@ -100,19 +113,27 @@ class TBoard extends ACollection {
     // Create a new picture sprite.
     case "create_picture" =>
       val List(picture) = parameters
-      New(TSprite.typ,Map(
+      val state1 = New[S](TSprite.typ,Map(
         TSprite.field_width -> Field[S](picture,TPicture.field_width),
         TSprite.field_height -> Field[S](picture,TPicture.field_height),
         TSprite.field_picture -> picture
       ))
+      val obj = state1.getExpression()
+      val state2 = super.forwardSemantics[S](this0,"add",List(obj))(pp,state1)
+      val state3 = state2.setExpression(obj)
+      state3
 
     // Create a new rectangle sprite.
     case "create_rectangle" =>
       val List(width,height) = parameters
-      New(TSprite.typ,Map(
+      val state1 = New[S](TSprite.typ,Map(
         TSprite.field_width -> width,
         TSprite.field_height -> height
       ))
+      val obj = state1.getExpression()
+      val state2 = super.forwardSemantics[S](this0,"add",List(obj))(pp,state1)
+      val state3 = state2.setExpression(obj)
+      state3
 
     // Create a spring between the two sprites.
     case "create_spring" =>
@@ -126,11 +147,15 @@ class TBoard extends ACollection {
     // Create a new text sprite.
     case "create_text" =>
       val List(width,height,fontSize,text) = parameters
-      New(TSprite.typ,Map(
+      val state1 = New[S](TSprite.typ,Map(
         TSprite.field_text -> text,
         TSprite.field_width -> width,
         TSprite.field_height -> height
       ))
+      val obj = state1.getExpression()
+      val state2 = super.forwardSemantics[S](this0,"add",List(obj))(pp,state1)
+      val state3 = state2.setExpression(obj)
+      state3
 
     // Update positions of sprites on board.
     case "evolve" =>

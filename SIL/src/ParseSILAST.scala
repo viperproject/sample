@@ -413,6 +413,7 @@ class SILType(val name : String) extends Type {
 
   def isObject() : Boolean = throw new SILParserException("Not yet implemented")
   def isNumericalType() : Boolean = throw new SILParserException("Not yet implemented")
+  def isFloatingPointType() : Boolean = throw new SILParserException("Not yet implemented")
   def isStatic() : Boolean = throw new SILParserException("Not yet implemented")
   def getName() : String = throw new SILParserException("Not yet implemented")
   def getPossibleFields() : Set[Identifier] = throw new SILParserException("Not yet implemented")
