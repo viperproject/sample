@@ -21,7 +21,7 @@ object ConstrianedPolyhedraApronRun {
 	def main(args : Array[String]) : Unit = {
 		//Mandatory global settings
 		SystemParameters.compiler = new ScalaCompiler;
-		SystemParameters.property = new ApronProperty().asInstanceOf[Property];
+		SystemParameters.property = new ShowGraphProperty().asInstanceOf[Property];
 		
 		//Files paths
 		val f1 = "/home/samlik/IdeaProjects/Sample/NumericalAnalysis/test/ExamplesForConstrainedPolyhedra.scala";

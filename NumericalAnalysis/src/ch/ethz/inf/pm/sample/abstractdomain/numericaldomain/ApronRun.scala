@@ -9,11 +9,15 @@ import ch.ethz.inf.pm.sample.property._;
 import apron._
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
 
-class ApronProperty extends ch.ethz.inf.pm.sample.property.Property {
+class ShowGraphProperty extends ch.ethz.inf.pm.sample.property.Property {
 	override def getLabel() : String = "Show graph"
 	
 	override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit =
     ShowGraph.check(className,methodName,result,printer)
+
+  override def check[S <: State[S]](results : List[(Type,MethodDeclaration,ControlFlowGraphExecution[S])], printer : OutputCollector) {
+    ShowGraph.check(results,printer)
+  }
 	  
 	override def finalizeChecking(printer : OutputCollector) : Unit = Unit
 	   
@@ -29,7 +33,7 @@ object ApronRun {
   def main(args : Array[String]) : Unit = {
 	//Mandatory global settings
 	SystemParameters.compiler = new ScalaCompiler;
-	SystemParameters.property = new ApronProperty;
+	SystemParameters.property = new ShowGraphProperty;
 
 	SystemParameters.analysisOutput = new ApronOutput();
 	SystemParameters.progressOutput = new ApronOutput();

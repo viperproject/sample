@@ -44,7 +44,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   override def reset() { Unit }
 
-  def getProperties(): Set[Property] = Set(new ApronProperty().asInstanceOf[Property], new SingleStatementProperty(new BottomVisitor), new NoProperty)
+  def getProperties(): Set[Property] = Set(new ShowGraphProperty().asInstanceOf[Property], new SingleStatementProperty(new BottomVisitor), new NoProperty)
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
@@ -138,7 +138,11 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
           SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
           val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
           if(typ.getName() == "records")
-            curState = RichNativeSemantics.New[S](typ)(curState,singletonProgramPoint)
+            if ( ! TouchAnalysisParameters.singleExecution ) {
+              curState = RichNativeSemantics.New[S](typ)(curState,singletonProgramPoint)
+            } else {
+              curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
+            }
           else
             curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
           val obj = curState.getExpression()
@@ -158,9 +162,9 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     // Check properties on the results
     SystemParameters.progressOutput.end()
     if (SystemParameters.property!=null) {
-      for ((pp,(clazz,method,cfgEx)) <- MethodSummaries.getSummaries) {
-        SystemParameters.property.check(clazz.name.getThisType(), method, cfgEx.asInstanceOf[ControlFlowGraphExecution[S]], output)
-      }
+      val results = MethodSummaries.getSummaries.values map
+        {(x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) => (x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])}
+      SystemParameters.property.check(results.toList, output)
       SystemParameters.property.finalizeChecking(output)
     }
 

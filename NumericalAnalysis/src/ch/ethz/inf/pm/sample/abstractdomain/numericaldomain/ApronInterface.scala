@@ -721,7 +721,7 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
   def reset() : Unit = Unit;
   def getInitialState() : ApronInterface = new ApronInterface(new Abstract1(domain, new Environment()), domain);
   def getProperties() : Set[Property] = Set(
-		new ApronProperty().asInstanceOf[Property],
+		new ShowGraphProperty().asInstanceOf[Property],
 		new SingleStatementProperty(DivisionByZero),
 		new SingleStatementProperty(new LowerBoundedValue("y", 0)),
 		new SingleStatementProperty(new BoundedValue("y", -4, 4))

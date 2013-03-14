@@ -50,8 +50,12 @@ class SMedia extends AAny {
 
     /** Chooses a picture from the media library */
     case "choose_picture" =>
-       //Return[S](CollectionSummary[S](Field[S](this0,SMedia.field_pictures)) or Invalid(TPicture.typ))
-       Skip
+      val mediaPictures = Field[S](Singleton(SMedia.typ),SMedia.field_pictures)
+      If[S](CollectionSize[S](mediaPictures) equal 0, Then = {
+        Return[S](Invalid(TPicture.typ))(_,pp)
+      }, Else = {
+        Return[S](CollectionSummary[S](mediaPictures),Invalid(TPicture.typ))(_,pp)
+      })
 
     /** Creates a new game board */
     case "create_board" =>

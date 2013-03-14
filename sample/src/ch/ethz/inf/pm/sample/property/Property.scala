@@ -28,6 +28,19 @@ trait Property {
 	   */
   def check[S <: State[S]](classe : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
 
+
+  /**
+   * Check the property over the abstract results of multiple method
+   *
+   * @param results a list of the results, consisting of class type, method declaration and cfg
+   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
+   */
+  def check[S <: State[S]](results : List[(Type,MethodDeclaration,ControlFlowGraphExecution[S])], printer : OutputCollector):Unit = {
+    for ((c,m,g) <- results) {
+      check(c,m,g,printer)
+    }
+  }
+
    	/**
 	   * The finalizing of the property after that all methods have been checked
 	   *

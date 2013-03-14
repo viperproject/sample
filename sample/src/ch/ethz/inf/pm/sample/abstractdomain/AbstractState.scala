@@ -208,14 +208,14 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     var (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
     var result=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
 
-    result=HeapIdSetFunctionalLifting.applyToSetHeapId(createdLocation, result.createVariable(_, typ))
+    result=HeapIdSetFunctionalLifting.applyToSetHeapId(result, createdLocation, result.createVariable(_, typ))
     var result2 = result
 
     if(createFields) {
       for(field <- typ.getPossibleFields()) {
         val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName(), field.getType(), field.getProgramPoint()))
 
-        result2=HeapIdSetFunctionalLifting.applyToSetHeapId(ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()))
+        result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()))
       }
     }
     //val (h, rep2) = result2._2.endOfAssignment()
@@ -293,7 +293,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 	      }
 	      case ids : HeapIdSetDomain[I]=> {
 	        for(assigned <- right.getSetOfExpressions) {
-	        	val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(ids, this._1.assign(_, assigned)), this._2)
+	        	val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, ids, this._1.assign(_, assigned)), this._2)
 	        	result=result.lub(result, done)
 		        result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(ids.getType().top(), ids.getProgramPoint)))
 	        }
@@ -326,7 +326,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 	        }
           case heapid : HeapIdSetDomain[I] => {
 	          for(assigned <- right.getSetOfExpressions) {
-              val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, this._1.assignField(_, field, assigned, right.getType(), heapid.getProgramPoint() )), this._2)
+              val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, assigned, right.getType(), heapid.getProgramPoint() )), this._2)
               if(result==None)
                 result=Some(done)
 	        	  else result=Some(done.lub(result.get, done))
@@ -442,7 +442,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
              //HeapIdSetFunctionalLifting.applyToSetHeapId(, obj.get(expr)._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint()))
         var result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-        val accessed=if(heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, result2.access(_))
+        val accessed=if(heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
      	  val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
      	  result=result.lub(result, state)
         }
@@ -459,7 +459,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       for(indexexpr <- index.getSetOfExpressions) {
         val (heapid, newHeap, rep) = this._1._2.getArrayCell(expr.asInstanceOf[Assignable], indexexpr, this._1._1, typ)
         var result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-        val accessed=HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, result2.access(_))
+        val accessed=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
         val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
         result=result.lub(result, state)
       }
@@ -504,7 +504,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
      	  val (heapid, newHeap, rep) = this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint())
         var result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-        var accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(heapid, result2.backwardAccess(_))
+        var accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.backwardAccess(_))
      	  val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
      	  result=result.lub(result, state)
         }
@@ -523,7 +523,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       }
       else if(expr.isInstanceOf[HeapIdSetDomain[I]]) {
         val variable : HeapIdSetDomain[I] = expr.asInstanceOf[HeapIdSetDomain[I]]
-        result=result.lub(result, new AbstractState(HeapIdSetFunctionalLifting.applyToSetHeapId(variable, this._1.setToTop(_)), this._2))
+        result=result.lub(result, new AbstractState(HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, variable, this._1.setToTop(_)), this._2))
 
       }
       else throw new SymbolicSemanticException("Something assignable expected here")
@@ -609,7 +609,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
          right <- rightSet.getSetOfExpressions) {
       collection match {
         case variable: Assignable => result = assignCollectionCell(result,key,right)(variable)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(set,assignCollectionCell(result,key,right))
+        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this,set,assignCollectionCell(result,key,right))
         case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
       }
     }
@@ -630,7 +630,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
          right <- rightSet.getSetOfExpressions) {
       collection match {
         case id: Assignable => result = insertCollectionCell(result,key,right)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(set,insertCollectionCell(result,key,right))
+        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, set,insertCollectionCell(result,key,right))
         case _ => throw new SymbolicSemanticException("Not allowed")
       }
     }
@@ -651,7 +651,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
          key <- keySet.getSetOfExpressions) {
       collection match {
         case id: Assignable => result = removeCollectionCell(result,key)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(set,removeCollectionCell(result,key))
+        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, set,removeCollectionCell(result,key))
         case _ => throw new SymbolicSemanticException("Not allowed")
       }
     }
@@ -666,7 +666,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     def getCollectionCell(keyExpr:Expression)(assignable:Assignable):AbstractState[N, H, I] = {
       val (heapID, newHeap, rep) = this._1._2.getCollectionCell(assignable, keyExpr, this._1._1)
       val result2 = new HeapAndAnotherDomain[N, H, I](rep, newHeap)
-      val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(heapID, result2.access(_))
+      val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapID, result2.access(_))
       val state = new AbstractState(accessed, new ExpressionSet(heapID.getType()).add(heapID))
       result = result.lub(result, state)
       result
@@ -676,7 +676,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
          keyExpr <- keySet.getSetOfExpressions) {
       expr match {
         case id: Assignable => getCollectionCell(keyExpr)(id)
-        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(set, getCollectionCell(keyExpr))
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionCell(keyExpr))
         case _ => throw new SymbolicSemanticException("Not allowed")
       }
     }
@@ -695,7 +695,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     for (collection <- collectionSet.getSetOfExpressions) {
       collection match {
         case id: Assignable => result = clearCollection(result)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(set,clearCollection(result))
+        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, set,clearCollection(result))
         case _ => throw new SymbolicSemanticException("Not allowed")
       }
     }
@@ -722,7 +722,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     for (collection <- collectionSet.getSetOfExpressions) {
       collection match {
         case id: Assignable => getCollectionLength(id)
-        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(set, getCollectionLength)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(set.bottom(), set, getCollectionLength)
         case _ => throw new SymbolicSemanticException("Not allowed")
       }
     }

@@ -582,6 +582,7 @@ class TouchType(name:String, val isSingleton:Boolean = false, fields: List[Ident
   def isObject() = (!isNumericalType())
   def isNumericalType() = (name == "Number") || (name == "Boolean")
   def isFloatingPointType() = (name == "Number")
+  def isStringType() = (name == "String")
   def isStatic() = isSingleton
   def getPossibleFields() = fields.toSet[Identifier]
   def getPossibleTouchFields() = fields.toSet[Identifier] map (_.asInstanceOf[TouchField])

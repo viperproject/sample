@@ -34,7 +34,7 @@ class SLanguages extends AAny {
     /** Automatically detects the language of a given text using Bing. */
     case "detect_language" =>
       val List(text) = parameters // String
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture_to_text",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"detect_language",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ)
 
@@ -47,28 +47,28 @@ class SLanguages extends AAny {
 
     /** Converts the microphone dictation to text using Project Hawaii from Microsoft Research. */
     case "record_text" =>
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture_to_text",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"record_text",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ)
 
     /** Speaks the text in the specified language using Bing. */
     case "speak" =>
       val List(lang,text) = parameters // String,String
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture_to_text",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speak",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TSound.typ)
 
     /** Converts a sound to a text using Project Hawaii from Microsoft Research. */
     case "speech_to_text" =>
       val List(lang,speech) = parameters // String,Sound
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture_to_text",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speech_to_text",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ)
 
     /** Translates some text between two languages using Bing. Empty source language to auto-detect. */
     case "translate" =>
       val List(source_lang,target_lang,text) = parameters // String,String,String
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture_to_text",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"translate",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ)
 

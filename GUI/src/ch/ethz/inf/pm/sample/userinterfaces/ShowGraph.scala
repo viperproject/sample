@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.userinterfaces
 
 import scala.collection.immutable._
 import ch.ethz.inf.pm.sample._
+import abstractdomain.VariableIdentifier
 import com.mxgraph.view._
 import com.mxgraph.swing._
 import com.mxgraph.model._
@@ -10,11 +11,16 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
+import heapanalysis.CollectionLengthIdentifier
+import heapanalysis.CollectionSummaryIdentifier
+import heapanalysis.FieldAndProgramPoint
 import javax.swing._
 import java.awt.event._
 import tracepartitioning._
 import java.awt.{GridLayout, Dimension}
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
+import tracepartitioning.Leaf
+import tracepartitioning.Node
 
 private class Show extends JFrame {
   def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
@@ -45,14 +51,17 @@ object ShowGraph extends Property {
   def getLabel(): String = "Show CFG";
 
   def check[S <: State[S]](className: Type, methodName: MethodDeclaration, result: ControlFlowGraphExecution[S], printer: OutputCollector) {
-    Show(result)
+    Show(List((className,methodName,result)))
+  }
+
+  override def check[S <: State[S]](results : List[(Type,MethodDeclaration,ControlFlowGraphExecution[S])], printer : OutputCollector) {
+    Show(results)
   }
 
   def finalizeChecking(printer: OutputCollector): Unit = Unit;
 
   def Show[S <: State[S]](a: Any): Unit = a match {
-    case graphs: List[(String, ControlFlowGraphExecution[S])] => new ShowControlFlowGraphExecutions(graphs, exitOnClose)
-    case graph: ControlFlowGraphExecution[S] => new ShowControlFlowGraphExecutions(List(("Single Function", graph)), exitOnClose)
+    case results: List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] => new ShowControlFlowGraphExecutions(results, exitOnClose)
     case graph: ControlFlowGraph => new Show(ShowGraph.ControlFlowGraphJGraph(graph), true, -1, -1);
     case state: S => ShowGraph.stateToGraph(state);
     case _ => System.out.println("I do not know how to visualize this!")
@@ -107,9 +116,9 @@ object ShowGraph extends Property {
   }
 
   private class ShowControlFlowGraphExecutions[S <: State[S]] {
-    def this(gs: List[(String, ControlFlowGraphExecution[S])], exitOnClose: Boolean) = {
+    def this(gs: List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])], exitOnClose: Boolean) = {
       this()
-      val components = for ((s, g) <- gs) yield {
+      val components = for ((c, m, g) <- gs) yield {
         val (graph, vertixes): (mxGraph, List[Object]) = ShowGraph.ControlFlowGraphExecutiontoJGraph[S](g)
         val graphComponent: mxGraphComponent = new mxGraphComponent(graph)
         graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
@@ -126,7 +135,7 @@ object ShowGraph extends Property {
             }
           }
         })
-        (graphComponent, s)
+        (graphComponent, c.toString()+"."+m.name)
       }
 
       val tabbedPane = new JTabbedPane()

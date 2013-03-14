@@ -386,17 +386,17 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       curState = curState.assign(length,BinaryArithmeticExpression(length,Constant("1",colId.lengthTyp,null),ArithmeticOperator.-,null))
       curState
     }
-    (this, resolveVariables(collection,f(_)))
+    (this, resolveVariables(state, collection,f(_)))
   }
 
   def getCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S) = {
     def f(a:Assignable):HeapIdSetDomain[I] = new MaybeHeapIdSetDomain().convert(dom.getCollectionCell(a,index))
-    ((resolveVariables(collection,f(_))),this,state)
+    ((resolveVariables(new MaybeHeapIdSetDomain(),collection,f(_))),this,state)
   }
 
   def getCollectionLength[S <: SemanticDomain[S]](collection: Assignable, state:S) = {
     def f(a:Assignable):HeapIdSetDomain[I] = new MaybeHeapIdSetDomain().convert(dom.getCollectionLength(a))
-    ((resolveVariables(collection,f(_))),this,state)
+    ((resolveVariables(new MaybeHeapIdSetDomain(),collection,f(_))),this,state)
   }
 
   def clearCollection[S <: SemanticDomain[S]](collection: Assignable, state:S) = {
@@ -417,15 +417,15 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       }
       curState
     }
-    resolveVariables(collection,clear(_))
+    resolveVariables(state,collection,clear(_))
     (result, curState)
   }
 
-  private def resolveVariables[T <: Lattice[T]](a: Assignable, f : Assignable => T):T = {
+  private def resolveVariables[T <: Lattice[T]](fact:T, a: Assignable, f : Assignable => T):T = {
     a match {
-      case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(this.normalize(d1.get(id)),f)
-      case ids:HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.normalize(ids),f)
-      case id:I => HeapIdSetFunctionalLifting.applyToSetHeapId(this.normalize(new MaybeHeapIdSetDomain().convert(id)),f)
+      case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(d1.get(id)),f)
+      case ids:HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(ids),f)
+      case id:I => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(new MaybeHeapIdSetDomain().convert(id)),f)
       case _ => f(a)
     }
   }

@@ -249,6 +249,6 @@ class ConstrainedPolyhedraAnalysis extends SemanticAnalysis[ApronInterface] {
 	coefSet.+=(-2)
 
 	def getInitialState() : ApronInterface = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[String], Set.empty[Identifier])
-	def getProperties() : Set[Property] = Set.empty+new ApronProperty().asInstanceOf[Property]
+	def getProperties() : Set[Property] = Set.empty+new ShowGraphProperty().asInstanceOf[Property]
 	def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil
 }

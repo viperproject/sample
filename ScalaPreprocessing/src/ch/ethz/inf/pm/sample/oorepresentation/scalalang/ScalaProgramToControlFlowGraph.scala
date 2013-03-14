@@ -467,6 +467,12 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         return typ.typeSymbol.name.decode.equals("Float") || typ.typeSymbol.name.decode.equals("Double");
       }
 
+      def isStringType() : Boolean = {
+        if(this.isTop) return true;
+        if(this.isBottom) return false;
+        return typ.typeSymbol.name.decode.equals("String");
+      }
+
       def isBottomExcluding(types : Set[oorepresentation.Type]) : Boolean = {
         for(t <- types)
           if(this.lessEqual(t))
