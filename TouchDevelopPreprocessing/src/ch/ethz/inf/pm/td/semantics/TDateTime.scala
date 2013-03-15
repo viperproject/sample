@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * Specifies the abstract semantics of DateTime
@@ -120,35 +121,40 @@ class TDateTime extends AAny {
       )
 
     /** Compares dates for greater */
-    // case "greater" => 
-    //   val List(other) = parameters // DateTime
-    //   Top[S](TBoolean.typ)
+    case "greater" =>
+      val List(other) = parameters // DateTime
+      Reporter.reportImprecision("DateTime.greater is a dummy",pp)
+      Top[S](TBoolean.typ)
 
     /** Compares dates for greater or equal */
-    // case "greater_or_equal" => 
-    //   val List(other) = parameters // DateTime
-    //   Top[S](TBoolean.typ)
+    case "greater_or_equal" =>
+      val List(other) = parameters // DateTime
+      Reporter.reportImprecision("DateTime.greater_or_equal is a dummy",pp)
+      Top[S](TBoolean.typ)
 
     /** Compares dates for less */
-    // case "less" => 
-    //   val List(other) = parameters // DateTime
-    //   Top[S](TBoolean.typ)
+    case "less" =>
+      val List(other) = parameters // DateTime
+      Reporter.reportImprecision("DateTime.less is a dummy",pp)
+      Top[S](TBoolean.typ)
 
     /** Compares dates for less or equal */
-    // case "less_or_equals" => 
-    //   val List(other) = parameters // DateTime
-    //   Top[S](TBoolean.typ)
-
+    case "less_or_equals" =>
+      val List(other) = parameters // DateTime
+      Reporter.reportImprecision("DateTime.less_or_equals is a dummy",pp)
+      Top[S](TBoolean.typ)
 
     /** Compares dates for disequality */
-    // case "not_equals" => 
-    //   val List(other) = parameters // DateTime
-    //   Top[S](TBoolean.typ)
+    case "not_equals" =>
+      val List(other) = parameters // DateTime
+      Reporter.reportImprecision("DateTime.not_equals is a dummy",pp)
+       Top[S](TBoolean.typ)
 
     /** Computes the difference between date-times in seconds */
-    // case "subtract" => 
-    //   val List(value) = parameters // DateTime
-    //   Top[S](TNumber.typ)
+    case "subtract" =>
+      val List(value) = parameters // DateTime
+      Reporter.reportImprecision("DateTime.subtract is a dummy",pp)
+      Top[S](TNumber.typ)
 
     /** Converts to the local time */
     // case "to_local_time" => 

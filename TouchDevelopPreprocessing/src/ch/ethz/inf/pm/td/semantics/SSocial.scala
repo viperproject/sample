@@ -56,24 +56,33 @@ class SSocial extends AAny {
       ))
 
     /** Creates a place */
-    // case "create_place" => 
-    //   val List(name,location) = parameters // String,Location
-    //   Top[S](TPlace.typ)
+    case "create_place" =>
+       val List(name,location) = parameters // String,Location
+       New[S](TPlace.typ,Map(
+         TPlace.field_name -> name,
+         TPlace.field_location -> location
+       ))
 
     /** Creates a link from an email */
-    // case "link_email" => 
-    //   val List(email_address) = parameters // String
-    //   Top[S](TLink.typ)
+    case "link_email" =>
+      val List(email_address) = parameters // String
+      New[S](TLink.typ,Map(
+         TLink.field_address -> email_address,
+         TLink.field_kind -> String("email")
+      ))
 
     /** Creates a link from a phone number */
-    // case "link_phone_number" => 
-    //   val List(phone_number) = parameters // String
-    //   Top[S](TLink.typ)
+    case "link_phone_number" =>
+      val List(phone_number) = parameters // String
+      New[S](TLink.typ,Map(
+        TLink.field_address -> phone_number,
+        TLink.field_kind -> String("phone number")
+      ))
 
     /** Saves a new contact */
-    // case "save_contact" => 
-    //   val List(contact) = parameters // Contact
-    //   Skip;
+    // case "save_contact" =>
+    //  val List(contact) = parameters // Contact
+    //  Skip
 
     /** Allows the user to save the email address (email) */
     // case "save_email" => 

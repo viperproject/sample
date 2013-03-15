@@ -147,6 +147,7 @@ object Typer {
         val types = for(arg <- args) yield processExpression(scope,st,arg)
         subject match {
           case s@SingletonReference("code") =>
+            subject.typeName = TypeName("code")
             val retTypes = st.resolveCode(property.ident,types,s.pos)
             if (retTypes.length > 1) throw TouchException("Multiple return values "+retTypes+" in non-assignment expression",expr.pos)
             else if (retTypes.length < 1) is(TypeName("Nothing"))

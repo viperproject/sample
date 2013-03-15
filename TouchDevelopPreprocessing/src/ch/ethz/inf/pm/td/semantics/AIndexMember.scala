@@ -2,14 +2,30 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import scala.Predef.String
 
-class AIndexMember(indexMemberType:TouchType) extends AAny {
+/**
+ *
+ * @param indexMemberType
+ * @param valueFields To access the value of our index member fields (the object with get/set/clear)
+ *                    we pass the "access path" to that field. So for this->someField->value we pass (someField,value)
+ */
+class AIndexMember(indexMemberType:TouchType, valueFields:List[(TouchField,TouchField)]) extends AAny {
 
   def getTyp = indexMemberType
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
+
+    case "clear_fields" =>
+      var curState = state
+      for ((memberField,valueField) <- valueFields) {
+        curState = AssignField[S](Field[S](this0,memberField),valueField,Invalid(valueField.getType()))(curState,pp)
+      }
+      curState
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

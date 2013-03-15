@@ -399,7 +399,12 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
       // END of the added code
 
       nondeterminismWrapper(expr, new ApronInterface(newState, domain), (someExpr,someState) => {
-        new ApronInterface(someState.state.assignCopy(domain, variable.getName, this.toTexpr1Intern(someExpr, someState.state.getEnvironment()), null),domain)
+        var curState = new Abstract1(domain, someState.state.getEnvironment(), true)
+        var expr = this.toTexpr1Intern(someExpr, someState.state.getEnvironment())
+        for (e <- expr) {
+          curState = curState.joinCopy(domain,someState.state.assignCopy(domain,variable.getName(),e,null))
+        }
+        new ApronInterface(curState,domain)
       })
 
     } else this
@@ -434,9 +439,10 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 
       val res = nondeterminismWrapper(expr,new ApronInterface(newState,domain),(someExpr,someState) => {
         val unionEnv = unionOfEnvironments(someState.state.getEnvironment(), expEnv)
-        val constraint = this.toTcons1(someExpr, unionEnv)
-        val meetcopy = someState.state.meetCopy(domain, constraint)
-        (new ApronInterface(meetcopy, domain))
+        val constraints = this.toTcons1(someExpr, unionEnv)
+        var curState = someState.state
+        for (c <- constraints) curState = curState.meetCopy(domain,c)
+        (new ApronInterface(curState, domain))
       })
 
       res
@@ -553,9 +559,9 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
    */
   def isBottom(s: ApronInterface) : Boolean = return s.lessEqual(this.bottom())
 	
-	private def toTexpr1Intern(e : Expression, env : apron.Environment) : Texpr1Intern = {
-		val e1 = this.toTexpr1Node(e);
-		return new Texpr1Intern(env, e1)
+	private def toTexpr1Intern(e : Expression, env : apron.Environment) : List[Texpr1Intern] = {
+		val e1 = this.toTexpr1Node(e)
+    for (e <- e1) yield new Texpr1Intern(env, e)
 	}
 
   private def topExpression() : Texpr1Node = {
@@ -577,31 +583,38 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
     new Tcons1(Tcons1.EQ,new Texpr1Intern(env,new Texpr1CstNode(new DoubleScalar(1)))) // always false
   }
 
-  private def toTexpr1Node(e : Expression) : Texpr1Node = e match {
+  private def toTexpr1Node(e : Expression) : List[Texpr1Node] = e match {
     case Constant("invalid", typ, p) =>
-      topExpression() // SHOULD BE: BOTTOM. NOT IMPLEMENTABLE
+      List(topExpression()) // SHOULD BE: BOTTOM. NOT IMPLEMENTABLE
     case Constant("valid", typ, p) =>
-      topExpression()
-		case x : Identifier => new Texpr1VarNode(x.getName);
+      List(topExpression())
+		case x : Identifier =>  List(new Texpr1VarNode(x.getName()))
     case setId : HeapIdSetDomain[Identifier] =>
-      if (setId.isTop) topExpression()
-      else if(setId.value.size!=1) throw new ApronException("Not yet supported")
-      else new Texpr1VarNode(setId.value.iterator.next().getName());
+      if (setId.isTop || setId.isBottom)  List(topExpression())
+      (setId.value map { x:Identifier => new Texpr1VarNode(x.getName())}).toList
 		case Constant(v, typ, p) =>
       if (typ.isNumericalType())
         v match {
-          case "true" => new Texpr1CstNode(new DoubleScalar(1))
-          case "false" => new Texpr1CstNode(new DoubleScalar(0))
-          case _ => new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v)))
+          case "true" =>  List(new Texpr1CstNode(new DoubleScalar(1)))
+          case "false" =>  List(new Texpr1CstNode(new DoubleScalar(0)))
+          case _ =>  List(new Texpr1CstNode(new DoubleScalar(java.lang.Double.parseDouble(v))))
         }
-      else topExpression()
+      else List(topExpression())
     case BinaryArithmeticExpression(left, right, op, typ) =>
-      new Texpr1BinNode(this.convertArithmeticOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
+      for (l <- this.toTexpr1Node(left); r <- this.toTexpr1Node(right)) yield {
+        new Texpr1BinNode(this.convertArithmeticOperator(op), l, r)
+      }
     case BinaryBooleanExpression(left, right, op, typ) =>
-      new Texpr1BinNode(this.convertBooleanOperator(op), this.toTexpr1Node(left), this.toTexpr1Node(right))
-		case UnaryArithmeticExpression(left, op, typ) => op match {
-			case ArithmeticOperator.- => new Texpr1UnNode(Texpr1UnNode.OP_NEG, this.toTexpr1Node(left))
-		}
+      for (l <- this.toTexpr1Node(left); r <- this.toTexpr1Node(right)) yield {
+        new Texpr1BinNode(this.convertBooleanOperator(op), l, r)
+      }
+		case UnaryArithmeticExpression(left, op, typ) =>
+      op match {
+			  case ArithmeticOperator.- =>
+          for (l <- this.toTexpr1Node(left)) yield {
+            new Texpr1UnNode(Texpr1UnNode.OP_NEG, l)
+          }
+  		}
     case _ => throw new SemanticException("Unhandled expression type.")
 	}
 	
@@ -618,11 +631,11 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
     case BooleanOperator.|| => Texpr1BinNode.OP_ADD
   }
 	
-	private def toTcons1(e : Expression, env : Environment) : Tcons1 = e match {
+	private def toTcons1(e : Expression, env : Environment) : List[Tcons1] = e match {
     case Constant("invalid", typ, p) =>
-      bottomConstraint(env)
+      List(bottomConstraint(env))
     case Constant("valid", typ, p) =>
-      topConstraint(env)
+      List(topConstraint(env))
 		case BinaryArithmeticExpression(left, right, op, typ) =>
 			var localop = op;
 			var localleft = left;
@@ -637,24 +650,25 @@ class ApronInterface(val state : Abstract1, val domain : Manager) extends Relati
 			}
 			val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(localleft, localright, ArithmeticOperator.-, localleft.getType()));
 			localop match {
-				case ArithmeticOperator.>= => return new Tcons1(env, Tcons1.SUPEQ, expr1)
-				case ArithmeticOperator.== => return new Tcons1(env, Tcons1.EQ, expr1)
-				case ArithmeticOperator.!= => return new Tcons1(env, Tcons1.DISEQ, expr1)
+				case ArithmeticOperator.>= => for (e <- expr1) yield new Tcons1(env, Tcons1.SUPEQ, e)
+				case ArithmeticOperator.== => for (e <- expr1) yield new Tcons1(env, Tcons1.EQ, e)
+				case ArithmeticOperator.!= => for (e <- expr1) yield new Tcons1(env, Tcons1.DISEQ, e)
 				case ArithmeticOperator.> =>
           // TODO: FOR OCTAGONS THERE IS A BUG. THIS IS THE WORKAROUND
           // Replace a > 0 by a - 1 >= 0. Only works for integers
           val sExpr1 = new BinaryArithmeticExpression(localleft, localright, ArithmeticOperator.-, localleft.getType())
           val sExpr2 = new BinaryArithmeticExpression(sExpr1, Constant("1",sExpr1.getType(),sExpr1.getProgramPoint()), ArithmeticOperator.-, sExpr1.getType())
-          return new Tcons1(env, Tcons1.SUPEQ, this.toTexpr1Node(sExpr2))
-          // return new Tcons1(env, Tcons1.SUP, expr1)
+          for (e <- this.toTexpr1Node(sExpr2)) yield {
+            new Tcons1(env, Tcons1.SUPEQ, e)
+          }
 			}
 		case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-			return toTcons1(BinaryArithmeticExpression(left, right, negateOperator(op), typ), env)
+			toTcons1(BinaryArithmeticExpression(left, right, negateOperator(op), typ), env)
     case NegatedBooleanExpression(NegatedBooleanExpression(x)) =>  toTcons1(x, env)
     case NegatedBooleanExpression(x) =>
-      return toTcons1(BinaryArithmeticExpression(x, Constant("0",x.getType(),x.getProgramPoint()), ArithmeticOperator.==, x.getType()), env)
+      toTcons1(BinaryArithmeticExpression(x, Constant("0",x.getType(),x.getProgramPoint()), ArithmeticOperator.==, x.getType()), env)
     case x:Expression =>
-      return toTcons1(BinaryArithmeticExpression(x, Constant("0",x.getType(),x.getProgramPoint()), ArithmeticOperator.!=, x.getType()), env)
+      toTcons1(BinaryArithmeticExpression(x, Constant("0",x.getType(),x.getProgramPoint()), ArithmeticOperator.!=, x.getType()), env)
   }
 
 	private def negateOperator(op : ArithmeticOperator.Value) : ArithmeticOperator.Value = op match {

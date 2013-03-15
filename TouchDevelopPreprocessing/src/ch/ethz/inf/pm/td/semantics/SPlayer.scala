@@ -62,7 +62,7 @@ class SPlayer extends AAny {
 
     /** Pauses the currently playing song */
     case "pause" =>
-      Error[S](Field[S](this0,SPlayer.field_is_playing) equal False,"resume","Player might not be playing")
+      Error[S](Field[S](this0,SPlayer.field_is_playing) equal False,"pause","Player might not be playing")
       var curState = state
       curState = AssignField[S](this0,SPlayer.field_is_playing,False)(curState,pp)
       curState = AssignField[S](this0,SPlayer.field_is_paused,True)(curState,pp)

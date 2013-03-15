@@ -36,19 +36,25 @@ class SMaps extends AAny {
     /** Calculates the directions between two coordinates using Bing. */
     case "directions" =>
       val List(from,to,walking) = parameters // Location,Location,Boolean
-      New[S](TLocation_Collection.typ) // TODO
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"directions",
+        "Check if the device is connected to the internet before using the connection")
+      Top[S](TLocation_Collection.typ)
 
     /** Shows the directions in the Bing map application. If search term is provided, location is ignored.
         Provide search term or location for start and end. */
     case "open_directions" =>
       val List(start_search,start_loc,end_search,end_loc) = parameters // String,Location,String,Location
-      Skip; // TODO
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open_directions",
+        "Check if the device is connected to the internet before using the connection")
+      Skip
 
     /** Opens the Bing map application. zoom between 0 (close) and 1 (far). */
     case "open_map" =>
       val List(center,search,zoom) = parameters // Location,String,Number
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open_map",
+        "Check if the device is connected to the internet before using the connection")
       CheckInRangeInclusive[S](zoom,0,1,method,"zoom")
-      Skip; // TODO
+      Skip
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

@@ -84,7 +84,7 @@ object CFGGenerator {
       SRecords.typ = new TouchType(SRecords.typName,isSingleton = true, fields = SRecords.typ.getPossibleFields().toList ::: List(field))
     }
 
-    def createFieldMembers(fields:List[Parameter]): List[TouchField] = {
+    def createFieldMembers(fields:List[Parameter]): List[(TouchField,TouchField)] = {
       for (field <- fields) yield {
         val noFieldType = typeNameToType(TypeName(field.typeName.toString.replace("_field","")))
         val valueField = new TouchField("__value",noFieldType)
@@ -95,7 +95,7 @@ object CFGGenerator {
         else
           addTouchType(new AField(fieldType,valueField))
 
-        new TouchField(field.ident,fieldType,NewInitializer())
+        (new TouchField(field.ident,fieldType,NewInitializer()),valueField)
       }
     }
 
@@ -107,7 +107,7 @@ object CFGGenerator {
           typeName match {
             case "Object" =>
 
-              val objectTyp = new TouchType(ident,fields = createFieldMembers(fields))
+              val objectTyp = new TouchType(ident,fields = (createFieldMembers(fields) map (_._1)))
               val collectionTyp = new TouchCollection(ident+"_Collection",TNumber.typName,ident)
               val constructorTyp = new TouchType(ident+"_Constructor")
 
@@ -119,7 +119,7 @@ object CFGGenerator {
 
             case "Table" =>
 
-              val rowTyp = new TouchType(ident,fields = createFieldMembers(fields))
+              val rowTyp = new TouchType(ident,fields = (createFieldMembers(fields) map (_._1)))
               val tableTyp = new TouchCollection(ident+"_Table",TNumber.typName,rowTyp.getName())
 
               addTouchType(new ARow(rowTyp))
@@ -130,12 +130,12 @@ object CFGGenerator {
             case "Index" =>
 
               val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typeNameToType(typ))}
-              val fieldAndKeyMembers = createFieldMembers(fields) ::: keyMembers
+              val fieldMembers = createFieldMembers(fields)
 
-              val indexMemberType = new TouchType(ident,fields = fieldAndKeyMembers)
+              val indexMemberType = new TouchType(ident,fields = (fieldMembers map (_._1))  ::: keyMembers)
               val keyTypes = keyMembers map (_.getType().asInstanceOf[TouchType])
 
-              addTouchType(new AIndexMember(indexMemberType))
+              addTouchType(new AIndexMember(indexMemberType,fieldMembers))
               val indexType =
                 if (keyTypes.size > 0) {
                   val ty = new TouchCollection(ident+"_Index",TNumber.typName,indexMemberType.getName())
@@ -154,13 +154,13 @@ object CFGGenerator {
               if (keys.size != 1) throw TouchException("Decorators must have exactly one entry",thing.pos)
 
               val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typeNameToType(typ))}
-              val fieldAndKeyMembers = createFieldMembers(fields) ::: keyMembers
+              val fieldMembers = createFieldMembers(fields)
 
               val decoratedType = keyMembers.head.getType().asInstanceOf[TouchType]
-              val decorationType = new TouchType(ident,fields = fieldAndKeyMembers)
+              val decorationType = new TouchType(ident,fields = (fieldMembers map (_._1)) ::: keyMembers)
               val decoratorType = new TouchCollection(decoratedType+"_Decorator",decoratedType.getName(),decorationType.getName())
 
-              addTouchType(new AIndexMember(decorationType))
+              addTouchType(new AIndexMember(decorationType,fieldMembers))
               addTouchType(new AIndex(decoratorType,List(decoratedType),decorationType))
 
               addRecordsField(new TouchField(decoratedType+"_decorator",decoratorType))

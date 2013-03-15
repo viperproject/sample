@@ -2,10 +2,10 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * Specifies the abstract semantics of Xml Object
@@ -17,93 +17,70 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TXml_Object {
 
+  /** Gets the list of attribute names */
+  val field_attributes = new TouchField("__attributes",TString_Map.typ,NewInitializer())
+
+  /** Indicates if this instance is an element or a filtered collection */
+  val field_is_element = new TouchField("is_element",TBoolean.typ,ExpressionInitializer(True(null)))
+
+  /** Gets the concatenated text contents of this element */
+  val field_value = new TouchField("value",TString.typ)
+
+  /** Gets the namespace of this element */
+  val field_namespace = new TouchField("namespace",TString.typ)
+
+  /** Gets the local name of this element */
+  val field_local_name = new TouchField("local_name",TString.typ)
+
   val typName = "Xml_Object"
-  val typ = new TouchType(typName,isSingleton = false,List())
+  val typ = new TouchCollection(typName,TNumber.typName,TXml_Object.typName,List(field_attributes,field_is_element,field_local_name, field_namespace, field_value))
 
 }
 
-class TXml_Object extends AAny {
+class TXml_Object extends ACollection {
 
   def getTyp = TXml_Object.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
-    /** Gets the i-th child element in the collection */
-    // case "at" => 
-    //   val List(index) = parameters // Number
-    //   Top[S](TXml_Object.typ)
-
     /** Gets the value of the attribute */
-    // case "attr" => 
-    //   val List(name) = parameters // String
-    //   Top[S](TString.typ)
+    case "attr" =>
+      val List(name) = parameters // String
+      CallApi[S](Field[S](this0,TXml_Object.field_attributes),"at",List(name))
 
     /** Gets the list of attribute names */
-    // case "attr_names" => 
-    //   Top[S](TString_Collection.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the list of attribute names */
-    //   val field_attr_names = new TouchField("attr_names",TString_Collection.typ)
+    case "attr_names" =>
+      CallApi[S](Field[S](this0,TXml_Object.field_attributes),"keys")
 
     /** Gets a first child element matching the fully qualified name */
-    // case "child" => 
-    //   val List(name) = parameters // String
-    //   Top[S](TXml_Object.typ)
+    case "child" =>
+      val List(name) = parameters // String
+      Reporter.reportImprecision("Xml_Object.child is a dummy",pp)
+      TopWithInvalid[S](TXml_Object.typ,Map(
+        TXml_Object.field_is_element -> False
+      ))
 
     /** Gets a collection of child element matching the fully qualified name */
-    // case "children" => 
-    //   val List(name) = parameters // String
-    //   Top[S](TXml_Object.typ)
-
-    /** Gets the number of child element */
-    // case "count" => 
-    //   Top[S](TNumber.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the number of child element */
-    //   val field_count = new TouchField("count",TNumber.typ)
+    case "children" =>
+      val List(name) = parameters // String
+      Reporter.reportImprecision("Xml_Object.children is a dummy",pp)
+      TopWithInvalid[S](TXml_Object.typ,Map(
+        TXml_Object.field_is_element -> False
+      ))
 
     /** Creates a qualified full name from the namespace and local name */
-    // case "create_name" => 
-    //   val List(local_name,namespace_uri) = parameters // String,String
-    //   Top[S](TString.typ)
-
-    /** Indicates if this instance is an element or a filtered collection */
-    // case "is_element" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if this instance is an element or a filtered collection */
-    //   val field_is_element = new TouchField("is_element",TBoolean.typ)
-
-    /** Gets the local name of this element */
-    // case "local_name" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the local name of this element */
-    //   val field_local_name = new TouchField("local_name",TString.typ)
+    case "create_name" =>
+      val List(local_name,namespace_uri) = parameters // String,String
+      Reporter.reportImprecision("Xml_Object.create_name is a dummy",pp)
+      Top[S](TString.typ)
 
     /** Gets the full name of this element */
-    // case "name" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the full name of this element */
-    //   val field_name = new TouchField("name",TString.typ)
-
-    /** Gets the namespace of this element */
-    // case "namespace" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the namespace of this element */
-    //   val field_namespace = new TouchField("namespace",TString.typ)
-
-    /** Gets the concatenated text contents of this element */
-    // case "value" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the concatenated text contents of this element */
-    //   val field_value = new TouchField("value",TString.typ)
-
-    // FIELDS: , field_attr_names, field_count, field_is_element, field_local_name, field_name, field_namespace, field_to_string, field_value
+    case "name" =>
+      CallApi[S](this0,"create_name",List(
+        Field[S](this0,TXml_Object.field_local_name),
+        Field[S](this0,TXml_Object.field_namespace)
+      ))
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

@@ -18,6 +18,9 @@ object SSenses {
   /** Gets the primary camera if available */
   val field_camera = new TouchField("camera",TCamera.typ,TopWithInvalidInitializer())
 
+  /** Gets the front facing camera if available */
+  val field_front_camera = new TouchField("front_camera",TCamera.typ,TopWithInvalidInitializer())
+
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
   val field_has_accelerometer = new TouchField("has_accelerometer",TBoolean.typ)
 
@@ -59,23 +62,13 @@ class SSenses extends AAny {
        Top[S](TVector3.typ)
 
     /** Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */
-    // case "current_location" =>
-    //   Top[S](TLocation.typ)
-    // DECLARATION AS FIELD:
-    //   /** Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */
-    //   field_current_location = new TouchField("current_location",TLocation.typ)
+    case "current_location" =>
+       TopWithInvalid[S](TLocation.typ)
 
     /** Gets the current phone location with the most accuracy. This includes using services that might charge money,
       * or consuming higher levels of battery power or connection bandwidth. */
      case "current_location_accurate" =>
        TopWithInvalid[S](TLocation.typ)
-
-    /** Gets the front facing camera if available */
-    // case "front_camera" =>
-    //   Top[S](TCamera.typ)
-    // DECLARATION AS FIELD:
-    //   /** Gets the front facing camera if available */
-    //   field_front_camera = new TouchField("front_camera",TCamera.typ)
 
     /** DEPRECATED. Test if the senses→motion is invalid instead. */
     case "has_motion" =>
@@ -89,11 +82,12 @@ class SSenses extends AAny {
        Top[S](TNumber.typ)
 
     /** Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */
-    // case "is_device_stable" =>
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD:
-    //   /** Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */
-    //   field_is_device_stable = new TouchField("is_device_stable",TBoolean.typ)
+    case "is_device_stable" =>
+      If[S](Field[S](this0,SSenses.field_has_accelerometer),Then = { s:S =>
+        Top[S](TBoolean.typ)(s,pp)
+      }, Else = { s:S =>
+        TopWithInvalid[S](TBoolean.typ)(s,pp)
+      })
 
     /** Gets the current motion that combines data from the accelerometer, compass and gyroscope if available. */
     case "motion" =>
@@ -104,22 +98,24 @@ class SSenses extends AAny {
       Skip
 
     /** Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */
-    // case "orientation" =>
-    //   Top[S](TVector3.typ)
-    // DECLARATION AS FIELD:
-    //   /** Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */
-    //   field_orientation = new TouchField("orientation",TVector3.typ)
+    case "orientation" =>
+      If[S](Field[S](this0,SSenses.field_has_gyroscope),Then = { s:S =>
+        Top[S](TVector3.typ)(s,pp)
+      }, Else = { s:S =>
+        TopWithInvalid[S](TVector3.typ)(s,pp)
+      })
 
     /** Records audio using the microphone */
     case "record_microphone" =>
       New[S](TSound.typ)
 
     /** Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */
-    // case "rotation_speed" =>
-    //   Top[S](TVector3.typ)
-    // DECLARATION AS FIELD:
-    //   /** Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */
-    //   field_rotation_speed = new TouchField("rotation_speed",TVector3.typ)
+    case "rotation_speed" =>
+      If[S](Field[S](this0,SSenses.field_has_gyroscope),Then = { s:S =>
+        Top[S](TVector3.typ)(s,pp)
+      }, Else = { s:S =>
+        TopWithInvalid[S](TVector3.typ)(s,pp)
+      })
 
     /** Takes a picture and returns it. This picture does not contain the gps location. */
     case "take_camera_picture" =>

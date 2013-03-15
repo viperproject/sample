@@ -10,30 +10,50 @@ import net.liftweb.json._
  * Set the userid below (e.g. pboj for the TouchDevelop Samples user)
  */
 
-val dirs = "pietrosanalbugs"
+//val dirs = "pietrosanalbugs"
+//
+//val pubIDs =
+//  """tnrl
+//    |zzqe
+//    |exgg
+//    |gjgbnarq
+//    |qzrc
+//    |jsnbazzf
+//    |txct
+//    |xmdj
+//    |jsqo
+//    |bgdy
+//    |uxurzxoq
+//    |ccxkqeym
+//    |uhfb
+//    |aypvivip
+//    |evvvcftn
+//    |hakfviol
+//    |skzfpehx
+//    |iwporbjy
+//    |voiz
+//    |qemx
+//    |blok
+//    |qkzbwoqk
+//    |wvnp
+//    |apzl
+//    |vonhbnaz
+//    |atzq
+//    |nukpa
+//    |wjod
+//    |tbdj
+//    |xxusa
+//    |mjoz
+//    |xmrsbtjg
+//    |ivoq
+//    |xgmt
+//    |stnv
+//    |ksbbguhv
+//  """.stripMargin.split("\n")
 
-val pubIDs = List(
-  "xmdj",
-  "skzfpehx",
-  "evvvcftn",
-  "aypvivip",
-  "hakfviol",
-  "txct",
-  "gjgbnarq",
-  "mjoz",
-  "jsnbazzf",
-  "uxurzxoq",
-  "jsqo",
-  "exgg",
-  "apzl",
-  "xmrsbtjg",
-  "qzrc",
-  "wvnp",
-  "ksbbguhv",
-  "xxusa",
-  "wjod",
-  "nukpa"
-)
+val dirs = "nullpointerbug"
+
+val pubIDs = "ipjk, mzjd, hlpw, cmxz, xxaw, fadz, xrkp, hxzk, zihkb, odle, tdex, qzke, zvos, bflyfahe, sdzbwros, opal, fqhi, klys, nqpn, cvwt, browzzgw, ezlh, egsx, umaxa, ytuj, eqokucjr, qvsm, hhnqa, ejyc, xdhs, jpyh, lalh, wbny, fmaixptt, eoydkuck, fwip, nqglbrax".split(", ")
 
 for (pubID <- pubIDs) {
 

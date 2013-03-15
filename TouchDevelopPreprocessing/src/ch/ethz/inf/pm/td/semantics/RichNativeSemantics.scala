@@ -267,9 +267,13 @@ object RichNativeSemantics {
   /*-- Reading and writing of fields --*/
 
   def AssignField[S <: State[S]](obj:RichExpression,field:Identifier,value:RichExpression)(implicit state:S, pp:ProgramPoint): S = {
+    AssignField[S](obj,field.getName(),value)
+  }
+
+  def AssignField[S <: State[S]](obj:RichExpression,field:String,value:RichExpression)(implicit state:S, pp:ProgramPoint): S = {
     if(!TouchAnalysisParameters.libraryFieldPruning ||
-      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+field.getName())) {
-      state.assignField(List(obj),field.getName(),value)
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+field)) {
+      state.assignField(List(obj),field,value)
     } else state
   }
 
