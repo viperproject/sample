@@ -131,10 +131,20 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   def compileStringRecursive(scriptStr:String, pubID:String, libDef:Option[LibraryDefinition] = None): ClassDefinition = {
 
     // compile
-    val script = LoopRewriter(ScriptParser(scriptStr))
+    var script = ScriptParser(scriptStr)
+
+    // FIXME: Remove
+    Matcher(script)( { _ => }, {
+      case f@Foreach(_,_,_,_) => println("Foreach at "+f.pos+" (file "+pubID+")")
+      case f@For(_,_,_) => println("For at "+f.pos+" (file "+pubID+")")
+      case f@While(_,_) => println("While at "+f.pos+" (file "+pubID+")")
+      case _ => ()
+    }, { _ => } )
+
+    script = LoopRewriter(script)
     Typer.processScript(script)
-    var newCFG =  CFGGenerator.process(script,pubID,libDef)
-    var cfgs = List(newCFG)
+
+    val newCFG =  CFGGenerator.process(script,pubID,libDef)
 
     // update fields
     parsedScripts = parsedScripts ::: List(newCFG)

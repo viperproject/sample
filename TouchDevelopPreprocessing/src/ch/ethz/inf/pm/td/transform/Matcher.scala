@@ -45,6 +45,7 @@ object Matcher {
       case Foreach(loc,coll,guards,body) => apply(coll); apply(guards); apply(body)
       case If(cond,then,els) => apply(cond); apply(then); apply(els)
       case Box(body) => apply(body)
+      case WhereStatement(expr,handler,param,body) => apply(expr); apply(body)
       case AssignStatement(left,right) => apply(left); apply(right)
       case ExpressionStatement(expr) => apply(expr)
       case _ => ()

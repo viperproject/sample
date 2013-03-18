@@ -51,9 +51,11 @@ import net.liftweb.json._
 //    |ksbbguhv
 //  """.stripMargin.split("\n")
 
-val dirs = "nullpointerbug"
+//val dirs = "nullpointerbug"
+//val pubIDs = "ipjk, mzjd, hlpw, cmxz, xxaw, fadz, xrkp, hxzk, zihkb, odle, tdex, qzke, zvos, bflyfahe, sdzbwros, opal, fqhi, klys, nqpn, cvwt, browzzgw, ezlh, egsx, umaxa, ytuj, eqokucjr, qvsm, hhnqa, ejyc, xdhs, jpyh, lalh, wbny, fmaixptt, eoydkuck, fwip, nqglbrax".split(", ")
 
-val pubIDs = "ipjk, mzjd, hlpw, cmxz, xxaw, fadz, xrkp, hxzk, zihkb, odle, tdex, qzke, zvos, bflyfahe, sdzbwros, opal, fqhi, klys, nqpn, cvwt, browzzgw, ezlh, egsx, umaxa, ytuj, eqokucjr, qvsm, hhnqa, ejyc, xdhs, jpyh, lalh, wbny, fmaixptt, eoydkuck, fwip, nqglbrax".split(", ")
+val dirs = "nonterminating"
+val pubIDs = List("htre", "vexbxpjs", "kijx")
 
 for (pubID <- pubIDs) {
 
