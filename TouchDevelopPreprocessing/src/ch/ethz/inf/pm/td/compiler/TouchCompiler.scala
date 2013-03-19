@@ -27,6 +27,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var parsedScripts : List[ClassDefinition] = Nil
   var parsedSourceStrings : Map[String,String] = Map.empty
   var publicMethods : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
+  var privateMethods : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
   var events : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
   var globalData : Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields : Set[String] = Set.empty
@@ -176,6 +177,11 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
         !m.name.asInstanceOf[TouchMethodIdentifier].isPrivate && !m.name.asInstanceOf[TouchMethodIdentifier].isEvent
     }).map((main,_)).toSet
 
+    privateMethods = (main.methods filter {
+      m:MethodDeclaration =>
+        m.name.asInstanceOf[TouchMethodIdentifier].isPrivate
+    }).map((main,_)).toSet
+
     events = (main.methods filter {
       m:MethodDeclaration =>
         m.name.asInstanceOf[TouchMethodIdentifier].isEvent
@@ -239,12 +245,15 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   def getPublicMethods: Set[(ClassDefinition,MethodDeclaration)] = publicMethods
 
+  def getPrivateMethods: Set[(ClassDefinition,MethodDeclaration)] = privateMethods
+
   def getMethods(name:String): List[(ClassDefinition,MethodDeclaration)] =
     (publicMethods filter (_._2.name.toString == name)).toList
 
   def reset() {
     main = null
     publicMethods = Set.empty
+    privateMethods = Set.empty
     events = Set.empty
     globalData = Set.empty
     parsedNames = Nil

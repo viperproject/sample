@@ -7,13 +7,21 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.TouchDomain
+import ch.ethz.inf.pm.td.domain.{StringsAnd, InvalidAnd}
 import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.td.output.HTMLExporter
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import scala.Some
+import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import scala.Some
+import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
 /**
  * 
@@ -22,7 +30,7 @@ import ch.ethz.inf.pm.td.output.HTMLExporter
  * Time: 5:50 PM
  * 
  */
-class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomain[D]] {
+class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd[InvalidAnd[D]]] {
 
   var domain: D = null.asInstanceOf[D]
 
@@ -38,8 +46,8 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
     }
   }}
 
-  def getInitialState(): TouchDomain[D] = {
-    new TouchDomain(domain).top()
+  def getInitialState(): StringsAnd[InvalidAnd[D]] = {
+    new StringsAnd(new InvalidAnd(domain)).top()
   }
 
   override def reset() { Unit }
@@ -176,11 +184,16 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[TouchDomai
 
   private def analyzeExecution[S <: State[S]](compiler:TouchCompiler,methods:List[String])(initialState:S):S = {
 
+    var methodsToBeAnalyzed = compiler.getPublicMethods
+    if (TouchAnalysisParameters.treatPrivateMethodLikePublicMethods)
+      methodsToBeAnalyzed = methodsToBeAnalyzed ++ compiler.getPrivateMethods
+    if (!methods.isEmpty) methodsToBeAnalyzed = methodsToBeAnalyzed.filter {
+      case (x:ClassDefinition,y:MethodDeclaration) => methods.contains(y.name.toString)
+    }
+
     // Execute abstract semantics of each public method (or the ones selected in the GUI)
-    val exitStates = for ((c,x) <- compiler.getPublicMethods) yield {
-      if (methods.isEmpty || methods.contains(x.name.toString)) {
-        Some(analyzeMethod(c,x,initialState))
-      } else None
+    val exitStates = for ((c,x) <- methodsToBeAnalyzed) yield {
+      Some(analyzeMethod(c,x,initialState))
     }
 
     // Compute the least upper bound of all public method exit states

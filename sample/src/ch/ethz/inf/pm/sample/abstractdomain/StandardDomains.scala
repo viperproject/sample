@@ -280,20 +280,20 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]] extends FunctionalDom
 trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
 
   var value: Set[V] = Set.empty[V]
-  var isTop = false;
-  var isBottom = false;
+  var isTop = false
+  var isBottom = false
 
   final def top(): T = {
-    val result: T = this.factory();
-    result.isBottom = false;
-    result.isTop = true;
+    val result: T = this.factory()
+    result.isBottom = false
+    result.isTop = true
     result
   }
 
   def bottom(): T = {
-    val result: T = this.factory();
-    result.isTop = false;
-    result.isBottom = true;
+    val result: T = this.factory()
+    result.isTop = false
+    result.isBottom = true
     result
   }
 
@@ -303,10 +303,29 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
    * @return The abstract state without the given element.
    */
   def remove(v: V): T = {
-    val newSet = this.value.-(v);
-    val result = this.factory();
-    result.value = newSet;
-    return result;
+    if (this.isTop) return this.top()
+    if (this.isBottom) return this.bottom()
+    val newSet = this.value.-(v)
+    val result = this.factory()
+    result.value = newSet
+    result.isBottom = (result.value.isEmpty)
+    result
+  }
+
+  /**
+   * Removes a set from the set. Formally, return = old(this) \setminus v
+   * @param v The element to be removed
+   * @return The abstract state without the given set of elements.
+   */
+  def remove(v: SetDomain[V, T]): T = {
+    if (this.isBottom) return bottom()
+    if (v.isTop) return bottom()
+    if (this.isTop) return top()
+    val newSet = this.value -- v.value
+    val result = this.factory()
+    result.value = newSet
+    result.isBottom = (result.value.isEmpty)
+    result
   }
 
   /**
@@ -315,82 +334,137 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
    * @return The abstract state with the given element as well.
    */
   def add(v: V): T = {
-    this.isBottom = false;
-    if (this.isTop) return this.top();
-    var result = factory();
-    result.value = value + v;
-    result;
+    if (this.isTop) return this.top()
+    var result = factory()
+    result.value = value + v
+    result
   }
 
-
   /**
-   * Adds an element to the set. Formally, return = old(this) \cup {v}
+   * Adds an element to the set. Formally, return = old(this) \cup V
    * @param v The element to be added
    * @return The abstract state with the given element as well.
    */
   def add(v: T): T = {
-    this.isBottom = false;
-    if (this.isTop) return this.top();
-    var result = factory();
-    result.value = value ++ v.value;
-    result;
+    if (this.isTop || v.isTop) return top()
+    if (this.isBottom) return v
+    val result: T = this.factory()
+    result.value = this.value ++ v.value
+    result
   }
 
   def lub(left: T, right: T): T = {
-    if (left.isTop || right.isTop) return top();
-    if (left.isBottom) return right;
-    if (right.isBottom) return left;
+    if (left.isTop || right.isTop) return top()
+    if (left.isBottom) return right
+    if (right.isBottom) return left
     val result: T = this.factory()
-    result.value = left.value ++ right.value;
+    result.value = left.value ++ right.value
     result
   }
 
   def glb(left: T, right: T): T = {
-    if (left.isBottom || right.isBottom) return bottom();
-    if (left.isTop) return right;
-    if (right.isTop) return left;
+    if (left.isBottom || right.isBottom) return bottom()
+    if (left.isTop) return right
+    if (right.isTop) return left
     val result: T = this.factory()
-    result.value = left.value.intersect(right.value);
-    if(result.value.isEmpty) result.isBottom = true;
+    result.value = left.value.intersect(right.value)
+    result.isBottom = (result.value.isEmpty)
     result
   }
 
   def widening(left: T, right: T): T = this.lub(left, right)
 
   def lessEqual(right: T): Boolean = {
-    if (this.isBottom) return true;
-    if (right.isTop) return true;
-    if (right.isBottom) return false;
-    if (this.isTop) return false;
+    if (this.isBottom) return true
+    if (right.isTop) return true
+    if (right.isBottom) return false
+    if (this.isTop) return false
     this.value.subsetOf(right.value)
   }
 
   override def toString(): String = {
-    if (this.isBottom) return "_|_";
-    if (this.isTop) return "T";
-    return ToStringUtilities.setToString(value);
+    if (this.isBottom) return "_|_"
+    if (this.isTop) return "T"
+    ToStringUtilities.setToString(value)
   }
 
   override def equals(a: Any): Boolean = a match {
     case x: SetDomain[V, T] =>
-      if (this.isBottom && x.isBottom) return true;
-      if (this.isTop && x.isTop) return true;
-      if (this.isBottom || x.isBottom || this.isTop || x.isTop) return false;
-      if (this.value.size != x.value.size) return false;
+      if (this.isBottom && x.isBottom) return true
+      if (this.isTop && x.isTop) return true
+      if (this.isBottom || x.isBottom || this.isTop || x.isTop) return false
+      if (this.value.size != x.value.size) return false
       for (el <- this.value)
-        if (!x.value.contains(el)) return false;
-      return true;
-    case _ => return false;
+        if (!x.value.contains(el)) return false
+      true
+    case _ => false
   }
 
   override def hashCode(): Int = {
-    var result: Int = 0;
+    var result: Int = 0
     for (el <- this.value)
-      result = result + el.hashCode();
-    return result;
+      result = result + el.hashCode()
+    result
   }
 
 }
+
+/**
+ *
+ * Implements a set domain which is bounded by a given K
+ *
+ * @tparam V the values stored
+ * @tparam T the type itself
+ */
+trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] {
+
+  /**
+   * Overwrite this method to set K
+   * @return the maximum number of represented elements
+   */
+  def getK:Int
+
+  /**
+   * Adds an element to the set. Formally, return = old(this) \cup {v}
+   * Returns top if the cardinality of the result is > k
+   * @param v The element to be added
+   * @return The abstract state with the given element as well.
+   */
+  override def add(v: V): T = {
+    if (this.isTop) return this.top()
+    val result = factory()
+    result.value = value + v
+    if (result.value.size > getK) return this.top()
+    result
+  }
+
+  /**
+   * Adds an element to the set. Formally, return = old(this) \cup {v}
+   * Returns top if the cardinality of the result is > k
+   * @param v The set to be added
+   * @return The abstract state with the given element as well.
+   */
+  override def add(v: T): T = {
+    if (this.isTop || v.isTop) return top()
+    if (this.isBottom) return v
+    val result: T = this.factory()
+    result.value = this.value ++ v.value
+    if (result.value.size > getK) return this.top()
+    result
+  }
+
+  override def lub(left: T, right: T): T = {
+    if (left.isBottom) return right
+    if (right.isBottom) return left
+    if (left.isTop || right.isTop) return top()
+    val result: T = this.factory()
+    result.value = left.value ++ right.value
+    if (result.value.size > getK) return this.top()
+    result
+  }
+
+}
+
 
 /**
  * The representation of an inverse set domain, that is, a domain that is represented by a set, and whose lattice

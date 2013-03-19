@@ -31,7 +31,7 @@ object TouchRun {
 
     if(files.isEmpty) {
       println("No arguments given!")
-      exit()
+      sys.exit()
     }
 
     SystemParameters.compiler = new TouchCompiler
@@ -48,7 +48,7 @@ object TouchRun {
         SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
         //EntryState
-        val numerical = new TouchDomain(new BoxedNonRelationalNumericalDomain(new Interval(0,0)))
+        val numerical = new StringsAnd(new InvalidAnd(new BoxedNonRelationalNumericalDomain(new Interval(0,0))))
         val heapID = new SimpleProgramPointHeapIdentifier(null,null)
         heapID.typ = SystemParameters.typ
 
@@ -57,13 +57,13 @@ object TouchRun {
         heapDomain.setParameter("UnsoundEntryState",false)
 
         val entryDomain =
-          new HeapAndAnotherDomain[TouchDomain[BoxedNonRelationalNumericalDomain[Interval]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          new HeapAndAnotherDomain[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
 
         val entryValue = new ExpressionSet(SystemParameters.typ.top())
 
-        val entryState = new AbstractState[TouchDomain[BoxedNonRelationalNumericalDomain[Interval]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+        val entryState = new AbstractState[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
-        val analysis = new TouchAnalysis[TouchDomain[BoxedNonRelationalNumericalDomain[Interval]]]
+        val analysis = new TouchAnalysis[BoxedNonRelationalNumericalDomain[Interval]]
         analysis.analyze(Nil,entryState, new OutputCollector)
       } catch {
         case e:UnsupportedLanguageFeatureException =>
@@ -90,7 +90,7 @@ object TouchApronRun {
 
     if(files.isEmpty) {
       println("No arguments given!")
-      exit()
+      sys.exit()
     }
 
     // This is crazy: Increase the priority for the finalizer thread
@@ -115,7 +115,7 @@ object TouchApronRun {
 
         //EntryState
         val domain = new Octagon()
-        val numerical = new TouchDomain(new ApronInterface(new Abstract1(domain, new Environment()), domain))
+        val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(new Abstract1(domain, new Environment()), domain)))
         val heapID = new SimpleProgramPointHeapIdentifier(null,null)
         heapID.typ = SystemParameters.typ
 
@@ -124,13 +124,13 @@ object TouchApronRun {
         heapDomain.setParameter("UnsoundEntryState",false)
 
         val entryDomain =
-          new HeapAndAnotherDomain[TouchDomain[ApronInterface], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
 
         val entryValue = new ExpressionSet(SystemParameters.typ.top())
 
-        val entryState = new AbstractState[TouchDomain[ApronInterface], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+        val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
-        val analysis = new TouchAnalysisWithApron[TouchDomain[ApronInterface]]
+        val analysis = new TouchAnalysisWithApron[ApronInterface]
         analysis.analyze(Nil, entryState, new OutputCollector)
 
       } catch {

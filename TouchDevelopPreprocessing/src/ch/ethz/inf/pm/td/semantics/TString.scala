@@ -68,7 +68,7 @@ class TString extends AAny {
     /** Checks if two strings are the same */
     case "equals" =>
       val List(other) = parameters
-      Top[S](TBoolean.typ) // TODO: Sound dummy
+      Return[S](this0 equal other)
 
     /** Returns the index of the first occurence if found starting at a given position */
     case "index_of" =>

@@ -17,26 +17,13 @@ import BooleanDomain._
  * 
  */
 
-trait InvalidDomain[T <: InvalidDomain[T]] extends SimplifiedSemanticDomain[T] {
-
-  def setInvalid(variable:Identifier): T
-  def canBeInvalid(variable:Identifier):Boolean
-
-}
+trait InvalidDomain[T <: InvalidDomain[T]] extends SimplifiedSemanticDomain[T]
 
 class BooleanInvalidDomain
   extends BoxedDomain[BooleanDomain,BooleanInvalidDomain]
   with InvalidDomain[BooleanInvalidDomain] {
 
   override def factory() = new BooleanInvalidDomain
-
-  def setInvalid(variable:Identifier): BooleanInvalidDomain = {
-    this.remove(variable).add(variable,domInvalid)
-  }
-
-  def canBeInvalid(variable:Identifier):Boolean = {
-    get(variable).canBeTrue
-  }
 
   def get(key : Identifier) : BooleanDomain = value.get(key) match {
     case None => domBottom
@@ -175,18 +162,7 @@ class BooleanInvalidDomain
 
 abstract class NumericWithInvalidDomain[N <: NumericalDomain[N], I <: InvalidDomain[I], T <: NumericWithInvalidDomain[N,I,T]](var num:N,var inv:I)
   extends SemanticCartesianProductDomain[N,I,T](num,inv)
-  with InvalidDomain[T]
   with NumericalDomain[T] {
-
-  override def setInvalid(variable:Identifier):T = {
-    val result : T = this.factory()
-    result.d2=result.d2.setInvalid(variable)
-    result
-  }
-
-  override def canBeInvalid(variable:Identifier): Boolean = {
-    d2.canBeInvalid(variable)
-  }
 
   override def toString() = "Numeric:\n"+ToStringUtilities.indent(d1.toString())+"\nInvalid:\n"+ToStringUtilities.indent(d2.toString)
 }

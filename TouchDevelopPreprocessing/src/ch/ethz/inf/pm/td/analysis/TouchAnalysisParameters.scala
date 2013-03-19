@@ -53,5 +53,18 @@ object TouchAnalysisParameters {
    */
   val singleEventOccurrence = false
 
+  /**
+   *
+   * Treat private methods just like public methods
+   *
+   * That means, assume that they can be run by the user - analyze them separately with top entryState
+   *
+   */
+  val treatPrivateMethodLikePublicMethods = false
+
+  /**
+   * Maximum number of possible string values represented for a single variable
+   */
+  val stringRepresentationBound = 3
 
 }
