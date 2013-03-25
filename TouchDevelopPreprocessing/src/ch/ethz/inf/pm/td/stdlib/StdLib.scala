@@ -27,14 +27,17 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set_background",List("Color"),"Nothing"),
     Member("set_foreground",List("Color"),"Nothing"),
     Member("set_border",List("Color", "Number"),"Nothing"),
+    Member("set_border_widths",List("Number", "Number","Number", "Number"),"Nothing"),
     Member("set_height",List("Number"),"Nothing"),
+    Member("set_height_range",List("Number","Number"),"Nothing"),
     Member("set_width",List("Number"),"Nothing"),
+    Member("set_width_range",List("Number","Number"),"Nothing"),
     Member("page_width",List(),"Number"),
     Member("page_height",List(),"Number"),
     Member("edit_text",List("Source", "Boolean"),"Nothing"),
     Member("set_text_wrapping",List("Boolean", "Number"),"Nothing"),
     Member("set_scrolling",List("Boolean", "Boolean"),"Nothing"),
-    Member("on_text_editing",List("Handler"),"Nothing"),
+    Member("on_text_edited",List("Handler"),"Nothing"),
     Member("on_tapped",List("Handler"),"Nothing"),
     Member("use_horizontal_layout","Nothing"),
     Member("use_vertical_layout","Nothing"),
@@ -913,6 +916,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
   addType("String", GenericTypes.gAny("String") ::: List(	// A piece of text
     Member("at",List("Number"),"String"),	//Gets the character at a specified index
+    Member("at_index",List("Number"),"String"),	//Gets the character at a specified index
     Member("compare",List("String"),"Number"),	//Compares two pieces of text
     Member("concat",List("String"),"String"),	//Concatenates two pieces of text
     Member("copy","String"), // Copies the string
@@ -1016,6 +1020,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("header",List("String"),"String"),	//Gets the value of a given header
     Member("header_names","String_Collection"),	//Gets the names of the headers
     Member("method","String"),	//Gets whether it was a 'get' or a 'post'.
+    Member("on_response_received",List("Handler"),"Nothing"), // Sets the handler for async sending
     Member("send","Web_Response"),	//Performs the request synchronously
     Member("send_async",List("Handler"),"Web_Response"),	// Performs the request asynchronously
     Member("set_accept",List("String"),"Nothing"),	//Sets the Accept header type ('text/xml' for xml, 'application/json' for json).

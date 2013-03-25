@@ -1,0 +1,165 @@
+meta version "v2.2,nothing";
+meta name "That can\'t be good.";
+meta icon "exclamation";
+meta color "#ff00008b";
+// This app is designed to send an SMS message if the phone goes outside a defined radius from "home base." I was originally thinking about people suffering from dementia, but I also enabled it to track speed and sense impact which could make it useful for parents with new drivers or people who have to drive extremely isolated roads.  The problem is that the user must consent to sending the SMS - and that's a big problem.  There is very little UI until I (we?) can sort that out.
+// .
+meta platform "current,accelerometer,location,maps,motion,phone";
+
+action main() {
+  // Adding fake info to constants and settings until I get around to building UI to collect them.
+  code→set\_home\_base;
+  "Home base set" →post_to_wall;
+  code→set\_speed\_threshold;
+  "Speed threshold set." →post_to_wall;
+  code→set\_safe\_distance;
+  "Safe distance set." →post_to_wall;
+  code→set\_alert\_number;
+  "Alert number set." →post_to_wall;
+  code→set\_watch\_state;
+  "Watch state set to TRUE." →post_to_wall;
+  code→set\_shake\_threshold;
+  "Shake threshold set." →post_to_wall;
+  // Now start checking.
+  while data→Watch\_State do {
+    "###" →post_to_wall;
+    "Checking location." →post_to_wall;
+    code→check\_loc;
+    time→sleep(15);
+    "###" →post_to_wall;
+    "Checking speed." →post_to_wall;
+    code→check\_speed;
+    time→sleep(15);
+  }
+}
+var Alert\_Number : String {
+  // the number the sms is sent to.
+}
+
+event shake() {
+  $p := senses→motion→yaw;
+  if $p > data→Shake\_threshhold then {
+    $loc := senses→current_location_accurate;
+    data→Current\_location := $loc;
+    data→Watch\_State := false;
+    code→send\_alert(2);
+  }
+  meta private;
+}
+var Shake\_threshhold : Number {
+  // How hard the phone needs to yaw in order to trigger an alert.
+}
+
+action send\_alert(x1: Number) {
+  $p := data→Current\_speed;
+  $q := "You were caught going ";
+  $r := data→Current\_location;
+  $s := data→Alert\_Number;
+  $t := "SEND HELP TO: ";
+  $u := $t ∥ $r;
+  $v := $q ∥ $p ∥ "at location " ∥ $r;
+  $w := "You left the authorized area at point: ";
+  $x := time→now;
+  $y := $w ∥ $r ∥ " at " ∥ $x;
+  // 1 = speeding
+  if $x1 = 1 then {
+    social→send_sms($s, $v);
+    ... ;
+  }
+  else {
+    ... ;
+    // 2= crashed
+    if $x1 = 2 then {
+      social→send_sms($s, $u);
+    }
+    else {
+      // 3 = crossed boundary
+      if $x1 = 3 then {
+        social→send_sms($s, $y);
+      }
+    }
+  }
+  meta private;
+}
+var Current\_location : Location {
+  // where to send help to
+}
+
+action check\_speed() {
+  $x := senses→current_location→speed;
+  $s := "Your speed is " ∥ $x;
+  $s→post_to_wall;
+  if $x > data→Speed\_threshold then {
+    data→Current\_speed := $x;
+    data→Watch\_State := false;
+    code→send\_alert(1);
+  }
+  meta private;
+}
+var Speed\_threshold : Number {
+  // if you go above this it trigger an alert
+}
+
+action check\_loc() {
+  $g := data→Home\_base;
+  $h := senses→current_location→distance($g);
+  $i := "You are " ∥ $h ∥ " meters from home base.";
+  $i→post_to_wall;
+  if $h > data→Safe\_distance then {
+    code→send\_alert(3);
+    data→Watch\_State := false;
+  }
+  meta private;
+}
+var Home\_base : Location {
+  // the place you can only go so far from
+}
+var Safe\_distance : Number {
+  // how far you can go from home base and not trigger an alert
+}
+
+action set\_home\_base() {
+  $x := 120.6451;
+  $y := 46.51574;
+  $loc1 := locations→create_location($x, $y);
+  data→Home\_base := $loc1;
+  meta private;
+}
+var Current\_speed : Number {
+  // how fast you are going
+}
+
+action set\_speed\_threshold() {
+  // Hard coding awaiting UI to collect it.
+  data→Speed\_threshold := 20;
+  meta private;
+}
+
+action set\_safe\_distance() {
+  // Hard coding data until I build the UI to collect it.
+  data→Safe\_distance := 5000;
+  meta private;
+}
+
+action set\_alert\_number() {
+  data→Alert\_Number := "425 882 8080";
+  meta private;
+}
+var Watch\_State : Boolean {
+  // when true checking cycles are running
+}
+
+action set\_watch\_state() {
+  // Hard coding until I get around to creating the UI to allow you to pause/run the checking.
+  data→Watch\_State := true;
+  meta private;
+}
+
+action set\_shake\_threshold() {
+  // Hard coding this until I get around to building the UI to collect it.
+  data→Shake\_threshhold := 300;
+  meta private;
+}
+var v : Number {
+}
+

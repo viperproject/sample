@@ -1,0 +1,45 @@
+meta version "v2.2,nothing";
+meta name "3D box";
+meta icon "cube";
+meta color "#ff008000";
+// There is a 3D box in your phone! Watch it with your eyes straight down and tilt your phone.
+meta platform "current";
+
+action main() {
+  data→board := media→create_portrait_board(480, 800);
+  data→picback := media→create_picture(480, 800);
+  data→spriteback := data→board→create_picture(data→picback);
+  data→sprite := data→board→create_rectangle(360, 600);
+  data→sprite→set_color(colors→black→lighten(0.1));
+  data→picfront := media→create_picture(480, 800);
+  data→spritefront := data→board→create_picture(data→picfront);
+  data→board→create_ellipse(20, 20)→set_color(colors→black);
+  data→board→post_to_wall;
+}
+var board : Board {
+}
+var sprite : Sprite {
+}
+
+event gameloop() {
+  data→sprite→set_pos(240 - senses→orientation→x * 240 / 90, 400 - senses→orientation→y * 400 / 180);
+  data→picback→clear(colors→black→lighten(0.2));
+  data→picback→draw_line(0, 0, data→sprite→x - 180, data→sprite→y - 300, colors→black, 1);
+  data→picback→draw_line(480, 0, data→sprite→x + 180, data→sprite→y - 300, colors→black, 1);
+  data→picback→draw_line(0, 800, data→sprite→x - 180, data→sprite→y + 300, colors→black, 1);
+  data→picback→draw_line(480, 800, data→sprite→x + 180, data→sprite→y + 300, colors→black, 1);
+  data→spriteback→set_picture(data→picback);
+  data→picfront := media→create_picture(480, 800);
+  data→picfront→draw_line(data→sprite→x, data→sprite→y, 240, 400, colors→black→lighten(0.5), 3);
+  data→spritefront→set_picture(data→picfront);
+  data→board→update_on_wall;
+  meta private;
+}
+var spriteback : Sprite {
+}
+var picback : Picture {
+}
+var picfront : Picture {
+}
+var spritefront : Sprite {
+}
