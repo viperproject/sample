@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 
 /**
  * Specifies the abstract semantics of Picture
@@ -42,14 +43,21 @@ class TPicture extends AAny {
 
 
     /** Gets the pixel color at the given linear index */
-    // case "at" =>
-    //   val List(index) = parameters // Number
-    //   Top[S](TColor.typ)
+    case "at" =>
+      val List(index) = parameters // Number
+      CheckInRangeInclusive[S](index,0,(Field[S](this0,TPicture.field_height)*Field[S](this0,TPicture.field_width))-NumericalAnalysisConstants.epsilon,"at","index")
+      Top[S](TColor.typ)
 
     /** Writes another picture at a given location. The opacity ranges from 0 (transparent) to 1 (opaque). */
-    // case "blend" =>
-    //   val List(other,left,top,angle,opacity) = parameters // Picture,Number,Number,Number,Number
-    //   Skip;
+    case "blend" =>
+      val List(other,left,top,angle,opacity) = parameters // Picture,Number,Number,Number,Number
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"blend","top")
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"blend","left")
+      CheckInRangeInclusive[S](opacity,0,1,"blend","opacity")
+      CheckInRangeInclusive[S](angle,0,360,"blend","angle")
+      CheckInRangeInclusive[S](Field[S](other,TPicture.field_height),0,Field[S](this0,TPicture.field_height)-top,"blend","other->height")
+      CheckInRangeInclusive[S](Field[S](other,TPicture.field_width),0,Field[S](this0,TPicture.field_width)-top,"blend","other->width")
+      Skip
 
     /** Changes the brightness of the picture. factor in [-1, 1]. */
      case "brightness" =>
@@ -67,32 +75,46 @@ class TPicture extends AAny {
       Clone[S](this0)
 
     /** Recolors the picture with the background and foreground color, based on a color threshold between 0.0 and 1.0 */
-    // case "colorize" =>
-    //   val List(background,foreground,threshold) = parameters // Color,Color,Number
-    //   Skip;
+    case "colorize" =>
+      val List(background,foreground,threshold) = parameters // Color,Color,Number
+      CheckInRangeInclusive[S](threshold,0,1,"colorize","threshold")
+      Skip
 
     /** Changes the contrast of the picture. factor in [-1, 1]. */
-    // case "contrast" =>
-    //   val List(factor) = parameters // Number
-    //   Skip;
+    case "contrast" =>
+      val List(factor) = parameters // Number
+      CheckInRangeInclusive[S](factor,-1,1,"contrast","factor")
+      Skip
 
     /** Gets the number of pixels */
      case "count" =>
        Return[S](Field[S](this0,TPicture.field_width)*Field[S](this0,TPicture.field_height))
 
     /** Crops a sub-image */
-    // case "crop" =>
-    //   val List(left,top,width,height) = parameters // Number,Number,Number,Number
-    //   Skip;
+    case "crop" =>
+      val List(left,top,width,height) = parameters // Number,Number,Number,Number
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"crop","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"crop","top")
+      CheckInRangeInclusive[S](width,0,Field[S](this0,TPicture.field_width)-left,"crop","width")
+      CheckInRangeInclusive[S](height,0,Field[S](this0,TPicture.field_height)-top,"crop","height")
+      val state1 = AssignField[S](this0,TPicture.field_width,width)
+      val state2 = AssignField[S](this0,TPicture.field_width,height)(state1,pp)
+      state2
 
     /** Makes picture gray */
     case "desaturate" =>
       Skip
 
     /** Draws an elliptic border with a given color */
-    // case "draw_ellipse" =>
-    //   val List(left,top,width,height,angle,c,thickness) = parameters // Number,Number,Number,Number,Number,Color,Number
-    //   Skip;
+    case "draw_ellipse" =>
+      val List(left,top,width,height,angle,c,thickness) = parameters // Number,Number,Number,Number,Number,Color,Number
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"draw_ellipse","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"draw_ellipse","top")
+      CheckInRangeInclusive[S](width,0,Field[S](this0,TPicture.field_width)-left,"draw_ellipse","width")
+      CheckInRangeInclusive[S](height,0,Field[S](this0,TPicture.field_height)-top,"draw_ellipse","height")
+      CheckInRangeInclusive[S](angle,0,360,"draw_ellipse","angle")
+      CheckNonNegative[S](thickness,"draw_ellipse","thickness")
+      Skip
 
     /** Draws a line between two points */
     case "draw_line" =>
@@ -101,6 +123,7 @@ class TPicture extends AAny {
       CheckInRangeInclusive[S](y1,0,Field[S](this0,TPicture.field_height),"draw_line","y1")
       CheckInRangeInclusive[S](x2,0,Field[S](this0,TPicture.field_width),"draw_line","x2")
       CheckInRangeInclusive[S](y2,0,Field[S](this0,TPicture.field_height),"draw_line","y2")
+      CheckNonNegative[S](thickness,"draw_line","thickness")
       Skip
 
     /** Draws a rectangle border with a given color */
@@ -111,7 +134,7 @@ class TPicture extends AAny {
       CheckInRangeInclusive[S](left+width,0,Field[S](this0,TPicture.field_width),"draw_rect","left+width")
       CheckInRangeInclusive[S](top+height,0,Field[S](this0,TPicture.field_height),"draw_rect","top+height")
       CheckInRangeInclusive[S](angle,0,360,"draw_rect","angle")
-      Error (thickness < 0, "draw_text: Parameter Thickness ("+thickness+") might be negative")(state,pp)
+      CheckNonNegative[S](thickness,"draw_rect","thickness")
       Skip
 
     /** Draws some text border with a given color and font size */
@@ -123,9 +146,14 @@ class TPicture extends AAny {
       Skip
 
     /** Fills a ellipse with a given color */
-    // case "fill_ellipse" =>
-    //   val List(left,top,width,height,angle,color) = parameters // Number,Number,Number,Number,Number,Color
-    //   Skip;
+    case "fill_ellipse" =>
+      val List(left,top,width,height,angle,color) = parameters // Number,Number,Number,Number,Number,Color
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"fill_ellipse","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"fill_ellipse","top")
+      CheckInRangeInclusive[S](width,0,Field[S](this0,TPicture.field_width)-left,"fill_ellipse","width")
+      CheckInRangeInclusive[S](height,0,Field[S](this0,TPicture.field_height)-top,"fill_ellipse","height")
+      CheckInRangeInclusive[S](angle,0,360,"fill_ellipse","angle")
+      Skip
 
     /** Fills a rectangle with a given color */
     case "fill_rect" =>
@@ -156,13 +184,15 @@ class TPicture extends AAny {
     /** Gets the pixel color */
      case "pixel" =>
        val List(x,y) = parameters // Number,Number
-       CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width),"pixel","x")
-       CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height),"pixel","y")
+       CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"pixel","x")
+       CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"pixel","y")
        New[S](TColor.typ)
 
     /** Resizes the picture to the given size in pixels */
     case "resize" =>
       val List(width,height) = parameters // Number,Number
+      CheckNonNegative[S](width,"resize","width")
+      CheckNonNegative[S](height,"resize","height")
       val state1 = AssignField[S](this0,TPicture.field_height,height)
       val state2 = AssignField[S](this0,TPicture.field_width,width)(state1,pp)
       state2
@@ -174,23 +204,23 @@ class TPicture extends AAny {
     /** Sets the pixel color at a given pixel */
     case "set_pixel" =>
       val List(x,y,color) = parameters // Number,Number,Color
-      CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width),"set_pixel","x")
-      CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height),"set_pixel","y")
+      CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"set_pixel","x")
+      CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"set_pixel","y")
       Skip
 
     /** Shares this message (empty string to pick from a list) */
-    // case "share" =>
-    //   val List(where,message) = parameters // String,String
-    //   Skip;
+    case "share" =>
+      val List(where,message) = parameters // String,String
+      Skip
 
     /** Converts every pixel to gray and tints it with the given color. */
-    // case "tint" =>
-    //   val List(color) = parameters // Color
-    //   Skip;
+    case "tint" =>
+      val List(color) = parameters // Color
+      Skip
 
     /** Refreshes the picture on the wall */
-    // case "update_on_wall" =>
-    //   Skip;
+    case "update_on_wall" =>
+      Skip
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

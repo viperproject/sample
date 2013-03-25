@@ -87,6 +87,7 @@ object MethodSummaries {
         exitFunction(callPoint,callTarget,currentSummary.exitState(),parameters)
 
     }
+
     result
   }
 

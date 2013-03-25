@@ -21,7 +21,7 @@
 //    /** Gets the i-th element */
 //    case "at_index" =>
 //      val List(index) = parameters // Number
-//      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-1),method,"index")
+//      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
 //      Return[S](CollectionAt[S](this0,index)) // TODO: Get the i-th key
 //
 //    /** Returns the length of the collection*/

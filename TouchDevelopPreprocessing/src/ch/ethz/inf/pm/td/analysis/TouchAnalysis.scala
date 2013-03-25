@@ -32,22 +32,23 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
  */
 class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd[InvalidAnd[D]]] {
 
-  var domain: D = null.asInstanceOf[D]
+  var domain: String = ""
 
   def getLabel(): String = "TouchDevelop analysis"
 
   def parameters(): List[(String, Any)] = List(("Domain", List("Sign", "Interval")))
 
-  /** Initialize with some arbitrary numerical domain. Extend this to APRON later */
   def setParameter(label: String, value: Any) { label match {
-    case "Domain" => value match {
-      case "Sign" => domain = new BoxedNonRelationalNumericalDomain(new Sign(SignValues.T)).asInstanceOf[D]
-      case "Interval" => domain = new BoxedNonRelationalNumericalDomain(new Interval(0, 0)).asInstanceOf[D]
-    }
+    case "Domain" => domain = value.toString
   }}
 
   def getInitialState(): StringsAnd[InvalidAnd[D]] = {
-    new StringsAnd(new InvalidAnd(domain)).top()
+    new StringsAnd(new InvalidAnd(
+      domain match {
+        case "Sign" => new BoxedNonRelationalNumericalDomain(new Sign(SignValues.T)).asInstanceOf[D]
+        case "Interval" => new BoxedNonRelationalNumericalDomain(new Interval(0, 0)).asInstanceOf[D]
+      }
+    ))
   }
 
   override def reset() { Unit }
@@ -68,7 +69,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
    *
    */
   override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) {
-
+    ApronInstanceCounter.reset()
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
     // Set up the environment
@@ -77,13 +78,13 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     SystemParameters.progressOutput.begin(" ANALYZING "+compiler.main.name)
 
     // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
-    SystemParameters.progressOutput.begin("Library fragment analysis")
+    //SystemParameters.progressOutput.begin("Library fragment analysis")
     if(TouchAnalysisParameters.libraryFieldPruning) {
       compiler.relevantLibraryFields = RequiredLibraryFragmentAnalysis(compiler.parsedScripts)
       SystemParameters.resetOutput
       MethodSummaries.reset[S]()
     }
-    SystemParameters.progressOutput.end()
+    //SystemParameters.progressOutput.end()
 
     // Set global state to invalid
     var curState = entryState
@@ -168,7 +169,6 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
         analyzeExecution(compiler,methods)(curState)
 
     // Check properties on the results
-    SystemParameters.progressOutput.end()
     if (SystemParameters.property!=null) {
       val results = MethodSummaries.getSummaries.values map
         {(x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) => (x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])}
@@ -179,6 +179,8 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     // Print some html
     if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
 
+    SystemParameters.progressOutput.end()
+    ApronInstanceCounter.print()
 
   }
 
@@ -240,7 +242,10 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     while(!cur.lessEqual(prev)) {
       prev = cur
       iteration=iteration+1
-      if(iteration > SystemParameters.wideningLimit) cur = prev.widening(prev,singleIteration(prev))
+      if(iteration > SystemParameters.wideningLimit) {
+        if (iteration > SystemParameters.wideningLimit + 10) println("Looks like we are not terminating here!")
+        cur = prev.widening(prev,singleIteration(prev))
+      }
       else cur = prev.lub(prev,singleIteration(prev))
     }
 

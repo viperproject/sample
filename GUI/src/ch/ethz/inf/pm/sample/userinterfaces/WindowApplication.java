@@ -14,14 +14,20 @@ import java.beans.PropertyChangeListener;
 import java.io.*;
 import java.net.URL;
 
+import apron.Abstract1;
+import apron.Environment;
+import apron.Octagon;
 import ch.ethz.inf.pm.sample.*;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain;
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface;
 import ch.ethz.inf.pm.sample.property.OutputCollector;
 import ch.ethz.inf.pm.sample.tracepartitioning.Directive;
 import ch.ethz.inf.pm.sample.tracepartitioning.PartitionedState;
 import ch.ethz.inf.pm.sample.tracepartitioning.TracePartitioning;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
+import ch.ethz.inf.pm.td.domain.InvalidAnd;
+import ch.ethz.inf.pm.td.domain.StringsAnd;
 import ch.ethz.inf.pm.td.webapi.*;
 import ch.ethz.inf.pm.td.analysis.*;
 import org.apache.commons.lang3.StringUtils;
@@ -416,7 +422,7 @@ public class WindowApplication {
                     taskOutput.append("\nCreating the initial state of the analysis");
                     HeapDomain heapDomain = getSelectedHeapAnalysis();
                     if(heapDomain instanceof NonRelationalHeapDomain) {
-                        ((NonRelationalHeapDomain) heapDomain).setType(SystemParameters.getType());
+                        ((NonRelationalHeapDomain) heapDomain).setType(SystemParameters.getType().top());
                     }
                     SemanticDomain domain = (SemanticDomain) getSelectedAnalysis().getInitialState();
                     HeapAndAnotherDomain entrydomain  = new HeapAndAnotherDomain(domain, heapDomain);
@@ -430,7 +436,7 @@ public class WindowApplication {
                     if (directiveListModel.size() > 0) {
                         getSelectedAnalysis().analyze(methods, new PartitionedState(entryState), output);
 					} else if(getSelectedAnalysis() instanceof MultithreadingAnalysis) {
-                        ((MultithreadingAnalysis) getSelectedAnalysis()).fixpointComputation(methods, (SemanticDomain) getSelectedAnalysis().getInitialState(), output, heapDomain, SystemParameters.getType());
+                        ((MultithreadingAnalysis) getSelectedAnalysis()).fixpointComputation(methods, domain, output, heapDomain, SystemParameters.getType());
                     }  else {
                         getSelectedAnalysis().analyze(methods, entryState, output);
 					}

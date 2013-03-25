@@ -59,7 +59,7 @@ class TJson_Object extends ACollection {
     /** Gets a value by name */
     case "field" =>
       val List(key) = parameters // String
-      Return[S](CollectionAt[S](this0,key))
+      Return[S](CollectionAt[S](this0,key),Invalid(TJson_Object.typ))
 
     /** Gets a field value as a number */
     case "number" =>

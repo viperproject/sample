@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchCollection
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 
 /**
  * Represents a collection (this class contains common read operations. Extend AMutable_Collections to get write ops)
@@ -17,13 +18,13 @@ abstract class ACollection extends AAny {
     case "at" =>
       // FIXME: Some collections are indexed non-numerically
       val List(index) = parameters // Key_Type
-      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-1),method,"index")
+      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       Return[S](CollectionAt[S](this0,index))
 
     /** Gets the i-th element */
     case "at_index" =>
       val List(index) = parameters // Key_Type
-      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-1),method,"index")
+      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       Return[S](CollectionAt[S](this0,index))
 
     /** Creates a copy of the given collection. AUXILIARY FUNCTION FOR FOREACH LOOPS */

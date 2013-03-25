@@ -402,10 +402,12 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
       iteration=iteration+1;
       //System.out.println("Iteration n."+iteration);
       if(iteration > SystemParameters.wideningLimit) {
+        if (iteration > SystemParameters.wideningLimit + 10) println("Looks like we are not terminating here!")
     	  val result=singleIteration(prev, lastresult, initialState)
     	  next=prev.widening(result);
       }
-      else next=singleIteration(prev, lastresult, initialState).lub(prev);
+      else
+        next=singleIteration(prev, lastresult, initialState).lub(prev)
     }
     //System.out.println("End of the analysis");
     next.edges=cfg.edges; //TODO: This should be in the constructor and not here!
@@ -423,8 +425,10 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg : ControlFlowGraph, val s
     while(! prev.lessEqual(next)) {
       prev=next;
       iteration=iteration+1;
-      if(iteration > SystemParameters.wideningLimit)
+      if(iteration > SystemParameters.wideningLimit) {
+        if (iteration > SystemParameters.wideningLimit + 10) println("Looks like we are not terminating here!")
         next=prev.glb(prev, singleIteration(prev, lastresult, initialState));//I should use the narrowing!
+      }
       else next=prev.glb(prev, singleIteration(prev, lastresult, initialState));
     }
     next.edges=cfg.edges; //TODO: This should be in the constructor and not here!

@@ -1,6 +1,8 @@
 import ch.ethz.inf.pm.td.TestRunner
+import ch.ethz.inf.pm.td.webapi.DowncasedTypeHints
+import ch.ethz.inf.pm.td.webapi.Script
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
-import ch.ethz.inf.pm.td.webapi.{Scripts, Script, DowncasedTypeHints}
+import ch.ethz.inf.pm.td.webapi._
 import java.io.{File, PrintWriter}
 import net.liftweb.json._
 
@@ -10,14 +12,14 @@ import net.liftweb.json._
  * Set the userid below (e.g. pboj for the TouchDevelop Samples user)
  */
 
-val dirs = "random1"
+val dirs = "random2"
 
 implicit val formats = new DefaultFormats {
   override val typeHintFieldName = "type"
   override val typeHints = DowncasedTypeHints(List(classOf[Script]))
 }
 
-TestRunner(new Scripts,10,{ (id:String,url:String) =>
+TestRunner(new FeaturedScripts,40,{ (id:String,url:String) =>
 
   val dir = new File("TouchDevelopPreprocessing/testfiles/"+dirs)
 

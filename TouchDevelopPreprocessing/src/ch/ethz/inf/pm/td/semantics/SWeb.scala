@@ -127,17 +127,29 @@ class SWeb extends AAny {
       // TODO: Enforce empty, object etc.
       New[S](TJson_Object.typ)
 
+    /** Creates a multi-scale image from an image url */
+    case "link_deep_zoom" =>
+      val List(url) = parameters // String
+      New[S](TLink.typ,Map(
+        TLink.field_kind -> String("image"),
+        TLink.field_address -> toRichExpression(url)
+      ))
+
     /** Creates a link to an internet image */
     case "link_image" =>
       val List(url) = parameters // String
       New[S](TLink.typ,Map(
+        TLink.field_kind -> String("image"),
         TLink.field_address -> toRichExpression(url)
       ))
 
     /** Creates a link to an internet audio/video */
-    // case "link_media" =>
-    //   val List(url) = parameters // String
-    //   Top[S](TLink.typ)
+    case "link_media" =>
+      val List(url) = parameters // String
+      New[S](TLink.typ,Map(
+        TLink.field_kind -> String("media"),
+        TLink.field_address -> toRichExpression(url)
+      ))
 
     /** Creates a link to an internet page */
     case "link_url" =>
@@ -163,6 +175,13 @@ class SWeb extends AAny {
       Error[S](Field[S](this0,SWeb.field_is_connected).not(),"play_media",
         "Check if the device is connected to the internet before using the connection")
       Skip
+
+    /** Parses the newsfeed string (RSS 2.0 or Atom 1.0) into a message collection */
+    case "rss" =>
+      val List(value) = parameters // String
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"feed",
+        "Check if the device is connected to the internet before using the connection")
+      TopWithInvalid[S](TMessage_Collection.typ)
 
     /** Searching the web using Bing */
     case "search" =>

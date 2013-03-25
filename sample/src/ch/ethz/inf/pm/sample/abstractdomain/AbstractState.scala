@@ -144,7 +144,7 @@ class SetOfExpressions extends SetDomain[Expression, SetOfExpressions] {
 class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : HeapAndAnotherDomain[N, H, I], expr : ExpressionSet) extends
   CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N,H,I]](state, expr) with State[AbstractState[N,H,I]] with SingleLineRepresentation {
 
-  def factory() = new AbstractState(this._1.top(), this._2.top())
+  def factory() = new AbstractState(this._1.factory(), this._2.factory())
   override def bottom() = new AbstractState(this._1.bottom(), this._2.bottom())
   def isBottom : Boolean = this._1.equals(this._1.bottom()) || this._2.equals(this._2.bottom())
   def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id)
@@ -424,28 +424,26 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   def getType(variable : Identifier) : Type = {//TODO: is this correct???
     variable.getType()
   }
-  
-  def getFieldValue(objs : List[ExpressionSet], field : String, typ : Type) : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
-    var result : AbstractState[N,H,I] = this.bottom()
-    for(obj : ExpressionSet <- objs) {
-    	//For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
-      	for(expr <- obj.getSetOfExpressions) {
-        if(! (expr.isInstanceOf[Assignable] || expr.isInstanceOf[HeapIdSetDomain[I]]))
-          return bottom()
-     	  val (heapid, newHeap, rep) =
-           if(expr.isInstanceOf[Assignable])
-             this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint())
-          else HeapIdSetFunctionalLifting.applyGetFieldId(expr.asInstanceOf[HeapIdSetDomain[I]], this._1,
-             this._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint()))
 
+  def getFieldValue(objs: List[ExpressionSet], field: String, typ: Type): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+    var result: AbstractState[N, H, I] = this.bottom()
+    for (obj: ExpressionSet <- objs) {
+      //For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
+      for (expr <- obj.getSetOfExpressions) {
+        if (expr.isInstanceOf[Assignable] || expr.isInstanceOf[HeapIdSetDomain[I]]) {
+          val (heapid, newHeap, rep) =
+            if (expr.isInstanceOf[Assignable])
+              this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint())
+            else HeapIdSetFunctionalLifting.applyGetFieldId(expr.asInstanceOf[HeapIdSetDomain[I]], this._1,
+              this._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint()))
 
-             //HeapIdSetFunctionalLifting.applyToSetHeapId(, obj.get(expr)._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint()))
-        var result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-        val accessed=if(heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
-     	  val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
-     	  result=result.lub(result, state)
+          var result2 = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
+          val accessed = if (heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
+          val state = new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
+          result = result.lub(result, state)
         }
+      }
     }
     result
   }
@@ -631,7 +629,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       collection match {
         case id: Assignable => result = insertCollectionCell(result,key,right)(id)
         case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, set,insertCollectionCell(result,key,right))
-        case _ => throw new SymbolicSemanticException("Not allowed")
+        case _ => ()
       }
     }
 
@@ -652,7 +650,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       collection match {
         case id: Assignable => result = removeCollectionCell(result,key)(id)
         case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, set,removeCollectionCell(result,key))
-        case _ => throw new SymbolicSemanticException("Not allowed")
+        case _ => ()
       }
     }
 
@@ -677,7 +675,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       expr match {
         case id: Assignable => getCollectionCell(keyExpr)(id)
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionCell(keyExpr))
-        case _ => throw new SymbolicSemanticException("Not allowed")
+        case _ => ()
       }
     }
     result
@@ -696,7 +694,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       collection match {
         case id: Assignable => result = clearCollection(result)(id)
         case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, set,clearCollection(result))
-        case _ => throw new SymbolicSemanticException("Not allowed")
+        case _ => ()
       }
     }
 
@@ -723,7 +721,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       collection match {
         case id: Assignable => getCollectionLength(id)
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(set.bottom(), set, getCollectionLength)
-        case _ => throw new SymbolicSemanticException("Not allowed")
+        case _ => ()
       }
     }
     if (heapId == null) this.bottom()

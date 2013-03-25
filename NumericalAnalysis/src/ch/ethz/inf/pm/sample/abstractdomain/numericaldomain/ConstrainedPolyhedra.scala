@@ -19,7 +19,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 							val coefficients : Set[Int],
 							val numOfVariables: Int,
 							val setOfStringOfID: Set[String],
-              val setOfIdentifiers: Set[Identifier]) extends ApronInterface(cpstate, cpdomain) {
+              val setOfIdentifiers: Set[Identifier]) extends ApronInterface(Some(cpstate), cpdomain) {
 
 	private val checkVariableSet : Boolean = !(setOfStringOfID.isEmpty) || !(setOfIdentifiers.isEmpty)
 	private val checkCoef : Boolean = !(coefficients.isEmpty)
@@ -38,8 +38,8 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	override def assign (variable : Identifier, expr : Expression) : ConstrainedPolyhedra = {
 		if (checkVariableSet) {
 			val apInterface = super.assign(variable, expr)
-			//new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID)
-			checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers))
+			//new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID)
+			checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers))
 		} else {
 			//println("this should not be executed")
 			new ConstrainedPolyhedra(this.cpstate, this.cpdomain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
@@ -52,7 +52,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	 */
 	override def assume(expr : Expression) : ConstrainedPolyhedra = {
 		val apInterface = super.assume(expr)
-		checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers))
+		checkAndRemoveLinConstraints(new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers))
 		/*
 		if (isExpressionAccepted(expr)) {
 			assumeWithoutConstraints(expr)
@@ -63,44 +63,44 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	
 	override def bottom() : ConstrainedPolyhedra = {
 		val apInterface = super.bottom()
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def createVariable (variable : Identifier, typ : Type) : ConstrainedPolyhedra = {
 		val apInterface = super.createVariable(variable, typ)
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def factory() : ConstrainedPolyhedra = top()
 	
 	override def glb(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
 		val apInterface = super.glb(left, right)
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def lub(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
 		val apInterface = super.lub(left, right)
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def removeVariable(variable : Identifier) : ConstrainedPolyhedra = { 
 		val apInterface = super.removeVariable(variable)
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables,this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables,this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def setToTop(variable : Identifier) : ConstrainedPolyhedra = {
 		val apInterface = super.setToTop(variable)
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def top() : ConstrainedPolyhedra = {
 		val apInterface = super.top
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	override def widening(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
 		val apInterface = super.widening(left, right)
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables,this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables,this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	/*
@@ -118,7 +118,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	 */
 	private def assumeWithoutConstraints(expr : Expression) : ConstrainedPolyhedra = {
 		val apInterface = super.assume(expr)
-		new ConstrainedPolyhedra(apInterface.state, apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
+		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers)
 	}
 	
 	/**
@@ -195,7 +195,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
   private def checkAndRemoveLinConstraints(cp : ConstrainedPolyhedra) : ConstrainedPolyhedra = {
 //		  println("INVOKED")
 		  var linCons = Set.empty[Lincons1]
-		  for (linCon <- cp.state.toLincons(domain)) {
+		  for (linCon <- cp.instantiateState().toLincons(domain)) {
 			  var addCon = true
 			  var numOfCoef = 0
 			  for (term <- linCon.getLinterms) {
@@ -219,7 +219,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 				  linCons.+=(linCon)
 			  }
 		  }
-		  var newState = new Abstract1(cp.domain, cp.state.getEnvironment, true)
+		  var newState = new Abstract1(cp.domain, cp.instantiateState().getEnvironment, true)
 		  if (!linCons.isEmpty) {
 			  newState = new Abstract1(domain, linCons.toArray)
 		  }

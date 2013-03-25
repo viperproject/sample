@@ -66,7 +66,7 @@ class SMath extends AAny {
     /** Returns the cosine of the specified angle (in radians) */
     case "cos" =>
       val List(angle) = parameters // Number
-      Return[S](0 ndTo 1)
+      Return[S](-1 ndTo 1)
 
     /** Returns the hyperbolic cosine of the specified angle (in radians) */
     case "cosh" =>
@@ -209,7 +209,7 @@ class SMath extends AAny {
     /** Returns the sine of the specified angle (in radians) */
     case "sin" =>
       val List(angle) = parameters // Number
-      Return[S](0 ndTo 1)
+      Return[S](-1 ndTo 1)
 
     /** Returns the hyperbolic sine of the specified angle (in radians) */
     case "sinh" =>

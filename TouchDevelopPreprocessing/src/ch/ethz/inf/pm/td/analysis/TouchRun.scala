@@ -7,7 +7,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.userinterfaces._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchCompiler}
-import apron.{Environment, Abstract1, Octagon}
+import apron.{Polka, Environment, Abstract1, Octagon}
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, NonRelationalNumericalDomain, ApronInterface}
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
 import java.io.{StringWriter, PrintWriter}
@@ -93,13 +93,6 @@ object TouchApronRun {
       sys.exit()
     }
 
-    // This is crazy: Increase the priority for the finalizer thread
-//    for(t <- Thread.getAllStackTraces().keySet()) {
-//      if (t.getName().equals("Finalizer")) {
-//        t.setPriority(Thread.MAX_PRIORITY)
-//      }
-//    }
-
     SystemParameters.compiler = new TouchCompiler
     SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
     SystemParameters.analysisOutput = new StdOutOutput()
@@ -115,7 +108,7 @@ object TouchApronRun {
 
         //EntryState
         val domain = new Octagon()
-        val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(new Abstract1(domain, new Environment()), domain)))
+        val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain).factory()))
         val heapID = new SimpleProgramPointHeapIdentifier(null,null)
         heapID.typ = SystemParameters.typ
 

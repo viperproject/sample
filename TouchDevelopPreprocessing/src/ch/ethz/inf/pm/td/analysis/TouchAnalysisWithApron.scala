@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.td.analysis
 
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
+import ch.ethz.inf.pm.td.domain.{InvalidAnd, StringsAnd}
 
 /**
  * 
@@ -16,16 +17,23 @@ class TouchAnalysisWithApron[D <: NumericalDomain[D]] extends TouchAnalysis[D] {
 
   override def parameters(): List[(String, Any)] = List(("Domain", List("Sign", "Interval", "ApronInterval", "ApronOctagons", "ApronPolka", "ApronLinearEqualities")))
 
-  /** Initialize with some arbitrary numerical domain. Extend this to APRON later */
-  override def setParameter(label: String, value: Any) { label match {
-    case "Domain" => value match {
-      case "ApronInterval" => domain = new ApronInterface(new Abstract1(new Box(), new apron.Environment()), new Box()).asInstanceOf[D]
-      case "ApronOctagons" => domain = new ApronInterface(new Abstract1(new Octagon(), new apron.Environment()), new Octagon()).asInstanceOf[D]
-      case "ApronPolka" => domain = new ApronInterface(new Abstract1(new Polka(false), new apron.Environment()), new Polka(false)).asInstanceOf[D]
-      case "ApronLinearEqualities" => domain = new ApronInterface(new Abstract1(new PolkaEq(), new apron.Environment()), new Polka(false)).asInstanceOf[D]
-      case _ => super.setParameter(label,value)
-    }
-    case _ => super.setParameter(label,value)
-  }}
+  override def getInitialState(): StringsAnd[InvalidAnd[D]] = {
+    new StringsAnd(new InvalidAnd(
+      domain match {
+        case "ApronInterval" =>
+          val man = new Box()
+          new ApronInterface(None, man).factory().asInstanceOf[D]
+        case "ApronOctagons" =>
+          val man = new Octagon()
+          new ApronInterface(None, man).factory().asInstanceOf[D]
+        case "ApronPolka" =>
+          val man = new Polka(false)
+          new ApronInterface(None, man).factory().asInstanceOf[D]
+        case "ApronLinearEqualities" =>
+          val man = new PolkaEq()
+          new ApronInterface(None, man).factory().asInstanceOf[D]
+      }
+    ))
+  }
 
 }

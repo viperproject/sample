@@ -729,11 +729,6 @@ trait FunctionalDomainWithReplacement[K, V <: LatticeWithReplacement[V], T <: Fu
  */
 abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: CartesianProductDomain[T1, T2, T]](protected var d1: T1, protected var d2: T2) extends Lattice[T] {
 
-  if (d1.equals(d1.bottom()) || d2.equals(d2.bottom())) {
-    d1 = d1.bottom();
-    d2 = d2.bottom();
-  }
-
   def _1: T1 = d1
 
   def _2: T2 = d2
@@ -749,7 +744,7 @@ abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <:
   }
 
   def bottom(): T = {
-    val result: T = this.factory();
+    val result: T = this.factory()
     result.d1 = d1.bottom()
     result.d2 = d2.bottom()
     result
@@ -828,6 +823,11 @@ abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: R
  * @since 0.1
  */
 abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]](a1: T1, a2: T2) extends CartesianProductDomain[T1, T2, T](a1, a2) with SemanticDomain[T] {
+
+  if (d1.equals(d1.bottom()) || d2.equals(d2.bottom())) {
+    d1 = d1.bottom()
+    d2 = d2.bottom()
+  }
 
   def getIds = this._1.getIds() ++ this._2.getIds();
 
