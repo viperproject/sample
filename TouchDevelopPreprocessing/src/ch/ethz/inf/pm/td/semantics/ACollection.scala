@@ -29,7 +29,7 @@ abstract class ACollection extends AAny {
 
     /** Creates a copy of the given collection. AUXILIARY FUNCTION FOR FOREACH LOOPS */
     case "copy" =>
-      CollectionCopy[S](this0)
+      Clone[S](this0)
 
     /** Get random element */
     case "random" =>

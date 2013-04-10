@@ -87,7 +87,7 @@ object TContact {
   val field_work_phone = new TouchField("work_phone",TLink.typ)
 
   val typName = "Contact"
-  val typ = new TouchType(typName,isSingleton = false,List(
+  val typ = new TouchType(typName,isSingleton = false, fields = List(
     field_birthday, field_company, field_email, field_first_name, field_home_address, field_home_phone, field_job_title,
     field_last_name, field_middle_name, field_mobile_phone, field_name, field_nick_name, field_office,
     field_personal_email, field_phone_number, field_picture, field_source, field_suffix, field_title, field_web_site,

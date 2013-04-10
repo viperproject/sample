@@ -30,7 +30,7 @@ object TSound {
   val field_volume = new TouchField("volume",TNumber.typ,ExpressionInitializer(-1 ndTo 1))
 
   val typName = "Sound"
-  val typ = new TouchType(typName,isSingleton = false,List(field_duration, field_pan, field_pitch, field_volume))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_duration, field_pan, field_pitch, field_volume))
 
 }
 

@@ -21,7 +21,7 @@ object TMap {
   val field_center = new TouchField("center",TLocation.typ)
 
   val typName = "Map"
-  val typ = new TouchType(typName,isSingleton = false,List(field_zoom,field_center))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_zoom,field_center))
 
 }
 

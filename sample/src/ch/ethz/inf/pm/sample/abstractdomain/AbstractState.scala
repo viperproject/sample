@@ -2,10 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
-import abstractdomain.HeapAndAnotherDomain
 import util.HeapIdSetFunctionalLifting
-import com.sun.org.apache.xpath.internal.ExpressionOwner
-
 
 object ExpressionFactory {
 
@@ -726,6 +723,44 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     }
     if (heapId == null) this.bottom()
     else this.setExpression(new ExpressionSet(SystemParameters.getType().top()).add(heapId)).setState(result)
+  }
+
+  /**
+   * Removes all variables satisfying filter
+   */
+  def pruneVariables(filter:VariableIdentifier => Boolean) : AbstractState[N, H, I] = {
+
+    var curState = this._1
+    for (id <- this._1.getIds()) {
+      id match {
+
+        case va:VariableIdentifier =>
+          if (filter(va)) {
+            curState = curState.removeVariable(id)
+          }
+
+        case _ => ()
+
+      }
+    }
+
+    new AbstractState(curState, this._2)
+  }
+
+  /**
+   * Performs abstract garbage collection
+   */
+  def pruneUnreachableHeap() : AbstractState[N, H, I] = {
+
+    // TODO
+//    val unreachable = this._1._2.getUnreachableHeap
+//    pruneVariables({
+//      case a:I => unreachable.contains(a)
+//      case _ => false
+//    })
+
+    this
+
   }
 
 }

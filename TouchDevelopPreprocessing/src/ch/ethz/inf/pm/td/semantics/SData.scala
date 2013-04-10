@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SData {
 
   val typName = "data"
-  val typ = new TouchType(typName,isSingleton = true,List())
+  val typ = new TouchType(typName,isSingleton = true)
 
 }
 

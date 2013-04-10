@@ -23,7 +23,7 @@ object TTextBox {
   val field_text = new TouchField("text",TString.typ)
 
   val typName = "TextBox"
-  val typ = new TouchType(typName,isSingleton = false,List(field_background,field_border,field_font_size,field_foreground,
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_background,field_border,field_font_size,field_foreground,
     field_icon,field_text))
 
 }

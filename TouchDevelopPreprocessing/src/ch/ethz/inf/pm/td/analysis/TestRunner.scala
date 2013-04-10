@@ -1,9 +1,9 @@
-package ch.ethz.inf.pm.td
+package ch.ethz.inf.pm.td.analysis
 
-import compiler.TouchException
-import domain.{TouchApronRun, TouchRun}
-import webapi.{Scripts, NoMoreScriptsException}
-import java.io.{FileFilter, FilenameFilter, File}
+import java.io.{FileFilter, File}
+import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, Scripts}
+import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.domain.{TouchApronRun, TouchRun}
 
 /**
  *

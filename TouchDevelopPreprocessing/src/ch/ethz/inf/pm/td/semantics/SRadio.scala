@@ -23,7 +23,7 @@ object SRadio {
   val field_is_playing = new TouchField("is_playing",TBoolean.typ, NewInitializer())
 
   val typName = "radio"
-  val typ = new TouchType(typName,isSingleton = true,List(field_frequency, field_is_playing))
+  val typ = new TouchType(typName,isSingleton = true, fields = List(field_frequency, field_is_playing))
 
 }
 

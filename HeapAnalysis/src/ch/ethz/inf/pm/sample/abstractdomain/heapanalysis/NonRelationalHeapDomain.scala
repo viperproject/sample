@@ -367,7 +367,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     val (length,_,state1) = getCollectionLength(collection,state)
     var curState = state1
     for(lengthId <- length.identifiers()) {
-      curState = curState.assign(lengthId,BinaryArithmeticExpression(length,Constant("1",lengthId.getType(),null),ArithmeticOperator.+,lengthId.getType()))
+      curState = curState.assign(lengthId,BinaryArithmeticExpression(lengthId,Constant("1",lengthId.getType(),null),ArithmeticOperator.+,lengthId.getType()))
     }
     var result=this.bottom()
     val ids = this.getCollectionCell(collection, index, state)._1
@@ -419,7 +419,13 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     }
     resolveVariables(state,collection,clear(_))
     (result, curState)
+
   }
+
+  def getUnreachableHeap:Set[I] = {
+    heap.getIds.filter(ReachabilityAnalysis.reach(_,env,heap)._2)
+  }
+
 
   private def resolveVariables[T <: Lattice[T]](fact:T, a: Assignable, f : Assignable => T):T = {
     a match {

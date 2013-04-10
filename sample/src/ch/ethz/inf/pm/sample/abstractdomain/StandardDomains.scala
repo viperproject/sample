@@ -824,29 +824,29 @@ abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: R
  */
 abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]](a1: T1, a2: T2) extends CartesianProductDomain[T1, T2, T](a1, a2) with SemanticDomain[T] {
 
-  if (d1.equals(d1.bottom()) || d2.equals(d2.bottom())) {
-    d1 = d1.bottom()
-    d2 = d2.bottom()
-  }
+//  if (d1.equals(d1.bottom()) || d2.equals(d2.bottom())) {
+//    d1 = d1.bottom()
+//    d2 = d2.bottom()
+//  }
 
-  def getIds = this._1.getIds() ++ this._2.getIds();
+  def getIds = this._1.getIds() ++ this._2.getIds()
 
   def setToTop(variable: Identifier): T = {
-    val result: T = this.factory();
+    val result: T = this.factory()
     result.d1 = d1.setToTop(variable)
     result.d2 = d2.setToTop(variable)
     result
   }
 
   def assign(variable: Identifier, expr: Expression): T = {
-    val result: T = this.factory();
+    val result: T = this.factory()
     result.d1 = d1.assign(variable, expr)
     result.d2 = d2.assign(variable, expr)
     result
   }
 
   def setArgument(variable: Identifier, expr: Expression): T = {
-    val result: T = this.factory();
+    val result: T = this.factory()
     result.d1 = d1.setArgument(variable, expr)
     result.d2 = d2.setArgument(variable, expr)
     result

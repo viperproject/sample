@@ -40,14 +40,16 @@ class SWall extends AAny {
       Top[S](TBoolean.typ)
 
     /** Prompts the user to input a number */
+    // The javascript version does not return invalid but 0 if user cancels
     case "ask_number" =>
       val List(text) = parameters // String
       Top[S](TNumber.typ)
 
     /** Prompts the user to input a string */
+    // The javascript version does not return invalid but ""if user cancels
     case "ask_string" =>
       val List(text) = parameters // String
-      New[S](TString.typ) // TODO
+      Top[S](TString.typ)
 
     /** Gets the list of available page button names. */
     case "button_icon_names" =>

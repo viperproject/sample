@@ -121,22 +121,22 @@ class SMath extends AAny {
     /** Indicates whether number evaluates to negative or positive infinity */
     case "is_∞" =>
       val List(x) = parameters // Number
-      New[S](TBoolean.typ) // TODO
+      Top[S](TBoolean.typ) // TODO
 
     /** Indicates whether number evaluates to negative infinity */
     case "is_∞₋" =>
       val List(x) = parameters // Number
-      New[S](TBoolean.typ) // TODO
+      Top[S](TBoolean.typ) // TODO
 
     /** Indicates whether number evaluates to positive infinity */
     case "is_∞₊" =>
       val List(x) = parameters // Number
-      New[S](TBoolean.typ) // TODO
+      Top[S](TBoolean.typ) // TODO
 
     /** Indicates that value cannot be represented as a number, i.e. Not-a-Number. This usually happens when the number is the result of a division by zero. */
     case "is_nan" =>
       val List(x) = parameters // Number
-      New[S](TBoolean.typ) // TODO
+      Top[S](TBoolean.typ) // TODO
 
     /** Returns the logarithm of a specified number in a specified base */
     case "log" =>

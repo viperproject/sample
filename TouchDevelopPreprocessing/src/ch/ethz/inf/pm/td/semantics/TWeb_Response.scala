@@ -42,7 +42,7 @@ object TWeb_Response {
   val field_status_code = new TouchField("status_code",TNumber.typ)
 
   val typName = "Web_Response"
-  val typ = new TouchType(typName,isSingleton = false,List(field_header_storage, field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml, field_request, field_status_code))
+  val typ = new TouchType(typName,isSingleton = false, isImmutable = true, fields = List(field_header_storage, field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml, field_request, field_status_code))
 
 
 }

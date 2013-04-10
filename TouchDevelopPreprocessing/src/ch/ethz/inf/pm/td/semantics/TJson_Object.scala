@@ -35,7 +35,7 @@ object TJson_Object {
   val field_to_time = new TouchField("to_time",TDateTime.typ)
 
   val typName = "Json_Object"
-  val typ = TouchCollection(typName,TString.typName,TJson_Object.typName,List(field_keys, field_kind, field_to_boolean, field_to_number, field_to_string, field_to_time))
+  val typ = TouchCollection(typName,TString.typName,TJson_Object.typName,List(field_keys, field_kind, field_to_boolean, field_to_number, field_to_string, field_to_time), immutableCollection = true)
 
 }
 

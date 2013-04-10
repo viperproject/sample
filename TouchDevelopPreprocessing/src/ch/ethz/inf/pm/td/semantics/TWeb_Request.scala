@@ -38,7 +38,7 @@ object TWeb_Request {
   val field_url = new TouchField("url",TString.typ)
 
   val typName = "Web_Request"
-  val typ = new TouchType(typName,isSingleton = false,List(field_header_storage, field_method, field_url,
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_header_storage, field_method, field_url,
     field_content, field_content_as_json, field_content_as_picture, field_content_as_xml))
 
 }

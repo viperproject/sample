@@ -49,7 +49,7 @@ object TAppointment {
   val field_subject = new TouchField("subject",TString.typ)
 
   val typName = "Appointment"
-  val typ = new TouchType(typName,isSingleton = false,List(field_attendees,field_details,field_end_time,
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_attendees,field_details,field_end_time,
     field_is_all_day_event,field_is_private,field_location,field_organizer,field_source,field_start_time,field_status,field_subject))
 
 }

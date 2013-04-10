@@ -225,7 +225,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
     } else this
   }
-
   override def assume(expr: Expression): ApronInterface = {
 
     if (isBottom) return this
@@ -239,20 +238,27 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     }
 
     // Check if we just assume if something is invalid - we dont know that here
+    // TODO: Filter everything with valid or invalid
     expr match {
       case BinaryArithmeticExpression(_,Constant("invalid",_,_),_,_) => return this
       case _ => ()
     }
 
     expr match {
+
       // Boolean variables
       case x: Identifier =>
         assume(BinaryArithmeticExpression(x, Constant("0", x.getType(), x.getProgramPoint()), ArithmeticOperator.!=, null))
       case NegatedBooleanExpression(x: Identifier) =>
         assume(BinaryArithmeticExpression(x, Constant("0", x.getType(), x.getProgramPoint()), ArithmeticOperator.==, null))
+
+      // And, Or, De-Morgan, Double Negation
       case BinaryBooleanExpression(left, right, op, typ) => op match {
         case BooleanOperator.&& => val l = assume(left); l.glb(l, assume(right))
         case BooleanOperator.|| => val l = assume(left); l.lub(l, assume(right))
+      }
+      case NegatedBooleanExpression(NegatedBooleanExpression(x)) => {
+        assume(x)
       }
       case NegatedBooleanExpression(BinaryBooleanExpression(left, right, op, typ)) => {
         val nl = NegatedBooleanExpression(left)
@@ -263,10 +269,40 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
         }
         assume(BinaryBooleanExpression(nl, nr, nop, typ))
       }
+
+      // APRON fails to resolve !(a = b) and a != b. Instead, we have to specify a < b || a > b
+
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left,Constant("invalid",ctyp,cpp),ArithmeticOperator.==,typ)) =>
+        assume(BinaryArithmeticExpression(left,Constant("valid",ctyp,cpp),ArithmeticOperator.==,typ))
+      case BinaryArithmeticExpression(left,Constant("invalid",ctyp,cpp),ArithmeticOperator.!=,typ) =>
+        assume(BinaryArithmeticExpression(left,Constant("valid",ctyp,cpp),ArithmeticOperator.==,typ))
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left,Constant("valid",ctyp,cpp),ArithmeticOperator.==,typ)) =>
+        assume(BinaryArithmeticExpression(left,Constant("invalid",ctyp,cpp),ArithmeticOperator.==,typ))
+      case BinaryArithmeticExpression(left,Constant("valid",ctyp,cpp),ArithmeticOperator.!=,typ) =>
+        assume(BinaryArithmeticExpression(left,Constant("invalid",ctyp,cpp),ArithmeticOperator.==,typ))
+
+      case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",ctyp,cpp),right,ArithmeticOperator.==,typ)) =>
+        assume(BinaryArithmeticExpression(Constant("valid",ctyp,cpp),right,ArithmeticOperator.==,typ))
+      case BinaryArithmeticExpression(Constant("invalid",ctyp,cpp),right,ArithmeticOperator.!=,typ) =>
+        assume(BinaryArithmeticExpression(Constant("valid",ctyp,cpp),right,ArithmeticOperator.==,typ))
+      case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("valid",ctyp,cpp),right,ArithmeticOperator.==,typ)) =>
+        assume(BinaryArithmeticExpression(Constant("invalid",ctyp,cpp),right,ArithmeticOperator.==,typ))
+      case BinaryArithmeticExpression(Constant("valid",ctyp,cpp),right,ArithmeticOperator.!=,typ) =>
+        assume(BinaryArithmeticExpression(Constant("invalid",ctyp,cpp),right,ArithmeticOperator.==,typ))
+
+      case NegatedBooleanExpression(BinaryArithmeticExpression(left,right,ArithmeticOperator.==,typ)) =>
+        val newLeft = BinaryArithmeticExpression(left,right,ArithmeticOperator.>,typ)
+        val newRight = BinaryArithmeticExpression(left,right,ArithmeticOperator.<,typ)
+        assume(BinaryBooleanExpression(newLeft,newRight,BooleanOperator.||,typ))
+      case BinaryArithmeticExpression(left,right,ArithmeticOperator.!=,typ) =>
+        val newLeft = BinaryArithmeticExpression(left,right,ArithmeticOperator.>,typ)
+        val newRight = BinaryArithmeticExpression(left,right,ArithmeticOperator.<,typ)
+        assume(BinaryBooleanExpression(newLeft,newRight,BooleanOperator.||,typ))
+
       case _ => {
 
         // Create an actual instance of the current state
-        var curState = instantiateState()
+        val curState = instantiateState()
 
         // Assume the expression
         val res = nondeterminismWrapper(expr, curState, (someExpr, someState) => {
@@ -281,12 +317,21 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
             ApronInstanceCounter.inc(20,1)
             tmp = tmp.changeEnvironmentCopy(domain, unionEnv, false)
           }
-          val constraints = this.toTcons1(someExpr, unionEnv)
-          for (c <- constraints) {
-            ApronInstanceCounter.inc(21,1)
-            tmp = tmp.meetCopy(domain, c)
+
+          this.toTcons1(someExpr, unionEnv) match {
+
+            case x :: xs =>
+              ApronInstanceCounter.inc(21,1)
+              val result = tmp.meetCopy(domain,x)
+              for (xMore <- xs) {
+                ApronInstanceCounter.inc(21,1)
+                result.joinCopy(domain,tmp.meetCopy(domain,xMore))
+              }
+              result
+
+            case Nil => throw new ApronException("empty set of constraints generated")
+
           }
-          tmp
         })
 
         new ApronInterface(Some(res),domain)
@@ -332,8 +377,8 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
     try {
 
-      val leftState = left.instantiateState(Some(right))
-      val rightState = right.instantiateState(Some(left))
+      val leftState = left.instantiateState()
+      val rightState = right.instantiateState()
 
       if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
         val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
@@ -374,8 +419,8 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     if (right.isTop)
       return left
 
-    val leftState = left.instantiateState(Some(right))
-    val rightState = right.instantiateState(Some(left))
+    val leftState = left.instantiateState()
+    val rightState = right.instantiateState()
 
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
       val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
@@ -406,8 +451,8 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     if (right.isTop)
       return right
 
-    val leftState = left.instantiateState(Some(right))
-    val rightState = right.instantiateState(Some(left))
+    val leftState = left.instantiateState()
+    val rightState = right.instantiateState()
 
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
       ApronInstanceCounter.inc(26,3)
@@ -432,8 +477,8 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     if (r.isBottom) return false
     if (this.isTop) return false
 
-    val leftState = this.instantiateState(Some(r))
-    val rightState = r.instantiateState(Some(this))
+    val leftState = this.instantiateState()
+    val rightState = r.instantiateState()
 
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
       val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
@@ -521,10 +566,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
    * This function creates an Abstract1 instance representing the current state if this is a pure bottom or pure top
    * state.
    *
-   * We construct our state according to some other state
    *
    */
-  def instantiateState(other:Option[ApronInterface] = None):Abstract1 = {
+  def instantiateState():Abstract1 = {
 
 
     state match {
@@ -633,9 +677,10 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     case x: Identifier => List(new Texpr1VarNode(x.getName()))
     case setId: HeapIdSetDomain[Identifier] =>
       if (setId.isTop || setId.isBottom) List(topExpression())
-      (setId.value map {
-        x: Identifier => new Texpr1VarNode(x.getName())
-      }).toList
+      else
+        (setId.value map {
+          x: Identifier => new Texpr1VarNode(x.getName())
+        }).toList
     case Constant(v, typ, p) =>
       if (typ.isNumericalType())
         v match {
@@ -659,7 +704,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
             new Texpr1UnNode(Texpr1UnNode.OP_NEG, l)
           }
       }
-    case _ => throw new SemanticException("Unhandled expression type.")
+    case _ =>
+      println("Unhandled expression type in APRON interface (returning top expression): "+e)
+      List(topExpression())
   }
 
   private def convertArithmeticOperator(op: ArithmeticOperator.Value): Int = op match {
@@ -723,6 +770,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       toTcons1(BinaryArithmeticExpression(x, Constant("0", x.getType(), x.getProgramPoint()), ArithmeticOperator.==, x.getType()), env)
     case x: Expression =>
       toTcons1(BinaryArithmeticExpression(x, Constant("0", x.getType(), x.getProgramPoint()), ArithmeticOperator.!=, x.getType()), env)
+    case _ =>
+      println("Unhandled constraint type in APRON interface (returning top constraint): "+e)
+      List(topConstraint(env))
   }
 
   private def negateOperator(op: ArithmeticOperator.Value): ArithmeticOperator.Value = op match {

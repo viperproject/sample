@@ -59,7 +59,7 @@ object SBox {
   
 
   val typName = "box"
-  val typ = new TouchType(typName,isSingleton = true,List(
+  val typ = new TouchType(typName,isSingleton = true, fields = List(
       field_is_init,
       field_left_horizontal_alignment,
       field_right_horizontal_alignment,

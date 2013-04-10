@@ -41,7 +41,7 @@ object TSong_Album {
   val field_thumbnail = new TouchField("thumbnail",TPicture.typ)
 
   val typName = "Song_Album"
-  val typ = new TouchType(typName,isSingleton = false,List(field_art, field_artist, field_duration, field_genre, field_has_art, field_name, /*field_songs,*/ field_thumbnail))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_art, field_artist, field_duration, field_genre, field_has_art, field_name, /*field_songs,*/ field_thumbnail))
 
 }
 

@@ -37,7 +37,7 @@ object TMedia_Link {
   val field_title = new TouchField("title",TString.typ)
 
   val typName = "Media_Link"
-  val typ = new TouchType(typName,isSingleton = false,List(field_album, field_author, field_date, field_duration, field_kind, field_title))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_album, field_author, field_date, field_duration, field_kind, field_title))
 
 }
 

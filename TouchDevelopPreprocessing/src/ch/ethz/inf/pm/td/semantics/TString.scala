@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * Specifies the abstract semantics of String
@@ -22,7 +23,7 @@ object TString {
   //TODO val field_count = new TouchField("count",TNumber.typ)
 
   val typName = "String"
-  val typ = new TouchType(typName,isSingleton = false,List(/*TODO field_count*/))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(/*TODO field_count*/))
 
 }
 
@@ -36,6 +37,7 @@ class TString extends AAny {
     /** Gets the character at a specified index */
     case "at" =>
       val List(index) = parameters // Number
+      Reporter.reportImprecision("String bounds are unchecked in this version of the analysis!",pp)
       Top[S](TString.typ) // TODO: Sound dummy
 
     /** Compares two pieces of text */

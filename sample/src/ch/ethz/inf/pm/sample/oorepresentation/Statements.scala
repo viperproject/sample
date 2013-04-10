@@ -103,16 +103,15 @@ case class Assignment(programpoint : ProgramPoint, left : Statement, right : Sta
           val (listObjs, state1) = UtilitiesOnStates.forwardExecuteListStatements[S](state, castedLeft.objs)
           val stateright : S = right.forwardSemantics[S](state1)
           val exprright = stateright.getExpression();
-          stateright.removeExpression();
-          return stateright.assignField(listObjs, castedLeft.field, exprright)
+          return stateright.removeExpression().assignField(listObjs, castedLeft.field, exprright)
         }
         else {
-          val stateleft : S = left.forwardSemantics[S](state)
+          var stateleft : S = left.forwardSemantics[S](state)
           val exprleft = stateleft.getExpression();
-          stateleft.removeExpression();
-          val stateright : S = right.forwardSemantics[S](stateleft)
+          stateleft = stateleft.removeExpression()
+          var stateright : S = right.forwardSemantics[S](stateleft)
           val exprright = stateright.getExpression();
-          stateright.removeExpression();
+          stateright = stateright.removeExpression()
           return stateright.assignVariable(exprleft, exprright)
         }
       }

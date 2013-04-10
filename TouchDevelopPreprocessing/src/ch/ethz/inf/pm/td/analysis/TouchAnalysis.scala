@@ -162,11 +162,10 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     }
 
     // The first fixpoint, which is computed over several executions of the same script
-    val result =
-      if ( ! TouchAnalysisParameters.singleExecution )
-        lfp(curState, analyzeExecution(compiler,methods)(_:S))
-      else
-        analyzeExecution(compiler,methods)(curState)
+    if ( ! TouchAnalysisParameters.singleExecution )
+      lfp(curState, analyzeExecution(compiler,methods)(_:S))
+    else
+      analyzeExecution(compiler,methods)(curState)
 
     // Check properties on the results
     if (SystemParameters.property!=null) {
@@ -243,7 +242,8 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
       prev = cur
       iteration=iteration+1
       if(iteration > SystemParameters.wideningLimit) {
-        if (iteration > SystemParameters.wideningLimit + 10) println("Looks like we are not terminating here!")
+        if (iteration > SystemParameters.wideningLimit + 10)
+          println("Looks like we are not terminating here!")
         cur = prev.widening(prev,singleIteration(prev))
       }
       else cur = prev.lub(prev,singleIteration(prev))

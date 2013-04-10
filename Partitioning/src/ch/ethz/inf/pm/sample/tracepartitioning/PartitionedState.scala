@@ -534,6 +534,14 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     throw new NotImplementedException()
   }
 
+  def pruneVariables(filter:VariableIdentifier => Boolean) : PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
+  def pruneUnreachableHeap(): PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
   /**
    * Maps a function transforming a leaf state and applies it to all leaves of
 	 * the partitioning.

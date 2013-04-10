@@ -305,7 +305,10 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    */
   def clearCollection[S <: SemanticDomain[S]](collection: Assignable, state:S): (T, S)
 
-
+  /**
+   * Performs abstract garbage collection
+   */
+  def getUnreachableHeap: Set[I]
 }
 
 trait Assignable {

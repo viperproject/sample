@@ -4,9 +4,6 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichExpression._
-import ch.ethz.inf.pm.td.semantics.RichExpression
-import ch.ethz.inf.pm.td.semantics.RichExpression
 
 /**
  * Specifies the abstract semantics of colors
@@ -24,7 +21,7 @@ object SColors {
   val field_is_light_theme = new TouchField("is_light_theme",TBoolean.typ)
 
   val typName = "colors"
-  val typ = new TouchType(typName, isSingleton = true,List(field_is_light_theme))
+  val typ = new TouchType(typName, isSingleton = true, fields = List(field_is_light_theme))
 
 }
 

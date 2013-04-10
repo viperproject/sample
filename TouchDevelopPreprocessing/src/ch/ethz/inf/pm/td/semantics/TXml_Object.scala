@@ -33,7 +33,7 @@ object TXml_Object {
   val field_local_name = new TouchField("local_name",TString.typ)
 
   val typName = "Xml_Object"
-  val typ = new TouchCollection(typName,TNumber.typName,TXml_Object.typName,List(field_attributes,field_is_element,field_local_name, field_namespace, field_value))
+  val typ = new TouchCollection(typName,TNumber.typName,TXml_Object.typName,List(field_attributes,field_is_element,field_local_name, field_namespace, field_value), immutableCollection = true)
 
 }
 

@@ -45,7 +45,7 @@ object SPlayer {
   val field_sound_volume = new TouchField("sound_volume",TNumber.typ)
 
   val typName = "player"
-  val typ = new TouchType(typName,isSingleton = true,List(field_active_song, field_is_muted, field_is_paused, field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume))
+  val typ = new TouchType(typName,isSingleton = true, fields = List(field_active_song, field_is_muted, field_is_paused, field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume))
 
 }
 

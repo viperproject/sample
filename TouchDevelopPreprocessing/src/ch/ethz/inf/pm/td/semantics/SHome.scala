@@ -29,7 +29,7 @@ object SHome {
   val field_servers = new TouchField("servers",TMedia_Server_Collection.typ)
 
   val typName = "home"
-  val typ = new TouchType(typName,isSingleton = true,List(field_players,field_printers,field_servers))
+  val typ = new TouchType(typName,isSingleton = true, fields = List(field_players,field_printers,field_servers))
 
 }
 
@@ -42,27 +42,30 @@ class SHome extends AAny {
         
     /** Choose a media player on the current wireless network */
     case "choose_player" =>
-      If[S]( CollectionSize[S](Field[S](this0,SHome.field_players)) equal 0, Then = {
+      val ret = If[S]( CollectionSize[S](Field[S](this0,SHome.field_players)) equal 0, Then = {
         Return[S](Invalid(TMedia_Player.typ))(_,pp)
       }, Else = {
         Return[S](CollectionSummary[S](Field[S](this0,SHome.field_players)))(_,pp)
       })
+      ret
 
     /** Choose a printer on the current wireless network */
     case "choose_printer" =>
-      If[S]( CollectionSize[S](Field[S](this0,SHome.field_printers)) equal 0, Then = {
+      val ret = If[S]( CollectionSize[S](Field[S](this0,SHome.field_printers)) equal 0, Then = {
         Return[S](Invalid(TPrinter.typ))(_,pp)
       }, Else = {
         Return[S](CollectionSummary[S](Field[S](this0,SHome.field_printers)))(_,pp)
       })
+      ret
 
     /** Choose a media server on the current wireless network */
     case "choose_server" =>
-      If[S]( CollectionSize[S](Field[S](this0,SHome.field_servers)) equal 0, Then = {
+      val ret = If[S]( CollectionSize[S](Field[S](this0,SHome.field_servers)) equal 0, Then = {
         Return[S](Invalid(TMedia_Server.typ))(_,pp)
       }, Else = {
         Return[S](CollectionSummary[S](Field[S](this0,SHome.field_servers)))(_,pp)
       })
+      ret
 
     case _ =>
       super.forwardSemantics(this0,method,parameters)

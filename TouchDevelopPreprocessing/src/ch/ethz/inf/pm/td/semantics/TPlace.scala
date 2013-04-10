@@ -35,7 +35,7 @@ object TPlace {
   val field_source = new TouchField("source",TString.typ)
 
   val typName = "Place"
-  val typ = new TouchType(typName,isSingleton = false,List(field_category, field_link, field_location,
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_category, field_link, field_location,
     field_name, field_picture_link, field_source))
 
 }

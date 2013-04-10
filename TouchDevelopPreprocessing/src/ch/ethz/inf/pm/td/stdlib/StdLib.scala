@@ -38,6 +38,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set_text_wrapping",List("Boolean", "Number"),"Nothing"),
     Member("set_scrolling",List("Boolean", "Boolean"),"Nothing"),
     Member("on_text_edited",List("Handler"),"Nothing"),
+    Member("on_text_editing",List("Handler"),"Nothing"),
     Member("on_tapped",List("Handler"),"Nothing"),
     Member("use_horizontal_layout","Nothing"),
     Member("use_vertical_layout","Nothing"),

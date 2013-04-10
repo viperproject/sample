@@ -35,7 +35,7 @@ object SSenses {
 
   val typName = "senses"
   val typ = new TouchType(typName,isSingleton = true,
-    List(field_camera,field_has_accelerometer,field_has_compass,field_has_front_camera,field_has_gyroscope))
+    fields = List(field_camera,field_has_accelerometer,field_has_compass,field_has_front_camera,field_has_gyroscope))
 
 }
 

@@ -137,7 +137,7 @@ for ((thing,help,url) <- fetchMainInfo("https://www.touchdevelop.com/help/api"))
           |object TXXX {
           |
           |  val typName = "YYY"
-          |  val typ = new TouchType(typName,isSingleton = false,List())
+          |  val typ = new TouchType(typName,isSingleton = true)
           |
           |}
           |
@@ -154,7 +154,7 @@ for ((thing,help,url) <- fetchMainInfo("https://www.touchdevelop.com/help/api"))
           |object SXXX {
           |
           |  val typName = "YYY"
-          |  val typ = new TouchType(typName,isSingleton = true,List())
+          |  val typ = new TouchType(typName,isSingleton = true)
           |
           |}
           |

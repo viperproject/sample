@@ -30,7 +30,7 @@ object TPicture {
   val field_date = new TouchField("date",TDateTime.typ,InvalidInitializer())
 
   val typName = "Picture"
-  val typ = new TouchType(typName,isSingleton = false,List(field_width,field_height,field_location,field_date))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_width,field_height,field_location,field_date))
 
 }
 
@@ -191,10 +191,25 @@ class TPicture extends AAny {
     /** Resizes the picture to the given size in pixels */
     case "resize" =>
       val List(width,height) = parameters // Number,Number
-      CheckNonNegative[S](width,"resize","width")
-      CheckNonNegative[S](height,"resize","height")
-      val state1 = AssignField[S](this0,TPicture.field_height,height)
-      val state2 = AssignField[S](this0,TPicture.field_width,width)(state1,pp)
+
+      Error[S](width <= 0 && height <= 0, "resize", "Width and height may both be negative!")
+
+      // UNDOCUMENTED: Values <= 0 say "choose according to ratio". Both parameters <= 0: Resize to 300:150... We detect an error
+
+      val state1 = If[S](width<=0,Then = { s:S =>
+        // new_w = new_h * (old_w / old_h)
+        AssignField[S](this0,TPicture.field_width, height * Field[S](this0,TPicture.field_width) / Field[S](this0,TPicture.field_height))(s,pp)
+      }, Else = { s:S =>
+        AssignField[S](this0,TPicture.field_width, width)(s,pp)
+      })
+
+      val state2 = If[S](height<=0,Then = { s:S =>
+        // new_h = new_w * (old_h / old_w)
+        AssignField[S](this0,TPicture.field_height, width * Field[S](this0,TPicture.field_height) / Field[S](this0,TPicture.field_width))(s,pp)
+      }, Else = { s:S =>
+        AssignField[S](this0,TPicture.field_height, height)(s,pp)
+      })(state1,pp)
+
       state2
 
     /** Saves the picture to the 'saved pictures' album. Returns the file name. */

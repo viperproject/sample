@@ -135,10 +135,10 @@ class MethodDeclaration(
     new ControlFlowGraphExecution[S](body, state).definiteBackwardSemantics(state)
   }
   
-  def combinedSemantics[S <: State[S]](entrystate : S, exitstate : S) : ControlFlowGraphExecution[S] = {
-    var result : S = initializeArgument[S](entrystate, arguments);
-    new ControlFlowGraphExecution[S](body, entrystate).combinedSemantics(result, exitstate);
-  }
+//  def combinedSemantics[S <: State[S]](entrystate : S, exitstate : S) : ControlFlowGraphExecution[S] = {
+//    var result : S = initializeArgument[S](entrystate, arguments);
+//    new ControlFlowGraphExecution[S](body, entrystate).combinedSemantics(result, exitstate);
+//  }
 }
 
 /** 

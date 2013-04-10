@@ -29,7 +29,7 @@ object TLink {
   val field_name = new TouchField("name",TString.typ,InvalidInitializer())
 
   val typName = "Link"
-  val typ = new TouchType(typName,isSingleton = false,List(field_address, field_kind, field_location, field_name))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_address, field_kind, field_location, field_name))
 
 }
 

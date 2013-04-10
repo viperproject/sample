@@ -59,6 +59,10 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
   override def backwardAccess(field: Identifier) = this
 
   private def eval(expr: Expression): T = expr match {
+    case Constant("valid", typ, pp) => // FIXME: This will break once somebody has a string constant valid
+      dom.top()
+    case Constant("invalid", typ, pp) => // FIXME: This will break once somebody has a string constant invalid
+      dom.top() // FIXME: Wouldn't bottom be better?
     case Constant(constant, typ, pp) =>
       dom.singleton(constant)
     case x: Identifier =>
@@ -73,53 +77,69 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
   /**
    * This is imprecise, but sound
    */
-  override def assume(expr: Expression): NonrelationalStringDomain[T] = expr match {
+  override def assume(expr: Expression): NonrelationalStringDomain[T] = {
 
-    // Comparison
-    case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _) =>
+    if (isBottom) return this
 
-      val left = eval(a)
-      val right = eval(b)
-
-      val intersection = dom.intersect(left,right)
-
-      if (intersection.isBottom) bottom()
-      else (a,b) match {
-        case (x:Identifier, y:Identifier) =>
-          this.add(x,intersection).add(y,intersection)
-        case (x:Identifier, y:Expression) =>
-          this.add(x,intersection)
-        case (y:Expression, x:Identifier) =>
-          this.add(x,intersection)
-        case _ => this
+    // Check if we assume something about non-numerical values - if so, return
+    val ids = Normalizer.getIdsForExpression(expr)
+      for (id <- ids) {
+      if (!id.getType().isStringType()) {
+        return this
       }
-
-    // Negated comparison
-    case NegatedBooleanExpression(BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _)) =>
-
-      val left = eval(a)
-      val right = eval(b)
-
-      val diff = dom.diff(left,right)
-
-      if (diff.isBottom) bottom()
-      else (a,b) match {
-        case (x:Identifier, y:Identifier) =>
-          this.add(x,diff).add(y,diff)
-        case (x:Identifier, y:Expression) =>
-          this.add(x,diff)
-        case (y:Expression, x:Identifier) =>
-          this.add(x,diff)
-        case _ => this
-      }
-
-    // AND, OR
-    case BinaryBooleanExpression(left,right,op,typ) => op match {
-      case BooleanOperator.&& => this.assume(left).assume(right)
-      case BooleanOperator.|| => this.lub(this.assume(left),this.assume(right))
     }
 
-    case _ => this
+    // Check if we just assume if something is invalid - we dont know that here
+    // TODO: Filter everything with valid or invalid
+    expr match {
+      case BinaryArithmeticExpression(_,Constant("invalid",_,_),_,_) => return this
+      case _ => ()
+    }
+
+    expr match {
+
+      // Comparison
+      case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _) =>
+
+        val left = eval(a)
+        val right = eval(b)
+
+        val intersection = dom.intersect(left,right)
+
+        if (intersection.isBottom) bottom()
+        else (a,b) match {
+          case (x:Identifier, y:Identifier) =>
+            this.add(x,intersection).add(y,intersection)
+          case (x:Identifier, y:Expression) =>
+            this.add(x,intersection)
+          case (y:Expression, x:Identifier) =>
+            this.add(x,intersection)
+          case _ => this
+        }
+
+      // Negated comparison
+      case NegatedBooleanExpression(BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _)) =>
+
+        val left = eval(a)
+        val right = eval(b)
+
+        val diff = dom.diff(left,right)
+
+        // We can only assume anything about inequalities if left or right is a singleton
+        var curState = this
+        if (a.isInstanceOf[Identifier] && right.isSingleton) curState = curState.add(a.asInstanceOf[Identifier],diff)
+        if (b.isInstanceOf[Identifier] && left.isSingleton) curState = curState.add(b.asInstanceOf[Identifier],diff)
+        curState
+
+      // AND, OR
+      case BinaryBooleanExpression(left,right,op,typ) => op match {
+        case BooleanOperator.&& => this.assume(left).assume(right)
+        case BooleanOperator.|| => this.lub(this.assume(left),this.assume(right))
+      }
+
+      case _ => this
+    }
+
   }
 
 }
@@ -129,6 +149,8 @@ trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] {
   def isBottom:Boolean
 
   def isTop:Boolean
+
+  def isSingleton:Boolean
 
   def intersect(a:T,b:T):T
 
@@ -142,9 +164,13 @@ class StringKSetDomain extends KSetDomain[String,StringKSetDomain] with StringVa
 
   def factory(): StringKSetDomain = new StringKSetDomain
 
+  def isSingleton:Boolean = !isBottom && !isTop && value.size == 1
+
   def getK: Int = TouchAnalysisParameters.stringRepresentationBound
 
-  def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = lub(a.remove(b),b.remove(a))
+  def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = {
+    lub(a.remove(b),b.remove(a))
+  }
 
   def intersect(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = glb(a,b)
 

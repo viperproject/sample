@@ -58,6 +58,8 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
     this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getValueType)
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): AccessCollectingState =
     this.setType(collTyp)
+  def pruneVariables(filter:VariableIdentifier => Boolean) : AccessCollectingState = this
+  def pruneUnreachableHeap() : AccessCollectingState = this
 
   def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): AccessCollectingState = this
   def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): AccessCollectingState = this

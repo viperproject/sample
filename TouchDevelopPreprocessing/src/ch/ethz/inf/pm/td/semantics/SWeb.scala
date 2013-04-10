@@ -27,7 +27,7 @@ object SWeb {
   val field_is_connected = new TouchField("is_connected",TBoolean.typ)
 
   val typName = "web"
-  val typ = new TouchType(typName,isSingleton = true,List(field_connection_name,field_connection_type,field_is_connected))
+  val typ = new TouchType(typName,isSingleton = true, fields = List(field_connection_name,field_connection_type,field_is_connected))
 
 }
 
@@ -242,12 +242,12 @@ class SWeb extends AAny {
     /** Decodes a string that has been url-encoded */
     case "url_decode" =>
       val List(url) = parameters // String
-      TopWithInvalid[S](TString.typ) // TODO
+      Top[S](TString.typ)
 
     /** Converts a text string into an url-encoded string */
     case "url_encode" =>
       val List(text) = parameters // String
-      TopWithInvalid[S](TString.typ) // TODO
+      Top[S](TString.typ)
 
     /** Parses the string as a xml element */
     case "xml" =>

@@ -39,7 +39,7 @@ object TDateTime {
   val field_year = new TouchField("year",TNumber.typ)
 
   val typName = "DateTime"
-  val typ = new TouchType(typName,isSingleton = false,List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year))
 
 }
 

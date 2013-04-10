@@ -16,7 +16,7 @@ trait Lattice[T <: Lattice[T]] {
    Returns a new instance of the lattice
    @return A new instance of the current object
    */
-  def factory() : T;
+  def factory() : T
   
   /**
    Returns the top value of the lattice
@@ -372,6 +372,15 @@ trait State[S <: State[S]] extends Lattice[S] {
     */
   def getCollectionLength(collectionSet: ExpressionSet) : S
 
+  /**
+   * Removes all variables satisfying filter
+   */
+  def pruneVariables(filter:VariableIdentifier => Boolean) : S
+
+  /**
+   * Performs abstract garbage collection
+   */
+  def pruneUnreachableHeap() : S
 
 }
 

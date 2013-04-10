@@ -32,7 +32,7 @@ object TMedia_Server {
   val field_videos = new TouchField("videos",TMedia_Link_Collection.typ)
 
   val typName = "Media_Server"
-  val typ = new TouchType(typName,isSingleton = false,List(field_device,field_name,field_pictures,field_songs,field_videos))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_device,field_name,field_pictures,field_songs,field_videos))
 
 }
 

@@ -37,7 +37,7 @@ object SMedia {
   val field_songs = new TouchField("songs",TSongs.typ)
 
   val typName = "media"
-  val typ = new TouchType(typName, isSingleton = true, List(field_icon_names, field_picture_albums, field_pictures,
+  val typ = new TouchType(typName, isSingleton = true, fields = List(field_icon_names, field_picture_albums, field_pictures,
     field_playlists, field_saved_pictures, field_song_albums, field_songs))
 
 }

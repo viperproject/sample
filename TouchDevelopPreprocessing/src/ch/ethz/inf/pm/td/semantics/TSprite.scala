@@ -35,7 +35,7 @@ object TSprite {
   val field_z_index = new TouchField("z_index",TNumber.typ)         // Gets the z-index of the sprite
 
   val typName = "Sprite"
-  val typ = new TouchType(typName,false,List(
+  val typ = new TouchType(typName,isSingleton = false,fields = List(
       field_acceleration_x,
       field_acceleration_y,
       field_angle,

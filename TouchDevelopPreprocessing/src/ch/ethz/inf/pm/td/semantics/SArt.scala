@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SArt {
 
   val typName = "art"
-  val typ = new TouchType(typName,isSingleton = true,List())
+  val typ = new TouchType(typName,isSingleton = true)
 
 }
 

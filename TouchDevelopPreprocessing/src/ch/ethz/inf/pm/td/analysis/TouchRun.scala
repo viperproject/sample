@@ -7,11 +7,13 @@ import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample.userinterfaces._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchCompiler}
-import apron.{Polka, Environment, Abstract1, Octagon}
+import apron._
+import heapanalysis.SimpleProgramPointHeapIdentifier
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, NonRelationalNumericalDomain, ApronInterface}
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
 import java.io.{StringWriter, PrintWriter}
 import ch.ethz.inf.pm.td.output.HTMLExporter
+import ch.ethz.inf.pm.td.compiler.UnsupportedLanguageFeatureException
 
 class TouchProperty extends ch.ethz.inf.pm.sample.property.Property {
   override def getLabel(): String = "Show graph"

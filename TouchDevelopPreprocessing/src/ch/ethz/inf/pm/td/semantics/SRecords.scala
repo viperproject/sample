@@ -12,12 +12,12 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * Lists objects, tables and indexes defined in the current script
  *
  * @author Lucas Brutschy
- */ 
+ */
 
 object SRecords {
 
   val typName = "records"
-  var typ = new TouchType(typName,isSingleton = true,List())
+  var typ = new TouchType(typName,isSingleton = true)
 
 }
 

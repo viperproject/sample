@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TMedia_Server_Collection {
 
   val typName = "Media_Server_Collection"
-  val typ = TouchCollection(typName,"Number","Media_Server")
+  val typ = TouchCollection(typName,"Number","Media_Server", immutableCollection = true)
 
 }
 

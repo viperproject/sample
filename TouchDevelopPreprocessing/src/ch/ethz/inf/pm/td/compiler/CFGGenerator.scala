@@ -535,7 +535,7 @@ case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends Prog
   override def toString = pp+"("+path.mkString(",")+")"
 }
 
-class TouchType(name:String, val isSingleton:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named with Type {
+class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named with Type {
 
   var isBottom = false;
   var isTop = false;
@@ -601,9 +601,9 @@ object TouchTuple {
   }
 }
 
-case class TouchTuple(name:String, fields:List[TouchField]) extends TouchType(name,false,fields)
+case class TouchTuple(name:String, fields:List[TouchField]) extends TouchType(name,false,true,fields)
 
-case class TouchCollection(name:String,keyType:String,valueType:String, fields: List[Identifier] = List.empty[Identifier]) extends TouchType(name,false,fields) {
+case class TouchCollection(name:String,keyType:String,valueType:String, fields: List[Identifier] = List.empty[Identifier], immutableCollection:Boolean = false) extends TouchType(name,false,immutableCollection,fields) {
 
   def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(keyType).getTyp
   def getValueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(valueType).getTyp

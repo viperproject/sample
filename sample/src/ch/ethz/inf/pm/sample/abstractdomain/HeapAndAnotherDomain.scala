@@ -261,7 +261,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d1=applyToAssignable[N](variable, result.d1, _.backwardAssign(_, expr));
     SystemParameters.domainTimer.stop();
     result
-  }
+ }
 
  override def top() : T = {
     val result : T = this.factory();

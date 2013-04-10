@@ -20,7 +20,7 @@ object SLanguages {
   val field_current_language = new TouchField("current_language",TString.typ)
 
   val typName = "languages"
-  val typ = new TouchType(typName,isSingleton = true,List(field_current_language))
+  val typ = new TouchType(typName,isSingleton = true, fields = List(field_current_language))
 
 }
 
