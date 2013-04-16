@@ -1,0 +1,141 @@
+action sum(a: Number) returns r: Number {
+  $r := 0;
+  for 0 ≤ i < $a do {
+    $r := $r + $i;
+  }
+}
+
+action foreachPic() {
+  foreach pic in media→pictures do {
+    $pic→post_to_wall;
+  }
+}
+
+action foreachNum() {
+  $numbers := collections→create_number_collection;
+  $numbers→add(1);
+  $numbers→add(2);
+  foreach num in $numbers do {
+    $numbers→add(3);
+    $num→post_to_wall;
+  }
+}
+
+action while(a: Number, b: Number) {
+  $x := $a;
+  $y := $b;
+  $i := 1;
+  while $i < $x+2*$y do {
+    $i := $i + 1;
+  }
+}
+
+action whileX(a: Number, b: Number) {
+  $x := $a;
+  $y := $b;
+  $i := 1;
+  while not $i = $x+2*$y do {
+    $i := $i + 1;
+  }
+}
+
+action decreasing(upper: Number, lower: Number) returns r: Number {
+  $i := $upper;
+  while $i ≥ $lower do {
+    $i := $i - 1;
+    $r := $r + 1; 
+  }
+}
+
+action logarithmic(a: Number) returns r: Number {
+  $x := $a;
+  $i := 1;
+  while $i < $x do {
+    $i := $i * 2;
+    //$x := $x - 1;
+    $r := $r + 1; 
+  }
+}
+
+action nested(a: Number, b: Number) returns r: Number {
+  $r := 0;
+  for 0 ≤ i < $a do {
+    for 0 ≤ j < $b do {
+      $r := $r + 1;
+    }
+  }
+}
+
+action if1(a: Number) returns r: Number {
+  for 0 ≤ i < $a do {
+    if $i ≥ 2 then {
+      $r := $r + 1;
+    }
+  }
+}
+
+action if2(a: Number) returns r: Number {
+  for 0 ≤ i < $a do {
+    if $i ≥ 0 then {
+      $r := $r + 1;
+    }
+  }
+}
+
+action and1() {
+  $i := 0;
+  $j := 0;
+  while $i < 10 and $j < 20 do {
+    $i := $i + 1;
+    $j := $j + 3;
+  }
+}
+
+action and2() {
+  $i := 0;
+  $j := 0;
+  while $j < 20 and $i < 10 do {
+    $i := $i + 1;
+    $j := $j + 3;
+  }
+}
+
+action or1() {
+  $i := 1;
+  $j := 0;
+  while $i < 10 or $j < 50 do {
+    $i := $i + 1;
+    $j := $j + 2;
+  }
+}
+
+action or2() {
+  $i := 0;
+  while ($i ≥ 0 and $i < 10) or ($i ≥ 10 and $i < 25) do {
+    $i := $i + 1;
+  }
+}
+
+action sumOfSums(a: Number) returns r: Number {
+  $x := 1;
+  $i := 1;
+  while ($x < $a) do {         
+    $i := $i + 1; 
+    $x := $x + $i;         
+  }
+  $r := $i;
+}
+
+action combined(a: Number, b: Number, c: Number) returns r: Number {
+  $x := 1;
+  $y := 0;
+  $i := 0;
+  while ($x ≤ $a and $y ≤ $b) do {
+    
+    $i := $i + 1;
+    $x := $x * 2;
+    $y := $y + $i;
+  }
+  $r := $i - 1;
+}
+
