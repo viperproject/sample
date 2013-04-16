@@ -1,11 +1,11 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
+import abstractdomain._
+import oorepresentation._
+import abstractdomain.heapanalysis._
 
-import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler
+import oorepresentation.scalalang.ScalaCompiler
 import property.{Property, OutputCollector}
 import apron._
 ;

@@ -41,7 +41,7 @@ object TouchAnalysisParameters {
    *
    * EXPERIMENTAL
    */
-  val singleExecution = false
+  val singleExecution = true
 
   /**
    * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary number of event occurrences
@@ -51,7 +51,7 @@ object TouchAnalysisParameters {
    *
    * EXPERIMENTAL
    */
-  val singleEventOccurrence = false
+  val singleEventOccurrence = true
 
   /**
    *
@@ -60,7 +60,7 @@ object TouchAnalysisParameters {
    * That means, assume that they can be run by the user - analyze them separately with top entryState
    *
    */
-  val treatPrivateMethodLikePublicMethods = false
+  val treatPrivateMethodLikePublicMethods = true
 
   /**
    * Maximum number of possible string values represented for a single variable

@@ -411,9 +411,9 @@ class SILMethodIdentifier(val name : String) extends MethodIdentifier
 
 class SILType(val name : String) extends Type {
 
+  def isFloatingPointType() : Boolean = throw new SILParserException("Not yet implemented")
   def isObject() : Boolean = throw new SILParserException("Not yet implemented")
   def isNumericalType() : Boolean = throw new SILParserException("Not yet implemented")
-  def isFloatingPointType() : Boolean = throw new SILParserException("Not yet implemented")
   def isStringType() : Boolean = throw new SILParserException("Not yet implemented")
   def isStatic() : Boolean = throw new SILParserException("Not yet implemented")
   def getName() : String = throw new SILParserException("Not yet implemented")

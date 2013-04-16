@@ -13,6 +13,8 @@ trait Validated
  */
 abstract sealed class Output {
   override def hashCode() : Int = 1;
+
+  def getMessage() : String;
 }
 
 /**
@@ -30,8 +32,9 @@ case class WarningProgramPoint(val pp : ProgramPoint, val message : String) exte
     case x: WarningProgramPoint => return x.pp.equals(pp) && x.message.equals(message)
     case _ => false
   }
+  override def getMessage()=message;
   
-  override def toString() : String = "Warning: "+message+" at line "+pp.getLine()+" column "+pp.getColumn()
+  override def toString() : String = "Warning: "+message+" at line "+pp.getLine()+" column "+pp.getColumn()+"\n"
 }
 
 /**
@@ -49,7 +52,7 @@ case class ValidatedProgramPoint(val pp : ProgramPoint, val message : String) ex
     case x: ValidatedProgramPoint => return x.pp.equals(pp) && x.message.equals(message)
     case _ => false
   }
-
+  override def getMessage()=message;
   override def toString() : String = "Validated: "+message+" at line "+pp.getLine()+" column "+pp.getColumn()
 }
 
@@ -69,7 +72,7 @@ case class WarningMethod(val classe : Type, val method : String, val message : S
     case x: WarningMethod => return x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
     case _ => false
   }
-
+  override def getMessage()=message;
   override def toString() : String = "Warning: "+message+" on method "+method+" of class "+classe.getName()
 }
 
@@ -89,7 +92,7 @@ case class ValidatedMethod(val classe : Type, val method : String, val message :
     case x: ValidatedMethod => return x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
     case _ => false
   }
-
+  override def getMessage()=message;
   override def toString() : String = "Validated: "+message+" on method "+method+" of class "+classe.getName()
 }
 
@@ -101,7 +104,9 @@ case class ValidatedMethod(val classe : Type, val method : String, val message :
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class InferredContract(val c : Annotation) extends Output
+case class InferredContract(val c : Annotation) extends Output {
+  override def getMessage()=c.getMessage();
+}
 
 /**
  * This class collects the outputs of the analysis

@@ -1,17 +1,16 @@
 package ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis
 
 import ch.ethz.inf.pm.sample._
-//import AVPProject.ExampleAnalysis;
 
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.abstractdomain.arrayanalysis._
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.scalalang._
-import ch.ethz.inf.pm.sample.property._
-import ch.ethz.inf.pm.sample.userinterfaces._
+import abstractdomain._
+import abstractdomain.heapanalysis._
+import abstractdomain.numericaldomain._
+import abstractdomain.arrayanalysis._
+import oorepresentation._
+import oorepresentation.scalalang._
+import property._
+import userinterfaces._
 
 
 class ArrayProperty extends Property {

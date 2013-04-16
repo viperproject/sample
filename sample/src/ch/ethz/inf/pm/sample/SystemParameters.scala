@@ -66,6 +66,14 @@ object SystemParameters {
   */
   val domainTimer : Timer = new Timer;
   /**
+  The timer that collects the amount of time spent by the property checker
+    */
+  val propertyTimer : Timer = new Timer;
+  /**
+  The timer that collects the amount of time spent by the compiler
+    */
+  val compilerTimer : Timer = new Timer;
+  /**
    An instance of the current type system
   */
   var typ : Type = null;
@@ -167,7 +175,8 @@ abstract class ScreenOutput {
   private var indent = 0
 
   def begin(s :String) { put("{ "+s); Timer.start; indent += 1 }
-  def put(s:String) { appendString("  "*indent + s.replaceAll("[\n\r]+","\n  "*indent)) }
+  //def put(s:String) { appendString("  "*indent + s.replaceAll("[\n\r]+","\n  "*indent)) }
+  def put(s:String) { appendString("  "*indent + s) }
   def end(s:String) { indent -= 1; put("} "+s+" (time: "+Timer.stop+")") }
   def end() { end("") }
   def reset() { indent = 0 }

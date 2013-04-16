@@ -32,25 +32,25 @@ class ExpectedOutputParser extends JavaTokenParsers  {
   }
 
   val parameter : Parser[(String, Any)] = ("set"~"analysis " ~ ident ~ "=" ~ BOOL ^^ {
-      case "set"~"analysis " ~ id ~ "=" ~ b => (id, b);
-    }
+    case "set"~"analysis " ~ id ~ "=" ~ b => (id, b);
+  }
     | "set"~"analysis " ~ ident ~ "=" ~ decimalNumber ^^ {
-      case "set"~"analysis " ~ id ~ "=" ~ d => (id, d.toInt);
-    }
+    case "set"~"analysis " ~ id ~ "=" ~ d => (id, d.toInt);
+  }
     | "set"~"analysis " ~ ident ~ "=" ~ stringLiteral ^^ {
-      case "set"~"analysis " ~ id ~ "=" ~ s => (id, s.replaceAll("\"", ""));
-    }
-  )
+    case "set"~"analysis " ~ id ~ "=" ~ s => (id, s.replaceAll("\"", ""));
+  }
+    )
   val heapparameter : Parser[(String, Any)] = ("set"~"heap"~"" ~ ident ~ "=" ~ BOOL ^^ {
-      case "set"~"heap"~"" ~ id ~ "=" ~ b => (id, b);
-    }
+    case "set"~"heap"~"" ~ id ~ "=" ~ b => (id, b);
+  }
     | "set"~"heap"~"" ~ ident ~ "=" ~ decimalNumber ^^ {
-      case "set"~"heap"~"" ~ id ~ "=" ~ d => (id, d.toInt);
-    }
+    case "set"~"heap"~"" ~ id ~ "=" ~ d => (id, d.toInt);
+  }
     | "set"~"heap"~"" ~ ident ~ "=" ~ stringLiteral ^^ {
-      case "set"~"heap"~"" ~ id ~ "=" ~ s => (id, s.replaceAll("\"", ""));
-    }
-  )
+    case "set"~"heap"~"" ~ id ~ "=" ~ s => (id, s.replaceAll("\"", ""));
+  }
+    )
 
   val listParameters: Parser[Set[(String, Any)]] = ((parameter ^^ {
     case p => par = par + p;
@@ -61,40 +61,40 @@ class ExpectedOutputParser extends JavaTokenParsers  {
   }) *) ^^ {case _ => heappar}
 
   val CONTRACT : Parser[Contract]= (
-      "invariant(" ~ ident ~ "," ~ stringLiteral ~ ")"  ^^ {
-        case "invariant(" ~ c ~ "," ~ e ~ ")" => new Invariant(c, e.replaceAll("\"", ""));
-      }
-    | "predicate(" ~ ident ~ "," ~ ident ~ "," ~ stringLiteral ~ ")" ^^ {
-        case "predicate(" ~ c ~ "," ~ n ~ "," ~ e ~ ")" => new Predicate(c, n, e.replaceAll("\"", ""));
-      }
-    | "precondition(" ~ ident ~ "," ~ ident ~ "," ~ stringLiteral ~ ")" ^^ {
-        case "precondition(" ~ c ~ "," ~ m ~ "," ~ e ~ ")" => new PreCondition(c, m, e.replaceAll("\"", ""));
-      }
-    | "postcondition(" ~ ident ~ "," ~ ident ~ "," ~ stringLiteral ~ ")" ^^ {
-        case "postcondition(" ~ c ~ "," ~ m ~ "," ~ e ~ ")" => new PostCondition(c, m, e.replaceAll("\"", ""));
-      }
-    | "loopinvariant(" ~ decimalNumber ~ "," ~ decimalNumber ~ "," ~ stringLiteral ~ ")"  ^^ {
-        case "loopinvariant(" ~ r ~ "," ~ c ~ "," ~ e ~ ")" => new LoopInvariant(r.toInt, c.toInt, e.replaceAll("\"", ""));
-      }
-  )
+    "invariant(" ~ ident ~ "," ~ stringLiteral ~ ")"  ^^ {
+      case "invariant(" ~ c ~ "," ~ e ~ ")" => new Invariant(c, e.replaceAll("\"", ""));
+    }
+      | "predicate(" ~ ident ~ "," ~ ident ~ "," ~ stringLiteral ~ ")" ^^ {
+      case "predicate(" ~ c ~ "," ~ n ~ "," ~ e ~ ")" => new Predicate(c, n, e.replaceAll("\"", ""));
+    }
+      | "precondition(" ~ ident ~ "," ~ ident ~ "," ~ stringLiteral ~ ")" ^^ {
+      case "precondition(" ~ c ~ "," ~ m ~ "," ~ e ~ ")" => new PreCondition(c, m, e.replaceAll("\"", ""));
+    }
+      | "postcondition(" ~ ident ~ "," ~ ident ~ "," ~ stringLiteral ~ ")" ^^ {
+      case "postcondition(" ~ c ~ "," ~ m ~ "," ~ e ~ ")" => new PostCondition(c, m, e.replaceAll("\"", ""));
+    }
+      | "loopinvariant(" ~ decimalNumber ~ "," ~ decimalNumber ~ "," ~ stringLiteral ~ ")"  ^^ {
+      case "loopinvariant(" ~ r ~ "," ~ c ~ "," ~ e ~ ")" => new LoopInvariant(r.toInt, c.toInt, e.replaceAll("\"", ""));
+    }
+    )
 
   val expectedOutput : Parser[ExpectedOutput] = (
-      "warningPP(" ~ decimalNumber ~ "," ~ decimalNumber ~ ")" ^^ {
-        case "warningPP(" ~ l ~ "," ~ c ~ ")" => new WarningPP(l.toInt, c.toInt);
-      }
-    | "validatedPP(" ~ decimalNumber ~ "," ~ decimalNumber ~ ")" ^^ {
-        case "validatedPP(" ~ l ~ "," ~ c ~ ")" => new ValidatedPP(l.toInt, c.toInt);
-      }
-    | "warningMethod(" ~ stringLiteral ~ "," ~ stringLiteral ~ ")" ^^ {
-        case "warningMethod(" ~ c ~ "," ~ m ~ ")" => new WarningMethod(c.replaceAll("\"", ""), m.replaceAll("\"", ""));
-      }
-    | "validatedMethod(" ~ stringLiteral ~ "," ~ stringLiteral ~ ")" ^^ {
-        case "validatedMethod(" ~ c ~ "," ~ m ~ ")" => new ValidatedMethod(c.replaceAll("\"", ""), m.replaceAll("\"", ""));
-      }
-    | "inferredContract(" ~ CONTRACT ~ ")" ^^ {
-        case "inferredContract(" ~ c ~ ")" => new InferredContract(c);
-      }
-  )
+    "warningPP(" ~ decimalNumber ~ "," ~ decimalNumber ~ ")" ^^ {
+      case "warningPP(" ~ l ~ "," ~ c ~ ")" => new WarningPP(l.toInt, c.toInt);
+    }
+      | "validatedPP(" ~ decimalNumber ~ "," ~ decimalNumber ~ ")" ^^ {
+      case "validatedPP(" ~ l ~ "," ~ c ~ ")" => new ValidatedPP(l.toInt, c.toInt);
+    }
+      | "warningMethod(" ~ stringLiteral ~ "," ~ stringLiteral ~ ")" ^^ {
+      case "warningMethod(" ~ c ~ "," ~ m ~ ")" => new WarningMethod(c.replaceAll("\"", ""), m.replaceAll("\"", ""));
+    }
+      | "validatedMethod(" ~ stringLiteral ~ "," ~ stringLiteral ~ ")" ^^ {
+      case "validatedMethod(" ~ c ~ "," ~ m ~ ")" => new ValidatedMethod(c.replaceAll("\"", ""), m.replaceAll("\"", ""));
+    }
+      | "inferredContract(" ~ CONTRACT ~ ")" ^^ {
+      case "inferredContract(" ~ c ~ ")" => new InferredContract(c);
+    }
+    )
 
   private var outputs : Set[ExpectedOutput] = Set.empty[ExpectedOutput];
 

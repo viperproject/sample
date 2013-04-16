@@ -15,6 +15,7 @@ abstract sealed class Annotation(val exp : String) {
     case x: Annotation => return x.exp.equals(exp)
     case _ => false
   }
+  def getMessage()=exp;
 
 }
 

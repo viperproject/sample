@@ -1,15 +1,15 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.userinterfaces._
-import ch.ethz.inf.pm.sample.property._;
+import abstractdomain._
+import oorepresentation._
+import abstractdomain.heapanalysis._
+import userinterfaces._
+import property._;
 import apron._
-import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
+import oorepresentation.scalalang.ScalaCompiler;
 
-class ShowGraphProperty extends ch.ethz.inf.pm.sample.property.Property {
+class ShowGraphProperty extends Property {
 	override def getLabel() : String = "Show graph"
 	
 	override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit =

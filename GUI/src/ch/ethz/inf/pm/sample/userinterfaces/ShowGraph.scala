@@ -6,14 +6,11 @@ import abstractdomain.VariableIdentifier
 import com.mxgraph.view._
 import com.mxgraph.swing._
 import com.mxgraph.model._
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.property._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
+import oorepresentation._
+import abstractdomain._
+import property._
+import abstractdomain.heapanalysis._
 
-import heapanalysis.CollectionLengthIdentifier
-import heapanalysis.CollectionSummaryIdentifier
-import heapanalysis.FieldAndProgramPoint
 import javax.swing._
 import java.awt.event._
 import tracepartitioning._

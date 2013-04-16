@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
-import java.io.{File, StringWriter}
+import java.io.{FileReader, BufferedReader, File, StringWriter}
 
 /**
  * A <code>Compiler</code> represents the interface to provide a compiler from a language to Simple
@@ -61,8 +61,42 @@ trait Compiler {
    */
   def reset()
 
+  /**
+   * This method returns the textual representation of the program BEFORE compiling it. This is useful to have some
+   * statistics (e.g., LOC) of the original programs.
+   */
+  def getSourceCode(path : String) : String;
+
   def compile(file:String) { compileFile(file) }
   def compile(file:File) { compileFile(file.getAbsolutePath) }
   def compile(files:List[String]) { files.foreach(compile _ ) }
+  protected def getOriginalCode(reader : BufferedReader) : String = {
+    var output = "";
+    var newLine = reader.readLine()
+    while(newLine!=null) {
+      output = output+newLine+"\n";
+      newLine = reader.readLine();
+    }
+    return output;
+  }
+}
+
+
+/**
+ * A <code>IteratorOverPrograms</code> iterates over a list of paths from which programs can be retrieved
+ *
+ * @author Pietro Ferrara
+ * @since 0.1
+ */
+trait IteratorOverPrograms extends Iterator[String] {
+
+
+  /**
+  This method returns a short description of the iterator.
+
+   @return a short the description of the iterator (e.g., files in a directory)
+    */
+  def getLabel() : String;
+
 
 }

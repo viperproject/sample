@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 
 import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.oorepresentation._;
-import ch.ethz.inf.pm.sample.abstractdomain._;
+import abstractdomain.heapanalysis._
+import oorepresentation._;
+import abstractdomain._;
 import lpsolve._;
 
 object Settings {

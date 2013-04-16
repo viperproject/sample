@@ -1,17 +1,17 @@
 package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 
 import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions._
-import ch.ethz.inf.pm.sample.oorepresentation._
+import abstractdomain._
+import abstractdomain.heapanalysis._
+import abstractdomain.accesspermissions._
+import oorepresentation._
 import sun.security.util.Resources_de
 import javax.annotation.Resource
 import collection.immutable.Map._
 
 //import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing.plugin._
 //import ch.ethz.inf.pm.sample.userinterfaces._
-import ch.ethz.inf.pm.sample.property._;
+import property._;
 import java.io._
 
 private object CollectedResults {

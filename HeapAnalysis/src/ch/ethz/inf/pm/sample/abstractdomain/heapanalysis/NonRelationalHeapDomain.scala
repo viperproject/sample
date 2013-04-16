@@ -2,8 +2,8 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
+import oorepresentation._
+import userinterfaces.ShowGraph
 import property.Property
 import util.HeapIdSetFunctionalLifting
 
@@ -169,8 +169,14 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def getLabel() : String = "Heap Domain:"+dom.getLabel();
   override def parameters() : List[(String, Any)] = List((("UnsoundEntryState"), true), (("MaxEntryNodes"), 10))
   override def setParameter(label : String, value : Any) : Unit = label match {
-    case "UnsoundEntryState" => NonRelationalHeapDomainSettings.unsoundEntryState=value.asInstanceOf[Boolean];
-    case "MaxEntryNodes" => NonRelationalHeapDomainSettings.maxInitialNodes=value.asInstanceOf[Int];
+    case "UnsoundEntryState" => value match {
+      case b : Boolean => NonRelationalHeapDomainSettings.unsoundEntryState=b;
+      case s : String => NonRelationalHeapDomainSettings.unsoundEntryState=s.toBoolean;
+    }
+    case "MaxEntryNodes" => value match {
+      case b : Int => NonRelationalHeapDomainSettings.maxInitialNodes=b;
+      case s : String => NonRelationalHeapDomainSettings.maxInitialNodes=s.toInt;
+    }
   };
   override def getInitialState() = new NonRelationalHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
   override def getProperties() : Set[Property] = Set.empty+ShowGraph;

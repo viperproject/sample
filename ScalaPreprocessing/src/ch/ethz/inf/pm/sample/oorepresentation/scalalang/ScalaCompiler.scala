@@ -3,6 +3,8 @@ package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 import ch.ethz.inf.pm.sample._
 import scala.tools.nsc._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import java.io._
+import java.util.Scanner
 
 object ScalaClasses {
 	var classes : List[ClassDefinition] = Nil;
@@ -17,6 +19,8 @@ class ScalaCompiler extends Compiler {
    def extensions() : List[String] = "scala" :: Nil;
 
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics, ArrayNativeMethodSemantics);
+
+  def getSourceCode(path : String) : String = getOriginalCode(new BufferedReader(new FileReader(path)))
 
 	def compileFile(path : String) : List[ClassDefinition] = {
 		SystemParameters.addNativeMethodsSemantics(ObjectNativeMethodSemantics :: IntegerNativeMethodSemantics :: BooleanNativeMethodSemantics :: Nil);

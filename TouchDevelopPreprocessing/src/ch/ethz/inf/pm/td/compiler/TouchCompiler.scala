@@ -129,18 +129,17 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     compileString(source.getLines().mkString("\n"),pubID)
   }
 
+  def getSourceCode(path : String) : String = {
+    if (path.startsWith("http")) return getOriginalCode(Source.fromURL(path).bufferedReader())
+    else return getOriginalCode(Source.fromFile(path).bufferedReader())
+  }
+
+  protected def parse(scriptStr : String) = ScriptParser(scriptStr)
+
   def compileStringRecursive(scriptStr:String, pubID:String, libDef:Option[LibraryDefinition] = None): ClassDefinition = {
 
     // compile
-    var script = ScriptParser(scriptStr)
-
-    // FIXME: Remove
-    Matcher(script)( { _ => }, {
-      case f@Foreach(_,_,_,_) => println("Foreach at "+f.pos+" (file "+pubID+")")
-      case f@For(_,_,_) => println("For at "+f.pos+" (file "+pubID+")")
-      case f@While(_,_) => println("While at "+f.pos+" (file "+pubID+")")
-      case _ => ()
-    }, { _ => } )
+    var script = parse(scriptStr);
 
     script = LoopRewriter(script)
     Typer.processScript(script)

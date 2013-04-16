@@ -3,8 +3,8 @@ package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation._
+import abstractdomain._
+import oorepresentation._
 
 
 trait LevelPermission {

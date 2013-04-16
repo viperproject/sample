@@ -1,4 +1,5 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
+import ch.ethz.inf.pm.sample.td.cost.loops.CostAnalysis;
 import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
@@ -8,8 +9,10 @@ import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
+import ch.ethz.inf.pm.sample.td.cost.loops.LoopCostCompiler;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.analysis.*;
+import ch.ethz.inf.pm.td.webapi.*;
 import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
@@ -24,14 +27,16 @@ public class InstalledPlugins {
     public static ch.ethz.inf.pm.sample.oorepresentation.Compiler[] compilers;
     public static SemanticAnalysis<?>[] analyses;
     public static HeapDomain<?, ?>[] heapanalyses;
+    public static IteratorOverPrograms[] iterators;
 
     static  {
-        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[3];
+        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[4];
         compilers[0]=new ScalaCompiler();
         compilers[1]=new TouchCompiler();
         compilers[2]=new AugmentedCompiler();
+        compilers[3]=new LoopCostCompiler();
 
-        analyses=new SemanticAnalysis[9];
+        analyses=new SemanticAnalysis[10];
         analyses[0]=new NonRelationalNumericalAnalysis();
         analyses[1]=new AccessPermissionsAnalysis();
         analyses[2]=new ApronAnalysis();
@@ -41,12 +46,21 @@ public class InstalledPlugins {
         analyses[6]=new TouchAnalysis();
         analyses[7]=new TouchAnalysisWithApron();
         analyses[8]=new MultithreadingAnalysis();
+        analyses[9]=new CostAnalysis();
 
         heapanalyses=new HeapDomain[4];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
         heapanalyses[1]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
         heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
         heapanalyses[3]=new TVSHeap();
+
+        iterators = new IteratorOverPrograms[5];
+        iterators[0] = new TopScripts();
+        iterators[1] = new NewScripts();
+        iterators[2] = new FeaturedScripts();
+        iterators[3] = new RootScripts();
+        iterators[4] = new SampleScript();
+
     }
 
     private static NonRelationalHeapDomain createNonRelationalHeapDomain(NonRelationalHeapIdentifier id) {

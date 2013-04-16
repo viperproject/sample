@@ -1,13 +1,12 @@
 package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 
 import ch.ethz.inf.pm.sample._
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions._
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.scalalang._
-//import ch.ethz.inf.pm.sample.userinterfaces._
-import ch.ethz.inf.pm.sample.property._;
+import abstractdomain._
+import abstractdomain.heapanalysis._
+import abstractdomain.accesspermissions._
+import oorepresentation._
+import oorepresentation.scalalang._
+import property._;
 
 object Main {
   type Permissions = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]

@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.td.webapi
 import net.liftweb.json._
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.sample.oorepresentation.IteratorOverPrograms
 
 /**
  * Fetches real scripts from the TouchDevelop website for testing purposes
@@ -73,7 +74,7 @@ object Scripts {
 
 }
 
-class Scripts {
+abstract class Scripts extends IteratorOverPrograms {
 
   protected val service = "scripts?"
 
@@ -99,6 +100,9 @@ class Scripts {
     }
   }
 
+  override def hasNext()=hasMore;
+  override def next() : String = this.get().getCodeURL;
+
   def prepareMore() {
     scripts = scripts ::: getNextScripts
   }
@@ -111,30 +115,65 @@ class Scripts {
     continuation = (json \ "continuation").extract[String]
     hasMore = continuation != null
 
-    for {
+    filter(for {
       JObject(root) <- json
       JField("items", JArray(items)) <- root
       item <- items
-    } yield (item.extract[Script])
+    } yield (item.extract[Script]))
+
+
 
   }
+
+  protected def filter(s : List[Script]) : List[Script]= s;
 
 }
 
 class TopScripts extends Scripts {
   override protected val service = "top-scripts?"
+
+  override def getLabel() = "TouchDevelop top scripts"
 }
 
 class NewScripts extends Scripts {
   override protected val service = "new-scripts?"
+
+  override def getLabel() = "TouchDevelop new scripts"
 }
 
 class FeaturedScripts extends Scripts {
   override protected val service = "featured-scripts?"
+
+  override def getLabel() = "TouchDevelop featured scripts"
+}
+
+class RootScripts() extends Scripts {
+  override protected def filter(s : List[Script]) : List[Script]=
+    s.filter( (t : Script) => (t.id.equals(t.rootid)))
+
+  override def getLabel() = "TouchDevelop root scripts"
 }
 
 class ScriptSearch(query:String) extends Scripts {
   override protected val service = "search?q="+query+"&"
+
+  override def getLabel() = "TouchDevelop search scripts, query: "+query
+}
+
+class SampleScript extends Scripts {
+  override protected val service = "pboj/scripts"
+
+  override def getLabel() = "TouchDevelop sample scripts"
+}
+
+class RootScriptsSearch(query : String) extends Scripts {
+
+  override def getLabel() = "TouchDevelop root search scripts, query: "+query
+
+  override protected val service = "search?q="+query+"&"
+
+  override protected def filter(s : List[Script]) : List[Script]=
+    s.filter( (t : Script) => (t.id.equals(t.rootid)))
 }
 
 class NoMoreScriptsException extends Exception
