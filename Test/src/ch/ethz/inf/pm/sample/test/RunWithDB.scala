@@ -11,12 +11,7 @@ import java.sql.{ResultSet, Statement, DriverManager}
 import java.util.Date
 import java.io._
 
-object StandaloneApplication {
-  def main(args : Array[String]) = {
-    val idTestRun = args(0).toInt;
-    InterfaceTestRun.runAnalyses(idTestRun, 60000);
-  }
-}
+
 
 object InterfaceTestRun {
   val CONNECTION = "jdbc:mysql://127.0.0.1:3306/mydb";
@@ -27,26 +22,75 @@ object InterfaceTestRun {
 
 
 
-  def main(args : Array[String]) : Unit =   mainMenu();
+  def main(args : Array[String]) : Unit =  {
+    extractMode(args) match {
+      case "-i" =>
+        mainMenu();
+      case "-r" =>
+        val (id, timeout) = extractIdTimeout(args);
+        runAnalyses(id, timeout*1000);
+      case "" =>
+        println("Wrong option\n" +
+          "One of the two following parameters is mandatory:\n" +
+          "-i  => run the command line interface for test runs\n" +
+          "-r <id> <timeout>  => run the testrun with id <id> given a timeout of <timeout> seconds")
+
+    }
+  }
+
+  //given the arguments' list, checks whether we have to run the menu mode or run the analysis
+  private def extractMode(args : Array[String]) : String = {
+    for(arg <- args)
+      if(arg.equals("-i")) return "-i"
+      else if(arg.equals("-r")) return arg;
+    return "";
+  }
 
 
 
+  //if we are in the mode to run a given testrun, it extracts the id of the testrun and the timeout
+  private def extractIdTimeout(args : Array[String]) : (Int, Int)= {
+    var result = (-1, -1);
+    try{
+      for(i <- 0 to args.size-1) {
+        if(args(i).equals("-r") && args.size>=i+2) result=(args(i+1).toInt, args(i+2).toInt)
+      }
+    }
+    catch {
+      case _ =>
+    }
+    if(result._1==0-1 || result._2==0-1) {
+      println("The parameter for running the test run do not conform the standard '-r <id> <timeout>'")
+      System.exit(1)
+      return (-1, -1)
+    }
+    else return result;
+  }
+
+
+
+
+
+
+  //display a menu and manage the input from the user
   private def menu(message : String, selection : Int => Boolean) = {
     var flag = true;
     while(flag) {
       println(message);
       val input = readLine;
+      var value=0-1;
       try {
-        val value = input.toInt;
-        if(! selection(value))
-          flag=false;
+        value = input.toInt;
       }
       catch {
         case _ => println("Wrong input: "+input); readLine();
       }
+      if(value!=0-1 && ! selection(value))
+        flag=false;
     }
   }
 
+  //display and manage a menu for a given test run
     private def testRunMenu(idTestRun: Int) : Unit =
       menu(getTestRunMenu(idTestRun),
           _ match {
@@ -93,12 +137,79 @@ object InterfaceTestRun {
 
               true;
 
-            case 3 => println("Not yet implemented"); readLine(); true;
+            case 3 =>
+              val previousTestRun = getExistingTestRun("compare", 10)
+
+              var out = new PrintWriter("DifferentCompilationErrors.cvs");
+              out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"));
+              out.close()
+              println("Different compilation errors written in "+new File("DifferentCompilationErrors.cvs").getAbsolutePath)
+
+              out = new PrintWriter("DifferentAnalysisErrors.cvs");
+              out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"));
+              out.close()
+              println("Different compilation errors written in "+new File("DifferentAnalysisErrors.cvs").getAbsolutePath)
+
+              out = new PrintWriter("DifferentOutputs.cvs");
+              out.println(getDifferentOutputs(idTestRun, previousTestRun));
+              out.close()
+              println("Different outputs written in "+new File("DifferentOutputs.cvs").getAbsolutePath)
+
+              out = new PrintWriter("DifferentValidatedWarningOutputs.cvs");
+              out.println(getDifferentValidatedWarningOutputs(idTestRun, previousTestRun));
+              out.close()
+              println("Different validated/warning outputs written in "+new File("DifferentValidatedWarningOutputs.cvs").getAbsolutePath)
+
+              out = new PrintWriter("NewCompilationErrors.cvs");
+              out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"));
+              out.close()
+              println("New compilation errors written in "+new File("NewCompilationErrors.cvs").getAbsolutePath)
+
+              out = new PrintWriter("NewAnalysisErrors.cvs");
+              out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"));
+              out.close()
+              println("New analysis errors written in "+new File("NewAnalysisErrors.cvs").getAbsolutePath)
+
+              out = new PrintWriter("NewOutputs.cvs");
+              out.println(getNewOutputs(idTestRun, previousTestRun));
+              out.close()
+              println("New outputs written in "+new File("NewOutputs.cvs").getAbsolutePath)
+
+              out = new PrintWriter("RemovedCompilationErrors.cvs");
+              out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenCompilations"));
+              out.close()
+              println("Removed compilation errors written in "+new File("RemovedCompilationErrors.cvs").getAbsolutePath)
+
+              out = new PrintWriter("RemovedAnalysisErrors.cvs");
+              out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenAnalyses"));
+              out.close()
+              println("Removed analysis errors written in "+new File("RemovedAnalysisErrors.cvs").getAbsolutePath)
+
+              out = new PrintWriter("RemovedOutputs.cvs");
+              out.println(getNewOutputs(previousTestRun, idTestRun));
+              out.close()
+              println("Removed outputs written in "+new File("RemovedOutputs.cvs").getAbsolutePath)
+
+              println("Press a key to go to the test run menu")
+              readLine();
+
+              true;
             case 4 =>
+              println("Timeout? (sec)")
+              val input = readLine();
+              var timeout = -1;
+              while(timeout<=0) {
+                try {
+                timeout=input.toInt;
+                }
+                catch {
+                  case _ => println("Wrong value"); readLine();
+                }
+              }
               val cmds = new Array[String](3);
               cmds.update(0, "/bin/bash")
               cmds.update(1, "-c")
-              cmds.update(2, "/home/sample/Sample/trunk/Test/runTestRun.sh "+idTestRun.toString )
+              cmds.update(2, "/home/sample/Sample/trunk/Test/runTestRun.sh "+idTestRun.toString+" "+timeout)
               val p = Runtime.getRuntime.exec(cmds)
               val output = new BufferedReader(new InputStreamReader(p.getInputStream()));;
               println(output.readLine)
@@ -113,6 +224,7 @@ object InterfaceTestRun {
                   case 1 => fromTable2ToBeAnalyzed(idTestRun, "RuntimeErrors", "TRUE"); true;
                   case 2 => fromTable2ToBeAnalyzed(idTestRun, "BrokenAnalyses", "TRUE"); true;
                   case 3 => fromTable2ToBeAnalyzed(idTestRun, "BrokenAnalyses", "Error='java.lang.ThreadDeath'"); true;
+                  case 4 => fromTable2ToBeAnalyzed(idTestRun, "BrokenCompilations", "TRUE"); true;
                   case 9 => false;
                   case 0 => println("See you!"); sys.exit(0); false;
                 }
@@ -125,6 +237,7 @@ object InterfaceTestRun {
       )
 
 
+  //display and manage the main menu
     private def mainMenu() : Unit =
       menu(getInitialMenu,
           _ match {
@@ -136,12 +249,15 @@ object InterfaceTestRun {
             }
       )
 
+
+  //text of the menus
   private def getPopulateMenu(id : Int) =
     "Test run #"+id+"\n" +
       "Please select one of the following options:\n" +
       "1) Move runtime errors to \"to be analyzed\" list\n" +
       "2) Move broken analyses to \"to be analyzed\" list\n" +
       "3) Move timeouted analyses to \"to be analyzed\" list\n" +
+      "4) Move compilation errors to \"to be analyzed\" list\n" +
       "9) Go to the previous menu\n"+
       "0) Exit"
 
@@ -415,6 +531,91 @@ object InterfaceTestRun {
     output;
   }
 
+
+  //return a string containing the error messages that were not in the previous test run
+  def getNewErrorMessages(currentTestRun : Int, previousTestRun : Int, table : String) = {
+    var output : String = "";
+    val sql = "SELECT * FROM "+table+" ba1, Programs p WHERE ba1.Program=p.ProgramId AND ba1.TestRun="+currentTestRun+" AND " +
+      "NOT EXISTS ( " +
+      "SELECT * FROM BrokenAnalyses ba2 " +
+      "WHERE ba2.TestRun="+previousTestRun+" AND ba2.Program=ba1.Program " +
+      ");"
+
+    val rows = stmt.executeQuery(sql);
+    output = output+"Program\tNew error message\n"
+    while(rows.next()) {
+      output=output+rows.getString("Name")+"\t"+rows.getString("Error").replace("\n", ";").replace("\t", " ")+"\n"
+    }
+    output;
+
+  }
+
+  //return a string containing the outputs that were not in the previous test run
+  def getNewOutputs(currentTestRun : Int, previousTestRun : Int) = {
+    var output : String = "";
+    val sql = "SELECT * FROM Output bc1, Programs p WHERE bc1.Program=p.ProgramId AND bc1.TestRun="+currentTestRun+" AND " +
+      "NOT EXISTS ( " +
+      "SELECT * FROM Output bc2 " +
+      "WHERE bc2.TestRun="+previousTestRun+" AND bc2.Program=bc1.Program AND bc1.Line=bc2.Line AND bc1.Col=bc2.Col" +
+      ");"
+
+
+    val rows = stmt.executeQuery(sql);
+    output = output+"Program\tLine\tColumn\tNew output\n"
+    while(rows.next()) {
+      output=output+rows.getString("Name")+"\t"+rows.getString("Line")+"\t"+rows.getString("Col")+"\t"+rows.getString("Message").replace("\n", ";").replace("\t", " ")+"\n"
+    }
+    output;
+
+  }
+
+  //return a string containing the error messages that are different among two test runs for a given table
+  def getDifferentErrorMessages(currentTestRun : Int, previousTestRun : Int, table : String) = {
+    var output : String = "";
+    val sql = "SELECT *, bc1.Error AS CurrentMessage, bc2.Error AS PreviousMessage FROM "+table+" bc1, "+table+" bc2, Programs p WHERE p.ProgramId=bc1.Program AND bc1.TestRun="+currentTestRun+" AND bc2.TestRun="+previousTestRun+" AND bc1.Program=bc2.Program AND bc1.Error !=bc2.Error";
+
+    val rows = stmt.executeQuery(sql);
+    output = output+"Program\tCurrent message\tPrevious message\n"
+    while(rows.next()) {
+      output=output+rows.getString("Name")+"\t"+rows.getString("CurrentMessage").replace("\n", ";").replace("\t", " ")+"\t"+rows.getString("PreviousMessage").replace("\n", ";").replace("\t", " ")+"\n"
+    }
+    output;
+
+  }
+
+  //return a string containing the outputs that are different among two test runs for a given table
+  def getDifferentOutputs(currentTestRun : Int, previousTestRun : Int) = {
+    var output : String = "";
+    val sql = "SELECT *, bc1.Message AS CurrentMessage, bc2.Message AS PreviousMessage FROM Output bc1, Output bc2, Programs p WHERE p.ProgramId=bc1.Program AND bc1.TestRun="+currentTestRun+" AND bc2.TestRun="+previousTestRun+" AND bc1.Program=bc2.Program AND bc1.Line=bc2.Line AND bc1.Col=bc2.Col AND bc1.Message!=bc2.Message";
+
+    val rows = stmt.executeQuery(sql);
+    output = output+"Program\tLine\tColumn\tCurrent message\tPrevious message\n"
+    while(rows.next()) {
+      output=output+rows.getString("Name")+"\t"+rows.getString("Line")+"\t"+rows.getString("Col")+"\t"+rows.getString("CurrentMessage").replace("\n", ";").replace("\t", " ")+"\t"+rows.getString("PreviousMessage").replace("\n", ";").replace("\t", " ")+"\n"
+    }
+    output;
+
+  }
+
+  //return a string containing the outputs that are different among two test runs for a given table
+  def getDifferentValidatedWarningOutputs(currentTestRun : Int, previousTestRun : Int) = {
+    var output : String = "";
+    val sql = "SELECT *, bc1.Message AS CurrentMessage, bc2.Message AS PreviousMessage FROM Output bc1, Output bc2, Programs p " +
+      "WHERE p.ProgramId=bc1.Program AND bc1.TestRun="+currentTestRun+" AND bc2.TestRun="+previousTestRun+" AND bc1.Program=bc2.Program AND bc1.Line=bc2.Line AND bc1.Col=bc2.Col AND bc1.Message!=bc2.Message " +
+      "AND (" +
+      "(bc1.Message LIKE 'WARNING%' AND bc2.Message LIKE 'VALIDATED%')" +
+      "OR (bc1.Message LIKE 'VALIDATED%' AND bc2.Message LIKE 'WARNING%')" +
+      ")";
+
+    val rows = stmt.executeQuery(sql);
+    output = output+"Program\tLine\tColumn\tCurrent message\tPrevious message\n"
+    while(rows.next()) {
+      output=output+rows.getString("Name")+"\t"+rows.getString("Line")+"\t"+rows.getString("Col")+"\t"+rows.getString("CurrentMessage").replace("\n", ";").replace("\t", " ")+"\t"+rows.getString("PreviousMessage").replace("\n", ";").replace("\t", " ")+"\n"
+    }
+    output;
+
+  }
+
   //return a string containing the compilation/analysis errors and the list of scripts involved per each error's message
   def getErrors(table : String, idTestRun : Int) = {
     var output : String = "";
@@ -425,7 +626,7 @@ object InterfaceTestRun {
     output=output+"Failures:"+rows.getString("Total")+"\n";
     rows.close();
 
-    sql = "SELECT COUNT(*) AS Number, Error FROM BrokenCompilations WHERE TestRun="+idTestRun+" GROUP BY Error ORDER BY Number DESC"
+    sql = "SELECT COUNT(*) AS Number, Error FROM "+table+" WHERE TestRun="+idTestRun+" GROUP BY Error ORDER BY Number DESC"
     rows = stmt.executeQuery(sql);
     output = output+"\nERROR\t#\tPrograms involved\n"
     while(rows.next()) {
@@ -488,17 +689,24 @@ object InterfaceTestRun {
     rows.next();
     val sumToBe : Int =rows.getInt("ToBe")
     rows.close();
+    sql = "SELECT COUNT(*) AS SUMC FROM BrokenCompilations WHERE TestRun="+idTestRun+";"
+    rows = stmt.executeQuery(sql);
+    rows.next();
+    val sumc : Int =rows.getInt("SUMC")
+    rows.close();
 
-    val total=suma+sumb+sumr;
+    val total=suma+sumb+sumr+sumc;
 
     output=output+"Type \t # \t % \n";
 
     val perca : Double =suma/total;
     val percb : Double =sumb/total;
     val percr : Double =sumr/total;
+    val percc : Double =sumc/total;
 
     output=output+"Successfully: \t "+suma+" \t "+perca+" \n";
     output=output+"Errors of the analysis: \t "+sumb+" \t "+percb+" \n";
+    output=output+"Errors of the compiler: \t "+sumc+" \t "+percc+" \n";
     output=output+"Runtime errors: \t "+sumr+" \t "+percr+" \n";
     output=output+"\nStill to be analyzed: \t "+sumToBe+" \n";
 
@@ -623,7 +831,7 @@ object InterfaceTestRun {
       SystemParameters.compiler.compileFile(url)
     }
     catch {
-      case e => println("Compiler's error: "+e.getMessage);
+      case e => println("Compiler's error: "+e.toString);
       stmt.executeUpdate("INSERT INTO BrokenCompilations(TestRun, Program, Error) VALUES("+idTestRun+", "+idProgram+", '"+e.toString.replace("'", "''")+"')")
       SystemParameters.compilerTimer.stop(); return;
     }
@@ -1455,6 +1663,14 @@ def mainMenu1(): Int = {
   }
   return idTestRun;
 }   */
+
+
+/*object StandaloneApplication {
+  def main(args : Array[String]) = {
+    val idTestRun = args(0).toInt;
+    InterfaceTestRun.runAnalyses(idTestRun, 60000);
+  }
+} */
 
 /*
 
