@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.IteratorOverPrograms
  * Time: 12:56
  */
 
-case class Script (
+case class ScriptRecord (
   time: Int,
   id: String,
   url: String,
@@ -53,7 +53,9 @@ object Scripts {
   val options = "" // "?original=true"
   val text = "/text"
   val ast = "/ast"
+  val webast = "/webast"
 
+  def webastURLfromPubID(pub:String):String = baseURL+pub+webast+options
   def astURLfromPubID(pub:String):String = baseURL+pub+ast+options
   def codeURLfromPubID(pub:String):String = baseURL+pub+text+options
 
@@ -80,11 +82,11 @@ abstract class Scripts extends IteratorOverPrograms {
 
   private var continuation:String = null
   private var hasMore = true
-  private var scripts: List[Script] = Nil
+  private var scripts: List[ScriptRecord] = Nil
 
   implicit val formats = new DefaultFormats {
     override val typeHintFieldName = "type"
-    override val typeHints = DowncasedTypeHints(List(classOf[Script]))
+    override val typeHints = DowncasedTypeHints(List(classOf[ScriptRecord]))
   }
 
   def reset() {
@@ -93,7 +95,7 @@ abstract class Scripts extends IteratorOverPrograms {
     scripts = Nil
   }
 
-  def get():Script = {
+  def get():ScriptRecord = {
     scripts match {
       case head :: tail => { scripts = tail; head }
       case Nil => if (hasMore) {prepareMore(); get()} else throw new NoMoreScriptsException
@@ -107,7 +109,7 @@ abstract class Scripts extends IteratorOverPrograms {
     scripts = scripts ::: getNextScripts
   }
 
-  private def getNextScripts: List[Script] = {
+  private def getNextScripts: List[ScriptRecord] = {
 
     val url = if (continuation != null) Scripts.baseURL + service + "continuation=" + continuation else Scripts.baseURL + service
     val json = parse(fetchFile(url))
@@ -119,13 +121,11 @@ abstract class Scripts extends IteratorOverPrograms {
       JObject(root) <- json
       JField("items", JArray(items)) <- root
       item <- items
-    } yield (item.extract[Script]))
-
-
+    } yield (item.extract[ScriptRecord]))
 
   }
 
-  protected def filter(s : List[Script]) : List[Script]= s;
+  protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= s
 
 }
 
@@ -148,8 +148,8 @@ class FeaturedScripts extends Scripts {
 }
 
 class RootScripts() extends Scripts {
-  override protected def filter(s : List[Script]) : List[Script]=
-    s.filter( (t : Script) => (t.id.equals(t.rootid)))
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
+    s.filter( (t : ScriptRecord) => (t.id.equals(t.rootid)))
 
   override def getLabel() = "TouchDevelop root scripts"
 }
@@ -172,8 +172,8 @@ class RootScriptsSearch(query : String) extends Scripts {
 
   override protected val service = "search?q="+query+"&"
 
-  override protected def filter(s : List[Script]) : List[Script]=
-    s.filter( (t : Script) => (t.id.equals(t.rootid)))
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
+    s.filter( (t : ScriptRecord) => (t.id.equals(t.rootid)))
 }
 
 class NoMoreScriptsException extends Exception

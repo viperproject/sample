@@ -1,7 +1,6 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -29,7 +28,7 @@ object TMotion {
   val field_roll = new TouchField("roll",TNumber.typ)
 
   /** Gets the device rotation speed in degrees per sec. */
-  val field_rotation_speed = new TouchField("rotation_speed",TVector3.typ)
+  val field_rotation_speed = new TouchField("rotation speed",TVector3.typ)
 
   /** Gets a timestamp indicating the time at which the reading was calculated. */
   val field_time = new TouchField("time",TDateTime.typ)
@@ -39,7 +38,7 @@ object TMotion {
 
   val typName = "Motion"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_acceleration, field_gravity, field_pitch, field_roll,
-    field_rotation_speed, field_time, field_yaw))
+    field_rotation_speed, field_time, field_yaw),isImmutable = true)
 
 }
 
@@ -47,11 +46,11 @@ class TMotion extends AAny {
 
   def getTyp = TMotion.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

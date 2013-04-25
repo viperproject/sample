@@ -4,7 +4,6 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichExpression._
 
 /**
  * Specifies the abstract semantics of Number
@@ -24,7 +23,7 @@ class TNumber extends AAny {
 
   def getTyp = TNumber.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet],returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
     case "≥" => Return(this0 >= parameters.head)
     case "≤" => Return(this0 <= parameters.head)
@@ -42,15 +41,15 @@ class TNumber extends AAny {
     case "not" => Return(this0 equal 0)
 
     /** Interprets a number as a unicode value and converts it to the single character string */
-    case "to_character" =>
+    case "to character" =>
       Top[S](TString.typ)
 
     /** Interprets the number as a ARGB (alpha, red, green, blue) color */
-    case "to_color" =>
+    case "to color" =>
       Top[S](TColor.typ) // TODO: This should be possible to implement
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 

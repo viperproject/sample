@@ -3,8 +3,8 @@ package ch.ethz.inf.pm.td.compiler
 import ch.ethz.inf.pm.sample.oorepresentation._
 import io.Source
 import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.symbols.Typer
-import ch.ethz.inf.pm.td.webapi.Scripts
+import ch.ethz.inf.pm.td.typecheck.Typer
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, Scripts}
 import ch.ethz.inf.pm.td.transform.{Matcher, LoopRewriter}
 import ch.ethz.inf.pm.td.semantics._
 import scala.Some
@@ -31,115 +31,43 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var events : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
   var globalData : Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields : Set[String] = Set.empty
-
-  var types : Map[String,AAny] = Map(
-    SArt.typName -> new SArt(),
-    SAssert.typName -> new SAssert(),
-    SBazaar.typName -> new SBazaar(),
-    SBox.typName -> new SBox(),
-    SCode.typName -> new SCode(),
-    SCollections.typName -> new SCollections(),
-    SColors.typName -> new SColors(),
-    SData.typName -> new SData(),
-    SHome.typName -> new SHome(),
-    SInvalid.typName -> new SInvalid(),
-    SLanguages.typName -> new SLanguages(),
-    SLocations.typName -> new SLocations(),
-    SMaps.typName -> new SMaps(),
-    SMath.typName -> new SMath(),
-    SMedia.typName -> new SMedia(),
-    SPhone.typName -> new SPhone(),
-    SPlayer.typName -> new SPlayer(),
-    SRadio.typName -> new SRadio(),
-    SRecords.typName -> new SRecords(),
-    SSenses.typName -> new SSenses(),
-    SSocial.typName -> new SSocial(),
-    STags.typName -> new STags(),
-    STime.typName -> new STime(),
-    SWall.typName -> new SWall(),
-    SWeb.typName -> new SWeb(),
-    TAppointment_Collection.typName -> new TAppointment_Collection(),
-    TAppointment.typName -> new TAppointment(),
-    TBoard.typName -> new TBoard(),
-    TBoolean.typName -> new TBoolean(),
-    TCamera.typName -> new TCamera(),
-    TColor.typName -> new TColor(),
-    TContact_Collection.typName -> new TContact_Collection(),
-    TContact.typName -> new TContact(),
-    TDateTime.typName -> new TDateTime(),
-    TDevice_Collection.typName -> new TDevice_Collection(),
-    TDevice.typName -> new TDevice(),
-    TJson_Object.typName -> new TJson_Object(),
-    TLink_Collection.typName -> new TLink_Collection(),
-    TLink.typName -> new TLink(),
-    TLocation_Collection.typName -> new TLocation_Collection(),
-    TLocation.typName -> new TLocation(),
-    TMap.typName -> new TMap(),
-    TMedia_Link_Collection.typName -> new TMedia_Link_Collection(),
-    TMedia_Link.typName -> new TMedia_Link(),
-    TMedia_Player_Collection.typName -> new TMedia_Player_Collection(),
-    TMedia_Player.typName -> new TMedia_Player(),
-    TMedia_Server_Collection.typName -> new TMedia_Server_Collection(),
-    TMedia_Server.typName -> new TMedia_Server(),
-    TMessage_Collection.typName -> new TMessage_Collection(),
-    TMessage.typName -> new TMessage(),
-    TMotion.typName -> new TMotion(),
-    TNothing.typName -> new TNothing(),
-    TNumber_Collection.typName -> new TNumber_Collection(),
-    TNumber_Map.typName -> new TNumber_Map(),
-    TNumber.typName -> new TNumber(),
-    TPage_Button.typName -> new TPage_Button(),
-    TPage_Collection.typName -> new TPage_Collection(),
-    TPage.typName -> new TPage(),
-    TPicture_Album.typName -> new TPicture_Album(),
-    TPicture_Albums.typName -> new TPicture_Albums(),
-    TPicture.typName -> new TPicture(),
-    TPictures.typName -> new TPictures(),
-    TPlace_Collection.typName -> new TPlace_Collection(),
-    TPlace.typName -> new TPlace(),
-    TPlaylist.typName -> new TPlaylist(),
-    TPlaylists.typName -> new TPlaylists(),
-    TPrinter_Collection.typName -> new TPrinter_Collection(),
-    TPrinter.typName -> new TPrinter(),
-    TSong_Album.typName -> new TSong_Album(),
-    TSong_Albums.typName -> new TSong_Albums(),
-    TSong.typName -> new TSong(),
-    TSongs.typName -> new TSongs(),
-    TSound.typName -> new TSound(),
-    TSprite.typName -> new TSprite(),
-    TSprite_Set.typName -> new TSprite_Set(),
-    TString_Collection.typName -> new TString_Collection(),
-    TString_Map.typName -> new TString_Map(),
-    TString.typName -> new TString(),
-    TTextBox.typName -> new TTextBox(),
-    TTile.typName -> new TTile(),
-    TVector3.typName -> new TVector3(),
-    TWeb_Request.typName -> new TWeb_Request(),
-    TWeb_Response.typName -> new TWeb_Response(),
-    TXml_Object.typName -> new TXml_Object()
-  )
+  var userTypes : Map[String,AAny] = Map.empty
 
   /**
-  Takes a path OR a URL
-    */
+   * This takes one of the following arguments:
+   *
+   * http://www.touchdevelop.com/api/[pubID]/... Some URL to a script
+   * td://[pubID] Some PubID in uri form
+   * Some path to a local file. The filename will be assumed to be the pubID
+   *
+   */
   def compileFile(path: String): List[ClassDefinition] = {
     val (source,pubID) =
-      if (path.startsWith("http")) (Source.fromURL(path),Scripts.pubIDfromURL(path))
-      else (Source.fromFile(path),Scripts.pubIDfromFilename(path))
-    compileString(source.getLines().mkString("\n"),pubID)
+      if (path.startsWith("http://")) (None,Scripts.pubIDfromURL(path))
+      else if (path.startsWith("td://")) (None,path.substring(5))
+      else (Some(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
+    compileString(source,pubID)
   }
 
-  def getSourceCode(path : String) : String = {
-    if (path.startsWith("http")) return getOriginalCode(Source.fromURL(path).bufferedReader())
-    else return getOriginalCode(Source.fromFile(path).bufferedReader())
-  }
+  def compileStringRecursive(scriptStr:Option[String], pubID:String, libDef:Option[LibraryDefinition] = None): ClassDefinition = {
 
-  protected def parse(scriptStr : String) = ScriptParser(scriptStr)
-
-  def compileStringRecursive(scriptStr:String, pubID:String, libDef:Option[LibraryDefinition] = None): ClassDefinition = {
+    //println("Compiling "+pubID+"... ")
 
     // compile
-    var script = parse(scriptStr);
+    var script = scriptStr match {
+      case Some(x) => ScriptParser(x)
+      case None => WebASTImporter.queryAndConvert(pubID)
+    }
+
+    // FIXME: Remove
+    if (TouchAnalysisParameters.printAllLoopsInScript) {
+      Matcher(script)( { _ => }, {
+        case f@Foreach(_,_,_,_) => println("Foreach at "+f.pos+" (file "+pubID+")")
+        case f@For(_,_,_) => println("For at "+f.pos+" (file "+pubID+")")
+        case f@While(_,_) => println("While at "+f.pos+" (file "+pubID+")")
+        case _ => ()
+      }, { _ => } )
+    }
 
     script = LoopRewriter(script)
     Typer.processScript(script)
@@ -152,19 +80,19 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       case Some(LibraryDefinition(name,_,_,_)) => parsedNames = parsedNames ::: List(name)
       case None => parsedNames = parsedNames ::: List(pubID)
     }
-    parsedSourceStrings += ((pubID,scriptStr))
+    parsedSourceStrings += ((pubID,scriptStr match { case Some(x) => x; case None => PrettyPrinter(script)(false) }))
 
     // recursive for libs
     val libDefs = discoverRequiredLibraries(script)
     // FIXME: This should actually be checking for parsed names not parsed ids, right?
     for (lib <- libDefs; if (!parsedNames.contains(lib.name) && !lib.pubID.isEmpty)) {
-      compileStringRecursive(Source.fromURL(Scripts.codeURLfromPubID(lib.pubID)).getLines().mkString("\n"),lib.pubID,Some(lib))
+      compileStringRecursive(None,lib.pubID,Some(lib))
     }
 
     newCFG
   }
 
-  def compileString(scriptStr:String, pubID:String): List[ClassDefinition] = {
+  def compileString(scriptStr:Option[String], pubID:String): List[ClassDefinition] = {
 
     // Compile
     main = compileStringRecursive(scriptStr,pubID)
@@ -194,8 +122,34 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     parsedScripts
   }
 
+  /**
+   * TODO: Remove this - that does not make sense at all since it does not include the source of libraries
+   */
+  def getSourceCode(path : String):String = {
+    val (source,pubID) =
+      if (path.startsWith("http://")) (None,Scripts.pubIDfromURL(path))
+      else if (path.startsWith("td://")) (None,path.substring(5))
+      else (Some(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
+    val script = source match {
+      case Some(x) => ScriptParser(x)
+      case None => WebASTImporter.queryAndConvert(pubID)
+    }
+    PrettyPrinter(script)(false)
+  }
+
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
-    new Libraries() :: types.values.toList
+    (new Libraries() :: TypeList.types.values.toList) ::: userTypes.values.toList
+  }
+
+  def getType(name:String):AAny = {
+    TypeList.types.get(name) match {
+      case Some(x) => x
+      case None =>
+        userTypes.get(name) match {
+          case Some(x) => x
+          case None => throw new TouchException("Could not find type "+name)
+        }
+    }
   }
 
   def extensions(): List[String] = List("td")
@@ -259,6 +213,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     relevantLibraryFields = Set.empty
     parsedScripts = Nil
     parsedSourceStrings = Map.empty
+    userTypes = Map.empty
   }
 
 

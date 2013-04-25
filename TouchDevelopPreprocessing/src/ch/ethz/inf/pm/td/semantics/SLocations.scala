@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 
 object SLocations {
 
-  val typName = "locations"
+  val typName = "Locations"
   val typ = new TouchType(typName, isSingleton = true)
 
 }
@@ -22,11 +22,11 @@ class SLocations extends AAny {
 
   def getTyp = SLocations.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Creates a new geo coordinate location */
-    case "create_location" =>
+    case "create location" =>
       val List(latitude,longitude) = parameters // Number,Number
       New[S](TLocation.typ,Map(
         TLocation.field_latitude -> latitude,
@@ -34,22 +34,22 @@ class SLocations extends AAny {
       ))
 
     /** Creates an empty list of locations */
-    case "create_location_list" =>
+    case "create location list" =>
       New[S](TLocation_Collection.typ)
 
     /** Looks for an address near a location using Bing. */
-    case "describe_location" =>
+    case "describe location" =>
       val List(location) = parameters // Location
       val ret = Top[S](TString.typ)
       ret
 
     /** Looks for the coordinate of an address using Bing. */
-    case "search_location" =>
+    case "search location" =>
       val List(address,postal_code,city,country) = parameters // String,String,String,String
       New[S](TLocation.typ)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

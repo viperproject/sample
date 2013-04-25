@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -38,7 +37,7 @@ class TPicture extends AAny {
 
   def getTyp = TPicture.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
 
@@ -106,71 +105,71 @@ class TPicture extends AAny {
       Skip
 
     /** Draws an elliptic border with a given color */
-    case "draw_ellipse" =>
+    case "draw ellipse" =>
       val List(left,top,width,height,angle,c,thickness) = parameters // Number,Number,Number,Number,Number,Color,Number
-      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"draw_ellipse","left")
-      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"draw_ellipse","top")
-      CheckInRangeInclusive[S](width,0,Field[S](this0,TPicture.field_width)-left,"draw_ellipse","width")
-      CheckInRangeInclusive[S](height,0,Field[S](this0,TPicture.field_height)-top,"draw_ellipse","height")
-      CheckInRangeInclusive[S](angle,0,360,"draw_ellipse","angle")
-      CheckNonNegative[S](thickness,"draw_ellipse","thickness")
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"draw ellipse","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"draw ellipse","top")
+      CheckInRangeInclusive[S](width,0,Field[S](this0,TPicture.field_width)-left,"draw ellipse","width")
+      CheckInRangeInclusive[S](height,0,Field[S](this0,TPicture.field_height)-top,"draw ellipse","height")
+      CheckInRangeInclusive[S](angle,0,360,"draw ellipse","angle")
+      CheckNonNegative[S](thickness,"draw ellipse","thickness")
       Skip
 
     /** Draws a line between two points */
-    case "draw_line" =>
+    case "draw line" =>
       val List(x1,y1,x2,y2,color,thickness) = parameters // Number,Number,Number,Number,Color,Number
-      CheckInRangeInclusive[S](x1,0,Field[S](this0,TPicture.field_width),"draw_line","x1")
-      CheckInRangeInclusive[S](y1,0,Field[S](this0,TPicture.field_height),"draw_line","y1")
-      CheckInRangeInclusive[S](x2,0,Field[S](this0,TPicture.field_width),"draw_line","x2")
-      CheckInRangeInclusive[S](y2,0,Field[S](this0,TPicture.field_height),"draw_line","y2")
-      CheckNonNegative[S](thickness,"draw_line","thickness")
+      CheckInRangeInclusive[S](x1,0,Field[S](this0,TPicture.field_width),"draw line","x1")
+      CheckInRangeInclusive[S](y1,0,Field[S](this0,TPicture.field_height),"draw line","y1")
+      CheckInRangeInclusive[S](x2,0,Field[S](this0,TPicture.field_width),"draw line","x2")
+      CheckInRangeInclusive[S](y2,0,Field[S](this0,TPicture.field_height),"draw line","y2")
+      CheckNonNegative[S](thickness,"draw line","thickness")
       Skip
 
     /** Draws a rectangle border with a given color */
-    case "draw_rect" =>
+    case "draw rect" =>
       val List(left,top,width,height,angle,c,thickness) = parameters // Number,Number,Number,Number,Number,Color,Number
-      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"draw_rect","left")
-      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"draw_rect","top")
-      CheckInRangeInclusive[S](left+width,0,Field[S](this0,TPicture.field_width),"draw_rect","left+width")
-      CheckInRangeInclusive[S](top+height,0,Field[S](this0,TPicture.field_height),"draw_rect","top+height")
-      CheckInRangeInclusive[S](angle,0,360,"draw_rect","angle")
-      CheckNonNegative[S](thickness,"draw_rect","thickness")
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"draw rect","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"draw rect","top")
+      CheckInRangeInclusive[S](left+width,0,Field[S](this0,TPicture.field_width),"draw rect","left+width")
+      CheckInRangeInclusive[S](top+height,0,Field[S](this0,TPicture.field_height),"draw rect","top+height")
+      CheckInRangeInclusive[S](angle,0,360,"draw rect","angle")
+      CheckNonNegative[S](thickness,"draw rect","thickness")
       Skip
 
     /** Draws some text border with a given color and font size */
-    case "draw_text" =>
+    case "draw text" =>
       val List(left,top,text,font,angle,color) = parameters // Number,Number,String,Number,Number,Color
-      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"draw_text","left")
-      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"draw_text","top")
-      CheckInRangeInclusive[S](angle,0,360,"draw_text","angle")
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"draw text","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"draw text","top")
+      CheckInRangeInclusive[S](angle,0,360,"draw text","angle")
       Skip
 
     /** Fills a ellipse with a given color */
-    case "fill_ellipse" =>
+    case "fill ellipse" =>
       val List(left,top,width,height,angle,color) = parameters // Number,Number,Number,Number,Number,Color
-      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"fill_ellipse","left")
-      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"fill_ellipse","top")
-      CheckInRangeInclusive[S](width,0,Field[S](this0,TPicture.field_width)-left,"fill_ellipse","width")
-      CheckInRangeInclusive[S](height,0,Field[S](this0,TPicture.field_height)-top,"fill_ellipse","height")
-      CheckInRangeInclusive[S](angle,0,360,"fill_ellipse","angle")
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"fill ellipse","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"fill ellipse","top")
+      CheckInRangeInclusive[S](width,0,Field[S](this0,TPicture.field_width)-left,"fill ellipse","width")
+      CheckInRangeInclusive[S](height,0,Field[S](this0,TPicture.field_height)-top,"fill ellipse","height")
+      CheckInRangeInclusive[S](angle,0,360,"fill ellipse","angle")
       Skip
 
     /** Fills a rectangle with a given color */
-    case "fill_rect" =>
+    case "fill rect" =>
       val List(left,top,width,height,angle,color) = parameters // Number,Number,Number,Number,Number,Color
-      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"fill_rect","left")
-      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"fill_rect","top")
-      CheckInRangeInclusive[S](left+width,0,Field[S](this0,TPicture.field_width),"fill_rect","left+width")
-      CheckInRangeInclusive[S](top+height,0,Field[S](this0,TPicture.field_height),"fill_rect","top+height")
-      CheckInRangeInclusive[S](angle,0,360,"fill_rect","angle")
+      CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"fill rect","left")
+      CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"fill rect","top")
+      CheckInRangeInclusive[S](left+width,0,Field[S](this0,TPicture.field_width),"fill rect","left+width")
+      CheckInRangeInclusive[S](top+height,0,Field[S](this0,TPicture.field_height),"fill rect","top+height")
+      CheckInRangeInclusive[S](angle,0,360,"fill rect","angle")
       Skip
 
     /** Flips the picture horizontally */
-    case "flip_horizontal" =>
+    case "flip horizontal" =>
        Skip
 
     /** Flips the picture vertically */
-    case "flip_vertical" =>
+    case "flip vertical" =>
        Skip
 
     /** Inverts the red, blue and green channels */
@@ -178,7 +177,7 @@ class TPicture extends AAny {
        Skip
 
     /** Indicates if the picture width is greater than its height */
-    case "is_panorama" =>
+    case "is panorama" =>
        Return[S](Field[S](this0,TPicture.field_width)>Field[S](this0,TPicture.field_height))
 
     /** Gets the pixel color */
@@ -213,14 +212,14 @@ class TPicture extends AAny {
       state2
 
     /** Saves the picture to the 'saved pictures' album. Returns the file name. */
-    case "save_to_library" =>
+    case "save to library" =>
       Top[S](TString.typ)
 
     /** Sets the pixel color at a given pixel */
-    case "set_pixel" =>
+    case "set pixel" =>
       val List(x,y,color) = parameters // Number,Number,Color
-      CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"set_pixel","x")
-      CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"set_pixel","y")
+      CheckInRangeInclusive[S](x,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"set pixel","x")
+      CheckInRangeInclusive[S](y,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"set pixel","y")
       Skip
 
     /** Shares this message (empty string to pick from a list) */
@@ -234,11 +233,11 @@ class TPicture extends AAny {
       Skip
 
     /** Refreshes the picture on the wall */
-    case "update_on_wall" =>
+    case "update on wall" =>
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

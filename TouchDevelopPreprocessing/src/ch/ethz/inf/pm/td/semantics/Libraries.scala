@@ -2,11 +2,9 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import scala.Error
 import scala.Some
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchCompiler}
 import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
 
 /**
@@ -34,7 +32,7 @@ class Libraries() extends NativeMethodSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
-    if (thisExpr.getType().getName().startsWith("__script_")) {
+    if (CFGGenerator.isLibraryIdent(thisExpr.getType().getName())) {
       SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(operator,thisExpr.getType(),parameters map (_.getType())) match {
         case Some((clazz,methodDef)) =>
           Some(MethodSummaries.collect(pp,clazz,methodDef,state,parameters))

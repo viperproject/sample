@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TContact_Collection {
 
-  val typName = "Contact_Collection"
+  val typName = "Contact Collection"
   val typ = TouchCollection(typName,"Number","Contact", immutableCollection = true)
 
 }
@@ -23,11 +23,11 @@ class TContact_Collection extends ACollection {
 
   def getTyp = TContact_Collection.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

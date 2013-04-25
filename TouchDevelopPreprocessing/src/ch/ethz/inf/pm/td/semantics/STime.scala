@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object STime {
 
-  val typName = "time"
+  val typName = "Time"
   val typ = new TouchType(typName,isSingleton = true)
 
 }
@@ -24,7 +24,7 @@ class STime extends AAny {
 
   def getTyp = STime.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Creates a new date instance */
@@ -40,7 +40,7 @@ class STime extends AAny {
       ))
 
     /** Aborts the execution if the condition is false. */
-    case "fail_if_not" =>
+    case "fail if not" =>
       val List(condition) = parameters // Boolean
       Error[S](condition.not(),"fail if not "+condition+" might fail")
       Skip
@@ -64,7 +64,7 @@ class STime extends AAny {
     //   Skip;
 
     /** Stops the execution and leaves the wall. */
-     case "stop_and_close" =>
+     case "stop and close" =>
        Skip // TODO: Treat this explicitly in control flow - may cause false alarms
 
     /** Gets today's date without time */
@@ -76,7 +76,7 @@ class STime extends AAny {
       Top[S](TDateTime.typ)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

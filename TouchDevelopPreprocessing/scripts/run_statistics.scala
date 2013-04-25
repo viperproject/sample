@@ -2,7 +2,7 @@ import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.stdlib._
 import ch.ethz.inf.pm.td.webapi.{Scripts, NoMoreScriptsException, NewScripts, URLFetcher}
-import ch.ethz.inf.pm.td.symbols._
+import ch.ethz.inf.pm.td.typecheck._
 import tools.cmd.Parser.ParseException
 
 val coveredMembers = List(
@@ -359,7 +359,7 @@ try {
     try {
       if (!script.haserrors) {
         val ast = ScriptParser(URLFetcher.fetchFile(url))
-        val symbolTable = new SymbolTable(ast) with FieldStatistics with StdLib with ObsoleteStdLib
+        val symbolTable = new SymbolTable(ast) with FieldStatistics with StdLib with DebugLib
 
         coverage.setScript(script.id)
         uses.setScript(script.id)

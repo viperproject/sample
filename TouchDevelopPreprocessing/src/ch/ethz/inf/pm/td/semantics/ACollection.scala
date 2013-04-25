@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchCollection
+import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 
 /**
@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisCon
  */
 abstract class ACollection extends AAny {
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets the i-th element */
@@ -22,7 +22,7 @@ abstract class ACollection extends AAny {
       Return[S](CollectionAt[S](this0,index))
 
     /** Gets the i-th element */
-    case "at_index" =>
+    case "at index" =>
       val List(index) = parameters // Key_Type
       CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       Return[S](CollectionAt[S](this0,index))
@@ -52,7 +52,7 @@ abstract class ACollection extends AAny {
       Return[S](CollectionSize[S](this0))
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 

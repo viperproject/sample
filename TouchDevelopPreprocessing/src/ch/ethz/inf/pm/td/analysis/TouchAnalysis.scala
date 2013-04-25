@@ -69,7 +69,6 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
    *
    */
   override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) {
-    ApronInstanceCounter.reset()
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
     // Set up the environment
@@ -81,13 +80,38 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     //SystemParameters.progressOutput.begin("Library fragment analysis")
     if(TouchAnalysisParameters.libraryFieldPruning) {
       compiler.relevantLibraryFields = RequiredLibraryFragmentAnalysis(compiler.parsedScripts)
-      SystemParameters.resetOutput
+      compiler.relevantLibraryFields = compiler.relevantLibraryFields ++ Set("data","art","records","code")
+        SystemParameters.resetOutput
       MethodSummaries.reset[S]()
     }
     //SystemParameters.progressOutput.end()
 
-    // Set global state to invalid
+
+    // Initialize the fields of singletons (the environment)
     var curState = entryState
+    for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
+      if(sem.isInstanceOf[AAny]) {
+        val typ = sem.asInstanceOf[AAny].getTyp
+        if(typ.isSingleton &&
+          (!TouchAnalysisParameters.libraryFieldPruning ||
+            SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
+          val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
+          if(typ.getName() == "records")
+            if ( ! TouchAnalysisParameters.singleExecution ) {
+              curState = RichNativeSemantics.New[S](typ)(curState,singletonProgramPoint)
+            } else {
+              curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
+            }
+          else
+            curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
+          val obj = curState.getExpression()
+          val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName.toLowerCase,typ,singletonProgramPoint))
+          curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
+        }
+      }
+    }
+
+    // Set global state to invalid
     for (v <- compiler.globalData) {
 
       val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.name.getName()),v.typ,v.programpoint)
@@ -138,29 +162,6 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
       curState = curState.assignVariable(leftExpr,rightExpr)
     }
 
-    // Initialize the fields of singletons (the environment)
-    for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
-      if(sem.isInstanceOf[AAny]) {
-        val typ = sem.asInstanceOf[AAny].getTyp
-        if(typ.isSingleton &&
-          (!TouchAnalysisParameters.libraryFieldPruning ||
-          SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
-          val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
-          if(typ.getName() == "records")
-            if ( ! TouchAnalysisParameters.singleExecution ) {
-              curState = RichNativeSemantics.New[S](typ)(curState,singletonProgramPoint)
-            } else {
-              curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
-            }
-          else
-            curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
-          val obj = curState.getExpression()
-          val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName,typ,singletonProgramPoint))
-          curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
-        }
-      }
-    }
-
     // The first fixpoint, which is computed over several executions of the same script
     if ( ! TouchAnalysisParameters.singleExecution )
       lfp(curState, analyzeExecution(compiler,methods)(_:S))
@@ -181,7 +182,6 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
 
     SystemParameters.progressOutput.end()
-    ApronInstanceCounter.print()
 
   }
 

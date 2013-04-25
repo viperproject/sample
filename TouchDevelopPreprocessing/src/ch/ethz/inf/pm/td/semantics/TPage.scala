@@ -24,7 +24,7 @@ class TPage extends AAny {
 
   def getTyp = TPage.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets a value indicating if the page is equal to the other */
@@ -33,7 +33,7 @@ class TPage extends AAny {
        Top[S](TBoolean.typ)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

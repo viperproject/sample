@@ -4,7 +4,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
-import RichExpression._
 
 /**
  * User: lucas
@@ -14,7 +13,7 @@ import RichExpression._
 
 object SMath {
 
-  val typName = "math"
+  val typName = "Math"
   val typ = new TouchType(typName, isSingleton = true)
 
 }
@@ -23,7 +22,7 @@ class SMath extends AAny {
 
   def getTyp = SMath.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Returns the negative infinity */
     case "∞₋" =>
@@ -74,15 +73,15 @@ class SMath extends AAny {
       Top[S](TNumber.typ) // TODO
 
     /** OBSOLETE: Creates an empty number collection */
-    case "create_number_collection" =>
+    case "create number collection" =>
       New[S](TNumber_Collection.typ)
 
     /** OBSOLETE: Creates an empty number map */
-    case "create_number_map" =>
+    case "create number map" =>
       New[S](TNumber_Map.typ)
 
     /** Creates a 3D vector */
-    case "create_vector3" =>
+    case "create vector3" =>
       val List(x,y,z) = parameters // Number,Number,Number
       New[S](TVector3.typ,Map(
         TVector3.field_x -> x,
@@ -91,7 +90,7 @@ class SMath extends AAny {
       ))
 
     /** Converts degrees into radians */
-    case "deg_to_rad" =>
+    case "deg to rad" =>
       val List(degrees) = parameters // Number
       Top[S](TNumber.typ) // TODO
 
@@ -114,27 +113,27 @@ class SMath extends AAny {
       Return(toRichExpression(9.80665))
 
     /** Returns the remainder resulting from the division of a specified number by another specified number */
-    case "ieee_remainder" =>
+    case "ieee remainder" =>
       val List(x,y) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
     /** Indicates whether number evaluates to negative or positive infinity */
-    case "is_∞" =>
+    case "is ∞" =>
       val List(x) = parameters // Number
       Top[S](TBoolean.typ) // TODO
 
     /** Indicates whether number evaluates to negative infinity */
-    case "is_∞₋" =>
+    case "is ∞₋" =>
       val List(x) = parameters // Number
       Top[S](TBoolean.typ) // TODO
 
     /** Indicates whether number evaluates to positive infinity */
-    case "is_∞₊" =>
+    case "is ∞₊" =>
       val List(x) = parameters // Number
       Top[S](TBoolean.typ) // TODO
 
     /** Indicates that value cannot be represented as a number, i.e. Not-a-Number. This usually happens when the number is the result of a division by zero. */
-    case "is_nan" =>
+    case "is nan" =>
       val List(x) = parameters // Number
       Top[S](TBoolean.typ) // TODO
 
@@ -174,7 +173,7 @@ class SMath extends AAny {
       Top[S](TNumber.typ) // TODO
 
     /** Converts rad into degrees */
-    case "rad_to_deg" =>
+    case "rad to deg" =>
       val List(radians) = parameters // Number
       Return[S]((radians / math.Pi)*180)
 
@@ -188,7 +187,7 @@ class SMath extends AAny {
       Return[S](toRichExpression(0) ndTo (upperBound - 1))
 
     /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
-    case "random_normalized" =>
+    case "random normalized" =>
       Top[S](TNumber.typ) // TODO
 
     /** Rounds a number to the nearest integral value */
@@ -197,7 +196,7 @@ class SMath extends AAny {
       Top[S](TNumber.typ) // TODO
 
     /** Rounds a number to a specified number of fractional digits. */
-    case "round_with_precision" =>
+    case "round with precision" =>
       val List(x,digits) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
@@ -241,7 +240,7 @@ class SMath extends AAny {
       Return[S](toRichExpression(3.14159)) // TODO: PRECISION?
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

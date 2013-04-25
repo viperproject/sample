@@ -25,7 +25,7 @@ class TPictures extends ACollection {
 
   def getTyp = TPictures.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Finds a picture by name and returns the index. Returns -1 if not found. */
@@ -39,7 +39,7 @@ class TPictures extends ACollection {
       New[S](TPicture.typ)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

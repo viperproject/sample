@@ -4,7 +4,6 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{State, ExpressionSet}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichExpression._
 
 /**
  * User: lucas
@@ -27,7 +26,7 @@ class TVector3 extends AAny {
 
   def getTyp = TVector3.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Adds a vector */
     case "add" =>
@@ -92,7 +91,7 @@ class TVector3 extends AAny {
       Return[S](0 ndTo lenSquare,0 ndTo 1)
 
     /** Linear interpolation between two vectors */
-    case "linear_interpolation" =>
+    case "linear interpolation" =>
       val List(other,amount) = parameters // Vector3,Number
       val x = Field[S](this0,TVector3.field_x) + amount * Field[S](other,TVector3.field_x)
       val y = Field[S](this0,TVector3.field_y) + amount * Field[S](other,TVector3.field_y)
@@ -159,6 +158,6 @@ class TVector3 extends AAny {
       ))
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
   }
 }

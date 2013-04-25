@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, TouchType, TouchTuple}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import scala.Some
@@ -11,7 +11,11 @@ import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
 /**
  * Stores summaries of methods. This is not thread-safe.
@@ -125,9 +129,9 @@ object MethodSummaries {
     curState = curState.pruneVariables({
       id:VariableIdentifier =>
         id.getType().asInstanceOf[TouchType].isSingleton ||
-          id.toString.startsWith("__data_") ||
-          id.toString.startsWith("__param_") ||
-          id.toString.startsWith("__last_return")
+          CFGGenerator.isGlobalReferenceIdent(id.toString()) ||
+          CFGGenerator.isParamIdent(id.toString()) ||
+          CFGGenerator.isReturnIdent(id.toString())
     })
 
     curState = curState.pruneUnreachableHeap()
@@ -147,18 +151,20 @@ object MethodSummaries {
 
       // Initialize in-parameters to temporary variables
       val tempVars = for ((decl,value) <- inParameters.zip(parameters)) yield {
-        val tempVar = VariableIdentifier("__param_"+decl.variable.id.toString,decl.typ,callPoint)
+        val tempVar = VariableIdentifier(CFGGenerator.paramIdent(decl.variable.id.toString),decl.typ,callPoint)
         curState = curState.assignVariable(new ExpressionSet(tempVar.getType()).add(tempVar),value)
         tempVar
       }
 
       // Prune non-parameters and non-globals (reach. based localization)
-      curState = curState.pruneVariables({
-        id:VariableIdentifier =>
-          !id.getType().asInstanceOf[TouchType].isSingleton &&
-          !id.toString.startsWith("__data_") &&
-          !id.toString.startsWith("__param_")
-      })
+      if (TouchAnalysisParameters.localizeStateOnMethodCall) {
+        curState = curState.pruneVariables({
+          id:VariableIdentifier =>
+            !id.getType().asInstanceOf[TouchType].isSingleton &&
+            !CFGGenerator.isGlobalReferenceIdent(id.toString()) &&
+            !CFGGenerator.isParamIdent(id.toString())
+        })
+      }
 
       // Initialize in-parameters to temp vars
       for ((decl,value) <- inParameters.zip(tempVars)) {
@@ -167,7 +173,7 @@ object MethodSummaries {
       }
 
       // Prune temporary variables
-      curState = curState.pruneVariables({ id:VariableIdentifier => id.toString.startsWith("__param_") })
+      curState = curState.pruneVariables({ id:VariableIdentifier => CFGGenerator.isParamIdent(id.toString()) })
 
       // Prune unreachable heap locations
       curState = curState.pruneUnreachableHeap()
@@ -177,7 +183,7 @@ object MethodSummaries {
       // Prune local state
       curState = curState.pruneVariables({ id:VariableIdentifier =>
         !id.getType().asInstanceOf[TouchType].isSingleton &&
-        !id.toString.startsWith("__data_")
+        !CFGGenerator.isGlobalReferenceIdent(id.toString())
       })
       curState = curState.pruneUnreachableHeap()
 
@@ -236,7 +242,7 @@ object MethodSummaries {
         }
 
       // Store in temporary variable
-      val tempVar = VariableIdentifier("__last_return",returnExpr.getType(),callPoint)
+      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(),returnExpr.getType(),callPoint)
       val tempVarExpr = new ExpressionSet(tempVar.getType()).add(tempVar)
       curState = curState.assignVariable(tempVarExpr,returnExpr)
       curState = curState.setExpression(tempVarExpr)
@@ -247,8 +253,8 @@ object MethodSummaries {
     curState = curState.pruneVariables({
       id:VariableIdentifier =>
         !id.getType().asInstanceOf[TouchType].isSingleton &&
-        !id.toString.startsWith("__last_return") &&
-        !id.toString.startsWith("__data_")
+        !CFGGenerator.isReturnIdent(id.toString()) &&
+        !CFGGenerator.isGlobalReferenceIdent(id.toString())
     })
     curState = curState.pruneUnreachableHeap()
 

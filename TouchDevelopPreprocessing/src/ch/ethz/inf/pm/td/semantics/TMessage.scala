@@ -26,13 +26,13 @@ object TMessage {
   val field_location = new TouchField("location",TLocation.typ)
 
   /** Gets a url to the media */
-  val field_media_link = new TouchField("media_link",TString.typ)
+  val field_media_link = new TouchField("media link",TString.typ)
 
   /** Gets the message text */
   val field_message = new TouchField("message",TString.typ)
 
   /** Gets a url to the picture */
-  val field_picture_link = new TouchField("picture_link",TString.typ)
+  val field_picture_link = new TouchField("picture link",TString.typ)
 
   /** Gets the source of this message (Facebook, Twitter, etc...) */
   val field_source = new TouchField("source",TString.typ)
@@ -51,7 +51,7 @@ object TMessage {
 
   val typName = "Message"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_from, field_link, field_location, field_media_link,
-    field_message, field_picture_link, field_source, field_time, field_title, field_to, field_values))
+    field_message, field_picture_link, field_source, field_time, field_title, field_to, field_values), isImmutable = false)
 
 }
 
@@ -59,7 +59,7 @@ class TMessage extends AAny {
 
   def getTyp = TMessage.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Shares this message (email, sms, facebook, social or '' to pick from a list) */
@@ -69,7 +69,7 @@ class TMessage extends AAny {
        Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

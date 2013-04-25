@@ -1,7 +1,6 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -25,7 +24,7 @@ object TPicture_Album {
   /** Gets the pictures */
   val field_pictures = new TouchField("pictures",TPictures.typ)
 
-  val typName = "Picture_Album"
+  val typName = "Picture Album"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_albums, field_name, field_pictures))
 
 }
@@ -34,11 +33,11 @@ class TPicture_Album extends AAny {
 
   def getTyp = TPicture_Album.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

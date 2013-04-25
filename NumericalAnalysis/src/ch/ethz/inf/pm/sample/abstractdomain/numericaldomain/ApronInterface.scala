@@ -16,30 +16,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 
-object ApronInstanceCounter {
-
-  def inc(location:Integer,number:Integer = 1) {
-    count.get(location) match {
-      case Some(x) => count(location) = x + number
-      case None => count(location) = number
-    }
-  }
-
-  def reset() {
-    count = scala.collection.mutable.Map.empty[Integer,Integer]
-  }
-
-  def print() {
-    println("Apron Counts: "+(for ((a,b) <- count.seq.toList.sortBy(_._2)) yield {
-      a+" -> "+b
-    }).mkString(" | "))
-  }
-
-  var count = scala.collection.mutable.Map.empty[Integer,Integer]
-
-}
-
-
 class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom:Boolean = false, isPureTop:Boolean = false) extends RelationalNumericalDomain[ApronInterface] {
 
   /**
@@ -67,11 +43,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
           idFromNamesList.+=(idFrom.getName())
       }
       val newEnv = startingState.getEnvironment.add(idFromNamesList.toArray[String], new Array[String](0))
-      ApronInstanceCounter.inc(0)
       startingState = startingState.changeEnvironmentCopy(domain, newEnv, false)
     }
 
-    ApronInstanceCounter.inc(1)
     var result = new Abstract1(domain, startingState.getEnvironment, true)
 
     for ((from, to) <- r.value) {
@@ -88,38 +62,28 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       val aIdStar: Array[String] = new Array[String](1)
       aIdStar.update(0, idStar)
       newState = newState.expandCopy(domain, from.iterator.next().getName(), aIdStar)
-      ApronInstanceCounter.inc(2,1)
       // now we fold shallow copies into idStar
       shallowCopyVars = idStar :: shallowCopyVars
       newState = newState.foldCopy(domain, shallowCopyVars.toArray[String])
-      ApronInstanceCounter.inc(3,1)
       // now we expand id* to variables in "to"
       val idsToStringArray: Array[String] = idsToArrayOfStrings(to)
       newState = newState.expandCopy(domain, idStar, idsToStringArray)
-      ApronInstanceCounter.inc(4,1)
       // now we remove the temoprary variables form the environment
       newState = newState.forgetCopy(domain, aIdStar, false)
-      ApronInstanceCounter.inc(5,1)
       newState = newState.changeEnvironmentCopy(domain, newState.getEnvironment.remove(aIdStar), false)
-      ApronInstanceCounter.inc(6,1)
       // we also need to extend the environment of result
       result = result.expandCopy(domain, from.iterator.next().getName(), idsToStringArray)
-      ApronInstanceCounter.inc(7,1)
       result = result.joinCopy(domain, newState)
-      ApronInstanceCounter.inc(8,1)
       startingState = startingState.expandCopy(domain, from.iterator.next().getName(), idsToStringArray)
-      ApronInstanceCounter.inc(9,1)
     }
 
     for (id <- idsInDomain.--(idsInCodomain)) {
       result = result.forgetCopy(domain, id.getName(), false)
-      ApronInstanceCounter.inc(10,1)
     }
 
     // We minimize the environment in order to achieve better performance.
     // This effects assign as there might be variable removed that are still in use.
     result = result.minimizeEnvironmentCopy(domain)
-    ApronInstanceCounter.inc(11,1)
     new ApronInterface(Some(result), domain)
 
   }
@@ -139,7 +103,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     val startingState = instantiateState()
     if (!startingState.getEnvironment.hasVar(variable.getName()) && typ.isNumericalType()) {
       val env = addToEnvironment(startingState.getEnvironment, variable.getType(), variable.getName())
-      ApronInstanceCounter.inc(12,1)
       new ApronInterface(Some(startingState.changeEnvironmentCopy(domain, env, false)), domain)
     } else this
   }
@@ -159,7 +122,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
           val v: Array[String] = new Array[String](1)
           v.update(0, variable.getName())
           val env = st.getEnvironment.remove(v)
-          ApronInstanceCounter.inc(13,1)
           new ApronInterface(Some(st.changeEnvironmentCopy(domain, env, false)), domain)
         } else this
     }
@@ -170,7 +132,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       case None => this
       case Some(st) =>
         if (st.getEnvironment.hasVar(variable.getName())) {
-          ApronInstanceCounter.inc(14,1)
           new ApronInterface(Some(st.forgetCopy(domain, variable.getName(), false)), domain)
         } else this
     }
@@ -185,7 +146,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       var newState = instantiateState()
       if (!newState.getEnvironment.hasVar(variable.getName())) {
         val env = addToEnvironment(newState.getEnvironment, variable.getType(), variable.getName())
-        ApronInstanceCounter.inc(15,1)
         newState = newState.changeEnvironmentCopy(domain, env, false)
       }
 
@@ -198,7 +158,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
         }
       }
       if (newEnv != newState.getEnvironment) {
-        ApronInstanceCounter.inc(16,1)
         newState = newState.changeEnvironmentCopy(domain, newEnv, false)
       }
       // END of the added code
@@ -206,15 +165,12 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       val res = nondeterminismWrapper(expr, newState, (someExpr, someState) => {
         val expr = this.toTexpr1Intern(someExpr, someState.getEnvironment)
         if (expr.size > 1) {
-          ApronInstanceCounter.inc(17,1)
           var curState = new Abstract1(domain, someState.getEnvironment, true)
           for (e <- expr) {
-            ApronInstanceCounter.inc(18,2)
             curState = curState.joinCopy(domain, someState.assignCopy(domain, variable.getName(), e, null))
           }
           curState
         } else if (expr.size == 1) {
-          ApronInstanceCounter.inc(19,1)
           someState.assignCopy(domain, variable.getName(), expr.head, null)
         } else {
           throw new ApronException("Empty expression set created")
@@ -314,17 +270,14 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
           }
           val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
           if (!expEnv.isIncluded(tmp.getEnvironment)) {
-            ApronInstanceCounter.inc(20,1)
             tmp = tmp.changeEnvironmentCopy(domain, unionEnv, false)
           }
 
           this.toTcons1(someExpr, unionEnv) match {
 
             case x :: xs =>
-              ApronInstanceCounter.inc(21,1)
               val result = tmp.meetCopy(domain,x)
               for (xMore <- xs) {
-                ApronInstanceCounter.inc(21,1)
                 result.joinCopy(domain,tmp.meetCopy(domain,xMore))
               }
               result
@@ -390,11 +343,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
         val finalLeft = forgotLState.meetCopy(domain, newRight)
         val finalRight = forgotRState.meetCopy(domain, newLeft)
         val st = finalLeft.joinCopy(domain, finalRight)
-        ApronInstanceCounter.inc(22,9)
         val res = new ApronInterface(Some(st), domain)
         res
       } else {
-        ApronInstanceCounter.inc(23,1)
         val res = new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
         res
       }
@@ -427,11 +378,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
       val newRight = rightState.changeEnvironmentCopy(domain, env, false)
       val st = newLeft.meetCopy(domain, newRight)
-      ApronInstanceCounter.inc(24,3)
       val res = new ApronInterface(Some(st), domain)
       res
     } else {
-      ApronInstanceCounter.inc(25,1)
       val res = new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
       res
     }
@@ -455,14 +404,12 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     val rightState = right.instantiateState()
 
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-      ApronInstanceCounter.inc(26,3)
       val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
       val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
       val newRight = rightState.changeEnvironmentCopy(domain, env, false)
       val res = new ApronInterface(Some(newLeft.widening(domain, newRight)), domain)
       res
     } else {
-      ApronInstanceCounter.inc(27,1)
       val res = new ApronInterface(Some(leftState.widening(domain, rightState)), domain)
       res
     }
@@ -482,7 +429,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
       val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
-      ApronInstanceCounter.inc(28,2)
       val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
       val newRight = rightState.changeEnvironmentCopy(domain, env, false)
       newLeft.isIncluded(domain, newRight)
@@ -575,11 +521,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       case Some(s) => s
       case None =>
         if (isPureBottom) {
-          ApronInstanceCounter.inc(29,1)
           new Abstract1(domain,new Environment(),true)
         }
         else if (isPureTop) {
-          ApronInstanceCounter.inc(30,1)
           new Abstract1(domain,new Environment())
         }
         else throw new ApronException("Must be bottom, top, or have an apron instance.")
@@ -691,11 +635,17 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       else List(topExpression())
     case BinaryArithmeticExpression(left, right, op, typ) =>
       for (l <- this.toTexpr1Node(left); r <- this.toTexpr1Node(right)) yield {
-        new Texpr1BinNode(this.convertArithmeticOperator(op), l, r)
+        this.convertArithmeticOperator(op) match {
+          case Some(x) => new Texpr1BinNode(x, l, r)
+          case None => topExpression()
+        }
       }
     case BinaryBooleanExpression(left, right, op, typ) =>
       for (l <- this.toTexpr1Node(left); r <- this.toTexpr1Node(right)) yield {
-        new Texpr1BinNode(this.convertBooleanOperator(op), l, r)
+        this.convertBooleanOperator(op) match {
+          case Some(x) => new Texpr1BinNode(x, l, r)
+          case None => topExpression()
+        }
       }
     case UnaryArithmeticExpression(left, op, typ) =>
       op match {
@@ -709,17 +659,19 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       List(topExpression())
   }
 
-  private def convertArithmeticOperator(op: ArithmeticOperator.Value): Int = op match {
-    case ArithmeticOperator.+ => Texpr1BinNode.OP_ADD
-    case ArithmeticOperator.- => Texpr1BinNode.OP_SUB
-    case ArithmeticOperator./ => Texpr1BinNode.OP_DIV
-    case ArithmeticOperator.* => Texpr1BinNode.OP_MUL
+  private def convertArithmeticOperator(op: ArithmeticOperator.Value): Option[Int] = op match {
+    case ArithmeticOperator.+ => Some(Texpr1BinNode.OP_ADD)
+    case ArithmeticOperator.- => Some(Texpr1BinNode.OP_SUB)
+    case ArithmeticOperator./ => Some(Texpr1BinNode.OP_DIV)
+    case ArithmeticOperator.* => Some(Texpr1BinNode.OP_MUL)
+    case _ => None
   }
 
   /** used when we assign a boolean value, e.g. flag = flag1 && flag2 */
-  private def convertBooleanOperator(op: BooleanOperator.Value): Int = op match {
-    case BooleanOperator.&& => Texpr1BinNode.OP_MUL
-    case BooleanOperator.|| => Texpr1BinNode.OP_ADD
+  private def convertBooleanOperator(op: BooleanOperator.Value): Option[Int] = op match {
+    case BooleanOperator.&& => Some(Texpr1BinNode.OP_MUL)
+    case BooleanOperator.|| => Some(Texpr1BinNode.OP_ADD)
+    case _ => None
   }
 
   private def toTcons1(e: Expression, env: Environment): List[Tcons1] = e match {

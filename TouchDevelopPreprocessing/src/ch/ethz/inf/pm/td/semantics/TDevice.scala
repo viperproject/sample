@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TDevice {
 
   /** Checks if the device is connected */
-  val field_is_connected = new TouchField("is_connected",TBoolean.typ)
+  val field_is_connected = new TouchField("is connected",TBoolean.typ)
 
   /** Gets the manfacturer name */
   val field_manufacturer = new TouchField("manufacturer",TString.typ)
@@ -34,7 +34,7 @@ class TDevice extends AAny {
 
   def getTyp = TDevice.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
     /** Browses to the device control panel */
@@ -42,7 +42,7 @@ class TDevice extends AAny {
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

@@ -16,7 +16,7 @@ import RichNativeSemantics._
 
 object TPlace_Collection {
 
-  val typName = "Place_Collection"
+  val typName = "Place Collection"
   val typ = TouchCollection(typName,"Number","Place")
 
 }
@@ -25,16 +25,16 @@ class TPlace_Collection extends AMutable_Collection {
 
   def getTyp = TPlace_Collection.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Sorts the places by distance to the location */
-    case "sort_by_distance" =>
+    case "sort by distance" =>
       val List(loc) = parameters // Location
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

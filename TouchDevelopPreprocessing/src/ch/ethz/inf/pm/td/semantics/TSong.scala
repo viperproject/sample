@@ -32,7 +32,7 @@ object TSong {
   val field_name = new TouchField("name",TString.typ)
 
   /** Gets the play count */
-  val field_play_count = new TouchField("play_count",TNumber.typ)
+  val field_play_count = new TouchField("play count",TNumber.typ)
 
   /** Gets a value whether the song is DRM protected */
   val field_protected = new TouchField("protected",TBoolean.typ)
@@ -44,7 +44,7 @@ object TSong {
   val field_track = new TouchField("track",TNumber.typ)
 
   val typName = "Song"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_album, field_artist, field_duration, field_genre, field_name, field_play_count, field_protected, field_rating, field_track))
+  val typ = new TouchType(typName,isSingleton = false, isImmutable = true, fields = List(field_album, field_artist, field_duration, field_genre, field_name, field_play_count, field_protected, field_rating, field_track))
 
 }
 
@@ -52,15 +52,15 @@ class TSong extends AAny {
 
   def getTyp = TSong.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Plays the song. */
     case "play" =>
-       Skip
+       AssignField[S](Singleton(SPlayer.typ),SPlayer.field_active_song,this0)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

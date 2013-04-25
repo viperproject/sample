@@ -1,5 +1,5 @@
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
-import ch.ethz.inf.pm.td.webapi.{Script, DowncasedTypeHints}
+import ch.ethz.inf.pm.td.webapi.{ScriptRecord, DowncasedTypeHints}
 import java.io.{File, PrintWriter}
 import net.liftweb.json._
 
@@ -13,7 +13,7 @@ val userid = "pboj"
 
 implicit val formats = new DefaultFormats {
   override val typeHintFieldName = "type"
-  override val typeHints = DowncasedTypeHints(List(classOf[Script]))
+  override val typeHints = DowncasedTypeHints(List(classOf[ScriptRecord]))
 }
 
 val json = parse(fetchFile("https://www.touchdevelop.com/api/"+userid+"/scripts"))
@@ -22,7 +22,7 @@ val scripts = for {
   JObject(root) <- json
   JField("items", JArray(items)) <- root
   item <- items
-} yield (item.extract[Script])
+} yield (item.extract[ScriptRecord])
 
 val dir = new File("TouchDevelopPreprocessing/testfiles/"+userid)
 

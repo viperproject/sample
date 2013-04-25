@@ -2,8 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.td.compiler.TouchType
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 
@@ -18,15 +17,15 @@ import RichNativeSemantics._
 object SWeb {
 
   /** Gets a name of the currently connected network servicing Internet requests */
-  val field_connection_name = new TouchField("connection_name",TString.typ)
+  val field_connection_name = new TouchField("connection name",TString.typ)
 
   /** Gets the type of the network servicing Internet requests (unknown, none, ethernet, wifi, mobile) */
-  val field_connection_type = new TouchField("connection_type",TString.typ)
+  val field_connection_type = new TouchField("connection type",TString.typ)
 
   /** Indicates whether any network connection is available */
-  val field_is_connected = new TouchField("is_connected",TBoolean.typ)
+  val field_is_connected = new TouchField("is connected",TBoolean.typ)
 
-  val typName = "web"
+  val typName = "Web"
   val typ = new TouchType(typName,isSingleton = true, fields = List(field_connection_name,field_connection_type,field_is_connected))
 
 }
@@ -35,16 +34,16 @@ class SWeb extends AAny {
 
   def getTyp = SWeb.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
     /** Decodes a string that has been base64-encoded */
-    case "base64_decode" =>
+    case "base64 decode" =>
       val List(text) = parameters // String
       Top[S](TString.typ)
 
     /** Converts a string into an base64-encoded string */
-    case "base64_encode" =>
+    case "base64 encode" =>
       val List(text) = parameters // String
       Top[S](TString.typ)
 
@@ -56,7 +55,7 @@ class SWeb extends AAny {
       Skip
 
     /** Creates a web request */
-    case "create_request" =>
+    case "create request" =>
       val List(url) = parameters // String
       New[S](TWeb_Request.typ)
 
@@ -68,30 +67,30 @@ class SWeb extends AAny {
       TopWithInvalid[S](TString.typ)
 
     /** Downloads a web service response as a JSON data structure (http get) */
-    case "download_json" =>
+    case "download json" =>
       val List(url) = parameters // String
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download_json",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download json",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TJson_Object.typ)
 
     /** Downloads a picture from internet */
-    case "download_picture" =>
+    case "download picture" =>
       val List(url) = parameters // String
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download_picture",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download picture",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TPicture.typ)
 
     /** Create a streamed song file from internet (download happens when playing) */
-    case "download_song" =>
+    case "download song" =>
       val List(url,name) = parameters // String,String
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download_song",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download song",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TSong.typ)
 
     /** Downloads a WAV sound file from internet */
-    case "download_sound" =>
+    case "download sound" =>
       val List(url) = parameters // String
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download_sound",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download sound",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TSound.typ)
 
@@ -103,12 +102,12 @@ class SWeb extends AAny {
       TopWithInvalid[S](TMessage_Collection.typ)
 
     /** Decodes a string that has been HTML-encoded */
-    case "html_decode" =>
+    case "html decode" =>
       val List(html) = parameters // String
       Top[S](TString.typ)
 
     /** Converts a text string into an HTML-encoded string */
-    case "html_encode" =>
+    case "html encode" =>
       val List(text) = parameters // String
       Top[S](TString.typ)
 
@@ -118,17 +117,17 @@ class SWeb extends AAny {
       TopWithInvalid[S](TJson_Object.typ)
 
     /** Returns an empty json array */
-    case "json_array" =>
+    case "json array" =>
       // TODO: Enforce empty, array etc.
       New[S](TJson_Object.typ)
 
     /** Returns an empty json object */
-    case "json_object" =>
+    case "json object" =>
       // TODO: Enforce empty, object etc.
       New[S](TJson_Object.typ)
 
     /** Creates a multi-scale image from an image url */
-    case "link_deep_zoom" =>
+    case "link deep zoom" =>
       val List(url) = parameters // String
       New[S](TLink.typ,Map(
         TLink.field_kind -> String("image"),
@@ -136,7 +135,7 @@ class SWeb extends AAny {
       ))
 
     /** Creates a link to an internet image */
-    case "link_image" =>
+    case "link image" =>
       val List(url) = parameters // String
       New[S](TLink.typ,Map(
         TLink.field_kind -> String("image"),
@@ -144,7 +143,7 @@ class SWeb extends AAny {
       ))
 
     /** Creates a link to an internet audio/video */
-    case "link_media" =>
+    case "link media" =>
       val List(url) = parameters // String
       New[S](TLink.typ,Map(
         TLink.field_kind -> String("media"),
@@ -152,7 +151,7 @@ class SWeb extends AAny {
       ))
 
     /** Creates a link to an internet page */
-    case "link_url" =>
+    case "link url" =>
        val List(name,url) = parameters // String,String
        New[S](TLink.typ,Map(
          TLink.field_address -> url,
@@ -161,18 +160,18 @@ class SWeb extends AAny {
        ))
 
     /** Opens a connection settings page (airplanemode, bluetooth, wiki, cellular) */
-    case "open_connection_settings" =>
+    case "open connection settings" =>
       val List(page) = parameters // String
       Error[S](((page equal String("airplanemode"))
         || (page equal String("bluetooth"))
         || (page equal String("wiki"))
-        || (page equal String("cellular"))).not,"open_connection_settings","Invalid page given")
+        || (page equal String("cellular"))).not,"open connection settings","Invalid page given")
       Skip
 
     /** Plays an internet audio/video in full screen */
-    case "play_media" =>
+    case "play media" =>
       val List(url) = parameters // String
-      Error[S](Field[S](this0,SWeb.field_is_connected).not(),"play_media",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not(),"play media",
         "Check if the device is connected to the internet before using the connection")
       Skip
 
@@ -191,37 +190,37 @@ class SWeb extends AAny {
       Top[S](TLink_Collection.typ) // TODO
 
     /** Searching images using Bing */
-    case "search_images" =>
+    case "search images" =>
       val List(terms) = parameters // String
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_images",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search images",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TLink_Collection.typ) // TODO
 
     /** Searching images near a location using Bing. Distance in meters, negative to ignore. */
-    case "search_images_nearby" =>
+    case "search images nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_images_nearby",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search images nearby",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TLink_Collection.typ) // TODO
 
     /** Searching the web near a location using Bing. Distance in meters, negative to ignore. */
-    case "search_nearby" =>
+    case "search nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_nearby",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search nearby",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TLink_Collection.typ) // TODO
 
     /** Searching news using Bing */
-    case "search_news" =>
+    case "search news" =>
       val List(terms) = parameters // String
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_news",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search news",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TLink_Collection.typ) // TODO
 
     /** Searching news near a location using Bing. Distance in meters, negative to ignore. */
-    case "search_news_nearby" =>
+    case "search news nearby" =>
       val List(terms,location,distance) = parameters // String,Location,Number
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search_news_nearby",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"search news nearby",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TLink_Collection.typ) // TODO
 
@@ -233,19 +232,19 @@ class SWeb extends AAny {
       TopWithInvalid[S](TString.typ) // TODO
 
     /** Uploads a picture to an internet page (http post) */
-    case "upload_picture" =>
+    case "upload picture" =>
       val List(url,pic) = parameters // String,Picture
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"upload_picture",
+      Error[S](Field[S](this0,SWeb.field_is_connected).not,"upload picture",
         "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TString.typ) // TODO
 
     /** Decodes a string that has been url-encoded */
-    case "url_decode" =>
+    case "url decode" =>
       val List(url) = parameters // String
       Top[S](TString.typ)
 
     /** Converts a text string into an url-encoded string */
-    case "url_encode" =>
+    case "url encode" =>
       val List(text) = parameters // String
       Top[S](TString.typ)
 
@@ -255,7 +254,7 @@ class SWeb extends AAny {
       Top[S](TXml_Object.typ) // TODO
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

@@ -10,7 +10,7 @@
 // */
 //abstract class AMap extends ACollection {
 //
-//  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+//  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
 //                                     (implicit pp:ProgramPoint,state:S):S = method match {
 //
 //    /** Gets the element with key index */
@@ -19,7 +19,7 @@
 //      Return[S](CollectionAt[S](this0,index))
 //
 //    /** Gets the i-th element */
-//    case "at_index" =>
+//    case "at index" =>
 //      val List(index) = parameters // Number
 //      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
 //      Return[S](CollectionAt[S](this0,index)) // TODO: Get the i-th key
@@ -35,19 +35,19 @@
 //      CollectionRemove[S](this0,k)
 //
 //    /** Sets the element at key k */
-//    case "set_at" =>
+//    case "set at" =>
 //      val List(k,value) = parameters // Key_Type,Element_Type
 //      // Check if contained, then update or insert
 //      CollectionUpdate[S](this0,index,value)
 //
 //    /** Sets the element at key k */
-//    case "set_many" =>
+//    case "set many" =>
 //      val List(k,value) = parameters // Number,Element_Type
 //      // Check if contained, then update or insert
 //      CollectionUpdate[S](this0,index,value)
 //
 //    case _ =>
-//      super.forwardSemantics(this0,method,parameters)
+//      super.forwardSemantics(this0,method,parameters,returnedType)
 //
 //  }
 //}

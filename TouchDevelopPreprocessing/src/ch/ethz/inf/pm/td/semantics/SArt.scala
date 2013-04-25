@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchType}
+import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 /**
@@ -21,11 +21,10 @@ class SArt extends AAny {
 
   def getTyp = SArt.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
-                                              (implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
+                                              (implicit pp:ProgramPoint,state:S):S = {
 
-    case _ =>
-      super.forwardSemantics(this0,method,parameters)
+  state.setExpression(new ExpressionSet(returnedType).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(method),returnedType,pp)))
 
   }
 }

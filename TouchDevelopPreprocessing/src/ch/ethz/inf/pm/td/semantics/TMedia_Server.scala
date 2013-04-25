@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TMedia_Server {
 
-  /** Gets the detailled information about this device */
+  /** Gets the detailed information about this device */
   val field_device = new TouchField("device",TDevice.typ)
 
   /** Gets the name of the printer */
@@ -31,7 +31,7 @@ object TMedia_Server {
   /** Gets a list of all videos */
   val field_videos = new TouchField("videos",TMedia_Link_Collection.typ)
 
-  val typName = "Media_Server"
+  val typName = "Media Server"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_device,field_name,field_pictures,field_songs,field_videos))
 
 }
@@ -40,43 +40,43 @@ class TMedia_Server extends AAny {
 
   def getTyp = TMedia_Server.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
     /** Chooses a picture */
-    case "choose_picture" =>
-      Top[S](TMedia_Link.typ)  // TODO: or invalid
+    case "choose picture" =>
+      TopWithInvalid[S](TMedia_Link.typ)
 
     /** Chooses a song */
-    case "choose_song" =>
-      Top[S](TMedia_Link.typ)  // TODO: or invalid
+    case "choose song" =>
+      TopWithInvalid[S](TMedia_Link.typ)
 
     /** Chooses a video or a movie */
-    case "choose_video" =>
-      Top[S](TMedia_Link.typ) // TODO: or invalid
+    case "choose video" =>
+      TopWithInvalid[S](TMedia_Link.typ)
 
     /** Searches for pictures in a particular date range. */
-    case "search_pictures_by_date" =>
+    case "search pictures by date" =>
     val List(start,end) = parameters // DateTime,DateTime
       Top[S](TMedia_Link_Collection.typ)
 
+    /** Searches for pictures in a particular date range. */
+    case "search videos by date" =>
+      val List(start,end) = parameters // DateTime,DateTime
+      Top[S](TMedia_Link_Collection.typ)
+
     /** Searches for songs */
-    case "search_songs" =>
+    case "search songs" =>
       val List(term) = parameters // String
       Top[S](TMedia_Link_Collection.typ)
 
     /** Searches for videos */
-    case "search_videos" =>
+    case "search videos" =>
       val List(term) = parameters // String
       Top[S](TMedia_Link_Collection.typ)
 
-    /** Searches for videos in a particular date range. */
-    case "search_videos_by_date" =>
-      val List(start,end) = parameters // DateTime,DateTime
-      Top[S](TMedia_Link_Collection.typ)
-
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

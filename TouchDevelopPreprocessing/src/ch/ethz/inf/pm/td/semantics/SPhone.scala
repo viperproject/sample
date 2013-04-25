@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 /**
@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object SPhone {
 
-  val typName = "phone"
+  val typName = "Phone"
   val typ = new TouchType(typName,isSingleton = true)
 
 }
@@ -25,34 +25,34 @@ class SPhone extends AAny {
 
   def getTyp = SPhone.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
     /** Chooses an address from the contacts */
-    case "choose_address" =>
+    case "choose address" =>
       val state1 = New[S](TLink.typ,Map(
         TLink.field_kind-> String("address"/*TODO*/)
       ))
       Return[S](state1.getExpression(),Invalid(TLink.typ))(state1,pp)
 
     /** Chooses a phone number from the contact list */
-    case "choose_phone_number" =>
+    case "choose phone number" =>
       val state1 = New[S](TLink.typ,Map(
         TLink.field_kind -> String("phone number")
       ))
       Return[S](state1.getExpression(),Invalid(TLink.typ))(state1,pp)
 
     /** Starts a phone call */
-    case "dial_phone_number" =>
+    case "dial phone number" =>
       val List(number) = parameters // String
       Skip
 
     /** Indicates if the phone is on 'battery' or 'external' power source. */
-    case "power_source" =>
+    case "power source" =>
       Return[S](String("battery"),String("external"))
 
     /** Allows the user to save the phone number */
-    case "save_phone_number" =>
+    case "save phone number" =>
       val List(phone_number) = parameters // String
       // TODO?
       Skip
@@ -64,7 +64,7 @@ class SPhone extends AAny {
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

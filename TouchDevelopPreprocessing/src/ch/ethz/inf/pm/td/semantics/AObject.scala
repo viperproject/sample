@@ -9,10 +9,10 @@ class AObject(objectTyp:TouchType) extends AAny {
 
   def getTyp = objectTyp
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
-    case "clear_fields" =>
+    case "clear fields" =>
       var curState = state
       for (field <- objectTyp.getPossibleTouchFields()) {
         curState = AssignField[S](this0,field,Invalid(field.getType()))(curState,pp)
@@ -20,7 +20,7 @@ class AObject(objectTyp:TouchType) extends AAny {
       curState
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 

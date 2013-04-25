@@ -15,24 +15,20 @@ import ch.ethz.inf.pm.td.domain.{TouchApronRun, TouchRun}
 object TestRunner {
 
   def basePath:String = "TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator
+
   def basePath(dir:String):String = basePath+dir+File.separator
 
-  def apply(urls:List[String],func:(String => Unit)) {
-    for (url <- urls) apply(url,func)
+  def apply(pubIds:List[String],func:(String => Unit)) {
+    for (pubId <- pubIds) apply(pubId,func)
   }
 
   def apply(scr:Scripts,num:Int,func:(String => Unit)) {
-    apply(scr,num,{ (id:String,url:String) => func(url) })
-  }
-
-  def apply(scr:Scripts,num:Int,func:((String,String) => Unit)) {
     try {
       for (i <- 1 to num) {
         val script = scr.get()
         if (!script.haserrors) {
-          val url = script.getCodeURL
           val id = script.id
-          apply(id,url,func)
+          apply(id,func)
         }
       }
     } catch {
@@ -41,13 +37,9 @@ object TestRunner {
     println("done.")
   }
 
-  def apply(url:String,func:(String=>Unit)) {
-    apply("",url,{(id:String,url:String) => func(url)})
-  }
-
-  def apply(id:String,url:String,func:((String,String)=>Unit)) {
+  def apply(id:String,func:(String=>Unit)) {
     try {
-      func(id,url)
+      func(id)
     } catch {
       case e:TouchException => println(e.msg + " (Position: " + e.pos + ")"); e.printStackTrace()
     }
@@ -76,6 +68,15 @@ object TestRunner {
   def runFileWithApron(file:String) {
     TouchApronRun.main(List(basePath+file))
   }
+
+  def runId(id:String) {
+    TouchRun.main(List("td://"+id))
+  }
+
+  def runIdWithApron(id:String) {
+    TouchApronRun.main(List("td://"+id))
+  }
+
 
 
 }

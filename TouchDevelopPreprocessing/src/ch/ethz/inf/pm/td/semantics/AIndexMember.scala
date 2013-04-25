@@ -2,8 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
-import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import scala.Predef.String
 
@@ -17,10 +16,10 @@ class AIndexMember(indexMemberType:TouchType, valueFields:List[(TouchField,Touch
 
   def getTyp = indexMemberType
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
-    case "clear_fields" =>
+    case "clear fields" =>
       var curState = state
       for ((memberField,valueField) <- valueFields) {
         curState = AssignField[S](Field[S](this0,memberField),valueField,Invalid(valueField.getType()))(curState,pp)
@@ -28,7 +27,7 @@ class AIndexMember(indexMemberType:TouchType, valueFields:List[(TouchField,Touch
       curState
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 

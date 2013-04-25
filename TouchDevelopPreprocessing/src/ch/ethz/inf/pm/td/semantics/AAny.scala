@@ -2,10 +2,8 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
-import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
-import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * User: Lucas Brutschy
@@ -39,7 +37,7 @@ abstract class AAny extends NativeMethodSemantics {
       if (thisExpr.getType().toString() == getTypeName) {
 
         // Check if the object or an argument can be invalid - in this case, we must produce an error
-        if(operator != "is_invalid") {
+        if(operator != "is invalid" && operator != ":=") {
           if (!thisExpr.getType().isStatic()) {
             if (thisExpr.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
               curState = Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator,  "Object ("+thisExpr+") whose field/method is accessed might be invalid")(curState,pp)
@@ -52,7 +50,7 @@ abstract class AAny extends NativeMethodSemantics {
           }
         }
 
-        Some(forwardSemantics(thisExpr,operator,parameters)(pp,curState))
+        Some(forwardSemantics(thisExpr,operator,parameters,returnedtype.asInstanceOf[TouchType])(pp,curState))
 
       } else None
 
@@ -77,24 +75,28 @@ abstract class AAny extends NativeMethodSemantics {
    * @param state // state after evaluation of the parameters
    * @return // state after evaluation of the method / operator
    */
-  def forwardSemantics[S <: State[S]](this0:ExpressionSet,method:String,parameters:List[ExpressionSet])
+  def forwardSemantics[S <: State[S]](this0:ExpressionSet,method:String,parameters:List[ExpressionSet],returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Updates any display of this map */
-    case "update_on_wall" =>
+    case "update on wall" =>
       Skip // TODO: Update environment
 
-    case "post_to_wall" =>
+    case "post to wall" =>
       Skip // TODO: create reference from wall to this?
 
     case "∥" =>
       Top[S](TString.typ)
 
-    case "to_string" =>
+    case "to string" =>
       Top[S](TString.typ)
 
-    case "is_invalid" =>
+    case "is invalid" =>
       Return[S](this0 equal Invalid(this0.getType())(pp))(state,pp)
+
+    case ":=" =>
+      val List(right) = parameters
+      Assign[S](this0,right)
 
     case _ =>
       MatchFields[S](this0,parameters,getTyp,method)

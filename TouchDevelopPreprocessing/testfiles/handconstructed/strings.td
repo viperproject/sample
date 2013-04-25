@@ -11,18 +11,18 @@ action main() {
   $string2 := "b";
 
   if $string1->equals("a") then {
-    assert->is_true(false);
+    contract->assert(false,"");
   }
 
   if $string2->equals("a") then {
-    assert->is_true(false);
+    contract->assert(false,"");
   }
 
 }
 
 action priv() {
 
-    assert->is_true(false);
+    contract->assert(false,"");
 
     meta private;
 

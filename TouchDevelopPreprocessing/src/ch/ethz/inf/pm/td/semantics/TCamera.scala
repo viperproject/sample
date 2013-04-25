@@ -16,8 +16,17 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TCamera {
 
+  /** Gets the height of the camera image in pixels. */
+  val field_height = new TouchField("height",TNumber.typ)
+
+  /** Gets the width of the camera image in pixels. */
+  val field_width = new TouchField("width",TNumber.typ)
+
+  /** Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */
+  val field_is_front = new TouchField("is front",TBoolean.typ)
+
   val typName = "Camera"
-  val typ = new TouchType(typName,isSingleton = false)
+  val typ = new TouchType(typName,isSingleton = false,fields = List(field_height, field_is_front, field_width))
 
 }
 
@@ -25,41 +34,15 @@ class TCamera extends AAny {
 
   def getTyp = TCamera.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
-    /** Gets the height of the camera image in pixels. */
-    // case "height" => 
-    //   Top[S](TNumber.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the height of the camera image in pixels. */
-    //   val field_height = new TouchField("height",TNumber.typ)
-
-    /** Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */
-    // case "is_front" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */
-    //   val field_is_front = new TouchField("is_front",TBoolean.typ)
-
     /** Takes a low quality picture from the camera. */
-    // case "preview" => 
-    //   Top[S](TPicture.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Takes a low quality picture from the camera. */
-    //   val field_preview = new TouchField("preview",TPicture.typ)
-
-    /** Gets the width of the camera image in pixels. */
-    // case "width" => 
-    //   Top[S](TNumber.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the width of the camera image in pixels. */
-    //   val field_width = new TouchField("width",TNumber.typ)
-
-    // FIELDS: , field_height, field_is_front, field_preview, field_width
+    case "preview" =>
+      Top[S](TPicture.typ)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

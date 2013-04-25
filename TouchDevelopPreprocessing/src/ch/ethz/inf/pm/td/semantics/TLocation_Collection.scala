@@ -1,9 +1,10 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Constant, VariableIdentifier, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import RichNativeSemantics._
+import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * User: lucas
@@ -12,7 +13,7 @@ import RichNativeSemantics._
  */
 object TLocation_Collection {
 
-  val typName = "Location_Collection"
+  val typName = "Location Collection"
   val typ = TouchCollection(typName,"Number","Location")
 
 }
@@ -21,16 +22,17 @@ class TLocation_Collection extends AMutable_Collection {
 
   def getTyp = TLocation_Collection.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Sorts by distance to the location */
-    case "sort_by_distance" =>
+    case "sort by distance" =>
       val List(loc) = parameters // Location
+      Reporter.reportImprecision("Location Collection->sort by distance is a dummy",pp)
       Skip // Sorting is invariant for (size,elem) abstraction
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

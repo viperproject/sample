@@ -18,7 +18,7 @@ import RichNativeSemantics._
 
 object TNumber_Map {
 
-  val typName = "Number_Map"
+  val typName = "Number Map"
   val typ = TouchCollection(typName,"Number","Number")
 
 }
@@ -27,7 +27,7 @@ class TNumber_Map extends AMutable_Collection {
 
   def getTyp = TNumber_Map.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Computes the average of the values */
@@ -52,7 +52,7 @@ class TNumber_Map extends AMutable_Collection {
       Return[S]( (CollectionSize[S](this0)) * (CollectionSummary[S](this0)))
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

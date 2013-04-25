@@ -31,7 +31,7 @@ class TString extends AAny {
 
   def getTyp = TString.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets the character at a specified index */
@@ -59,11 +59,11 @@ class TString extends AAny {
       Top[S](TBoolean.typ) // TODO: Sound dummy
 
     /** Stores text in the clipboard */
-    case "copy_to_clipboard" =>
+    case "copy to clipboard" =>
       Skip // TODO: Sound dummy
 
     /** Determines whether the ending matches the specified string */
-    case "ends_with" =>
+    case "ends with" =>
       val List(value) = parameters // String
       Top[S](TBoolean.typ) // TODO: Sound dummy
 
@@ -73,7 +73,7 @@ class TString extends AAny {
       Return[S](this0 equal other)
 
     /** Returns the index of the first occurence if found starting at a given position */
-    case "index_of" =>
+    case "index of" =>
       val List(value,start) = parameters // String,Number
       Top[S](TNumber.typ) // TODO: Sound dummy
 
@@ -83,16 +83,16 @@ class TString extends AAny {
       Top[S](TString.typ) // TODO: Sound dummy
 
     /** Indicates if the string is empty */
-    case "is_empty" =>
+    case "is empty" =>
       Top[S](TBoolean.typ) // TODO: Sound dummy
 
     /** Indicates if the string matches a regular expression */
-    case "is_match_regex" =>
+    case "is match regex" =>
       val List(pattern) = parameters // String
       Top[S](TBoolean.typ) // TODO: Sound dummy
 
     /** Returns the index of the last occurence if found starting at a given position */
-    case "last_index_of" =>
+    case "last index of" =>
       val List(value,start) = parameters // String,Number
       TopWithInvalid[S](TNumber.typ) // TODO: Sound dummy
 
@@ -112,7 +112,7 @@ class TString extends AAny {
       Top[S](TString.typ) // TODO: Sound dummy
 
     /** Replace every match of the regex according to the replacement string */
-    case "replace_regex" =>
+    case "replace regex" =>
       val List(pattern,replace) = parameters // String,String
       Top[S](TString.typ) // TODO: Sound dummy
 
@@ -127,7 +127,7 @@ class TString extends AAny {
       Top[S](TString_Collection.typ) // TODO: Sound dummy
 
     /** Determines whether the beginning matches the specified string */
-    case "starts_with" =>
+    case "starts with" =>
       val List(value) = parameters // String
       Top[S](TBoolean.typ) // TODO: Sound dummy
 
@@ -137,39 +137,39 @@ class TString extends AAny {
       Top[S](TString.typ) // TODO: Sound dummy
 
     /** Parses the string as a boolean */
-    case "to_boolean" =>
+    case "to boolean" =>
       TopWithInvalid[S](TBoolean.typ) // TODO: Sound dummy
 
     /** Parses the string as a color. */
-    case "to_color" =>
+    case "to color" =>
       TopWithInvalid[S](TColor.typ) // TODO: Sound dummy
 
     /** Parses the string as a date and time. */
-    case "to_datetime" =>
+    case "to datetime" =>
       TopWithInvalid[S](TDateTime.typ) // TODO: Sound dummy
 
     /** Parses the string as a geo coordinate. */
-    case "to_location" =>
+    case "to location" =>
       TopWithInvalid[S](TLocation.typ) // TODO: Sound dummy
 
     /** Returns a copy of this string converted to lowercase, using the casing rules of the current culture. */
-    case "to_lower_case" =>
+    case "to lower case" =>
       Top[S](TString.typ) // TODO: Sound dummy
 
     /** Parses the string as a number */
-    case "to_number" =>
+    case "to number" =>
       TopWithInvalid[S](TNumber.typ)  // TODO: Sound dummy
 
     /** Parses the string as a time (12:30:12) and returns the number of seconds. */
-    case "to_time" =>
+    case "to time" =>
       TopWithInvalid[S](TNumber.typ) // TODO: Sound dummy
 
     /** Converts a single character string into its unicode number */
-    case "to_unicode" =>
+    case "to unicode" =>
       Top[S](TNumber.typ)  // TODO: Sound dummy
 
     /** Returns a copy of this string converted to uppercase, using the casing rules of the current culture. */
-    case "to_upper_case" =>
+    case "to upper case" =>
       Top[S](TString.typ) // TODO: Sound dummy
 
     /** Removes all leading and trailing occurrences of a set of characters specified in a string from the current string. */
@@ -178,17 +178,17 @@ class TString extends AAny {
       Top[S](TString.typ) // TODO: Sound dummy
 
     /** Removes all trailing occurrences of a set of characters specified in a string from the current string. */
-    case "trim_end" =>
+    case "trim end" =>
       val List(chars) = parameters // String
       Top[S](TString.typ) // TODO: Sound dummy
 
     /** Removes all leading occurrences of a set of characters specified in a string from the current string. */
-    case "trim_start" =>
+    case "trim start" =>
       val List(chars) = parameters // String
       Top[S](TString.typ) // TODO: Sound dummy
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

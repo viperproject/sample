@@ -1,8 +1,6 @@
-import ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraphExecution
 import ch.ethz.inf.pm.sample.test.Run
-import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
+import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.TestRunner
 import ch.ethz.inf.pm.td.webapi.NewScripts
 
 /**
@@ -13,10 +11,8 @@ import ch.ethz.inf.pm.td.webapi.NewScripts
  *
  */
 
-val comp = new TouchCompiler
-
-def analyzer(url:String) {
-  Run.main(List("-v","-p",url).toArray[String])
+def analyzer(id:String) {
+  TestRunner.runIdWithApron(id)
 }
 
-TestRunner(new NewScripts,3,analyzer)
+TestRunner(new NewScripts,100,analyzer)

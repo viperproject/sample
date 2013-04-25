@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.TouchCollection
+import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
 import RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 
@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisCon
  */
 abstract class AMutable_Collection extends ACollection {
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Adds an element */
@@ -20,7 +20,7 @@ abstract class AMutable_Collection extends ACollection {
       CollectionInsert[S](this0,CollectionSize[S](this0)-1,value)
 
     /** Adds many elements at once */
-    case "add_many" =>
+    case "add many" =>
       val List(value) = parameters // Collection_Type
       Skip; // TODO
 
@@ -29,13 +29,13 @@ abstract class AMutable_Collection extends ACollection {
       Skip; // TODO
 
     /** Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */
-    case "index_of" =>
+    case "index of" =>
       val List(item,start) = parameters // Element_Type,Number
       // HELP: Check if start is always out of range.
       Return[S](-1 ndTo (CollectionSize[S](this0)-1))
 
     /** Inserts an element at position index. Does nothing if index is out of range. */
-    case "insert_at" =>
+    case "insert at" =>
       val List(index,item) = parameters // Number,Element_Type
       CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       CollectionInsert[S](this0,index,item)
@@ -50,7 +50,7 @@ abstract class AMutable_Collection extends ACollection {
       Return[S](True or False) // TODO
 
     /** Removes the element at position index. */
-    case "remove_at" =>
+    case "remove at" =>
       val List(index) = parameters // Number
       CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       CollectionRemove[S](this0,index)
@@ -60,13 +60,13 @@ abstract class AMutable_Collection extends ACollection {
       Skip // Sorting is invariant for (size,elem) abstraction
 
     /** Sets the i-th element */
-    case "set_at" =>
+    case "set at" =>
       val List(index,value) = parameters // Number,Element_Type
       CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       CollectionUpdate[S](this0,index,value)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

@@ -16,8 +16,40 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TMedia_Player {
 
-  val typName = "Media_Player"
-  val typ = new TouchType(typName,isSingleton = false)
+  /** Gets the uri of the media currently active */
+  val field_active_media = new TouchField("active media",TString.typ)
+
+  /** Gets the detailed information about this device */
+  val field_device = new TouchField("device",TDevice.typ)
+
+  /** Indicates the media can be played, paused, resumed */
+  val field_is_control_supported = new TouchField("is control supported",TBoolean.typ)
+
+  /** Indicates if the player is paused */
+  val field_is_paused = new TouchField("is paused",TBoolean.typ)
+
+  /** Indicates if the player is playing */
+  val field_is_playing = new TouchField("is playing",TBoolean.typ)
+
+  /** Indicates if the player is stopped */
+  val field_is_stopped = new TouchField("is stopped",TBoolean.typ)
+
+  /** Indicates if volume can be changed */
+  val field_is_volume_supported = new TouchField("is volume supported",TBoolean.typ)
+
+  /** Gets the name of the audio/video player */
+  val field_name = new TouchField("name",TString.typ)
+
+  /** Gets the status of the player */
+  val field_status = new TouchField("status",TString.typ)
+
+  /** Gets the current volume */
+  val field_volume = new TouchField("volume",TNumber.typ)
+
+  val typName = "Media Player"
+  val typ = new TouchType(typName,isSingleton = false,fields = List(field_active_media, field_device,
+    field_is_control_supported, field_is_paused, field_is_playing, field_is_stopped, field_is_volume_supported,
+    field_name, field_status, field_volume))
 
 }
 
@@ -25,129 +57,81 @@ class TMedia_Player extends AAny {
 
   def getTyp = TMedia_Player.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-        
-    /** Gets the uri of the media currently active */
-    // case "active_media" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the uri of the media currently active */
-    //   val field_active_media = new TouchField("active_media",TString.typ)
-
-    /** Gets the detailled information about this device */
-    // case "device" => 
-    //   Top[S](TDevice.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the detailled information about this device */
-    //   val field_device = new TouchField("device",TDevice.typ)
-
-    /** Indicates the media can be played, paused, resumed */
-    // case "is_control_supported" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates the media can be played, paused, resumed */
-    //   val field_is_control_supported = new TouchField("is_control_supported",TBoolean.typ)
-
-    /** Indicates if the player is paused */
-    // case "is_paused" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is paused */
-    //   val field_is_paused = new TouchField("is_paused",TBoolean.typ)
-
-    /** Indicates if the player is playing */
-    // case "is_playing" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is playing */
-    //   val field_is_playing = new TouchField("is_playing",TBoolean.typ)
-
-    /** Indicates if the player is stopped */
-    // case "is_stopped" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if the player is stopped */
-    //   val field_is_stopped = new TouchField("is_stopped",TBoolean.typ)
-
-    /** Indicates if volume can be changed */
-    // case "is_volume_supported" => 
-    //   Top[S](TBoolean.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Indicates if volume can be changed */
-    //   val field_is_volume_supported = new TouchField("is_volume_supported",TBoolean.typ)
-
-    /** Gets the name of the audio/video player */
-    // case "name" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the name of the audio/video player */
-    //   val field_name = new TouchField("name",TString.typ)
 
     /** Moves the player to the next media in the queue. */
-    // case "next" => 
-    //   Skip;
+    case "next" =>
+      Error[S](Field[S](this0,TMedia_Player.field_is_control_supported).not(),"next",
+        "Trying to control a media play which might not support control")
+      // TODO: Update active media
+      Skip
 
     /** Pauses the current media if any. */
-    // case "pause" => 
-    //   Skip;
+    case "pause" =>
+      Error[S](Field[S](this0,TMedia_Player.field_is_control_supported).not(),"pause",
+        "Trying to pause a media play which might not support control")
+      // TODO: Update status
+      Skip
 
     /** Plays the current media from the start. */
-    // case "play" => 
-    //   Skip;
+    case "play" =>
+      Error[S](Field[S](this0,TMedia_Player.field_is_control_supported).not(),"play",
+        "Trying to control a media play which might not support control")
+      // TODO: Update status
+      Skip
 
     /** Plays a media from the home network. */
-    // case "play_home_media" => 
-    //   val List(media) = parameters // Media_Link
-    //   Skip;
+    case "play home media" =>
+      val List(media) = parameters // Media_Link
+      Error[S](Field[S](this0,TMedia_Player.field_is_control_supported).not(),"play home media",
+        "Trying to control a media play which might not support control")
+      // TODO: Update active media
+      Skip
 
     /** Plays the media at the 'url' internet address. */
-    // case "play_media" => 
-    //   val List(url) = parameters // String
-    //   Skip;
+    case "play media" =>
+      val List(url) = parameters // String
+      Error[S](Field[S](this0,TMedia_Player.field_is_control_supported).not(),"play media",
+        "Trying to control a media play which might not support control")
+      // TODO: Update status
+      AssignField[S](this0,TMedia_Player.field_active_media,url)
 
     /** Gets the position in seconds whithin the active media */
-    // case "play_position" => 
-    //   Top[S](TNumber.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the position in seconds whithin the active media */
-    //   val field_play_position = new TouchField("play_position",TNumber.typ)
+    case "play position" =>
+      Top[S](TNumber.typ)
 
     /** Moves the player to the previous media in the queue. */
-    // case "previous" => 
-    //   Skip;
+    case "previous" =>
+      Error[S](Field[S](this0,TMedia_Player.field_is_control_supported).not(),"previous",
+        "Trying to control a media play which might not support control")
+      // TODO: Update status
+      Skip
 
     /** Resumes playing the current media if any. */
-    // case "resume" => 
-    //   Skip;
+    case "resume" =>
+      Error[S](Field[S](this0,TMedia_Player.field_is_control_supported).not(),"resume",
+        "Trying to resume a media play which might not support control")
+      // TODO: Update status
+      Skip
 
     /** Sets the current value */
-    // case "set_volume" => 
-    //   val List(volume) = parameters // Number
-    //   Skip;
-
-    /** Gets the status of the player */
-    // case "status" => 
-    //   Top[S](TString.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the status of the player */
-    //   val field_status = new TouchField("status",TString.typ)
+    case "set volume" =>
+      val List(volume) = parameters // Number
+      Error[S](Field[S](this0,TMedia_Player.field_is_volume_supported).not(),"set volume",
+        "Trying to change the volume of a media play which might not be volume controllable")
+      CheckInRangeInclusive[S](volume,0,1,"set volume","volume level")
+      AssignField[S](this0,TMedia_Player.field_volume,volume)
 
     /** Stops the current media if any. */
-    // case "stop" => 
-    //   Skip;
-
-    /** Gets the current volume */
-    // case "volume" => 
-    //   Top[S](TNumber.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the current volume */
-    //   val field_volume = new TouchField("volume",TNumber.typ)
-
-    // FIELDS: , field_active_media, field_device, field_is_control_supported, field_is_paused, field_is_playing, field_is_stopped, field_is_volume_supported, field_name, field_play_position, field_status, field_volume
+    case "stop" =>
+      Error[S](Field[S](this0,TMedia_Player.field_is_control_supported).not(),"stop",
+        "Trying to stop a media play which might not support control")
+      // TODO: Update status
+      Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

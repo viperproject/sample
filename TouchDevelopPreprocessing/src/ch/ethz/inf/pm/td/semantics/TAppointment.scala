@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -22,13 +21,13 @@ object TAppointment {
    val field_details = new TouchField("details",TString.typ)
 
    /** Gets the end time */
-   val field_end_time = new TouchField("end_time",TDateTime.typ)
+   val field_end_time = new TouchField("end time",TDateTime.typ)
 
    /** Indicates if this is an all day event */
-   val field_is_all_day_event = new TouchField("is_all_day_event",TBoolean.typ)
+   val field_is_all_day_event = new TouchField("is all day event",TBoolean.typ)
 
    /** Indicates if this appointment is private */
-   val field_is_private = new TouchField("is_private",TBoolean.typ)
+   val field_is_private = new TouchField("is private",TBoolean.typ)
 
    /** Gets the location */
    val field_location = new TouchField("location",TString.typ)
@@ -40,7 +39,7 @@ object TAppointment {
    val field_source = new TouchField("source",TString.typ)
 
    /** Gets the location */
-   val field_start_time = new TouchField("start_time",TDateTime.typ)
+   val field_start_time = new TouchField("start time",TDateTime.typ)
 
    /** Gets your status (free, tentative, busy, outofoffice) */
    val field_status = new TouchField("status",TString.typ)
@@ -58,10 +57,10 @@ class TAppointment extends AAny {
 
   def getTyp = TAppointment.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

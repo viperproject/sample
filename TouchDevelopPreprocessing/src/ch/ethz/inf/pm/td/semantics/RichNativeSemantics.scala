@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.td.compiler.TouchCollection
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.UnitExpression
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{MethodSummaries, TouchAnalysisParameters}
 
 /**
  *
@@ -58,7 +58,11 @@ object RichNativeSemantics {
   /**
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
-  def New[S <: State[S]](typ:TouchType, initials:Map[TouchField,RichExpression] = Map.empty[TouchField,RichExpression],recursive:Boolean = true)(implicit s:S, pp:ProgramPoint): S = {
+  def New[S <: State[S]](typ:TouchType,
+                         initials:Map[TouchField,RichExpression] = Map.empty[TouchField,RichExpression],
+                         recursive:Boolean = true,
+                         initialCollectionSummary:Option[ExpressionSet] = None,
+                         initialCollectionSize:Option[ExpressionSet] = None)(implicit s:S, pp:ProgramPoint): S = {
     typ.getName match {
       case TNumber.typName => s.setExpression(new ExpressionSet(TNumber.typ).add(Constant("0",TNumber.typ,pp)))
       case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(False))
@@ -76,11 +80,20 @@ object RichNativeSemantics {
         if(recursive) {
           typ match {
             case col:TouchCollection =>
-              // Set size to zero.
-              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__size")
-              curState = New[S](TNumber.typ,recursive = !referenceLoop2)(curState,newPP2)
-              val newSize = curState.getExpression()
-              curState = Assign[S](CollectionSize[S](obj),newSize)(curState,newPP2)
+              // Initialize collection size
+              initialCollectionSize match {
+                case None =>
+                  curState = Assign[S](CollectionSize[S](obj),0)(curState,pp)
+                case Some(x) =>
+                  curState = Assign[S](CollectionSize[S](obj),x)(curState,pp)
+              }
+              initialCollectionSummary match {
+                case None =>
+                  // Remains bottom
+                case Some(x) =>
+                  curState = Assign[S](CollectionSummary[S](obj),x)(curState,pp)
+              }
+
             case _ => ()
           }
 
@@ -132,12 +145,12 @@ object RichNativeSemantics {
         if(recursive) {
           typ match {
             case col:TouchCollection =>
-              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__summary")
+              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"*summary")
               // Create summary node of collections
               curState = Top[S](col.getValueType,recursive = !referenceLoop1)(curState,newPP1)
               val topSummary = curState.getExpression()
               curState = Assign[S](CollectionSummary[S](obj),topSummary)(curState,newPP1)
-              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__size")
+              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"*size")
               // Set size to top
               curState = Top[S](TNumber.typ,recursive = !referenceLoop2)(curState,newPP2)
               val topSize = curState.getExpression()
@@ -254,9 +267,36 @@ object RichNativeSemantics {
 
   /*-- Misc --*/
 
-  def CallApi[S <: State[S]](obj:RichExpression,method:String,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {
-    val semantics = SystemParameters.compiler.asInstanceOf[TouchCompiler].types(obj.getType().getName())
-    semantics.forwardSemantics(obj,method,parameters)(pp,state)
+//  def RunActionFromString[S <: State[S]](handlerName:RichExpression,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {       TODO
+//    val handlerNames:Set[String] = state.getStringValues(handlerName)
+//
+//    if (handlerNames.isEmpty) {
+//      Reporter.reportImprecision("Calling an unknown handler, going to top",pp)
+//      state.top()
+//    } else {
+//      // Compute least upper bound over all possible handlers
+//      var result = state.bottom()
+//      for (handler <- handlerNames) {
+//        result = result.lub(result,CallLocalAction[S](handler,parameters)(state,pp))
+//      }
+//      result
+//    }
+//  }
+
+  def CallLocalAction[S <: State[S]](method:String,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {
+    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method,SystemParameters.typ,parameters map (_.getType())) match {
+      case Some((clazz,methodDef)) =>
+        val res = MethodSummaries.collect(pp,clazz,methodDef,state,parameters)
+        res
+      case _ =>
+        Reporter.reportImprecision("Could not find this method "+method,pp)
+        state.top()
+    }
+  }
+
+  def CallApi[S <: State[S]](obj:RichExpression,method:String,parameters:List[ExpressionSet] = Nil,returnedType:TouchType)(implicit state:S, pp:ProgramPoint): S = {
+    val semantics = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(obj.getType().getName())
+    semantics.forwardSemantics(obj,method,parameters,returnedType)(pp,state)
   }
 
   def Return[S <: State[S]](e:RichExpression*)(implicit state:S, pp:ProgramPoint):S = {
@@ -310,7 +350,7 @@ object RichNativeSemantics {
         }
       else if (parameters.length == 1)
         // Setters
-        typ.getPossibleFields().find("set_"+_.getName() == method ) match {
+        typ.getPossibleFields().find("set "+_.getName() == method ) match {
           case Some(field) =>
             Some(AssignField[S](this0,field,parameters.head))
           case None =>  None

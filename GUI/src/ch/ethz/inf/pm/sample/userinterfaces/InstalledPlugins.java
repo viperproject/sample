@@ -17,6 +17,7 @@ import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
 import scala.collection.immutable.List;
+import scala.Option;
 import semper.sample.multithreading.AugmentedCompiler;
 import semper.sample.multithreading.MultithreadingAnalysis;
 
@@ -99,7 +100,7 @@ public class InstalledPlugins {
 
         } else if (c instanceof TouchCompiler) {
 
-            List<ClassDefinition> classes = ((TouchCompiler)c).compileString("","dummypub");
+            List<ClassDefinition> classes = ((TouchCompiler)c).compileString(Option.apply(""),"dummypub");
             if (classes.length() > 0) {
                 SystemParameters.typ_$eq(classes.head().typ().top());
             } else {

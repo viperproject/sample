@@ -4,7 +4,6 @@ import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.parser.Foreach
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.parser.LocalReference
-import ch.ethz.inf.pm.td.parser.AssignStatement
 import ch.ethz.inf.pm.td.parser.While
 import ch.ethz.inf.pm.td.parser.Script
 import ch.ethz.inf.pm.td.parser.Access
@@ -53,10 +52,10 @@ object LoopRewriter {
 
         val idxExp = pos(LocalReference(idx))
         val storedBound = pos(LocalReference(annotateName(idx,"bound")))
-        val indexInit = pos(AssignStatement(List(idxExp), pos(Literal(pos(TypeName("Number")), "0"))))
-        val upperBoundStore = pos(AssignStatement(List(storedBound), bnd))
+        val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
+        val upperBoundStore = pos(ExpressionStatement(pos(Access(storedBound, Identifier(":="), List(bnd)))))
         val condition = pos(Access(idxExp, pos(Identifier("<")), List(storedBound)))
-        val bodyPostfix = pos(AssignStatement(List(idxExp), pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1")))))))
+        val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
         indexInit :: upperBoundStore :: While(condition, (body map (apply _)).flatten ::: bodyPostfix :: Nil) :: Nil
 
       case f@Foreach(elem, coll, guards, body) =>
@@ -78,10 +77,10 @@ object LoopRewriter {
         val idxExp = pos(LocalReference(annotateName(elem,"index")))
         val storedCollection = pos(LocalReference(annotateName(elem,"collection")))
         val elemExp = pos(LocalReference(elem))
-        val indexInit = pos(AssignStatement(List(idxExp), pos(Literal(pos(TypeName("Number")), "0"))))
-        val collectionStore = pos(AssignStatement(List(storedCollection), pos(Access(coll,pos(Identifier("copy")),Nil))))
-        val bodyPrefix = pos(AssignStatement(List(elemExp), pos(Access(storedCollection, pos(Identifier("at_index")), List(idxExp)))))
-        val bodyPostfix = pos(AssignStatement(List(idxExp), pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1")))))))
+        val indexInit = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Literal(pos(TypeName("Number")), "0")))))))
+        val collectionStore = pos(ExpressionStatement(pos(Access(storedCollection, Identifier(":="), List(pos(Access(coll,pos(Identifier("copy")),Nil)))))))
+        val bodyPrefix = pos(ExpressionStatement(pos(Access(elemExp, Identifier(":="), List(pos(Access(storedCollection, pos(Identifier("at index")), List(idxExp))))))))
+        val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
         val rewrittenBody = (body map (apply _)).flatten
         val conditionalBody = guards match {
           case head::tail =>
@@ -99,14 +98,19 @@ object LoopRewriter {
         List(pos(While(cond,(body map (apply _)).flatten)))
       case w@Box(body) =>
         List(pos(Box((body map (apply _)).flatten)))
-      case w@WhereStatement(expr,handler,parameters,body) =>
-        List(pos(WhereStatement(expr,handler,parameters,(body map (apply _)).flatten)))
+      case w@WhereStatement(expr,handlers) =>
+        List(pos(WhereStatement(expr,handlers map (apply _))))
       case _ =>
         List(s)
     }
   }
 
-  def annotateName(s1:String,s2:String) = "__"+s1+"_"+s2+"__"
+  def apply(inlineAction:InlineAction):InlineAction = {
+    implicit val defPos = inlineAction
+    pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters,(inlineAction.body map (apply _)).flatten))
+  }
+
+  def annotateName(s1:String,s2:String) = "*"+s1+" "+s2
   def pos[T <: Positional](posNew:T)(implicit defPos:Positional):T = { posNew.pos = defPos.pos; posNew }
 
 }

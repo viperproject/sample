@@ -12,7 +12,7 @@ import RichNativeSemantics._
  */
 object TSprite_Set {
 
-  val typName = "Sprite_Set"
+  val typName = "Sprite Set"
   val typ = TouchCollection(typName, "Number", "Sprite")
 
 }
@@ -21,31 +21,31 @@ class TSprite_Set extends AMutable_Collection {
 
   def getTyp = TSprite_Set.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Add sprite to set. Returns true if sprite was not already in set. */
     case "add" =>
       val List(sprite) = parameters // Sprite
-      val state1 = super.forwardSemantics(this0,method,parameters)
+      val state1 = super.forwardSemantics(this0,method,parameters,returnedType)
       Top[S](TBoolean.typ)(state1,pp)
 
     /** Add sprite to set and remove from old set. Returns true if sprite was in old set and not in new set. */
-    //case "add_from" =>
+    //case "add from" =>
     //  val List(old_set,sprite) = parameters // Sprite_Set,Sprite
     //  New[S](TBoolean.typ) // TODO
 
-    case "index_of" =>
+    case "index of" =>
       val List(item) = parameters
       Return[S](0 ndTo CollectionSize[S](this0))
 
     /** Remove sprite that was added to set first. */
-    case "remove_first" =>
-      Error[S](CollectionSize[S](this0) < 1, "Remove_first is called on a possibly empty set")
+    case "remove first" =>
+      Error[S](CollectionSize[S](this0) < 1, "Remove first is called on a possibly empty set")
       CollectionRemove[S](this0,toRichExpression(0))
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

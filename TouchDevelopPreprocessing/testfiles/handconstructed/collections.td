@@ -5,8 +5,8 @@ action main () {
     $ls->add($loc);
     $ls->add($loc2);
     $ls->remove($loc);
-    assert->is_true($ls->at(0)->longitude = 0);
-    assert->is_true($ls->at(1)->longitude = 5);
-    assert->is_false($ls->at(1)->longitude = 0);
-    assert->is_false($ls->at(0)->longitude = 5);
+    contract->assert($ls->at(0)->longitude = 0,"");
+    contract->assert($ls->at(1)->longitude = 5,"");
+    contract->assert(($ls->at(1)->longitude = 0)->not,"");
+    contract->assert(($ls->at(0)->longitude = 5)->not,"");
 }

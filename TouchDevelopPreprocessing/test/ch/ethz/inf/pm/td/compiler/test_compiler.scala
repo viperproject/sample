@@ -1,10 +1,7 @@
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
-import ch.ethz.inf.pm.td.compiler.{TouchException, TouchCompiler}
-import ch.ethz.inf.pm.td.parser.ScriptParser
-import ch.ethz.inf.pm.td.TestRunner
-import ch.ethz.inf.pm.td.webapi.{NewScripts, URLFetcher, NoMoreScriptsException, FeaturedScripts}
-import java.io.File
+import ch.ethz.inf.pm.td.analysis.TestRunner
+import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.webapi.NewScripts
 
 /**
  *
@@ -16,9 +13,9 @@ import java.io.File
 
 SystemParameters.compiler = new TouchCompiler
 
-def compiler(url:String) {
-  println("== Compiling "+url)
-  val cds = SystemParameters.compiler.compileFile(url)
+def compiler(id:String) {
+  println("== Compiling "+id)
+  val cds = SystemParameters.compiler.compileFile("td://"+id)
 //  for(cd <- cds; m <- cd.methods) {
 //    ShowGraph.ShowControlFlowGraph(m.body)
 //  }
@@ -33,9 +30,10 @@ def compileFromFile(path:String) {
 }
 
 
+//compileFromFile("TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator+"waller"+File.separator+"waller.td")
+TestRunner("xfgjqnqm",compiler _) // HUGE
 TestRunner(new NewScripts,100000,compiler _)
 //TestRunner("https://www.touchdevelop.com/api/qssc/text?original=true",compiler _)
 //TestRunner("https://www.touchdevelop.com/api/fdzm/text",compiler _)
-//compileFromFile("TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator+"waller"+File.separator+"waller.td")
 
 while(true) ()

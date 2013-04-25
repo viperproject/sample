@@ -1,15 +1,6 @@
 package ch.ethz.inf.pm.td.transform
 
 import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.parser.AssignStatement
-import ch.ethz.inf.pm.td.parser.While
-import ch.ethz.inf.pm.td.parser.Foreach
-import ch.ethz.inf.pm.td.parser.Script
-import ch.ethz.inf.pm.td.parser.Access
-import ch.ethz.inf.pm.td.parser.ActionDefinition
-import ch.ethz.inf.pm.td.parser.ExpressionStatement
-import ch.ethz.inf.pm.td.parser.For
-import ch.ethz.inf.pm.td.parser.If
 
 /**
  * User: lucas
@@ -45,8 +36,7 @@ object Matcher {
       case Foreach(loc,coll,guards,body) => apply(coll); apply(guards); apply(body)
       case If(cond,then,els) => apply(cond); apply(then); apply(els)
       case Box(body) => apply(body)
-      case WhereStatement(expr,handler,param,body) => apply(expr); apply(body)
-      case AssignStatement(left,right) => apply(left); apply(right)
+      case WhereStatement(expr,handlers) => apply(expr); handlers foreach (apply _)
       case ExpressionStatement(expr) => apply(expr)
       case _ => ()
     }
@@ -62,6 +52,10 @@ object Matcher {
       case Access(subj,_,args) => apply(subj); apply(args)
       case _ => ()
     }
+  }
+
+  def apply(handler:InlineAction)(implicit onStatement : Statement => Unit, onExpression: Expression => Unit) {
+    apply(handler.body)
   }
 
 }

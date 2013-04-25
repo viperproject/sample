@@ -24,7 +24,7 @@ object TouchAnalysisParameters {
   /**
    * Enable HTML output
    */
-  val exportAsHtml = true
+  val exportAsHtml = false
 
   /**
    * If this is enabled, only relevant fields (i.e. that are read in the program) of objects from the library will be
@@ -66,5 +66,18 @@ object TouchAnalysisParameters {
    * Maximum number of possible string values represented for a single variable
    */
   val stringRepresentationBound = 3
+
+  /**
+   * If this is set to true, we remove all local variables from the calling context when entering a function.
+   * This improves performance, but may reduce precision (since relations between passed values and removed
+   * values may be lost).
+   *
+   * TL;DR:
+   *  true = less precision, more speed.
+   *  false = more precision, less speed.
+   */
+  val localizeStateOnMethodCall = false
+
+  val printAllLoopsInScript = false
 
 }

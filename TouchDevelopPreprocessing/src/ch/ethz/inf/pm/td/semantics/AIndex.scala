@@ -9,7 +9,7 @@ class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchT
 
   def getTyp = indexType
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     // This overrides the default "at" behavior of collections: Instead of returning "invalid" for a new key, we
@@ -25,7 +25,7 @@ class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchT
       CollectionClear[S](this0)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 

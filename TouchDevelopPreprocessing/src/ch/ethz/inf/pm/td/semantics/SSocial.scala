@@ -5,7 +5,6 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.semantics.RichExpression._
 
 /**
  * Specifies the abstract semantics of social
@@ -17,7 +16,7 @@ import ch.ethz.inf.pm.td.semantics.RichExpression._
 
 object SSocial {
 
-  val typName = "social"
+  val typName = "Social"
   val typ = new TouchType(typName,isSingleton = true)
 
 }
@@ -26,37 +25,37 @@ class SSocial extends AAny {
 
   def getTyp = SSocial.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
     /** Chooses a contact from the contact list */
-    // case "choose_contact" => 
+    // case "choose contact" =>
     //   Top[S](TContact.typ)
     // DECLARATION AS FIELD: 
     //   /** Chooses a contact from the contact list */
-    //   val field_choose_contact = new TouchField("choose_contact",TContact.typ)
+    //   val field_choose_contact = new TouchField("choose contact",TContact.typ)
 
     /** Chooses an email from the contact list */
-    // case "choose_email" => 
+    // case "choose email" =>
     //   Top[S](TLink.typ)
     // DECLARATION AS FIELD: 
     //   /** Chooses an email from the contact list */
-    //   val field_choose_email = new TouchField("choose_email",TLink.typ)
+    //   val field_choose_email = new TouchField("choose email",TLink.typ)
 
     /** Creates a new contact */
-    // case "create_contact" => 
+    // case "create contact" =>
     //   val List(nickname) = parameters // String
     //   Top[S](TContact.typ)
 
     /** Creates a message to share */
-    case "create_message" =>
+    case "create message" =>
       val List(message) = parameters // String
       New[S](TMessage.typ,Map(
         TMessage.field_message -> message
       ))
 
     /** Creates a place */
-    case "create_place" =>
+    case "create place" =>
        val List(name,location) = parameters // String,Location
        New[S](TPlace.typ,Map(
          TPlace.field_name -> name,
@@ -64,7 +63,7 @@ class SSocial extends AAny {
        ))
 
     /** Creates a link from an email */
-    case "link_email" =>
+    case "link email" =>
       val List(email_address) = parameters // String
       New[S](TLink.typ,Map(
          TLink.field_address -> email_address,
@@ -72,7 +71,7 @@ class SSocial extends AAny {
       ))
 
     /** Creates a link from a phone number */
-    case "link_phone_number" =>
+    case "link phone number" =>
       val List(phone_number) = parameters // String
       New[S](TLink.typ,Map(
         TLink.field_address -> phone_number,
@@ -80,12 +79,12 @@ class SSocial extends AAny {
       ))
 
     /** Saves a new contact */
-    // case "save_contact" =>
+    // case "save contact" =>
     //  val List(contact) = parameters // Contact
     //  Skip
 
     /** Allows the user to save the email address (email) */
-    // case "save_email" => 
+    // case "save email" =>
     //   val List(email_address) = parameters // String
     //   Skip;
 
@@ -95,36 +94,36 @@ class SSocial extends AAny {
     //   Top[S](TMessage_Collection.typ)
 
     /** Searches for appointments in a given time range */
-    case "search_appointments" =>
+    case "search appointments" =>
       val List(start,end) = parameters // DateTime,DateTime
       Top[S](TAppointment_Collection.typ)
 
     /** Searches for contacts by name. */
-    // case "search_contacts" => 
+    // case "search contacts" =>
     //   val List(prefix) = parameters // String
     //   Top[S](TContact_Collection.typ)
 
     /** Searches for places nearby. The distance is in meters. */
-    case "search_places_nearby" =>
+    case "search places nearby" =>
       val List(network,terms,location,distance) = parameters // String,String,Location,Number
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not, "search_places_nearby",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not, "search places nearby",
         "Check first if an internet connection is available")
       Top[S](TPlace_Collection.typ)
 
     /** Opens the mail client */
-    case "send_email" =>
+    case "send email" =>
        val List(to,subject,body) = parameters // String,String,String
        // It's fine if we are offline here
        Skip
 
     /** Opens the short message client (to, body) */
-    case "send_sms" =>
+    case "send sms" =>
       val List(to,body) = parameters // String,String
       // TODO: Maybe check if length < 140?
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

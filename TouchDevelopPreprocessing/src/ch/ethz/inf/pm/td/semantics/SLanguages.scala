@@ -17,9 +17,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SLanguages {
 
   /** Gets the current language code, to be used in the 'translate' method. */
-  val field_current_language = new TouchField("current_language",TString.typ)
+  val field_current_language = new TouchField("current language",TString.typ)
 
-  val typName = "languages"
+  val typName = "Languages"
   val typ = new TouchType(typName,isSingleton = true, fields = List(field_current_language))
 
 }
@@ -28,26 +28,26 @@ class SLanguages extends AAny {
 
   def getTyp = SLanguages.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Automatically detects the language of a given text using Bing. */
-    case "detect_language" =>
+    case "detect language" =>
       val List(text) = parameters // String
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"detect_language",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"detect language",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ)
 
     /** Extracts text in the picture using Project Hawaii from Microsoft Research. */
-    case "picture_to_text" =>
+    case "picture to text" =>
       val List(lang,pic) = parameters // String,Picture
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture_to_text",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture to text",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ)
 
     /** Converts the microphone dictation to text using Project Hawaii from Microsoft Research. */
-    case "record_text" =>
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"record_text",
+    case "record text" =>
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"record text",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ)
 
@@ -59,9 +59,9 @@ class SLanguages extends AAny {
       Top[S](TSound.typ)
 
     /** Converts a sound to a text using Project Hawaii from Microsoft Research. */
-    case "speech_to_text" =>
+    case "speech to text" =>
       val List(lang,speech) = parameters // String,Sound
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speech_to_text",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speech to text",
         "Check if the device is connected to the internet before using the connection")
       Top[S](TString.typ)
 
@@ -73,7 +73,7 @@ class SLanguages extends AAny {
       Top[S](TString.typ)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

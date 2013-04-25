@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, VariableIdentifier}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -14,10 +14,10 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TTile {
 
   /** Gets the back icon picture */
-  val field_back_icon = new TouchField("back_icon",TPicture.typ)
+  val field_back_icon = new TouchField("back icon",TPicture.typ)
 
   /** Gets the back title */
-  val field_back_title = new TouchField("back_title",TString.typ)
+  val field_back_title = new TouchField("back title",TString.typ)
 
   /** Gets the background color */
   val field_background = new TouchField("background",TColor.typ)
@@ -60,22 +60,22 @@ class TTile extends AAny {
 
   def getTyp = TTile.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Clears the back icon image if any */
-    case "clear_back_icon" =>
+    case "clear back icon" =>
       AssignField[S](this0,TTile.field_back_icon,Invalid(TPicture.typ))
 
     /** Clears the front icon image if any */
-    case "clear_icon" =>
+    case "clear icon" =>
       AssignField[S](this0,TTile.field_icon,Invalid(TPicture.typ))
 
     /** Pins the tile to the start menu, after asking for user consent. */
-    case "pin_to_start" =>
+    case "pin to start" =>
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

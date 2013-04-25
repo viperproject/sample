@@ -3,13 +3,13 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 class AField(fieldType:TouchType,valueField:TouchField) extends AAny {
 
   def getTyp = fieldType
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
      case "get" =>
@@ -23,7 +23,7 @@ class AField(fieldType:TouchType,valueField:TouchField) extends AAny {
        AssignField[S](this0,valueField,Invalid(valueField.getType()))
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 

@@ -281,7 +281,7 @@ object ConstraintsInference {
         }
     }
     catch {
-      case e => e.printStackTrace(); return null;
+      case e:Throwable => e.printStackTrace(); return null;
     }
     
   }

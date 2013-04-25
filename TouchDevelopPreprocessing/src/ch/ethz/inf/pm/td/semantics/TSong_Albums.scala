@@ -15,8 +15,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TSong_Albums {
 
-  val typName = "Song_Albums"
-  val typ = TouchCollection(typName,"Number","Song_Album", immutableCollection = true)
+  val typName = "Song Albums"
+  val typ = TouchCollection(typName,"Number","Song Album", immutableCollection = true)
 
 }
 
@@ -24,11 +24,11 @@ class TSong_Albums extends ACollection {
 
   def getTyp = TSong_Albums.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

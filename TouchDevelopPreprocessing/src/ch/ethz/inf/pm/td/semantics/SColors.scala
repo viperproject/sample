@@ -18,9 +18,9 @@ object SColors {
   // STRIPPED DOWN FOR PERFORMANCE
 
   // Indicates if the user is using a light theme in his phone
-  val field_is_light_theme = new TouchField("is_light_theme",TBoolean.typ)
+  val field_is_light_theme = new TouchField("is light theme",TBoolean.typ)
 
-  val typName = "colors"
+  val typName = "Colors"
   val typ = new TouchType(typName, isSingleton = true, fields = List(field_is_light_theme))
 
 }
@@ -29,7 +29,7 @@ class SColors extends AAny {
 
   def getTyp = SColors.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
     // Gets the accent color in the current theme
     case "accent" => Top[S](TColor.typ)
@@ -86,7 +86,7 @@ class SColors extends AAny {
 //      ))
 
     // Gets the color that has the ARGB value of #FFA9A9A9
-    case "dark_gray" => Top[S](TColor.typ)
+    case "dark gray" => Top[S](TColor.typ)
 //     New(TColor.typ,Map(
 //        TColor.field_A -> 1,
 //        TColor.field_R -> 0.663,
@@ -101,12 +101,12 @@ class SColors extends AAny {
 //      ))
 
     // Creates a color from the alpha, hue, saturation, brightness channels (0.0-1.0 range)
-    case "from_ahsb" =>
+    case "from ahsb" =>
       val List(a,h,s,b) = parameters
-      CheckInRangeInclusive[S](a,0,1,"from_ahsb","alpha")
-      CheckInRangeInclusive[S](h,0,1,"from_ahsb","hue")
-      CheckInRangeInclusive[S](s,0,1,"from_ahsb","saturation")
-      CheckInRangeInclusive[S](b,0,1,"from_ahsb","brightness")
+      CheckInRangeInclusive[S](a,0,1,"from ahsb","alpha")
+      CheckInRangeInclusive[S](h,0,1,"from ahsb","hue")
+      CheckInRangeInclusive[S](s,0,1,"from ahsb","saturation")
+      CheckInRangeInclusive[S](b,0,1,"from ahsb","brightness")
       Top[S](TColor.typ)
       // PRECISION: COMPUTE RGB
 //      New(TColor.typ,Map(
@@ -117,12 +117,12 @@ class SColors extends AAny {
 //      ))
 
     // Creates a color from the alpha, red, green, blue channels (0.0-1.0 range)
-    case "from_argb" =>
+    case "from argb" =>
       val List(a,r,g,b) = parameters
-      CheckInRangeInclusive[S](a,0,1,"from_argb","alpha")
-      CheckInRangeInclusive[S](r,0,1,"from_argb","red")
-      CheckInRangeInclusive[S](g,0,1,"from_argb","green")
-      CheckInRangeInclusive[S](b,0,1,"from_argb","blue")
+      CheckInRangeInclusive[S](a,0,1,"from argb","alpha")
+      CheckInRangeInclusive[S](r,0,1,"from argb","red")
+      CheckInRangeInclusive[S](g,0,1,"from argb","green")
+      CheckInRangeInclusive[S](b,0,1,"from argb","blue")
       Top[S](TColor.typ)
 //     New(TColor.typ,Map(
 //       TColor.field_A -> a,
@@ -132,11 +132,11 @@ class SColors extends AAny {
 //      ))
 
     // Creates a color from the hue, saturation, brightness channels (0.0-1.0 range)
-    case "from_hsb" =>
+    case "from hsb" =>
       val List(h,s,b) = parameters
-      CheckInRangeInclusive[S](h,0,1,"from_hsb","hue")
-      CheckInRangeInclusive[S](s,0,1,"from_hsb","saturation")
-      CheckInRangeInclusive[S](b,0,1,"from_hsb","brightness")
+      CheckInRangeInclusive[S](h,0,1,"from hsb","hue")
+      CheckInRangeInclusive[S](s,0,1,"from hsb","saturation")
+      CheckInRangeInclusive[S](b,0,1,"from hsb","brightness")
       Top[S](TColor.typ)
       // PRECISION: Compute RGB
 //     Top[S](TColor.typ,Map(
@@ -147,11 +147,11 @@ class SColors extends AAny {
 //      ))
 
     // Creates a color from the red, green, blue channels (0.0-1.0 range)
-    case "from_rgb" =>
+    case "from rgb" =>
       val List(r,g,b) = parameters
-      CheckInRangeInclusive[S](r,0,1,"from_rgb","red")
-      CheckInRangeInclusive[S](g,0,1,"from_rgb","green")
-      CheckInRangeInclusive[S](b,0,1,"from_rgb","blue")
+      CheckInRangeInclusive[S](r,0,1,"from rgb","red")
+      CheckInRangeInclusive[S](g,0,1,"from rgb","green")
+      CheckInRangeInclusive[S](b,0,1,"from rgb","blue")
       Top[S](TColor.typ)
 //      Top[S](TColor.typ,Map(
 //        TColor.field_A -> 1,
@@ -180,7 +180,7 @@ class SColors extends AAny {
 //      )) // TODO: Precision?
 
     //Gets the color that has the ARGB value of #FFD3D3D3
-    case "light_gray" =>
+    case "light gray" =>
       Top[S](TColor.typ)
 //     New(TColor.typ,Map(
 //        TColor.field_A -> 1,
@@ -190,9 +190,9 @@ class SColors extends AAny {
 //      )) // TODO: Precision?
 
     // Computes an intermediate color
-    case "linear_gradient" =>
+    case "linear gradient" =>
       val List(colA,colB,frac) = parameters
-      CheckInRangeInclusive[S](frac,0,1,"linear_gradient","fraction")
+      CheckInRangeInclusive[S](frac,0,1,"linear gradient","fraction")
       Top[S](TColor.typ)
 //      val frac1 = toRichExpression(1) - frac
 //      val a = frac * Field[S](colA,TColor.field_A) + frac1 * Field[S](colB,TColor.field_A)
@@ -308,7 +308,7 @@ class SColors extends AAny {
 //      ))
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 

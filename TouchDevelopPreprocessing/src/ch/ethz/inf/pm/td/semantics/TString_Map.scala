@@ -19,7 +19,7 @@ object TString_Map {
   /** Gets the keys in the map */
   val field_keys = new TouchField("keys",TString_Collection.typ)
 
-  val typName = "String_Map"
+  val typName = "String Map"
   val typ = new TouchCollection(typName,TString.typName,TString.typName,List(field_keys))
 
 }
@@ -28,7 +28,7 @@ class TString_Map extends AMutable_Collection {
 
   def getTyp = TString_Map.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets the value at a given key; invalid if not found */
@@ -54,17 +54,17 @@ class TString_Map extends AMutable_Collection {
     //   Skip;
 
     /** Sets the value at a given key; invalid if not found */
-    // case "set_at" =>
+    // case "set at" =>
     //   val List(key,value) = parameters // String,String
     //   Skip;
 
     /** Sets many elements at once. */
-    // case "set_many" => 
+    // case "set many" =>
     //   val List(other) = parameters // String_Map
     //   Skip;
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

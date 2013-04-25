@@ -1,6 +1,6 @@
-import ch.ethz.inf.pm.td.parser.{PrettyPrinter, Script, ScriptParser}
-import ch.ethz.inf.pm.td.TestRunner
-import ch.ethz.inf.pm.td.webapi.URLFetcher
+import ch.ethz.inf.pm.td.analysis.TestRunner
+import ch.ethz.inf.pm.td.parser.{PrettyPrinter, ScriptParser}
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, Scripts, URLFetcher}
 
 /**
  *
@@ -10,10 +10,11 @@ import ch.ethz.inf.pm.td.webapi.URLFetcher
  *
  */
 
-def prnt(url:String) {
-  val s = ScriptParser(URLFetcher.fetchFile(url))
+def prnt(id:String) {
+  val s = WebASTImporter.queryAndConvert(id)
   println(s)
   println(PrettyPrinter(s))
 }
 
-TestRunner("https://www.touchdevelop.com/api/qssc/text",prnt _)
+TestRunner(new Scripts,100000,prnt _)
+

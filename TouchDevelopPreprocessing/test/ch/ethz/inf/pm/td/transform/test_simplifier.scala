@@ -1,8 +1,8 @@
+import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.transform.LoopRewriter
-import ch.ethz.inf.pm.td.compiler.{Simplifier, TouchException, TouchCompiler}
 import ch.ethz.inf.pm.td.parser.{PrettyPrinter, ScriptParser}
-import ch.ethz.inf.pm.td.TestRunner
-import ch.ethz.inf.pm.td.webapi.{NewScripts, URLFetcher, NoMoreScriptsException}
+import ch.ethz.inf.pm.td.typecheck.Typer
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, Scripts, NewScripts, URLFetcher}
 
 /**
  *
@@ -12,13 +12,14 @@ import ch.ethz.inf.pm.td.webapi.{NewScripts, URLFetcher, NoMoreScriptsException}
  *
  */
 
-def compiler(url:String) {
-  val url = script.getCodeURL
-  println("\n\n===== Simplifying "+url)
-  val ast = ScriptParser.parse(URLFetcher.fetchFile(url))
-  println("=== ORIGINAL\n"+PrettyPrinter(ast))
+def compiler(id:String) {
+  println("\n\n===== Simplifying "+id)
+  val ast = WebASTImporter.queryAndConvert(id)
+  //println("=== ORIGINAL\n"+PrettyPrinter(ast))
   val sast = LoopRewriter(ast)
-  println("=== SIMPLIFIED\n"+PrettyPrinter(sast))
+  //println("=== SIMPLIFIED\n"+PrettyPrinter(sast))
+  Typer.processScript(sast)
+  //println("=== SIMPLIFIED + TYPED\n"+PrettyPrinter(sast))
 }
 
 TestRunner(new NewScripts,100,compiler)

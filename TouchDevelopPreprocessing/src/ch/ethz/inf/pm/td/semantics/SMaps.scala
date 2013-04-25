@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 
 object SMaps {
 
-  val typName = "maps"
+  val typName = "Maps"
   val typ = new TouchType(typName, isSingleton = true)
 
 }
@@ -22,15 +22,15 @@ class SMaps extends AAny {
 
   def getTyp = SMaps.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Creates a full screen Bing map. Use 'post to wall' to display it. */
-    case "create_full_map" =>
+    case "create full map" =>
       New[S](TMap.typ) // PRECISION: We might want to set zoom/center here
 
     /** Creates a Bing map. Use 'post to wall' to display it. */
-    case "create_map" =>
+    case "create map" =>
       New[S](TMap.typ) // PRECISION: We might want to set zoom/center here
 
     /** Calculates the directions between two coordinates using Bing. */
@@ -42,22 +42,22 @@ class SMaps extends AAny {
 
     /** Shows the directions in the Bing map application. If search term is provided, location is ignored.
         Provide search term or location for start and end. */
-    case "open_directions" =>
+    case "open directions" =>
       val List(start_search,start_loc,end_search,end_loc) = parameters // String,Location,String,Location
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open_directions",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open directions",
         "Check if the device is connected to the internet before using the connection")
       Skip
 
     /** Opens the Bing map application. zoom between 0 (close) and 1 (far). */
-    case "open_map" =>
+    case "open map" =>
       val List(center,search,zoom) = parameters // Location,String,Number
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open_map",
+      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open map",
         "Check if the device is connected to the internet before using the connection")
       CheckInRangeInclusive[S](zoom,0,1,method,"zoom")
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

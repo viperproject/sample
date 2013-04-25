@@ -22,7 +22,7 @@ action main() {
   code→show;
 }
 table searchResults {
-  type = "Table";
+  type = "table";
   fields {
     Title: String_field
     Url: String_field
@@ -43,7 +43,7 @@ action show() {
         box→set_margins(0, 0, 0.2, 0);
         $e2→Title→get→post_to_wall;
         $e2→DisplayUrl→get→post_to_wall;
-        box→on_tapped($handler)
+        box→on_tapped($handler);
         where handler() {
           web→browse($e2→Url→get);
         }

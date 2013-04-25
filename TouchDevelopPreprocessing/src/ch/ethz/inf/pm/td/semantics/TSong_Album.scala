@@ -29,7 +29,7 @@ object TSong_Album {
   val field_genre = new TouchField("genre",TString.typ)
 
   /** Indicates if the album has art */
-  val field_has_art = new TouchField("has_art",TBoolean.typ)
+  val field_has_art = new TouchField("has art",TBoolean.typ)
 
   /** Gets the name of the album */
   val field_name = new TouchField("name",TString.typ)
@@ -40,7 +40,7 @@ object TSong_Album {
   /** Gets the thumbnail picture */
   val field_thumbnail = new TouchField("thumbnail",TPicture.typ)
 
-  val typName = "Song_Album"
+  val typName = "Song Album"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_art, field_artist, field_duration, field_genre, field_has_art, field_name, /*field_songs,*/ field_thumbnail))
 
 }
@@ -49,7 +49,7 @@ class TSong_Album extends AAny {
 
   def getTyp = TSong_Album.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Plays the songs of the album */
@@ -57,7 +57,7 @@ class TSong_Album extends AAny {
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

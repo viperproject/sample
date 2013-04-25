@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
@@ -24,7 +23,7 @@ object TPage_Button {
   /** Gets the icon name */
   val field_icon = new TouchField("icon",TString.typ)
 
-  val typName = "Page_Button"
+  val typName = "Page Button"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_text,field_page,field_icon))
 
 }
@@ -33,7 +32,7 @@ class TPage_Button extends AAny {
 
   def getTyp = TPage_Button.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets a value indicating if both instances are equal */
@@ -42,7 +41,7 @@ class TPage_Button extends AAny {
     //   Top[S](TBoolean.typ)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

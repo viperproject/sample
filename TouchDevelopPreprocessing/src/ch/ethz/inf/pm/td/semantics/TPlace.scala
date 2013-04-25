@@ -29,7 +29,7 @@ object TPlace {
   val field_name = new TouchField("name",TString.typ)
 
   /** Gets a url to the picture */
-  val field_picture_link = new TouchField("picture_link",TString.typ)
+  val field_picture_link = new TouchField("picture link",TString.typ)
 
   /** Gets the source of this place (facebook, touchdevelop) */
   val field_source = new TouchField("source",TString.typ)
@@ -44,15 +44,15 @@ class TPlace extends AAny {
 
   def getTyp = TPlace.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Checks into the place (supported for Facebook) */
-    case "check_in" =>
+    case "check in" =>
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

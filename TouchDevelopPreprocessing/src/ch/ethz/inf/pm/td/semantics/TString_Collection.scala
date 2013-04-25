@@ -12,7 +12,7 @@ import RichNativeSemantics._
  */
 object TString_Collection {
 
-  val typName = "String_Collection"
+  val typName = "String Collection"
   val typ = TouchCollection(typName,TNumber.typName,TString.typName)
 
 }
@@ -21,7 +21,7 @@ class TString_Collection extends AMutable_Collection {
 
   def getTyp = TString_Collection.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Indicates if the collection contains the item */
@@ -39,7 +39,7 @@ class TString_Collection extends AMutable_Collection {
       Skip; // Sort is invariant for our collection representation
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

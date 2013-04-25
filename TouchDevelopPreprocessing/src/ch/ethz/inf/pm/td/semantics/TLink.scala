@@ -29,7 +29,7 @@ object TLink {
   val field_name = new TouchField("name",TString.typ,InvalidInitializer())
 
   val typName = "Link"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_address, field_kind, field_location, field_name))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_address, field_kind, field_location, field_name), isImmutable = false)
 
 }
 
@@ -37,7 +37,7 @@ class TLink extends AAny {
 
   def getTyp = TLink.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Shares the link (email, sms, facebook, social or empty to pick from a list) */
@@ -47,7 +47,7 @@ class TLink extends AAny {
       Skip
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters)
+      super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
 }

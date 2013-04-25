@@ -20,8 +20,9 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   lazy val metaDeclaration: PackratParser[MetaDeclaration] = positioned (
-    "meta" ~> ident ~ stringLiteral <~ ";" ^^ { case a~b => MetaDeclaration(a,b) }
-  )
+    ( "meta" ~> ident ~ stringLiteral <~ ";" ^^ { case a~b => MetaDeclaration(a,b) }
+    | "meta" ~> ident <~ ";" ^^ { MetaDeclaration(_,"") }
+    ))
 
   // Actions, Events, Global Variables
 
@@ -33,8 +34,15 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   lazy val actionHeader: PackratParser[(String,List[Parameter],List[Parameter])] = (
-    ident ~ "(" ~ repsep(parameter, ",") ~ ")" ~ ("returns" ~ repsep(parameter, ",")).? ^^
-      {case i~_~in~_~ret => ret match {case Some(_~out) => (i,in,out); case None => (i,in,Nil) }}
+    ident ~ "(" ~ repsep(parameter, ",") ~ ")" ~ returnsList ^^
+      {case i~_~in~_~ret => (i,in,ret) }
+  )
+
+  lazy val returnsList: PackratParser[List[Parameter]] = (
+    ("returns" ~ "(".? ~ repsep(parameter, ",") ~ ")".?).? ^^ {
+      case Some(_~_~out~_) => out
+      case None => Nil
+    }
   )
   
   lazy val parameter: PackratParser[Parameter] = positioned (
@@ -43,7 +51,6 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val typeName: PackratParser[TypeName] = positioned (
     ident ^^ (TypeName(_))
-    | libraryReference ~ "→" ~ ident ^^ {case a~_~b => TypeName(b,Some(a))}
   )
 
   lazy val variableDefinition: PackratParser[VariableDefinition] = positioned (
@@ -62,7 +69,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val tableContent: PackratParser[(String,List[Parameter],List[Parameter])] = (
     ( "type" ~ "=" ~ stringLiteral ~ ";" ~ ("keys" ~ "{" ~ parameter.* ~ "}").? ~ ("fields" ~ "{" ~ parameter.* ~ "}").? )
-      ^^ {case _~_~a~_~b~c => (a, b match { case Some(_~_~x~_) => x ; case None => Nil }, c match { case Some(_~_~x~_) => x ; case None => Nil } )}
+      ^^ {case _~_~a~_~b~c => (a.toLowerCase, b match { case Some(_~_~x~_) => x ; case None => Nil }, c match { case Some(_~_~x~_) => x ; case None => Nil } )}
   )
 
   // Library Imports
@@ -89,7 +96,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val resolveBlock: PackratParser[ResolveBlock] = positioned (
     "resolve" ~ ident ~ "=" ~ libraryReference ~ resolveWith.?
-      ^^ { case _~id~_~libRef~res => ResolveBlock(id,libRef,res match { case Some(x) => x; case None => Nil })}
+      ^^ { case _~id~_~libRef~res => ResolveBlock(id,libRef.property.ident,res match { case Some(x) => x; case None => Nil })}
   )
 
   lazy val resolveWith: PackratParser[List[ResolutionRule]] = (
@@ -104,7 +111,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val actionResolution: PackratParser[ActionResolution] = positioned (
     "action" ~ ident ~ "=" ~ libraryReference ~ "→" ~ ident
-      ^^ { case _~localID~_~lib~_~libID => ActionResolution(localID,lib,libID) }
+      ^^ { case _~localID~_~lib~_~libID => ActionResolution(localID,libID) }
   )
 
   // Blocks and Statements
@@ -114,13 +121,14 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   lazy val stmt: PackratParser[Statement] = positioned (
-    metaStmt | expressionStmt | whereStmt | assignStmt | boxStmt | ifStmt | whileStmt | forStmt | foreachStmt | skipStmt
+    metaStmt | whereStmt | expressionStmt | boxStmt | ifStmt | whileStmt | forStmt | foreachStmt | skipStmt
   )
 
   lazy val metaStmt: PackratParser[MetaStatement] = positioned (
       "meta" ~ "private" ~ ";" ^^ (_ => MetaStatement("private",None))
     | "meta" ~ "recent" ~ "{" ~ ident.* ~ "}" ~ ";" ^^ {case _~_~_~ls~_~_ => MetaStatement("guid",Some(ls))}
     | "meta" ~ "guid" ~ stringLiteral ~ ";" ^^ {case _~_~guid~_ => MetaStatement("guid",Some(guid))}
+    | "meta" ~> ident <~ ";" ^^ { MetaStatement(_,None) }
   )
 
   // singleton is included here, since its allowed but is has no effect or returnval
@@ -157,22 +165,27 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   lazy val whereStmt: PackratParser[WhereStatement] = positioned (
-    propertyAccess ~ "where" ~ ident ~ "(" ~ repsep(parameter, ",") ~ ")"  ~ block  ^^
-      { case expr~_~handlerName~_~parameters~_~body => WhereStatement(expr,handlerName,parameters,body) }
-  )
-
-  lazy val assignStmt:  PackratParser[AssignStatement] = (
-    parenthAssignStmt <~ ";"
-  )
-
-  lazy val parenthAssignStmt: PackratParser[AssignStatement] = positioned (
-    (repsep(lvalue,",") <~ ":=") ~ expression ^^ {case l~r => AssignStatement(l,r)}
-      ||| "(" ~> parenthAssignStmt <~ ")"
+    (expression <~ ";") ~ rep1("where" ~> actionHeader ~ block)  ^^
+      { case expr~inlineActions => WhereStatement(expr,inlineActions map { case (n,in,out)~b => InlineAction(n,in,out,b) }) }
   )
 
   // Composed expressions with operator preferences
 
-  lazy val expression: PackratParser[Expression] = orExpression
+  lazy val expression: PackratParser[Expression] = assignExpression
+
+  lazy val assignExpression: PackratParser[Expression] = positioned (
+    commaExpression ~ (assignSymbol ~ assignExpression).?
+      ^^ {case left~Some(op ~ right) => Access(left,op,List(right)); case left~None => left}
+  )
+
+  lazy val assignSymbol: PackratParser[Identifier] = positioned (":=" ^^ (Identifier(_)))
+
+  lazy val commaExpression: PackratParser[Expression] = positioned (
+    orExpression ~ (commaSymbol ~ commaExpression).?
+      ^^ {case left~Some(op ~ right) => Access(left,op,List(right)); case left~None => left}
+  )
+
+  lazy val commaSymbol: PackratParser[Identifier] = positioned ("," ^^ (Identifier(_)))
 
   lazy val orExpression: PackratParser[Expression] = positioned (
     andExpression ~ (orSymbol ~ orExpression).?
@@ -232,7 +245,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
   lazy val negationSymbol: PackratParser[Identifier] = positioned (("-")  ^^ (Identifier(_)))
 
   lazy val propertyAccess: PackratParser[Expression] = positioned (
-    propertyAccess ~ rA ~ posIdent ~ ("(" ~> repsep(expression,",") <~ ")").?
+    propertyAccess ~ rA ~ posIdent ~ ("(" ~> repsep(orExpression,",") <~ ")").?
       ^^ { case ex~_~prop~args => args match { case None => Access(ex,prop,Nil); case Some(x) => Access(ex,prop,x) }}
     ||| terminalExpression
   )
@@ -240,30 +253,24 @@ object ScriptParser extends RegexParsers with PackratParsers {
   // Literals / References / Atomics
 
   lazy val terminalExpression: PackratParser[Expression] =
-    ( "(" ~> expression <~ ")" | literalExpression | localReference | globalReference
-      | singletonReference | libraryReference)
-
-  lazy val lvalue: PackratParser[LValue] = localReference | globalReference
+    ( "(" ~> expression <~ ")" | literalExpression | localReference | libraryReference | singletonReference)
 
   lazy val localReference: PackratParser[LocalReference] = positioned (
-    // This is a fix for 2.10. Somehow the plaintext represents collections and records as local variables
-    "$" ~> ident ^^ ( s =>
-      //if (s.startsWith("collections")) SingletonReference("collections")
-      //
-      LocalReference(s)
-    )
-  )
-
-  lazy val globalReference: PackratParser[GlobalReference] = positioned (
-    (("data" | "art") ~ rA) ~> ident ^^ (GlobalReference(_))
+    "$" ~> ident ^^ ( s => LocalReference(s))
   )
 
   lazy val singletonReference: PackratParser[SingletonReference] = positioned (
-    ident ^^ (SingletonReference(_))
+    ident ^^ {
+      case "data" => SingletonReference("data","data")
+      case "art" => SingletonReference("art","art")
+      case "code" => SingletonReference("code","code")
+      case "records" => SingletonReference("records","records")
+      case x:String => SingletonReference(x,x.split("_").map(_.capitalize).mkString("_"))
+    }
   )
 
-  lazy val libraryReference: PackratParser[LibraryReference] =  positioned (
-    ("♻" ~> ident | "this" ) ^^ (LibraryReference(_))
+  lazy val libraryReference: PackratParser[Access] =  positioned (
+    ("♻" ~ posIdent ) ^^ {case x~y => Access(SingletonReference(x,x+y.ident),y,Nil)}
   )
 
   lazy val literalExpression: PackratParser[Expression] = positioned (
@@ -288,7 +295,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
   //lazy val escapedString: Parser[String] = """([^"\p{Cntrl}\\]|\\[\\'"bfnrt]|\\u[a-fA-F0-9]{4})*""".r
   lazy val escapedString:Parser[String] = """(?:[^"\\]+|\\.)*""".r
   //lazy val escapedString:Parser[String] = """[^"\\]*(\\.[^"\\]*)*""".r
-  lazy val ident: Parser[String] = """[a-zA-z@_](?:\w|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_))
+  lazy val ident: Parser[String] = """[a-zA-z@_](?:\w|\\.)*""".r ^^ (StringEscapeUtils.unescapeJava(_).replace("_"," "))
 
   /**
    * Ugly function to remove comments from the code. But works
