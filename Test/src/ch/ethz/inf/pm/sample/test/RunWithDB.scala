@@ -10,6 +10,7 @@ import abstractdomain.heapanalysis._
 import java.sql.{ResultSet, Statement, DriverManager}
 import java.util.Date
 import java.io._
+import td.cost.loops.LoopCostCompiler
 
 
 
@@ -20,21 +21,42 @@ object InterfaceTestRun {
   private val c = getConnection();
   private val stmt = c.createStatement();
 
+  private var SampleHome = new BufferedReader(new InputStreamReader(Runtime.getRuntime().exec(Array[String]("sh", "-c", "echo ~")).getInputStream())).readLine()+"/Sample/";
+  private var OutputDirectory = SampleHome;
+
 
 
   def main(args : Array[String]) : Unit =  {
     extractMode(args) match {
       case "-i" =>
+        setOptionalParameters(args)
         mainMenu();
       case "-r" =>
         val (id, timeout) = extractIdTimeout(args);
+        setOptionalParameters(args)
         runAnalyses(id, timeout*1000);
       case "" =>
         println("Wrong option\n" +
           "One of the two following parameters is mandatory:\n" +
           "-i  => run the command line interface for test runs\n" +
-          "-r <id> <timeout>  => run the testrun with id <id> given a timeout of <timeout> seconds")
+          "-r <id> <timeout>  => run the testrun with id <id> given a timeout of <timeout> seconds\n\n" +
+          "In addition, the following two parameters are optional:\n" +
+          "-sh <dir> => set the home directory of Sample to <dir>. By default, <dir>="+SampleHome+"\n" +
+          "-oh <dir> => set the directory where to write the reports of the analysis to <dir>. By default, <dir>="+OutputDirectory
+        )
 
+    }
+  }
+
+
+  private def setOptionalParameters(args: Array[String]) {
+    extractParameterValue(args, "-sh") match {
+      case Some(s) => SampleHome = s;
+      case None =>
+    }
+    extractParameterValue(args, "-oh") match {
+      case Some(s) => OutputDirectory = s;
+      case None =>
     }
   }
 
@@ -46,6 +68,19 @@ object InterfaceTestRun {
     return "";
   }
 
+  //given the arguments' list and a parameter, return the value of the given parameter
+  private def extractParameterValue(args : Array[String], parameter : String) : Option[String] = {
+    var result : Option[String]= None;
+    try{
+      for(i <- 0 to args.size-1) {
+        if(args(i).equals(parameter) && args.size>=i+1) result=Some(args(i+1))
+      }
+    }
+    catch {
+      case _ =>
+    }
+    return result;
+  }
 
 
   //if we are in the mode to run a given testrun, it extracts the id of the testrun and the timeout
@@ -97,40 +132,40 @@ object InterfaceTestRun {
             case 1 => println(getStatistics(idTestRun)); true;
             case 2 =>
 
-              var out = new PrintWriter("RuntimeErrors.cvs");
+              var out = new PrintWriter(OutputDirectory+"RuntimeErrors.cvs");
               out.println(getRuntimeErrors(idTestRun));
               out.close()
-              println("Runtime errors written in "+new File("RuntimeErrors.cvs").getAbsolutePath)
+              println("Runtime errors written in "+OutputDirectory+"RuntimeErrors.cvs")
 
-              out = new PrintWriter("CompilationErrors.cvs");
+              out = new PrintWriter(OutputDirectory+"CompilationErrors.cvs");
               out.println(getErrors("BrokenCompilations", idTestRun));
               out.close()
-              println("Compilation errors written in "+new File("CompilationErrors.cvs").getAbsolutePath)
+              println("Compilation errors written in "+OutputDirectory+"CompilationErrors.cvs")
 
-              out = new PrintWriter("AnalysisErrors.cvs");
+              out = new PrintWriter(OutputDirectory+"AnalysisErrors.cvs");
               out.println(getErrors("BrokenAnalyses", idTestRun));
               out.close()
-              println("Analysis errors written in "+new File("AnalysisErrors.cvs").getAbsolutePath)
+              println("Analysis errors written in "+OutputDirectory+"AnalysisErrors.cvs")
 
-              out = new PrintWriter("Statistics.cvs");
+              out = new PrintWriter(OutputDirectory+"Statistics.cvs");
               out.println(getStatistics(idTestRun));
               out.close()
-              println("Statistics written in "+new File("Statistics.cvs").getAbsolutePath)
+              println("Statistics written in "+OutputDirectory+"Statistics.cvs")
 
-              out = new PrintWriter("Warning.cvs");
+              out = new PrintWriter(OutputDirectory+"Warning.cvs");
               out.println(getOutput("WARNING:", idTestRun));
               out.close()
-              println("Warnings written in "+new File("Warning.cvs").getAbsolutePath)
+              println("Warnings written in "+OutputDirectory+"Warning.cvs")
 
-              out = new PrintWriter("Validated.cvs");
+              out = new PrintWriter(OutputDirectory+"Validated.cvs");
               out.println(getOutput("VALIDATED:", idTestRun));
               out.close()
-              println("Validated properties written in "+new File("Warning.cvs").getAbsolutePath)
+              println("Validated properties written in "+OutputDirectory+"Validated.cvs")
 
-              out = new PrintWriter("Alloutputs.cvs");
+              out = new PrintWriter(OutputDirectory+"Alloutputs.cvs");
               out.println(getOutput("", idTestRun));
               out.close()
-              println("All outputs written in "+new File("Alloutputs.cvs").getAbsolutePath)
+              println("All outputs written in "+OutputDirectory+"Alloutputs.cvs")
 
               println("Press a key to go to the test run menu")
               readLine();
@@ -140,55 +175,55 @@ object InterfaceTestRun {
             case 3 =>
               val previousTestRun = getExistingTestRun("compare", 10)
 
-              var out = new PrintWriter("DifferentCompilationErrors.cvs");
+              var out = new PrintWriter(OutputDirectory+"DifferentCompilationErrors.cvs");
               out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"));
               out.close()
-              println("Different compilation errors written in "+new File("DifferentCompilationErrors.cvs").getAbsolutePath)
+              println("Different compilation errors written in "+OutputDirectory+"DifferentCompilationErrors.cvs")
 
-              out = new PrintWriter("DifferentAnalysisErrors.cvs");
+              out = new PrintWriter(OutputDirectory+"DifferentAnalysisErrors.cvs");
               out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"));
               out.close()
-              println("Different compilation errors written in "+new File("DifferentAnalysisErrors.cvs").getAbsolutePath)
+              println("Different analysis errors written in "+OutputDirectory+"DifferentAnalysisErrors.cvs")
 
-              out = new PrintWriter("DifferentOutputs.cvs");
+              out = new PrintWriter(OutputDirectory+"DifferentOutputs.cvs");
               out.println(getDifferentOutputs(idTestRun, previousTestRun));
               out.close()
-              println("Different outputs written in "+new File("DifferentOutputs.cvs").getAbsolutePath)
+              println("Different outputs written in "+OutputDirectory+"DifferentOutputs.cvs")
 
-              out = new PrintWriter("DifferentValidatedWarningOutputs.cvs");
+              out = new PrintWriter(OutputDirectory+"DifferentValidatedWarningOutputs.cvs");
               out.println(getDifferentValidatedWarningOutputs(idTestRun, previousTestRun));
               out.close()
-              println("Different validated/warning outputs written in "+new File("DifferentValidatedWarningOutputs.cvs").getAbsolutePath)
+              println("Different validated/warning outputs written in "+OutputDirectory+"DifferentValidatedWarningOutputs.cvs")
 
-              out = new PrintWriter("NewCompilationErrors.cvs");
+              out = new PrintWriter(OutputDirectory+"NewCompilationErrors.cvs");
               out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"));
               out.close()
-              println("New compilation errors written in "+new File("NewCompilationErrors.cvs").getAbsolutePath)
+              println("New compilation errors written in "+OutputDirectory+"NewCompilationErrors.cvs")
 
-              out = new PrintWriter("NewAnalysisErrors.cvs");
+              out = new PrintWriter(OutputDirectory+"NewAnalysisErrors.cvs");
               out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"));
               out.close()
-              println("New analysis errors written in "+new File("NewAnalysisErrors.cvs").getAbsolutePath)
+              println("New analysis errors written in "+OutputDirectory+"NewAnalysisErrors.cvs")
 
-              out = new PrintWriter("NewOutputs.cvs");
+              out = new PrintWriter(OutputDirectory+"NewOutputs.cvs");
               out.println(getNewOutputs(idTestRun, previousTestRun));
               out.close()
-              println("New outputs written in "+new File("NewOutputs.cvs").getAbsolutePath)
+              println("New outputs written in "+OutputDirectory+"NewOutputs.cvs")
 
-              out = new PrintWriter("RemovedCompilationErrors.cvs");
+              out = new PrintWriter(OutputDirectory+"RemovedCompilationErrors.cvs");
               out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenCompilations"));
               out.close()
-              println("Removed compilation errors written in "+new File("RemovedCompilationErrors.cvs").getAbsolutePath)
+              println("Removed compilation errors written in "+OutputDirectory+"RemovedCompilationErrors.cvs")
 
-              out = new PrintWriter("RemovedAnalysisErrors.cvs");
+              out = new PrintWriter(OutputDirectory+"RemovedAnalysisErrors.cvs");
               out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenAnalyses"));
               out.close()
-              println("Removed analysis errors written in "+new File("RemovedAnalysisErrors.cvs").getAbsolutePath)
+              println("Removed analysis errors written in "+OutputDirectory+"RemovedAnalysisErrors.cvs")
 
-              out = new PrintWriter("RemovedOutputs.cvs");
+              out = new PrintWriter(OutputDirectory+"RemovedOutputs.cvs");
               out.println(getNewOutputs(previousTestRun, idTestRun));
               out.close()
-              println("Removed outputs written in "+new File("RemovedOutputs.cvs").getAbsolutePath)
+              println("Removed outputs written in "+OutputDirectory+"RemovedOutputs.cvs")
 
               println("Press a key to go to the test run menu")
               readLine();
@@ -209,7 +244,7 @@ object InterfaceTestRun {
               val cmds = new Array[String](3);
               cmds.update(0, "/bin/bash")
               cmds.update(1, "-c")
-              cmds.update(2, "/home/sample/Sample/trunk/Test/runTestRun.sh "+idTestRun.toString+" "+timeout)
+              cmds.update(2, SampleHome+"Test/runTestRun.sh "+idTestRun.toString+" "+timeout+" -sh "+SampleHome+" -oh "+OutputDirectory)
               val p = Runtime.getRuntime.exec(cmds)
               val output = new BufferedReader(new InputStreamReader(p.getInputStream()));;
               println(output.readLine)
@@ -1562,6 +1597,9 @@ object RunWithDB {
 
 */
 class TestRunException(exc : String) extends Exception(exc);
+
+
+
 
 /*
 def testRunMenu1(idTestRun: Int) : Boolean = {

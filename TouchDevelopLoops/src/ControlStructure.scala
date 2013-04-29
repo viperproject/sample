@@ -142,9 +142,14 @@ abstract class ControlStructure[S <: State[S]] (val parent: LoopCostInternal[S],
   def costExpression : CostExpr = {
     if (answer == null || answer.contains("failed")) null
     else {
+      try {
       val c = CostExpressionParser(answer)
       translateCostExpr(c)
       c
+      }
+      catch {
+        case _ => null;
+      }
     }
   }
 

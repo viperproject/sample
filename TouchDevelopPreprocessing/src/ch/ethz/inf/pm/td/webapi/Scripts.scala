@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.webapi
 
 import net.liftweb.json._
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
-import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchException}
 import ch.ethz.inf.pm.sample.oorepresentation.IteratorOverPrograms
 
 /**
@@ -153,6 +153,7 @@ class RootScripts() extends Scripts {
 
   override def getLabel() = "TouchDevelop root scripts"
 }
+
 
 class ScriptSearch(query:String) extends Scripts {
   override protected val service = "search?q="+query+"&"

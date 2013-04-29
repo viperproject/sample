@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
 import ch.ethz.inf.pm.sample.td.cost.loops.LoopCostCompiler;
+import ch.ethz.inf.pm.sample.td.cost.loops.RootScriptsWithLoops;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.analysis.*;
 import ch.ethz.inf.pm.td.webapi.*;
@@ -55,12 +56,13 @@ public class InstalledPlugins {
         heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
         heapanalyses[3]=new TVSHeap();
 
-        iterators = new IteratorOverPrograms[5];
+        iterators = new IteratorOverPrograms[6];
         iterators[0] = new TopScripts();
         iterators[1] = new NewScripts();
         iterators[2] = new FeaturedScripts();
         iterators[3] = new RootScripts();
         iterators[4] = new SampleScript();
+        iterators[5] = new RootScriptsWithLoops();
 
     }
 

@@ -9,6 +9,9 @@ import ch.ethz.inf.pm.td.compiler._
  */
 class LoopCostCompiler extends TouchCompiler {
 
+  //true iff there is a loop in the compiled code
+  var loops : Boolean = false;
+
   override def compileFile(path: String): List[ClassDefinition] = augment(super.compileFile(path))
 
   override def getLabel(): String = "TouchDevelop (augmented for Cost Analysis)"
@@ -46,6 +49,7 @@ class LoopCostCompiler extends TouchCompiler {
               }
             }
             if (loopFound) {
+              loops=true;
               // go backwards to find all variables declared before
               var allVariables: Set[Variable] = assignmentVariables(cfg.nodes(index)).toSet[Variable]
               done = new Array[Boolean](cfg.nodes.size)
