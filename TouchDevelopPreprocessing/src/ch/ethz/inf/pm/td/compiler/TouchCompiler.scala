@@ -138,6 +138,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   def getSourceCode(path : String):String = {
     val (source,pubID) =
       if (path.startsWith("http://")) (None,Scripts.pubIDfromURL(path))
+      else if (path.startsWith("https://")) (None,Scripts.pubIDfromURL(path))
       else if (path.startsWith("td://")) (None,path.substring(5))
       else (Some(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
     val script = source match {

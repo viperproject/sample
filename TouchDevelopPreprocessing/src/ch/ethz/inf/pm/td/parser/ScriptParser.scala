@@ -19,14 +19,14 @@ object ScriptParser extends RegexParsers with PackratParsers {
     metaDeclaration | actionDefinition | variableDefinition | libraryImport | tableDefinition
   )
 
-  lazy val metaDeclaration: PackratParser[MetaDeclaration] = positioned (
+  lazy val metaDeclaration: PackratParser[Declaration] = positioned (
     ( "meta" ~> ident ~ stringLiteral <~ ";" ^^ { case a~b => MetaDeclaration(a,b) }
     | "meta" ~> ident <~ ";" ^^ { MetaDeclaration(_,"") }
     ))
 
   // Actions, Events, Global Variables
 
-  lazy val actionDefinition: PackratParser[ActionDefinition] = positioned (
+  lazy val actionDefinition: PackratParser[Declaration] = positioned (
     ("action" ~ actionHeader ~ block | "event" ~ actionHeader ~ block) ^^ {
       case "action"~a~b => ActionDefinition(a._1,a._2,a._3,b,false)
       case "event"~a~b => ActionDefinition(a._1,a._2,a._3,b,true)
@@ -53,7 +53,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
     ident ^^ (TypeName(_))
   )
 
-  lazy val variableDefinition: PackratParser[VariableDefinition] = positioned (
+  lazy val variableDefinition: PackratParser[Declaration] = positioned (
     "var" ~ parameter ~ "{" ~ variableFlag.* ~ "}" ^^ {case _~a~_~b~_ => VariableDefinition(a,b toMap)}
   )
 
@@ -63,7 +63,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   // Tables
 
-  lazy val tableDefinition: PackratParser[TableDefinition] = positioned (
+  lazy val tableDefinition: PackratParser[Declaration] = positioned (
     "table" ~ ident ~ "{" ~ tableContent ~ "}" ^^ {case _~a~_~b~_ => TableDefinition(a,b._1,b._2,b._3)}
   )
 
@@ -121,10 +121,10 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   lazy val stmt: PackratParser[Statement] = positioned (
-    metaStmt | whereStmt | expressionStmt | boxStmt | ifStmt | whileStmt | forStmt | foreachStmt | skipStmt
+    metaStmt | whereStmt | expressionStmt | boxStmt | ifStmt | whileStmt  | forStmt | foreachStmt | skipStmt
   )
 
-  lazy val metaStmt: PackratParser[MetaStatement] = positioned (
+  lazy val metaStmt: PackratParser[Statement] = positioned (
       "meta" ~ "private" ~ ";" ^^ (_ => MetaStatement("private",None))
     | "meta" ~ "recent" ~ "{" ~ ident.* ~ "}" ~ ";" ^^ {case _~_~_~ls~_~_ => MetaStatement("guid",Some(ls))}
     | "meta" ~ "guid" ~ stringLiteral ~ ";" ^^ {case _~_~guid~_ => MetaStatement("guid",Some(guid))}
@@ -132,39 +132,39 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   // singleton is included here, since its allowed but is has no effect or returnval
-  lazy val skipStmt:PackratParser[Skip] = positioned (
+  lazy val skipStmt:PackratParser[Statement] = positioned (
     (ident ~ ";" ||| "skip" ~ ";" ||| "..." ~ ";") ^^ (_ => Skip())
   )
 
-  lazy val ifStmt: PackratParser[If] = positioned (
+  lazy val ifStmt: PackratParser[Statement] = positioned (
     "if" ~ expression ~ "then" ~ block ~ "else" ~ block ^^ {case _~e~_~b~_~c => If(e,b,c)}
     ||| "if" ~ expression ~ "then" ~ block ^^ {case _~e~_~b => If(e,b,Nil)}
   )
 
-  lazy val boxStmt: PackratParser[Box] = positioned (
+  lazy val boxStmt: PackratParser[Statement] = positioned (
     "do" ~ "box" ~ block ^^ {case _~_~b => Box(b)}
   )
 
-  lazy val whileStmt: PackratParser[While] = positioned (
+  lazy val whileStmt: PackratParser[Statement] = positioned (
     "while" ~ expression ~ "do" ~ block ^^ {case _~e~_~b => While(e,b)}
   )
 
-  lazy val forStmt: PackratParser[For] = positioned (
+  lazy val forStmt: PackratParser[Statement] = positioned (
     "for" ~ "0" ~ "≤" ~ ident ~ "<" ~ expression ~ "do" ~ block ^^ {case _~_~_~i~_~e~_~b => For(i,e,b)}
   )
 
-  lazy val foreachStmt: PackratParser[Foreach] = positioned (
+  lazy val foreachStmt: PackratParser[Statement] = positioned (
     "foreach" ~ ident ~ "in" ~ expression  ~ guard.* ~ "do" ~ block ^^ {case _~i~_~e~g~_~b => Foreach(i,e,g,b)}
   )
 
   lazy val guard: PackratParser[Expression] =
     "where" ~> expression
 
-  lazy val expressionStmt: PackratParser[ExpressionStatement] = positioned (
+  lazy val expressionStmt: PackratParser[Statement] = positioned (
     expression <~ ";" ^^ (x => ExpressionStatement(x))
   )
 
-  lazy val whereStmt: PackratParser[WhereStatement] = positioned (
+  lazy val whereStmt: PackratParser[Statement] = positioned (
     (expression <~ ";") ~ rep1("where" ~> actionHeader ~ block)  ^^
       { case expr~inlineActions => WhereStatement(expr,inlineActions map { case (n,in,out)~b => InlineAction(n,in,out,b) }) }
   )

@@ -92,8 +92,8 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     debug
   ---------------------------------------------*/
 
-  val DEBUG = false   // if set to true, the input for PUBS is shown
-  val DEBUG_LINCON = false   // if set to true, information about the linear constraints that we get from the numerical analysis is shown
+  val DEBUG = true   // if set to true, the input for PUBS is shown
+  val DEBUG_LINCON = true // if set to true, information about the linear constraints that we get from the numerical analysis is shown
 
   /*--------------------------------------------
     public interface

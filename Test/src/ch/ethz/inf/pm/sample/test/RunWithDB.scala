@@ -505,7 +505,8 @@ object InterfaceTestRun {
         id);
     }
     catch {
-      case e => println("Something wrong happened: "+e.getMessage);
+      case e =>
+        println("Something wrong happened: "+e.getMessage);
     }
     return id;
   }
@@ -514,8 +515,9 @@ object InterfaceTestRun {
   def populateToBeAnalyzed(iterator: IteratorOverPrograms, compiler: Compiler, idTestRun: Int) {
     println("STARTING TO ADD PROGRAMS TO THE TODO LIST");
     while (iterator.hasNext) {
-      val program = iterator.next();
+      var program : String = "<Program not compiled>"
       try {
+        program = iterator.next();
         println("Adding program " + program);
         val idprogram = add2Programs(program, compiler);
         println("Id: " + idprogram);
@@ -560,9 +562,9 @@ object InterfaceTestRun {
     var output : String = "";
     val sql = "SELECT * FROM Output o, Programs p WHERE o.Program=p.ProgramID AND TestRun="+idTestRun+" AND Message LIKE '"+typ+"%' ORDER BY Name"
     val rows = stmt.executeQuery(sql);
-    output = output+"\nProgram\tRow\tColumn\nMessage\n"
+    output = output+"\nProgram\tProgram point\nMessage\n"
     while(rows.next())
-      output=output+""+rows.getString("Name")+"\t"+rows.getString("Line")+"\t"+rows.getString("Col")+"\t"+rows.getString("Message").substring(typ.length)+"\n";
+      output=output+""+rows.getString("Name")+"\t"+rows.getString("ProgramPoint")+"\t"+rows.getString("Message").substring(typ.length)+"\n";
     output;
   }
 
@@ -591,14 +593,14 @@ object InterfaceTestRun {
     val sql = "SELECT * FROM Output bc1, Programs p WHERE bc1.Program=p.ProgramId AND bc1.TestRun="+currentTestRun+" AND " +
       "NOT EXISTS ( " +
       "SELECT * FROM Output bc2 " +
-      "WHERE bc2.TestRun="+previousTestRun+" AND bc2.Program=bc1.Program AND bc1.Line=bc2.Line AND bc1.Col=bc2.Col" +
+      "WHERE bc2.TestRun="+previousTestRun+" AND bc2.Program=bc1.Program AND bc1.ProgramPoint=bc2.ProgramPoint" +
       ");"
 
 
     val rows = stmt.executeQuery(sql);
-    output = output+"Program\tLine\tColumn\tNew output\n"
+    output = output+"Program\tProgramPoint\tNew output\n"
     while(rows.next()) {
-      output=output+rows.getString("Name")+"\t"+rows.getString("Line")+"\t"+rows.getString("Col")+"\t"+rows.getString("Message").replace("\n", ";").replace("\t", " ")+"\n"
+      output=output+rows.getString("Name")+"\t"+rows.getString("ProgramPoint")+"\t"+rows.getString("Message").replace("\n", ";").replace("\t", " ")+"\n"
     }
     output;
 
@@ -621,12 +623,12 @@ object InterfaceTestRun {
   //return a string containing the outputs that are different among two test runs for a given table
   def getDifferentOutputs(currentTestRun : Int, previousTestRun : Int) = {
     var output : String = "";
-    val sql = "SELECT *, bc1.Message AS CurrentMessage, bc2.Message AS PreviousMessage FROM Output bc1, Output bc2, Programs p WHERE p.ProgramId=bc1.Program AND bc1.TestRun="+currentTestRun+" AND bc2.TestRun="+previousTestRun+" AND bc1.Program=bc2.Program AND bc1.Line=bc2.Line AND bc1.Col=bc2.Col AND bc1.Message!=bc2.Message";
+    val sql = "SELECT *, bc1.Message AS CurrentMessage, bc2.Message AS PreviousMessage FROM Output bc1, Output bc2, Programs p WHERE p.ProgramId=bc1.Program AND bc1.TestRun="+currentTestRun+" AND bc2.TestRun="+previousTestRun+" AND bc1.Program=bc2.Program AND bc1.ProgramPoint=bc2.ProgramPointAND bc1.Message!=bc2.Message";
 
     val rows = stmt.executeQuery(sql);
-    output = output+"Program\tLine\tColumn\tCurrent message\tPrevious message\n"
+    output = output+"Program\tProgramPoint\tCurrent message\tPrevious message\n"
     while(rows.next()) {
-      output=output+rows.getString("Name")+"\t"+rows.getString("Line")+"\t"+rows.getString("Col")+"\t"+rows.getString("CurrentMessage").replace("\n", ";").replace("\t", " ")+"\t"+rows.getString("PreviousMessage").replace("\n", ";").replace("\t", " ")+"\n"
+      output=output+rows.getString("Name")+"\t"+rows.getString("ProgramPoint")+"\t"+rows.getString("CurrentMessage").replace("\n", ";").replace("\t", " ")+"\t"+rows.getString("PreviousMessage").replace("\n", ";").replace("\t", " ")+"\n"
     }
     output;
 
@@ -636,16 +638,16 @@ object InterfaceTestRun {
   def getDifferentValidatedWarningOutputs(currentTestRun : Int, previousTestRun : Int) = {
     var output : String = "";
     val sql = "SELECT *, bc1.Message AS CurrentMessage, bc2.Message AS PreviousMessage FROM Output bc1, Output bc2, Programs p " +
-      "WHERE p.ProgramId=bc1.Program AND bc1.TestRun="+currentTestRun+" AND bc2.TestRun="+previousTestRun+" AND bc1.Program=bc2.Program AND bc1.Line=bc2.Line AND bc1.Col=bc2.Col AND bc1.Message!=bc2.Message " +
+      "WHERE p.ProgramId=bc1.Program AND bc1.TestRun="+currentTestRun+" AND bc2.TestRun="+previousTestRun+" AND bc1.Program=bc2.Program AND bc1.ProgramPoint=bc2.ProgramPoint AND bc1.Message!=bc2.Message " +
       "AND (" +
       "(bc1.Message LIKE 'WARNING%' AND bc2.Message LIKE 'VALIDATED%')" +
       "OR (bc1.Message LIKE 'VALIDATED%' AND bc2.Message LIKE 'WARNING%')" +
       ")";
 
     val rows = stmt.executeQuery(sql);
-    output = output+"Program\tLine\tColumn\tCurrent message\tPrevious message\n"
+    output = output+"Program\tProgramPoint\tCurrent message\tPrevious message\n"
     while(rows.next()) {
-      output=output+rows.getString("Name")+"\t"+rows.getString("Line")+"\t"+rows.getString("Col")+"\t"+rows.getString("CurrentMessage").replace("\n", ";").replace("\t", " ")+"\t"+rows.getString("PreviousMessage").replace("\n", ";").replace("\t", " ")+"\n"
+      output=output+rows.getString("Name")+"\t"+rows.getString("ProgramPoint")+"\t"+rows.getString("CurrentMessage").replace("\n", ";").replace("\t", " ")+"\t"+rows.getString("PreviousMessage").replace("\n", ";").replace("\t", " ")+"\n"
     }
     output;
 
@@ -910,14 +912,9 @@ object InterfaceTestRun {
       stmt.executeUpdate(sql);
 
       for(res <- outputs) {
-        val line = res match {
-          case x : WarningProgramPoint => 0
-          case x : ValidatedProgramPoint => 0
-          case _ => -1;
-        }
-        val column = res match {
-          case x : WarningProgramPoint => 0
-          case x : ValidatedProgramPoint => 0
+        val programpoint = res match {
+          case x : WarningProgramPoint => x.pp.toString
+          case x : ValidatedProgramPoint => x.pp.toString
           case _ => -1;
         }
         val msg = res match {
@@ -925,8 +922,8 @@ object InterfaceTestRun {
           case x : ValidatedProgramPoint => "VALIDATED:";
           case _ => -1;
         }
-        val sql = "INSERT INTO Output(TestRun, Program, Line, Col, Message) " +
-          "VALUES ("+idTestRun+", "+idProgram+", "+line+", "+column+", '"+msg+res.getMessage().replace("'", "''")+"')";
+        val sql = "INSERT INTO Output(TestRun, Program, ProgramPoint, Message) " +
+          "VALUES ("+idTestRun+", "+idProgram+", '"+programpoint.toString().replace("'", "''")+"', '"+msg+res.getMessage().replace("'", "''")+"')";
         stmt.executeUpdate(sql);
       }
     }
