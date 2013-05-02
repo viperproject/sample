@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.td.parser
 
 import org.apache.commons.lang3.StringEscapeUtils
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 
 /**
@@ -14,11 +15,15 @@ object PrettyPrinter {
 
   val operators = List("+", "-", "*", "/", "and", "or", "not", ">", "<", "=", "≠", "≤", "≥", ":=")
 
-  def apply(s: Script)(implicit printTypes: Boolean): String = {
+  def apply(s: Script): String = {
+    applyWithPPPrinter(s)({pp:ProgramPoint => ""})
+  }
+
+  def applyWithPPPrinter(s: Script)(implicit ppPrinter:(ProgramPoint => String)): String = {
     (s.declarations map apply).mkString("\n\n")
   }
 
-  def apply(d: Declaration)(implicit printTypes: Boolean): String = {
+  def apply(d: Declaration)(implicit ppPrinter:(ProgramPoint => String)): String = {
     d match {
       case ActionDefinition(ident, in, out, body, isEvent) =>
         (if (isEvent) "event " else "action ") +
@@ -40,7 +45,7 @@ object PrettyPrinter {
     }
   }
 
-  def apply(d: UsageDeclaration)(implicit printTypes: Boolean): String = {
+  def apply(d: UsageDeclaration)(implicit ppPrinter:(ProgramPoint => String)): String = {
     d match {
       case TypeUsage(ident) =>
         "type " + apply(ident)
@@ -49,24 +54,24 @@ object PrettyPrinter {
     }
   }
 
-  def apply(r: ResolveBlock)(implicit printTypes: Boolean): String = {
+  def apply(r: ResolveBlock)(implicit ppPrinter:(ProgramPoint => String)): String = {
     "resolve " + apply(r.localName) + " = " + apply(r.libName) + " with { \n    " + (r.rules map apply).mkString("\n    ") + "}"
   }
 
-  def apply(r: ResolutionRule)(implicit printTypes: Boolean): String = {
+  def apply(r: ResolutionRule)(implicit ppPrinter:(ProgramPoint => String)): String = {
     r match {
       case TypeResolution(local, libName) => "type" + apply(local) + "=" + apply(libName)
       case ActionResolution(local, libName) => "action " + apply(local) + " = " + apply(libName)
     }
   }
 
-  def apply(p: Parameter)(implicit printTypes: Boolean): String = apply(p.ident) + ":" + apply(p.typeName)
+  def apply(p: Parameter)(implicit ppPrinter:(ProgramPoint => String)): String = apply(p.ident) + ":" + apply(p.typeName)
 
-  def apply(s: List[Statement])(implicit printTypes: Boolean): String = {
+  def apply(s: List[Statement])(implicit ppPrinter:(ProgramPoint => String)): String = {
     ((s map apply map (_.split("\n")) flatten) map ("  " + _)).mkString("\n")
   }
 
-  def apply(s: Statement)(implicit printTypes: Boolean): String = {
+  def apply(s: Statement)(implicit ppPrinter:(ProgramPoint => String)): String = {
     s match {
       case For(idx, bnd, body) => "for (0 <= " + apply(idx) + " < " + apply(bnd) + ") {\n" + apply(body) + "\n}"
       case Foreach(elem, coll, _, body) => "foreach (" + apply(elem) + " in " + apply(coll) + ") {\n" + apply(body) + "\n}"
@@ -81,7 +86,7 @@ object PrettyPrinter {
     }
   }
 
-  def apply(e: Expression)(implicit printTypes: Boolean): String = {
+  def apply(e: Expression)(implicit ppPrinter:(ProgramPoint => String)): String = {
     e match {
       case Access(subject, Identifier(property), args) =>
         if (operators.contains(property)) "(" + apply(subject) + ") " + apply(property) + " (" + (args map apply).mkString(",") + ")"
@@ -95,17 +100,17 @@ object PrettyPrinter {
     }
   }
 
-  def apply(a: InlineAction)(implicit printTypes: Boolean): String = {
+  def apply(a: InlineAction)(implicit ppPrinter:(ProgramPoint => String)): String = {
     " where " + apply(a.handlerName) + " (" +
       (a.inParameters map apply).mkString(",") + ") returns (" +
       (a.outParameters map apply).mkString(",") + ") {\n" + apply(a.body) + "\n}"
   }
 
-  def apply(s: TypeName)(implicit printTypes: Boolean): String = {
+  def apply(s: TypeName)(implicit ppPrinter:(ProgramPoint => String)): String = {
     apply(s.ident)
   }
 
-  def apply(s: String)(implicit printTypes: Boolean): String = {
+  def apply(s: String)(implicit ppPrinter:(ProgramPoint => String)): String = {
     StringEscapeUtils.escapeJava(s.replace(" ", "_"))
   }
 

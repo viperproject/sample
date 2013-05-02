@@ -24,8 +24,17 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var main : ClassDefinition = null
   var mainID : String = null
   var parsedNames : List[String] = Nil
+
+  /**
+   * A list of scripts in "Simple" representation
+   */
   var parsedScripts : List[ClassDefinition] = Nil
-  var parsedSourceStrings : Map[String,String] = Map.empty
+
+  /**
+   * A map from public ID to TouchDevelop ASTs. This includes the main script and all libraries
+   */
+  var parsedTouchScripts : Map[String,Script] = Map.empty
+
   var publicMethods : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
   var privateMethods : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
   var events : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
@@ -81,7 +90,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       case Some(LibraryDefinition(name,_,_,_)) => parsedNames = parsedNames ::: List(name)
       case None => parsedNames = parsedNames ::: List(pubID)
     }
-    parsedSourceStrings += ((pubID,scriptStr match { case Some(x) => x; case None => PrettyPrinter(script)(false) }))
+    parsedTouchScripts += ((pubID,script))
 
     // recursive for libs
     val libDefs = discoverRequiredLibraries(script)
@@ -135,7 +144,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       case Some(x) => ScriptParser(x)
       case None => WebASTImporter.queryAndConvert(pubID)
     }
-    PrettyPrinter(script)(false)
+    PrettyPrinter(script)
   }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
@@ -213,7 +222,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     parsedNames = Nil
     relevantLibraryFields = Set.empty
     parsedScripts = Nil
-    parsedSourceStrings = Map.empty
+    parsedTouchScripts = Map.empty
     userTypes = Map.empty
   }
 

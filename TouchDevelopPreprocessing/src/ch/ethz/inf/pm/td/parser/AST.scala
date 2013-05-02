@@ -14,11 +14,11 @@ trait Typed {
   var typeName:TypeName = TypeName("Nothing")
 }
 
+trait Scope
+
 case class Script (declarations:List[Declaration]) extends TouchPositional[Script]
 
-sealed trait Scope
-
-sealed trait Declaration extends IdPositional
+sealed trait Declaration extends IdPositional with Scope
 
 case class MetaDeclaration(ident:String,value:String)
   extends Declaration
@@ -30,7 +30,6 @@ case class ActionDefinition(ident:String,
                             body:List[Statement],
                             isEvent:Boolean)
   extends Declaration
-  with Scope
   with TouchPositional[ActionDefinition]
 
 case class PageDefinition(ident:String,
@@ -39,7 +38,6 @@ case class PageDefinition(ident:String,
                           initBody:List[Statement],
                           displayBody:List[Statement])
   extends Declaration
-  with Scope
   with TouchPositional[PageDefinition]
 
 case class VariableDefinition(variable:Parameter,
@@ -98,34 +96,30 @@ case class TypeName(ident:String)
   override def toString:String = ident
 }
 
-sealed trait Statement extends IdPositional
+sealed trait Statement extends IdPositional with Scope
 
 case class Skip()
   extends Statement
   with TouchPositional[Skip]
 
-case class Box(body:List[Statement]) extends Statement
-  with Scope
+case class Box(body:List[Statement])
+  extends Statement
   with TouchPositional[Box]
 
 case class For(boundLocal: String, upperBound: Expression, body: List[Statement])
   extends Statement
-  with Scope
   with TouchPositional[For]
 
 case class If(condition:Expression,thenBody:List[Statement],elseBody:List[Statement])
   extends Statement
-  with Scope
   with TouchPositional[If]
 
 case class Foreach(boundLocal: String, collection: Expression, guards: List[Expression], body: List[Statement])
   extends Statement
-  with Scope
   with TouchPositional[Foreach]
 
 case class While(condition: Expression, body: List[Statement])
   extends Statement
-  with Scope
   with TouchPositional[While]
 
 case class MetaStatement(key: String, value: Any)
@@ -138,7 +132,6 @@ case class ExpressionStatement(expr: Expression)
 
 case class WhereStatement(expr:Expression,handlers:List[InlineAction])
   extends Statement
-  with Scope
   with TouchPositional[WhereStatement]
 
 case class InlineAction(handlerName:String,

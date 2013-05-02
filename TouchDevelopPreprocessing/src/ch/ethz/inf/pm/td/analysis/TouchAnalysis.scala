@@ -14,6 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.td.output.HTMLExporter
 
 /**
  * 
@@ -177,7 +178,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     }
 
     // Print some html
-    // TODO if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
+    if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
 
     SystemParameters.progressOutput.end()
 
