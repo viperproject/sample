@@ -49,7 +49,7 @@ class LoopCostCompiler extends TouchCompiler {
               }
             }
             if (loopFound) {
-              loops=true;
+              loops = true
               // go backwards to find all variables declared before
               var allVariables: Set[Variable] = assignmentVariables(cfg.nodes(index)).toSet[Variable]
               done = new Array[Boolean](cfg.nodes.size)
@@ -99,27 +99,52 @@ class LoopCostCompiler extends TouchCompiler {
   }
 
   // all variables appearing in statement s
-  private def variablesFromStatement(s: Statement) : Set[String] = {
+  private def variablesFromStatementAsString(s: Statement) : Set[String] = {
     s match {
       case a: Assignment => {
-        variablesFromStatement(a.left).union(variablesFromStatement(a.right))
+        variablesFromStatementAsString(a.left).union(variablesFromStatementAsString(a.right))
       }
       case mc: MethodCall => {
-        var result : Set[String] = variablesFromStatement(mc.method)
-        for (p <- mc.parameters) result = result.union(variablesFromStatement(p))
+        var result : Set[String] = variablesFromStatementAsString(mc.method)
+        for (p <- mc.parameters) result = result.union(variablesFromStatementAsString(p))
         result
       }
       case fa: FieldAccess => {
         var result : Set[String] = Set.empty[String]
-        for (o <- fa.objs) result = result.union(variablesFromStatement(o))
+        for (o <- fa.objs) result = result.union(variablesFromStatementAsString(o))
         result
       }
       case v: Variable => {
         val result : Set[String] = Set.empty[String]
         result + v.getName()
       }
-      case vd: VariableDeclaration =>  variablesFromStatement(vd.variable)
+      case vd: VariableDeclaration =>  variablesFromStatementAsString(vd.variable)
       case _ => Set.empty[String]
+    }
+  }
+
+  // all variables appearing in statement s
+  private def variablesFromStatement(s: Statement) : Set[Variable] = {
+    s match {
+      case a: Assignment => {
+        variablesFromStatement(a.left).union(variablesFromStatement(a.right))
+      }
+      case mc: MethodCall => {
+        var result : Set[Variable] = variablesFromStatement(mc.method)
+        for (p <- mc.parameters) result = result.union(variablesFromStatement(p))
+        result
+      }
+      case fa: FieldAccess => {
+        var result : Set[Variable] = Set.empty[Variable]
+        for (o <- fa.objs) result = result.union(variablesFromStatement(o))
+        result
+      }
+      case v: Variable => {
+        val result : Set[Variable] = Set.empty[Variable]
+        result + v
+      }
+      case vd: VariableDeclaration =>  variablesFromStatement(vd.variable)
+      case _ => Set.empty[Variable]
     }
   }
 
@@ -128,15 +153,12 @@ class LoopCostCompiler extends TouchCompiler {
     var result : List[Variable] = List.empty
     for (statement <- statements) {
       statement match {
-        case a: Assignment => {
-          a.left match {
-            case v: Variable => {
-              result = v :: result
-            }
-            case _ =>
-          }
+        case a@MethodCall(_,FieldAccess(_,subjects,":=",_),_,_,_) => {
+          result = subjects.map(variablesFromStatement(_)).flatten ::: result
         }
-        case vd: VariableDeclaration =>  result = vd.variable :: result
+        case vd: VariableDeclaration => {
+          result = vd.variable :: result
+        }
         case _ =>
       }
     }

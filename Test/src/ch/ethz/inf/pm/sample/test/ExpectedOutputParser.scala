@@ -73,17 +73,17 @@ class ExpectedOutputParser extends JavaTokenParsers  {
       | "postcondition(" ~ ident ~ "," ~ ident ~ "," ~ stringLiteral ~ ")" ^^ {
       case "postcondition(" ~ c ~ "," ~ m ~ "," ~ e ~ ")" => new PostCondition(c, m, e.replaceAll("\"", ""));
     }
-      | "loopinvariant(" ~ decimalNumber ~ "," ~ decimalNumber ~ "," ~ stringLiteral ~ ")"  ^^ {
-      case "loopinvariant(" ~ r ~ "," ~ c ~ "," ~ e ~ ")" => new LoopInvariant(r.toInt, c.toInt, e.replaceAll("\"", ""));
+      | "loopinvariant(" ~ stringLiteral ~ "," ~ stringLiteral ~ ")"  ^^ {
+      case "loopinvariant(" ~ r ~ "," ~ e ~ ")" => new LoopInvariant(r.replaceAll("\"", ""), e.replaceAll("\"", ""));
     }
     )
 
   val expectedOutput : Parser[ExpectedOutput] = (
-    "warningPP(" ~ decimalNumber ~ "," ~ decimalNumber ~ ")" ^^ {
-      case "warningPP(" ~ l ~ "," ~ c ~ ")" => new WarningPP(l.toInt, c.toInt);
+    "warningPP(" ~ stringLiteral ~ ")" ^^ {
+      case "warningPP(" ~ l ~ ")" => new WarningPP(l.replaceAll("\"", ""))
     }
-      | "validatedPP(" ~ decimalNumber ~ "," ~ decimalNumber ~ ")" ^^ {
-      case "validatedPP(" ~ l ~ "," ~ c ~ ")" => new ValidatedPP(l.toInt, c.toInt);
+      | "validatedPP(" ~ stringLiteral ~ ")" ^^ {
+      case "validatedPP(" ~ l ~ ")" => new ValidatedPP(l.replaceAll("\"", ""))
     }
       | "warningMethod(" ~ stringLiteral ~ "," ~ stringLiteral ~ ")" ^^ {
       case "warningMethod(" ~ c ~ "," ~ m ~ ")" => new WarningMethod(c.replaceAll("\"", ""), m.replaceAll("\"", ""));

@@ -248,6 +248,8 @@ object Reporter {
   def hasImprecision(message:String,pp:ProgramPoint):Boolean = seenImprecision.contains((message,pp))
   def hasBottom(message:String,pp:ProgramPoint):Boolean = seenBottom.contains((message,pp))
 
+  def getErrors(pp:ProgramPoint):Set[String] = seenErrors.filter(_._2 == pp).map(_._1)
+
   def reportError(message:String,pp:ProgramPoint) {
     if (!hasError(message,pp) && SystemParameters.enableOutputOfAlarms) {
       SystemParameters.progressOutput.put("ALARM: "+message+" at "+pp.toString)

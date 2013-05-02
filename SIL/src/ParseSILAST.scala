@@ -402,7 +402,7 @@ object ParseSILAST {
 
 }
 
-class SILProgramPoint(val row : Int, val column : Int) extends ProgramPoint {
+class SILProgramPoint(val row : Int, val column : Int) extends LineColumnProgramPoint {
   def getLine() : Int = row;
   def getColumn() : Int = column;
 }

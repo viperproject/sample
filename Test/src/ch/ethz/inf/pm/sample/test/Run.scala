@@ -254,8 +254,8 @@ object Run {
 
   //Translate a single output to a single expected output
   private def singleOutputToExpectedOutput(o : Output) : ExpectedOutput = o match {
-    case WarningProgramPoint(pp, message) => return new WarningPP(pp.getLine(), pp.getColumn());
-    case ValidatedProgramPoint(pp, message) => return new ValidatedPP(pp.getLine(), pp.getColumn());
+    case WarningProgramPoint(pp, message) => return new WarningPP(pp.toString);
+    case ValidatedProgramPoint(pp, message) => return new ValidatedPP(pp.toString);
     case ch.ethz.inf.pm.sample.property.WarningMethod(classe, method, message) => return new WarningMethod(classe.getName(), method);
     case ch.ethz.inf.pm.sample.property.ValidatedMethod(classe, method, message) => return new ValidatedMethod(classe.getName(), method);
     case ch.ethz.inf.pm.sample.property.InferredContract(c) => return new ch.ethz.inf.pm.sample.test.InferredContract(contractToExpectedContract(c))
@@ -271,7 +271,7 @@ object Run {
     case ch.ethz.inf.pm.sample.oorepresentation.PostCondition(classe, method, e) =>
       return new PostCondition(classe, method, e)
     case ch.ethz.inf.pm.sample.oorepresentation.LoopInvariant(pp, e) =>
-      return new LoopInvariant(pp.getLine(), pp.getColumn(), e)
+      return new LoopInvariant(pp.toString, e)
   }
 
   //Given the extension, return the compiler to parser it

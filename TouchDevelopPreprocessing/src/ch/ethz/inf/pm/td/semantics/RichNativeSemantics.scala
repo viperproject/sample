@@ -268,22 +268,6 @@ object RichNativeSemantics {
 
   /*-- Misc --*/
 
-//  def RunActionFromString[S <: State[S]](handlerName:RichExpression,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {       TODO
-//    val handlerNames:Set[String] = state.getStringValues(handlerName)
-//
-//    if (handlerNames.isEmpty) {
-//      Reporter.reportImprecision("Calling an unknown handler, going to top",pp)
-//      state.top()
-//    } else {
-//      // Compute least upper bound over all possible handlers
-//      var result = state.bottom()
-//      for (handler <- handlerNames) {
-//        result = result.lub(result,CallLocalAction[S](handler,parameters)(state,pp))
-//      }
-//      result
-//    }
-//  }
-
   def CallLocalAction[S <: State[S]](method:String,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {
     SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method,SystemParameters.typ,parameters map (_.getType())) match {
       case Some((clazz,methodDef)) =>
@@ -349,10 +333,6 @@ object RichNativeSemantics {
     curState
 
   }
-
-
-
-
   /*-- Reading and writing of fields --*/
 
   def AssignField[S <: State[S]](obj:RichExpression,field:Identifier,value:RichExpression)(implicit state:S, pp:ProgramPoint): S = {

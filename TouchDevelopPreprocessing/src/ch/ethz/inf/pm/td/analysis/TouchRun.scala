@@ -1,17 +1,12 @@
 package ch.ethz.inf.pm.td.domain
 
 
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.compiler.UnsupportedLanguageFeatureException
 import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchCompiler}
 import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
-import ch.ethz.inf.pm.td.output.HTMLExporter
 import ch.ethz.inf.pm.td.compiler.UnsupportedLanguageFeatureException
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
-import oorepresentation._
 import abstractdomain.heapanalysis._
-import userinterfaces._
 import property._
 import oorepresentation.ControlFlowGraphExecution
 import oorepresentation.MethodDeclaration

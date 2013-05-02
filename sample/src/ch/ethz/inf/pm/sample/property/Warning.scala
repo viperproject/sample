@@ -34,7 +34,7 @@ case class WarningProgramPoint(val pp : ProgramPoint, val message : String) exte
   }
   override def getMessage()=message;
   
-  override def toString() : String = "Warning: "+message+" at line "+pp.getLine()+" column "+pp.getColumn()+"\n"
+  override def toString() : String = "Warning: "+message+" "+pp.getDescription
 }
 
 /**
@@ -53,7 +53,7 @@ case class ValidatedProgramPoint(val pp : ProgramPoint, val message : String) ex
     case _ => false
   }
   override def getMessage()=message;
-  override def toString() : String = "Validated: "+message+" at line "+pp.getLine()+" column "+pp.getColumn()
+  override def toString() : String = "Validated: "+message+" "+pp.getDescription
 }
 
 /**

@@ -105,13 +105,15 @@ class FlowSensitivePartitioning[S <: SemanticDomain[S]] extends FunctionalDomain
           val ass = ComputedInterference.value.value.apply(thread).value.apply(pc);
           if(ass._1.value.intersect(touchedIds).size>0) {
             for(otherthreads <- ass._2.value.keySet) {
-              if( ! (
-                (otherthreads.value.keySet.contains(SystemParameters.currentMethod) &&
-                  ( expr.getProgramPoint().getLine()==otherthreads.value.apply(SystemParameters.currentMethod).pc.get.getLine()
-                  || SystemParameters.currentCFG.happensBefore(expr.getProgramPoint(), otherthreads.value.apply(SystemParameters.currentMethod).pc.get))
-                  )
-                ))
-                result=result.add(otherthreads.add(thread, new ProgramPointLattice(pc)), semantic(ass._2.get(otherthreads)));
+              if (!otherthreads.value.keySet.contains(SystemParameters.currentMethod)) {
+                result=result.add(otherthreads.add(thread, new ProgramPointLattice(pc)), semantic(ass._2.get(otherthreads)))
+              } else {
+                val exprPP = expr.getProgramPoint().asInstanceOf[LineColumnProgramPoint]
+                val otherPP = otherthreads.value.apply(SystemParameters.currentMethod).pc.get.asInstanceOf[LineColumnProgramPoint]
+                if (!(exprPP.getLine == otherPP.getLine || SystemParameters.currentCFG.happensBefore(exprPP,otherPP))) {
+                  result=result.add(otherthreads.add(thread, new ProgramPointLattice(pc)), semantic(ass._2.get(otherthreads)))
+                }
+              }
             }
           }
        }

@@ -7,22 +7,22 @@ sealed trait ExpectedOutput {
   def cover(o : Output) : Boolean;
 }
 
-case class WarningPP(val line : Int, val column : Int) extends ExpectedOutput {
+case class WarningPP(val ppIdent:String) extends ExpectedOutput {
   override def cover(o : Output) : Boolean = o match {
-    case WarningProgramPoint(pp, message) => return pp.getLine()==line && pp.getColumn()==column;
+    case WarningProgramPoint(pp, message) => return pp.toString.equals(ppIdent)
     case _ => return false;
   }
 
-  override def toString() : String = "warningPP(" +line+ ", " +column+ ")"
+  override def toString() : String = "warningPP(" +ppIdent+ ")"
 }
 
-case class ValidatedPP(val line : Int, val column : Int) extends ExpectedOutput {
+case class ValidatedPP(val ppIdent:String) extends ExpectedOutput {
   override def cover(o : Output) : Boolean = o match {
-    case ValidatedProgramPoint(pp, message) => return pp.getLine()==line && pp.getColumn()==column;
+    case ValidatedProgramPoint(pp, message) => return pp.toString.equals(ppIdent)
     case _ => return false;
   }
 
-  override def toString() : String = "validatedPP(" +line+ ", " +column+ ")"
+  override def toString() : String = "validatedPP(" +ppIdent+ ")"
 }
 
 case class WarningMethod(val classe : String, val method : String) extends ExpectedOutput {
@@ -93,11 +93,11 @@ case class PostCondition(val classe : String, val method : String, e : String) e
   override def toString() : String = "postcondition(" + classe + "," + method + ", \"" + exp + "\")"
 }
 
-case class LoopInvariant(val row : Int, val col : Int, e : String) extends Contract(e) {
+case class LoopInvariant(val ppIdent:String, e : String) extends Contract(e) {
   override def cover(o : ch.ethz.inf.pm.sample.oorepresentation.Annotation) : Boolean = o match {
-    case ch.ethz.inf.pm.sample.oorepresentation.LoopInvariant(pp, e) => super.cover(o) && pp.getLine()==row && pp.getColumn() == col
+    case ch.ethz.inf.pm.sample.oorepresentation.LoopInvariant(pp, e) => super.cover(o) && pp.toString.equals(ppIdent)
     case _ => false;
   }
 
-  override def toString() : String = "loopinvariant(" + row + "," + col + ", \"" + exp + "\")"
+  override def toString() : String = "loopinvariant(" + ppIdent +", \"" + exp + "\")"
 }

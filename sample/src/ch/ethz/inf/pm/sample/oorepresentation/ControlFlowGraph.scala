@@ -219,13 +219,13 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   def backwardSemantics[S <: State[S]](state: S): S = new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
 
-  def happensBefore(pc1: ProgramPoint, pc2: ProgramPoint): Boolean = {
+  def happensBefore(pc1: LineColumnProgramPoint, pc2: LineColumnProgramPoint): Boolean = {
     var rowsAfterPc1: Set[Int] = this.afterPC(pc1)
     var rowsAfterPc2: Set[Int] = this.afterPC(pc2)
-    return rowsAfterPc1.contains(pc2.getLine()) && !rowsAfterPc2.contains(pc1.getLine())
+    return rowsAfterPc1.contains(pc2.getLine) && !rowsAfterPc2.contains(pc1.getLine)
   }
 
-  private def afterPC(pc: ProgramPoint): Set[Int] = afterBlock(giveBlockOf(pc))
+  private def afterPC(pc: LineColumnProgramPoint): Set[Int] = afterBlock(giveBlockOf(pc))
 
   def afterBlock(startingBlock: Int): Set[Int] = {
     var result: Set[Int] = Set.empty[Int]
@@ -238,7 +238,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       blocksalreadyvisited = blocksalreadyvisited + b
       blockstovisit = blockstovisit ++ this.getEdgesExitingFrom(b)
       for (st <- nodes.apply(b))
-        result = result + st.getPC().getLine()
+        result = result + st.getPC().asInstanceOf[LineColumnProgramPoint].getLine
       blockstovisit = blockstovisit -- blocksalreadyvisited
     }
     return result
@@ -264,10 +264,10 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
     return result
   }
 
-  private def giveBlockOf(pc: ProgramPoint): Int = {
+  private def giveBlockOf(pc: LineColumnProgramPoint): Int = {
     for (i <- 0 to nodes.size - 1) {
       for (st <- nodes.apply(i))
-        if (st.getPC() != null && pc != null && st.getPC().getLine() == pc.getLine())
+        if (st.getPC() != null && pc != null && st.getPC().asInstanceOf[LineColumnProgramPoint].getLine == pc.getLine)
           return i
     }
     return -1
@@ -463,11 +463,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
   }
 
   private implicit val programPointOrdering = new Ordering[ProgramPoint] {
-    def compare(p1: ProgramPoint, p2: ProgramPoint): Int = p1.getLine.compare(p2.getLine) match {
-      case -1 => -1
-      case 0 => p1.getColumn.compare(p2.getColumn)
-      case 1 => 1
-    }
+    def compare(p1: ProgramPoint, p2: ProgramPoint): Int = p1.toString.compare(p2.toString)
   }
 
   /**

@@ -13,8 +13,22 @@ import ch.ethz.inf.pm.sample.ToStringUtilities
  * @version 0.1
  */
 abstract class ProgramPoint {
-  def getLine() : Int;
-  def getColumn() : Int;
+
+  /**
+   * Gets a description of the program point, for example
+   * "in file somefile.scala at line 1, column 2"
+   */
+  def getDescription:String
+
+}
+
+abstract class LineColumnProgramPoint extends ProgramPoint{
+  def getLine : Int
+  def getColumn : Int
+
+  override def getDescription:String = {
+    "at line "+getLine+", column "+getColumn
+  }
 }
 
 /** 

@@ -444,7 +444,7 @@ case class PPHeapID(pps: Set[(ProgramPoint,Int)], unique: Int) extends NodeName 
   def this(pp: ProgramPoint, c: Int) = this(Set((pp,c)), 0)
 
   override def toString: String = {
-    val entryToString = (e:(ProgramPoint,Int)) => "L"+e._1.getLine + "C"+ e._1.getColumn + "_" + e._2
+    val entryToString = (e:(ProgramPoint,Int)) => e._1 + "_" + e._2
 
     val s = pps.map(entryToString).mkString("+")
 

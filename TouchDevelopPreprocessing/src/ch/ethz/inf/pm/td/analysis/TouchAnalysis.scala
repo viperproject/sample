@@ -11,14 +11,6 @@ import ch.ethz.inf.pm.td.domain.{StringsAnd, InvalidAnd}
 import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.td.output.HTMLExporter
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import scala.Some
-import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
@@ -53,7 +45,13 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
   override def reset() { Unit }
 
-  def getProperties(): Set[Property] = Set(new ShowGraphProperty().asInstanceOf[Property], new SingleStatementProperty(new BottomVisitor), new NoProperty)
+  def getProperties(): Set[Property] =
+    Set(
+      new ShowGraphProperty().asInstanceOf[Property],
+      new SingleStatementProperty(new BottomVisitor),
+      new SingleStatementProperty(new AlarmVisitor),
+      new NoProperty
+    )
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
@@ -179,7 +177,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     }
 
     // Print some html
-    if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
+    // TODO if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
 
     SystemParameters.progressOutput.end()
 
@@ -253,6 +251,36 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
     cur
 
+  }
+
+}
+
+
+/**
+ * We collect alarms found _during_ the analysis using the static class "Reporter". To fit in with the old
+ * system of checking properties _after_ the analysis of the script, we use this visitor to collect all alarms
+ * found during the analysis
+ */
+class AlarmVisitor extends Visitor {
+
+  def getLabel() = "Alarms during analysis"
+
+  /**
+   * Check the property over a single state
+   *
+   * @param state the abstract state
+   * @param statement the statement that was executed after the given abstract state
+   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
+   */
+  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) {
+    val errors = Reporter.getErrors(statement.getPC())
+    if (!errors.isEmpty) {
+      for (mess <- Reporter.getErrors(statement.getPC())) {
+        printer.add(WarningProgramPoint(statement.getPC(),mess))
+      }
+    } else {
+      printer.add(ValidatedProgramPoint(statement.getPC(),"valid"))
+    }
   }
 
 }

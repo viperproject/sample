@@ -405,8 +405,6 @@ object CFGGenerator {
   def isHandlerIdent(ident:String) = ident.startsWith("*handler ")
   def globalReferenceIdent(ident:String) = "*data "+ident
   def isGlobalReferenceIdent(ident:String) = ident.startsWith("*data ")
-  def tupleIdent(a:ProgramPoint) = "*tuple "+a.getLine()+" "+a.getColumn()
-  def isTupleIdent(ident:String) = ident.startsWith("*tuple ")
   def paramIdent(ident:String) = "*param "+ident
   def isParamIdent(ident:String) = ident.startsWith("*param ")
   def libraryIdent(ident:String) = "♻"+ident
@@ -465,15 +463,13 @@ case class TouchClassIdentifier(name:String,typ:Type) extends Named with ClassId
 
 case class TouchProgramPoint(scriptID:String, pos:String) extends ProgramPoint {
   def getScriptID:String = scriptID
-  def getLine() = 0
-  def getColumn() = 0
   override def toString = "{"+getScriptID+","+pos+"}"
+  override def getDescription = "in script "+scriptID+" at node "+pos
 }
 
 case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
-  def getLine() = 0
-  def getColumn() = 0
-  override def toString = name
+  override def toString = "SingletonInitPoint("+name+")"
+  override def getDescription = "at initialization of singleton "+name
 }
 
 /**
@@ -502,9 +498,8 @@ object DeepeningProgramPoint {
 }
 
 case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends ProgramPoint {
-  def getLine() = pp.getLine()
-  def getColumn() = pp.getColumn()
   override def toString = pp+"("+path.mkString(",")+")"
+  override def getDescription = pp+" at initialization path "+path.mkString(",")
 }
 
 class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named with Type {

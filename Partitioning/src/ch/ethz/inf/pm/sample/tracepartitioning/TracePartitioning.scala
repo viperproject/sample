@@ -44,7 +44,7 @@ object TracePartitioning {
 	 * @return The list of directives
 	 */
 	def get[D <: State[D]](p: ProgramPoint): List[Directive[D]] = {
-		directives.get(p) match {
+		directives.get(p.asInstanceOf[ScalaProgramPoint]) match {
 			case Some(d) => d.asInstanceOf[List[Directive[D]]]
 			case _ => Nil
 		}
@@ -56,7 +56,7 @@ object TracePartitioning {
 	 * @param d The directive
 	 */
 	def add[D <: State[D]](d: Directive[D]) {
-		val pp = d.programPoint
+		val pp = d.programPoint.asInstanceOf[ScalaProgramPoint]
 		directives(pp) = d::get(pp)
 	}
 
@@ -66,7 +66,7 @@ object TracePartitioning {
 	 * @param p The program point
 	 */
 	def remove(p: ProgramPoint) {
-		directives -= p
+		directives -= p.asInstanceOf[ScalaProgramPoint]
 	}
 
 	/**
@@ -76,7 +76,7 @@ object TracePartitioning {
 	 */
 	def remove(d: Directive[_]) {
 		val pp = d.programPoint
-		directives(pp) = get(pp).filter((x: Directive[_]) => x != d)
+		directives(pp.asInstanceOf[ScalaProgramPoint]) = get(pp).filter((x: Directive[_]) => x != d)
 	}
 
 	/**
@@ -128,7 +128,7 @@ object ProgramPointConversions {
 	 * @param c The column of the program point
 	 * @return The program point
 	 */
-	def programPoint(l: Int, c: Int): ProgramPoint = new ScalaProgramPoint(new Position {
+	def programPoint(l: Int, c: Int): ScalaProgramPoint = new ScalaProgramPoint(new Position {
 		override val line = l
 		override val column = c
 	}) /*new ProgramPoint {
@@ -157,7 +157,7 @@ object ProgramPointConversions {
 	 * @param The program point
 	 * @return A pair of the line and the column of the program point
 	 */
-	implicit def programPointToPair(p: ProgramPoint): (Int, Int) = (p.getLine, p.getColumn)
+	implicit def programPointToPair(p: ScalaProgramPoint): (Int, Int) = (p.getLine, p.getColumn)
 
 }
 

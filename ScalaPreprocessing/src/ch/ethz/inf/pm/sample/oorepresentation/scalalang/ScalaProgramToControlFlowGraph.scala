@@ -14,7 +14,7 @@ import scala.collection.mutable.HashMap
 import scala.tools.nsc.plugins.PluginComponent
 //import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
 
-class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends ProgramPoint {
+class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends LineColumnProgramPoint {
   var row : Int = try{
 	  pos.line
   }

@@ -911,13 +911,13 @@ object InterfaceTestRun {
 
       for(res <- outputs) {
         val line = res match {
-          case x : WarningProgramPoint => x.pp.getLine();
-          case x : ValidatedProgramPoint => x.pp.getLine();
+          case x : WarningProgramPoint => 0
+          case x : ValidatedProgramPoint => 0
           case _ => -1;
         }
         val column = res match {
-          case x : WarningProgramPoint => x.pp.getColumn();
-          case x : ValidatedProgramPoint => x.pp.getColumn();
+          case x : WarningProgramPoint => 0
+          case x : ValidatedProgramPoint => 0
           case _ => -1;
         }
         val msg = res match {
