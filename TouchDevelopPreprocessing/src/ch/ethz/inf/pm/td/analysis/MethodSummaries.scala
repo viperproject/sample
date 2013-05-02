@@ -16,6 +16,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.td.domain.MultiValExpression
+import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
 
 /**
  * Stores summaries of methods. This is not thread-safe.
@@ -216,40 +218,23 @@ object MethodSummaries {
     val outParameters = callTarget.arguments(1)
     var curState = entryState
 
-    if (outParameters.length > 0) {
-
-      // Generate returned expression with extra handling for multiple return values
-      val returnExpr =
-        if (outParameters.length > 1) {
-
-          // Create a tuple for storing the return values
-          val tupleType = TouchTuple(outParameters map (_.typ.asInstanceOf[TouchType]))
-          curState = curState.createObject(tupleType,callPoint)
-          val tuple = curState.getExpression()
-
-          // Assign fields of the tuple with given arguments
-          for ((f,a) <- tupleType.getPossibleFields().zip(outParameters)) {
-            curState = curState.assignField(List(tuple),f.getName(),new ExpressionSet(a.typ).add(a.variable.id))
-          }
-
-          // Set valid
-          curState = curState.assignVariable(tuple,new ExpressionSet(tupleType).add(Constant("valid",tupleType,callPoint)))
-
-          tuple
-
-        } else {
-          new ExpressionSet(outParameters.head.typ).add(outParameters.head.variable.id)
-        }
-
-      // Store in temporary variable
-      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(),returnExpr.getType(),callPoint)
+    // Store returns in temporary variables
+    val tempVars = for (outParam <- outParameters) yield {
+      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName()),outParam.typ,callPoint)
       val tempVarExpr = new ExpressionSet(tempVar.getType()).add(tempVar)
-      curState = curState.assignVariable(tempVarExpr,returnExpr)
-      curState = curState.setExpression(tempVarExpr)
-
+      curState = curState.assignVariable(tempVarExpr,new ExpressionSet(outParam.typ).add(outParam.variable.id))
+      tempVar
     }
 
-    // Prune local state (except __last_return)
+    def buildMultiVal(tempVars:List[VariableIdentifier]): Expression = tempVars match {
+      case x :: Nil => x
+      case x :: xs => MultiValExpression(x,buildMultiVal(xs),TUnknown.typ)
+      case Nil => UnitExpression(TNothing.typ,callPoint)
+    }
+
+    curState = curState.setExpression(new ExpressionSet(TUnknown.typ).add(buildMultiVal(tempVars)))
+
+    // Prune local state (except return values)
     curState = curState.pruneVariables({
       id:VariableIdentifier =>
         !id.getType().asInstanceOf[TouchType].isSingleton &&

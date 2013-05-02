@@ -27,21 +27,6 @@ class TUnknown extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
-      
-    /**  */
-    case ":=" =>
-      val List(right) = parameters // Unknown,Unknown
-      Assign[S](this0,right)
-
-    /**  */
-    // case "," => 
-    //   val List(left,right) = parameters // Unknown,Unknown
-    //   TopWithInvalid[S](TUnknown.typ)
-    // DECLARATION AS FIELD: 
-    //   /**  */
-    //   val field_, = new TouchField(",",TUnknown.typ)
-
-    // FIELDS: field_:=, field_,
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

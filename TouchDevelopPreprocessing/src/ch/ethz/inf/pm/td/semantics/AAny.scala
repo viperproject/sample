@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.domain.MultiValExpression
 
 /**
  * User: Lucas Brutschy
@@ -37,7 +38,7 @@ abstract class AAny extends NativeMethodSemantics {
       if (thisExpr.getType().toString() == getTypeName) {
 
         // Check if the object or an argument can be invalid - in this case, we must produce an error
-        if(operator != "is invalid" && operator != ":=") {
+        if(operator != "is invalid" && operator != ":=" && operator != ",") {
           if (!thisExpr.getType().isStatic()) {
             if (thisExpr.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
               curState = Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator,  "Object ("+thisExpr+") whose field/method is accessed might be invalid")(curState,pp)
@@ -97,6 +98,14 @@ abstract class AAny extends NativeMethodSemantics {
     case ":=" =>
       val List(right) = parameters
       Assign[S](this0,right)
+
+    case "," =>
+      val List(right) = parameters // Unknown,Unknown
+      var multiValExpressionSet = new ExpressionSet(TUnknown.typ)
+      for (l <- this0.getSetOfExpressions; r <- right.getSetOfExpressions) {
+        multiValExpressionSet = multiValExpressionSet.add(new MultiValExpression(l,r,TUnknown.typ))
+      }
+      state.setExpression(multiValExpressionSet)
 
     case _ =>
       MatchFields[S](this0,parameters,getTyp,method)

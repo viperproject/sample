@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.UnitExpression
 import ch.ethz.inf.pm.td.analysis.{MethodSummaries, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.domain.MultiValExpression
 
 /**
  *
@@ -307,8 +308,50 @@ object RichNativeSemantics {
   }
 
   def Assign[S <: State[S]](id:RichExpression,value:RichExpression)(implicit state:S, pp:ProgramPoint): S = {
-    state.assignVariable(id,value)
+
+    def join(a:List[ExpressionSet],b:List[ExpressionSet]):List[ExpressionSet] = {
+      a match {
+        case x :: xs =>
+          b match {
+            case y :: ys => x.add(y) :: join(xs,ys)
+            case Nil => a
+          }
+        case Nil => b
+      }
+    }
+
+    def getMultiValAsList(expr:RichExpression):List[ExpressionSet] = {
+      var ret:List[ExpressionSet] = Nil
+      for (sExpr <- expr.thisExpr.getSetOfExpressions) yield {
+        sExpr match {
+          case MultiValExpression(left,right,retVal) =>
+            val multiVal = getMultiValAsList(left) ::: getMultiValAsList(right)
+            ret = join(ret,multiVal)
+          case _ =>
+            ret = join(ret,List(new ExpressionSet(expr.getType).add(expr)))
+        }
+      }
+      ret
+    }
+
+    val leftExprs = getMultiValAsList(id)
+    val rightExprs = getMultiValAsList(value)
+
+    if(leftExprs.length != rightExprs.length) {
+      Reporter.hasImprecision("A multival assignment has an unmatching number of values - going to top",pp)
+      return state.top()
+    }
+
+    var curState = state
+    for ((l,r) <- leftExprs.zip(rightExprs)) {
+      curState = curState.assignVariable(l,r)
+    }
+    curState
+
   }
+
+
+
 
   /*-- Reading and writing of fields --*/
 

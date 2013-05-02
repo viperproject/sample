@@ -39,55 +39,55 @@ object WebASTImporter {
   }
 
   def convert(jAST:JApp):Script = {
-    Script(jAST.decls map (convert _))
+    Script(jAST.decls map (convert _)).setId("")
   }
 
   def convert(jDecl:JDecl):Declaration = {
     jDecl match {
       case JArt(id,name,comment,typ,isReadonly,url) =>
-        VariableDefinition(Parameter(name,TypeName(typ)),Map("readonly" -> isReadonly.toString,"is resource" -> "true"))
+        VariableDefinition(Parameter(name,TypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString,"is resource" -> "true")).setId(id)
       case JData(id,name,comment,typ,isReadonly) =>
-        VariableDefinition(Parameter(name,TypeName(typ)),Map("readonly" -> isReadonly.toString))
+        VariableDefinition(Parameter(name,TypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString)).setId(id)
       case JPage(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,initBody,displayBody) =>
-        PageDefinition(name,inParameters map (convert _),outParameters map (convert _),initBody map (convert _),displayBody map (convert _))
+        PageDefinition(name,inParameters map (convert _),outParameters map (convert _),initBody map (convert _),displayBody map (convert _)).setId(id)
       case JEvent(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,eventName,eventVariableId,body) =>
-        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = true)
+        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = true).setId(id)
       case JLibrary(id,name,libIdentifier,libIsPublished,exportedTypes,exportedActions,resolveClauses) =>
-        LibraryDefinition(name,libIdentifier,exportedActions map (convert _),resolveClauses map (convert _))
+        LibraryDefinition(name,libIdentifier,exportedActions map (convert _),resolveClauses map (convert _)).setId(id)
       case JRecord(id,name,comment,category,isCloudEnabled,keys,fields) =>
-        TableDefinition(name,category,keys map (convert _),fields map (convert _))
+        TableDefinition(name,category,keys map (convert _),fields map (convert _)).setId(id)
       case JAction(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,body) =>
-        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = false)
+        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = false).setId(id)
     }
   }
 
   def convert(jResolve:JResolveClause):ResolveBlock = {
     ResolveBlock(jResolve.name,jResolve.defaultLibId,
-      (jResolve.withActions map (convert _)) ::: (jResolve.withTypes map (convert _)))
+      (jResolve.withActions map (convert _)) ::: (jResolve.withTypes map (convert _))).setId(jResolve.id)
   }
 
   def convert(jLocalDef:JLocalDef):Parameter = {
-    Parameter(jLocalDef.name,TypeName(jLocalDef.`type`))
+    Parameter(jLocalDef.name,TypeName(jLocalDef.`type`).setId(jLocalDef.id)).setId(jLocalDef.id)
   }
 
   def convert(jStatement:JStmt):Statement = {
     jStatement match {
       case JComment(id,text) =>
-        Skip()
+        Skip().setId(id)
       case JFor(id,index,bound,body) =>
-        For(index.name,convert(bound),body map (convert _))
+        For(index.name,convert(bound),body map (convert _)).setId(id)
       case JForeach(id,iterator,collection,conditions,body) =>
-        Foreach(iterator.name,convert(collection),conditions map (convert _),body map (convert _))
+        Foreach(iterator.name,convert(collection),conditions map (convert _),body map (convert _)).setId(id)
       case JWhile(id,condition,body) =>
-        While(convert(condition),body map (convert _))
+        While(convert(condition),body map (convert _)).setId(id)
       case JIf(id,condition,thenBody,elseBody) =>
-        If(convert(condition),thenBody map (convert _), elseBody map (convert _))
+        If(convert(condition),thenBody map (convert _), elseBody map (convert _)).setId(id)
       case JBoxed(id,body) =>
-        Box(body map (convert _))
+        Box(body map (convert _)).setId(id)
       case JExprStmt(id,expr) =>
-        ExpressionStatement(convert(expr))
+        ExpressionStatement(convert(expr)).setId(id)
       case JInlineActions(id,expr,actions) =>
-        WhereStatement(convert(expr),actions map (convert _))
+        WhereStatement(convert(expr),actions map (convert _)).setId(id)
     }
   }
 
@@ -98,19 +98,19 @@ object WebASTImporter {
   def convert(jExpression:JExpr):Expression = {
     jExpression match {
       case JStringLiteral(id,value) =>
-        Literal(TypeName("String"),value)
+        Literal(TypeName("String").setId(id),value).setId(id)
       case JBooleanLiteral(id,value) =>
-        Literal(TypeName("Boolean"),value.toString)
+        Literal(TypeName("Boolean").setId(id),value.toString).setId(id)
       case JNumberLiteral(id,value) =>
-        Literal(TypeName("Number"),value.toString)
+        Literal(TypeName("Number").setId(id),value.toString).setId(id)
       case JLocalRef(id,name,localId) =>
-        LocalReference(name)
+        LocalReference(name).setId(id)
       case JPlaceholder(id,name,typ) =>
-        LocalReference(name)
+        LocalReference(name).setId(id)
       case JSingletonRef(id,name,typ) =>
-        SingletonReference(name,typ)
+        SingletonReference(name,typ).setId(id)
       case JCall(id,name,parent,declId,this0::args) =>
-        Access(convert(this0),Identifier(name),args map (convert _))
+        Access(convert(this0),Identifier(name).setId(id),args map (convert _)).setId(id)
     }
   }
 
@@ -122,30 +122,30 @@ object WebASTImporter {
   }
 
   def convert(jRecordKey:JRecordKey):Parameter = {
-    Parameter(jRecordKey.name,TypeName(jRecordKey.`type`))
+    Parameter(jRecordKey.name,TypeName(jRecordKey.`type`).setId(jRecordKey.id)).setId(jRecordKey.id)
   }
 
   def convert(jRecordField:JRecordField):Parameter = {
-    Parameter(jRecordField.name,TypeName(jRecordField.`type`))
+    Parameter(jRecordField.name,TypeName(jRecordField.`type`).setId(jRecordField.id)).setId(jRecordField.id)
   }
 
   def convert(jLibAction:JLibAction):ActionUsage = {
-    ActionUsage(jLibAction.name,jLibAction.inParameters map (convert _),jLibAction.outParameters map (convert _))
+    ActionUsage(jLibAction.name,jLibAction.inParameters map (convert _),jLibAction.outParameters map (convert _)).setId(jLibAction.id)
   }
 
   def convert(jActionBinding:JActionBinding):ActionResolution = {
-    ActionResolution(jActionBinding.name,jActionBinding.actionId)
+    ActionResolution(jActionBinding.name,jActionBinding.actionId).setId(jActionBinding.id)
   }
 
   def convert(jTypeResolution:JTypeBinding):TypeResolution = {
-    TypeResolution(jTypeResolution.name,TypeName(jTypeResolution.`type`))
+    TypeResolution(jTypeResolution.name,TypeName(jTypeResolution.`type`).setId(jTypeResolution.id)).setId(jTypeResolution.id)
   }
 
   def convert(jInlineAction:JInlineAction):InlineAction = {
     InlineAction(jInlineAction.reference.name,
       jInlineAction.inParameters map (convert _),
       jInlineAction.outParameters map (convert _),
-      jInlineAction.body map (convert _))
+      jInlineAction.body map (convert _)).setId(jInlineAction.id)
   }
 
 }

@@ -35,6 +35,7 @@ try {
       |    SCode.typName -> new SCode(),
       |    SArt.typName -> new SArt(),
       |    SRecords.typName -> new SRecords(),
+      |    SLibs.typName -> new SLibs(),
     """.stripMargin)
 
   val lines = for (

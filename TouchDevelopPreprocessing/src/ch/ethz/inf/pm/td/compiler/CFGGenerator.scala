@@ -47,7 +47,7 @@ object CFGGenerator {
       case Some(LibraryDefinition(name,_,_,_)) => curScriptName = libraryIdent(name)
       case None => curScriptName = libraryIdent(pubID)
     }
-    val programPoint : ProgramPoint = mkTouchProgramPoint(script.pos)
+    val programPoint : ProgramPoint = mkTouchProgramPoint(script)
     val typ : Type = typeNameToType(TypeName(curScriptName), true)
     SystemParameters.typ = typ
 
@@ -64,8 +64,8 @@ object CFGGenerator {
     new ClassDefinition(programPoint, typ, modifiers, name, parametricTypes, extend, fields, methods, pack, inv)
   }
 
-  def mkTouchProgramPoint(pos:Position) = {
-    TouchProgramPoint(curPubID,pos)
+  def mkTouchProgramPoint(element:IdPositional) = {
+    TouchProgramPoint(curPubID,element.getPositionAsString)
   }
 
   /**
@@ -162,7 +162,7 @@ object CFGGenerator {
 
             case "decorator" =>
 
-              if (keys.size != 1) throw TouchException("Decorators must have exactly one entry",thing.pos)
+              if (keys.size != 1) throw TouchException("Decorators must have exactly one entry "+thing.getPositionDescription)
 
               val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typeNameToType(typ))}
               val fieldMembers = createFieldMembers(fields)
@@ -176,7 +176,7 @@ object CFGGenerator {
 
               addRecordsField(new TouchField(decoratedType+" decorator",decoratorType))
 
-            case _ => throw TouchException("Table type "+typeName+" not supported",thing.pos)
+            case _ => throw TouchException("Table type "+typeName+" not supported "+thing.getPositionDescription)
 
           }
 
@@ -189,7 +189,7 @@ object CFGGenerator {
     (for (dec <- script.declarations) yield {
       dec match {
         case v@parser.VariableDefinition(variable,flags) =>
-          val programPoint : ProgramPoint = mkTouchProgramPoint(v.pos)
+          val programPoint : ProgramPoint = mkTouchProgramPoint(v)
           val modifiers : List[Modifier] = (flags flatMap {
             case ("is_resource","true") => Some(ResourceModifier)
             case ("readonly","true") => Some(ReadOnlyModifier)
@@ -208,7 +208,7 @@ object CFGGenerator {
     (for (dec <- script.declarations) yield {
       dec match {
         case act@parser.ActionDefinition(ident,in,out,body,isEvent) =>
-          val programPoint : ProgramPoint = mkTouchProgramPoint(act.pos)
+          val programPoint : ProgramPoint = mkTouchProgramPoint(act)
           val modifiers : List[Modifier] = Nil
           val isPrivate = (body find {case MetaStatement("private",_) => true; case _ => false}) != None
           val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=isEvent,isPrivate=isPrivate)
@@ -227,7 +227,7 @@ object CFGGenerator {
   }
 
   private def parameterToVariableDeclaration(parameter:parser.Parameter):VariableDeclaration = {
-    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter.pos)
+    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
     val variable : Variable = parameterToVariable(parameter)
     val typ : Type = typeNameToType(parameter.typeName)
     val right : Statement = null
@@ -235,7 +235,7 @@ object CFGGenerator {
   }
 
   private def parameterToVariable(parameter:parser.Parameter):Variable = {
-    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter.pos)
+    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
     val id : Identifier = parameterToVariableIdentifier(parameter)
     Variable(programPoint,id)
   }
@@ -243,7 +243,7 @@ object CFGGenerator {
   private def parameterToVariableIdentifier(parameter:parser.Parameter):VariableIdentifier = {
     val name : String = parameter.ident
     val typ : Type = typeNameToType(parameter.typeName)
-    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter.pos)
+    val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
     VariableIdentifier(name,typ,programPoint)
   }
 
@@ -307,52 +307,6 @@ object CFGGenerator {
 
         newStatements = newStatements ::: expressionToStatement(expr) :: Nil
 
-//      case a@parser.AssignStatement(left,right) =>
-//
-//        if (left.size != 1) {
-//
-//          // Multiple return values are only allowed for local calls (code->bla) and userlib calls (libs->bla)
-//
-//          right match {
-//            case parser.Access(obj,prop,args) =>
-//              obj match {
-//                case parser.SingletonReference("code") => ()
-//                case parser.LibraryReference(_) => ()
-//                case _ => throw TouchException("Not allowed",statement.pos)
-//              }
-//              val pc = mkTouchProgramPoint(left.head.pos)
-//              val typ = TouchTuple(left map {case x:parser.LValue => typeNameToType(x.typeName)})
-//              val ident = VariableIdentifier(tupleIdent(pc),typ,pc)
-//              newStatements = newStatements ::: VariableDeclaration(mkTouchProgramPoint(statement.pos),
-//                Variable(pc,ident),typ,expressionToStatement(right)) :: Nil
-//              var x = 0
-//              for(l <- left) {
-//                x = x + 1
-//                newStatements = newStatements ::: Assignment(pc,
-//                  expressionToStatement(l), FieldAccess(pc, List(Variable(pc,ident)),"_"+x,typeNameToType(l.typeName)) ) :: Nil
-//              }
-//            case _ =>  throw TouchException("Not allowed",statement.pos)
-//          }
-//
-//        } else {
-//
-////          if (a.isVariableDeclaration) {
-////            val pc = mkTouchProgramPoint(left.head.pos)
-////            val ident = left.head match {
-////              case parser.LocalReference(x) =>
-////                VariableIdentifier(x,typeNameToType(left.head.typeName),pc)
-////              case parser.GlobalReference(x) =>
-////                VariableIdentifier(globalReferenceIdent(x),typeNameToType(left.head.typeName),pc)
-////            }
-////            newStatements = newStatements ::: VariableDeclaration(mkTouchProgramPoint(statement.pos),
-////              Variable(pc,ident),typeNameToType(left.head.typeName),expressionToStatement(right)) :: Nil
-////          } else {
-//            newStatements = newStatements ::: Assignment(mkTouchProgramPoint(statement.pos),
-//              expressionToStatement(left.head), expressionToStatement(right) ) :: Nil
-////          }
-//
-//        }
-
       case b@Box(body) =>
 
         // TODO: what else?
@@ -376,7 +330,7 @@ object CFGGenerator {
 
         val handlers = (for (InlineAction(handlerName,inParameters,outParameters,body) <- handlerDefs) yield {
           val handlerMethodName = handlerIdent(handlerName)
-          val programPoint : ProgramPoint = mkTouchProgramPoint(w.pos)
+          val programPoint : ProgramPoint = mkTouchProgramPoint(w)
           val modifiers : List[Modifier] = Nil
           val name : MethodIdentifier = TouchMethodIdentifier(handlerMethodName,isEvent = true,isPrivate = true)
           val parametricType : List[Type] = Nil
@@ -420,7 +374,7 @@ object CFGGenerator {
 
   private def expressionToStatement(expr:parser.Expression):Statement = {
 
-    val pc = mkTouchProgramPoint(expr.pos)
+    val pc = mkTouchProgramPoint(expr)
     if (expr == parser.SingletonReference("skip","Nothing")) return EmptyStatement(pc)
     if (expr == parser.SingletonReference("skip","Skip")) return EmptyStatement(pc)
 
@@ -432,8 +386,8 @@ object CFGGenerator {
         Variable(pc,VariableIdentifier(ident,typ,pc))
 
       case parser.Access(subject,property,args) =>
-        val field = FieldAccess(mkTouchProgramPoint(property.pos),List(expressionToStatement(subject)),property.ident,typeNameToType(subject.typeName))
-        MethodCall(mkTouchProgramPoint(property.pos),field,Nil,args map (expressionToStatement(_)),typ)
+        val field = FieldAccess(mkTouchProgramPoint(property),List(expressionToStatement(subject)),property.ident,typeNameToType(subject.typeName))
+        MethodCall(mkTouchProgramPoint(property),field,Nil,args map (expressionToStatement(_)),typ)
 
       case parser.Literal(t,value) =>
         if (t.ident == "Number" || t.ident == "Boolean" || t.ident == "String" || t.ident == "Handler") {
@@ -456,10 +410,10 @@ object CFGGenerator {
   def paramIdent(ident:String) = "*param "+ident
   def isParamIdent(ident:String) = ident.startsWith("*param ")
   def libraryIdent(ident:String) = "♻"+ident
-  def isLibraryIdent(ident:String) = ident.startsWith("♻")
+  def isLibraryIdent(ident:String) = ident.startsWith("♻") && ident.length() > 1
   def getLibraryName(ident:String) = ident.substring(1)
-  def returnIdent() = "*last return"
-  def isReturnIdent(ident:String) = ident.equals("*last return")
+  def returnIdent(ident:String) = "*returned "+ident
+  def isReturnIdent(ident:String) = ident.startsWith("*returned ")
 
 }
 
@@ -509,11 +463,11 @@ case class TouchClassIdentifier(name:String,typ:Type) extends Named with ClassId
   override def getName() = name
 }
 
-case class TouchProgramPoint(scriptID:String, pos:Position) extends ProgramPoint {
+case class TouchProgramPoint(scriptID:String, pos:String) extends ProgramPoint {
   def getScriptID:String = scriptID
-  def getLine() = pos.line
-  def getColumn() = pos.column
-  override def toString = "{"+getScriptID+","+pos.line+","+pos.column+"}"
+  def getLine() = 0
+  def getColumn() = 0
+  override def toString = "{"+getScriptID+","+pos+"}"
 }
 
 case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
@@ -607,19 +561,6 @@ class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Bo
   def getArrayElementsType() = None
 
 }
-
-object TouchTuple {
-  def apply(types:List[TouchType]):TouchTuple = {
-    var x = 0
-    val fields = for (typ <- types) yield {
-      x = x + 1
-      new TouchField("_"+x,typ)
-    }
-    TouchTuple(types.mkString(","),fields)
-  }
-}
-
-case class TouchTuple(name:String, fields:List[TouchField]) extends TouchType(name,false,true,fields)
 
 case class TouchCollection(name:String,keyType:String,valueType:String, fields: List[Identifier] = List.empty[Identifier], immutableCollection:Boolean = false) extends TouchType(name,false,immutableCollection,fields) {
 
