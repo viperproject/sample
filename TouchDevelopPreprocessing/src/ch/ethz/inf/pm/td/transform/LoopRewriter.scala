@@ -110,7 +110,7 @@ object LoopRewriter {
     pos(InlineAction(inlineAction.handlerName,inlineAction.inParameters,inlineAction.outParameters,(inlineAction.body map (apply _)).flatten))
   }
 
-  def annotateName(s1:String,s2:String) = "*"+s1+" "+s2
+  def annotateName(s1:String,s2:String) = "__"+s1+"_"+s2
   def pos[T <: Positional](posNew:T)(implicit defPos:Positional):T = { posNew.pos = defPos.pos; posNew }
 
 }

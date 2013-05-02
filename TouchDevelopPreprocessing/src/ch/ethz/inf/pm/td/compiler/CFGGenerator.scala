@@ -401,17 +401,17 @@ object CFGGenerator {
 
   }
 
-  def handlerIdent(ident:String) = "*handler "+ident
-  def isHandlerIdent(ident:String) = ident.startsWith("*handler ")
-  def globalReferenceIdent(ident:String) = "*data "+ident
-  def isGlobalReferenceIdent(ident:String) = ident.startsWith("*data ")
-  def paramIdent(ident:String) = "*param "+ident
-  def isParamIdent(ident:String) = ident.startsWith("*param ")
+  def handlerIdent(ident:String) = "__handler_"+ident
+  def isHandlerIdent(ident:String) = ident.startsWith("__handler_")
+  def globalReferenceIdent(ident:String) = "__data_"+ident
+  def isGlobalReferenceIdent(ident:String) = ident.startsWith("__data_")
+  def paramIdent(ident:String) = "__param_"+ident
+  def isParamIdent(ident:String) = ident.startsWith("__param_")
   def libraryIdent(ident:String) = "♻"+ident
   def isLibraryIdent(ident:String) = ident.startsWith("♻") && ident.length() > 1
   def getLibraryName(ident:String) = ident.substring(1)
-  def returnIdent(ident:String) = "*returned "+ident
-  def isReturnIdent(ident:String) = ident.startsWith("*returned ")
+  def returnIdent(ident:String) = "__returned_"+ident
+  def isReturnIdent(ident:String) = ident.startsWith("__returned_")
 
 }
 
