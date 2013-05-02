@@ -218,7 +218,11 @@ object Typer {
       case l@LocalReference(ident) =>
         is(st.resolveLocal(scope, ident, l.pos))
       case SingletonReference(singleton,typ) =>
-        is(TypeName(typ))
+        if (CFGGenerator.isLibraryIdent(typ)) {
+          is(TypeName("♻"))
+        } else {
+          is(TypeName(typ))
+        }
       case Literal(typ, _) =>
         is(typ)
     }
