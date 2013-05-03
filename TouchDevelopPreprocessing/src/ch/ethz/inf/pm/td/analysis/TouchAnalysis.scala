@@ -96,7 +96,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
             SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
           val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
           if(typ.getName() == "records")
-            if ( ! TouchAnalysisParameters.singleExecution ) {
+            if ( ! TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode) {
               curState = RichNativeSemantics.New[S](typ)(curState,singletonProgramPoint)
             } else {
               curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
@@ -118,7 +118,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
       curState = curState.createVariable(leftExpr,v.typ,v.programpoint)
 
       val rightVal =
-        if ( ! TouchAnalysisParameters.singleExecution ) {
+        if ( ! TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode) {
 
           // We analyze executions separately. In the first execution of the script, global fields are invalid
           // except for the obvious exception (art, read-only, primitives)
@@ -162,7 +162,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     }
 
     // The first fixpoint, which is computed over several executions of the same script
-    if ( ! TouchAnalysisParameters.singleExecution )
+    if ( ! TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode)
       lfp(curState, analyzeExecution(compiler,methods)(_:S))
     else
       analyzeExecution(compiler,methods)(curState)
@@ -171,10 +171,10 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     if (SystemParameters.property!=null) {
       val results = MethodSummaries.getSummaries.values map
         {(x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) => (x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])}
-      SystemParameters.propertyTimer.start();
+      SystemParameters.propertyTimer.start()
       SystemParameters.property.check(results.toList, output)
       SystemParameters.property.finalizeChecking(output)
-      SystemParameters.propertyTimer.stop();
+      SystemParameters.propertyTimer.stop()
     }
 
     // Print some html

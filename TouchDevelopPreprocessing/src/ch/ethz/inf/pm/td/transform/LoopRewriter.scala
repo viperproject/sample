@@ -24,11 +24,11 @@ import util.parsing.input.Positional
 
 object LoopRewriter {
 
-  def apply(s: Script): Script = Script(s.declarations map (apply _))
+  def apply(s: Script): Script = Script(s.declarations map (apply _),s.isLibrary)
 
   def apply(d: Declaration): Declaration = {
     d match {
-      case a@ActionDefinition(_, _, _, _, _) => a.copy(body = (a.body map (apply _)).flatten).copyPos(a)
+      case a@ActionDefinition(_, _, _, _, _, _) => a.copy(body = (a.body map (apply _)).flatten).copyPos(a)
       case _ => d
     }
   }
@@ -111,7 +111,12 @@ object LoopRewriter {
   }
 
   def annotateName(s1:String,s2:String) = "__"+s1+"_"+s2
-  def pos[T <: Positional](posNew:T)(implicit defPos:Positional):T = { posNew.pos = defPos.pos; posNew }
+
+  def pos[T <: IdPositional](posNew:T)(implicit defPos:IdPositional):T = {
+    posNew.pos = defPos.pos
+    posNew.setOptionalId(defPos.getId)
+    posNew
+  }
 
 }
 

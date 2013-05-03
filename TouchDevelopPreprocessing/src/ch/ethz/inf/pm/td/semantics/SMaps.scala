@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{State, ExpressionSet}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * User: lucas
@@ -53,7 +54,9 @@ class SMaps extends AAny {
       val List(center,search,zoom) = parameters // Location,String,Number
       Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open map",
         "Check if the device is connected to the internet before using the connection")
-      CheckInRangeInclusive[S](zoom,0,1,method,"zoom")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](zoom,0,1,method,"zoom")
+      }
       Skip
 
     case _ =>

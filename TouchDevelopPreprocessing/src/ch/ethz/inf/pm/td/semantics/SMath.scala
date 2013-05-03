@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 
 /**
  * User: lucas
@@ -187,18 +188,22 @@ class SMath extends AAny {
       Return[S](toRichExpression(0) ndTo (upperBound - 1))
 
     /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
+    case "rand norm" =>
+      Return[S](toRichExpression(0) ndTo toRichExpression(1-NumericalAnalysisConstants.epsilon))
+
+    /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
     case "random normalized" =>
-      Top[S](TNumber.typ) // TODO
+      Return[S](toRichExpression(0) ndTo toRichExpression(1-NumericalAnalysisConstants.epsilon))
 
     /** Rounds a number to the nearest integral value */
     case "round" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Return[S](x-0.5 ndTo x+0.5)
 
     /** Rounds a number to a specified number of fractional digits. */
     case "round with precision" =>
       val List(x,digits) = parameters // Number,Number
-      Top[S](TNumber.typ) // TODO
+      Return[S](x-0.5 ndTo x+0.5)
 
     /** Returns a value indicating the sign of a number */
     case "sign" =>
@@ -218,7 +223,7 @@ class SMath extends AAny {
     /** Returns the square root of a specified number */
     case "sqrt" =>
       val List(x) = parameters // Number
-      Error[S](x < 0, "Might compute the square root of a negative number")
+      Error[S](x < 0, "sqrt", "Might compute the square root of a negative number")
       Return[S]((0 ndTo x),(x ndTo 1)) // PRECISION: This is very rough
 
     /** Returns the tangent of the specified angle (in radians) */

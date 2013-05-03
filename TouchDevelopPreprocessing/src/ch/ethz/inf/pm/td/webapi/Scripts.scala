@@ -162,7 +162,7 @@ class ScriptSearch(query:String) extends Scripts {
 }
 
 class SampleScript extends Scripts {
-  override protected val service = "pboj/scripts"
+  override protected val service = "pboj/scripts?"
 
   override def getLabel() = "TouchDevelop sample scripts"
 }

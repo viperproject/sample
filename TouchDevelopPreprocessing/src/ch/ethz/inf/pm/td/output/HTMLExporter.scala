@@ -5,7 +5,7 @@ import java.io.{PrintWriter, BufferedWriter, FileWriter, File}
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import xml.Elem
-import ch.ethz.inf.pm.td.parser.PrettyPrinter
+import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter}
 
 /**
  * User: lucas
@@ -94,21 +94,33 @@ object HTMLExporter {
 
         pw.println(<h2>{id}</h2>)
         pw.println("<pre>" +
-          PrettyPrinter.applyWithPPPrinter(script)({curPP:ProgramPoint =>
+          PrettyPrinter.applyWithPPPrinter(script)({curPP:IdPositional =>
           (for ((message,pp) <- Reporter.seenErrors) yield {
-            if (curPP.equals(pp)) {
-              <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
-            } else ""
+            pp match {
+              case TouchProgramPoint(xScript,xPos) =>
+                if (xScript.equals(id) && curPP.getId.isDefined && xPos.equals(curPP.getId.get))
+                    <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
+                else ""
+              case _ => ""
+            }
           }).mkString("") +
           (for ((message,pp) <- Reporter.seenBottom) yield {
-            if (curPP.equals(pp)) {
-                <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
-            } else ""
+            pp match {
+              case TouchProgramPoint(xScript,xPos) =>
+                if (xScript.equals(id) && curPP.getId.isDefined && xPos.equals(curPP.getId.get))
+                    <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
+                else ""
+              case _ => ""
+            }
           }).mkString("") +
           (for ((message,pp) <- Reporter.seenImprecision) yield {
-            if (curPP.equals(pp)) {
-                <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
-            } else ""
+            pp match {
+              case TouchProgramPoint(xScript,xPos) =>
+                if (xScript.equals(id) && curPP.getId.isDefined && xPos.equals(curPP.getId.get))
+                    <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
+                else ""
+              case _ => ""
+            }
           }).mkString("")
         })
         + "</pre>")

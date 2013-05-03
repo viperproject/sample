@@ -19,7 +19,7 @@ object Matcher {
 
   def apply(decl:Declaration)(implicit onDeclaration : Declaration => Unit, onStatement : Statement => Unit, onExpression: Expression => Unit) {
     decl match {
-      case ActionDefinition(_,_,_,bd,_) => bd.foreach(apply _)
+      case ActionDefinition(_,_,_,bd,_,_) => bd.foreach(apply _)
       case _ => ()
     }
   }

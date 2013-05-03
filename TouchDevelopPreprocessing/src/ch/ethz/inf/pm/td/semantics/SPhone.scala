@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of phone
@@ -60,7 +61,9 @@ class SPhone extends AAny {
     /** Vibrates the phone for ... seconds (0.02 minimum) */
     case "vibrate" =>
       val List(seconds) = parameters // Number
-      Error[S](toRichExpression(seconds) < 0.02, "vibrate", "Given amount of seconds may be too small (must be >= 0.02)")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        Error[S](toRichExpression(seconds) < 0.02, "vibrate", "Given amount of seconds may be too small (must be >= 0.02)")
+      }
       Skip
 
     case _ =>

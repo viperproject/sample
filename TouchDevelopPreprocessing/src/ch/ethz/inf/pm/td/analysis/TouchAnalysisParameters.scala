@@ -24,7 +24,7 @@ object TouchAnalysisParameters {
   /**
    * Enable HTML output
    */
-  val exportAsHtml = false
+  val exportAsHtml = true
 
   /**
    * If this is enabled, only relevant fields (i.e. that are read in the program) of objects from the library will be
@@ -41,7 +41,7 @@ object TouchAnalysisParameters {
    *
    * EXPERIMENTAL
    */
-  val singleExecution = true
+  val singleExecution = false
 
   /**
    * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary number of event occurrences
@@ -51,7 +51,7 @@ object TouchAnalysisParameters {
    *
    * EXPERIMENTAL
    */
-  val singleEventOccurrence = true
+  val singleEventOccurrence = false
 
   /**
    *
@@ -60,7 +60,7 @@ object TouchAnalysisParameters {
    * That means, assume that they can be run by the user - analyze them separately with top entryState
    *
    */
-  val treatPrivateMethodLikePublicMethods = true
+  val treatPrivateMethodLikePublicMethods = false
 
   /**
    * Maximum number of possible string values represented for a single variable
@@ -79,5 +79,7 @@ object TouchAnalysisParameters {
   val localizeStateOnMethodCall = false
 
   val printAllLoopsInScript = false
+
+  val reportNoncriticalParameterBoundViolations = false
 
 }

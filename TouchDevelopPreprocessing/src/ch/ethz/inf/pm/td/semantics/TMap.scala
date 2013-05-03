@@ -4,6 +4,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * User: lucas
@@ -77,7 +78,9 @@ class TMap extends AAny {
     /** Sets the zoom level from 1 (earth) to 21 (street) */
     case "set zoom" =>
       val List(level) = parameters // Number
-      CheckInRangeInclusive[S](level,1,21,method,"level")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](level,1,21,method,"level")
+      }
       AssignField[S](this0,TMap.field_zoom,parameters.head)
 
     /** Changes the current zoom and center so that all the pushpins are visible. This method has no effect if the map is not posted on a the wall yet. */

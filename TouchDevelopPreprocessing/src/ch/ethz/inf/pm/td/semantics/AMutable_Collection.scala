@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
 import RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
+import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * A mutable collection with integer indices
@@ -37,7 +38,11 @@ abstract class AMutable_Collection extends ACollection {
     /** Inserts an element at position index. Does nothing if index is out of range. */
     case "insert at" =>
       val List(index,item) = parameters // Number,Element_Type
-      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+
+      if (index.getType().getName() == "Number")
+        CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+      else Reporter.hasImprecision("This map access is not checked",pp)
+
       CollectionInsert[S](this0,index,item)
 
     /** Gets a random element from the collection. Returns invalid if the collection is empty. */
@@ -52,7 +57,11 @@ abstract class AMutable_Collection extends ACollection {
     /** Removes the element at position index. */
     case "remove at" =>
       val List(index) = parameters // Number
-      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+
+      if (index.getType().getName() == "Number")
+        CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+      else Reporter.hasImprecision("This map access is not checked",pp)
+
       CollectionRemove[S](this0,index)
 
     /** Reverses the order of the elements. */
@@ -62,7 +71,11 @@ abstract class AMutable_Collection extends ACollection {
     /** Sets the i-th element */
     case "set at" =>
       val List(index,value) = parameters // Number,Element_Type
-      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+
+      if (index.getType().getName() == "Number")
+        CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+      else Reporter.hasImprecision("This map access is not checked",pp)
+
       CollectionUpdate[S](this0,index,value)
 
     case _ =>

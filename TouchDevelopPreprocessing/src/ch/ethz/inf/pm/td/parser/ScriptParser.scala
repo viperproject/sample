@@ -12,7 +12,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
   // Top Level and Meta Information
 
   lazy val script: PackratParser[Script] = positioned (
-    declaration.* ^^ (Script(_))
+    declaration.* ^^ (Script(_,false))
   )
 
   lazy val declaration: PackratParser[Declaration] = positioned (
@@ -28,8 +28,8 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val actionDefinition: PackratParser[Declaration] = positioned (
     ("action" ~ actionHeader ~ block | "event" ~ actionHeader ~ block) ^^ {
-      case "action"~a~b => ActionDefinition(a._1,a._2,a._3,b,false)
-      case "event"~a~b => ActionDefinition(a._1,a._2,a._3,b,true)
+      case "action"~a~b => ActionDefinition(a._1,a._2,a._3,b,false,false)
+      case "event"~a~b => ActionDefinition(a._1,a._2,a._3,b,true,false)
     }
   )
 

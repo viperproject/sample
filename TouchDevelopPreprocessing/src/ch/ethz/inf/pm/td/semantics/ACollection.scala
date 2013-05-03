@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
+import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * Represents a collection (this class contains common read operations. Extend AMutable_Collections to get write ops)
@@ -18,7 +19,9 @@ abstract class ACollection extends AAny {
     case "at" =>
       // FIXME: Some collections are indexed non-numerically
       val List(index) = parameters // Key_Type
-      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+      if (index.getType().getName() == "Number")
+        CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+      else Reporter.hasImprecision("This map access is not checked",pp)
       Return[S](CollectionAt[S](this0,index))
 
     /** Gets the i-th element */

@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of Sound
@@ -47,27 +48,35 @@ class TSound extends AAny {
     /** Plays the song with different volume (0 to 1), pitch (-1 to 1) and pan (-1 to 1). */
     case "play special" =>
       val List(volume,pitch,pan) = parameters // Number,Number,Number
-      CheckInRangeInclusive[S](volume,0,1,"play special","volume")
-      CheckInRangeInclusive[S](pitch,-1,1,"play special","pitch")
-      CheckInRangeInclusive[S](pan,-1,1,"play special","pan")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](volume,0,1,"play special","volume")
+        CheckInRangeInclusive[S](pitch,-1,1,"play special","pitch")
+        CheckInRangeInclusive[S](pan,-1,1,"play special","pan")
+      }
       Skip
 
     /** Sets the panning, ranging from -1.0 (full left) to 1.0 (full right). */
     case "set pan" =>
        val List(pan) = parameters // Number
-       CheckInRangeInclusive[S](pan,-1,1,"set pan","pan")
+       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+         CheckInRangeInclusive[S](pan,-1,1,"set pan","pan")
+       }
        super.forwardSemantics(this0,method,parameters,returnedType)
 
     /** Sets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */
     case "set pitch" =>
        val List(pitch) = parameters // Number
-       CheckInRangeInclusive[S](pitch,-1,1,"set pitch","pitch")
+       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+         CheckInRangeInclusive[S](pitch,-1,1,"set pitch","pitch")
+       }
        super.forwardSemantics(this0,method,parameters,returnedType)
 
     /** Sets the volume from 0 (silent) to 1 (full volume). */
     case "set volume" =>
        val List(v) = parameters // Number
-       CheckInRangeInclusive[S](v,0,1,"set volume","volume")
+       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+         CheckInRangeInclusive[S](v,0,1,"set volume","volume")
+       }
        super.forwardSemantics(this0,method,parameters,returnedType)
 
     case _ =>

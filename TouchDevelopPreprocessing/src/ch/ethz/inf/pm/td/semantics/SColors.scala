@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of colors
@@ -103,10 +104,12 @@ class SColors extends AAny {
     // Creates a color from the alpha, hue, saturation, brightness channels (0.0-1.0 range)
     case "from ahsb" =>
       val List(a,h,s,b) = parameters
-      CheckInRangeInclusive[S](a,0,1,"from ahsb","alpha")
-      CheckInRangeInclusive[S](h,0,1,"from ahsb","hue")
-      CheckInRangeInclusive[S](s,0,1,"from ahsb","saturation")
-      CheckInRangeInclusive[S](b,0,1,"from ahsb","brightness")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](a,0,1,"from ahsb","alpha")
+        CheckInRangeInclusive[S](h,0,1,"from ahsb","hue")
+        CheckInRangeInclusive[S](s,0,1,"from ahsb","saturation")
+        CheckInRangeInclusive[S](b,0,1,"from ahsb","brightness")
+      }
       Top[S](TColor.typ)
       // PRECISION: COMPUTE RGB
 //      New(TColor.typ,Map(
@@ -119,10 +122,12 @@ class SColors extends AAny {
     // Creates a color from the alpha, red, green, blue channels (0.0-1.0 range)
     case "from argb" =>
       val List(a,r,g,b) = parameters
-      CheckInRangeInclusive[S](a,0,1,"from argb","alpha")
-      CheckInRangeInclusive[S](r,0,1,"from argb","red")
-      CheckInRangeInclusive[S](g,0,1,"from argb","green")
-      CheckInRangeInclusive[S](b,0,1,"from argb","blue")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](a,0,1,"from argb","alpha")
+        CheckInRangeInclusive[S](r,0,1,"from argb","red")
+        CheckInRangeInclusive[S](g,0,1,"from argb","green")
+        CheckInRangeInclusive[S](b,0,1,"from argb","blue")
+      }
       Top[S](TColor.typ)
 //     New(TColor.typ,Map(
 //       TColor.field_A -> a,
@@ -134,9 +139,11 @@ class SColors extends AAny {
     // Creates a color from the hue, saturation, brightness channels (0.0-1.0 range)
     case "from hsb" =>
       val List(h,s,b) = parameters
-      CheckInRangeInclusive[S](h,0,1,"from hsb","hue")
-      CheckInRangeInclusive[S](s,0,1,"from hsb","saturation")
-      CheckInRangeInclusive[S](b,0,1,"from hsb","brightness")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](h,0,1,"from hsb","hue")
+        CheckInRangeInclusive[S](s,0,1,"from hsb","saturation")
+        CheckInRangeInclusive[S](b,0,1,"from hsb","brightness")
+      }
       Top[S](TColor.typ)
       // PRECISION: Compute RGB
 //     Top[S](TColor.typ,Map(
@@ -149,9 +156,11 @@ class SColors extends AAny {
     // Creates a color from the red, green, blue channels (0.0-1.0 range)
     case "from rgb" =>
       val List(r,g,b) = parameters
-      CheckInRangeInclusive[S](r,0,1,"from rgb","red")
-      CheckInRangeInclusive[S](g,0,1,"from rgb","green")
-      CheckInRangeInclusive[S](b,0,1,"from rgb","blue")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](r,0,1,"from rgb","red")
+        CheckInRangeInclusive[S](g,0,1,"from rgb","green")
+        CheckInRangeInclusive[S](b,0,1,"from rgb","blue")
+      }
       Top[S](TColor.typ)
 //      Top[S](TColor.typ,Map(
 //        TColor.field_A -> 1,
@@ -192,7 +201,9 @@ class SColors extends AAny {
     // Computes an intermediate color
     case "linear gradient" =>
       val List(colA,colB,frac) = parameters
-      CheckInRangeInclusive[S](frac,0,1,"linear gradient","fraction")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](frac,0,1,"linear gradient","fraction")
+      }
       Top[S](TColor.typ)
 //      val frac1 = toRichExpression(1) - frac
 //      val a = frac * Field[S](colA,TColor.field_A) + frac1 * Field[S](colB,TColor.field_A)

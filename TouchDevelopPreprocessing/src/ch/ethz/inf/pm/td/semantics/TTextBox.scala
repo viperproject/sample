@@ -4,6 +4,8 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.Reporter
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of TextBox
@@ -39,14 +41,18 @@ class TTextBox extends AAny {
       * extra extra large = 54, huge = 140 */
      case "set font size" =>
        val List(size) = parameters // Number
-       CheckInRangeInclusive[S](size,14,140,"set font size","size")
+       //if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+       // CheckInRangeInclusive[S](size,14,140,"set font size","size") THIS IS NOT VALID ANYMORE
+       //}
        super.forwardSemantics(this0,method,parameters,returnedType) // Handle setter
 
     /** Sets the icon picture (max 96 x 96) */
     case "set icon" =>
        val List(pic) = parameters // Picture
-       CheckInRangeInclusive[S](Field[S](pic,TPicture.field_width),0,96,"set icon","Icon Width")
-       CheckInRangeInclusive[S](Field[S](pic,TPicture.field_height),0,96,"set icon","Icon Height")
+       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+         CheckInRangeInclusive[S](Field[S](pic,TPicture.field_width),0,96,"set icon","Icon Width")
+         CheckInRangeInclusive[S](Field[S](pic,TPicture.field_height),0,96,"set icon","Icon Height")
+       }
        super.forwardSemantics(this0,method,parameters,returnedType) // Handle setter
 
     case _ =>

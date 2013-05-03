@@ -16,7 +16,7 @@ trait Typed {
 
 trait Scope
 
-case class Script (declarations:List[Declaration]) extends TouchPositional[Script]
+case class Script (declarations:List[Declaration], isLibrary:Boolean) extends TouchPositional[Script]
 
 sealed trait Declaration extends IdPositional with Scope
 
@@ -28,7 +28,8 @@ case class ActionDefinition(ident:String,
                             inParameters:List[Parameter],
                             outParameters:List[Parameter],
                             body:List[Statement],
-                            isEvent:Boolean)
+                            isEvent:Boolean,
+                            isPrivate:Boolean)
   extends Declaration
   with TouchPositional[ActionDefinition]
 
@@ -36,7 +37,8 @@ case class PageDefinition(ident:String,
                           inParameters:List[Parameter],
                           outParameters:List[Parameter],
                           initBody:List[Statement],
-                          displayBody:List[Statement])
+                          displayBody:List[Statement],
+                          isPrivate:Boolean)
   extends Declaration
   with TouchPositional[PageDefinition]
 
@@ -164,6 +166,7 @@ case class Identifier(ident:String) extends TouchPositional[Identifier] {
 
 trait IdPositional extends Positional {
 
+  def setOptionalId(x:Option[String])
   def getId:Option[String]
   def getPositionAsString:String
   def getPositionDescription:String
@@ -182,6 +185,8 @@ trait TouchPositional[T <: TouchPositional[T]] extends IdPositional {
   def copyPos(d:T):T = { pos = d.pos; id = d.id; this.asInstanceOf[T] }
 
   def setId(newId:String):T = { id = Some(newId); this.asInstanceOf[T] }
+
+  override def setOptionalId(x:Option[String]) { id = x }
 
   override def getId:Option[String] = id
 

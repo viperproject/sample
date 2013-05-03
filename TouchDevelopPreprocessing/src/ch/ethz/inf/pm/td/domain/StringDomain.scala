@@ -129,7 +129,14 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
         var curState = this
         if (a.isInstanceOf[Identifier] && right.isSingleton) curState = curState.add(a.asInstanceOf[Identifier],diff)
         if (b.isInstanceOf[Identifier] && left.isSingleton) curState = curState.add(b.asInstanceOf[Identifier],diff)
+        if (right.isSingleton && left.isSingleton && diff.isBottom) curState = curState.bottom()
         curState
+
+      // DE MORGAN
+      case NegatedBooleanExpression(BinaryBooleanExpression(left,right,op,typ)) => op match {
+        case BooleanOperator.|| => this.assume(NegatedBooleanExpression(left)).assume(NegatedBooleanExpression(right))
+        case BooleanOperator.&& => this.lub(this.assume(NegatedBooleanExpression(left)),this.assume(NegatedBooleanExpression(right)))
+      }
 
       // AND, OR
       case BinaryBooleanExpression(left,right,op,typ) => op match {

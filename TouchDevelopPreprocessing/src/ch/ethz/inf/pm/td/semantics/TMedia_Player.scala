@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of Media Player
@@ -120,7 +121,9 @@ class TMedia_Player extends AAny {
       val List(volume) = parameters // Number
       Error[S](Field[S](this0,TMedia_Player.field_is_volume_supported).not(),"set volume",
         "Trying to change the volume of a media play which might not be volume controllable")
-      CheckInRangeInclusive[S](volume,0,1,"set volume","volume level")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](volume,0,1,"set volume","volume level")
+      }
       AssignField[S](this0,TMedia_Player.field_volume,volume)
 
     /** Stops the current media if any. */

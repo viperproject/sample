@@ -30,9 +30,9 @@ object Typer {
 
   def addGlobals(scope: Script, st: SymbolTable, thing: Declaration) {
     thing match {
-      case a@ActionDefinition(name, inParameters, outParameters, body, isEvent) =>
+      case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st.addAction(name, inParameters, outParameters)
-      case PageDefinition(name, inParameters, outParameters, initBody, displayBody) =>
+      case PageDefinition(name, inParameters, outParameters, initBody, displayBody, isPrivate) =>
         st.addAction(name, inParameters, outParameters)
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
@@ -101,10 +101,10 @@ object Typer {
 
   def typeLocals(scope: Script, st: SymbolTable, thing: Declaration) {
     thing match {
-      case a@ActionDefinition(name, inParameters, outParameters, body, isEvent) =>
+      case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st(a) = ScopeSymbolTable(a, null, Map.empty) ++ inParameters ++ outParameters
         for (smt <- body) processStatement(a, st, smt)
-      case p@PageDefinition(name, inParameters, outParameters, initBody, displayBody) =>
+      case p@PageDefinition(name, inParameters, outParameters, initBody, displayBody, isPrivate) =>
         st(p) = ScopeSymbolTable(p, null, Map.empty) ++ inParameters ++ outParameters
         for (smt <- initBody) processStatement(p, st, smt)
         for (smt <- displayBody) processStatement(p, st, smt)
@@ -252,6 +252,8 @@ object Typer {
 
     if (types.length == 1) {
       is(types.head)
+    } else if (types.length == 0) {
+      is(TypeName("Nothing"))
     } else {
       is(TypeName("Unknown"))
     }

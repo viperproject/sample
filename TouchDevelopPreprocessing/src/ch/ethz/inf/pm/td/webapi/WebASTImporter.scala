@@ -39,25 +39,25 @@ object WebASTImporter {
   }
 
   def convert(jAST:JApp):Script = {
-    Script(jAST.decls map (convert _)).setId("")
+    Script(jAST.decls map (convert _),jAST.isLibrary).setId("")
   }
 
   def convert(jDecl:JDecl):Declaration = {
     jDecl match {
       case JArt(id,name,comment,typ,isReadonly,url) =>
-        VariableDefinition(Parameter(name,TypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString,"is resource" -> "true")).setId(id)
+        VariableDefinition(Parameter(name,TypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString,"is_resource" -> "true")).setId(id)
       case JData(id,name,comment,typ,isReadonly) =>
         VariableDefinition(Parameter(name,TypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString)).setId(id)
       case JPage(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,initBody,displayBody) =>
-        PageDefinition(name,inParameters map (convert _),outParameters map (convert _),initBody map (convert _),displayBody map (convert _)).setId(id)
+        PageDefinition(name,inParameters map (convert _),outParameters map (convert _),initBody map (convert _),displayBody map (convert _),isPrivate).setId(id)
       case JEvent(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,eventName,eventVariableId,body) =>
-        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = true).setId(id)
+        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = true,isPrivate = isPrivate).setId(id)
       case JLibrary(id,name,libIdentifier,libIsPublished,exportedTypes,exportedActions,resolveClauses) =>
         LibraryDefinition(name,libIdentifier,exportedActions map (convert _),resolveClauses map (convert _)).setId(id)
       case JRecord(id,name,comment,category,isCloudEnabled,keys,fields) =>
         TableDefinition(name,category,keys map (convert _),fields map (convert _)).setId(id)
       case JAction(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,body) =>
-        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = false).setId(id)
+        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = false,isPrivate = isPrivate).setId(id)
     }
   }
 

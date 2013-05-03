@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of tags
@@ -32,7 +33,9 @@ class STags extends AAny {
     case "tag text" =>
       val List(text,size,bw) = parameters // String,Number,Boolean
       // TODO: Add check for text size
-      CheckInRangeInclusive[S](size,0.75,5,"tag url","size")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](size,0.75,5,"tag url","size")
+      }
       New[S](TPicture.typ,Map(
         TPicture.field_width -> toRichExpression(601),
         TPicture.field_height -> toRichExpression(601)
@@ -42,7 +45,9 @@ class STags extends AAny {
     case "tag url" =>
       val List(url,size,bw) = parameters // String,Number,Boolean
       // TODO: Add check for text size
-      CheckInRangeInclusive[S](size,0.75,5,"tag url","size")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](size,0.75,5,"tag url","size")
+      }
       New[S](TPicture.typ,Map(
         TPicture.field_width -> toRichExpression(601),
         TPicture.field_height -> toRichExpression(601)

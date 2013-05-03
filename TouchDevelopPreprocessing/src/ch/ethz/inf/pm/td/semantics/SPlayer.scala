@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of player
@@ -110,7 +111,9 @@ class SPlayer extends AAny {
     /** Sets the sound volume level from 0 (silent) to 1 (current volume) */
     case "set sound volume" =>
       val List(x) = parameters // Number
-      CheckInRangeInclusive[S](x,0,1,"set sound volume","volume level")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](x,0,1,"set sound volume","volume level")
+      }
       super.forwardSemantics(this0,method,parameters,returnedType)
 
     /** Stops playing a song */

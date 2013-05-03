@@ -49,7 +49,7 @@ class TPrinter extends AAny {
     /** Queues a job to print the text. */
     case "print text" =>
       val List(text) = parameters // String
-      Error[S](Field[S](this0,TPrinter.field_is_stopped),"Check if printer is stopped before printing")
+      Error[S](Field[S](this0,TPrinter.field_is_stopped),"print text", "Check if printer is stopped before printing")
       Skip
 
     case _ =>

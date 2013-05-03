@@ -42,7 +42,7 @@ class STime extends AAny {
     /** Aborts the execution if the condition is false. */
     case "fail if not" =>
       val List(condition) = parameters // Boolean
-      Error[S](condition.not(),"fail if not "+condition+" might fail")
+      Error[S](condition.not(),"fail if not","fail if not "+condition+" might fail")
       Skip
 
     /** Appends this message to the debug log. Does nothing when the script is published. */
@@ -60,7 +60,7 @@ class STime extends AAny {
       Skip
 
     /** Stops the execution and stays on the wall. */
-    // case "stop" => 
+    // case "stop" =>
     //   Skip;
 
     /** Stops the execution and leaves the wall. */

@@ -42,6 +42,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var relevantLibraryFields : Set[String] = Set.empty
   var userTypes : Map[String,AAny] = Map.empty
 
+  var isInLibraryMode = false
+
   /**
    * This takes one of the following arguments:
    *
@@ -98,6 +100,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     for (lib <- libDefs; if (!parsedNames.contains(lib.name) && !lib.pubID.isEmpty)) {
       compileStringRecursive(None,lib.pubID,Some(lib))
     }
+
+    isInLibraryMode = script.isLibrary
 
     newCFG
   }
@@ -225,6 +229,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     parsedScripts = Nil
     parsedTouchScripts = Map.empty
     userTypes = Map.empty
+    isInLibraryMode = false
   }
 
 

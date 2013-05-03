@@ -274,7 +274,7 @@ object RichNativeSemantics {
         val res = MethodSummaries.collect(pp,clazz,methodDef,state,parameters)
         res
       case _ =>
-        Reporter.reportImprecision("Could not find this method "+method,pp)
+        Reporter.reportImprecision("Could not find method "+method,pp)
         state.top()
     }
   }

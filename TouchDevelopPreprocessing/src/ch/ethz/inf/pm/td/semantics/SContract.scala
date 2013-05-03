@@ -31,13 +31,13 @@ class SContract extends AAny {
     /** Specifies a precondition contract for the action; if the condition is false, execution fails. Does nothing for published scripts. */
     case "requires" =>
       val List(condition,message) = parameters // Boolean,String
-       Error[S](condition.not(), "Precondition "+condition+" does not hold!")
+       Error[S](condition.not(), "requires", "Precondition "+condition+" does not hold!")
        Skip
 
     /** Checks for a condition; if the condition is false, execution fails. Does nothing for published scripts. */
     case "assert" =>
        val List(condition,message) = parameters // Boolean,String
-       Error[S](condition.not(), "Assertion "+condition+" does not hold!")
+       Error[S](condition.not(), "assert", "Assertion "+condition+" does not hold!")
        Skip
 
     case _ =>

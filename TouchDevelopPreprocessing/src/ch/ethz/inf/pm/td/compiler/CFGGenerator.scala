@@ -207,10 +207,10 @@ object CFGGenerator {
   private def findMethods(script:parser.Script,ownerType:Type):List[MethodDeclaration] = {
     (for (dec <- script.declarations) yield {
       dec match {
-        case act@parser.ActionDefinition(ident,in,out,body,isEvent) =>
+        case act@parser.ActionDefinition(ident,in,out,body,isEvent,isPriv) =>
           val programPoint : ProgramPoint = mkTouchProgramPoint(act)
           val modifiers : List[Modifier] = Nil
-          val isPrivate = (body find {case MetaStatement("private",_) => true; case _ => false}) != None
+          val isPrivate = isPriv || ((body find {case MetaStatement("private",_) => true; case _ => false}) != None)
           val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=isEvent,isPrivate=isPrivate)
           val parametricType : List[Type] = Nil
           val arguments : List[List[VariableDeclaration]] =
@@ -218,6 +218,19 @@ object CFGGenerator {
           val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
           val (_,_,handlers) = addStatementsToCFG(body,newBody)
+          val preCond : Statement = null
+          val postCond : Statement = null
+          handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
+        case act@parser.PageDefinition(ident,in,out,initBody,displayBody,isPriv) =>
+          val programPoint : ProgramPoint = mkTouchProgramPoint(act)
+          val modifiers : List[Modifier] = Nil
+          val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=false,isPrivate=isPriv)
+          val parametricType : List[Type] = Nil
+          val arguments : List[List[VariableDeclaration]] =
+            List(in map (parameterToVariableDeclaration _), out map (parameterToVariableDeclaration _))
+          val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
+          val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
+          val (_,_,handlers) = addStatementsToCFG(initBody ::: displayBody,newBody)
           val preCond : Statement = null
           val postCond : Statement = null
           handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
