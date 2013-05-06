@@ -376,7 +376,8 @@ object CFGGenerator {
         newStatements = newStatements ::: List(newExpression)
         newHandlers = newHandlers ::: handlers
 
-      case _ => throw TouchException("Invalid statement",statement.pos)
+      case _ =>
+        throw TouchException("Invalid statement",statement.pos)
 
     }
 

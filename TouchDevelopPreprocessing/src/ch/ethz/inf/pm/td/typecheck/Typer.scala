@@ -129,7 +129,7 @@ object Typer {
       case s@WhereStatement(expr, handlers) =>
         for (h <- handlers) {
           st(s) = ScopeSymbolTable(s, scope, Map.empty) ++ h.inParameters ++ h.outParameters
-          st(scope) = st(scope) + (h.handlerName -> TypeName("Action"))
+          st(scope) = st(scope) + (h.handlerName -> inParametersToActionType(h.inParameters))
           for (smt <- h.body) processStatement(s, st, smt)
         }
         processMultiValExpression(scope, st, expr)
@@ -137,6 +137,20 @@ object Typer {
         processMultiValExpression(scope, st, expr)
       case _ => Unit
     }
+  }
+
+  private def inParametersToActionType(params:List[Parameter]):TypeName = {
+    TypeName(params match {
+      case Nil => "Action"
+      case List(Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number"))) => "Position Action"
+      case List(Parameter(_,TypeName("String"))) => "Text Action"
+      case List(Parameter(_,TypeName("Sprite"))) => "Sprite Action"
+      case List(Parameter(_,TypeName("Sprite Set"))) => "Sprite Set Action"
+      case List(Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number"))) => "Vector Action"
+      case List(Parameter(_,TypeName("Web Response"))) => "Web Response Action"
+      case List(Parameter(_,TypeName("Message Collection"))) => "Message Collection Action"
+      case _ => println("Unknown action type, falling back to Action"); "Action"
+    })
   }
 
   def processExpression(scope: Scope, st: SymbolTable, expr: Expression): TypeName = {
