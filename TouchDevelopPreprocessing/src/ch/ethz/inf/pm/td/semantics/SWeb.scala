@@ -118,13 +118,11 @@ class SWeb extends AAny {
 
     /** Returns an empty json array */
     case "json array" =>
-      // TODO: Enforce empty, array etc.
-      New[S](TJson_Object.typ)
+      New[S](TJson_Object.typ, Map(TJson_Object.field_kind -> String("array")))
 
     /** Returns an empty json object */
     case "json object" =>
-      // TODO: Enforce empty, object etc.
-      New[S](TJson_Object.typ)
+      New[S](TJson_Object.typ, Map(TJson_Object.field_kind -> String("object")))
 
     /** Creates a multi-scale image from an image url */
     case "link deep zoom" =>
@@ -252,6 +250,25 @@ class SWeb extends AAny {
     case "xml" =>
       val List(value) = parameters // String
       Top[S](TXml_Object.typ) // TODO
+
+    /** Creates a json builder */
+    case "create json builder" =>
+      val List() = parameters //
+      New[S](TJson_Builder.typ)
+
+    /** Parses a Command Separated Values document into a JsonObject where the `headers` is a string array of column names; `records` is an array of rows where each row is itself an array of strings. The delimiter is inferred if not specified. */
+    case "csv" =>
+      val List(text,delimiter) = parameters // String,String
+      TopWithInvalid[S](TJson_Object.typ)
+
+    /** Authenticate with OAuth 2.0 and receives the access token or error. See [](/oauthv2) for more information on which Redirect URI to choose. */
+    case "oauth v2" =>
+      val List(oauth_url) = parameters // String
+      Top[S](TOAuth_Response.typ)
+
+    /** Create a form builder */
+    case "create form builder" =>
+      New[S](TForm_Builder.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

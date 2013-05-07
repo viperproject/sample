@@ -86,6 +86,10 @@ class SColors extends AAny {
 //        TColor.field_B -> 1
 //      ))
 
+
+    case "equals" =>
+      Top[S](TBoolean.typ)
+
     // Gets the color that has the ARGB value of #FFA9A9A9
     case "dark gray" => Top[S](TColor.typ)
 //     New(TColor.typ,Map(

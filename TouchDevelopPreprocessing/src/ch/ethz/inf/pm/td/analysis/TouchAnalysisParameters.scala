@@ -14,7 +14,7 @@ object TouchAnalysisParameters {
    *
    * Is that function called from a different function which might pass an invalid value, this error is still reported.
    */
-  val argumentsToPublicMethodsValid = false
+  val argumentsToPublicMethodsValid = true
 
   /**
    * Context-sensitivity in the interprocedural analysis.
@@ -81,5 +81,7 @@ object TouchAnalysisParameters {
   val printAllLoopsInScript = false
 
   val reportNoncriticalParameterBoundViolations = false
+
+  val reportDummyImplementations = false
 
 }

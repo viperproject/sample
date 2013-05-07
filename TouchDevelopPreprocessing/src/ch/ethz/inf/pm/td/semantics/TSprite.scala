@@ -33,6 +33,11 @@ object TSprite {
   val field_y = new TouchField("y", TNumber.typ)              // Gets the y position in pixels
   val field_z_index = new TouchField("z index",TNumber.typ)         // Gets the z-index of the sprite
 
+  val field_clip_left = new TouchField("clip left",TNumber.typ)
+  val field_clip_top = new TouchField("clip top",TNumber.typ)
+  val field_clip_width = new TouchField("clip width",TNumber.typ)
+  val field_clip_height = new TouchField("clip height",TNumber.typ)
+
   val typName = "Sprite"
   val typ = new TouchType(typName,isSingleton = false,fields = List(
       field_acceleration_x,
@@ -54,7 +59,11 @@ object TSprite {
       field_width,
       field_x,
       field_y,
-      field_z_index
+      field_z_index,
+      field_clip_left,
+      field_clip_top,
+      field_clip_width,
+      field_clip_height
   ))
 
 }
@@ -110,9 +119,14 @@ class TSprite extends AAny {
       AssignField[S](this0,TSprite.field_acceleration_y,vy)(curState,pp)
 
     /** Sets the clipping area for an image sprite (if it is an image sprite) */
-    //case "set clip" =>
-    //  val List(left,top,width,height) = parameters // Number,Number,Number,Number
-    //  Skip; // TODO
+    case "set clip" =>
+      val List(left,top,width,height) = parameters // Number,Number,Number,Number
+      var curState = state
+      curState = AssignField[S](this0,TSprite.field_clip_left,left)(curState,pp)
+      curState = AssignField[S](this0,TSprite.field_clip_top,top)(curState,pp)
+      curState = AssignField[S](this0,TSprite.field_clip_width,width)(curState,pp)
+      curState = AssignField[S](this0,TSprite.field_clip_height,height)(curState,pp)
+      Skip
 
     /** Sets the position in pixels */
     case "set pos" =>

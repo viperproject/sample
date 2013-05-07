@@ -53,6 +53,7 @@ class SInvalid extends AAny {
     case "number" => Return(Invalid(TNumber.typ)) 	     	                                                                              // Creates an invalid Number instance
     case "number collection" => Return(Invalid(TNumber_Collection.typ)) 	     	                                                        // Creates an invalid Number Collection instance
     case "number map" => Return(Invalid(TNumber_Map.typ)) 	     	                                                                      // Creates an invalid Number Map instance
+    case "oauth response" => Return(Invalid(TOAuth_Response.typ))
     case "page" => Return(Invalid(TPage.typ)) 	     	                                                                                  // Creates an invalid Page instance
     case "page button" => Return(Invalid(TPage_Button.typ)) 	     	                                                                    // Creates an invalid Page Button instance
     case "page collection" => Return(Invalid(TPage_Collection.typ)) 	     	                                                            // Creates an invalid Page Collection instance

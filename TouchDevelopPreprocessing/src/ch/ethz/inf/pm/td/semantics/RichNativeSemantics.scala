@@ -352,6 +352,8 @@ object RichNativeSemantics {
 
   /*-- Skipping --*/
 
+  def Exit[S <: State[S]](implicit state:S, pp:ProgramPoint): S = MethodSummaries.collectExit[S](state)
+
   def Skip[S <: State[S]](implicit state:S, pp:ProgramPoint): S = state.removeExpression()
 
   def Unimplemented[S <: State[S]](method:String)(implicit state:S, pp:ProgramPoint): S = {

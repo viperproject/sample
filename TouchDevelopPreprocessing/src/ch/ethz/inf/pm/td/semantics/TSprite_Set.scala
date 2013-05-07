@@ -35,6 +35,9 @@ class TSprite_Set extends AMutable_Collection {
     //  val List(old_set,sprite) = parameters // Sprite_Set,Sprite
     //  New[S](TBoolean.typ) // TODO
 
+    case "contains" =>
+      Top[S](TBoolean.typ)
+
     case "index of" =>
       val List(item) = parameters
       Return[S](0 ndTo CollectionSize[S](this0))

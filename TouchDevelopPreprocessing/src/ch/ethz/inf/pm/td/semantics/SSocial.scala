@@ -29,23 +29,17 @@ class SSocial extends AAny {
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
     /** Chooses a contact from the contact list */
-    // case "choose contact" =>
-    //   Top[S](TContact.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Chooses a contact from the contact list */
-    //   val field_choose_contact = new TouchField("choose contact",TContact.typ)
+    case "choose contact" =>
+      TopWithInvalid[S](TContact.typ) // Invalid value validated in Windows Phone version!
 
     /** Chooses an email from the contact list */
-    // case "choose email" =>
-    //   Top[S](TLink.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Chooses an email from the contact list */
-    //   val field_choose_email = new TouchField("choose email",TLink.typ)
+    case "choose email" =>
+      TopWithInvalid[S](TLink.typ) // Invalid value validated in Windows Phone version!
 
     /** Creates a new contact */
-    // case "create contact" =>
-    //   val List(nickname) = parameters // String
-    //   Top[S](TContact.typ)
+    case "create contact" =>
+      val List(nickname) = parameters // String
+      New[S](TContact.typ,Map(TContact.field_nick_name -> nickname))
 
     /** Creates a message to share */
     case "create message" =>
@@ -79,19 +73,19 @@ class SSocial extends AAny {
       ))
 
     /** Saves a new contact */
-    // case "save contact" =>
-    //  val List(contact) = parameters // Contact
-    //  Skip
+    case "save contact" =>
+      val List(contact) = parameters // Contact
+      Skip
 
     /** Allows the user to save the email address (email) */
-    // case "save email" =>
-    //   val List(email_address) = parameters // String
-    //   Skip;
+    case "save email" =>
+      val List(email_address) = parameters // String
+      Skip
 
     /** Searches for recent messages in a social network (twitter, facebook) */
-    // case "search" => 
-    //   val List(network,terms) = parameters // String,String
-    //   Top[S](TMessage_Collection.typ)
+    case "search" =>
+      val List(network,terms) = parameters // String,String
+      TopWithInvalid[S](TMessage_Collection.typ)
 
     /** Searches for appointments in a given time range */
     case "search appointments" =>
@@ -99,9 +93,9 @@ class SSocial extends AAny {
       Top[S](TAppointment_Collection.typ)
 
     /** Searches for contacts by name. */
-    // case "search contacts" =>
-    //   val List(prefix) = parameters // String
-    //   Top[S](TContact_Collection.typ)
+    case "search contacts" =>
+      val List(prefix) = parameters // String
+      Top[S](TContact_Collection.typ)
 
     /** Searches for places nearby. The distance is in meters. */
     case "search places nearby" =>

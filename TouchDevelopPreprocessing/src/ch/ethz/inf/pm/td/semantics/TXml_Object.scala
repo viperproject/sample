@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.Reporter
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of Xml Object
@@ -56,7 +57,8 @@ class TXml_Object extends ACollection {
     /** Gets a first child element matching the fully qualified name */
     case "child" =>
       val List(name) = parameters // String
-      Reporter.reportImprecision("Xml Object.child is a dummy",pp)
+      if(TouchAnalysisParameters.reportDummyImplementations)
+        Reporter.reportImprecision("Xml Object.child is a dummy",pp)
       TopWithInvalid[S](TXml_Object.typ,Map(
         TXml_Object.field_is_element -> False
       ))
@@ -64,7 +66,8 @@ class TXml_Object extends ACollection {
     /** Gets a collection of child element matching the fully qualified name */
     case "children" =>
       val List(name) = parameters // String
-      Reporter.reportImprecision("Xml Object.children is a dummy",pp)
+      if(TouchAnalysisParameters.reportDummyImplementations)
+        Reporter.reportImprecision("Xml Object.children is a dummy",pp)
       TopWithInvalid[S](TXml_Object.typ,Map(
         TXml_Object.field_is_element -> False
       ))
@@ -72,7 +75,8 @@ class TXml_Object extends ACollection {
     /** Creates a qualified full name from the namespace and local name */
     case "create name" =>
       val List(local_name,namespace_uri) = parameters // String,String
-      Reporter.reportImprecision("Xml Object.create name is a dummy",pp)
+      if(TouchAnalysisParameters.reportDummyImplementations)
+        Reporter.reportImprecision("Xml Object.create name is a dummy",pp)
       Top[S](TString.typ)
 
     /** Gets the full name of this element */

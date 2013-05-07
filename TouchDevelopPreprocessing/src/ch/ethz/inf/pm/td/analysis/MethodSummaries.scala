@@ -35,6 +35,11 @@ object MethodSummaries {
   private var entries:Map[ProgramPoint,_] = Map.empty
 
   /**
+   * Stores exit states at positions which end the script prematurely
+   */
+  private var abnormalExits:Option[State[_]] = None
+
+  /**
    *
    * This updates the summary of a method. If our current summary is not general enough,
    * this will reanalyze the method.
@@ -105,9 +110,43 @@ object MethodSummaries {
 
     result
   }
+
+  /**
+   * Collect the exit state of a stopped script somewhere in the middle of the script, due to
+   */
+  def collectExit[S <: State[S]](exitState:S):S = {
+
+    var curState = exitState
+
+    curState = curState.pruneVariables({
+      id:VariableIdentifier =>
+        !id.getType().asInstanceOf[TouchType].isSingleton &&
+        !CFGGenerator.isGlobalReferenceIdent(id.toString())
+    })
+    curState = curState.pruneUnreachableHeap()
+
+    abnormalExits = abnormalExits match {
+      case Some(x) => Some(curState.lub(x.asInstanceOf[S],curState))
+      case None => Some(curState)
+    }
+
+    curState.bottom()
+
+  }
+
+  def joinAbnormalExits[S <: State[S]](s:S):S = {
+
+    abnormalExits match {
+      case None => s
+      case Some(x) => s.lub(s,x.asInstanceOf[S])
+    }
+
+  }
+
   def reset[S <: State[S]]() {
     summaries = Map.empty[ProgramPoint,(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[S])]
     entries = Map.empty[ProgramPoint,S]
+    abnormalExits = None
   }
 
   def getSummaries = summaries

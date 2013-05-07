@@ -60,8 +60,8 @@ class STime extends AAny {
       Skip
 
     /** Stops the execution and stays on the wall. */
-    // case "stop" =>
-    //   Skip;
+    case "stop" =>
+      Exit[S]
 
     /** Stops the execution and leaves the wall. */
      case "stop and close" =>

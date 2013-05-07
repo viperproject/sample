@@ -39,7 +39,7 @@ object TJson_Object {
 
 }
 
-class TJson_Object extends ACollection {
+class TJson_Object extends AMutable_Collection {
 
   def getTyp = TJson_Object.typ
 

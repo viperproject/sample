@@ -153,7 +153,6 @@ class TDateTime extends AAny {
     /** Computes the difference between date-times in seconds */
     case "subtract" =>
       val List(value) = parameters // DateTime
-      Reporter.reportImprecision("DateTime.subtract is a dummy",pp)
       Top[S](TNumber.typ)
 
     /** Converts to the local time */

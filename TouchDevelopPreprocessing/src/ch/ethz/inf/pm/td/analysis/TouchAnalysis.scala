@@ -205,11 +205,14 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     })
 
     // Compute the fixpoint over all events
-    val result = if ( ! TouchAnalysisParameters.singleEventOccurrence ) {
+    var result = if ( ! TouchAnalysisParameters.singleEventOccurrence ) {
       lfp(exitState,analyzeEvents(compiler,methods)(_:S))
     } else {
       analyzeEvents(compiler,methods)(exitState)
     }
+
+    // Join the the normal exit state with all abnormal exit states
+    result = MethodSummaries.joinAbnormalExits(result)
 
     result
   }

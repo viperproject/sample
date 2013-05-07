@@ -14,12 +14,12 @@ class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchT
 
     // This overrides the default "at" behavior of collections: Instead of returning "invalid" for a new key, we
     // create a new value of that key. Since we do not really track keys, we create a new object every times
+    // TODO: This does not work for multi-key indexes
     case "at" =>
-      val List(key) = parameters
       var curState = state
       curState = New[S](indexMemberType)(curState,pp)
-      curState = CollectionInsert[S](this0,key,curState.getExpression())(curState,pp)
-      Return[S](CollectionAt[S](this0,key)(curState,pp))(curState,pp)
+      curState = CollectionInsert[S](this0,parameters.head,curState.getExpression())(curState,pp)
+      Return[S](CollectionAt[S](this0,parameters.head)(curState,pp))(curState,pp)
 
     case "clear" =>
       CollectionClear[S](this0)
