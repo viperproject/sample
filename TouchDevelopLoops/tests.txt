@@ -353,7 +353,7 @@ action d2(a: Number) returns r: Number {
     $i := $i + 1; 
     $x := $x + $i;          
   }
-  $r := i;
+  $r := $i;
 }
 
 

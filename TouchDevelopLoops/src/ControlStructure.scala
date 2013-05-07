@@ -148,7 +148,8 @@ abstract class ControlStructure[S <: State[S]] (val parent: LoopCostInternal[S],
       c
       }
       catch {
-        case _ => null;
+        case e => e.printStackTrace()
+        null;
       }
     }
   }
@@ -191,7 +192,7 @@ abstract class ControlStructure[S <: State[S]] (val parent: LoopCostInternal[S],
       var i = 0
       for (p <- parameters) {
         if (i == index) {
-          result = p.name
+          result = NameEncoder.getSourceName(p.name)
           // replace node id by program point
           val id = result.substring(1, result.size).toInt
           val pp = parent.cfg.nodes(id).head.getPC()
@@ -200,7 +201,7 @@ abstract class ControlStructure[S <: State[S]] (val parent: LoopCostInternal[S],
         i += 1
       }
       for (v <- variables if v.initialValue == null && v.isParameter == false) {
-        if (i == index) result = v.name
+        if (i == index) result = NameEncoder.getSourceName(v.name)
         i += 1
       }
     if (result.isEmpty) result = c.toString

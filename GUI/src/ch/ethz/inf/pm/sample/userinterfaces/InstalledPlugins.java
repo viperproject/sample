@@ -1,5 +1,5 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
-import ch.ethz.inf.pm.sample.td.cost.loops.CostAnalysis;
+import ch.ethz.inf.pm.sample.td.cost.loops.*;
 import ch.ethz.inf.pm.sample.SystemParameters;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
@@ -9,8 +9,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
 import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
-import ch.ethz.inf.pm.sample.td.cost.loops.LoopCostCompiler;
-import ch.ethz.inf.pm.sample.td.cost.loops.RootScriptsWithLoops;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.analysis.*;
 import ch.ethz.inf.pm.td.webapi.*;
@@ -56,13 +54,15 @@ public class InstalledPlugins {
         heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
         heapanalyses[3]=new TVSHeap();
 
-        iterators = new IteratorOverPrograms[6];
+        iterators = new IteratorOverPrograms[8];
         iterators[0] = new TopScripts();
         iterators[1] = new NewScripts();
         iterators[2] = new FeaturedScripts();
         iterators[3] = new RootScripts();
         iterators[4] = new SampleScript();
         iterators[5] = new RootScriptsWithLoops();
+        iterators[6] = new RootSampleScriptsWithLoops();
+        iterators[7] = new TopRootScriptsWithLoops();
 
     }
 

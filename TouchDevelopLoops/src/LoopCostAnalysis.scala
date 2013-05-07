@@ -14,6 +14,8 @@ import ch.ethz.inf.pm.sample.ch.ethz.inf.pm.sample.td.cost.loops.PubsInterface
 
 class CostAnalysis[D <: NumericalDomain[D]] extends TouchAnalysisWithApron[D] {
 
+  override def reset() : Unit = NameEncoder.reset();
+
   override def getLabel(): String = "TouchDevelop loop cost analysis"
 
   override def parameters(): List[(String, Any)] = List(("Domain", List("ApronLinearEqualities")))
@@ -71,13 +73,16 @@ object LoopCostHelper {
     arguments = new mutable.HashSet[String]()
     for (list <- method.arguments) {
       for (argument <- list) {
-        arguments.add(argument.variable.getName())
+        arguments.add(NameEncoder.getVariableName(argument.variable.getName()))
       }
     }
   }
 
-  def isArgument(v: String) =
-    arguments.contains(v)  || (v.startsWith("Length") && v.length > 7 && v.charAt(7) != '{')
+  def isArgument(v: String) = {
+    val sourceName = NameEncoder.getSourceName(v);
+    arguments.contains(sourceName)  || (sourceName.startsWith("Length"))// && sourceName.length > 7 && sourceName.charAt(7) != '{')
+    //TODO: it is not acceptable to hard code this looking to Length or what else, find a better solution - e.g., var.isreadonly
+  }
 
 }
 
@@ -92,7 +97,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     debug
   ---------------------------------------------*/
 
-  val DEBUG = true   // if set to true, the input for PUBS is shown
+  val DEBUG = true // if set to true, the input for PUBS is shown
   val DEBUG_LINCON = true // if set to true, information about the linear constraints that we get from the numerical analysis is shown
 
   /*--------------------------------------------
@@ -502,7 +507,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
         while (count > oldCount) {
           oldCount = count
           for (i <- loop.variables if i.update == null) {
-            val iVar = i.name // the variable we are currently looking at
+            val iVar = i.sourceName // the variable we are currently looking at
             var list : List[String] = List.empty[String]
             for (v <- vars) {
               if (v != iVar && v != "old_" + iVar) list = v +: list
@@ -552,9 +557,9 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     while (count > oldCount) {
       oldCount = count
       for (i <- loop.variables if i.update != null && i.updateIncreasing == false) {
-        if (i.update.isIncUpdate(i.name, increasingVariables)) {
+        if (i.update.isIncUpdate(i.sourceName, increasingVariables)) {
           i.updateIncreasing = true
-          increasingVariables += i.name
+          increasingVariables += i.sourceName
         }
       }
       count = increasingVariables.size
@@ -567,9 +572,9 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     while (count > oldCount) {
       oldCount = count
       for (i <- loop.variables if i.update != null && i.updateDecreasing == false) {
-        if (i.update.isDecUpdate(i.name, decreasingVariables)) {
+        if (i.update.isDecUpdate(i.sourceName, decreasingVariables)) {
           i.updateDecreasing = true
-          decreasingVariables += i.name
+          decreasingVariables += i.sourceName
         }
       }
       count = decreasingVariables.size
@@ -595,7 +600,10 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
             // 1. check if we can use this lincons for finding the initial value of some variable
             var definedVariable : String = null // the variable whose value is defined by this lincons
             var linconOk = true // true iff definedVariable is unambiguous
-            for (v <- vars if (!l.getCoeff(v).isZero && !LoopCostHelper.isArgument(v) && loop.getVariable(v) != null)) {
+            for (v <- vars
+                 if (!l.getCoeff(v).isZero &&
+                   !LoopCostHelper.isArgument(NameEncoder.getVariableName(v)) &&
+                   loop.getVariable(NameEncoder.getVariableName(v)) != null)) {
               if (definedVariable != null) linconOk = false
               else definedVariable = v
             }
@@ -610,9 +618,9 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
                 }
               }
               val constant = new Rational(- getCst(l).toInt, iCoeff)
-              if (linconOk && loop.getVariable(definedVariable) != null) {
+              if (linconOk && loop.getVariable(NameEncoder.getVariableName(definedVariable)) != null) {
                 val iv = new LinearExpression(constant, coefficients)
-                loop.getVariable(definedVariable).initialValue = iv
+                loop.getVariable(NameEncoder.getVariableName(definedVariable)).initialValue = iv
               }
             }
           }

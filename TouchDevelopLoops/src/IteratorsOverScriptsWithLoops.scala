@@ -18,3 +18,15 @@ class RootScriptsWithLoops() extends RootScripts {
 
   override def getLabel() = "TouchDevelop root scripts with loops"
 }
+
+class RootSampleScriptsWithLoops extends RootScriptsWithLoops {
+  override protected val service = "pboj/scripts?"
+
+  override def getLabel() = "TouchDevelop root sample scripts with loops"
+}
+
+class TopRootScriptsWithLoops extends RootScriptsWithLoops {
+  override protected val service = "top-scripts?"
+
+  override def getLabel() = "TouchDevelop top root scripts with loops"
+}
