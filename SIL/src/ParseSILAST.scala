@@ -88,7 +88,7 @@ object ParseSILAST {
   private def parseVariableDeclaration(p : symbols.Variable) : VariableDeclaration = {
     val pp : ProgramPoint = this.parsePP(p.sourceLocation);
     val typ : Type = this.parseDataType(p.dataType)
-    val variable : ch.ethz.inf.pm.sample.oorepresentation.Variable = new ch.ethz.inf.pm.sample.oorepresentation.Variable(pp, new VariableIdentifier(p.name, typ, pp))
+    val variable : ch.ethz.inf.pm.sample.oorepresentation.Variable = new ch.ethz.inf.pm.sample.oorepresentation.Variable(pp, new VariableIdentifier(p.name, typ, pp, null))
     val right : ch.ethz.inf.pm.sample.oorepresentation.Statement = null
     return new VariableDeclaration(pp, variable, typ, right);
   }
@@ -97,7 +97,7 @@ object ParseSILAST {
   private def parseVariable(p : symbols.Variable) : ch.ethz.inf.pm.sample.oorepresentation.Variable = {
     val pp : ProgramPoint = this.parsePP(p.sourceLocation);
     val typ : Type = this.parseDataType(p.dataType)
-    return new ch.ethz.inf.pm.sample.oorepresentation.Variable(pp, new VariableIdentifier(p.name, typ, pp))
+    return new ch.ethz.inf.pm.sample.oorepresentation.Variable(pp, new VariableIdentifier(p.name, typ, pp, null))
   }
 
   private def parseDataType(p : DataType) : SILType = p match {

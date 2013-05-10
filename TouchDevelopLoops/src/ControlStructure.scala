@@ -148,6 +148,7 @@ abstract class ControlStructure[S <: State[S]] (val parent: LoopCostInternal[S],
       c
       }
       catch {
+        case e1 : StackOverflowError => throw e1;
         case e => e.printStackTrace()
         null;
       }

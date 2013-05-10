@@ -815,7 +815,7 @@ object InterfaceTestRun {
           while(t.isAlive && System.currentTimeMillis()-initialTime < timeout)
             this.wait(1000);
           while(t.isAlive) {
-            t.stop();
+            for(i <- 0 to 100) t.stop();
             System.out.println("Trying to stop a thread");
             this.wait(1000);
           }
