@@ -8,7 +8,7 @@ object ExpressionFactory {
 
  def createVariable(variable : Variable, ty : Type, pp : ProgramPoint): ExpressionSet= {
     var result = new ExpressionSet(ty)
-    result=result.add(new VariableIdentifier(variable.getName(), ty, pp))
+    result=result.add(new VariableIdentifier(variable.getName(), ty, pp, variable.id.scope))
     result
   }
 

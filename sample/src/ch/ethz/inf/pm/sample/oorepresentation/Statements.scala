@@ -190,8 +190,8 @@ case class VariableDeclaration(programpoint : ProgramPoint, val variable : Varia
     override def backwardSemantics[S <: State[S]](state : S) : S = {
       var st=state;
       if(right!=null)
-        st=new Assignment(programpoint, new Variable(programpoint, new VariableIdentifier(variable.getName(), typ, programpoint)), right).backwardSemantics[S](st);
-      return st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint));
+        st=new Assignment(programpoint, variable, right).backwardSemantics[S](st);
+      return st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint))
     }
 
     override def toString() : String = "declare "+ToStringUtilities.toStringIfNotNull(typ)+" "+variable.toString()+ToStringUtilities.assignedIfNotNull(right);
@@ -206,7 +206,7 @@ case class VariableDeclaration(programpoint : ProgramPoint, val variable : Varia
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class Variable(programpoint : ProgramPoint, val id : Identifier) extends Statement(programpoint) {
+case class Variable(programpoint : ProgramPoint, val id : VariableIdentifier) extends Statement(programpoint) {
 
   
     def getName() : String = id.toString;

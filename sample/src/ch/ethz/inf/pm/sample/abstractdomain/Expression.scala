@@ -278,6 +278,42 @@ abstract class Identifier(var typ : Type, pp : ProgramPoint) extends Expression(
   def representSingleVariable() : Boolean;
 }
 
+/**
+ * An identifier for identifying a scope
+ */
+trait ScopeIdentifier
+
+/**
+ * If you do not care about scopes
+ */
+case class EmptyScopeIdentifier() extends ScopeIdentifier {
+
+  override def hashCode() : Int = 0
+
+  override def equals(o : Any) = o match {
+    case EmptyScopeIdentifier() => true
+    case _ => false
+  }
+
+}
+
+/**
+ * Scopes identified by a program point, e.g. method-scope identified by program point of method declaration
+ *
+ * @param pp the program point of the beginning of the scope
+ */
+case class ProgramPointScopeIdentifier(pp:ProgramPoint) extends ScopeIdentifier {
+
+  override def hashCode() : Int = pp.hashCode()
+
+  override def equals(o : Any) = o match {
+    case ProgramPointScopeIdentifier(oPP) => pp.equals(oPP)
+    case _ => false
+  }
+
+}
+
+
 /** 
  * The identifier of a variable
  * 
@@ -286,22 +322,22 @@ abstract class Identifier(var typ : Type, pp : ProgramPoint) extends Expression(
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint) extends Identifier(typ1, pp) {
-	if(typ1==null) throw new Exception("The type of variables has to be specified");
+case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint, scope: ScopeIdentifier) extends Identifier(typ1, pp) {
+	if(typ1==null) throw new Exception("The type of variables has to be specified")
   override def getName() = name.toString
-  override def toString() = getName();
-  override def getField() = None;
-  override def hashCode() : Int = name.hashCode();
+  override def toString = getName()
+  override def getField() = None
+  override def hashCode() : Int = name.hashCode() + scope.hashCode()
   
-  //Variables always represent exactly one concrete identifier
-  override def representSingleVariable()=true;
+  // Variables always represent exactly one concrete identifier
+  override def representSingleVariable()=true
   
   override def equals(o : Any) = o match {
-    case VariableIdentifier(n, t, pp) => name.equals(n) //&& typ.equals(t)
+    case VariableIdentifier(n, _, _, s) => name.equals(n) && scope.equals(s)
     case _ => false
   }
 
-  def identifiers() : Set[Identifier] = Set(this);
+  def identifiers() : Set[Identifier] = Set(this)
 }
 
 /** 

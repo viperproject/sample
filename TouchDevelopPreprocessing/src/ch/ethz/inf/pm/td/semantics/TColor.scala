@@ -44,7 +44,7 @@ class TColor extends AAny {
 
     case "blend" => Top[S](TColor.typ)
     case "darken" => Top[S](TColor.typ)
-    case "equals" => Top[S](TColor.typ)
+    case "equals" => Top[S](TBoolean.typ)
     case "lighten" => Top[S](TColor.typ)
     case "make transparent" => Top[S](TColor.typ)
     case "A" => Return[S](0 ndTo 1)

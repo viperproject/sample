@@ -554,7 +554,7 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       case BinaryNondeterministicExpression(left, right, op, returnType) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
-        val identifier = new VariableIdentifier(label, expr.getType(), expr.getProgramPoint())
+        val identifier = new VariableIdentifier(label, expr.getType(), expr.getProgramPoint(), EmptyScopeIdentifier())
         (identifier, varL ::: varR ::: List((identifier, BinaryNondeterministicExpression(expL, expR, op, returnType))))
       case x: Expression => (x, Nil)
     }

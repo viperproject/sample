@@ -398,7 +398,7 @@ object RichNativeSemantics {
   def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
   def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("invalid",typ,pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("valid",typ,pp))
-  def Singleton(typ:Type)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(VariableIdentifier(typ.getName(),typ,pp))
+  def Singleton(typ:Type)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(VariableIdentifier(typ.getName(),typ,pp,EmptyScopeIdentifier()))
 
   /*-- Conversion --*/
 
@@ -423,7 +423,7 @@ object RichNativeSemantics {
 }
 
 class TouchField(name:String, val touchTyp:TouchType, var default: Initializer = NewInitializer(), val isSummaryNode:Boolean = false)
-  extends VariableIdentifier(name,touchTyp,null)
+  extends VariableIdentifier(name,touchTyp,null,EmptyScopeIdentifier())
 
 trait Initializer
 case class InvalidInitializer() extends Initializer

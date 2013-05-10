@@ -158,7 +158,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       var stringname : String = name.decode;
       while(stringname.charAt(stringname.length-1)==' ')
     	  stringname=stringname.substring(0, stringname.length-1);
-      new FieldDeclaration(new ScalaProgramPoint(program.pos),  extractModifiers(mods), new Variable(new ScalaProgramPoint(program.pos), new VariableIdentifier(stringname, new ScalaType(tpt.tpe), new ScalaProgramPoint(program.pos))), extractType(tpt), extractCFG(rhs) )
+      new FieldDeclaration(new ScalaProgramPoint(program.pos),  extractModifiers(mods), new Variable(new ScalaProgramPoint(program.pos), new VariableIdentifier(stringname, new ScalaType(tpt.tpe), new ScalaProgramPoint(program.pos), EmptyScopeIdentifier())), extractType(tpt), extractCFG(rhs) )
   }
 
   /**It collects the label defined during the program by LabelDef statements*/
@@ -261,9 +261,9 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
     	  else return (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
 
     case Ident(name) =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier(name decode, new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier(name decode, new ScalaType(body.tpe), new ScalaProgramPoint(body.pos), EmptyScopeIdentifier())) :: Nil , currentblock, true)
     case Super(qual, mix) =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("super", new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("super", new ScalaType(body.tpe), new ScalaProgramPoint(body.pos), EmptyScopeIdentifier())) :: Nil , currentblock, true)
     //TODO: I have to consider also qual and mix
     case Select(ArrayValue(elemtpt, trees), field) =>
       (cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractListCFG(trees), field decode, new ScalaType(elemtpt.tpe)) :: Nil , currentblock, true)
@@ -282,7 +282,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       (cfg, statementsUntilHere ::: new ConstantStatement(new ScalaProgramPoint(body.pos), value.stringValue, new ScalaType(value.tpe)) :: Nil , currentblock, true)
     //TODO: Support also other numerical type, not only int!
     case x : This =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("this", new ScalaType(x.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("this", new ScalaType(x.tpe), new ScalaProgramPoint(body.pos), EmptyScopeIdentifier())) :: Nil , currentblock, true)
     case New(tpt) => (
       cfg, statementsUntilHere ::: new oorepresentation.New(new ScalaProgramPoint(body.pos), extractType(tpt)) :: Nil , currentblock, true)
 
@@ -325,7 +325,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
   }
 
   private def extractVariableDefinition(definition : Tree) : VariableDeclaration = definition match {
-    case ValDef(mods, name, tpt, rhs) => new VariableDeclaration(new ScalaProgramPoint(definition.pos), new Variable(new ScalaProgramPoint(definition.pos), new VariableIdentifier(name.decode, extractType(tpt), new ScalaProgramPoint(definition.pos))), extractType(tpt), extractCFG(rhs) )
+    case ValDef(mods, name, tpt, rhs) => new VariableDeclaration(new ScalaProgramPoint(definition.pos), new Variable(new ScalaProgramPoint(definition.pos), new VariableIdentifier(name.decode, extractType(tpt), new ScalaProgramPoint(definition.pos), EmptyScopeIdentifier())), extractType(tpt), extractCFG(rhs) )
   }
 
   private def extractModifiers(mod : Modifiers) : List[Modifier] = {
@@ -504,7 +504,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
             	if(name.charAt(name.size-1).equals(' '))
             		name=name.substring(0, name.size-1);
             	if((! name.equals("_length")) && (! name.equals("$isInstanceOf")) && (! name.equals("$asInstanceOf")) )
-                result=result+(new VariableIdentifier(name, new ScalaType(typ), new ScalaProgramPoint(el.pos)));
+                result=result+(new VariableIdentifier(name, new ScalaType(typ), new ScalaProgramPoint(el.pos), EmptyScopeIdentifier()));
              }
             }
         }

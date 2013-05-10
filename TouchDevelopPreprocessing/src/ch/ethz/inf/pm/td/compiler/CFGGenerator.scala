@@ -7,7 +7,7 @@ import semantics._
 import util.parsing.input.Position
 import ch.ethz.inf.pm.sample.{oorepresentation, SystemParameters}
 import ch.ethz.inf.pm.sample.oorepresentation.Statement
-import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.td.parser.Parameter
 import ch.ethz.inf.pm.td.parser.TableDefinition
 import ch.ethz.inf.pm.td.semantics.NewInitializer
@@ -17,16 +17,40 @@ import scala.Some
 import ch.ethz.inf.pm.sample.oorepresentation.Variable
 import ch.ethz.inf.pm.sample.oorepresentation.ConstantStatement
 import ch.ethz.inf.pm.td.parser.ExpressionStatement
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
 import ch.ethz.inf.pm.sample.oorepresentation.EmptyStatement
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.sample.oorepresentation.Assignment
-import ch.ethz.inf.pm.sample.abstractdomain.Identifier
 import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
 import ch.ethz.inf.pm.td.parser.MetaStatement
 import ch.ethz.inf.pm.td.parser.Box
 import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.parser.TableDefinition
+import ch.ethz.inf.pm.td.semantics.NewInitializer
+import ch.ethz.inf.pm.td.parser.WhereStatement
+import ch.ethz.inf.pm.td.parser.InlineAction
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import scala.Some
+import ch.ethz.inf.pm.td.compiler.TouchPackageIdentifier
+import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
+import ch.ethz.inf.pm.td.parser.ExpressionStatement
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
+import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.parser.LibraryDefinition
+import ch.ethz.inf.pm.td.compiler.TouchProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.Identifier
+import ch.ethz.inf.pm.td.parser.MetaStatement
+import ch.ethz.inf.pm.td.parser.Box
+import ch.ethz.inf.pm.td.parser.Parameter
+import ch.ethz.inf.pm.td.compiler.TouchClassIdentifier
+import ch.ethz.inf.pm.sample.oorepresentation.Variable
+import ch.ethz.inf.pm.sample.oorepresentation.ConstantStatement
+import ch.ethz.inf.pm.td.compiler.TouchCollection
+import ch.ethz.inf.pm.sample.oorepresentation.EmptyStatement
+import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
+import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.sample.abstractdomain.Expression
 
 /**
  *
@@ -195,7 +219,7 @@ object CFGGenerator {
             case ("readonly","true") => Some(ReadOnlyModifier)
             case _ => None
           }).toList
-          val name : Variable = parameterToVariable(variable)
+          val name : Variable = parameterToVariable(variable,EmptyScopeIdentifier())
           val typ : Type = typeNameToType(variable.typeName)
           val right : Statement = null
           Some(new FieldDeclaration(programPoint,modifiers,name,typ,right))
@@ -209,28 +233,30 @@ object CFGGenerator {
       dec match {
         case act@parser.ActionDefinition(ident,in,out,body,isEvent,isPriv) =>
           val programPoint : ProgramPoint = mkTouchProgramPoint(act)
+          val scope : ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
           val modifiers : List[Modifier] = Nil
           val isPrivate = isPriv || ((body find {case MetaStatement("private",_) => true; case _ => false}) != None)
           val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=isEvent,isPrivate=isPrivate)
           val parametricType : List[Type] = Nil
           val arguments : List[List[VariableDeclaration]] =
-            List(in map (parameterToVariableDeclaration _), out map (parameterToVariableDeclaration _))
+            List(in map (parameterToVariableDeclaration(_,scope)), out map (parameterToVariableDeclaration(_,scope)))
           val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,handlers) = addStatementsToCFG(body,newBody)
+          val (_,_,handlers) = addStatementsToCFG(body,newBody,scope)
           val preCond : Statement = null
           val postCond : Statement = null
           handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
         case act@parser.PageDefinition(ident,in,out,initBody,displayBody,isPriv) =>
           val programPoint : ProgramPoint = mkTouchProgramPoint(act)
+          val scope : ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
           val modifiers : List[Modifier] = Nil
           val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=false,isPrivate=isPriv)
           val parametricType : List[Type] = Nil
           val arguments : List[List[VariableDeclaration]] =
-            List(in map (parameterToVariableDeclaration _), out map (parameterToVariableDeclaration _))
+            List(in map (parameterToVariableDeclaration(_,scope)), out map (parameterToVariableDeclaration(_,scope)))
           val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,handlers) = addStatementsToCFG(initBody ::: displayBody,newBody)
+          val (_,_,handlers) = addStatementsToCFG(initBody ::: displayBody,newBody,scope)
           val preCond : Statement = null
           val postCond : Statement = null
           handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
@@ -239,25 +265,25 @@ object CFGGenerator {
     }).flatten
   }
 
-  private def parameterToVariableDeclaration(parameter:parser.Parameter):VariableDeclaration = {
+  private def parameterToVariableDeclaration(parameter:parser.Parameter, scope:ScopeIdentifier):VariableDeclaration = {
     val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
-    val variable : Variable = parameterToVariable(parameter)
+    val variable : Variable = parameterToVariable(parameter,scope)
     val typ : Type = typeNameToType(parameter.typeName)
     val right : Statement = null
     VariableDeclaration(programPoint,variable,typ,right)
   }
 
-  private def parameterToVariable(parameter:parser.Parameter):Variable = {
+  private def parameterToVariable(parameter:parser.Parameter, scope:ScopeIdentifier):Variable = {
     val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
-    val id : Identifier = parameterToVariableIdentifier(parameter)
+    val id : VariableIdentifier = parameterToVariableIdentifier(parameter,scope)
     Variable(programPoint,id)
   }
 
-  private def parameterToVariableIdentifier(parameter:parser.Parameter):VariableIdentifier = {
+  private def parameterToVariableIdentifier(parameter:parser.Parameter, scope:ScopeIdentifier):VariableIdentifier = {
     val name : String = parameter.ident
     val typ : Type = typeNameToType(parameter.typeName)
     val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
-    VariableIdentifier(name,typ,programPoint)
+    VariableIdentifier(name,typ,programPoint,scope)
   }
 
   private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
@@ -266,7 +292,7 @@ object CFGGenerator {
     } else new TouchType(typeName.ident,isSingleton)
   }
 
-  private def addStatementsToCFG(statements:List[parser.Statement], cfg:ControlFlowGraph):(Int,Int,List[MethodDeclaration]) = {
+  private def addStatementsToCFG(statements:List[parser.Statement], cfg:ControlFlowGraph, scope:ScopeIdentifier):(Int,Int,List[MethodDeclaration]) = {
 
     val firstNode = cfg.addNode(Nil)
     var newStatements:List[Statement] = Nil
@@ -284,10 +310,10 @@ object CFGGenerator {
       case parser.If(condition,thenBody,elseBody) =>
 
         val nextNode = cfg.addNode(Nil)
-        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg)
+        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope)
 
-        val (thenStart,thenEnd,handlersThen) = addStatementsToCFG(thenBody, cfg)
-        val (elseStart,elseEnd,handlersElse) = addStatementsToCFG(elseBody, cfg)
+        val (thenStart,thenEnd,handlersThen) = addStatementsToCFG(thenBody, cfg, scope)
+        val (elseStart,elseEnd,handlersElse) = addStatementsToCFG(elseBody, cfg, scope)
 
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, thenStart, Some(true))
@@ -303,8 +329,8 @@ object CFGGenerator {
       case parser.While(condition,body) =>
 
         val nextNode = cfg.addNode(Nil)
-        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg)
-        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body, cfg)
+        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope)
+        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body, cfg, scope)
 
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, bodyStart, Some(true))
@@ -318,13 +344,13 @@ object CFGGenerator {
 
       case parser.ExpressionStatement(expr) =>
 
-        newStatements = newStatements ::: expressionToStatement(expr) :: Nil
+        newStatements = newStatements ::: expressionToStatement(expr,scope) :: Nil
 
       case b@Box(body) =>
 
         // TODO: what else?
         val nextNode = cfg.addNode(Nil)
-        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body,cfg)
+        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body,cfg, scope)
 
         cfg.addEdge(curNode, bodyStart, None)
         cfg.addEdge(bodyEnd, nextNode, None)
@@ -344,13 +370,15 @@ object CFGGenerator {
         val handlers = (for (InlineAction(handlerName,inParameters,outParameters,body) <- handlerDefs) yield {
           val handlerMethodName = handlerIdent(handlerName)
           val programPoint : ProgramPoint = mkTouchProgramPoint(w)
+          val scope = ProgramPointScopeIdentifier(programPoint)
           val modifiers : List[Modifier] = Nil
           val name : MethodIdentifier = TouchMethodIdentifier(handlerMethodName,isEvent = true,isPrivate = true)
           val parametricType : List[Type] = Nil
-          val arguments : List[List[VariableDeclaration]] = List(inParameters map (parameterToVariableDeclaration _),outParameters map (parameterToVariableDeclaration _))
+          val arguments : List[List[VariableDeclaration]] =
+            List(inParameters map (parameterToVariableDeclaration(_,scope)), outParameters map (parameterToVariableDeclaration(_,scope)))
           val returnType : Type = null
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,subHandlers) = addStatementsToCFG(body,newBody)
+          val (_,_,subHandlers) = addStatementsToCFG(body,newBody,scope)
           val preCond : Statement = null
           val postCond : Statement = null
           subHandlers ::: List(new MethodDeclaration(programPoint,SystemParameters.typ,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
@@ -367,7 +395,7 @@ object CFGGenerator {
                 }
               case e:parser.Expression => e
             }
-            expressionToStatement(parser.Access(obj,property,newArgs))
+            expressionToStatement(parser.Access(obj,property,newArgs),scope)
 
           case _  => throw TouchException("This where handler statement does not look like I expected it to look.")
 
@@ -386,7 +414,7 @@ object CFGGenerator {
 
   }
 
-  private def expressionToStatement(expr:parser.Expression):Statement = {
+  private def expressionToStatement(expr:parser.Expression, scope:ScopeIdentifier):Statement = {
 
     val pc = mkTouchProgramPoint(expr)
     if (expr == parser.SingletonReference("skip","Nothing")) return EmptyStatement(pc)
@@ -397,11 +425,11 @@ object CFGGenerator {
     expr match {
 
       case parser.LocalReference(ident) =>
-        Variable(pc,VariableIdentifier(ident,typ,pc))
+        Variable(pc,VariableIdentifier(ident,typ,pc,scope))
 
       case parser.Access(subject,property,args) =>
-        val field = FieldAccess(mkTouchProgramPoint(property),List(expressionToStatement(subject)),property.ident,typeNameToType(subject.typeName))
-        MethodCall(mkTouchProgramPoint(property),field,Nil,args map (expressionToStatement(_)),typ)
+        val field = FieldAccess(mkTouchProgramPoint(property),List(expressionToStatement(subject,scope)),property.ident,typeNameToType(subject.typeName))
+        MethodCall(mkTouchProgramPoint(property),field,Nil,args map (expressionToStatement(_,scope)),typ)
 
       case parser.Literal(t,value) =>
         if (t.ident == "Number" || t.ident == "Boolean" || t.ident == "String" || t.ident == "Handler") {
@@ -409,7 +437,7 @@ object CFGGenerator {
         } else throw new TouchException("Literals with type "+t.ident+" do not exist")
 
       case parser.SingletonReference(singleton,typ) =>
-        Variable(pc,VariableIdentifier(singleton,typeNameToType(expr.typeName,true),pc))
+        Variable(pc,VariableIdentifier(singleton,typeNameToType(expr.typeName,true),pc,EmptyScopeIdentifier()))
 
     }
 

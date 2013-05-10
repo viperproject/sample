@@ -174,6 +174,11 @@ class SBox extends AAny {
        val List(text,multiline) = parameters // String,Boolean
        Skip
 
+    /** Display editable text, with the given binding. */
+    case "edit" =>
+       val List(style,value,changehandler) = parameters // String,String,Text_Action
+      AssignField[S](this0,SBox.field_text_editing_handler,changehandler)
+
     /** Set what happens whenever the text in the box is being edited. */
     case "on text editing" =>
        val List(handler) = parameters // Text_Action

@@ -192,7 +192,7 @@ object MethodSummaries {
 
       // Initialize in-parameters to temporary variables
       val tempVars = for ((decl,value) <- inParameters.zip(parameters)) yield {
-        val tempVar = VariableIdentifier(CFGGenerator.paramIdent(decl.variable.id.toString),decl.typ,callPoint)
+        val tempVar = VariableIdentifier(CFGGenerator.paramIdent(decl.variable.id.toString),decl.typ,callPoint,ProgramPointScopeIdentifier(callTarget.programpoint))
         curState = curState.assignVariable(new ExpressionSet(tempVar.getType()).add(tempVar),value)
         tempVar
       }
@@ -259,7 +259,7 @@ object MethodSummaries {
 
     // Store returns in temporary variables
     val tempVars = for (outParam <- outParameters) yield {
-      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName()),outParam.typ,callPoint)
+      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName()),outParam.typ,callPoint,ProgramPointScopeIdentifier(callTarget.programpoint))
       val tempVarExpr = new ExpressionSet(tempVar.getType()).add(tempVar)
       curState = curState.assignVariable(tempVarExpr,new ExpressionSet(outParam.typ).add(outParam.variable.id))
       tempVar
@@ -276,9 +276,10 @@ object MethodSummaries {
     // Prune local state (except return values)
     curState = curState.pruneVariables({
       id:VariableIdentifier =>
-        !id.getType().asInstanceOf[TouchType].isSingleton &&
-        !CFGGenerator.isReturnIdent(id.toString()) &&
-        !CFGGenerator.isGlobalReferenceIdent(id.toString())
+        // Belongs to scope of call target
+        (id.scope == ProgramPointScopeIdentifier(callTarget.programpoint)) &&
+        // Is not a return value
+        !CFGGenerator.isReturnIdent(id.toString())
     })
     curState = curState.pruneUnreachableHeap()
 

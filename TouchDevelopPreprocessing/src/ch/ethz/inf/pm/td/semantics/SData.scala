@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchType}
-import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{EmptyScopeIdentifier, VariableIdentifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 /**
@@ -24,7 +24,7 @@ class SData extends AAny {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = {
 
-    state.setExpression(new ExpressionSet(returnedType).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(method),returnedType,pp)))
+    state.setExpression(new ExpressionSet(returnedType).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(method),returnedType,pp,EmptyScopeIdentifier())))
 
   }
 }

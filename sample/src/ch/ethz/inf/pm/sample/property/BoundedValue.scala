@@ -43,7 +43,7 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 				val sa = stmt.forwardSemantics(s)
 				for (pl <- sl.getExpression.getSetOfExpressions) {
 					pl match {
-						case VariableIdentifier(v, _, pp) => {
+						case VariableIdentifier(v, _, pp, _) => {
 							if (v == variable) {
 								val expr = BinaryBooleanExpression(
 									BinaryArithmeticExpression(pl, new Constant(lower.toString, null, null), ArithmeticOperator.>=, null),

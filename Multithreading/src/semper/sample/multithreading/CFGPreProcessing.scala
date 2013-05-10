@@ -7,7 +7,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 
 
 class CounterLoopIdentifier(loopPC : ProgramPoint, currentPC : ProgramPoint)
-  extends VariableIdentifier("_loopCounter("+loopPC+")", SystemParameters.typ.top(), currentPC)
+  extends VariableIdentifier("_loopCounter("+loopPC+")", SystemParameters.typ.top(), currentPC, EmptyScopeIdentifier())
 
 object CFGPreProcessing {
      def augmentCFG(c: ControlFlowGraph) : ControlFlowGraph = {

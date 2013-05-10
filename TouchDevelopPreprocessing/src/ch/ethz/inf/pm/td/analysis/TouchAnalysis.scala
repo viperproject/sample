@@ -104,7 +104,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
           else
             curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
           val obj = curState.getExpression()
-          val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName.toLowerCase,typ,singletonProgramPoint))
+          val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName.toLowerCase,typ,singletonProgramPoint, EmptyScopeIdentifier()))
           curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
         }
       }
@@ -113,7 +113,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     // Set global state to invalid
     for (v <- compiler.globalData) {
 
-      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.name.getName()),v.typ,v.programpoint)
+      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.name.getName()),v.typ,v.programpoint, EmptyScopeIdentifier())
       val leftExpr = new ExpressionSet(v.typ).add(variable)
       curState = curState.createVariable(leftExpr,v.typ,v.programpoint)
 
