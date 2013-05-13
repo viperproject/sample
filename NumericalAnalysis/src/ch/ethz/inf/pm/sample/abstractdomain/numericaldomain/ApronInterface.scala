@@ -822,7 +822,7 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
 
   def reset() {}
 
-  def getInitialState(): ApronInterface = new ApronInterface(None, domain).bottom()
+  def getInitialState(): ApronInterface = new ApronInterface(None, domain)
 
   def getProperties(): Set[Property] = Set(
     new ShowGraphProperty().asInstanceOf[Property],
