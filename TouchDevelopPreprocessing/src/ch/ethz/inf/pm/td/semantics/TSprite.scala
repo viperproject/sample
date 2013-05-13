@@ -4,6 +4,8 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.Reporter
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * User: lucas
@@ -20,6 +22,7 @@ object TSprite {
   val field_elasticity = new TouchField("elasticity",TNumber.typ)	    // Gets the sprite elasticity as a fraction of speed preservation per bounce (0-1)
   val field_friction = new TouchField("friction",TNumber.typ)	      // Gets the fraction of speed loss between 0 and 1
   val field_height = new TouchField("height",TNumber.typ)	        // Gets the height in pixels
+  val field_is_deleted = new TouchField("is deleted",TBoolean.typ,ExpressionInitializer(False(null)))	 // Returns false if sprite is not deleted
   val field_is_visible = new TouchField("is visible",TBoolean.typ)	    // Returns true if sprite is not hidden
   val field_location = new TouchField("location",TLocation.typ)	    // Gets the geo location assigned to the sprite
   val field_mass = new TouchField("mass",TNumber.typ)	          // Gets the mass
@@ -49,6 +52,7 @@ object TSprite {
       field_friction,
       field_height,
       field_is_visible,
+      field_is_deleted,
       field_location,
       field_mass,
       field_opacity,
@@ -76,41 +80,58 @@ class TSprite extends AAny {
 
     /** Delete sprite. */
     case "delete" =>
-      Skip; // TODO
+      AssignField[S](this0,TSprite.field_is_deleted,True)
 
     /** Are these the same sprite */
     case "equals" =>
       val List(other) = parameters // Sprite
-      New[S](TBoolean.typ) // TODO
+      if(TouchAnalysisParameters.reportDummyImplementations)
+        Reporter.reportDummy("Sprite.equals",pp)
+      Top[S](TBoolean.typ)
 
     /** Hide sprite. */
     case "hide" =>
       AssignField[S](this0,TSprite.field_is_visible,toRichExpression(0))
 
     /** Moves sprite. */
-    //case "move" =>
-    //  val List(delta_x,delta_y) = parameters // Number,Number
-    //  Skip; // TODO
+    case "move" =>
+      val List(delta_x,delta_y) = parameters // Number,Number
+      var curState = state
+      curState = AssignField[S](this0,TSprite.field_x,Field[S](this0,TSprite.field_x) + delta_x)(curState,pp)
+      curState = AssignField[S](this0,TSprite.field_y,Field[S](this0,TSprite.field_y) + delta_y)(curState,pp)
+      curState
 
     /** Moves the clipping area and wraps around the image if needed (if it is an image sprite) */
-    //case "move clip" =>
-    //  val List(x,y) = parameters // Number,Number
-    //  Skip; // TODO
+    case "move clip" =>
+      val List(x,y) = parameters // Number,Number
+      var curState = state
+      curState = AssignField[S](this0,TSprite.field_clip_left,Field[S](this0,TSprite.field_clip_left) + x)(curState,pp)
+      curState = AssignField[S](this0,TSprite.field_clip_top,Field[S](this0,TSprite.field_clip_top) + y)(curState,pp)
+      curState
 
     /** Moves sprite towards other sprite. */
-    //case "move towards" =>
-    //  val List(other,fraction) = parameters // Sprite,Number
-    //  Skip; // TODO
+    case "move towards" =>
+      val List(other,fraction) = parameters // Sprite,Number
+      val delta_x = (Field[S](other,TSprite.field_x) - Field[S](this0,TSprite.field_x)) * fraction
+      val delta_y = (Field[S](other,TSprite.field_y) - Field[S](this0,TSprite.field_y)) * fraction
+      var curState = state
+      curState = AssignField[S](this0,TSprite.field_x,Field[S](this0,TSprite.field_x) + delta_x)(curState,pp)
+      curState = AssignField[S](this0,TSprite.field_y,Field[S](this0,TSprite.field_y) + delta_y)(curState,pp)
+      curState
 
     /** Returns the subset of sprites in the given set that overlap with sprite. */
     case "overlap with" =>
       val List(sprites) = parameters // Sprite_Set
-      New[S](TSprite_Set.typ) // TODO
+      if(TouchAnalysisParameters.reportDummyImplementations)
+        Reporter.reportDummy("Sprite.overlap with",pp)
+      Top[S](TSprite_Set.typ)
 
     /** Do the sprites overlap */
     case "overlaps with" =>
       val List(other) = parameters // Sprite
-      Top[S](TBoolean.typ) // TODO
+      if(TouchAnalysisParameters.reportDummyImplementations)
+        Reporter.reportDummy("Sprite.overlaps with",pp)
+      Top[S](TBoolean.typ)
 
     /** Sets the acceleration in pixels/sec^2 */
     case "set acceleration" =>
@@ -126,7 +147,7 @@ class TSprite extends AAny {
       curState = AssignField[S](this0,TSprite.field_clip_top,top)(curState,pp)
       curState = AssignField[S](this0,TSprite.field_clip_width,width)(curState,pp)
       curState = AssignField[S](this0,TSprite.field_clip_height,height)(curState,pp)
-      Skip
+      curState
 
     /** Sets the position in pixels */
     case "set pos" =>
@@ -147,17 +168,12 @@ class TSprite extends AAny {
     /** Sets sprite speed direction towards other sprite with given magnitude. */
     case "speed towards" =>
       val List(other,magnitude) = parameters // Sprite,Number
-
-      //val newX = Field[S](other,TSprite.field_x) - Field[S](this0,TSprite.field_x)
-      //val newY = Field[S](other,TSprite.field_y) - Field[S](this0,TSprite.field_y)
-      //val normalizedX =
-      // other.pos - this.pos
-      //val state1 = CallApi[S](Field[S](other,TVector3.field_x),"subtract",List(Field))
-      // TODO: Not trivial, implement vector normalization first
-
-      val state1 = AssignField[S](this0,TSprite.field_speed_x,Valid(TNumber.typ))
-      val state2 = AssignField[S](this0,TSprite.field_speed_y,Valid(TNumber.typ))(state1,pp)
-      state2
+      if(TouchAnalysisParameters.reportDummyImplementations)
+        Reporter.reportDummy("Sprite.speed towards",pp)
+      var curState = state
+      curState = AssignField[S](this0,TSprite.field_speed_x,Valid(TNumber.typ))(curState,pp)
+      curState = AssignField[S](this0,TSprite.field_speed_y,Valid(TNumber.typ))(curState,pp)
+      curState
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.Reporter
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of OAuth Response
@@ -59,7 +60,7 @@ class TOAuth_Response extends AAny {
     /** (Optional) Indicates if the token might expire within the next seconds. */
     case "is expiring" =>
       val List(lookup) = parameters // Number
-      Reporter.reportImprecision("OAuth Response->is expiring is a dummy",pp)
+      Dummy[S](this0,method)
       Top[S](TBoolean.typ)
 
     case _ =>

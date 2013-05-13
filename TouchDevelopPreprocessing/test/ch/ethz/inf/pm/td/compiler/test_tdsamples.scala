@@ -1,5 +1,5 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
-import ch.ethz.inf.pm.td.webapi.SampleScript
+import ch.ethz.inf.pm.td.webapi.{RootSampleScripts, SampleScript}
 
 val skipSet =
   """ucbc
@@ -12,6 +12,6 @@ def analyzer(id:String) {
   }
 }
 
-//TestRunner("wbop",analyzer _)
-TestRunner("yzty",analyzer _)
-//TestRunner(new SampleScript,10000,analyzer)
+//TestRunner("fqap",analyzer _)
+//TestRunner("avvj",analyzer _)
+TestRunner(new RootSampleScripts,10000,analyzer)

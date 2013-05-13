@@ -123,31 +123,31 @@ class TDateTime extends AAny {
     /** Compares dates for greater */
     case "greater" =>
       val List(other) = parameters // DateTime
-      Reporter.reportImprecision("DateTime.greater is a dummy",pp)
+      Dummy[S](this0,method)
       Top[S](TBoolean.typ)
 
     /** Compares dates for greater or equal */
     case "greater or equal" =>
       val List(other) = parameters // DateTime
-      Reporter.reportImprecision("DateTime.greater or equal is a dummy",pp)
+      Dummy[S](this0,method)
       Top[S](TBoolean.typ)
 
     /** Compares dates for less */
     case "less" =>
       val List(other) = parameters // DateTime
-      Reporter.reportImprecision("DateTime.less is a dummy",pp)
+      Dummy[S](this0,method)
       Top[S](TBoolean.typ)
 
     /** Compares dates for less or equal */
     case "less or equals" =>
       val List(other) = parameters // DateTime
-      Reporter.reportImprecision("DateTime.less or equals is a dummy",pp)
+      Dummy[S](this0,method)
       Top[S](TBoolean.typ)
 
     /** Compares dates for disequality */
     case "not equals" =>
       val List(other) = parameters // DateTime
-      Reporter.reportImprecision("DateTime.not equals is a dummy",pp)
+      Dummy[S](this0,method)
        Top[S](TBoolean.typ)
 
     /** Computes the difference between date-times in seconds */

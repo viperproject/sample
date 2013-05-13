@@ -167,6 +167,15 @@ class SampleScript extends Scripts {
   override def getLabel() = "TouchDevelop sample scripts"
 }
 
+class RootSampleScripts extends Scripts {
+  override protected val service = "pboj/scripts?"
+
+  override def getLabel() = "TouchDevelop sample scripts"
+
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
+    s.filter( (t : ScriptRecord) => (t.id.equals(t.rootid)))
+}
+
 class RootScriptsSearch(query : String) extends Scripts {
 
   override def getLabel() = "TouchDevelop root search scripts, query: "+query

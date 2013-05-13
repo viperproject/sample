@@ -33,21 +33,25 @@ class TForm_Builder extends AAny {
     /** Adds a string value */
     case "add string" =>
       val List(name,value) = parameters // String,String
+      Dummy[S](this0,method)
       Skip
 
     /** Adds a number value */
     case "add number" =>
       val List(name,value) = parameters // String,Number
+      Dummy[S](this0,method)
       Skip
 
     /** Adds a boolean value */
     case "add boolean" =>
       val List(name,value) = parameters // String,Boolean
+      Dummy[S](this0,method)
       Skip
 
     /** Adds a picture */
     case "add picture" =>
       val List(name,value,picture_Name) = parameters // String,Picture,String
+      Dummy[S](this0,method)
       Skip
 
     case _ =>

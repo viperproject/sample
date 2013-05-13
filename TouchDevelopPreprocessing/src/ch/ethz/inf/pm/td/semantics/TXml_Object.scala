@@ -57,8 +57,7 @@ class TXml_Object extends ACollection {
     /** Gets a first child element matching the fully qualified name */
     case "child" =>
       val List(name) = parameters // String
-      if(TouchAnalysisParameters.reportDummyImplementations)
-        Reporter.reportImprecision("Xml Object.child is a dummy",pp)
+      Dummy[S](this0,method)
       TopWithInvalid[S](TXml_Object.typ,Map(
         TXml_Object.field_is_element -> False
       ))
@@ -66,8 +65,7 @@ class TXml_Object extends ACollection {
     /** Gets a collection of child element matching the fully qualified name */
     case "children" =>
       val List(name) = parameters // String
-      if(TouchAnalysisParameters.reportDummyImplementations)
-        Reporter.reportImprecision("Xml Object.children is a dummy",pp)
+      Dummy[S](this0,method)
       TopWithInvalid[S](TXml_Object.typ,Map(
         TXml_Object.field_is_element -> False
       ))
@@ -75,8 +73,7 @@ class TXml_Object extends ACollection {
     /** Creates a qualified full name from the namespace and local name */
     case "create name" =>
       val List(local_name,namespace_uri) = parameters // String,String
-      if(TouchAnalysisParameters.reportDummyImplementations)
-        Reporter.reportImprecision("Xml Object.create name is a dummy",pp)
+      Dummy[S](this0,method)
       Top[S](TString.typ)
 
     /** Gets the full name of this element */

@@ -29,6 +29,11 @@ object RichNativeSemantics {
 
   /*-- Checking / Reporting errors --*/
 
+  def Dummy[S <: State[S]](obj:RichExpression, method:String)(implicit state:S, pp:ProgramPoint) {
+    if(TouchAnalysisParameters.reportDummyImplementations)
+      Reporter.reportDummy(obj.getType().toString+"->"+method,pp)
+  }
+
   def Error[S <: State[S]](expr:RichExpression, message:String)(implicit state:S, pp:ProgramPoint):S = {
     val errorState = state.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
     if(!errorState.lessEqual(state.bottom())) {

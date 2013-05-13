@@ -36,6 +36,7 @@ try {
       |    SArt.typName -> new SArt(),
       |    SRecords.typName -> new SRecords(),
       |    SLibs.typName -> new SLibs(),
+      |    SHelpers.typName -> new SHelpers(),
     """.stripMargin)
 
   val lines = for (

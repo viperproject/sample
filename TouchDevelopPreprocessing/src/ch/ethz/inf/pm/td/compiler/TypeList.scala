@@ -18,6 +18,7 @@ object TypeList  {
     SArt.typName -> new SArt(),
     SRecords.typName -> new SRecords(),
     SLibs.typName -> new SLibs(),
+    SHelpers.typName -> new SHelpers(),
     TNothing.typName -> new TNothing(),
     TAction.typName -> new TAction(),
     TText_Action.typName -> new TText_Action(),

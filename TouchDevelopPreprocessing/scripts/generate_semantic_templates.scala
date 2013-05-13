@@ -82,7 +82,7 @@ for (
     var fields : List[String] = Nil
     for (
       JField("properties", JArray(properties)) <- typ;
-      property <- properties
+      property <- properties.sortBy(_.toString)
     ) {
 
       val JString(propName) = property \ "name"

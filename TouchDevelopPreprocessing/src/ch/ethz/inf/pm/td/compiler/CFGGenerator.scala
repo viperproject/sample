@@ -51,6 +51,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.EmptyStatement
 import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import ch.ethz.inf.pm.td.typecheck.Typer
 
 /**
  *
@@ -362,10 +363,10 @@ object CFGGenerator {
 
       case w@WhereStatement(expr,handlerDefs:List[InlineAction]) =>
 
-        // TODO: THIS NEEDS FIXING
-
-        val handlerMap =
-          (for (InlineAction(handlerName,_,_,_) <- handlerDefs) yield { ( handlerName -> handlerIdent(handlerName) ) }).toMap
+        val handlerSet =
+          (for (InlineAction(handlerName,inParameters,_,_) <- handlerDefs) yield {
+            ( handlerName, handlerIdent(handlerName+mkTouchProgramPoint(w)), Typer.inParametersToActionType(inParameters) )
+          })
 
         val handlers = (for (InlineAction(handlerName,inParameters,outParameters,body) <- handlerDefs) yield {
           val handlerMethodName = handlerIdent(handlerName)
@@ -384,24 +385,31 @@ object CFGGenerator {
           subHandlers ::: List(new MethodDeclaration(programPoint,SystemParameters.typ,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
         }).flatten
 
-        val newExpression = expr match {
-
-          case parser.Access(obj,property,args) =>
-            val newArgs = args.map {
-              case e@parser.LocalReference(x) =>
-                handlerMap.get(x) match {
-                  case Some(y) => parser.Literal(parser.TypeName("Handler"),y)
-                  case None => e
-                }
-              case e:parser.Expression => e
-            }
-            expressionToStatement(parser.Access(obj,property,newArgs),scope)
-
-          case _  => throw TouchException("This where handler statement does not look like I expected it to look.")
-
+        def ty (typ:String,expr:parser.Expression):parser.Expression = {
+          expr.typeName = TypeName(typ)
+          expr
         }
 
-        newStatements = newStatements ::: List(newExpression)
+        // Create a statement that creates the handler object and assigns the handler variable
+        val handlerCreationStatements = handlerSet map ({
+          case (variableName:String, actionName:String, handlerType:TypeName) =>
+            expressionToStatement(
+              ty("Nothing",parser.Access(
+                ty(handlerType.toString,parser.LocalReference(variableName)),
+                Identifier(":="),
+                List(
+                 ty(handlerType.toString,parser.Access(
+                   ty("Helpers",parser.SingletonReference("helpers","Helpers")),
+                   Identifier("create "+handlerType.ident.toLowerCase),
+                   List(ty("String",Literal(TypeName("String"),actionName)))
+                 ))
+                )
+              )),
+              scope
+            )
+        })
+
+        newStatements = newStatements ::: handlerCreationStatements ::: List(expressionToStatement(expr,scope))
         newHandlers = newHandlers ::: handlers
 
       case _ =>

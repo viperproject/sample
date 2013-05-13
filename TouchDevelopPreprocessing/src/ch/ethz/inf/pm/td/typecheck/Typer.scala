@@ -139,7 +139,7 @@ object Typer {
     }
   }
 
-  private def inParametersToActionType(params:List[Parameter]):TypeName = {
+  def inParametersToActionType(params:List[Parameter]):TypeName = {
     TypeName(params match {
       case Nil => "Action"
       case List(Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number"))) => "Position Action"

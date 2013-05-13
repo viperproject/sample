@@ -31,7 +31,7 @@ class TMessage_Collection extends AMutable_Collection {
         
     /** Sorts from the newest to oldest */
     case "sort by date" =>
-      Reporter.reportImprecision("Message Collection.sort by date is a dummy",pp)
+      Dummy[S](this0,method)
       Skip; // Sorting is invariant for (size,elem) abstraction
 
     case _ =>

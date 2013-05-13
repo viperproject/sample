@@ -264,6 +264,13 @@ object Reporter {
     }
   }
 
+  def reportDummy(message:String,pp:ProgramPoint) {
+    if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings) {
+      SystemParameters.progressOutput.put("SOUND DUMMY: "+message+" at "+pp.toString)
+      seenImprecision += ((message,pp))
+    }
+  }
+
   def reportBottom(message:String,pp:ProgramPoint) {
     if (!hasBottom(message,pp) && SystemParameters.enableOutputOfBottomWarnings) {
       SystemParameters.progressOutput.put("BOTTOM: "+message+" at "+pp.toString)

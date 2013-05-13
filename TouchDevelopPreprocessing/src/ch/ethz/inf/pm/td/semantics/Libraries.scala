@@ -32,12 +32,14 @@ class Libraries() extends NativeMethodSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
+    val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
+
     if (CFGGenerator.isLibraryIdent(thisExpr.getType().getName())) {
-      SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(operator,thisExpr.getType(),parameters map (_.getType())) match {
+      compiler.getMethodWithClassDefinition(operator,thisExpr.getType(),parameters map (_.getType())) match {
         case Some((clazz,methodDef)) =>
           Some(MethodSummaries.collect(pp,clazz,methodDef,state,parameters))
         case _ =>
-          Reporter.reportImprecision("Could not find this method "+operator,pp)
+          Reporter.reportImprecision("Could not find method "+operator,pp)
           None
       }
     } else { None }

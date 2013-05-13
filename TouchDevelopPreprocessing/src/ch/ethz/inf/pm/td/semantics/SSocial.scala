@@ -36,6 +36,11 @@ class SSocial extends AAny {
     case "choose email" =>
       TopWithInvalid[S](TLink.typ) // Invalid value validated in Windows Phone version!
 
+    /** Retrieves the list of contacts */
+    case "contacts" =>
+      val List(network) = parameters // String
+      TopWithInvalid[S](TContact_Collection.typ)
+
     /** Creates a new contact */
     case "create contact" =>
       val List(nickname) = parameters // String

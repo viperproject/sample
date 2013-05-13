@@ -25,6 +25,9 @@ object TWeb_Request {
   /** Reads the response body as a picture */
   val field_content_as_picture = new TouchField("content as picture",TPicture.typ)
 
+  /** Reads the response body as a picture */
+  val field_content_as_form = new TouchField("content as form",TForm_Builder.typ)
+
   /** Reads the response body as a XML tree */
   val field_content_as_xml = new TouchField("content as xml",TXml_Object.typ)
 
@@ -37,9 +40,19 @@ object TWeb_Request {
   /** Gets the url of the request */
   val field_url = new TouchField("url",TString.typ)
 
+  /** Credentials name */
+  val field_credentials_name = new TouchField("credentials name",TString.typ)
+
+  /** Credentials password */
+  val field_credentials_password = new TouchField("credentials password",TString.typ)
+
+  /** Async response handler */
+  val field_handler = new TouchField("handler",TWeb_Response_Action.typ)
+
   val typName = "Web Request"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_header_storage, field_method, field_url,
-    field_content, field_content_as_json, field_content_as_picture, field_content_as_xml))
+    field_content, field_content_as_json, field_content_as_picture, field_content_as_xml, field_content_as_form,
+    field_credentials_name, field_credentials_password,field_handler))
 
 }
 
@@ -51,9 +64,9 @@ class TWeb_Request extends AAny {
                                      (implicit pp:ProgramPoint,state:S):S = method match {
         
     /** Indicates if both requests are the same instance. */
-    // case "equals" => 
-    //   val List(other) = parameters // Web_Request
-    //   Top[S](TBoolean.typ)
+    case "equals" =>
+      val List(other) = parameters // Web_Request
+      Top[S](TBoolean.typ)
 
     /** Gets the value of a given header */
     case "header" =>
@@ -61,13 +74,23 @@ class TWeb_Request extends AAny {
       Return[S](CollectionAt[S](Field[S](this0,TWeb_Request.field_header_storage),name))
 
     /** Gets the names of the headers */
-    // case "header names" =>
-    //   Top[S](TString_Collection.typ)
+    case "header names" =>
+      CallApi[S](Field[S](this0,TWeb_Request.field_header_storage),"keys",Nil,returnedType)
+
+    /** Set what happens whenever the response comes back from 'send async'. */
+    case "on response received" =>
+      val List(handler) = parameters // Web_Response_Action
+      AssignField[S](this0,TWeb_Request.field_handler,handler)
+
+    /** Sends the request asynchronously. Attach a handler to 'on response received' to receive the response. */
+    case "send async" =>
+      Skip
 
     /** Performs the request synchronously */
     case "send" =>
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not,"send",
-        "Check if the device is connected to the internet before using the connection")
+      // We do not report missing connection here - errors will be handled during response handling
+      // Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not,"send",
+      //   "Check if the device is connected to the internet before using the connection")
       Top[S](TWeb_Response.typ,Map(TWeb_Response.field_request -> this0))
 
     /** Sets the Accept header type ('text/xml' for xml, 'application/json' for json). */
@@ -76,14 +99,17 @@ class TWeb_Request extends AAny {
       CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),String("Accept"),typ)
 
     /** Compresses the request content with gzip and sets the Content-Encoding header */
-    // case "set compress" =>
-    //   val List(value) = parameters // Boolean
-    //  CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),StringCst("Content-Encoding"),value)
+    case "set compress" =>
+      val List(value) = parameters // Boolean
+      CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),String("Content-Encoding"),value)
 
     /** Sets the name and password for basic authentication. Requires an HTTPS URL, empty string clears. */
     case "set credentials" =>
       val List(name,password) = parameters // String,String
-      Skip
+      var curState = state
+      curState = AssignField[S](this0,TWeb_Request.field_credentials_name,name)(curState,pp)
+      curState = AssignField[S](this0,TWeb_Request.field_credentials_password,password)(curState,pp)
+      curState
 
     /** Sets an HTML header value. Empty string clears the value */
     case "set header" =>

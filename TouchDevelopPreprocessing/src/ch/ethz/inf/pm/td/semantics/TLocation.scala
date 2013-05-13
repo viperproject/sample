@@ -57,13 +57,13 @@ class TLocation extends AAny {
     /** Calculates the distance in meters */
     case "distance" =>
       val List(other) = parameters // Location
-      Reporter.reportImprecision("Location.distance is a dummy",pp)
+      Dummy[S](this0,method)
       Top[S](TNumber.typ)
 
     /** Indicates if this instance is equal to the other */
     case "equals" =>
       val List(other) = parameters // Location
-      Reporter.reportImprecision("Location.equals is a dummy",pp)
+      Dummy[S](this0,method)
       Top[S](TBoolean.typ)
 
     /** Displays the location in a map using Bing. */
