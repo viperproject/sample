@@ -276,9 +276,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
           this.toTcons1(someExpr, unionEnv) match {
 
             case x :: xs =>
-              val result = tmp.meetCopy(domain,x)
+              var result = tmp.meetCopy(domain,x)
               for (xMore <- xs) {
-                result.joinCopy(domain,tmp.meetCopy(domain,xMore))
+                result = result.joinCopy(domain,tmp.meetCopy(domain,xMore))
               }
               result
 

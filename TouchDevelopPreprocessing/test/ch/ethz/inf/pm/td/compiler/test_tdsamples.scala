@@ -13,5 +13,5 @@ def analyzer(id:String) {
 }
 
 //TestRunner("fqap",analyzer _)
-//TestRunner("avvj",analyzer _)
-TestRunner(new RootSampleScripts,10000,analyzer)
+TestRunner("tlozkiig",analyzer _)
+//TestRunner(new RootSampleScripts,10000,analyzer)
