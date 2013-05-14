@@ -72,7 +72,7 @@ abstract class AMutable_Collection extends ACollection {
     case "set at" =>
       val List(index,value) = parameters // Number,Element_Type
 
-      if (index.getType().getName() == "Number" && !this0.getType().toString.contains("Map"))
+      if (index.getType().getName() == "Number")
         CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       else Reporter.reportImprecision("This map access is not checked",pp)
 

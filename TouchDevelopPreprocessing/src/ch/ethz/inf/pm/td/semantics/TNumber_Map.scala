@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
+import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * Specifies the abstract semantics of Number Map
@@ -41,6 +42,15 @@ class TNumber_Map extends AMutable_Collection {
     /** Computes the minimum of the values */
     case "min" =>
       Return[S](CollectionSummary[S](this0))
+
+    /** Sets the i-th element */
+    case "set at" =>
+      val List(index,value) = parameters // Number,Element_Type
+      Reporter.reportImprecision("This map access is not checked",pp)
+      // We have no clue whether this is an update or not without a must analysis
+      val case1 = CollectionUpdate[S](this0,index,value)
+      val case2 = CollectionInsert[S](this0,index,value)
+      state.lub(case1,case2)
 
     /** Extracts the elements at indices between start (inclusive) and end (non-inclusive). */
     case "slice" =>
