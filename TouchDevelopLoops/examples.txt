@@ -1,3 +1,11 @@
+action scopeOfVariablesTest(a: Number) returns r: Number {
+  for 0 ≤ i < $a do {
+	  for 0 ≤ j < $a do {
+	    $r := $i;
+	}
+  }
+}
+
 action sum(a: Number) returns r: Number {
   $r := 0;
   for 0 ≤ i < $a do {

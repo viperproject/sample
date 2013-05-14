@@ -57,7 +57,8 @@ class LoopCostCompiler extends TouchCompiler {
               while (edges.size > 0) {
                 val i1 = edges.head._1
                 edges = edges.drop(1)
-                if (!done.apply(i1)) {
+                // !(i1==index) added later - maybe we should exclude EVERYTHING that comes after
+                if (!done.apply(i1) && !(i1==index)) {
                   // we see this node the first time
                   val variablesFound: List[Variable] = assignmentVariables(cfg.nodes(i1))
                   for (v <- variablesFound if !v.isInstanceOf[OldVariable]) allVariables = allVariables + v
@@ -65,6 +66,13 @@ class LoopCostCompiler extends TouchCompiler {
                   edges = edges ++ cfg.entryEdges(i1)
                 }
               }
+
+              //New version
+              //var allVariables: Set[Variable] = assignmentVariables(cfg.nodes(index)).toSet[Variable]
+              //for(block<-cfg.getEdgesEntryingTo(index))
+              //    allVariables=allVariables++assignmentVariables(cfg.nodes(block))
+
+
               var newNode: List[Statement] = cfg.nodes.apply(firstNode)
               var namesUsed: Set[String] = Set.empty
               val programPoint = node.head.getPC()

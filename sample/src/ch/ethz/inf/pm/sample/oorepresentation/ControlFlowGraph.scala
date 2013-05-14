@@ -166,6 +166,16 @@ trait WeightedGraph[T, W] {
     result
   }
 
+
+  def getEdgesEntryingTo(index: Int): Set[Int] = {
+    var result: Set[Int] = Set.empty
+    for (edge: (Int, Int, Option[W]) <- this.entryEdges(index))
+      result = result.+(edge._2)
+    result
+  }
+
+
+
   protected def nodeToString(node: T) = node.toString
 
   private def weightToString(weight: Option[W]): String = weight match {
@@ -240,6 +250,21 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       for (st <- nodes.apply(b))
         result = result + st.getPC().asInstanceOf[LineColumnProgramPoint].getLine
       blockstovisit = blockstovisit -- blocksalreadyvisited
+    }
+    return result
+  }
+
+  def beforeBlock(startingBlock: Int): Set[Int] = {
+    var result: Set[Int] = Set.empty[Int]
+    var blocksalreadyvisited: Set[Int] = Set.empty[Int]
+    if (startingBlock == -1) return Set.empty[Int]
+    var blockstovisit: Set[Int] = Set(0)
+    while (blockstovisit.size > 0) {
+      var b = blockstovisit.head
+      blockstovisit = blockstovisit - b
+      blocksalreadyvisited = blocksalreadyvisited + b
+      result=result+b;
+      blockstovisit = blockstovisit ++ this.getEdgesEntryingTo(b)
     }
     return result
   }
