@@ -95,6 +95,10 @@ abstract class AAny extends NativeMethodSemantics {
     case "is invalid" =>
       Return[S](this0 equal Invalid(this0.getType())(pp))(state,pp)
 
+    case "equals" =>
+      Dummy[S](this0,method)
+      Top[S](TBoolean.typ)
+
     case ":=" =>
       val List(right) = parameters
       Assign[S](this0,right)
