@@ -20,7 +20,7 @@ object TPlaylists {
 
 }
 
-class TPlaylists extends ACollection {
+class TPlaylists extends ALinearCollection {
 
   def getTyp = TPlaylists.typ
 

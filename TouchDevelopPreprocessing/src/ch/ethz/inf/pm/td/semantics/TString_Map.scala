@@ -24,7 +24,7 @@ object TString_Map {
 
 }
 
-class TString_Map extends AMutable_Collection {
+class TString_Map extends AMap {
 
   def getTyp = TString_Map.typ
 
@@ -44,8 +44,8 @@ class TString_Map extends AMutable_Collection {
     //   val field_count = new TouchField("count",TNumber.typ)
 
     /** Gets the keys in the map */
-    case "keys" =>
-      Top[S](TString_Collection.typ)
+    //case "keys" =>
+    //  Top[S](TString_Collection.typ)
     // DECLARATION AS FIELD:
 
     /** Removes the value at a given key */

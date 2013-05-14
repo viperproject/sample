@@ -38,7 +38,7 @@ object TXml_Object {
 
 }
 
-class TXml_Object extends ACollection {
+class TXml_Object extends AMap {
 
   def getTyp = TXml_Object.typ
 

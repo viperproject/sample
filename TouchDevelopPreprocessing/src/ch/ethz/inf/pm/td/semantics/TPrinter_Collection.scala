@@ -20,7 +20,7 @@ object TPrinter_Collection {
 
 }
 
-class TPrinter_Collection extends ACollection {
+class TPrinter_Collection extends ALinearCollection {
 
   def getTyp = TPrinter_Collection.typ
 

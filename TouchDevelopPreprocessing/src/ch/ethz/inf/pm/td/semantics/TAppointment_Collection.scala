@@ -20,7 +20,7 @@ object TAppointment_Collection {
 
 }
 
-class TAppointment_Collection extends ACollection {
+class TAppointment_Collection extends ALinearCollection {
 
   def getTyp = TAppointment_Collection.typ
 

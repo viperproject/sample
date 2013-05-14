@@ -24,8 +24,8 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
     case x : StaticProgramPointHeapIdentifier => new FieldAndProgramPoint(x, s, t);
     case x : UnsoundParameterHeapIdentifier => new FieldAndProgramPoint(x, s, t);
     case x : CollectionIdentifier => new FieldAndProgramPoint(x, s, t);
-    case x : CollectionSummaryIdentifier => new FieldAndProgramPoint(x, s, t);
-    case _ => throw new SemanticException("Not allowed");
+    case x : CollectionTupleIdentifier => new FieldAndProgramPoint(x, s, t);
+    case _ => throw new SemanticException("Not allowed " + h.toString);
   }
   override def accessStaticObject(t : Type, pp : ProgramPoint) : ProgramPointHeapIdentifier=new StaticProgramPointHeapIdentifier(t, pp);
   override def createAddress(t : Type, p : ProgramPoint) : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(p, t);
@@ -40,19 +40,48 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
   override def getArrayCell(array : Assignable, index : Expression) = new ArrayTopIdentifier();
   override def getArrayLength(array : Assignable) = new ArrayTopIdentifier();
 
-  override def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp:ProgramPoint) =
-    new CollectionIdentifier(pp,collTyp,keyTyp,valueTyp,lengthTyp)
+  override def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp: Type, pp:ProgramPoint) =
+    new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp)
 
-  override def getCollectionCell(collection: Assignable, index:Expression) = collection match {
-    case x:CollectionIdentifier => new CollectionSummaryIdentifier(x)
-    case _ => throw new SemanticException("This is not a collection: "+collection.toString)
+  override def getCollectionOverApproximation(collection: Assignable) = collection match {
+    case x:CollectionIdentifier => extractField(x, "overApproximation", x.collTyp)
+    case _ => throw new SemanticException("This is not a collection: " + collection.toString)
+  }
+
+  override def getCollectionUnderApproximation(collection: Assignable) = collection match {
+    case x:CollectionIdentifier => extractField(x, "underApproximation", x.collTyp)
+    case _ => throw new SemanticException("This is not a collection: " + collection.toString)
+  }
+
+  override def createCollectionTuple(collectionApprox:Assignable, pp:ProgramPoint) = collectionApprox match {
+    case x:ProgramPointHeapIdentifier => new CollectionTupleIdentifier(x, pp)
+    case _ => throw new SemanticException("This is not a collection approximation node: " + collectionApprox.toString)
   }
 
   override def getCollectionLength(collection: Assignable) = collection match {
-      case x:CollectionIdentifier => new CollectionLengthIdentifier(x)
+      case x:CollectionIdentifier => extractField(x, "length", x.lengthTyp)
       case _ => throw new SemanticException("This is not a collection: "+collection.toString)
   }
 
+  override def getCollectionTupleByKey(collectionKey: Assignable) = collectionKey match {
+    case FieldAndProgramPoint(tuple, _, _) => tuple
+    case _ => throw new SemanticException("This is not a collection key: " + collectionKey.toString)
+  }
+
+  override def getCollectionTupleByValue(collectionValue: Assignable) = collectionValue match {
+    case FieldAndProgramPoint(tuple, _, _) => tuple
+    case _ => throw new SemanticException("This is not a collection value: " + collectionValue.toString)
+  }
+
+  override def getCollectionKey(collectionTuple:Assignable, keyTyp:Type) = collectionTuple match {
+    case x:ProgramPointHeapIdentifier => extractField(x, "key", keyTyp)
+    case _ => throw new SemanticException("This is not a program point identifier: " + collectionTuple.toString)
+  }
+
+  override def getCollectionValue(collectionTuple:Assignable, valueTyp:Type) = collectionTuple match {
+    case x:ProgramPointHeapIdentifier => extractField(x, "value", valueTyp)
+    case _ => throw new SemanticException("This is not a collection tuple: " + collectionTuple.toString)
+  }
 }
 
 case class NullProgramPointHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -83,18 +112,18 @@ case class SimpleProgramPointHeapIdentifier(val pp1 : ProgramPoint, t2 : Type) e
   override def clone() : Object =new SimpleProgramPointHeapIdentifier(pp, this.getType());
 }
 
-case class CollectionIdentifier(override val pp:ProgramPoint,collTyp:Type,keyTyp:Type,valueTyp:Type,lengthTyp:Type) extends ProgramPointHeapIdentifier(collTyp, pp) {
+case class CollectionIdentifier(override val pp:ProgramPoint, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type) extends ProgramPointHeapIdentifier(collTyp, pp) {
   def getField() : Option[String] = None
   override def isNormalized() : Boolean = true
   override def equals(x : Any) : Boolean = x match {
-    case CollectionIdentifier(ppX,collTypX,keyTypX,valueTypX,lengthTypX) => (pp==ppX && collTyp==collTypX
-      && keyTyp==keyTypX && valueTyp==valueTypX && lengthTyp == lengthTypX)
+    case CollectionIdentifier(ppX, collTypX, keyTypX, valueTypX, lengthTypX) => (pp == ppX && collTyp == collTypX &&
+      keyTyp == keyTypX && valueTyp == valueTypX && lengthTyp == lengthTypX)
     case _ => false
   }
   override def toString() : String = "Collection("+collTyp.toString+","+pp.toString+")"
-  override def factory() : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp,keyTyp,valueTyp,lengthTyp)
+  override def factory() : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp)
   override def representSingleVariable() : Boolean=false
-  override def clone() : Object = new CollectionIdentifier(pp,collTyp,keyTyp,valueTyp,lengthTyp)
+  override def clone() : Object = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp)
 }
 
 case class CollectionLengthIdentifier(coll:CollectionIdentifier) extends ProgramPointHeapIdentifier(coll.lengthTyp, coll.pp) {
@@ -110,17 +139,17 @@ case class CollectionLengthIdentifier(coll:CollectionIdentifier) extends Program
   override def clone() : Object = new CollectionLengthIdentifier(coll)
 }
 
-case class CollectionSummaryIdentifier(coll:CollectionIdentifier) extends ProgramPointHeapIdentifier(coll.valueTyp, coll.pp) {
+case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier, pp2:ProgramPoint) extends ProgramPointHeapIdentifier(collectionApprox.typ, pp2) {
   def getField() : Option[String] = None
-  override def isNormalized() : Boolean = coll.valueTyp.isNumericalType() ||  coll.valueTyp.isStringType()
+  override def isNormalized() : Boolean = false
   override def equals(x : Any) : Boolean = x match {
-    case CollectionSummaryIdentifier(collX) => (coll.equals(collX))
+    case CollectionTupleIdentifier(collectionApproxX, pp2X) => (this.collectionApprox.equals(collectionApproxX) && this.pp2.equals(pp2X))
     case _ => false
   }
-  override def toString() : String = "Summary("+coll.pp+")"
-  override def factory() : ProgramPointHeapIdentifier=new CollectionSummaryIdentifier(coll)
-  override def representSingleVariable() : Boolean=false
-  override def clone() : Object = new CollectionSummaryIdentifier(coll)
+  override def toString() : String = "CollectionTuple(" + this.collectionApprox.toString() + ", " + this.pp2 + ")"
+  override def factory() : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.pp2)
+  override def representSingleVariable() : Boolean = false
+  override def clone() : Object = new CollectionTupleIdentifier(this.collectionApprox, this.pp2)
 }
 
 case class ArrayTopIdentifier() extends ProgramPointHeapIdentifier(null, null) {

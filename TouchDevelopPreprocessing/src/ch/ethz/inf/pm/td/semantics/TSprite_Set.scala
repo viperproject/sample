@@ -27,8 +27,13 @@ class TSprite_Set extends AMutable_Collection {
     /** Add sprite to set. Returns true if sprite was not already in set. */
     case "add" =>
       val List(sprite) = parameters // Sprite
-      val state1 = super.forwardSemantics(this0,method,parameters,returnedType)
-      Top[S](TBoolean.typ)(state1,pp)
+      If[S](CollectionContainsValue[S](this0, sprite) equal False, Then=(state) => {
+        var newState = CollectionInsert[S](this0, CollectionSize[S](this0)(state, pp), sprite)(state, pp)
+        newState = CollectionIncreaseLength(this0)(newState, pp)
+        Return[S](True)(newState, pp)
+      }, Else={
+        Return[S](False)(_, pp)
+      })
 
     /** Add sprite to set and remove from old set. Returns true if sprite was in old set and not in new set. */
     //case "add from" =>
@@ -36,16 +41,24 @@ class TSprite_Set extends AMutable_Collection {
     //  New[S](TBoolean.typ) // TODO
 
     case "contains" =>
-      Top[S](TBoolean.typ)
+      val List(sprite) = parameters
+      Return[S](CollectionContainsValue[S](this0, sprite))
 
     case "index of" =>
       val List(item) = parameters
-      Return[S](0 ndTo CollectionSize[S](this0))
+      If[S](CollectionContainsValue[S](this0, item) equal True, Then={
+        Return[S](0 ndTo CollectionSize[S](this0)-1)(_, pp)
+      }, Else={
+        Return[S](-1)(_, pp)
+      })
 
     /** Remove sprite that was added to set first. */
     case "remove first" =>
-      Error[S](CollectionSize[S](this0) < 1, "remove first", "Remove first is called on a possibly empty set")
-      CollectionRemove[S](this0,toRichExpression(0))
+      If[S](CollectionSize[S](this0) > 0, Then=(state) => {
+        var newState = CollectionRemove[S](this0,toRichExpression(0))(state, pp)
+        newState = CollectionDecreaseLength[S](this0)(newState, pp)
+        CollectionInvalidateKeys[S](this0)(newState, pp)
+      }, Else=(state) => state)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

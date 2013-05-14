@@ -31,8 +31,7 @@ class TMessage_Collection extends AMutable_Collection {
         
     /** Sorts from the newest to oldest */
     case "sort by date" =>
-      Dummy[S](this0,method)
-      Skip; // Sorting is invariant for (size,elem) abstraction
+      super.forwardSemantics[S](this0, "sort", parameters, returnedType)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

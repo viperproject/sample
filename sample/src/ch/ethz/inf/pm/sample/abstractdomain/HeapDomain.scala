@@ -82,7 +82,6 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    */
   def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
 
-
   /**
    This method creates an array
 
@@ -106,7 +105,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    This method returns the identifier of the field of an object
   
    @param objectIdentifier the identifier of the object to be accessed
-   @param field the name of the field
+   @param name the name of the field
    @param typ the type of the accessed field
    @param pp the program point that accesses the field
    @return the identifier of accessed field and the state of the heap after that
@@ -166,7 +165,6 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    */
   def assignField(obj : Assignable, field : String, expr : Expression) : (T, Replacement);
 
-
   /**
    This method assigns a given field of a given objectto the given expression
 
@@ -220,11 +218,9 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    This method removed a variable
 
    @param variable the variable to be removed
-   @param typ its type
    @return the state after this action
    */
   def removeVariable(variable : Assignable) : (T, Replacement);
-
 
   /**
    This method provides the backward semantics of assignment
@@ -243,54 +239,144 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
   def getIds() : scala.collection.Set[Identifier]
 
   /**
-  Create a collection (set, map, list...)
+    Creates the heap structure for an empty collection
 
-  @param collTyp The type of the collection
-  @param keyTyp The type of the key
-  @param valueTyp The type of the value
-  @param lengthTyp The type of the length of a collection (integer/ number)
-  @param tpp The program point of creation
-  @return The abstract state after the creation of the collection
-    */
-  def createCollection[S <: SemanticDomain[S]](collTyp : Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, state:S): (HeapIdSetDomain[I], T, S)
-
-  /**
-  Assign a cell of an collection
-
-  @param collection The object on which the collection assignment
-  @param index The assigned index
-  @param right The assigned expression
-  @return The abstract state obtained after the collection cell assignment
-    */
-  def assignCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S): (T, S)
+    @param collTyp  The type of the collection
+    @param keyTyp  The type of the collection's keys
+    @param valueTyp The type of the collection's values
+    @param lengthTyp  The type of the collection's length
+    @param pp The program point at which the collection is created
+    @return The Heapidentifier of the newly created collection and the heap with the newly created collection
+  */
+  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): (HeapIdSetDomain[I], T)
 
   /**
-  Insert a cell of an collection at the given index
+    Returns all the HeapIdentifiers of the given collection's keys that match the provided key expression.
+    A key expression (key) matches a Identifier if the Identifier represents a key of the collection
+    and has value k assigned such that
+        lub(k, key) != bottom
 
-  @param collection The object on which the collection assignment
-  @param index The assigned index
-  @param right The assigned expression
-  @return The abstract state obtained after the collection cell assignment
-    */
-  def insertCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, right: Expression, state:S): (T, S)
-
-  /**
-  Remove a cell of an collection
-
-  @param collection The object on which the collection assignment
-  @param index The assigned index
-  @return The abstract state obtained after the collection cell assignment
-    */
-  def removeCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S): (T, S)
+    @param collection The collection
+    @param key  The key expression
+    @param state The state in which the semantic values of the Identifiers are available.
+    @tparam S The type of the semantic domain
+    @return The matched key HeapIdentifiers and the new heap after the access.
+ */
+  def getCollectionKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state:S): (HeapIdSetDomain[I], T)
 
   /**
-  Accesses a cell of a collection
+    Returns all the HeapIdentifiers of the given collection's values for which the corresponding keys
+    match the provided key expression.
+    A key expression (key) matches a key Identifier if the Identifier represents a key of the collection
+    and has value k assigned such that
+        lub(k, key) != bottom
 
-  @param collection The collection on which the cell access is performed
-  @param index The index(key) of the access.
-  @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
-    */
-  def getCollectionCell[S <: SemanticDomain[S]](collection: Assignable, index: Expression, state:S): (HeapIdSetDomain[I], T, S)
+    @param collection The collection
+    @param key  The key expression
+    @param state The state in which the semantic values of the Identifiers are available.
+    @tparam S The type of the semantic domain
+    @return The matched value HeapIdentifiers and the new heap after the access.
+  */
+  def getCollectionValueByKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state:S): (HeapIdSetDomain[I], T)
+
+  /**
+    Returns all the HeapIdentifiers of the given collection's values that match the provided value expression.
+    A value expression (value) matches a value Identifier if the Identifier represents a value of the collection
+    and has value v assigned such that
+        lub(v, value) != bottom
+
+    @param collection The collection
+    @param value  The value expression
+    @param state The state in which the semantic values of the Identifiers are available.
+    @tparam S The type of the semantic domain
+    @return The matched value HeapIdentifiers and the new heap after the access.
+  */
+  def getCollectionValueByValue[S <: SemanticDomain[S]](collection: Assignable, value: Expression, state: S): (HeapIdSetDomain[I], T)
+
+  /**
+    Returns the key identifier of a collection's key-value tuple
+
+    @param collectionTuple The tuple's identifier
+    @param keyTyp  The type of the collection's keys
+    @return The key identifier
+  */
+  def getCollectionKeyByTuple(collectionTuple: Assignable, keyTyp: Type): Assignable
+
+  /**
+    Returns the value identifier of a collection's key-value tuple.
+
+    @param collectionTuple The tuple's identifier
+    @param valueTyp  The type of the collection's values
+    @return The value identifier
+  */
+  def getCollectionValueByTuple(collectionTuple: Assignable, valueTyp: Type): Assignable
+
+  /**
+    Returns the identifier of the collection's key-value tuple given the key identifier.
+
+    @param keyId The identifier of the key
+    @return  The tuple identifier
+  */
+  def getCollectionTupleByKey(keyId: Assignable) : Assignable
+
+  /**
+    Returns the identifier of the collection's key-value tuple given the value identifier.
+
+    @param valueId The identifier of the value
+    @return  The tuple identifier
+  */
+  def getCollectionTupleByValue(valueId: Assignable) : Assignable
+
+  /**
+    Returns all key-value tuple identifiers of a collection.
+
+    @param collection The collection
+    @return All tuple identifiers of the collection
+  */
+  def getCollectionTuples(collection: Assignable): HeapIdSetDomain[I]
+
+  /**
+    Returns all the key identifiers of a collection.
+
+    @param collection  The collection
+    @return  All key identifiers of the collection
+  */
+  def getCollectionKeys(collection: Assignable): HeapIdSetDomain[I]
+
+  /**
+    Returns all the value identifiers of a collection.
+
+    @param collection The collection
+    @return  All value identifiers of the collection
+  */
+  def getCollectionValues(collection: Assignable): HeapIdSetDomain[I]
+
+  /**
+    Adds the structure a key-value tuple to the Heap if no
+    other tuple exists in the collection that has the same program point.
+
+    @param collection  The collection to which the new tuple shall be added.
+    @param pp  The program point that identifies the tuple.
+    @return The key identifier, the value identifier and the new heap after the insertion
+  */
+  def insertCollectionElement(collection: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], HeapIdSetDomain[I], T)
+
+  /**
+    Removes the specified key-value tuple from the collection.
+
+    @param collectionTuple The key-value tuple that shall be removed
+    @param keyTyp  The type of the collection's keys
+    @param valueTyp  The type of the collection's values
+    @return  The new heap after the collection tuple has been removed
+  */
+  def removeCollectionElement(collectionTuple: Assignable, keyTyp: Type, valueTyp: Type): T
+
+  /**
+    Removes all key-value tuples of the collection.
+    @param collection The collection
+    @return The new heap after the collection has been cleard
+  */
+  def clearCollection(collection: Assignable): T
 
   /**
   Returns the identifier representing the length of the given collection
@@ -298,12 +384,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
    @param collection The collection from which we want to access the length
    @return A state that contains as expression the symbolic representation of the length of the given collection
     */
-  def getCollectionLength[S <: SemanticDomain[S]](collection: Assignable, state:S): (HeapIdSetDomain[I], T, S)
-
-  /**
-   * Clears a collections
-   */
-  def clearCollection[S <: SemanticDomain[S]](collection: Assignable, state:S): (T, S)
+  def getCollectionLength(collection: Assignable): (HeapIdSetDomain[I], T)
 
   /**
    * Performs abstract garbage collection
@@ -371,4 +452,22 @@ class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends
   def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2, s1, s2);
 
   def identifiers() : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
+}
+
+class InverseHeapIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint)
+  extends Expression(pp)
+  with InverseSetDomain[I, InverseHeapIdSetDomain[I]]{
+
+  def this() = this(null);
+
+  override def getType() : Type = {
+    var res=SystemParameters.getType().bottom();
+    for(a <- this.value)
+      res=res.glb(res, a.getType());
+    return res;
+  }
+
+  override def factory(): InverseHeapIdSetDomain[I] = new InverseHeapIdSetDomain[I](pp)
+
+  def identifiers(): Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }

@@ -39,7 +39,7 @@ object TJson_Object {
 
 }
 
-class TJson_Object extends AMutable_Collection {
+class TJson_Object extends AMap {
 
   def getTyp = TJson_Object.typ
 
@@ -54,7 +54,7 @@ class TJson_Object extends AMutable_Collection {
     /** Indicates if the key exists */
     case "contains key" =>
       val List(key) = parameters // String
-      Top[S](TBoolean.typ)
+      Return[S](CollectionContainsKey[S](this0, key))
 
     /** Gets a value by name */
     case "field" =>
