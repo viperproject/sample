@@ -19,7 +19,7 @@ object TContact_Collection {
 
 }
 
-class TContact_Collection extends ALinearCollection {
+class TContact_Collection extends ACollection {
 
   def getTyp = TContact_Collection.typ
 

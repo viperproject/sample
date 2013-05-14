@@ -54,26 +54,17 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
   def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.getType())
   def getCollectionLength(collectionSet: ExpressionSet): AccessCollectingState = this.setType(TNumber.typ)
-
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): AccessCollectingState =
+    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getValueType)
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): AccessCollectingState =
     this.setType(collTyp)
-  def createTopCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): AccessCollectingState =
-    this.setType(collTyp)
-  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getKeyType)
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getValueType)
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getValueType)
-  def extractCollectionKeys(fromCollection: ExpressionSet, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = this
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = this
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = this
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = this
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = this
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet) = this
-  def clearCollection(collectionSet: ExpressionSet) = this
   def pruneVariables(filter:VariableIdentifier => Boolean) : AccessCollectingState = this
   def pruneUnreachableHeap() : AccessCollectingState = this
+
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): AccessCollectingState = this
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): AccessCollectingState = this
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): AccessCollectingState = this
+  def clearCollection(collectionSet: ExpressionSet): AccessCollectingState = this
   def testFalse(): AccessCollectingState = this
   def testTrue(): AccessCollectingState = this
   def assume(cond: ExpressionSet): AccessCollectingState = this

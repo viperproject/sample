@@ -24,10 +24,19 @@ class TString_Collection extends AMutable_Collection {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
+    /** Indicates if the collection contains the item */
+    case "contains" =>
+      val List(item) = parameters // String
+      Top[S](TBoolean.typ)
+
     /** Concatenates the separator and items into a string */
     case "join" =>
       val List(separator) = parameters // String
       Top[S](TString.typ)
+
+    /** Sorts the strings in this collection */
+    case "sort" =>
+      Skip; // Sort is invariant for our collection representation
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

@@ -133,7 +133,7 @@ class SMath extends AAny {
       val List(x) = parameters // Number
       Top[S](TBoolean.typ) // TODO
 
-    /** Indicates that value cannot be represented as a number, i.e. Not-a-Number. This usually happens when the number is the initial of a division by zero. */
+    /** Indicates that value cannot be represented as a number, i.e. Not-a-Number. This usually happens when the number is the result of a division by zero. */
     case "is nan" =>
       val List(x) = parameters // Number
       Top[S](TBoolean.typ) // TODO
@@ -243,17 +243,6 @@ class SMath extends AAny {
     /** Returns the Pi constant */
     case "π" =>
       Return[S](toRichExpression(3.14159)) // TODO: PRECISION?
-
-    /** Creates a matrix of zeros of a given size */
-    case "create matrix" =>
-      val List(rows,columns) = parameters // Number,Number
-      New[S](TMatrix.typ,Map(
-        TMatrix.field_column_count -> columns,
-        TMatrix.field_row_count -> rows
-      ),
-        initialCollectionSize = Some(toExpressionSet(rows * columns)),
-        initialCollectionValue = Some(toExpressionSet(0))
-      )
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

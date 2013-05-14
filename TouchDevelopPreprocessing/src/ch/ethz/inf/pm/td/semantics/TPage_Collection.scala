@@ -20,7 +20,7 @@ object TPage_Collection {
 
 }
 
-class TPage_Collection extends ALinearCollection {
+class TPage_Collection extends ACollection {
 
   def getTyp = TPage_Collection.typ
 

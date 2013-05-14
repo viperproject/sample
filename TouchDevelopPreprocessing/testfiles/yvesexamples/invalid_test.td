@@ -1,3 +1,0 @@
-action main() {
-    $x := invalid;
-}

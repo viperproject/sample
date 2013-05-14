@@ -34,16 +34,16 @@ class SCollections extends AAny {
     case "create location collection" =>
       New[S](TLocation_Collection.typ)
 
-//    /** Creates a matrix of zeros of a given size */
-//    case "create matrix" =>
-//      val List(rows,columns) = parameters // Number,Number
-//      New[S](TMatrix.typ,Map(
-//          TMatrix.field_column_count -> columns,
-//          TMatrix.field_row_count -> rows
-//        ),
-//        initialCollectionSize = Some(toExpressionSet(rows * columns)),
-//        initialCollectionValue = Some(toExpressionSet(0))
-//      )
+    /** Creates a matrix of zeros of a given size */
+    case "create matrix" =>
+      val List(rows,columns) = parameters // Number,Number
+      New[S](TMatrix.typ,Map(
+          TMatrix.field_column_count -> columns,
+          TMatrix.field_row_count -> rows
+        ),
+        initialCollectionSize = Some(toExpressionSet(rows * columns)),
+        initialCollectionSummary = Some(toExpressionSet(0))
+      )
 
     /** Creates an empty message collection */
     case "create message collection" =>

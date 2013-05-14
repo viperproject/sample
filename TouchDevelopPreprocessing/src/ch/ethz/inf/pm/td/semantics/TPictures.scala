@@ -21,7 +21,7 @@ object TPictures {
 
 }
 
-class TPictures extends ALinearCollection {
+class TPictures extends ACollection {
 
   def getTyp = TPictures.typ
 

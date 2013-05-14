@@ -310,149 +310,65 @@ trait State[S <: State[S]] extends Lattice[S] {
   def removeExpression() : S
 
   /**
-    Creates an empty collection.
+  Create a collection (set, map, list...)
 
-    @param collTyp  The type of the collection
-    @param keyTyp The type of the collection's keys
-    @param valueTyp The type of the collection's values
-    @param lengthTyp The type of the collection length
-    @param tpp  The program point at which the collection is created
+  @param collTyp The type of the collection
+  @param keyTyp The type of the key
+  @param valueTyp The type of the value
+  @param lengthTyp The type of the length (integer/number)
+  @param tpp The program point of creation
+  @return The abstract state after the creation of the collection
     */
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type,  tpp: ProgramPoint) : S
 
   /**
-    Creates a collection that represents all possible collection elements.
+  Assign a cell of an collection
 
-    @param collTyp  The type of the collection
-    @param keyTyp The type of the collection's keys
-    @param valueTyp The type of the collection's values
-    @param lengthTyp The type of the collection length
-    @param tpp  The program point at which the collection is created
+  @param collectionSet The set of collection expressions
+  @param keySet The set of key expressions
+  @param rightSet The set of values
+  @return The abstract state obtained after the collection cell assignment
     */
-  def createTopCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type,  tpp: ProgramPoint) : S
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet) : S
 
   /**
-     Gets the Identifier of all the keys of the collection that match the given key expresssion.
-     A key expression (key) matches a Identifier if the Identifier represents a key of the collection
-     and has value k assigned such that
-        lub(k, key) != bottom
+  Insert a cell of an collection at the given index
 
-    @param collectionSet  The collection expressions
-    @param keySet The key expressions
-    @return The state that has the mapped Identifier as expression
-  */
-  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): S
+  @param collectionSet The set of collection expressions
+  @param keySet The set of key expressions
+  @param rightSet The set of values
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet) : S
 
   /**
-    Gets the Identifier of all the values of the collection for which the key Identifier matches the given
-    key expression.
-    A key expression (key) matches a Identifier if the Identifier represents a key of the collection
-    and has value k assigned such that
-        lub(k, key) != bottom
+  Remove a cell of an collection
 
-    @param collectionSet  The collection expressions
-    @param keySet The key expressions
-    @return The state that has the mapped Identifier as expression
-  */
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): S
+  @param collectionSet The set of collection expressions
+  @param keySet The set of key expressions
+  @return The abstract state obtained after the collection cell assignment
+    */
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): S
 
   /**
-    Gets the HeapIdentifier of all the values of the collection that match the given value expresssion.
-    A value expression (value) matches a HeapIdentifier if the Heapidentifier represents a value of the collection
-    and has value v assigned such that
-        lub(v, value) != bottom
+  Accesses a cell of a collection
 
-    @param collectionSet  The collection expressions
-    @param valueSet The value expressions
-    @return The state that has the mapped HeapIdentifiers as expression
-   */
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): S
-
-  /**
-    Creates a new collection that contains all keys of the provided collection (fromCollection)
-    as values.
-
-    @param fromCollection The collection from which the keys shall be extracted
-    @param collTyp  The collection type of the newly created collection
-    @param keyTyp  The key type of the newly created collection
-    @param valueTyp The value type of the newly created collection
-    @param lengthTyp  The length type of the newly created collection@param pp
-    @return The state that contains the newly created collection and has it's CollectionHeapIdentifier as expression
-  */
-  def extractCollectionKeys(fromCollection: ExpressionSet, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): S
-
-  /**
-    Copies all the key-value tuples from one collection to the other.
-
-    @param fromCollectionSet The collection from which the tuples are copied.
-    @param toCollectionSet The collection to which the tuples are copied to.
-    @param keyTyp  The key type of the collections
-    @param valueTyp  The value type of the collection
-    @return The state that has a copy of all the tuples of the fromCollection in the toCollection
-  */
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): S
-
-  /**
-    Creates a new key-value tuple and adds it to the collection.
-
-    @param collectionSet The collection to which the key-value pair shall be added
-    @param keySet  The expression that is assigned to the key node
-    @param rightSet  The expression that is assigned to the value node
-    @param pp  The program point that the new tuple shall have.
-               Key-value tuples of a collection are distinguished by their program point.
-               If a tuple with this program point already exists in the collection the new tuple
-               will be summarized with this tuple.
-    @return The state that contains the collection with the added collection-tuple
-   */
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): S
-
-  /**
-    Removes the values from the collection who's key identifiers match the given key expression.
-    If the key expression (k) matches the key identifier's assigned value exactly, the tuple is completely removed.
-    Otherwise the tuple is not removed but the semantic state contains the assumption
-      key identifier != k
-
-    @param collectionSet The collection from which the value is removed
-    @param keySet The key expressions
-    @param valueTyp The value type of the collection
-    @return The state in which the collection is represented without the collection value
-  */
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): S
-
-  /**
-    Removes the values from the collection who's value identifiers match the given value expression.
-    If the value expression (v) matches the value identifier's assigned value exactly, the tuple is completely removed.
-    Otherwise the tuple is not removed but the semantic state contains the assumption
-      value identifier != v
-
-    @param collectionSet The collection from which the value is removed
-    @param valueSet The value expressions
-    @param keyTyp The key type of the collection
-    @return The state in which the collection is represented without the collection value
-  */
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): S
-
-  /**
-   * Assigns the value expression to all key identifiers of the collection.
-   *
-   * @param collectionSet The collection
-   * @param valueSet  The value expression
-   * @return  The state in which all the key identifiers of the collection have the value expression assigned
-   */
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): S
+  @param collectionSet The set of collection expressions
+  @param keySet The set of key expressions
+  @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
+    */
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet) : S
 
 
   /**
-   * Removes all the key-value tuples from a collection and sets it's length to 0.
-   * @param collectionSet The collection to be cleared
-   * @return The state with the cleared collection
+   * Clears a collection
    */
   def clearCollection(collectionSet: ExpressionSet) : S
 
   /**
-    Returns the identifier representing the length of the given collection.
-    @param collectionSet The collection from which we want to access the length
-    @return A state that contains as expression the symbolic representation of the length of the given collection
+  Returns the identifier representing the length of the given collection
+   @param collectionSet The collection from which we want to access the length
+  @return A state that contains as expression the symbolic representation of the length of the given collection
     */
   def getCollectionLength(collectionSet: ExpressionSet) : S
 

@@ -27,7 +27,9 @@ class TLocation_Collection extends AMutable_Collection {
 
     /** Sorts by distance to the location */
     case "sort by distance" =>
-      super.forwardSemantics(this0, "sort", parameters, returnedType)
+      val List(loc) = parameters // Location
+      Dummy[S](this0,method)
+      Skip // Sorting is invariant for (size,elem) abstraction
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

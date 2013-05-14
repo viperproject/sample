@@ -506,47 +506,23 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 		map(_.removeExpression)
   }
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint) = {
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): PartitionedState[D] = {
     throw new NotImplementedException()
   }
 
-  def createTopCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint) = {
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): PartitionedState[D] = {
     throw new NotImplementedException()
   }
 
-  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = {
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): PartitionedState[D] = {
     throw new NotImplementedException()
   }
 
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = {
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): PartitionedState[D] = {
     throw new NotImplementedException()
   }
 
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = {
-    throw new NotImplementedException()
-  }
-
-  def extractCollectionKeys(fromCollection: ExpressionSet, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = {
-    throw new NotImplementedException()
-  }
-
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = {
-    throw new NotImplementedException()
-  }
-
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = {
-    throw new NotImplementedException()
-  }
-
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = {
-    throw new NotImplementedException()
-  }
-
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = {
-    throw new NotImplementedException()
-  }
-
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet) = {
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): PartitionedState[D] = {
     throw new NotImplementedException()
   }
 
@@ -580,7 +556,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	/**
 	 * Maps a function taking a leaf state and a symbolic abstract value as arguments
 	 * to all leaves of the partitioning. Since value is not necessarily deterministic,
-	 * the initial is the combination (least upper bound) of all possible deterministic
+	 * the result is the combination (least upper bound) of all possible deterministic
 	 * values.
 	 *
    * @param x The symbolic abstract value
@@ -601,7 +577,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 	/**
 	 * Maps a function taking a leaf state and two symbolic abstract values as
 	 * arguments to all leaves of the partitioning. As with the single argument
-	 * ({@link #mapValue}), the initial is a combination of all possible combinations
+	 * ({@link #mapValue}), the result is a combination of all possible combinations
 	 * of deterministic values of the two argument values.
 	 *
    * @param x A symbolic abstract value
@@ -628,7 +604,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
   	/**
 	 * Maps a function taking a leaf state and two symbolic abstract values as
 	 * arguments to all leaves of the partitioning. As with the single argument
-	 * ({@link #mapValue}), the initial is a combination of all possible combinations
+	 * ({@link #mapValue}), the result is a combination of all possible combinations
 	 * of deterministic values of the two argument values.
 	 *
    * @param x A symbolic abstract value
@@ -732,11 +708,11 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
 
 	/**
 	 * Dispatches a function to all active directives and returns the least upper
-	 * bound of the initial, or the argument if no directive is active.
+	 * bound of the result, or the argument if no directive is active.
 	 *
-	 * @param p The default initial
+	 * @param p The default result
 	 * @param f The function
-	 * @return The default initial or the least upper bound of f applied to all
+	 * @return The default result or the least upper bound of f applied to all
 	 * active directives
 	 */
 	private[this] def dispatch(p: PartitionedState[D], f: (PartitionedStateObserver[D], Partitioning[D]) => Partitioning[D]): PartitionedState[D] = {

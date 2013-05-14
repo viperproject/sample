@@ -20,7 +20,7 @@ object TDevice_Collection {
 
 }
 
-class TDevice_Collection extends ALinearCollection {
+class TDevice_Collection extends ACollection {
 
   def getTyp = TDevice_Collection.typ
 

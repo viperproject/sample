@@ -299,8 +299,6 @@ object ShowGraph extends Property {
     var idToVertix: Map[Identifier, Object] = Map.empty[Identifier, Object]
     try {
       var index: Int = 0
-      val sIds = s.getIds()
-      val heapIds = heap.getIds()
       val ids = s.getIds() ++ heap.getIds()
 
       //Create the nodes for variables
@@ -359,6 +357,11 @@ object ShowGraph extends Property {
             graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle;dashed=true");
 
           case CollectionLengthIdentifier(coll) =>
+            val from = idToVertix.apply(coll)
+            val to = idToVertix.apply(id)
+            graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle;dashed=true");
+
+          case CollectionSummaryIdentifier(coll) =>
             val from = idToVertix.apply(coll)
             val to = idToVertix.apply(id)
             graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle;dashed=true");

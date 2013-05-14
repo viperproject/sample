@@ -23,7 +23,7 @@ object TNumber_Map {
 
 }
 
-class TNumber_Map extends AMap {
+class TNumber_Map extends AMutable_Collection {
 
   def getTyp = TNumber_Map.typ
 
