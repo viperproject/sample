@@ -71,9 +71,9 @@ class SPlayer extends AAny {
       curState
 
     /** Plays a Song */
-    // case "play" =>
-    //   val List(song) = parameters // Song
-    //   Skip;
+    case "play" =>
+      val List(song) = parameters // Song
+      AssignField[S](this0,SPlayer.field_active_song,song)
 
     /** Plays an audio/video file from the home network */
     // case "play home media" =>

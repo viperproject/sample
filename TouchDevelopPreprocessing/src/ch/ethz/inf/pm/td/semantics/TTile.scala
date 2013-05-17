@@ -34,6 +34,9 @@ object TTile {
   /** Gets the icon picture */
   val field_icon = new TouchField("icon",TPicture.typ)
 
+  /** This property is deprecated. */
+  val field_panorama = new TouchField("panorama",TBoolean.typ)
+
   /** Gets the front title */
   val field_title = new TouchField("title",TString.typ)
 
@@ -49,6 +52,7 @@ object TTile {
     field_counter,
     field_height,
     field_icon,
+    field_panorama,
     field_title,
     field_width
   ))
