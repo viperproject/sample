@@ -49,7 +49,7 @@ case class ScriptRecord (
 
 object Scripts {
 
-  val baseURL = "https://www.touchdevelop.com/api/"
+  val baseURL = "http://www.touchdevelop.com/api/"
   val options = "" // "?original=true"
   val text = "/text"
   val ast = "/ast"
