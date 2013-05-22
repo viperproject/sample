@@ -90,14 +90,15 @@ class TBoard extends AMutable_Collection {
     // Create a new ellipse sprite.
     case "create ellipse" =>
       val List(width,height) = parameters
-      val state1 = New[S](TSprite.typ,Map(
+      var curState = state
+      curState = New[S](TSprite.typ,Map(
         TSprite.field_width -> width,
         TSprite.field_height -> height
-      ))
-      val obj = state1.getExpression()
-      val state2 = super.forwardSemantics[S](this0,"add",List(obj),TNothing.typ)(pp,state1)
-      val state3 = state2.setExpression(obj)
-      state3
+      ))(curState,pp)
+      val obj = curState.getExpression()
+      curState = super.forwardSemantics[S](this0,"add",List(obj),TNothing.typ)(pp,curState)
+      curState = curState.setExpression(obj)
+      curState
 
     // Create a line obstacle with given start point, and given extent. Elasticity is 0 for sticky, 1 for complete bounce.
     case "create obstacle" =>

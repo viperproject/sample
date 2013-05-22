@@ -165,17 +165,21 @@ object RichNativeSemantics {
           }
 
           // Assign fields with given arguments
-          for (f <- typ.getPossibleFields()) {
+          for (f <- typ.getPossibleTouchFields()) {
             if(!TouchAnalysisParameters.libraryFieldPruning ||
               SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
-              initials.get(f) match {
-                case None =>
-                  val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
-                  curState = Top[S](f.getType().asInstanceOf[TouchType],recursive = !referenceLoop)(curState,newPP)
-                  val topField = curState.getExpression()
-                  curState = curState.assignField(List(obj),f.getName(),topField)
-                case Some(st) => curState = curState.assignField(List(obj),f.getName(),st)
+              val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
+              val a = initials.get(f) match {
+                case None => f.topDefault match {
+                  case InvalidInitializer() => Invalid(f.touchTyp)
+                  case TopInitializer() => curState = Top[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case TopWithInvalidInitializer() => curState = TopWithInvalid[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case NewInitializer() => curState = New[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case ExpressionInitializer(e) => e
+                }
+                case Some(st) => st
               }
+              curState = curState.assignField(List(obj),f.getName(),a)
             }
           }
         }
@@ -427,7 +431,7 @@ object RichNativeSemantics {
 
 }
 
-class TouchField(name:String, val touchTyp:TouchType, var default: Initializer = NewInitializer(), val isSummaryNode:Boolean = false)
+class TouchField(name:String, val touchTyp:TouchType, val default: Initializer = NewInitializer(), val topDefault: Initializer = TopInitializer(), val isSummaryNode:Boolean = false)
   extends VariableIdentifier(name,touchTyp,null,EmptyScopeIdentifier())
 
 trait Initializer

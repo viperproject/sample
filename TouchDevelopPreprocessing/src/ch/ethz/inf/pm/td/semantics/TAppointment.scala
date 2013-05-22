@@ -30,7 +30,7 @@ object TAppointment {
    val field_is_private = new TouchField("is private",TBoolean.typ)
 
    /** Gets the location */
-   val field_location = new TouchField("location",TString.typ)
+   val field_location = new TouchField("location",TString.typ, topDefault = TopWithInvalidInitializer())
 
    /** Gets the organizer */
    val field_organizer = new TouchField("organizer",TContact.typ)
@@ -45,7 +45,7 @@ object TAppointment {
    val field_status = new TouchField("status",TString.typ)
 
   /** Gets the subject */
-  val field_subject = new TouchField("subject",TString.typ)
+  val field_subject = new TouchField("subject",TString.typ, topDefault = TopWithInvalidInitializer())
 
   val typName = "Appointment"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_attendees,field_details,field_end_time,

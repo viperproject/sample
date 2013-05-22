@@ -38,6 +38,7 @@ object SystemParameters {
 
   var enableOutputOfAlarms : Boolean = true
   var enableOutputOfPrecisionWarnings : Boolean = true
+  var enableOutputOfDummyWarnings : Boolean = false
   var enableOutputOfBottomWarnings : Boolean = true
 
   /**
@@ -249,6 +250,8 @@ object Reporter {
   def hasBottom(message:String,pp:ProgramPoint):Boolean = seenBottom.contains((message,pp))
 
   def getErrors(pp:ProgramPoint):Set[String] = seenErrors.filter(_._2 == pp).map(_._1)
+  def getImprecision(pp:ProgramPoint):Set[String] = seenImprecision.filter(_._2 == pp).map(_._1)
+  def getBottom(pp:ProgramPoint):Set[String] = seenBottom.filter(_._2 == pp).map(_._1)
 
   def reportError(message:String,pp:ProgramPoint) {
     if (!hasError(message,pp) && SystemParameters.enableOutputOfAlarms) {
@@ -265,11 +268,11 @@ object Reporter {
   }
 
   def reportDummy(message:String,pp:ProgramPoint) {
-    if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings) {
+    if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings && SystemParameters.enableOutputOfDummyWarnings) {
       SystemParameters.progressOutput.put("SOUND DUMMY: "+message+" at "+pp.toString)
       seenImprecision += ((message,pp))
     }
-  }
+}
 
   def reportBottom(message:String,pp:ProgramPoint) {
     if (!hasBottom(message,pp) && SystemParameters.enableOutputOfBottomWarnings) {

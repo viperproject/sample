@@ -51,6 +51,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
       new ShowGraphProperty().asInstanceOf[Property],
       new SingleStatementProperty(new BottomVisitor),
       new SingleStatementProperty(new AlarmVisitor),
+      new SingleStatementProperty(new ImprecisionVisitor),
       new NoProperty
     )
 
@@ -259,6 +260,34 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
 }
 
+/**
+ * We collect alarms found _during_ the analysis using the static class "Reporter". To fit in with the old
+ * system of checking properties _after_ the analysis of the script, we use this visitor to collect all alarms
+ * found during the analysis
+ */
+class ImprecisionVisitor extends Visitor {
+
+  def getLabel() = "Imprecision warnings during analysis"
+
+  /**
+   * Check the property over a single state
+   *
+   * @param state the abstract state
+   * @param statement the statement that was executed after the given abstract state
+   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
+   */
+  def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) {
+    val errors = Reporter.getImprecision(statement.getPC())
+    if (!errors.isEmpty) {
+      for (mess <- Reporter.getImprecision(statement.getPC())) {
+        printer.add(WarningProgramPoint(statement.getPC(),mess))
+      }
+    } else {
+      printer.add(ValidatedProgramPoint(statement.getPC(),"valid"))
+    }
+  }
+
+}
 
 /**
  * We collect alarms found _during_ the analysis using the static class "Reporter". To fit in with the old
