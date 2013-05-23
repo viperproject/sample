@@ -76,8 +76,8 @@ class SWeb extends AAny {
     /** Downloads a picture from internet */
     case "download picture" =>
       val List(url) = parameters // String
-      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download picture",
-        "Check if the device is connected to the internet before using the connection")
+//      Error[S](Field[S](this0,SWeb.field_is_connected).not,"download picture",
+//        "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TPicture.typ)
 
     /** Create a streamed song file from internet (download happens when playing) */

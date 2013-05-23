@@ -25,8 +25,12 @@ object RequiredLibraryFragmentAnalysis {
     SystemParameters.enableOutputOfPrecisionWarnings = false
 
     for (clazz <- classes; method <- clazz.methods) {
-      method.forwardSemantics(new AccessCollectingState(SystemParameters.getType().top())).exitState()
+
+      val params = for (a <- method.arguments.head) yield { new ExpressionSet(a.typ) }
+      MethodSummaries.collect(method.programpoint,clazz,method,new AccessCollectingState(SystemParameters.getType().top()),params)
+
     }
+
     spottedFields
   }
 

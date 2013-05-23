@@ -11,5 +11,5 @@ def analyzer(id:String) {
   }
 }
 
-//TestRunner("aecczdxr",analyzer _)
-TestRunner(new NewScripts,10000,analyzer _)
+TestRunner("aecczdxr",analyzer _)
+//TestRunner(new NewScripts,10000,analyzer _)

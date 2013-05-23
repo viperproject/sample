@@ -271,7 +271,7 @@ object MethodSummaries {
       case Nil => UnitExpression(TNothing.typ,callPoint)
     }
 
-    curState = curState.setExpression(new ExpressionSet(TUnknown.typ).add(buildMultiVal(tempVars)))
+    curState = curState.setExpression(new ExpressionSet(TUnknown.typ.top()).add(buildMultiVal(tempVars)))
 
     // Prune local state (except return values)
     curState = curState.pruneVariables({
