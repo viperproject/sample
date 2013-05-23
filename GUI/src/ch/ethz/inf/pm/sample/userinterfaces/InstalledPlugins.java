@@ -11,11 +11,14 @@ import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.analysis.*;
+import ch.ethz.inf.pm.td.parser.Declaration;
+import ch.ethz.inf.pm.td.parser.LibraryDefinition;
+import ch.ethz.inf.pm.td.parser.Script;
 import ch.ethz.inf.pm.td.webapi.*;
 import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
-import scala.collection.immutable.List;
+import scala.collection.immutable.*;
 import scala.Option;
 import semper.sample.multithreading.AugmentedCompiler;
 import semper.sample.multithreading.MultithreadingAnalysis;
@@ -73,43 +76,4 @@ public class InstalledPlugins {
         HeapEnv heap= new HeapEnv(typ, ids);
         return new NonRelationalHeapDomain(env, heap, ids, id);
     }
-
-	static void generateTopType(Compiler c) throws Exception {
-
-		if (c instanceof ScalaCompiler) {
-            String suffix = ".scala";
-
-            File file = File.createTempFile("Dummy", suffix);
-
-            String className = file.getName().substring(0, file.getName().length() - suffix.length());
-            String source = "class " + className + " {}";
-
-            // Write source
-            FileWriter out = new FileWriter(file);
-            out.write(source);
-            out.close();
-
-            List<ClassDefinition> classes = c.compileFile(file.getAbsolutePath());
-            if (classes.length() > 0) {
-                SystemParameters.typ_$eq(classes.head().typ().top());
-            } else {
-                throw new Exception("Could not generate type information");
-            }
-
-            // Remove files
-            File classFile = new File(className + ".class");
-            if (classFile.exists()) classFile.delete();
-
-        } else if (c instanceof TouchCompiler) {
-
-            List<ClassDefinition> classes = ((TouchCompiler)c).compileString(Option.apply(""),"dummypub");
-            if (classes.length() > 0) {
-                SystemParameters.typ_$eq(classes.head().typ().top());
-            } else {
-                throw new Exception("Could not generate type information");
-            }
-
-        }
-	}
-
 }

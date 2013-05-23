@@ -78,8 +78,6 @@ object TouchAnalysisParameters {
    */
   val localizeStateOnMethodCall = false
 
-  val printAllLoopsInScript = false
-
   val reportNoncriticalParameterBoundViolations = false
 
   val reportDummyImplementations = false

@@ -11,6 +11,7 @@ import scala.Some
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.td.parser.Script
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  *
@@ -48,68 +49,36 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    * This takes one of the following arguments:
    *
    * http://www.touchdevelop.com/api/[pubID]/... Some URL to a script
+   * https://www.touchdevelop.com/api/[pubID]/... Some URL to a script
    * td://[pubID] Some PubID in uri form
-   * Some path to a local file. The filename will be assumed to be the pubID
+   * Some path to a local file with extension .td for source code.
+   * Some path to a local file with extension .json for a cached json representation
+   *
+   * It uses either the WebAST importer or the script parser to get the corresponding
+   * TouchDevelop AST. If a URL or a pubID is provided, we may use the local cache
    *
    */
+  def retrieveScript(path:String): (Script,String) = {
+    if (path.startsWith("http://"))
+      (ScriptCache.get(Scripts.pubIDfromURL(path)),Scripts.pubIDfromURL(path))
+    else if (path.startsWith("https://"))
+      (ScriptCache.get(Scripts.pubIDfromURL(path)),Scripts.pubIDfromURL(path))
+    else if (path.startsWith("td://"))
+      (ScriptCache.get(path.substring(5)),path.substring(5))
+    else if (path.toLowerCase.endsWith(".td"))
+      (ScriptParser(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
+    else if (path.toLowerCase.endsWith(".json"))
+      (WebASTImporter.convertFromString(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
+    else throw TouchException("Unrecognized path "+path)
+  }
+
+
   def compileFile(path: String): List[ClassDefinition] = {
-    val (source,pubID) =
-      if (path.startsWith("http://")) (None,Scripts.pubIDfromURL(path))
-      else if (path.startsWith("https://")) (None,Scripts.pubIDfromURL(path))
-      else if (path.startsWith("td://")) (None,path.substring(5))
-      else (Some(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
-    compileString(source,pubID)
-  }
 
-  def compileStringRecursive(scriptStr:Option[String], pubID:String, libDef:Option[LibraryDefinition] = None): ClassDefinition = {
-
-    //println("Compiling "+pubID+"... ")
-
-    // compile
-    var script = scriptStr match {
-      case Some(x) => ScriptParser(x)
-      case None => WebASTImporter.queryAndConvert(pubID)
-    }
-
-    // FIXME: Remove
-    if (TouchAnalysisParameters.printAllLoopsInScript) {
-      Matcher(script)( { _ => }, {
-        case f@Foreach(_,_,_,_) => println("Foreach at "+f.pos+" (file "+pubID+")")
-        case f@For(_,_,_) => println("For at "+f.pos+" (file "+pubID+")")
-        case f@While(_,_) => println("While at "+f.pos+" (file "+pubID+")")
-        case _ => ()
-      }, { _ => } )
-    }
-
-    script = LoopRewriter(script)
-    Typer.processScript(script)
-
-    val newCFG =  CFGGenerator.process(script,pubID,libDef)
-
-    // update fields
-    parsedScripts = parsedScripts ::: List(newCFG)
-    libDef match {
-      case Some(LibraryDefinition(name,_,_,_)) => parsedNames = parsedNames ::: List(name)
-      case None => parsedNames = parsedNames ::: List(pubID)
-    }
-    parsedTouchScripts += ((pubID,script))
-
-    // recursive for libs
-    val libDefs = discoverRequiredLibraries(script)
-    // FIXME: This should actually be checking for parsed names not parsed ids, right?
-    for (lib <- libDefs; if (!parsedNames.contains(lib.name) && !lib.pubID.isEmpty)) {
-      compileStringRecursive(None,lib.pubID,Some(lib))
-    }
-
-    isInLibraryMode = script.isLibrary
-
-    newCFG
-  }
-
-  def compileString(scriptStr:Option[String], pubID:String): List[ClassDefinition] = {
+    val (script,pubID) = retrieveScript(path)
 
     // Compile
-    main = compileStringRecursive(scriptStr,pubID)
+    main = compileScriptRecursive(script,pubID)
     mainID = pubID
 
     // We analyze public methods from the main class, events from the main class but globalData from all files (library)
@@ -134,22 +103,52 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     }
 
     parsedScripts
+
   }
 
-  /**
-   * TODO: Remove this - that does not make sense at all since it does not include the source of libraries
-   */
-  def getSourceCode(path : String):String = {
-    val (source,pubID) =
-      if (path.startsWith("http://")) (None,Scripts.pubIDfromURL(path))
-      else if (path.startsWith("https://")) (None,Scripts.pubIDfromURL(path))
-      else if (path.startsWith("td://")) (None,path.substring(5))
-      else (Some(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
-    val script = source match {
-      case Some(x) => ScriptParser(x)
-      case None => WebASTImporter.queryAndConvert(pubID)
+  def compileScriptRecursive(script:Script, pubID:String, libDef:Option[LibraryDefinition] = None): ClassDefinition = {
+
+    val rewrittenScript = LoopRewriter(script)
+    Typer.processScript(rewrittenScript)
+
+    val newCFG =  CFGGenerator.process(rewrittenScript,pubID,libDef)
+
+    // update fields
+    parsedScripts = parsedScripts ::: List(newCFG)
+    libDef match {
+      case Some(LibraryDefinition(name,_,_,_)) => parsedNames = parsedNames ::: List(name)
+      case None => parsedNames = parsedNames ::: List(pubID)
     }
-    PrettyPrinter(script)
+    parsedTouchScripts += ((pubID,rewrittenScript))
+
+    // recursive for libs
+    val libDefs = discoverRequiredLibraries(rewrittenScript)
+    // FIXME: This should actually be checking for parsed names not parsed ids, right?
+    for (lib <- libDefs; if (!parsedNames.contains(lib.name) && !lib.pubID.isEmpty)) {
+      val (libScript,libPubID) = retrieveScript("td://"+lib.pubID)
+      compileScriptRecursive(libScript,libPubID,Some(lib))
+    }
+
+    isInLibraryMode = script.isLibrary
+
+    newCFG
+  }
+
+  def getSourceCode(path : String):String = {
+    val (script,pubID) = retrieveScript(path)
+    var parsed = Set(pubID)
+
+    def getSourceCodeRecursive(pubID:String):String = {
+      if (!parsed.contains(pubID) && !pubID.isEmpty) {
+        val (libScript,libPubID) = retrieveScript("td://"+pubID)
+        parsed = parsed + libPubID
+        val libDef = discoverRequiredLibraries(libScript)
+        PrettyPrinter(libScript) + (for (lib <- libDef) yield {getSourceCodeRecursive(lib.pubID)}).mkString("\n")
+      } else ""
+    }
+
+    val libDef = discoverRequiredLibraries(script)
+    PrettyPrinter(script) + (for (lib <- libDef) yield {getSourceCodeRecursive(lib.pubID)}).mkString("\n")
   }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
@@ -230,6 +229,10 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     parsedTouchScripts = Map.empty
     userTypes = Map.empty
     isInLibraryMode = false
+  }
+
+  def generateTopType() {
+    SystemParameters.typ = compileScriptRecursive(Script.apply(Nil, false), "", None).typ.top()
   }
 
 

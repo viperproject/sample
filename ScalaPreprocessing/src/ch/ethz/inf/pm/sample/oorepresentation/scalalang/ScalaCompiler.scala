@@ -4,7 +4,6 @@ import ch.ethz.inf.pm.sample._
 import scala.tools.nsc._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io._
-import java.util.Scanner
 
 object ScalaClasses {
 	var classes : List[ClassDefinition] = Nil;
@@ -98,6 +97,29 @@ class ScalaCompiler extends Compiler {
 
   def reset() {
     parsedclasses = Nil
+  }
+
+  def generateTopType() {
+    val suffix: String = ".scala"
+    val file: File = File.createTempFile("Dummy", suffix)
+    val className: String = file.getName.substring(0, file.getName.length - suffix.length)
+    val source: String = "class " + className + " {}"
+
+    val out: FileWriter = new FileWriter(file)
+    out.write(source)
+    out.close
+
+    val classes = compileFile(file.getAbsolutePath)
+
+    if (classes.length > 0) {
+      SystemParameters.typ = classes.head.typ.top
+    }
+    else {
+      throw new Exception("Could not generate type information")
+    }
+
+    val classFile: File = new File(className + ".class")
+    if (classFile.exists) classFile.delete
   }
 	
 }

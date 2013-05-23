@@ -38,6 +38,12 @@ object WebASTImporter {
     json.asInstanceOf[JObject].extract[JApp]
   }
 
+  def convertFromString(string: String): Script = {
+    val json = parse(string)
+    val japp = json.asInstanceOf[JObject].extract[JApp]
+    convert(japp)
+  }
+
   def convert(jAST:JApp):Script = {
     Script(jAST.decls map (convert _),jAST.isLibrary).setId("")
   }

@@ -79,6 +79,9 @@ trait Compiler {
     }
     return output;
   }
+
+  def generateTopType()
+
 }
 
 
@@ -100,3 +103,4 @@ trait IteratorOverPrograms extends Iterator[String] {
 
 
 }
+

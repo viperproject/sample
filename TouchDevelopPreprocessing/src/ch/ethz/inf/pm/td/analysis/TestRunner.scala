@@ -48,7 +48,7 @@ object TestRunner {
   def runDirectory(dir:String) {
     TouchRun.main(new File(basePath(dir)).listFiles(
       new FileFilter {
-        def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") }
+        def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") || p1.getName.matches(".*\\.json$") }
       }
     ) map (basePath(dir)+_.getName) toList)
   }
@@ -60,7 +60,7 @@ object TestRunner {
   def runDirectoryWithApron(dir:String) {
     TouchApronRun.main(new File(basePath(dir)).listFiles(
       new FileFilter {
-        def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") }
+        def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") || p1.getName.matches(".*\\.json$") }
       }
     ).map(basePath(dir)+_.getName).toList.sortWith((a,b) => a.compare(b) < 0))
   }
