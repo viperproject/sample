@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.Reporter
  * TODO: These implementations are only valid for (size,elem) abstractions
  *
  * @author Lucas Brutschy
- */ 
+ */
 
 object TNumber_Map {
 
@@ -24,12 +24,12 @@ object TNumber_Map {
 
 }
 
-class TNumber_Map extends AMutable_Collection {
+class TNumber_Map extends AMap {
 
   def getTyp = TNumber_Map.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                     (implicit pp:ProgramPoint,state:S):S = method match {
+                                              (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Computes the average of the values */
     case "avg" =>
@@ -42,15 +42,6 @@ class TNumber_Map extends AMutable_Collection {
     /** Computes the minimum of the values */
     case "min" =>
       Return[S](CollectionSummary[S](this0))
-
-    /** Sets the i-th element */
-    case "set at" =>
-      val List(index,value) = parameters // Number,Element_Type
-      Reporter.reportImprecision("This map access is not checked",pp)
-      // We have no clue whether this is an update or not without a must analysis
-      val case1 = CollectionUpdate[S](this0,index,value)
-      val case2 = CollectionInsert[S](this0,index,value)
-      state.lub(case1,case2)
 
     /** Extracts the elements at indices between start (inclusive) and end (non-inclusive). */
     case "slice" =>
@@ -66,4 +57,4 @@ class TNumber_Map extends AMutable_Collection {
 
   }
 }
-      
+

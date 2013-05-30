@@ -52,7 +52,7 @@ class SMedia extends AAny {
       If[S](CollectionSize[S](mediaPictures) equal 0, Then = {
         Return[S](Invalid(TPicture.typ))(_,pp)
       }, Else = {
-        Return[S](CollectionSummary[S](mediaPictures),Invalid(TPicture.typ))(_,pp)
+        Return[S](CollectionSummary[S](mediaPictures))(_,pp)
       })
 
     /** Creates a new game board */

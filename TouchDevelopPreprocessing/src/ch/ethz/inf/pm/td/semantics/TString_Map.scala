@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * A map from strings to strings
  *
  * @author Lucas Brutschy
- */ 
+ */
 
 object TString_Map {
 
@@ -24,12 +24,12 @@ object TString_Map {
 
 }
 
-class TString_Map extends AMutable_Collection {
+class TString_Map extends AMap {
 
   def getTyp = TString_Map.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                     (implicit pp:ProgramPoint,state:S):S = method match {
+                                              (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets the value at a given key; invalid if not found */
     // case "at" =>
@@ -44,8 +44,8 @@ class TString_Map extends AMutable_Collection {
     //   val field_count = new TouchField("count",TNumber.typ)
 
     /** Gets the keys in the map */
-    case "keys" =>
-      Top[S](TString_Collection.typ)
+    //case "keys" =>
+    //  Top[S](TString_Collection.typ)
     // DECLARATION AS FIELD:
 
     /** Removes the value at a given key */
@@ -68,4 +68,3 @@ class TString_Map extends AMutable_Collection {
 
   }
 }
-      

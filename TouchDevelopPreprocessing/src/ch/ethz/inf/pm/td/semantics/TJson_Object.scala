@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 
 /**
  * Specifies the abstract semantics of Json Object
@@ -45,6 +46,12 @@ class TJson_Object extends AMutable_Collection {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
+
+    /** Gets the i-th element */
+    case "at index" =>
+      val List(index) = parameters
+      CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
+      Return[S](CollectionSummary[S](this0))
 
     /** Gets a field value as a boolean */
     case "boolean" =>

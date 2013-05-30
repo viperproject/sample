@@ -12,14 +12,26 @@ class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchT
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
+    /** Gets the i-th element */
+    case "at index" =>
+      val List(index) = parameters
+      CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - 1, "at index", "index")
+      Return[S](CollectionSummary[S](this0))
+
     // This overrides the default "at" behavior of collections: Instead of returning "invalid" for a new key, we
     // create a new value of that key. Since we do not really track keys, we create a new object every times
     // TODO: This does not work for multi-key indexes
     case "at" =>
-      var curState = state
-      curState = New[S](indexMemberType)(curState,pp)
-      curState = CollectionInsert[S](this0,parameters.head,curState.getExpression())(curState,pp)
-      Return[S](CollectionAt[S](this0,parameters.head)(curState,pp))(curState,pp)
+      val key = parameters.head
+      If[S](CollectionContainsKey[S](this0, key) equal False, Then=(state) => {
+        var newState = New[S](indexMemberType)(state,pp)
+        val newIndexMember = newState.getExpression()
+        newState = CollectionInsert[S](this0, key, newIndexMember)(newState,pp)
+        newState = CollectionIncreaseLength[S](this0)(newState, pp)
+        Return[S](CollectionAt[S](this0, key)(newState, pp))(newState, pp)
+      }, Else=(state)=>{
+        Return[S](CollectionAt[S](this0, key)(state, pp))(state, pp)
+      })
 
     case "clear" =>
       CollectionClear[S](this0)

@@ -22,7 +22,7 @@ import ch.ethz.inf.pm.td.domain.MultiValExpression
  * Lucas Brutschy
  * Date: 10/5/12
  * Time: 4:30 PM
- * 
+ *
  */
 
 object RichNativeSemantics {
@@ -58,7 +58,14 @@ object RichNativeSemantics {
   def If[S <: State[S]](expr:RichExpression, Then: S => S, Else: S => S)(implicit state:S, pp:ProgramPoint):S = {
     val thenState = state.assume( expr )
     val elseState = state.assume( expr.not() )
-    state.lub(Then(thenState),Else(elseState))
+
+    if (thenState.lessEqual(state.bottom())){
+      Else(elseState)
+    } else if (elseState.lessEqual(state.bottom())) {
+      Then(thenState)
+    } else {
+      state.lub(Then(thenState),Else(elseState))
+    }
   }
 
   /**
@@ -67,8 +74,8 @@ object RichNativeSemantics {
   def New[S <: State[S]](typ:TouchType,
                          initials:Map[TouchField,RichExpression] = Map.empty[TouchField,RichExpression],
                          recursive:Boolean = true,
-                         initialCollectionSummary:Option[ExpressionSet] = None,
-                         initialCollectionSize:Option[ExpressionSet] = None)(implicit s:S, pp:ProgramPoint): S = {
+                         initialCollectionSize: Option[RichExpression] = None,
+                         initialCollectionValue: Option[RichExpression] = None)(implicit s:S, pp:ProgramPoint): S = {
     typ.getName match {
       case TNumber.typName => s.setExpression(new ExpressionSet(TNumber.typ).add(Constant("0",TNumber.typ,pp)))
       case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(False))
@@ -86,6 +93,15 @@ object RichNativeSemantics {
         if(recursive) {
           typ match {
             case col:TouchCollection =>
+              initialCollectionValue match {
+                case None =>
+                // Remains bottom
+                case Some(x) =>
+                  //TODO: Can be more precise
+                  curState = Top[S](col.getKeyType)(curState, pp)
+                  curState = CollectionInsert[S](obj, curState.getExpression(), x)(curState, pp)
+              }
+
               // Initialize collection size
               initialCollectionSize match {
                 case None =>
@@ -93,20 +109,13 @@ object RichNativeSemantics {
                 case Some(x) =>
                   curState = Assign[S](CollectionSize[S](obj),x)(curState,pp)
               }
-              initialCollectionSummary match {
-                case None =>
-                  // Remains bottom
-                case Some(x) =>
-                  curState = Assign[S](CollectionSummary[S](obj),x)(curState,pp)
-              }
-
             case _ => ()
           }
 
           // Assign fields with given arguments
           for (f <- typ.getPossibleTouchFields()) {
             if(!TouchAnalysisParameters.libraryFieldPruning ||
-                SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
+              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName())) {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
               val a = initials.get(f) match {
                 case None => f.default match {
@@ -139,7 +148,7 @@ object RichNativeSemantics {
 
         var curState = typ match {
           case col:TouchCollection =>
-            s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp)
+            s.createCollection(col, col.getKeyType, col.getValueType, TNumber.typ, pp)
           case _ =>
             s.createObject(typ,pp,false)
         }
@@ -151,16 +160,20 @@ object RichNativeSemantics {
         if(recursive) {
           typ match {
             case col:TouchCollection =>
-              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"*summary")
-              // Create summary node of collections
-              curState = Top[S](col.getValueType,recursive = !referenceLoop1)(curState,newPP1)
-              val topSummary = curState.getExpression()
-              curState = Assign[S](CollectionSummary[S](obj),topSummary)(curState,newPP1)
-              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"*size")
-              // Set size to top
-              curState = Top[S](TNumber.typ,recursive = !referenceLoop2)(curState,newPP2)
-              val topSize = curState.getExpression()
-              curState = Assign[S](CollectionSize[S](obj),topSize)(curState,newPP2)
+              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__collkey")
+              curState = Top[S](col.getKeyType, recursive = !referenceLoop1)(curState, newPP1)
+              val keyTop = curState.getExpression()
+
+              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__collvalue")
+              curState = Top[S](col.getValueType, recursive = !referenceLoop2)(curState, newPP2)
+              val valueTop = curState.getExpression()
+
+              curState = CollectionInsert[S](obj, keyTop, valueTop)(curState, pp)
+
+              val (newPP3, referenceLoop3) = DeepeningProgramPoint(pp,"__length")
+              curState = Top[S](TNumber.typ, recursive = !referenceLoop3)(curState, newPP3)
+              val lengthTop = curState.getExpression()
+              curState = Assign[S](CollectionSize[S](obj), lengthTop)(curState, newPP3)
             case _ => ()
           }
 
@@ -214,10 +227,9 @@ object RichNativeSemantics {
     // Clone fields
 
     if (obj.getType().isInstanceOf[TouchCollection]) {
-      curState = Assign[S](CollectionSize[S](newObject),CollectionSize[S](obj))(curState,pp)
-      if (!CollectionSummary[S](obj).isBottom) {
-        curState = Assign[S](CollectionSummary[S](newObject),CollectionSummary[S](obj))(curState,pp)
-      }
+      val collTyp = obj.getType().asInstanceOf[TouchCollection]
+      curState = curState.copyCollection(obj, newObject, collTyp.getKeyType, collTyp.getValueType)
+      curState = Assign[S](CollectionSize[S](newObject), CollectionSize[S](obj))(curState, pp)
     }
 
     for (f <- obj.getType().getPossibleFields()) {
@@ -251,28 +263,119 @@ object RichNativeSemantics {
     state.getCollectionLength(collection).getExpression()
   }
 
-  def CollectionAt[S <: State[S]](collection:RichExpression,index:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
-    state.getCollectionCell(collection,index).getExpression()
+  def CollectionAt[S <: State[S]](collection:RichExpression,key:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
+    state.getCollectionValueByKey(collection, key, collection.getType().asInstanceOf[TouchCollection].getValueType).getExpression()
+  }
+
+  def CollectionContainsValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    if(state.assume(CollectionSize[S](collection) > 0).lessEqual(state.bottom())) return False
+
+    val expressions = state.getCollectionValueByValue(collection, value).getExpression()
+    if (expressions.isBottom) {
+      return False
+    } else {
+      return True or False
+    }
+  }
+
+  def CollectionContainsKey[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    if(state.assume(CollectionSize[S](collection) > 0).lessEqual(state.bottom())) return False
+
+    val expressions = state.getCollectionValueByKey(collection, key, collection.getType().asInstanceOf[TouchCollection].getValueType).getExpression()
+    if (expressions.isBottom) {
+      return False
+    } else {
+      return True or False
+    }
   }
 
   def CollectionSummary[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
-    state.getCollectionCell(collection,Valid(TNumber.typ)).getExpression()
+    val keyTyp = collection.thisExpr._1.asInstanceOf[TouchCollection].getKeyType
+    val valueTyp = collection.thisExpr._1.asInstanceOf[TouchCollection].getValueType
+    state.getCollectionValueByKey(collection, Valid(keyTyp), valueTyp).getExpression()
+  }
+
+  def CollectionKeySummary[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    val result = state.getCollectionKeyByKey(collection, Valid(collection.getType().asInstanceOf[TouchCollection].getKeyType))
+    result.getExpression()
+  }
+
+  def CollectionExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    val keyTyp = collection.getType().asInstanceOf[TouchCollection].getKeyType
+    val collectionTyp = collection.getType()
+    val newCollectionTyp = collectionTyp.getName() match {
+      case TNumber_Map.typName => TNumber_Collection.typ
+      case TString_Map.typName => TString_Collection.typ
+    }
+
+    var newState = state.extractCollectionKeys(collection, 0 ndTo (CollectionSize[S](collection) - 1), newCollectionTyp, TNumber.typ, keyTyp, TNumber.typ, pp)
+
+    // Make sure that our value is "valid"  now
+    val expression = newState.getExpression()
+    newState = newState.assignVariable(expression, Valid(newCollectionTyp))
+    newState.setExpression(expression)
+  }
+
+  def CollectionInvalidateKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    val keyTyp = collection.thisExpr._1.asInstanceOf[TouchCollection].getKeyType
+    state.assignAllCollectionKeys(collection, 0 ndTo CollectionSize[S](collection) - 1, keyTyp)
   }
 
   def CollectionClear[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
-    state.clearCollection(collection)
+    val keyTyp = collection.thisExpr._1.asInstanceOf[TouchCollection].getKeyType
+    val valueTyp = collection.thisExpr._1.asInstanceOf[TouchCollection].getValueType
+    var newState = state.clearCollection(collection, keyTyp, valueTyp)
+    newState = Assign[S](CollectionSize[S](collection), 0)(newState, pp)
+    newState
+//    if (newState.isSummaryCollection(collection)) {
+//      return newState.lub(newState, state)
+//    } else {
+//      return newState
+//    }
+  }
+
+  def CollectionUpdate[S <: State[S]](collection: RichExpression, key:RichExpression, value: RichExpression)(implicit state:S, pp:ProgramPoint): S = {
+    val newState = CollectionRemove[S](collection, key)(state, pp)
+    CollectionInsert[S](collection, key, value)(newState, pp)
   }
 
   def CollectionInsert[S <: State[S]](collection:RichExpression, index:RichExpression, right:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
-    state.insertCollectionCell(collection,index,right)
-  }
-
-  def CollectionUpdate[S <: State[S]](collection:RichExpression, index:RichExpression, right:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
-    state.assignCollectionCell(collection,index,right)
+    state.insertCollectionValue(collection, index, right, pp)
   }
 
   def CollectionRemove[S <: State[S]](collection:RichExpression, index:RichExpression)(implicit state:S, pp:ProgramPoint):S = {
-    state.removeCollectionCell(collection,index)
+    state.removeCollectionValueByKey(collection, index, collection.getType().asInstanceOf[TouchCollection].getValueType)
+  }
+
+  def CollectionRemoveByValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit  state: S, pp: ProgramPoint) = {
+    state.removeCollectionValueByValue(collection, value, collection.getType().asInstanceOf[TouchCollection].getKeyType)
+  }
+
+  def CollectionIndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    index >= 0 && index < CollectionSize[S](collection)
+  }
+
+  def CollectionIncreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    val newState = Assign[S](CollectionSize[S](collection), CollectionSize[S](collection) + 1)
+    newState
+
+//    if (newState.isSummaryCollection(collection)){
+//      return newState.lub(newState, state)
+//    } else {
+//      return newState
+//    }
+  }
+
+  def CollectionDecreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    val assigned = Assign[S](CollectionSize[S](collection), CollectionSize[S](collection) - 1)
+    // ensure that collection length is never < 0
+    val newState = assigned.assume(CollectionSize[S](collection) >= 0)
+    newState
+//    if (newState.isSummaryCollection(collection)) {
+//      return newState.lub(newState, state)
+//    } else {
+//      return newState
+//    }
   }
 
   /*-- Misc --*/
@@ -374,7 +477,7 @@ object RichNativeSemantics {
 
     val fieldResult =
       if(parameters.length == 0)
-        // Getters
+      // Getters
         typ.getPossibleFields().find(_.getName() == method ) match {
           case Some(field) =>
             val fieldValue = Field[S](this0,field.asInstanceOf[VariableIdentifier])
@@ -383,7 +486,7 @@ object RichNativeSemantics {
           case None => None
         }
       else if (parameters.length == 1)
-        // Setters
+      // Setters
         typ.getPossibleFields().find("set "+_.getName() == method ) match {
           case Some(field) =>
             Some(AssignField[S](this0,field,parameters.head))
