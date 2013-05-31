@@ -282,9 +282,10 @@ class ImprecisionVisitor extends Visitor {
       for (mess <- Reporter.getImprecision(statement.getPC())) {
         printer.add(WarningProgramPoint(statement.getPC(),mess))
       }
-    } else {
-      printer.add(ValidatedProgramPoint(statement.getPC(),"valid"))
     }
+//    else {
+//      printer.add(ValidatedProgramPoint(statement.getPC(),"valid"))
+//    }
   }
 
 }
@@ -311,9 +312,10 @@ class AlarmVisitor extends Visitor {
       for (mess <- Reporter.getErrors(statement.getPC())) {
         printer.add(WarningProgramPoint(statement.getPC(),mess))
       }
-    } else {
-      printer.add(ValidatedProgramPoint(statement.getPC(),"valid"))
     }
+//    else {
+//      printer.add(ValidatedProgramPoint(statement.getPC(),"valid"))
+//    }
   }
 
 }
@@ -335,6 +337,7 @@ class BottomVisitor extends Visitor {
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) {
     if (state.lessEqual(state.bottom())) {
       Reporter.reportBottom("State is bottom",statement.getPC())
+      printer.add(WarningProgramPoint(statement.getPC(),"State is bottom"))
     }
   }
 
