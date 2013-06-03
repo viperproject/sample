@@ -1,5 +1,5 @@
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
-import ch.ethz.inf.pm.td.webapi.Scripts
+import ch.ethz.inf.pm.td.webapi.ScriptListings
 import java.io.{File, PrintWriter}
 
 /**
@@ -119,7 +119,7 @@ for (pubID <- pubIDs) {
     if (dir.isDirectory || dir.mkdir()) {
       val p = new PrintWriter(new File(dir+"/"+pubID+".td"))
       try {
-        p.println(fetchFile(Scripts.codeURLfromPubID(pubID)))
+        p.println(fetchFile(ScriptListings.codeURLfromPubID(pubID)))
       } finally { p.close() }
 
     } else { println("could not create dir") }

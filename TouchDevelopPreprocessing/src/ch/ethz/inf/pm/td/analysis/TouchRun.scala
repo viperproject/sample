@@ -34,7 +34,7 @@ object TouchRun {
 
   type HeapId = ProgramPointHeapIdentifier
 
-  def main(files: List[String]) {
+  def main(files: Array[String]) {
 
     if(files.isEmpty) {
       println("No arguments given!")
@@ -93,7 +93,7 @@ object TouchApronRun {
 
   type HeapId = ProgramPointHeapIdentifier
 
-  def main(files: List[String]) {
+  def main(files: Array[String]) {
 
     if(files.isEmpty) {
       println("No arguments given!")

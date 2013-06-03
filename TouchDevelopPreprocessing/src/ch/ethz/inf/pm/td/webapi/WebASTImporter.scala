@@ -32,7 +32,7 @@ object WebASTImporter {
   }
 
   def query(pubID: String): JApp = {
-    val url = Scripts.webastURLfromPubID(pubID)
+    val url = ScriptListings.webastURLfromPubID(pubID)
     val string = URLFetcher.fetchFile(url)
     val json = parse(string)
     json.asInstanceOf[JObject].extract[JApp]

@@ -24,7 +24,7 @@ TestRunner(new RootScripts,100000000,{ id:String =>
   if (dir.isDirectory || dir.mkdir()) {
     val p = new PrintWriter(new File(dir+"/"+id+".json"))
     try {
-      p.println(fetchFile(Scripts.webastURLfromPubID(id)))
+      p.println(fetchFile(ScriptListings.webastURLfromPubID(id)))
     } finally { p.close() }
   } else { println("could not create dir") }
 

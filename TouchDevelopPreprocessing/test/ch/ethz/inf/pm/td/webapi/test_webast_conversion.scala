@@ -18,4 +18,4 @@ def prnt(id:String) {
   println(PrettyPrinter(convert))
 }
 
-TestRunner(new Scripts,1000000,prnt _)
+TestRunner(new ScriptListings,1000000,prnt _)

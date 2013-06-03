@@ -27,6 +27,11 @@ object TouchAnalysisParameters {
   val exportAsHtml = true
 
   /**
+   * Print the resulting json records representing error information
+   */
+  var printJsonErrorRecords = false
+
+  /**
    * If this is enabled, only relevant fields (i.e. that are read in the program) of objects from the library will be
    * represented.
    */

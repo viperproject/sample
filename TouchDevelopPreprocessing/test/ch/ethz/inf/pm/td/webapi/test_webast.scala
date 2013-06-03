@@ -1,6 +1,6 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.parser.PrettyPrinter
-import ch.ethz.inf.pm.td.webapi.{Scripts, WebASTImporter}
+import ch.ethz.inf.pm.td.webapi.{ScriptListings, WebASTImporter}
 
 /**
  * User: lucas
@@ -15,4 +15,4 @@ def prnt(id:String) {
 }
 
 prnt("dmwm")
-TestRunner(new Scripts,1000000,prnt _)
+TestRunner(new ScriptListings,1000000,prnt _)

@@ -42,12 +42,12 @@ case class ScriptRecord (
   screenshotthumburl: String,
   screenshoturl: String) {
 
-  def getAstURL:String = Scripts.astURLfromPubID(id)
-  def getCodeURL:String = Scripts.codeURLfromPubID(id)
+  def getAstURL:String = ScriptListings.astURLfromPubID(id)
+  def getCodeURL:String = ScriptListings.codeURLfromPubID(id)
 
 }
 
-object Scripts {
+object ScriptListings {
 
   val baseURL = "http://www.touchdevelop.com/api/"
   val options = "" // "?original=true"
@@ -76,7 +76,7 @@ object Scripts {
 
 }
 
-abstract class Scripts extends IteratorOverPrograms {
+abstract class ScriptListings extends IteratorOverPrograms {
 
   protected val service = "scripts?"
 
@@ -111,7 +111,7 @@ abstract class Scripts extends IteratorOverPrograms {
 
   private def getNextScripts: List[ScriptRecord] = {
 
-    val url = if (continuation != null) Scripts.baseURL + service + "continuation=" + continuation else Scripts.baseURL + service
+    val url = if (continuation != null) ScriptListings.baseURL + service + "continuation=" + continuation else ScriptListings.baseURL + service
     val json = parse(fetchFile(url))
 
     continuation = (json \ "continuation").extract[String]
@@ -129,25 +129,25 @@ abstract class Scripts extends IteratorOverPrograms {
 
 }
 
-class TopScripts extends Scripts {
+class TopScripts extends ScriptListings {
   override protected val service = "top-scripts?"
 
   override def getLabel() = "TouchDevelop top scripts"
 }
 
-class NewScripts extends Scripts {
+class NewScripts extends ScriptListings {
   override protected val service = "new-scripts?"
 
   override def getLabel() = "TouchDevelop new scripts"
 }
 
-class FeaturedScripts extends Scripts {
+class FeaturedScripts extends ScriptListings {
   override protected val service = "featured-scripts?"
 
   override def getLabel() = "TouchDevelop featured scripts"
 }
 
-class RootScripts() extends Scripts {
+class RootScripts() extends ScriptListings {
   override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
     s.filter( (t : ScriptRecord) => (t.id.equals(t.rootid)))
 
@@ -155,19 +155,19 @@ class RootScripts() extends Scripts {
 }
 
 
-class ScriptSearch(query:String) extends Scripts {
+class ScriptSearch(query:String) extends ScriptListings {
   override protected val service = "search?q="+query+"&"
 
   override def getLabel() = "TouchDevelop search scripts, query: "+query
 }
 
-class SampleScript extends Scripts {
+class SampleScript extends ScriptListings {
   override protected val service = "pboj/scripts?"
 
   override def getLabel() = "TouchDevelop sample scripts"
 }
 
-class RootSampleScripts extends Scripts {
+class RootSampleScripts extends ScriptListings {
   override protected val service = "pboj/scripts?"
 
   override def getLabel() = "TouchDevelop sample scripts"
@@ -176,7 +176,7 @@ class RootSampleScripts extends Scripts {
     s.filter( (t : ScriptRecord) => (t.id.equals(t.rootid)))
 }
 
-class ScriptsBefore(d:java.util.Date) extends Scripts {
+class ScriptsBefore(d:java.util.Date) extends ScriptListings {
 
   override protected val service = "scripts?"
 
@@ -189,7 +189,7 @@ class ScriptsBefore(d:java.util.Date) extends Scripts {
     })
 }
 
-class RootScriptsSearch(query : String) extends Scripts {
+class RootScriptsSearch(query : String) extends ScriptListings {
 
   override def getLabel() = "TouchDevelop root search scripts, query: "+query
 

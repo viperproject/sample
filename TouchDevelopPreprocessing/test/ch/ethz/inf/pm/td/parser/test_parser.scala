@@ -1,6 +1,6 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.parser.ScriptParser
-import ch.ethz.inf.pm.td.webapi.{Scripts, URLFetcher}
+import ch.ethz.inf.pm.td.webapi.{ScriptListings, URLFetcher}
 
 /**
  *
@@ -11,10 +11,10 @@ import ch.ethz.inf.pm.td.webapi.{Scripts, URLFetcher}
  */
 def prnt(id:String) {
   println(id)
-  val url = Scripts.codeURLfromPubID(id)
+  val url = ScriptListings.codeURLfromPubID(id)
   ScriptParser(URLFetcher.fetchFile(url))
 }
 
 println(ScriptParser("action main() { $a = \"//\"; }" ))
 TestRunner("dnbf",prnt _) // THE COMMENT BUG
-TestRunner(new Scripts,1000000,prnt _)
+TestRunner(new ScriptListings,1000000,prnt _)

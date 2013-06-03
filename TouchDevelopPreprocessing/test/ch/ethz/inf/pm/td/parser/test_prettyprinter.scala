@@ -1,6 +1,6 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.parser.{PrettyPrinter, ScriptParser}
-import ch.ethz.inf.pm.td.webapi.{WebASTImporter, Scripts, URLFetcher}
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptListings, URLFetcher}
 
 /**
  *
@@ -16,5 +16,5 @@ def prnt(id:String) {
   println(PrettyPrinter(s))
 }
 
-TestRunner(new Scripts,100000,prnt _)
+TestRunner(new ScriptListings,100000,prnt _)
 

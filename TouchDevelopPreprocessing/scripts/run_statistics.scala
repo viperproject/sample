@@ -1,7 +1,7 @@
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.stdlib._
-import ch.ethz.inf.pm.td.webapi.{Scripts, NoMoreScriptsException, NewScripts, URLFetcher}
+import ch.ethz.inf.pm.td.webapi.{ScriptListings, NoMoreScriptsException, NewScripts, URLFetcher}
 import ch.ethz.inf.pm.td.typecheck._
 import tools.cmd.Parser.ParseException
 
@@ -350,7 +350,7 @@ var totalnumberOfScripts = 0
 var numberOfWeFailed = 0
 var numberOfHasErrors = 0
 
-val scr = new Scripts
+val scr = new ScriptListings
 try {
   while (true) {
     val script = scr.get()

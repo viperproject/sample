@@ -8,29 +8,20 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.awt.geom.Path2D;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.*;
 import java.net.URL;
 
-import apron.Abstract1;
-import apron.Environment;
-import apron.Octagon;
 import ch.ethz.inf.pm.sample.*;
 import ch.ethz.inf.pm.sample.abstractdomain.*;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain;
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface;
 import ch.ethz.inf.pm.sample.property.OutputCollector;
 import ch.ethz.inf.pm.sample.tracepartitioning.Directive;
 import ch.ethz.inf.pm.sample.tracepartitioning.PartitionedState;
 import ch.ethz.inf.pm.sample.tracepartitioning.TracePartitioning;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
-import ch.ethz.inf.pm.td.domain.InvalidAnd;
-import ch.ethz.inf.pm.td.domain.StringsAnd;
 import ch.ethz.inf.pm.td.webapi.*;
-import ch.ethz.inf.pm.td.analysis.*;
-import org.apache.commons.lang3.StringUtils;
 import scala.Option;
 import scala.Some;
 import scala.collection.immutable.List;
@@ -351,9 +342,9 @@ public class WindowApplication {
 
     public class ScriptFetcher implements ActionListener {
 
-        private Scripts scr;
+        private ScriptListings scr;
 
-        public ScriptFetcher(Scripts scr) {
+        public ScriptFetcher(ScriptListings scr) {
             this.scr = scr;
         }
 

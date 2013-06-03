@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.compiler
 
 import java.io.{PrintWriter, File}
 import ch.ethz.inf.pm.td.parser.Script
-import ch.ethz.inf.pm.td.webapi.{URLFetcher, Scripts, WebASTImporter}
+import ch.ethz.inf.pm.td.webapi.{URLFetcher, ScriptListings, WebASTImporter}
 import scala.io.Source
 
 object ScriptCache {
@@ -15,7 +15,7 @@ object ScriptCache {
       val file = new File(CACHE_DIR + File.separator + pubID + ".json")
       if (!file.exists()) {
         val out = new PrintWriter(file)
-        out.println(URLFetcher.fetchFile(Scripts.webastURLfromPubID(pubID)))
+        out.println(URLFetcher.fetchFile(ScriptListings.webastURLfromPubID(pubID)))
         out.close()
       }
       WebASTImporter.convertFromString(Source.fromFile(file).getLines().mkString("\n"))

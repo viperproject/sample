@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.analysis
 
 import java.io.{FileFilter, File}
-import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, Scripts}
+import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, ScriptListings}
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.domain.{TouchApronRun, TouchRun}
 
@@ -22,7 +22,7 @@ object TestRunner {
     for (pubId <- pubIds) apply(pubId,func)
   }
 
-  def apply(scr:Scripts,num:Int,func:(String => Unit)) {
+  def apply(scr:ScriptListings,num:Int,func:(String => Unit)) {
     try {
       for (i <- 1 to num) {
         val script = scr.get()
@@ -50,11 +50,11 @@ object TestRunner {
       new FileFilter {
         def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") || p1.getName.matches(".*\\.json$") }
       }
-    ) map (basePath(dir)+_.getName) toList)
+    ) map (basePath(dir)+_.getName) toArray)
   }
 
   def runFile(file:String) {
-    TouchRun.main(List(basePath+file))
+    TouchRun.main(Array(basePath+file))
   }
 
   def runDirectoryWithApron(dir:String) {
@@ -62,19 +62,19 @@ object TestRunner {
       new FileFilter {
         def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") || p1.getName.matches(".*\\.json$") }
       }
-    ).map(basePath(dir)+_.getName).toList.sortWith((a,b) => a.compare(b) < 0))
+    ).map(basePath(dir)+_.getName).toArray.sortWith((a,b) => a.compare(b) < 0))
   }
 
   def runFileWithApron(file:String) {
-    TouchApronRun.main(List(basePath+file))
+    TouchApronRun.main(Array(basePath+file))
   }
 
   def runId(id:String) {
-    TouchRun.main(List("td://"+id))
+    TouchRun.main(Array("td://"+id))
   }
 
   def runIdWithApron(id:String) {
-    TouchApronRun.main(List("td://"+id))
+    TouchApronRun.main(Array("td://"+id))
   }
 
 

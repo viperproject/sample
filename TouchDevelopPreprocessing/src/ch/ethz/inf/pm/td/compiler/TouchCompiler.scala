@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import io.Source
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.typecheck.Typer
-import ch.ethz.inf.pm.td.webapi.{WebASTImporter, Scripts}
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptListings}
 import ch.ethz.inf.pm.td.transform.{Matcher, LoopRewriter}
 import ch.ethz.inf.pm.td.semantics._
 import scala.Some
@@ -60,15 +60,15 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   def retrieveScript(path:String): (Script,String) = {
     if (path.startsWith("http://"))
-      (ScriptCache.get(Scripts.pubIDfromURL(path)),Scripts.pubIDfromURL(path))
+      (ScriptCache.get(ScriptListings.pubIDfromURL(path)),ScriptListings.pubIDfromURL(path))
     else if (path.startsWith("https://"))
-      (ScriptCache.get(Scripts.pubIDfromURL(path)),Scripts.pubIDfromURL(path))
+      (ScriptCache.get(ScriptListings.pubIDfromURL(path)),ScriptListings.pubIDfromURL(path))
     else if (path.startsWith("td://"))
       (ScriptCache.get(path.substring(5)),path.substring(5))
     else if (path.toLowerCase.endsWith(".td"))
-      (ScriptParser(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
+      (ScriptParser(Source.fromFile(path).getLines().mkString("\n")),ScriptListings.pubIDfromFilename(path))
     else if (path.toLowerCase.endsWith(".json"))
-      (WebASTImporter.convertFromString(Source.fromFile(path).getLines().mkString("\n")),Scripts.pubIDfromFilename(path))
+      (WebASTImporter.convertFromString(Source.fromFile(path).getLines().mkString("\n")),ScriptListings.pubIDfromFilename(path))
     else throw TouchException("Unrecognized path "+path)
   }
 
@@ -232,7 +232,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   }
 
   def generateTopType() {
-    SystemParameters.typ = compileScriptRecursive(Script.apply(Nil, false), "", None).typ.top()
+    SystemParameters.typ = new TouchType("__TMP__").top()
   }
 
 
