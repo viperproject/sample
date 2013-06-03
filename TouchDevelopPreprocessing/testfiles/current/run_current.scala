@@ -4,6 +4,5 @@
  * Time: 4:28 PM
  */
 
-import ch.ethz.inf.pm.td.TestRunner._
-
+import ch.ethz.inf.pm.td.analysis.TestRunner._
 runDirectoryWithApron("current")

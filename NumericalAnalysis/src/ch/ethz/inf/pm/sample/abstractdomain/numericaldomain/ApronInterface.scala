@@ -163,18 +163,46 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       // END of the added code
 
       val res = nondeterminismWrapper(expr, newState, (someExpr, someState) => {
+
         val expr = this.toTexpr1Intern(someExpr, someState.getEnvironment)
-        if (expr.size > 1) {
-          var curState = new Abstract1(domain, someState.getEnvironment, true)
-          for (e <- expr) {
-            curState = curState.joinCopy(domain, someState.assignCopy(domain, variable.getName(), e, null))
+        val assignedState =
+          if (expr.size > 1) {
+            var curState = new Abstract1(domain, someState.getEnvironment, true)
+            for (e <- expr) {
+              curState = curState.joinCopy(domain, someState.assignCopy(domain, variable.getName(), e, null))
+            }
+            curState
+          } else if (expr.size == 1) {
+            someState.assignCopy(domain, variable.getName(), expr.head, null)
+          } else {
+            throw new ApronException("Empty expression set created")
           }
-          curState
-        } else if (expr.size == 1) {
-          someState.assignCopy(domain, variable.getName(), expr.head, null)
-        } else {
-          throw new ApronException("Empty expression set created")
-        }
+
+        // Handling of summary nodes. If the right side contains one or more summary nodes, create copies of those
+        // values by
+        //   (1) Rename all appearing summary nodes in the resulting state (assignedState), call result (materializedState)
+        //   (2) Remove the left side from the original state (someState), call result (summaryState)
+        //   (3) Compute the least upper bound of materializedState and summaryState
+        //   (4) Remove all renamed summary nodes
+        // This way, we infer every thing we can about the "materialized" value
+
+//        val rightSummaryNodes = someExpr.identifiers() filter ( !_.representSingleVariable() )
+//        if (!rightSummaryNodes.isEmpty) {
+//
+//          val rightSummaryNodesNames = rightSummaryNodes map (_.toString) toArray
+//          val newSummaryNodeNames = rightSummaryNodesNames map (_ + "__TEMP")
+//          val materializedState = assignedState.renameCopy(domain,rightSummaryNodesNames,newSummaryNodeNames)
+//          val summaryState = someState.forgetCopy(domain,variable.toString,false)
+//          val resultState = lub(
+//            new ApronInterface(Some(materializedState),domain),
+//            new ApronInterface(Some(summaryState),domain)).instantiateState()
+//          resultState.forgetCopy(domain,newSummaryNodeNames,false)
+//
+//        } else {
+
+          assignedState
+
+//        }
       })
 
       new ApronInterface(Some(res),domain)
