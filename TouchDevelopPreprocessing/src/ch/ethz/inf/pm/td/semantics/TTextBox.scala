@@ -17,12 +17,12 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 object TTextBox {
 
-  val field_background = new TouchField("background",TColor.typ)
-  val field_border = new TouchField("border",TColor.typ)
-  val field_font_size = new TouchField("font size",TNumber.typ)
-  val field_foreground = new TouchField("foreground",TColor.typ)
-  val field_icon = new TouchField("icon",TPicture.typ)
-  val field_text = new TouchField("text",TString.typ)
+  val field_background = new TouchField("background",TColor.typName)
+  val field_border = new TouchField("border",TColor.typName)
+  val field_font_size = new TouchField("font size",TNumber.typName)
+  val field_foreground = new TouchField("foreground",TColor.typName)
+  val field_icon = new TouchField("icon",TPicture.typName)
+  val field_text = new TouchField("text",TString.typName)
 
   val typName = "TextBox"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_background,field_border,field_font_size,field_foreground,

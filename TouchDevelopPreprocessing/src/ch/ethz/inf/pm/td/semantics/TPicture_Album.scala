@@ -16,13 +16,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TPicture_Album {
 
   /** Gets the children albums */
-  val field_albums = new TouchField("albums",TPicture_Albums.typ)
+  val field_albums = new TouchField("albums",TPicture_Albums.typName)
 
   /** Gets the name of the album */
-  val field_name = new TouchField("name",TString.typ)
+  val field_name = new TouchField("name",TString.typName)
 
   /** Gets the pictures */
-  val field_pictures = new TouchField("pictures",TPictures.typ)
+  val field_pictures = new TouchField("pictures",TPictures.typName)
 
   val typName = "Picture Album"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_albums, field_name, field_pictures))

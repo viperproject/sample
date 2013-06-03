@@ -39,8 +39,7 @@ object ConstrianedPolyhedraApronRun {
 		
 		val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, coefSet, 2, Set.empty[String], Set.empty[Identifier]);
 		//val numerical = new ConstrainedPolyhedra(new Abstract1(domain, new Environment()), domain, Set.empty[Int], 0, Set.empty[String]);
-		val heapid = new ClassHeapIdentifier(null, null);
-		heapid.typ=SystemParameters.typ;
+		val heapid = new ClassHeapIdentifier(SystemParameters.typ, null);
 		val heapDomain : NonRelationalHeapDomain[HeapId]= new NonRelationalHeapDomain[HeapId](heapid.getType, new MaybeHeapIdSetDomain(), heapid);
 		val entrydomain  = new HeapAndAnotherDomain[ApronInterface, NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain);
 		var entryvalue =new ExpressionSet(SystemParameters.typ.top())

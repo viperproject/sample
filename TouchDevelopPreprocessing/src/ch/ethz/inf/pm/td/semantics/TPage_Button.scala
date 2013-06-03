@@ -15,13 +15,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TPage_Button {
 
   /** Gets the text */
-  val field_text = new TouchField("text",TString.typ)
+  val field_text = new TouchField("text",TString.typName)
 
   /** Gets the page hosting this button */
-  val field_page = new TouchField("page",TPage.typ)
+  val field_page = new TouchField("page",TPage.typName)
 
   /** Gets the icon name */
-  val field_icon = new TouchField("icon",TString.typ)
+  val field_icon = new TouchField("icon",TString.typName)
 
   val typName = "Page Button"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_text,field_page,field_icon))

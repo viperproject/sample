@@ -18,34 +18,34 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 object TMedia_Player {
 
   /** Gets the uri of the media currently active */
-  val field_active_media = new TouchField("active media",TString.typ)
+  val field_active_media = new TouchField("active media",TString.typName)
 
   /** Gets the detailed information about this device */
-  val field_device = new TouchField("device",TDevice.typ)
+  val field_device = new TouchField("device",TDevice.typName)
 
   /** Indicates the media can be played, paused, resumed */
-  val field_is_control_supported = new TouchField("is control supported",TBoolean.typ)
+  val field_is_control_supported = new TouchField("is control supported",TBoolean.typName)
 
   /** Indicates if the player is paused */
-  val field_is_paused = new TouchField("is paused",TBoolean.typ)
+  val field_is_paused = new TouchField("is paused",TBoolean.typName)
 
   /** Indicates if the player is playing */
-  val field_is_playing = new TouchField("is playing",TBoolean.typ)
+  val field_is_playing = new TouchField("is playing",TBoolean.typName)
 
   /** Indicates if the player is stopped */
-  val field_is_stopped = new TouchField("is stopped",TBoolean.typ)
+  val field_is_stopped = new TouchField("is stopped",TBoolean.typName)
 
   /** Indicates if volume can be changed */
-  val field_is_volume_supported = new TouchField("is volume supported",TBoolean.typ)
+  val field_is_volume_supported = new TouchField("is volume supported",TBoolean.typName)
 
   /** Gets the name of the audio/video player */
-  val field_name = new TouchField("name",TString.typ)
+  val field_name = new TouchField("name",TString.typName)
 
   /** Gets the status of the player */
-  val field_status = new TouchField("status",TString.typ)
+  val field_status = new TouchField("status",TString.typName)
 
   /** Gets the current volume */
-  val field_volume = new TouchField("volume",TNumber.typ)
+  val field_volume = new TouchField("volume",TNumber.typName)
 
   val typName = "Media Player"
   val typ = new TouchType(typName,isSingleton = false,fields = List(field_active_media, field_device,

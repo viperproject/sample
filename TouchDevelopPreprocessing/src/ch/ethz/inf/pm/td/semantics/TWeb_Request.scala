@@ -17,37 +17,37 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TWeb_Request {
 
   /** Reads the response body as a string */
-  val field_content = new TouchField("content",TString.typ)
+  val field_content = new TouchField("content",TString.typName)
 
   /** Reads the response body as a JSON tree */
-  val field_content_as_json = new TouchField("content as json",TJson_Object.typ)
+  val field_content_as_json = new TouchField("content as json",TJson_Object.typName)
 
   /** Reads the response body as a picture */
-  val field_content_as_picture = new TouchField("content as picture",TPicture.typ)
+  val field_content_as_picture = new TouchField("content as picture",TPicture.typName)
 
   /** Reads the response body as a picture */
-  val field_content_as_form = new TouchField("content as form",TForm_Builder.typ)
+  val field_content_as_form = new TouchField("content as form",TForm_Builder.typName)
 
   /** Reads the response body as a XML tree */
-  val field_content_as_xml = new TouchField("content as xml",TXml_Object.typ)
+  val field_content_as_xml = new TouchField("content as xml",TXml_Object.typName)
 
   /** Stores the headers. This is actually not publicly accessible */
-  val field_header_storage = new TouchField("header storage",TString_Map.typ)
+  val field_header_storage = new TouchField("header storage",TString_Map.typName)
 
   /** Gets whether it was a 'get' or a 'post'. */
-  val field_method = new TouchField("method",TString.typ)
+  val field_method = new TouchField("method",TString.typName)
 
   /** Gets the url of the request */
-  val field_url = new TouchField("url",TString.typ)
+  val field_url = new TouchField("url",TString.typName)
 
   /** Credentials name */
-  val field_credentials_name = new TouchField("credentials name",TString.typ)
+  val field_credentials_name = new TouchField("credentials name",TString.typName)
 
   /** Credentials password */
-  val field_credentials_password = new TouchField("credentials password",TString.typ)
+  val field_credentials_password = new TouchField("credentials password",TString.typName)
 
   /** Async response handler */
-  val field_handler = new TouchField("handler",TWeb_Response_Action.typ)
+  val field_handler = new TouchField("handler",TWeb_Response_Action.typName)
 
   val typName = "Web Request"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_header_storage, field_method, field_url,

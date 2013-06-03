@@ -144,7 +144,7 @@ case class CollectionIdentifier(override val pp:ProgramPoint, collTyp:Type, keyT
   override def clone() : Object = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp)
 }
 
-case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier, pps: Set[ProgramPoint]) extends ProgramPointHeapIdentifier(collectionApprox.typ, pps.head) {
+case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier, pps: Set[ProgramPoint]) extends ProgramPointHeapIdentifier(collectionApprox.getType(), pps.head) {
   def getField() : Option[String] = None
   override def isNormalized() : Boolean = false
   override def equals(x : Any) : Boolean = x match {

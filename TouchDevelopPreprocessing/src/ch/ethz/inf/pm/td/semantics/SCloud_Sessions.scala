@@ -17,7 +17,7 @@ import RichNativeSemantics._
 object SCloud_Sessions {
 
   /** Gets the current session. */
-  val field_current_session = new TouchField("current session",TCloud_Session.typ)
+  val field_current_session = new TouchField("current session",TCloud_Session.typName)
 
   val typName = "Cloud Sessions"
   val typ = new TouchType(typName,isSingleton = true,fields = List(field_current_session))

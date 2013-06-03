@@ -22,25 +22,25 @@ object TLocation {
 
 
   /** Gets the latitude of the coordinate */
-  val field_latitude = new TouchField("latitude", TNumber.typ) // -90 ndTo 90
+  val field_latitude = new TouchField("latitude", TNumber.typName) // -90 ndTo 90
 
   /** Gets the longitude of the coordinate */
-  val field_longitude = new TouchField("longitude", TNumber.typ) // -180 ndTo 180
+  val field_longitude = new TouchField("longitude", TNumber.typName) // -180 ndTo 180
 
   /** Gets the altitude of the coordinate */
-  val field_altitude = new TouchField("altitude", TNumber.typ)//, Invalid(TNumber.typ))
+  val field_altitude = new TouchField("altitude", TNumber.typName)//, Invalid(TNumber.typ))
 
   /** Gets the speed of the coordinate */
-  val field_speed = new TouchField("speed", TNumber.typ)//, Invalid(TNumber.typ))
+  val field_speed = new TouchField("speed", TNumber.typName)//, Invalid(TNumber.typ))
 
   /** Gets the course of the coordinate, in degrees relative to true north */
-  val field_course = new TouchField("course", TNumber.typ)//, Invalid(TNumber.typ)) // 0 ndTo 360
+  val field_course = new TouchField("course", TNumber.typName)//, Invalid(TNumber.typ)) // 0 ndTo 360
 
   /** Gets the horizontal accuracy of the coordinate */
-  val field_hor_accuracy = new TouchField("hor accuracy", TNumber.typ)//, Invalid(TNumber.typ))
+  val field_hor_accuracy = new TouchField("hor accuracy", TNumber.typName)//, Invalid(TNumber.typ))
 
   /** Gets the vertical accuracy of the coordinate */
-  val field_vert_accuracy = new TouchField("vert accuracy", TNumber.typ)//, Invalid(TNumber.typ))
+  val field_vert_accuracy = new TouchField("vert accuracy", TNumber.typName)//, Invalid(TNumber.typ))
 
   val typName = "Location"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_latitude,field_longitude,field_altitude,

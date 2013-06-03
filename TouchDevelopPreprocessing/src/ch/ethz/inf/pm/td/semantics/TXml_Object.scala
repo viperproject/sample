@@ -19,19 +19,19 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 object TXml_Object {
 
   /** Gets the list of attribute names */
-  val field_attributes = new TouchField("  attributes",TString_Map.typ,NewInitializer())
+  val field_attributes = new TouchField("  attributes",TString_Map.typName,NewInitializer())
 
   /** Indicates if this instance is an element or a filtered collection */
-  val field_is_element = new TouchField("is element",TBoolean.typ,ExpressionInitializer(True(null)))
+  val field_is_element = new TouchField("is element",TBoolean.typName,ExpressionInitializer(True(null)))
 
   /** Gets the concatenated text contents of this element */
-  val field_value = new TouchField("value",TString.typ)
+  val field_value = new TouchField("value",TString.typName)
 
   /** Gets the namespace of this element */
-  val field_namespace = new TouchField("namespace",TString.typ)
+  val field_namespace = new TouchField("namespace",TString.typName)
 
   /** Gets the local name of this element */
-  val field_local_name = new TouchField("local name",TString.typ)
+  val field_local_name = new TouchField("local name",TString.typName)
 
   val typName = "Xml Object"
   val typ = new TouchCollection(typName,TNumber.typName,TXml_Object.typName,List(field_attributes,field_is_element,field_local_name, field_namespace, field_value), immutableCollection = true)

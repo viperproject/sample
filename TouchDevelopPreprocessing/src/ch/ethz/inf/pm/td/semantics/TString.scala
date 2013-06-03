@@ -20,7 +20,7 @@ import ch.ethz.inf.pm.sample.Reporter
 object TString {
 
   /** Returns the number of characters */
-  //TODO val field_count = new TouchField("count",TNumber.typ)
+  //TODO val field_count = new TouchField("count",TNumber.typName)
 
   val typName = "String"
   val typ = new TouchType(typName,isSingleton = false, fields = List(/*TODO field_count*/))

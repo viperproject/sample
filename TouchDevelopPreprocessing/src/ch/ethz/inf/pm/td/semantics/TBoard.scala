@@ -11,31 +11,31 @@ import RichNativeSemantics._
 object TBoard {
 
   /**  The width in pixels */
-  val field_width = new TouchField("width", TNumber.typ)
+  val field_width = new TouchField("width", TNumber.typName)
 
   /**  The height in pixels */
-  val field_height = new TouchField("height", TNumber.typ)
+  val field_height = new TouchField("height", TNumber.typName)
 
   /**  The background color */
-  val field_background = new TouchField("background",TColor.typ)
+  val field_background = new TouchField("background",TColor.typName)
 
   /**  The background camera */
-  val field_background_camera = new TouchField("background camera",TCamera.typ)
+  val field_background_camera = new TouchField("background camera",TCamera.typName)
 
   /**  The background picture */
-  val field_background_picture = new TouchField("background picture",TPicture.typ)
+  val field_background_picture = new TouchField("background picture",TPicture.typName)
 
   /**  In debug mode, board displays speed and other info of sprites */
-  val field_debug_mode = new TouchField("debug mode",TBoolean.typ)
+  val field_debug_mode = new TouchField("debug mode",TBoolean.typName)
 
   /**  The default friction for sprites to a fraction of speed loss between 0 and 1 */
-  val field_friction = new TouchField("friction",TNumber.typ)
+  val field_friction = new TouchField("friction",TNumber.typName)
 
   /**  The uniform x acceleration for objects on the board to pixels/sec2 */
-  val field_gravity_x = new TouchField("gravity x",TNumber.typ)
+  val field_gravity_x = new TouchField("gravity x",TNumber.typName)
 
   /**  The uniform y acceleration for objects on the board to pixels/sec2 */
-  val field_gravity_y = new TouchField("gravity y",TNumber.typ)
+  val field_gravity_y = new TouchField("gravity y",TNumber.typName)
 
   /** String name of the type */
   val typName = "Board"

@@ -17,7 +17,7 @@ object AAction {
     * corresponding action is created with a unique name (e.g. program point based) and this object is
     * returned with the handlerName field set to the name of the created action. If this field
     * is top, and run is executed, we have to go to top, since we do not know what is executed */
-  val field_handlerName = new TouchField("*handlername",TString.typ)
+  val field_handlerName = new TouchField("*handlername",TString.typName)
 
 }
 

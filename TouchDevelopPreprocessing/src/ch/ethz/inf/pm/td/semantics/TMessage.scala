@@ -17,37 +17,37 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TMessage {
 
   /** Gets the author */
-  val field_from = new TouchField("from",TString.typ)
+  val field_from = new TouchField("from",TString.typName)
 
   /** Gets the link associated to the message */
-  val field_link = new TouchField("link",TString.typ)
+  val field_link = new TouchField("link",TString.typName)
 
   /** Gets the geo coordinates */
-  val field_location = new TouchField("location",TLocation.typ)
+  val field_location = new TouchField("location",TLocation.typName)
 
   /** Gets a url to the media */
-  val field_media_link = new TouchField("media link",TString.typ)
+  val field_media_link = new TouchField("media link",TString.typName)
 
   /** Gets the message text */
-  val field_message = new TouchField("message",TString.typ)
+  val field_message = new TouchField("message",TString.typName)
 
   /** Gets a url to the picture */
-  val field_picture_link = new TouchField("picture link",TString.typ)
+  val field_picture_link = new TouchField("picture link",TString.typName)
 
   /** Gets the source of this message (Facebook, Twitter, etc...) */
-  val field_source = new TouchField("source",TString.typ)
+  val field_source = new TouchField("source",TString.typName)
 
   /** Gets the time */
-  val field_time = new TouchField("time",TDateTime.typ)
+  val field_time = new TouchField("time",TDateTime.typName)
 
   /** Gets the title text */
-  val field_title = new TouchField("title",TString.typ)
+  val field_title = new TouchField("title",TString.typName)
 
   /** Gets the recipient */
-  val field_to = new TouchField("to",TString.typ)
+  val field_to = new TouchField("to",TString.typName)
 
   /** Gets the additional values stored in the message */
-  val field_values = new TouchField("values",TString_Map.typ)
+  val field_values = new TouchField("values",TString_Map.typName)
 
   val typName = "Message"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_from, field_link, field_location, field_media_link,

@@ -20,13 +20,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SHome {
 
   /** Gets the media players on the current wireless network */
-  val field_players = new TouchField("players",TMedia_Player_Collection.typ)
+  val field_players = new TouchField("players",TMedia_Player_Collection.typName)
 
   /** Gets the printers on the current wireless network */
-  val field_printers = new TouchField("printers",TPrinter_Collection.typ)
+  val field_printers = new TouchField("printers",TPrinter_Collection.typName)
 
   /** Gets the media servers on the home network */
-  val field_servers = new TouchField("servers",TMedia_Server_Collection.typ)
+  val field_servers = new TouchField("servers",TMedia_Server_Collection.typName)
 
   val typName = "Home"
   val typ = new TouchType(typName,isSingleton = true, fields = List(field_players,field_printers,field_servers))

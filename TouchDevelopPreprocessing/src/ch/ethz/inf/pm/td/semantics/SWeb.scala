@@ -17,13 +17,13 @@ import RichNativeSemantics._
 object SWeb {
 
   /** Gets a name of the currently connected network servicing Internet requests */
-  val field_connection_name = new TouchField("connection name",TString.typ)
+  val field_connection_name = new TouchField("connection name",TString.typName)
 
   /** Gets the type of the network servicing Internet requests (unknown, none, ethernet, wifi, mobile) */
-  val field_connection_type = new TouchField("connection type",TString.typ)
+  val field_connection_type = new TouchField("connection type",TString.typName)
 
   /** Indicates whether any network connection is available */
-  val field_is_connected = new TouchField("is connected",TBoolean.typ)
+  val field_is_connected = new TouchField("is connected",TBoolean.typName)
 
   val typName = "Web"
   val typ = new TouchType(typName,isSingleton = true, fields = List(field_connection_name,field_connection_type,field_is_connected))

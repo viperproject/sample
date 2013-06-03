@@ -19,31 +19,31 @@ object SPlayer {
 
 
   /** Gets the active song if any */
-  val field_active_song = new TouchField("active song",TSong.typ)
+  val field_active_song = new TouchField("active song",TSong.typName)
 
   /** Indicates if the player is muted */
-  val field_is_muted = new TouchField("is muted",TBoolean.typ)
+  val field_is_muted = new TouchField("is muted",TBoolean.typName)
 
   /** Indicates if the player is paused */
-  val field_is_paused = new TouchField("is paused",TBoolean.typ)
+  val field_is_paused = new TouchField("is paused",TBoolean.typName)
 
   /** Indicates if the player is playing a song */
-  val field_is_playing = new TouchField("is playing",TBoolean.typ)
+  val field_is_playing = new TouchField("is playing",TBoolean.typName)
 
   /** Indicates if the player is repeating */
-  val field_is_repeating = new TouchField("is repeating",TBoolean.typ)
+  val field_is_repeating = new TouchField("is repeating",TBoolean.typName)
 
   /** Indicates if the player is shuffled */
-  val field_is_shuffled = new TouchField("is shuffled",TBoolean.typ)
+  val field_is_shuffled = new TouchField("is shuffled",TBoolean.typName)
 
   /** Indicates if the player is stopped */
-  val field_is_stopped = new TouchField("is stopped",TBoolean.typ)
+  val field_is_stopped = new TouchField("is stopped",TBoolean.typName)
 
   /** Gets the position in seconds whithin the active song */
-  val field_play_position = new TouchField("play position",TNumber.typ)
+  val field_play_position = new TouchField("play position",TNumber.typName)
 
   /** Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */
-  val field_sound_volume = new TouchField("sound volume",TNumber.typ)
+  val field_sound_volume = new TouchField("sound volume",TNumber.typName)
 
   val typName = "Player"
   val typ = new TouchType(typName,isSingleton = true, fields = List(field_active_song, field_is_muted, field_is_paused, field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume))
@@ -63,7 +63,8 @@ class SPlayer extends AAny {
 
     /** Pauses the currently playing song */
     case "pause" =>
-      Error[S](Field[S](this0,SPlayer.field_is_playing) equal False,"pause","Player might not be playing")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)
+        Error[S](Field[S](this0,SPlayer.field_is_playing) equal False,"pause","Player might not be playing")
       var curState = state
       curState = AssignField[S](this0,SPlayer.field_is_playing,False)(curState,pp)
       curState = AssignField[S](this0,SPlayer.field_is_paused,True)(curState,pp)
@@ -91,7 +92,8 @@ class SPlayer extends AAny {
 
     /** Resumes a paused song */
     case "resume" =>
-      Error[S](Field[S](this0,SPlayer.field_is_paused) equal False,"resume","Player might not be paused")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)
+        Error[S](Field[S](this0,SPlayer.field_is_paused) equal False,"resume","Player might not be paused")
       var curState = state
       curState = AssignField[S](this0,SPlayer.field_is_playing,True)(curState,pp)
       curState = AssignField[S](this0,SPlayer.field_is_paused,False)(curState,pp)
@@ -118,7 +120,8 @@ class SPlayer extends AAny {
 
     /** Stops playing a song */
     case "stop" =>
-      Error[S](Field[S](this0,SPlayer.field_is_playing) equal False,"play","Player might not be playing")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)
+        Error[S](Field[S](this0,SPlayer.field_is_playing) equal False,"play","Player might not be playing")
       var curState = state
       curState = AssignField[S](this0,SPlayer.field_is_playing,False)(curState,pp)
       curState = AssignField[S](this0,SPlayer.field_is_paused,False)(curState,pp)

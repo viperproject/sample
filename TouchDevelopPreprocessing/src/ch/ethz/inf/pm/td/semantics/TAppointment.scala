@@ -15,37 +15,37 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TAppointment {
 
    /** Gets the list of attendees. Each contact contains a name and email address. */
-   val field_attendees = new TouchField("attendees",TContact_Collection.typ)
+   val field_attendees = new TouchField("attendees",TContact_Collection.typName)
 
    /** Gets the details */
-   val field_details = new TouchField("details",TString.typ)
+   val field_details = new TouchField("details",TString.typName)
 
    /** Gets the end time */
-   val field_end_time = new TouchField("end time",TDateTime.typ)
+   val field_end_time = new TouchField("end time",TDateTime.typName)
 
    /** Indicates if this is an all day event */
-   val field_is_all_day_event = new TouchField("is all day event",TBoolean.typ)
+   val field_is_all_day_event = new TouchField("is all day event",TBoolean.typName)
 
    /** Indicates if this appointment is private */
-   val field_is_private = new TouchField("is private",TBoolean.typ)
+   val field_is_private = new TouchField("is private",TBoolean.typName)
 
    /** Gets the location */
-   val field_location = new TouchField("location",TString.typ, topDefault = TopWithInvalidInitializer())
+   val field_location = new TouchField("location",TString.typName, topDefault = TopWithInvalidInitializer())
 
    /** Gets the organizer */
-   val field_organizer = new TouchField("organizer",TContact.typ)
+   val field_organizer = new TouchField("organizer",TContact.typName)
 
    /** Gets the source of this appointment (facebook, etc...) */
-   val field_source = new TouchField("source",TString.typ)
+   val field_source = new TouchField("source",TString.typName)
 
    /** Gets the location */
-   val field_start_time = new TouchField("start time",TDateTime.typ)
+   val field_start_time = new TouchField("start time",TDateTime.typName)
 
    /** Gets your status (free, tentative, busy, outofoffice) */
-   val field_status = new TouchField("status",TString.typ)
+   val field_status = new TouchField("status",TString.typName)
 
   /** Gets the subject */
-  val field_subject = new TouchField("subject",TString.typ, topDefault = TopWithInvalidInitializer())
+  val field_subject = new TouchField("subject",TString.typName, topDefault = TopWithInvalidInitializer())
 
   val typName = "Appointment"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_attendees,field_details,field_end_time,

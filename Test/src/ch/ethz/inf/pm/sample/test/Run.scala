@@ -164,9 +164,6 @@ object Run {
     SystemParameters.resetNativeMethodsSemantics();
     SystemParameters.addNativeMethodsSemantics(an.getNativeMethodsSemantics)
     SystemParameters.addNativeMethodsSemantics(heapan.getNativeMethodsSemantics)
-    if (heapan.isInstanceOf[NonRelationalHeapDomain[_]]) {
-      (heapan.asInstanceOf[NonRelationalHeapDomain[_]]).setType(SystemParameters.getType)
-    }
     var domain = an.getInitialState
     var entrydomain = new HeapAndAnotherDomain[N, H, I](domain, heapan)
     (methods, entrydomain, an, heapan)

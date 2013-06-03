@@ -16,63 +16,63 @@ import RichNativeSemantics._
 
 object SBox {
 
-  val field_is_init = new TouchField("is init",TBoolean.typ)
+  val field_is_init = new TouchField("is init",TBoolean.typName)
 
-  val field_horizontal_align = new TouchField("horizontal align",TString.typ)
-  val field_vertical_align = new TouchField("vertical align",TString.typ)
+  val field_horizontal_align = new TouchField("horizontal align",TString.typName)
+  val field_vertical_align = new TouchField("vertical align",TString.typName)
   
-  val field_left_horizontal_alignment = new TouchField("left horizontal alignment",TNumber.typ)
-  val field_right_horizontal_alignment = new TouchField("right horizontal alignment",TNumber.typ)
+  val field_left_horizontal_alignment = new TouchField("left horizontal alignment",TNumber.typName)
+  val field_right_horizontal_alignment = new TouchField("right horizontal alignment",TNumber.typName)
   
-  val field_left_vertical_alignment = new TouchField("left vertical alignment",TNumber.typ)
-  val field_right_vertical_alignment = new TouchField("right vertical alignment",TNumber.typ)
+  val field_left_vertical_alignment = new TouchField("left vertical alignment",TNumber.typName)
+  val field_right_vertical_alignment = new TouchField("right vertical alignment",TNumber.typName)
   
-  val field_font_size = new TouchField("font size",TNumber.typ)
+  val field_font_size = new TouchField("font size",TNumber.typName)
 
-  val field_top_margin = new TouchField("top margin",TNumber.typ)
-  val field_left_margin = new TouchField("left margin",TNumber.typ)
-  val field_right_margin = new TouchField("right margin",TNumber.typ)
-  val field_bottom_margin = new TouchField("bottom margin",TNumber.typ)
+  val field_top_margin = new TouchField("top margin",TNumber.typName)
+  val field_left_margin = new TouchField("left margin",TNumber.typName)
+  val field_right_margin = new TouchField("right margin",TNumber.typName)
+  val field_bottom_margin = new TouchField("bottom margin",TNumber.typName)
 
-  val field_bottom_padding = new TouchField("bottom padding",TNumber.typ)
-  val field_top_padding = new TouchField("top padding",TNumber.typ)
-  val field_left_padding = new TouchField("left padding",TNumber.typ)
-  val field_right_padding = new TouchField("right padding",TNumber.typ)
+  val field_bottom_padding = new TouchField("bottom padding",TNumber.typName)
+  val field_top_padding = new TouchField("top padding",TNumber.typName)
+  val field_left_padding = new TouchField("left padding",TNumber.typName)
+  val field_right_padding = new TouchField("right padding",TNumber.typName)
 
-  val field_background = new TouchField("background",TColor.typ)
-  val field_foreground = new TouchField("foreground",TColor.typ)
+  val field_background = new TouchField("background",TColor.typName)
+  val field_foreground = new TouchField("foreground",TColor.typName)
   
-  val field_border_color = new TouchField("border color",TColor.typ)
-  val field_border_width = new TouchField("border width",TNumber.typ)
+  val field_border_color = new TouchField("border color",TColor.typName)
+  val field_border_width = new TouchField("border width",TNumber.typName)
   
-  val field_height = new TouchField("height",TNumber.typ)
-  val field_width = new TouchField("width",TNumber.typ)
+  val field_height = new TouchField("height",TNumber.typName)
+  val field_width = new TouchField("width",TNumber.typName)
 
-  val field_page_width = new TouchField("page width",TNumber.typ)
-  val field_page_height = new TouchField("page height",TNumber.typ)
+  val field_page_width = new TouchField("page width",TNumber.typName)
+  val field_page_height = new TouchField("page height",TNumber.typName)
 
-  val field_text_wrapping_wrap = new TouchField("text wrapping wrap",TBoolean.typ)
-  val field_text_wrapping_minimumwidth = new TouchField("text wrapping minimumwidth",TNumber.typ)
+  val field_text_wrapping_wrap = new TouchField("text wrapping wrap",TBoolean.typName)
+  val field_text_wrapping_minimumwidth = new TouchField("text wrapping minimumwidth",TNumber.typName)
 
-  val field_horizontal_scrolling = new TouchField("horizontal scrolling ",TBoolean.typ)
-  val field_vertical_scrolling = new TouchField("vertical scrolling",TBoolean.typ)
+  val field_horizontal_scrolling = new TouchField("horizontal scrolling ",TBoolean.typName)
+  val field_vertical_scrolling = new TouchField("vertical scrolling",TBoolean.typName)
 
-  val field_horizontal_layout = new TouchField("horizontal layout",TBoolean.typ)
-  val field_vertical_layout = new TouchField("vertical layout",TBoolean.typ)
+  val field_horizontal_layout = new TouchField("horizontal layout",TBoolean.typName)
+  val field_vertical_layout = new TouchField("vertical layout",TBoolean.typName)
 
   /** Specify how to compute box width (0 = shrink to fit content, 1 = stretch to fit frame, , 0.5 = stretch to half width) */
-  val field_horizontal_stretch = new TouchField("horizontal stretch",TNumber.typ)
-  val field_vertical_stretch = new TouchField("vertical stretch",TNumber.typ)
+  val field_horizontal_stretch = new TouchField("horizontal stretch",TNumber.typName)
+  val field_vertical_stretch = new TouchField("vertical stretch",TNumber.typName)
 
-  val field_min_width = new TouchField("min width",TNumber.typ)
-  val field_max_width = new TouchField("max width",TNumber.typ)
+  val field_min_width = new TouchField("min width",TNumber.typName)
+  val field_max_width = new TouchField("max width",TNumber.typName)
 
-  val field_min_height = new TouchField("min height",TNumber.typ)
-  val field_max_height = new TouchField("max height",TNumber.typ)
+  val field_min_height = new TouchField("min height",TNumber.typName)
+  val field_max_height = new TouchField("max height",TNumber.typName)
 
   // PRIVATE
-  val field_text_editing_handler = new TouchField("text editing handler",TText_Action.typ)
-  val field_tapped_handler = new TouchField("tapped handler",TAction.typ)
+  val field_text_editing_handler = new TouchField("text editing handler",TText_Action.typName)
+  val field_tapped_handler = new TouchField("tapped handler",TAction.typName)
 
   val typName = "Box"
   val typ = new TouchType(typName,isSingleton = true, fields = List(

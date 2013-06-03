@@ -18,25 +18,25 @@ import ch.ethz.inf.pm.sample.Reporter
 object TDateTime {
 
   /** Gets the day of the month */
-  val field_day = new TouchField("day",TNumber.typ)
+  val field_day = new TouchField("day",TNumber.typName)
 
   /** Gets the hour */
-  val field_hour = new TouchField("hour",TNumber.typ)
+  val field_hour = new TouchField("hour",TNumber.typName)
 
   /** Gets the millisecond */
-  val field_millisecond = new TouchField("millisecond",TNumber.typ)
+  val field_millisecond = new TouchField("millisecond",TNumber.typName)
 
   /** Gets the minute */
-  val field_minute = new TouchField("minute",TNumber.typ)
+  val field_minute = new TouchField("minute",TNumber.typName)
 
   /** Gets the month */
-  val field_month = new TouchField("month",TNumber.typ)
+  val field_month = new TouchField("month",TNumber.typName)
 
   /** Gets the second */
-  val field_second = new TouchField("second",TNumber.typ)
+  val field_second = new TouchField("second",TNumber.typName)
 
   /** Gets the year */
-  val field_year = new TouchField("year",TNumber.typ)
+  val field_year = new TouchField("year",TNumber.typName)
 
   val typName = "DateTime"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year))
@@ -160,28 +160,28 @@ class TDateTime extends AAny {
     //   Top[S](TDateTime.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts to the local time */
-    //   val field_to_local_time = new TouchField("to local time",TDateTime.typ)
+    //   val field_to_local_time = new TouchField("to local time",TDateTime.typName)
 
     /** Converts coordinated universal time */
     // case "to universal time" =>
     //   Top[S](TDateTime.typ)
     // DECLARATION AS FIELD: 
     //   /** Converts coordinated universal time */
-    //   val field_to_universal_time = new TouchField("to universal time",TDateTime.typ)
+    //   val field_to_universal_time = new TouchField("to universal time",TDateTime.typName)
 
     /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
     case "week day" =>
       Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
-    //   val field_week_day = new TouchField("week day",TNumber.typ)
+    //   val field_week_day = new TouchField("week day",TNumber.typName)
 
     /** Gets the day of the year between 1 and 366 */
     case "year day" =>
       Top[S](TNumber.typ)
     // DECLARATION AS FIELD: 
     //   /** Gets the day of the year between 1 and 366 */
-    //   val field_year_day = new TouchField("year day",TNumber.typ)
+    //   val field_year_day = new TouchField("year day",TNumber.typName)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

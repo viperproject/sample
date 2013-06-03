@@ -388,7 +388,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     variable match {
       case v: TVSHeapIDSet => (this, new Replacement)
       case v: VariableIdentifier =>
-        if (v.typ.isObject) {
+        if (v.getType().isObject) {
           // we don't care about numerical variables
           val newheap = new TVSHeap(this)
           newheap.structures = this.structures.map(_.addVariable(v.name))

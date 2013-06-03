@@ -17,16 +17,16 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TLink {
 
   /** Gets the url */
-  val field_address = new TouchField("address",TString.typ)
+  val field_address = new TouchField("address",TString.typName)
 
   /** Gets the kind of asset - media, image, email, phone number, hyperlink, deep zoom link, radio */
-  val field_kind = new TouchField("kind",TString.typ)
+  val field_kind = new TouchField("kind",TString.typName)
 
   /** Gets the location if any */
-  val field_location = new TouchField("location",TLocation.typ,InvalidInitializer())
+  val field_location = new TouchField("location",TLocation.typName,InvalidInitializer())
 
   /** Gets the name if any */
-  val field_name = new TouchField("name",TString.typ,InvalidInitializer())
+  val field_name = new TouchField("name",TString.typName,InvalidInitializer())
 
   val typName = "Link"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_address, field_kind, field_location, field_name), isImmutable = false)

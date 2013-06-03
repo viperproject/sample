@@ -18,22 +18,22 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisCon
 object TJson_Object {
 
   /** Gets the list of keys */
-  val field_keys = new TouchField("keys",TString_Collection.typ)
+  val field_keys = new TouchField("keys",TString_Collection.typName)
 
   /** Gets a json kind (string, number, object, array, boolean) */
-  val field_kind = new TouchField("kind",TString.typ)
+  val field_kind = new TouchField("kind",TString.typName)
 
   /** Converts to a boolean (type must be boolean) */
-  val field_to_boolean = new TouchField("to boolean",TBoolean.typ)
+  val field_to_boolean = new TouchField("to boolean",TBoolean.typName)
 
   /** Converts to a number (type must be number) */
-  val field_to_number = new TouchField("to number",TNumber.typ)
+  val field_to_number = new TouchField("to number",TNumber.typName)
 
   /** Converts to a number (type must be string) */
-  val field_to_string = new TouchField("to string",TString.typ)
+  val field_to_string = new TouchField("to string",TString.typName)
 
   /** Converts and parses to a date time (type must be string) */
-  val field_to_time = new TouchField("to time",TDateTime.typ)
+  val field_to_time = new TouchField("to time",TDateTime.typName)
 
   val typName = "Json Object"
   val typ = TouchCollection(typName,TString.typName,TJson_Object.typName,List(field_keys, field_kind, field_to_boolean, field_to_number, field_to_string, field_to_time), immutableCollection = true)

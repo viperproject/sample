@@ -53,8 +53,7 @@ object ArrayAnalysis {
 
     SystemParameters.compiler.compile(f1 :: Nil);
 
-    val heapid = new TopHeapIdentifier(null, null);
-    heapid.typ=SystemParameters.typ.asInstanceOf[Type];
+    val heapid = new TopHeapIdentifier(SystemParameters.typ.asInstanceOf[Type], null);
     val heapDomain : HeapDomain= new HeapDomain(heapid.getType, new MaybeHeapIdSetDomain[TopHeapIdentifier](), heapid);
     val entrydomain  = new HeapAndAnother(numericalDomain, heapDomain);
     var entryvalue =new AbstractValue(SystemParameters.typ.top())

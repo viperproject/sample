@@ -158,12 +158,6 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     if(NonRelationalHeapDomainSettings.unsoundEntryState)
       ParameterIds.reset()
   }
-  def setType(t : Type) = {
-    env.typ=t;
-    heap.typ=t;
-    dom.typ=t;
-    //cod.typ=t;
-  }
   override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Assignable, index : Expression, state : S, typ : Type)
   = (new MaybeHeapIdSetDomain().convert(dom.getArrayCell(arrayIdentifier, index)), this, new Replacement);
 

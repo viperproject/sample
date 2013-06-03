@@ -17,10 +17,10 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SRadio {
 
   /** Gets the frequency */
-  val field_frequency = new TouchField("frequency",TNumber.typ, NewInitializer())
+  val field_frequency = new TouchField("frequency",TNumber.typName, NewInitializer())
 
   /** Indicates if the radio is on */
-  val field_is_playing = new TouchField("is playing",TBoolean.typ, NewInitializer())
+  val field_is_playing = new TouchField("is playing",TBoolean.typName, NewInitializer())
 
   val typName = "Radio"
   val typ = new TouchType(typName,isSingleton = true, fields = List(field_frequency, field_is_playing))

@@ -17,7 +17,7 @@ import RichNativeSemantics._
 object TJson_Builder {
 
   /** Internal JSON Object */
-  val field_value = new TouchField("__value",TJson_Object.typ)
+  val field_value = new TouchField("__value",TJson_Object.typName)
 
   val typName = "Json Builder"
   val typ = new TouchType(typName,isSingleton = true,fields = List(field_value))

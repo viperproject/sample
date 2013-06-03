@@ -14,32 +14,32 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  */
 object TSprite {
 
-  val field_acceleration_x = new TouchField("acceleration x",TNumber.typ)	// Gets the acceleration along x in pixels/sec^2
-  val field_acceleration_y = new TouchField("acceleration y",TNumber.typ)	// Gets the acceleration along y in pixels/sec^2
-  val field_angle = new TouchField("angle",TNumber.typ)	          // Gets the angle of the sprite in degrees
-  val field_angular_speed = new TouchField("angular speed",TNumber.typ) 	// Gets the rotation speed in degrees/sec
-  val field_color = new TouchField("color",TColor.typ)	          // Returns the sprite color.
-  val field_elasticity = new TouchField("elasticity",TNumber.typ)	    // Gets the sprite elasticity as a fraction of speed preservation per bounce (0-1)
-  val field_friction = new TouchField("friction",TNumber.typ)	      // Gets the fraction of speed loss between 0 and 1
-  val field_height = new TouchField("height",TNumber.typ)	        // Gets the height in pixels
-  val field_is_deleted = new TouchField("is deleted",TBoolean.typ,ExpressionInitializer(False(null)))	 // Returns false if sprite is not deleted
-  val field_is_visible = new TouchField("is visible",TBoolean.typ)	    // Returns true if sprite is not hidden
-  val field_location = new TouchField("location",TLocation.typ)	    // Gets the geo location assigned to the sprite
-  val field_mass = new TouchField("mass",TNumber.typ)	          // Gets the mass
-  val field_opacity = new TouchField("opacity",TNumber.typ)	        // Gets the opacity (between 0 transparent and 1 opaque)
-  val field_picture = new TouchField("picture",TPicture.typ)
-  val field_speed_x = new TouchField("speed x", TNumber.typ)        // Gets the speed along x in pixels/sec
-  val field_speed_y = new TouchField("speed y", TNumber.typ)        // Gets the speed along y in pixels/sec
-  val field_text = new TouchField("text", TString.typ )          // The text on a text sprite (if it is a text sprite)
-  val field_width = new TouchField("width",TNumber.typ)           // Gets the width in pixels
-  val field_x = new TouchField("x", TNumber.typ)              // Gets the x position in pixels
-  val field_y = new TouchField("y", TNumber.typ)              // Gets the y position in pixels
-  val field_z_index = new TouchField("z index",TNumber.typ)         // Gets the z-index of the sprite
+  val field_acceleration_x = new TouchField("acceleration x",TNumber.typName)	// Gets the acceleration along x in pixels/sec^2
+  val field_acceleration_y = new TouchField("acceleration y",TNumber.typName)	// Gets the acceleration along y in pixels/sec^2
+  val field_angle = new TouchField("angle",TNumber.typName)	          // Gets the angle of the sprite in degrees
+  val field_angular_speed = new TouchField("angular speed",TNumber.typName) 	// Gets the rotation speed in degrees/sec
+  val field_color = new TouchField("color",TColor.typName)	          // Returns the sprite color.
+  val field_elasticity = new TouchField("elasticity",TNumber.typName)	    // Gets the sprite elasticity as a fraction of speed preservation per bounce (0-1)
+  val field_friction = new TouchField("friction",TNumber.typName)	      // Gets the fraction of speed loss between 0 and 1
+  val field_height = new TouchField("height",TNumber.typName)	        // Gets the height in pixels
+  val field_is_deleted = new TouchField("is deleted",TBoolean.typName,ExpressionInitializer(False(null)))	 // Returns false if sprite is not deleted
+  val field_is_visible = new TouchField("is visible",TBoolean.typName)	    // Returns true if sprite is not hidden
+  val field_location = new TouchField("location",TLocation.typName)	    // Gets the geo location assigned to the sprite
+  val field_mass = new TouchField("mass",TNumber.typName)	          // Gets the mass
+  val field_opacity = new TouchField("opacity",TNumber.typName)	        // Gets the opacity (between 0 transparent and 1 opaque)
+  val field_picture = new TouchField("picture",TPicture.typName)
+  val field_speed_x = new TouchField("speed x", TNumber.typName)        // Gets the speed along x in pixels/sec
+  val field_speed_y = new TouchField("speed y", TNumber.typName)        // Gets the speed along y in pixels/sec
+  val field_text = new TouchField("text", TString.typName)          // The text on a text sprite (if it is a text sprite)
+  val field_width = new TouchField("width",TNumber.typName)           // Gets the width in pixels
+  val field_x = new TouchField("x", TNumber.typName)              // Gets the x position in pixels
+  val field_y = new TouchField("y", TNumber.typName)              // Gets the y position in pixels
+  val field_z_index = new TouchField("z index",TNumber.typName)         // Gets the z-index of the sprite
 
-  val field_clip_left = new TouchField("clip left",TNumber.typ)
-  val field_clip_top = new TouchField("clip top",TNumber.typ)
-  val field_clip_width = new TouchField("clip width",TNumber.typ)
-  val field_clip_height = new TouchField("clip height",TNumber.typ)
+  val field_clip_left = new TouchField("clip left",TNumber.typName)
+  val field_clip_top = new TouchField("clip top",TNumber.typName)
+  val field_clip_width = new TouchField("clip width",TNumber.typName)
+  val field_clip_height = new TouchField("clip height",TNumber.typName)
 
   val typName = "Sprite"
   val typ = new TouchType(typName,isSingleton = false,fields = List(

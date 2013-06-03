@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TString_Map {
 
   /** Gets the keys in the map */
-  val field_keys = new TouchField("keys",TString_Collection.typ)
+  val field_keys = new TouchField("keys",TString_Collection.typName)
 
   val typName = "String Map"
   val typ = new TouchCollection(typName,TString.typName,TString.typName,List(field_keys))
@@ -41,7 +41,7 @@ class TString_Map extends AMap {
     //   Top[S](TNumber.typ)
     // DECLARATION AS FIELD:
     //   /** Gets the number of elements in the map */
-    //   val field_count = new TouchField("count",TNumber.typ)
+    //   val field_count = new TouchField("count",TNumber.typName)
 
     /** Gets the keys in the map */
     //case "keys" =>

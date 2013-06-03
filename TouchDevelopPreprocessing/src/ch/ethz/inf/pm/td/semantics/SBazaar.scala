@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 object SBazaar {
 
   /** Gets the current score for the current script */
-  val field_leaderboard_score = new TouchField("leaderboard score",TNumber.typ)
+  val field_leaderboard_score = new TouchField("leaderboard score",TNumber.typName)
 
   val fields = List(field_leaderboard_score)
   val typName = "Bazaar"

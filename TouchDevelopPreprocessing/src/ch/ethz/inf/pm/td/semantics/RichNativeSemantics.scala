@@ -119,10 +119,10 @@ object RichNativeSemantics {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
               val a = initials.get(f) match {
                 case None => f.default match {
-                  case InvalidInitializer() => Invalid(f.touchTyp)
-                  case TopInitializer() => curState = Top[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
-                  case TopWithInvalidInitializer() => curState = TopWithInvalid[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
-                  case NewInitializer() => curState = New[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case InvalidInitializer() => Invalid(f.getType())
+                  case TopInitializer() => curState = Top[S](f.getType(),recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case TopWithInvalidInitializer() => curState = TopWithInvalid[S](f.getType(),recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case NewInitializer() => curState = New[S](f.getType(),recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
                   case ExpressionInitializer(e) => e
                 }
                 case Some(st) => st
@@ -184,10 +184,10 @@ object RichNativeSemantics {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
               val a = initials.get(f) match {
                 case None => f.topDefault match {
-                  case InvalidInitializer() => Invalid(f.touchTyp)
-                  case TopInitializer() => curState = Top[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
-                  case TopWithInvalidInitializer() => curState = TopWithInvalid[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
-                  case NewInitializer() => curState = New[S](f.touchTyp,recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case InvalidInitializer() => Invalid(f.getType())
+                  case TopInitializer() => curState = Top[S](f.getType(),recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case TopWithInvalidInitializer() => curState = TopWithInvalid[S](f.getType(),recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case NewInitializer() => curState = New[S](f.getType(),recursive = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
                   case ExpressionInitializer(e) => e
                 }
                 case Some(st) => st
@@ -232,7 +232,7 @@ object RichNativeSemantics {
       curState = Assign[S](CollectionSize[S](newObject), CollectionSize[S](obj))(curState, pp)
     }
 
-    for (f <- obj.getType().getPossibleFields()) {
+    for (f <- obj.getType().asInstanceOf[TouchType].getPossibleTouchFields()) {
       if(!TouchAnalysisParameters.libraryFieldPruning ||
         SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString+"."+f.getName())) {
         initials.get(f) match {
@@ -458,7 +458,7 @@ object RichNativeSemantics {
     } else state
   }
 
-  def Field[S <: State[S]](obj:RichExpression, field:Identifier)(implicit state:S, pp:ProgramPoint):RichExpression = {
+  def Field[S <: State[S]](obj:RichExpression, field:TouchField)(implicit state:S, pp:ProgramPoint):RichExpression = {
     state.getFieldValue(List(obj),field.getName(),field.getType()).getExpression()
   }
 
@@ -480,7 +480,7 @@ object RichNativeSemantics {
       // Getters
         typ.getPossibleFields().find(_.getName() == method ) match {
           case Some(field) =>
-            val fieldValue = Field[S](this0,field.asInstanceOf[VariableIdentifier])
+            val fieldValue = Field[S](this0,field.asInstanceOf[TouchField])
             val stateWithExpr = Return[S](fieldValue)
             Some(stateWithExpr)
           case None => None
@@ -534,8 +534,18 @@ object RichNativeSemantics {
 
 }
 
-class TouchField(name:String, val touchTyp:TouchType, val default: Initializer = NewInitializer(), val topDefault: Initializer = TopInitializer(), val isSummaryNode:Boolean = false)
-  extends VariableIdentifier(name,touchTyp,null,EmptyScopeIdentifier())
+class TouchField(name:String, typName:String, val default: Initializer = NewInitializer(), val topDefault: Initializer = TopInitializer(), val isSummaryNode:Boolean = false)
+  extends Identifier(null,null) {
+  override def getType():TouchType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(typName).getTyp
+  override def getName() = name.toString
+  override def toString = name.toString
+  override def getField() = Some(name)
+  override def hashCode() : Int = name.hashCode() + typName.hashCode()
+  override def representSingleVariable()=isSummaryNode
+  override def equals(o : Any) = (o.isInstanceOf[TouchField] && o.asInstanceOf[TouchField].getName() == this.getName()
+    && o.asInstanceOf[TouchField].getType() == this.getType())
+  def identifiers() : Set[Identifier] = Set(this)
+}
 
 trait Initializer
 case class InvalidInitializer() extends Initializer

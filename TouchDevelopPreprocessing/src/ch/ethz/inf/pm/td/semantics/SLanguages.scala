@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SLanguages {
 
   /** Gets the current language code, to be used in the 'translate' method. */
-  val field_current_language = new TouchField("current language",TString.typ)
+  val field_current_language = new TouchField("current language",TString.typName)
 
   val typName = "Languages"
   val typ = new TouchType(typName,isSingleton = true, fields = List(field_current_language))

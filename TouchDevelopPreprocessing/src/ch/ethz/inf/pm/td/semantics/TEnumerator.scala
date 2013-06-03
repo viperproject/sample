@@ -38,7 +38,7 @@ class TEnumerator extends AAny {
     //   TopWithInvalid[S](TBoolean.typ)
     // DECLARATION AS FIELD: 
     //   /** Advance enumerator and return true if there is another element. */
-    //   val field_move_next = new TouchField("move next",TBoolean.typ)
+    //   val field_move_next = new TouchField("move next",TBoolean.typName)
 
     // FIELDS: field_move_next
 

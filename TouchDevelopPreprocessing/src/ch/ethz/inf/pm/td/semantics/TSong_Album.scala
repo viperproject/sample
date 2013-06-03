@@ -17,28 +17,28 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TSong_Album {
 
   /** Gets album art picture */
-  val field_art = new TouchField("art",TPicture.typ)
+  val field_art = new TouchField("art",TPicture.typName)
 
   /** Gets the name of the artist */
-  val field_artist = new TouchField("artist",TString.typ)
+  val field_artist = new TouchField("artist",TString.typName)
 
   /** Gets the duration in seconds */
-  val field_duration = new TouchField("duration",TNumber.typ)
+  val field_duration = new TouchField("duration",TNumber.typName)
 
   /** Gets the genre of the song */
-  val field_genre = new TouchField("genre",TString.typ)
+  val field_genre = new TouchField("genre",TString.typName)
 
   /** Indicates if the album has art */
-  val field_has_art = new TouchField("has art",TBoolean.typ)
+  val field_has_art = new TouchField("has art",TBoolean.typName)
 
   /** Gets the name of the album */
-  val field_name = new TouchField("name",TString.typ)
+  val field_name = new TouchField("name",TString.typName)
 
   /** Gets the songs. TODO */
-  /*val field_songs:TouchField = new TouchField("songs",TSongs.typ)*/
+  /*val field_songs:TouchField = new TouchField("songs",TSongs.typName)*/
 
   /** Gets the thumbnail picture */
-  val field_thumbnail = new TouchField("thumbnail",TPicture.typ)
+  val field_thumbnail = new TouchField("thumbnail",TPicture.typName)
 
   val typName = "Song Album"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_art, field_artist, field_duration, field_genre, field_has_art, field_name, /*field_songs,*/ field_thumbnail))

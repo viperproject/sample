@@ -17,10 +17,10 @@ import RichNativeSemantics._
 object TMatrix {
 
   /** Gets the number of columns */
-  val field_column_count = new TouchField("column count",TNumber.typ)
+  val field_column_count = new TouchField("column count",TNumber.typName)
 
   /** Gets the number of rows */
-  val field_row_count = new TouchField("row count",TNumber.typ)
+  val field_row_count = new TouchField("row count",TNumber.typName)
 
   val typName = "Matrix"
   val typ = new TouchCollection(typName,TNumber.typName,TNumber.typName,List(field_column_count,field_row_count))
@@ -59,7 +59,7 @@ class TMatrix extends AMutable_Collection {
     //   TopWithInvalid[S](TMatrix.typ)
     // DECLARATION AS FIELD: 
     //   /** Returns a copy of the matrix scaled by factor. */
-    //   val field_scale = new TouchField("scale",TMatrix.typ)
+    //   val field_scale = new TouchField("scale",TMatrix.typName)
 
     /** Returns the matrix negated. */
     // case "negate" => 
@@ -67,7 +67,7 @@ class TMatrix extends AMutable_Collection {
     //   TopWithInvalid[S](TMatrix.typ)
     // DECLARATION AS FIELD: 
     //   /** Returns the matrix negated. */
-    //   val field_negate = new TouchField("negate",TMatrix.typ)
+    //   val field_negate = new TouchField("negate",TMatrix.typName)
 
     /** Returns the transposed matrix. */
     // case "transpose" => 
@@ -75,7 +75,7 @@ class TMatrix extends AMutable_Collection {
     //   TopWithInvalid[S](TMatrix.typ)
     // DECLARATION AS FIELD: 
     //   /** Returns the transposed matrix. */
-    //   val field_transpose = new TouchField("transpose",TMatrix.typ)
+    //   val field_transpose = new TouchField("transpose",TMatrix.typName)
 
     /** Returns a matrix resulting from adding this matrix to b. The size of both matrices must match. */
     // case "add" => 
@@ -83,7 +83,7 @@ class TMatrix extends AMutable_Collection {
     //   TopWithInvalid[S](TMatrix.typ)
     // DECLARATION AS FIELD: 
     //   /** Returns a matrix resulting from adding this matrix to b. The size of both matrices must match. */
-    //   val field_add = new TouchField("add",TMatrix.typ)
+    //   val field_add = new TouchField("add",TMatrix.typName)
 
     /** Returns a matrix resulting from substracting b from this matrix. The size of both matrices must match. */
     // case "substract" => 
@@ -91,7 +91,7 @@ class TMatrix extends AMutable_Collection {
     //   TopWithInvalid[S](TMatrix.typ)
     // DECLARATION AS FIELD: 
     //   /** Returns a matrix resulting from substracting b from this matrix. The size of both matrices must match. */
-    //   val field_substract = new TouchField("substract",TMatrix.typ)
+    //   val field_substract = new TouchField("substract",TMatrix.typName)
 
     /** Returns a matrix resulting from multiply each element in the matrices. The size of both matrices must match. */
     // case "multiply" =>
@@ -99,7 +99,7 @@ class TMatrix extends AMutable_Collection {
     //   TopWithInvalid[S](TMatrix.typ)
     // DECLARATION AS FIELD: 
     //   /** Returns a matrix resulting from multiply each element in the matrices. The size of both matrices must match. */
-    //   val field_multiply = new TouchField("multiply",TMatrix.typ)
+    //   val field_multiply = new TouchField("multiply",TMatrix.typName)
 
     // FIELDS: field_count, field_row_count, field_column_count, field_at, field_at2, field_clone, field_min, field_max, field_scale, field_negate, field_transpose, field_add, field_substract, field_multiply, field_to_string, field_random
 

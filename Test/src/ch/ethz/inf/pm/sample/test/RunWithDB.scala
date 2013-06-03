@@ -879,9 +879,6 @@ object InterfaceTestRun {
 
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
-
-    if(heapDomain.isInstanceOf[NonRelationalHeapDomain[_]])
-      heapDomain.asInstanceOf[NonRelationalHeapDomain[_]].setType(SystemParameters.getType);
     val domain: T = semanticAnalysis.getInitialState;
     val entrydomain: HeapAndAnotherDomain[T, H, I] = new HeapAndAnotherDomain[T, H, I](domain, heapDomain)
     val entryvalue: ExpressionSet = new ExpressionSet(SystemParameters.getType.top)

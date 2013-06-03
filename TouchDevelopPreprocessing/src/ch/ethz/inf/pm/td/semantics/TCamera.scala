@@ -17,13 +17,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TCamera {
 
   /** Gets the height of the camera image in pixels. */
-  val field_height = new TouchField("height",TNumber.typ)
+  val field_height = new TouchField("height",TNumber.typName)
 
   /** Gets the width of the camera image in pixels. */
-  val field_width = new TouchField("width",TNumber.typ)
+  val field_width = new TouchField("width",TNumber.typName)
 
   /** Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */
-  val field_is_front = new TouchField("is front",TBoolean.typ)
+  val field_is_front = new TouchField("is front",TBoolean.typName)
 
   val typName = "Camera"
   val typ = new TouchType(typName,isSingleton = false,fields = List(field_height, field_is_front, field_width))

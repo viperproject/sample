@@ -19,7 +19,7 @@ object SColors {
   // STRIPPED DOWN FOR PERFORMANCE
 
   // Indicates if the user is using a light theme in his phone
-  val field_is_light_theme = new TouchField("is light theme",TBoolean.typ)
+  val field_is_light_theme = new TouchField("is light theme",TBoolean.typName)
 
   val typName = "Colors"
   val typ = new TouchType(typName, isSingleton = true, fields = List(field_is_light_theme))

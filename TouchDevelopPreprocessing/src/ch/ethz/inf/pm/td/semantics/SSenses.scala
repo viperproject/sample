@@ -16,22 +16,22 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SSenses {
 
   /** Gets the primary camera if available */
-  val field_camera = new TouchField("camera",TCamera.typ,TopWithInvalidInitializer())
+  val field_camera = new TouchField("camera",TCamera.typName,TopWithInvalidInitializer())
 
   /** Gets the front facing camera if available */
-  val field_front_camera = new TouchField("front camera",TCamera.typ,TopWithInvalidInitializer())
+  val field_front_camera = new TouchField("front camera",TCamera.typName,TopWithInvalidInitializer())
 
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
-  val field_has_accelerometer = new TouchField("has accelerometer",TBoolean.typ)
+  val field_has_accelerometer = new TouchField("has accelerometer",TBoolean.typName)
 
   /** DEPRECATED. Test if the senses→heading is invalid instead */
-  val field_has_compass = new TouchField("has compass",TBoolean.typ)
+  val field_has_compass = new TouchField("has compass",TBoolean.typName)
 
   /** DEPRECATED. Test if the senses→front camera is invalid instead */
-  val field_has_front_camera = new TouchField("has front camera",TBoolean.typ)
+  val field_has_front_camera = new TouchField("has front camera",TBoolean.typName)
 
   /** Indicates if the gyroscope is available on the device */
-  val field_has_gyroscope = new TouchField("has gyroscope",TBoolean.typ)
+  val field_has_gyroscope = new TouchField("has gyroscope",TBoolean.typName)
 
   val typName = "Senses"
   val typ = new TouchType(typName,isSingleton = true,

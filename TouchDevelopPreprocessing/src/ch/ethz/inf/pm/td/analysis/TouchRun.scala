@@ -56,8 +56,7 @@ object TouchRun {
 
         //EntryState
         val numerical = new StringsAnd(new InvalidAnd(new BoxedNonRelationalNumericalDomain(new Interval(0,0))))
-        val heapID = new SimpleProgramPointHeapIdentifier(null,null)
-        heapID.typ = SystemParameters.typ
+        val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
         val heapDomain: NonRelationalHeapDomain[HeapId] =
           new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
@@ -116,8 +115,7 @@ object TouchApronRun {
         //EntryState
         val domain = new Octagon()
         val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain).factory()))
-        val heapID = new SimpleProgramPointHeapIdentifier(null,null)
-        heapID.typ = SystemParameters.typ
+        val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
         val heapDomain: NonRelationalHeapDomain[HeapId] =
           new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)

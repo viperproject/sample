@@ -17,13 +17,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TPlaylist {
 
   /** Gets the duration in seconds */
-  val field_duration = new TouchField("duration",TNumber.typ)
+  val field_duration = new TouchField("duration",TNumber.typName)
 
   /** Gets the name of the song */
-  val field_name = new TouchField("name",TString.typ)
+  val field_name = new TouchField("name",TString.typName)
 
   /** Gets the songs */
-  val field_songs = new TouchField("songs",TSongs.typ)
+  val field_songs = new TouchField("songs",TSongs.typName)
 
   val typName = "Playlist"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_duration,field_name,field_songs))

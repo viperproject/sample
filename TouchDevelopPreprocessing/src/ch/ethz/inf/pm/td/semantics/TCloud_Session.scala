@@ -16,10 +16,10 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TCloud_Session {
 
   /** Gets a value indicating if the session is connected */
-  val field_is_connected = new TouchField("is connected",TBoolean.typ)
+  val field_is_connected = new TouchField("is connected",TBoolean.typName)
 
   /** Gets the session id */
-  val field_id = new TouchField("id",TString.typ)
+  val field_id = new TouchField("id",TString.typName)
 
   val typName = "Cloud Session"
   val typ = new TouchType(typName,isImmutable = true,fields = List(field_is_connected,field_id))

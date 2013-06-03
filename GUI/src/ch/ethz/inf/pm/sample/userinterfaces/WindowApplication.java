@@ -412,9 +412,6 @@ public class WindowApplication {
                     setProgress(40);
                     taskOutput.append("\nCreating the initial state of the analysis");
                     HeapDomain heapDomain = getSelectedHeapAnalysis();
-                    if(heapDomain instanceof NonRelationalHeapDomain) {
-                        ((NonRelationalHeapDomain) heapDomain).setType(SystemParameters.getType().top());
-                    }
                     SemanticDomain domain = (SemanticDomain) getSelectedAnalysis().getInitialState();
                     HeapAndAnotherDomain entrydomain  = new HeapAndAnotherDomain(domain, heapDomain);
                     ExpressionSet entryvalue =new ExpressionSet(SystemParameters.getType().top());

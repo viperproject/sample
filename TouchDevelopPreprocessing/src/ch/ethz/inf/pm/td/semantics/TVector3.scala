@@ -12,9 +12,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  */
 object TVector3 {
 
-  val field_x = new TouchField("x", TNumber.typ)
-  val field_y = new TouchField("y", TNumber.typ)
-  val field_z = new TouchField("z", TNumber.typ)
+  val field_x = new TouchField("x", TNumber.typName)
+  val field_y = new TouchField("y", TNumber.typName)
+  val field_z = new TouchField("z", TNumber.typName)
 
   val typName = "Vector3"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_x,field_y,field_z))

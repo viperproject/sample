@@ -17,22 +17,22 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TPlace {
 
   /** Gets the category of the place */
-  val field_category = new TouchField("category",TString.typ)
+  val field_category = new TouchField("category",TString.typName)
 
   /** Gets the link associated to the message */
-  val field_link = new TouchField("link",TString.typ)
+  val field_link = new TouchField("link",TString.typName)
 
   /** Gets the location of the place */
-  val field_location = new TouchField("location",TLocation.typ)
+  val field_location = new TouchField("location",TLocation.typName)
 
   /** Gets the name of the place */
-  val field_name = new TouchField("name",TString.typ)
+  val field_name = new TouchField("name",TString.typName)
 
   /** Gets a url to the picture */
-  val field_picture_link = new TouchField("picture link",TString.typ)
+  val field_picture_link = new TouchField("picture link",TString.typName)
 
   /** Gets the source of this place (facebook, touchdevelop) */
-  val field_source = new TouchField("source",TString.typ)
+  val field_source = new TouchField("source",TString.typName)
 
   val typName = "Place"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_category, field_link, field_location,

@@ -14,34 +14,34 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TTile {
 
   /** Gets the back icon picture */
-  val field_back_icon = new TouchField("back icon",TPicture.typ)
+  val field_back_icon = new TouchField("back icon",TPicture.typName)
 
   /** Gets the back title */
-  val field_back_title = new TouchField("back title",TString.typ)
+  val field_back_title = new TouchField("back title",TString.typName)
 
   /** Gets the background color */
-  val field_background = new TouchField("background",TColor.typ)
+  val field_background = new TouchField("background",TColor.typName)
 
   /** Gets the content */
-  val field_content = new TouchField("content",TString.typ)
+  val field_content = new TouchField("content",TString.typName)
 
   /** Gets the counter */
-  val field_counter = new TouchField("counter",TNumber.typ)
+  val field_counter = new TouchField("counter",TNumber.typName)
 
   /** Gets the height in pixels */
-  val field_height = new TouchField("height",TNumber.typ)
+  val field_height = new TouchField("height",TNumber.typName)
 
   /** Gets the icon picture */
-  val field_icon = new TouchField("icon",TPicture.typ)
+  val field_icon = new TouchField("icon",TPicture.typName)
 
   /** This property is deprecated. */
-  val field_panorama = new TouchField("panorama",TBoolean.typ)
+  val field_panorama = new TouchField("panorama",TBoolean.typName)
 
   /** Gets the front title */
-  val field_title = new TouchField("title",TString.typ)
+  val field_title = new TouchField("title",TString.typName)
 
   /** Gets the width in pixels */
-  val field_width = new TouchField("width",TNumber.typ)
+  val field_width = new TouchField("width",TNumber.typName)
 
   val typName = "Tile"
   val typ = new TouchType(typName,isSingleton = false, fields = List(

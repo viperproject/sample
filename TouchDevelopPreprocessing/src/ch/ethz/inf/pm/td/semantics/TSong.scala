@@ -17,31 +17,31 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TSong {
 
   /** Gets the song album containing the song */
-  val field_album = new TouchField("album",TSong_Album.typ)
+  val field_album = new TouchField("album",TSong_Album.typName)
 
   /** Gets the name of the artist */
-  val field_artist = new TouchField("artist",TString.typ)
+  val field_artist = new TouchField("artist",TString.typName)
 
   /** Gets the duration in seconds */
-  val field_duration = new TouchField("duration",TNumber.typ)
+  val field_duration = new TouchField("duration",TNumber.typName)
 
   /** Gets the genre of the song */
-  val field_genre = new TouchField("genre",TString.typ)
+  val field_genre = new TouchField("genre",TString.typName)
 
   /** Gets the name of the song */
-  val field_name = new TouchField("name",TString.typ)
+  val field_name = new TouchField("name",TString.typName)
 
   /** Gets the play count */
-  val field_play_count = new TouchField("play count",TNumber.typ)
+  val field_play_count = new TouchField("play count",TNumber.typName)
 
   /** Gets a value whether the song is DRM protected */
-  val field_protected = new TouchField("protected",TBoolean.typ)
+  val field_protected = new TouchField("protected",TBoolean.typName)
 
   /** Gets the users rating. -1 if not rated. */
-  val field_rating = new TouchField("rating",TNumber.typ)
+  val field_rating = new TouchField("rating",TNumber.typName)
 
   /** Gets the track number in the album */
-  val field_track = new TouchField("track",TNumber.typ)
+  val field_track = new TouchField("track",TNumber.typName)
 
   val typName = "Song"
   val typ = new TouchType(typName,isSingleton = false, isImmutable = true, fields = List(field_album, field_artist, field_duration, field_genre, field_name, field_play_count, field_protected, field_rating, field_track))

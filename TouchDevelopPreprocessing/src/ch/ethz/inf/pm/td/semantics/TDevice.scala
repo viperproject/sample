@@ -17,13 +17,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TDevice {
 
   /** Checks if the device is connected */
-  val field_is_connected = new TouchField("is connected",TBoolean.typ)
+  val field_is_connected = new TouchField("is connected",TBoolean.typName)
 
   /** Gets the manfacturer name */
-  val field_manufacturer = new TouchField("manufacturer",TString.typ)
+  val field_manufacturer = new TouchField("manufacturer",TString.typName)
 
   /** Gets the friendly name of the device */
-  val field_name = new TouchField("name",TString.typ)
+  val field_name = new TouchField("name",TString.typName)
 
   val typName = "Device"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_is_connected, field_manufacturer, field_name))

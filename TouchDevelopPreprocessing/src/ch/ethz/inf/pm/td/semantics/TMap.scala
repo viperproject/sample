@@ -15,10 +15,10 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 object TMap {
 
   /** Gets the zoom level */
-  val field_zoom = new TouchField("zoom",TNumber.typ)
+  val field_zoom = new TouchField("zoom",TNumber.typName)
 
   /** Gets the map center location */
-  val field_center = new TouchField("center",TLocation.typ)
+  val field_center = new TouchField("center",TLocation.typName)
 
   val typName = "Map"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_zoom,field_center))

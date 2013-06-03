@@ -14,25 +14,25 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 object SMedia {
 
   /** Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings. */
-  val field_icon_names = new TouchField("icon names",TString_Collection.typ)
+  val field_icon_names = new TouchField("icon names",TString_Collection.typName)
 
   /** Gets the picture albums */
-  val field_picture_albums = new TouchField("picture albums",TPicture_Albums.typ)
+  val field_picture_albums = new TouchField("picture albums",TPicture_Albums.typName)
 
   /** Gets the pictures on the phone */
-  val field_pictures = new TouchField("pictures",TPictures.typ)
+  val field_pictures = new TouchField("pictures",TPictures.typName)
 
   /** Gets the playlists on the phone */
-  val field_playlists = new TouchField("playlists",TPlaylists.typ)
+  val field_playlists = new TouchField("playlists",TPlaylists.typName)
 
   /** Gets the saved pictures on the phone */
-  val field_saved_pictures = new TouchField("saved pictures",TPictures.typ)
+  val field_saved_pictures = new TouchField("saved pictures",TPictures.typName)
 
   /** Gets the song albums on the phone */
-  val field_song_albums = new TouchField("song albums",TSong_Albums.typ)
+  val field_song_albums = new TouchField("song albums",TSong_Albums.typName)
 
   /** Gets the songs on the phone */
-  val field_songs = new TouchField("songs",TSongs.typ)
+  val field_songs = new TouchField("songs",TSongs.typName)
 
   val typName = "Media"
   val typ = new TouchType(typName, isSingleton = true, fields = List(field_icon_names, field_picture_albums, field_pictures,

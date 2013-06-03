@@ -16,22 +16,22 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TPrinter {
   /** Gets the detailed information about this device */
-  val field_device = new TouchField("device",TDevice.typ)
+  val field_device = new TouchField("device",TDevice.typName)
 
   /** Indicates additional information about why the Printer is in its current state. */
-  val field_state_reason = new TouchField("state reason",TString.typ)
+  val field_state_reason = new TouchField("state reason",TString.typName)
 
   /** Gets the name of the printer */
-  val field_name = new TouchField("name",TString.typ)
+  val field_name = new TouchField("name",TString.typName)
 
   /** Indicates if no jobs can be processed and intervention is needed. */
-  val field_is_stopped = new TouchField("is stopped",TBoolean.typ)
+  val field_is_stopped = new TouchField("is stopped",TBoolean.typName)
 
   /** Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */
-  val field_is_processing = new TouchField("is processing",TBoolean.typ)
+  val field_is_processing = new TouchField("is processing",TBoolean.typName)
 
   /** Indicates if new jobs can start processing immediately without waiting. */
-  val field_is_idle = new TouchField("is idle",TBoolean.typ)
+  val field_is_idle = new TouchField("is idle",TBoolean.typName)
 
   val typName = "Printer"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_device, field_is_idle, field_is_processing,
