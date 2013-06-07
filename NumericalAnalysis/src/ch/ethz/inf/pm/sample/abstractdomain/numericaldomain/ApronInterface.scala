@@ -30,64 +30,73 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
     if (r.isEmpty()) return this
 
-    // TODO: HIGH PRIORITY (Milos) - handel cases {} -> {v1, ..., vn}; i.e. creation of cariables
-
-    var startingState = instantiateState()
-    var idsInDomain: Set[Identifier] = Set.empty
-    var idsInCodomain: Set[Identifier] = Set.empty
-
+    /*
+    CONDITIONS for replacement:
+    1. The sets on the left hand side can not overlap - this could lead to inconsistent post-state
+    2. In the same replacement entry, the right-hand side contains fresh variables or they are in the right-hand side.
+     */
+    // Checking the above conditions:
+    var rightOverlaps = Set.empty[Identifier]
     for ((from, to) <- r.value) {
-      idsInDomain = idsInDomain.++(from)
-      idsInCodomain = idsInCodomain.++(to)
-      val idFromNamesList = ListBuffer.empty[String]
-      for (idFrom <- from) {
-        if (!startingState.getEnvironment.hasVar(idFrom.getName()))
-          idFromNamesList.+=(idFrom.getName())
+      if (!(rightOverlaps & to).isEmpty)
+        throw new Exception("The sets in the right-hand side of replacements overlap")
+      rightOverlaps = rightOverlaps ++ to
+      val toMinusFrom = to -- from
+      for (id <- toMinusFrom)
+        state match {
+          case Some(st) => {
+            if (st.getEnvironment.getVars.contains(id.getName()))
+              throw new Exception("The value on the right hand side is not in the left and is not fresh")
+          }
+          case None =>
+        }
+    }
+
+    val startingState = instantiateState()
+    var result = this.bottom()
+    var tempVersion = 0
+    val tempVarName = "tempVarStar"
+    var postProcessMap = Map.empty[Option[String], Array[String]]
+    var foldedStates = Set.empty[ApronInterface]
+    var varsToRemove = Set.empty[String]
+    for ((from,to) <- r.value) {
+      val toVarsAsString: Array[String] = (for (v <- to) yield v.getName()).toArray[String]
+      if(!from.isEmpty) {
+        val fromVarsAsString: Array[String] = (for (v <- from) yield v.getName()).toArray[String]
+        varsToRemove = varsToRemove -- fromVarsAsString
+        assert(fromVarsAsString.size > 0, "There should be variables in ``from'' set.")
+        val tempVal = tempVarName + tempVersion
+        tempVersion = tempVersion + 1
+        val tempState = startingState.expandCopy(domain,fromVarsAsString(0), Array(tempVal))
+        tempState.fold(domain, Array(tempVal) ++ fromVarsAsString)
+        foldedStates = foldedStates + new ApronInterface(Some(tempState), domain)
+        postProcessMap = postProcessMap + (Some(tempVal) -> toVarsAsString)
+      } else {
+        postProcessMap = postProcessMap + (None -> toVarsAsString)
+        foldedStates = foldedStates + new ApronInterface(Some(startingState), domain)
       }
-      val newEnv = startingState.getEnvironment.add(idFromNamesList.toArray[String], new Array[String](0))
-      startingState = startingState.changeEnvironmentCopy(domain, newEnv, false)
+    }
+    // Join folded states
+    for (s <- foldedStates) {
+      result = result.lub(result, s.removeVariables(varsToRemove.toArray[String]))
     }
 
-    var result = new Abstract1(domain, startingState.getEnvironment, true)
-
-    for ((from, to) <- r.value) {
-      var newState = startingState
-      var shallowCopyVars = List.empty[String]
-      for (v <- from) {
-        val vPrime: Array[String] = new Array[String](1)
-        vPrime.update(0, v.getName() + "$")
-        shallowCopyVars = shallowCopyVars.:+(v.getName() + "$")
-        newState = newState.expandCopy(domain, v.getName(), vPrime)
+    val resultingState = result.instantiateState()
+    for ((tempVar, toVars) <- postProcessMap) {
+      tempVar match {
+        case Some(t) => {
+          if (toVars.size > 0)
+            resultingState.expand(domain, t, toVars)
+          resultingState.changeEnvironment(domain, resultingState.getEnvironment.remove(Array(t)), false)
+        }
+        case None => {
+          if (toVars.size > 0)
+            resultingState.changeEnvironment(domain, resultingState.getEnvironment.add(toVars, Array.empty[String]), false)
+        }
       }
-      // now we introduce id* into domain with values of one of the ids in "from"
-      val idStar = "idStar"
-      val aIdStar: Array[String] = new Array[String](1)
-      aIdStar.update(0, idStar)
-      newState = newState.expandCopy(domain, from.iterator.next().getName(), aIdStar)
-      // now we fold shallow copies into idStar
-      shallowCopyVars = idStar :: shallowCopyVars
-      newState = newState.foldCopy(domain, shallowCopyVars.toArray[String])
-      // now we expand id* to variables in "to"
-      val idsToStringArray: Array[String] = idsToArrayOfStrings(to)
-      newState = newState.expandCopy(domain, idStar, idsToStringArray)
-      // now we remove the temoprary variables form the environment
-      newState = newState.forgetCopy(domain, aIdStar, false)
-      newState = newState.changeEnvironmentCopy(domain, newState.getEnvironment.remove(aIdStar), false)
-      // we also need to extend the environment of result
-      result = result.expandCopy(domain, from.iterator.next().getName(), idsToStringArray)
-      result = result.joinCopy(domain, newState)
-      startingState = startingState.expandCopy(domain, from.iterator.next().getName(), idsToStringArray)
     }
 
-    for (id <- idsInDomain.--(idsInCodomain)) {
-      result = result.forgetCopy(domain, id.getName(), false)
-    }
-
-    // We minimize the environment in order to achieve better performance.
-    // This effects assign as there might be variable removed that are still in use.
-    result = result.minimizeEnvironmentCopy(domain)
-    new ApronInterface(Some(result), domain)
-
+    return new ApronInterface(Some(resultingState), domain)
   }
 
   // TODO
@@ -392,28 +401,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       } else {
         return new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
       }
-
-      // ORIGINAL CODE IS BELOW - Milos
-//      val leftState = left.instantiateState()
-//      val rightState = right.instantiateState()
-//
-//      if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-//        val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
-//        val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
-//        val newRight = rightState.changeEnvironmentCopy(domain, env, false)
-//        val commonVars = leftState.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(rightState.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
-//        val forgotLState = newLeft.forgetCopy(domain, commonVars.toArray[String], false)
-//        val forgotRState = newRight.forgetCopy(domain, commonVars.toArray[String], false)
-//        val finalLeft = forgotLState.meetCopy(domain, newRight)
-//        val finalRight = forgotRState.meetCopy(domain, newLeft)
-//        val st = finalLeft.joinCopy(domain, finalRight)
-//        val res = new ApronInterface(Some(st), domain)
-//        res
-//      } else {
-//        val res = new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
-//        res
-//      }
-
     } catch {
       case a:apron.ApronException => {
         throw new ApronException("WARNING: incompatible environments.")
@@ -433,28 +420,15 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-    val uncommonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => !rightState.getEnvironment.getVars.contains(v)) ++ rightState.getEnvironment.getVars.filter(v => !leftState.getEnvironment.getVars.contains(v))
-    leftState.unify(domain, rightState)
-    // We remove the variables taht are not in common. (As they are bottom values in the other state)
-    leftState.changeEnvironment(domain, leftState.getEnvironment.remove(uncommonVariables), false)
+      val uncommonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => !rightState.getEnvironment.getVars.contains(v)) ++ rightState.getEnvironment.getVars.filter(v => !leftState.getEnvironment.getVars.contains(v))
+      leftState.unify(domain, rightState)
+      // We remove the variables taht are not in common. (As they are bottom values in the other state)
+      leftState.changeEnvironment(domain, leftState.getEnvironment.remove(uncommonVariables), false)
 
-    return new ApronInterface(Some(leftState), domain)
+      return new ApronInterface(Some(leftState), domain)
     } else {
       return new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
     }
-
-    // THE ORIGINAL CODE IS BELOW - Milos
-//    if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-//      val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
-//      val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
-//      val newRight = rightState.changeEnvironmentCopy(domain, env, false)
-//      val st = newLeft.meetCopy(domain, newRight)
-//      val res = new ApronInterface(Some(st), domain)
-//      res
-//    } else {
-//      val res = new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
-//      res
-//    }
   }
 
   override def widening(left: ApronInterface, right: ApronInterface): ApronInterface = {
