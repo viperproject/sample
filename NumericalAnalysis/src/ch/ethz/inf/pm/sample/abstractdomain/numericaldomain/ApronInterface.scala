@@ -30,6 +30,8 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
     if (r.isEmpty()) return this
 
+    // TODO: HIGH PRIORITY (Milos) - handel cases {} -> {v1, ..., vn}; i.e. creation of cariables
+
     var startingState = instantiateState()
     var idsInDomain: Set[Identifier] = Set.empty
     var idsInCodomain: Set[Identifier] = Set.empty
@@ -369,26 +371,44 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       return right
 
     try {
-
+      // NEW JOIN that supports different environments
+      // First we compute the common variables.
       val leftState = left.instantiateState()
       val rightState = right.instantiateState()
+      val commonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => rightState.getEnvironment.getVars.contains(v))
+      // We need to forget the common variables in each state, otherwise we would be unsound
+      val forgotLeftState = leftState.forgetCopy(domain, commonVariables, false)
+      val forgotRightState = rightState.forgetCopy(domain, commonVariables, false)
+      // We assume that variables that are not in the other environment and are in the first environment are treated in the other as botom value.
+      val unifiedForgotStates = forgotLeftState.unifyCopy(domain, forgotRightState)
+      // The result is then LUB(Uni(uniFS, leftS), Uni(uniFS, rightS))
+      leftState.unify(domain, unifiedForgotStates)
+      rightState.unify(domain,unifiedForgotStates)
+      // The result state is stored in the leftState in order to avoid creation of new state object.
+      leftState.join(domain, rightState)
 
-      if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-        val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
-        val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
-        val newRight = rightState.changeEnvironmentCopy(domain, env, false)
-        val commonVars = leftState.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(rightState.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
-        val forgotLState = newLeft.forgetCopy(domain, commonVars.toArray[String], false)
-        val forgotRState = newRight.forgetCopy(domain, commonVars.toArray[String], false)
-        val finalLeft = forgotLState.meetCopy(domain, newRight)
-        val finalRight = forgotRState.meetCopy(domain, newLeft)
-        val st = finalLeft.joinCopy(domain, finalRight)
-        val res = new ApronInterface(Some(st), domain)
-        res
-      } else {
-        val res = new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
-        res
-      }
+      return new ApronInterface(Some(leftState), domain)
+
+      // ORIGINAL CODE IS BELOW - Milos
+//      val leftState = left.instantiateState()
+//      val rightState = right.instantiateState()
+//
+//      if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
+//        val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
+//        val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
+//        val newRight = rightState.changeEnvironmentCopy(domain, env, false)
+//        val commonVars = leftState.minimizeEnvironmentCopy(domain).getEnvironment.getVars.intersect(rightState.minimizeEnvironmentCopy(domain).getEnvironment.getVars)
+//        val forgotLState = newLeft.forgetCopy(domain, commonVars.toArray[String], false)
+//        val forgotRState = newRight.forgetCopy(domain, commonVars.toArray[String], false)
+//        val finalLeft = forgotLState.meetCopy(domain, newRight)
+//        val finalRight = forgotRState.meetCopy(domain, newLeft)
+//        val st = finalLeft.joinCopy(domain, finalRight)
+//        val res = new ApronInterface(Some(st), domain)
+//        res
+//      } else {
+//        val res = new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
+//        res
+//      }
 
     } catch {
       case a:apron.ApronException => {
@@ -399,32 +419,34 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
   override def glb(left: ApronInterface, right: ApronInterface): ApronInterface = {
 
+    if (left.isBottom || right.isTop)
+      return left
+    if (right.isBottom || left.isTop)
+      return right
     if (left == right)
-      return left
-    if (left.isBottom)
-      return left
-    if (right.isBottom)
-      return right
-    if (left.isTop)
-      return right
-    if (right.isTop)
       return left
 
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
+    val uncommonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => !rightState.getEnvironment.getVars.contains(v)) ++ rightState.getEnvironment.getVars.filter(v => !leftState.getEnvironment.getVars.contains(v))
+    leftState.unify(domain, rightState)
+    // We remove the variables taht are not in common. (As they are bottom values in the other state)
+    leftState.changeEnvironment(domain, leftState.getEnvironment.remove(uncommonVariables), false)
 
-    if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-      val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
-      val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
-      val newRight = rightState.changeEnvironmentCopy(domain, env, false)
-      val st = newLeft.meetCopy(domain, newRight)
-      val res = new ApronInterface(Some(st), domain)
-      res
-    } else {
-      val res = new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
-      res
-    }
+    return new ApronInterface(Some(leftState), domain)
 
+    // THE ORIGINAL CODE IS BELOW - Milos
+//    if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
+//      val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
+//      val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
+//      val newRight = rightState.changeEnvironmentCopy(domain, env, false)
+//      val st = newLeft.meetCopy(domain, newRight)
+//      val res = new ApronInterface(Some(st), domain)
+//      res
+//    } else {
+//      val res = new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
+//      res
+//    }
   }
 
   override def widening(left: ApronInterface, right: ApronInterface): ApronInterface = {
