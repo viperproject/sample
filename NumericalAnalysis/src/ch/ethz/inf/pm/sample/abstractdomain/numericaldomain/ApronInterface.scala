@@ -372,22 +372,26 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
     try {
       // NEW JOIN that supports different environments
-      // First we compute the common variables.
       val leftState = left.instantiateState()
       val rightState = right.instantiateState()
-      val commonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => rightState.getEnvironment.getVars.contains(v))
-      // We need to forget the common variables in each state, otherwise we would be unsound
-      val forgotLeftState = leftState.forgetCopy(domain, commonVariables, false)
-      val forgotRightState = rightState.forgetCopy(domain, commonVariables, false)
-      // We assume that variables that are not in the other environment and are in the first environment are treated in the other as botom value.
-      val unifiedForgotStates = forgotLeftState.unifyCopy(domain, forgotRightState)
-      // The result is then LUB(Uni(uniFS, leftS), Uni(uniFS, rightS))
-      leftState.unify(domain, unifiedForgotStates)
-      rightState.unify(domain,unifiedForgotStates)
-      // The result state is stored in the leftState in order to avoid creation of new state object.
-      leftState.join(domain, rightState)
+      // First we compute the common variables.
+      if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
+        val commonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => rightState.getEnvironment.getVars.contains(v))
+        // We need to forget the common variables in each state, otherwise we would be unsound
+        val forgotLeftState = leftState.forgetCopy(domain, commonVariables, false)
+        val forgotRightState = rightState.forgetCopy(domain, commonVariables, false)
+        // We assume that variables that are not in the other environment and are in the first environment are treated in the other as botom value.
+        val unifiedForgotStates = forgotLeftState.unifyCopy(domain, forgotRightState)
+        // The result is then LUB(Uni(uniFS, leftS), Uni(uniFS, rightS))
+        leftState.unify(domain, unifiedForgotStates)
+        rightState.unify(domain,unifiedForgotStates)
+        // The result state is stored in the leftState in order to avoid creation of new state object.
+        leftState.join(domain, rightState)
 
-      return new ApronInterface(Some(leftState), domain)
+        return new ApronInterface(Some(leftState), domain)
+      } else {
+        return new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
+      }
 
       // ORIGINAL CODE IS BELOW - Milos
 //      val leftState = left.instantiateState()
