@@ -127,6 +127,16 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     }
   }
 
+
+  def removeVariables(variables: Array[String]): ApronInterface = {
+    state match {
+      case None => this
+      case Some(st) =>
+        val env = st.getEnvironment.remove(variables)
+        new ApronInterface(Some(st.changeEnvironmentCopy(domain, env, false)), domain)
+    }
+  }
+
   override def setToTop(variable: Identifier): ApronInterface = {
     state match {
       case None => this
@@ -186,29 +196,31 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
         //   (4) Remove all renamed summary nodes
         // This way, we infer every thing we can about the "materialized" value
 
-//        val rightSummaryNodes = someExpr.identifiers() filter ( !_.representSingleVariable() )
-//        if (!rightSummaryNodes.isEmpty) {
-//
-//          val rightSummaryNodesNames = rightSummaryNodes map (_.toString) toArray
-//          val newSummaryNodeNames = rightSummaryNodesNames map (_ + "__TEMP")
-//          val materializedState = assignedState.renameCopy(domain,rightSummaryNodesNames,newSummaryNodeNames)
-//          val summaryState = someState.forgetCopy(domain,variable.toString,false)
-//          val resultState = lub(
-//            new ApronInterface(Some(materializedState),domain),
-//            new ApronInterface(Some(summaryState),domain)).instantiateState()
-//          resultState.forgetCopy(domain,newSummaryNodeNames,false)
-//
-//        } else {
+        val rightSummaryNodes = someExpr.identifiers() filter ( !_.representSingleVariable() )
+        if (!rightSummaryNodes.isEmpty) {
+
+          val rightSummaryNodesNames = (rightSummaryNodes map (_.toString)).toArray
+          val newSummaryNodeNames = rightSummaryNodesNames map (_ + "__TEMP")
+          val materializedState = assignedState.renameCopy(domain,rightSummaryNodesNames,newSummaryNodeNames)
+          val summaryState = new ApronInterface(Some(someState),domain).removeVariable(variable).instantiateState()
+
+          val resultState = lub(
+            new ApronInterface(Some(materializedState),domain),
+            new ApronInterface(Some(summaryState),domain))
+          resultState.removeVariables(newSummaryNodeNames).instantiateState()
+
+        } else {
 
           assignedState
 
-//        }
+        }
       })
 
       new ApronInterface(Some(res),domain)
 
     } else this
   }
+
   override def assume(expr: Expression): ApronInterface = {
 
     if (isBottom) return this
