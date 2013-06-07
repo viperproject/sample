@@ -432,12 +432,16 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
+    if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
     val uncommonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => !rightState.getEnvironment.getVars.contains(v)) ++ rightState.getEnvironment.getVars.filter(v => !leftState.getEnvironment.getVars.contains(v))
     leftState.unify(domain, rightState)
     // We remove the variables taht are not in common. (As they are bottom values in the other state)
     leftState.changeEnvironment(domain, leftState.getEnvironment.remove(uncommonVariables), false)
 
     return new ApronInterface(Some(leftState), domain)
+    } else {
+      return new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
+    }
 
     // THE ORIGINAL CODE IS BELOW - Milos
 //    if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
