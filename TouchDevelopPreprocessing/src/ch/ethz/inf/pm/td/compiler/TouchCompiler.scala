@@ -166,7 +166,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     }
   }
 
-  def extensions(): List[String] = List("td")
+  def extensions(): List[String] = List("td","json")
 
   def getLabel(): String = "TouchDevelop"
 

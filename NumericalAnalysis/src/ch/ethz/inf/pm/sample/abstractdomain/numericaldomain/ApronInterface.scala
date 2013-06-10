@@ -811,8 +811,10 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
   private def addToEnvironment(env: Environment, typ: Type, varName: String): Environment = {
     val v = new Array[String](1)
     v(0) = varName
-    if (typ.isFloatingPointType()) env.add(new Array[String](0), v)
-    else env.add(v, new Array[String](0))
+    if (typ.isFloatingPointType())
+      env.add(new Array[String](0), v)
+    else
+      env.add(v, new Array[String](0))
   }
 
   private def opToStr(kind: Int): String = {

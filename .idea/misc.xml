@@ -120,13 +120,6 @@
             </SvnBranchConfiguration>
           </value>
         </entry>
-        <entry key="$PROJECT_DIR$/TouchDevelopLoops">
-          <value>
-            <SvnBranchConfiguration>
-              <option name="trunkUrl" value="" />
-            </SvnBranchConfiguration>
-          </value>
-        </entry>
         <entry key="$PROJECT_DIR$/TouchDevelopPreprocessing">
           <value>
             <SvnBranchConfiguration>
