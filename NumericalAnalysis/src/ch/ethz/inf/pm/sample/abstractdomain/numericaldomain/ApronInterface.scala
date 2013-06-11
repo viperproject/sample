@@ -28,29 +28,7 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
   override def merge(r: Replacement): ApronInterface = {
 
-    if (r.isEmpty()) return this
-
-    /*
-    CONDITIONS for replacement:
-    1. The sets on the left hand side can not overlap - this could lead to inconsistent post-state
-    2. In the same replacement entry, the right-hand side contains fresh variables or they are in the right-hand side.
-     */
-    // Checking the above conditions:
-    var rightOverlaps = Set.empty[Identifier]
-    for ((from, to) <- r.value) {
-      if (!(rightOverlaps & to).isEmpty)
-        throw new Exception("The sets in the right-hand side of replacements overlap")
-      rightOverlaps = rightOverlaps ++ to
-      val toMinusFrom = to -- from
-      for (id <- toMinusFrom)
-        state match {
-          case Some(st) => {
-            if (st.getEnvironment.getVars.contains(id.getName()))
-              throw new Exception("The value on the right hand side is not in the left and is not fresh")
-          }
-          case None =>
-        }
-    }
+    if (r.isEmpty) return this
 
     val startingState = instantiateState()
     var result = this.bottom()
@@ -63,7 +41,7 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       val toVarsAsString: Array[String] = (for (v <- to) yield v.getName()).toArray[String]
       if(!from.isEmpty) {
         val fromVarsAsString: Array[String] = (for (v <- from) yield v.getName()).toArray[String]
-        varsToRemove = varsToRemove -- fromVarsAsString
+        varsToRemove = varsToRemove ++ fromVarsAsString
         assert(fromVarsAsString.size > 0, "There should be variables in ``from'' set.")
         val tempVal = tempVarName + tempVersion
         tempVersion = tempVersion + 1
@@ -78,7 +56,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     }
     // Join folded states
     for (s <- foldedStates) {
-      result = result.lub(result, s.removeVariables(varsToRemove.toArray[String]))
+      val sStateVars = s.instantiateState().getEnvironment.getVars
+      val currentVarsToRemove = varsToRemove.filter(v => sStateVars.contains(v))
+      result = result.lub(result, s.removeVariables(currentVarsToRemove.toArray[String]))
     }
 
     val resultingState = result.instantiateState()
@@ -140,6 +120,7 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
 
   def removeVariables(variables: Array[String]): ApronInterface = {
+    if (variables.isEmpty) return this
     state match {
       case None => this
       case Some(st) =>
@@ -165,23 +146,23 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
       // Create variable if it does not exist
       var newState = instantiateState()
-      if (!newState.getEnvironment.hasVar(variable.getName())) {
-        val env = addToEnvironment(newState.getEnvironment, variable.getType(), variable.getName())
-        newState = newState.changeEnvironmentCopy(domain, env, false)
-      }
-
-      // ADDED because of minimizing the environment in merge
-      // (i.e. some of the variables still in use might have been removed by merge as they were Top)
-      var newEnv = newState.getEnvironment
-      for (id <- Normalizer.getIdsForExpression(expr)) {
-        if (!newEnv.hasVar(id.getName())) {
-          newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
-        }
-      }
-      if (newEnv != newState.getEnvironment) {
-        newState = newState.changeEnvironmentCopy(domain, newEnv, false)
-      }
-      // END of the added code
+//      if (!newState.getEnvironment.hasVar(variable.getName())) {
+//        val env = addToEnvironment(newState.getEnvironment, variable.getType(), variable.getName())
+//        newState = newState.changeEnvironmentCopy(domain, env, false)
+//      }
+//
+//      // ADDED because of minimizing the environment in merge
+//      // (i.e. some of the variables still in use might have been removed by merge as they were Top)
+//      var newEnv = newState.getEnvironment
+//      for (id <- Normalizer.getIdsForExpression(expr)) {
+//        if (!newEnv.hasVar(id.getName())) {
+//          newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
+//        }
+//      }
+//      if (newEnv != newState.getEnvironment) {
+//        newState = newState.changeEnvironmentCopy(domain, newEnv, false)
+//      }
+//      // END of the added code
 
       val res = nondeterminismWrapper(expr, newState, (someExpr, someState) => {
 
@@ -562,7 +543,7 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
 
     state match {
-      case Some(s) => s
+      case Some(s) => new Abstract1(domain, s)
       case None =>
         if (isPureBottom) {
           new Abstract1(domain,new Environment(),true)
