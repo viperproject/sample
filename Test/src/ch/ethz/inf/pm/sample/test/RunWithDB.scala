@@ -457,11 +457,11 @@ object InterfaceTestRun {
     }
 
     var property : Property = null;
-    println("Existing properties:\n"+analysis.getProperties().map(c => c.getLabel()).mkString("\n"));
+    println("Existing properties:\n"+analysis.getProperties.map(c => c.getLabel()).mkString("\n"));
     while(property==null) {
       println("Name of the property:")
       val input : String = readLine();
-      name2Object[Property](input, analysis.getProperties().toArray, p => p.getLabel()) match {
+      name2Object[Property](input, analysis.getProperties.toArray, p => p.getLabel()) match {
         case Some(p) => property=p;
         case None => println("Unknown property, please try again")
       }
@@ -838,7 +838,7 @@ object InterfaceTestRun {
     val analysis = name2Object[SemanticAnalysis[_]](rs.getString("Analysis"), InstalledPlugins.analyses, p => p.getLabel()).get.asInstanceOf[S];
     val compiler = name2Object[Compiler](rs.getString("Compiler"), InstalledPlugins.compilers, p => p.getLabel()).get;
     val heapAnalysis = name2Object[HeapDomain[_, _]](rs.getString("HeapAnalysis"), InstalledPlugins.heapanalyses, p => p.getLabel()).get.asInstanceOf[H];
-    val property = name2Object[Property](rs.getString("Property"), analysis.getProperties().toArray, p => p.getLabel()).get;
+    val property = name2Object[Property](rs.getString("Property"), analysis.getProperties.toArray, p => p.getLabel()).get;
 
     rs=stmt.executeQuery("SELECT * FROM TestRunAnalysisParameters WHERE TestRun="+idTestRun)
     while(rs.next())

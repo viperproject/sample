@@ -382,6 +382,23 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extend
     case _ => return super.equals(x);
   }
   def convert(add : I) : HeapIdSetDomain[I];
+
+  def merge(rep:Replacement) : HeapIdSetDomain[I] = {
+    val result = this.factory()
+    result.value = this.value
+    for ((froms,tos) <- rep.value) {
+      for (from <- froms) from match {
+        case x:I => result.value - x
+        case _ => ()
+      }
+      for (to <- tos) to match {
+        case x:I => result.value + x
+        case _ => ()
+      }
+    }
+    result
+  }
+
   override def factory() : HeapIdSetDomain[I];
 
   //Used to now if it's definite - glb - or maybe - lub.

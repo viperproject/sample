@@ -69,7 +69,7 @@ trait Analysis {
 
    @return the possible properties
   */
-  def getProperties() : Set[Property];
+  def getProperties : List[Property]
 
   /**
    This method returns the list of the semantics of "native" methods. By native methods
@@ -122,7 +122,7 @@ class SimpleAnalyzer(label:String) extends Analysis {
   def getLabel() = label
   def parameters() : List[(String, Any)] = Nil
   def setParameter(label : String, value : Any) {}
-  def getProperties() : Set[Property] = Set.empty[Property]
+  def getProperties() : List[Property] = Nil
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = Nil
   def reset() {}
 }

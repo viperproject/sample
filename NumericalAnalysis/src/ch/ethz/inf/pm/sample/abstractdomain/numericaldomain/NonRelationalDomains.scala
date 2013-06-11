@@ -556,7 +556,7 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
 
   override def reset(): Unit = Unit
 
-  def getProperties(): Set[Property] = Set(new ShowGraphProperty().asInstanceOf[Property], new SingleStatementProperty(DivisionByZero), new InterferenceInferenceProperty())
+  def getProperties: List[Property] = List(new ShowGraphProperty().asInstanceOf[Property], new SingleStatementProperty(DivisionByZero), new InterferenceInferenceProperty())
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 }

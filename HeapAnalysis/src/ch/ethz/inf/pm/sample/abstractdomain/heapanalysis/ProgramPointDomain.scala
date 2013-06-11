@@ -38,7 +38,7 @@ sealed abstract class ProgramPointHeapIdentifier(t : Type, pp1 : ProgramPoint) e
   override def getName() : String=this.toString();
   override def isNormalized() : Boolean = true;
   override def getArrayCell(array : Assignable, index : Expression) = new ArrayTopIdentifier();
-  override def getArrayLength(array : Assignable) = new ArrayTopIdentifier();
+  override def getArrayLength(array : Assignable) = new ArrayTopIdentifier()
 
   override def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp: Type, pp:ProgramPoint) =
     new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp)
@@ -114,41 +114,48 @@ case class NullProgramPointHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends
   override def factory() : ProgramPointHeapIdentifier=new NullProgramPointHeapIdentifier(getType(), this.getProgramPoint);
   override def representSingleVariable() : Boolean=true;
   override def clone() : Object =new NullProgramPointHeapIdentifier(t2, this.getProgramPoint);
+  override def toSummaryNode : ProgramPointHeapIdentifier = this
+  override def toNonSummaryNode : ProgramPointHeapIdentifier = this
 }
 
-case class SimpleProgramPointHeapIdentifier(val pp1 : ProgramPoint, t2 : Type) extends ProgramPointHeapIdentifier(t2, pp1) {
+case class SimpleProgramPointHeapIdentifier(val pp1 : ProgramPoint, t2 : Type, summary:Boolean = false) extends ProgramPointHeapIdentifier(t2, pp1) {
   def getField() : Option[String] = None;
   override def isNormalized() : Boolean = true;
   override def equals(x : Any) : Boolean = x match {
-    case SimpleProgramPointHeapIdentifier(pp, t3) => return this.pp.equals(pp)
+    case SimpleProgramPointHeapIdentifier(pp, t3, summaryX) => return this.pp.equals(pp) && summaryX == summary
     case _ => return false
   }
   override def toString() : String = pp.toString()
 
   override def factory() : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(this.pp, this.getType());
-  override def representSingleVariable() : Boolean=false;//TODO: Improve the precision here!
+  override def representSingleVariable() : Boolean= !summary
   override def clone() : Object =new SimpleProgramPointHeapIdentifier(pp, this.getType());
+  override def toSummaryNode : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(this.pp, this.getType(), true);
+  override def toNonSummaryNode : ProgramPointHeapIdentifier=new SimpleProgramPointHeapIdentifier(this.pp, this.getType(), false);
 }
 
-case class CollectionIdentifier(override val pp:ProgramPoint, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type) extends ProgramPointHeapIdentifier(collTyp, pp) {
+case class CollectionIdentifier(override val pp:ProgramPoint, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, summary:Boolean = false) extends ProgramPointHeapIdentifier(collTyp, pp) {
   def getField() : Option[String] = None
   override def isNormalized() : Boolean = true
   override def equals(x : Any) : Boolean = x match {
-    case CollectionIdentifier(ppX, collTypX, keyTypX, valueTypX, lengthTypX) => (pp == ppX && collTyp == collTypX &&
-      keyTyp == keyTypX && valueTyp == valueTypX && lengthTyp == lengthTypX)
+    case CollectionIdentifier(ppX, collTypX, keyTypX, valueTypX, lengthTypX, summaryX) => (pp == ppX && collTyp == collTypX &&
+      keyTyp == keyTypX && valueTyp == valueTypX && lengthTyp == lengthTypX && summary == summaryX)
     case _ => false
   }
   override def toString() : String = "Collection("+collTyp.toString+","+pp.toString+")"
   override def factory() : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp)
-  override def representSingleVariable() : Boolean = true
+  override def representSingleVariable() : Boolean= !summary
   override def clone() : Object = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp)
+  override def toSummaryNode : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, true)
+  override def toNonSummaryNode : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, false)
 }
 
-case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier, pps: Set[ProgramPoint]) extends ProgramPointHeapIdentifier(collectionApprox.getType(), pps.head) {
+case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier, pps: Set[ProgramPoint], summary:Boolean = false) extends ProgramPointHeapIdentifier(collectionApprox.getType(), pps.head) {
   def getField() : Option[String] = None
   override def isNormalized() : Boolean = false
   override def equals(x : Any) : Boolean = x match {
-    case CollectionTupleIdentifier(collectionApproxX, ppsX) =>
+    case CollectionTupleIdentifier(collectionApproxX, ppsX, s) =>
+      if (this.summary != s) return false
       var areEqual = this.collectionApprox.equals(collectionApproxX)
       areEqual = areEqual && pps.size == ppsX.size
       for (pp <- pps) {
@@ -159,34 +166,40 @@ case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier
   }
   override def toString() : String = "Tup(" + this.collectionApprox.pp + ", " + this.pps.mkString(",") + ")"
   override def factory() : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.pps)
-  override def representSingleVariable() : Boolean = false
+  override def representSingleVariable() : Boolean= !summary
   override def clone() : Object = new CollectionTupleIdentifier(this.collectionApprox, this.pps)
+  override def toSummaryNode : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.pps, true)
+  override def toNonSummaryNode : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.pps, false)
 }
 
 case class ArrayTopIdentifier() extends ProgramPointHeapIdentifier(null, null) {
   def getField() : Option[String] = None;
   override def isNormalized() : Boolean = true;
   override def equals(x : Any) : Boolean = x match {
-    case ArrayTopIdentifier() => return true
-    case _ => return false
+    case ArrayTopIdentifier() => true
+    case _ => false
   }
   override def toString() : String = "Array ID"
 
   override def factory() : ProgramPointHeapIdentifier=new ArrayTopIdentifier();
   override def representSingleVariable() : Boolean=false;
   override def clone() : Object =new ArrayTopIdentifier();
+  override def toSummaryNode : ProgramPointHeapIdentifier = this
+  override def toNonSummaryNode : ProgramPointHeapIdentifier = this
 }
 
-case class ParameterHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
+case class ParameterHeapIdentifier(t2 : Type, pp1 : ProgramPoint, summary:Boolean = false) extends ProgramPointHeapIdentifier(t2, pp1) {
   def getField() : Option[String] = None;
   override def isNormalized() : Boolean = true;
   override def equals(x : Any) : Boolean = x match {
-    case ParameterHeapIdentifier(t3, pp) => return this.t2.equals(t3);
-    case _ => return false
+    case ParameterHeapIdentifier(t3, pp, s) => this.t2.equals(t3) && this.summary == s
+    case _ => false
   }
-  override def representSingleVariable() : Boolean=false//TODO: Improve the precision here
+  override def representSingleVariable() : Boolean= !summary
   override def factory() : ProgramPointHeapIdentifier=new ParameterHeapIdentifier(this.getType(), this.getProgramPoint);
   override def toString() : String = "Parameter of type "+this.getType()+""
+  override def toSummaryNode : ProgramPointHeapIdentifier=new ParameterHeapIdentifier(this.getType(), this.getProgramPoint, true)
+  override def toNonSummaryNode : ProgramPointHeapIdentifier=new ParameterHeapIdentifier(this.getType(), this.getProgramPoint, false)
 }
 
 case class UnsoundParameterHeapIdentifier(t2 : Type, n : Int, pp1 : ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -199,6 +212,8 @@ case class UnsoundParameterHeapIdentifier(t2 : Type, n : Int, pp1 : ProgramPoint
   override def representSingleVariable() : Boolean= this.n!=NonRelationalHeapDomainSettings.maxInitialNodes
   override def factory() : ProgramPointHeapIdentifier=new UnsoundParameterHeapIdentifier(this.getType(), this.n, this.getProgramPoint);
   override def toString() : String = "Unsound parameter of type "+this.getType()+" number "+this.n;
+  override def toSummaryNode : ProgramPointHeapIdentifier = this
+  override def toNonSummaryNode : ProgramPointHeapIdentifier = this
 }
 
 case class StaticProgramPointHeapIdentifier(t2 : Type, pp1 : ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -208,9 +223,11 @@ case class StaticProgramPointHeapIdentifier(t2 : Type, pp1 : ProgramPoint) exten
     case StaticProgramPointHeapIdentifier(t2, pp) => return this.getType().equals(t2);
     case _ => return false
   }
-  override def representSingleVariable() : Boolean=true
-  override def factory() : ProgramPointHeapIdentifier=new StaticProgramPointHeapIdentifier(this.getType(), this.getProgramPoint);
+  override def representSingleVariable() : Boolean = true
+  override def factory() : ProgramPointHeapIdentifier= new StaticProgramPointHeapIdentifier(this.getType(), this.getProgramPoint);
   override def toString() : String = "Static "+this.getType()+""
+  override def toSummaryNode : ProgramPointHeapIdentifier = this
+  override def toNonSummaryNode : ProgramPointHeapIdentifier = this
 }
 
 case class FieldAndProgramPoint(val p1 : ProgramPointHeapIdentifier, val field : String, t2 : Type) extends ProgramPointHeapIdentifier(t2, p1.getProgramPoint) {
@@ -223,4 +240,6 @@ case class FieldAndProgramPoint(val p1 : ProgramPointHeapIdentifier, val field :
   override def representSingleVariable() : Boolean=p1.representSingleVariable();
   override def factory() : ProgramPointHeapIdentifier=new FieldAndProgramPoint(this.p1, this.field, this.getType());
   override def toString() : String = "("+p1.toString()+", "+field+")"
+  override def toSummaryNode : ProgramPointHeapIdentifier = this
+  override def toNonSummaryNode : ProgramPointHeapIdentifier = this
 }

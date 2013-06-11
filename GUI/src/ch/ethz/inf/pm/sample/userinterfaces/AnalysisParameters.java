@@ -6,10 +6,11 @@ import ch.ethz.inf.pm.sample.abstractdomain.HeapDomain;
 import ch.ethz.inf.pm.sample.property.Property;
 import scala.Tuple2;
 import scala.collection.Iterator;
-import scala.collection.immutable.Set;
+import scala.collection.immutable.List;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
 import java.awt.event.*;
 import java.text.DecimalFormat;
 import java.util.HashMap;
@@ -68,7 +69,7 @@ public class AnalysisParameters extends JDialog {
             analysis.setParameter(key, this.booleanParameters.get(key).isSelected());
         for(String key : this.listParameters.keySet())
             analysis.setParameter(key, this.listParameters.get(key).getSelectedItem());
-        Set<Property> properties=(Set<Property>) analysis.getProperties();
+        List<Property> properties=(List<Property>) analysis.getProperties();
         Iterator<Property> it1=(Iterator<Property>) properties.toIterator();
         while(! (analysis instanceof HeapDomain) && it1.hasNext()) {
            Property p=(Property) it1.next();
@@ -123,7 +124,7 @@ public class AnalysisParameters extends JDialog {
             mainPanel.add(f,c);
         }
         if(! (analysis instanceof HeapDomain)) {
-            Set<Property> properties=(Set<Property>) analysis.getProperties();
+            List<Property> properties=(List<Property>) analysis.getProperties();
             propertyBox=new JComboBox();
             Iterator<Property> it1=(Iterator<Property>) properties.toIterator();
                 while(it1.hasNext())

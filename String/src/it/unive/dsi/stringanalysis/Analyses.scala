@@ -18,7 +18,7 @@ abstract class StringAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S
   def parameters() : List[(String, Any)] = Nil;
   def setParameter(label : String, value : Any) = throw new StringException("Parameters are not supported")
   override def reset() : Unit = Unit;
-  def getProperties() : Set[Property] = Set(ShowGraph);
+  def getProperties() : List[Property] = List(ShowGraph);
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(StringSemantics);
 }
 

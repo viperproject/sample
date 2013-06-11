@@ -584,7 +584,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   override def setParameter(label: String, value: Any) {}
   override def parameters(): List[(String, Any)] = Nil
   def setToTop(variable: Assignable) = (this, new Replacement)
-  override def getProperties(): Set[Property] = Set.empty
+  override def getProperties(): List[Property] = Nil
   override def getLabel(): String = "TVS heap domain"
 }
 

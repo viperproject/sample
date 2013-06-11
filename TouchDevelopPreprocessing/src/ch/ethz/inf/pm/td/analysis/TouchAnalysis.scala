@@ -47,14 +47,19 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
   override def reset() { Unit }
 
-  def getProperties(): Set[Property] =
-    Set(
-      new ShowGraphProperty().asInstanceOf[Property],
-      new SingleStatementProperty(new BottomVisitor),
-      new SingleStatementProperty(new AlarmVisitor),
-      new SingleStatementProperty(new ImprecisionVisitor),
-      new NoProperty
-    )
+  override def getProperties: List[Property] = {
+
+    val bottom = new SingleStatementProperty(new BottomVisitor)
+    val alarm = new SingleStatementProperty(new AlarmVisitor)
+    val imprecision = new SingleStatementProperty(new ImprecisionVisitor)
+    val show = new ShowGraphProperty().asInstanceOf[Property]
+    val empty = new NoProperty
+
+    val allChecks = new ComposedProperty("All checks", bottom, new ComposedProperty("", alarm, imprecision))
+    val showAndAllChecks = new ComposedProperty("Show graph and all checks", show, allChecks)
+
+    List(showAndAllChecks, allChecks, alarm, imprecision, bottom, show, empty)
+  }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
@@ -344,6 +349,22 @@ class BottomVisitor extends Visitor {
   }
 
 }
+
+/**
+ * Two properties at the same time
+ */
+class ComposedProperty(name:String,a:Property,b:Property) extends Property {
+  def getLabel() = name
+  def check[S <: State[S]](classT : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) {
+    a.check(classT,methodName,result,printer)
+    b.check(classT,methodName,result,printer)
+  }
+  def finalizeChecking(printer : OutputCollector) {
+    a.finalizeChecking(printer)
+    b.finalizeChecking(printer)
+  }
+}
+
 
 /**
  * Check the empty property

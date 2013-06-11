@@ -20,7 +20,7 @@ class CostAnalysis[D <: NumericalDomain[D]] extends TouchAnalysisWithApron[D] {
 
   override def parameters(): List[(String, Any)] = List(("Domain", List("ApronLinearEqualities")))
 
-  override def getProperties(): Set[Property] = super.getProperties() + new LoopCostProperty() + new LoopCostShowProperty()
+  override def getProperties: List[Property] = super.getProperties ::: List(new LoopCostProperty(),new LoopCostShowProperty())
 
 }
 
