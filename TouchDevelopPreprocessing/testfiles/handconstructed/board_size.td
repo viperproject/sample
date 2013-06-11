@@ -20,6 +20,7 @@ action theOther() {
 }
 
 var board : Board {
+
 }
 
 action main() {

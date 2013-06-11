@@ -301,7 +301,7 @@ object Run {
 
   //Return the property represented by the given string using the labels of the existing properties
   private def getProperty(a: Analysis, p: String): Property = {
-    for (p1: Property <- a.getProperties())
+    for (p1: Property <- a.getProperties)
       if (p1.getLabel().equals(p))
         return p1
     throw new TestException("Property not found")
