@@ -237,9 +237,9 @@ case class FieldAndProgramPoint(val p1 : ProgramPointHeapIdentifier, val field :
     case FieldAndProgramPoint(pp1, field1, t2) => return this.p1.equals(pp1) && this.field.equals(field1);
     case _ => return false
   }
-  override def representSingleVariable() : Boolean=p1.representSingleVariable();
+  override def representSingleVariable() : Boolean = p1.representSingleVariable()
   override def factory() : ProgramPointHeapIdentifier=new FieldAndProgramPoint(this.p1, this.field, this.getType());
   override def toString() : String = "("+p1.toString()+", "+field+")"
-  override def toSummaryNode : ProgramPointHeapIdentifier = this
-  override def toNonSummaryNode : ProgramPointHeapIdentifier = this
+  override def toSummaryNode : ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1.toSummaryNode, this.field, this.getType())
+  override def toNonSummaryNode : ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1.toNonSummaryNode, this.field, this.getType())
 }

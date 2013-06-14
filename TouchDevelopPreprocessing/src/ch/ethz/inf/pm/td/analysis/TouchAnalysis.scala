@@ -359,6 +359,19 @@ class ComposedProperty(name:String,a:Property,b:Property) extends Property {
     a.check(classT,methodName,result,printer)
     b.check(classT,methodName,result,printer)
   }
+
+
+  /**
+   * Check the property over the abstract results of multiple method
+   *
+   * @param results a list of the results, consisting of class type, method declaration and cfg
+   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
+   */
+  override def check[S <: State[S]](results : List[(Type,MethodDeclaration,ControlFlowGraphExecution[S])], printer : OutputCollector):Unit = {
+    a.check(results,printer)
+    b.check(results,printer)
+  }
+
   def finalizeChecking(printer : OutputCollector) {
     a.finalizeChecking(printer)
     b.finalizeChecking(printer)
