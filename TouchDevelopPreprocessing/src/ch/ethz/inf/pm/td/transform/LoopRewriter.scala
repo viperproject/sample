@@ -10,7 +10,6 @@ import ch.ethz.inf.pm.td.parser.Access
 import ch.ethz.inf.pm.td.parser.Literal
 import ch.ethz.inf.pm.td.parser.ActionDefinition
 import ch.ethz.inf.pm.td.parser.For
-import util.parsing.input.Positional
 
 /**
  *

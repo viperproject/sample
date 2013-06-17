@@ -1,6 +1,6 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
-import ch.ethz.inf.pm.td.parser.{PrettyPrinter, ScriptParser}
-import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptListings, URLFetcher}
+import ch.ethz.inf.pm.td.parser.PrettyPrinter
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptListings}
 
 /**
  *

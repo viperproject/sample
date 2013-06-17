@@ -1,8 +1,8 @@
 package ch.ethz.inf.pm.td.domain
 
 
-import ch.ethz.inf.pm.td.compiler.{UnsupportedLanguageFeatureException, TouchCompiler}
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
+import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.analysis.{BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
 import ch.ethz.inf.pm.td.compiler.UnsupportedLanguageFeatureException
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
@@ -17,8 +17,7 @@ import userinterfaces.ShowGraph
 
 import apron._
 import heapanalysis.SimpleProgramPointHeapIdentifier
-import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, NonRelationalNumericalDomain, ApronInterface}
-import java.io.{StringWriter, PrintWriter}
+import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, ApronInterface}
 
 class TouchProperty extends Property {
   override def getLabel(): String = "Show graph"

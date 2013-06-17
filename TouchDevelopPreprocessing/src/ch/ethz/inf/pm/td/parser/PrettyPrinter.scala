@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.td.parser
 
 import org.apache.commons.lang3.StringEscapeUtils
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 
 /**

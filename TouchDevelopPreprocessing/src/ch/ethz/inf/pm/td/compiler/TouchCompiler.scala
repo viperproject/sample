@@ -5,12 +5,11 @@ import io.Source
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.typecheck.Typer
 import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptListings}
-import ch.ethz.inf.pm.td.transform.{Matcher, LoopRewriter}
+import ch.ethz.inf.pm.td.transform.LoopRewriter
 import ch.ethz.inf.pm.td.semantics._
 import scala.Some
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.td.parser.Script
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.sample.SystemParameters
 
 /**

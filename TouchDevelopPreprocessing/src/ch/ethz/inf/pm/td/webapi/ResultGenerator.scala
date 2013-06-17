@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.webapi
 
 import ch.ethz.inf.pm.sample.Reporter
 import ch.ethz.inf.pm.td.compiler.TouchProgramPoint
-import net.liftweb.json.{DefaultFormats, Serialization, TypeHints}
+import net.liftweb.json.{DefaultFormats, Serialization}
 
 case class JResult (
     scriptID:String, // A public ID or a private ID (guid)

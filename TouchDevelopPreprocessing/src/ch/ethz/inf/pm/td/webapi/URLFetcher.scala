@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.webapi
 
-import java.io.{InputStream, FileNotFoundException}
+import java.io.FileNotFoundException
 import java.net.URL
 import scala.io.Source
 
@@ -13,7 +13,7 @@ object URLFetcher {
    * we don't get stuck if the server is broken.
    */
   def fromURLWithTimeout(url:String):Source = {
-    val conn = (new URL(url)).openConnection()
+    val conn = new URL(url).openConnection()
     conn.setConnectTimeout(connectionTimeout)
     conn.setReadTimeout(connectionTimeout)
     val inputStream = conn.getInputStream

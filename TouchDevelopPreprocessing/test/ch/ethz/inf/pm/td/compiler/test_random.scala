@@ -1,5 +1,4 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
-import ch.ethz.inf.pm.td.webapi._
 
 val skipSet =
   """

@@ -11,4 +11,9 @@ class TouchDevelopCheckInTest extends FlatSpec {
      Run.main(List("-v","-p","Test/test/TouchDevelop/aa").toArray)
   }
 
+  "TouchBoost" should "have the same results for all handconstructed scripts" in {
+    Run.main(List("-v","-p","Test/test/TouchDevelop/handconstructed").toArray)
+  }
+
+
 }

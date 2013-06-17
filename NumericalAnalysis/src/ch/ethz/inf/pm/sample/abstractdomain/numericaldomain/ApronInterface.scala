@@ -5,7 +5,6 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
 
 import apron._
-import collection.mutable.ListBuffer
 import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
 import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
 import scala.Some
@@ -16,19 +15,19 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 
-class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom:Boolean = false, isPureTop:Boolean = false) extends RelationalNumericalDomain[ApronInterface] {
+class ApronInterface( state: Option[Abstract1],
+                      val domain: Manager,
+                      isPureBottom:Boolean = false,
+                      isPureTop:Boolean = false
+                      ) extends RelationalNumericalDomain[ApronInterface] {
 
-  /**
-   * This returns an unusable object, which is neither top nor bottom nor has a state.
-   * After using the factory, call bottom or top on it to create a usable state.
-   */
   override def factory(): ApronInterface = {
     top()
   }
 
   override def merge(r: Replacement): ApronInterface = {
 
-    if (r.isEmpty) return this
+    if (r.isEmpty()) return this
 
     val startingState = instantiateState()
     var result = this.bottom()
@@ -61,22 +60,22 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       result = result.lub(result, s.removeVariables(currentVarsToRemove.toArray[String]))
     }
 
-    val resultingState = result.instantiateState()
+    var resultingState = result.instantiateState()
     for ((tempVar, toVars) <- postProcessMap) {
       tempVar match {
         case Some(t) => {
           if (toVars.size > 0)
-            resultingState.expand(domain, t, toVars)
-          resultingState.changeEnvironment(domain, resultingState.getEnvironment.remove(Array(t)), false)
+            resultingState = resultingState.expandCopy(domain, t, toVars)
+          resultingState = resultingState.changeEnvironmentCopy(domain, resultingState.getEnvironment.remove(Array(t)), false)
         }
         case None => {
           if (toVars.size > 0)
-            resultingState.changeEnvironment(domain, resultingState.getEnvironment.add(toVars, Array.empty[String]), false)
+            resultingState = resultingState.changeEnvironmentCopy(domain, resultingState.getEnvironment.add(toVars, Array.empty[String]), false)
         }
       }
     }
 
-    return new ApronInterface(Some(resultingState), domain)
+    new ApronInterface(Some(resultingState), domain)
   }
 
   // TODO
@@ -146,23 +145,23 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
       // Create variable if it does not exist
       var newState = instantiateState()
-//      if (!newState.getEnvironment.hasVar(variable.getName())) {
-//        val env = addToEnvironment(newState.getEnvironment, variable.getType(), variable.getName())
-//        newState = newState.changeEnvironmentCopy(domain, env, false)
-//      }
-//
-//      // ADDED because of minimizing the environment in merge
-//      // (i.e. some of the variables still in use might have been removed by merge as they were Top)
-//      var newEnv = newState.getEnvironment
-//      for (id <- Normalizer.getIdsForExpression(expr)) {
-//        if (!newEnv.hasVar(id.getName())) {
-//          newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
-//        }
-//      }
-//      if (newEnv != newState.getEnvironment) {
-//        newState = newState.changeEnvironmentCopy(domain, newEnv, false)
-//      }
-//      // END of the added code
+      if (!newState.getEnvironment.hasVar(variable.getName())) {
+        val env = addToEnvironment(newState.getEnvironment, variable.getType(), variable.getName())
+        newState = newState.changeEnvironmentCopy(domain, env, false)
+      }
+
+      // ADDED because of minimizing the environment in merge
+      // (i.e. some of the variables still in use might have been removed by merge as they were Top)
+      var newEnv = newState.getEnvironment
+      for (id <- Normalizer.getIdsForExpression(expr)) {
+        if (!newEnv.hasVar(id.getName())) {
+          newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
+        }
+      }
+      if (newEnv != newState.getEnvironment) {
+        newState = newState.changeEnvironmentCopy(domain, newEnv, false)
+      }
+      // END of the added code
 
       val res = nondeterminismWrapper(expr, newState, (someExpr, someState) => {
 
@@ -362,8 +361,9 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
     try {
       // NEW JOIN that supports different environments
-      val leftState = left.instantiateState()
-      val rightState = right.instantiateState()
+      var leftState = left.instantiateState()
+      var rightState = right.instantiateState()
+
       // First we compute the common variables.
       if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
         val commonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => rightState.getEnvironment.getVars.contains(v))
@@ -373,14 +373,14 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
         // We assume that variables that are not in the other environment and are in the first environment are treated in the other as botom value.
         val unifiedForgotStates = forgotLeftState.unifyCopy(domain, forgotRightState)
         // The result is then LUB(Uni(uniFS, leftS), Uni(uniFS, rightS))
-        leftState.unify(domain, unifiedForgotStates)
-        rightState.unify(domain,unifiedForgotStates)
+        leftState = leftState.unifyCopy(domain, unifiedForgotStates)
+        rightState = rightState.unifyCopy(domain,unifiedForgotStates)
         // The result state is stored in the leftState in order to avoid creation of new state object.
         leftState.join(domain, rightState)
 
-        return new ApronInterface(Some(leftState), domain)
+        new ApronInterface(Some(leftState), domain)
       } else {
-        return new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
+        new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
       }
     } catch {
       case a:apron.ApronException => {
@@ -398,17 +398,17 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
     if (left == right)
       return left
 
-    val leftState = left.instantiateState()
+    var leftState = left.instantiateState()
     val rightState = right.instantiateState()
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
       val uncommonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => !rightState.getEnvironment.getVars.contains(v)) ++ rightState.getEnvironment.getVars.filter(v => !leftState.getEnvironment.getVars.contains(v))
-      leftState.unify(domain, rightState)
+      leftState = leftState.unifyCopy(domain, rightState)
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
-      leftState.changeEnvironment(domain, leftState.getEnvironment.remove(uncommonVariables), false)
+      leftState = leftState.changeEnvironmentCopy(domain, leftState.getEnvironment.remove(uncommonVariables), false)
 
-      return new ApronInterface(Some(leftState), domain)
+      new ApronInterface(Some(leftState), domain)
     } else {
-      return new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
+      new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
     }
   }
 
@@ -481,7 +481,7 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
    * A custom, nicer textual representation.
    */
   private def toString(cons: List[Lincons1]): String = {
-    val strs = (for (c <- cons) yield {
+    val strs = for (c <- cons) yield {
 
       val (left, right) = (for (t <- c.getLinterms) yield {
         val coeff = t.getCoefficient
@@ -504,10 +504,10 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       val (leftS, rightS) = (leftX.mkString(" + "), rightX.mkString(" + ").replace("-", ""))
       val (leftR, rightR) = (if (leftS.isEmpty) "0" else leftS, if (rightS.isEmpty) "0" else rightS)
 
-      if (leftR.compare(rightR) > 0) (leftR + opToStr(c.getKind) + rightR)
-      else (rightR + opToInvStr(c.getKind) + leftR)
+      if (leftR.compare(rightR) > 0) leftR + opToStr(c.getKind) + rightR
+      else rightR + opToInvStr(c.getKind) + leftR
 
-    })
+    }
 
     // This is super ugly but helps
     val a = new scala.collection.mutable.HashSet[String]
@@ -535,15 +535,12 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
 
   /**
    * This function creates an Abstract1 instance representing the current state if this is a pure bottom or pure top
-   * state.
-   *
-   *
+   * state. If the state is not pure top or pure bottom, this will not create a copy but return the current apron state
    */
   def instantiateState():Abstract1 = {
 
-
     state match {
-      case Some(s) => new Abstract1(domain, s)
+      case Some(s) => s
       case None =>
         if (isPureBottom) {
           new Abstract1(domain,new Environment(),true)
@@ -815,15 +812,6 @@ class ApronInterface(state: Option[Abstract1], val domain: Manager, isPureBottom
       case Lincons1.SUPEQ => " <= "
     }
   }
-
-  private def idsToArrayOfStrings(set: Set[Identifier]): Array[String] = {
-    var stringList = List.empty[String]
-    for (v <- set) {
-      stringList = v.getName() :: stringList
-    }
-    stringList.toArray[String]
-  }
-
 }
 
 

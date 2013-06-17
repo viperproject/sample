@@ -1,8 +1,7 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.transform.LoopRewriter
-import ch.ethz.inf.pm.td.parser.{PrettyPrinter, ScriptParser}
 import ch.ethz.inf.pm.td.typecheck.Typer
-import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptListings, NewScripts, URLFetcher}
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, NewScripts}
 
 /**
  *

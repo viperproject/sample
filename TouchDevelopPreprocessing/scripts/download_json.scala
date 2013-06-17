@@ -1,6 +1,4 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
-import ch.ethz.inf.pm.td.webapi.DowncasedTypeHints
-import ch.ethz.inf.pm.td.webapi.ScriptRecord
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.webapi._
 import java.io.{File, PrintWriter}

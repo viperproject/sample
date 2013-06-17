@@ -2,10 +2,8 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{SemanticException, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
+import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
-import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * A mutable collection with integer indices

@@ -4,7 +4,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import RichNativeSemantics._
-import ch.ethz.inf.pm.sample.Reporter
 
 /**
  * User: lucas

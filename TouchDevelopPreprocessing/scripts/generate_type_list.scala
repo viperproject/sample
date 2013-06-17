@@ -1,4 +1,3 @@
-import ch.ethz.inf.pm.td.webapi.ScriptRecord
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import java.io.{File, PrintWriter}
 import net.liftweb.json._

@@ -5,13 +5,6 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import scala.Some
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
@@ -277,7 +270,7 @@ object MethodSummaries {
     curState = curState.pruneVariables({
       id:VariableIdentifier =>
         // Belongs to scope of call target
-        (id.scope == ProgramPointScopeIdentifier(callTarget.programpoint)) &&
+        id.scope == ProgramPointScopeIdentifier(callTarget.programpoint) &&
         // Is not a return value
         !CFGGenerator.isReturnIdent(id.toString())
     })

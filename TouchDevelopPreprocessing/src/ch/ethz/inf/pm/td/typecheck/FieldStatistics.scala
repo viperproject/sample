@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.typecheck
 
-import ch.ethz.inf.pm.td.parser.{Scope, Statement, TypeName}
+import ch.ethz.inf.pm.td.parser.{Scope, TypeName}
 import scala.collection
 import util.parsing.input.Position
 

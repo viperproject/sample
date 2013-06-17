@@ -1,9 +1,8 @@
 package ch.ethz.inf.pm.td.output
 
 import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
-import java.io.{PrintWriter, BufferedWriter, FileWriter, File}
+import java.io.{PrintWriter, FileWriter, File}
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import xml.Elem
 import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter}
 

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.webapi
 
 import net.liftweb.json._
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
-import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchException}
+import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.sample.oorepresentation.IteratorOverPrograms
 
 /**
@@ -149,7 +149,7 @@ class FeaturedScripts extends ScriptListings {
 
 class RootScripts() extends ScriptListings {
   override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
-    s.filter( (t : ScriptRecord) => (t.id.equals(t.rootid)))
+    s.filter( (t : ScriptRecord) => t.id.equals(t.rootid))
 
   override def getLabel() = "TouchDevelop root scripts"
 }
@@ -173,7 +173,7 @@ class RootSampleScripts extends ScriptListings {
   override def getLabel() = "TouchDevelop sample scripts"
 
   override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
-    s.filter( (t : ScriptRecord) => (t.id.equals(t.rootid)))
+    s.filter( (t : ScriptRecord) => t.id.equals(t.rootid))
 }
 
 class ScriptsBefore(d:java.util.Date) extends ScriptListings {
@@ -196,7 +196,7 @@ class RootScriptsSearch(query : String) extends ScriptListings {
   override protected val service = "search?q="+query+"&"
 
   override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
-    s.filter( (t : ScriptRecord) => (t.id.equals(t.rootid)))
+    s.filter( (t : ScriptRecord) => t.id.equals(t.rootid))
 }
 
 class NoMoreScriptsException extends Exception

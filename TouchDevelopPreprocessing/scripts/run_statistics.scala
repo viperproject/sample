@@ -1,9 +1,7 @@
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.stdlib._
-import ch.ethz.inf.pm.td.webapi.{ScriptListings, NoMoreScriptsException, NewScripts, URLFetcher}
+import ch.ethz.inf.pm.td.webapi.{ScriptListings, NoMoreScriptsException, URLFetcher}
 import ch.ethz.inf.pm.td.typecheck._
-import tools.cmd.Parser.ParseException
 
 val coveredMembers = List(
   "bazaar.leaderboard_score",
