@@ -66,7 +66,7 @@ class TJson_Object extends AMutable_Collection {
     /** Gets a value by name */
     case "field" =>
       val List(key) = parameters // String
-      Return[S](CollectionAt[S](this0,key),Invalid(TJson_Object.typ))
+      Return[S](CollectionAt[S](this0,key))
 
     /** Gets a field value as a number */
     case "number" =>

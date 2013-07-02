@@ -144,7 +144,13 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
               case "String" => Constant("",v.typ,v.programpoint)
               case "Number" => Constant("0",v.typ,v.programpoint)
               case "Boolean" => Constant("false",v.typ,v.programpoint)
-              case _ => Constant("invalid",v.typ.asInstanceOf[TouchType],v.programpoint)
+              case _ =>
+                if (v.typ.isInstanceOf[TouchCollection]) {
+                  curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
+                  curState.getExpression().getSetOfExpressions.head
+                } else {
+                  Constant("invalid",v.typ.asInstanceOf[TouchType],v.programpoint)
+                }
             }
           }
 

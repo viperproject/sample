@@ -4,7 +4,8 @@ def analyzer(id:String) {
   TestRunner.runIdWithApron(id)
 }
 
-TestRunner("aafi",analyzer _)
+TestRunner("aagn",analyzer _)
+//TestRunner("aafi",analyzer _)
 //TestRunner("aadimryg",analyzer _)
 //TestRunner("aaeub",analyzer _)
 //TestRunner("aaae",analyzer _)

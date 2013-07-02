@@ -489,12 +489,12 @@ case class TouchClassIdentifier(name:String,typ:Type) extends Named with ClassId
 
 case class TouchProgramPoint(scriptID:String, pos:String) extends ProgramPoint {
   def getScriptID:String = scriptID
-  override def toString = "{"+getScriptID+","+pos+"}"
+  override def toString = "PP("+getScriptID+":"+pos+")"
   override def getDescription = "in script "+scriptID+" at node "+pos
 }
 
 case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
-  override def toString = "SingletonInitPoint("+name+")"
+  override def toString = "Init("+name+")"
   override def getDescription = "at initialization of singleton "+name
 }
 
