@@ -130,6 +130,19 @@ class ExpressionSet(typ : Type) extends CartesianProductDomain[Type, SetOfExpres
 
   override def toString:String = "Type "+d1.toString()+": "+d2.toString()
 
+  def merge(r:Replacement) : ExpressionSet = {
+
+    if (r.isEmpty()) return this
+
+    val newSet = new SetOfExpressions()
+    newSet.value = (for ((froms,tos) <- r.value; from <- froms; to <- tos) yield {
+      this._2.value.map( _.replace(from,to) )
+    }).flatten.toSet
+
+    new ExpressionSet(typ,newSet)
+
+  }
+
 }
 
 class SetOfExpressions extends SetDomain[Expression, SetOfExpressions] {
@@ -138,12 +151,16 @@ class SetOfExpressions extends SetDomain[Expression, SetOfExpressions] {
 }
 
 
-class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : HeapAndAnotherDomain[N, H, I], expr : ExpressionSet) extends
-  CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N,H,I]](state, expr) with State[AbstractState[N,H,I]] with SingleLineRepresentation {
+class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : HeapAndAnotherDomain[N, H, I], expr : ExpressionSet)
+  extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N,H,I]](state, expr)
+  with State[AbstractState[N,H,I]]
+  with SingleLineRepresentation
+  with LatticeWithReplacement[AbstractState[N,H,I]]
+  {
 
   def factory() = new AbstractState(this._1.factory(), this._2.factory())
   override def bottom() = new AbstractState(this._1.bottom(), this._2.bottom())
-  def isBottom : Boolean = this._1.equals(this._1.bottom()) || this._2.equals(this._2.bottom())
+  def isBottom : Boolean = this._1.lessEqual(this._1.bottom()) || this._2.lessEqual(this._2.bottom())
   def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id)
   def getState = this._1
 
@@ -197,26 +214,24 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     else this.setExpression(new ExpressionSet(SystemParameters.getType().top()).add(heapId)).setState(result)
   }
 
-  def createObject(typ : Type, pp : ProgramPoint, createFields : Boolean = true) : AbstractState[N,H,I] =  {
-    if(this.isBottom) return this
-    //It discharges on the heap analysis the creation of the object and its fields
-    var (createdLocation, newHeap, rep)=this._1._2.createObject(typ, pp)
-    var result=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
+  def createObject(typ : Type, pp : ProgramPoint, fields : Option[Set[Identifier]] = None) : AbstractState[N,H,I] =  {
 
+    if(this.isBottom) return this
+
+    // It discharges on the heap analysis the creation of the object and its fields
+    val (createdLocation, newHeap, rep) = this._1._2.createObject(typ, pp)
+    var result = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
+
+    // Create all variables involved representing the object
     result=HeapIdSetFunctionalLifting.applyToSetHeapId(result, createdLocation, result.createVariable(_, typ))
     var result2 = result
-
-    if(createFields) {
-      for(field <- typ.getPossibleFields()) {
-        val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName(), field.getType(), field.getProgramPoint()))
-
-        result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()))
-      }
+    for(field <- fields.orElse(Some(typ.getPossibleFields())).get) {
+      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName(), field.getType(), field.getProgramPoint()))
+      result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()))
     }
-    //val (h, rep2) = result2._2.endOfAssignment()
-    //result2 = new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), h)
-    //An object could have no fields, so that's acceptable to have result3==None here
+
     this.setExpression(new ExpressionSet(typ).add(createdLocation)).setState(result2)
+
   }
 
   def getExpression() : ExpressionSet = getResult()
@@ -271,7 +286,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   }
 
   def assignVariable(x : ExpressionSet, right : ExpressionSet) : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
+    if(this.isBottom) return bottom()
     if(right.isTop)
       return this.setVariableToTop(x).removeExpression()
     if(right.isTop) return top()
@@ -496,8 +511,8 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       for(expr <- obj.getSetOfExpressions) {
         if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
         val (heapid, newHeap, rep) = this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint())
-        var result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-        var accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.backwardAccess(_))
+        val result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
+        val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.backwardAccess(_))
         val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
         result=result.lub(result, state)
       }
@@ -574,13 +589,24 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     else this._1.toString+"\nExpression:\n"+ToStringUtilities.indent(this._2.toString)
   }
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, tpp: ProgramPoint): AbstractState[N, H, I] = {
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, tpp: ProgramPoint, fields : Option[Set[Identifier]] = None): AbstractState[N, H, I] = {
+
     if (this.isBottom) return this
 
-    val (newHeapAndSemantic, collectionIds) = this.d1.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, tpp)
-    if (collectionIds == null) return this.bottom()
+    // It discharges on the heap analysis the creation of the object and its fields
+    val (createdLocation, newHeap, rep) = this.d1.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, tpp)
+    var result = new HeapAndAnotherDomain[N, H, I](newHeap._1.merge(rep), newHeap._2)
 
-    new AbstractState[N, H, I](newHeapAndSemantic, new ExpressionSet(collTyp).add(collectionIds))
+    // Create all variables involved representing the object
+    result=HeapIdSetFunctionalLifting.applyToSetHeapId(result, createdLocation, result.createVariable(_, collTyp))
+    var result2 = result
+    for(field <- fields.orElse(Some(collTyp.getPossibleFields())).get) {
+      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName(), field.getType(), field.getProgramPoint()))
+      result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()))
+    }
+
+    this.setExpression(new ExpressionSet(collTyp).add(createdLocation)).setState(result2)
+
   }
 
   def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): AbstractState[N, H, I] = {
@@ -911,4 +937,45 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   }
 
+  override def lubWithReplacement(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : (AbstractState[N,H,I],Replacement) = {
+    if (l.isBottom) return (r,new Replacement())
+    if (r.isBottom) return (l,new Replacement())
+    val result : AbstractState[N,H,I] = this.factory()
+    val (d, rep) =d1.lubWithReplacement(l.d1, r.d1)
+    result.d1=d
+    val s = d2.lub(l.d2, r.d2)
+    if (!rep.isEmpty())
+      result.d2 = s.merge(rep)
+    else
+      result.d2 = s
+    (result,rep)
+  }
+
+  override def lub(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : AbstractState[N,H,I] = lubWithReplacement(l,r)._1
+
+  override def glbWithReplacement(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : (AbstractState[N,H,I],Replacement) = {
+    if (l.isBottom || r.isBottom) return (bottom(),new Replacement())
+    val result : AbstractState[N,H,I] = this.factory()
+    val (d, rep) =d1.glbWithReplacement(l.d1, r.d1)
+    result.d1=d
+    val s = d2.glb(l.d2, r.d2)
+    result.d2= s.merge(rep)
+    (result,rep)
+  }
+
+  override def glb(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : AbstractState[N,H,I] = glbWithReplacement(l,r)._1
+
+  override def wideningWithReplacement(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : (AbstractState[N,H,I],Replacement) = {
+    if (l.isBottom) return (r,new Replacement())
+    if (r.isBottom) return (l,new Replacement())
+    val result : AbstractState[N,H,I] = this.factory()
+    val (d, rep) =d1.wideningWithReplacement(l.d1, r.d1)
+    result.d1=d
+    val s = d2.widening(l.d2, r.d2)
+    result.d2= s.merge(rep)
+    (result,rep)
+  }
+
+  override def widening(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : AbstractState[N,H,I] = wideningWithReplacement(l,r)._1
+  
 }

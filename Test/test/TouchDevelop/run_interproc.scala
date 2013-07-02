@@ -6,5 +6,4 @@
 
 import ch.ethz.inf.pm.td.analysis.TestRunner._
 
-runFileWithApron("aa/aabya.json")
-//runDirectoryWithApron("aa")
+runDirectoryWithApron("interproc")

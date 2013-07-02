@@ -42,19 +42,19 @@ class SBazaar extends AAny {
     /** Launches the bazaar. */
     case "open" =>
       Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open",
-        "Check if the device is connected to the internet before using the connection")
+        "Check if the device is connected to the internet before launching the bazaaar")
       Skip
 
     /** Opens the leaderboard */
     case "open leaderboard" =>
       Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open leaderboard",
-        "Check if the device is connected to the internet before using the connection")
+        "Check if the device is connected to the internet before opening the leaderboard")
       Skip
 
     /** Opens the review page for the current script */
     case "open review" =>
       Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open review",
-        "Check if the device is connected to the internet before using the connection")
+        "Check if the device is connected to the internet before opening the review page")
       Skip
 
 

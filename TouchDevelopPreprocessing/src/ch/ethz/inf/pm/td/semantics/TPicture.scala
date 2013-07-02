@@ -18,10 +18,14 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 object TPicture {
 
   /** Gets the width in pixels */
-  val field_width = new TouchField("width", TNumber.typName,TopInitializer())
+  val field_width = new TouchField("width", TNumber.typName,
+    default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
+    topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the height in pixels */
-  val field_height = new TouchField("height", TNumber.typName,TopInitializer())
+  val field_height = new TouchField("height", TNumber.typName,
+    default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
+    topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the location where the picture was taken; if any. */
   val field_location = new TouchField("location",TLocation.typName,InvalidInitializer())

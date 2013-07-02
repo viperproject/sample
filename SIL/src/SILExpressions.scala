@@ -12,6 +12,9 @@ class ForAllExpression(val pp : ProgramPoint, val v : Variable, val exp : Expres
   override def toString() = "For all "+v.toString()+": "+exp.toString
   def identifiers() : Set[Identifier] = exp.identifiers()+v.id;
 
+  override def replace(a:Identifier, b:Identifier):Expression =
+    throw new NotImplementedError("IMPLEMENT ME")
+
 }
 
 class ExistExpression(val pp : ProgramPoint, val v : Variable, val exp : Expression) extends Expression(pp)  {
@@ -23,6 +26,11 @@ class ExistExpression(val pp : ProgramPoint, val v : Variable, val exp : Express
   }
   override def toString() = "Exists "+v.toString()+": "+exp.toString
   def identifiers() : Set[Identifier] = exp.identifiers()+v.id;
+
+  override def replace(a:Identifier, b:Identifier):Expression =
+    throw new NotImplementedError("IMPLEMENT ME")
+
+
 }
 
 class OldExpression(val pp : ProgramPoint, val exp : Expression) extends Expression(pp)  {
@@ -34,6 +42,11 @@ class OldExpression(val pp : ProgramPoint, val exp : Expression) extends Express
   }
   override def toString() = "old("+exp.toString+")"
   def identifiers() : Set[Identifier] = exp.identifiers();
+
+  override def replace(a:Identifier, b:Identifier):Expression =
+    throw new NotImplementedError("IMPLEMENT ME")
+
+
 }
 
 class FieldPermissionExpression(val pp : ProgramPoint, val location : Expression, val permission : Expression) extends Expression(pp)  {
@@ -46,6 +59,11 @@ class FieldPermissionExpression(val pp : ProgramPoint, val location : Expression
   override def toString() = "acc("+location.toString+", "+permission.toString+")"
 
   def identifiers() : Set[Identifier] = permission.identifiers()++location.identifiers();
+
+  override def replace(a:Identifier, b:Identifier):Expression =
+    throw new NotImplementedError("IMPLEMENT ME")
+
+
 }
 
 class PredicatePermissionExpression(val pp : ProgramPoint, val predicate : Expression, val permission : Expression) extends Expression(pp)  {
@@ -58,6 +76,11 @@ class PredicatePermissionExpression(val pp : ProgramPoint, val predicate : Expre
   override def toString() = "acc("+predicate.toString+", "+permission.toString+")"
 
   def identifiers() : Set[Identifier] = permission.identifiers()++predicate.identifiers();
+
+  override def replace(a:Identifier, b:Identifier):Expression =
+    throw new NotImplementedError("IMPLEMENT ME")
+
+
 }
 
 class UnfoldingExpression(val pp : ProgramPoint, val predicate : PredicatePermissionExpression, val permission : Expression) extends Expression(pp)  {
@@ -69,6 +92,11 @@ class UnfoldingExpression(val pp : ProgramPoint, val predicate : PredicatePermis
   }
   override def toString() = "unfolding "+predicate.toString+" in "+permission.toString+")"
   def identifiers() : Set[Identifier] = permission.identifiers()++predicate.identifiers();
+
+  override def replace(a:Identifier, b:Identifier):Expression =
+    throw new NotImplementedError("IMPLEMENT ME")
+
+
 }
 
 class DomainPredicateExpression(val pp : ProgramPoint, val predicate : DomainPredicate, val arguments : List[Expression]) extends Expression(pp)  {
@@ -85,4 +113,9 @@ class DomainPredicateExpression(val pp : ProgramPoint, val predicate : DomainPre
       result=result++a.identifiers();
     result;
   };
+
+  override def replace(a:Identifier, b:Identifier):Expression =
+    throw new NotImplementedError("IMPLEMENT ME")
+
+
 }

@@ -113,7 +113,7 @@ object TouchApronRun {
 
         //EntryState
         val domain = new Octagon()
-        val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain).factory()))
+        val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain, env = Set.empty).factory()))
         val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
         val heapDomain: NonRelationalHeapDomain[HeapId] =

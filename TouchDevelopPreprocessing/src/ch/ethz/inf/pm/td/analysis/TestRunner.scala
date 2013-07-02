@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.td.domain.{TouchApronRun, TouchRun}
  */
 object TestRunner {
 
-  def basePath:String = "TouchDevelopPreprocessing"+File.separator+"testfiles"+File.separator
+  def basePath:String = "Test"+File.separator+"test"+File.separator+"TouchDevelop"+File.separator
 
   def basePath(dir:String):String = basePath+dir+File.separator
 

@@ -13,7 +13,7 @@ case class WarningPP(val ppIdent:String) extends ExpectedOutput {
     case _ => return false;
   }
 
-  override def toString() : String = "warningPP(" +ppIdent+ ")"
+  override def toString() : String = "warningPP(\"" +ppIdent+ "\")"
 }
 
 case class ValidatedPP(val ppIdent:String) extends ExpectedOutput {
@@ -22,7 +22,7 @@ case class ValidatedPP(val ppIdent:String) extends ExpectedOutput {
     case _ => return false;
   }
 
-  override def toString() : String = "validatedPP(" +ppIdent+ ")"
+  override def toString() : String = "validatedPP(\"" +ppIdent+ "\")"
 }
 
 case class WarningMethod(val classe : String, val method : String) extends ExpectedOutput {

@@ -483,7 +483,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
   private def forwardBlockSemantics(entryState: S, block: List[Statement]): List[S] = block match {
     case x :: xs =>
       val modifiedState = entryState.before(identifyingPP(x))
-      modifiedState :: forwardBlockSemantics(x.forwardSemantics(modifiedState), xs)
+      val resultingState = x.forwardSemantics(modifiedState)
+      modifiedState :: forwardBlockSemantics(resultingState, xs)
     case Nil => entryState :: Nil
   }
 

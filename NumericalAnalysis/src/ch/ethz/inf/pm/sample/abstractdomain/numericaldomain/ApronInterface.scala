@@ -15,116 +15,109 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 
-class ApronInterface( state: Option[Abstract1],
+class ApronInterface( val state: Option[Abstract1],
                       val domain: Manager,
                       isPureBottom:Boolean = false,
-                      isPureTop:Boolean = false
+                      env: Set[Identifier]
                       ) extends RelationalNumericalDomain[ApronInterface] {
 
   override def factory(): ApronInterface = {
     top()
   }
 
-  override def merge(r: Replacement): ApronInterface = {
-
-    if (r.isEmpty()) return this
-
-    val startingState = instantiateState()
-    var result = this.bottom()
-    var tempVersion = 0
-    val tempVarName = "tempVarStar"
-    var postProcessMap = Map.empty[Option[String], Array[String]]
-    var foldedStates = Set.empty[ApronInterface]
-    var varsToRemove = Set.empty[String]
-    for ((from,to) <- r.value) {
-      val toVarsAsString: Array[String] = (for (v <- to) yield v.getName()).toArray[String]
-      if(!from.isEmpty) {
-        val fromVarsAsString: Array[String] = (for (v <- from) yield v.getName()).toArray[String]
-        varsToRemove = varsToRemove ++ fromVarsAsString
-        assert(fromVarsAsString.size > 0, "There should be variables in ``from'' set.")
-        val tempVal = tempVarName + tempVersion
-        tempVersion = tempVersion + 1
-        val tempState = startingState.expandCopy(domain,fromVarsAsString(0), Array(tempVal))
-        tempState.fold(domain, Array(tempVal) ++ fromVarsAsString)
-        foldedStates = foldedStates + new ApronInterface(Some(tempState), domain)
-        postProcessMap = postProcessMap + (Some(tempVal) -> toVarsAsString)
-      } else {
-        postProcessMap = postProcessMap + (None -> toVarsAsString)
-        foldedStates = foldedStates + new ApronInterface(Some(startingState), domain)
-      }
-    }
-    // Join folded states
-    for (s <- foldedStates) {
-      val sStateVars = s.instantiateState().getEnvironment.getVars
-      val currentVarsToRemove = varsToRemove.filter(v => sStateVars.contains(v))
-      result = result.lub(result, s.removeVariables(currentVarsToRemove.toArray[String]))
-    }
-
-    var resultingState = result.instantiateState()
-    for ((tempVar, toVars) <- postProcessMap) {
-      tempVar match {
-        case Some(t) => {
-          if (toVars.size > 0)
-            resultingState = resultingState.expandCopy(domain, t, toVars)
-          resultingState = resultingState.changeEnvironmentCopy(domain, resultingState.getEnvironment.remove(Array(t)), false)
-        }
-        case None => {
-          if (toVars.size > 0)
-            resultingState = resultingState.changeEnvironmentCopy(domain, resultingState.getEnvironment.add(toVars, Array.empty[String]), false)
-        }
-      }
-    }
-
-    new ApronInterface(Some(resultingState), domain)
+  override def top(): ApronInterface = {
+    new ApronInterface(None, domain, env = Set.empty)
   }
 
-  // TODO
-  def getIds(): Set[Identifier] = Set.empty[Identifier]
+  override def bottom(): ApronInterface = {
+    new ApronInterface(None, domain, isPureBottom = true, env = Set.empty)
+  }
+
+  def isBottom: Boolean = {
+    if (isPureBottom) return true
+    state match {
+      case Some(s) => s.isBottom(domain)
+      case None => false // top state
+    }
+  }
+
+  def isTop: Boolean = {
+    state match {
+      case Some(s) => s.isTop(domain)
+      case None => !isPureBottom
+    }
+  }
+
+  /**
+   * This function creates an Abstract1 instance representing the current state if this is a pure bottom or pure top
+   * state. If the state is not pure top or pure bottom, this will not create a copy but return the current apron state
+   */
+  def instantiateState():Abstract1 = {
+
+    state match {
+      case Some(s) => s
+      case None =>
+        if (isPureBottom) {
+          new Abstract1(domain,new Environment(),true)
+        } else {
+          new Abstract1(domain,new Environment())
+        }
+    }
+
+  }
+
+  def copyState():Abstract1 = new Abstract1(domain,instantiateState())
+
+  def getIds(): Set[Identifier] = env
 
   /**
    *
    * Adds a new variable to the domain (the domains environmnet). We only add variables with numerical types.
+   *
+   * This does not modify the APRON state
    *
    * @param variable the variable to be created
    * @param typ its type
    * @return the state after this action
    */
   override def createVariable(variable: Identifier, typ: Type): ApronInterface = {
-    val startingState = instantiateState()
-    if (!startingState.getEnvironment.hasVar(variable.getName()) && typ.isNumericalType()) {
-      val env = addToEnvironment(startingState.getEnvironment, variable.getType(), variable.getName())
-      new ApronInterface(Some(startingState.changeEnvironmentCopy(domain, env, false)), domain)
-    } else this
+    new ApronInterface(state, domain, env = env + variable)
   }
 
   /**
-   *
    * Removes a variable from the domain (the domains environment)
-   *
-   * @param variable the variable to be removed
-   * @return the state after this action
    */
   override def removeVariable(variable: Identifier): ApronInterface = {
     state match {
-      case None => this
+      case None => new ApronInterface(state, domain, env = env - variable)
       case Some(st) =>
         if (st.getEnvironment.hasVar(variable.getName())) {
           val v: Array[String] = new Array[String](1)
           v.update(0, variable.getName())
-          val env = st.getEnvironment.remove(v)
-          new ApronInterface(Some(st.changeEnvironmentCopy(domain, env, false)), domain)
-        } else this
+          val apronEnv = st.getEnvironment.remove(v)
+          new ApronInterface(Some(st.changeEnvironmentCopy(domain, apronEnv, false)), domain, env = env - variable)
+        } else {
+          new ApronInterface(state, domain, env = env - variable)
+        }
     }
   }
 
-
+  /**
+   * Removes several variables at once
+   */
   def removeVariables(variables: Array[String]): ApronInterface = {
     if (variables.isEmpty) return this
+    val varSet = variables.toSet
     state match {
-      case None => this
+      case None =>
+        new ApronInterface(state, domain, env = env.filter({ x:Identifier => !varSet.contains(x.toString) }))
       case Some(st) =>
-        val env = st.getEnvironment.remove(variables)
-        new ApronInterface(Some(st.changeEnvironmentCopy(domain, env, false)), domain)
+        val apronEnv = st.getEnvironment.remove(variables.filter({ x:String => st.getEnvironment.hasVar(x) }))
+        if (!apronEnv.equals(st.getEnvironment)) {
+          new ApronInterface(Some(st.changeEnvironmentCopy(domain, apronEnv, false)), domain, env = env.filter({ x:Identifier => !varSet.contains(x.toString) }))
+        } else {
+          new ApronInterface(state, domain, env = env.filter({ x:Identifier => !varSet.contains(x.toString) }))
+        }
     }
   }
 
@@ -133,7 +126,7 @@ class ApronInterface( state: Option[Abstract1],
       case None => this
       case Some(st) =>
         if (st.getEnvironment.hasVar(variable.getName())) {
-          new ApronInterface(Some(st.forgetCopy(domain, variable.getName(), false)), domain)
+          new ApronInterface(Some(st.forgetCopy(domain, variable.getName(), false)), domain, env = env)
         } else this
     }
   }
@@ -143,38 +136,45 @@ class ApronInterface( state: Option[Abstract1],
 
     if (variable.getType().isNumericalType()) {
 
-      // Create variable if it does not exist
-      var newState = instantiateState()
-      if (!newState.getEnvironment.hasVar(variable.getName())) {
-        val env = addToEnvironment(newState.getEnvironment, variable.getType(), variable.getName())
-        newState = newState.changeEnvironmentCopy(domain, env, false)
+      if (!getIds().contains(variable)) {
+        println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
+        return bottom()
       }
 
-      // ADDED because of minimizing the environment in merge
-      // (i.e. some of the variables still in use might have been removed by merge as they were Top)
-      var newEnv = newState.getEnvironment
-      for (id <- Normalizer.getIdsForExpression(expr)) {
-        if (!newEnv.hasVar(id.getName())) {
-          newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
+      nondeterminismWrapper(expr, this, (someExpr, someState) => {
+
+        // Create variable if it does not exist
+        var newState = someState.instantiateState()
+        if (!newState.getEnvironment.hasVar(variable.getName())) {
+          val env = addToEnvironment(newState.getEnvironment, variable.getType(), variable.getName())
+          newState = newState.changeEnvironmentCopy(domain, env, false)
         }
-      }
-      if (newEnv != newState.getEnvironment) {
-        newState = newState.changeEnvironmentCopy(domain, newEnv, false)
-      }
-      // END of the added code
 
-      val res = nondeterminismWrapper(expr, newState, (someExpr, someState) => {
+        // Not all declared variables will be represented in APRON. This creates top values for all variables
+        // that are currently not declared
+        var newEnv = newState.getEnvironment
+        for (id <- Normalizer.getIdsForExpression(someExpr)) {
+          if (!someState.getIds().contains(id)) {
+            println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
+            return bottom()
+          }
+          if (!newEnv.hasVar(id.getName())) {
+            newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
+          }
+        }
+        if (newEnv != newState.getEnvironment)
+          newState = newState.changeEnvironmentCopy(domain, newEnv, false)
 
-        val expr = this.toTexpr1Intern(someExpr, someState.getEnvironment)
+        val expr = this.toTexpr1Intern(someExpr, newState.getEnvironment)
         val assignedState =
           if (expr.size > 1) {
-            var curState = new Abstract1(domain, someState.getEnvironment, true)
+            var curState = new Abstract1(domain, newState.getEnvironment, true)
             for (e <- expr) {
-              curState = curState.joinCopy(domain, someState.assignCopy(domain, variable.getName(), e, null))
+              curState = curState.joinCopy(domain, newState.assignCopy(domain, variable.getName(), e, null))
             }
             curState
           } else if (expr.size == 1) {
-            someState.assignCopy(domain, variable.getName(), expr.head, null)
+            newState.assignCopy(domain, variable.getName(), expr.head, null)
           } else {
             throw new ApronException("Empty expression set created")
           }
@@ -193,21 +193,19 @@ class ApronInterface( state: Option[Abstract1],
           val rightSummaryNodesNames = (rightSummaryNodes map (_.toString)).toArray
           val newSummaryNodeNames = rightSummaryNodesNames map (_ + "__TEMP")
           val materializedState = assignedState.renameCopy(domain,rightSummaryNodesNames,newSummaryNodeNames)
-          val summaryState = new ApronInterface(Some(someState),domain).removeVariable(variable).instantiateState()
+          val summaryState = new ApronInterface(Some(newState),domain, env = env).removeVariable(variable).instantiateState()
 
           val resultState = lub(
-            new ApronInterface(Some(materializedState),domain),
-            new ApronInterface(Some(summaryState),domain))
-          resultState.removeVariables(newSummaryNodeNames).instantiateState()
+            new ApronInterface(Some(materializedState),domain, env = env),
+            new ApronInterface(Some(summaryState),domain, env = env))
+          resultState.removeVariables(newSummaryNodeNames)
 
         } else {
 
-          assignedState
+          new ApronInterface(Some(assignedState),domain, env = env)
 
         }
       })
-
-      new ApronInterface(Some(res),domain)
 
     } else this
   }
@@ -221,6 +219,10 @@ class ApronInterface( state: Option[Abstract1],
     for (id <- ids) {
       if (!id.getType().isNumericalType()) {
         return this
+      }
+      if (!getIds().contains(id)) {
+        println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
+        return bottom()
       }
     }
 
@@ -288,19 +290,16 @@ class ApronInterface( state: Option[Abstract1],
 
       case _ => {
 
-        // Create an actual instance of the current state
-        val curState = instantiateState()
-
         // Assume the expression
-        val res = nondeterminismWrapper(expr, curState, (someExpr, someState) => {
+        nondeterminismWrapper(expr, this, (someExpr, someState) => {
 
-          var tmp = someState
+          var tmp = someState.instantiateState()
           var expEnv = new Environment()
           for (id <- Normalizer.getIdsForExpression(someExpr)) {
             expEnv = addToEnvironment(expEnv, id.getType(), id.getName())
           }
           val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
-          if (!expEnv.isIncluded(tmp.getEnvironment)) {
+          if (!unionEnv.isIncluded(tmp.getEnvironment)) {
             tmp = tmp.changeEnvironmentCopy(domain, unionEnv, false)
           }
 
@@ -311,39 +310,85 @@ class ApronInterface( state: Option[Abstract1],
               for (xMore <- xs) {
                 result = result.joinCopy(domain,tmp.meetCopy(domain,xMore))
               }
-              result
+              new ApronInterface(Some(result),domain,env = env)
 
             case Nil => throw new ApronException("empty set of constraints generated")
 
           }
         })
 
-        new ApronInterface(Some(res),domain)
-
       }
     }
   }
 
-  override def top(): ApronInterface = {
-    new ApronInterface(None, domain, isPureTop = true)
-  }
+  override def merge(r: Replacement): ApronInterface = {
 
-  override def bottom(): ApronInterface = {
-    new ApronInterface(None, domain, isPureBottom = true)
-  }
+    if (r.isEmpty) return this
 
-  def isBottom: Boolean = {
-    state match {
-      case Some(s) => s.isBottom(domain)
-      case None => isPureBottom
+    var tempVersion = 0
+    val tempVarName = "tempVarStar"
+    var postProcessMap = Map.empty[Option[String], Array[String]]
+    var foldedStates = Set.empty[ApronInterface]
+    var varsToRemove = Set.empty[String]
+    var tempIdentifiers = Set.empty[Identifier]
+
+    for ((from,to) <- r.value) {
+      val toVarsAsString: Array[String] = (for (v <- to) yield v.getName()).toArray[String]
+      if(!from.isEmpty) {
+
+        val startingState = instantiateState()
+
+        // Create a temporary identifier
+        val tempVal = tempVarName + tempVersion
+        val tempValIdent = new VariableIdentifier(tempVal, from.head.getType(), from.head.getProgramPoint(), new EmptyScopeIdentifier)
+        tempIdentifiers = tempIdentifiers + tempValIdent
+        tempVersion = tempVersion + 1
+
+        // If we have a top variable (not in APRON state) on the left side
+        if (!(from.map(_.getName()) -- startingState.getEnvironment.getVars).isEmpty) {
+          foldedStates = foldedStates + this.createVariable(tempValIdent,from.head.getType()).removeVariables(from.map(_.getName()).toArray)
+          postProcessMap = postProcessMap + (Some(tempVal) -> toVarsAsString)
+        } else {
+          val fromVarsAsString: Array[String] = (for (v <- from) yield v.getName()).toArray[String]
+          val presentVariablesToRemove = fromVarsAsString.intersect(startingState.getEnvironment.getVars)
+          varsToRemove = varsToRemove ++ fromVarsAsString ++ toVarsAsString
+          if (presentVariablesToRemove.size > 0) {
+            assert(fromVarsAsString.size > 0, "There should be variables in ``from'' set.")
+            var tempState = startingState.expandCopy(domain,presentVariablesToRemove(0), Array(tempVal))
+            val toFold = Array(tempVal) ++ presentVariablesToRemove
+            tempState = tempState.foldCopy(domain, toFold)
+            foldedStates = foldedStates + new ApronInterface(Some(tempState), domain, env = env -- from + tempValIdent)
+            postProcessMap = postProcessMap + (Some(tempVal) -> toVarsAsString)
+          }
+        }
+      } else {
+        postProcessMap = postProcessMap + (None -> toVarsAsString)
+        foldedStates = foldedStates + this
+      }
     }
-  }
 
-  def isTop: Boolean = {
-    state match {
-      case Some(s) => s.isTop(domain)
-      case None => isPureTop
+    // Join folded states
+    var result = this.bottom()
+    for (s <- foldedStates) {
+      result = result.lub(result, s.removeVariables(varsToRemove.toArray[String]))
     }
+
+    var resultingState = result.instantiateState()
+    for ((tempVar, toVars) <- postProcessMap) {
+      tempVar match {
+        case Some(t) => {
+          if (toVars.size > 0 && resultingState.getEnvironment.hasVar(t)) {
+            resultingState = resultingState.expandCopy(domain, t, toVars)
+            resultingState = resultingState.changeEnvironmentCopy(domain, resultingState.getEnvironment.remove(Array(t)), false)
+          }
+        }
+        case None => ()
+      }
+    }
+
+    val newEnvironment = result.getIds() -- r.value.map(_._1).flatten ++ r.value.map(_._2).flatten -- tempIdentifiers
+    val newInterface = new ApronInterface(Some(resultingState), domain, env = newEnvironment)
+    newInterface
   }
 
   override def lub(left: ApronInterface, right: ApronInterface): ApronInterface = {
@@ -355,9 +400,9 @@ class ApronInterface( state: Option[Abstract1],
     if (right.isBottom)
       return left
     if (left.isTop)
-      return left
+      return new ApronInterface(right.state, domain, env = left.getIds() ++ right.getIds())
     if (right.isTop)
-      return right
+      return new ApronInterface(left.state, domain, env = left.getIds() ++ right.getIds())
 
     try {
       // NEW JOIN that supports different environments
@@ -378,9 +423,9 @@ class ApronInterface( state: Option[Abstract1],
         // The result state is stored in the leftState in order to avoid creation of new state object.
         leftState.join(domain, rightState)
 
-        new ApronInterface(Some(leftState), domain)
+        new ApronInterface(Some(leftState), domain, env = left.getIds() ++ right.getIds())
       } else {
-        new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain)
+        new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain, env = left.getIds() ++ right.getIds())
       }
     } catch {
       case a:apron.ApronException => {
@@ -391,12 +436,16 @@ class ApronInterface( state: Option[Abstract1],
 
   override def glb(left: ApronInterface, right: ApronInterface): ApronInterface = {
 
-    if (left.isBottom || right.isTop)
-      return left
-    if (right.isBottom || left.isTop)
-      return right
     if (left == right)
       return left
+    if (left.isBottom)
+      return left
+    if (right.isTop)
+      return new ApronInterface(left.state, domain, env = left.getIds().intersect(right.getIds()))
+    if (right.isBottom)
+      return right
+    if (left.isTop)
+      return new ApronInterface(right.state, domain, env = left.getIds().intersect(right.getIds()))
 
     var leftState = left.instantiateState()
     val rightState = right.instantiateState()
@@ -406,9 +455,9 @@ class ApronInterface( state: Option[Abstract1],
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
       leftState = leftState.changeEnvironmentCopy(domain, leftState.getEnvironment.remove(uncommonVariables), false)
 
-      new ApronInterface(Some(leftState), domain)
+      new ApronInterface(Some(leftState), domain, env = left.getIds().intersect(right.getIds()))
     } else {
-      new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain)
+      new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain, env = left.getIds().intersect(right.getIds()))
     }
   }
 
@@ -421,9 +470,9 @@ class ApronInterface( state: Option[Abstract1],
     if (right.isBottom)
       return left
     if (left.isTop)
-      return left
+      return new ApronInterface(right.state, domain, env = left.getIds() ++ right.getIds())
     if (right.isTop)
-      return right
+      return new ApronInterface(left.state, domain, env = left.getIds() ++ right.getIds())
 
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
@@ -432,10 +481,10 @@ class ApronInterface( state: Option[Abstract1],
       val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
       val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
       val newRight = rightState.changeEnvironmentCopy(domain, env, false)
-      val res = new ApronInterface(Some(newLeft.widening(domain, newRight)), domain)
+      val res = new ApronInterface(Some(newLeft.widening(domain, newRight)), domain, env = left.getIds() ++ right.getIds())
       res
     } else {
-      val res = new ApronInterface(Some(leftState.widening(domain, rightState)), domain)
+      val res = new ApronInterface(Some(leftState.widening(domain, rightState)), domain, env = left.getIds() ++ right.getIds())
       res
     }
 
@@ -443,11 +492,16 @@ class ApronInterface( state: Option[Abstract1],
 
   override def lessEqual(r: ApronInterface): Boolean = {
 
-    if (this == r) return true
-    if (this.isBottom) return true
-    if (r.isTop) return true
-    if (r.isBottom) return false
-    if (this.isTop) return false
+    if (this == r)
+      return true
+    if (this.isBottom)
+      return true
+    if (r.isTop)
+      return (this.getIds() -- r.getIds()).isEmpty
+    if (r.isBottom)
+      return false
+    if (this.isTop)
+      return !(r.getIds() -- this.getIds()).isEmpty
 
     val leftState = this.instantiateState()
     val rightState = r.instantiateState()
@@ -464,16 +518,19 @@ class ApronInterface( state: Option[Abstract1],
   }
 
   override def getStringOfId(id: Identifier): String = {
-    if (state == None && !isPureBottom && !isPureTop) return "Uninitialized!"
-    if (isBottom) return "_|_"
-    if (isTop) return "T"
-    toString(this.state.get.toLincons(domain).toList.filter(constraintContains(_, id.getName())))
+    if (isBottom) return "_|_ (pure)"
+    if (!env.contains(id)) return "_|_"
+    if (isTop) return "T (pure)"
+    val constraints = this.state.get.toLincons(domain).toList.filter(constraintContains(_, id.getName()))
+    if(constraints.isEmpty) return "T"
+    toString(constraints)
   }
 
   override def toString: String = {
-    if (state == None && !isPureBottom && !isPureTop) return "Uninitialized!"
     if (isBottom) return "_|_"
     if (isTop) return "T"
+    val constraints = this.state.get.toLincons(domain).toList
+    if(constraints.isEmpty) return "T"
     toString(this.state.get.toLincons(domain).toList)
   }
 
@@ -533,26 +590,6 @@ class ApronInterface( state: Option[Abstract1],
     false
   }
 
-  /**
-   * This function creates an Abstract1 instance representing the current state if this is a pure bottom or pure top
-   * state. If the state is not pure top or pure bottom, this will not create a copy but return the current apron state
-   */
-  def instantiateState():Abstract1 = {
-
-    state match {
-      case Some(s) => s
-      case None =>
-        if (isPureBottom) {
-          new Abstract1(domain,new Environment(),true)
-        }
-        else if (isPureTop) {
-          new Abstract1(domain,new Environment())
-        }
-        else throw new ApronException("Must be bottom, top, or have an apron instance.")
-    }
-
-  }
-
   private def removeNondeterminism(label: String, expr: Expression): (Expression, List[(Identifier, BinaryNondeterministicExpression)]) = {
     expr match {
       case BinaryArithmeticExpression(left, right, op, typ) =>
@@ -582,11 +619,17 @@ class ApronInterface( state: Option[Abstract1],
     }
   }
 
-  private def nondeterminismWrapper(expr: Expression, state: Abstract1, someFunc: (Expression, Abstract1) => Abstract1): Abstract1 = {
+  private def nondeterminismWrapper(expr: Expression, state: ApronInterface, someFunc: (Expression, ApronInterface) => ApronInterface): ApronInterface = {
 
     // Extract all non-deterministic expressions and store them in temporary variables
-    var newState = new ApronInterface(Some(state),domain)
+    var newState = state
     val (newExpr, tempAssigns) = removeNondeterminism("tmp", expr)
+
+    // Add all temporary variables
+    for ((id, _) <- tempAssigns) {
+      newState = newState.createVariable(id,id.getType())
+    }
+
     for ((id, ndExpr) <- tempAssigns) {
       ndExpr.op match {
         case NondeterministicOperator.or =>
@@ -601,14 +644,14 @@ class ApronInterface( state: Option[Abstract1],
       }
     }
 
-    newState = new ApronInterface(Some(someFunc(newExpr, newState.instantiateState())),domain)
+    newState = someFunc(newExpr, newState)
 
     // Remove all temporary variables
     for ((id, _) <- tempAssigns) {
       newState = newState.removeVariable(id)
     }
 
-    newState.instantiateState()
+    newState
   }
 
   private def toTexpr1Intern(e: Expression, env: apron.Environment): List[Texpr1Intern] = {
@@ -640,6 +683,14 @@ class ApronInterface( state: Option[Abstract1],
       List(topExpression()) // SHOULD BE: BOTTOM. NOT IMPLEMENTABLE
     case Constant("valid", typ, p) =>
       List(topExpression())
+    case Constant("posinfty", typ, p) =>
+      val a = new DoubleScalar()
+      a.setInfty(1)
+      List(new Texpr1CstNode(a))
+    case Constant("neginfty", typ, p) =>
+      val a = new DoubleScalar()
+      a.setInfty(-1)
+      List(new Texpr1CstNode(a))
     case x: Identifier => List(new Texpr1VarNode(x.getName()))
     case setId: HeapIdSetDomain[Identifier] =>
       if (setId.isTop || setId.isBottom) List(topExpression())
@@ -837,7 +888,7 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
 
   def reset() {}
 
-  def getInitialState(): ApronInterface = new ApronInterface(None, domain).top()
+  def getInitialState(): ApronInterface = new ApronInterface(None, domain, env = Set.empty).top()
 
   def getProperties: List[Property] = List(
     new ShowGraphProperty().asInstanceOf[Property],
@@ -850,4 +901,4 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
 
 }
 
-class ApronException(s: String) extends Exception(s);
+class ApronException(s: String) extends Exception(s)

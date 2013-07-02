@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of Web Request
@@ -88,9 +89,9 @@ class TWeb_Request extends AAny {
 
     /** Performs the request synchronously */
     case "send" =>
-      // We do not report missing connection here - errors will be handled during response handling
-      // Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not,"send",
-      //   "Check if the device is connected to the internet before using the connection")
+      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not,"send",
+          "Check if the device is connected to the internet before using the connection")
       Top[S](TWeb_Response.typ,Map(TWeb_Response.field_request -> this0))
 
     /** Sets the Accept header type ('text/xml' for xml, 'application/json' for json). */

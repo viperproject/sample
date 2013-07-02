@@ -54,11 +54,11 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.getType())
   def getExpression(): ExpressionSet = new ExpressionSet(myType).add(new UnitExpression(myType,null))
   def removeExpression(): AccessCollectingState = this.setType(SystemParameters.getType().top())
-  def createObject(typ: Type, pp: ProgramPoint, createFields : Boolean = true): AccessCollectingState = this.setType(typ)
+  def createObject(typ: Type, pp: ProgramPoint, fields : Option[Set[Identifier]] = None): AccessCollectingState = this.setType(typ)
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
   def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.getType())
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): AccessCollectingState =
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, fields : Option[Set[Identifier]] = None): AccessCollectingState =
     this.setType(collTyp)
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
     this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getKeyType)

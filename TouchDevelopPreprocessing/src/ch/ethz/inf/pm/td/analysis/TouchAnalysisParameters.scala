@@ -87,4 +87,6 @@ object TouchAnalysisParameters {
 
   val reportDummyImplementations = false
 
+  val warnPrematurelyOnInternetAccess = false
+
 }

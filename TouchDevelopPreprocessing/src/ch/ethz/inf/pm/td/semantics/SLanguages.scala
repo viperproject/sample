@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of languages
@@ -34,43 +35,49 @@ class SLanguages extends AAny {
     /** Automatically detects the language of a given text using Bing. */
     case "detect language" =>
       val List(text) = parameters // String
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"detect language",
-        "Check if the device is connected to the internet before using the connection")
-      Top[S](TString.typ)
+      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"detect language",
+          "Check if the device is connected to the internet before using the connection")
+      TopWithInvalid[S](TString.typ)
 
     /** Extracts text in the picture using Project Hawaii from Microsoft Research. */
     case "picture to text" =>
       val List(lang,pic) = parameters // String,Picture
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture to text",
-        "Check if the device is connected to the internet before using the connection")
-      Top[S](TString.typ)
+      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture to text",
+          "Check if the device is connected to the internet before using the connection")
+      TopWithInvalid[S](TString.typ)
 
     /** Converts the microphone dictation to text using Project Hawaii from Microsoft Research. */
     case "record text" =>
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"record text",
-        "Check if the device is connected to the internet before using the connection")
-      Top[S](TString.typ)
+      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"record text",
+          "Check if the device is connected to the internet before using the connection")
+      TopWithInvalid[S](TString.typ)
 
     /** Speaks the text in the specified language using Bing. */
     case "speak" =>
       val List(lang,text) = parameters // String,String
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speak",
-        "Check if the device is connected to the internet before using the connection")
-      Top[S](TSound.typ)
+      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speak",
+          "Check if the device is connected to the internet before using the connection")
+      TopWithInvalid[S](TSound.typ)
 
     /** Converts a sound to a text using Project Hawaii from Microsoft Research. */
     case "speech to text" =>
       val List(lang,speech) = parameters // String,Sound
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speech to text",
-        "Check if the device is connected to the internet before using the connection")
-      Top[S](TString.typ)
+      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speech to text",
+          "Check if the device is connected to the internet before using the connection")
+      TopWithInvalid[S](TString.typ)
 
     /** Translates some text between two languages using Bing. Empty source language to auto-detect. */
     case "translate" =>
       val List(source_lang,target_lang,text) = parameters // String,String,String
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"translate",
-        "Check if the device is connected to the internet before using the connection")
-      Top[S](TString.typ)
+      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"translate",
+          "Check if the device is connected to the internet before using the connection")
+      TopWithInvalid[S](TString.typ)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

@@ -37,23 +37,24 @@ class SMaps extends AAny {
     /** Calculates the directions between two coordinates using Bing. */
     case "directions" =>
       val List(from,to,walking) = parameters // Location,Location,Boolean
-      Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"directions",
-        "Check if the device is connected to the internet before using the connection")
-      Top[S](TLocation_Collection.typ)
+      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"directions",
+          "Check if the device is connected to the internet before using the connection")
+      TopWithInvalid[S](TLocation_Collection.typ)
 
     /** Shows the directions in the Bing map application. If search term is provided, location is ignored.
         Provide search term or location for start and end. */
     case "open directions" =>
       val List(start_search,start_loc,end_search,end_loc) = parameters // String,Location,String,Location
       Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open directions",
-        "Check if the device is connected to the internet before using the connection")
+        "Check if the device is connected to the internet before opening the directions")
       Skip
 
     /** Opens the Bing map application. zoom between 0 (close) and 1 (far). */
     case "open map" =>
       val List(center,search,zoom) = parameters // Location,String,Number
       Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"open map",
-        "Check if the device is connected to the internet before using the connection")
+        "Check if the device is connected to the internet before opening a map")
       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](zoom,0,1,method,"zoom")
       }

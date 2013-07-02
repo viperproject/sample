@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.td.semantics._
 
 object TypeList  {
 
-  var types : Map[String,AAny] = Map(
+  val types : Map[String,AAny] = Map(
     SData.typName -> new SData(),
     SCode.typName -> new SCode(),
     SArt.typName -> new SArt(),
@@ -118,7 +118,6 @@ object TypeList  {
     TWeb_Response.typName -> new TWeb_Response(),
     TXml_Object.typName -> new TXml_Object(),
     TUnknown.typName -> new TUnknown()
-
   )
 
 }

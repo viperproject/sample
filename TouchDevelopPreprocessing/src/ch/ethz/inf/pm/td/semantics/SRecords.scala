@@ -18,6 +18,8 @@ object SRecords {
   val typName = "records"
   var typ = new TouchType(typName,isSingleton = true)
 
+  def reset() { typ = new TouchType(typName,isSingleton = true) }
+
 }
 
 class SRecords extends AAny {

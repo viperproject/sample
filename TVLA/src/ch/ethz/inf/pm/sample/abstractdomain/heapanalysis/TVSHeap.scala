@@ -434,20 +434,10 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   }
 
   /**
-   * Some support for a <= relation on heap states
-   */
-  def lessEqualWithReplacement[S <: SemanticDomain[S]](r: TVSHeap, thisSemantic : S, rSemantic : S): (Boolean, Replacement) = {
-    if (this.isBottom) return (true, new Replacement());
-    if (r.isTop) return (true, new Replacement());
-
-    (this.equals(r), new Replacement())
-  }
-
-  /**
    * Least upper bound of heap states left and right. Produces a Replacement to be used
    * by the semantic domain.
    */
-  def lubWithReplacement[S <: SemanticDomain[S]](left: TVSHeap, right: TVSHeap, leftSemantic : S, rightSemantic : S): (TVSHeap, Replacement) = {
+  override def lubWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = {
     if (left.isTop || right.isTop) return (top(), new Replacement)
     if (left.isBottom) return (right, new Replacement)
     if (right.isBottom) return (left, new Replacement)
@@ -471,7 +461,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    * Some support for a greatest lower bound. Only the obvious cases are handled.
    * There seems to be no support in TVLA for this notion.
    */
-  def glbWithReplacement[S <: SemanticDomain[S]](left: TVSHeap, right: TVSHeap, leftSemantic : S, rightSemantic : S): (TVSHeap, Replacement) = {
+  override def glbWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = {
     if (left.isBottom || right.isBottom)  (bottom(), new Replacement)
     else if (left.isTop)  (right, new Replacement)
     else if (right.isTop)  (left, new Replacement)
@@ -479,6 +469,19 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     else throw new Exception("Cannot compute glb on heaps")
   }
 
+  /**
+   * Some support for a <= relation on heap states
+   */
+  def lessEqual(r: TVSHeap): Boolean = {
+    if (this.isBottom) return true
+    if (r.isTop) return true
+    this.equals(r)
+  }
+
+  // THROW INVALID OPERATION ERROR?
+  override def glb(left:TVSHeap, right:TVSHeap):TVSHeap = glbWithReplacement(left,right)._1
+  override def lub(left:TVSHeap, right:TVSHeap):TVSHeap = lubWithReplacement(left,right)._1
+  override def widening(left:TVSHeap, right:TVSHeap):TVSHeap = wideningWithReplacement(left,right)._1
 
   /**
    * Assume allows assumptions to be made in branches of the control flow.
@@ -547,7 +550,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
   def getIds(): Set[Identifier] = null
 
-  def wideningWithReplacement[S <: SemanticDomain[S]](left: TVSHeap, right: TVSHeap, leftSemantic : S, rightSemantic : S): (TVSHeap, Replacement) = (left, new Replacement)
+  override def wideningWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = (left, new Replacement)
 
 
   // not implemented

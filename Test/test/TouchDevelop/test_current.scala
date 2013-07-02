@@ -4,6 +4,11 @@ def analyzer(id:String) {
   TestRunner.runIdWithApron(id)
 }
 
+TestRunner("aafi",analyzer _)
+//TestRunner("aadimryg",analyzer _)
+//TestRunner("aaeub",analyzer _)
+//TestRunner("aaae",analyzer _)
+
 // Bug 1
 // Script avvj, method normalize, with Linear equalities.
 // In the inner conditional value>1 in both branches we have that (for instance) i==0, but in the join we obtain a top state...
@@ -12,12 +17,12 @@ def analyzer(id:String) {
 // Bug 5
 // Script tglf, method check_for_mines, linear equalities domain.
 // We obtain bottom after num=code.tile_top(....)
-TestRunner("tglf",analyzer _)
+//TestRunner("tglf",analyzer _)
 
 // Bug 4
 // Script mlkc, method square, linear equalities domain.
 // We obtain top inside the while loop (but I don't get any alert about loss of precision during the analysis)
-TestRunner("mlkc",analyzer _)
+//TestRunner("mlkc",analyzer _)
 
 // Bug 7
 // Script vrgt, method Run, linear equalities domain.

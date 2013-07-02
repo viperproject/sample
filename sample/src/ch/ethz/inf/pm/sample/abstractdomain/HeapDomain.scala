@@ -54,6 +54,8 @@ class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], 
 
   def apply(k : Set[Identifier]) = value.apply(k);
 
+  def ++ (other:Replacement) = new Replacement(value ++ other.value)
+
   /**
    * Prett-print replacement in the notation described above
    */
@@ -71,7 +73,10 @@ class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], 
  * @author Pietro Ferrara
  * @version 0.1
  */
-trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis with HeapLattice[T] {
+trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
+  extends Analysis
+  with Lattice[T]
+  with LatticeWithReplacement[T] {
 
   /**
   This method creates an object of a given type
@@ -248,7 +253,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]] extends Analysis
   @param pp The program point at which the collection is created
   @return The Heapidentifier of the newly created collection and the heap with the newly created collection
     */
-  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): (HeapIdSetDomain[I], T)
+  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
   Returns the key identifier of a collection's key-value tuple
@@ -384,17 +389,21 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extend
   def convert(add : I) : HeapIdSetDomain[I];
 
   def merge(rep:Replacement) : HeapIdSetDomain[I] = {
+
+    if (this.isBottom || this.isTop || this.value.isEmpty) return this
+
     val result = this.factory()
     result.value = this.value
     for ((froms,tos) <- rep.value) {
-      for (from <- froms) from match {
-        case x:I => result.value - x
-        case _ => ()
+
+      val fromsI = froms collect { case x:I => x }
+      val tosI = tos collect { case x:I => x }
+
+      if (!this.value.intersect(fromsI).isEmpty) {
+         result.value = result.value -- fromsI
+         result.value = result.value ++ tosI
       }
-      for (to <- tos) to match {
-        case x:I => result.value + x
-        case _ => ()
-      }
+
     }
     result
   }
@@ -403,7 +412,13 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extend
 
   //Used to now if it's definite - glb - or maybe - lub.
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S;
-  def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement);
+  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement);
+
+  override def replace(a:Identifier, b:Identifier):Expression = {
+    val n = this.factory()
+    n.value = this.value.map { x:I => if (x.equals(a)) b.asInstanceOf[I] else x  }
+    n
+  }
 }
 
 
@@ -422,7 +437,7 @@ class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends He
 
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2);
 
-  def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2, s1, s2);
+  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2);
 
   def identifiers() : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }
@@ -442,7 +457,7 @@ class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends
 
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s1, s2);
 
-  def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2, s1, s2);
+  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2);
 
   def identifiers() : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }
@@ -502,5 +517,5 @@ class InverseHeapIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint)
   //Used to now if it's definite - glb - or maybe - lub.
   def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s1, s2)
 
-  def heapcombinator[H <: HeapLattice[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h1, h2, s1, s2)
+  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h1, h2)
 }

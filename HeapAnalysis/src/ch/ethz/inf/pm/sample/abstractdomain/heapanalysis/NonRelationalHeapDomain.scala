@@ -16,7 +16,8 @@ object NonRelationalHeapDomainSettings {
   var maxInitialNodes : Int = 5;
 }
 
-class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : HeapIdSetDomain[I]) extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]] {
+class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : HeapIdSetDomain[I]) extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]]
+    with LatticeWithReplacement[HeapEnv[I]] {
   def getIds = this.getAddresses;
   override def factory() = new HeapEnv(typ, dom)
   private def getAddresses : Set[I] = {
@@ -28,7 +29,14 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
     return result;
   }
 
-  override def lub(l : HeapEnv[I], r : HeapEnv[I]):HeapEnv[I] = {
+  override def lub(l : HeapEnv[I], r : HeapEnv[I]):HeapEnv[I] = lubWithReplacement(l,r)._1
+  override def glb(l : HeapEnv[I], r : HeapEnv[I]):HeapEnv[I] = glbWithReplacement(l,r)._1
+  override def widening(l : HeapEnv[I], r : HeapEnv[I]):HeapEnv[I] = wideningWithReplacement(l,r)._1
+
+  override def lubWithReplacement(l : HeapEnv[I], r : HeapEnv[I]):(HeapEnv[I],Replacement) = {
+
+    if (l.isBottom) return (r,new Replacement())
+    if (r.isBottom) return (l,new Replacement())
 
     val leftSummaryNodes = l.getIds collect { case x:I if !x.representSingleVariable() => x }
     val rightSummaryNodes = r.getIds collect { case x:I if !x.representSingleVariable() => x }
@@ -36,14 +44,61 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
     val makeSummaryLeft = rightSummaryNodes -- leftSummaryNodes
     val makeSummaryRight = leftSummaryNodes -- rightSummaryNodes
 
-    val replaceLeft = new Replacement
-    for (a <- makeSummaryLeft) replaceLeft.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
-    val replaceRight = new Replacement
-    for (a <- makeSummaryRight) replaceRight.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
+    if (makeSummaryLeft.isEmpty && makeSummaryRight.isEmpty) return (super.lub(l,r),new Replacement())
 
-    super.lub(l.merge(replaceLeft), r.merge(replaceRight))
+    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections..)
+    val makeSummaryLeftRef = l.getIds collect
+      { case x:I if !x.getAssociatedIds.intersect(makeSummaryLeft).isEmpty => x }
+    val makeSummaryRightRef = r.getIds collect
+      { case x:I if !x.getAssociatedIds.intersect(makeSummaryRight).isEmpty => x }
+
+    val replaceLeft = new Replacement
+    for (a <- makeSummaryLeft ++ makeSummaryLeftRef)
+      replaceLeft.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
+    val replaceRight = new Replacement
+    for (a <- makeSummaryRight ++ makeSummaryRightRef)
+      replaceRight.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
+
+    val result = super.lub(l.merge(replaceLeft), r.merge(replaceRight))
+
+    (result, replaceLeft ++ replaceRight)
 
   }
+
+  override def glbWithReplacement(l : HeapEnv[I], r : HeapEnv[I]):(HeapEnv[I],Replacement) = {
+
+    if (l.isBottom) return (l,new Replacement())
+    if (r.isBottom) return (r,new Replacement())
+
+    val leftNonSummaryNodes = l.getIds collect
+      { case x:I if x.representSingleVariable() => x }
+    val rightNonSummaryNodes = r.getIds collect
+      { case x:I if x.representSingleVariable() => x }
+
+    val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
+    val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
+
+    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections..)
+    val makeNonSummaryLeftRef = l.getIds collect
+      { case x:I if !x.getAssociatedIds.intersect(makeNonSummaryLeft).isEmpty => x }
+    val makeNonSummaryRightRef = r.getIds collect
+      { case x:I if !x.getAssociatedIds.intersect(makeNonSummaryRight).isEmpty => x }
+
+    if (makeNonSummaryLeft.isEmpty && makeNonSummaryRight.isEmpty) return (super.glb(l,r),new Replacement())
+
+    val replaceLeft = new Replacement
+    for (a <- makeNonSummaryLeft ++ makeNonSummaryLeftRef)
+      replaceLeft.value += (Set[Identifier](a.toSummaryNode) -> Set[Identifier](a))
+    val replaceRight = new Replacement
+    for (a <- makeNonSummaryRight ++ makeNonSummaryRightRef)
+      replaceRight.value += (Set[Identifier](a.toSummaryNode) -> Set[Identifier](a))
+
+    val result = super.glb(l.merge(replaceLeft), r.merge(replaceRight))
+
+    (result, replaceLeft ++ replaceRight)
+  }
+
+  override def wideningWithReplacement(l : HeapEnv[I], r : HeapEnv[I]):(HeapEnv[I],Replacement) = lubWithReplacement(l,r)
 
   def get(key : I) : HeapIdSetDomain[I] = this.value.get(key) match {
     case None => dom.bottom(); //TODO: This is not sound!!!
@@ -90,7 +145,8 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
 }
 
 class VariableEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : HeapIdSetDomain[I])
-    extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]] {
+    extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]]
+    with LatticeWithReplacement[VariableEnv[I]] {
 
   def getIds : Set[Identifier] = (this.getVariables++this.getAddresses).asInstanceOf[Set[Identifier]];
   override def factory() = new VariableEnv(typ, dom)
@@ -104,21 +160,77 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom :
     return result;
   }
 
-  override def lub(l : VariableEnv[I], r : VariableEnv[I]):VariableEnv[I] = {
+  override def lub(l : VariableEnv[I], r : VariableEnv[I]):VariableEnv[I] = lubWithReplacement(l,r)._1
+  override def glb(l : VariableEnv[I], r : VariableEnv[I]):VariableEnv[I] = glbWithReplacement(l,r)._1
+  override def widening(l : VariableEnv[I], r : VariableEnv[I]):VariableEnv[I] = wideningWithReplacement(l,r)._1
 
-    val leftSummaryNodes = l.getIds collect { case x:I if !x.representSingleVariable() => x }
-    val rightSummaryNodes = r.getIds collect { case x:I if !x.representSingleVariable() => x }
+  override def lubWithReplacement(l : VariableEnv[I], r : VariableEnv[I]):(VariableEnv[I],Replacement) = {
+
+    if (l.isBottom) return (r,new Replacement())
+    if (r.isBottom) return (l,new Replacement())
+
+    val leftSummaryNodes = l.getIds collect
+      { case x:I if !x.representSingleVariable() => x }
+    val rightSummaryNodes = r.getIds collect
+      { case x:I if !x.representSingleVariable() => x }
 
     val makeSummaryLeft = rightSummaryNodes -- leftSummaryNodes
     val makeSummaryRight = leftSummaryNodes -- rightSummaryNodes
 
-    val replaceLeft = new Replacement
-    for (a <- makeSummaryLeft) replaceLeft.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
-    val replaceRight = new Replacement
-    for (a <- makeSummaryRight) replaceRight.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
+    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections..)
+    val makeSummaryLeftRef = l.getIds collect
+      { case x:I if !x.getAssociatedIds.intersect(makeSummaryLeft).isEmpty => x }
+    val makeSummaryRightRef = r.getIds collect
+      { case x:I if !x.getAssociatedIds.intersect(makeSummaryRight).isEmpty => x }
 
-    super.lub(l.merge(replaceLeft), r.merge(replaceRight))
+    if (makeSummaryLeft.isEmpty && makeSummaryRight.isEmpty) return (super.lub(l,r),new Replacement())
+
+    val replaceLeft = new Replacement
+    for (a <- makeSummaryLeft ++ makeSummaryLeftRef)
+      replaceLeft.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
+    val replaceRight = new Replacement
+    for (a <- makeSummaryRight ++ makeSummaryRightRef)
+      replaceRight.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
+
+    val result = super.lub(l.merge(replaceLeft), r.merge(replaceRight))
+
+    (result, replaceLeft ++ replaceRight)
   }
+
+  override def glbWithReplacement(l : VariableEnv[I], r : VariableEnv[I]):(VariableEnv[I],Replacement) = {
+
+    if (l.isBottom) return (l,new Replacement())
+    if (r.isBottom) return (r,new Replacement())
+
+    val leftNonSummaryNodes = l.getIds collect
+      { case x:I if x.representSingleVariable() => x }
+    val rightNonSummaryNodes = r.getIds collect
+      { case x:I if x.representSingleVariable() => x }
+
+    val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
+    val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
+
+    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections..)
+    val makeNonSummaryLeftRef = l.getIds collect
+      { case x:I if !x.getAssociatedIds.intersect(makeNonSummaryLeft).isEmpty => x }
+    val makeNonSummaryRightRef = r.getIds collect
+      { case x:I if !x.getAssociatedIds.intersect(makeNonSummaryRight).isEmpty => x }
+
+    if (makeNonSummaryLeft.isEmpty && makeNonSummaryRight.isEmpty) return (super.glb(l,r),new Replacement())
+
+    val replaceLeft = new Replacement
+    for (a <- makeNonSummaryLeft ++ makeNonSummaryLeftRef)
+      replaceLeft.value += (Set[Identifier](a.toSummaryNode) -> Set[Identifier](a))
+    val replaceRight = new Replacement
+    for (a <- makeNonSummaryRight ++ makeNonSummaryRightRef)
+      replaceRight.value += (Set[Identifier](a.toSummaryNode) -> Set[Identifier](a))
+
+    val result = super.glb(l.merge(replaceLeft), r.merge(replaceRight))
+
+    (result, replaceLeft ++ replaceRight)
+  }
+
+  override def wideningWithReplacement(l : VariableEnv[I], r : VariableEnv[I]):(VariableEnv[I],Replacement) = lubWithReplacement(l,r)
 
   def get(key : VariableIdentifier) : HeapIdSetDomain[I] = this.value.get(key) match {
     case None => dom.bottom(); //TODO: This is not sound!!!
@@ -231,6 +343,7 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
   def factory() : I;
   def toSummaryNode : I
   def toNonSummaryNode : I
+  def getAssociatedIds : Set[I]
 
   def createCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): I
   def getCollectionOverApproximation(collection:Assignable): I
@@ -257,10 +370,48 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   override def endOfAssignment() = (this, new Replacement());
 
   override def getIds : Set[Identifier] = (this._1.getIds++this._2.getIds)
-  override def lubWithReplacement[S <: SemanticDomain[S]](left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I], leftSemantic : S, rightSemantic : S) = (this.lub(left, right), new Replacement)
-  override def glbWithReplacement[S <: SemanticDomain[S]](left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I], leftSemantic : S, rightSemantic : S) = (this.glb(left, right), new Replacement)
-  override def wideningWithReplacement[S <: SemanticDomain[S]](left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I], leftSemantic : S, rightSemantic : S) = (this.widening(left, right), new Replacement)
-  override def lessEqualWithReplacement[S <: SemanticDomain[S]](right : NonRelationalHeapDomain[I], thisSemantic : S, rightSemantic : S) = (this.lessEqual(right), new Replacement)
+
+  override def lubWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = {
+
+    val (res1,rep1) = d1.lubWithReplacement(left._1, right._1)
+    val (res2,rep2) = d2.lubWithReplacement(left._2, right._2)
+
+    val result: NonRelationalHeapDomain[I] = this.factory()
+    result.d1 = res1
+    result.d2 = res2
+    result
+
+    (result, rep1 ++ rep2)
+
+  }
+
+  override def glbWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = {
+
+    val (res1,rep1) = d1.glbWithReplacement(left._1, right._1)
+    val (res2,rep2) = d2.glbWithReplacement(left._2, right._2)
+
+    val result: NonRelationalHeapDomain[I] = this.factory()
+    result.d1 = res1
+    result.d2 = res2
+    result
+
+    (result, rep1 ++ rep2)
+
+  }
+
+  override def wideningWithReplacement(left : NonRelationalHeapDomain[I], right : NonRelationalHeapDomain[I]) = {
+
+    val (res1,rep1) = d1.wideningWithReplacement(left._1, right._1)
+    val (res2,rep2) = d2.wideningWithReplacement(left._2, right._2)
+
+    val result: NonRelationalHeapDomain[I] = this.factory()
+    result.d1 = res1
+    result.d2 = res2
+    result
+
+    (result, rep1 ++ rep2)
+
+  }
 
   override def reset() {
     if(NonRelationalHeapDomainSettings.unsoundEntryState)
@@ -328,8 +479,10 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   def get(key : I) : HeapIdSetDomain[I] = this._2.get(key);
 
   override def createVariable(variable : Assignable, typ : Type) =  variable match {
-    case x : VariableIdentifier => (new NonRelationalHeapDomain(this._1.add(x, cod.bottom()), this._2, cod, dom), new Replacement);
-    case x : I => (this, new Replacement)
+    case x : VariableIdentifier =>
+      (new NonRelationalHeapDomain(this._1.add(x, cod.bottom()), this._2, cod, dom), new Replacement)
+    case x : I =>
+      (new NonRelationalHeapDomain(this._1, this._2.add(x, cod.bottom()), cod, dom), new Replacement)
   }
 
   override def createVariableForArgument(variable : Assignable, typ : Type, path : List[String])  =  variable match {
@@ -477,23 +630,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
    *
    */
   override def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
-
-    val objectIdentifier = dom.createAddress(typ, pp)
-    if (!getIds.contains(objectIdentifier)) {
-
-      (cod.convert(objectIdentifier), this, new Replacement)
-
-    } else {
-
-      // create a summary node and replace the old object identifier with the summary node. Also return the
-      // replacement so that it can be replaced in the semantic domain, too
-
-      val summaryIdentifier = objectIdentifier.toSummaryNode
-      val replacement = new Replacement(mutable.HashMap(Set(objectIdentifier.asInstanceOf[Identifier]) -> Set(summaryIdentifier.asInstanceOf[Identifier])))
-      (cod.convert(summaryIdentifier), this.merge(replacement), new Replacement /* The identities of the nodes are not changed, just the summary attribute */)
-
-    }
-
+    makeSummaryIfRequired(dom.createAddress(typ, pp))
   }
 
   /**
@@ -508,12 +645,14 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     new NonRelationalHeapDomain(this._1.merge(rep),this._2.merge(rep),cod,dom)
   }
 
-  override def getFieldIdentifier(heapIdentifier : Assignable, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = (this.evalFieldAccess(heapIdentifier, name, typ), this, new Replacement);
-
-  override def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = {
-    val coll = dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, pp)
-    (new MaybeHeapIdSetDomain().convert(coll), this)
+  override def getFieldIdentifier(heapIdentifier : Assignable, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
+    (this.evalFieldAccess(heapIdentifier, name, typ), this, new Replacement)
   }
+
+  override def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
+    makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, pp))
+  }
+
 
   override def getCollectionKeyByTuple(collectionTuple: Assignable, keyTyp: Type): Assignable = {
     return this.dom.getCollectionKey(collectionTuple, keyTyp)
@@ -638,6 +777,42 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     heap.getIds.filter(ReachabilityAnalysis.reach(_,env,heap)._2)
   }
 
+
+
+  private def makeSummaryIfRequired(objectIdentifier:I) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
+
+    // CASE 1) We already have a summary node for this, return the summary identifier
+    if (getIds.contains(objectIdentifier.toSummaryNode)) {
+
+      (cod.convert(objectIdentifier.toSummaryNode), this, new Replacement)
+    }
+
+    // CASE 2) We do not have a not, return the non-summary-identifier
+    else if (!getIds.contains(objectIdentifier)) {
+
+      (cod.convert(objectIdentifier), this, new Replacement)
+
+    }
+
+    // CASE 3) We have such a node already - convert it to a summary node and return the summary node
+    else {
+
+      // create a summary node and replace the old object identifier with the summary node. Also return the
+      // replacement so that it can be replaced in the semantic domain, too
+
+      val oldNodes = (getIds collect { case x:I if x.getAssociatedIds.contains(objectIdentifier) => x }) + objectIdentifier
+      val replacementMap = oldNodes.map({ x:I => (Set(x.asInstanceOf[Identifier]),Set(x.toSummaryNode.asInstanceOf[Identifier]))}).toMap
+      val replacement = new Replacement(new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]() ++ replacementMap)
+
+      val createdObject = cod.convert(objectIdentifier.toSummaryNode)
+      val newHeapDomain = this.merge(replacement)
+
+
+      (createdObject, newHeapDomain, replacement)
+
+    }
+  }
+
   private def resolveVariables[T <: Lattice[T]](fact:T, a: Assignable, f : Assignable => T):T = {
     a match {
       case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(d1.get(id)),f)
@@ -743,6 +918,7 @@ case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelatio
   override def hashCode() : Int = 0
   override def toSummaryNode : TopHeapIdentifier = this
   override def toNonSummaryNode : TopHeapIdentifier = this
+  override def getAssociatedIds : Set[TopHeapIdentifier] = Set.empty
 
   def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = this
   def getCollectionOverApproximation(collection: Assignable) = this

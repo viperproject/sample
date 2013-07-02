@@ -5,7 +5,6 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
 import util.HeapIdSetFunctionalLifting
 
-
 /**
  * An abstract semantic domain that combines and heap and another semantic domain.
  * The intuition is that the heap domain takes care of approximating the heap structure, while the
@@ -18,8 +17,9 @@ import util.HeapIdSetFunctionalLifting
  * @author Pietro Ferrara
  * @since 0.1
  */
-class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](private var d1 : N, private var d2 : H) extends Lattice[HeapAndAnotherDomain[N, H, I]]{
-
+class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](private var d1 : N, private var d2 : H)
+  extends Lattice[HeapAndAnotherDomain[N, H, I]]
+  with LatticeWithReplacement[HeapAndAnotherDomain[N,H,I]] {
 
   override def toString() : String = "Heap state:\n"+ToStringUtilities.indent(d2.toString())+"\nSemantic state:\n"+ToStringUtilities.indent(d1.toString())
 
@@ -151,13 +151,13 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result
   }
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) : (T, HeapIdSetDomain[I]) = {
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) : (HeapIdSetDomain[I], HeapAndAnotherDomain[N,H,I], Replacement) = {
     val result = this.factory()
     result.d1 = this.d1
-    val (collectionIds, newHeap) = this.d2.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, pp)
+    val (collectionIds, newHeap, rep) = this.d2.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, pp)
     result.d2 = newHeap
 
-    (HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), collectionIds, setCollectionLengthToZero(result)), collectionIds)
+    (collectionIds, HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), collectionIds, setCollectionLengthToZero(result)), rep)
   }
 
   def insertCollectionElement(collection: Assignable, key: Expression, value: Expression, pp: ProgramPoint) = {
@@ -165,7 +165,9 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       var result = initialState
       val keyId = result.d2.getCollectionKeyByTuple(tupleId, key.getType())
       val valueId = result.d2.getCollectionValueByTuple(tupleId, value.getType())
+      result = applyToAssignable[T](keyId, result, _.createVariable(_, keyId.getType()))
       result = applyToAssignable[T](keyId, result, _.assign(_, key))
+      result = applyToAssignable[T](valueId, result, _.createVariable(_, valueId.getType()))
       result = applyToAssignable[T](valueId, result, _.assign(_, value))
       result.lub(initialState, result)
     }
@@ -281,8 +283,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     }
 
     var result = this.factory()
-    val (toCollectionIds, newHeap) = this.d2.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, pp)
-    result.d1 = this.d1
+    val (toCollectionIds, newHeap, rep) = this.d2.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, pp)
+    result.d1 = this.d1.merge(rep)
     result.d2 = newHeap
 
     val overApproxIds = this.d2.getCollectionOverApproximation(fromCollection)
@@ -430,10 +432,13 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     HeapIdSetFunctionalLifting.applyToSetHeapId(initial.factory(), lengthIds, setCollectionLength(result, toCollection))
   }
 
-  private def setCollectionLengthToZero(initial:T)(collection: Assignable) : T = {
+  private def setCollectionLengthToZero(initial:HeapAndAnotherDomain[N,H,I])(collection: Assignable) : HeapAndAnotherDomain[N,H,I] = {
     val result = initial
 
     val lengthIds = result.d2.getCollectionLength(collection)
+
+    def createVar(initialState:N)(a:Assignable) = applyToAssignable[N](a, initialState, _.createVariable(_,a.getType()))
+    result.d1 = HeapIdSetFunctionalLifting.applyToSetHeapId(result.d1.factory(), lengthIds, createVar(result.d1))
 
     def setToZero(initialState:N)(a:Assignable) = applyToAssignable[N](a, initialState, _.assign(_, Constant("0", a.getType(), null)))
     result.d1 = HeapIdSetFunctionalLifting.applyToSetHeapId(result.d1.factory(), lengthIds, setToZero(result.d1))
@@ -549,63 +554,69 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   override def bottom() : T = {
     val result : T = this.factory();
-    SystemParameters.domainTimer.start();
+    SystemParameters.domainTimer.start()
     result.d1=d1.bottom()
-    SystemParameters.domainTimer.stop();
-    SystemParameters.heapTimer.start();
+    SystemParameters.domainTimer.stop()
+    SystemParameters.heapTimer.start()
     result.d2=d2.bottom()
-    SystemParameters.heapTimer.stop();
+    SystemParameters.heapTimer.stop()
     result
   }
 
-  override def lub(l : T, r : T) : T = {
-    val result : T = this.factory();
-    SystemParameters.heapTimer.start();
-    val (d, rep) =d2.lubWithReplacement(l.d2, r.d2, l.d1, r.d1)
-    result.d2=d;
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
+  override def lubWithReplacement(l : T, r : T) : (T,Replacement) = {
+    val result : T = this.factory()
+    SystemParameters.heapTimer.start()
+    val (d, rep) =d2.lubWithReplacement(l.d2, r.d2)
+    result.d2=d
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
     val s = d1.lub(l.d1, r.d1)
     result.d1 = s.merge(rep)
-    SystemParameters.domainTimer.stop();
-    result
+    SystemParameters.domainTimer.stop()
+    (result,rep)
   }
 
-  override def glb(l : T, r : T) : T = {
-    val result : T = this.factory();
-    SystemParameters.heapTimer.start();
-    val (d, rep) =d2.glbWithReplacement(l.d2, r.d2, l.d1, r.d1)
-    result.d2=d;
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
+  override def lub(l : T, r : T) : T = lubWithReplacement(l,r)._1
+
+  override def glbWithReplacement(l : T, r : T) : (T,Replacement) = {
+    val result : T = this.factory()
+    SystemParameters.heapTimer.start()
+    val (d, rep) =d2.glbWithReplacement(l.d2, r.d2)
+    result.d2=d
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
     val s = d1.glb(l.d1, r.d1)
     result.d1= s.merge(rep)
-    SystemParameters.domainTimer.stop();
-    result
+    SystemParameters.domainTimer.stop()
+    (result,rep)
   }
 
-  override def widening(l : T, r : T) : T = {
-    val result : T = this.factory();
-    SystemParameters.heapTimer.start();
-    val (d, rep) =d2.wideningWithReplacement(l.d2, r.d2, l.d1, r.d1)
-    result.d2=d;
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
+  override def glb(l : T, r : T) : T = glbWithReplacement(l,r)._1
+
+  override def wideningWithReplacement(l : T, r : T) : (T,Replacement) = {
+    val result : T = this.factory()
+    SystemParameters.heapTimer.start()
+    val (d, rep) =d2.wideningWithReplacement(l.d2, r.d2)
+    result.d2=d
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
     val s = d1.widening(l.d1, r.d1)
     result.d1= s.merge(rep)
-    SystemParameters.domainTimer.stop();
-    result
+    SystemParameters.domainTimer.stop()
+    (result,rep)
   }
 
+  override def widening(l : T, r : T) : T = wideningWithReplacement(l,r)._1
+
   override def lessEqual(r : T) : Boolean = {
-    if(this.d1.lessEqual(this.d1.bottom()) || this.d2.lessEqualWithReplacement(this.d2.bottom(), this.d1, this.d1.bottom())._1) return true;
-    if(r.d1.lessEqual(r.d1.bottom()) || r.d2.lessEqualWithReplacement(r.d2.bottom(), r.d1, r.d1.bottom())._1) return false;
+    if(this.d1.lessEqual(this.d1.bottom())) return true;
+    if(r.d1.lessEqual(r.d1.bottom())) return false;
     SystemParameters.heapTimer.start();
-    var (b, rep) = d2.lessEqualWithReplacement(r.d2, this.d1, r.d1)
+    var b = d2.lessEqual(r.d2)
     SystemParameters.heapTimer.stop();
     if(! b) return false;
     SystemParameters.domainTimer.start();
-    b = d1.merge(rep).lessEqual(r.d1.merge(rep));
+    b = d1.lessEqual(r.d1)
     SystemParameters.domainTimer.stop();
     return b;
   }

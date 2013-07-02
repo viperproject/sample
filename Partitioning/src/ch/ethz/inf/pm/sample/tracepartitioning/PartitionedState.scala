@@ -186,8 +186,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #map
    */
-  override def createObject(t: Type, pp: ProgramPoint, createFields : Boolean = true): PartitionedState[D] = {
-    map(_.createObject(t, pp))
+  override def createObject(t: Type, pp: ProgramPoint, fields : Option[Set[Identifier]] = None): PartitionedState[D] = {
+    map(_.createObject(t, pp, fields))
   }
 
   /**
@@ -506,7 +506,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     map(_.removeExpression)
   }
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint) = {
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) = {
     throw new NotImplementedException()
   }
 

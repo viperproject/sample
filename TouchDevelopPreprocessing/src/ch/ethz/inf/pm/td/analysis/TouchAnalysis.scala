@@ -165,6 +165,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
         }
 
       val rightExpr = new ExpressionSet(v.typ).add(rightVal)
+      curState = curState.createVariable(leftExpr,leftExpr.getType(),v.programpoint)
       curState = curState.assignVariable(leftExpr,rightExpr)
     }
 

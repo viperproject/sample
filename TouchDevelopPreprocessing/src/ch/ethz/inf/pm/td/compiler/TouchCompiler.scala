@@ -160,7 +160,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       case None =>
         userTypes.get(name) match {
           case Some(x) => x
-          case None => throw new TouchException("Could not find type "+name)
+          case None =>
+            throw new TouchException("Could not find type "+name)
         }
     }
   }
@@ -228,6 +229,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     parsedTouchScripts = Map.empty
     userTypes = Map.empty
     isInLibraryMode = false
+    SRecords.reset()
   }
 
   def generateTopType() {

@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * User: lucas
@@ -122,7 +123,7 @@ class SMedia extends AAny {
     case "search marketplace" =>
       val List(terms,typ) = parameters // String,String
       Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not,"search marketplace",
-        "Check if the device is connected to the internet before using the connection")
+        "Check if the device is connected to the internet before searching the marketplace")
       Skip
 
     case _ =>

@@ -32,7 +32,7 @@ object TWeb_Response {
   val field_content_as_xml = new TouchField("content as xml",TXml_Object.typName)
 
   /** Stores the headers. This is actually not publicly accessible */
-  val field_header_storage = new TouchField("  header",TString_Map.typName)
+  val field_header_storage = new TouchField("header storage",TString_Map.typName)
 
   /** Gets the request associated to this response */
   val field_request = new TouchField("request",TWeb_Request.typName)
