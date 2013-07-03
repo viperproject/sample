@@ -112,9 +112,10 @@ object MethodSummaries {
     var curState = exitState
 
     curState = curState.pruneVariables({
-      id:VariableIdentifier =>
+      case id:VariableIdentifier =>
         !id.getType().asInstanceOf[TouchType].isSingleton &&
         !CFGGenerator.isGlobalReferenceIdent(id.toString())
+      case _ => false
     })
     curState = curState.pruneUnreachableHeap()
 
@@ -161,11 +162,12 @@ object MethodSummaries {
   private def pruneGlobalState[S <: State[S]](entryState:S):S = {
     var curState = entryState
     curState = curState.pruneVariables({
-      id:VariableIdentifier =>
+      case id:VariableIdentifier =>
         id.getType().asInstanceOf[TouchType].isSingleton ||
           CFGGenerator.isGlobalReferenceIdent(id.toString()) ||
           CFGGenerator.isParamIdent(id.toString()) ||
           CFGGenerator.isReturnIdent(id.toString())
+      case _ => false
     })
 
     curState = curState.pruneUnreachableHeap()
@@ -195,10 +197,11 @@ object MethodSummaries {
       // Prune non-parameters and non-globals (reach. based localization)
       if (TouchAnalysisParameters.localizeStateOnMethodCall) {
         curState = curState.pruneVariables({
-          id:VariableIdentifier =>
+          case id:VariableIdentifier =>
             !id.getType().asInstanceOf[TouchType].isSingleton &&
             !CFGGenerator.isGlobalReferenceIdent(id.toString()) &&
             !CFGGenerator.isParamIdent(id.toString())
+          case _ => false
         })
       }
 
@@ -211,7 +214,10 @@ object MethodSummaries {
       }
 
       // Prune temporary variables
-      curState = curState.pruneVariables({ id:VariableIdentifier => CFGGenerator.isParamIdent(id.toString()) })
+      curState = curState.pruneVariables({
+        case id:VariableIdentifier => CFGGenerator.isParamIdent(id.toString())
+        case _ => false
+      })
 
       // Prune unreachable heap locations
       curState = curState.pruneUnreachableHeap()
@@ -219,9 +225,11 @@ object MethodSummaries {
     } else {
 
       // Prune local state
-      curState = curState.pruneVariables({ id:VariableIdentifier =>
-        !id.getType().asInstanceOf[TouchType].isSingleton &&
-        !CFGGenerator.isGlobalReferenceIdent(id.toString())
+      curState = curState.pruneVariables({
+        case id:VariableIdentifier =>
+          !id.getType().asInstanceOf[TouchType].isSingleton &&
+          !CFGGenerator.isGlobalReferenceIdent(id.toString())
+        case _ => false
       })
       curState = curState.pruneUnreachableHeap()
 
@@ -278,11 +286,12 @@ object MethodSummaries {
 
     // Prune local state (except return values)
     curState = curState.pruneVariables({
-      id:VariableIdentifier =>
+      case id:VariableIdentifier =>
         // Belongs to scope of call target
         id.scope == ProgramPointScopeIdentifier(callTarget.programpoint) &&
         // Is not a return value
         !CFGGenerator.isReturnIdent(id.toString())
+      case _ => false
     })
     curState = curState.pruneUnreachableHeap()
 

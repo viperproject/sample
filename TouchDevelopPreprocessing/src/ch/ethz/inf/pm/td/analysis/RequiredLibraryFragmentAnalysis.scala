@@ -76,7 +76,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def getCollectionLength(collectionSet: ExpressionSet): AccessCollectingState = this.setType(TNumber.typ)
   def isSummaryCollection(collectionSet: ExpressionSet) = false
 
-  def pruneVariables(filter:VariableIdentifier => Boolean) : AccessCollectingState = this
+  def pruneVariables(filter:Identifier => Boolean) : AccessCollectingState = this
   def pruneUnreachableHeap() : AccessCollectingState = this
   def testFalse(): AccessCollectingState = this
   def testTrue(): AccessCollectingState = this

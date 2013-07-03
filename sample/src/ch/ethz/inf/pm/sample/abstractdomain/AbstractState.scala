@@ -902,13 +902,13 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   /**
    * Removes all variables satisfying filter
    */
-  def pruneVariables(filter:VariableIdentifier => Boolean) : AbstractState[N, H, I] = {
+  def pruneVariables(filter:Identifier => Boolean) : AbstractState[N, H, I] = {
 
     var curState = this._1
     for (id <- this._1.getIds()) {
       id match {
 
-        case va:VariableIdentifier =>
+        case va:Identifier =>
           if (filter(va)) {
             curState = curState.removeVariable(id)
           }
@@ -926,14 +926,13 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
    */
   def pruneUnreachableHeap() : AbstractState[N, H, I] = {
 
-    // TODO
-    //    val unreachable = this._1._2.getUnreachableHeap
-    //    pruneVariables({
-    //      case a:I => unreachable.contains(a)
-    //      case _ => false
-    //    })
+    val unreachable = this._1._2.getUnreachableHeap
+    val pruned = pruneVariables({
+      case a:I => unreachable.contains(a)
+      case _ => false
+    })
 
-    this
+    pruned
 
   }
 

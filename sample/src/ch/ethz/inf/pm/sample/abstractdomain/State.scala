@@ -461,7 +461,7 @@ trait State[S <: State[S]] extends Lattice[S] {
   /**
    * Removes all variables satisfying filter
    */
-  def pruneVariables(filter:VariableIdentifier => Boolean) : S
+  def pruneVariables(filter:Identifier => Boolean) : S
 
   /**
    * Performs abstract garbage collection

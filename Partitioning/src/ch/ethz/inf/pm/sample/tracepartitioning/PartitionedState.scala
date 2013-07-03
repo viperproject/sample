@@ -562,7 +562,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     throw new NotImplementedException()
   }
 
-  def pruneVariables(filter:VariableIdentifier => Boolean) : PartitionedState[D] = {
+  def pruneVariables(filter:Identifier => Boolean) : PartitionedState[D] = {
     throw new NotImplementedException()
   }
 

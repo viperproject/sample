@@ -138,7 +138,7 @@ case class NullProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint) extends P
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = this
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 }
 
 case class SimpleProgramPointHeapIdentifier(pp1: ProgramPoint, t2: Type, summary: Boolean = false) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -163,7 +163,7 @@ case class SimpleProgramPointHeapIdentifier(pp1: ProgramPoint, t2: Type, summary
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.getType(), false)
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 }
 
 case class CollectionIdentifier(override val pp: ProgramPoint, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, summary: Boolean = false) extends ProgramPointHeapIdentifier(collTyp, pp) {
@@ -189,7 +189,7 @@ case class CollectionIdentifier(override val pp: ProgramPoint, collTyp: Type, ke
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, false)
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 }
 
 case class CollectionTupleIdentifier(collectionApprox: ProgramPointHeapIdentifier, pps: Set[ProgramPoint], summary: Boolean = false) extends ProgramPointHeapIdentifier(collectionApprox.getType(), pps.head) {
@@ -221,7 +221,7 @@ case class CollectionTupleIdentifier(collectionApprox: ProgramPointHeapIdentifie
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.pps, false)
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set(collectionApprox)
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set(collectionApprox)
 }
 
 case class ArrayTopIdentifier() extends ProgramPointHeapIdentifier(null, null) {
@@ -246,7 +246,7 @@ case class ArrayTopIdentifier() extends ProgramPointHeapIdentifier(null, null) {
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = this
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 }
 
 case class ParameterHeapIdentifier(t2: Type, pp1: ProgramPoint, summary: Boolean = false) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -269,7 +269,7 @@ case class ParameterHeapIdentifier(t2: Type, pp1: ProgramPoint, summary: Boolean
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.getType(), this.getProgramPoint(), false)
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 }
 
 case class UnsoundParameterHeapIdentifier(t2: Type, n: Int, pp1: ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -292,7 +292,7 @@ case class UnsoundParameterHeapIdentifier(t2: Type, n: Int, pp1: ProgramPoint) e
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = this
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 }
 
 case class StaticProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint) extends ProgramPointHeapIdentifier(t2, pp1) {
@@ -315,7 +315,7 @@ case class StaticProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint) extends
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = this
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 }
 
 case class FieldAndProgramPoint(p1: ProgramPointHeapIdentifier, field: String, t2: Type) extends ProgramPointHeapIdentifier(t2, p1.getProgramPoint()) {
@@ -338,5 +338,5 @@ case class FieldAndProgramPoint(p1: ProgramPointHeapIdentifier, field: String, t
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1.toNonSummaryNode, this.field, this.getType())
 
-  override def getAssociatedIds: Set[ProgramPointHeapIdentifier] = Set(p1)
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set(p1)
 }
