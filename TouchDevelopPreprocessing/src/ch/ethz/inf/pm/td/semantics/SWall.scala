@@ -89,7 +89,7 @@ class SWall extends AAny {
     /** Prompts the user to pick a string from a list. Returns the selected index. */
     case "pick string" =>
       val List(text,caption,values) = parameters // String,String,String_Collection
-      Return[S](Invalid(TNumber.typ),0 ndTo (CollectionSize[S](values) - 1))
+      Return[S](-1,0 ndTo (CollectionSize[S](values) - 1))
 
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */
     case "pick time" =>
