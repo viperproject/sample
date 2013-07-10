@@ -57,7 +57,7 @@ class TString extends AAny {
     /** Gets the length of the string */
     case "count" =>
       Dummy[S](this0,method)
-      Top[S](TNumber.typ)
+      Return[S](0 ndTo PositiveInfinity)
 
     /** Concatenates two pieces of text */
     case "concat" =>

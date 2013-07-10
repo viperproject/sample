@@ -409,6 +409,8 @@ class ApronInterface( val state: Option[Abstract1],
       var leftState = left.instantiateState()
       var rightState = right.instantiateState()
 
+      if (leftState == rightState) return new ApronInterface(Some(leftState),domain,env = left.getIds() ++ right.getIds())
+
       // First we compute the common variables.
       if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
         val commonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => rightState.getEnvironment.getVars.contains(v))

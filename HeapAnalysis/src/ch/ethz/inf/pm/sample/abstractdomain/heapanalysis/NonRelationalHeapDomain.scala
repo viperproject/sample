@@ -33,36 +33,41 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
   override def glb(l : HeapEnv[I], r : HeapEnv[I]):HeapEnv[I] = throw new UnsupportedOperationException("Use glbWithReplacement")
   override def widening(l : HeapEnv[I], r : HeapEnv[I]):HeapEnv[I] = throw new UnsupportedOperationException("Use wideningWithReplacement")
 
-  override def lubWithReplacement(l : HeapEnv[I], r : HeapEnv[I]):(HeapEnv[I],Replacement) = {
-
-    if (l.isBottom) return (r,new Replacement())
-    if (r.isBottom) return (l,new Replacement())
-
+  private def lubMergeSummaries(l: HeapEnv[I], r: HeapEnv[I]): (HeapEnv[I], HeapEnv[I], Replacement) = {
     val leftSummaryNodes = l.getIds collect { case x:I if !x.representSingleVariable() => x }
     val rightSummaryNodes = r.getIds collect { case x:I if !x.representSingleVariable() => x }
 
-    val makeSummaryLeft = rightSummaryNodes -- leftSummaryNodes
-    val makeSummaryRight = leftSummaryNodes -- rightSummaryNodes
+    val makeSummaryLeft = (rightSummaryNodes -- leftSummaryNodes).map(_.toNonSummaryNode)
+    val makeSummaryRight = (leftSummaryNodes -- rightSummaryNodes).map(_.toNonSummaryNode)
 
-    if (makeSummaryLeft.isEmpty && makeSummaryRight.isEmpty) return (super.lub(l,r),new Replacement())
+    if (makeSummaryLeft.isEmpty && makeSummaryRight.isEmpty) return (l, r, new Replacement())
 
-    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections..)
-    val makeSummaryLeftRef = l.getIds collect
-      { case x:I if !x.getReachableFromIds.intersect(makeSummaryLeft).isEmpty => x }
-    val makeSummaryRightRef = r.getIds collect
-      { case x:I if !x.getReachableFromIds.intersect(makeSummaryRight).isEmpty => x }
+    def collectReferences(nodes: Set[I], heapEnv: HeapEnv[I]): Set[I] = {
+      if (nodes.isEmpty) return nodes
+      val references = heapEnv.getIds collect { case x:I if !x.getReachableFromIds.intersect(nodes).isEmpty => x }
+      references ++ collectReferences(references, heapEnv)
+    }
+    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections, collection tuples)
+    val makeSummaryLeftRef = collectReferences(makeSummaryLeft, l)
+    val makeSummaryRightRef = collectReferences(makeSummaryRight, r)
 
     val replaceLeft = new Replacement
     for (a <- makeSummaryLeft ++ makeSummaryLeftRef)
-      replaceLeft.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
+      replaceLeft.value += (Set[Identifier](a) -> Set[Identifier](a.toSummaryNode))
     val replaceRight = new Replacement
     for (a <- makeSummaryRight ++ makeSummaryRightRef)
-      replaceRight.value += (Set[Identifier](a.toNonSummaryNode) -> Set[Identifier](a))
+      replaceRight.value += (Set[Identifier](a) -> Set[Identifier](a.toSummaryNode))
 
-    val result = super.lub(l.merge(replaceLeft), r.merge(replaceRight))
+    (l.merge(replaceLeft), r.merge(replaceRight), replaceLeft ++ replaceRight)
+  }
 
-    (result, replaceLeft ++ replaceRight)
+  override def lubWithReplacement(l : HeapEnv[I], r : HeapEnv[I]):(HeapEnv[I],Replacement) = {
+    if (l.isBottom) return (r,new Replacement())
+    if (r.isBottom) return (l,new Replacement())
 
+    val (left, right, rep) = lubMergeSummaries(l, r)
+    val result = super.lub(left, right)
+    (result, rep)
   }
 
   override def glbWithReplacement(l : HeapEnv[I], r : HeapEnv[I]):(HeapEnv[I],Replacement) = {
@@ -348,8 +353,8 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
   def createCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): I
   def getCollectionOverApproximation(collection:Assignable): I
   def getCollectionUnderApproximation(collection:Assignable): I
-  def createCollectionTuple(collectionApprox:Assignable, pp:ProgramPoint): I
-  def createCollectionTuple(collectionApprox:Assignable, pps:Set[ProgramPoint]): I
+  def createCollectionTuple(collectionApprox:Assignable, keyTyp: Type, valueTyp: Type, pp:ProgramPoint): I
+  def createCollectionTuple(collectionApprox:Assignable, keyTyp: Type, valueTyp: Type, pps:Set[ProgramPoint]): I
   def createCollectionTuple(collectionTuple1: Assignable, collectionTuple2: Assignable): I
   def getCollectionTupleByKey(collectionKey: Assignable): I
   def getCollectionTupleByValue(collectionValue: Assignable) : I
@@ -693,14 +698,14 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def insertCollectionElement(collectionApprox: Assignable, pp: ProgramPoint) = collectionApprox match{
-    case FieldAndProgramPoint(_, "overApproximation", _) =>
+    case FieldAndProgramPoint(x:CollectionIdentifier, "overApproximation", _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
 
       var result = this.factory()
       result.d1 = this.d1
       result.d2 = this.d2
 
-      val tupleId = dom.createCollectionTuple(collectionApproxId, pp)
+      val tupleId = dom.createCollectionTuple(collectionApproxId, x.keyTyp, x.valueTyp, pp)
 
       val newIds = result.heapEnv.get(collectionApproxId).add(tupleId)
       val newHeapEnv = result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds)
@@ -808,16 +813,25 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
       // create a summary node and replace the old object identifier with the summary node. Also return the
       // replacement so that it can be replaced in the semantic domain, too
 
-      val oldNodes = (getIds collect { case x:I if x.getReachableFromIds.contains(objectIdentifier) => x }) + objectIdentifier
+      def collectReachableNodes(node:I): Set[I] = {
+        val oldNodesCurrentLevel = getIds collect { case x:I if x.getReachableFromIds.contains(node) => x }
+        var oldNodes = Set[I](node)
+        for (n <- oldNodesCurrentLevel) {
+          oldNodes = oldNodes ++ collectReachableNodes(n)
+        }
+
+        oldNodes
+      }
+
+      val oldNodes = collectReachableNodes(objectIdentifier)
+
       val replacementMap = oldNodes.map({ x:I => (Set(x.asInstanceOf[Identifier]),Set(x.toSummaryNode.asInstanceOf[Identifier]))}).toMap
       val replacement = new Replacement(new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]() ++ replacementMap)
 
       val createdObject = cod.convert(objectIdentifier.toSummaryNode)
       val newHeapDomain = this.merge(replacement)
 
-
       (createdObject, newHeapDomain, replacement)
-
     }
   }
 
@@ -931,8 +945,8 @@ case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelatio
   def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = this
   def getCollectionOverApproximation(collection: Assignable) = this
   def getCollectionUnderApproximation(collection: Assignable) = this
-  def createCollectionTuple(collectionApprox:Assignable, pp:ProgramPoint) = this
-  def createCollectionTuple(collectionApprox:Assignable, pps:Set[ProgramPoint]) = this
+  def createCollectionTuple(collectionApprox:Assignable, keyTyp:Type, valueTyp:Type, pp:ProgramPoint) = this
+  def createCollectionTuple(collectionApprox:Assignable, keyTyp:Type, valueTyp:Type, pps:Set[ProgramPoint]) = this
   def createCollectionTuple(collectionTuple1: Assignable, collectionTuple2: Assignable) = this
   def getCollectionTupleByKey(collectionKey: Assignable) = this
   def getCollectionTupleByValue(collectionValue: Assignable) = this
