@@ -112,6 +112,7 @@ abstract class ScriptListings extends IteratorOverPrograms {
     val x = this.get()
     if (!x.haserrors) this.get().getCodeURL
     else ""
+  }
 
   def prepareMore() {
     scripts = scripts ::: getNextScripts
