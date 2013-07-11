@@ -103,7 +103,15 @@ abstract class ScriptListings extends IteratorOverPrograms {
   }
 
   override def hasNext()=hasMore;
-  override def next() : String = this.get().getCodeURL;
+
+  /**
+   * Due to the way this is implemented, this may return the empty string
+   * @return
+   */
+  override def next() : String = {
+    val x = this.get()
+    if (!x.haserrors) this.get().getCodeURL
+    else ""
 
   def prepareMore() {
     scripts = scripts ::: getNextScripts
