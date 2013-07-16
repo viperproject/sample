@@ -152,12 +152,27 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) : (HeapIdSetDomain[I], HeapAndAnotherDomain[N,H,I], Replacement) = {
-    val result = this.factory()
+    var result = this.factory()
     result.d1 = this.d1
     val (collectionIds, newHeap, rep) = this.d2.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, pp)
     result.d2 = newHeap
 
-    (collectionIds, HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), collectionIds, setCollectionLengthToZero(result)), rep)
+    def setCollectionLength(initial: HeapAndAnotherDomain[N,H,I], lengthTyp: Type)(collection:Assignable) = {
+      var result = initial
+      val collectionLength = result.d2.getCollectionLength(collection)
+
+      def createVariable(state: HeapAndAnotherDomain[N,H,I], lengthTyp:Type)(variable: Assignable) = {
+        applyToAssignable[T](variable, state, _.createVariable(_, lengthTyp))
+      }
+
+      result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), collectionLength, createVariable(result, lengthTyp))
+      result = setCollectionLengthToZero(result)(collection)
+      result
+    }
+
+    result = HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), collectionIds, setCollectionLength(result, lengthTyp))
+
+    (collectionIds, result, rep)
   }
 
   def insertCollectionElement(collection: Assignable, key: Expression, value: Expression, pp: ProgramPoint) = {
@@ -417,11 +432,14 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   private def setCollectionLengthFromCollection(initial: T, fromCollection: Assignable)(toCollection: Assignable) = {
     def setCollectionLength(initial: T, toCollection: Assignable)(a: Assignable) = a match{
       case lengthId: I =>
-        def f(state: T)(variable: Assignable) = applyToAssignable[T](variable, state, _.assign(_, lengthId))
+        def assignLength(state: T, lengthId: I)(variable: Assignable) = {
+          val result = state.createVariable(variable, lengthId.getType())
+          applyToAssignable[T](variable, result, _.assign(_, lengthId))
+        }
 
         val result = initial
         val lengthIds = result.d2.getCollectionLength(toCollection)
-        HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), lengthIds, f(result))
+        HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), lengthIds, assignLength(result, lengthId))
       case _ =>
         throw new SemanticException("This is not a collection length " + a.toString)
     }
@@ -436,9 +454,6 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val result = initial
 
     val lengthIds = result.d2.getCollectionLength(collection)
-
-    def createVar(initialState:N)(a:Assignable) = applyToAssignable[N](a, initialState, _.createVariable(_,a.getType()))
-    result.d1 = HeapIdSetFunctionalLifting.applyToSetHeapId(result.d1.factory(), lengthIds, createVar(result.d1))
 
     def setToZero(initialState:N)(a:Assignable) = applyToAssignable[N](a, initialState, _.assign(_, Constant("0", a.getType(), null)))
     result.d1 = HeapIdSetFunctionalLifting.applyToSetHeapId(result.d1.factory(), lengthIds, setToZero(result.d1))
