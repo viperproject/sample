@@ -4,6 +4,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of time
@@ -42,7 +43,10 @@ class STime extends AAny {
     /** Aborts the execution if the condition is false. */
     case "fail if not" =>
       val List(condition) = parameters // Boolean
-      Error[S](condition.not(),"fail if not","fail if not "+condition+" might fail")
+      if (TouchAnalysisParameters.printValuesInWarnings)
+        Error[S](condition.not(),"fail if not","fail if not "+condition+" might fail")
+      else
+        Error[S](condition.not(),"fail if not","fail if not might fail")
       Skip
 
     /** Appends this message to the debug log. Does nothing when the script is published. */

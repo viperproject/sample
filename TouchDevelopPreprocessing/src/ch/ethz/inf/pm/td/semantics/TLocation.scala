@@ -43,7 +43,7 @@ object TLocation {
 
   val typName = "Location"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_latitude,field_longitude,field_altitude,
-      field_speed, field_hor_accuracy,field_vert_accuracy))
+      field_speed, field_hor_accuracy,field_course,field_vert_accuracy))
 
 }
 

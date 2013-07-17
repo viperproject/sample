@@ -117,7 +117,12 @@ class TString extends AAny {
     case "last index of" =>
       Dummy[S](this0,method)
       val List(value,start) = parameters // String,Number
-      TopWithInvalid[S](TNumber.typ) 
+      TopWithInvalid[S](TNumber.typ)
+
+    /** Gets the groups from the matching the regex expression (pattern) */
+    case "match" =>
+      val List(pattern) = parameters // String
+      Top[S](TString_Collection.typ)
 
     /** Gets the strings matching the regex expression (pattern) */
     case "matches" =>

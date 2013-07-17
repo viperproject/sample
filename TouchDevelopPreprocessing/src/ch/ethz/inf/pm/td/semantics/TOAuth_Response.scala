@@ -44,7 +44,7 @@ object TOAuth_Response {
 
   val typName = "OAuth Response"
   val typ = new TouchType(typName,isSingleton = false,fields = List(field_access_token, field_expires_in, field_scope,
-    field_error, field_error_description, field_error_uri, field_others))
+    field_error, field_error_description, field_error_uri, field_others, field_is_error))
 
 }
 

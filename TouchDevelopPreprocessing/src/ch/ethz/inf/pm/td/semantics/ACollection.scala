@@ -45,7 +45,7 @@ abstract class ACollection extends AAny {
     /** Get random element */
     case "rand" =>
       If[S]( CollectionSize[S](this0) equal 0, Then = {
-        Return[S](Invalid(this0.getType()))(_,pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_,pp)
       }, Else = {
         Return[S](CollectionSummary[S](this0))(_,pp)
       })

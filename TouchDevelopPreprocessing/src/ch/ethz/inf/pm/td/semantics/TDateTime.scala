@@ -155,18 +155,12 @@ class TDateTime extends AAny {
       Top[S](TNumber.typ)
 
     /** Converts to the local time */
-    // case "to local time" =>
-    //   Top[S](TDateTime.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Converts to the local time */
-    //   val field_to_local_time = new TouchField("to local time",TDateTime.typName)
+    case "to local time" =>
+      Top[S](TDateTime.typ)
 
     /** Converts coordinated universal time */
-    // case "to universal time" =>
-    //   Top[S](TDateTime.typ)
-    // DECLARATION AS FIELD: 
-    //   /** Converts coordinated universal time */
-    //   val field_to_universal_time = new TouchField("to universal time",TDateTime.typName)
+    case "to universal time" =>
+      Top[S](TDateTime.typ)
 
     /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
     case "week day" =>

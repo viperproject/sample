@@ -461,6 +461,12 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         return typ.typeSymbol.name.decode.equals("Int") || typ.typeSymbol.name.decode.equals("Float") || typ.typeSymbol.name.decode.equals("Double");
       }
 
+      def isBooleanType() : Boolean = {
+        if(this.isTop) return true;
+        if(this.isBottom) return false;
+        return typ.typeSymbol.name.decode.equals("Bool");
+      }
+
       def isFloatingPointType() : Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;

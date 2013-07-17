@@ -43,7 +43,10 @@ object SBox {
   val field_foreground = new TouchField("foreground",TColor.typName)
   
   val field_border_color = new TouchField("border color",TColor.typName)
-  val field_border_width = new TouchField("border width",TNumber.typName)
+  val field_border_width_top = new TouchField("border width top",TNumber.typName)
+  val field_border_width_right = new TouchField("border width right",TNumber.typName)
+  val field_border_width_left = new TouchField("border width left",TNumber.typName)
+  val field_border_width_bottom = new TouchField("border width bottom",TNumber.typName)
   
   val field_height = new TouchField("height",TNumber.typName)
   val field_width = new TouchField("width",TNumber.typName)
@@ -57,6 +60,7 @@ object SBox {
   val field_horizontal_scrolling = new TouchField("horizontal scrolling ",TBoolean.typName)
   val field_vertical_scrolling = new TouchField("vertical scrolling",TBoolean.typName)
 
+  val field_overlay_layout = new TouchField("overlay layout",TBoolean.typName)
   val field_horizontal_layout = new TouchField("horizontal layout",TBoolean.typName)
   val field_vertical_layout = new TouchField("vertical layout",TBoolean.typName)
 
@@ -71,6 +75,7 @@ object SBox {
   val field_max_height = new TouchField("max height",TNumber.typName)
 
   // PRIVATE
+  val field_text_edited_handler = new TouchField("text edited handler",TText_Action.typName)
   val field_text_editing_handler = new TouchField("text editing handler",TText_Action.typName)
   val field_tapped_handler = new TouchField("tapped handler",TAction.typName)
 
@@ -95,7 +100,10 @@ object SBox {
       field_background,
       field_foreground,
       field_border_color,
-      field_border_width,
+      field_border_width_top,
+      field_border_width_right,
+      field_border_width_left,
+      field_border_width_bottom,
       field_height,
       field_width,
       field_page_width,
@@ -104,6 +112,7 @@ object SBox {
       field_text_wrapping_minimumwidth,
       field_horizontal_scrolling,
       field_vertical_scrolling,
+      field_overlay_layout,
       field_horizontal_layout,
       field_vertical_layout,
       field_horizontal_stretch,
@@ -112,6 +121,7 @@ object SBox {
       field_max_width,
       field_min_height,
       field_max_height,
+      field_text_edited_handler,
       field_text_editing_handler,
       field_tapped_handler
   ))
@@ -163,8 +173,12 @@ class SBox extends AAny {
       curState = AssignField[S](this0,SBox.field_left_padding,left)(curState,pp)
       curState
 
+    /** Arrange boxes inside this box as layers on top of each other. */
+    case "use overlay layout" =>
+      AssignField[S](this0,SBox.field_overlay_layout,True)
+
     case "use horizontal layout" =>
-      AssignField[S](this0,SBox.field_vertical_layout,True)
+      AssignField[S](this0,SBox.field_horizontal_layout,True)
 
     case "use vertical layout" =>
       AssignField[S](this0,SBox.field_vertical_layout,True)
@@ -176,8 +190,13 @@ class SBox extends AAny {
 
     /** Display editable text, with the given binding. */
     case "edit" =>
-       val List(style,value,changehandler) = parameters // String,String,Text_Action
+      val List(style,value,changehandler) = parameters // String,String,Text_Action
       AssignField[S](this0,SBox.field_text_editing_handler,changehandler)
+
+    /** Set what happens when the user has finished editing the text in the box. */
+    case "on text edited" =>
+      val List(handler) = parameters // Text_Action
+      AssignField[S](this0,SBox.field_text_edited_handler,handler)
 
     /** Set what happens whenever the text in the box is being edited. */
     case "on text editing" =>
@@ -194,8 +213,22 @@ class SBox extends AAny {
       val List(color,width) = parameters // Color,Number
       var curState = state
       curState = AssignField[S](this0,SBox.field_border_color,color)(curState,pp)
-      curState = AssignField[S](this0,SBox.field_border_width,width)(curState,pp)
+      curState = AssignField[S](this0,SBox.field_border_width_top,width)(curState,pp)
+      curState = AssignField[S](this0,SBox.field_border_width_right,width)(curState,pp)
+      curState = AssignField[S](this0,SBox.field_border_width_bottom,width)(curState,pp)
+      curState = AssignField[S](this0,SBox.field_border_width_left,width)(curState,pp)
       curState
+
+    /** Set the width of each border. */
+    case "set border widths" =>
+      val List(top,right,bottom,left) = parameters // Number,Number,Number,Number
+      var curState = state
+      curState = AssignField[S](this0,SBox.field_border_width_top,top)(curState,pp)
+      curState = AssignField[S](this0,SBox.field_border_width_right,right)(curState,pp)
+      curState = AssignField[S](this0,SBox.field_border_width_bottom,bottom)(curState,pp)
+      curState = AssignField[S](this0,SBox.field_border_width_left,left)(curState,pp)
+      curState
+
 
     /** Set lower and upper limits on the height of this box. */
     case "set height range" =>

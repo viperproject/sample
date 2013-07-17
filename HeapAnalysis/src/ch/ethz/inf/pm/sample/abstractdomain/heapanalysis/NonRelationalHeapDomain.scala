@@ -787,7 +787,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def getUnreachableHeap:Set[I] = {
-    ReachabilityAnalysis.getUnreachableLocations(env,heap)
+    ReachabilityAnalysis.getUnreachableLocations(d1,d2)
   }
 
 

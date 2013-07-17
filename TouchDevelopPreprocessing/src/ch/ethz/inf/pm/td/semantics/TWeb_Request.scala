@@ -25,6 +25,7 @@ object TWeb_Request {
 
   /** Reads the response body as a picture */
   val field_content_as_picture = new TouchField("content as picture",TPicture.typName)
+  val field_content_as_picture_quality = new TouchField("content as picture",TPicture.typName)
 
   /** Reads the response body as a picture */
   val field_content_as_form = new TouchField("content as form",TForm_Builder.typName)
@@ -52,7 +53,8 @@ object TWeb_Request {
 
   val typName = "Web Request"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_header_storage, field_method, field_url,
-    field_content, field_content_as_json, field_content_as_picture, field_content_as_xml, field_content_as_form,
+    field_content, field_content_as_json, field_content_as_picture, field_content_as_picture_quality,
+    field_content_as_xml, field_content_as_form,
     field_credentials_name, field_credentials_password,field_handler))
 
 }
@@ -103,6 +105,14 @@ class TWeb_Request extends AAny {
     case "set compress" =>
       val List(value) = parameters // Boolean
       CollectionInsert(Field[S](this0,TWeb_Request.field_header_storage),String("Content-Encoding"),value)
+
+    /** Sets the content of a 'post' request as a JPEG encoded image. Quality from 0 (worse) to 1 (best). */
+    case "set content as picture" =>
+      val List(pic,quality) = parameters // Picture,Number
+      var curState = state
+      curState = AssignField[S](this0,TWeb_Request.field_content_as_picture,pic)(curState,pp)
+      curState = AssignField[S](this0,TWeb_Request.field_content_as_picture_quality,quality)(curState,pp)
+      curState
 
     /** Sets the name and password for basic authentication. Requires an HTTPS URL, empty string clears. */
     case "set credentials" =>

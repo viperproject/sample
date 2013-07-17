@@ -47,12 +47,20 @@ object RichNativeSemantics {
   }
 
   def CheckInRangeInclusive[S <: State[S]](expr:RichExpression, low:RichExpression, high:RichExpression, method:String, parameter:String)(implicit s:S, pp:ProgramPoint):S = {
-    val state1 = Error(expr < low,method+": Parameter "+parameter+" ("+expr+") may be less than the lowest allowed value ("+low+")")(s,pp)
-    Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be greater than the highest allowed value "+high+")")(state1,pp)
+    if(TouchAnalysisParameters.printValuesInWarnings) {
+      val state1 = Error(expr < low,method+": Parameter "+parameter+" ("+expr+") may be less than the lowest allowed value ("+low+")")(s,pp)
+      Error(expr > high,method+": Parameter "+parameter+" ("+expr+") may be greater than the highest allowed value "+high+")")(state1,pp)
+    } else {
+      val state1 = Error(expr < low,method+": Parameter "+parameter+" may be less than the lowest allowed value")(s,pp)
+      Error(expr > high,method+": Parameter "+parameter+" may be greater than the highest allowed value")(state1,pp)
+    }
   }
 
   def CheckNonNegative[S <: State[S]](expr:RichExpression, method:String, parameter:String)(implicit s:S, pp:ProgramPoint):S = {
-    Error(expr < 0,method+": Parameter "+parameter+" ("+expr+") may negative")(s,pp)
+    if(TouchAnalysisParameters.printValuesInWarnings)
+      Error(expr < 0,method+": Parameter "+parameter+" ("+expr+") may be negative")(s,pp)
+    else
+      Error(expr < 0,method+": Parameter "+parameter+" may be negative")(s,pp)
   }
 
   def If[S <: State[S]](expr:RichExpression, Then: S => S, Else: S => S)(implicit state:S, pp:ProgramPoint):S = {

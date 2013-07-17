@@ -7,7 +7,7 @@ import net.liftweb.json.JsonAST.{JArray, JField, JObject}
  * Parses the new JSON based API description an generates semantic templates
  */
 
-val url = "https://www.touchdevelop.com/api/language/apis?releaseid=2520367591921199337-1b0ee8a7.10c7.4d91.a1b2.b6159b9db272-42803"
+val url = "https://www.touchdevelop.com/api/language/apis"
 val json = parse(fetchFile(url))
 
 // save for diffing

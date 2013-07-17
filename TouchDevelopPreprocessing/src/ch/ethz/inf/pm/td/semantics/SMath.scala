@@ -195,6 +195,11 @@ class SMath extends AAny {
     case "random normalized" =>
       Return[S](toRichExpression(0) ndTo toRichExpression(1-NumericalAnalysisConstants.epsilon))
 
+    /** Returns a random integral number between `min` and `max` included. */
+    case "random range" =>
+      val List(min,max) = parameters // Number,Number
+      Return[S](min ndTo max)
+
     /** Rounds a number to the nearest integral value */
     case "round" =>
       val List(x) = parameters // Number

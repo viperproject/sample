@@ -60,14 +60,14 @@ object MethodSummaries {
         summaries.get(identifyingPP) match {
           case Some((_,_,prevExecution)) =>
 
-            val prevExitState = prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState()
+            var prevExitState = prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState()
             val exitedState = exitFunction(callPoint,callTarget,prevExitState,parameters)
             val localState = pruneGlobalState(entryState)
 
             // We immediately widen the entrystate for now
             entryState.widening(localState,exitedState)
 
-          case None => entryState
+          case None => entryState.bottom()
         }
 
       case None =>
@@ -278,11 +278,12 @@ object MethodSummaries {
 
     def buildMultiVal(tempVars:List[VariableIdentifier]): Expression = tempVars match {
       case x :: Nil => x
-      case x :: xs => MultiValExpression(x,buildMultiVal(xs),TUnknown.typ)
+      case x :: xs => MultiValExpression(x,buildMultiVal(xs),TUnknown.typ.top())
       case Nil => UnitExpression(TNothing.typ,callPoint)
     }
 
-    curState = curState.setExpression(new ExpressionSet(TUnknown.typ.top()).add(buildMultiVal(tempVars)))
+    val z = buildMultiVal(tempVars)
+    curState = curState.setExpression(new ExpressionSet(z.getType()).add(z))
 
     // Prune local state (except return values)
     curState = curState.pruneVariables({

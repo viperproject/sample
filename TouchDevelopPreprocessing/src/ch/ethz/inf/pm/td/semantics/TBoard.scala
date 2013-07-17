@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * @author Lucas Brutschy
@@ -37,6 +38,15 @@ object TBoard {
   /**  The uniform y acceleration for objects on the board to pixels/sec2 */
   val field_gravity_y = new TouchField("gravity y",TNumber.typName)
 
+  /** Gets a value indicating if the board is designed to be viewed in landscape mode */
+  val field_is_landscape = new TouchField("is landscape",TBoolean.typName)
+
+  /** [**dbg**] Read the current position of virtual joystick */
+  val field_joystick = new TouchField("joystick",TVector3.typName) // TODO: What is this and does it change?
+
+  /** [**dbg**] joystick (default), wheel, balance, drag or swipe. */
+  val field_joystick_profile = new TouchField("set joystick profile",TVector3.typName)
+
   /** String name of the type */
   val typName = "Board"
 
@@ -49,7 +59,10 @@ object TBoard {
     field_debug_mode,
     field_friction,
     field_gravity_x,
-    field_gravity_y
+    field_gravity_y,
+    field_is_landscape,
+    field_joystick,
+    field_joystick_profile
   ))
 
 }
@@ -81,11 +94,10 @@ class TBoard extends AMutable_Collection {
       val state3 = state2.setExpression(obj)
       state3
 
-
     // Create walls around the board at the given distance.
     case "create boundary" =>
       val List(distance) = parameters
-      Skip // TODO: What?
+      Skip
 
     // Create a new ellipse sprite.
     case "create ellipse" =>
@@ -103,12 +115,13 @@ class TBoard extends AMutable_Collection {
     // Create a line obstacle with given start point, and given extent. Elasticity is 0 for sticky, 1 for complete bounce.
     case "create obstacle" =>
       val List(x, y, x_segment, y_segment, elasticity) = parameters
-      // Range check x
-      // Range check y
-      // Range check x_segment
-      // Range check y_segment
-      // Elasticity
-      // TODO: What to do with this?
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](x,0,Field[S](this0,TBoard.field_width),"create obstacle","x")
+        CheckInRangeInclusive[S](y,0,Field[S](this0,TBoard.field_height),"create obstacle","y")
+        CheckInRangeInclusive[S](x_segment,0,Field[S](this0,TBoard.field_width)-x,"create obstacle","x_segment")
+        CheckInRangeInclusive[S](y_segment,0,Field[S](this0,TBoard.field_width)-y,"create obstacle","y_segment")
+        CheckInRangeInclusive[S](elasticity,0,1,"create obstacle","elasticity")
+      }
       Skip
 
     // Create a new picture sprite.
@@ -139,7 +152,7 @@ class TBoard extends AMutable_Collection {
     // Create a spring between the two sprites.
     case "create spring" =>
       val List(sprite1, sprite2, stiffness) = parameters
-      Skip // TODO: What to do with this? Return Nothing. Check range of stiffness?
+      Skip
 
     // Create a new collection for sprites.
     case "create sprite set" =>
@@ -162,37 +175,19 @@ class TBoard extends AMutable_Collection {
     case "evolve" =>
       Skip // TODO: Modify sprites (or unified sprite)
 
-    // Sets the background color
-    case "set background" =>
-      val List(background) = parameters
-      AssignField(this0,TBoard.field_background,background)
-
-    // Sets the background camera
-    case "set background camera" =>
-      val List(background_camera) = parameters
-      AssignField(this0,TBoard.field_background_camera,background_camera)
-
-    // Sets the background picture
-    case "set background picture" =>
-      val List(background_picture) = parameters
-      AssignField(this0,TBoard.field_background_picture,background_picture)
-
-    // In debug mode, board displays speed and other info of sprites
-    case "set debug mode" =>
-      val List(debug_mode) = parameters
-      AssignField(this0,TBoard.field_debug_mode,debug_mode)
-
     // Sets the default friction for sprites to a fraction of speed loss between 0 and 1
     case "set friction" =>
       val List(friction) = parameters
-      // TODO: Check friction
+      if(TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](friction,0,1,"set friction","friction")
+      }
       AssignField(this0,TBoard.field_friction,friction)
 
     // Sets the uniform acceleration vector for objects on the board to pixels/sec^2
     case "set gravity" =>
       val List(gravity_x,gravity_y) = parameters
-      AssignField(this0,TBoard.field_gravity_x,gravity_x) // FIXME: Effect lost
-      AssignField(this0,TBoard.field_gravity_y,gravity_y)
+      val s = AssignField(this0,TBoard.field_gravity_x,gravity_x)
+      AssignField(this0,TBoard.field_gravity_y,gravity_y)(s,pp)
 
     // Current touch point
     case "touch current" =>
@@ -209,7 +204,6 @@ class TBoard extends AMutable_Collection {
         TVector3.field_y -> (0 ndTo Field[S](this0,TBoard.field_height)),
         TVector3.field_z -> 0
       ))
-      // TODO: Can this be invalid?
 
     // Last touch start point
     case "touch start" =>
@@ -218,7 +212,6 @@ class TBoard extends AMutable_Collection {
         TVector3.field_y -> (0 ndTo Field[S](this0,TBoard.field_height)),
         TVector3.field_z -> 0
       ))
-      // TODO: Can this be invalid?
 
     // Final touch velocity after touch ended
     case "touch velocity" =>
@@ -227,7 +220,6 @@ class TBoard extends AMutable_Collection {
         TVector3.field_y -> Valid(TNumber.typ),
         TVector3.field_z -> 0
       ))
-      // TODO: Can this be invalid?
 
     // True if board is touched
     case "touched" =>

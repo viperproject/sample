@@ -119,7 +119,7 @@ object CFGGenerator {
           typeName match {
             case "object" =>
 
-              val objectTyp = new TouchType(ident,fields = (createFieldMembers(fields) map (_._1)))
+              val objectTyp = new TouchType(ident,fields = createFieldMembers(fields) map (_._1))
               val collectionTyp = new TouchCollection(ident+" Collection",TNumber.typName,ident)
               val constructorTyp = new TouchType(ident+" Constructor")
 
@@ -131,11 +131,17 @@ object CFGGenerator {
 
             case "table" =>
 
-              val rowTyp = new TouchType(ident,fields = (createFieldMembers(fields) map (_._1)))
-              val tableTyp = new TouchCollection(ident+" Table",TNumber.typName,rowTyp.getName())
+              val rowTypName = ident
+              val tableTypeName = ident+" Table"
 
-              addTouchType(new ARow(rowTyp))
-              addTouchType(new ATable(tableTyp,rowTyp))
+              // An auxiliary field that stores a link from the row to the table, to implement row.delete_row
+              val tableField = new TouchField("*table",tableTypeName)
+
+              val rowTyp = new TouchType(ident,fields = (createFieldMembers(fields) map (_._1)) ::: List(tableField))
+              val tableTyp = new TouchCollection(tableTypeName,TNumber.typName,rowTypName)
+
+              addTouchType(new ARow(rowTyp,tableField))
+              addTouchType(new ATable(tableTyp,rowTyp,tableField))
 
               addRecordsField(new TouchField(ident+" table",tableTyp.getName()))
 
@@ -573,6 +579,7 @@ class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Bo
   def isBottomExcluding(types: Set[Type]) = false
 
   def isObject() = (!isNumericalType())
+  def isBooleanType() = (name == "Boolean")
   def isNumericalType() = (name == "Number") || (name == "Boolean")
   def isFloatingPointType() = (name == "Number")
   def isStringType() = (name == "String")

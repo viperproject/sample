@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoi
 import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * User: Lucas Brutschy
@@ -41,12 +42,18 @@ abstract class AAny extends NativeMethodSemantics {
         if(operator != "is invalid" && operator != ":=" && operator != ",") {
           if (!thisExpr.getType().isStatic()) {
             if (thisExpr.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
-              curState = Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator,  "Object ("+thisExpr+") whose field/method is accessed might be invalid")(curState,pp)
+              if (TouchAnalysisParameters.printValuesInWarnings)
+                curState = Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator,  "Object ("+thisExpr+") whose field/method is accessed might be invalid")(curState,pp)
+              else
+                curState = Error(thisExpr equal Invalid(thisExpr.getType())(pp), operator,  "Object whose field/method is accessed might be invalid")(curState,pp)
             }
           }
           for (param <- parameters) {
             if (param.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
-              curState = Error(param equal Invalid(param.getType())(pp), operator, "Parameter ("+param+") might be invalid")(curState,pp)
+              if (TouchAnalysisParameters.printValuesInWarnings)
+                curState = Error(param equal Invalid(param.getType())(pp), operator, "Parameter ("+param+") might be invalid")(curState,pp)
+              else
+                curState = Error(param equal Invalid(param.getType())(pp), operator, "Parameter might be invalid")(curState,pp)
             }
           }
         }

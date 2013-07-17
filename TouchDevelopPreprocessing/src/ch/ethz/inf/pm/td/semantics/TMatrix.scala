@@ -35,6 +35,10 @@ class TMatrix extends AMutable_Collection {
                                      (implicit pp:ProgramPoint,state:S):S = method match {
 
 
+    /** Creates a deep copy of the matrix. */
+    case "clone" =>
+      Clone[S](this0,recursive = true)
+
     /** Gets the value at a given location. Returns invalid if outside of the array dimensions */
     case "at2" =>
       val List(row,column) = parameters // Number,Number

@@ -134,6 +134,21 @@ class ApronInterface( val state: Option[Abstract1],
 
   override def assign(variable: Identifier, expr: Expression): ApronInterface = {
 
+    if (variable.getType().isBooleanType() && !expr.isInstanceOf[Constant]) {
+
+      // For state S, boolean variable X and boolean expression E we compute
+      //       S.assume(E).assign(X,1) |_| S.assume(!E).assign(X,0)
+      // THIS IS NOT PRECISE BUT GIVES AT LEAST SOME SUPPORT FOR BOOLEANS
+
+      val tru = Constant("1",variable.getType(),variable.getProgramPoint())
+      val fal = Constant("0",variable.getType(),variable.getProgramPoint())
+
+      val state1 = assume(expr).assign(variable,tru)
+      val state2 = assume(new NegatedBooleanExpression(expr)).assign(variable,fal)
+
+      lub(state1,state2)
+
+    } else
     if (variable.getType().isNumericalType()) {
 
       if (!getIds().contains(variable)) {
@@ -193,7 +208,12 @@ class ApronInterface( val state: Option[Abstract1],
           val rightSummaryNodesNames = (rightSummaryNodes map (_.toString)).toArray
           val newSummaryNodeNames = rightSummaryNodesNames map (_ + "__TEMP")
           val materializedState = assignedState.renameCopy(domain,rightSummaryNodesNames,newSummaryNodeNames)
-          val summaryState = new ApronInterface(Some(newState),domain, env = env).removeVariable(variable).instantiateState()
+
+          val summaryState =
+            if (variable.representSingleVariable())
+              new ApronInterface(Some(newState),domain, env = env).removeVariable(variable).instantiateState()
+            else
+              new ApronInterface(Some(newState),domain, env = env).instantiateState()
 
           val resultState = lub(
             new ApronInterface(Some(materializedState),domain, env = env),

@@ -238,6 +238,11 @@ trait Type extends Lattice[Type] {
   def isFloatingPointType() : Boolean
 
   /**
+   * This method returns <code>true</code> if and only if the current type represents a boolean type
+   */
+  def isBooleanType() : Boolean
+
+  /**
    * This method returns true if and only if the current type represents a string type
    */
   def isStringType() : Boolean

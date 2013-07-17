@@ -237,6 +237,11 @@ class SWeb extends AAny {
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TLink_Collection.typ)
 
+    /** Search phone numbers near a location using Bing. Distance in meters, negative to ignore. */
+    case "search phone numbers nearby" =>
+      val List(query,location,distance) = parameters // String,Location,Number
+      TopWithInvalid[S](TLink_Collection.typ)
+
     /** Uploads text to an internet page (http post) */
     case "upload" =>
       val List(url,body) = parameters // String,String

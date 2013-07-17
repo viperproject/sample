@@ -34,14 +34,15 @@ object TSong_Album {
   /** Gets the name of the album */
   val field_name = new TouchField("name",TString.typName)
 
-  /** Gets the songs. TODO */
-  /*val field_songs:TouchField = new TouchField("songs",TSongs.typName)*/
+  /** Gets the songs */
+  val field_songs = new TouchField("songs",TSongs.typName)
 
   /** Gets the thumbnail picture */
   val field_thumbnail = new TouchField("thumbnail",TPicture.typName)
 
   val typName = "Song Album"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_art, field_artist, field_duration, field_genre, field_has_art, field_name, /*field_songs,*/ field_thumbnail))
+  val typ = new TouchType(typName,isSingleton = false, fields = List(field_art, field_artist, field_duration,
+    field_genre, field_has_art, field_name, field_songs, field_thumbnail))
 
 }
 

@@ -89,4 +89,10 @@ object TouchAnalysisParameters {
 
   val warnPrematurelyOnInternetAccess = false
 
+  /**
+   * If this is true, the analysis will print something like "parameter X ("somevalue",invalid) may be invalid"
+   * This is helpful, but may confuse users and duplicate warnings
+   */
+  val printValuesInWarnings = false
+
 }

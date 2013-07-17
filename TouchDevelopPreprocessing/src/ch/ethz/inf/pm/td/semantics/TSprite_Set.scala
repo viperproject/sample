@@ -31,12 +31,14 @@ class TSprite_Set extends AMutable_Collection {
       Top[S](TBoolean.typ)(state1,pp)
 
     /** Add sprite to set and remove from old set. Returns true if sprite was in old set and not in new set. */
-    //case "add from" =>
-    //  val List(old_set,sprite) = parameters // Sprite_Set,Sprite
-    //  New[S](TBoolean.typ) // TODO
-
-    case "contains" =>
-      Top[S](TBoolean.typ)
+    case "add from" =>
+      val List(old_set,sprite) = parameters // Sprite_Set,Sprite
+      var curState = state
+      curState = CallApi[S](this0,"add",List(sprite),TNothing.typ)(curState,pp)
+      val resultA = curState.getExpression()
+      curState = CallApi[S](old_set,"remove",List(sprite),TBoolean.typ)(curState,pp)
+      val resultB = curState.getExpression()
+      Return[S](resultA && resultB)
 
     case "index of" =>
       val List(item) = parameters

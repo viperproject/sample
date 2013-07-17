@@ -859,6 +859,7 @@ object InterfaceTestRun {
     SystemParameters.setAnalysisOutput(new StringCollector)
     SystemParameters.setProgressOutput(new StringCollector)
     SystemParameters.compiler.reset()
+    SystemParameters.resetNativeMethodsSemantics()
     val classes = try {
       SystemParameters.compilerTimer.start()
       SystemParameters.compiler.compileFile(url)

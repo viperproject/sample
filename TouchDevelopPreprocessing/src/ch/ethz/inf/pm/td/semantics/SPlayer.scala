@@ -45,9 +45,14 @@ object SPlayer {
   /** Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */
   val field_sound_volume = new TouchField("sound volume",TNumber.typName)
 
-  val typName = "Player"
-  val typ = new TouchType(typName,isSingleton = true, fields = List(field_active_song, field_is_muted, field_is_paused, field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume))
+  /** Volume is no longer supported. */
+  val field_volume = new TouchField("volume",TNumber.typName)
 
+  val typName = "Player"
+  val typ = new TouchType(typName,isSingleton = true, fields = List(field_active_song, field_is_muted, field_is_paused,
+    field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume,
+    field_volume
+  ))
 }
 
 class SPlayer extends AAny {
@@ -82,9 +87,9 @@ class SPlayer extends AAny {
     //   Skip;
 
     /** Plays a collection of songs */
-    // case "play many" =>
-    //   val List(songs) = parameters // Songs
-    //   Skip;
+    case "play many" =>
+      val List(songs) = parameters // Songs
+      AssignField[S](this0,SPlayer.field_active_song,CollectionSummary[S](songs))
 
     /** Moves to the previous song in the queue of playing songs */
     case "previous" =>
