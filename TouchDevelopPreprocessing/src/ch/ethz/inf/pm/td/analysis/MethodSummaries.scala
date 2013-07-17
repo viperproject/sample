@@ -60,7 +60,7 @@ object MethodSummaries {
         summaries.get(identifyingPP) match {
           case Some((_,_,prevExecution)) =>
 
-            var prevExitState = prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState()
+            val prevExitState = prevExecution.asInstanceOf[ControlFlowGraphExecution[S]].exitState()
             val exitedState = exitFunction(callPoint,callTarget,prevExitState,parameters)
             val localState = pruneGlobalState(entryState)
 
@@ -146,14 +146,16 @@ object MethodSummaries {
   def getSummaries = summaries
 
   private def executeMethod[S <: State[S]](entryState:S, callType:ClassDefinition, callTarget:MethodDeclaration, cfgEx:ControlFlowGraphExecution[S]):ControlFlowGraphExecution[S] = {
-    val callContext = (SystemParameters.currentMethod,SystemParameters.currentCFG,SystemParameters.typ)
+    val callContext = (SystemParameters.currentMethod,SystemParameters.currentCFG,SystemParameters.currentClass,SystemParameters.typ)
     SystemParameters.typ = callType.typ
+    SystemParameters.currentClass = callType.typ
     SystemParameters.currentCFG = callTarget.body
     SystemParameters.currentMethod = callTarget.name.toString
     //SystemParameters.progressOutput.begin("METHOD: "+callTarget.name)
     val newState = cfgEx.forwardSemantics(entryState)
     //SystemParameters.progressOutput.end()
-    SystemParameters.typ = callContext._3
+    SystemParameters.typ = callContext._4
+    SystemParameters.currentClass = callContext._3
     SystemParameters.currentCFG = callContext._2
     SystemParameters.currentMethod = callContext._1
     newState

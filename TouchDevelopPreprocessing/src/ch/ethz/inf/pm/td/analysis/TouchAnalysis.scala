@@ -178,8 +178,10 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
     // Check properties on the results
     if (SystemParameters.property!=null) {
-      val results = MethodSummaries.getSummaries.values map
-        {(x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) => (x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])}
+      val results = MethodSummaries.getSummaries.values map {
+        (x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) =>
+          (x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])
+      }
       SystemParameters.propertyTimer.start()
       SystemParameters.property.check(results.toList, output)
       SystemParameters.property.finalizeChecking(output)

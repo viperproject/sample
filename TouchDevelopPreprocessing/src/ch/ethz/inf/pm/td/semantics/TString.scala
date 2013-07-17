@@ -37,14 +37,12 @@ class TString extends AAny {
     /** Gets the character at a specified index */
     case "at" =>
       val List(index) = parameters // Number
-      Reporter.reportImprecision("String bounds are unchecked in this version of the analysis!",pp)
       Dummy[S](this0,method)
       Top[S](TString.typ)
 
     /** Gets the character at a specified index */
     case "at index" =>
       val List(index) = parameters // Number
-      Reporter.reportImprecision("String bounds are unchecked in this version of the analysis!",pp)
       Dummy[S](this0,method)
       Top[S](TString.typ)
 

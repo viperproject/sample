@@ -95,4 +95,7 @@ object TouchAnalysisParameters {
    */
   val printValuesInWarnings = false
 
+  /** do not report errors in libraries */
+  val reportOnlyAlarmsInMainScript = true
+
 }

@@ -85,8 +85,7 @@ class TSprite extends AAny {
     /** Are these the same sprite */
     case "equals" =>
       val List(other) = parameters // Sprite
-      if(TouchAnalysisParameters.reportDummyImplementations)
-        Reporter.reportDummy("Sprite.equals",pp)
+      Dummy[S](this0,method)
       Top[S](TBoolean.typ)
 
     /** Hide sprite. */
@@ -122,15 +121,13 @@ class TSprite extends AAny {
     /** Returns the subset of sprites in the given set that overlap with sprite. */
     case "overlap with" =>
       val List(sprites) = parameters // Sprite_Set
-      if(TouchAnalysisParameters.reportDummyImplementations)
-        Reporter.reportDummy("Sprite.overlap with",pp)
+      Dummy[S](this0,method)
       Top[S](TSprite_Set.typ)
 
     /** Do the sprites overlap */
     case "overlaps with" =>
       val List(other) = parameters // Sprite
-      if(TouchAnalysisParameters.reportDummyImplementations)
-        Reporter.reportDummy("Sprite.overlaps with",pp)
+      Dummy[S](this0,method)
       Top[S](TBoolean.typ)
 
     /** Sets the acceleration in pixels/sec^2 */
@@ -168,8 +165,7 @@ class TSprite extends AAny {
     /** Sets sprite speed direction towards other sprite with given magnitude. */
     case "speed towards" =>
       val List(other,magnitude) = parameters // Sprite,Number
-      if(TouchAnalysisParameters.reportDummyImplementations)
-        Reporter.reportDummy("Sprite.speed towards",pp)
+      Dummy[S](this0,method)
       var curState = state
       curState = AssignField[S](this0,TSprite.field_speed_x,Valid(TNumber.typ))(curState,pp)
       curState = AssignField[S](this0,TSprite.field_speed_y,Valid(TNumber.typ))(curState,pp)
