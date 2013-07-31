@@ -148,38 +148,43 @@ class ApronInterface( val state: Option[Abstract1],
 
       lub(state1,state2)
 
-    } else
-    if (variable.getType().isNumericalType()) {
+    } else if (variable.getType().isNumericalType()) {
 
-      if (!getIds().contains(variable)) {
-        //println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
-        //return bottom()
-      }
+      //if (!getIds().contains(variable)) {
+      //  println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
+      //  return bottom()
+      //}
 
       nondeterminismWrapper(expr, this, (someExpr, someState) => {
 
-        // Create variable if it does not exist
+        // (1) Create left side variable if it does not exist
         var newState = someState.instantiateState()
         if (!newState.getEnvironment.hasVar(variable.getName())) {
           val env = addToEnvironment(newState.getEnvironment, variable.getType(), variable.getName())
           newState = newState.changeEnvironmentCopy(domain, env, false)
         }
 
+        // (2) Create right side variables which do not exist
         // Not all declared variables will be represented in APRON. This creates top values for all variables
         // that are currently not declared
         var newEnv = newState.getEnvironment
         for (id <- Normalizer.getIdsForExpression(someExpr)) {
-          if (!someState.getIds().contains(id)) {
-            //println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
-            //return bottom()
-          }
+
+          //if (!someState.getIds().contains(id)) {
+          //  println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
+          //  return bottom()
+          //}
+
           if (!newEnv.hasVar(id.getName())) {
             newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
           }
-        }
-        if (newEnv != newState.getEnvironment)
-          newState = newState.changeEnvironmentCopy(domain, newEnv, false)
 
+        }
+        if (newEnv != newState.getEnvironment) {
+          newState = newState.changeEnvironmentCopy(domain, newEnv, false)
+        }
+
+        // (3) Perform a strong update on the state
         val expr = this.toTexpr1Intern(someExpr, newState.getEnvironment)
         val assignedState =
           if (expr.size > 1) {
@@ -194,8 +199,14 @@ class ApronInterface( val state: Option[Abstract1],
             throw new ApronException("Empty expression set created")
           }
 
-        // Handling of summary nodes. If the right side contains one or more summary nodes, create copies of those
-        // values by
+        // (4) Handling of summary nodes on the right side
+        // If variable is a summary node, perform weak update by computing S[x<-v] |_| S
+        if (!variable.representSingleVariable()) {
+          assignedState.join(domain,newState)
+        }
+
+        // (5) Handling of summary nodes on the left side
+        // If the right side contains one or more summary nodes, create copies of those values by
         //   (1) Rename all appearing summary nodes in the resulting state (assignedState), call result (materializedState)
         //   (2) Remove the left side from the original state (someState), call result (summaryState)
         //   (3) Compute the least upper bound of materializedState and summaryState
@@ -209,11 +220,7 @@ class ApronInterface( val state: Option[Abstract1],
           val newSummaryNodeNames = rightSummaryNodesNames map (_ + "__TEMP")
           val materializedState = assignedState.renameCopy(domain,rightSummaryNodesNames,newSummaryNodeNames)
 
-          val summaryState =
-            if (variable.representSingleVariable())
-              new ApronInterface(Some(newState),domain, env = env).removeVariable(variable).instantiateState()
-            else
-              new ApronInterface(Some(newState),domain, env = env).instantiateState()
+          val summaryState = new ApronInterface(Some(newState),domain, env = env).removeVariable(variable).instantiateState()
 
           val resultState = lub(
             new ApronInterface(Some(materializedState),domain, env = env),
@@ -240,10 +247,10 @@ class ApronInterface( val state: Option[Abstract1],
       if (!id.getType().isNumericalType()) {
         return this
       }
-      if (!getIds().contains(id)) {
-        //println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
-        //return bottom()
-      }
+      //if (!getIds().contains(id)) {
+      //  println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
+      //  return bottom()
+      //}
     }
 
     // Check if we just assume if something is invalid - we dont know that here
