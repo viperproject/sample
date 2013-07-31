@@ -152,8 +152,8 @@ class ApronInterface( val state: Option[Abstract1],
     if (variable.getType().isNumericalType()) {
 
       if (!getIds().contains(variable)) {
-        println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
-        return bottom()
+        //println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
+        //return bottom()
       }
 
       nondeterminismWrapper(expr, this, (someExpr, someState) => {
@@ -170,8 +170,8 @@ class ApronInterface( val state: Option[Abstract1],
         var newEnv = newState.getEnvironment
         for (id <- Normalizer.getIdsForExpression(someExpr)) {
           if (!someState.getIds().contains(id)) {
-            println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
-            return bottom()
+            //println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
+            //return bottom()
           }
           if (!newEnv.hasVar(id.getName())) {
             newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
@@ -202,7 +202,7 @@ class ApronInterface( val state: Option[Abstract1],
         //   (4) Remove all renamed summary nodes
         // This way, we infer every thing we can about the "materialized" value
 
-        val rightSummaryNodes = someExpr.identifiers() filter ( !_.representSingleVariable() )
+        val rightSummaryNodes = (someExpr.identifiers() filter ( !_.representSingleVariable() )) - variable
         if (!rightSummaryNodes.isEmpty) {
 
           val rightSummaryNodesNames = (rightSummaryNodes map (_.toString)).toArray
@@ -241,8 +241,8 @@ class ApronInterface( val state: Option[Abstract1],
         return this
       }
       if (!getIds().contains(id)) {
-        println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
-        return bottom()
+        //println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
+        //return bottom()
       }
     }
 
