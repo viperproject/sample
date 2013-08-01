@@ -175,9 +175,14 @@ class ApronInterface( val state: Option[Abstract1],
           //  return bottom()
           //}
 
+          // PERFORMANCE IMPROVEMENT: If something on the right side is top, return top immidiately
           if (!newEnv.hasVar(id.getName())) {
-            newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
+            return new ApronInterface(someState.state,domain,false,env = env + variable)
           }
+
+          //if (!newEnv.hasVar(id.getName())) {
+          //  newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
+          //}
 
         }
         if (newEnv != newState.getEnvironment) {

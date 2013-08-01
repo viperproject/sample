@@ -27,7 +27,8 @@ abstract class ACollection extends AAny {
     /** Gets the i-th element */
     case "at index" =>
       val List(index) = parameters // Key_Type
-      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+      // Check disabled - always FALSE ALARM!
+      //CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       Return[S](CollectionAt[S](this0,index))
 
     /** Creates a copy of the given collection. AUXILIARY FUNCTION FOR FOREACH LOOPS */

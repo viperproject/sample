@@ -30,6 +30,16 @@ class TNumber_Map extends AMap {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
+
+    /** === NUMBER MAPS RETURN 0 FOR UNITIALIZED FIELDS! === */
+    case "at" =>
+      val List(key) = parameters // Key_Type
+      If[S](CollectionContainsKey[S](this0, key), Then={
+        Return[S](CollectionAt[S](this0, key))(_, pp)
+      }, Else={
+        Return[S](0)(_, pp)
+      })
+
     /** Computes the average of the values */
     case "avg" =>
       Return[S](CollectionSummary[S](this0))

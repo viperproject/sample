@@ -156,7 +156,12 @@ class TString extends AAny {
     case "split" =>
       Dummy[S](this0,method)
       val List(separator) = parameters // String
-      Top[S](TString_Collection.typ) 
+      // No matter what the arguments are, the resulting set has at least one element!
+      var curState = state
+      curState = Top[S](TString_Collection.typ)(curState,pp)
+      val obj = curState.getExpression()
+      curState = Assume(CollectionSize[S](obj) > 1)(curState,pp)
+      Return[S](obj)(curState,pp)
 
     /** Determines whether the beginning matches the specified string */
     case "starts with" =>

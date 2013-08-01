@@ -185,6 +185,18 @@ class RootSampleScripts extends ScriptListings {
     s.filter( (t : ScriptRecord) => t.id.equals(t.rootid))
 }
 
+
+class RootSampleScriptsBefore(d:java.util.Date) extends ScriptListings {
+  override protected val service = "pboj/scripts?"
+
+  override def getLabel() = "TouchDevelop sample scripts"
+
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord] = {
+    s.filter( (t : ScriptRecord) =>
+      t.id.equals(t.rootid) && (new java.util.Date(t.time.asInstanceOf[Long]*1000)).before(d) && !t.ishidden && !t.islibrary)
+  }
+}
+
 class ScriptsBefore(d:java.util.Date) extends ScriptListings {
 
   override protected val service = "scripts?"

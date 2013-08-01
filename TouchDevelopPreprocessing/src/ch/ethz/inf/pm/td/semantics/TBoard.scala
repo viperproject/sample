@@ -3,8 +3,9 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.compiler.TouchCollection
 
 /**
  * @author Lucas Brutschy
@@ -45,7 +46,7 @@ object TBoard {
   val field_joystick = new TouchField("joystick",TVector3.typName) // TODO: What is this and does it change?
 
   /** [**dbg**] joystick (default), wheel, balance, drag or swipe. */
-  val field_joystick_profile = new TouchField("set joystick profile",TVector3.typName)
+  val field_joystick_profile = new TouchField("joystick profile",TVector3.typName)
 
   /** String name of the type */
   val typName = "Board"
@@ -173,7 +174,13 @@ class TBoard extends AMutable_Collection {
 
     // Update positions of sprites on board.
     case "evolve" =>
-      Skip // TODO: Modify sprites (or unified sprite)
+      If[S](CollectionSize[S](this0)>0,Then = { x:S =>
+        var curState = x
+        curState = CallApi[S](CollectionSummary[S](this0),"set pos",List(Valid(TNumber.typ),Valid(TNumber.typ)),TNothing.typ)(curState,pp)
+        curState = CallApi[S](CollectionSummary[S](this0),"set speed",List(Valid(TNumber.typ),Valid(TNumber.typ)),TNothing.typ)(curState,pp)
+        curState = CallApi[S](CollectionSummary[S](this0),"set acceleration",List(Valid(TNumber.typ),Valid(TNumber.typ)),TNothing.typ)(curState,pp)
+        curState
+      }, Else = { x : S => x })(state,pp)
 
     // Sets the default friction for sprites to a fraction of speed loss between 0 and 1
     case "set friction" =>

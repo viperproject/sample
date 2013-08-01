@@ -22,6 +22,12 @@ abstract class ProgramPoint {
 
 }
 
+class DummyProgramPoint extends ProgramPoint {
+  override def getDescription = "Dummy"
+  override def hashCode() = 1
+  override def equals(obj: Any) = obj match { case x:DummyProgramPoint => true; case _ => false }
+}
+
 abstract class LineColumnProgramPoint extends ProgramPoint{
   def getLine : Int
   def getColumn : Int
@@ -91,6 +97,8 @@ abstract class Statement(programpoint : ProgramPoint) extends SingleLineRepresen
   }
   
   override def toString() : String
+  def getChildren: List[Statement]
+
 }
 
 /** 
@@ -148,7 +156,9 @@ case class Assignment(programpoint : ProgramPoint, left : Statement, right : Sta
       override def toString() : String = left + " = " + right;
       
       override def toSingleLineString() : String = left.toSingleLineString + " = " + right.toSingleLineString;
-      
+
+      override def getChildren: List[Statement] = List(left,right)
+
 }
 
 /** 
@@ -197,6 +207,8 @@ case class VariableDeclaration(programpoint : ProgramPoint, val variable : Varia
     override def toString() : String = "declare "+ToStringUtilities.toStringIfNotNull(typ)+" "+variable.toString()+ToStringUtilities.assignedIfNotNull(right);
     override def toSingleLineString() : String = "declare "+ToStringUtilities.toStringIfNotNull(typ)+" "+variable.toString()+
       {if(right!=null) "="+right.toSingleLineString() else ""} ;
+
+    override def getChildren: List[Statement] = List(variable,right)
 }
 
 /** 
@@ -224,6 +236,9 @@ case class Variable(programpoint : ProgramPoint, val id : VariableIdentifier) ex
     override def toString() : String = id.getName;
     
     override def toSingleLineString() : String = toString;
+
+  override def getChildren: List[Statement] = Nil
+
 }
 
 /** 
@@ -277,6 +292,9 @@ case class FieldAccess(pp : ProgramPoint, val objs : List[Statement], val field 
         else result= result+", "+obj.toSingleLineString;
       result+"."+field;
     }
+
+    override def getChildren: List[Statement] = objs
+
 }
 
 /** 
@@ -320,7 +338,13 @@ case class MethodCall(pp : ProgramPoint, val method: Statement, val parametricTy
     override def toString() : String = method.toString()+ToStringUtilities.parametricTypesToString(parametricTypes)+"("+ToStringUtilities.listToCommasRepresentation[Statement](parameters)+")"
     
     override def toSingleLineString() : String = method.toSingleLineString()+ToStringUtilities.parametricTypesToString(parametricTypes)+"("+ToStringUtilities.listStatementToCommasRepresentationSingleLine(parameters)+")"
+
+
+  override def getChildren: List[Statement] = List(method) ::: parameters
+
 }
+
+
 
 /** 
  * This class represents the creation of a fresh address of the form
@@ -351,6 +375,9 @@ case class New(pp : ProgramPoint, typ: Type) extends Statement(pp) {
     override def toString() : String = "new "+typ toString;
     
     override def toSingleLineString() : String = toString();
+
+  override def getChildren: List[Statement] = Nil
+
 }
 
 /** 
@@ -375,6 +402,8 @@ case class ConstantStatement(pp : ProgramPoint, value : String, typ : Type) exte
     override def toString() : String = value;
     
     override def toSingleLineString() : String = toString();
+
+  override def getChildren: List[Statement] = Nil
 }
 
 /** 
@@ -405,6 +434,11 @@ case class Throw(programpoint : ProgramPoint, expr : Statement) extends Statemen
     override def toString() : String = "throw "+expr toString;
     
     override def toSingleLineString() : String = "throw "+expr.toSingleLineString();
+
+
+
+  override def getChildren: List[Statement] = Nil
+
 }
 
 /** 
@@ -429,4 +463,6 @@ case class EmptyStatement(programpoint : ProgramPoint) extends Statement(program
     override def toString() : String = "#empty statement#";
     
     override def toSingleLineString() : String = toString();
+
+  override def getChildren: List[Statement] = Nil
 }

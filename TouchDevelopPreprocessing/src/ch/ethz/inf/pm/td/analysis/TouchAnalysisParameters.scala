@@ -25,6 +25,7 @@ object TouchAnalysisParameters {
    * Enable HTML output
    */
   val exportAsHtml = true
+  val exportAsTSV = true
 
   /**
    * Print the resulting json records representing error information
@@ -97,5 +98,8 @@ object TouchAnalysisParameters {
 
   /** do not report errors in libraries */
   val reportOnlyAlarmsInMainScript = true
+
+  // Fields that are always TOP
+  val topFields = Set("x","y","z","speed x","speed y","speed z","width","height","acceleration x","acceleration y")
 
 }

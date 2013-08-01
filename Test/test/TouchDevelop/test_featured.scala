@@ -20,4 +20,4 @@ def analyzer(id:String) {
 }
 
 //TestRunner("julr",analyzer _)
-TestRunner(new TopScripts,10000,analyzer)
+TestRunner(new FeaturedScripts,10000,analyzer)

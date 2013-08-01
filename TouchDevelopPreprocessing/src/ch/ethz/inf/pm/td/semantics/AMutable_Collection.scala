@@ -17,7 +17,8 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "add" =>
       val List(value) = parameters // Element_Type
       val newState = CollectionInsert[S](this0,CollectionSize[S](this0), value)
-      CollectionIncreaseLength[S](this0)(newState, pp)
+      val finalState = CollectionIncreaseLength[S](this0)(newState, pp)
+      finalState
 
     /** Adds many elements at once */
     case "add many" =>

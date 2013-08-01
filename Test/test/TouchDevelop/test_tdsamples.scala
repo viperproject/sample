@@ -1,219 +1,51 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
+import ch.ethz.inf.pm.td.webapi.{RootSampleScriptsBefore, RootSampleScripts}
+import java.util.{GregorianCalendar, Date}
+
 
 val skipSet =
-  """aisj
-    |azkueztq
-    |brqra
-    |dffwnbmn
-    |disx
+  """uujx,llvn,vede,mbzn,maku,enoxa,yovpa,aapx,algi,tktv,hkqf,wfps,kvmi,eqcf,qvci,hbei,ileo,kyom
     |ecvs
-    |ehqr
-    |esnv
-    |eyvf
-    |grrzwyab
-    |hneca
-    |hnquwnrp
-    |iyiq
-    |jhyg
-    |julr
-    |jwhhgish
-    |kkwd
-    |krim
-    |kyom
-    |lcgfdkgj
-    |llcc
-    |llvn
-    |ltdy
-    |mbzn
-    |mgvp
-    |mixi
-    |moji
-    |mpmbpgvz
-    |nbmhgpsz
-    |nclh
-    |njrz
-    |nllq
-    |nuvw
-    |obmk
-    |ogkf
-    |pjlo
-    |qdcj
-    |rmctwmkp
-    |sbxc
-    |snyd
-    |srju
-    |ssftvoih
-    |thwy
-    |tlozkiig
-    |trxnxuty
-    |tvnuqdru
-    |uigca
-    |uqpf
-    |uujx
-    |vede
-    |vkku
-    |vkpza
-    |welj
-    |wrfh
-    |wthqrbas
-    |xhaf
-    |xmmyqkzs
-    |xqpr
-    |xtcbb
-    |zbai
-    |zswkbmuo
-    |kcjz
-    |nqaoa
-    |oalga
-    |vxyfa
-    |ymlxrwlh
-    |aapx
-    |aiwh
-    |algi
-    |apgq
-    |auabelwb
-    |avpm
-    |avvj
-    |avwma
-    |axdb
-    |axppa
-    |cbgo
-    |djtr
-    |dlbe
-    |eltl
-    |enoxa
-    |epeca
-    |eugo
-    |ezly
-    |eztj
-    |faun
-    |faus
-    |fihe
-    |fmoi
-    |fnaf
-    |fpzv
-    |frks
-    |fsvo
-    |fxti
-    |gdmr
-    |gdqd
     |gxkm
-    |hnof
-    |hqxs
-    |hrvg
-    |icqn
-    |ifwjftyw
-    |igqhwpvx
-    |isrc
-    |iuks
-    |jjdl
-    |jjsvqnqh
-    |jpnx
-    |kcfh
-    |kcjz
-    |kkln
-    |klica
-    |lklc
-    |maku
-    |maof
-    |mcqq
-    |mfdw
-    |mfxw
-    |mgbd
-    |mlkc
-    |npzx
-    |nqaoa
-    |oalga
-    |ohfv
-    |okey
-    |oobx
-    |otvgldrm
-    |ovfe
-    |phwo
-    |pyxj
-    |qgfq
-    |qgupmydq
-    |qrjl
-    |qrsl
-    |qwxp
-    |rgng
-    |riliriki
-    |sdey
-    |snkc
-    |srbd
-    |syng
-    |szht
-    |tbts
-    |tglf
-    |tktv
-    |tomz
-    |tozq
-    |tqog
-    |tydk
-    |tykgb
-    |uash
-    |ucmk
-    |uhgf
-    |upfn
-    |urll
-    |uwqr
-    |uylo
-    |vbly
-    |vpzy
+    |disx
+    |qfsp
     |vrgt
-    |vsne
-    |vxyfa
-    |wbop
-    |weqz
-    |wotd
-    |wtrb
-    |xbfg
-    |xcfz
-    |xdsz
-    |xfbl
-    |xnhw
-    |xnxj
-    |ybdw
-    |ybnr
-    |ymlxrwlh
-    |ynmh
-    |yovpa
-    |yprb
-    |yrom
-    |yumd
-    |yzfx
-    |yzty
-    |zgve
-    |zlup
-    |ztio
-    |zvpjaapx
-    |awic
-    |eqcf
-    |hbei
-    |hkqf
-    |ileo
-    |kvmi
-    |ppyd
+    |hqxs
     |qurl
-    |qvci
-    |vzkb
-    |wfps
+    |weqz
+    |pyxj
+    |yzfx,gdmr
+    |zlup
+    |djtr
+    |zvpj
+    |yzty
+    |tglf,hrvg,frks
     |ywqu
-    |apgq
-    |auabelwb
-    |avpm
-    |avvj
-    |avwma
-    |axdb
-    |axppa
-  """.stripMargin.split("\n").map(_.trim).toSet
+  """.stripMargin.split("[\n,]").map(_.trim).toSet
 
+
+val skipUntil:Option[String] = None // Some("qvci") // None
+var stillSkipping = true
+var i = 0
 def analyzer(id:String) {
-  if(!skipSet.contains(id)) {
-    TestRunner.runIdWithApron(id)
+  i = i + 1
+  if (stillSkipping && skipUntil.isDefined) {
+    if(skipUntil.get==id) stillSkipping = false
+  } else {
+    println(id+" "+i)
+    if(!skipSet.contains(id)) {
+     TestRunner.runIdWithApron(id)
+    }
   }
 }
 
-//TestRunner("fqap",analyzer _)
-TestRunner("qfsp",analyzer _)
-//TestRunner(new RootSampleScripts,10000,analyzer)
+TestRunner(new RootSampleScriptsBefore((new GregorianCalendar(2013,04,22)).getTime),10000,analyzer)
+
+
+
+
+
+
+
+
+

@@ -30,12 +30,14 @@ object RichNativeSemantics {
   /*-- Checking / Reporting errors --*/
 
   def Dummy[S <: State[S]](obj:RichExpression, method:String)(implicit state:S, pp:ProgramPoint) {
-    if(TouchAnalysisParameters.reportDummyImplementations)
+    if(TouchAnalysisParameters.reportDummyImplementations &&
+      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
       Reporter.reportDummy(obj.getType().toString+"->"+method,pp)
   }
 
   def Dummy[S <: State[S]](text:String)(implicit state:S, pp:ProgramPoint) {
-    if(TouchAnalysisParameters.reportDummyImplementations)
+    if(TouchAnalysisParameters.reportDummyImplementations &&
+      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
       Reporter.reportDummy(text,pp)
   }
 
@@ -94,28 +96,28 @@ object RichNativeSemantics {
                          createFields:Boolean = true,
                          initialCollectionSize: Option[RichExpression] = None,
                          initialCollectionValue: Option[RichExpression] = None)(implicit s:S, pp:ProgramPoint): S = {
+
     typ.getName match {
       case TNumber.typName => s.setExpression(new ExpressionSet(TNumber.typ).add(Constant("0",TNumber.typ,pp)))
       case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(False))
       case TString.typName => s.setExpression(new ExpressionSet(TString.typ).add(Constant("",TString.typ,pp)))
       case _ =>
 
+        val fields =
+          if (TouchAnalysisParameters.libraryFieldPruning && (initializeFields || createFields)) {
+            val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
+            val typFields = typ.getPossibleTouchFields()
+            Some(typFields
+              .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName())})
+              .map(_.asInstanceOf[Identifier]))
+          }
+          else if (!initializeFields) Some(Set.empty[Identifier])
+          else None
+
         var curState = typ match {
           case col:TouchCollection =>
-            s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp)
+            s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,pp,fields)
           case _ =>
-
-            val fields =
-              if (TouchAnalysisParameters.libraryFieldPruning && (initializeFields || createFields)) {
-                val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
-                val typFields = typ.getPossibleTouchFields()
-                Some(typFields
-                  .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName())})
-                  .map(_.asInstanceOf[Identifier]))
-              }
-              else if (!initializeFields) Some(Set.empty[Identifier])
-              else None
-
             s.createObject(typ,pp,fields)
         }
         val obj = curState.getExpression()
@@ -179,7 +181,8 @@ object RichNativeSemantics {
   def Top[S <: State[S]](typ:TouchType,
                          initials:Map[Identifier,RichExpression] = Map.empty[Identifier,RichExpression],
                          createFields:Boolean = true,
-                         initializeFields:Boolean = true)
+                         initializeFields:Boolean = true,
+                         initialCollectionSize: Option[RichExpression] = None)
                         (implicit s:S, pp:ProgramPoint): S = {
     typ.getName match {
       case TNumber.typName => s.setExpression(Valid(TNumber.typ))
@@ -187,22 +190,21 @@ object RichNativeSemantics {
       case TString.typName => s.setExpression(Valid(TString.typ))
       case _ =>
 
+        val fields =
+          if (TouchAnalysisParameters.libraryFieldPruning && (createFields || initializeFields)) {
+            val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
+            val typFields = typ.getPossibleTouchFields()
+            Some(typFields
+              .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName())})
+              .map(_.asInstanceOf[Identifier]))
+          }
+          else if (!initializeFields) Some(Set.empty[Identifier])
+          else None
+
         var curState = typ match {
           case col:TouchCollection =>
-            s.createCollection(col, col.getKeyType, col.getValueType, TNumber.typ, pp)
+            s.createCollection(col, col.getKeyType, col.getValueType, TNumber.typ, pp, fields)
           case _ =>
-
-            val fields =
-              if (TouchAnalysisParameters.libraryFieldPruning && (createFields || initializeFields)) {
-                val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
-                val typFields = typ.getPossibleTouchFields()
-                Some(typFields
-                  .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName())})
-                  .map(_.asInstanceOf[Identifier]))
-              }
-              else if (!initializeFields) Some(Set.empty[Identifier])
-              else None
-
             s.createObject(typ,pp,fields)
         }
         val obj = curState.getExpression()
@@ -213,6 +215,7 @@ object RichNativeSemantics {
         if(initializeFields) {
           typ match {
             case col:TouchCollection =>
+
               val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__collkey")
               curState = Top[S](col.getKeyType, initializeFields = !referenceLoop1)(curState, newPP1)
               val keyTop = curState.getExpression()
@@ -223,10 +226,17 @@ object RichNativeSemantics {
 
               curState = CollectionInsert[S](obj, keyTop, valueTop)(curState, pp)
 
-              val (newPP3, referenceLoop3) = DeepeningProgramPoint(pp,"__length")
-              curState = Top[S](TNumber.typ, initializeFields = !referenceLoop3)(curState, newPP3)
-              val lengthTop = curState.getExpression()
-              curState = Assign[S](CollectionSize[S](obj), lengthTop)(curState, newPP3)
+              // Initialize collection size
+              initialCollectionSize match {
+                case None =>
+                  val (newPP3, referenceLoop3) = DeepeningProgramPoint(pp,"__length")
+                  curState = Top[S](TNumber.typ, initializeFields = !referenceLoop3)(curState, newPP3)
+                  val lengthTop = curState.getExpression()
+                  curState = Assign[S](CollectionSize[S](obj), lengthTop)(curState, newPP3)
+                case Some(x) =>
+                  curState = Assign[S](CollectionSize[S](obj), x)(curState,pp)
+              }
+
             case _ => ()
           }
 
@@ -434,6 +444,10 @@ object RichNativeSemantics {
 
   /*-- Misc --*/
 
+  def Assume[S <: State[S]](expr:RichExpression)(implicit state:S, pp:ProgramPoint): S = {
+    state.assume(expr)
+  }
+
   def CallLocalAction[S <: State[S]](method:String,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {
     SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method,SystemParameters.typ,parameters map (_.getType())) match {
       case Some((clazz,methodDef)) =>
@@ -514,7 +528,13 @@ object RichNativeSemantics {
   def AssignField[S <: State[S]](obj:RichExpression,field:String,value:RichExpression)(implicit state:S, pp:ProgramPoint): S = {
     if(!TouchAnalysisParameters.libraryFieldPruning ||
       SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+field)) {
-      state.assignField(List(obj),field,value)
+
+      if (TouchAnalysisParameters.topFields.contains(field)) {
+        state.assignField(List(obj),field,Valid(value.getType()))
+      } else {
+        state.assignField(List(obj),field,value)
+      }
+
     } else state
   }
 

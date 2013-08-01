@@ -28,7 +28,8 @@ abstract class ALinearCollection extends ACollection {
     /** Gets the i-th element */
     case "at index" =>
       val List(index) = parameters // Key_Type
-      CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
+      // Check disabled -- ALWAYS FALSE ALARM!
+      //CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       Return[S](CollectionAt[S](this0,index))
 
 

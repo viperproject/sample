@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.td.output.HTMLExporter
+import ch.ethz.inf.pm.td.output.{TSVExporter, HTMLExporter}
 import ch.ethz.inf.pm.td.webapi.ResultGenerator
 
 /**
@@ -178,10 +178,12 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
     // Check properties on the results
     if (SystemParameters.property!=null) {
-      val results = MethodSummaries.getSummaries.values map {
+      val results = (MethodSummaries.getSummaries.values map {
         (x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) =>
-          (x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])
-      }
+          if (x._1 == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript)
+            Some(x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])
+          else None
+      }).flatten
       SystemParameters.propertyTimer.start()
       SystemParameters.property.check(results.toList, output)
       SystemParameters.property.finalizeChecking(output)
@@ -190,6 +192,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
     // Print some html
     if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
+    if (TouchAnalysisParameters.exportAsTSV) TSVExporter()
     if (TouchAnalysisParameters.printJsonErrorRecords) ResultGenerator.printJson(compiler.mainID)
 
     SystemParameters.progressOutput.end()
@@ -336,6 +339,8 @@ class AlarmVisitor extends Visitor {
  */
 class BottomVisitor extends Visitor {
 
+  var childrenNotToReport : Set[Statement] = Set.empty
+
   def getLabel() = "BottomChecker"
 
   /**
@@ -346,7 +351,10 @@ class BottomVisitor extends Visitor {
    * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
    */
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) {
-    if (state.lessEqual(state.bottom())) {
+    if (!childrenNotToReport.contains(statement) && state.lessEqual(state.bottom())) {
+      // if all children of the statement are bottom, do not report any of them
+      def transitive(x:Statement):Set[Statement] = x.getChildren.foldLeft(Set.empty[Statement])(_ ++ transitive(_)) + x
+      childrenNotToReport = childrenNotToReport ++ transitive(statement)
       Reporter.reportBottom("State is bottom",statement.getPC())
       printer.add(WarningProgramPoint(statement.getPC(),"State is bottom"))
     }

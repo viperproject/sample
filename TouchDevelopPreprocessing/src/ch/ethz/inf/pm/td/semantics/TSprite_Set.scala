@@ -47,7 +47,9 @@ class TSprite_Set extends AMutable_Collection {
     /** Remove sprite that was added to set first. */
     case "remove first" =>
       Error[S](CollectionSize[S](this0) < 1, "remove first", "Remove first is called on a possibly empty set")
-      CollectionRemove[S](this0,toRichExpression(0))
+      val x = CollectionAt[S](this0,toRichExpression(0))
+      Return[S](x)(CollectionRemove[S](this0,toRichExpression(0)),pp)
+
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

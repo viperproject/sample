@@ -152,7 +152,8 @@ class SWall extends AAny {
     /** Prompts the user to pick a string from a list. Returns the selected index. */
     case "pick string" =>
       val List(text,caption,values) = parameters // String,String,String_Collection
-      Return[S](Invalid(TNumber.typ),0 ndTo (CollectionSize[S](values) - 1))
+      If(CollectionSize[S](values) > 0, Then = { s:S => Return[S](0 ndTo (CollectionSize[S](values) - 1))(s,pp)},
+        Else = { s:S => Error[S](True,"pick string","User may have to select string from empty string collection")})
 
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */
     case "pick time" =>

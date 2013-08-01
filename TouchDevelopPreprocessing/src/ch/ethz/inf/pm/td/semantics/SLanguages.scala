@@ -55,12 +55,15 @@ class SLanguages extends AAny {
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TString.typ)
 
-    /** Speaks the text in the specified language using Bing. */
+
+    /** Speaks the text immediately using the text-to-speech engine on the device. */
+    case "speak text" =>
+      val List(voice_language,voice_gender,text) = parameters // String,String,String
+      TopWithInvalid[S](TSound.typ)
+
+    /** This api was renamed. Use `speak_text` instead. */
     case "speak" =>
       val List(lang,text) = parameters // String,String
-      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
-        Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speak",
-          "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TSound.typ)
 
     /** Converts a sound to a text using Project Hawaii from Microsoft Research. */

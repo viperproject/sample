@@ -12,16 +12,19 @@ import ch.ethz.inf.pm.td.semantics._
 
 object TypeList  {
 
-  val types : Map[String,AAny] = Map(
+  var types : Map[String,AAny] = Map(
     SData.typName -> new SData(),
     SCode.typName -> new SCode(),
     SArt.typName -> new SArt(),
     SRecords.typName -> new SRecords(),
     SLibs.typName -> new SLibs(),
     SHelpers.typName -> new SHelpers(),
+
     TNothing.typName -> new TNothing(),
     TAction.typName -> new TAction(),
     TText_Action.typName -> new TText_Action(),
+    //TNumber_Action.typName -> new TNumber_Action(),
+    //TBoolean_Action.typName -> new TBoolean_Action(),
     TPosition_Action.typName -> new TPosition_Action(),
     TSprite_Action.typName -> new TSprite_Action(),
     TSprite_Set_Action.typName -> new TSprite_Set_Action(),
@@ -31,12 +34,14 @@ object TypeList  {
     TAppointment.typName -> new TAppointment(),
     TAppointment_Collection.typName -> new TAppointment_Collection(),
     SBazaar.typName -> new SBazaar(),
+    //SBits.typName -> new SBits(),
     TBoard.typName -> new TBoard(),
     TBoolean.typName -> new TBoolean(),
     SBox.typName -> new SBox(),
+    //TBuffer.typName -> new TBuffer(),
     TCamera.typName -> new TCamera(),
     TCloud_Session.typName -> new TCloud_Session(),
-    SCloud_Sessions.typName -> new SCloud_Sessions(),
+    //SCloud_Data.typName -> new SCloud_Data(),
     SCollections.typName -> new SCollections(),
     TColor.typName -> new TColor(),
     SColors.typName -> new SColors(),
@@ -44,7 +49,6 @@ object TypeList  {
     TContact_Collection.typName -> new TContact_Collection(),
     SContract.typName -> new SContract(),
     TDateTime.typName -> new TDateTime(),
-    TDate_Time_Picker.typName -> new TDate_Time_Picker(),
     TDevice.typName -> new TDevice(),
     TDevice_Collection.typName -> new TDevice_Collection(),
     TEnumerator.typName -> new TEnumerator(),
@@ -100,7 +104,6 @@ object TypeList  {
     TSong_Albums.typName -> new TSong_Albums(),
     TSongs.typName -> new TSongs(),
     TSound.typName -> new TSound(),
-    TSound_Recorder.typName -> new TSound_Recorder(),
     TSpring.typName -> new TSpring(),
     TSprite.typName -> new TSprite(),
     TSprite_Set.typName -> new TSprite_Set(),
@@ -108,8 +111,10 @@ object TypeList  {
     TString_Collection.typName -> new TString_Collection(),
     TString_Map.typName -> new TString_Map(),
     STags.typName -> new STags(),
+    //TTask.typName -> new TTask(),
     TTextBox.typName -> new TTextBox(),
     TTile.typName -> new TTile(),
+    //STiles.typName -> new STiles(),
     STime.typName -> new STime(),
     TVector3.typName -> new TVector3(),
     SWall.typName -> new SWall(),
@@ -118,6 +123,7 @@ object TypeList  {
     TWeb_Response.typName -> new TWeb_Response(),
     TXml_Object.typName -> new TXml_Object(),
     TUnknown.typName -> new TUnknown()
+
   )
 
 }

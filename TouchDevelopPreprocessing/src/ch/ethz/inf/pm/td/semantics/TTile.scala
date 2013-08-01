@@ -29,7 +29,9 @@ object TTile {
   val field_counter = new TouchField("counter",TNumber.typName)
 
   /** Gets the height in pixels */
-  val field_height = new TouchField("height",TNumber.typName)
+  val field_height = new TouchField("height",TNumber.typName,
+    default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
+    topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the icon picture */
   val field_icon = new TouchField("icon",TPicture.typName)
@@ -41,7 +43,9 @@ object TTile {
   val field_title = new TouchField("title",TString.typName)
 
   /** Gets the width in pixels */
-  val field_width = new TouchField("width",TNumber.typName)
+  val field_width = new TouchField("width",TNumber.typName,
+    default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
+    topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   val typName = "Tile"
   val typ = new TouchType(typName,isSingleton = false, fields = List(

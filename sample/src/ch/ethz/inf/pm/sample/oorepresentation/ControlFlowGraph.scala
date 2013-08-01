@@ -354,6 +354,9 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       result = result + st.toSingleLineString()
     result
   }
+
+  override def getChildren: List[Statement] = nodes.flatten
+
 }
 
 class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val state: S) extends WeightedGraph[List[S], Boolean] {
