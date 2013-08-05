@@ -323,6 +323,14 @@ trait State[S <: State[S]] extends Lattice[S] {
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type,  tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) : S
 
   /**
+   * Gets the values that are stored at the Collection Tuple Value Identifiers.
+   *
+   * @param valueIds  The Collection Tuple Value Identifiers
+   * @return  The state with the values as expression
+   */
+  def getCollectionValue(valueIds: ExpressionSet): S
+
+  /**
   Gets the Identifier of all the keys of the collection that match the given key expresssion.
      A key expression (key) matches a Identifier if the Identifier represents a key of the collection
      and has value k assigned such that

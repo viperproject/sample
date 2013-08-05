@@ -510,9 +510,9 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     throw new NotImplementedException()
   }
 
-  //  def createTopCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint) = {
-  //    throw new NotImplementedException()
-  //  }
+  def getCollectionValue(valueIds: ExpressionSet) = {
+    throw new NotImplementedException()
+  }
 
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = {
     throw new NotImplementedException()

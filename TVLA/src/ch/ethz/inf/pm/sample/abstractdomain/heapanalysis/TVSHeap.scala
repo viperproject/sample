@@ -554,6 +554,8 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
 
   // not implemented
+  def get(key: VariableIdentifier) = throw new NotImplementedException("not implemented yet")
+  def get(key: NodeName) = throw new NotImplementedException("not implemented yet")
   def backwardAssign(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
   def backwardAccess(field: Assignable) = throw new NotImplementedException("not implemented yet")
   override def setArgument(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")

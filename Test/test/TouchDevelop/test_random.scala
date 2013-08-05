@@ -10,5 +10,5 @@ def analyzer(id:String) {
   }
 }
 
-TestRunner("aecczdxr",analyzer _)
+TestRunner("qurl",analyzer _)
 //TestRunner(new NewScripts,10000,analyzer _)

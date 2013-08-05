@@ -60,6 +60,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
 
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, fields : Option[Set[Identifier]] = None): AccessCollectingState =
     this.setType(collTyp)
+  def getCollectionValue(valueIds: ExpressionSet) = this
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
     this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getKeyType)
   def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) =

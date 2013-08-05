@@ -38,7 +38,7 @@ class TSprite_Set extends AMutable_Collection {
       val resultA = curState.getExpression()
       curState = CallApi[S](old_set,"remove",List(sprite),TBoolean.typ)(curState,pp)
       val resultB = curState.getExpression()
-      Return[S](resultA && resultB)
+      Return[S](resultA && resultB)(curState, pp)
 
     case "index of" =>
       val List(item) = parameters
@@ -46,10 +46,15 @@ class TSprite_Set extends AMutable_Collection {
 
     /** Remove sprite that was added to set first. */
     case "remove first" =>
-      Error[S](CollectionSize[S](this0) < 1, "remove first", "Remove first is called on a possibly empty set")
-      val x = CollectionAt[S](this0,toRichExpression(0))
-      Return[S](x)(CollectionRemove[S](this0,toRichExpression(0)),pp)
-
+      If[S](CollectionSize[S](this0) > 0, Then=(state) => {
+        val result = state.getCollectionValue(CollectionAt[S](this0, toRichExpression(0))(state, pp)).getExpression()
+        var newState = CollectionRemove[S](this0,toRichExpression(0))(state, pp)
+        newState = CollectionDecreaseLength[S](this0)(newState, pp)
+        CollectionInvalidateKeys[S](this0)(newState, pp)
+        Return[S](result)(newState, pp)
+      }, Else={
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_, pp)
+      })
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

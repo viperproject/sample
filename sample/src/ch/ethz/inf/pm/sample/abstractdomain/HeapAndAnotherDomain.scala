@@ -175,6 +175,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     (collectionIds, result, rep)
   }
 
+  def getCollectionValue(valueId: Assignable) = valueId match {
+    case id:I => (this, this.d2.get(id))
+    case _ => throw new SemanticException("This is not a collection tuple value identifier")
+  }
+
   def insertCollectionElement(collection: Assignable, key: Expression, value: Expression, pp: ProgramPoint) = {
     def assignToElement(initialState:T, key: Expression, value: Expression)(tupleId: Assignable) = {
       var result = initialState

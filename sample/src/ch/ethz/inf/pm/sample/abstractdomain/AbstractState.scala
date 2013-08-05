@@ -611,6 +611,29 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   }
 
+  def getCollectionValue(valueIds: ExpressionSet): AbstractState[N, H, I] = {
+    if(this.isBottom) return this
+
+    def getCollectionValue(result: AbstractState[N, H, I])(valueId: Assignable) = {
+      val (newHeapAndSemantic, ids) = result.d1.getCollectionValue(valueId)
+      val newExpressions = new ExpressionSet(ids.getType()).add(ids)
+      new AbstractState[N, H, I](newHeapAndSemantic, newExpressions)
+    }
+
+    var result = this.factory()
+    result.d1 = this.d1
+    result.d2 = this.d2.bottom()
+
+    for (valueId <- valueIds.getSetOfExpressions) {
+      valueId match {
+        case id: Assignable => result = getCollectionValue(result)(id)
+        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, getCollectionValue(result))
+      }
+    }
+
+    result
+  }
+
   def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): AbstractState[N, H, I] = {
     if (this.isBottom) return this
 
@@ -978,5 +1001,4 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   }
 
   override def widening(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : AbstractState[N,H,I] = wideningWithReplacement(l,r)._1
-  
 }

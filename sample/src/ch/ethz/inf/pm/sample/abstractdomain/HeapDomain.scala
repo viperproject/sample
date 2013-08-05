@@ -79,6 +79,24 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   with LatticeWithReplacement[T] {
 
   /**
+   * Gets the Heap Identifiers to which the provided Variable points to
+   * in the Heap graph.
+   *
+   * @param key variable
+   * @return  Heap Identifiers to which the variable points to
+   */
+  def get(key : VariableIdentifier): HeapIdSetDomain[I]
+
+  /**
+   * Gets the Heap Identifiers to which the provided Variable points to
+   * in the Heap graph.
+   *
+   * @param key Heap Identifier
+   * @return  Heap Identifiers to which the Heap Identifier points to
+   */
+  def get(key : I): HeapIdSetDomain[I]
+
+  /**
   This method creates an object of a given type
 
    @param typ The type of the object to be created
