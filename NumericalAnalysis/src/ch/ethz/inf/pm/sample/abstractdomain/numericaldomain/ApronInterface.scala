@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 class ApronInterface( val state: Option[Abstract1],
                       val domain: Manager,
                       isPureBottom:Boolean = false,
-                      env: Set[Identifier]
+                      val env: Set[Identifier]
                       ) extends RelationalNumericalDomain[ApronInterface] {
 
   override def factory(): ApronInterface = {
@@ -275,8 +275,8 @@ class ApronInterface( val state: Option[Abstract1],
 
       // And, Or, De-Morgan, Double Negation
       case BinaryBooleanExpression(left, right, op, typ) => op match {
-        case BooleanOperator.&& => val l = assume(left); l.glb(l, assume(right))
-        case BooleanOperator.|| => val l = assume(left); l.lub(l, assume(right))
+        case BooleanOperator.&& => assume(left).assume(right)
+        case BooleanOperator.|| => lub(assume(left), assume(right))
       }
       case NegatedBooleanExpression(NegatedBooleanExpression(x)) => {
         assume(x)
@@ -445,10 +445,12 @@ class ApronInterface( val state: Option[Abstract1],
 
       // First we compute the common variables.
       if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-        val commonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => rightState.getEnvironment.getVars.contains(v))
+        val commonVariables = left.getIds().intersect(right.getIds()).map(_.toString())
+        val commonRepVarsLeft: Array[String] = leftState.getEnvironment.getVars.filter( commonVariables.contains(_) )
+        val commonRepVarsRight: Array[String] = rightState.getEnvironment.getVars.filter( commonVariables.contains(_) )
         // We need to forget the common variables in each state, otherwise we would be unsound
-        val forgotLeftState = leftState.forgetCopy(domain, commonVariables, false)
-        val forgotRightState = rightState.forgetCopy(domain, commonVariables, false)
+        val forgotLeftState = leftState.forgetCopy(domain, commonRepVarsLeft, false)
+        val forgotRightState = rightState.forgetCopy(domain, commonRepVarsRight, false)
         // We assume that variables that are not in the other environment and are in the first environment are treated in the other as botom value.
         val unifiedForgotStates = forgotLeftState.unifyCopy(domain, forgotRightState)
         // The result is then LUB(Uni(uniFS, leftS), Uni(uniFS, rightS))
@@ -481,15 +483,14 @@ class ApronInterface( val state: Option[Abstract1],
     if (left.isTop)
       return new ApronInterface(right.state, domain, env = left.getIds().intersect(right.getIds()))
 
-    var leftState = left.instantiateState()
+    val leftState = left.instantiateState()
     val rightState = right.instantiateState()
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-      val uncommonVariables: Array[String] = leftState.getEnvironment.getVars.filter(v => !rightState.getEnvironment.getVars.contains(v)) ++ rightState.getEnvironment.getVars.filter(v => !leftState.getEnvironment.getVars.contains(v))
-      leftState = leftState.unifyCopy(domain, rightState)
+      val uncommonVariables: Array[String] = ((left.getIds() -- right.getIds()) ++ (right.getIds() -- left.getIds())).map(_.toString).toArray[String]
+      var result = leftState.unifyCopy(domain, rightState)
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
-      leftState = leftState.changeEnvironmentCopy(domain, leftState.getEnvironment.remove(uncommonVariables), false)
-
-      new ApronInterface(Some(leftState), domain, env = left.getIds().intersect(right.getIds()))
+      result = result.changeEnvironmentCopy(domain, leftState.getEnvironment.remove(uncommonVariables), false)
+      new ApronInterface(Some(result), domain, env = left.getIds().intersect(right.getIds()))
     } else {
       new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain, env = left.getIds().intersect(right.getIds()))
     }
