@@ -4,6 +4,7 @@ import net.liftweb.json._
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.sample.oorepresentation.IteratorOverPrograms
+import java.text.SimpleDateFormat
 
 /**
  * Fetches real scripts from the TouchDevelop website for testing purposes
@@ -40,7 +41,8 @@ case class ScriptRecord (
   installations: Int,
   runs: Int,
   screenshotthumburl: String,
-  screenshoturl: String) {
+  screenshoturl: String,
+  toptagids : List[String]) {
 
   def getAstURL:String = ScriptListings.astURLfromPubID(id)
   def getCodeURL:String = ScriptListings.codeURLfromPubID(id)
@@ -76,7 +78,7 @@ object ScriptListings {
 
 }
 
-abstract class ScriptListings extends IteratorOverPrograms {
+class ScriptListings extends IteratorOverPrograms {
 
   protected val service = "scripts?"
 
@@ -134,6 +136,8 @@ abstract class ScriptListings extends IteratorOverPrograms {
 
   }
 
+  override def getLabel() = "TouchDevelop scripts"
+
   protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= s
 
 }
@@ -161,6 +165,17 @@ class RootScripts() extends ScriptListings {
     s.filter( (t : ScriptRecord) => t.id.equals(t.rootid))
 
   override def getLabel() = "TouchDevelop root scripts"
+}
+
+class NonErroneousRootScriptsBefore(d:java.util.Date) extends ScriptListings {
+
+  override def getLabel() = "Root,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
+
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
+    s.filter( { t : ScriptRecord =>
+      val dT = new java.util.Date(t.time.asInstanceOf[Long]*1000)
+      dT.before(d) && t.id.equals(t.rootid) && !t.haserrors
+    })
 }
 
 
@@ -201,7 +216,7 @@ class ScriptsBefore(d:java.util.Date) extends ScriptListings {
 
   override protected val service = "scripts?"
 
-  override def getLabel() = "TouchDevelop scripts before a given date"
+  override def getLabel() = "TouchDevelop scripts published before "+new SimpleDateFormat("dd/MM/yyyy").format(d);
 
   override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
     s.filter( { t : ScriptRecord =>

@@ -25,6 +25,7 @@ import semper.sample.multithreading.MultithreadingAnalysis;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.GregorianCalendar;
 
 public class InstalledPlugins {
     public static ch.ethz.inf.pm.sample.oorepresentation.Compiler[] compilers;
@@ -57,7 +58,7 @@ public class InstalledPlugins {
         heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
         heapanalyses[3]=new TVSHeap();
 
-        iterators = new IteratorOverPrograms[8];
+        iterators = new IteratorOverPrograms[12];
         iterators[0] = new TopScripts();
         iterators[1] = new NewScripts();
         iterators[2] = new FeaturedScripts();
@@ -66,6 +67,10 @@ public class InstalledPlugins {
         iterators[5] = new RootScriptsWithLoops();
         iterators[6] = new RootSampleScriptsWithLoops();
         iterators[7] = new TopRootScriptsWithLoops();
+        iterators[8] = new ScriptsWithLoops();
+        iterators[9] = new ScriptListings();
+        iterators[10] = new ScriptsBefore((new GregorianCalendar(2013,04,22)).getTime());
+        iterators[11] = new NonErroneousRootScriptsBefore((new GregorianCalendar(2013,04,22)).getTime());
 
     }
 

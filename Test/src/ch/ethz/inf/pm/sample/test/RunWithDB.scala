@@ -9,7 +9,37 @@ import abstractdomain._
 import java.sql.{ResultSet, Statement, DriverManager}
 import java.util.Date
 import java.io._
+//import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, ScriptRecord, ScriptListings}
 
+//object PopulateTags {
+//  val CONNECTION = "jdbc:mysql://127.0.0.1:3306/mydb";
+//
+//  private def getConnection() =DriverManager.getConnection(CONNECTION, "root", "");
+//  private val c = getConnection();
+//  private val stmt = c.createStatement();
+//
+//  def main(args : Array[String]) : Unit =  {
+//    val iterator : ScriptListings = new ScriptListings();
+//    try {
+//      while(true) {
+//        val script : ScriptRecord = iterator.get();
+//        println("Script "+script.getCodeURL+" tags "+script.toptagids)
+//        for(tag <- script.toptagids) {
+//          val sql = "INSERT INTO ProgramTags(Name, Tag) VALUES ('"+script.getCodeURL.replace("'", "''")+"', '"+tag.replace("'", "''")+"')";
+//          try{
+//            stmt.executeUpdate(sql)
+//          }
+//          catch {
+//            case e => println("Database error:\n"+e.getMessage); e.printStackTrace()
+//          }
+//        }
+//      }
+//    }
+//    catch {
+//      case e : NoMoreScriptsException => println("End");
+//    }
+//  }
+//}
 
 object InterfaceTestRun {
 
@@ -25,6 +55,7 @@ object InterfaceTestRun {
 
 
   def main(args: Array[String]): Unit = {
+    println("version 01.08.13")
     extractMode(args) match {
       case "-i" =>
         setOptionalParameters(args)
@@ -75,7 +106,7 @@ object InterfaceTestRun {
       }
     }
     catch {
-      case _ =>
+      case _ : Throwable =>
     }
     return result
   }
@@ -90,7 +121,7 @@ object InterfaceTestRun {
       }
     }
     catch {
-      case _ =>
+      case _ : Throwable =>
     }
     if (result._1 == 0 - 1 || result._2 == 0 - 1) {
       println("The parameter for running the test run do not conform the standard '-r <id> <timeout>'")
@@ -112,7 +143,7 @@ object InterfaceTestRun {
         value = input.toInt
       }
       catch {
-        case _ => println("Wrong input: " + input); readLine()
+        case _ : Throwable => println("Wrong input: " + input); readLine()
       }
       if (value != 0 - 1 && !selection(value))
         flag = false
@@ -126,40 +157,40 @@ object InterfaceTestRun {
         case 1 => println(getStatistics(idTestRun)); true
         case 2 =>
 
-          var out = new PrintWriter(OutputDirectory + "RuntimeErrors.cvs")
+          var out = new PrintWriter(OutputDirectory + "RuntimeErrors.tsv")
           out.println(getRuntimeErrors(idTestRun))
           out.close()
-          println("Runtime errors written in " + OutputDirectory + "RuntimeErrors.cvs")
+          println("Runtime errors written in " + OutputDirectory + "RuntimeErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "CompilationErrors.cvs")
+          out = new PrintWriter(OutputDirectory + "CompilationErrors.tsv")
           out.println(getErrors("BrokenCompilations", idTestRun))
           out.close()
-          println("Compilation errors written in " + OutputDirectory + "CompilationErrors.cvs")
+          println("Compilation errors written in " + OutputDirectory + "CompilationErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "AnalysisErrors.cvs")
+          out = new PrintWriter(OutputDirectory + "AnalysisErrors.tsv")
           out.println(getErrors("BrokenAnalyses", idTestRun))
           out.close()
-          println("Analysis errors written in " + OutputDirectory + "AnalysisErrors.cvs")
+          println("Analysis errors written in " + OutputDirectory + "AnalysisErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "Statistics.cvs")
+          out = new PrintWriter(OutputDirectory + "Statistics.tsv")
           out.println(getStatistics(idTestRun))
           out.close()
-          println("Statistics written in " + OutputDirectory + "Statistics.cvs")
+          println("Statistics written in " + OutputDirectory + "Statistics.tsv")
 
-          out = new PrintWriter(OutputDirectory + "Warning.cvs")
+          out = new PrintWriter(OutputDirectory + "Warning.tsv")
           out.println(getOutput("WARNING:", idTestRun))
           out.close()
-          println("Warnings written in " + OutputDirectory + "Warning.cvs")
+          println("Warnings written in " + OutputDirectory + "Warning.tsv")
 
-          out = new PrintWriter(OutputDirectory + "Validated.cvs")
+          out = new PrintWriter(OutputDirectory + "Validated.tsv")
           out.println(getOutput("VALIDATED:", idTestRun))
           out.close()
-          println("Validated properties written in " + OutputDirectory + "Validated.cvs")
+          println("Validated properties written in " + OutputDirectory + "Validated.tsv")
 
-          out = new PrintWriter(OutputDirectory + "Alloutputs.cvs")
+          out = new PrintWriter(OutputDirectory + "Alloutputs.tsv")
           out.println(getOutput("", idTestRun))
           out.close()
-          println("All outputs written in " + OutputDirectory + "Alloutputs.cvs")
+          println("All outputs written in " + OutputDirectory + "Alloutputs.tsv")
 
           println("Press a key to go to the test run menu")
           readLine()
@@ -169,55 +200,55 @@ object InterfaceTestRun {
         case 3 =>
           val previousTestRun = getExistingTestRun("compare", 10)
 
-          var out = new PrintWriter(OutputDirectory + "DifferentCompilationErrors.cvs")
+          var out = new PrintWriter(OutputDirectory + "DifferentCompilationErrors.tsv")
           out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"))
           out.close()
-          println("Different compilation errors written in " + OutputDirectory + "DifferentCompilationErrors.cvs")
+          println("Different compilation errors written in " + OutputDirectory + "DifferentCompilationErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "DifferentAnalysisErrors.cvs")
+          out = new PrintWriter(OutputDirectory + "DifferentAnalysisErrors.tsv")
           out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"))
           out.close()
-          println("Different analysis errors written in " + OutputDirectory + "DifferentAnalysisErrors.cvs")
+          println("Different analysis errors written in " + OutputDirectory + "DifferentAnalysisErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "DifferentOutputs.cvs")
+          out = new PrintWriter(OutputDirectory + "DifferentOutputs.tsv")
           out.println(getDifferentOutputs(idTestRun, previousTestRun))
           out.close()
-          println("Different outputs written in " + OutputDirectory + "DifferentOutputs.cvs")
+          println("Different outputs written in " + OutputDirectory + "DifferentOutputs.tsv")
 
-          out = new PrintWriter(OutputDirectory + "DifferentValidatedWarningOutputs.cvs")
+          out = new PrintWriter(OutputDirectory + "DifferentValidatedWarningOutputs.tsv")
           out.println(getDifferentValidatedWarningOutputs(idTestRun, previousTestRun))
           out.close()
-          println("Different validated/warning outputs written in " + OutputDirectory + "DifferentValidatedWarningOutputs.cvs")
+          println("Different validated/warning outputs written in " + OutputDirectory + "DifferentValidatedWarningOutputs.tsv")
 
-          out = new PrintWriter(OutputDirectory + "NewCompilationErrors.cvs")
+          out = new PrintWriter(OutputDirectory + "NewCompilationErrors.tsv")
           out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"))
           out.close()
-          println("New compilation errors written in " + OutputDirectory + "NewCompilationErrors.cvs")
+          println("New compilation errors written in " + OutputDirectory + "NewCompilationErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "NewAnalysisErrors.cvs")
+          out = new PrintWriter(OutputDirectory + "NewAnalysisErrors.tsv")
           out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"))
           out.close()
-          println("New analysis errors written in " + OutputDirectory + "NewAnalysisErrors.cvs")
+          println("New analysis errors written in " + OutputDirectory + "NewAnalysisErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "NewOutputs.cvs")
+          out = new PrintWriter(OutputDirectory + "NewOutputs.tsv")
           out.println(getNewOutputs(idTestRun, previousTestRun))
           out.close()
-          println("New outputs written in " + OutputDirectory + "NewOutputs.cvs")
+          println("New outputs written in " + OutputDirectory + "NewOutputs.tsv")
 
-          out = new PrintWriter(OutputDirectory + "RemovedCompilationErrors.cvs")
+          out = new PrintWriter(OutputDirectory + "RemovedCompilationErrors.tsv")
           out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenCompilations"))
           out.close()
-          println("Removed compilation errors written in " + OutputDirectory + "RemovedCompilationErrors.cvs")
+          println("Removed compilation errors written in " + OutputDirectory + "RemovedCompilationErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "RemovedAnalysisErrors.cvs")
+          out = new PrintWriter(OutputDirectory + "RemovedAnalysisErrors.tsv")
           out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenAnalyses"))
           out.close()
-          println("Removed analysis errors written in " + OutputDirectory + "RemovedAnalysisErrors.cvs")
+          println("Removed analysis errors written in " + OutputDirectory + "RemovedAnalysisErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "RemovedOutputs.cvs")
+          out = new PrintWriter(OutputDirectory + "RemovedOutputs.tsv")
           out.println(getNewOutputs(previousTestRun, idTestRun))
           out.close()
-          println("Removed outputs written in " + OutputDirectory + "RemovedOutputs.cvs")
+          println("Removed outputs written in " + OutputDirectory + "RemovedOutputs.tsv")
 
           println("Press a key to go to the test run menu")
           readLine()
@@ -296,7 +327,7 @@ object InterfaceTestRun {
     "Welcome on the test run system of Sample\n" +
       "Please select one of the following options:\n" +
       "1) Create a new test run from scratch\n" +
-      "2) Create a new test run by copying the parameters of an existing analysis\n" +
+      "2) Create a new test run by copying the parameterSystems of an existing analysis\n" +
       "3) Select an existing test run\n" +
       "4) Delete an existing test run\n" +
       "0) Exit"
@@ -305,7 +336,7 @@ object InterfaceTestRun {
     "Test run #" + id + "\n" +
       "Please select one of the following options:\n" +
       "1) Show the statistics of the current test run\n" +
-      "2) Write on cvs files the reports of the current test run\n" +
+      "2) Write on tsv files the reports of the current test run\n" +
       "3) Compare the current test run with an existing one\n" +
       "4) Run the current test run\n" +
       "5) Add more programs to be analyzed\n" +
@@ -496,7 +527,7 @@ object InterfaceTestRun {
     val rs: ResultSet = stmt.getGeneratedKeys()
     rs.next()
     val id = rs.getInt(1)
-    try {
+    /*try {
       populateToBeAnalyzed(name2Object[IteratorOverPrograms](iterator, InstalledPlugins.iterators, p => p.getLabel).get,
         name2Object[Compiler](compiler, InstalledPlugins.compilers, p => p.getLabel).get,
         id)
@@ -504,7 +535,7 @@ object InterfaceTestRun {
     catch {
       case e =>
         println("Something wrong happened: " + e.getMessage)
-    }
+    }*/
     return id
   }
 
@@ -524,7 +555,7 @@ object InterfaceTestRun {
         }
       }
       catch {
-        case e => println("Program " + program + " not added.\n" + e.getMessage)
+        case e : Throwable => println("Program " + program + " not added.\n" + e.getMessage)
       }
     }
     println("END OF ADDING PROGRAMS TO THE TODO LIST")
@@ -787,7 +818,7 @@ object InterfaceTestRun {
       return true
     }
     catch {
-      case _ => return false
+      case _ : Throwable => return false
     }
   }
 
@@ -851,6 +882,7 @@ object InterfaceTestRun {
   //analyze one given program setting all the parameters of the analysis, and recording the results in the database
   def analyzeOneProgram[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](url: String, idProgram: Int, idTestRun: Int, semanticAnalysis: N, heapDomain: H, compiler: Compiler, property: Property): Unit = {
     System.gc()
+    System.runFinalization()
 
     println("Program: " + url + " - " + new Date().toString)
     semanticAnalysis.reset()
@@ -865,10 +897,10 @@ object InterfaceTestRun {
       SystemParameters.compiler.compileFile(url)
     }
     catch {
-      case e => println("Compiler's error: " + e.toString)
-        stmt.executeUpdate("INSERT INTO BrokenCompilations(TestRun, Program, Error) VALUES(" + idTestRun + ", " + idProgram + ", '" + e.toString.replace("'", "''") + "')")
-        SystemParameters.compilerTimer.stop();
-        return
+      case e : Throwable => println("Compiler's error: " + e.toString)
+      stmt.executeUpdate("INSERT INTO BrokenCompilations(TestRun, Program, Error) VALUES(" + idTestRun + ", " + idProgram + ", '" + e.toString.replace("'", "''") + "')")
+      SystemParameters.compilerTimer.stop();
+      return
     }
 
     SystemParameters.compilerTimer.stop()
@@ -923,14 +955,14 @@ object InterfaceTestRun {
       }
     }
     catch {
-      case e =>
+      case e : Throwable =>
         println("Error when running the analysis: " + e.toString)
         val sql = "INSERT INTO BrokenAnalyses(TestRun, Program, Error) " +
           "VALUES (" + idTestRun + ", " + idProgram + ", '" + e.toString.replace("'", "''") + "')"
         try {
           stmt.executeUpdate(sql);
         } catch {
-          case _ => println("Program " + idProgram + " already in the broken analyses of test run " + idTestRun)
+          case _ : Throwable => println("Program " + idProgram + " already in the broken analyses of test run " + idTestRun)
         }
     }
     SystemParameters.domainTimer.reset()
