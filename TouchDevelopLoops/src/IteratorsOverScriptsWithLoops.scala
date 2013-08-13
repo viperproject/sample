@@ -30,3 +30,19 @@ class TopRootScriptsWithLoops extends RootScriptsWithLoops {
 
   override def getLabel() = "TouchDevelop top root scripts with loops"
 }
+
+class ScriptsWithLoops() extends ScriptListings {
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= {
+
+    super.filter(s).filter( (t : ScriptRecord) => {
+      val compiler=new LoopCostCompiler();
+      SystemParameters.setCompiler(compiler);
+      compiler.compileFile(t.getCodeURL);
+      compiler.loops;
+    }
+    )
+  }
+
+
+  override def getLabel() = "TouchDevelop scripts with loops"
+}

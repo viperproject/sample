@@ -136,11 +136,11 @@ abstract class ControlStructure[S <: State[S]] (val parent: LoopCostInternal[S],
   // the string that we get from PUBS
   var answer : String = null
 
-  def answerToString : String = if (answer == null || answer.contains("failed")) "no upper bound found" else answerTranslated
+  def answerToString : String = if (answer == null || answer.contains("failed") || answer.contains("no upper bound found")) "no upper bound found" else answerTranslated
 
   // the cost expression that we get from parsing 'answer'
   def costExpression : CostExpr = {
-    if (answer == null || answer.contains("failed")) null
+    if (answer == null || answer.contains("failed") || answer.contains("no upper bound found")) null
     else {
       try {
       val c = CostExpressionParser(answer)
