@@ -114,9 +114,15 @@ object LoopRewriter {
 
   def pos[T <: IdPositional](posNew:T)(implicit defPos:IdPositional):T = {
     posNew.pos = defPos.pos
-    posNew.setOptionalId(defPos.getId)
+    posNew.setOptionalId(defPos.getId match {
+      case Some(x) => Some(x + "["+id+"]")
+      case None => None
+    })
+    id = id + 1
     posNew
   }
+
+  var id = 0
 
 }
 

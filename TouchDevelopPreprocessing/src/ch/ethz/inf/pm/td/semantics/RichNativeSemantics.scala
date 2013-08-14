@@ -166,7 +166,7 @@ object RichNativeSemantics {
                 }
                 case Some(st) => st
               }
-              curState = curState.assignField(List(obj),f.getName(),a)
+              curState = AssignField[S](obj,f,a)(curState,pp)
             }
           }
         }
@@ -207,7 +207,7 @@ object RichNativeSemantics {
           case _ =>
             s.createObject(typ,pp,fields)
         }
-        val obj = curState.getExpression()
+        var obj = curState.getExpression()
 
         // Make sure that our value is "valid"  now
         curState = curState.assignVariable(obj,Valid(typ))
@@ -223,6 +223,13 @@ object RichNativeSemantics {
               val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__collvalue")
               curState = Top[S](col.getValueType, initializeFields = !referenceLoop2)(curState, newPP2)
               val valueTop = curState.getExpression()
+
+              // If the value of a collection is another collection of the same type (e.g. JSONObject)
+              // the collection value is abstracted to the collection value itself. Therefore
+              // the collection changes to a summary collection and therefore we have to update the
+              // collection identifier to a summary identifier.
+              curState = curState.getSummaryCollectionIfExists(obj)
+              obj = curState.getExpression()
 
               curState = CollectionInsert[S](obj, keyTop, valueTop)(curState, pp)
 
@@ -255,7 +262,7 @@ object RichNativeSemantics {
                 }
                 case Some(st) => st
               }
-              curState = curState.assignField(List(obj),f.getName(),a)
+              curState = AssignField[S](obj,f,a)(curState,pp)
             }
           }
         }
@@ -306,13 +313,13 @@ object RichNativeSemantics {
               val oldField = Field[S](obj,f)(curState,newPP)
               curState = Clone[S](oldField,recursive = !referenceLoop)(curState,newPP)
               val clonedContent = curState.getExpression()
-              curState = curState.assignField(List(newObject),f.getName(),clonedContent)
+              curState = AssignField[S](newObject,f,clonedContent)(curState,newPP)
             } else {
               val oldField = Field[S](obj,f)(curState,pp)
-              curState = curState.assignField(List(newObject),f.getName(),oldField)
+              curState = AssignField[S](newObject,f,oldField)(curState,pp)
             }
           case Some(st) =>
-            curState = curState.assignField(List(newObject),f.getName(),st)
+            curState = AssignField[S](newObject,f,st)(curState,pp)
         }
       }
     }
@@ -370,6 +377,7 @@ object RichNativeSemantics {
     val newCollectionTyp = collectionTyp.getName() match {
       case TNumber_Map.typName => TNumber_Collection.typ
       case TString_Map.typName => TString_Collection.typ
+      case TJson_Object.typName => TString_Collection.typ
     }
 
     var newState = state.extractCollectionKeys(collection, 0 ndTo (CollectionSize[S](collection) - 1), newCollectionTyp, TNumber.typ, keyTyp, TNumber.typ, pp)
@@ -516,7 +524,7 @@ object RichNativeSemantics {
 
       curState = curState.assignVariable(l,r)
     }
-    curState
+    curState.optimizeSummaryNodes()
 
   }
   /*-- Reading and writing of fields --*/

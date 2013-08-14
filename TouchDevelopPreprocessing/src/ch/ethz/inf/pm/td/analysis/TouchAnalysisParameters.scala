@@ -100,6 +100,7 @@ object TouchAnalysisParameters {
   val reportOnlyAlarmsInMainScript = true
 
   // Fields that are always TOP
-  val topFields = Set("x","y","z","speed x","speed y","speed z","width","height","acceleration x","acceleration y")
+  val topFields = Set("x","y","z","z index","speed x","speed y","speed z","width","height","acceleration x",
+    "acceleration y","angle","angular speed","leaderboard score")
 
 }

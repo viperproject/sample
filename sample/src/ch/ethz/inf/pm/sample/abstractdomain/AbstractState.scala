@@ -924,6 +924,35 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     return false
   }
 
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) : AbstractState[N, H, I] = {
+
+    if (this.isBottom) return this
+
+    def getSummaryCollectionIfExists(result: AbstractState[N, H, I])(collection: Assignable): AbstractState[N, H, I] = {
+      val (newHeapAndSemantic, ids) = result.d1.getSummaryCollectionIfExists(collection)
+
+      var expressions = new ExpressionSet(ids.getType()).bottom()
+      if (!ids.isBottom) {
+        expressions = new ExpressionSet(ids.getType()).add(ids)
+      }
+
+      val newState = new AbstractState[N,H,I](newHeapAndSemantic, expressions)
+      newState.lub(result, newState)
+    }
+
+    var result = this.factory()
+    result.d1 = this.d1
+    result.d2 = this.d2.bottom()
+    for (collection <- collectionSet.getSetOfExpressions) {
+      collection match {
+        case id: Assignable => result = getSummaryCollectionIfExists(result)(id)
+        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, getSummaryCollectionIfExists(result))
+      }
+    }
+
+    result
+  }
+
   /**
    * Removes all variables satisfying filter
    */
@@ -957,8 +986,13 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       case _ => false
     })
 
-    pruned
+    pruned.optimizeSummaryNodes()
 
+  }
+
+  def optimizeSummaryNodes() : AbstractState[N,H,I] = {
+    val (state,replacement) = this._1.optimizeSummaryNodes()
+    new AbstractState[N,H,I](state,expr.merge(replacement))
   }
 
   override def lubWithReplacement(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : (AbstractState[N,H,I],Replacement) = {

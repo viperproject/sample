@@ -554,7 +554,7 @@ object ConstraintsInference {
       var result : List[Statement] = Nil;
       var something : Boolean=false;
       x match {
-        case FieldAndProgramPoint(pp, field, typ) => reach1(pp, env, store) match {
+        case FieldAndProgramPoint(pp, field, typ, _) => reach1(pp, env, store) match {
           case Some(x) => something=true; result=FieldAccess(null, x :: Nil, field, typ) :: result;
           case None =>
         }
@@ -581,7 +581,7 @@ object ConstraintsInference {
         k match {
           case x : SimpleProgramPointHeapIdentifier => 
             return reach1(x, env, store);
-          case FieldAndProgramPoint(pp, field, typ) =>
+          case FieldAndProgramPoint(pp, field, typ, _) =>
             if(! pp.equals(id))
             reach1(pp, env, store) match {
               case Some(x) => return Some(new FieldAccess(null, x :: Nil, field, null));

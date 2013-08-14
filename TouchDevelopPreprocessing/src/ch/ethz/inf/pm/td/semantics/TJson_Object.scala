@@ -40,7 +40,7 @@ object TJson_Object {
 
 }
 
-class TJson_Object extends AMutable_Collection {
+class TJson_Object extends AMap {
 
   def getTyp = TJson_Object.typ
 
@@ -50,7 +50,8 @@ class TJson_Object extends AMutable_Collection {
     /** Gets the i-th element */
     case "at index" =>
       val List(index) = parameters
-      CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
+      // Check disabled -- ALWAYS FALSE ALARM!
+      //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
       Return[S](CollectionSummary[S](this0))
 
     /** Gets a field value as a boolean */
@@ -61,12 +62,11 @@ class TJson_Object extends AMutable_Collection {
     /** Indicates if the key exists */
     case "contains key" =>
       val List(key) = parameters // String
-      Top[S](TBoolean.typ)
+      Return[S](CollectionContainsKey[S](this0, key))
 
     /** Gets a value by name */
     case "field" =>
-      val List(key) = parameters // String
-      Return[S](CollectionAt[S](this0,key))
+      super.forwardSemantics(this0,"at",parameters,returnedType)
 
     /** Gets a field value as a number */
     case "number" =>

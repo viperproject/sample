@@ -49,6 +49,9 @@ class ClassHeapIdentifier(val value : Type, pp : ProgramPoint) extends NonRelati
   override def toSummaryNode : ClassHeapIdentifier = this
   override def toNonSummaryNode : ClassHeapIdentifier = this
   override def getReachableFromIds : Set[ClassHeapIdentifier] = Set.empty
+  override def hasMultipleAccessPaths = false
+  override def getCounter = 0
+  override def setCounter(c:Int) = this
 
   override def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = throw new SemanticException("Not yet supported")
   override def getCollectionOverApproximation(collection: Assignable) = throw new SemanticException("Not yet supported")

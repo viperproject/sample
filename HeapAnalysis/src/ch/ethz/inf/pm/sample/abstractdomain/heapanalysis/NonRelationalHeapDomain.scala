@@ -83,13 +83,14 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
     val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
 
-    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections..)
-    val makeNonSummaryLeftRef = l.getIds collect
-      { case x:I if !x.getReachableFromIds.intersect(makeNonSummaryLeft).isEmpty => x }
-    val makeNonSummaryRightRef = r.getIds collect
-      { case x:I if !x.getReachableFromIds.intersect(makeNonSummaryRight).isEmpty => x }
-
-    if (makeNonSummaryLeft.isEmpty && makeNonSummaryRight.isEmpty) return (super.glb(l,r),new Replacement())
+    def collectReferences(nodes: Set[I], heapEnv: HeapEnv[I]): Set[I] = {
+      if (nodes.isEmpty) return nodes
+      val references = heapEnv.getIds collect { case x:I if !x.getReachableFromIds.intersect(nodes).isEmpty => x }
+      references ++ collectReferences(references, heapEnv)
+    }
+    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections, collection tuples)
+    val makeNonSummaryLeftRef = collectReferences(makeNonSummaryLeft, l)
+    val makeNonSummaryRightRef = collectReferences(makeNonSummaryRight, r)
 
     val replaceLeft = new Replacement
     for (a <- makeNonSummaryLeft ++ makeNonSummaryLeftRef)
@@ -182,11 +183,15 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom :
     val makeSummaryLeft = rightSummaryNodes -- leftSummaryNodes
     val makeSummaryRight = leftSummaryNodes -- rightSummaryNodes
 
-    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections..)
-    val makeSummaryLeftRef = l.getIds collect
-      { case x:I if !x.getReachableFromIds.intersect(makeSummaryLeft).isEmpty => x }
-    val makeSummaryRightRef = r.getIds collect
-      { case x:I if !x.getReachableFromIds.intersect(makeSummaryRight).isEmpty => x }
+    def collectReferences(nodes: Set[I], env: VariableEnv[I]): Set[I] = {
+      if (nodes.isEmpty) return nodes
+      val references = env.getIds collect { case x:I if !x.getReachableFromIds.intersect(nodes).isEmpty => x }
+      references ++ collectReferences(references, env)
+    }
+
+    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections, collection tuples)
+    val makeSummaryLeftRef = collectReferences(makeSummaryLeft, l)
+    val makeSummaryRightRef = collectReferences(makeSummaryRight, r)
 
     if (makeSummaryLeft.isEmpty && makeSummaryRight.isEmpty) return (super.lub(l,r),new Replacement())
 
@@ -215,13 +220,14 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom :
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
     val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
 
-    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections..)
-    val makeNonSummaryLeftRef = l.getIds collect
-      { case x:I if !x.getReachableFromIds.intersect(makeNonSummaryLeft).isEmpty => x }
-    val makeNonSummaryRightRef = r.getIds collect
-      { case x:I if !x.getReachableFromIds.intersect(makeNonSummaryRight).isEmpty => x }
-
-    if (makeNonSummaryLeft.isEmpty && makeNonSummaryRight.isEmpty) return (super.glb(l,r),new Replacement())
+    def collectReferences(nodes: Set[I], env: VariableEnv[I]): Set[I] = {
+      if (nodes.isEmpty) return nodes
+      val references = env.getIds collect { case x:I if !x.getReachableFromIds.intersect(nodes).isEmpty => x }
+      references ++ collectReferences(references, env)
+    }
+    // Also convert nodes that refer to summary nodes (fields of summary nodes, length of summarized collections, collection tuples)
+    val makeNonSummaryLeftRef = collectReferences(makeNonSummaryLeft, l)
+    val makeNonSummaryRightRef = collectReferences(makeNonSummaryRight, r)
 
     val replaceLeft = new Replacement
     for (a <- makeNonSummaryLeft ++ makeNonSummaryLeftRef)
@@ -349,6 +355,14 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
   def toSummaryNode : I
   def toNonSummaryNode : I
   def getReachableFromIds : Set[I]
+  def getCounter : Int
+  def setCounter(c:Int) : I
+
+  /**
+   * Nodes of collections may have multiple access paths (through differnt keys/indexes).
+   * Everything else should return false here
+   */
+  def hasMultipleAccessPaths : Boolean
 
   def createCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): I
   def getCollectionOverApproximation(collection:Assignable): I
@@ -662,6 +676,23 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     (this.evalFieldAccess(heapIdentifier, name, typ), this, new Replacement)
   }
 
+  def getSummaryCollectionIfExists(collection: Assignable): HeapIdSetDomain[I] = {
+    def getSummaryCollection(a: Assignable): HeapIdSetDomain[I] = a match {
+      case collection: I =>
+        var ids:HeapIdSetDomain[I] = new MaybeHeapIdSetDomain[I]()
+        if (getIds().contains(collection.toSummaryNode)) {
+          ids = ids.add(collection.toSummaryNode)
+        } else {
+          ids = ids.add(collection)
+        }
+
+        ids
+      case _ => throw new SemanticException("This is not a collection identifier " + a.toString())
+    }
+
+    resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getSummaryCollection(_))
+  }
+
   override def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
     makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, pp))
   }
@@ -698,7 +729,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def insertCollectionElement(collectionApprox: Assignable, pp: ProgramPoint) = collectionApprox match{
-    case FieldAndProgramPoint(x:CollectionIdentifier, "overApproximation", _) =>
+    case FieldAndProgramPoint(x:CollectionIdentifier, "overApproximation", _, _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
 
       var result = this.factory()
@@ -741,7 +772,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def getCollectionTuples(collectionApprox: Assignable): HeapIdSetDomain[I] = collectionApprox match {
-    case FieldAndProgramPoint(_, "overApproximation", _) =>
+    case FieldAndProgramPoint(_, "overApproximation", _, _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
       this.heapEnv.get(collectionApproxId)
     case _ => throw new SemanticException("This is not a collection over approximation identifier " + collectionApprox)
@@ -763,7 +794,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def getCollectionKeys(collectionApprox: Assignable, keyTyp: Type): HeapIdSetDomain[I] = collectionApprox match {
-    case FieldAndProgramPoint(_, "overApproximation", _) =>
+    case FieldAndProgramPoint(_, "overApproximation", _, _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
       val tupleIds = this.heapEnv.get(collectionApproxId)
       def f(typ: Type)(a:Assignable) = new MaybeHeapIdSetDomain[I]().convert(dom.getCollectionKey(a, typ))
@@ -773,7 +804,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def getCollectionValues(collectionApprox: Assignable, valueTyp: Type): HeapIdSetDomain[I] = collectionApprox match {
-    case FieldAndProgramPoint(_, "overApproximation", _) =>
+    case FieldAndProgramPoint(_, "overApproximation", _, _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
       val tupleIds = this.heapEnv.get(collectionApproxId)
       def f(typ: Type)(a:Assignable) = new MaybeHeapIdSetDomain[I]().convert(dom.getCollectionValue(a, typ))
@@ -790,7 +821,61 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     ReachabilityAnalysis.getUnreachableLocations(d1,d2)
   }
 
+  /** this subsumes reachability analysis! */
+  override def optimizeSummaryNodes:(NonRelationalHeapDomain[I],Replacement) = {
 
+    (this,new Replacement)
+
+    if (env.isBottom) return (this,new Replacement)
+    if (heap.isBottom) return (this,new Replacement)
+
+    // Search for all nodes reachable via a single access path
+    val visitedOnce = mutable.HashSet.empty[I]
+    val visitedTwice = mutable.HashSet.empty[I] // We keep this to detect loops
+    var toVisit = List.empty[I]
+    for (curs <- env.value.values) toVisit = toVisit ::: curs.value.toList
+    while (!toVisit.isEmpty) {
+      val cur = toVisit.head
+
+      if (!cur.hasMultipleAccessPaths) { // stop search at multi-access path nodes
+        if (!visitedOnce.contains(cur)) visitedOnce += cur
+        else { visitedTwice += cur }
+        val reachableViaReferences = heap.get(cur).value
+        val reachableViaFieldAccessEtc = heap.getIds.filter( _.getReachableFromIds.contains(cur) )
+        val newSuccessors = reachableViaReferences ++ reachableViaFieldAccessEtc -- visitedTwice
+        toVisit = toVisit.tail ++ newSuccessors
+      } else {
+        toVisit = toVisit.tail
+      }
+    }
+
+    // For all summary nodes visited exactly once, add a replacement of form (Summary -> NonSummary)
+    val replacement = new Replacement()
+    for (candidate <- visitedOnce -- visitedTwice) {
+      val nonSummary = candidate.toNonSummaryNode
+      if (!candidate.equals(nonSummary)) {
+        replacement.value += (Set(candidate.asInstanceOf[Identifier]) -> Set(nonSummary.asInstanceOf[Identifier]))
+      }
+    }
+
+    (this.merge(replacement),replacement)
+  }
+
+  private def makeNewIdOrReturnSummary(objectIdentifier:I) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
+
+    // CASE 1) We already have a summary node for this, return the summary identifier
+    if (getIds.contains(objectIdentifier.toSummaryNode)) {
+      (cod.convert(objectIdentifier.toSummaryNode), this, new Replacement)
+    }
+
+    // CASE 2) We do not have a not, return the non-summary-identifier. Change counter so that it is new
+    var cur = objectIdentifier
+    while (getIds.contains(cur)) {
+      cur = cur.setCounter(cur.getCounter + 1)
+    }
+    (cod.convert(cur), this, new Replacement)
+
+  }
 
   private def makeSummaryIfRequired(objectIdentifier:I) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
 
@@ -941,6 +1026,9 @@ case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelatio
   override def toSummaryNode : TopHeapIdentifier = this
   override def toNonSummaryNode : TopHeapIdentifier = this
   override def getReachableFromIds : Set[TopHeapIdentifier] = Set.empty
+  override def hasMultipleAccessPaths = false
+  override def getCounter = 0
+  override def setCounter(c:Int) = this
 
   def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = this
   def getCollectionOverApproximation(collection: Assignable) = this

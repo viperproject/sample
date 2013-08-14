@@ -353,7 +353,7 @@ object ShowGraph extends Property {
 
         id match {
 
-          case FieldAndProgramPoint(p1,field,_) =>
+          case FieldAndProgramPoint(p1,field,_, _) =>
             val from = idToVertix.apply(p1)
             val to = idToVertix.apply(id)
             graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle;dashed=true");

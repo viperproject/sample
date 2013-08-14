@@ -267,7 +267,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
   def clearCollection(collection:Assignable, keyTyp: Type, valueTyp: Type) : T = {
-    //if (this.d2.isSummaryCollection(collection)) return this
+    if (this.d2.isSummaryCollection(collection)) return this
 
     def clearSingleCollection(initial:T, keyTyp: Type, valueTyp: Type)(collectionId: Assignable) = {
       var result: T = initial
@@ -356,6 +356,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def isSummaryCollection(collection: Assignable): Boolean = {
     return this.d2.isSummaryCollection(collection)
+  }
+
+  def optimizeSummaryNodes(): (HeapAndAnotherDomain[N,H,I],Replacement) = {
+    val (heap,rep) = this.d2.optimizeSummaryNodes
+    (new HeapAndAnotherDomain[N,H,I](d1.merge(rep),heap),rep)
   }
 
   private def getCollectionValuesByValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
@@ -481,6 +486,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     } else {
       HeapIdSetFunctionalLifting.applyToSetHeapId(initial.factory(), ids, assignValueTo(initial, value))
     }
+  }
+
+  def getSummaryCollectionIfExists(collection: Assignable) = {
+    val ids = this.d2.getSummaryCollectionIfExists(collection)
+    (this, ids)
   }
 
   def setArgument(variable : Assignable, expr : Expression) : T= {

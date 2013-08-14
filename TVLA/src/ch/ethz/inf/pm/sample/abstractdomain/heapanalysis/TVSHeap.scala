@@ -582,6 +582,8 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def removeCollectionElement(collectionTuple: Assignable, keyTyp: Type, valueTyp: Type) = throw new NotImplementedException("not implemented yet")
   def getCollectionLength(collection: Assignable) = throw new NotImplementedException("not implemented yet")
   def getUnreachableHeap = throw new NotImplementedException("not implemented yet")
+  def optimizeSummaryNodes = throw new NotImplementedException("not implemented yet")
+  def getSummaryCollectionIfExists(collection: Assignable) = throw new NotImplementedException("not implemented yet")
 
   // methods required by Analysis trait
   override def reset() {}

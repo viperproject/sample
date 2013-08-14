@@ -570,6 +570,14 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     throw new NotImplementedException()
   }
 
+  def optimizeSummaryNodes(): PartitionedState[D] = {
+    throw new NotImplementedException()
+  }
+
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = {
+    throw new NotImplementedException()
+  }
+
   /**
    * Maps a function transforming a leaf state and applies it to all leaves of
    * the partitioning.

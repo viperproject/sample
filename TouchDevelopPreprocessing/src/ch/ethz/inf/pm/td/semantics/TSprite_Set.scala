@@ -38,7 +38,7 @@ class TSprite_Set extends AMutable_Collection {
       val resultA = curState.getExpression()
       curState = CallApi[S](old_set,"remove",List(sprite),TBoolean.typ)(curState,pp)
       val resultB = curState.getExpression()
-      Return[S](resultA && resultB)(curState, pp)
+      Return[S](resultA && resultB)(curState,pp)
 
     case "index of" =>
       val List(item) = parameters

@@ -59,7 +59,9 @@ class SMedia extends AAny {
     /** Creates a new game board */
     case "create board" =>
       val List(height) = parameters // Number
-      CheckNonNegative[S](height,"create board","height")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckNonNegative[S](height,"create board","height")
+      }
       New[S](TBoard.typ,Map(
         TBoard.field_width -> 480,
         TBoard.field_height -> height
@@ -75,8 +77,10 @@ class SMedia extends AAny {
     /** Creates a new game board in landscape mode. On rotatable devices it will take the entire screen when posted. */
     case "create landscape board" =>
       val List(width,height) = parameters // Number,Number
-      CheckNonNegative[S](width,"create landscape board","width")
-      CheckNonNegative[S](height,"create landscape board","height")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckNonNegative[S](width,"create landscape board","width")
+        CheckNonNegative[S](height,"create landscape board","height")
+      }
       New[S](TBoard.typ,Map(
         TBoard.field_width -> width,
         TBoard.field_height -> height,
@@ -86,8 +90,10 @@ class SMedia extends AAny {
 
     case "create picture" =>
       val List(width,height) = parameters // Number,Number
-      CheckNonNegative[S](width,"create picture","width")
-      CheckNonNegative[S](height,"create picture","height")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckNonNegative[S](width,"create picture","width")
+        CheckNonNegative[S](height,"create picture","height")
+      }
       New[S](TPicture.typ,Map(
         TPicture.field_width -> width,
         TPicture.field_height -> height
@@ -96,8 +102,10 @@ class SMedia extends AAny {
     /** Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */
     case "create portrait board" =>
       val List(width,height) = parameters // Number,Number
-      CheckNonNegative[S](width,"create portrait board","width")
-      CheckNonNegative[S](height,"create portrait board","height")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckNonNegative[S](width,"create portrait board","width")
+        CheckNonNegative[S](height,"create portrait board","height")
+      }
       New[S](TBoard.typ,Map(
         TBoard.field_width -> width,
         TBoard.field_height -> height,

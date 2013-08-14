@@ -581,7 +581,7 @@ class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Bo
   def isObject() = (!isNumericalType())
   def isBooleanType() = (name == "Boolean")
   def isNumericalType() = (name == "Number") || (name == "Boolean")
-  def isFloatingPointType() = (name == "Number")
+  def isFloatingPointType() = (name == "Number" || name == "Boolean") // TODO: Booleans should not be floating points
   def isStringType() = (name == "String")
   def isStatic() = isSingleton
   def getPossibleFields() = fields.toSet[Identifier]

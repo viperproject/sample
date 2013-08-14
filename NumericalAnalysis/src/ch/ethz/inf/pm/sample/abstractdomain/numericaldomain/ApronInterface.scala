@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 class ApronInterface( val state: Option[Abstract1],
                       val domain: Manager,
                       isPureBottom:Boolean = false,
-                      val env: Set[Identifier]
+                      env: Set[Identifier]
                       ) extends RelationalNumericalDomain[ApronInterface] {
 
   override def factory(): ApronInterface = {
@@ -355,7 +355,20 @@ class ApronInterface( val state: Option[Abstract1],
 
   override def merge(r: Replacement): ApronInterface = {
 
-    if (r.isEmpty) return this
+    if (r.isEmpty()) return this
+    if (state == None) return new ApronInterface(None,domain,isPureBottom,env -- r.value.map(_._1).flatten ++ r.value.map(_._2).flatten)
+
+    // Filter out everything that is converting to a summary node -- we can handle this
+    val simpleConversions = r.value.filter ( { p:((Set[Identifier],Set[Identifier])) =>
+      p._1.size == 1 && p._2.size == 1 && p._1.head.toString.equals(p._2.head.toString)
+    })
+    val nextEnv = env -- simpleConversions.map(_._1).flatten ++ simpleConversions.map(_._2).flatten
+
+    // Construct the rest of the replacement. Finish if we are already done
+    val rep = new Replacement(r.value -- simpleConversions.keySet)
+    if (rep.isEmpty()) return new ApronInterface(state,domain,isPureBottom,nextEnv)
+
+    println(rep)
 
     var tempVersion = 0
     val tempVarName = "tempVarStar"
@@ -364,7 +377,7 @@ class ApronInterface( val state: Option[Abstract1],
     var varsToRemove = Set.empty[String]
     var tempIdentifiers = Set.empty[Identifier]
 
-    for ((from,to) <- r.value) {
+    for ((from,to) <- rep.value) {
       val toVarsAsString: Array[String] = (for (v <- to) yield v.getName()).toArray[String]
       if(!from.isEmpty) {
 
@@ -389,7 +402,7 @@ class ApronInterface( val state: Option[Abstract1],
             var tempState = startingState.expandCopy(domain,presentVariablesToRemove(0), Array(tempVal))
             val toFold = Array(tempVal) ++ presentVariablesToRemove
             tempState = tempState.foldCopy(domain, toFold)
-            foldedStates = foldedStates + new ApronInterface(Some(tempState), domain, env = env -- from + tempValIdent)
+            foldedStates = foldedStates + new ApronInterface(Some(tempState), domain, env = nextEnv -- from + tempValIdent)
             postProcessMap = postProcessMap + (Some(tempVal) -> toVarsAsString)
           }
         }

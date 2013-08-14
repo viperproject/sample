@@ -466,6 +466,8 @@ trait State[S <: State[S]] extends Lattice[S] {
    */
   def isSummaryCollection(collectionSet: ExpressionSet): Boolean
 
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) : S
+
   /**
    * Removes all variables satisfying filter
    */
@@ -475,6 +477,12 @@ trait State[S <: State[S]] extends Lattice[S] {
    * Performs abstract garbage collection
    */
   def pruneUnreachableHeap() : S
+
+  /**
+   * Detects summary nodes that are only reachable via a single access path and converts
+   * them to non-summary nodes
+   */
+  def optimizeSummaryNodes() : S
 
 }
 

@@ -55,7 +55,7 @@ public class InstalledPlugins {
         heapanalyses=new HeapDomain[4];
         heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
         heapanalyses[1]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
-        heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null));
+        heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0));
         heapanalyses[3]=new TVSHeap();
 
         iterators = new IteratorOverPrograms[12];

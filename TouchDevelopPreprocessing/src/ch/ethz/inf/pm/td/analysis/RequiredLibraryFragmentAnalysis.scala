@@ -79,6 +79,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
 
   def pruneVariables(filter:Identifier => Boolean) : AccessCollectingState = this
   def pruneUnreachableHeap() : AccessCollectingState = this
+  def optimizeSummaryNodes() : AccessCollectingState = this
   def testFalse(): AccessCollectingState = this
   def testTrue(): AccessCollectingState = this
   def assume(cond: ExpressionSet): AccessCollectingState = this
@@ -98,6 +99,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): AccessCollectingState = this
   def createVariableForArgument(x: ExpressionSet, typ: Type): AccessCollectingState = this
   def before(pp: ProgramPoint): AccessCollectingState = this
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = this
 
   def bottom(): AccessCollectingState = new AccessCollectingState(myType.bottom())
   def glb(left: AccessCollectingState, right: AccessCollectingState): AccessCollectingState =

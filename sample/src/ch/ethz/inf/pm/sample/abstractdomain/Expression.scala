@@ -397,6 +397,7 @@ case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint,
 abstract class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type, val pp : ProgramPoint) extends Identifier(typ1, pp) {
 
   def identifiers() : Set[Identifier] = Set(this);
+
 }
 
 /**

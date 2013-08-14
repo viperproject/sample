@@ -25,7 +25,8 @@ abstract class AMap extends ACollection {
     /** Gets the i-th key */
     case "at index" =>
       val List(index) = parameters
-      CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
+      // Check disabled -- ALWAYS FALSE ALARM!
+      //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
       Return[S](CollectionKeySummary[S](this0))
 
     case "set at" =>

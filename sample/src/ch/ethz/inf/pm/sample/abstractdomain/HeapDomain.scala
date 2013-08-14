@@ -135,6 +135,8 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
     */
   def getFieldIdentifier(objectIdentifier : Assignable, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
 
+  def getSummaryCollectionIfExists(collection: Assignable): HeapIdSetDomain[I]
+
   /**
   This method is used to signal that we have ended to assign something. For instance,
    in TVLA we could create some temporary nodes when assigning. This method signals to
@@ -389,6 +391,11 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * Performs abstract garbage collection
    */
   def getUnreachableHeap: Set[I]
+
+  /**
+   * Converts summary nodes to regular nodes whenever possible and sound
+   */
+  def optimizeSummaryNodes: (T,Replacement)
 }
 
 trait Assignable {
