@@ -19,8 +19,8 @@ object WebASTImporter {
     override val typeHints = WebAstTypeHints(List(classOf[JOperator], classOf[JPropertyRef], classOf[JStringLiteral],
       classOf[JBooleanLiteral], classOf[JNumberLiteral], classOf[JLocalRef], classOf[JPlaceholder], classOf[JSingletonRef],
       classOf[JExprHolder], classOf[JComment], classOf[JFor], classOf[JForeach], classOf[JWhere], classOf[JWhile],
-      classOf[JIf], classOf[JBoxed], classOf[JExprStmt], classOf[JInlineActions], classOf[JInlineAction], classOf[JAction],
-      classOf[JPage], classOf[JEvent], classOf[JLibAction], classOf[JArt], classOf[JData], classOf[JLibrary],
+      classOf[JIf], classOf[JElseIf], classOf[JBoxed], classOf[JExprStmt], classOf[JInlineActions], classOf[JInlineAction],
+      classOf[JAction], classOf[JPage], classOf[JEvent], classOf[JLibAction], classOf[JArt], classOf[JData], classOf[JLibrary],
       classOf[JTypeBinding], classOf[JActionBinding], classOf[JResolveClause], classOf[JRecord], classOf[JRecordField],
       classOf[JRecordKey], classOf[JLocalDef], classOf[JApp], classOf[JPropertyParameter], classOf[JProperty],
       classOf[JTypeDef], classOf[JApis], classOf[JCall])
@@ -55,15 +55,15 @@ object WebASTImporter {
       case JData(id,name,comment,typ,isReadonly) =>
         VariableDefinition(Parameter(name,TypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString)).setId(id)
       case JPage(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,initBody,displayBody) =>
-        PageDefinition(name,inParameters map (convert _),outParameters map (convert _),initBody map (convert _),displayBody map (convert _),isPrivate).setId(id)
+        PageDefinition(name,inParameters map (convert _),outParameters map (convert _),convert(initBody),convert(displayBody),isPrivate).setId(id)
       case JEvent(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,eventName,eventVariableId,body) =>
-        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = true,isPrivate = isPrivate).setId(id)
+        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),convert(body),isEvent = true,isPrivate = isPrivate).setId(id)
       case JLibrary(id,name,libIdentifier,libIsPublished,exportedTypes,exportedActions,resolveClauses) =>
         LibraryDefinition(name,libIdentifier,exportedActions map (convert _),resolveClauses map (convert _)).setId(id)
       case JRecord(id,name,comment,category,isCloudEnabled,keys,fields) =>
         TableDefinition(name,category,keys map (convert _),fields map (convert _)).setId(id)
       case JAction(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,body) =>
-        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),body map (convert _),isEvent = false,isPrivate = isPrivate).setId(id)
+        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),convert(body),isEvent = false,isPrivate = isPrivate).setId(id)
     }
   }
 
@@ -76,20 +76,41 @@ object WebASTImporter {
     Parameter(jLocalDef.name,TypeName(jLocalDef.`type`).setId(jLocalDef.id)).setId(jLocalDef.id)
   }
 
+  def convert(stmts:List[JStmt]):List[Statement] = {
+
+    // The new version of the JSON AST has an awkward representation of elseIfs
+    // as seperate if like statements IF(BLA) THEN A ELSE SKIP; ELSEIF(BLA2) THEN B ELSE C
+    // here, we convert it to IF (BLA) THEN A ELSE { IF (BLA 2) THEN B ELSE C }
+    val noElseIfs = stmts.foldRight(List.empty[JStmt])({ (x:JStmt,y:List[JStmt]) =>
+      y match {
+        case JElseIf(id2,cond2,then2,els2) :: xs =>
+          x match {
+            case JIf(id,cond,then,els) =>
+              JIf(id,cond,then,els ::: List(JIf(id2,cond2,then2,els2))) :: xs
+            case JElseIf(id,cond,then,els) =>
+              JElseIf(id,cond,then,els ::: List(JIf(id2,cond2,then2,els2))) :: xs
+          }
+        case _ => x :: y
+      }
+    })
+
+    noElseIfs map (convert _)
+  }
+
   def convert(jStatement:JStmt):Statement = {
     jStatement match {
       case JComment(id,text) =>
         Skip().setId(id)
       case JFor(id,index,bound,body) =>
-        For(index.name,convert(bound),body map (convert _)).setId(id)
+        For(index.name,convert(bound),convert(body)).setId(id)
       case JForeach(id,iterator,collection,conditions,body) =>
-        Foreach(iterator.name,convert(collection),conditions map (convert _),body map (convert _)).setId(id)
+        Foreach(iterator.name,convert(collection),conditions map (convert _),convert(body)).setId(id)
       case JWhile(id,condition,body) =>
-        While(convert(condition),body map (convert _)).setId(id)
+        While(convert(condition),convert(body)).setId(id)
       case JIf(id,condition,thenBody,elseBody) =>
-        If(convert(condition),thenBody map (convert _), elseBody map (convert _)).setId(id)
+        If(convert(condition),convert(thenBody), convert(elseBody)).setId(id)
       case JBoxed(id,body) =>
-        Box(body map (convert _)).setId(id)
+        Box(convert(body)).setId(id)
       case JExprStmt(id,expr) =>
         ExpressionStatement(convert(expr)).setId(id)
       case JInlineActions(id,expr,actions) =>
@@ -151,7 +172,7 @@ object WebASTImporter {
     InlineAction(jInlineAction.reference.name,
       jInlineAction.inParameters map (convert _),
       jInlineAction.outParameters map (convert _),
-      jInlineAction.body map (convert _)).setId(jInlineAction.id)
+      convert(jInlineAction.body)).setId(jInlineAction.id)
   }
 
 }
@@ -255,6 +276,13 @@ case class JWhile(
                    ) extends JStmt(id)
 
 case class JIf(
+                id: String,
+                condition: JExprHolder,
+                thenBody: List[JStmt],
+                elseBody: List[JStmt]
+                ) extends JStmt(id)
+
+case class JElseIf(
                 id: String,
                 condition: JExprHolder,
                 thenBody: List[JStmt],

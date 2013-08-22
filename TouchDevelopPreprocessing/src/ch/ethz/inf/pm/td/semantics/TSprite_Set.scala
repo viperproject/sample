@@ -42,7 +42,7 @@ class TSprite_Set extends AMutable_Collection {
 
     case "index of" =>
       val List(item) = parameters
-      Return[S](0 ndTo CollectionSize[S](this0))
+      Return[S](-1 ndTo CollectionSize[S](this0))
 
     /** Remove sprite that was added to set first. */
     case "remove first" =>

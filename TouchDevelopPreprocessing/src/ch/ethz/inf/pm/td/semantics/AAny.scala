@@ -108,7 +108,8 @@ abstract class AAny extends NativeMethodSemantics {
 
     case ":=" =>
       val List(right) = parameters
-      Assign[S](this0,right)
+      val res = Assign[S](this0,right)
+      res
 
     case "," =>
       val List(right) = parameters // Unknown,Unknown

@@ -26,6 +26,7 @@ class DummyProgramPoint extends ProgramPoint {
   override def getDescription = "Dummy"
   override def hashCode() = 1
   override def equals(obj: Any) = obj match { case x:DummyProgramPoint => true; case _ => false }
+  override def toString = "Dummy"
 }
 
 abstract class LineColumnProgramPoint extends ProgramPoint{

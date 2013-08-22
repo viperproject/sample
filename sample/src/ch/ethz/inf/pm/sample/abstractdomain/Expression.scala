@@ -62,7 +62,7 @@ object AbstractOperatorIdentifiers extends Enumeration {
  * identifier. Expressions represent the results of method calls and arithmetic and boolean operations as
  * well. 
  *
- * @author Pietro Ferrara
+ * @author Pietro Ferrara & Lucas Brutschy
  * @since 0.1
  */
 abstract class Expression(val p : ProgramPoint) {
@@ -72,13 +72,25 @@ abstract class Expression(val p : ProgramPoint) {
 
   /**
    *
-   * Replace one identifier by another in this expression (and all subexpressions)
+   * Replace one identifier by another in this expression (and all sub-expressions)
    *
    * @param a The identifier to be replaced
    * @param b The replacement identifier
    * @return An replaced version of this expression
    */
-  def replace(a:Identifier, b:Identifier):Expression
+  def replace(a:Identifier, b:Identifier):Expression = {
+    transform( { case x:Identifier => if (x.equals(a)) b else x; case x:Expression => x } )
+  }
+
+  /**
+   * Runs f on the expression and all sub-expressions
+   *
+   * This also replaces identifiers inside heap ID sets.
+   *
+   * @param f the transformer
+   * @return the transformed expression
+   */
+  def transform(f:(Expression => Expression)):Expression
 
 }
 
@@ -100,8 +112,8 @@ case class NegatedBooleanExpression(val thisExpr : Expression) extends Expressio
   override def toString() = "! " + thisExpr.toString()
   def identifiers() : Set[Identifier] = thisExpr.identifiers();
 
-  override def replace(a:Identifier, b:Identifier):Expression =
-    NegatedBooleanExpression(thisExpr.replace(a,b))
+  override def transform(f:(Expression => Expression)):Expression =
+    f(NegatedBooleanExpression(thisExpr.transform(f)))
 
 }
 
@@ -134,8 +146,8 @@ case class AbstractOperator(val thisExpr : Expression, val parameters : Set[List
       result
   };
 
-  override def replace(a:Identifier, b:Identifier):Expression =
-    AbstractOperator(thisExpr.replace(a,b),parameters.map(_.map(_.replace(a,b))),typeparameters,op,returntyp)
+  override def transform(f:(Expression => Expression)):Expression =
+    f(AbstractOperator(thisExpr.transform(f),parameters.map(_.map(_.transform(f))),typeparameters,op,returntyp))
 
 }
 
@@ -159,8 +171,8 @@ case class BinaryBooleanExpression(val left : Expression, val right : Expression
   override def toString() = left.toString() + op.toString() + right.toString()
   def identifiers() : Set[Identifier] = left.identifiers()++right.identifiers();
 
-  override def replace(a:Identifier, b:Identifier):Expression =
-    BinaryBooleanExpression(left.replace(a,b),right.replace(a,b),op,returntyp)
+  override def transform(f:(Expression => Expression)):Expression =
+    f(BinaryBooleanExpression(left.transform(f),right.transform(f),op,returntyp))
 
 }
 
@@ -174,7 +186,7 @@ case class FalseExpression(val pp : ProgramPoint, val returntyp : Type) extends 
   override def toString() = "false"
   def identifiers() : Set[Identifier] = Set.empty;
 
-  override def replace(a:Identifier, b:Identifier):Expression = this
+  override def transform(f:(Expression => Expression)):Expression = f(this)
 
 }
 
@@ -188,7 +200,7 @@ case class TrueExpression(val pp : ProgramPoint, val returntyp : Type) extends E
   override def toString() = "true"
   def identifiers() : Set[Identifier] = Set.empty;
 
-  override def replace(a:Identifier, b:Identifier):Expression = this
+  override def transform(f:(Expression => Expression)):Expression = f(this)
 
 }
 
@@ -212,8 +224,8 @@ case class ReferenceComparisonExpression(val left : Expression, val right : Expr
   override def toString() = left.toString() + op.toString() + right.toString()
   def identifiers() : Set[Identifier] = left.identifiers()++right.identifiers();
 
-  override def replace(a:Identifier, b:Identifier):Expression =
-    ReferenceComparisonExpression(left.replace(a,b),right.replace(a,b),op,returntyp)
+  override def transform(f:(Expression => Expression)):Expression =
+    f(ReferenceComparisonExpression(left.transform(f),right.transform(f),op,returntyp))
 
 }
 
@@ -237,8 +249,8 @@ case class BinaryArithmeticExpression(val left : Expression, val right : Express
   override def toString() = left.toString() + op.toString() + right.toString()
   def identifiers() : Set[Identifier] = left.identifiers()++right.identifiers();
 
-  override def replace(a:Identifier, b:Identifier):Expression =
-    BinaryArithmeticExpression(left.replace(a,b),right.replace(a,b),op,returntyp)
+  override def transform(f:(Expression => Expression)):Expression =
+    f(BinaryArithmeticExpression(left.transform(f),right.transform(f),op,returntyp))
 
 }
 
@@ -261,8 +273,8 @@ case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticO
   override def toString() = op.toString() + left.toString()
   def identifiers() : Set[Identifier] = left.identifiers();
 
-  override def replace(a:Identifier, b:Identifier):Expression =
-    UnaryArithmeticExpression(left.replace(a,b),op,returntyp)
+  override def transform(f:(Expression => Expression)):Expression =
+    f(UnaryArithmeticExpression(left.transform(f),op,returntyp))
 
 }
 
@@ -284,7 +296,7 @@ case class Constant(val constant : String, val typ : Type, pp : ProgramPoint) ex
   override def toString() = constant
   def identifiers() : Set[Identifier] = Set.empty;
 
-  override def replace(a:Identifier, b:Identifier):Expression = this
+  override def transform(f:(Expression => Expression)):Expression = f(this)
 
 }
 
@@ -321,7 +333,7 @@ abstract class Identifier(typ : Type, pp : ProgramPoint) extends Expression(pp) 
    */
   def representSingleVariable() : Boolean;
 
-  override def replace(a:Identifier, b:Identifier):Expression = if (a.equals(this)) b else this
+  override def transform(f:(Expression => Expression)):Expression = f(this)
 
 }
 
@@ -385,6 +397,7 @@ case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint,
   }
 
   def identifiers() : Set[Identifier] = Set(this)
+
 }
 
 /** 
@@ -417,7 +430,7 @@ case class UnitExpression(typ : Type, pp : ProgramPoint) extends Expression(pp) 
   override def toString() = "Unit"
   def identifiers() : Set[Identifier] = Set.empty;
 
-  override def replace(a:Identifier, b:Identifier):Expression = this
+  override def transform(f:(Expression => Expression)):Expression = f(this)
 
 }
 
@@ -850,7 +863,7 @@ case class BinaryNondeterministicExpression(left : Expression, right : Expressio
   override def toString = left.toString + " " + op.toString + " " + right.toString
   def identifiers() : Set[Identifier] = left.identifiers()++right.identifiers();
 
-  override def replace(a:Identifier, b:Identifier):Expression =
-    BinaryNondeterministicExpression(left.replace(a,b),right.replace(a,b),op,returnType)
+  override def transform(f:(Expression => Expression)):Expression =
+    f(BinaryNondeterministicExpression(left.transform(f),right.transform(f),op,returnType))
 
 }

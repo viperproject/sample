@@ -28,6 +28,11 @@ object MethodSummaries {
   private var entries:Map[ProgramPoint,_] = Map.empty
 
   /**
+   * Stores the entry state of a closure method
+   */
+  private var closureEntries:Map[String,State[_]] = Map.empty
+
+  /**
    * Stores exit states at positions which end the script prematurely
    */
   private var abnormalExits:Option[State[_]] = None
@@ -43,12 +48,21 @@ object MethodSummaries {
    * @tparam S Our current abstract domain
    * @return The exit state of the method
    */
-  def collect[S <: State[S]](callPoint:ProgramPoint,callType:ClassDefinition,callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet]):S = {
+  def collect[S <: State[S]](callPoint:ProgramPoint,callType:ClassDefinition,callTarget:MethodDeclaration,entryState:S,parameters:List[ExpressionSet], localHandlerScope: Option[S] = None):S = {
     val identifyingPP =
       if(TouchAnalysisParameters.contextSensitiveInterproceduralAnalysis) callPoint
       else callTarget.programpoint
 
     var enteredState = enterFunction(callPoint,callTarget,entryState,parameters)
+
+    /**
+     * If this is a closure, we may get local variable from the local scope of closure creation
+     */
+    enteredState = localHandlerScope match {
+      case Some(x) => enteredState.lub(x,enteredState)
+      case None => enteredState
+    }
+
     val result = entries.get(identifyingPP) match {
       case Some(oldEntryState) =>
 
@@ -128,6 +142,25 @@ object MethodSummaries {
 
   }
 
+
+  def collectClosureEntry[S <: State[S]](handlerName:String,entryState:S) = {
+
+    closureEntries += (handlerName ->
+      (closureEntries.get(handlerName) match {
+        case None => entryState
+        case Some(x) => entryState.lub(x.asInstanceOf[S],entryState)
+      })
+    )
+
+  }
+
+  def getClosureEntry[S <: State[S]](handlerName:String):Option[S] = {
+    closureEntries.get(handlerName) match {
+      case None => None
+      case Some(x) => Some(x.asInstanceOf[S])
+    }
+  }
+
   def joinAbnormalExits[S <: State[S]](s:S):S = {
 
     abnormalExits match {
@@ -140,6 +173,7 @@ object MethodSummaries {
   def reset[S <: State[S]]() {
     summaries = Map.empty[ProgramPoint,(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[S])]
     entries = Map.empty[ProgramPoint,S]
+    closureEntries = Map.empty
     abnormalExits = None
   }
 

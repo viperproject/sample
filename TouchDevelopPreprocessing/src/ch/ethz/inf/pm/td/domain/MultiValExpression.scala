@@ -20,7 +20,7 @@ case class MultiValExpression(left : Expression, right:Expression, returnTyp : T
   override def toString = left.toString+","+right.toString
   def identifiers() : Set[Identifier] = left.identifiers()++right.identifiers()
 
-  override def replace(a:Identifier, b:Identifier):Expression =
-    MultiValExpression(left.replace(a,b),right.replace(a,b),returnTyp)
+  override def transform(f:(Expression => Expression)):Expression =
+    f(MultiValExpression(left.transform(f),right.transform(f),returnTyp))
 
 }

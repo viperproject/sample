@@ -235,15 +235,16 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
   private def analyzeEvents[S <: State[S]](compiler:TouchCompiler,methods:List[String])(s:S):S = {
     var cur = s
     for ((c,e) <- compiler.events) {
-      cur = cur.lub(cur,analyzeMethod(c,e,s))
+      cur = cur.lub(cur,analyzeMethod(c,e,s,localHandlerScope = MethodSummaries.getClosureEntry[S](e.name.toString)))
     }
+
     cur
   }
 
 
-  private def analyzeMethod[S <: State[S]](callType:ClassDefinition,callTarget:MethodDeclaration,entryState:S):S = {
+  private def analyzeMethod[S <: State[S]](callType:ClassDefinition,callTarget:MethodDeclaration,entryState:S,localHandlerScope:Option[S] = None):S = {
 
-    val exitState = MethodSummaries.collect[S](callTarget.programpoint,callType,callTarget,entryState,Nil)
+    val exitState = MethodSummaries.collect[S](callTarget.programpoint,callType,callTarget,entryState,Nil,localHandlerScope = localHandlerScope)
 
     exitState
 

@@ -31,7 +31,7 @@ object PrettyPrinter {
             apply(ident) + " (" + (in map apply).mkString(",") + ") returns " + (out map apply).mkString(",") +
             " {\n" + apply(body) + "\n}"
         case MetaDeclaration(ident, value) => "meta " + apply(ident) + " \"" + value + "\""
-        case VariableDefinition(variable, _) => "var " + apply(variable)
+        case VariableDefinition(variable, _) => "var " + apply(variable) + " {}"
         case TableDefinition(ident, typName, _, _) => "table " + apply(ident) + " { type = \"" + typName + "\" }"
         case LibraryDefinition(name, pub, usages, resolves) =>
           "meta import " + apply(name) + "{\n  pub \"" + pub + "\"\n  " +
@@ -84,7 +84,7 @@ object PrettyPrinter {
       (s match {
         case For(idx, bnd, body) => "for (0 <= " + apply(idx) + " < " + apply(bnd) + ") {\n" + apply(body) + "\n}"
         case Foreach(elem, coll, _, body) => "foreach (" + apply(elem) + " in " + apply(coll) + ") {\n" + apply(body) + "\n}"
-        case While(cond, body) => "while (" + apply(cond) + ") {\n" + apply(body) + "\n}"
+        case While(cond, body) => "while (" + apply(cond) + ") do {\n" + apply(body) + "\n}"
         case Box(body) => "do box {\n" + apply(body) + "\n}"
         case ExpressionStatement(expr) => apply(expr) + ";"
         case Skip() => "skip;"

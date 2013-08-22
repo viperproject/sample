@@ -14,13 +14,27 @@ import ch.ethz.inf.pm.sample.util.UndirectedGraph
  * merge([{a} -> {b, c}]) in a state in which a->[0..0] will produce
  * a state in which b -> [0..0] and c -> [0..0] and there is no a
  *
+ * The creator of a replacement can give hints to the implementor about which operations are
+ * required to perform the replacements using boolean flags. This way, an efficient handling
+ * of simple operations can be implemented. These flags are completely optional.
+ *
+ * The flags are:
+ *
+ * isPureRenaming == A set of replacements of form {a}->{b} which can be executed
+ *                   sequentially (i.e. union of all left side disjoint to union of all right sides)
+ *
+ * isPureExpanding == A set of replacements of form {a}->{a,b} which can be executed sequentially
+ *
+ * isPureRemoving == A set of replacements of form {a}->{}
+ *
  * @author Pietro Ferrara
  * @version 0.1
  */
-class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]) {
-  def this() {
-    this(new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]]());
-  }
+
+class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]] = new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]](),
+                   val isPureRenaming:Boolean = false,
+                   val isPureExpanding:Boolean = false,
+                   val isPureRemoving:Boolean = false) {
 
   /**
    * Compute lub of replacements. Note that this was developed with the interval domain in mind
@@ -54,7 +68,12 @@ class Replacement(val value : scala.collection.mutable.HashMap[Set[Identifier], 
 
   def apply(k : Set[Identifier]) = value.apply(k);
 
-  def ++ (other:Replacement) = new Replacement(value ++ other.value)
+  def ++ (other:Replacement) =
+    new Replacement(value ++ other.value,
+      isPureRenaming = isPureRenaming && other.isPureRenaming,
+      isPureExpanding = isPureExpanding && other.isPureExpanding,
+      isPureRemoving = isPureRemoving && other.isPureRemoving
+    )
 
   /**
    * Prett-print replacement in the notation described above
@@ -367,7 +386,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   @param pp  The program point that identifies the tuple.
   @return The key identifier, the value identifier and the new heap after the insertion
     */
-  def insertCollectionElement(collectionApprox: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T)
+  def insertCollectionElement(collectionApprox: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
   Removes the specified key-value tuple from the collection.
@@ -439,9 +458,9 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extend
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S;
   def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement);
 
-  override def replace(a:Identifier, b:Identifier):Expression = {
+  override def transform(f:(Expression => Expression)):Expression = {
     val n = this.factory()
-    n.value = this.value.map { x:I => if (x.equals(a)) b.asInstanceOf[I] else x  }
+    n.value = this.value.map( x => f(x).asInstanceOf[I] )
     n
   }
 }

@@ -120,7 +120,7 @@ object CFGGenerator {
             case "object" =>
 
               val objectTyp = new TouchType(ident,fields = createFieldMembers(fields) map (_._1))
-              val collectionTyp = new TouchCollection(ident+" Collection",TNumber.typName,ident)
+              val collectionTyp = new TouchCollection("Collection of "+ident,TNumber.typName,ident)
               val constructorTyp = new TouchType(ident+" Constructor")
 
               addTouchType(new AObject(objectTyp))
@@ -346,12 +346,12 @@ object CFGGenerator {
       case w@WhereStatement(expr,handlerDefs:List[InlineAction]) =>
 
         val handlerSet =
-          (for (InlineAction(handlerName,inParameters,_,_) <- handlerDefs) yield {
+          for (InlineAction(handlerName,inParameters,_,_) <- handlerDefs) yield {
             ( handlerName, handlerIdent(handlerName+mkTouchProgramPoint(w)), Typer.inParametersToActionType(inParameters) )
-          })
+          }
 
         val handlers = (for (InlineAction(handlerName,inParameters,outParameters,body) <- handlerDefs) yield {
-          val handlerMethodName = handlerIdent(handlerName)
+          val handlerMethodName = handlerIdent(handlerName+mkTouchProgramPoint(w))
           val programPoint : ProgramPoint = mkTouchProgramPoint(w)
           val scope = ProgramPointScopeIdentifier(programPoint)
           val modifiers : List[Modifier] = Nil
@@ -373,7 +373,7 @@ object CFGGenerator {
         }
 
         // Create a statement that creates the handler object and assigns the handler variable
-        val handlerCreationStatements = handlerSet map ({
+        val handlerCreationStatements = handlerSet map {
           case (variableName:String, actionName:String, handlerType:TypeName) =>
             expressionToStatement(
               ty("Nothing",parser.Access(
@@ -382,14 +382,14 @@ object CFGGenerator {
                 List(
                  ty(handlerType.toString,parser.Access(
                    ty("Helpers",parser.SingletonReference("helpers","Helpers")),
-                   Identifier("create "+handlerType.ident.toLowerCase),
-                   List(ty("String",Literal(TypeName("String"),actionName)))
+                   Identifier("create "+handlerType.ident.toLowerCase+" "+actionName),
+                   Nil
                  ))
                 )
               )),
               scope
             )
-        })
+        }
 
         newStatements = newStatements ::: handlerCreationStatements ::: List(expressionToStatement(expr,scope))
         newHandlers = newHandlers ::: handlers

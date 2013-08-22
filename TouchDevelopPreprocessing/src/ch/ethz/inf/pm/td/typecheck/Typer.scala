@@ -55,9 +55,9 @@ object Typer {
         typeName match {
           case "object" =>
             st.addUserType(ident, GenericTypes.gObject(ident, fieldMembers))
-            st.addUserType(ident + " Collection", GenericTypes.gMutableCollection(ident + " Collection", ident))
+            st.addUserType("Collection of " + ident, GenericTypes.gMutableCollection("Collection of " + ident, ident))
             st.addUserType(ident + " Constructor", List(Member("create", ident),
-              Member("create collection", ident + " Collection")))
+              Member("create collection", "Collection of " + ident)))
             st.addUserSingleton("records", List(Member(ident, ident + " Constructor")))
           case "table" =>
             st.addUserType(ident, GenericTypes.gRow(ident, fieldMembers))

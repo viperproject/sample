@@ -195,15 +195,18 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     var result: T = this.factory()
     result.d1 = this.d1
     result.d2 = this.d2
+    var resultReplacement = new Replacement
 
     val overApproxIds = this.d2.getCollectionOverApproximation(collection)
     for (overApproxId <- overApproxIds.value) {
-      val (tupleIds, newHeap) = result.d2.insertCollectionElement(overApproxId, pp)
+      val (tupleIds, newHeap, rep) = result.d2.insertCollectionElement(overApproxId, pp)
+      result.d1 = result.d1.merge(rep)
       result.d2 = newHeap
       result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), tupleIds, assignToElement(result, key, value))
+      resultReplacement = resultReplacement ++ rep
     }
 
-    result
+    (result,resultReplacement)
   }
 
   def removeCollectionElementByKey(collection: Assignable, key: Expression, valueTyp: Type): T = {
@@ -297,9 +300,14 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     }
   }
 
-  def extractCollectionKeys(fromCollection: Assignable, newKeyValue: Expression, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): (T, HeapIdSetDomain[I]) = {
+  def extractCollectionKeys(fromCollection: Assignable, newKeyValue: Expression, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): (T, HeapIdSetDomain[I], Replacement) = {
+
+    var resultRep = new Replacement()
+
     def insertKeyAsValue(keyId:I, key: Expression, result: T)(toCollection: Assignable) = {
-      result.insertCollectionElement(toCollection, key, keyId, keyId.getProgramPoint())
+      val (heapSem,rep) = result.insertCollectionElement(toCollection, key, keyId, keyId.getProgramPoint())
+      resultRep = resultRep ++ rep
+      heapSem
     }
 
     var result = this.factory()
@@ -317,13 +325,14 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
     result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), toCollectionIds, setCollectionLengthFromCollection(result, fromCollection))
 
-    (result, toCollectionIds)
+    (result, toCollectionIds, resultRep)
   }
 
-  def copyCollection(fromCollection: Assignable, toCollection: Assignable, keyTyp:Type, valueTyp:Type) : T = {
+  def copyCollection(fromCollection: Assignable, toCollection: Assignable, keyTyp:Type, valueTyp:Type) : (T,Replacement) = {
     var result = this.factory()
     result.d1 = this.d1
     result.d2 = this.d2
+    var resultRep = new Replacement()
 
     val overApproxIds = this.d2.getCollectionOverApproximation(fromCollection)
     for (overApproxId <- overApproxIds.value) {
@@ -332,12 +341,13 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       for (tuple <- tuples.value) {
         val key = this.d2.getCollectionKeyByTuple(tuple, keyTyp).asInstanceOf[I]
         val value = this.d2.getCollectionValueByTuple(tuple, valueTyp).asInstanceOf[I]
-        val inserted = this.insertCollectionElement(toCollection, key, value, tuple.getProgramPoint())
+        val (inserted,rep) = this.insertCollectionElement(toCollection, key, value, tuple.getProgramPoint())
         result = result.lub(result, inserted)
+        resultRep = resultRep ++ rep
       }
     }
 
-    result
+    (result,resultRep)
   }
 
   def assignAllCollectionKeys(collection: Assignable, value: Expression, keyTyp: Type) : T = {

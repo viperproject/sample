@@ -79,7 +79,7 @@ object ExpressionFactory {
 
 }
 
-class ExpressionSet(typ : Type) extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet](typ, new SetOfExpressions()) {
+class ExpressionSet(initialTyp : Type) extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet](initialTyp, new SetOfExpressions()) {
 
   def getType() : Type = this._1.glb(this._1, this.computeType())
 
@@ -105,6 +105,7 @@ class ExpressionSet(typ : Type) extends CartesianProductDomain[Type, SetOfExpres
 
   def add(exp : Expression) : ExpressionSet = {
     val v2 :SetOfExpressions = this._2.add(exp)
+    val typ = this._1.glb(this._1,exp.getType())
     new ExpressionSet(typ, v2)
   }
 
@@ -135,11 +136,13 @@ class ExpressionSet(typ : Type) extends CartesianProductDomain[Type, SetOfExpres
     if (r.isEmpty()) return this
 
     val newSet = new SetOfExpressions()
-    newSet.value = (for ((froms,tos) <- r.value; from <- froms; to <- tos) yield {
-      this._2.value.map( _.replace(from,to) )
-    }).flatten.toSet
+    newSet.value = this._2.value
 
-    new ExpressionSet(typ,newSet)
+    for ((froms,tos) <- r.value; from <- froms) {
+      newSet.value = (for (to <- tos) yield { newSet.value.map( _.replace(from,to) ) }).flatten.toSet
+    }
+
+    new ExpressionSet(getType(),newSet)
 
   }
 
@@ -151,8 +154,8 @@ class SetOfExpressions extends SetDomain[Expression, SetOfExpressions] {
 }
 
 
-class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : HeapAndAnotherDomain[N, H, I], expr : ExpressionSet)
-  extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N,H,I]](state, expr)
+class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : HeapAndAnotherDomain[N, H, I], initialExpression : ExpressionSet)
+  extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N,H,I]](state, initialExpression)
   with State[AbstractState[N,H,I]]
   with SingleLineRepresentation
   with LatticeWithReplacement[AbstractState[N,H,I]]
@@ -638,9 +641,8 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     if (this.isBottom) return this
 
     def insertCollectionValue(key: Expression, right: Expression, pp: ProgramPoint)(collection: Assignable):AbstractState[N, H, I] = {
-      val newHeapAndSemantic = this.d1.insertCollectionElement(collection, key, right, pp)
-      val newState = new AbstractState[N, H, I](newHeapAndSemantic, this.d2)
-      newState.lub(this, newState)
+      val (newHeapAndSemantic,rep) = this.d1.insertCollectionElement(collection, key, right, pp)
+      new AbstractState[N, H, I](newHeapAndSemantic, this.d2.merge(rep))
     }
 
     var result = this.factory()
@@ -833,9 +835,8 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     def copyCollection(result: AbstractState[N, H, I], toCollection:Expression, keyTyp: Type, valueTyp: Type)(fromCollection: Assignable) = {
 
       def copyCollection(result: AbstractState[N, H, I], fromCollection: Assignable, keyTyp: Type, valueTyp: Type)(toCollection: Assignable) = {
-        val newHeapAndSemantic = result.d1.copyCollection(fromCollection, toCollection, keyTyp, valueTyp)
-        val done = new AbstractState[N, H, I](newHeapAndSemantic, result.d2)
-        result.lub(result, done)
+        val (newHeapAndSemantic,rep) = result.d1.copyCollection(fromCollection, toCollection, keyTyp, valueTyp)
+        new AbstractState[N, H, I](newHeapAndSemantic, result.d2.merge(rep))
       }
 
       toCollection match {
@@ -860,10 +861,10 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     if (this.isBottom) return this
 
     def extractCollectionKeys(result: AbstractState[N, H, I], newKeyValue:Expression, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint)(fromCollection: Assignable):  AbstractState[N, H, I] = {
-      val (newHeapAndSemantic, collectionIds) = result.d1.extractCollectionKeys(fromCollection, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp)
+      val (newHeapAndSemantic, collectionIds, rep) = result.d1.extractCollectionKeys(fromCollection, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp)
       if (collectionIds == null) return this.bottom()
 
-      new AbstractState[N, H, I](newHeapAndSemantic, new ExpressionSet(collTyp).add(collectionIds))
+      new AbstractState[N, H, I](newHeapAndSemantic, new ExpressionSet(collTyp).add(collectionIds).merge(rep))
     }
 
     var result = this.factory()
@@ -992,7 +993,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   def optimizeSummaryNodes() : AbstractState[N,H,I] = {
     val (state,replacement) = this._1.optimizeSummaryNodes()
-    new AbstractState[N,H,I](state,expr.merge(replacement))
+    new AbstractState[N,H,I](state,this._2.merge(replacement))
   }
 
   override def lubWithReplacement(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : (AbstractState[N,H,I],Replacement) = {

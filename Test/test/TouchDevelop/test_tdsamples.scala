@@ -3,26 +3,7 @@ import ch.ethz.inf.pm.td.webapi.{RootSampleScriptsBefore, RootSampleScripts}
 import java.util.{GregorianCalendar, Date}
 
 
-val skipSet =
-  """uujx,llvn,vede,mbzn,maku,enoxa,yovpa,aapx,algi,tktv,hkqf,wfps,kvmi,eqcf,qvci,hbei,ileo,kyom
-    |ecvs
-    |gxkm
-    |disx
-    |qfsp
-    |vrgt
-    |hqxs
-    |qurl
-    |weqz
-    |pyxj
-    |yzfx,gdmr
-    |zlup
-    |djtr
-    |zvpj
-    |yzty
-    |tglf,hrvg,frks
-    |ywqu
-  """.stripMargin.split("[\n,]").map(_.trim).toSet
-
+val skipSet = """""".stripMargin.split("[\n,]").map(_.trim).toSet
 
 val skipUntil:Option[String] = None // Some("qvci") // None
 var stillSkipping = true

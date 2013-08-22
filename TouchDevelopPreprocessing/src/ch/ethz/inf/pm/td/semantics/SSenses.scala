@@ -48,13 +48,14 @@ class SSenses extends AAny {
 
     /** Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */
     case "acceleration quick" =>
-      If[S](Field[S](this0,SSenses.field_has_accelerometer),
+      val res = If[S](Field[S](this0,SSenses.field_has_accelerometer),
         Then = { s:S =>
           Top[S](TVector3.typ)(s,pp)
         }, Else = { s:S =>
           Return[S](Invalid(TVector3.typ))(s,pp)
         }
       )
+      res
 
     /** Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */
     case "acceleration smooth" =>

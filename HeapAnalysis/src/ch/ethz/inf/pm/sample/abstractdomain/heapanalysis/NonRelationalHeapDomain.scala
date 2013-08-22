@@ -501,11 +501,15 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 
   def get(key : I) : HeapIdSetDomain[I] = this._2.get(key);
 
-  override def createVariable(variable : Assignable, typ : Type) =  variable match {
-    case x : VariableIdentifier =>
-      (new NonRelationalHeapDomain(this._1.add(x, cod.bottom()), this._2, cod, dom), new Replacement)
-    case x : I =>
-      (new NonRelationalHeapDomain(this._1, this._2.add(x, cod.bottom()), cod, dom), new Replacement)
+  override def createVariable(variable : Assignable, typ : Type) = {
+    if (!getIds.contains(variable.asInstanceOf[Identifier])) {
+      variable match {
+        case x : VariableIdentifier =>
+          (new NonRelationalHeapDomain(this._1.add(x, cod.bottom()), this._2, cod, dom), new Replacement)
+        case x : I =>
+          (new NonRelationalHeapDomain(this._1, this._2.add(x, cod.bottom()), cod, dom), new Replacement)
+      }
+    } else (this,new Replacement)
   }
 
   override def createVariableForArgument(variable : Assignable, typ : Type, path : List[String])  =  variable match {
@@ -602,6 +606,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 
       case x : I =>
         val value=this.eval(expr)
+
         // Brutschy: Following my understanding of the weak update implementation, we need the
         //           following distinction between summary nodes and non-summary nodes
         val result =
@@ -609,6 +614,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
             this._2.add(x, this.normalize(value))
           else
             this._2.add(x, this.get(x).add(this.normalize(value)))
+
         return (new NonRelationalHeapDomain(this._1, result, cod, dom), new Replacement);
 
       case x : HeapIdSetDomain[I] =>
@@ -729,20 +735,18 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def insertCollectionElement(collectionApprox: Assignable, pp: ProgramPoint) = collectionApprox match{
-    case FieldAndProgramPoint(x:CollectionIdentifier, "overApproximation", _, _) =>
+    case FieldAndProgramPoint(x:CollectionIdentifier, "oA", _, _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
+      val (tupleIds,res,rep) = makeSummaryIfRequired(dom.createCollectionTuple(collectionApproxId, x.keyTyp, x.valueTyp, pp))
 
       var result = this.factory()
-      result.d1 = this.d1
-      result.d2 = this.d2
-
-      val tupleId = dom.createCollectionTuple(collectionApproxId, x.keyTyp, x.valueTyp, pp)
-
-      val newIds = result.heapEnv.get(collectionApproxId).add(tupleId)
+      result.d1 = res.d1
+      result.d2 = res.d2
+      val newIds = result.heapEnv.get(collectionApproxId).add(tupleIds)
       val newHeapEnv = result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds)
       result = new NonRelationalHeapDomain[I](result.variableEnv, newHeapEnv, result.cod, dom)
 
-      (new MaybeHeapIdSetDomain[I]().convert(tupleId), result)
+      (tupleIds, result, rep)
 
     case _ => throw new SemanticException("This is not a collection over approximation identifier " + collectionApprox)
   }
@@ -772,7 +776,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def getCollectionTuples(collectionApprox: Assignable): HeapIdSetDomain[I] = collectionApprox match {
-    case FieldAndProgramPoint(_, "overApproximation", _, _) =>
+    case FieldAndProgramPoint(_, "oA", _, _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
       this.heapEnv.get(collectionApproxId)
     case _ => throw new SemanticException("This is not a collection over approximation identifier " + collectionApprox)
@@ -794,7 +798,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def getCollectionKeys(collectionApprox: Assignable, keyTyp: Type): HeapIdSetDomain[I] = collectionApprox match {
-    case FieldAndProgramPoint(_, "overApproximation", _, _) =>
+    case FieldAndProgramPoint(_, "oA", _, _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
       val tupleIds = this.heapEnv.get(collectionApproxId)
       def f(typ: Type)(a:Assignable) = new MaybeHeapIdSetDomain[I]().convert(dom.getCollectionKey(a, typ))
@@ -804,7 +808,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
   }
 
   override def getCollectionValues(collectionApprox: Assignable, valueTyp: Type): HeapIdSetDomain[I] = collectionApprox match {
-    case FieldAndProgramPoint(_, "overApproximation", _, _) =>
+    case FieldAndProgramPoint(_, "oA", _, _) =>
       val collectionApproxId = collectionApprox.asInstanceOf[I]
       val tupleIds = this.heapEnv.get(collectionApproxId)
       def f(typ: Type)(a:Assignable) = new MaybeHeapIdSetDomain[I]().convert(dom.getCollectionValue(a, typ))
@@ -833,20 +837,35 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     val visitedOnce = mutable.HashSet.empty[I]
     val visitedTwice = mutable.HashSet.empty[I] // We keep this to detect loops
     var toVisit = List.empty[I]
+    var toExcludeVisit = List.empty[I]
     for (curs <- env.value.values) toVisit = toVisit ::: curs.value.toList
     while (!toVisit.isEmpty) {
       val cur = toVisit.head
 
-      if (!cur.hasMultipleAccessPaths) { // stop search at multi-access path nodes
-        if (!visitedOnce.contains(cur)) visitedOnce += cur
-        else { visitedTwice += cur }
-        val reachableViaReferences = heap.get(cur).value
-        val reachableViaFieldAccessEtc = heap.getIds.filter( _.getReachableFromIds.contains(cur) )
-        val newSuccessors = reachableViaReferences ++ reachableViaFieldAccessEtc -- visitedTwice
+      if (!visitedOnce.contains(cur)) visitedOnce += cur
+      else { visitedTwice += cur }
+      val reachableViaReferences = heap.get(cur).value
+      val reachableViaFieldAccessEtc = heap.getIds.filter( _.getReachableFromIds.contains(cur) )
+      val newSuccessors = reachableViaReferences ++ reachableViaFieldAccessEtc -- visitedTwice
+
+      if (!cur.hasMultipleAccessPaths) {
         toVisit = toVisit.tail ++ newSuccessors
       } else {
+        visitedOnce += cur
+        visitedTwice += cur
+        toExcludeVisit = toExcludeVisit ++ newSuccessors
         toVisit = toVisit.tail
       }
+    }
+
+    while (!toExcludeVisit.isEmpty) {
+      val cur = toExcludeVisit.head
+      visitedOnce += cur
+      visitedTwice += cur
+      val reachableViaReferences = heap.get(cur).value
+      val reachableViaFieldAccessEtc = heap.getIds.filter( _.getReachableFromIds.contains(cur) )
+      val newSuccessors = reachableViaReferences ++ reachableViaFieldAccessEtc -- visitedTwice
+      toExcludeVisit = toExcludeVisit.tail ++ newSuccessors
     }
 
     // For all summary nodes visited exactly once, add a replacement of form (Summary -> NonSummary)
@@ -954,9 +973,8 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
     var result : HeapIdSetDomain[I] = cod.bottom();
     for(id <- this.normalize(cod.convert(obj)).value)
       result=result.add(dom.extractField(id, field, typ));
-    if(result.isBottom)
-      return result.top();
-    return result;
+    if(result.isBottom) return result.top()
+    result
   }
 
   private def normalize(id : HeapIdSetDomain[I]) : HeapIdSetDomain[I] = {

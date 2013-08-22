@@ -175,14 +175,9 @@ class ApronInterface( val state: Option[Abstract1],
           //  return bottom()
           //}
 
-          // PERFORMANCE IMPROVEMENT: If something on the right side is top, return top immidiately
           if (!newEnv.hasVar(id.getName())) {
-            return new ApronInterface(someState.state,domain,false,env = env + variable)
+            newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
           }
-
-          //if (!newEnv.hasVar(id.getName())) {
-          //  newEnv = addToEnvironment(newEnv, id.getType(), id.getName())
-          //}
 
         }
         if (newEnv != newState.getEnvironment) {
@@ -323,40 +318,62 @@ class ApronInterface( val state: Option[Abstract1],
       case _ => {
 
         // Assume the expression
-        nondeterminismWrapper(expr, this, (someExpr, someState) => {
+        summaryNodeWrapper(expr, this, (someExpr1, someState1) => {
+          nondeterminismWrapper(someExpr1, someState1, (someExpr2, someState2) => {
 
-          var tmp = someState.instantiateState()
-          var expEnv = new Environment()
-          for (id <- Normalizer.getIdsForExpression(someExpr)) {
-            expEnv = addToEnvironment(expEnv, id.getType(), id.getName())
-          }
-          val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
-          if (!unionEnv.isIncluded(tmp.getEnvironment)) {
-            tmp = tmp.changeEnvironmentCopy(domain, unionEnv, false)
-          }
+            var tmp = someState2.instantiateState()
+            var expEnv = new Environment()
+            for (id <- Normalizer.getIdsForExpression(someExpr2)) {
+              expEnv = addToEnvironment(expEnv, id.getType(), id.getName())
+            }
+            val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
+            if (!unionEnv.isIncluded(tmp.getEnvironment)) {
+              tmp = tmp.changeEnvironmentCopy(domain, unionEnv, false)
+            }
 
-          this.toTcons1(someExpr, unionEnv) match {
+            this.toTcons1(someExpr2, unionEnv) match {
 
-            case x :: xs =>
-              var result = tmp.meetCopy(domain,x)
-              for (xMore <- xs) {
-                result = result.joinCopy(domain,tmp.meetCopy(domain,xMore))
-              }
-              new ApronInterface(Some(result),domain,env = env)
+              case x :: xs =>
+                var result = tmp.meetCopy(domain,x)
+                for (xMore <- xs) {
+                  result = result.joinCopy(domain,tmp.meetCopy(domain,xMore))
+                }
+                new ApronInterface(Some(result),domain,env = env)
 
-            case Nil => throw new ApronException("empty set of constraints generated")
+              case Nil => throw new ApronException("empty set of constraints generated")
 
-          }
+            }
+          })
         })
-
       }
     }
   }
 
   override def merge(r: Replacement): ApronInterface = {
 
+    // 1st trivial case: empty replacement, no modification
     if (r.isEmpty()) return this
-    if (state == None) return new ApronInterface(None,domain,isPureBottom,env -- r.value.map(_._1).flatten ++ r.value.map(_._2).flatten)
+
+    // 2nd trivial case: empty apron state, only remove / add variables
+    if (state == None) {
+      val newEnv = env -- r.value.map(_._1).flatten ++ r.value.map(_._2).flatten
+      return new ApronInterface(None,domain,isPureBottom,newEnv)
+    }
+
+    // 3rd trivial case: A simple remove
+    if (r.isPureRemoving || (r.value.size == 1 && r.value.head._2.size == 0)) {
+      return this.removeVariables(r.value.map(_._1.map(_.toString).toArray).toArray.flatten)
+    }
+
+    // 4th trivial case: A simple expand
+    if (r.isPureExpanding || (r.value.size == 1 && r.value.head._1.size == 1 && r.value.head._2.contains(r.value.head._1.head))) {
+      var cur = this.expand(r.value.head._1.head,r.value.head._2 - r.value.head._1.head)
+      for ((from,to) <- r.value.tail) {
+        val newVars = to -- from
+        cur = cur.lub(cur,this.expand(from.head,newVars))
+      }
+      return cur
+    }
 
     // Filter out everything that is converting to a summary node -- we can handle this
     val simpleConversions = r.value.filter ( { p:((Set[Identifier],Set[Identifier])) =>
@@ -367,8 +384,6 @@ class ApronInterface( val state: Option[Abstract1],
     // Construct the rest of the replacement. Finish if we are already done
     val rep = new Replacement(r.value -- simpleConversions.keySet)
     if (rep.isEmpty()) return new ApronInterface(state,domain,isPureBottom,nextEnv)
-
-    println(rep)
 
     var tempVersion = 0
     val tempVarName = "tempVarStar"
@@ -582,6 +597,21 @@ class ApronInterface( val state: Option[Abstract1],
     toString(this.state.get.toLincons(domain).toList)
   }
 
+  def expand(source:Identifier,target:Set[Identifier]):ApronInterface = {
+    if (!target.isEmpty && getIds().contains(source)) {
+      val newState = state match {
+        case None => None
+        case Some(x) =>
+          if (x.getEnvironment.hasVar(source.toString))
+            Some(x.expandCopy(domain,source.toString,target.map(_.toString).toArray))
+          else
+            Some(x)
+      }
+      val newEnv = env ++ target
+      return new ApronInterface(newState,domain,isPureBottom,newEnv)
+    } else return this
+  }
+
   /**
    * A custom, nicer textual representation.
    */
@@ -700,6 +730,59 @@ class ApronInterface( val state: Option[Abstract1],
     }
 
     newState
+  }
+
+  /**
+   * This corresponds to the summarization technqiue
+   * Gopan et al. "Numeric Domains with Summarized Dimensions"
+   *
+   * Materializes all summary nodes in Expression. Then calls someFunc.
+   * Then, performs a clean-up.
+   *
+   * @param expr The expression to be expanded
+   * @param state The current state
+   * @param someFunc The function to be executed
+   * @return The modified state, the set of temporary variables
+   */
+  private def summaryNodeWrapper(expr: Expression, state: ApronInterface, someFunc: (Expression, ApronInterface) => ApronInterface): ApronInterface = {
+
+    if (!expr.identifiers().filter( x => !x.representSingleVariable() ).isEmpty) {
+
+      // We have a summary node.
+
+      var temporaryCounter = 0
+      val expandTemporaryVariables: Replacement = new Replacement(isPureExpanding = true)
+      val removeTemporaryVariables: Replacement = new Replacement(isPureRemoving = true)
+
+      val transformedExpression = expr.transform({
+        x:Expression => x match {
+          case x:Identifier =>
+            if (!x.representSingleVariable()) {
+              val newIdentifier = SimpleApronIdentifier(x.toString + "__TMP" + temporaryCounter, summary = false, x.getType(), x.getProgramPoint())
+              temporaryCounter = temporaryCounter + 1
+              expandTemporaryVariables.value(Set(x)) =
+                expandTemporaryVariables.value.get(Set(x)) match {
+                  case Some(s) => s ++ Set(x,newIdentifier)
+                  case None => Set(x,newIdentifier)
+                }
+              removeTemporaryVariables.value += (Set(newIdentifier.asInstanceOf[Identifier]) -> Set.empty[Identifier])
+              newIdentifier
+            } else x
+          case x:Expression => x
+        }
+      })
+      val preState = state.merge(expandTemporaryVariables)
+      val postState = someFunc(transformedExpression,preState)
+      val cleanPostState = postState.merge(removeTemporaryVariables)
+
+      cleanPostState
+
+    } else {
+
+      someFunc(expr,state)
+
+    }
+
   }
 
   private def toTexpr1Intern(e: Expression, env: apron.Environment): List[Texpr1Intern] = {
@@ -886,12 +969,14 @@ class ApronInterface( val state: Option[Abstract1],
   }
 
   private def addToEnvironment(env: Environment, typ: Type, varName: String): Environment = {
-    val v = new Array[String](1)
-    v(0) = varName
-    if (typ.isFloatingPointType())
-      env.add(new Array[String](0), v)
-    else
-      env.add(v, new Array[String](0))
+    if (!env.hasVar(varName)) {
+      val v = new Array[String](1)
+      v(0) = varName
+      if (typ.isFloatingPointType())
+        env.add(new Array[String](0), v)
+      else
+        env.add(v, new Array[String](0))
+    } else env
   }
 
   private def opToStr(kind: Int): String = {
@@ -950,3 +1035,11 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
 }
 
 class ApronException(s: String) extends Exception(s)
+
+case class SimpleApronIdentifier(name:String, summary:Boolean, typ:Type, override val pp:ProgramPoint) extends HeapIdentifier[SimpleApronIdentifier](typ,pp) {
+  def getName(): String = name
+  def representSingleVariable(): Boolean = !summary
+  def getField(): Option[String] = None
+  override def toString:String = name
+  override def identifiers(): Set[Identifier] = Set(this)
+}
