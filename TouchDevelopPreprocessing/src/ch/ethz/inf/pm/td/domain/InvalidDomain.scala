@@ -160,9 +160,10 @@ class BooleanInvalidDomain
 
 }
 
-abstract class NumericWithInvalidDomain[N <: NumericalDomain[N], I <: InvalidDomain[I], T <: NumericWithInvalidDomain[N,I,T]](var num:N,var inv:I)
-  extends SemanticCartesianProductDomain[N,I,T](num,inv)
+abstract class NumericWithInvalidDomain[N <: NumericalDomain[N], I <: InvalidDomain[I], T <: NumericWithInvalidDomain[N,I,T]](_initialNumerical:N,_initialInvalid:I)
+  extends SemanticCartesianProductDomain[N,I,T](_initialNumerical,_initialInvalid)
   with NumericalDomain[T] {
 
-  override def toString() = "Numeric:\n"+ToStringUtilities.indent(d1.toString())+"\nInvalid:\n"+ToStringUtilities.indent(d2.toString)
+  override def toString() = "Numeric:\n"+ToStringUtilities.indent(this._1.toString)+"\nInvalid:\n"+ToStringUtilities.indent(this._2.toString)
+
 }

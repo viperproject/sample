@@ -460,9 +460,9 @@ class ApronInterface( val state: Option[Abstract1],
     if (right.isBottom)
       return left
     if (left.isTop)
-      return new ApronInterface(right.state, domain, env = left.getIds() ++ right.getIds())
+      return new ApronInterface(right.removeVariables(left.getIds().map(_.toString).toArray).state, domain, env = left.getIds() ++ right.getIds())
     if (right.isTop)
-      return new ApronInterface(left.state, domain, env = left.getIds() ++ right.getIds())
+      return new ApronInterface(left.removeVariables(right.getIds().map(_.toString).toArray).state, domain, env = left.getIds() ++ right.getIds())
 
     try {
       // NEW JOIN that supports different environments
@@ -533,9 +533,9 @@ class ApronInterface( val state: Option[Abstract1],
     if (right.isBottom)
       return left
     if (left.isTop)
-      return new ApronInterface(right.state, domain, env = left.getIds() ++ right.getIds())
+      return new ApronInterface(right.removeVariables(left.getIds().map(_.toString).toArray).state, domain, env = left.getIds() ++ right.getIds())
     if (right.isTop)
-      return new ApronInterface(left.state, domain, env = left.getIds() ++ right.getIds())
+      return new ApronInterface(left.removeVariables(right.getIds().map(_.toString).toArray).state, domain, env = left.getIds() ++ right.getIds())
 
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
@@ -591,10 +591,11 @@ class ApronInterface( val state: Option[Abstract1],
 
   override def toString: String = {
     if (isBottom) return "_|_"
-    if (isTop) return "T"
+    if (isTop) return "Environment: "+env+"\n"+"T"
+
     val constraints = this.state.get.toLincons(domain).toList
     if(constraints.isEmpty) return "T"
-    toString(this.state.get.toLincons(domain).toList)
+    "Environment: "+env+"\n"+toString(this.state.get.toLincons(domain).toList)
   }
 
   def expand(source:Identifier,target:Set[Identifier]):ApronInterface = {
