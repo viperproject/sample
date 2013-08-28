@@ -203,7 +203,8 @@ class TString extends AAny {
     /** Parses the string as a number */
     case "to number" =>
       Dummy[S](this0,method)
-      TopWithInvalid[S](TNumber.typ)  
+      Top[S](TNumber.typ)
+      // FIXME: UNSOUNDNESS: TopWithInvalid[S](TNumber.typ)
 
     /** Parses the string as a time (12:30:12) and returns the number of seconds. */
     case "to time" =>

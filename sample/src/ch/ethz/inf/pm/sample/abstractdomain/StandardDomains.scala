@@ -228,7 +228,9 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]] extends FunctionalDom
         value = value.lub(value, this.get(v));
       //We assign the value to all other ids
       for (v <- r.apply(s))
-        result = result.merge(v, value);
+        if (isCovered(v)) {
+          result = result.merge(v, value)
+        }
     }
     return result;
   };
@@ -265,6 +267,8 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]] extends FunctionalDom
       if (id.isInstanceOf[HeapIdentifier[I]]) result = result + id.asInstanceOf[I];
     }
   }
+
+  def isCovered(i:Identifier):Boolean = true
 
 }
 

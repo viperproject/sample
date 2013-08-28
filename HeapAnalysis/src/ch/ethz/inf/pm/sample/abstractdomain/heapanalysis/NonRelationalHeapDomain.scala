@@ -584,10 +584,6 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env : Variabl
 
   override def assign[S <: SemanticDomain[S]](variable : Assignable, expr : Expression, state : S) : (NonRelationalHeapDomain[I], Replacement) = {
 
-    if(! variable.getType().isObject)
-    // It does not modify the heap
-      return (this, new Replacement)
-
     variable match {
 
       case x : VariableIdentifier =>

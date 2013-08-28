@@ -66,6 +66,19 @@ class TPicture extends AAny {
       }
       Skip
 
+
+    /** Writes an Scalable Vector Graphics (SVG) document at a given location. By default, this action uses the viewport size provided in the SVG document when width or height are negative. */
+    case "blend svg" =>
+      val List(markup,left,top,width,height,angle) = parameters // String,Number,Number,Number,Number,Number
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height)-NumericalAnalysisConstants.epsilon,"blend svg","top")
+        CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width)-NumericalAnalysisConstants.epsilon,"blend svg","left")
+        CheckInRangeInclusive[S](height,0,Field[S](this0,TPicture.field_height)-top,"blend svg","height")
+        CheckInRangeInclusive[S](width,0,Field[S](this0,TPicture.field_width)-left,"blend svg","width")
+        CheckInRangeInclusive[S](angle,0,360,"blend svg","angle")
+      }
+      Skip
+
     /** Changes the brightness of the picture. factor in [-1, 1]. */
      case "brightness" =>
        val List(factor) = parameters // Number
@@ -219,7 +232,9 @@ class TPicture extends AAny {
     case "resize" =>
       val List(width,height) = parameters // Number,Number
 
-      Error[S](width <= 0 && height <= 0, "resize", "Width and height may both be negative!")
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)  {
+        Error[S](width <= 0 && height <= 0, "resize", "Width and height may both be negative!")
+      }
 
       // UNDOCUMENTED: Values <= 0 say "choose according to ratio". Both parameters <= 0: Resize to 300:150... We detect an error
 

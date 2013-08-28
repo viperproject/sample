@@ -148,6 +148,17 @@ class TopScripts extends ScriptListings {
   override def getLabel() = "TouchDevelop top scripts"
 }
 
+class NonErroneousTopScriptsBefore(d:java.util.Date) extends TopScripts {
+
+  override def getLabel() = "Featured,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
+
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
+    s.filter( { t : ScriptRecord =>
+      val dT = new java.util.Date(t.time.asInstanceOf[Long]*1000)
+      dT.before(d) && t.id.equals(t.rootid) && !t.haserrors
+    })
+}
+
 class NewScripts extends ScriptListings {
   override protected val service = "new-scripts?"
 
@@ -158,6 +169,18 @@ class FeaturedScripts extends ScriptListings {
   override protected val service = "featured-scripts?"
 
   override def getLabel() = "TouchDevelop featured scripts"
+}
+
+
+class NonErroneousFeaturedScriptsBefore(d:java.util.Date) extends FeaturedScripts {
+
+  override def getLabel() = "Featured,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
+
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
+    s.filter( { t : ScriptRecord =>
+      val dT = new java.util.Date(t.time.asInstanceOf[Long]*1000)
+      dT.before(d) && t.id.equals(t.rootid) && !t.haserrors
+    })
 }
 
 class RootScripts() extends ScriptListings {

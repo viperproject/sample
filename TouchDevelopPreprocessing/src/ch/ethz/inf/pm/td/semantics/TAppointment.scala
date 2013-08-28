@@ -18,7 +18,7 @@ object TAppointment {
    val field_attendees = new TouchField("attendees",TContact_Collection.typName)
 
    /** Gets the details */
-   val field_details = new TouchField("details",TString.typName)
+   val field_details = new TouchField("details",TString.typName, topDefault = TopWithInvalidInitializer())
 
    /** Gets the end time */
    val field_end_time = new TouchField("end time",TDateTime.typName)

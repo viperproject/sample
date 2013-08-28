@@ -89,7 +89,7 @@ object PrettyPrinter {
         case ExpressionStatement(expr) => apply(expr) + ";"
         case Skip() => "skip;"
         case MetaStatement(key, value) => "meta " + apply(key) + " \"" + value + "\";"
-        case If(condition, thenBody, elseBody) => "if (" + apply(condition) + ") {\n" + apply(thenBody) + "\n}" +
+        case If(condition, thenBody, elseBody) => "if (" + apply(condition) + ") then {\n" + apply(thenBody) + "\n}" +
           (if (elseBody.length > 0) " else {\n" + apply(elseBody) + "\n}" else "")
         case WhereStatement(expr, handlers) => apply(expr) + (handlers map apply).mkString("")
       })
@@ -123,7 +123,9 @@ object PrettyPrinter {
   }
 
   def apply(s: String)(implicit ppPrinter:(IdPositional => String)): String = {
-    StringEscapeUtils.escapeJava(s.replace(" ", "_"))
+    if(s!=null)
+      StringEscapeUtils.escapeJava(s.replace(" ", "_"))
+    else ""
   }
 
 }

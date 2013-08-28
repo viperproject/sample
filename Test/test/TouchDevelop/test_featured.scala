@@ -1,8 +1,18 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
+import ch.ethz.inf.pm.td.parser.PrettyPrinter
 import ch.ethz.inf.pm.td.webapi._
+import java.text.SimpleDateFormat
+import java.util.{Date, GregorianCalendar}
 
 val skipSet =
-  """
+  """nyud
+    |hqbd
+    |gxhi
+    |ildn
+    |orug
+    |tenl
+    |oayea
+    |cnyr
   """.stripMargin.split("\n").map(_.trim).toSet
 
 /**
@@ -13,11 +23,25 @@ val skipSet =
  *
  */
 
+var i = 0
+
+// TODO
+def countLines(id:String):Int = {
+
+  val x = URLFetcher.fetchFile(ScriptListings.codeURLfromPubID(id))
+
+  return x.split("\n").length
+
+}
+
 def analyzer(id:String) {
   if(!skipSet.contains(id)) {
+    i = i + 1
+    println(id+"\t"+i+"\t"+countLines(id))
     TestRunner.runIdWithApron(id)
   }
 }
 
 //TestRunner("julr",analyzer _)
-TestRunner(new FeaturedScripts,10000,analyzer)
+//TestRunner(new FeaturedScripts,10000,analyzer)
+TestRunner(new NonErroneousFeaturedScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").parse("09/04/2013")),10000,analyzer)

@@ -216,11 +216,11 @@ object RichNativeSemantics {
           typ match {
             case col:TouchCollection =>
 
-              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__collkey")
+              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__collkey"+col.keyType)
               curState = Top[S](col.getKeyType, initializeFields = !referenceLoop1)(curState, newPP1)
               val keyTop = curState.getExpression()
 
-              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__collvalue")
+              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__collvalue"+col.valueType)
               curState = Top[S](col.getValueType, initializeFields = !referenceLoop2)(curState, newPP2)
               val valueTop = curState.getExpression()
 

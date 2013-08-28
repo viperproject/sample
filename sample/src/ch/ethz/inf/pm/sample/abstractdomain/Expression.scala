@@ -354,6 +354,8 @@ case class EmptyScopeIdentifier() extends ScopeIdentifier {
     case _ => false
   }
 
+  override def toString = ""
+
 }
 
 /**
@@ -370,6 +372,8 @@ case class ProgramPointScopeIdentifier(pp:ProgramPoint) extends ScopeIdentifier 
     case _ => false
   }
 
+  override def toString = "@"+pp.toString
+
 }
 
 
@@ -383,7 +387,7 @@ case class ProgramPointScopeIdentifier(pp:ProgramPoint) extends ScopeIdentifier 
  */
 case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint, scope: ScopeIdentifier) extends Identifier(typ1, pp) {
 	if(typ1==null) throw new Exception("The type of variables has to be specified")
-  override def getName() = name.toString
+  override def getName() = name.toString + scope.toString
   override def toString = getName()
   override def getField() = None
   override def hashCode() : Int = name.hashCode() + scope.hashCode()

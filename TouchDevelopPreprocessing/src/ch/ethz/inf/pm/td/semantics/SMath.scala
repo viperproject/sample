@@ -185,7 +185,8 @@ class SMath extends AAny {
     /** Returns a random integral number x bounded between limit and 0, not including limit unless it is 0 */
     case "random" =>
       val List(upperBound) = parameters
-      Return[S](toRichExpression(0) ndTo (upperBound - 1))
+      val res = Return[S](toRichExpression(0) ndTo (upperBound - 1))
+      res
 
     /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
     case "rand norm" =>

@@ -202,6 +202,14 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
   private def analyzeExecution[S <: State[S]](compiler:TouchCompiler,methods:List[String])(initialState:S):S = {
 
     var methodsToBeAnalyzed = compiler.getPublicMethods
+
+    // filter out methods that contain anything other than number and string as arguments
+    if(!compiler.isInLibraryMode) {
+      methodsToBeAnalyzed = methodsToBeAnalyzed filter { p:(ClassDefinition,MethodDeclaration) =>
+        !p._2.arguments.head.exists{ x:VariableDeclaration => x.typ.isObject() }
+      }
+    }
+
     if (TouchAnalysisParameters.treatPrivateMethodLikePublicMethods)
       methodsToBeAnalyzed = methodsToBeAnalyzed ++ compiler.getPrivateMethods
     if (!methods.isEmpty) methodsToBeAnalyzed = methodsToBeAnalyzed.filter {

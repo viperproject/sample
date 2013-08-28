@@ -5,6 +5,13 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
 import scala.Some
 
+object PPDSettings {
+
+  val printSummary = false
+
+}
+
+
 object ParameterIds {
   var map = Map.empty[String, Int]
 
@@ -157,7 +164,7 @@ case class SimpleProgramPointHeapIdentifier(pp1: ProgramPoint, t2: Type, summary
     case _ => false
   }
 
-  override def toString: String = pp.toString //+ (if (summary) "Σ" else "")
+  override def toString: String = pp.toString + (if (PPDSettings.printSummary && summary) "Σ" else "")
 
   override def factory(): ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.getType())
 
@@ -185,7 +192,7 @@ case class CollectionIdentifier(override val pp: ProgramPoint, collTyp: Type, ke
     case _ => false
   }
 
-  override def toString: String = "Collection(" + collTyp.toString + "," + pp.toString + ")" //+ (if (summary) "Σ" else "")
+  override def toString: String = "Collection(" + collTyp.toString + "," + pp.toString + ")" + (if (PPDSettings.printSummary && summary) "Σ" else "")
 
   override def factory(): ProgramPointHeapIdentifier = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp)
 
@@ -226,7 +233,7 @@ case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier
       case FieldAndProgramPoint(_, x, _, _) => x
     }
 
-    "T(" + approxType + "," + this.collectionApprox.pp + ", " + this.pps.mkString(",") + ")" //+ (if (!representSingleVariable()) "Σ" else "")
+    "T(" + approxType + "," + this.collectionApprox.pp + ", " + this.pps.mkString(",") + ")" + (if (PPDSettings.printSummary && !representSingleVariable()) "Σ" else "")
   }
 
   override def factory() : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
@@ -283,7 +290,7 @@ case class ParameterHeapIdentifier(t2: Type, pp1: ProgramPoint, summary: Boolean
 
   override def factory(): ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.getType(), this.getProgramPoint())
 
-  override def toString: String = "Parameter of type " + this.getType() //+ (if (summary) "Σ" else "")
+  override def toString: String = "Parameter of type " + this.getType() + (if (PPDSettings.printSummary && summary) "Σ" else "")
 
   override def toSummaryNode: ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.getType(), this.getProgramPoint(), true)
 

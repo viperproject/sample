@@ -89,7 +89,7 @@ class BooleanInvalidDomain
     case Constant(constant, typ, pp) =>
       if (constant == "invalid") domInvalid else domValid
     case i: HeapIdentifier[_] =>
-      domValid
+      this.get(i)
     case x: Identifier =>
       this.get(x)
     case xs: HeapIdSetDomain[_] =>
@@ -123,10 +123,26 @@ class BooleanInvalidDomain
           this.add(x,domBottom.intersect(right,eval(y)))
         case _ => this
       }
+    case NegatedBooleanExpression(BinaryArithmeticExpression(xs:HeapIdSetDomain[_], Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
+      val res = domBottom.intersect(domValid,eval(xs))
+      if (res.isBottom) bottom()
+      else {
+        var result = bottom()
+        for (x <- xs.value) result = result.lub(result,this.add(x,res))
+        result
+      }
     case NegatedBooleanExpression(BinaryArithmeticExpression(x:Identifier, Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
       val res = domBottom.intersect(domValid,eval(x))
       if (res.isBottom) bottom()
       else this.add(x,res)
+    case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), xs:HeapIdSetDomain[_], ArithmeticOperator.==, _)) =>
+      val res = domBottom.intersect(domValid,eval(xs))
+      if (res.isBottom) bottom()
+      else {
+        var result = bottom()
+        for (x <- xs.value) result = result.lub(result,this.add(x,res))
+        result
+      }
     case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), x:Identifier, ArithmeticOperator.==, _)) =>
       val res = domBottom.intersect(domValid,eval(x))
       if (res.isBottom) bottom()

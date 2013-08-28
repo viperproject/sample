@@ -74,6 +74,8 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
     case x: Expression => dom.top()
   }
 
+  override def isCovered(i:Identifier):Boolean = i.getType().isStringType()
+
   /**
    * This is imprecise, but sound
    */
@@ -185,8 +187,8 @@ class StringKSetDomain extends KSetDomain[String,StringKSetDomain] with StringVa
 
 }
 
-abstract class NumericWithStringDomain[N <: NumericalDomain[N], V <: StringValueDomain[V], S <: StringDomain[V,S], T <: NumericWithStringDomain[N,V,S,T]](val num:N,val str:S)
-  extends SemanticCartesianProductDomain[N,S,T](num,str)
+abstract class NumericWithStringDomain[N <: NumericalDomain[N], V <: StringValueDomain[V], S <: StringDomain[V,S], T <: NumericWithStringDomain[N,V,S,T]](val initialNum:N,val initialStr:S)
+  extends SemanticCartesianProductDomain[N,S,T](initialNum,initialStr)
   with NumericalDomain[T] {
 
   override def toString() = "Numeric:\n"+ToStringUtilities.indent(d1.toString())+"\nString:\n"+ToStringUtilities.indent(d2.toString)

@@ -83,6 +83,7 @@ object LoopRewriter {
         val bodyPostfix = pos(ExpressionStatement(pos(Access(idxExp, Identifier(":="), List(pos(Access(idxExp, pos(Identifier("+")), List(pos(Literal(pos(TypeName("Number")), "1"))))))))))
         val rewrittenBody = (body map (apply _)).flatten
         val conditionalBody = guards match {
+          case Literal(_,"true")::Nil => rewrittenBody
           case head::tail =>
             val guardCondition = tail.foldLeft(head)((left:Expression,right:Expression) => pos(Access(left,pos(Identifier("and")),List(right))))
             List(pos(If(guardCondition,rewrittenBody,Nil)))

@@ -30,13 +30,14 @@ abstract class AAny extends NativeMethodSemantics {
                                                  parameters : List[ExpressionSet], typeparameters : List[Type],
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
-      if (state.lessEqual(state.bottom())) {
-        return Some(state.bottom())
-      }
-
-      var curState = state
 
       if (thisExpr.getType().toString() == getTypeName) {
+
+        if (state.lessEqual(state.bottom())) {
+          return Some(state.bottom())
+        }
+
+        var curState = state
 
         // Check if the object or an argument can be invalid - in this case, we must produce an error
         if(operator != "is invalid" && operator != ":=" && operator != ",") {

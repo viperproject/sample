@@ -578,11 +578,11 @@ class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Bo
   def lessEqual(r: Type) = r == this || this.isBottom || r == top()
   def isBottomExcluding(types: Set[Type]) = false
 
-  def isObject() = (!isNumericalType())
-  def isBooleanType() = (name == "Boolean")
+  def isObject() = !isNumericalType() && !isStringType()
+  def isBooleanType() = name == "Boolean"
   def isNumericalType() = (name == "Number") || (name == "Boolean")
-  def isFloatingPointType() = (name == "Number" || name == "Boolean") // TODO: Booleans should not be floating points
-  def isStringType() = (name == "String")
+  def isFloatingPointType() = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
+  def isStringType() = name == "String"
   def isStatic() = isSingleton
   def getPossibleFields() = fields.toSet[Identifier]
   def getPossibleTouchFields() = fields.toSet[Identifier] map (_.asInstanceOf[TouchField])

@@ -120,11 +120,16 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
 
 
   def resolveUsertypeAccess(typ:TypeName, symbol:String, args:List[TypeName]=Nil):Option[TypeName] = {
-    try {
-      Some(usertypes(typ)(symbol).retType)
-    } catch {
-      case e:NoSuchElementException => None
+
+    usertypes.get(typ) match {
+      case Some(x) =>
+        x.get(symbol) match {
+          case Some(y) => Some(y.retType)
+          case None => None
+        }
+      case None => None
     }
+
   }
 
   override def resolveAccess(typ:TypeName, symbol:String, args:List[TypeName]=Nil):TypeName = {
