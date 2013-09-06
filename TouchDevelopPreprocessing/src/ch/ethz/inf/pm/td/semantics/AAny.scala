@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoi
 import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{MethodSummaries, TouchAnalysisParameters}
 
 /**
  * User: Lucas Brutschy
@@ -35,6 +35,11 @@ abstract class AAny extends NativeMethodSemantics {
 
         if (state.lessEqual(state.bottom())) {
           return Some(state.bottom())
+        }
+
+        // TODO: This belongs somewhere else I guess
+        if (TouchAnalysisParameters.prematureAbortion) {
+          Exit[S](state,pp)
         }
 
         var curState = state

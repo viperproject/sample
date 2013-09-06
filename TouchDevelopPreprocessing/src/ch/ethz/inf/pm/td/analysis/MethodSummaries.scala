@@ -134,7 +134,7 @@ object MethodSummaries {
     curState = curState.pruneUnreachableHeap()
 
     abnormalExits = abnormalExits match {
-      case Some(x) => Some(curState.lub(x.asInstanceOf[S],curState))
+      case Some(x) => Some(curState.widening(x.asInstanceOf[S],curState))
       case None => Some(curState)
     }
 
