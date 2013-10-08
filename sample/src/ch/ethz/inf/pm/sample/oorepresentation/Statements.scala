@@ -22,6 +22,8 @@ abstract class ProgramPoint {
 
 }
 
+object DummyProgramPoint extends DummyProgramPoint
+
 class DummyProgramPoint extends ProgramPoint {
   override def getDescription = "Dummy"
   override def hashCode() = 1
@@ -61,12 +63,13 @@ abstract class Statement(programpoint : ProgramPoint) extends SingleLineRepresen
   def forwardSemantics[S <: State[S]](state : S) : S
   
   	  /** 
-       * The abstract backward semantics of the statement.
+       * The abstract (refining) backward semantics of the statement.
 	   *
-	   * @param state the exit state
+	   * @param state the post state
+     * @param oldPreState the old pre state to be refined
 	   * @return the state obtained before the execution of the statement 
 	   */
-  def backwardSemantics[S <: State[S]](state : S) : S
+  def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S
   
       /** 
        * The program point of the statement.
@@ -139,13 +142,12 @@ case class Assignment(programpoint : ProgramPoint, left : Statement, right : Sta
         }
       }
       
-      //the backward semantics of x=E is S[|havoc x|](S[|x==E||](\sigma)) 
-      override def backwardSemantics[S <: State[S]](state : S) : S = {
+      override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
         if(state.equals(state.bottom())) return state;
-        var stateleft : S = left.backwardSemantics[S](state)
+        var stateleft : S = left.backwardSemantics[S](state, oldPreState)
         val exprleft = stateleft.getExpression();
         stateleft=stateleft.removeExpression();
-        var stateright : S = right.backwardSemantics[S](stateleft)
+        var stateright : S = right.backwardSemantics[S](stateleft, oldPreState)
         val exprright = stateright.getExpression();
         stateright=stateright.removeExpression();
         var result=stateright.setVariableToTop(exprleft);
@@ -197,11 +199,11 @@ case class VariableDeclaration(programpoint : ProgramPoint, val variable : Varia
       }
       else state1
       }
-    
-    override def backwardSemantics[S <: State[S]](state : S) : S = {
+
+    override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
       var st=state;
       if(right!=null)
-        st=new Assignment(programpoint, variable, right).backwardSemantics[S](st);
+        st=new Assignment(programpoint, variable, right).backwardSemantics[S](st, oldPreState);
       return st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint))
     }
 
@@ -232,8 +234,8 @@ case class Variable(programpoint : ProgramPoint, val id : VariableIdentifier) ex
 	 * @return the initial state 
 	 */
     override def forwardSemantics[S <: State[S]](state : S) : S = state.getVariableValue(id)
-    
-    override def backwardSemantics[S <: State[S]](state : S) : S = state.backwardGetVariableValue(id);      
+
+    override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = state.backwardGetVariableValue(id);
     override def toString() : String = id.getName;
     
     override def toSingleLineString() : String = toString;
@@ -267,9 +269,9 @@ case class FieldAccess(pp : ProgramPoint, val objs : List[Statement], val field 
       val result = state1.getFieldValue(listObjs, field, typ)
       result
     }
-    
-    override def backwardSemantics[S <: State[S]](state : S) : S = {
-      val (listObjs, state1) = UtilitiesOnStates.backwardExecuteListStatements[S](state, objs)
+
+    override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
+      val (listObjs, state1) = UtilitiesOnStates.backwardExecuteListStatements[S](state, oldPreState, objs)
       val result = state1.backwardGetFieldValue(listObjs, field, typ)
       result
     }
@@ -328,20 +330,9 @@ case class MethodCall(
    * @return the state in which postconditions and class invariants
    *         of the target method are assumed to hold
    */
-  override def forwardSemantics[S <: State[S]](state: S): S = getSemantics[S](state, forward = true)
-
-  //TODO: Contracts!
-  /*{
-    val methodInvoked : MethodDeclaration = SystemParameter.system getMethodDeclaration(method, state)
-    state assert(methodInvoked.preconditions)
-    state.top().assume(methodInvoked.postconditions) assume(methodInvoked.invariants)
-    }*/
-
-  override def backwardSemantics[S <: State[S]](state: S): S = getSemantics[S](state, forward = false)
-
-  private def getSemantics[S <: State[S]](state: S, forward: Boolean): S = {
-    val body: Statement = method.normalize()
-    var result: S = state.bottom()
+  override def forwardSemantics[S <: State[S]](state: S): S = {
+    val body: Statement = method.normalize();
+    var result: S = state.bottom();
     //Method call used to represent a goto statement to a while label
     if (body.isInstanceOf[Variable] && body.asInstanceOf[Variable].getName().startsWith("while"))
       throw new Exception("This should not appear here!"); //return state;
@@ -351,39 +342,78 @@ case class MethodCall(
     val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
     val calledMethod: String = castedStatement.field
     for (obj <- castedStatement.objs) {
-      result = result.lub(result, analyzeMethodCall[S](obj, calledMethod, state, forward))
+      result = result.lub(result, forwardAnalyzeMethodCallOnObject[S](obj, calledMethod, state, getPC()))
     }
     result
   }
 
-  private def analyzeMethodCall[S <: State[S]](obj: Statement, calledMethod: String, initialState: S, forward: Boolean): S = {
-    val (calledExpr, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](initialState, obj)
-    val (parametersExpr, resultingState1) = UtilitiesOnStates.forwardExecuteListStatements[S](resultingState, parameters)
-    if (calledExpr.isBottom)
-      return initialState.bottom()
-    if (calledExpr.isTop)
-      return initialState.top()
-    applyNativeSemantics(calledMethod, calledExpr, parametersExpr, resultingState1, forward)
+  override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
+    val body: Statement = method.normalize()
+    var result: S = state.bottom()
+    val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
+    val calledMethod: String = castedStatement.field
+    for (obj <- castedStatement.objs) {
+      result = result.lub(result, backwardAnalyzeMethodCallOnObject[S](obj, calledMethod, state, oldPreState, getPC()))
+    }
+    result
   }
 
-  private def applyNativeSemantics[S <: State[S]](
-      invokedMethod: String,
-      thisExpr: ExpressionSet,
-      parametersExpr: List[ExpressionSet],
-      state: S,
-      forward: Boolean): S = {
-    for (sem <- SystemParameters.nativeMethodsSemantics) {
-      val res =
-        if (forward) sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, parametricTypes, returnedType, getPC(), state)
-        else sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, parametricTypes, returnedType, getPC(), state)
+  private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, initialState: S,
+                                                              programpoint: ProgramPoint) : S = {
+    val (calledExpr, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](initialState, obj)
+    val (parametersExpr, resultingState1) = UtilitiesOnStates.forwardExecuteListStatements[S](resultingState, parameters)
+
+    // TODO: verify that this is indeed correct.
+    if(calledExpr.isBottom)
+      return initialState.bottom()
+    if(calledExpr.isTop)
+      return initialState.top()
+    applyNativeForwardSemanticsOnObject(calledMethod, calledExpr, parametersExpr, resultingState1, programpoint)
+  }
+
+  private def applyNativeForwardSemanticsOnObject[S <: State[S]](invokedMethod : String, thisExpr : ExpressionSet,
+                                                                 parametersExpr : List[ExpressionSet], state : S, programpoint : ProgramPoint) : S = {
+    for(sem <- SystemParameters.nativeMethodsSemantics) {
+      val res = sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, parametricTypes,
+        returnedType, programpoint, state)
       res match {
         case Some(s) =>
           return s
         case None => ()
       }
     }
-    Reporter.reportImprecision("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", getPC())
+    Reporter.reportImprecision("Type "+thisExpr.getType()+" with method "+invokedMethod+" not implemented",programpoint)
     state.top()
+  }
+
+  private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj : Statement, calledMethod : String, initialState : S, oldPreState: S, programpoint : ProgramPoint) : S = {
+    if (initialState.lessEqual(initialState.bottom()))
+      return return initialState.bottom()
+
+    // TODO: This way method arguments are executed backward is not sound in case they have side effects
+    val (callTargetExpr, callTargetState) = UtilitiesOnStates.backwardExecuteStatement(initialState, oldPreState, obj)
+    val (parametersExpr, resultingState1) = UtilitiesOnStates.backwardExecuteListStatements[S](callTargetState, oldPreState, parameters)
+
+    // the handling of following special cases is questionable but a lot of code seems to rely on it
+    if(callTargetExpr.isBottom)
+      return initialState.bottom()
+    if(callTargetExpr.isTop)
+      return initialState.top()
+
+    // collect results of applicable native semantics  (lazy, not evaluated yet)
+    val nativeSemanticsResults = (
+      for(sem <- SystemParameters.nativeMethodsSemantics.view) yield
+        sem.applyBackwardNativeSemantics[S](callTargetExpr, calledMethod, parametersExpr, parametricTypes, returnedType, programpoint, initialState)
+      ).flatten
+
+    // return first successful application (applies all semantics until first successful one, if any)
+    val firstSuccess = nativeSemanticsResults.headOption
+    firstSuccess match {
+      case Some(s) => s
+      case None =>
+        Reporter.reportImprecision("Native backward semantics for type " + callTargetExpr.getType() + " with method " + calledMethod + " not implemented", programpoint)
+        initialState.top()
+    }
   }
 
   override def toString(): String =
@@ -417,8 +447,8 @@ case class New(pp : ProgramPoint, typ: Type) extends Statement(pp) {
        * of type <code>typ</code> has been created 
 	   */
     override def forwardSemantics[S <: State[S]](state : S) : S = state createObject(typ, pp)
-    
-    override def backwardSemantics[S <: State[S]](state : S) : S = {
+
+    override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
       val ex=state.createObject(typ, pp).getExpression();
       return state.removeExpression().removeVariable(ex);
     }
@@ -447,8 +477,8 @@ case class ConstantStatement(pp : ProgramPoint, value : String, typ : Type) exte
 	 * @return the initial state 
 	 */
     override def forwardSemantics[S <: State[S]](state : S) : S = state.evalConstant(value, typ, pp)
-    
-    override def backwardSemantics[S <: State[S]](state : S) : S = state.evalConstant(value, typ, pp)
+
+    override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = state.evalConstant(value, typ, pp)
       
     override def toString() : String = value;
     
@@ -479,8 +509,8 @@ case class Throw(programpoint : ProgramPoint, expr : Statement) extends Statemen
       state1 = state1.removeExpression();
       state1 throws(thrownexpr)
     }
-    
-    override def backwardSemantics[S <: State[S]](state : S) : S = state.top()
+
+    override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = state.top()
       
     override def toString() : String = "throw "+expr toString;
     
@@ -508,8 +538,8 @@ case class EmptyStatement(programpoint : ProgramPoint) extends Statement(program
        * thrown 
 	   */
     override def forwardSemantics[S <: State[S]](state : S) : S = state.removeExpression();
-    
-    override def backwardSemantics[S <: State[S]](state : S) : S = state.removeExpression();
+
+    override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = state.removeExpression()
     
     override def toString() : String = "#empty statement#";
     

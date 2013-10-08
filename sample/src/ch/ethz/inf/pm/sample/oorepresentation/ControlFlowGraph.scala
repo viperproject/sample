@@ -214,7 +214,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   def forwardSemantics[S <: State[S]](state: S): S = new ControlFlowGraphExecution[S](this, state).forwardSemantics(state).exitState()
 
-  def backwardSemantics[S <: State[S]](state: S): S = new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
+  def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = new ControlFlowGraphExecution[S](this, state).definiteBackwardSemantics(state).entryState()
 
   def happensBefore(pc1: LineColumnProgramPoint, pc2: LineColumnProgramPoint): Boolean = {
     var rowsAfterPc1: Set[Int] = this.afterPC(pc1)

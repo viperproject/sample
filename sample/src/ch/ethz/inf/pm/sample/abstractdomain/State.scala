@@ -562,8 +562,8 @@ object UtilitiesOnStates {
     (expr, finalState);
   }
 
-  def backwardExecuteStatement[S <: State[S]](state : S, statement : Statement) : (ExpressionSet, S)= {
-    val finalState : S =statement.backwardSemantics[S](state);
+  def backwardExecuteStatement[S <: State[S]](state : S, oldPreState: S, statement : Statement) : (ExpressionSet, S)= {
+    val finalState : S =statement.backwardSemantics[S](state, oldPreState);
     val expr=finalState.getExpression();
     (expr, finalState.removeExpression());
   }
@@ -577,12 +577,13 @@ object UtilitiesOnStates {
       (expr :: otherExpr, finalState.removeExpression());
   }
 
-  def backwardExecuteListStatements[S <: State[S]](state : S, statements : List[Statement]) : (List[ExpressionSet], S)= statements match {
+  def backwardExecuteListStatements[S <: State[S]](state: S, oldPreState: S, statements: List[Statement]): (List[ExpressionSet], S) = statements match {
+    // TODO: This is not correct yet. We would also need the intermediate forward states which we don't have
     case Nil => (Nil, state)
     case statement :: xs =>
-      val state1 : S =statement.normalize().backwardSemantics[S](state);
+      val state1 : S =statement.normalize().backwardSemantics[S](state, oldPreState);
       val expr=state1.getExpression();
-      val (otherExpr, finalState)= backwardExecuteListStatements[S](state1, xs)
+      val (otherExpr, finalState)= backwardExecuteListStatements[S](state1, oldPreState, xs)
       (expr :: otherExpr, finalState);
   }
 
