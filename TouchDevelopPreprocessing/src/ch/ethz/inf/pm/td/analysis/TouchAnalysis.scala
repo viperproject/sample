@@ -135,18 +135,17 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
           //  (3) Global objects that represents read-only artwork that is initialized from some URL.
           if(v.modifiers.contains(ResourceModifier)) {
             curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression().getSetOfExpressions.head
+            curState.getExpression()
           } else if (v.modifiers.contains(ReadOnlyModifier)) {
             curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression().getSetOfExpressions.head
+            curState.getExpression()
           } else {
-            v.typ.getName() match {
+            toExpressionSet(toRichExpression(v.typ.getName() match {
               case "String" => Constant("",v.typ,v.programpoint)
               case "Number" => Constant("0",v.typ,v.programpoint)
               case "Boolean" => Constant("false",v.typ,v.programpoint)
-              case _ =>
-                Constant("invalid",v.typ.asInstanceOf[TouchType],v.programpoint)
-            }
+              case _ => Constant("invalid",v.typ.asInstanceOf[TouchType],v.programpoint)
+            }))
           }
 
         } else {
@@ -154,20 +153,19 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
           // We analyze one execution in top state.
           if(v.modifiers.contains(ResourceModifier)) {
             curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression().getSetOfExpressions.head
+            curState.getExpression()
           } else if (v.modifiers.contains(ReadOnlyModifier)) {
             curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression().getSetOfExpressions.head
+            curState.getExpression()
           } else {
             curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression().getSetOfExpressions.head
+            curState.getExpression()
           }
 
         }
 
-      val rightExpr = new ExpressionSet(v.typ).add(rightVal)
       curState = curState.createVariable(leftExpr,leftExpr.getType(),v.programpoint)
-      curState = curState.assignVariable(leftExpr,rightExpr)
+      curState = curState.assignVariable(leftExpr,rightVal)
     }
 
     // The first fixpoint, which is computed over several executions of the same script
