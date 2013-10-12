@@ -122,9 +122,11 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     case BinaryNondeterministicExpression(left, right, NondeterministicOperator.or, typ) => dom.top() //TODO: implement it!!!
     case BinaryArithmeticExpression(left, right, op, typ) => dom.top() //TODO: implement it!!!
     case Constant(constant, typ, pp) => try {
-      return dom.evalConstant(Integer.valueOf(constant).intValue())
+      val constVal: Int = Integer.valueOf(constant).intValue()
+      val evaluatedConstant: N = dom.evalConstant(constVal)
+      evaluatedConstant
     } catch {
-      case _ => return dom.top()
+      case e: NumberFormatException => dom.top()
     }
     case x: Identifier => this.get(x)
     case xs: HeapIdSetDomain[_] =>
