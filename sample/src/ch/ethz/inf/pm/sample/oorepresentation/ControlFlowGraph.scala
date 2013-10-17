@@ -81,35 +81,31 @@ trait WeightedGraph[T, W] {
   def addEdge(from: Int, to: Int, weight: Option[W]): Unit = edges = edges.+((from, to, weight))
 
   /**
-   * Return the nodes without sorting edges
+   * Return the node ids without sorting edges
    *
    * @return the leaves of the graph
    */
-  def getLeaves: Set[T] = {
-    var notLeaves: Set[Int] = Set.empty
+  def getLeafs: Set[T] = {
+    getLeafIds map { id => nodes(id) }
+  }
+
+  def getLeafIds: Set[Int] = {
+    var notLeafs: Set[Int] = Set.empty
     for ((i1, i2, w) <- edges) //{
-      notLeaves = notLeaves + i1
-    var result: Set[T] = Set.empty
+      notLeafs = notLeafs + i1
+    var result: Set[Int] = Set.empty
     for (i <- 0 to nodes.length - 1)
-      if ((!notLeaves.contains(i)))
-        result = result + nodes.apply(i)
+      if (!notLeafs.contains(i))
+        result = result + i
     result
   }
 
-  def entryEdges(index: Int): Set[(Int, Int, Option[W])] = {
-    var edgesSet: Set[(Int, Int, Option[W])] = Set.empty
-    for ((i1, i2, w) <- edges)
-      if (i2 == index)
-        edgesSet = edgesSet + ((i1, i2, w))
-    edgesSet
+  def entryEdges(nodeIndex: Int): Set[(Int, Int, Option[W])] = {
+    for (e@(from, to, _) <- edges if to == nodeIndex) yield e
   }
 
-  def exitEdges(index: Int): Set[(Int, Int, Option[W])] = {
-    var edgesSet: Set[(Int, Int, Option[W])] = Set.empty
-    for ((i1, i2, w) <- edges)
-      if (i1 == index)
-        edgesSet = edgesSet + ((i1, i2, w))
-    edgesSet
+  def exitEdges(nodeIndex: Int): Set[(Int, Int, Option[W])] = {
+    for (e@(from, to, _) <- edges if from == nodeIndex) yield e
   }
 
   def initialBlockInLoop(index: Int): Boolean = {
@@ -157,21 +153,12 @@ trait WeightedGraph[T, W] {
     index
   }
 
-  def getEdgesExitingFrom(index: Int): Set[Int] = {
-    var result: Set[Int] = Set.empty
-    for (edge: (Int, Int, Option[W]) <- edges) {
-      if (edge._1.equals(index))
-        result = result.+(edge._2)
-    }
-    result
+  def getDirectSuccessors(nodeIndex: Int): Set[Int] = {
+    for ((from, to, _) <- exitEdges(nodeIndex)) yield to
   }
 
-
-  def getEdgesEntryingTo(index: Int): Set[Int] = {
-    var result: Set[Int] = Set.empty
-    for (edge: (Int, Int, Option[W]) <- this.entryEdges(index))
-      result = result.+(edge._2)
-    result
+  def getDirectPredecessors(nodeIndex: Int): Set[Int] = {
+    for ((from, to, _) <- entryEdges(nodeIndex)) yield from
   }
 
 
@@ -246,7 +233,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       var b = blockstovisit.head
       blockstovisit = blockstovisit - b
       blocksalreadyvisited = blocksalreadyvisited + b
-      blockstovisit = blockstovisit ++ this.getEdgesExitingFrom(b)
+      blockstovisit = blockstovisit ++ this.getDirectSuccessors(b)
       for (st <- nodes.apply(b))
         result = result + st.getPC().asInstanceOf[LineColumnProgramPoint].getLine
       blockstovisit = blockstovisit -- blocksalreadyvisited
@@ -264,7 +251,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       blockstovisit = blockstovisit - b
       blocksalreadyvisited = blocksalreadyvisited + b
       result=result+b;
-      blockstovisit = blockstovisit ++ this.getEdgesEntryingTo(b)
+      blockstovisit = blockstovisit ++ getDirectPredecessors(b)
     }
     return result
   }
@@ -282,7 +269,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
       var b = blockstovisit.head
       blockstovisit = blockstovisit - b
       blocksalreadyvisited = blocksalreadyvisited + b
-      if (b != startingBlock) blockstovisit = blockstovisit ++ this.getEdgesExitingFrom(b)
+      if (b != startingBlock) blockstovisit = blockstovisit ++ this.getDirectSuccessors(b)
       result = result + b
       blockstovisit = blockstovisit -- blocksalreadyvisited
     }
@@ -310,7 +297,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   private def getIterativeSequence(alreadyVisited: List[Int], pendingBlocks: List[Int], next: Int): List[Int] = {
     //We consider the next blocks that have not yet been visited
-    def exitNodes = this.getEdgesExitingFrom(next)
+    def exitNodes = this.getDirectSuccessors(next)
     def exitNodesNotVisited = exitNodes.--(alreadyVisited).-(next)
     if (!exitNodesNotVisited.isEmpty) {
       //We take the minimum since we expect to be the optimal one (heuristic)
@@ -429,9 +416,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
       val entry = if (i == 0) initialState else computeEntryState(result, i, itNumber)
       val previousEntry = if (result.getExecution(i).isEmpty) state.bottom() else result.getExecution(i).head
       if (!entry.lessEqual(previousEntry)) {
-        val nextState = this.forwardBlockSemantics(entry, cfg.nodes.apply(i))
-        result.setNode(i, nextState)
-        l = l ++ cfg.getEdgesExitingFrom(i)
+        result.setNode(i, this.forwardBlockSemantics(entry, cfg.nodes.apply(i)))
+        l = l ++ cfg.getDirectSuccessors(i)
         iterationCount = iterationCount + ((i, itNumber + 1))
       }
     }
