@@ -16,6 +16,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object TMessage {
 
+  /** Gets the message identifier */
+  val field_id = new TouchField("id",TString.typName)
+
   /** Gets the author */
   val field_from = new TouchField("from",TString.typName)
 
@@ -51,7 +54,7 @@ object TMessage {
 
   val typName = "Message"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_from, field_link, field_location, field_media_link,
-    field_message, field_picture_link, field_source, field_time, field_title, field_to, field_values), isImmutable = false)
+    field_message, field_picture_link, field_source, field_time, field_title, field_to, field_values, field_id), isImmutable = false)
 
 }
 
