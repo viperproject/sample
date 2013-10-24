@@ -19,11 +19,12 @@ abstract class ALinearCollection extends ACollection {
       if (index.getType().getName() != TNumber.typName)
         throw new SemanticException("This is not a linear collection " + this0.toString)
 
-      If[S](CollectionIndexInRange[S](this0, index), Then={
+      val newState = If[S](CollectionIndexInRange[S](this0, index), Then={
         Return[S](CollectionAt[S](this0, index))(_, pp)
       }, Else={
         Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_, pp)
       })
+      newState
 
     /** Gets the i-th element */
     case "at index" =>

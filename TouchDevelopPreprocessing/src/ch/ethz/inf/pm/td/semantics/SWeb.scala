@@ -74,7 +74,8 @@ class SWeb extends AAny {
       if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
         Error[S](Field[S](this0,SWeb.field_is_connected).not,"download json",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TJson_Object.typ)
+      val newState = TopWithInvalid[S](TJson_Object.typ)
+      newState
 
     /** Downloads a picture from internet */
     case "download picture" =>

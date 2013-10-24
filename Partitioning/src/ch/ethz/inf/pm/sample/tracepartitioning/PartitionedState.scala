@@ -506,7 +506,11 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     map(_.removeExpression)
   }
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) = {
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp:Option[Type], tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) = {
+    throw new NotImplementedException()
+  }
+
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = {
     throw new NotImplementedException()
   }
 
@@ -514,11 +518,23 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     throw new NotImplementedException()
   }
 
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint) = {
+    throw new NotImplementedException()
+  }
+
+  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = {
+    throw new NotImplementedException()
+  }
+
+  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = {
+    throw new NotImplementedException()
+  }
+
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = {
     throw new NotImplementedException()
   }
 
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = {
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = {
     throw new NotImplementedException()
   }
 
@@ -526,31 +542,43 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
     throw new NotImplementedException()
   }
 
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = {
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp:Type, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = {
     throw new NotImplementedException()
   }
 
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = {
+  def getOriginalCollection(collectionSet: ExpressionSet) = {
     throw new NotImplementedException()
   }
 
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = {
+  def getKeysCollection(collectionSet: ExpressionSet) = {
     throw new NotImplementedException()
   }
 
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = {
+  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet) = {
     throw new NotImplementedException()
   }
 
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = {
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet) = {
     throw new NotImplementedException()
   }
 
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = {
+  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = {
     throw new NotImplementedException()
   }
 
-  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) : PartitionedState[D] = {
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = {
+    throw new NotImplementedException()
+  }
+
+  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = {
+    throw new NotImplementedException()
+  }
+
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet) = {
+    throw new NotImplementedException()
+  }
+
+  def clearCollection(collectionSet: ExpressionSet) : PartitionedState[D] = {
     throw new NotImplementedException()
   }
 
@@ -571,10 +599,6 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
   }
 
   def optimizeSummaryNodes(): PartitionedState[D] = {
-    throw new NotImplementedException()
-  }
-
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = {
     throw new NotImplementedException()
   }
 

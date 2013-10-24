@@ -6,6 +6,17 @@ import util.HeapIdSetFunctionalLifting
 
 object ExpressionFactory {
 
+  def createCollectionContains(collectionSet: ExpressionSet, keySet: ExpressionSet, valueSet: ExpressionSet, ty: Type, pp: ProgramPoint) = {
+    var result = new ExpressionSet(ty)
+    for(collection <- collectionSet.getSetOfExpressions;
+        key <- keySet.getSetOfExpressions;
+        value <- valueSet.getSetOfExpressions) {
+      result = result.add(new CollectionContainsExpression(collection, key, value, ty, pp))
+    }
+
+    result
+  }
+
   def createVariable(variable : Variable, ty : Type, pp : ProgramPoint): ExpressionSet= {
     var result = new ExpressionSet(ty)
     result=result.add(new VariableIdentifier(variable.getName(), ty, pp, variable.id.scope))
@@ -135,11 +146,18 @@ class ExpressionSet(initialTyp : Type) extends CartesianProductDomain[Type, SetO
 
     if (r.isEmpty()) return this
 
+    def replaceExpression(e: Expression, from: Identifier, to: Identifier) {
+
+    }
+
+
     val newSet = new SetOfExpressions()
     newSet.value = this._2.value
 
     for ((froms,tos) <- r.value; from <- froms) {
-      newSet.value = (for (to <- tos) yield { newSet.value.map( _.replace(from,to) ) }).flatten.toSet
+      // HACK: replace does not work with replacements that remove variables ({h1,h2} -> {})
+      if(!tos.isEmpty)
+        newSet.value = (for (to <- tos) yield { newSet.value.map( _.replace(from,to) ) }).flatten.toSet
     }
 
     new ExpressionSet(getType(),newSet)
@@ -550,17 +568,22 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     if(this.isBottom) return this
     var d1 = this._1
     var isFirst = true
+    var rep = new Replacement()
     for(expr <- cond.getSetOfExpressions) {
       //For each expression that is assumed, it computes the semantics and it considers the upper bound
       if(isFirst) {
-        d1=this._1.assume(expr)
+        val (d, r) = this._1.assume(expr)
+        d1= d
+        rep = rep ++ r
         isFirst=false
       }
       else {
-        d1=d1.lub(d1, this._1.assume(expr))
+        val(d, r) = this._1.assume(expr)
+        d1=d1.lub(d1, d)
+        rep = rep ++ r
       }
     }
-    new AbstractState[N,H,I](d1, this._2)
+    new AbstractState[N,H,I](d1, this._2.merge(rep))
   }
 
   def testTrue() : AbstractState[N,H,I] = {
@@ -594,24 +617,27 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     else this._1.toString+"\nExpression:\n"+ToStringUtilities.indent(this._2.toString)
   }
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, tpp: ProgramPoint, fields : Option[Set[Identifier]] = None): AbstractState[N, H, I] = {
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, keyCollectionTyp:Option[Type], tpp: ProgramPoint, fields : Option[Set[Identifier]] = None): AbstractState[N, H, I] = {
 
     if (this.isBottom) return this
 
     // It discharges on the heap analysis the creation of the object and its fields
-    val (createdLocation, newHeap, rep) = this.d1.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, tpp)
-    var result = new HeapAndAnotherDomain[N, H, I](newHeap._1.merge(rep), newHeap._2)
+    val (createdLocation, heapAndSemantics, _) = this.d1.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, None, keyCollectionTyp, tpp)
+    var resHeapAndSemantics = heapAndSemantics
 
     // Create all variables involved representing the object
-    result=HeapIdSetFunctionalLifting.applyToSetHeapId(result, createdLocation, result.createVariable(_, collTyp))
-    var result2 = result
+    resHeapAndSemantics=HeapIdSetFunctionalLifting.applyToSetHeapId(resHeapAndSemantics, createdLocation, resHeapAndSemantics.createVariable(_, collTyp))
+
     for(field <- fields.orElse(Some(collTyp.getPossibleFields())).get) {
-      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName(), field.getType(), field.getProgramPoint()))
-      result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType()))
+      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, resHeapAndSemantics, resHeapAndSemantics._2.getFieldIdentifier(_, field.getName(), field.getType(), field.getProgramPoint()))
+      resHeapAndSemantics=HeapIdSetFunctionalLifting.applyToSetHeapId(resHeapAndSemantics, ids, new HeapAndAnotherDomain[N, H, I](resHeapAndSemantics._1.merge(rep2), state).createVariable(_, field.getType()))
     }
 
-    this.setExpression(new ExpressionSet(collTyp).add(createdLocation)).setState(result2)
+    val result = this.factory()
+    result.d1 = resHeapAndSemantics
+    result.d2 = new ExpressionSet(collTyp).add(createdLocation)
 
+    result
   }
 
   def getCollectionValue(valueIds: ExpressionSet): AbstractState[N, H, I] = {
@@ -623,123 +649,254 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       new AbstractState[N, H, I](newHeapAndSemantic, newExpressions)
     }
 
-    var result = this.factory()
-    result.d1 = this.d1
-    result.d2 = this.d2.bottom()
+    var result = this.bottom()
 
     for (valueId <- valueIds.getSetOfExpressions) {
-      valueId match {
-        case id: Assignable => result = getCollectionValue(result)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, getCollectionValue(result))
+      val newState = valueId match {
+        case id: Assignable => getCollectionValue(this)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, getCollectionValue(this))
+        case _ => this.bottom()
       }
+
+      result = result.lub(result, newState)
     }
 
     result
   }
 
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): AbstractState[N, H, I] = {
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) : AbstractState[N, H, I] = {
     if (this.isBottom) return this
 
-    def insertCollectionValue(key: Expression, right: Expression, pp: ProgramPoint)(collection: Assignable):AbstractState[N, H, I] = {
-      val (newHeapAndSemantic,rep) = this.d1.insertCollectionElement(collection, key, right, pp)
+    def getSummaryCollectionIfExists(result: AbstractState[N, H, I])(collection: Assignable): AbstractState[N, H, I] = {
+      val (newHeapAndSemantic, ids) = result.d1.getSummaryCollectionIfExists(collection)
+
+      var expressions = new ExpressionSet(ids.getType()).bottom()
+      if (!ids.isBottom) {
+        expressions = new ExpressionSet(ids.getType()).add(ids)
+      }
+
+      new AbstractState[N,H,I](newHeapAndSemantic, expressions)
+    }
+
+    var result = this.bottom()
+    for (collection <- collectionSet.getSetOfExpressions) {
+      val newState = collection match {
+        case id: Assignable => getSummaryCollectionIfExists(this)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, getSummaryCollectionIfExists(this))
+        case _ => this.bottom()
+      }
+
+      result = result.lub(result, newState)
+    }
+
+    result
+  }
+
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTopSet: ExpressionSet, valueTopSet: ExpressionSet, pp: ProgramPoint): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+
+    def insertCollectionTopElement(result: AbstractState[N, H, I], keyTop: Expression, valueTop: Expression, pp: ProgramPoint)(collection: Assignable): AbstractState[N, H, I] = {
+      val newHeapAndSemantic = result.d1.insertCollectionTopElement(collection, keyTop, valueTop, pp)
+      new AbstractState[N, H, I](newHeapAndSemantic, this.d2)
+    }
+
+    var result = this.bottom()
+    for (collection <- collectionSet.getSetOfExpressions;
+        keyTop <- keyTopSet.getSetOfExpressions;
+        valueTop <- valueTopSet.getSetOfExpressions) {
+      val newState = collection match {
+        case id: Assignable => insertCollectionTopElement(this, keyTop, valueTop, pp)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, insertCollectionTopElement(this, keyTop, valueTop, pp))
+        case _ => this.bottom()
+      }
+      result = result.lub(result, newState)
+    }
+    result.removeExpression()
+  }
+
+  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+
+    def insertCollectionValue(result: AbstractState[N, H, I], key: Expression, right: Expression, pp: ProgramPoint)(collection: Assignable):AbstractState[N, H, I] = {
+      val (newHeapAndSemantic, rep) = result.d1.insertCollectionElement(collection, key, right, pp)
       new AbstractState[N, H, I](newHeapAndSemantic, this.d2.merge(rep))
     }
 
-    var result = this.factory()
-    result.d1 = this.d1
-    result.d2 = this.d2
+    var result = this.bottom()
     for (collection <- collectionSet.getSetOfExpressions;
          key <- keySet.getSetOfExpressions;
          right <- rightSet.getSetOfExpressions) {
-      collection match {
-        case id: Assignable => result = result.lub(result, insertCollectionValue(key, right, pp)(id))
-        case set: HeapIdSetDomain[I] => result = result.lub(result, HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, insertCollectionValue(key, right, pp)))
-        case _ => ()
+      val newState = collection match {
+        case id: Assignable => insertCollectionValue(this, key, right, pp)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, insertCollectionValue(this, key, right, pp))
+        case _ => this.bottom()
       }
+      result = result.lub(result, newState)
     }
 
     result.removeExpression()
   }
 
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): AbstractState[N, H, I] = {
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): AbstractState[N, H, I] = {
     if (this.isBottom) return this
 
-    def removeCollectionValue(result: AbstractState[N, H, I], key: Expression, valueTyp: Type) (collection: Assignable): AbstractState[N, H, I] = {
-      val newHeapAndSemantic = result.d1.removeCollectionElementByKey(collection, key, valueTyp)
+    def removeCollectionValue(result: AbstractState[N, H, I], key: Expression) (collection: Assignable): AbstractState[N, H, I] = {
+      val newHeapAndSemantic = result.d1.removeCollectionElementByKey(collection, key)
       new AbstractState[N, H, I](newHeapAndSemantic, result.d2)
     }
 
-    var result = this
+    var result = this.bottom()
     for (collection <- collectionSet.getSetOfExpressions;
          key <- keySet.getSetOfExpressions) {
-      collection match {
-        case id: Assignable => result = removeCollectionValue(result, key, valueTyp)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, removeCollectionValue(result, key, valueTyp))
-        case _ => ()
+      val newState = collection match {
+        case id: Assignable => removeCollectionValue(this, key)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, removeCollectionValue(this, key))
+        case _ => this.bottom()
       }
+      result = result.lub(result, newState)
     }
 
     result.removeExpression()
   }
 
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): AbstractState[N, H, I] = {
-    if (this.isBottom) return this
+  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = {
 
-    def removeCollectionValue(result: AbstractState[N, H, I], value: Expression, keyTyp: Type) (collection: Assignable) = {
-      val newHeapAndSemantic = result.d1.removeCollectionElementByValue(collection, value, keyTyp)
+    def removeFirstCollectionValue(result: AbstractState[N, H, I], value: Expression) (collection: Assignable) = {
+      val newHeapAndSemantic = result.d1.removeFirstCollectionElementByValue(collection, value)
       new AbstractState[N, H, I](newHeapAndSemantic, result.d2)
     }
 
-    var result = this
+    var result = this.bottom()
     for (collection <- collectionSet.getSetOfExpressions;
-         value <- valueSet.getSetOfExpressions) {
-      collection match {
-        case id: Assignable => result = removeCollectionValue(result, value, keyTyp)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, removeCollectionValue(result, value, keyTyp))
+        value <- valueSet.getSetOfExpressions) {
+      val newState = collection match {
+        case id: Assignable => removeFirstCollectionValue(this, value)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, removeFirstCollectionValue(this, value))
+        case _ => this.bottom()
       }
+      result = result.lub(result, newState)
     }
 
     result.removeExpression()
   }
 
-  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): AbstractState[N, H, I] = {
+  def clearCollection(collectionSet: ExpressionSet): AbstractState[N, H, I] = {
     if (this.isBottom) return this
 
     def clearCollection(result: AbstractState[N, H, I])(collection: Assignable) = {
-      val newHeapAndSemantic = result.d1.clearCollection(collection, keyTyp, valueTyp)
+      val newHeapAndSemantic = result.d1.clearCollection(collection)
       new AbstractState[N, H, I](newHeapAndSemantic, result.d2)
     }
 
-    var result = this
+    var result = this.bottom
     for (collection <- collectionSet.getSetOfExpressions) {
-      collection match {
-        case id: Assignable => result = clearCollection(result)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, clearCollection(result))
-        case _ => ()
+      val newState = collection match {
+        case id: Assignable => clearCollection(this)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, clearCollection(this))
+        case _ => this.bottom()
       }
+
+      result = result.lub(result, newState)
     }
 
     result.removeExpression()
   }
 
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): AbstractState[N, H, I] = {
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): AbstractState[N, H, I] = {
     if (this.isBottom) return this
 
     def invalidateCollectionKeys(result:AbstractState[N, H, I], value: Expression)(collection: Assignable) = {
-      val newHeapAndSemantic = result.d1.assignAllCollectionKeys(collection, value, keyTyp)
+      val newHeapAndSemantic = result.d1.assignAllCollectionKeys(collection, value)
       new AbstractState[N,H,I](newHeapAndSemantic, result.d2)
     }
 
-    var result = this
+    var result = this.bottom()
     for (collection <- collectionSet.getSetOfExpressions;
          value <- valueSet.getSetOfExpressions) {
-      collection match {
-        case id:Assignable => result = invalidateCollectionKeys(result, value)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, invalidateCollectionKeys(result, value))
+      val newState = collection match {
+        case id:Assignable => invalidateCollectionKeys(this, value)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, invalidateCollectionKeys(this, value))
+        case _ => this.bottom()
       }
+
+      result = result.lub(result, newState)
     }
 
     result.removeExpression()
+  }
+
+  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+
+    def collectionContainsKey(initial: AbstractState[N, H, I], key: Expression, booleanTyp: Type, pp: ProgramPoint)(collection: Assignable): AbstractState[N, H, I] = {
+      key match {
+        case set:HeapIdSetDomain[I] =>
+          var result = initial
+          for (id <- set.value) {
+            val newState = collectionContainsKey(result, id, booleanTyp, pp)(collection)
+            result = result.lub(result, newState)
+          }
+          result
+        case _ =>
+          val containsKey = initial.d1.collectionContainsKey(collection, key)
+
+          var expression: Expression = new BinaryNondeterministicExpression(Constant("true", booleanTyp, pp), Constant("false", booleanTyp, pp), NondeterministicOperator.or, booleanTyp)
+
+          if (containsKey.equals(BooleanDomain.domTrue)) {
+            expression = Constant("true", booleanTyp, pp)
+          }
+          else if (containsKey.equals(BooleanDomain.domFalse)) {
+            expression = Constant("false", booleanTyp, pp)
+          }
+
+          new AbstractState[N, H, I](initial.d1, new ExpressionSet(booleanTyp).add(expression))
+      }
+    }
+
+    var result = this.bottom()
+    for(collection <- collectionSet.getSetOfExpressions;
+        key <- keySet.getSetOfExpressions) {
+      val newState = collection match {
+        case id: Assignable => collectionContainsKey(this, key, booleanTyp, pp)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, collectionContainsKey(this, key, booleanTyp, pp))
+        case _ => this.bottom()
+      }
+
+      result = result.lub(result, newState)
+    }
+    result
+  }
+
+  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+
+    def collectionContainsValue(result: AbstractState[N, H, I], value: Expression, booleanTyp: Type, pp: ProgramPoint)(collection: Assignable) = {
+      val containsValue = result.d1.collectionContainsValue(collection, value)
+
+      var expression: Expression = new BinaryNondeterministicExpression(Constant("true", booleanTyp, pp), Constant("false", booleanTyp, pp), NondeterministicOperator.or, booleanTyp)
+
+      if (containsValue.equals(BooleanDomain.domTrue)) {
+        expression = Constant("true", booleanTyp, pp)
+      }
+      else if (containsValue.equals(BooleanDomain.domFalse)) {
+        expression = Constant("false", booleanTyp, pp)
+      }
+
+      new AbstractState[N, H, I](result.d1, new ExpressionSet(booleanTyp).add(expression))
+    }
+
+    var result = this.bottom()
+    for(collection <- collectionSet.getSetOfExpressions;
+        value <- valueSet.getSetOfExpressions) {
+      val newState = collection match {
+        case id: Assignable => collectionContainsValue(this, value, booleanTyp, pp)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, collectionContainsValue(this, value, booleanTyp, pp))
+        case _ => this.bottom()
+      }
+      result = result.lub(result, newState)
+    }
+
+    result
   }
 
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): AbstractState[N, H, I] = {
@@ -753,48 +910,50 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         expressions = new ExpressionSet(ids.getType()).add(ids)
       }
 
-      val newState = new AbstractState(newHeapAndSemantic, expressions)
-      newState.lub(newState, result)
+      new AbstractState(newHeapAndSemantic, expressions)
     }
 
     var result: AbstractState[N, H, I] = this.bottom()
 
     for (expr <- collectionSet.getSetOfExpressions;
          keyExpr <- keySet.getSetOfExpressions) {
-      expr match {
-        case id: Assignable => result = getCollectionKey(result, keyExpr)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionKey(result, keyExpr))
-        case _ => ()
+      val newState = expr match {
+        case id: Assignable => getCollectionKey(this, keyExpr)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionKey(this, keyExpr))
+        case _ => this.bottom()
       }
+
+      result = result.lub(result, newState)
     }
 
     result
   }
 
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): AbstractState[N, H, I] = {
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): AbstractState[N, H, I] = {
     if(this.isBottom) return this
 
     def getCollectionValue(result:AbstractState[N, H, I], key: Expression)(collection: Assignable): AbstractState[N, H, I] = {
-      val (newHeapAndSemantic, ids) = this.d1.getCollectionValueByKey(collection, key, valueTyp)
+      val (newHeapAndSemantic, ids) = this.d1.getCollectionValueByKey(collection, key)
 
       var expressions = new ExpressionSet(ids.getType())
       if (!ids.isBottom) {
         expressions = new ExpressionSet(ids.getType()).add(ids)
       }
 
-      val newState = new AbstractState(newHeapAndSemantic, expressions)
-      newState.lub(newState, result)
+      new AbstractState(newHeapAndSemantic, expressions)
     }
 
     var result: AbstractState[N, H, I] = this.bottom()
 
     for (expr <- collectionSet.getSetOfExpressions;
          keyExpr <- keySet.getSetOfExpressions) {
-      expr match {
-        case id: Assignable => result = getCollectionValue(result, keyExpr)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionValue(result, keyExpr))
-        case _ => ()
+      val newState = expr match {
+        case id: Assignable => getCollectionValue(this, keyExpr)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionValue(this, keyExpr))
+        case _ => this.bottom()
       }
+
+      result = result.lub(result, newState)
     }
 
     result
@@ -811,74 +970,164 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         expressions = new ExpressionSet(ids.getType()).add(ids)
       }
 
-      val newState = new AbstractState(newHeapAndSemantic, expressions)
-      newState.lub(newState, result)
+      new AbstractState(newHeapAndSemantic, expressions)
     }
 
     var result: AbstractState[N, H, I] = this.bottom()
 
     for (expr <- collectionSet.getSetOfExpressions;
          valueExpr <- valueSet.getSetOfExpressions) {
-      expr match {
-        case id: Assignable => result = getCollectionValue(result, valueExpr)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionValue(result, valueExpr))
-        case _ => ()
+      val newState = expr match {
+        case id: Assignable => getCollectionValue(this, valueExpr)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionValue(this, valueExpr))
+        case _ => this.bottom()
       }
+
+      result = result.lub(result, newState)
     }
 
     result
   }
 
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): AbstractState[N, H, I] = {
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): AbstractState[N, H, I] = {
     if (this.isBottom) return this
 
-    def copyCollection(result: AbstractState[N, H, I], toCollection:Expression, keyTyp: Type, valueTyp: Type)(fromCollection: Assignable) = {
-
-      def copyCollection(result: AbstractState[N, H, I], fromCollection: Assignable, keyTyp: Type, valueTyp: Type)(toCollection: Assignable) = {
-        val (newHeapAndSemantic,rep) = result.d1.copyCollection(fromCollection, toCollection, keyTyp, valueTyp)
+    def copyCollection(result: AbstractState[N, H, I], toCollection:Expression)(fromCollection: Assignable) = {
+      def copyCollection(result: AbstractState[N, H, I], fromCollection: Assignable)(toCollection: Assignable) = {
+        val (newHeapAndSemantic,rep) = result.d1.copyCollection(fromCollection, toCollection)
         new AbstractState[N, H, I](newHeapAndSemantic, result.d2.merge(rep))
       }
 
       toCollection match {
-        case id: Assignable => copyCollection(result, fromCollection, keyTyp, valueTyp)(id)
-        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, copyCollection(result, fromCollection, keyTyp, valueTyp))
+        case id: Assignable => copyCollection(result, fromCollection)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, copyCollection(result, fromCollection))
       }
     }
 
-    var result = this
+    var result = this.bottom()
     for (fromCollection <- fromCollectionSet.getSetOfExpressions;
          toCollection <- toCollectionSet.getSetOfExpressions) {
-      fromCollection match {
-        case id: Assignable => result = copyCollection(result, toCollection, keyTyp, valueTyp)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, copyCollection(result, toCollection, keyTyp, valueTyp))
+      val newState = fromCollection match {
+        case id: Assignable => copyCollection(this, toCollection)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, copyCollection(this, toCollection))
+        case _ => this.bottom()
       }
+      result = result.lub(result, newState)
     }
 
     result.removeExpression()
   }
 
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): AbstractState[N, H, I] = {
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp:Type, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): AbstractState[N, H, I] = {
     if (this.isBottom) return this
 
     def extractCollectionKeys(result: AbstractState[N, H, I], newKeyValue:Expression, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint)(fromCollection: Assignable):  AbstractState[N, H, I] = {
-      val (newHeapAndSemantic, collectionIds, rep) = result.d1.extractCollectionKeys(fromCollection, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp)
+      val (newHeapAndSemantic, collectionIds, rep) = result.d1.extractCollectionKeys(fromCollection, newKeyValue, fromCollectionTyp, collTyp, keyTyp, valueTyp, lengthTyp, pp)
       if (collectionIds == null) return this.bottom()
 
       new AbstractState[N, H, I](newHeapAndSemantic, new ExpressionSet(collTyp).add(collectionIds).merge(rep))
     }
 
-    var result = this.factory()
-    result.d1 = this.d1
-    result.d2 = this.d2
+    var result = this.bottom()
     for (fromCollection <- fromCollectionSet.getSetOfExpressions;
          newKeyValue <- newKeyValueSet.getSetOfExpressions) {
-      fromCollection match {
-        case id: Assignable => result = extractCollectionKeys(result, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, extractCollectionKeys(result, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp))
+      val newState = fromCollection match {
+        case id: Assignable => extractCollectionKeys(this, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, extractCollectionKeys(this, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp))
+        case _ => this.bottom()
       }
+
+      result = result.lub(result, newState)
     }
 
     result
+  }
+
+  def getOriginalCollection(collectionSet: ExpressionSet):AbstractState[N, H, I]= {
+    if (this.isBottom) return this
+
+    def getOriginalCollection(result:AbstractState[N, H, I])(collection: Assignable): AbstractState[N, H, I] = {
+      val (newHeapAndSemantic, ids) = this.d1.getOriginalCollection(collection)
+
+      var expressions = new ExpressionSet(ids.getType()).bottom()
+      if(!ids.isBottom){
+        expressions = new ExpressionSet(ids.getType()).add(ids)
+      }
+
+      new AbstractState(newHeapAndSemantic, expressions)
+    }
+
+    var result = this.bottom()
+    for (collection <- collectionSet.getSetOfExpressions) {
+      val newState = collection match {
+        case id: Assignable => getOriginalCollection(this)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getOriginalCollection(this))
+        case _ => this.bottom()
+      }
+
+      result = result.lub(result, newState)
+    }
+
+    result
+  }
+
+  def getKeysCollection(collectionSet: ExpressionSet):AbstractState[N, H, I]= {
+    if (this.isBottom) return this
+
+    def getKeysCollection(result:AbstractState[N, H, I])(collection: Assignable): AbstractState[N, H, I] = {
+      val (newHeapAndSemantic, ids) = this.d1.getKeysCollection(collection)
+
+      var expressions = new ExpressionSet(ids.getType()).bottom()
+      if(!ids.isBottom){
+        expressions = new ExpressionSet(ids.getType()).add(ids)
+      }
+
+      new AbstractState(newHeapAndSemantic, expressions)
+    }
+
+    var result = this.bottom()
+    for (collection <- collectionSet.getSetOfExpressions) {
+      val newState = collection match {
+        case id: Assignable => getKeysCollection(this)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getKeysCollection(this))
+        case _ => this.bottom()
+      }
+
+      result = result.lub(result, newState)
+    }
+
+    result
+  }
+
+  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet): AbstractState[N, H, I] = {
+
+    def removeCollectionKeyConnection(initialState: AbstractState[N, H, I], keyCollection: Expression)(origCollection: Assignable) = {
+      def removeCollectionKeyConnection(result: AbstractState[N, H, I], origCollection: Assignable)(keyCollection: Assignable) = {
+        val newHeapAndSemantics = result.d1.removeCollectionKeyConnection(origCollection, keyCollection)
+        new AbstractState[N, H, I](newHeapAndSemantics, result.d2)
+      }
+      var result = initialState
+      keyCollection match {
+        case id: Assignable => result = removeCollectionKeyConnection(result, origCollection)(id)
+        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, removeCollectionKeyConnection(result, origCollection))
+      }
+
+      result
+    }
+
+    var result = this.bottom()
+
+    for (origCollection <- origCollectionSet.getSetOfExpressions;
+        keysCollection <- keyCollectionSet.getSetOfExpressions) {
+      val  newState = origCollection match {
+        case id: Assignable => removeCollectionKeyConnection(this, keysCollection)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, removeCollectionKeyConnection(this, keysCollection))
+      }
+
+      result = result.lub(result, newState)
+    }
+
+    result.removeExpression()
   }
 
   def getCollectionLength(collectionSet: ExpressionSet): AbstractState[N, H, I] = {
@@ -923,35 +1172,6 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     }
 
     return false
-  }
-
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) : AbstractState[N, H, I] = {
-
-    if (this.isBottom) return this
-
-    def getSummaryCollectionIfExists(result: AbstractState[N, H, I])(collection: Assignable): AbstractState[N, H, I] = {
-      val (newHeapAndSemantic, ids) = result.d1.getSummaryCollectionIfExists(collection)
-
-      var expressions = new ExpressionSet(ids.getType()).bottom()
-      if (!ids.isBottom) {
-        expressions = new ExpressionSet(ids.getType()).add(ids)
-      }
-
-      val newState = new AbstractState[N,H,I](newHeapAndSemantic, expressions)
-      newState.lub(result, newState)
-    }
-
-    var result = this.factory()
-    result.d1 = this.d1
-    result.d2 = this.d2.bottom()
-    for (collection <- collectionSet.getSetOfExpressions) {
-      collection match {
-        case id: Assignable => result = getSummaryCollectionIfExists(result)(id)
-        case set: HeapIdSetDomain[I] => result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), set, getSummaryCollectionIfExists(result))
-      }
-    }
-
-    result
   }
 
   /**

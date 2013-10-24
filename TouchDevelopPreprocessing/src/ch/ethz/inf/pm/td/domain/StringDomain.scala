@@ -46,8 +46,8 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
   override def assign(variable: Identifier, expr: Expression): NonrelationalStringDomain[T]  = {
     if (variable.getType().isStringType()) {
       val res = eval(expr)
-      if (res.isBottom) bottom()
-      else if (variable.representSingleVariable()) this.add(variable, res)
+      //if (res.isBottom) bottom()
+      if (variable.representSingleVariable()) this.add(variable, res)
       else this.add(variable, dom.lub(this.get(variable), res))
     } else this
   }
@@ -62,7 +62,7 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
     case Constant("valid", typ, pp) => // FIXME: This will break once somebody has a string constant valid
       dom.top()
     case Constant("invalid", typ, pp) => // FIXME: This will break once somebody has a string constant invalid
-      dom.top() // FIXME: Wouldn't bottom be better?
+      dom.bottom()
     case Constant(constant, typ, pp) =>
       dom.singleton(constant)
     case x: Identifier =>

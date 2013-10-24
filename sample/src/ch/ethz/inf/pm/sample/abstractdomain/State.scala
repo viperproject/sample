@@ -320,7 +320,17 @@ trait State[S <: State[S]] extends Lattice[S] {
   @param lengthTyp The type of the collection length
   @param tpp  The program point at which the collection is created
     */
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type,  tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) : S
+
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp:Option[Type],  tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) : S
+
+  /**
+   * Returns for each collection in the collectionSet either the collection identifier or if a summary collection for
+   * this collection identifier exists the identifier of the summary collection
+   *
+   * @param collectionSet
+   * @return The state with either the summary collection identifier or the collection identifier in the expression
+   */
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) : S
 
   /**
    * Gets the values that are stored at the Collection Tuple Value Identifiers.
@@ -330,8 +340,10 @@ trait State[S <: State[S]] extends Lattice[S] {
    */
   def getCollectionValue(valueIds: ExpressionSet): S
 
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint) : S
+
   /**
-  Gets the Identifier of all the keys of the collection that match the given key expresssion.
+    Gets the Identifier of all the keys of the collection that match the given key expresssion.
      A key expression (key) matches a Identifier if the Identifier represents a key of the collection
      and has value k assigned such that
         lub(k, key) != bottom
@@ -354,7 +366,7 @@ trait State[S <: State[S]] extends Lattice[S] {
   @param valueTyp The type of the collection's values
   @return The state that has the mapped Identifier as expression
     */
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): S
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): S
 
   /**
   Gets the HeapIdentifier of all the values of the collection that match the given value expresssion.
@@ -379,7 +391,15 @@ trait State[S <: State[S]] extends Lattice[S] {
   @param lengthTyp  The length type of the newly created collection@param pp
   @return The state that contains the newly created collection and has it's CollectionHeapIdentifier as expression
     */
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): S
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet,fromCollectionTyp:Type, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): S
+
+
+  //TODO: comment
+  def getOriginalCollection(collectionSet: ExpressionSet): S
+
+  def getKeysCollection(collectionSet: ExpressionSet): S
+
+  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet): S
 
   /**
   Copies all the key-value tuples from one collection to the other.
@@ -390,7 +410,7 @@ trait State[S <: State[S]] extends Lattice[S] {
   @param valueTyp  The value type of the collection
   @return The state that has a copy of all the tuples of the fromCollection in the toCollection
     */
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): S
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): S
 
   /**
   Creates a new key-value tuple and adds it to the collection.
@@ -404,7 +424,7 @@ trait State[S <: State[S]] extends Lattice[S] {
                will be summarized with this tuple.
   @return The state that contains the collection with the added collection-tuple
     */
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): S
+  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): S
 
   /**
   Removes the values from the collection who's key identifiers match the given key expression.
@@ -413,34 +433,32 @@ trait State[S <: State[S]] extends Lattice[S] {
       key identifier != k
 
     @param collectionSet The collection from which the value is removed
-  @param keySet The key expressions
-  @param valueTyp The value type of the collection
-  @return The state in which the collection is represented without the collection value
+    @param keySet The key expressions
+    @return The state in which the collection is represented without the collection value
     */
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): S
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): S
 
   /**
-  Removes the values from the collection who's value identifiers match the given value expression.
-    If the value expression (v) matches the value identifier's assigned value exactly, the tuple is completely removed.
-    Otherwise the tuple is not removed but the semantic state contains the assumption
-      value identifier != v
-
-    @param collectionSet The collection from which the value is removed
-  @param valueSet The value expressions
-  @param keyTyp The key type of the collection
-  @return The state in which the collection is represented without the collection value
-    */
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): S
+   * Removes the first occurence of the value in a collection.
+   *
+   * @param collectionSet The set of collections from which the value is removed
+   * @param valueSet The value to be removed
+   * @return The state in which the collection is represented without the first occurence of the collection value
+   */
+  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): S
 
   /**
    * Assigns the value expression to all key identifiers of the collection.
    *
    * @param collectionSet The collection
    * @param valueSet  The value expression
-   * @param keyTyp  The collection's key type
    * @return  The state in which all the key identifiers of the collection have the value expression assigned
    */
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): S
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): S
+
+  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): S
+
+  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): S
 
   /**
    * Removes all the key-value tuples from a collection and sets it's length to 0.
@@ -449,7 +467,7 @@ trait State[S <: State[S]] extends Lattice[S] {
    * @param valueTyp The value type of the collection
    * @return The state with the cleared collection
    */
-  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) : S
+  def clearCollection(collectionSet: ExpressionSet) : S
 
   /**
   Returns the identifier representing the length of the given collection.
@@ -465,8 +483,6 @@ trait State[S <: State[S]] extends Lattice[S] {
    * @return True if any collection is a summary node, false otherwise.
    */
   def isSummaryCollection(collectionSet: ExpressionSet): Boolean
-
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) : S
 
   /**
    * Removes all variables satisfying filter

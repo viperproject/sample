@@ -429,7 +429,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
       val entry = if (i == 0) initialState else computeEntryState(result, i, itNumber)
       val previousEntry = if (result.getExecution(i).isEmpty) state.bottom() else result.getExecution(i).head
       if (!entry.lessEqual(previousEntry)) {
-        result.setNode(i, this.forwardBlockSemantics(entry, cfg.nodes.apply(i)))
+        val nextState = this.forwardBlockSemantics(entry, cfg.nodes.apply(i))
+        result.setNode(i, nextState)
         l = l ++ cfg.getEdgesExitingFrom(i)
         iterationCount = iterationCount + ((i, itNumber + 1))
       }

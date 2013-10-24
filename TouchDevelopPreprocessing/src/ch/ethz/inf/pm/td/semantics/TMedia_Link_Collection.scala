@@ -20,7 +20,7 @@ object TMedia_Link_Collection {
 
 }
 
-class TMedia_Link_Collection extends ACollection {
+class TMedia_Link_Collection extends ALinearCollection {
 
   def getTyp = TMedia_Link_Collection.typ
 

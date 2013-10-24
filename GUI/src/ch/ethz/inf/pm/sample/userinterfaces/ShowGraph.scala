@@ -171,7 +171,7 @@ object ShowGraph extends Property {
     def this(state: AbstractState[N, H, I]) = {
       this()
 
-      val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.nonRelationalHeapStateToGraph[I, N](state.getHeapDomain.asInstanceOf[NonRelationalHeapDomain[I]], state.getSemanticDomain);
+      val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.nonRelationalHeapStateToGraph[I, N, H](state.getHeapDomain, state.getSemanticDomain);
       val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
       graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
 
@@ -292,7 +292,7 @@ object ShowGraph extends Property {
     max
   }
 
-  private def nonRelationalHeapStateToGraph[I <: NonRelationalHeapIdentifier[I], N <: SemanticDomain[N]](heap: NonRelationalHeapDomain[I], s: N): (mxGraph, Map[Identifier, Object]) = {
+  private def nonRelationalHeapStateToGraph[I <: NonRelationalHeapIdentifier[I], N <: SemanticDomain[N], H <: HeapDomain[H, I]](heap: H, s: N): (mxGraph, Map[Identifier, Object]) = {
     val graph: mxGraph = defaultGraphSettings()
     var vertixes: List[Object] = Nil
     var yposition: Double = ygap
@@ -354,9 +354,11 @@ object ShowGraph extends Property {
         id match {
 
           case FieldAndProgramPoint(p1,field,_, _) =>
-            val from = idToVertix.apply(p1)
-            val to = idToVertix.apply(id)
-            graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle;dashed=true");
+            //if (idToVertix.contains(p1)){
+              val from = idToVertix.apply(p1)
+              val to = idToVertix.apply(id)
+              graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle;dashed=true");
+            //}
           case _ => ()
 
         }
@@ -388,7 +390,9 @@ object ShowGraph extends Property {
   }
 
   private def genericStateToGraph[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: AbstractState[N, H, I]) = state match {
+    case _ if state.getHeapDomain.isInstanceOf[NonRelationalMayAndMustHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[AbstractState[N, H, I]])
     case _ if state.getHeapDomain.isInstanceOf[NonRelationalHeapDomain[I]] => new ShowNonRelationalHeapState(state.asInstanceOf[AbstractState[N, H, I]])
+    case _ if state.getHeapDomain.isInstanceOf[NonRelationalSummaryCollectionHeapDomain[I]] => new ShowNonRelationalHeapState(state)
     //case _ if state.getHeap().isInstanceOf[ArrayHeapDomain] => new ShowArrayAnalysisHeapState(state.asInstanceOf[GenericAbstractState[N, ArrayHeapDomain, ArrayHeapID]], false, null)
     //case _ if state.getHeap().isInstanceOf[TVSHeap] => new ShowTVSHeapState(state.asInstanceOf[GenericAbstractState[N, H, I]])
     case _ => new Show(stateToString(state), false, -1, -1)

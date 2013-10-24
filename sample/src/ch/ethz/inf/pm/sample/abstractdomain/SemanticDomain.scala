@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain
-import ch.ethz.inf.pm.sample.oorepresentation._
 
+import ch.ethz.inf.pm.sample.oorepresentation._
 
 /** 
  * A <code>SemanticDomain</code> is a domain on which some functions
@@ -61,7 +61,24 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
    @return the state after this action
    */ 
   def assume(expr : Expression) : T;
-  
+
+  def areEqual(left: Expression, right: Expression) : BooleanDomain = {
+      val equalsExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.==, null)
+
+      val leftEqualsRight = this.assume(equalsExpression)
+      val leftNotEqualsRight= this.assume(NegatedBooleanExpression(equalsExpression))
+
+      if (!leftEqualsRight.lessEqual(this.bottom()) && leftNotEqualsRight.lessEqual(this.bottom())) {
+        // must be equal
+        return BooleanDomain.domTrue
+      } else if (leftEqualsRight.lessEqual(this.bottom())) {
+        // must be not equal
+        return BooleanDomain.domFalse
+      }
+
+      return BooleanDomain.domTop
+    }
+
   /**
    This method creates a variable
   

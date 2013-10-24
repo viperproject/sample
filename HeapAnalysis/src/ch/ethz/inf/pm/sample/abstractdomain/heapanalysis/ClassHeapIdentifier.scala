@@ -53,15 +53,17 @@ class ClassHeapIdentifier(val value : Type, pp : ProgramPoint) extends NonRelati
   override def getCounter = 0
   override def setCounter(c:Int) = this
 
-  override def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = throw new SemanticException("Not yet supported")
+  override def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, origCollectionTyp:Option[Type], keyCollectionTyp: Option[Type], pp:ProgramPoint) = throw new SemanticException("Not yet supported")
   override def getCollectionOverApproximation(collection: Assignable) = throw new SemanticException("Not yet supported")
   override def getCollectionUnderApproximation(collection: Assignable) = throw new SemanticException("Not yet supported")
-  override def createCollectionTuple(collectionApprox:Assignable, keyTyp:Type, valueTyp:Type, pp:ProgramPoint) = throw new SemanticException("Not yet supported")
-  override def createCollectionTuple(collectionApprox:Assignable, keyTyp:Type, valueTyp:Type, pps:Set[ProgramPoint]) = throw new SemanticException("Not yet supported")
+  override def getCollectionSummaryApproximation(collection:Assignable) = throw new SemanticException("Not yet supported")
+  override def createCollectionSummaryTuple(collectionApprox:Assignable, keyTyp:Type, valueTyp:Type) = throw new SemanticException("Not yet supported")
+  override def createCollectionTuple(collectionApprox:Assignable, keyTyp: Type, valueTyp: Type, pp:ProgramPoint) = throw new SemanticException("Not yet supported")
+  override def createCollectionTuple(collectionApprox:Assignable, keyTyp: Type, valueTyp: Type, pps:Set[ProgramPoint]) = throw new SemanticException("Not yet supported")
   override def createCollectionTuple(collectionTuple1: Assignable, collectionTuple2: Assignable) = throw new SemanticException("Not yet supported")
   override def getCollectionTupleByKey(collectionKey: Assignable) = throw new SemanticException("Not yet supported")
   override def getCollectionTupleByValue(collectionValue: Assignable) = throw new SemanticException("Not yet supported")
   override def getCollectionLength(collection: Assignable) = throw new SemanticException("Not yet supported")
-  override def getCollectionKey(collectionTuple:Assignable, keyTyp:Type) = throw new SemanticException("Not yet supported")
-  override def getCollectionValue(collectionTuple:Assignable, valueTyp:Type) = throw new SemanticException("Not yet supported")
+  override def getCollectionKey(collectionTuple:Assignable) = throw new SemanticException("Not yet supported")
+  override def getCollectionValue(collectionTuple:Assignable) = throw new SemanticException("Not yet supported")
 }

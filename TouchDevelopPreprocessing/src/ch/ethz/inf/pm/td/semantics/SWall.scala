@@ -165,7 +165,7 @@ class SWall extends AAny {
       val List(style) = parameters // String
       val pages = Field[S](this0,SWall.field_pages)
       If[S](CollectionSize[S](pages) > 0, Then = { s:S =>
-        Return[S](True)(CollectionRemoveByValue[S](pages,CollectionAt[S](pages,CollectionSize[S](pages)-1))(s,pp),pp)
+        Return[S](True)(CollectionRemoveFirst[S](pages,CollectionAt[S](pages,CollectionSize[S](pages)-1))(s,pp),pp)
       }, Else = {
         Return[S](False)(_,pp)
       })
@@ -174,7 +174,7 @@ class SWall extends AAny {
     case "pop page" =>
       val pages = Field[S](this0,SWall.field_pages)
       If[S](CollectionSize[S](pages) > 0, Then = { s:S =>
-        Return[S](True)(CollectionRemoveByValue[S](pages,CollectionAt[S](pages,CollectionSize[S](pages)-1))(s,pp),pp)
+        Return[S](True)(CollectionRemoveFirst[S](pages,CollectionAt[S](pages,CollectionSize[S](pages)-1))(s,pp),pp)
       }, Else = {
         Return[S](False)(_,pp)
       })

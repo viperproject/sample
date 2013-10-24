@@ -21,7 +21,7 @@ object TSongs {
 
 }
 
-class TSongs extends ACollection {
+class TSongs extends ALinearCollection {
 
   def getTyp = TSongs.typ
 

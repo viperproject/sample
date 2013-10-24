@@ -102,7 +102,8 @@ public class WindowApplication {
 			@Override
             public void actionPerformed(ActionEvent e) {
 				try {
-					JFileChooser fc = new JFileChooser((new File(path)).getCanonicalPath());
+                    String filepath = file != null && file.exists() ? file.getPath() : path;
+					JFileChooser fc = new JFileChooser((new File(filepath)).getCanonicalPath());
 					fc.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
 					int returnVal = fc.showOpenDialog(mainFrame);
 					if (returnVal == JFileChooser.APPROVE_OPTION) {

@@ -34,7 +34,9 @@ class TNumber extends AAny {
     case "+" => Return(this0 + parameters.head)
     case "*" => Return(this0 * parameters.head)
     case "-" => Return(this0 - parameters.head)
-    case "/" => Return(this0 / parameters.head)
+    case "/" =>
+      Error[S](parameters.head equal 0, "Possible division by zero")
+      Return(this0 / parameters.head)
 
     case "and" => Return((this0 unequal 0) && parameters.head)
     case "or" => Return((this0 unequal 0) || parameters.head)

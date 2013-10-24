@@ -20,7 +20,6 @@ object TString_Map {
 
   val typName = "String Map"
   val typ = new TouchCollection(typName,TString.typName,TString.typName,List(field_keys))
-
 }
 
 class TString_Map extends AMap {

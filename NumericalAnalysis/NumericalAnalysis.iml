@@ -21,7 +21,9 @@
           <root url="jar://$MODULE_DIR$/lib/apron.jar!/" />
         </CLASSES>
         <JAVADOC />
-        <SOURCES />
+        <SOURCES>
+          <root url="file://$USER_HOME$/Downloads/apron/japron" />
+        </SOURCES>
       </library>
     </orderEntry>
     <orderEntry type="module-library">

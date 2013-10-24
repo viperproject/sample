@@ -36,7 +36,7 @@ object TXml_Object {
 
 }
 
-class TXml_Object extends ACollection {
+class TXml_Object extends ALinearCollection {
 
   def getTyp = TXml_Object.typ
 

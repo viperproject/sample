@@ -10,17 +10,20 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisCon
  * Represents a map collection in TouchDevelop
  */
 abstract class AMap extends ACollection {
+
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 
     case "at" =>
       val List(key) = parameters // Key_Type
 
-      If[S](CollectionContainsKey[S](this0, key) equal  True, Then={
+      val result = If[S](CollectionContainsKey[S](this0, key) equal  True, Then={
         Return[S](CollectionAt[S](this0, key))(_, pp)
       }, Else={
         Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_, pp)
       })
+
+      result
 
     /** Gets the i-th key */
     case "at index" =>
@@ -50,9 +53,6 @@ abstract class AMap extends ACollection {
         val newState = CollectionRemove[S](this0, key)(state, pp)
         CollectionDecreaseLength[S](this0)(newState, pp)
       }, Else={
-        // Remove in else as well, as over approximation can not
-        // precisely answer Contains query
-        //TODO: Remove if must analysis is implemented
         CollectionRemove[S](this0, key)(_, pp)
       })
 

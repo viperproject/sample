@@ -232,8 +232,31 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]] extends FunctionalDom
           result = result.merge(v, value)
         }
     }
-    return result;
-  };
+
+    result
+
+//    if (r.isEmpty) return this.asInstanceOf[T];
+//    var result: T = this.clone;
+//    val removedVariables: scala.collection.Set[Identifier] = flatten(r.keySet);
+//    //We remove the variables from the result state
+//    for (v <- removedVariables)
+//      result = result.remove(v);
+//    for (s <- r.keySet) {
+//      if (!s.isEmpty) {
+//        var value: V = this.get(s.iterator.next).bottom();
+//        //We compute the value that should be assigned to all other ids
+//        for (v <- s)
+//          value = value.lub(value, this.get(v));
+//
+//        //We assign the value to all other ids
+//        if (!value.lessEqual(value.bottom())) {
+//          for (v <- r.apply(s))
+//            result = result.merge(v, value);
+//        }
+//      }
+//    }
+//    return result;
+  }
 
   override def clone(): T = {
     val result = this.factory();

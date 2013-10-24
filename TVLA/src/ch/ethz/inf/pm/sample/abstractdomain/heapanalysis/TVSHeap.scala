@@ -5,6 +5,8 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.property.Property
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import sun.reflect.generics.reflectiveObjects.NotImplementedException
+import sun.reflect.generics.reflectiveObjects
 
 /**
  * <code>TVSHeap</code> is a HeapDomain that uses TVLA to analyse the heap.
@@ -61,8 +63,6 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    */
   var isBottom: Boolean = false
 
-
-
   /**
    * To pretty-print the heap state
    */
@@ -96,7 +96,6 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   //================================================================================
   // Heap Operations
   //================================================================================
-
 
   /**
    * Creates an object of type typ on the heap and return a heap identifier representing that
@@ -564,26 +563,30 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def getArrayLength(arrayIdentifier: Assignable) = throw new NotImplementedException("not implemented yet")
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
                                            typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
-  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = throw new NotImplementedException("not implemented yet")
+  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp:ProgramPoint) = throw new NotImplementedException("not implemented yet")
+  def getSummaryCollectionIfExists(collection: Assignable) = throw new NotImplementedException("not implemented yet")
+  def insertCollectionTopElement(collection: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
   def insertCollectionElement(collection: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
+  def insertCollectionElementToApprox(collectionApprox: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
   def getCollectionKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state:S) = throw new NotImplementedException("not implemented yet")
   def getCollectionValueByKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state:S) = throw new NotImplementedException("not implemented yet")
   def getCollectionValueByValue[S <: SemanticDomain[S]](collection: Assignable, value: Expression, state: S) = throw new NotImplementedException("not implemented yet")
-  def getCollectionKeyByTuple(collectionTuple: Assignable, keyTyp: Type) = throw new NotImplementedException("not implemented yet")
-  def getCollectionValueByTuple(collectionTuple: Assignable, valueTyp: Type) = throw new NotImplementedException("not implemented yet")
+  def getCollectionKeyByTuple(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
+  def getCollectionValueByTuple(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
   def getCollectionTupleByKey(keyId: Assignable) = throw new NotImplementedException("not implemented yet")
   def getCollectionTupleByValue(valueId: Assignable) = throw new NotImplementedException("not implemented yet")
   def isSummaryCollection(collectionId: Assignable) = throw new NotImplementedException("not implemented yet")
+  def getOriginalCollection(collection: Assignable) = throw new NotImplementedException("not implemented yet")
+  def getKeysCollection(collection: Assignable) = throw new NotImplementedException("not implemented yet")
   def getCollectionTuples(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
   def getCollectionOverApproximation(collection: Assignable) = throw new NotImplementedException("not implemented yet")
   def getCollectionUnderApproximation(collection: Assignable) = throw new NotImplementedException("not implemented yet")
-  def getCollectionKeys(collectionApprox: Assignable, keyTyp: Type) = throw new NotImplementedException("not implemented yet")
-  def getCollectionValues(collectionApprox: Assignable, valueTyp: Type) = throw new NotImplementedException("not implemented yet")
-  def removeCollectionElement(collectionTuple: Assignable, keyTyp: Type, valueTyp: Type) = throw new NotImplementedException("not implemented yet")
+  def getCollectionKeys(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
+  def getCollectionValues(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
+  def removeCollectionElement(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
   def getCollectionLength(collection: Assignable) = throw new NotImplementedException("not implemented yet")
   def getUnreachableHeap = throw new NotImplementedException("not implemented yet")
   def optimizeSummaryNodes = throw new NotImplementedException("not implemented yet")
-  def getSummaryCollectionIfExists(collection: Assignable) = throw new NotImplementedException("not implemented yet")
 
   // methods required by Analysis trait
   override def reset() {}

@@ -52,11 +52,14 @@ public class InstalledPlugins {
         analyses[8]=new MultithreadingAnalysis();
         analyses[9]=new CostAnalysis();
 
-        heapanalyses=new HeapDomain[4];
-        heapanalyses[0]=createNonRelationalHeapDomain(new TopHeapIdentifier(null, null));
-        heapanalyses[1]=createNonRelationalHeapDomain(new ClassHeapIdentifier(null, null));
-        heapanalyses[2]=createNonRelationalHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0));
-        heapanalyses[3]=new TVSHeap();
+        heapanalyses=new HeapDomain[6];
+        heapanalyses[0]=createNonRelationalMayHeapDomain(new TopHeapIdentifier(null, null));
+        heapanalyses[1]=createNonRelationalMayHeapDomain(new ClassHeapIdentifier(null, null));
+        heapanalyses[2]=createNonRelationalMayHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0));
+        heapanalyses[3]=createNonRelationalMayAndMustHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0));
+        heapanalyses[4]=createNonRelationalSummaryCollectionHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0));
+        heapanalyses[5]=new TVSHeap();
+
 
         iterators = new IteratorOverPrograms[12];
         iterators[0] = new TopScripts();
@@ -74,11 +77,31 @@ public class InstalledPlugins {
 
     }
 
-    private static NonRelationalHeapDomain createNonRelationalHeapDomain(NonRelationalHeapIdentifier id) {
+    private static NonRelationalHeapDomain createNonRelationalMayHeapDomain(NonRelationalHeapIdentifier id) {
         Type typ=null;
         MaybeHeapIdSetDomain ids = new MaybeHeapIdSetDomain();
         VariableEnv env= new VariableEnv(typ, ids);
         HeapEnv heap= new HeapEnv(typ, ids);
         return new NonRelationalHeapDomain(env, heap, ids, id);
+    }
+
+    private static NonRelationalMayAndMustHeapDomain createNonRelationalMayAndMustHeapDomain(NonRelationalHeapIdentifier id) {
+        Type typ=null;
+        NonRelationalHeapDomain mayHeap = createNonRelationalMayHeapDomain(id);
+
+        TupleIdSetDomain mustIds = new TupleIdSetDomain();
+        VariableEnv mustEnv = new VariableEnv(typ, mustIds);
+        HeapEnv mustHeapEnv = new HeapEnv(typ, mustIds);
+        NonRelationalMustHeapDomain mustHeap = new NonRelationalMustHeapDomain(mustEnv, mustHeapEnv, mustIds, id);
+
+        return new NonRelationalMayAndMustHeapDomain(mayHeap, mustHeap);
+    }
+
+    private static NonRelationalSummaryCollectionHeapDomain createNonRelationalSummaryCollectionHeapDomain(NonRelationalHeapIdentifier id) {
+        Type typ=null;
+        MaybeHeapIdSetDomain ids = new MaybeHeapIdSetDomain();
+        VariableEnv env= new VariableEnv(typ, ids);
+        HeapEnv heap= new HeapEnv(typ, ids);
+        return new NonRelationalSummaryCollectionHeapDomain(env, heap, ids, id);
     }
 }

@@ -20,7 +20,7 @@ object TMedia_Player_Collection {
 
 }
 
-class TMedia_Player_Collection extends ACollection {
+class TMedia_Player_Collection extends ALinearCollection {
 
   def getTyp = TMedia_Player_Collection.typ
 

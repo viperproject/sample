@@ -58,23 +58,30 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
   def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.getType())
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint, fields : Option[Set[Identifier]] = None): AccessCollectingState =
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp:Option[Type], tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) =
     this.setType(collTyp)
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = this
   def getCollectionValue(valueIds: ExpressionSet) = this
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint) = this
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
     this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getKeyType)
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) =
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
     this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getValueType)
   def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) =
     this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getValueType)
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = this
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = this
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = this
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = this
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = this
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = this
-  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = this
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp:Type, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = this
+  def getOriginalCollection(collectionSet: ExpressionSet) = this
+  def getKeysCollection(collectionSet: ExpressionSet) = this
+  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet) = this
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet) = this
+  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = this
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = this
+  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = this
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet) = this
+  def clearCollection(collectionSet: ExpressionSet) = this
   def getCollectionLength(collectionSet: ExpressionSet): AccessCollectingState = this.setType(TNumber.typ)
+  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = this
+  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = this
   def isSummaryCollection(collectionSet: ExpressionSet) = false
 
   def pruneVariables(filter:Identifier => Boolean) : AccessCollectingState = this
@@ -99,7 +106,6 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): AccessCollectingState = this
   def createVariableForArgument(x: ExpressionSet, typ: Type): AccessCollectingState = this
   def before(pp: ProgramPoint): AccessCollectingState = this
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = this
 
   def bottom(): AccessCollectingState = new AccessCollectingState(myType.bottom())
   def glb(left: AccessCollectingState, right: AccessCollectingState): AccessCollectingState =

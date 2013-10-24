@@ -1,4 +1,6 @@
 action main() {
-    $c := collections->create_number_collection();
-    $c->add(2);
+    $c := collections->create_string_collection();
+    $c->add("test");
+
+    $c->at(0)->post_to_wall();
 }

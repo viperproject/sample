@@ -20,7 +20,7 @@ object TPicture_Albums {
 
 }
 
-class TPicture_Albums extends ACollection {
+class TPicture_Albums extends ALinearCollection {
 
   def getTyp = TPicture_Albums.typ
 

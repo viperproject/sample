@@ -20,7 +20,6 @@ object TNumber_Map {
 
   val typName = "Number Map"
   val typ = TouchCollection(typName,"Number","Number")
-
 }
 
 class TNumber_Map extends AMap {

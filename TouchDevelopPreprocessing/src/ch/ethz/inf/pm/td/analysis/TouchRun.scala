@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.domain
 
 
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.analysis.{BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
 import ch.ethz.inf.pm.td.compiler.UnsupportedLanguageFeatureException
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
@@ -116,20 +116,43 @@ object TouchApronRun {
         val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain, env = Set.empty).factory()))
         val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
-        val heapDomain: NonRelationalHeapDomain[HeapId] =
-          new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
-        heapDomain.setParameter("UnsoundEntryState",false)
-
-        val entryDomain =
-          new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
-
         val entryValue = new ExpressionSet(SystemParameters.typ.top())
 
-        val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+        if (TouchAnalysisParameters.enableCollectionSummaryAnalysis) {
+          val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
+          heapDomain.setParameter("UnsoundEntryState",false)
 
-        val analysis = new TouchAnalysisWithApron[ApronInterface]
-        analysis.analyze(Nil, entryState, new OutputCollector)
+          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
+          val analysis = new TouchAnalysisWithApron[ApronInterface]
+          analysis.analyze(Nil, entryState, new OutputCollector)
+        }
+        else if (TouchAnalysisParameters.enableCollectionMustAnalysis) {
+          val mustHeapDomain: NonRelationalMustHeapDomain[HeapId] =
+            new NonRelationalMustHeapDomain[HeapId](heapID.getType(), new TupleIdSetDomain(), heapID)
+
+          val mayHeapDomain: NonRelationalHeapDomain[HeapId] =
+            new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
+
+          val heapDomain = new NonRelationalMayAndMustHeapDomain[HeapId](mayHeapDomain, mustHeapDomain)
+          heapDomain.setParameter("UnsoundEntryState",false)
+
+          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalMayAndMustHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalMayAndMustHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+
+          val analysis = new TouchAnalysisWithApron[ApronInterface]
+          analysis.analyze(Nil, entryState, new OutputCollector)
+        } else {
+          val heapDomain = new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
+          heapDomain.setParameter("UnsoundEntryState",false)
+
+          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+
+          val analysis = new TouchAnalysisWithApron[ApronInterface]
+          analysis.analyze(Nil, entryState, new OutputCollector)
+        }
       } catch {
         case e:UnsupportedLanguageFeatureException =>
           SystemParameters.progressOutput.put("UNSUPPORTED: Unsupported Language Feature: "+e.toString)

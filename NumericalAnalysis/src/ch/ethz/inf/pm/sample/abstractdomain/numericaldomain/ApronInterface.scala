@@ -859,6 +859,7 @@ class ApronInterface( val state: Option[Abstract1],
             new Texpr1UnNode(Texpr1UnNode.OP_NEG, l)
           }
       }
+    case _:CollectionContainsExpression => List(topExpression())
     case _ =>
       println("Unhandled expression type in APRON interface (returning top expression): "+e)
       List(topExpression())

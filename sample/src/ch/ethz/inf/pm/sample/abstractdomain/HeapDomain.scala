@@ -75,6 +75,42 @@ class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier],
       isPureRemoving = isPureRemoving && other.isPureRemoving
     )
 
+  def >> (other:Replacement): Replacement = {
+    if (this.value.isEmpty) return other
+    if (other.value.isEmpty) return this
+
+    val rep = new Replacement
+
+    for ((fromsLeft, tosLeft) <- this.value) {
+      val newTosLeft = tosLeft.diff(other.value.keys.flatten.toSet)
+      if (!newTosLeft.isEmpty || tosLeft.isEmpty)
+        rep.value += (fromsLeft -> newTosLeft)
+    }
+
+    def replace(in: Set[Identifier], inverseReplacement: Replacement): (Set[Identifier], Set[Identifier]) = {
+      var result = in
+      var replacedIds = Set.empty[Identifier]
+      for ((fromsLeft, tosLeft) <- inverseReplacement.value) {
+        val replaceIds = in.intersect(tosLeft)
+        if (!replaceIds.isEmpty) {
+          result = result.diff(replaceIds).union(fromsLeft)
+        }
+        replacedIds = replacedIds ++ replaceIds
+      }
+      (result, replacedIds)
+    }
+
+    for ((fromsRight, tosRight) <- other.value) {
+      val (newFromsRight, replacedIds) = replace(fromsRight, this)
+      rep.value += (newFromsRight -> tosRight)
+      if (!replacedIds.isEmpty) {
+        rep.value += (replacedIds -> Set.empty[Identifier])
+      }
+    }
+
+    rep
+  }
+
   /**
    * Prett-print replacement in the notation described above
    */
@@ -153,8 +189,6 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   @return the identifier of accessed field and the state of the heap after that
     */
   def getFieldIdentifier(objectIdentifier : Assignable, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
-
-  def getSummaryCollectionIfExists(collection: Assignable): HeapIdSetDomain[I]
 
   /**
   This method is used to signal that we have ended to assign something. For instance,
@@ -292,25 +326,34 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   @param pp The program point at which the collection is created
   @return The Heapidentifier of the newly created collection and the heap with the newly created collection
     */
-  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
+  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, originalCollectionTyp:Option[Type], keyCollectionTyp:Option[Type], pp:ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
+
+  /**
+   * Returns the collection identifier or if a summary collection for
+   * this collection identifier exists the identifier of the summary collection.
+   *
+   * @param collection
+   * @return Either the summary collection identifier or the collection identifier
+   */
+  def getSummaryCollectionIfExists(collection: Assignable) : HeapIdSetDomain[I]
+
+  def insertCollectionTopElement(collection: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
   Returns the key identifier of a collection's key-value tuple
 
     @param collectionTuple The tuple's identifier
-  @param keyTyp  The type of the collection's keys
-  @return The key identifier
+    @return The key identifier
     */
-  def getCollectionKeyByTuple(collectionTuple: Assignable, keyTyp: Type): Assignable
+  def getCollectionKeyByTuple(collectionTuple: Assignable): Assignable
 
   /**
   Returns the value identifier of a collection's key-value tuple.
 
     @param collectionTuple The tuple's identifier
-  @param valueTyp  The type of the collection's values
-  @return The value identifier
+    @return The value identifier
     */
-  def getCollectionValueByTuple(collectionTuple: Assignable, valueTyp: Type): Assignable
+  def getCollectionValueByTuple(collectionTuple: Assignable): Assignable
 
   /**
   Returns the identifier of the collection's key-value tuple given the key identifier.
@@ -335,6 +378,10 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @return True if collection is a summary node, false otherwise.
    */
   def isSummaryCollection(collectionId: Assignable) : Boolean
+
+  def getOriginalCollection(collection: Assignable): HeapIdSetDomain[I]
+
+  def getKeysCollection(collection: Assignable): HeapIdSetDomain[I]
 
   /**
   Returns all key-value tuple identifiers of a collection approximation.
@@ -364,39 +411,46 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   Returns all the key identifiers of a collection. approximation
 
     @param collectionApprox  The collection approximation
-    @param keyTyp The key type of the collection
     @return  All key identifiers of the collection approximation
     */
-  def getCollectionKeys(collectionApprox: Assignable, keyTyp: Type): HeapIdSetDomain[I]
+  def getCollectionKeys(collectionApprox: Assignable): HeapIdSetDomain[I]
 
   /**
   Returns all the value identifiers of a collection approximation.
 
     @param collectionApprox The collection approximation
-    @param valueTyp The value type of the collection
     @return  All value identifiers of the collection
     */
-  def getCollectionValues(collectionApprox: Assignable, valueTyp: Type): HeapIdSetDomain[I]
+  def getCollectionValues(collectionApprox: Assignable): HeapIdSetDomain[I]
 
   /**
   Adds a key-value tuple to the Heap structure if no
-    other tuple exists in the same collection approximation that has the same program point.
+    other tuple exists in the same collection that has the same program point.
 
-    @param collectionApprox  The collection approximation to which the new tuple shall be added.
+    @param collection  The collection to which the new tuple shall be added.
   @param pp  The program point that identifies the tuple.
-  @return The key identifier, the value identifier and the new heap after the insertion
+  @return The tuple identifier of the new tuple, the heap after the insertion, and the replacements that
+            need to be applied to the value domain
     */
-  def insertCollectionElement(collectionApprox: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
+  def insertCollectionElement(collection: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
+
+  /**
+   * Inserts a collection Element just to one approximation (either Must or May analysis)
+   * .
+   * @param collectionApprox  The Identifier of the approximation to which the element shall be added
+   * @param pp The program point that identifies the tuple
+   * @return  The tuple identifier of the new tuple, the heap after the insertion, and the replacements that
+            need to be applied to the value domain
+   */
+  def insertCollectionElementToApprox(collectionApprox: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
   Removes the specified key-value tuple from the collection.
 
     @param collectionTuple The key-value tuple that shall be removed
-  @param keyTyp  The type of the collection's keys
-  @param valueTyp  The type of the collection's values
-  @return  The new heap after the collection tuple has been removed
+    @return  The new heap after the collection tuple has been removed
     */
-  def removeCollectionElement(collectionTuple: Assignable, keyTyp: Type, valueTyp: Type): T
+  def removeCollectionElement(collectionTuple: Assignable): T
 
   /**
   Returns the identifier representing the length of the given collection
@@ -405,6 +459,8 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   @return The identifier of the collection's length
     */
   def getCollectionLength(collection: Assignable): HeapIdSetDomain[I]
+
+  def lubWithReplacement[S <: SemanticDomain[S]](left: T, right: T, semantic: S): (T, Replacement) = this.lubWithReplacement(left, right)
 
   /**
    * Performs abstract garbage collection
@@ -420,6 +476,25 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
 trait Assignable {
   def getProgramPoint() : ProgramPoint;
   def getType() : Type;
+}
+
+
+case class CollectionContainsExpression(collection: Expression, key: Expression, value: Expression, returnTyp: Type, pp: ProgramPoint) extends Expression(pp) {
+  def getType(): Type = returnTyp
+
+  def identifiers(): Set[Identifier] = Set.empty[Identifier]
+
+  override def equals(obj: Any): Boolean = obj match {
+    case CollectionContainsExpression(ppX, collectionX, keyX, valueX, returnTypeX) =>
+      ppX.equals(pp) && collectionX.equals(collection) && keyX.equals(key) && valueX.equals(value) && returnTypeX.equals(returnTyp)
+    case _ => false
+  }
+
+  override def toString: String = "(" + key + ", " + value.toString() + ") in " + collection.toString()
+
+  def transform(f: (Expression) => Expression): Expression = {
+    f(CollectionContainsExpression(f(collection), f(key), f(value), returnTyp, pp))
+  }
 }
 
 abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extends Expression(p1) with SetDomain[I, HeapIdSetDomain[I]] {
@@ -463,8 +538,11 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extend
     n.value = this.value.map( x => f(x).asInstanceOf[I] )
     n
   }
-}
 
+  def lubWithReplacement[S <: SemanticDomain[S]](left: HeapIdSetDomain[I], right: HeapIdSetDomain[I], state: S): (HeapIdSetDomain[I], Replacement) = {
+    (super.lub(left, right), new Replacement)
+  }
+}
 
 class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends HeapIdSetDomain[I](p2) {
   def this() = this(null);
@@ -504,62 +582,4 @@ class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends
   def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2);
 
   def identifiers() : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
-}
-
-class InverseHeapIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint)
-  extends HeapIdSetDomain[I](pp) {
-
-  def this() = this(null);
-
-  override def getType() : Type = {
-    var res=SystemParameters.getType().bottom();
-    for(a <- this.value)
-      res=res.glb(res, a.getType());
-    return res;
-  }
-
-  override def factory(): HeapIdSetDomain[I] = new InverseHeapIdSetDomain[I](pp)
-
-  def identifiers(): Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
-
-  override def add(el: I): HeapIdSetDomain[I] = {
-    var result = factory();
-    result.isTop = false;
-    result.isBottom = false;
-    result.value = value + el;
-    result;
-  }
-
-  override def lub(left: HeapIdSetDomain[I], right: HeapIdSetDomain[I]): HeapIdSetDomain[I] = {
-    if (left.isTop || right.isTop) return top();
-    if (left.isBottom) return right;
-    if (right.isBottom) return left;
-    val result = this.factory()
-    result.value = left.value.intersect(right.value);
-    result
-  }
-
-  override def glb(left: HeapIdSetDomain[I], right: HeapIdSetDomain[I]): HeapIdSetDomain[I] = {
-    if (left.isBottom || right.isBottom) return bottom();
-    if (left.isTop) return right;
-    if (right.isTop) return left;
-    val result = this.factory()
-    result.value = left.value ++ right.value;
-    result
-  }
-
-  override def widening(left: HeapIdSetDomain[I], right: HeapIdSetDomain[I]): HeapIdSetDomain[I] = this.lub(left, right)
-
-  override def lessEqual(right: HeapIdSetDomain[I]): Boolean = {
-    if (this.isBottom) return true;
-    if (right.isTop) return true;
-    right.value.subsetOf(this.value)
-  }
-
-  def convert(add: I): HeapIdSetDomain[I] = new InverseHeapIdSetDomain[I](add.getProgramPoint()).add(add)
-
-  //Used to now if it's definite - glb - or maybe - lub.
-  def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s1, s2)
-
-  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h1, h2)
 }
