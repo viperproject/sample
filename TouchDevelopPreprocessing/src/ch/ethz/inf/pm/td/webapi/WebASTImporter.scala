@@ -385,7 +385,7 @@ case class JLibrary(
                      name: String,
                      libIdentifier: String,
                      libIsPublished: Boolean,
-                     exportedTypes: List[String /*JTypeRef*/ ],
+                     exportedTypes: String /*JTypeRef*/,
                      exportedActions: List[JLibAction],
                      resolveClauses: List[JResolveClause]
                      ) extends JDecl(id, name)
