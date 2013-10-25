@@ -59,6 +59,7 @@ object SWall {
   val typ = new TouchType(typName,isSingleton = true,fields = List(
     field_button_icon_names,
     field_width,
+    field_height,
     field_background_camera,
     field_background_picture,
     field_background,
