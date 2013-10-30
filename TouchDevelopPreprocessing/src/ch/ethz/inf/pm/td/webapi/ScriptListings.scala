@@ -52,7 +52,7 @@ case class ScriptRecord (
 object ScriptListings {
 
   val baseURL = "http://www.touchdevelop.com/api/"
-  val options = "" // "?original=true"
+  val options = "?releaseid=2520367591921199337-1b0ee8a7.10c7.4d91.a1b2.b6159b9db272-42803" // "?original=true"
   val text = "/text"
   val ast = "/ast"
   val webast = "/webast"
@@ -145,12 +145,16 @@ class ScriptListings extends IteratorOverPrograms {
 class TopScripts extends ScriptListings {
   override protected val service = "top-scripts?"
 
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
+    s.filter( { t : ScriptRecord => !t.haserrors
+    })
+
   override def getLabel() = "TouchDevelop top scripts"
 }
 
 class NonErroneousTopScriptsBefore(d:java.util.Date) extends TopScripts {
 
-  override def getLabel() = "Featured,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
+  override def getLabel() = "Top,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
 
   override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
     s.filter( { t : ScriptRecord =>

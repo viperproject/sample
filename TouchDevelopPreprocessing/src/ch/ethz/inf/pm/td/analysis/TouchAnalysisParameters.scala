@@ -49,6 +49,10 @@ object TouchAnalysisParameters {
    */
   val singleExecution = false
 
+  /** take into account premature abortion.
+    * This means, the persistent data at any program point will be included in the entry state. */
+  val prematureAbortion = true
+
   /**
    * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary number of event occurrences
    * for each execution.
@@ -101,10 +105,6 @@ object TouchAnalysisParameters {
 
   /** do not report errors in libraries */
   val reportOnlyAlarmsInMainScript = true
-
-  /** take into account premature abortion.
-    * This means, the persistent data at any program point will be included in the entry state. */
-  val prematureAbortion = true
 
   // Fields that are always TOP
   val topFields = Set("x","y","z","z index","speed x","speed y","speed z","width","height","acceleration x",

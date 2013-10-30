@@ -7,7 +7,7 @@ import scala.io.Source
 
 object ScriptCache {
 
-  private val CACHE_DIR = "TouchDevelopPreprocessing" + File.separator + "testfiles" + File.separator + "cache"
+  private val CACHE_DIR = "Test" + File.separator + "test" + File.separator + "TouchDevelop" + File.separator + "cache"
 
   def get(pubID:String):Script = {
     val cache = new File(CACHE_DIR)
