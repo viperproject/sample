@@ -271,7 +271,7 @@ object CFGGenerator {
 
   private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
     if (!isLibraryIdent(typeName.ident)) {
-      SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(typeName.ident).getTyp
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typeName.ident).getTyp
     } else new TouchType(typeName.ident,isSingleton)
   }
 
@@ -576,7 +576,7 @@ class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Bo
 
   def widening(left: Type, right: Type) = lub(left,right)
   def lessEqual(r: Type) = r == this || this.isBottom || r == top()
-  def isBottomExcluding(types: Set[Type]) = false
+  def isBottomExcluding(types: Set[Type]) = isBottom || types.contains(this)
 
   def isObject() = !isNumericalType() && !isStringType()
   def isBooleanType() = name == "Boolean"
@@ -592,8 +592,8 @@ class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Bo
 
 case class TouchCollection(name:String,keyType:String,valueType:String, fields: List[Identifier] = List.empty[Identifier], immutableCollection:Boolean = false) extends TouchType(name,false,immutableCollection,fields) {
 
-  def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(keyType).getTyp
-  def getValueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(valueType).getTyp
+  def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(keyType).getTyp
+  def getValueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(valueType).getTyp
 
 }
 

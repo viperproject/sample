@@ -5,7 +5,10 @@ import java.text.SimpleDateFormat
 import java.util.GregorianCalendar
 
 val skipSet =
-  """
+  """ggdm
+    |chfi
+    |cnyr
+    |yvph
   """.stripMargin.split("\n").map(_.trim).toSet
 
 /**
@@ -40,4 +43,6 @@ def analyzer(id:String) {
 
 //TestRunner("julr",analyzer _)
 //TestRunner(new TopScripts,10000,analyzer)
-TestRunner(new NonErroneousTopScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").parse("09/04/2013")),10000,analyzer)
+//TestRunner(new NonErroneousTopScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").parse("01/07/2013")),10000,analyzer)
+TestRunner(new RootTopScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").parse("09/04/2013")),10000,analyzer)
+//TestRunner(new NonErroneousTopScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").parse("25/10/2013")),10000,analyzer)

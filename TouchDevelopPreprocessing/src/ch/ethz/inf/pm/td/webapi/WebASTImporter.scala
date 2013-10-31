@@ -175,6 +175,23 @@ object WebASTImporter {
       convert(jInlineAction.body)).setId(jInlineAction.id)
   }
 
+//  def TypeName(a:String):TypeName = {
+//    val JUserType = """\{"o":"(.*)"\}""".r
+//    val JLibraryType = """\{"g":"(.*)","l":"(.*)"\}""".r
+//    val JGenericTypeInstance = """\{"g":"(.*)","a":"(.*)"\}""".r
+//
+//    a match {
+//      case JLibraryType(o,l) =>
+//        TypeName(o) // FIXME
+//      case JGenericTypeInstance(g,a) =>
+//        TypeName(a+" "+g)
+//      case JUserType(o) =>
+//        TypeName(o)
+//      case _ =>
+//        TypeName(a)
+//    }
+//  }
+
 }
 
 /** When reading the class name from the json type hint field, convert first char to lower case, remove leading J */
@@ -385,7 +402,7 @@ case class JLibrary(
                      name: String,
                      libIdentifier: String,
                      libIsPublished: Boolean,
-                     exportedTypes: String /*JTypeRef*/,
+                     exportedTypes: List[String] /*JTypeRef*/,
                      exportedActions: List[JLibAction],
                      resolveClauses: List[JResolveClause]
                      ) extends JDecl(id, name)

@@ -239,12 +239,13 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
   }
 
   private def analyzeEvents[S <: State[S]](compiler:TouchCompiler,methods:List[String])(s:S):S = {
+
     var cur = s
     for ((c,e) <- compiler.events) {
       cur = cur.lub(cur,analyzeMethod(c,e,s,localHandlerScope = MethodSummaries.getClosureEntry[S](e.name.toString)))
     }
 
-    cur
+    resetEnv(cur)
   }
 
 
@@ -252,7 +253,49 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
     val exitState = MethodSummaries.collect[S](callTarget.programpoint,callType,callTarget,entryState,Nil,localHandlerScope = localHandlerScope)
 
-    exitState
+    resetEnv(exitState)
+
+  }
+
+  private def resetEnv[S <: State[S]](s:S):S = {
+
+    if (TouchAnalysisParameters.resetEnv) {
+
+      var curState = s
+
+      // Remove Env
+      curState = curState.pruneVariables({
+        case id:VariableIdentifier =>
+          id.getType().asInstanceOf[TouchType].isSingleton &&
+          id.getType().getName() != "art" &&
+          id.getType().getName() != "data" &&
+          id.getType().getName() != "code" &&
+          id.getType().getName() != "records"
+        case _ => false
+      })
+      curState = curState.pruneUnreachableHeap()
+
+      // Init the fields of singletons (the environment)
+      for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
+        if(sem.isInstanceOf[AAny]) {
+          val typ = sem.asInstanceOf[AAny].getTyp
+          if(typ.isSingleton &&
+            (!TouchAnalysisParameters.libraryFieldPruning ||
+              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
+            if(typ.getName() != "records" && typ.getName() != "art" && typ.getName() != "data" && typ.getName() != "code") {
+              val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
+              curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
+              val obj = curState.getExpression()
+              val variable = new ExpressionSet(typ).add(VariableIdentifier(typ.getName.toLowerCase,typ,singletonProgramPoint, EmptyScopeIdentifier()))
+              curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
+            }
+          }
+        }
+      }
+
+      curState
+
+    } else s
 
   }
 

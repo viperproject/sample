@@ -8,5 +8,4 @@ import ch.ethz.inf.pm.td.analysis.TestRunner._
 
 //Thread.sleep(10000)
 
-runDirectoryWithApron("aa")
-
+runDirectoryWithApron("some")

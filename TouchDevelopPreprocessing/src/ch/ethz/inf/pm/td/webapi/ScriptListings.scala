@@ -59,7 +59,7 @@ object ScriptListings {
 
   def webastURLfromPubID(pub:String):String = baseURL+pub+webast+options
   def astURLfromPubID(pub:String):String = baseURL+pub+ast+options
-  def codeURLfromPubID(pub:String):String = baseURL+pub+text+options
+  def codeURLfromPubID(pub:String):String = baseURL+pub+text
 
   def pubIDfromFilename(fileName:String):String = {
     """([^/\\.]*)[.]([^/\\.]*)$""".r.findFirstMatchIn(fileName) match {
@@ -152,7 +152,7 @@ class TopScripts extends ScriptListings {
   override def getLabel() = "TouchDevelop top scripts"
 }
 
-class NonErroneousTopScriptsBefore(d:java.util.Date) extends TopScripts {
+class RootTopScriptsBefore(d:java.util.Date) extends TopScripts {
 
   override def getLabel() = "Top,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
 

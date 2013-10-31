@@ -140,16 +140,7 @@ class BooleanInvalidDomainWithSource
       case _ => this
     }
 
-    if (res.somethingIsBottom())
-      bottom()
-    else
-      res
-  }
-
-  def somethingIsBottom():Boolean = {
-    for ((i,p) <- this.value)
-      if (p.isBottom || p.value.isEmpty) return true
-    isBottom
+    res
   }
 
   override def toString():String = {

@@ -1,16 +1,9 @@
-import ch.ethz.inf.pm.td.analysis.TestRunner
 
-val toAnalyze =
-  """
-  """.stripMargin.split("[\n,]").map(_.trim).toSet
+import ch.ethz.inf.pm.td.analysis.TestRunner
 
 def analyzer(id:String) {
   if(!id.isEmpty)
     TestRunner.runIdWithApron(id)
-}
-
-for(a <- toAnalyze) {
-  analyzer(a)
 }
 
 TestRunner("htmh",analyzer _)

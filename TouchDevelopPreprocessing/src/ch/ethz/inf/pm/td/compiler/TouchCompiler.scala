@@ -154,7 +154,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     (new Libraries() :: TypeList.types.values.toList) ::: userTypes.values.toList
   }
 
-  def getType(name:String):AAny = {
+  def getSemantics(name:String):AAny = {
     TypeList.types.get(name) match {
       case Some(x) => x
       case None =>

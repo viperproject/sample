@@ -489,7 +489,11 @@ object RichNativeSemantics {
   }
 
   def CallApi[S <: State[S]](obj:RichExpression,method:String,parameters:List[ExpressionSet] = Nil,returnedType:TouchType)(implicit state:S, pp:ProgramPoint): S = {
-    val semantics = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(obj.getType().getName())
+    // FIXME: Ugly
+    if (obj.getType().getName() == "Bottom") {
+       return state.bottom()
+    }
+    val semantics = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(obj.getType().getName())
     semantics.forwardSemantics(obj,method,parameters,returnedType)(pp,state)
   }
 
@@ -648,7 +652,7 @@ object RichNativeSemantics {
 
 class TouchField(name:String, typName:String, val default: Initializer = NewInitializer(), val topDefault: Initializer = TopInitializer(), val isSummaryNode:Boolean = false)
   extends Identifier(null,null) {
-  override def getType():TouchType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(typName).getTyp
+  override def getType():TouchType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
   override def getName() = name.toString
   override def toString = name.toString
   override def getField() = Some(name)

@@ -54,6 +54,11 @@ object TouchAnalysisParameters {
   val prematureAbortion = true
 
   /**
+   * Reset assumptions about environment between events / public methods
+   */
+  val resetEnv = true
+
+  /**
    * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary number of event occurrences
    * for each execution.
    *
