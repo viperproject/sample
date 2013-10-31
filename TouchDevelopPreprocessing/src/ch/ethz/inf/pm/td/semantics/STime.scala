@@ -66,10 +66,12 @@ class STime extends AAny {
     /** Stops the execution and stays on the wall. */
     case "stop" =>
       Exit[S]
+      state.bottom()
 
     /** Stops the execution and leaves the wall. */
      case "stop and close" =>
-       Skip // TODO: Treat this explicitly in control flow - may cause false alarms
+       Exit[S]
+       state.bottom()
 
     /** Gets today's date without time */
     case "today" =>

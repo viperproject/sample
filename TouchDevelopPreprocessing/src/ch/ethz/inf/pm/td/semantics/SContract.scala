@@ -36,7 +36,6 @@ class SContract extends AAny {
         Error[S](condition.not(), "requires", "Precondition "+condition+" does not hold!")
       else
         Error[S](condition.not(), "requires", "Precondition does not hold!")
-      Skip
 
     /** Checks for a condition; if the condition is false, execution fails. Does nothing for published scripts. */
     case "assert" =>
@@ -45,7 +44,6 @@ class SContract extends AAny {
         Error[S](condition.not(), "assert", "Assertion "+condition+" does not hold!")
       else
         Error[S](condition.not(), "assert", "Assertion does not hold!")
-      Skip
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
