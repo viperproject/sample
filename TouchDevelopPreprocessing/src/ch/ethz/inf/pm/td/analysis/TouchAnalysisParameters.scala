@@ -49,6 +49,8 @@ object TouchAnalysisParameters {
    */
   val singleExecution = false
 
+  val fullAliasingInGenericInput = false
+
   /** take into account premature abortion.
     * This means, the persistent data at any program point will be included in the entry state. */
   val prematureAbortion = true

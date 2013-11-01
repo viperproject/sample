@@ -69,7 +69,7 @@ object MethodSummaries {
         // This is a recursive call (non top level).
         // Join the entry state and continue with previously recorded
         // exit + entryState (updates inside recursive calls are weak)
-        val newEntryState = enteredState.lub(enteredState,oldEntryState.asInstanceOf[S])
+        val newEntryState = enteredState.widening(oldEntryState.asInstanceOf[S],enteredState)
         entries += ((identifyingPP,newEntryState))
         summaries.get(identifyingPP) match {
           case Some((_,_,prevExecution)) =>
@@ -79,7 +79,7 @@ object MethodSummaries {
             val localState = pruneGlobalState(entryState)
 
             // We immediately widen the entrystate for now
-            entryState.widening(localState,exitedState)
+            entryState.lub(localState,exitedState)
 
           case None => entryState.bottom()
         }
@@ -127,15 +127,16 @@ object MethodSummaries {
 
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
-        !id.getType().asInstanceOf[TouchType].isSingleton &&
         !CFGGenerator.isGlobalReferenceIdent(id.toString())
       case _ => false
     })
     curState = curState.pruneUnreachableHeap()
 
     abnormalExits = abnormalExits match {
-      case Some(x) => Some(curState.widening(x.asInstanceOf[S],curState))
-      case None => Some(curState)
+      case Some(x) =>
+        Some(curState.widening(x.asInstanceOf[S],curState))
+      case None =>
+        Some(curState)
     }
 
     curState.bottom()

@@ -77,6 +77,8 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
   override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) {
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
+    println("version 24.10.13 [1]")
+
     // Set up the environment
     SystemParameters.resetOutput
     MethodSummaries.reset[S]()
@@ -158,7 +160,8 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
             curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
             curState.getExpression()
           } else {
-            curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
+            curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType])(curState,
+              if (TouchAnalysisParameters.fullAliasingInGenericInput) new DummyProgramPoint else v.programpoint)
             curState.getExpression()
           }
 
