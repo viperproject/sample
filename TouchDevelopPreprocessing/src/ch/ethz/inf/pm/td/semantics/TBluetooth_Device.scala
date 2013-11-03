@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TBluetooth_Device {
 
   val typName = "Bluetooth Device"
-  val typ = new TouchType(typName,isSingleton = true)
+  val typ = new TouchType(typName,isSingleton = false)
 
 }
 

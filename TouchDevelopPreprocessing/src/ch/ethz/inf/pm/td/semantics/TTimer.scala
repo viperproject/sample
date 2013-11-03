@@ -23,7 +23,7 @@ object TTimer {
   val field_is_interval = new TouchField("is interval",TBoolean.typName)
 
   val typName = "Timer"
-  val typ = new TouchType(typName,isSingleton = true,fields = List(field_is_active, field_is_interval))
+  val typ = new TouchType(typName,fields = List(field_is_active, field_is_interval))
 
 }
 

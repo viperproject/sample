@@ -19,7 +19,7 @@ object TTask {
   val field_completed = new TouchField("completed",TBoolean.typName)
 
   val typName = "Task"
-  val typ = new TouchType(typName,isSingleton = true,fields = List(field_completed))
+  val typ = new TouchType(typName,isSingleton = false,fields = List(field_completed))
 
 }
 

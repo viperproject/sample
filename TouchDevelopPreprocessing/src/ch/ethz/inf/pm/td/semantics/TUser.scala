@@ -36,7 +36,7 @@ object TUser {
   val field_picture = new TouchField("picture",TPicture.typName)
 
   val typName = "User"
-  val typ = new TouchType(typName,isSingleton = true,fields = List(field_about, field_has_picture, field_id,
+  val typ = new TouchType(typName,isSingleton = false,fields = List(field_about, field_has_picture, field_id,
     field_name, field_picture_address, field_picture))
 
 }
