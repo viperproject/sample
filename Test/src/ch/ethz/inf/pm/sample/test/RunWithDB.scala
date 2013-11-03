@@ -55,7 +55,7 @@ object InterfaceTestRun {
 
 
   def main(args: Array[String]): Unit = {
-    println("version 01.08.13")
+    println("version 24.10.13 [1]")
     extractMode(args) match {
       case "-i" =>
         setOptionalParameters(args)

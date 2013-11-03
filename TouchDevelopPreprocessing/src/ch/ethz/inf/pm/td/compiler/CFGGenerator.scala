@@ -120,7 +120,7 @@ object CFGGenerator {
             case "object" =>
 
               val objectTyp = new TouchType(ident,fields = createFieldMembers(fields) map (_._1))
-              val collectionTyp = new TouchCollection("Collection of "+ident,TNumber.typName,ident)
+              val collectionTyp = new TouchCollection(ident+" Collection",TNumber.typName,ident)
               val constructorTyp = new TouchType(ident+" Constructor")
 
               addTouchType(new AObject(objectTyp))

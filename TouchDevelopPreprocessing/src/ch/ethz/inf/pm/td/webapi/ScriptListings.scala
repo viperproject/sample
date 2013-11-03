@@ -205,6 +205,33 @@ class NonErroneousRootScriptsBefore(d:java.util.Date) extends ScriptListings {
     })
 }
 
+class NonErroneousPrefixRootScriptsBefore(d:java.util.Date, prefix:String) extends ScriptListings {
+
+  override protected val service = "scripts?count=100&"
+  override def getLabel() = "Prefix:"+prefix+",Root,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
+
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= {
+    val res = s.filter( { t : ScriptRecord =>
+      val dT = new java.util.Date(t.time.asInstanceOf[Long]*1000)
+      dT.before(d) && t.id.equals(t.rootid) && !t.haserrors && t.id.startsWith(prefix)
+    } )
+    println("filtered "+(s.length - res.length)+" out of "+s.length)
+    res
+  }
+}
+
+class ReadIdsFromFile(file:String, label:String) extends IteratorOverPrograms {
+
+  val lines = scala.io.Source.fromFile(file).getLines()
+
+  def hasNext: Boolean = lines.hasNext
+
+  def next(): String = ScriptListings.codeURLfromPubID(lines.next())
+
+  def getLabel(): String = label
+
+}
+
 
 class ScriptSearch(query:String) extends ScriptListings {
   override protected val service = "search?q="+query+"&"

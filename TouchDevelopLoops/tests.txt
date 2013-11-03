@@ -1,3 +1,13 @@
+action lubda(n: Number) returns(result: Number) {
+  $result := invalid→number;
+  if $n = 0 and $n = math→floor($n) then {
+    $result := 1;
+    while $n > 1 do {
+      $result := $result * $n;
+      $n := $n - 1;
+    }
+  }
+}
 
 action main() {
   code→for1(0)→post_to_wall;

@@ -44,4 +44,4 @@ def analyzer(id:String) {
 
 //TestRunner("julr",analyzer _)
 //TestRunner(new FeaturedScripts,10000,analyzer)
-TestRunner(new NonErroneousFeaturedScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").parse("09/04/2013")),10000,analyzer)
+TestRunner(new NonErroneousFeaturedScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").parse("09/04/2013")),100000,analyzer)

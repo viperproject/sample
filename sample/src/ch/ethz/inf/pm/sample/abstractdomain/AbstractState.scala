@@ -1207,7 +1207,10 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       case _ => false
     })
 
-    pruned.optimizeSummaryNodes()
+    // The cost of this technique is too damn high
+    //pruned.optimizeSummaryNodes()
+
+    pruned
 
   }
 

@@ -61,7 +61,7 @@ public class InstalledPlugins {
         heapanalyses[5]=new TVSHeap();
 
 
-        iterators = new IteratorOverPrograms[12];
+        iterators = new IteratorOverPrograms[16];
         iterators[0] = new TopScripts();
         iterators[1] = new NewScripts();
         iterators[2] = new FeaturedScripts();
@@ -74,6 +74,10 @@ public class InstalledPlugins {
         iterators[9] = new ScriptListings();
         iterators[10] = new ScriptsBefore((new GregorianCalendar(2013,04,22)).getTime());
         iterators[11] = new NonErroneousRootScriptsBefore((new GregorianCalendar(2013,04,22)).getTime());
+        iterators[12] = new NonErroneousPrefixRootScriptsBefore((new GregorianCalendar(2013,04,22)).getTime(),"a");
+        iterators[13] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/A_130522_RootNoError","Cached,Root,Prefix:A,Before130522");
+        iterators[14] = new NonErroneousRootScriptsBefore((new GregorianCalendar(2013,11,01)).getTime());
+        iterators[15] = new NonErroneousPrefixRootScriptsBefore((new GregorianCalendar(2013,11,01)).getTime(),"a");
 
     }
 
