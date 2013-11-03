@@ -75,6 +75,11 @@ class TBoard extends AMutable_Collection {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet],returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
+    /** add an action that fires for every display frame. */
+    case "add on every frame" =>
+       val List(perform) = parameters // Action
+       Skip
+
     // Clears the background camera
     case "clear background camera" =>
       AssignField(this0,TBoard.field_background_camera,Invalid(TCamera.typ))
@@ -181,6 +186,30 @@ class TBoard extends AMutable_Collection {
         curState = CallApi[S](CollectionSummary[S](this0),"set acceleration",List(Valid(TNumber.typ),Valid(TNumber.typ)),TNothing.typ)(curState,pp)
         curState
       }, Else = { x : S => x })(state,pp)
+
+    /** create a timer that fires for every display frame. */
+    case "frame timer" =>
+       Top[S](TTimer.typ)
+
+    /** set the handler that is invoked when the board is swiped */
+    case "on swipe" =>
+       val List(swiped) = parameters // Vector_Action
+       Skip
+
+    /** set the handler that is invoked when the board is tapped */
+    case "on tap" =>
+       val List(tapped) = parameters // Position_Action
+       Skip
+
+    /** set the handler that is invoked when the board is touched */
+    case "on touch down" =>
+       val List(touch_down) = parameters // Position_Action
+       Skip
+
+    /** set the handler that is invoked when the board touch is released */
+    case "on touch up" =>
+       val List(touch_up) = parameters // Position_Action
+       Skip
 
     // Sets the default friction for sprites to a fraction of speed loss between 0 and 1
     case "set friction" =>

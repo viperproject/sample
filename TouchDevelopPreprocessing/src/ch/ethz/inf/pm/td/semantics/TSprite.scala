@@ -118,6 +118,32 @@ class TSprite extends AAny {
       curState = AssignField[S](this0,TSprite.field_y,Field[S](this0,TSprite.field_y) + delta_y)(curState,pp)
       curState
 
+
+    /** Set the handler invoked when the sprite is dragged */
+    case "on drag" =>
+       val List(dragged) = parameters // Vector_Action
+       Skip
+
+    /** Set the handler invoked when the sprite is swiped */
+    case "on swipe" =>
+       val List(swiped) = parameters // Vector_Action
+       Skip
+
+    /** Set the handler invoked when the sprite is tapped */
+    case "on tap" =>
+       val List(tapped) = parameters // Position_Action
+       Skip
+
+    /** Set the handler invoked when the sprite is touched initially */
+    case "on touch down" =>
+       val List(touch_down) = parameters // Position_Action
+       Skip
+
+    /** Set the handler invoked when the sprite touch is released */
+    case "on touch up" =>
+       val List(touch_up) = parameters // Position_Action
+       Skip
+
     /** Returns the subset of sprites in the given set that overlap with sprite. */
     case "overlap with" =>
       val List(sprites) = parameters // Sprite_Set

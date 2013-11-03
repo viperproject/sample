@@ -241,6 +241,10 @@ class SColors extends AAny {
 //        TColor.field_B -> 0
 //      )) // TODO: Precision?
 
+    /** Gets the color that has the ARGB value of #FFFFCBDB */
+    case "pink" =>
+      Top[S](TColor.typ)
+
     // Gets the color that has the ARGB value of #FF800080
     case "purple" =>
       Top[S](TColor.typ)

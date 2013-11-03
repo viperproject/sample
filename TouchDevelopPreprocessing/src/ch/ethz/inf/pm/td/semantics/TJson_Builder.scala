@@ -68,6 +68,11 @@ class TJson_Builder extends AAny {
       val List(name) = parameters // String
       CallApi[S](Field[S](this0,TJson_Builder.field_value),"remove at",List(name),TNothing.typ)
 
+    /** Deletes named field */
+    case "remove field" =>
+       val List(name) = parameters // String
+       CollectionRemove[S](Field[S](this0,TJson_Builder.field_value),name)
+
 //    /** Adds a value to the array. */
 //    case "add" =>
 //      val List(value) = parameters // Json_Object

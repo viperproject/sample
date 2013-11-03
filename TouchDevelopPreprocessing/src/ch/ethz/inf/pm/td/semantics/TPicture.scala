@@ -219,6 +219,10 @@ class TPicture extends AAny {
     case "is panorama" =>
        Return[S](Field[S](this0,TPicture.field_width)>Field[S](this0,TPicture.field_height))
 
+    /** Inverts the colors in the picture */
+    case "negative" =>
+       Skip
+
     /** Gets the pixel color */
      case "pixel" =>
        val List(x,y) = parameters // Number,Number
@@ -276,6 +280,16 @@ class TPicture extends AAny {
     case "tint" =>
       val List(color) = parameters // Color
       Skip
+
+    /** Copy all pixels from the picture */
+    case "to buffer" =>
+       val List() = parameters //
+       Top[S](TBuffer.typ)
+
+    /** Encodes the image into a data uri using the desired quality (1 best, 0 worst). If the quality value is 1, the image is encoded as PNG, otherwise JPEG. */
+    case "to data uri" =>
+       val List(quality) = parameters // Number
+       Top[S](TString.typ)
 
     /** Refreshes the picture on the wall */
     case "update on wall" =>

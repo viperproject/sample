@@ -51,6 +51,7 @@ for (
         |import ch.ethz.inf.pm.td.compiler.TouchType
         |import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
         |import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+        |import RichNativeSemantics._
         |
         |/**
         | * Specifies the abstract semantics of XXX
@@ -120,7 +121,7 @@ for (
         if (args.isEmpty && resultTyp != "Nothing") {
           p.println("    // DECLARATION AS FIELD: ")
           p.println("    //   /** " + propHelp.trim + " */")
-          p.println("    //   val field_" + propName.replace(" ", "_") + " = new TouchField(\"" + propName + "\",T" + resultTyp.replace(" ", "_") + ".typ)")
+          p.println("    //   val field_" + propName.replace(" ", "_") + " = new TouchField(\"" + propName + "\",T" + resultTyp.replace(" ", "_") + ".typName)")
           fields = fields ::: List("field_" + propName.replace(" ", "_"))
         }
 

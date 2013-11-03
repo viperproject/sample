@@ -6,23 +6,26 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 /**
- * Specifies the abstract semantics of Web Response Action
+ * Specifies the abstract semantics of Task
  *
- * A place to hook up an action to execute in response to an event
+ * A task created with `async` keyword
  *
  * @author Lucas Brutschy
  */ 
 
-object TWeb_Response_Action {
+object TTask {
 
-  val typName = "Web Response Action"
-  val typ = new TouchType(typName, fields = List(AAction.field_handlerName), isImmutable = true)
+  /** Check if the task is done yet */
+  val field_completed = new TouchField("completed",TBoolean.typName)
+
+  val typName = "Task"
+  val typ = new TouchType(typName,isSingleton = true,fields = List(field_completed))
 
 }
 
-class TWeb_Response_Action extends AAction {
+class TTask extends AAny {
 
-  def getTyp = TWeb_Response_Action.typ
+  def getTyp = TTask.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

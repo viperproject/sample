@@ -20,7 +20,7 @@ object TJson_Object {
   /** Gets the list of keys */
   val field_keys = new TouchField("keys",TString_Collection.typName)
 
-  /** Gets a json kind (string, number, object, array, boolean) */
+  /** Gets a json kind (string, number, object, array, boolean, null) */
   val field_kind = new TouchField("kind",TString.typName)
 
   /** Converts to a boolean (type must be boolean) */

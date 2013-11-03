@@ -26,6 +26,7 @@ class SInvalid extends AAny {
 
     case "appointment" => Return(Invalid(TAppointment.typ)) 	    	                                                                    // Creates an invalid Appointment instance
     case "appointment collection" => Return(Invalid(TAppointment_Collection.typ)) 	     	                                              // Creates an invalid Appointment Collection instance
+    case "bluetooth device" => Return(Invalid(TBluetooth_Device.typ)) 	     	                                                          // Creates an invalid Bluetooth Device instance
     case "board" => Return(Invalid(TBoard.typ)) 	     	                                                                                // Creates an invalid Board instance
     case "boolean" => Return(Invalid(TBoolean.typ)) 	     	                                                                            // Creates an invalid Boolean instance
     case "camera" => Return(Invalid(TCamera.typ)) 	     	                                                                              // Creates an invalid Camera instance
