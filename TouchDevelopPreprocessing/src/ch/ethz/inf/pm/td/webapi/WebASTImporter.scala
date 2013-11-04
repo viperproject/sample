@@ -51,9 +51,9 @@ object WebASTImporter {
   def convert(jDecl:JDecl):Declaration = {
     jDecl match {
       case JArt(id,name,comment,typ,isReadonly,url) =>
-        VariableDefinition(Parameter(name,TypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString,"is_resource" -> "true")).setId(id)
+        VariableDefinition(Parameter(name,makeTypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString,"is_resource" -> "true")).setId(id)
       case JData(id,name,comment,typ,isReadonly) =>
-        VariableDefinition(Parameter(name,TypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString)).setId(id)
+        VariableDefinition(Parameter(name,makeTypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString)).setId(id)
       case JPage(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,initBody,displayBody) =>
         PageDefinition(name,inParameters map (convert _),outParameters map (convert _),convert(initBody),convert(displayBody),isPrivate).setId(id)
       case JEvent(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,eventName,eventVariableId,body) =>
@@ -73,7 +73,7 @@ object WebASTImporter {
   }
 
   def convert(jLocalDef:JLocalDef):Parameter = {
-    Parameter(jLocalDef.name,TypeName(jLocalDef.`type`).setId(jLocalDef.id)).setId(jLocalDef.id)
+    Parameter(jLocalDef.name,makeTypeName(jLocalDef.`type`).setId(jLocalDef.id)).setId(jLocalDef.id)
   }
 
   def convert(stmts:List[JStmt]):List[Statement] = {
@@ -125,11 +125,11 @@ object WebASTImporter {
   def convert(jExpression:JExpr):Expression = {
     jExpression match {
       case JStringLiteral(id,value) =>
-        Literal(TypeName("String").setId(id),value).setId(id)
+        Literal(makeTypeName("String").setId(id),value).setId(id)
       case JBooleanLiteral(id,value) =>
-        Literal(TypeName("Boolean").setId(id),value.toString).setId(id)
+        Literal(makeTypeName("Boolean").setId(id),value.toString).setId(id)
       case JNumberLiteral(id,value) =>
-        Literal(TypeName("Number").setId(id),value.toString).setId(id)
+        Literal(makeTypeName("Number").setId(id),value.toString).setId(id)
       case JLocalRef(id,name,localId) =>
         LocalReference(name).setId(id)
       case JPlaceholder(id,name,typ) =>
@@ -149,11 +149,11 @@ object WebASTImporter {
   }
 
   def convert(jRecordKey:JRecordKey):Parameter = {
-    Parameter(jRecordKey.name,TypeName(jRecordKey.`type`).setId(jRecordKey.id)).setId(jRecordKey.id)
+    Parameter(jRecordKey.name,makeTypeName(jRecordKey.`type`).setId(jRecordKey.id)).setId(jRecordKey.id)
   }
 
   def convert(jRecordField:JRecordField):Parameter = {
-    Parameter(jRecordField.name,TypeName(jRecordField.`type`).setId(jRecordField.id)).setId(jRecordField.id)
+    Parameter(jRecordField.name,makeTypeName(jRecordField.`type`).setId(jRecordField.id)).setId(jRecordField.id)
   }
 
   def convert(jLibAction:JLibAction):ActionUsage = {
@@ -165,7 +165,7 @@ object WebASTImporter {
   }
 
   def convert(jTypeResolution:JTypeBinding):TypeResolution = {
-    TypeResolution(jTypeResolution.name,TypeName(jTypeResolution.`type`).setId(jTypeResolution.id)).setId(jTypeResolution.id)
+    TypeResolution(jTypeResolution.name,makeTypeName(jTypeResolution.`type`).setId(jTypeResolution.id)).setId(jTypeResolution.id)
   }
 
   def convert(jInlineAction:JInlineAction):InlineAction = {
@@ -175,22 +175,22 @@ object WebASTImporter {
       convert(jInlineAction.body)).setId(jInlineAction.id)
   }
 
-//  def TypeName(a:String):TypeName = {
-//    val JUserType = """\{"o":"(.*)"\}""".r
-//    val JLibraryType = """\{"g":"(.*)","l":"(.*)"\}""".r
-//    val JGenericTypeInstance = """\{"g":"(.*)","a":"(.*)"\}""".r
-//
-//    a match {
-//      case JLibraryType(o,l) =>
-//        TypeName(o) // FIXME
-//      case JGenericTypeInstance(g,a) =>
-//        TypeName(a+" "+g)
-//      case JUserType(o) =>
-//        TypeName(o)
-//      case _ =>
-//        TypeName(a)
-//    }
-//  }
+  def makeTypeName(a:String):TypeName = {
+    val JUserType = """\{"o":"(.*)"\}""".r
+    val JLibraryType = """\{"l":"(.*)","o":"(.*)"\}""".r
+    val JGenericTypeInstance = """\{"g":"(.*)","a":\["(.*)"\]\}""".r
+
+    a match {
+      case JLibraryType(l,o) =>
+        TypeName(o)
+      case JGenericTypeInstance(g,a) =>
+        TypeName(a+" "+g)
+      case JUserType(o) =>
+        TypeName(o)
+      case _ =>
+        TypeName(a)
+    }
+  }
 
 }
 
@@ -402,7 +402,7 @@ case class JLibrary(
                      name: String,
                      libIdentifier: String,
                      libIsPublished: Boolean,
-                     exportedTypes: List[String] /*JTypeRef*/,
+                     exportedTypes: String /*JTypeRef*/,
                      exportedActions: List[JLibAction],
                      resolveClauses: List[JResolveClause]
                      ) extends JDecl(id, name)

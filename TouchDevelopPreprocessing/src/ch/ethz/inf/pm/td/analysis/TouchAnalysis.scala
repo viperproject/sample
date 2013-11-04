@@ -77,7 +77,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
   override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) {
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
-    println("version 24.10.13 [1]")
+    println("version 01.11.13 [1]")
 
     // Set up the environment
     SystemParameters.resetOutput

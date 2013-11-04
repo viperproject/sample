@@ -52,7 +52,7 @@ case class ScriptRecord (
 object ScriptListings {
 
   val baseURL = "http://www.touchdevelop.com/api/"
-  val options = "?releaseid=2520367591921199337-1b0ee8a7.10c7.4d91.a1b2.b6159b9db272-42803" // "?original=true"
+  val options = "" //"?releaseid=2520367591921199337-1b0ee8a7.10c7.4d91.a1b2.b6159b9db272-42803" // "?original=true"
   val text = "/text"
   val ast = "/ast"
   val webast = "/webast"

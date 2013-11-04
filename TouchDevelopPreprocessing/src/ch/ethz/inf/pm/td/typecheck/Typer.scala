@@ -142,6 +142,8 @@ object Typer {
   def inParametersToActionType(params:List[Parameter]):TypeName = {
     TypeName(params match {
       case Nil => "Action"
+      case List(Parameter(_,TypeName("Boolean"))) => "Boolean Action"
+      case List(Parameter(_,TypeName("Number"))) => "Number Action"
       case List(Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number"))) => "Position Action"
       case List(Parameter(_,TypeName("String"))) => "Text Action"
       case List(Parameter(_,TypeName("Sprite"))) => "Sprite Action"
