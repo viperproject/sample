@@ -10,74 +10,74 @@ package ch.ethz.inf.pm.td.typecheck
 
 trait StdLib extends AbstractSymbolTable  {
 
-
+    
   // Represents no value of interest
-  addType("Nothing", List(
+  addType("Nothing", List( 
 
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Action", List(
+  addType("Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run","Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Text Action", List(
+  addType("Text Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("String"),"Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Number Action", List(
+  addType("Number Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("Number"),"Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Boolean Action", List(
+  addType("Boolean Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("Boolean"),"Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Position Action", List(
+  addType("Position Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("Number","Number"),"Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Sprite Action", List(
+  addType("Sprite Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("Sprite"),"Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Sprite Set Action", List(
+  addType("Sprite Set Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("Sprite Set"),"Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Vector Action", List(
+  addType("Vector Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("Number","Number","Number","Number"),"Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Web Response Action", List(
+  addType("Web Response Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("Web Response"),"Nothing") /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Message Collection Action", List(
+  addType("Message Collection Action", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("run",List("Message Collection"),"Nothing") /* Run the inline action. */
   ))
 
   // An calendar appointment
-  addType("Appointment", List(
+  addType("Appointment", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("is private","Boolean") /* Indicates if this appointment is private */,
     Member("is all day event","Boolean") /* Indicates if this is an all day event */,
@@ -94,7 +94,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of appointments
-  addType("Appointment Collection", List(
+  addType("Appointment Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of appointments */,
     Member("at index",List("Number"),"Appointment") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
@@ -104,13 +104,15 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Browse and review scripts from the bazaar
-  addSingleton("Bazaar", List(
+  addSingleton("Bazaar", List( 
+    Member("user of",List("String"),"User") /* Returns a user object for a specified user id */,
+    Member("current user","User") /* Returns the user object of the current user */,
     Member("leaderboard score","Number") /* Gets the current score for the current script */,
     Member("post leaderboard score",List("Number"),"Nothing") /* Posts the current game score to the script leaderboard */,
     Member("post leaderboard to wall","Nothing") /* Posts the current game leaderboard to the wall */,
-    Member("open","Nothing") /* Launches the bazaar. */,
-    Member("open review","Nothing") /* Opens the review page for the current script */,
-    Member("open leaderboard","Nothing") /* Opens the leaderboard for the current script */,
+    Member("open","Nothing") /* [**obsolete**] Launches the bazaar. */,
+    Member("open review","Nothing") /* [**obsolete**] Opens the review page for the current script */,
+    Member("open leaderboard","Nothing") /* [**obsolete**] Opens the leaderboard for the current script */,
     Member("script id",List("String"),"String") /* Returns an identifier of either the top-level script or the current library */,
     Member("pick script",List("String","String"),"String") /* Asks the user to pick a script and return its identifier */,
     Member("save ast",List("String","Json Object"),"Nothing") /* Saves given Abstract Syntax Tree as a script */,
@@ -118,27 +120,41 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Arithmetic and bitwise operations on 32 bit integers
-  addSingleton("Bits", List(
-    Member("add uint32",List("Number","Number"),"Number") /* [**beta**] Add two unsigned 32 bit numbers */,
-    Member("subtract uint32",List("Number","Number"),"Number") /* [**beta**] Subtract two unsigned 32 bit numbers */,
-    Member("multiply uint32",List("Number","Number"),"Number") /* [**beta**] Multiply two unsigned 32 bit numbers */,
-    Member("add int32",List("Number","Number"),"Number") /* [**beta**] Add two signed 32 bit numbers */,
-    Member("subtract int32",List("Number","Number"),"Number") /* [**beta**] Subtract two signed 32 bit numbers */,
-    Member("multiply int32",List("Number","Number"),"Number") /* [**beta**] Multiply two signed 32 bit numbers */,
-    Member("and uint32",List("Number","Number"),"Number") /* [**beta**] Perform bitwise and (`&` in C) */,
-    Member("or uint32",List("Number","Number"),"Number") /* [**beta**] Perform bitwise or (`|` in C) */,
-    Member("xor uint32",List("Number","Number"),"Number") /* [**beta**] Perform bitwise exclusive or (`^` in C) */,
-    Member("not uint32",List("Number"),"Number") /* [**beta**] Perform bitwise negation (`~` in C) */,
-    Member("shift left uint32",List("Number","Number"),"Number") /* [**beta**] Shift `x` by `bits` left (`<<` in C) */,
-    Member("shift right uint32",List("Number","Number"),"Number") /* [**beta**] Shift `x` by `bits` right (`>>` in C, `>>>` in JavaScript) */,
-    Member("rotate left uint32",List("Number","Number"),"Number") /* [**beta**] Rotate `x` by `bits` left (rotl) */,
-    Member("rotate right uint32",List("Number","Number"),"Number") /* [**beta**] Rotate `x` by `bits` right (rotr) */,
-    Member("create buffer",List("Number"),"Buffer") /* [**beta**] Creates an empty binary buffer of `size` bytes */,
-    Member("string to buffer",List("String","String"),"Buffer") /* [**beta**] Decodes string into a binary buffer */
+  addSingleton("Bits", List( 
+    Member("add uint32",List("Number","Number"),"Number") /* Add two unsigned 32 bit numbers */,
+    Member("subtract uint32",List("Number","Number"),"Number") /* Subtract two unsigned 32 bit numbers */,
+    Member("multiply uint32",List("Number","Number"),"Number") /* Multiply two unsigned 32 bit numbers */,
+    Member("add int32",List("Number","Number"),"Number") /* Add two signed 32 bit numbers */,
+    Member("subtract int32",List("Number","Number"),"Number") /* Subtract two signed 32 bit numbers */,
+    Member("multiply int32",List("Number","Number"),"Number") /* Multiply two signed 32 bit numbers */,
+    Member("and uint32",List("Number","Number"),"Number") /* Perform bitwise and (`&` in C) */,
+    Member("or uint32",List("Number","Number"),"Number") /* Perform bitwise or (`|` in C) */,
+    Member("xor uint32",List("Number","Number"),"Number") /* Perform bitwise exclusive or (`^` in C) */,
+    Member("not uint32",List("Number"),"Number") /* Perform bitwise negation (`~` in C) */,
+    Member("shift left uint32",List("Number","Number"),"Number") /* Shift `x` by `bits` left (`<<` in C) */,
+    Member("shift right uint32",List("Number","Number"),"Number") /* Shift `x` by `bits` right (`>>` in C, `>>>` in JavaScript) */,
+    Member("rotate left uint32",List("Number","Number"),"Number") /* Rotate `x` by `bits` left (rotl) */,
+    Member("rotate right uint32",List("Number","Number"),"Number") /* Rotate `x` by `bits` right (rotr) */,
+    Member("create buffer",List("Number"),"Buffer") /* Creates an empty binary buffer of `size` bytes */,
+    Member("string to buffer",List("String","String"),"Buffer") /* Decodes string into a binary buffer */
+  ))
+
+  // A device connected via Bluetooth
+  addType("Bluetooth Device", List( 
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("name","String") /* Get the user-friendly name of the device */,
+    Member("address","String") /* Get the internal address of the device */,
+    Member("connected","Boolean") /* Check if we're currently connected to device */,
+    Member("connect","Nothing") /* Try to connect to the device; use `->connected` to check if it succeeded. */,
+    Member("disconnect","Nothing") /* Close connection to the device. */,
+    Member("read buffer at most",List("Number"),"Buffer") /* Read at most `max_length` bytes from the device */,
+    Member("read buffer",List("Number"),"Buffer") /* Read exactly `length` bytes from the device */,
+    Member("write buffer",List("Buffer"),"Nothing") /* Send the `buffer` to the device */,
+    Member("post to wall","Nothing") /* Display the name of the device */
   ))
 
   // A board to build 2D games
-  addType("Board", List(
+  addType("Board", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("height","Number") /* Gets the height in pixels */,
     Member("count","Number") /* Gets the sprite count */,
@@ -150,6 +166,12 @@ trait StdLib extends AbstractSymbolTable  {
     Member("touch velocity","Vector3") /* Final touch velocity after touch ended */,
     Member("create boundary",List("Number"),"Nothing") /* Create walls around the board at the given distance. */,
     Member("create sprite set","Sprite Set") /* Create a new collection for sprites. */,
+    Member("frame timer","Timer") /* create a timer that fires for every display frame. */,
+    Member("add on every frame",List("Action"),"Nothing") /* add an action that fires for every display frame. */,
+    Member("on tap",List("Position Action"),"Nothing") /* set the handler that is invoked when the board is tapped */,
+    Member("on swipe",List("Vector Action"),"Nothing") /* set the handler that is invoked when the board is swiped */,
+    Member("on touch down",List("Position Action"),"Nothing") /* set the handler that is invoked when the board is touched */,
+    Member("on touch up",List("Position Action"),"Nothing") /* set the handler that is invoked when the board touch is released */,
     Member("evolve","Nothing") /* Update positions of sprites on board. */,
     Member("set background",List("Color"),"Nothing") /* Sets the background color */,
     Member("set background camera",List("Camera"),"Nothing") /* Sets the background camera */,
@@ -178,7 +200,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // true or false
-  addType("Boolean", List(
+  addType("Boolean", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("equals",List("Boolean"),"Boolean") /* Indicates that the two values are equal */,
     Member("not","Boolean") /* Negates the boolean expression */,
@@ -191,7 +213,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Current box element in the page.
-  addSingleton("Box", List(
+  addSingleton("Box", List( 
     Member("set foreground",List("Color"),"Nothing") /* Sets the foreground color of elements. */,
     Member("set background",List("Color"),"Nothing") /* Sets the background color. */,
     Member("use vertical layout","Nothing") /* Arrange boxes inside this box from top to bottom. */,
@@ -207,17 +229,17 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set border widths",List("Number","Number","Number","Number"),"Nothing") /* Set the width of each border. */,
     Member("set margins",List("Number","Number","Number","Number"),"Nothing") /* Set the margins of this box (to leave space around the outside of this box). */,
     Member("set padding",List("Number","Number","Number","Number"),"Nothing") /* Set the padding of this box (to leave space around the contents of this box). */,
-    Member("set horizontal alignment",List("Number","Number"),"Nothing") /* align (0,0)=center (1,0)=left, (0,1)=right, (1,1)=stretch */,
-    Member("set vertical alignment",List("Number","Number"),"Nothing") /* align (0,0)=center (1,0)=top, (0,1)=bottom, (1,1)=stretch */,
+    Member("set horizontal alignment",List("Number","Number"),"Nothing") /* [**obsolete**] align (0,0)=center (1,0)=left, (0,1)=right, (1,1)=stretch */,
+    Member("set vertical alignment",List("Number","Number"),"Nothing") /* [**obsolete**] align (0,0)=center (1,0)=top, (0,1)=bottom, (1,1)=stretch */,
     Member("set horizontal align",List("String"),"Nothing") /* Specify how to arrange the content of this box */,
     Member("set vertical align",List("String"),"Nothing") /* Specify how to arrange the content of this box */,
     Member("set font size",List("Number"),"Nothing") /* Set font size in this box and contained boxes. */,
     Member("set font weight",List("String"),"Nothing") /* Set font weight in this box and contained boxes. */,
     Member("set scrolling",List("Boolean","Boolean"),"Nothing") /* Specify whether to use scrollbars on overflow. */,
     Member("on tapped",List("Action"),"Nothing") /* Set what happens when the box is tapped. */,
-    Member("on text editing",List("Text Action"),"Nothing") /* Set what happens whenever the text in the box is being edited. */,
-    Member("on text edited",List("Text Action"),"Nothing") /* Set what happens when the user has finished editing the text in the box. */,
-    Member("edit text",List("String","Boolean"),"Nothing") /* Display editable text. */,
+    Member("on text editing",List("Text Action"),"Nothing") /* [**obsolete**] Set what happens whenever the text in the box is being edited. */,
+    Member("on text edited",List("Text Action"),"Nothing") /* [**obsolete**] Set what happens when the user has finished editing the text in the box. */,
+    Member("edit text",List("String","Boolean"),"Nothing") /* [**obsolete**] Display editable text. */,
     Member("edit",List("String","String","Text Action"),"Nothing") /* Display editable text, with the given binding. */,
     Member("is init","Boolean") /*  */,
     Member("page width","Number") /* Get the total width of the page. */,
@@ -227,56 +249,86 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Contains binary data
-  addType("Buffer", List(
-    Member("is invalid","Boolean") /* [**beta**] Returns true if the current instance is useless */,
-    Member("set",List("Number","Number"),"Nothing") /* [**beta**] Set byte at `index` to `value` */,
+  addType("Buffer", List( 
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("set",List("Number","Number"),"Nothing") /* Set byte at `index` to `value` */,
     Member("at index",List("Number"),"Number") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Buffer") /* ONLY INSIDE SAMPLE: cloning a collection*/,
-    Member("at",List("Number"),"Number") /* [**beta**] Get byte at `index` */,
-    Member("count","Number") /* [**beta**] Return the number of bytes in the buffer */,
-    Member("fill random",List("Number","Number"),"Nothing") /* [**beta**] Sets `length` bytes starting from `start` to random values */,
-    Member("fill",List("Number","Number","Number"),"Nothing") /* [**beta**] Sets `length` bytes starting from `start` to `value` */,
-    Member("to string",List("String"),"String") /* [**beta**] Convert the buffer to a string */
+    Member("at",List("Number"),"Number") /* Get byte at `index` */,
+    Member("count","Number") /* Return the number of bytes in the buffer */,
+    Member("sub buffer",List("Number","Number"),"Buffer") /* Creates a read-write view of the current buffer. */,
+    Member("fill random","Nothing") /* Fills the buffer with random values */,
+    Member("fill",List("Number"),"Nothing") /* Sets all bytes in buffer to `value` */,
+    Member("copy from",List("Number","Buffer"),"Nothing") /* Copies all bytes from `source` to current buffer at `offset` */,
+    Member("clone","Nothing") /* Copies all bytes from `source` to current buffer at `offset` */,
+    Member("to string",List("String"),"String") /* Convert the buffer to a string */
   ))
 
   // The front or back camera
-  addType("Camera", List(
+  addType("Camera", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("height","Number") /* Gets the height of the camera image in pixels. */,
+    Member("height","Number") /* [**not implemented**] Gets the height of the camera image in pixels. */,
     Member("is front","Boolean") /* Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */,
-    Member("width","Number") /* Gets the width of the camera image in pixels. */,
+    Member("width","Number") /* [**not implemented**] Gets the width of the camera image in pixels. */,
     Member("post to wall","Nothing") /* Displays the camera video stream in full screen. */,
     Member("preview","Picture") /* Takes a low quality picture from the camera. */
   ))
 
   // A cloud data session
-  addType("Cloud Session", List(
-    Member("is invalid","Boolean") /* [**dbg**] Returns true if the current instance is useless */,
-    Member("equals",List("Cloud Session"),"Boolean") /* [**dbg**] Checks if this cloud session is the same as another one */,
-    Member("id","String") /* [**dbg**] Gets a string that uniquely identifies this cloud session; other users can connect by using this string. */,
-    Member("description","String") /* [**dbg**] Gets a string that describes this cloud session */,
-    Member("host","String") /* [**dbg**] Gets a string that identifies the user hosting this session */,
-    Member("post to wall","Nothing") /* [**dbg**] Displays the session description on the wall. */
+  addType("Cloud Session", List( 
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("equals",List("Cloud Session"),"Boolean") /* Checks if this cloud session is the same as another one */,
+    Member("id","String") /* Gets a string that uniquely identifies this cloud session; other users can connect by using this string. */,
+    Member("title","String") /* Gets a string that describes this cloud session */,
+    Member("owner","User") /* Gets information about the user that owns this session */,
+    Member("post to wall","Nothing") /* Displays the session description on the wall. */,
+    Member("server info","Json Object") /* [**dbg**] Query server about current state of this session. You must be the authenticated owner. */
   ))
 
   // Cloud session management
-  addSingleton("Cloud Data", List(
-    Member("current session","Cloud Session") /* [**dbg**] Gets the currently active session. When the script starts, this is always the default private session. */,
-    Member("rebuild cache","Nothing") /* [**dbg**] Clear the local cache of the current session and refetch data from server */,
-    Member("last session","Cloud Session") /* [**dbg**] Gets the last session that the user connected to. */,
-    Member("private session","Cloud Session") /* [**dbg**] Gets the default private session. */,
-    Member("public session","Cloud Session") /* [**dbg**] Gets the default public session, in which cloud data is shared by everyone running this script. */,
-    Member("create custom session",List("String","String","Boolean"),"Cloud Session") /* [**dbg**] Creates a new cloud session owned by the current user. It becomes permanent after connecting to it. */,
-    Member("session from id",List("String"),"Cloud Session") /* [**dbg**] Gets a session from a session id */,
-    Member("connection status",List("Boolean"),"String") /* [**dbg**] Gets a string that describes the state of the cloud synchronization, and additional details if requested */,
-    Member("set sync enabled",List("Boolean"),"Nothing") /* [**dbg**] Enable or disable cloud synchronization for the current session */,
-    Member("is sync enabled","Boolean") /* [**dbg**] Returns a boolean indicating whether cloud synchronization is enabled for the current session */,
-    Member("switch to session",List("Cloud Session"),"Nothing") /* [**dbg**] Connect to the given session. The user may be asked to confirm, and may choose to connect to a different session instead. */,
-    Member("choose session","Nothing") /* [**dbg**] Asks the user to choose a session to switch to */
+  addSingleton("Cloud Data", List( 
+    Member("current session","Cloud Session") /* Gets the currently active session. When the script starts, this is always the just-me session. */,
+    Member("rebuild cache","Nothing") /* [**dbg**] Clear the local cache of the current session (which discards unsynced changes) and get fresh data from server */,
+    Member("clear all data","Nothing") /* Clear all data of the currently active session. */,
+    Member("last session","Cloud Session") /* Gets the last session that the user connected to. */,
+    Member("just me session","Cloud Session") /* Gets the just-me session, in which cloud data is shared between devices by the same user. */,
+    Member("everyone session","Cloud Session") /* Gets the everyone-session, in which cloud data is shared by everyone running this script. */,
+    Member("wait for updates",List("Number"),"Boolean") /* Waits until the current server state has been received. Returns false if offline, or if time limit is exceeded. */,
+    Member("create session",List("String","String"),"Cloud Session") /* Creates a new cloud session owned by the current user. */,
+    Member("session of",List("String","String"),"Cloud Session") /* Gets a session from a session id */,
+    Member("connection status",List("Boolean"),"String") /* Gets a string that describes the state of the cloud synchronization, and additional details if requested */,
+    Member("participant number","Number") /* Returns the participant number within the current session, or -1 if not known yet. Participant numbers are assigned by the server on first connect, starting with 0. */,
+    Member("set sync enabled",List("Boolean"),"Nothing") /* Enable or disable cloud synchronization for the current session */,
+    Member("is sync enabled","Boolean") /* Returns a boolean indicating whether cloud synchronization is enabled for the current session */,
+    Member("switch to session",List("Cloud Session"),"Nothing") /* Connect to the given session. The user may be asked to confirm. */,
+    Member("switch sessions","Nothing") /* Asks the user to choose a session to switch to */
+  ))
+
+  // A collection of objects
+  addType("Collection", List( 
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("count","Number") /* Gets the number of objects. */,
+    Member("clear","Nothing") /* Removes all objects from the collection */,
+    Member("add",List("T"),"Nothing") /* Adds an object */,
+    Member("add many",List("T Collection"),"Nothing") /* Adds many objects at once */,
+    Member("index of",List("T","Number"),"Number") /* Gets the index of the first occurrence of an object. Returns -1 if not found or start is out of range. */,
+    Member("at index",List("Number"),"T") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
+    Member("copy","Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
+    Member("at",List("Number"),"T") /* Gets the object at position index. Returns invalid if index is out of range */,
+    Member("contains",List("T"),"Boolean") /* Checks if the item is in the collection */,
+    Member("remove",List("T"),"Boolean") /* Removes the first occurence of an object. Returns true if removed. */,
+    Member("remove at",List("Number"),"Nothing") /* Removes the object at position index. */,
+    Member("reverse","Nothing") /* Reverses the order of objects in the collection */,
+    Member("random","T") /* Gets a random object from the collection. Returns invalid if the collection is empty. */,
+    Member("set at",List("Number","T"),"Nothing") /* Sets the object at position index. Does nothing if the index is out of range. */,
+    Member("insert at",List("Number","T"),"Nothing") /* Inserts an object at position index. Does nothing if index is out of range. */,
+    Member("post to wall","Nothing") /* Display all objects on the wall */
   ))
 
   // Create collections of items.
-  addSingleton("Collections", List(
+  addSingleton("Collections", List( 
+    Member("create picture collection","Picture Collection") /* Creates an empty Picture collection */,
+    Member("create sound collection","Sound Collection") /* Creates an empty Picture collection */,
     Member("create string collection","String Collection") /* Creates an empty string collection */,
     Member("create place collection","Place Collection") /* Creates an empty place collection */,
     Member("create link collection","Link Collection") /* Creates an empty link collection */,
@@ -288,7 +340,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A argb color (alpha, red, green, blue)
-  addType("Color", List(
+  addType("Color", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("A","Number") /* Gets the alpha value (0.0-1.0) */,
     Member("R","Number") /* Gets the red value (0.0-1.0) */,
@@ -307,7 +359,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // New or built-in colors
-  addSingleton("Colors", List(
+  addSingleton("Colors", List( 
     Member("accent","Color") /* Gets the accent color in the current theme */,
     Member("subtle","Color") /* Gets the subtle color in the current theme (light gray) */,
     Member("chrome","Color") /* Gets the chrome color in the current theme (control background) */,
@@ -316,6 +368,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("is light theme","Boolean") /* Indicates if the user is using a light theme in their phone */,
     Member("from rgb",List("Number","Number","Number"),"Color") /* Creates a color from the red, green, blue channels (0.0-1.0 range) */,
     Member("from argb",List("Number","Number","Number","Number"),"Color") /* Creates a color from the alpha, red, green, blue channels (0.0-1.0 range) */,
+    Member("pink","Color") /* Gets the color that has the ARGB value of #FFFFCBDB */,
     Member("black","Color") /* Gets the color that has the ARGB value of #FF000000 */,
     Member("blue","Color") /* Gets the color that has the ARGB value of #FF0000FF */,
     Member("brown","Color") /* Gets the color that has the ARGB value of #FFA52A2A */,
@@ -340,7 +393,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A contact
-  addType("Contact", List(
+  addType("Contact", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("id","String") /* Gets the user id if any */,
     Member("set id",List("String"),"Nothing") /* Sets the user id */,
@@ -394,28 +447,28 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of contacts
-  addType("Contact Collection", List(
+  addType("Contact Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("name","String") /* Gets the name of this collection */,
-    Member("set name",List("String"),"Nothing") /* Sets the name of this collection */,
+    Member("name","String") /* [**obsolete**] Gets the name of this collection */,
+    Member("set name",List("String"),"Nothing") /* [**obsolete**] Sets the name of this collection */,
     Member("count","Number") /* Gets the number of contacts */,
     Member("at index",List("Number"),"Contact") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Contact Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
     Member("at",List("Number"),"Contact") /* Gets the contact at index */,
-    Member("set at",List("Number","Contact"),"Nothing") /* Sets the contact at index */,
-    Member("clear","Nothing") /* Clears the collection */,
-    Member("add",List("Contact"),"Nothing") /* Adds a contact */,
+    Member("set at",List("Number","Contact"),"Nothing") /* [**obsolete**] Sets the contact at index */,
+    Member("clear","Nothing") /* [**obsolete**] Clears the collection */,
+    Member("add",List("Contact"),"Nothing") /* [**obsolete**] Adds a contact */,
     Member("post to wall","Nothing") /* Posts the contacts on the wall */
   ))
 
   // Correctness helpers
-  addSingleton("Contract", List(
+  addSingleton("Contract", List( 
     Member("requires",List("Boolean","String"),"Nothing") /* Specifies a precondition contract for the action; if the condition is false, execution fails. Does nothing for published scripts. */,
     Member("assert",List("Boolean","String"),"Nothing") /* Checks for a condition; if the condition is false, execution fails. Does nothing for published scripts. */
   ))
 
   // A combination of date and time
-  addType("DateTime", List(
+  addType("DateTime", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("to json","Json Object") /* Converts the value into a json data structure. */,
     Member("add days",List("Number"),"DateTime") /* Returns a date that adds the specified number of days to the value of this instance. */,
@@ -442,43 +495,43 @@ trait StdLib extends AbstractSymbolTable  {
     Member("year","Number") /* Gets the year */,
     Member("week day","Number") /* Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */,
     Member("year day","Number") /* Gets the day of the year between 1 and 366 */,
-    Member("add years",List("Number"),"DateTime") /* Returns a date that adds the specified number of years to the value of this instance. */,
-    Member("add months",List("Number"),"DateTime") /* Returns a date that adds the specified number of months to the value of this instance. */,
+    Member("add years",List("Number"),"DateTime") /* [**not implemented**] Returns a date that adds the specified number of years to the value of this instance. */,
+    Member("add months",List("Number"),"DateTime") /* [**not implemented**] Returns a date that adds the specified number of months to the value of this instance. */,
     Member("to universal time","DateTime") /* Converts coordinated universal time */,
-    Member("to local time","DateTime") /* Converts to the local time */,
+    Member("to local time","DateTime") /* [**not implemented**] Converts to the local time */,
     Member("post to wall","Nothing") /* Prints the date to the wall */
   ))
 
   // A device on the home network
-  addType("Device", List(
+  addType("Device", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("name","String") /* Gets the friendly name of the device */,
     Member("set name",List("String"),"Nothing") /* Sets the friendly name of the device */,
-    Member("manufacturer","String") /* Gets the manfacturer name */,
-    Member("browse","Nothing") /* Browses to the device control panel */,
-    Member("post to wall","Nothing") /* Display the device to the wall */,
-    Member("is connected","Boolean") /* Checks if the device is connected */
+    Member("manufacturer","String") /* [**not implemented**] Gets the manfacturer name */,
+    Member("browse","Nothing") /* [**not implemented**] Browses to the device control panel */,
+    Member("post to wall","Nothing") /* [**not implemented**] Display the device to the wall */,
+    Member("is connected","Boolean") /* [**not implemented**] Checks if the device is connected */
   ))
 
   // A collection of devices
-  addType("Device Collection", List(
+  addType("Device Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("count","Number") /* Gets the number of devices */,
+    Member("count","Number") /* [**not implemented**] Gets the number of devices */,
     Member("at index",List("Number"),"Device") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Device Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
-    Member("at",List("Number"),"Device") /* Gets the device at index */,
-    Member("post to wall","Nothing") /* Posts the devices on the wall */
+    Member("at",List("Number"),"Device") /* [**not implemented**] Gets the device at index */,
+    Member("post to wall","Nothing") /* [**not implemented**] Posts the devices on the wall */
   ))
 
   // An general enumerator
-  addType("Enumerator", List(
+  addType("Enumerator", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("current","Nothing") /* Return current value */,
-    Member("move next","Boolean") /* Advance enumerator and return true if there is another element. */
+    Member("current","Nothing") /* [**not implemented**] Return current value */,
+    Member("move next","Boolean") /* [**not implemented**] Advance enumerator and return true if there is another element. */
   ))
 
   // A builder to create HTML Form data
-  addType("Form Builder", List(
+  addType("Form Builder", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("post to wall","Nothing") /* Displays the form to the wall */,
     Member("add string",List("String","String"),"Nothing") /* Adds a string value */,
@@ -488,17 +541,17 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Interact with devices in the home network. Devices must be UPnP™ compatible.
-  addSingleton("Home", List(
-    Member("printers","Printer Collection") /* Gets the printers on the current wireless network */,
-    Member("players","Media Player Collection") /* Gets the media players on the current wireless network */,
-    Member("servers","Media Server Collection") /* Gets the media servers on the home network */,
-    Member("choose printer","Printer") /* Choose a printer on the current wireless network */,
-    Member("choose player","Media Player") /* Choose a media player on the current wireless network */,
-    Member("choose server","Media Server") /* Choose a media server on the current wireless network */
+  addSingleton("Home", List( 
+    Member("printers","Printer Collection") /* [**not implemented**] Gets the printers on the current wireless network */,
+    Member("players","Media Player Collection") /* [**not implemented**] Gets the media players on the current wireless network */,
+    Member("servers","Media Server Collection") /* [**not implemented**] Gets the media servers on the home network */,
+    Member("choose printer","Printer") /* [**not implemented**] Choose a printer on the current wireless network */,
+    Member("choose player","Media Player") /* [**not implemented**] Choose a media player on the current wireless network */,
+    Member("choose server","Media Server") /* [**not implemented**] Choose a media server on the current wireless network */
   ))
 
   // Create invalid values
-  addSingleton("Invalid", List(
+  addSingleton("Invalid", List( 
     Member("number","Number") /* Creates an invalid Number instance */,
     Member("boolean","Boolean") /* Creates an invalid Boolean instance */,
     Member("string","String") /* Creates an invalid String instance */,
@@ -568,11 +621,12 @@ trait StdLib extends AbstractSymbolTable  {
     Member("json builder","Json Builder") /* Creates an invalid Json Builder instance */,
     Member("message collection action","Action") /* Creates an invalid Message Collection Action instance */,
     Member("oauth response","OAuth Response") /* Creates an invalid OAuth Response instance */,
-    Member("form builder","Form Builder") /* Creates an invalid Form Builder instance */
+    Member("form builder","Form Builder") /* Creates an invalid Form Builder instance */,
+    Member("bluetooth device","Bluetooth Device") /* Creates an invalid BlueTooth Device instance */
   ))
 
   // A json data structure builder
-  addType("Json Builder", List(
+  addType("Json Builder", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("set field",List("String","Json Object"),"Nothing") /* Sets the field value. */,
     Member("set builder",List("String","Json Builder"),"Nothing") /* Sets the field the the reference to JsonBuilder. */,
@@ -593,12 +647,13 @@ trait StdLib extends AbstractSymbolTable  {
     Member("at",List("Number"),"Json Builder") /* Gets the i-th json value */,
     Member("set at",List("Number","Json Builder"),"Nothing") /* Sets the i-th json value */,
     Member("remove at",List("Number"),"Nothing") /* Removes the i-th json value */,
+    Member("remove field",List("String"),"Nothing") /* Deletes named field */,
     Member("boolean",List("String"),"Boolean") /* Gets a field value as a boolean */,
     Member("contains key",List("String"),"Boolean") /* Indicates if the key exists */,
     Member("time",List("String"),"DateTime") /* Gets the field value as a time */,
     Member("field",List("String"),"Json Builder") /* Gets a value by name */,
     Member("keys","String Collection") /* Gets the list of keys */,
-    Member("kind","String") /* Gets a json kind (string, number, object, array, boolean) */,
+    Member("kind","String") /* Gets a json kind (string, number, object, array, boolean, null) */,
     Member("number",List("String"),"Number") /* Gets a field value as a number */,
     Member("string",List("String"),"String") /* Gets a field value as a string */,
     Member("post to wall","Nothing") /* Prints the value to the wall */,
@@ -610,7 +665,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A json data structure.
-  addType("Json Object", List(
+  addType("Json Object", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of values */,
     Member("at index",List("Number"),"Json Object") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
@@ -621,7 +676,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("time",List("String"),"DateTime") /* Gets the field value as a time */,
     Member("field",List("String"),"Json Object") /* Gets a value by name */,
     Member("keys","String Collection") /* Gets the list of keys */,
-    Member("kind","String") /* Gets a json kind (string, number, object, array, boolean) */,
+    Member("kind","String") /* Gets a json kind (string, number, object, array, boolean, null) */,
     Member("number",List("String"),"Number") /* Gets a field value as a number */,
     Member("string",List("String"),"String") /* Gets a field value as a string */,
     Member("post to wall","Nothing") /* Prints the value to the wall */,
@@ -634,20 +689,20 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Translation, speech to text, ...
-  addSingleton("Languages", List(
+  addSingleton("Languages", List( 
     Member("current language","String") /* Gets the current language code, to be used in the 'translate' method. */,
-    Member("speech to text",List("String","Sound"),"String") /* Converts a sound to a text using Project Hawaii from Microsoft Research. */,
+    Member("speech to text",List("String","Sound"),"String") /* [**not implemented**] [**obsolete**] Converts a sound to a text using Project Hawaii from Microsoft Research. */,
     Member("picture to text",List("String","Picture"),"String") /* Extracts text in the picture using Project Hawaii from Microsoft Research. */,
     Member("record text","String") /* Converts the microphone dictation to text. */,
     Member("translate",List("String","String","String"),"String") /* Translates some text between two languages using Bing. Empty source language to auto-detect. */,
     Member("detect language",List("String"),"String") /* Automatically detects the language of a given text using Bing. */,
-    Member("speak",List("String","String"),"Sound") /* This api was renamed. Use `speak_text` instead. */,
+    Member("speak",List("String","String"),"Sound") /* [**obsolete**] This api was renamed. Use `speak_text` instead. */,
     Member("speak text",List("String","String","String"),"Nothing") /* Speaks the text immediately using the text-to-speech engine on the device. */,
     Member("speak ssml",List("Xml Object"),"Nothing") /* Speaks the SSML markup immediately using the text-to-speech engine on the device. */
   ))
 
   // A link to a video, image, email, phone number
-  addType("Link", List(
+  addType("Link", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("name","String") /* Gets the name if any */,
     Member("set name",List("String"),"Nothing") /* Sets the name */,
@@ -660,7 +715,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A list of links
-  addType("Link Collection", List(
+  addType("Link Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of elements */,
     Member("clear","Nothing") /* Clears the collection */,
@@ -680,7 +735,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A geo coordinate (latitude, longitude, ...)
-  addType("Location", List(
+  addType("Location", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("to string","String") /* Converts to a string lat,long */,
     Member("latitude","Number") /* Gets the latitude of the coordinate */,
@@ -697,7 +752,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A list of locations
-  addType("Location Collection", List(
+  addType("Location Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of elements */,
     Member("clear","Nothing") /* Clears the collection */,
@@ -714,11 +769,11 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set at",List("Number","Location"),"Nothing") /* Sets the i-th geo coordinate */,
     Member("insert at",List("Number","Location"),"Nothing") /* Inserts a location at position index. Does nothing if index is out of range. */,
     Member("post to wall","Nothing") /* Displays the locations in a map using Bing. */,
-    Member("sort by distance",List("Location"),"Nothing") /* Sorts by distance to the location */
+    Member("sort by distance",List("Location"),"Nothing") /* [**not implemented**] Sorts by distance to the location */
   ))
 
   // Geo coordinates
-  addSingleton("Locations", List(
+  addSingleton("Locations", List( 
     Member("create location",List("Number","Number"),"Location") /* Creates a new geo coordinate location */,
     Member("create location list","Location Collection") /* Creates an empty list of locations */,
     Member("describe location",List("Location"),"String") /* Looks for an address near a location using Bing. */,
@@ -726,7 +781,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A Bing map
-  addType("Map", List(
+  addType("Map", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("zoom","Number") /* Gets the zoom level */,
     Member("set zoom",List("Number"),"Nothing") /* Sets the zoom level from 1 (earth) to 21 (street) */,
@@ -745,7 +800,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Maps, location to address, address to location
-  addSingleton("Maps", List(
+  addSingleton("Maps", List( 
     Member("create map","Map") /* Creates a Bing map. Use 'post to wall' to display it. */,
     Member("create full map","Map") /* Creates a full screen Bing map. Use 'post to wall' to display it. */,
     Member("directions",List("Location","Location","Boolean"),"Location Collection") /* Calculates the directions between two coordinates using Bing. */,
@@ -754,7 +809,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Mathematical operators, cos, sin, ...
-  addSingleton("Math", List(
+  addSingleton("Math", List( 
     Member("create matrix",List("Number","Number"),"Matrix") /* Creates a matrix of zeros of a given size */,
     Member("ceiling",List("Number"),"Number") /* Returns the smallest integral value greater than or equal to the specified number */,
     Member("floor",List("Number"),"Number") /* Returns the largest integer less than or equal to the specified number */,
@@ -804,7 +859,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A 2D matrix of numbers
-  addType("Matrix", List(
+  addType("Matrix", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the total number of elements */,
     Member("row count","Number") /* Gets the number of rows */,
@@ -831,9 +886,9 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Pictures and music...
-  addSingleton("Media", List(
+  addSingleton("Media", List( 
     Member("create picture",List("Number","Number"),"Picture") /* Creates a new picture of the given size */,
-    Member("search marketplace",List("String","String"),"Nothing") /* Searches the Windows Phone Store (type in applications or music) */,
+    Member("search marketplace",List("String","String"),"Nothing") /* [**not implemented**] Searches the Windows Phone Store (type in applications or music) */,
     Member("playlists","Playlists") /* Gets the playlists on the phone */,
     Member("pictures","Pictures") /* Gets the pictures on the phone */,
     Member("saved pictures","Pictures") /* Gets the saved pictures on the phone */,
@@ -842,7 +897,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("songs","Songs") /* Gets the songs on the phone */,
     Member("song albums","Song Albums") /* Gets the song albums on the phone */,
     Member("create board",List("Number"),"Board") /* Creates a new game board */,
-    Member("create full board","Board") /* Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */,
+    Member("create full board","Board") /* [**obsolete**] Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */,
     Member("create portrait board",List("Number","Number"),"Board") /* Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */,
     Member("create landscape board",List("Number","Number"),"Board") /* Creates a new game board in landscape mode. On rotatable devices it will take the entire screen when posted. */,
     Member("icon names","String Collection") /* Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings. */,
@@ -851,7 +906,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A media file on the home network
-  addType("Media Link", List(
+  addType("Media Link", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("title","String") /* Gets the title if available */,
     Member("author","String") /* Gets the author if available */,
@@ -864,7 +919,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A list of media links on the home network
-  addType("Media Link Collection", List(
+  addType("Media Link Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of elements */,
     Member("at index",List("Number"),"Media Link") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
@@ -874,75 +929,75 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // An audio/video player on the home network
-  addType("Media Player", List(
+  addType("Media Player", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("volume","Number") /* Gets the current volume */,
     Member("set volume",List("Number"),"Nothing") /* Sets the current value */,
-    Member("device","Device") /* Gets the detailled information about this device */,
-    Member("name","String") /* Gets the name of the audio/video player */,
-    Member("post to wall","Nothing") /* Display the player to the wall */,
-    Member("is control supported","Boolean") /* Indicates the media can be played, paused, resumed */,
-    Member("resume","Nothing") /* Resumes playing the current media if any. */,
-    Member("stop","Nothing") /* Stops the current media if any. */,
-    Member("pause","Nothing") /* Pauses the current media if any. */,
-    Member("next","Nothing") /* Moves the player to the next media in the queue. */,
-    Member("previous","Nothing") /* Moves the player to the previous media in the queue. */,
-    Member("play","Nothing") /* Plays the current media from the start. */,
-    Member("play media",List("String"),"Nothing") /* Plays the media at the 'url' internet address. */,
-    Member("play home media",List("Media Link"),"Nothing") /* Plays a media from the home network. */,
-    Member("active media","String") /* Gets the uri of the media currently active */,
-    Member("play position","Number") /* Gets the position in seconds whithin the active media */,
-    Member("is stopped","Boolean") /* Indicates if the player is stopped */,
-    Member("is playing","Boolean") /* Indicates if the player is playing */,
-    Member("is paused","Boolean") /* Indicates if the player is paused */,
-    Member("status","String") /* Gets the status of the player */,
-    Member("is volume supported","Boolean") /* Indicates if volume can be changed */
+    Member("device","Device") /* [**not implemented**] Gets the detailled information about this device */,
+    Member("name","String") /* [**not implemented**] Gets the name of the audio/video player */,
+    Member("post to wall","Nothing") /* [**not implemented**] Display the player to the wall */,
+    Member("is control supported","Boolean") /* [**not implemented**] Indicates the media can be played, paused, resumed */,
+    Member("resume","Nothing") /* [**not implemented**] Resumes playing the current media if any. */,
+    Member("stop","Nothing") /* [**not implemented**] Stops the current media if any. */,
+    Member("pause","Nothing") /* [**not implemented**] Pauses the current media if any. */,
+    Member("next","Nothing") /* [**not implemented**] Moves the player to the next media in the queue. */,
+    Member("previous","Nothing") /* [**not implemented**] Moves the player to the previous media in the queue. */,
+    Member("play","Nothing") /* [**not implemented**] Plays the current media from the start. */,
+    Member("play media",List("String"),"Nothing") /* [**not implemented**] Plays the media at the 'url' internet address. */,
+    Member("play home media",List("Media Link"),"Nothing") /* [**not implemented**] Plays a media from the home network. */,
+    Member("active media","String") /* [**not implemented**] Gets the uri of the media currently active */,
+    Member("play position","Number") /* [**not implemented**] Gets the position in seconds whithin the active media */,
+    Member("is stopped","Boolean") /* [**not implemented**] Indicates if the player is stopped */,
+    Member("is playing","Boolean") /* [**not implemented**] Indicates if the player is playing */,
+    Member("is paused","Boolean") /* [**not implemented**] Indicates if the player is paused */,
+    Member("status","String") /* [**not implemented**] Gets the status of the player */,
+    Member("is volume supported","Boolean") /* [**not implemented**] Indicates if volume can be changed */
   ))
 
   // A collection of media players
-  addType("Media Player Collection", List(
+  addType("Media Player Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("count","Number") /* Gets the number of media players */,
-    Member("clear","Nothing") /* Clears the players */,
-    Member("add",List("Media Player"),"Nothing") /* Adds a new player to the collection */,
+    Member("count","Number") /* [**not implemented**] Gets the number of media players */,
+    Member("clear","Nothing") /* [**not implemented**] [**obsolete**] Clears the players */,
+    Member("add",List("Media Player"),"Nothing") /* [**not implemented**] [**obsolete**] Adds a new player to the collection */,
     Member("at index",List("Number"),"Media Player") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Media Player Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
-    Member("at",List("Number"),"Media Player") /* Gets the media player at index */,
-    Member("post to wall","Nothing") /* Posts the media players on the wall */
+    Member("at",List("Number"),"Media Player") /* [**not implemented**] Gets the media player at index */,
+    Member("post to wall","Nothing") /* [**not implemented**] Posts the media players on the wall */
   ))
 
   // A media server on the home network
-  addType("Media Server", List(
+  addType("Media Server", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("device","Device") /* Gets the detailled information about this device */,
-    Member("name","String") /* Gets the name of the printer */,
-    Member("post to wall","Nothing") /* Display the printer to the wall */,
-    Member("songs","Media Link Collection") /* Gets a list of all songs */,
-    Member("videos","Media Link Collection") /* Gets a list of all videos */,
-    Member("pictures","Media Link Collection") /* Gets a list of all pictures */,
-    Member("search songs",List("String"),"Media Link Collection") /* Searches for songs */,
-    Member("search videos",List("String"),"Media Link Collection") /* Searches for videos */,
-    Member("search videos by date",List("DateTime","DateTime"),"Media Link Collection") /* Searches for videos in a particular date range. */,
-    Member("search pictures by date",List("DateTime","DateTime"),"Media Link Collection") /* Searches for pictures in a particular date range. */,
-    Member("choose song","Media Link") /* Chooses a song */,
-    Member("choose video","Media Link") /* Chooses a video or a movie */,
-    Member("choose picture","Media Link") /* Chooses a picture */
+    Member("device","Device") /* [**not implemented**] Gets the detailled information about this device */,
+    Member("name","String") /* [**not implemented**] Gets the name of the printer */,
+    Member("post to wall","Nothing") /* [**not implemented**] Display the printer to the wall */,
+    Member("songs","Media Link Collection") /* [**not implemented**] Gets a list of all songs */,
+    Member("videos","Media Link Collection") /* [**not implemented**] Gets a list of all videos */,
+    Member("pictures","Media Link Collection") /* [**not implemented**] Gets a list of all pictures */,
+    Member("search songs",List("String"),"Media Link Collection") /* [**not implemented**] Searches for songs */,
+    Member("search videos",List("String"),"Media Link Collection") /* [**not implemented**] Searches for videos */,
+    Member("search videos by date",List("DateTime","DateTime"),"Media Link Collection") /* [**not implemented**] Searches for videos in a particular date range. */,
+    Member("search pictures by date",List("DateTime","DateTime"),"Media Link Collection") /* [**not implemented**] Searches for pictures in a particular date range. */,
+    Member("choose song","Media Link") /* [**not implemented**] Chooses a song */,
+    Member("choose video","Media Link") /* [**not implemented**] Chooses a video or a movie */,
+    Member("choose picture","Media Link") /* [**not implemented**] Chooses a picture */
   ))
 
   // A collection of media servers
-  addType("Media Server Collection", List(
+  addType("Media Server Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("count","Number") /* Gets the number of media players */,
-    Member("clear","Nothing") /* Clears the servers */,
-    Member("add",List("Media Server"),"Nothing") /* Adds a new server to the collection */,
+    Member("count","Number") /* [**not implemented**] Gets the number of media players */,
+    Member("clear","Nothing") /* [**not implemented**] [**obsolete**] Clears the servers */,
+    Member("add",List("Media Server"),"Nothing") /* [**not implemented**] [**obsolete**] Adds a new server to the collection */,
     Member("at index",List("Number"),"Media Server") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Media Server Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
-    Member("at",List("Number"),"Media Server") /* Gets the media player at index */,
-    Member("post to wall","Nothing") /* Posts the media players on the wall */
+    Member("at",List("Number"),"Media Server") /* [**not implemented**] Gets the media player at index */,
+    Member("post to wall","Nothing") /* [**not implemented**] Posts the media players on the wall */
   ))
 
   // A post on a message board
-  addType("Message", List(
+  addType("Message", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("title","String") /* Gets the title text */,
     Member("set title",List("String"),"Nothing") /* Sets the title text */,
@@ -972,7 +1027,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A list of messages
-  addType("Message Collection", List(
+  addType("Message Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("continuation","String") /* Gets the identifier of the next set of messages */,
     Member("set continuation",List("String"),"Nothing") /* Sets the identifier of the next set of messages */,
@@ -995,7 +1050,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Describes the motion of the device
-  addType("Motion", List(
+  addType("Motion", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("acceleration","Vector3") /* Gets the linear acceleration of the device, in gravitational units. */,
     Member("rotation speed","Vector3") /* Gets the device rotation speed in degrees per sec. */,
@@ -1008,7 +1063,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A number (possibly negative and/or fractional)
-  addType("Number", List(
+  addType("Number", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("to string","String") /* Converts a number to a string */,
     Member("post to wall","Nothing") /* Prints the number to the wall */,
@@ -1028,7 +1083,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of numbers
-  addType("Number Collection", List(
+  addType("Number Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of items */,
     Member("clear","Nothing") /* Clears the numbers */,
@@ -1054,7 +1109,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A map of numbers to numbers
-  addType("Number Map", List(
+  addType("Number Map", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of elements */,
     Member("clear","Nothing") /* Clears the number map. */,
@@ -1074,7 +1129,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // OAuth 2.0 Access Token or Error as described in http://tools.ietf.org/html/rfc6749.
-  addType("OAuth Response", List(
+  addType("OAuth Response", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("access token","String") /* The access token issued by the authorization server. */,
     Member("expires in","Number") /* (Optional) The lifetime in seconds of the access token. */,
@@ -1089,14 +1144,14 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A page on a wall
-  addType("Page", List(
+  addType("Page", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("equals",List("Page"),"Boolean") /* Gets a value indicating if the page is equal to the other */,
     Member("post to wall","Nothing") /* Does nothing. */
   ))
 
   // A page button on the wall
-  addType("Page Button", List(
+  addType("Page Button", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("page","Page") /* Gets the page hosting this button */,
     Member("equals",List("Page Button"),"Boolean") /* Gets a value indicating if both instances are equal */,
@@ -1106,7 +1161,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of page
-  addType("Page Collection", List(
+  addType("Page Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of pages */,
     Member("at index",List("Number"),"Page") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
@@ -1116,22 +1171,23 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Phone numbers, vibrate, etc...
-  addSingleton("Phone", List(
+  addSingleton("Phone", List( 
     Member("dial phone number",List("String"),"Nothing") /* Starts a phone call */,
     Member("choose phone number","Link") /* Chooses a phone number from the contact list */,
     Member("save phone number",List("String"),"Nothing") /* Allows the user to save the phone number */,
-    Member("save contact",List("Contact"),"Nothing") /* Obsolete, use social->save contact instead */,
+    Member("save contact",List("Contact"),"Nothing") /* [**obsolete**] Obsolete, use social->save contact instead */,
     Member("vibrate",List("Number"),"Nothing") /* Vibrates the phone for ... seconds (0.02 minimum) */,
     Member("choose address","Link") /* Chooses an address from the contacts */,
     Member("power source","String") /* Indicates if the phone is on 'battery' or 'external' power source. */
   ))
 
   // A picture
-  addType("Picture", List(
+  addType("Picture", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of pixels */,
     Member("date","DateTime") /* Gets the date time where the picture was taken; if any. */,
     Member("height","Number") /* Gets the height in pixels */,
+    Member("equals",List("Picture"),"Nothing") /* Checks if the picture is the same instance as the other picture. This action does not check that pixels are the same between two different pictures. */,
     Member("is panorama","Boolean") /* Indicates if the picture width is greater than its height */,
     Member("location","Location") /* Gets the location where the picture was taken; if any. */,
     Member("width","Number") /* Gets the width in pixels */,
@@ -1147,6 +1203,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("save to library","String") /* Saves the picture and returns the file name if successful. */,
     Member("clear",List("Color"),"Nothing") /* Clears the picture to a given color */,
     Member("colorize",List("Color","Color","Number"),"Nothing") /* Recolors the picture with the background and foreground color, based on a color threshold between 0.0 and 1.0 */,
+    Member("negative","Nothing") /* Inverts the colors in the picture */,
     Member("desaturate","Nothing") /* Makes picture monochromatic (black and white) */,
     Member("invert","Nothing") /* Inverts the red, blue and green channels */,
     Member("tint",List("Color"),"Nothing") /* Converts every pixel to gray and tints it with the given color. */,
@@ -1159,17 +1216,18 @@ trait StdLib extends AbstractSymbolTable  {
     Member("draw text",List("Number","Number","String","Number","Number","Color"),"Nothing") /* Draws some text border with a given color and font size */,
     Member("fill ellipse",List("Number","Number","Number","Number","Number","Color"),"Nothing") /* Fills a ellipse with a given color */,
     Member("set pixel",List("Number","Number","Color"),"Nothing") /* Sets the pixel color at a given pixel */,
-    Member("to buffer","Buffer") /* [**beta**] Copy all pixels from the picture */,
-    Member("write buffer",List("Buffer"),"Nothing") /* [**beta**] Copy pixels from `buffer` to the picture */,
+    Member("to buffer","Buffer") /* Copy all pixels from the picture */,
+    Member("write buffer",List("Buffer"),"Nothing") /* Copy pixels from `buffer` to the picture */,
     Member("share",List("String","String"),"Nothing") /* Shares this message ('' to pick from a list) */,
     Member("flip horizontal","Nothing") /* Flips the picture horizontally */,
     Member("flip vertical","Nothing") /* Flips the picture vertically */,
+    Member("to data uri",List("Number"),"String") /* Encodes the image into a data uri using the desired quality (1 best, 0 worst). If the quality value is 1, the image is encoded as PNG, otherwise JPEG. */,
     Member("blend svg",List("String","Number","Number","Number","Number","Number"),"Nothing") /* Writes an Scalable Vector Graphics (SVG) document at a given location. By default, this action uses the viewport size provided in the SVG document when width or height are negative. */,
     Member("post to wall","Nothing") /* Displays the image to the wall; you need to call 'update on wall' later if you want changes to be reflected. */
   ))
 
   // A picture album
-  addType("Picture Album", List(
+  addType("Picture Album", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("albums","Picture Albums") /* Gets the children albums */,
     Member("name","String") /* Gets the name of the album */,
@@ -1178,7 +1236,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of picture albums
-  addType("Picture Albums", List(
+  addType("Picture Albums", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("at index",List("Number"),"Picture Album") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Picture Albums") /* ONLY INSIDE SAMPLE: cloning a collection*/,
@@ -1189,7 +1247,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of pictures
-  addType("Pictures", List(
+  addType("Pictures", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("at index",List("Number"),"Picture") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Pictures") /* ONLY INSIDE SAMPLE: cloning a collection*/,
@@ -1204,7 +1262,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A named location
-  addType("Place", List(
+  addType("Place", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("location","Location") /* Gets the location of the place */,
     Member("set location",List("Location"),"Nothing") /* Sets the location of the place */,
@@ -1222,12 +1280,12 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set source",List("String"),"Nothing") /* Sets the source of this place */,
     Member("values","String Map") /* Gets the additional values stored in the place */,
     Member("to string","String") /* Converts to a string name,lat,long */,
-    Member("check in","Nothing") /* Checks into the place (supported for Facebook) */,
+    Member("check in","Nothing") /* [**not implemented**] [**obsolete**] Checks into the place (supported for Facebook) */,
     Member("post to wall","Nothing") /* Posts the place to the wall */
   ))
 
   // A collection of places
-  addType("Place Collection", List(
+  addType("Place Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("continuation","String") /* Gets the identifier of the next set of messages */,
     Member("set continuation",List("String"),"Nothing") /* Sets the identifier of the next set of messages */,
@@ -1250,7 +1308,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Play, stop or resume songs, ...
-  addSingleton("Player", List(
+  addSingleton("Player", List( 
     Member("active song","Song") /* Gets the active song if any */,
     Member("next","Nothing") /* Moves to the next song in the queue of playing songs */,
     Member("previous","Nothing") /* Moves to the previous song in the queue of playing songs */,
@@ -1261,8 +1319,8 @@ trait StdLib extends AbstractSymbolTable  {
     Member("resume","Nothing") /* Resumes a paused song */,
     Member("stop","Nothing") /* Stops playing a song */,
     Member("is muted","Boolean") /* Indicates if the player is muted */,
-    Member("sound volume","Number") /* Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */,
-    Member("set sound volume",List("Number"),"Nothing") /* Sets the sound volume level from 0 (silent) to 1 (current volume) */,
+    Member("sound volume","Number") /* [**not implemented**] Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */,
+    Member("set sound volume",List("Number"),"Nothing") /* [**not implemented**] Sets the sound volume level from 0 (silent) to 1 (current volume) */,
     Member("is repeating","Boolean") /* Indicates if the player is repeating */,
     Member("set repeating",List("Boolean"),"Nothing") /* Sets the repeating on and off */,
     Member("is shuffled","Boolean") /* Indicates if the player is shuffled */,
@@ -1271,56 +1329,56 @@ trait StdLib extends AbstractSymbolTable  {
     Member("is playing","Boolean") /* Indicates if the player is playing a song */,
     Member("is paused","Boolean") /* Indicates if the player is paused */,
     Member("play home media",List("Media Link"),"Nothing") /* Plays an audio/video file from the home network */,
-    Member("volume","Number") /* Volume is no longer supported. */
+    Member("volume","Number") /* [**obsolete**] Volume is no longer supported. */
   ))
 
   // A song playlist
-  addType("Playlist", List(
+  addType("Playlist", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("duration","Number") /* Gets the duration in seconds */,
-    Member("name","String") /* Gets the name of the song */,
-    Member("songs","Songs") /* Gets the songs */,
-    Member("post to wall","Nothing") /* Displays the playlist to the wall */,
-    Member("play","Nothing") /* Plays the songs in the playlist */
+    Member("duration","Number") /* [**not implemented**] Gets the duration in seconds */,
+    Member("name","String") /* [**not implemented**] Gets the name of the song */,
+    Member("songs","Songs") /* [**not implemented**] Gets the songs */,
+    Member("post to wall","Nothing") /* [**not implemented**] Displays the playlist to the wall */,
+    Member("play","Nothing") /* [**not implemented**] Plays the songs in the playlist */
   ))
 
   // A collection of playlists
-  addType("Playlists", List(
+  addType("Playlists", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("count","Number") /* Gets the number of playlists */,
+    Member("count","Number") /* [**not implemented**] Gets the number of playlists */,
     Member("at index",List("Number"),"Playlist") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Playlists") /* ONLY INSIDE SAMPLE: cloning a collection*/,
-    Member("at",List("Number"),"Playlist") /* Gets i-th playlist */,
-    Member("post to wall","Nothing") /* Displays the value to the wall */
+    Member("at",List("Number"),"Playlist") /* [**not implemented**] Gets i-th playlist */,
+    Member("post to wall","Nothing") /* [**not implemented**] Displays the value to the wall */
   ))
 
   // A printer on the home network
-  addType("Printer", List(
+  addType("Printer", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("device","Device") /* Gets the detailled information about this device */,
-    Member("name","String") /* Gets the name of the printer */,
-    Member("post to wall","Nothing") /* Display the printer to the wall */,
-    Member("print text",List("String"),"Nothing") /* Queues a job to print the text. */,
-    Member("is idle","Boolean") /* Indicates if new jobs can start processing immediately without waiting. */,
-    Member("is processing","Boolean") /* Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */,
-    Member("is stopped","Boolean") /* Indicates if no jobs can be processed and intervention is needed. */,
-    Member("state reason","String") /* Indicates additional information about why the Printer is in its current state. */
+    Member("device","Device") /* [**not implemented**] Gets the detailled information about this device */,
+    Member("name","String") /* [**not implemented**] Gets the name of the printer */,
+    Member("post to wall","Nothing") /* [**not implemented**] Display the printer to the wall */,
+    Member("print text",List("String"),"Nothing") /* [**not implemented**] Queues a job to print the text. */,
+    Member("is idle","Boolean") /* [**not implemented**] Indicates if new jobs can start processing immediately without waiting. */,
+    Member("is processing","Boolean") /* [**not implemented**] Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */,
+    Member("is stopped","Boolean") /* [**not implemented**] Indicates if no jobs can be processed and intervention is needed. */,
+    Member("state reason","String") /* [**not implemented**] Indicates additional information about why the Printer is in its current state. */
   ))
 
   // A collection of printers
-  addType("Printer Collection", List(
+  addType("Printer Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("count","Number") /* Gets the number of printers */,
-    Member("clear","Nothing") /* Clears the printers */,
-    Member("add",List("Printer"),"Nothing") /* Adds a printer to the collection */,
+    Member("count","Number") /* [**not implemented**] Gets the number of printers */,
+    Member("clear","Nothing") /* [**not implemented**] [**obsolete**] Clears the printers */,
+    Member("add",List("Printer"),"Nothing") /* [**not implemented**] [**obsolete**] Adds a printer to the collection */,
     Member("at index",List("Number"),"Printer") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Printer Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
-    Member("at",List("Number"),"Printer") /* Gets the printer at index */,
-    Member("post to wall","Nothing") /* Posts the printers on the wall */
+    Member("at",List("Number"),"Printer") /* [**not implemented**] Gets the printer at index */,
+    Member("post to wall","Nothing") /* [**not implemented**] Posts the printers on the wall */
   ))
 
   // Access to the radio
-  addSingleton("Radio", List(
+  addSingleton("Radio", List( 
     Member("is playing","Boolean") /* Indicates if the radio is on */,
     Member("start","Nothing") /* Turns on the radio */,
     Member("stop","Nothing") /* Turns off the radio */,
@@ -1331,11 +1389,11 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Camera, location, microphone and other sensors
-  addSingleton("Senses", List(
+  addSingleton("Senses", List( 
     Member("take camera picture","Picture") /* Takes a picture and returns it. This picture does not contain the gps location. */,
     Member("record microphone","Sound") /* Records audio using the microphone */,
     Member("is device stable","Boolean") /* Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */,
-    Member("has accelerometer","Boolean") /* Test if the senses→acceleration quick is invalid instead */,
+    Member("has accelerometer","Boolean") /* [**obsolete**] Test if the senses→acceleration quick is invalid instead */,
     Member("acceleration stable","Vector3") /* Gets filtered and temporally averaged accelerometer data using an arithmetic mean of the last 25 'optimally filtered' samples, so over 500ms at 50Hz on each axis, to virtually eliminate most sensor noise. This provides a very stable reading but it has also a very high latency and cannot be used for rapidly reacting UI. */,
     Member("acceleration smooth","Vector3") /* Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */,
     Member("acceleration quick","Vector3") /* Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */,
@@ -1343,19 +1401,20 @@ trait StdLib extends AbstractSymbolTable  {
     Member("current location accurate","Location") /* Gets the current phone location with the most accuracy. This includes using services that might charge money, or consuming higher levels of battery power or connection bandwidth. */,
     Member("camera","Camera") /* Gets the primary camera if available */,
     Member("front camera","Camera") /* Gets the front facing camera if available */,
-    Member("has front camera","Boolean") /* Test if the senses→front camera is invalid instead */,
-    Member("has motion","Boolean") /* Test if the senses→motion is invalid instead. */,
-    Member("motion","Motion") /* Gets the current motion that combines data from the accelerometer, compass and gyroscope if available. */,
+    Member("has front camera","Boolean") /* [**obsolete**] Test if the senses→front camera is invalid instead */,
+    Member("has motion","Boolean") /* [**not implemented**] [**obsolete**] Test if the senses→motion is invalid instead. */,
+    Member("motion","Motion") /* [**not implemented**] Gets the current motion that combines data from the accelerometer, compass and gyroscope if available. */,
     Member("orientation","Vector3") /* Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */,
-    Member("has compass","Boolean") /* Test if the senses→heading is invalid instead */,
+    Member("has compass","Boolean") /* [**obsolete**] Test if the senses→heading is invalid instead */,
     Member("heading","Number") /* Gets the compass heading, in degrees, measured clockwise from the Earth’s geographic north. */,
     Member("has gyroscope","Boolean") /* Indicates if the gyroscope is available on the device */,
     Member("rotation speed","Vector3") /* Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */,
-    Member("battery level","Number") /* Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */
+    Member("battery level","Number") /* Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */,
+    Member("bluetooth devices","Bluetooth Device Collection") /* Get the list of Bluetooth widgets paired with your device. */
   ))
 
   // Emails, sms, contacts, calendar, ...
-  addSingleton("Social", List(
+  addSingleton("Social", List( 
     Member("send email",List("String","String","String"),"Nothing") /* Opens the mail client */,
     Member("save email",List("String"),"Nothing") /* Allows the user to save the email address (email) */,
     Member("save contact",List("Contact"),"Nothing") /* Saves a new contact */,
@@ -1364,8 +1423,8 @@ trait StdLib extends AbstractSymbolTable  {
     Member("link email",List("String"),"Link") /* Creates a link from an email */,
     Member("create message",List("String"),"Message") /* Creates a message to share */,
     Member("create place",List("String","Location"),"Place") /* Creates a place */,
-    Member("search",List("String","String"),"Message Collection") /* Searches for recent messages in a social network (twitter, facebook) */,
-    Member("search places nearby",List("String","String","Location","Number"),"Place Collection") /* Searches for places nearby. The distance is in meters. */,
+    Member("search",List("String","String"),"Message Collection") /* [**obsolete**] Searches for recent messages in a social network (twitter, facebook) */,
+    Member("search places nearby",List("String","String","Location","Number"),"Place Collection") /* [**not implemented**] [**obsolete**] Searches for places nearby. The distance is in meters. */,
     Member("contacts",List("String"),"Contact Collection") /* Retrieves the list of contacts */,
     Member("search contacts",List("String"),"Contact Collection") /* Searches for contacts by name. */,
     Member("choose email","Link") /* Chooses an email from the contact list */,
@@ -1375,7 +1434,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A song
-  addType("Song", List(
+  addType("Song", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("album","Song Album") /* Gets the song album containing the song */,
     Member("artist","String") /* Gets the name of the artist */,
@@ -1386,12 +1445,12 @@ trait StdLib extends AbstractSymbolTable  {
     Member("rating","Number") /* Gets the users rating. -1 if not rated. */,
     Member("track","Number") /* Gets the track number in the album */,
     Member("play","Nothing") /* Plays the song. */,
-    Member("protected","Boolean") /* Gets a value whether the song is DRM protected */,
+    Member("protected","Boolean") /* [**not implemented**] Gets a value whether the song is DRM protected */,
     Member("post to wall","Nothing") /* Displays the song on the wall */
   ))
 
   // A song album
-  addType("Song Album", List(
+  addType("Song Album", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("art","Picture") /* Gets album art picture */,
     Member("artist","String") /* Gets the name of the artist */,
@@ -1406,7 +1465,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of albums
-  addType("Song Albums", List(
+  addType("Song Albums", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("at index",List("Number"),"Song Album") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Song Albums") /* ONLY INSIDE SAMPLE: cloning a collection*/,
@@ -1417,7 +1476,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of songs
-  addType("Songs", List(
+  addType("Songs", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("at index",List("Number"),"Song") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
     Member("copy","Songs") /* ONLY INSIDE SAMPLE: cloning a collection*/,
@@ -1430,7 +1489,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A sound effect
-  addType("Sound", List(
+  addType("Sound", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("pan","Number") /* Gets the panning, ranging from -1.0 (full left) to 1.0 (full right). */,
     Member("set pan",List("Number"),"Nothing") /* Sets the panning, ranging from -1.0 (full left) to 1.0 (full right). */,
@@ -1439,22 +1498,22 @@ trait StdLib extends AbstractSymbolTable  {
     Member("volume","Number") /* Gets the volume from 0 (silent) to 1 (full volume) */,
     Member("set volume",List("Number"),"Nothing") /* Sets the volume from 0 (silent) to 1 (full volume). */,
     Member("duration","Number") /* Gets the duration in seconds. */,
-    Member("pause","Nothing") /* Not supported anymore */,
+    Member("pause","Nothing") /* [**obsolete**] Not supported anymore */,
     Member("play","Nothing") /* Plays the sound effect */,
     Member("play special",List("Number","Number","Number"),"Nothing") /* Plays the song with different volume (0 to 1), pitch (-1 to 1) and pan (-1 to 1). */,
     Member("post to wall","Nothing") /* Displays a player on the wall */,
-    Member("resume","Nothing") /* Not supported anymore */,
-    Member("state","String") /* Not supported anymore */,
-    Member("stop","Nothing") /* Not supported anymore */
+    Member("resume","Nothing") /* [**obsolete**] Not supported anymore */,
+    Member("state","String") /* [**obsolete**] Not supported anymore */,
+    Member("stop","Nothing") /* [**obsolete**] Not supported anymore */
   ))
 
   // A spring between two sprites.
-  addType("Spring", List(
+  addType("Spring", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */
   ))
 
   // A sprite
-  addType("Sprite", List(
+  addType("Sprite", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("friction","Number") /* Gets the fraction of speed loss between 0 and 1 */,
     Member("set friction",List("Number"),"Nothing") /* Sets the friction to a fraction of speed loss between 0 and 1 */,
@@ -1491,6 +1550,11 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set acceleration x",List("Number"),"Nothing") /* Sets the x acceleration in pixels/sec^2 */,
     Member("set acceleration y",List("Number"),"Nothing") /* Sets the y acceleration in pixels/sec^2 */,
     Member("set acceleration",List("Number","Number"),"Nothing") /* Sets the acceleration in pixels/sec^2 */,
+    Member("on tap",List("Position Action"),"Nothing") /* Set the handler invoked when the sprite is tapped */,
+    Member("on swipe",List("Vector Action"),"Nothing") /* Set the handler invoked when the sprite is swiped */,
+    Member("on drag",List("Vector Action"),"Nothing") /* Set the handler invoked when the sprite is dragged */,
+    Member("on touch down",List("Position Action"),"Nothing") /* Set the handler invoked when the sprite is touched initially */,
+    Member("on touch up",List("Position Action"),"Nothing") /* Set the handler invoked when the sprite touch is released */,
     Member("hide","Nothing") /* Hide sprite. */,
     Member("is visible","Boolean") /* Returns true if sprite is not hidden */,
     Member("move",List("Number","Number"),"Nothing") /* Moves sprite. */,
@@ -1513,7 +1577,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of sprites
-  addType("Sprite Set", List(
+  addType("Sprite Set", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("clear","Nothing") /* Removes all sprites from the set. */,
     Member("count","Number") /* Returns the number of sprites in the set */,
@@ -1529,7 +1593,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A piece of text
-  addType("String", List(
+  addType("String", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("split",List("String"),"String Collection") /* Returns a string collection that contains the substrings in this string that are delimited by elements of a specified string. */,
     Member("post to wall","Nothing") /* Displays string on the wall */,
@@ -1573,7 +1637,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A collection of strings
-  addType("String Collection", List(
+  addType("String Collection", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of strings */,
     Member("clear","Nothing") /* Clears the strings */,
@@ -1597,7 +1661,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // A map from strings to strings
-  addType("String Map", List(
+  addType("String Map", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of elements in the map */,
     Member("keys","String Collection") /* Gets the keys in the map */,
@@ -1612,7 +1676,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // 2D barcodes, QR codes and NFC tags
-  addSingleton("Tags", List(
+  addSingleton("Tags", List( 
     Member("nfc receive",List("String"),"String") /* Receives text through NFC. `type` may also be a mime type. */,
     Member("nfc receive picture","Picture") /* Receives a picture through NFC. */,
     Member("nfc send",List("String","String"),"Nothing") /* Sends a url, text or any other text format using NFC. `type` may be a mime type. */,
@@ -1620,17 +1684,17 @@ trait StdLib extends AbstractSymbolTable  {
     Member("nfc write tag",List("String","String"),"Nothing") /* Writes a static NFC tag with url, text or any other format. `type` may be a mime type. */,
     Member("tag url",List("String","Number","Boolean"),"Picture") /* Generates a 2D barcode pointing to the url using Microsoft Tag. url must be less than 1000 character long and size must be between 0.75 and 5 inches. */,
     Member("tag text",List("String","Number","Boolean"),"Picture") /* Generates a 2D barcode pointing to the text using Microsoft Tag. text must be less than 1000 character long and size must be between 0.75 and 5 inches. */,
-    Member("scan","String") /* [**dbg**] Scans an id tag create by TouchDevelop and returns the embeded text. */
+    Member("scan","String") /* [**not implemented**] [**dbg**] Scans an id tag created by TouchDevelop and returns the embeded text. */
   ))
 
   // A task created with `async` keyword
-  addType("Task", List(
+  addType("Task", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("completed","Boolean") /* Check if the task is done yet */
   ))
 
   // A text box
-  addType("TextBox", List(
+  addType("TextBox", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("text","String") /* Gets the text */,
     Member("set text",List("String"),"Nothing") /* Sets the text */,
@@ -1648,41 +1712,43 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // This type is no longer supported. See [](/tiles) for more information.
-  addType("Tile", List(
+  addType("Tile", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
-    Member("title","String") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("set title",List("String"),"Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("back title","String") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("set back title",List("String"),"Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("background","Color") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("set background",List("Color"),"Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("back icon","Picture") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("set back icon",List("Picture"),"Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("content","String") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("set content",List("String"),"Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("counter","Number") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("set counter",List("Number"),"Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("icon","Picture") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("set icon",List("Picture"),"Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("panorama","Boolean") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("set panorama",List("Boolean"),"Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("height","Number") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("width","Number") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("clear back icon","Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("clear icon","Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("pin to start","Nothing") /* This action is no longer supported. See [](/tiles) for more information. */,
-    Member("post to wall","Nothing") /* This action is no longer supported. See [](/tiles) for more information. */
+    Member("title","String") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("set title",List("String"),"Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("back title","String") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("set back title",List("String"),"Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("background","Color") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("set background",List("Color"),"Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("back icon","Picture") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("set back icon",List("Picture"),"Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("content","String") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("set content",List("String"),"Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("counter","Number") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("set counter",List("Number"),"Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("icon","Picture") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("set icon",List("Picture"),"Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("panorama","Boolean") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("set panorama",List("Boolean"),"Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("height","Number") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("width","Number") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("clear back icon","Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("clear icon","Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("pin to start","Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */,
+    Member("post to wall","Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */
   ))
 
   // tiles and notifications for Windows and Windows Phone
-  addSingleton("Tiles", List(
+  addSingleton("Tiles", List( 
     Member("set default counter",List("Number"),"Nothing") /* Sets the counter of the default tile. Hidden if the number is not between 1 or 99. */,
     Member("set default text",List("String","String"),"Nothing") /* Sets the front of a standard tile. */,
-    Member("pin default","Nothing") /* Asks the user to pin the default tile. */
+    Member("pin default","Nothing") /* Pins or updates the default tile. */,
+    Member("pin pictures",List("String","Number","Picture","Picture Collection"),"Nothing") /* Pins or updates the default tile with custom pictures. */,
+    Member("pin picture",List("String","String","Number","Picture"),"Nothing") /* Pins or updates the default tile with a custom picture. */
   ))
 
   // time and dates
-  addSingleton("Time", List(
+  addSingleton("Time", List( 
     Member("sleep",List("Number"),"Nothing") /* Waits for a specified amount of seconds */,
     Member("now","DateTime") /* Gets the current time */,
     Member("today","DateTime") /* Gets today's date without time */,
@@ -1694,8 +1760,32 @@ trait StdLib extends AbstractSymbolTable  {
     Member("log",List("String"),"Nothing") /* Appends this message to the debug log. Does nothing when the script is published. */
   ))
 
+  // A timer
+  addType("Timer", List( 
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("on trigger",List("Action"),"Nothing") /* sets the action to perform when the timer fires */,
+    Member("is active","Boolean") /* is the timer active */,
+    Member("is interval","Boolean") /* is this an interval timer that fires regularly */,
+    Member("set interval",List("Number"),"Nothing") /* set the regular interval in seconds at which this timer fires */,
+    Member("set timeout",List("Number"),"Nothing") /* set the time in seconds after which this timer fires once */,
+    Member("pause","Nothing") /* deactivates the timer */,
+    Member("resume","Nothing") /* reactives the timer */
+  ))
+
+  // A user account
+  addType("User", List( 
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("id","String") /* Gets the id */,
+    Member("name","String") /* Gets the name of the user */,
+    Member("about","String") /* Gets the about-me text of the user */,
+    Member("has picture","Boolean") /* Indicates if the user has a picture */,
+    Member("picture address",List("String"),"String") /* Gets the url of the user picture where original is the unmodified user picture, square is 50x50, small has 50px width, normal has 100px width, large has roughly 200px width */,
+    Member("picture",List("String"),"Picture") /* Gets the user picture where original is the unmodified user picture, square is 50x50, small has 50px width, normal has 100px width, large has roughly 200px width */,
+    Member("post to wall","Nothing") /* Displays the link on the wall */
+  ))
+
   // A 3D vector
-  addType("Vector3", List(
+  addType("Vector3", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("x","Number") /* Gets the x-component */,
     Member("y","Number") /* Gets the y-component */,
@@ -1716,9 +1806,9 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Ask or display values on the wall...
-  addSingleton("Wall", List(
+  addSingleton("Wall", List( 
     Member("clear","Nothing") /* Clears the background, buttons and entries */,
-    Member("display search",List("Boolean"),"Nothing") /* Indicates whether to show or hide the search icon */,
+    Member("display search",List("Boolean"),"Nothing") /* [**obsolete**] This action is not supported anymore. */,
     Member("prompt",List("String"),"Nothing") /* Prompts the user with a ok button */,
     Member("ask boolean",List("String","String"),"Boolean") /* Prompts the user with ok and cancel buttons */,
     Member("ask number",List("String"),"Number") /* Prompts the user to input a number */,
@@ -1734,11 +1824,11 @@ trait StdLib extends AbstractSymbolTable  {
     Member("set page transition style",List("String"),"Nothing") /* [**dbg**] Sets the animation for push/pop of pages. */,
     Member("set background picture",List("Picture"),"Nothing") /* Sets the wall background picture. The picture will be resized and clipped to the screen background as needed. */,
     Member("set background camera",List("Camera"),"Nothing") /* Sets the wall background camera. */,
-    Member("set transform matrix",List("Number","Number","Number","Number","Number","Number"),"Nothing") /* Sets the 3x3 affine matrix transformation applied to the wall. */,
+    Member("set transform matrix",List("Number","Number","Number","Number","Number","Number"),"Nothing") /* [**not implemented**] Sets the 3x3 affine matrix transformation applied to the wall. */,
     Member("set reversed",List("Boolean"),"Nothing") /* Reverses the elements on the wall and inserts new ones at the bottom. */,
     Member("set title",List("String"),"Nothing") /* Sets the title of the wall. */,
     Member("set subtitle",List("String"),"Nothing") /* Sets the subtitle of the wall. */,
-    Member("icon names","String Collection") /* Use button icon names instead. */,
+    Member("icon names","String Collection") /* [**obsolete**] Use button icon names instead. */,
     Member("clear buttons","Nothing") /* Clears the application bar buttons and hides the bar */,
     Member("add button",List("String","String"),"Page Button") /* Add a new button. icon must be the name of a built-in icon, text must be non-empty. */,
     Member("current page","Page") /* Gets the current page displayed on the wall */,
@@ -1752,13 +1842,13 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // Search and browse the web...
-  addSingleton("Web", List(
+  addSingleton("Web", List( 
     Member("search",List("String"),"Link Collection") /* Searching the web using Bing */,
     Member("search nearby",List("String","Location","Number"),"Link Collection") /* Searching the web near a location using Bing. Distance in meters, negative to ignore. */,
     Member("search images",List("String"),"Link Collection") /* Searching images using Bing */,
     Member("search images nearby",List("String","Location","Number"),"Link Collection") /* Searching images near a location using Bing. Distance in meters, negative to ignore. */,
-    Member("search phone numbers",List("String"),"Link Collection") /* Search phone numbers using Bing */,
-    Member("search phone numbers nearby",List("String","Location","Number"),"Link Collection") /* Search phone numbers near a location using Bing. Distance in meters, negative to ignore. */,
+    Member("search phone numbers",List("String"),"Link Collection") /* [**obsolete**] Search phone numbers using Bing */,
+    Member("search phone numbers nearby",List("String","Location","Number"),"Link Collection") /* [**obsolete**] Search phone numbers near a location using Bing. Distance in meters, negative to ignore. */,
     Member("search news",List("String"),"Link Collection") /* Searching news using Bing */,
     Member("search news nearby",List("String","Location","Number"),"Link Collection") /* Searching news near a location using Bing. Distance in meters, negative to ignore. */,
     Member("is connected","Boolean") /* Indicates whether any network connection is available */,
@@ -1770,7 +1860,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("link media",List("String"),"Link") /* Creates a link to an internet audio/video */,
     Member("link image",List("String"),"Link") /* Creates a link to an internet image */,
     Member("link url",List("String","String"),"Link") /* Creates a link to an internet page */,
-    Member("link deep zoom",List("String"),"Link") /* Creates a multi-scale image from an image url */,
+    Member("link deep zoom",List("String"),"Link") /* [**obsolete**] Creates a multi-scale image from an image url */,
     Member("download",List("String"),"String") /* Downloads the content of an internet page (http get) */,
     Member("download json",List("String"),"Json Object") /* Downloads a web service response as a JSON data structure (http get) */,
     Member("download sound",List("String"),"Sound") /* Downloads a WAV sound file from internet */,
@@ -1787,7 +1877,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("json object","Json Object") /* Returns an empty json object */,
     Member("json array","Json Object") /* Returns an empty json array */,
     Member("xml",List("String"),"Xml Object") /* Parses the string as a xml element */,
-    Member("rss",List("String"),"Message Collection") /* Obsolete. Use 'feed' instead. */,
+    Member("rss",List("String"),"Message Collection") /* [**obsolete**] Obsolete. Use 'feed' instead. */,
     Member("create request",List("String"),"Web Request") /* Creates a web request */,
     Member("base64 decode",List("String"),"String") /* Decodes a string that has been base64-encoded */,
     Member("base64 encode",List("String"),"String") /* Converts a string into an base64-encoded string */,
@@ -1799,7 +1889,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // An HTTP web request
-  addType("Web Request", List(
+  addType("Web Request", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("method","String") /* Gets whether it was a 'get' or a 'post'. */,
     Member("set method",List("String"),"Nothing") /* Sets the method as 'get' or 'post'. Default value is 'get'. */,
@@ -1815,7 +1905,7 @@ trait StdLib extends AbstractSymbolTable  {
     Member("send","Web Response") /* Performs the request synchronously */,
     Member("set content",List("String"),"Nothing") /* Sets the content of a 'post' request */,
     Member("set content as json",List("Json Object"),"Nothing") /* Sets the content of a 'post' request as the JSON tree */,
-    Member("set content as buffer",List("Buffer"),"Nothing") /* [**beta**] Sets the content of a 'post' request as a binary buffer */,
+    Member("set content as buffer",List("Buffer"),"Nothing") /* Sets the content of a 'post' request as a binary buffer */,
     Member("set content as form",List("Form Builder"),"Nothing") /* Sets the content as multipart/form-data. */,
     Member("set content as picture",List("Picture","Number"),"Nothing") /* Sets the content of a 'post' request as a JPEG encoded image. Quality from 0 (worse) to 1 (best). */,
     Member("set content as xml",List("Xml Object"),"Nothing") /* Sets the content of a 'post' request as the XML tree */,
@@ -1825,14 +1915,14 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // An HTTP web response
-  addType("Web Response", List(
+  addType("Web Response", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("request","Web Request") /* Gets the request associated to this response */,
     Member("status code","Number") /* Gets the HTTP Status code of the request if any */,
     Member("content","String") /* Reads the response body as a string */,
     Member("content as json","Json Object") /* Reads the response body as a JSON tree */,
-    Member("content as picture","Picture") /* Reads the response body as a picture */,
-    Member("content as sound","Sound") /* Reads the response body as a wave sound */,
+    Member("content as picture","Picture") /* [**not implemented**] Reads the response body as a picture */,
+    Member("content as sound","Sound") /* [**not implemented**] Reads the response body as a wave sound */,
     Member("content as xml","Xml Object") /* Reads the response body as a XML tree */,
     Member("header",List("String"),"String") /* Gets the value of a given header */,
     Member("header names","String Collection") /* Gets the names of the headers */,
@@ -1840,7 +1930,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // An xml element or collection of elements
-  addType("Xml Object", List(
+  addType("Xml Object", List( 
     Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
     Member("count","Number") /* Gets the number of child element */,
     Member("is element","Boolean") /* Indicates if this instance is an element or a filtered collection */,
@@ -1861,7 +1951,7 @@ trait StdLib extends AbstractSymbolTable  {
   ))
 
   // an unknown value
-  addType("Unknown", List(
+  addType("Unknown", List( 
     Member(":=",List("Unknown","Unknown"),"Unknown") /*  */,
     Member(",",List("Unknown","Unknown"),"Unknown") /*  */,
     Member("async",List("Unknown"),"Unknown") /*  */,
