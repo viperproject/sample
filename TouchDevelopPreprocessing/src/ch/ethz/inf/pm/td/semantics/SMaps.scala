@@ -37,7 +37,7 @@ class SMaps extends AAny {
     /** Calculates the directions between two coordinates using Bing. */
     case "directions" =>
       val List(from,to,walking) = parameters // Location,Location,Boolean
-      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"directions",
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TLocation_Collection.typ)

@@ -35,7 +35,7 @@ class SLanguages extends AAny {
     /** Automatically detects the language of a given text using Bing. */
     case "detect language" =>
       val List(text) = parameters // String
-      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"detect language",
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TString.typ)
@@ -43,14 +43,14 @@ class SLanguages extends AAny {
     /** Extracts text in the picture using Project Hawaii from Microsoft Research. */
     case "picture to text" =>
       val List(lang,pic) = parameters // String,Picture
-      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"picture to text",
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TString.typ)
 
     /** Converts the microphone dictation to text using Project Hawaii from Microsoft Research. */
     case "record text" =>
-      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"record text",
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TString.typ)
@@ -69,7 +69,7 @@ class SLanguages extends AAny {
     /** Converts a sound to a text using Project Hawaii from Microsoft Research. */
     case "speech to text" =>
       val List(lang,speech) = parameters // String,Sound
-      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"speech to text",
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TString.typ)
@@ -77,7 +77,7 @@ class SLanguages extends AAny {
     /** Translates some text between two languages using Bing. Empty source language to auto-detect. */
     case "translate" =>
       val List(source_lang,target_lang,text) = parameters // String,String,String
-      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"translate",
           "Check if the device is connected to the internet before using the connection")
       TopWithInvalid[S](TString.typ)

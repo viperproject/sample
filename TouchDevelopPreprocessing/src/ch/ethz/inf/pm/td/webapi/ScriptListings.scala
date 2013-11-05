@@ -138,7 +138,7 @@ class ScriptListings extends IteratorOverPrograms {
 
   override def getLabel() = "TouchDevelop scripts"
 
-  protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= s
+  protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= s.filter( { t : ScriptRecord => !t.haserrors })
 
 }
 
@@ -150,6 +150,17 @@ class TopScripts extends ScriptListings {
     })
 
   override def getLabel() = "TouchDevelop top scripts"
+}
+
+class TopScriptsBefore(d:java.util.Date) extends TopScripts {
+
+  override def getLabel() = "Top,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
+
+  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]=
+    s.filter( { t : ScriptRecord =>
+      val dT = new java.util.Date(t.time.asInstanceOf[Long]*1000)
+      dT.before(d) && !t.haserrors
+    })
 }
 
 class RootTopScriptsBefore(d:java.util.Date) extends TopScripts {

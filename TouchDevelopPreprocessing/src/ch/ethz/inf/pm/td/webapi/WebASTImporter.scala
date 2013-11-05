@@ -179,11 +179,15 @@ object WebASTImporter {
     val JUserType = """\{"o":"(.*)"\}""".r
     val JLibraryType = """\{"l":"(.*)","o":"(.*)"\}""".r
     val JGenericTypeInstance = """\{"g":"(.*)","a":\["(.*)"\]\}""".r
+    val JGenericUserTypeInstance = """\{"g":"(.*)","a":\[\{"o":"(.*)"\}\]\}""".r
+
 
     a match {
       case JLibraryType(l,o) =>
         TypeName(o)
       case JGenericTypeInstance(g,a) =>
+        TypeName(a+" "+g)
+      case JGenericUserTypeInstance(g,a) =>
         TypeName(a+" "+g)
       case JUserType(o) =>
         TypeName(o)

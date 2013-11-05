@@ -82,6 +82,17 @@ class TJson_Object extends AMap {
        val List(key) = parameters // String
        Return[S](Field[S](CollectionAt[S](this0,key),TJson_Object.field_to_time))
 
+    /** Copy current JSON object into a Json Builder so it can be modified */
+    case "to json builder" =>
+      Top[S](TJson_Builder.typ,initials = Map (
+        TJson_Builder.field_keys -> Field[S](this0,TJson_Object.field_keys),
+        TJson_Builder.field_kind -> Field[S](this0,TJson_Object.field_kind),
+        TJson_Builder.field_to_boolean -> Field[S](this0,TJson_Object.field_to_boolean),
+        TJson_Builder.field_to_number -> Field[S](this0,TJson_Object.field_to_number),
+        TJson_Builder.field_to_string -> Field[S](this0,TJson_Object.field_to_string),
+        TJson_Builder.field_to_time -> Field[S](this0,TJson_Object.field_to_time)
+      ))
+
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 

@@ -160,7 +160,7 @@ class TString extends AAny {
       var curState = state
       curState = Top[S](TString_Collection.typ)(curState,pp)
       val obj = curState.getExpression()
-      curState = Assume(CollectionSize[S](obj) > 1)(curState,pp)
+      curState = Assume(CollectionSize[S](obj) >= 1)(curState,pp)
       Return[S](obj)(curState,pp)
 
     /** Determines whether the beginning matches the specified string */

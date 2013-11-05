@@ -18,8 +18,8 @@ for(a <- toAnalyze) {
 //TestRunner("anffpsen",analyzer _)
 //TestRunner("ajxunopn",analyzer _)
 //TestRunner("aaslb",analyzer _)
-//TestRunner("aagya",analyzer _)
-TestRunner("lqar",analyzer _)
+TestRunner("aawlauxh",analyzer _)
+//TestRunner("aaihptlx",analyzer _)
 
 //TestRunner("kyom",analyzer _) // Simply excluded: Closures
 //TestRunner("veuo",analyzer _)

@@ -127,16 +127,15 @@ object MethodSummaries {
 
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
+        !id.getType().asInstanceOf[TouchType].isSingleton &&
         !CFGGenerator.isGlobalReferenceIdent(id.toString())
       case _ => false
     })
     curState = curState.pruneUnreachableHeap()
 
     abnormalExits = abnormalExits match {
-      case Some(x) =>
-        Some(curState.widening(x.asInstanceOf[S],curState))
-      case None =>
-        Some(curState)
+      case Some(x) => Some(curState.widening(x.asInstanceOf[S],curState))
+      case None => Some(curState)
     }
 
     curState.bottom()

@@ -58,7 +58,7 @@ object TouchAnalysisParameters {
   /**
    * Reset assumptions about environment between events / public methods
    */
-  val resetEnv = true
+  val resetEnv = false
 
   /**
    * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary number of event occurrences
@@ -99,11 +99,13 @@ object TouchAnalysisParameters {
 
   val reportDummyImplementations = false
 
+  val reportNumericalErrors = false
+
+  val reportPrematurelyOnInternetAccess = false
+
   val enableCollectionMustAnalysis = false
 
   val enableCollectionSummaryAnalysis = false
-
-  val warnPrematurelyOnInternetAccess = false
   /**
    * If this is true, the analysis will print something like "parameter X ("somevalue",invalid) may be invalid"
    * This is helpful, but may confuse users and duplicate warnings

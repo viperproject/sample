@@ -500,6 +500,14 @@ trait State[S <: State[S]] extends Lattice[S] {
    */
   def optimizeSummaryNodes() : S
 
+  /**
+   * May try to explain an error
+   *
+   * @param expr An error-expression that should be infeasible but exposes an error
+   * @return If a cause of the error is found, it returns an explanation and the program point of the cause
+   */
+  def explainError(expr:ExpressionSet):Set[(String,ProgramPoint)] = Set.empty
+
 }
 
 /**
@@ -578,4 +586,5 @@ object UtilitiesOnStates {
       val (otherExpr, finalState)= backwardExecuteListStatements[S](state1, xs)
       (expr :: otherExpr, finalState);
   }
+
 }

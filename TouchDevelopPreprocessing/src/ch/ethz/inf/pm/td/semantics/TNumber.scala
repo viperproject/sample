@@ -4,6 +4,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of Number
@@ -35,7 +36,8 @@ class TNumber extends AAny {
     case "*" => Return(this0 * parameters.head)
     case "-" => Return(this0 - parameters.head)
     case "/" =>
-      Error[S](parameters.head equal 0, "Possible division by zero")
+      if (TouchAnalysisParameters.reportNumericalErrors)
+        Error[S](parameters.head equal 0, "Possible division by zero")
       Return(this0 / parameters.head)
 
     case "and" => Return((this0 unequal 0) && parameters.head)

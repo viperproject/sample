@@ -49,7 +49,7 @@ class BooleanInvalidDomainWithSource
 
   override def assign(variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = {
     val res = eval(expr)
-    if (res.isBottom || res.value.isEmpty)
+    if (!res.isTop && (res.isBottom || res.value.isEmpty))
       bottom()
     else if (variable.representSingleVariable()) this.add(variable, res)
     else this.add(variable, domBottom.lub(this.get(variable), res))

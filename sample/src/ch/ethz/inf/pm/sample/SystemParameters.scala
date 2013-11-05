@@ -16,7 +16,7 @@ object SystemParameters {
   /**
    The number of iterations after whom widening is applied
   */
-  val wideningLimit : Int = 5;
+  val wideningLimit : Int = 3;
   /**
    The path of the file currently analyzed
   */

@@ -61,7 +61,7 @@ public class InstalledPlugins {
         heapanalyses[5]=new TVSHeap();
 
 
-        iterators = new IteratorOverPrograms[14];
+        iterators = new IteratorOverPrograms[15];
         iterators[0] = new TopScripts();
         iterators[1] = new NewScripts();
         iterators[2] = new FeaturedScripts();
@@ -76,6 +76,7 @@ public class InstalledPlugins {
         iterators[11] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/A_131101","A_131101");
         iterators[12] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/AA_131101","AA_131101");
         iterators[13] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101","TOP_131101");
+        iterators[14] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101_NR","TOP_131101_NR");
 
     }
 

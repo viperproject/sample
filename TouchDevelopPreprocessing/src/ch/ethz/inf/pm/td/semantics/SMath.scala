@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * User: lucas
@@ -229,7 +230,8 @@ class SMath extends AAny {
     /** Returns the square root of a specified number */
     case "sqrt" =>
       val List(x) = parameters // Number
-      Error[S](x < 0, "sqrt", "Might compute the square root of a negative number")
+      if (TouchAnalysisParameters.reportNumericalErrors)
+        Error[S](x < 0, "sqrt", "Might compute the square root of a negative number")
       Return[S]((0 ndTo x),(x ndTo 1)) // PRECISION: This is very rough
 
     /** Returns the tangent of the specified angle (in radians) */

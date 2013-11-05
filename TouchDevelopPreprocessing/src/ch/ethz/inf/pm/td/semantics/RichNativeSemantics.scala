@@ -44,8 +44,10 @@ object RichNativeSemantics {
   def Error[S <: State[S]](expr:RichExpression, message:String)(implicit state:S, pp:ProgramPoint):S = {
     val errorState = state.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
     if(!errorState.lessEqual(state.bottom())) {
-      if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString))
-        Reporter.reportError(message,pp)
+      if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
+        || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)) {
+          Reporter.reportError(message+" "+state.explainError(expr).map{x => x._1+" "+x._2.toString}.mkString(";"),pp)
+      }
       state.assume(expr.not())
     } else state
   }

@@ -91,7 +91,7 @@ class TWeb_Request extends AAny {
 
     /** Performs the request synchronously */
     case "send" =>
-      if (TouchAnalysisParameters.warnPrematurelyOnInternetAccess)
+      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not,"send",
           "Check if the device is connected to the internet before using the connection")
       Top[S](TWeb_Response.typ,Map(TWeb_Response.field_request -> this0))
