@@ -86,7 +86,8 @@ class TString extends AAny {
     /** Checks if two strings are the same */
     case "equals" =>
       val List(other) = parameters
-      Return[S](this0 equal other)
+      val ret = Return[S](this0 equal other)
+      ret
 
     /** Returns the index of the first occurence if found starting at a given position */
     case "index of" =>

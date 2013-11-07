@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
  * A concrete variant of a domain for touch develop: Numerical with Invalid values.
  */
 class InvalidAnd[T <: NumericalDomain[T]](a1:T)
-  extends NumericWithInvalidDomain[T,BooleanInvalidDomainWithSource,InvalidAnd[T]](a1,new BooleanInvalidDomainWithSource()) {
+  extends NumericWithInvalidDomain[T,BooleanInvalidDomain,InvalidAnd[T]](a1,new BooleanInvalidDomain()) {
   override def factory() = new InvalidAnd(a1.factory())
 }
 

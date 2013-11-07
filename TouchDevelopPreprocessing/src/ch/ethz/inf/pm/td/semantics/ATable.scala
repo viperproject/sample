@@ -20,6 +20,9 @@ class ATable(tableTyp:TouchType,rowTyp:TouchType,rowTableField:TouchField) exten
       newState = CollectionIncreaseLength[S](this0)(newState, pp)
       Return[S](row)(newState, pp)
 
+    case "row at" =>
+      super.forwardSemantics(this0,"at index",parameters,returnedType)
+
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 

@@ -45,7 +45,7 @@ abstract class AAny extends NativeMethodSemantics {
         var curState = state
 
         // Check if the object or an argument can be invalid - in this case, we must produce an error
-        if(operator != "is invalid" && operator != ":=" && operator != ",") {
+        if(operator != "is invalid" && operator != ":=" && operator != "," && thisExpr.getType().getName() != "code") {
           if (!thisExpr.getType().isStatic()) {
             if (thisExpr.getType() != TBoolean.typ) { // FIXME: Invalid boolean types. Do they exist?
               if (TouchAnalysisParameters.printValuesInWarnings)

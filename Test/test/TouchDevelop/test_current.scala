@@ -18,8 +18,20 @@ for(a <- toAnalyze) {
 //TestRunner("anffpsen",analyzer _)
 //TestRunner("ajxunopn",analyzer _)
 //TestRunner("aaslb",analyzer _)
-TestRunner("aawlauxh",analyzer _)
+//TestRunner("aawlauxh",analyzer _)
 //TestRunner("aaihptlx",analyzer _)
+
+//TestRunner("gyxha",analyzer _)
+
+// TestRunner("ybcy",analyzer _)
+//TestRunner("dvvx",analyzer _) //NONTERM
+//TestRunner("tqgla",analyzer _)
+//TestRunner("ayleioek",analyzer _)
+//TestRunner("uyphb",analyzer _)
+//TestRunner("wxoza",analyzer _) // SOMEWHAT, OKAY
+TestRunner("gyxha",analyzer _)
+//TestRunner("etww",analyzer _)
+//TestRunner("awaja",analyzer _)
 
 //TestRunner("kyom",analyzer _) // Simply excluded: Closures
 //TestRunner("veuo",analyzer _)

@@ -62,6 +62,7 @@ object GenericTypes {
 
   def gTable(thisName:String,typ:String):List[Member] = gCollection(thisName,typ) ::: List(
     Member("add row",List(),typ),
+    Member("row at",List("Number"),typ),
     Member("clear",List(),"Nothing")
   )
 

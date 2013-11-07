@@ -325,6 +325,69 @@ trait StdLib extends AbstractSymbolTable  {
     Member("post to wall","Nothing") /* Display all objects on the wall */
   ))
 
+  // A collection of objects
+  addType("Sound Collection", List(
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("count","Number") /* Gets the number of objects. */,
+    Member("clear","Nothing") /* Removes all objects from the collection */,
+    Member("add",List("Sound"),"Nothing") /* Adds an object */,
+    Member("add many",List("Sound Collection"),"Nothing") /* Adds many objects at once */,
+    Member("index of",List("Sound","Number"),"Number") /* Gets the index of the first occurrence of an object. Returns -1 if not found or start is out of range. */,
+    Member("at index",List("Number"),"Sound") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
+    Member("copy","Sound Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
+    Member("at",List("Number"),"Sound") /* Gets the object at position index. Returns invalid if index is out of range */,
+    Member("contains",List("Sound"),"Boolean") /* Checks if the item is in the collection */,
+    Member("remove",List("Sound"),"Boolean") /* Removes the first occurence of an object. Returns true if removed. */,
+    Member("remove at",List("Number"),"Nothing") /* Removes the object at position index. */,
+    Member("reverse","Nothing") /* Reverses the order of objects in the collection */,
+    Member("random","Sound") /* Gets a random object from the collection. Returns invalid if the collection is empty. */,
+    Member("set at",List("Number","Sound"),"Nothing") /* Sets the object at position index. Does nothing if the index is out of range. */,
+    Member("insert at",List("Number","Sound"),"Nothing") /* Inserts an object at position index. Does nothing if index is out of range. */,
+    Member("post to wall","Nothing") /* Display all objects on the wall */
+  ))
+
+  // A collection of objects
+  addType("Bluetooth Device Collection", List(
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("count","Number") /* Gets the number of objects. */,
+    Member("clear","Nothing") /* Removes all objects from the collection */,
+    Member("add",List("Bluetooth Device"),"Nothing") /* Adds an object */,
+    Member("add many",List("Bluetooth Device Collection"),"Nothing") /* Adds many objects at once */,
+    Member("index of",List("Bluetooth Device","Number"),"Number") /* Gets the index of the first occurrence of an object. Returns -1 if not found or start is out of range. */,
+    Member("at index",List("Number"),"Bluetooth Device") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
+    Member("copy","Bluetooth Device Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
+    Member("at",List("Number"),"Bluetooth Device") /* Gets the object at position index. Returns invalid if index is out of range */,
+    Member("contains",List("Bluetooth Device"),"Boolean") /* Checks if the item is in the collection */,
+    Member("remove",List("Bluetooth Device"),"Boolean") /* Removes the first occurence of an object. Returns true if removed. */,
+    Member("remove at",List("Number"),"Nothing") /* Removes the object at position index. */,
+    Member("reverse","Nothing") /* Reverses the order of objects in the collection */,
+    Member("random","Bluetooth Device") /* Gets a random object from the collection. Returns invalid if the collection is empty. */,
+    Member("set at",List("Number","Bluetooth Device"),"Nothing") /* Sets the object at position index. Does nothing if the index is out of range. */,
+    Member("insert at",List("Number","Bluetooth Device"),"Nothing") /* Inserts an object at position index. Does nothing if index is out of range. */,
+    Member("post to wall","Nothing") /* Display all objects on the wall */
+  ))
+
+  // A collection of objects
+  addType("Picture Collection", List(
+    Member("is invalid","Boolean") /* Returns true if the current instance is useless */,
+    Member("count","Number") /* Gets the number of objects. */,
+    Member("clear","Nothing") /* Removes all objects from the collection */,
+    Member("add",List("Picture"),"Nothing") /* Adds an object */,
+    Member("add many",List("Picture Collection"),"Nothing") /* Adds many objects at once */,
+    Member("index of",List("Picture","Number"),"Number") /* Gets the index of the first occurrence of an object. Returns -1 if not found or start is out of range. */,
+    Member("at index",List("Number"),"Picture") /* ONLY INSIDE SAMPLE: an accessor which is always number based */,
+    Member("copy","Picture Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/,
+    Member("at",List("Number"),"Picture") /* Gets the object at position index. Returns invalid if index is out of range */,
+    Member("contains",List("Picture"),"Boolean") /* Checks if the item is in the collection */,
+    Member("remove",List("Picture"),"Boolean") /* Removes the first occurence of an object. Returns true if removed. */,
+    Member("remove at",List("Number"),"Nothing") /* Removes the object at position index. */,
+    Member("reverse","Nothing") /* Reverses the order of objects in the collection */,
+    Member("random","Picture") /* Gets a random object from the collection. Returns invalid if the collection is empty. */,
+    Member("set at",List("Number","Picture"),"Nothing") /* Sets the object at position index. Does nothing if the index is out of range. */,
+    Member("insert at",List("Number","Picture"),"Nothing") /* Inserts an object at position index. Does nothing if index is out of range. */,
+    Member("post to wall","Nothing") /* Display all objects on the wall */
+  ))
+
   // Create collections of items.
   addSingleton("Collections", List( 
     Member("create picture collection","Picture Collection") /* Creates an empty Picture collection */,

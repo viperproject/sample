@@ -28,6 +28,7 @@ object SBox {
   val field_right_vertical_alignment = new TouchField("right vertical alignment",TNumber.typName)
   
   val field_font_size = new TouchField("font size",TNumber.typName)
+  val field_font_weight = new TouchField("font weight",TString.typName)
 
   val field_top_margin = new TouchField("top margin",TNumber.typName)
   val field_left_margin = new TouchField("left margin",TNumber.typName)
@@ -89,6 +90,7 @@ object SBox {
       field_left_vertical_alignment,
       field_right_vertical_alignment,
       field_font_size,
+      field_font_weight,
       field_top_margin,
       field_left_margin,
       field_right_margin,

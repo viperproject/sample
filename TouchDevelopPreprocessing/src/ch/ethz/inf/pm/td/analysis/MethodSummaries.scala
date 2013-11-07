@@ -59,7 +59,8 @@ object MethodSummaries {
      * If this is a closure, we may get local variable from the local scope of closure creation
      */
     enteredState = localHandlerScope match {
-      case Some(x) => enteredState.lub(x,enteredState)
+      case Some(x) =>
+        enteredState.lub(x,enteredState)
       case None => enteredState
     }
 
@@ -123,7 +124,7 @@ object MethodSummaries {
    */
   def collectExit[S <: State[S]](exitState:S):S = {
 
-    var curState = exitState
+    var curState = exitState.removeExpression()
 
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>

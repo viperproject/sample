@@ -353,7 +353,6 @@ object CFGGenerator {
         val handlers = (for (InlineAction(handlerName,inParameters,outParameters,body) <- handlerDefs) yield {
           val handlerMethodName = handlerIdent(handlerName+mkTouchProgramPoint(w))
           val programPoint : ProgramPoint = mkTouchProgramPoint(w)
-          val scope = ProgramPointScopeIdentifier(programPoint)
           val modifiers : List[Modifier] = Nil
           val name : MethodIdentifier = TouchMethodIdentifier(handlerMethodName,isEvent = true,isPrivate = true)
           val parametricType : List[Type] = Nil

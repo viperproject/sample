@@ -34,6 +34,10 @@ class SHelpers extends AAny {
       handlerTyp match {
         case "action" =>
           New[S](TAction.typ,Map(AAction.field_handlerName -> String(handlerName)))
+        case "boolean action" =>
+          New[S](TBoolean_Action.typ,Map(AAction.field_handlerName -> String(handlerName)))
+        case "number action" =>
+          New[S](TNumber_Action.typ,Map(AAction.field_handlerName -> String(handlerName)))
         case "position action" =>
           New[S](TPosition_Action.typ,Map(AAction.field_handlerName -> String(handlerName)))
         case "text action" =>

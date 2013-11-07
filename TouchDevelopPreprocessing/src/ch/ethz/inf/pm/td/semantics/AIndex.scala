@@ -15,7 +15,8 @@ class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchT
     /** Gets the i-th element */
     case "at index" =>
       val List(index) = parameters
-      CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - 1, "at index", "index")
+      // Check disabled -- ALWAYS FALSE ALARM!
+      // CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - 1, "at index", "index")
       Return[S](CollectionSummary[S](this0))
 
     // This overrides the default "at" behavior of collections: Instead of returning "invalid" for a new key, we

@@ -238,7 +238,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     // Join the the normal exit state with all abnormal exit states
     result = MethodSummaries.joinAbnormalExits(result)
 
-    result
+    result.removeExpression()
   }
 
   private def analyzeEvents[S <: State[S]](compiler:TouchCompiler,methods:List[String])(s:S):S = {
@@ -311,7 +311,9 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     var prev = initialState
     var cur = prev.lub(prev,singleIteration(prev))
     while(!cur.lessEqual(prev)) {
-      prev = cur
+      val a1 = prev
+      val a2 = cur
+      prev = a2
       iteration=iteration+1
       if(iteration > SystemParameters.wideningLimit) {
         if (iteration > SystemParameters.wideningLimit + 10)
