@@ -39,6 +39,7 @@ object HTMLExporter {
           |  <meta name="description" content="" />
           |  <link rel="stylesheet" href="screen.css" type="text/css" media="screen,projection,tv" />
           |  <link rel="stylesheet" href="print.css" type="text/css" media="print" />
+          |  <style> body { font-family:sans-serif; } span:target { color:red; background-color:yellow; } </style>
           |  <!--[if lt IE 7]>
           |    <link rel="stylesheet" href="ie6.css" type="text/css" media="screen,projection,tv" />
           |    <script src="http://ie7-js.googlecode.com/svn/version/2.0(beta3)/IE7.js" type="text/javascript"></script>
@@ -93,35 +94,40 @@ object HTMLExporter {
 
         pw.println(<h2>{id}</h2>)
         pw.println("<pre>" +
-          PrettyPrinter.applyWithPPPrinter(script)({curPP:IdPositional =>
-          (for ((message,pp) <- Reporter.seenErrors) yield {
-            pp match {
-              case TouchProgramPoint(xScript,xPos) =>
-                if (xScript.equals(id) && curPP.getId.isDefined && xPos.equals(curPP.getId.get))
-                    <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
-                else ""
-              case _ => ""
-            }
-          }).mkString("") +
-          (for ((message,pp) <- Reporter.seenBottom) yield {
-            pp match {
-              case TouchProgramPoint(xScript,xPos) =>
-                if (xScript.equals(id) && curPP.getId.isDefined && xPos.equals(curPP.getId.get))
-                    <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
-                else ""
-              case _ => ""
-            }
-          }).mkString("") +
-          (for ((message,pp) <- Reporter.seenImprecision) yield {
-            pp match {
-              case TouchProgramPoint(xScript,xPos) =>
-                if (xScript.equals(id) && curPP.getId.isDefined && xPos.equals(curPP.getId.get))
-                    <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
-                else ""
-              case _ => ""
-            }
-          }).mkString("")
-        })
+          PrettyPrinter.applyWithPPPrinter(script)({(curPP:IdPositional,pretty:String) =>
+          curPP.getId match {
+            case None => pretty
+            case Some(pos) =>
+              "<span id='"+pos.toString+"'>" +
+              (for ((message,pp) <- Reporter.seenErrors) yield {
+                pp match {
+                  case TouchProgramPoint(xScript,xPos) =>
+                    if (xScript.equals(id) && xPos.equals(pos))
+                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
+                    else ""
+                  case _ => ""
+                }
+              }).mkString("") +
+                (for ((message,pp) <- Reporter.seenBottom) yield {
+                  pp match {
+                    case TouchProgramPoint(xScript,xPos) =>
+                      if (xScript.equals(id) && xPos.equals(pos))
+                          <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
+                      else ""
+                    case _ => ""
+                  }
+                }).mkString("") +
+                (for ((message,pp) <- Reporter.seenImprecision) yield {
+                  pp match {
+                    case TouchProgramPoint(xScript,xPos) =>
+                      if (xScript.equals(id) && xPos.equals(pos))
+                          <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip" />.toString()
+                      else ""
+                    case _ => ""
+                  }
+                }).mkString("") +
+              pretty+"</span>"
+          }})
         + "</pre>")
       }
 

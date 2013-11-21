@@ -15,16 +15,16 @@ object PrettyPrinter {
   val operators = List("+", "-", "*", "/", "and", "or", "not", ">", "<", "=", "≠", "≤", "≥", ":=")
 
   def apply(s: Script): String = {
-    applyWithPPPrinter(s)({pp:IdPositional => ""})
+    applyWithPPPrinter(s)({(pp:IdPositional,s:String) => s})
   }
 
-  def applyWithPPPrinter(s: Script)(implicit ppPrinter:(IdPositional => String)): String = {
+  def applyWithPPPrinter(s: Script)(implicit ppPrinter:((IdPositional,String) => String)): String = {
     (s.declarations map apply).mkString("\n\n")
   }
 
-  def apply(d: Declaration)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(d) +
-      (d match {
+  def apply(d: Declaration)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(d,
+      d match {
         case ActionDefinition(ident, in, out, body, isEvent, isPrivate) =>
           (if (isPrivate) "private " else "") +
             (if (isEvent) "event " else "action ") +
@@ -47,9 +47,9 @@ object PrettyPrinter {
       })
   }
 
-  def apply(d: UsageDeclaration)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(d) +
-      (d match {
+  def apply(d: UsageDeclaration)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(d,
+      d match {
         case TypeUsage(ident) =>
           "type " + apply(ident)
         case ActionUsage(ident, inParam, outParam) =>
@@ -57,31 +57,29 @@ object PrettyPrinter {
       })
   }
 
-  def apply(r: ResolveBlock)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(r) +
-      "resolve " + apply(r.localName) + " = " + apply(r.libName) + " with { \n    " + (r.rules map apply).mkString("\n    ") + "}"
+  def apply(r: ResolveBlock)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(r,
+      "resolve " + apply(r.localName) + " = " + apply(r.libName) + " with { \n    " + (r.rules map apply).mkString("\n    ") + "}")
   }
 
-  def apply(r: ResolutionRule)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(r) +
-      (r match {
+  def apply(r: ResolutionRule)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(r,
+      r match {
         case TypeResolution(local, libName) => "type" + apply(local) + "=" + apply(libName)
         case ActionResolution(local, libName) => "action " + apply(local) + " = " + apply(libName)
       })
   }
 
-  def apply(p: Parameter)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(p) +
-      apply(p.ident) + ":" + apply(p.typeName)
+  def apply(p: Parameter)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(p,apply(p.ident) + ":" + apply(p.typeName))
   }
 
-  def apply(s: List[Statement])(implicit ppPrinter:(IdPositional => String)): String = {
+  def apply(s: List[Statement])(implicit ppPrinter:((IdPositional,String) => String)): String = {
     ((s map apply map (_.split("\n")) flatten) map ("  " + _)).mkString("\n")
   }
 
-  def apply(s: Statement)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(s) +
-      (s match {
+  def apply(s: Statement)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(s,s match {
         case For(idx, bnd, body) => "for (0 <= " + apply(idx) + " < " + apply(bnd) + ") {\n" + apply(body) + "\n}"
         case Foreach(elem, coll, _, body) => "foreach (" + apply(elem) + " in " + apply(coll) + ") {\n" + apply(body) + "\n}"
         case While(cond, body) => "while (" + apply(cond) + ") do {\n" + apply(body) + "\n}"
@@ -95,12 +93,11 @@ object PrettyPrinter {
       })
   }
 
-  def apply(e: Expression)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(e) +
-      (e match {
+  def apply(e: Expression)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(e,e match {
         case Access(subject, Identifier(property), args) =>
           if (operators.contains(property)) "(" + apply(subject) + ") " + apply(property) + " (" + (args map apply).mkString(",") + ")"
-          else apply(subject) + "->" + apply(property) + "(" + (args map apply).mkString(",") + ")"
+          else apply(subject) + "->" + apply(property) + ( if (args.isEmpty) "" else  "(" + (args map apply).mkString(",") + ")" )
         case LocalReference(ident) => "$" + apply(ident)
         case SingletonReference(ident, typ) => apply(ident)
         case Literal(typ, value) => typ match {
@@ -110,19 +107,17 @@ object PrettyPrinter {
       })
   }
 
-  def apply(a: InlineAction)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(a) +
-      " where " + apply(a.handlerName) + " (" +
+  def apply(a: InlineAction)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(a," where " + apply(a.handlerName) + " (" +
         (a.inParameters map apply).mkString(",") + ") returns (" +
-        (a.outParameters map apply).mkString(",") + ") {\n" + apply(a.body) + "\n}"
+        (a.outParameters map apply).mkString(",") + ") {\n" + apply(a.body) + "\n}")
   }
 
-  def apply(s: TypeName)(implicit ppPrinter:(IdPositional => String)): String = {
-    ppPrinter(s) +
-      apply(s.ident)
+  def apply(s: TypeName)(implicit ppPrinter:((IdPositional,String) => String)): String = {
+    ppPrinter(s,apply(s.ident))
   }
 
-  def apply(s: String)(implicit ppPrinter:(IdPositional => String)): String = {
+  def apply(s: String)(implicit ppPrinter:((IdPositional,String) => String)): String = {
     if(s!=null)
       StringEscapeUtils.escapeJava(s.replace(" ", "_"))
     else ""
