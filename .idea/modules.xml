@@ -3,10 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/AccessPermissionInference/AccessPermissionInference.iml" filepath="$PROJECT_DIR$/AccessPermissionInference/AccessPermissionInference.iml" />
-      <module fileurl="file://$PROJECT_DIR$/ArrayAnalysis/ArrayAnalysis.iml" filepath="$PROJECT_DIR$/ArrayAnalysis/ArrayAnalysis.iml" />
       <module fileurl="file://$PROJECT_DIR$/GUI/GUI.iml" filepath="$PROJECT_DIR$/GUI/GUI.iml" />
       <module fileurl="file://$PROJECT_DIR$/HeapAnalysis/src/HeapAnalysis.iml" filepath="$PROJECT_DIR$/HeapAnalysis/src/HeapAnalysis.iml" />
-      <module fileurl="file://$PROJECT_DIR$/Multithreading/Multithreading.iml" filepath="$PROJECT_DIR$/Multithreading/Multithreading.iml" />
       <module fileurl="file://$PROJECT_DIR$/NumericalAnalysis/NumericalAnalysis.iml" filepath="$PROJECT_DIR$/NumericalAnalysis/NumericalAnalysis.iml" />
       <module fileurl="file://$PROJECT_DIR$/Partitioning/Partitioning.iml" filepath="$PROJECT_DIR$/Partitioning/Partitioning.iml" />
       <module fileurl="file://$PROJECT_DIR$/sample/Sample.iml" filepath="$PROJECT_DIR$/sample/Sample.iml" />

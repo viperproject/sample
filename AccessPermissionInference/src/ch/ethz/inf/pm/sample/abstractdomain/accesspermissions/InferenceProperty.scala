@@ -2,17 +2,11 @@ package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
-import abstractdomain.heapanalysis._
-import abstractdomain.accesspermissions._
 import oorepresentation._
-import sun.security.util.Resources_de
-import javax.annotation.Resource
-import collection.immutable.Map._
 
 //import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing.plugin._
 //import ch.ethz.inf.pm.sample.userinterfaces._
 import property._;
-import java.io._
 
 private object CollectedResults {
 	  var constraints : Set[Constraint] = Set.empty[Constraint];

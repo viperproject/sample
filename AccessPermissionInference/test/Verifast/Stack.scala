@@ -1,6 +1,5 @@
 package Verifast
 
-import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.ChaliceNativeMethodSemantics
 
 object Chalice {
 
