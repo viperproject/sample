@@ -1,5 +1,19 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
 
+import ch.ethz.inf.pm.sample.CombinedOutput;
+import ch.ethz.inf.pm.sample.ScreenOutput;
+import ch.ethz.inf.pm.sample.StdOutOutput;
+import ch.ethz.inf.pm.sample.SystemParameters;
+import ch.ethz.inf.pm.sample.abstractdomain.*;
+import ch.ethz.inf.pm.sample.property.OutputCollector;
+import ch.ethz.inf.pm.sample.tracepartitioning.Directive;
+import ch.ethz.inf.pm.sample.tracepartitioning.PartitionedState;
+import ch.ethz.inf.pm.sample.tracepartitioning.TracePartitioning;
+import ch.ethz.inf.pm.td.compiler.TouchCompiler;
+import ch.ethz.inf.pm.td.webapi.*;
+import scala.Option;
+import scala.collection.immutable.List;
+
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
@@ -12,19 +26,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.*;
 import java.net.URL;
-
-import ch.ethz.inf.pm.sample.*;
-import ch.ethz.inf.pm.sample.abstractdomain.*;
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.NonRelationalHeapDomain;
-import ch.ethz.inf.pm.sample.property.OutputCollector;
-import ch.ethz.inf.pm.sample.tracepartitioning.Directive;
-import ch.ethz.inf.pm.sample.tracepartitioning.PartitionedState;
-import ch.ethz.inf.pm.sample.tracepartitioning.TracePartitioning;
-import ch.ethz.inf.pm.td.compiler.TouchCompiler;
-import ch.ethz.inf.pm.td.webapi.*;
-import scala.Option;
-import scala.Some;
-import scala.collection.immutable.List;
 
 /**
  * Created by IntelliJ IDEA.

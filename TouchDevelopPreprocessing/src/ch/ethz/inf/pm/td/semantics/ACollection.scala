@@ -3,9 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{TouchType, TouchCollection}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
-import ch.ethz.inf.pm.sample.Reporter
+import ch.ethz.inf.pm.td.compiler.TouchType
 
 /**
  * Represents a collection (this class contains common read operations. Extend AMutable_Collections to get write ops)

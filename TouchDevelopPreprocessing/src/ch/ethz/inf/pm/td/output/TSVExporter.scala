@@ -1,10 +1,7 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
+import ch.ethz.inf.pm.sample.Reporter
 import java.io.{PrintWriter, FileWriter, File}
-import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
-import xml.Elem
-import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter}
 
 object TSVExporter {
 

@@ -8,7 +8,6 @@ import oorepresentation._
 import property.Property
 import util.HeapIdSetFunctionalLifting
 import scala.Some
-import collection.SetProxy
 import scala.collection.mutable
 
 object NonRelationalHeapDomainSettings {

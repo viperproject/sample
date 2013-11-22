@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{SemanticException, ExpressionSet, State}
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 import RichNativeSemantics._
 
 /**

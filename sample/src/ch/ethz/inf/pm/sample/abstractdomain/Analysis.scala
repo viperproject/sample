@@ -2,7 +2,6 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.property.{OutputCollector, Property}
 import ch.ethz.inf.pm.sample.oorepresentation._
-import java.io.File
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.util.Timer
 

@@ -1,18 +1,8 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
 
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint;
-import ch.ethz.inf.pm.sample.tracepartitioning.Directive;
-import ch.ethz.inf.pm.sample.tracepartitioning.ProgramPointConversions;
-import ch.ethz.inf.pm.sample.tracepartitioning.PartitionIf;
-import ch.ethz.inf.pm.sample.tracepartitioning.PartitionValue;
-import ch.ethz.inf.pm.sample.tracepartitioning.PartitionWhile;
-import ch.ethz.inf.pm.sample.tracepartitioning.Merge;
-import ch.ethz.inf.pm.sample.tracepartitioning.VariableContext;
-import ch.ethz.inf.pm.sample.userinterfaces.extrapanels.Extra;
-import ch.ethz.inf.pm.sample.userinterfaces.extrapanels.Context;
-import ch.ethz.inf.pm.sample.userinterfaces.extrapanels.Empty;
-import ch.ethz.inf.pm.sample.userinterfaces.extrapanels.Iterations;
-import ch.ethz.inf.pm.sample.userinterfaces.extrapanels.Source;
+import ch.ethz.inf.pm.sample.tracepartitioning.*;
+import ch.ethz.inf.pm.sample.userinterfaces.extrapanels.*;
 
 import javax.swing.*;
 import java.awt.*;

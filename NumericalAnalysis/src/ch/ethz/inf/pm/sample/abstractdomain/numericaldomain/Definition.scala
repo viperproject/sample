@@ -1,5 +1,4 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 /** 
  * A <code>NumericalDomain</code> is a domain aimed at tracking

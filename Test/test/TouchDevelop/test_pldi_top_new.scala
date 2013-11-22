@@ -1,6 +1,5 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.webapi._
-import java.text.SimpleDateFormat
 
 val toAnalyze =
   """eabq

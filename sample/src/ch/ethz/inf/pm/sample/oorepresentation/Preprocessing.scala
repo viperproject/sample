@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
-import java.io.{FileReader, BufferedReader, File, StringWriter}
+import java.io.{BufferedReader, File}
 
 /**
  * A <code>Compiler</code> represents the interface to provide a compiler from a language to Simple

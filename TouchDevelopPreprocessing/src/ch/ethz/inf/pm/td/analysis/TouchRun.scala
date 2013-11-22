@@ -7,11 +7,6 @@ import ch.ethz.inf.pm.td.compiler.UnsupportedLanguageFeatureException
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
 import abstractdomain.heapanalysis._
-import property._
-import oorepresentation.ControlFlowGraphExecution
-import oorepresentation.MethodDeclaration
-import oorepresentation.Type
-import property.OutputCollector
 import property.SingleStatementProperty
 
 import apron._

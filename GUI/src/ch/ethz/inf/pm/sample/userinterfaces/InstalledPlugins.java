@@ -1,29 +1,22 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
-import ch.ethz.inf.pm.sample.td.cost.loops.*;
-import ch.ethz.inf.pm.sample.SystemParameters;
+
+import ch.ethz.inf.pm.sample.abstractdomain.HeapDomain;
+import ch.ethz.inf.pm.sample.abstractdomain.MaybeHeapIdSetDomain;
+import ch.ethz.inf.pm.sample.abstractdomain.SemanticAnalysis;
+import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.AccessPermissionsAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumericalAnalysis;
-import ch.ethz.inf.pm.sample.oorepresentation.*;
-import ch.ethz.inf.pm.sample.abstractdomain.*;
-import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.*;
-import ch.ethz.inf.pm.sample.oorepresentation.Compiler;
-import ch.ethz.inf.pm.sample.oorepresentation.scalalang.*;
+import ch.ethz.inf.pm.sample.oorepresentation.Type;
+import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
+import ch.ethz.inf.pm.sample.td.cost.loops.CostAnalysis;
+import ch.ethz.inf.pm.sample.td.cost.loops.LoopCostCompiler;
+import ch.ethz.inf.pm.td.analysis.TouchAnalysis;
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
-import ch.ethz.inf.pm.td.analysis.*;
-import ch.ethz.inf.pm.td.parser.Declaration;
-import ch.ethz.inf.pm.td.parser.LibraryDefinition;
-import ch.ethz.inf.pm.td.parser.Script;
-import ch.ethz.inf.pm.td.webapi.*;
 import it.unive.dsi.stringanalysis.BricksAnalysis;
 import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
-import scala.collection.immutable.*;
-import scala.Option;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.util.GregorianCalendar;
 
 public class InstalledPlugins {
     public static ch.ethz.inf.pm.sample.oorepresentation.Compiler[] compilers;

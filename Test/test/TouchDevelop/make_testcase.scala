@@ -1,9 +1,7 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
-import ch.ethz.inf.pm.td.parser.PrettyPrinter
 import ch.ethz.inf.pm.td.webapi._
 import java.io.{FileOutputStream, File, PrintWriter}
 import java.text.SimpleDateFormat
-import java.util.{Date, GregorianCalendar}
 
 def date(a:String) = new SimpleDateFormat("dd/MM/yyyy").parse(a)
 

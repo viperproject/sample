@@ -10,13 +10,7 @@ import java.sql.{ResultSet, Statement, DriverManager}
 import java.util.Date
 import java.io._
 import ch.ethz.inf.pm.td.webapi._
-import ch.ethz.inf.pm.sample.property.WarningProgramPoint
-import scala.Some
-import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
 import ch.ethz.inf.pm.sample.td.cost.loops.{ScriptsWithLoops, TopRootScriptsWithLoops, RootSampleScriptsWithLoops, RootScriptsWithLoops}
-import ch.ethz.inf.pm.sample.property.WarningProgramPoint
-import scala.Some
-import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
 import ch.ethz.inf.pm.sample.property.WarningProgramPoint
 import scala.Some
 import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint

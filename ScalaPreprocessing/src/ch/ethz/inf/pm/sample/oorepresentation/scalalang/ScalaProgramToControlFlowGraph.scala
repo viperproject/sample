@@ -2,14 +2,11 @@ package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 import scala.tools.nsc._
 import scala.tools.nsc.symtab._;
-import scala.tools.nsc.ast._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 
 //import ch.ethz.inf.pm.sample.gui._
-import ch.ethz.inf.pm.sample.property._
-import java.util.ArrayList
 import scala.collection.mutable.HashMap
 import scala.tools.nsc.plugins.PluginComponent
 //import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
@@ -87,7 +84,6 @@ object Performances {
 
 class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent {
   import global._
-  import java.util.Timer
 
   override val runsAfter = "dce" :: Nil
 

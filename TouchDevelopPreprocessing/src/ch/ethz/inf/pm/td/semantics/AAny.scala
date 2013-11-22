@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoi
 import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
-import ch.ethz.inf.pm.td.analysis.{MethodSummaries, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * User: Lucas Brutschy

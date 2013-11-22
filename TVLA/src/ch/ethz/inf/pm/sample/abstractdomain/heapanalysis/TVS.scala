@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.{HeapIdentifier, Identifier}
+import ch.ethz.inf.pm.sample.abstractdomain.HeapIdentifier
 
 
 //================================================================================

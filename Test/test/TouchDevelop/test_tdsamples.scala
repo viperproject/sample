@@ -1,6 +1,6 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
-import ch.ethz.inf.pm.td.webapi.{RootSampleScriptsBefore, RootSampleScripts}
-import java.util.{GregorianCalendar, Date}
+import ch.ethz.inf.pm.td.webapi.RootSampleScriptsBefore
+import java.util.GregorianCalendar
 
 
 val skipSet = """""".stripMargin.split("[\n,]").map(_.trim).toSet

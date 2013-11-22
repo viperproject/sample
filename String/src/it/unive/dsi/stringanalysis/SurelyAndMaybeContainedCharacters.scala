@@ -1,9 +1,8 @@
 package it.unive.dsi.stringanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation._
 
-class SurelyAndMaybeContainedCharacters(protected var a1 : SurelyContainedCharacters, 
+class SurelyAndMaybeContainedCharacters(protected var a1 : SurelyContainedCharacters,
         protected var a2 : MaybeContainedCharacters)
      extends SemanticCartesianProductDomain[SurelyContainedCharacters, MaybeContainedCharacters, 
                                     SurelyAndMaybeContainedCharacters](a1,a2)

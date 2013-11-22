@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.sample.userinterfaces;
 import javax.swing.*;
 import javax.swing.event.CaretEvent;
 import javax.swing.event.CaretListener;
-import javax.swing.text.Document;
 import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.ActionEvent;

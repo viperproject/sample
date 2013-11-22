@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample._
 
 /**
  * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure

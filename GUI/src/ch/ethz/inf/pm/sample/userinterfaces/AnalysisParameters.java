@@ -9,8 +9,7 @@ import scala.collection.Iterator;
 import scala.collection.immutable.List;
 
 import javax.swing.*;
-import java.awt.GridBagConstraints;
-import java.awt.Insets;
+import java.awt.*;
 import java.awt.event.*;
 import java.text.DecimalFormat;
 import java.util.HashMap;

@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
 import ch.ethz.inf.pm.sample.oorepresentation._
-import java.util.NavigableMap
 
 object RemoveGetterSetter {
 

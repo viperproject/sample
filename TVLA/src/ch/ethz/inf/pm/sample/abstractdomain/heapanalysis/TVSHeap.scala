@@ -5,8 +5,6 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.property.Property
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
-import sun.reflect.generics.reflectiveObjects.NotImplementedException
-import sun.reflect.generics.reflectiveObjects
 
 /**
  * <code>TVSHeap</code> is a HeapDomain that uses TVLA to analyse the heap.

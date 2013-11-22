@@ -2,13 +2,11 @@ package ch.ethz.inf.pm.sample.userinterfaces
 
 import scala.collection.immutable._
 import ch.ethz.inf.pm.sample._
-import abstractdomain.VariableIdentifier
 import com.mxgraph.view._
 import com.mxgraph.swing._
 import com.mxgraph.model._
 import oorepresentation._
 import abstractdomain._
-import property._
 import abstractdomain.heapanalysis._
 
 import javax.swing._

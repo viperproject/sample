@@ -1,8 +1,6 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
-import ch.ethz.inf.pm.td.parser.PrettyPrinter
 import ch.ethz.inf.pm.td.webapi._
 import java.text.SimpleDateFormat
-import java.util.GregorianCalendar
 
 val skipSet =
   """ggdm

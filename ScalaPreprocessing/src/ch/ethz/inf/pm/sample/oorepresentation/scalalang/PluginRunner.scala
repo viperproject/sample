@@ -1,12 +1,10 @@
 package ch.ethz.inf.pm.sample.oorepresentation.scalalang
 
-import scala.tools.nsc.{Global, Settings, SubComponent}
-import scala.tools.nsc.transform.Erasure
+import scala.tools.nsc.{Global, Settings}
 import scala.tools.nsc.reporters.{ConsoleReporter, Reporter}
 import java.util.Properties
-import scala.tools.nsc.plugins.Plugin
- 
-	/** A utility to load properties of this plugin via the property
+
+/** A utility to load properties of this plugin via the property
 	 *  file "plugin.properties"
 	 */
 	object PluginProperties {

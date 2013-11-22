@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.sample
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 
-import javax.swing.JComponent
 
 //TODO:Comment or remove this code
 
