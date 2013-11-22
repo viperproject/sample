@@ -16,7 +16,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="AccessPermissionInference" />
-    <orderEntry type="module" module-name="ArrayAnalysis" />
     <orderEntry type="module" module-name="HeapAnalysis" />
     <orderEntry type="module" module-name="NumericalAnalysis" />
     <orderEntry type="module" module-name="Sample" />

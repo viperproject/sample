@@ -53,10 +53,8 @@
     <orderEntry type="module" module-name="String" />
     <orderEntry type="module" module-name="TVLA" />
     <orderEntry type="module" module-name="Sample" />
-    <orderEntry type="module" module-name="ArrayAnalysis" />
     <orderEntry type="module" module-name="ScalaPreprocessing" />
     <orderEntry type="module" module-name="TouchDevelopPreprocessing" />
-    <orderEntry type="module" module-name="Multithreading" />
     <orderEntry type="module-library">
       <library>
         <CLASSES>
