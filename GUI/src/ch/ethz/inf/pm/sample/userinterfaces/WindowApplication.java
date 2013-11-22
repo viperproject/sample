@@ -25,7 +25,6 @@ import ch.ethz.inf.pm.td.webapi.*;
 import scala.Option;
 import scala.Some;
 import scala.collection.immutable.List;
-import semper.sample.multithreading.MultithreadingAnalysis;
 
 /**
  * Created by IntelliJ IDEA.

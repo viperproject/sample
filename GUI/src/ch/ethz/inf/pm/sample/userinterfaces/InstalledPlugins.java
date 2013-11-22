@@ -20,8 +20,6 @@ import it.unive.dsi.stringanalysis.PrefixAndSuffixAnalysis;
 import it.unive.dsi.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
 import scala.collection.immutable.*;
 import scala.Option;
-import semper.sample.multithreading.AugmentedCompiler;
-import semper.sample.multithreading.MultithreadingAnalysis;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -33,13 +31,12 @@ public class InstalledPlugins {
     public static HeapDomain<?, ?>[] heapanalyses;
 
     static  {
-        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[4];
+        compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[3];
         compilers[0]=new ScalaCompiler();
         compilers[1]=new TouchCompiler();
-        compilers[2]=new AugmentedCompiler();
-        compilers[3]=new LoopCostCompiler();
+        compilers[2]=new LoopCostCompiler();
 
-        analyses=new SemanticAnalysis[10];
+        analyses=new SemanticAnalysis[9];
         analyses[0]=new NonRelationalNumericalAnalysis();
         analyses[1]=new AccessPermissionsAnalysis();
         analyses[2]=new ApronAnalysis();
@@ -48,8 +45,7 @@ public class InstalledPlugins {
         analyses[5]=new SurelyAndMaybeContainedCharactersAnalysis();
         analyses[6]=new TouchAnalysis();
         analyses[7]=new TouchAnalysisWithApron();
-        analyses[8]=new MultithreadingAnalysis();
-        analyses[9]=new CostAnalysis();
+        analyses[8]=new CostAnalysis();
 
         heapanalyses=new HeapDomain[6];
         heapanalyses[0]=createNonRelationalMayHeapDomain(new TopHeapIdentifier(null, null));

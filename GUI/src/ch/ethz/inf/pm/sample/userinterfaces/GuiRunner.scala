@@ -5,11 +5,8 @@ import ch.ethz.inf.pm.sample.property.OutputCollector
 import scala.collection.immutable.List
 
 /**
- * Created with IntelliJ IDEA.
- * User: lucas
- * Date: 11/22/13
- * Time: 1:11 PM
- * To change this template use File | Settings | File Templates.
+ * This is used to bridge the type-checking between Analyses and ShowGraph (both written in Scala)
+ * to be used from inside Java code
  */
 object GuiRunner {
 
