@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.td.cost.loops
 
-
 /*
     Offers static methods for class LinearRelation.
  */

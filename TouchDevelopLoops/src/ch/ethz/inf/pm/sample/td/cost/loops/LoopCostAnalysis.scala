@@ -8,8 +8,6 @@ import ch.ethz.inf.pm.td.domain.{InvalidAnd, StringsAnd}
 import collection.mutable
 import ch.ethz.inf.pm.sample.property.{ValidatedProgramPoint, WarningProgramPoint, OutputCollector, Property}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron
-import ch.ethz.inf.pm.sample.ch.ethz.inf.pm.sample.td.cost.loops.PubsInterface
-import ch.ethz.inf.pm.sample.ch.ethz.inf.pm.sample.td.cost.loops.PubsInterface
 
 
 class CostAnalysis[D <: NumericalDomain[D]] extends TouchAnalysisWithApron[D] {

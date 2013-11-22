@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.td.cost.loops;
+package ch.ethz.inf.pm.sample.td.cost.loops
 
 import ch.ethz.inf.pm.td.webapi.{RootScripts, ScriptListings, ScriptRecord}
 import ch.ethz.inf.pm.sample.SystemParameters
