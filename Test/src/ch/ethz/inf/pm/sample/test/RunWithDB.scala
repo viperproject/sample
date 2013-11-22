@@ -9,6 +9,18 @@ import abstractdomain._
 import java.sql.{ResultSet, Statement, DriverManager}
 import java.util.Date
 import java.io._
+import ch.ethz.inf.pm.td.webapi._
+import ch.ethz.inf.pm.sample.property.WarningProgramPoint
+import scala.Some
+import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
+import ch.ethz.inf.pm.sample.td.cost.loops.{ScriptsWithLoops, TopRootScriptsWithLoops, RootSampleScriptsWithLoops, RootScriptsWithLoops}
+import ch.ethz.inf.pm.sample.property.WarningProgramPoint
+import scala.Some
+import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
+import ch.ethz.inf.pm.sample.property.WarningProgramPoint
+import scala.Some
+import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
+
 //import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, ScriptRecord, ScriptListings}
 
 //object PopulateTags {
@@ -40,6 +52,27 @@ import java.io._
 //    }
 //  }
 //}
+
+object Iterators {
+
+  iterators = new Array[IteratorOverPrograms](15)
+  iterators(0) = new TopScripts
+  iterators(1) = new NewScripts
+  iterators(2) = new FeaturedScripts
+  iterators(3) = new RootScripts
+  iterators(4) = new SampleScript
+  iterators(5) = new RootScriptsWithLoops
+  iterators(6) = new RootSampleScriptsWithLoops
+  iterators(7) = new TopRootScriptsWithLoops
+  iterators(8) = new ScriptsWithLoops
+  iterators(9) = new ScriptListings
+  iterators(10) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/131101_R", "131101_R")
+  iterators(11) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/A_131101", "A_131101")
+  iterators(12) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/AA_131101", "AA_131101")
+  iterators(13) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101", "TOP_131101")
+  iterators(14) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101_NR", "TOP_131101_NR")
+
+}
 
 object InterfaceTestRun {
 
@@ -498,11 +531,11 @@ object InterfaceTestRun {
 
 
     var iterator: IteratorOverPrograms = null
-    println("Existing iterators:\n" + InstalledPlugins.iterators.map(c => c.getLabel()).mkString("\n"))
+    println("Existing iterators:\n" + Iterators.iterators.map(c => c.getLabel()).mkString("\n"))
     while (iterator == null) {
       println("Name of the iterator:")
       val input: String = readLine()
-      name2Object[IteratorOverPrograms](input, InstalledPlugins.iterators, p => p.getLabel()) match {
+      name2Object[IteratorOverPrograms](input, Iterators.iterators, p => p.getLabel()) match {
         case Some(i) => iterator = i
         case None => println("Unknown iterator, please try again")
       }

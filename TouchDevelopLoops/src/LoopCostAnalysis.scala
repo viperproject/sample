@@ -8,7 +8,7 @@ import ch.ethz.inf.pm.td.domain.{InvalidAnd, StringsAnd}
 import collection.mutable
 import ch.ethz.inf.pm.sample.property.{ValidatedProgramPoint, WarningProgramPoint, OutputCollector, Property}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron
-import ch.ethz.inf.pm.sample.userinterfaces._
+import ch.ethz.inf.pm.sample.ch.ethz.inf.pm.sample.td.cost.loops.PubsInterface
 import ch.ethz.inf.pm.sample.ch.ethz.inf.pm.sample.td.cost.loops.PubsInterface
 
 
@@ -20,7 +20,7 @@ class CostAnalysis[D <: NumericalDomain[D]] extends TouchAnalysisWithApron[D] {
 
   override def parameters(): List[(String, Any)] = List(("Domain", List("ApronLinearEqualities")))
 
-  override def getProperties: List[Property] = super.getProperties ::: List(new LoopCostProperty(),new LoopCostShowProperty())
+  override def getProperties: List[Property] = super.getProperties ::: List(new LoopCostProperty())
 
 }
 
@@ -47,17 +47,6 @@ class LoopCostProperty extends Property {
   }
 
   def finalizeChecking(printer : OutputCollector) {}
-
-}
-
-class LoopCostShowProperty extends LoopCostProperty {
-  override def getLabel() = "Loop Cost (with Show graph)"
-
-  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
-      super.check(className,methodName,result,printer)
-    ShowGraph.check(className,methodName,result,printer)
-
-  }
 
 }
 

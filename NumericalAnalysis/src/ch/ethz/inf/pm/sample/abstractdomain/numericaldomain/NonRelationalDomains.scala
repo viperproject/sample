@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
 import ch.ethz.inf.pm.sample.abstractdomain._
-import semper.sample.multithreading.InterferenceInferenceProperty
 
 trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends Lattice[N] {
   def evalConstant(value: Int): N
@@ -556,7 +555,7 @@ class NonRelationalNumericalAnalysis[D <: NonRelationalNumericalDomain[D]] exten
 
   override def reset(): Unit = Unit
 
-  def getProperties: List[Property] = List(new ShowGraphProperty().asInstanceOf[Property], new SingleStatementProperty(DivisionByZero), new InterferenceInferenceProperty())
+  def getProperties: List[Property] = List(new SingleStatementProperty(DivisionByZero))
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 }

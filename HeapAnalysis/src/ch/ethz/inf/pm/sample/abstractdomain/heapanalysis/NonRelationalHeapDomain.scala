@@ -5,7 +5,6 @@ import abstractdomain._
 import abstractdomain.Constant
 import abstractdomain.VariableIdentifier
 import oorepresentation._
-import userinterfaces.ShowGraph
 import property.Property
 import util.HeapIdSetFunctionalLifting
 import scala.Some
@@ -616,7 +615,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
     }
   }
 
-  override def getProperties() : List[Property] = List(ShowGraph)
+  override def getProperties() : List[Property] = Nil
 
   def getStringOfId(id : Identifier) : String = id match {
     case x : VariableIdentifier => this.get(x).toString()

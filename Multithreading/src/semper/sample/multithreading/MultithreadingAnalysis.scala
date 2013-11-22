@@ -24,7 +24,7 @@ class MultithreadingAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S]
 
   override def reset(): Unit = Unit
 
-  def getProperties(): List[Property] = List(new InterferenceInferenceProperty(), new ShowGraphProperty().asInstanceOf[Property], new SingleStatementProperty(DivisionByZero))
+  def getProperties(): List[Property] = List(new InterferenceInferenceProperty(), new SingleStatementProperty(DivisionByZero))
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 

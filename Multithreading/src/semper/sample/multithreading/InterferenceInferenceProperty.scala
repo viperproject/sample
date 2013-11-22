@@ -9,15 +9,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.Predicate
 import ch.ethz.inf.pm.sample.oorepresentation.Invariant
 import ch.ethz.inf.pm.sample.oorepresentation.PostCondition
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 
-/**
- * Created with IntelliJ IDEA.
- * User: Pietro
- * Date: 06/11/12
- * Time: 15.50
- * To change this template use File | Settings | File Templates.
- */
 class InterferenceInferenceProperty extends Property {
   var results : Set[(String, ControlFlowGraphExecution[_])] = Set.empty[(String, ControlFlowGraphExecution[_])];
 

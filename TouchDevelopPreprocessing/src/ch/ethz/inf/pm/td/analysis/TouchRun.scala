@@ -13,21 +13,10 @@ import oorepresentation.MethodDeclaration
 import oorepresentation.Type
 import property.OutputCollector
 import property.SingleStatementProperty
-import userinterfaces.ShowGraph
 
 import apron._
 import heapanalysis.SimpleProgramPointHeapIdentifier
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, ApronInterface}
-
-class TouchProperty extends Property {
-  override def getLabel(): String = "Show graph"
-
-  override def check[S <: State[S]](className: Type, methodName: MethodDeclaration, result: ControlFlowGraphExecution[S], printer: OutputCollector): Unit =
-    ShowGraph.check(className, methodName, result, printer)
-
-  override def finalizeChecking(printer: OutputCollector): Unit = Unit
-
-}
 
 object TouchRun {
 
@@ -69,7 +58,7 @@ object TouchRun {
         val entryState = new AbstractState[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
         val analysis = new TouchAnalysis[BoxedNonRelationalNumericalDomain[Interval]]
-        analysis.analyze(Nil,entryState, new OutputCollector)
+        analysis.analyze(entryState)
       } catch {
         case e:UnsupportedLanguageFeatureException =>
           SystemParameters.progressOutput.put("UNSUPPORTED: Unsupported Language Feature: "+e.toString)
@@ -126,7 +115,7 @@ object TouchApronRun {
           val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
           val analysis = new TouchAnalysisWithApron[ApronInterface]
-          analysis.analyze(Nil, entryState, new OutputCollector)
+          analysis.analyze(entryState)
         }
         else if (TouchAnalysisParameters.enableCollectionMustAnalysis) {
           val mustHeapDomain: NonRelationalMustHeapDomain[HeapId] =
@@ -142,7 +131,7 @@ object TouchApronRun {
           val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalMayAndMustHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
           val analysis = new TouchAnalysisWithApron[ApronInterface]
-          analysis.analyze(Nil, entryState, new OutputCollector)
+          analysis.analyze(entryState)
         } else {
           val heapDomain = new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
           heapDomain.setParameter("UnsoundEntryState",false)
@@ -151,7 +140,7 @@ object TouchApronRun {
           val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
           val analysis = new TouchAnalysisWithApron[ApronInterface]
-          analysis.analyze(Nil, entryState, new OutputCollector)
+          analysis.analyze(entryState)
         }
       } catch {
         case e:UnsupportedLanguageFeatureException =>

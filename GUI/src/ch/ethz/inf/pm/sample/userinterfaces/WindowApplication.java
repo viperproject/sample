@@ -423,11 +423,9 @@ public class WindowApplication {
                     t.start();
                     OutputCollector output = new OutputCollector();
                     if (directiveListModel.size() > 0) {
-                        getSelectedAnalysis().analyze(methods, new PartitionedState(entryState), output);
-					} else if(getSelectedAnalysis() instanceof MultithreadingAnalysis) {
-                        ((MultithreadingAnalysis) getSelectedAnalysis()).fixpointComputation(methods, domain, output, heapDomain, SystemParameters.getType());
+                        GuiRunner.run(getSelectedAnalysis(), methods, new PartitionedState(entryState), output);
                     }  else {
-                        getSelectedAnalysis().analyze(methods, entryState, output);
+                        GuiRunner.run(getSelectedAnalysis(), methods, entryState, output);
 					}
                     t.stop();
                     setProgress(100);

@@ -36,5 +36,5 @@ class AccessPermissionsAnalysis[I <: NonRelationalHeapIdentifier[I]] extends Sem
 
   override def getInitialState() : SymbolicPermissionsDomain[I] = new SymbolicPermissionsDomain[I]();
 
-  override def getProperties : List[Property] = List(new InferenceProperty(),new ShowGraphAndContractsProperty())
+  override def getProperties : List[Property] = List(new InferenceProperty(),new ContractsProperty())
 }

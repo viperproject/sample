@@ -31,7 +31,6 @@ public class InstalledPlugins {
     public static ch.ethz.inf.pm.sample.oorepresentation.Compiler[] compilers;
     public static SemanticAnalysis<?>[] analyses;
     public static HeapDomain<?, ?>[] heapanalyses;
-    public static IteratorOverPrograms[] iterators;
 
     static  {
         compilers=new ch.ethz.inf.pm.sample.oorepresentation.Compiler[4];
@@ -59,24 +58,6 @@ public class InstalledPlugins {
         heapanalyses[3]=createNonRelationalMayAndMustHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0));
         heapanalyses[4]=createNonRelationalSummaryCollectionHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0));
         heapanalyses[5]=new TVSHeap();
-
-
-        iterators = new IteratorOverPrograms[15];
-        iterators[0] = new TopScripts();
-        iterators[1] = new NewScripts();
-        iterators[2] = new FeaturedScripts();
-        iterators[3] = new RootScripts();
-        iterators[4] = new SampleScript();
-        iterators[5] = new RootScriptsWithLoops();
-        iterators[6] = new RootSampleScriptsWithLoops();
-        iterators[7] = new TopRootScriptsWithLoops();
-        iterators[8] = new ScriptsWithLoops();
-        iterators[9] = new ScriptListings();
-        iterators[10] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/131101_R","131101_R");
-        iterators[11] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/A_131101","A_131101");
-        iterators[12] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/AA_131101","AA_131101");
-        iterators[13] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101","TOP_131101");
-        iterators[14] = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101_NR","TOP_131101_NR");
 
     }
 

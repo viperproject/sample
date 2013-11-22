@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.property.{OutputCollector, Property}
-import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, NativeMethodSemantics}
+import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io.File
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.util.Timer
@@ -13,10 +13,12 @@ import ch.ethz.inf.pm.sample.util.Timer
  * @since 0.1
  */
 trait Analysis {
-  def analyze[S <: State[S]](toAnalyze : String, entryState : S, output : OutputCollector) : Unit =
-    this.analyze( toAnalyze ::Nil, entryState, output);
 
-  def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : Unit = {
+  def analyze[S <: State[S]](toAnalyze : String, entryState : S, output : OutputCollector) : List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] =
+    this.analyze( toAnalyze ::Nil, entryState, output)
+
+  def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] = {
+    var res =  List.empty[(Type, MethodDeclaration, ControlFlowGraphExecution[S])]
     Timer.start;
     for (methodName <- toAnalyze) {
       val methods = SystemParameters.compiler.getMethods(methodName)
@@ -28,6 +30,7 @@ trait Analysis {
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
         if(SystemParameters.property!=null) {
           SystemParameters.property.check(c.name.getThisType(), x, s, output)
+          res = res ::: ((c.name.getThisType(), x, s) :: Nil)
         }
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
         SystemParameters.currentMethod = null
@@ -39,6 +42,7 @@ trait Analysis {
       SystemParameters.progressOutput.end("End of the checking of the property")
     }
     System.out.println(output.output()+"STATISTICS [ Property validated:"+output.validated()+", Warnings:"+output.notvalidated()+", Inferred contracts:"+output.inferredcontracts()+", Time of analyisis: " + Timer.stop+" ]")
+    res
   }
 
   /**

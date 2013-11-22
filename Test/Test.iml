@@ -19,7 +19,6 @@
     <orderEntry type="module" module-name="ArrayAnalysis" />
     <orderEntry type="module" module-name="HeapAnalysis" />
     <orderEntry type="module" module-name="NumericalAnalysis" />
-    <orderEntry type="module" module-name="GUI" />
     <orderEntry type="module" module-name="Sample" />
     <orderEntry type="module" module-name="ScalaPreprocessing" />
     <orderEntry type="library" name="scala-library" level="project" />
@@ -44,6 +43,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="module" module-name="GUI" />
   </component>
 </module>
 

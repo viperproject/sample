@@ -3,17 +3,15 @@ package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
 import oorepresentation._
-import property._;
-import userinterfaces._;
+import property._
 
-class ShowGraphAndContractsProperty extends Property {
+class ContractsProperty extends Property {
 
 
-    def getLabel() : String = "Show graphs and inferred contracts";
+    def getLabel() : String = "Inferred contracts";
 	
 	  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 		  CollectedResults.r=CollectedResults.r+(((className.toString(), methodName.name.toString), result.asInstanceOf[ControlFlowGraphExecution[ConstraintsInference.State]]));
-      ShowGraph.check(className,methodName,result,printer)
 		  ConstraintsInference.addPostconditionConstraints(result.exitState().asInstanceOf[ConstraintsInference.State], className, methodName.name.toString);
 		  CollectedResults.constraints=CollectedResults.constraints.union(ConstraintsInference.getConstraints());
 	  }

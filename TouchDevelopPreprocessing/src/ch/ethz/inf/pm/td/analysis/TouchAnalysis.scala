@@ -52,16 +52,19 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     val bottom = new SingleStatementProperty(new BottomVisitor)
     val alarm = new SingleStatementProperty(new AlarmVisitor)
     val imprecision = new SingleStatementProperty(new ImprecisionVisitor)
-    val show = new ShowGraphProperty().asInstanceOf[Property]
     val empty = new NoProperty
 
     val allChecks = new ComposedProperty("All checks", bottom, new ComposedProperty("", alarm, imprecision))
-    val showAndAllChecks = new ComposedProperty("Show graph and all checks", show, allChecks)
 
-    List(showAndAllChecks, allChecks, alarm, imprecision, bottom, show, empty)
+    List(allChecks, alarm, imprecision, bottom, empty)
   }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
+
+
+  def analyze[S <: State[S]](entryState : S) {
+    analyze(Nil, entryState, new OutputCollector)
+  }
 
   /**
    *
@@ -74,7 +77,8 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
    *    (2.3) Compute lfp (lambda x -> lub_e\in E(e(x))) where E is the set of events
    *
    */
-  override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector) {
+  override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector)
+     : List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] = {
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
     println("version 01.11.13 [1]")
@@ -178,15 +182,15 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
       analyzeExecution(compiler,methods)(curState)
 
     // Check properties on the results
+    val results = (MethodSummaries.getSummaries.values map {
+      (x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) =>
+        if (x._1 == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript)
+          Some(x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])
+        else None
+    }).flatten.toList
     if (SystemParameters.property!=null) {
-      val results = (MethodSummaries.getSummaries.values map {
-        (x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) =>
-          if (x._1 == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript)
-            Some(x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])
-          else None
-      }).flatten
       SystemParameters.propertyTimer.start()
-      SystemParameters.property.check(results.toList, output)
+      SystemParameters.property.check(results, output)
       SystemParameters.property.finalizeChecking(output)
       SystemParameters.propertyTimer.stop()
     }
@@ -197,7 +201,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     if (TouchAnalysisParameters.printJsonErrorRecords) ResultGenerator.printJson(compiler.mainID)
 
     SystemParameters.progressOutput.end()
-
+    results
   }
 
   private def analyzeExecution[S <: State[S]](compiler:TouchCompiler,methods:List[String])(initialState:S):S = {

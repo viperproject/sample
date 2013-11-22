@@ -37,25 +37,13 @@ private class Show extends JFrame {
   }
 }
 
-object ShowGraph extends Property {
+object ShowGraph {
   private val ygap: Int = 20;
   private val leftspace: Int = 40;
   private val singleLine: Int = 19;
   private val emptySpace: Int = 20;
   private val spaceSingleCharacter: Int = 8;
   var exitOnClose: Boolean = false;
-
-  def getLabel(): String = "Show CFG";
-
-  def check[S <: State[S]](className: Type, methodName: MethodDeclaration, result: ControlFlowGraphExecution[S], printer: OutputCollector) {
-    Show(List((className,methodName,result)))
-  }
-
-  override def check[S <: State[S]](results : List[(Type,MethodDeclaration,ControlFlowGraphExecution[S])], printer : OutputCollector) {
-    Show(results)
-  }
-
-  def finalizeChecking(printer: OutputCollector): Unit = Unit;
 
   def Show[S <: State[S]](a: Any): Unit = a match {
     case results: List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] => new ShowControlFlowGraphExecutions(results, exitOnClose)

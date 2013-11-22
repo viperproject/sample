@@ -3,7 +3,6 @@ package it.unive.dsi.stringanalysis
 import ch.ethz.inf.pm.sample.abstractdomain.{SemanticDomain, SemanticAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
 import ch.ethz.inf.pm.sample.property.Property
-import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 
 /**
  * Created by IntelliJ IDEA.
@@ -18,7 +17,7 @@ abstract class StringAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S
   def parameters() : List[(String, Any)] = Nil;
   def setParameter(label : String, value : Any) = throw new StringException("Parameters are not supported")
   override def reset() : Unit = Unit;
-  def getProperties() : List[Property] = List(ShowGraph);
+  def getProperties() : List[Property] = Nil
   def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(StringSemantics);
 }
 
