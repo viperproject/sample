@@ -1,0 +1,15 @@
+syntax: glob
+
+# Compilation output
+out
+
+# Ideally, IntelliJ project files whould not be part of the repository,
+# because there is a constant danger of committing user-specific changes.
+# We cannot remove them now because they define modules, dependencies etc.
+# that are crucial for building Sample.
+# As a compromise, we can ignore the files that are not necessary to
+# successfully open Sample with IntelliJ.
+# In the future, it might be worth migrating to Scala Build Tool (SBT),
+# making it possible to remove all IntelliJ-specific files.
+.idea/highlighting.xml
+.idea/workspace.xml
