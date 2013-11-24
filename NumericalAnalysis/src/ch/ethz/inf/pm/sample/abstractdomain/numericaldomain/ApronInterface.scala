@@ -922,7 +922,7 @@ class ApronInterface( val state: Option[Abstract1],
 
       }
     case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-      toTcons1(BinaryArithmeticExpression(left, right, negateOperator(op), typ), env)
+      toTcons1(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op).get, typ), env)
     case NegatedBooleanExpression(NegatedBooleanExpression(x)) => toTcons1(x, env)
     case NegatedBooleanExpression(x) =>
       toTcons1(BinaryArithmeticExpression(x, Constant("0", x.getType(), x.getProgramPoint()), ArithmeticOperator.==, x.getType()), env)
@@ -932,16 +932,6 @@ class ApronInterface( val state: Option[Abstract1],
       println("Unhandled constraint type in APRON interface (returning top constraint): "+e)
       List(topConstraint(env))
   }
-
-  private def negateOperator(op: ArithmeticOperator.Value): ArithmeticOperator.Value = op match {
-    case ArithmeticOperator.<= => ArithmeticOperator.>
-    case ArithmeticOperator.< => ArithmeticOperator.>=
-    case ArithmeticOperator.>= => ArithmeticOperator.<
-    case ArithmeticOperator.== => ArithmeticOperator.!=
-    case ArithmeticOperator.!= => ArithmeticOperator.==
-    case ArithmeticOperator.> => ArithmeticOperator.<=
-  }
-
 
   /**
    * This method returns an apron.Environment that has variables from both given environment (left, right).

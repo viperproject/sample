@@ -3,24 +3,34 @@ package ch.ethz.inf.pm.sample.abstractdomain
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
 
-/** 
- * Arithmetic operators
- *
- * @author Pietro Ferrara
- * @since 0.1
- */
+/** Arithmetic operators. */
 object ArithmeticOperator extends Enumeration {
-  val + = Value("+");
-  val - = Value("-");
-  val * = Value("*");
-  val / = Value("/");
-  val % = Value("%");
-  val >= = Value(">=");
-  val <= = Value("<=");
-  val == = Value("==");
-  val != = Value("!=");
-  val > = Value(">");
-  val < = Value("<");
+  val + = Value("+")
+  val - = Value("-")
+  val * = Value("*")
+  val / = Value("/")
+  val % = Value("%")
+  val >= = Value(">=")
+  val <= = Value("<=")
+  val == = Value("==")
+  val != = Value("!=")
+  val > = Value(">")
+  val < = Value("<")
+
+  /**
+   * Returns the negation of the given arithmetic operator.
+   * @param op the operator to negate
+   * @return None if the operator does not have a negation.
+   */
+  def negate(op: Value): Option[Value] = op match {
+    case `<=` => Some(`>`)
+    case `<` => Some(`>=`)
+    case `>=` => Some(`<`)
+    case `==` => Some(`!=`)
+    case `!=` => Some(`==`)
+    case `>` => Some(`<=`)
+    case _ => None
+  }
 }
 
 /** 
