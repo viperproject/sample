@@ -24,7 +24,7 @@ object SystemParameters {
   /**
    The semantics of methods defined by hand
   */
-  private var nativeMethodsSemantics : List[NativeMethodSemantics] = ArrayNativeMethodSemantics :: Nil;
+  var nativeMethodsSemantics : List[NativeMethodSemantics] = ArrayNativeMethodSemantics :: Nil;
   /**
    The class currently analyzed
   */
@@ -105,57 +105,6 @@ object SystemParameters {
   def setCompiler(c : Compiler) = compiler=c;
   def setProgressOutput(p : ScreenOutput) = progressOutput=p;
   def setAnalysisOutput(p : ScreenOutput) = analysisOutput=p;
-
-  //TODO:This and the following methods should not be there
-  def getForwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, true);
-  
-  def getBackwardSemantics[S <: State[S]](state : S, methodCall : MethodCall) : S = this.getSemantics(state, methodCall, false);
-
-  private def getSemantics[S <: State[S]](state: S, methodCall: MethodCall, forward: Boolean): S = {
-    val body: Statement = methodCall.method.normalize();
-    var result: S = state.bottom();
-    //Method call used to represent a goto statement to a while label
-    if (body.isInstanceOf[Variable] && body.asInstanceOf[Variable].getName().length >= 5 && body.asInstanceOf[Variable].getName().substring(0, 5).equals("while"))
-      throw new Exception("This should not appear here!"); //return state;
-
-    if (!body.isInstanceOf[FieldAccess]) return state;
-    //TODO: Sometimes it is a variable, check if $this is implicit!
-    val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
-    val calledMethod: String = castedStatement.field
-    val parameters: List[Statement] = methodCall.parameters
-    val typeparameters: List[Type] = methodCall.parametricTypes
-    val returnedtype: Type = methodCall.returnedType
-    for (obj <- castedStatement.objs) {
-      result = result.lub(result, analyzeMethodCall[S](obj, calledMethod, parameters, typeparameters, returnedtype, state, methodCall.getPC(), forward))
-    }
-    result;
-  }
-	
-	private def analyzeMethodCall[S <: State[S]](obj : Statement, calledMethod : String, parameters : List[Statement], typeparameters : List[Type], returnedtype : Type, initialState : S, programpoint : ProgramPoint, forward : Boolean) : S = {
-	  val (calledExpr, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](initialState, obj);
-	  val (parametersExpr, resultingState1) = UtilitiesOnStates.forwardExecuteListStatements[S](resultingState, parameters);
-	  if(calledExpr.isBottom)
-			  return initialState.bottom();
-	  if(calledExpr.isTop)
-			  return initialState.top();
-	  applyNativeSemantics(calledMethod, calledExpr, parametersExpr, typeparameters, returnedtype, resultingState1, programpoint, forward);
-	}
-
-	private def applyNativeSemantics[S <: State[S]](invokedMethod : String, thisExpr : ExpressionSet, parametersExpr : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, state : S, programpoint : ProgramPoint, forward : Boolean) : S = {
-	  val sems=nativeMethodsSemantics
-	  for(sem <- sems) {
-		  val res =
-        if(forward) sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
-        else sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, typeparameters, returnedtype, programpoint, state);
-	  	res match {
-        case Some(s) =>
-          return s
-        case None => ()
-      }
-    }
-    Reporter.reportImprecision("Type "+thisExpr.getType()+" with method "+invokedMethod+" not implemented",programpoint)
-	  state.top()
-	}
 
   def resetOutput {
     enableOutputOfAlarms = true

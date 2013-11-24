@@ -302,50 +302,100 @@ case class FieldAccess(pp : ProgramPoint, val objs : List[Statement], val field 
  * This class represents a method call of the form
  * <code>method<parametricTypes>(parameters)</code>
  * where <code>returnedType</code> is the type of the
- * returned balue
+ * returned value
  * 
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class MethodCall(pp : ProgramPoint, val method: Statement, val parametricTypes : List[Type], val parameters: List[Statement], val returnedType : Type) extends Statement(pp) {
-  
-      /** 
-       * It analyzes the invocation of <code>method(parameters</code>
-       * on <code>variable</code> passing <code>parameters</code>.
-       * It relies on the contracts written on the target method, i.e.
-       * it asserts the preconditions, and it assumes the postconditions
-       * and the class invariants through methods <code>assert</code>
-       * and <code>assume</code> of class <code>State</code>
-	   *
-       * @see State.assert(Expression)
-       * @see State.assume(Expression)
-	   * @param state the initial state
-	   * @return the state in which postconditions and class invariants
-       * of the target method are assumed to hold 
-	   */
-    override def forwardSemantics[S <: State[S]](state : S) : S = {
-      val result=SystemParameters.getForwardSemantics[S](state, this);
-      result;
-    }
-    //TODO: Contracts!
-    /*{
-      val methodInvoked : MethodDeclaration = SystemParameter.system getMethodDeclaration(method, state)
-      state assert(methodInvoked.preconditions)
-      state.top().assume(methodInvoked.postconditions) assume(methodInvoked.invariants)
-      }*/
-    
-    override def backwardSemantics[S <: State[S]](state : S) : S = SystemParameters.getBackwardSemantics[S](state, this);
-      
-    override def toString() : String = method.toString()+ToStringUtilities.parametricTypesToString(parametricTypes)+"("+ToStringUtilities.listToCommasRepresentation[Statement](parameters)+")"
-    
-    override def toSingleLineString() : String = method.toSingleLineString()+ToStringUtilities.parametricTypesToString(parametricTypes)+"("+ToStringUtilities.listStatementToCommasRepresentationSingleLine(parameters)+")"
+case class MethodCall(
+    pp: ProgramPoint,
+    method: Statement,
+    parametricTypes: List[Type],
+    parameters: List[Statement],
+    returnedType: Type) extends Statement(pp) {
 
+  /**
+   * It analyzes the invocation of <code>method</code>
+   * on <code>variable</code> passing <code>parameters</code>.
+   * It relies on the contracts written on the target method, i.e.
+   * it asserts the preconditions, and it assumes the postconditions
+   * and the class invariants through methods <code>assert</code>
+   * and <code>assume</code> of class <code>State</code>
+   *
+   * @see State.assert(Expression)
+   * @see State.assume(Expression)
+   * @param state the initial state
+   * @return the state in which postconditions and class invariants
+   *         of the target method are assumed to hold
+   */
+  override def forwardSemantics[S <: State[S]](state: S): S = getSemantics[S](state, forward = true)
+
+  //TODO: Contracts!
+  /*{
+    val methodInvoked : MethodDeclaration = SystemParameter.system getMethodDeclaration(method, state)
+    state assert(methodInvoked.preconditions)
+    state.top().assume(methodInvoked.postconditions) assume(methodInvoked.invariants)
+    }*/
+
+  override def backwardSemantics[S <: State[S]](state: S): S = getSemantics[S](state, forward = false)
+
+  private def getSemantics[S <: State[S]](state: S, forward: Boolean): S = {
+    val body: Statement = method.normalize()
+    var result: S = state.bottom()
+    //Method call used to represent a goto statement to a while label
+    if (body.isInstanceOf[Variable] && body.asInstanceOf[Variable].getName().startsWith("while"))
+      throw new Exception("This should not appear here!"); //return state;
+
+    if (!body.isInstanceOf[FieldAccess]) return state
+    //TODO: Sometimes it is a variable, check if $this is implicit!
+    val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
+    val calledMethod: String = castedStatement.field
+    for (obj <- castedStatement.objs) {
+      result = result.lub(result, analyzeMethodCall[S](obj, calledMethod, state, forward))
+    }
+    result
+  }
+
+  private def analyzeMethodCall[S <: State[S]](obj: Statement, calledMethod: String, initialState: S, forward: Boolean): S = {
+    val (calledExpr, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](initialState, obj)
+    val (parametersExpr, resultingState1) = UtilitiesOnStates.forwardExecuteListStatements[S](resultingState, parameters)
+    if (calledExpr.isBottom)
+      return initialState.bottom()
+    if (calledExpr.isTop)
+      return initialState.top()
+    applyNativeSemantics(calledMethod, calledExpr, parametersExpr, resultingState1, forward)
+  }
+
+  private def applyNativeSemantics[S <: State[S]](
+      invokedMethod: String,
+      thisExpr: ExpressionSet,
+      parametersExpr: List[ExpressionSet],
+      state: S,
+      forward: Boolean): S = {
+    for (sem <- SystemParameters.nativeMethodsSemantics) {
+      val res =
+        if (forward) sem.applyForwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, parametricTypes, returnedType, getPC(), state)
+        else sem.applyBackwardNativeSemantics[S](thisExpr, invokedMethod, parametersExpr, parametricTypes, returnedType, getPC(), state)
+      res match {
+        case Some(s) =>
+          return s
+        case None => ()
+      }
+    }
+    Reporter.reportImprecision("Type " + thisExpr.getType() + " with method " + invokedMethod + " not implemented", getPC())
+    state.top()
+  }
+
+  override def toString(): String =
+    method.toString() + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
+      ToStringUtilities.listToCommasRepresentation[Statement](parameters) + ")"
+
+  override def toSingleLineString(): String =
+    method.toSingleLineString() + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
+      ToStringUtilities.listStatementToCommasRepresentationSingleLine(parameters) + ")"
 
   override def getChildren: List[Statement] = List(method) ::: parameters
-
 }
-
-
 
 /** 
  * This class represents the creation of a fresh address of the form
