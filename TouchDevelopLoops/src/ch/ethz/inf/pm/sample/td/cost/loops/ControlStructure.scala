@@ -2,7 +2,6 @@ package ch.ethz.inf.pm.sample.td.cost.loops
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import collection.mutable
-import ch.ethz.inf.pm.sample.oorepresentation.Variable
 
 /*
     Data structure used by LoopCostInternal to hold the retrieved data about a loop or conditional.

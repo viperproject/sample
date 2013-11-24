@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.td.cost.loops
 
-
 object NameEncoder {
   private var sourceName2TranslatedNames = Map.empty[String, String];
   private var index = 0;

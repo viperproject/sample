@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.ch.ethz.inf.pm.sample.td.cost.loops;
+package ch.ethz.inf.pm.sample.td.cost.loops;
 
 import java.io.*;
 

@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.td.cost.loops
 
-
 abstract class Condition (val id : String) {
 
   var child1 : Condition = null

@@ -49,7 +49,7 @@ import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
 
 object Iterators {
 
-  iterators = new Array[IteratorOverPrograms](15)
+  val iterators = new Array[IteratorOverPrograms](15)
   iterators(0) = new TopScripts
   iterators(1) = new NewScripts
   iterators(2) = new FeaturedScripts

@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.td.cost.loops
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain._
 import collection.mutable
 import apron.Lincons1
 
