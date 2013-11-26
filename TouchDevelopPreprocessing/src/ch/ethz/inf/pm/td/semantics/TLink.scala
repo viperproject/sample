@@ -23,10 +23,10 @@ object TLink {
   val field_kind = new TouchField("kind",TString.typName)
 
   /** Gets the location if any */
-  val field_location = new TouchField("location",TLocation.typName,InvalidInitializer())
+  val field_location = new TouchField("location",TLocation.typName,InvalidInitializer)
 
   /** Gets the name if any */
-  val field_name = new TouchField("name",TString.typName,InvalidInitializer())
+  val field_name = new TouchField("name",TString.typName,InvalidInitializer)
 
   val typName = "Link"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_address, field_kind, field_location, field_name), isImmutable = false)

@@ -115,7 +115,7 @@ object RichNativeSemantics {
             val typFields = typ.getPossibleTouchFields()
             Some(typFields
               .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName())})
-              .map(_.asInstanceOf[Identifier]))
+              .toSet[Identifier])
           }
           else if (!initializeFields) Some(Set.empty[Identifier])
           else None
@@ -158,15 +158,15 @@ object RichNativeSemantics {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
               val a = initials.get(f) match {
                 case None => f.default match {
-                  case InvalidInitializer() =>
+                  case InvalidInitializer =>
                     Invalid(f.getType())
-                  case TopInitializer() =>
+                  case TopInitializer =>
                     curState = Top[S](f.getType(),createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression())
-                  case TopWithInvalidInitializer() =>
+                  case TopWithInvalidInitializer =>
                     curState = TopWithInvalid[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression())
-                  case NewInitializer() =>
+                  case NewInitializer =>
                     curState = New[S](f.getType(),createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression())
                   case ExpressionInitializer(e) => e
@@ -262,10 +262,10 @@ object RichNativeSemantics {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
               val a = initials.get(f) match {
                 case None => f.topDefault match {
-                  case InvalidInitializer() => Invalid(f.getType())
-                  case TopInitializer() => curState = Top[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
-                  case TopWithInvalidInitializer() => curState = TopWithInvalid[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
-                  case NewInitializer() => curState = New[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case InvalidInitializer => Invalid(f.getType())
+                  case TopInitializer => curState = Top[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case TopWithInvalidInitializer => curState = TopWithInvalid[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case NewInitializer => curState = New[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
                   case ExpressionInitializer(e) => e
                 }
                 case Some(st) => st
@@ -656,7 +656,7 @@ object RichNativeSemantics {
 
 }
 
-class TouchField(name:String, typName:String, val default: Initializer = NewInitializer(), val topDefault: Initializer = TopInitializer(), val isSummaryNode:Boolean = false)
+class TouchField(name:String, typName:String, val default: Initializer = NewInitializer, val topDefault: Initializer = TopInitializer, val isSummaryNode:Boolean = false)
   extends Identifier(null,null) {
   override def getType():TouchType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
   override def getName() = name.toString
@@ -670,10 +670,10 @@ class TouchField(name:String, typName:String, val default: Initializer = NewInit
 }
 
 trait Initializer
-case class InvalidInitializer() extends Initializer
-case class NewInitializer() extends Initializer
-case class TopInitializer() extends Initializer
-case class TopWithInvalidInitializer() extends Initializer
+case object InvalidInitializer extends Initializer
+case object NewInitializer extends Initializer
+case object TopInitializer extends Initializer
+case object TopWithInvalidInitializer extends Initializer
 case class ExpressionInitializer(e: RichExpression) extends Initializer
 
 case class RichExpression(thisExpr : ExpressionSet) {

@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TXml_Object {
 
   /** Gets the list of attribute names */
-  val field_attributes = new TouchField("  attributes",TString_Map.typName,NewInitializer())
+  val field_attributes = new TouchField("  attributes",TString_Map.typName,NewInitializer)
 
   /** Indicates if this instance is an element or a filtered collection */
   val field_is_element = new TouchField("is element",TBoolean.typName,ExpressionInitializer(True(null)))

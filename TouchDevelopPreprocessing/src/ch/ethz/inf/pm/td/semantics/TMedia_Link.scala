@@ -17,22 +17,22 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TMedia_Link {
 
   /** Gets the album if available */
-  val field_album = new TouchField("album",TString.typName,TopWithInvalidInitializer())
+  val field_album = new TouchField("album",TString.typName,TopWithInvalidInitializer)
 
   /** Gets the author if available */
-  val field_author = new TouchField("author",TString.typName,TopWithInvalidInitializer())
+  val field_author = new TouchField("author",TString.typName,TopWithInvalidInitializer)
 
   /** Gets the date if available */
-  val field_date = new TouchField("date",TDateTime.typName,TopWithInvalidInitializer())
+  val field_date = new TouchField("date",TDateTime.typName,TopWithInvalidInitializer)
 
   /** Gets the duration in seconds (0 for pictures) */
-  val field_duration = new TouchField("duration",TNumber.typName,TopInitializer())
+  val field_duration = new TouchField("duration",TNumber.typName,TopInitializer)
 
   /** Gets the kind of media (video, song, picture) */
-  val field_kind = new TouchField("kind",TString.typName,TopInitializer())
+  val field_kind = new TouchField("kind",TString.typName,TopInitializer)
 
   /** Gets the title if available */
-  val field_title = new TouchField("title",TString.typName,TopWithInvalidInitializer())
+  val field_title = new TouchField("title",TString.typName,TopWithInvalidInitializer)
 
   val typName = "Media Link"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_album, field_author, field_date, field_duration, field_kind, field_title))

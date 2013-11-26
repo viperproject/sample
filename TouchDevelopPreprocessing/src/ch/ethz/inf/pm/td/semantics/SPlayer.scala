@@ -19,7 +19,7 @@ object SPlayer {
 
 
   /** Gets the active song if any */
-  val field_active_song = new TouchField("active song",TSong.typName,topDefault = TopWithInvalidInitializer())
+  val field_active_song = new TouchField("active song",TSong.typName,topDefault = TopWithInvalidInitializer)
 
   /** Indicates if the player is muted */
   val field_is_muted = new TouchField("is muted",TBoolean.typName)

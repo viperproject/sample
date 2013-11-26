@@ -107,7 +107,7 @@ object CFGGenerator {
         else
           addTouchType(new AField(fieldType,valueField))
 
-        (new TouchField(field.ident,fieldTypeName,NewInitializer()),valueField)
+        (new TouchField(field.ident,fieldTypeName,NewInitializer),valueField)
       }
     }
 

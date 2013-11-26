@@ -16,10 +16,10 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SSenses {
 
   /** Gets the primary camera if available */
-  val field_camera = new TouchField("camera",TCamera.typName,topDefault = TopWithInvalidInitializer())
+  val field_camera = new TouchField("camera",TCamera.typName,topDefault = TopWithInvalidInitializer)
 
   /** Gets the front facing camera if available */
-  val field_front_camera = new TouchField("front camera",TCamera.typName,topDefault = TopWithInvalidInitializer())
+  val field_front_camera = new TouchField("front camera",TCamera.typName,topDefault = TopWithInvalidInitializer)
 
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
   val field_has_accelerometer = new TouchField("has accelerometer",TBoolean.typName)

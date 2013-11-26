@@ -28,10 +28,10 @@ object TPicture {
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the location where the picture was taken; if any. */
-  val field_location = new TouchField("location",TLocation.typName,InvalidInitializer())
+  val field_location = new TouchField("location",TLocation.typName,InvalidInitializer)
 
   /** Gets the date time where the picture was taken; if any. */
-  val field_date = new TouchField("date",TDateTime.typName,InvalidInitializer())
+  val field_date = new TouchField("date",TDateTime.typName,InvalidInitializer)
 
   val typName = "Picture"
   val typ = new TouchType(typName,isSingleton = false, fields = List(field_width,field_height,field_location,field_date))
