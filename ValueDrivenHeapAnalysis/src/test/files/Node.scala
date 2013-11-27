@@ -1,0 +1,100 @@
+package test.files
+
+/**
+ * Created with IntelliJ IDEA.
+ * User: milos
+ * Date: 6/5/13
+ * Time: 4:41 PM
+ * To change this template use File | Settings | File Templates.
+ */
+class Node {
+
+  var value: Int = 0
+  var next: Node = null
+
+  def createNext(v : Int) = {
+//    value = 0
+//    var p = this
+//    var i = 1
+//    while (i < v) {
+//      p.next = new Node()
+//      p = p.next
+//      p.value = 0
+//      i = i + 1
+//    }
+
+//    var it = this
+//    var result: Node = null
+//    while (it != null && it.value < v)
+//      it = it.next
+//    if (it != null && it.value == v)
+//      result = it
+//    else
+//      result = null
+
+//    value = 0
+//    while (value == v)
+//      next = new Node()
+//
+//    if (next != null)
+//      next.value = v
+
+//    value = 0
+//    var p = this
+//    var i = 1
+//    while (i < v) {
+//      p.next = new Node()
+//      p = p.next
+//      p.value = i
+//      i = i + 1
+//    }
+
+    value = 0
+    var p = this
+    var i = 1
+    var tmp: Node = null
+    while (i < v) {
+      tmp = new Node()
+      p.next = tmp
+      tmp = null
+      p = p.next
+      p.value = i
+      i = i + 1
+    }
+
+//    var i = 0
+//    var p = this
+//    p.value = i
+//    if (i < v ) {
+//      p.value = i
+//      p.next = new Node()
+//      p = p.next
+//      i = i + 1
+//    } else {
+//      p.value = v
+//    }
+
+
+
+//    value = 0
+//    next = new Node()
+//    next.value = v
+//    next = null
+//    var p = this
+//    p = p.next
+//    p = new Node()
+//    if (v > 0)
+//      p.value = v
+
+
+
+//    var p = next
+//    if (v > 0)
+//      next.value = v
+//    else
+//      next.value = -v
+////    next.value = value + 1
+//    var p: Node = this
+  }
+
+}
