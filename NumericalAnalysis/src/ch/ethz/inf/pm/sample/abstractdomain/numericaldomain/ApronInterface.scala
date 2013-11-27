@@ -121,6 +121,36 @@ class ApronInterface( val state: Option[Abstract1],
     }
   }
 
+  /**
+   * This method substitutes variable form the list <code>form</code> to variables form the list <code>to</code>
+   * so that in the resulting state a variable with name from(i) has the name to(i).
+   * @param from
+   * @param to
+   * @return state after substituting variables from first list to variables in second list
+   */
+  override def rename(from: List[Identifier], to: List[Identifier]): ApronInterface = {
+    assert(from.size == to.size)
+    assert(from.distinct.equals(from) && to.distinct.equals(to))
+    state match {
+      case None => return this
+      case Some(s) => {
+        val stateVars = s.getEnvironment.getVars
+        var index = 0
+        var newFrom = List.empty[Identifier]
+        var newTo = List.empty[Identifier]
+        for (f <- from) {
+          if (stateVars.contains(f.getName())) {
+            newFrom = newFrom :+ f
+            newTo = newTo :+ to(index)
+          }
+          index = index + 1
+        }
+        val newState = s.renameCopy(domain, newFrom.map(_.getName()).toArray[String], newTo.map(_.getName()).toArray[String])
+        new ApronInterface(Some(newState), domain, false, env -- from ++ to)
+      }
+    }
+  }
+
   override def setToTop(variable: Identifier): ApronInterface = {
     state match {
       case None => this
@@ -514,11 +544,14 @@ class ApronInterface( val state: Option[Abstract1],
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-      val uncommonVariables: Array[String] = ((left.getIds() -- right.getIds()) ++ (right.getIds() -- left.getIds())).map(_.toString).toArray[String]
+      val leftVars = leftState.getEnvironment.getVars.toSet[String]
+      val rightVars = rightState.getEnvironment.getVars.toSet[String]
+      val uncommonVariables: Array[String] = ((leftVars union rightVars) diff (leftVars intersect rightVars)).toArray[String]
       var result = leftState.unifyCopy(domain, rightState)
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
-      result = result.changeEnvironmentCopy(domain, leftState.getEnvironment.remove(uncommonVariables), false)
-      new ApronInterface(Some(result), domain, env = left.getIds().intersect(right.getIds()))
+      result = result.changeEnvironmentCopy(domain, result.getEnvironment.remove(uncommonVariables), false)
+      val newEnv: Set[Identifier] =  left.getIds() intersect right.getIds()
+      new ApronInterface(Some(result), domain, env = newEnv)
     } else {
       new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain, env = left.getIds().intersect(right.getIds()))
     }
