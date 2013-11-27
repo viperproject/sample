@@ -881,3 +881,39 @@ case class BinaryNondeterministicExpression(left : Expression, right : Expressio
     f(BinaryNondeterministicExpression(left.transform(f),right.transform(f),op,returnType))
 
 }
+
+/**
+ * T
+ *
+ *
+ * @author Milos Novacek
+ */
+case class AccessPathExpression(pp : ProgramPoint, typ: Type, path: List[String]) extends Expression(pp) {
+
+  assert(path.size > 0, "The path is empty.")
+
+
+  def getType(): Type = typ
+
+  def identifiers(): Set[Identifier] = throw new Exception("identifiers() should never be called!")
+
+  override def toString(): String = {
+    var result = ""
+    for (current <- path.dropRight(1)) {
+      result = result + current + "."
+    }
+    return result + path.last
+  }
+
+  override def hashCode(): Int = {
+    return toString.hashCode() + typ.hashCode()
+  }
+
+  override def equals(obj : Any): Boolean = obj match {
+    case AccessPathExpression(_, objTyp, objPath) => this.typ == objTyp && this.path == objPath
+    case _ => false
+  }
+
+  // TODO: This should be reimplemented.
+  override def transform(f:(Expression => Expression)) : Expression = this
+}
