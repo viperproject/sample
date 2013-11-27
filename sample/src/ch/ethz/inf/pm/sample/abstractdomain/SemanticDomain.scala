@@ -139,6 +139,23 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
    @return all ids contained in the abstract domain
    */
   def getIds() : scala.collection.Set[Identifier]
+
+  /**
+   * This method renames variable form the list <code>form</code> to variables form the list <code>to</code>
+   * so that in the resulting state a variable with name from(i) has the name to(i).
+   * @param from
+   * @param to
+   * @return state after renaming variables from first list to variables in second list
+   *
+   * @author Milos Novacek
+   */
+  def rename(from: List[Identifier], to: List[Identifier]) : T = {
+    assert(from.length == to.length)
+    val replacement = new Replacement()
+    for ((f,t) <- from zip to)
+      replacement.value += (Set(f) -> Set(t))
+    merge(replacement)
+  }
 }
 
 /** 
