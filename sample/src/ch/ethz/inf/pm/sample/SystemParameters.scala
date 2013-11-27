@@ -14,6 +14,11 @@ import ch.ethz.inf.pm.sample.util.Timer
 object SystemParameters {
 
   /**
+   * Flag that informs whether the running analysis is ValueDrivenHeapAnalysis
+   */
+  var isValueDrivenHeapAnalysis = false
+
+  /**
    The number of iterations after whom widening is applied
   */
   val wideningLimit : Int = 3;
