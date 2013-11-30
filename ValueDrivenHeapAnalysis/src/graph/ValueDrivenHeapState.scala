@@ -589,7 +589,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       if (!pathState.lessEqual(pathState.bottom()))
         validLeftPaths = validLeftPaths + new Tuple4(lPath, pathState, pathIdentifier, pathAddedIds)
     }
-    // TODO: Identify invalid first edges (from a variable to a node) and remove them
     if (validLeftPaths.isEmpty)
       return bottom() // No valid left paths
     if (rightExp.getType().isObject()) {
@@ -603,25 +602,41 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       }
       rightExp match {
         case x: VariableIdentifier => {
+          // TODO : Currently under re-implementation!!!
           val rightPaths = abstractHeap.getPaths(List(x.getName()))
-          val result = bottom()
-          if (rightPaths.isEmpty)
-            return bottom()
-          var edgesToRemove = Set.empty[EdgeWithState[S]]
-          if (validLeftPaths.size == 1 && validLeftPaths.head._1.last.target.isInstanceOf[DefiniteHeapVertex]) {
-            // remove the outgoing edge
-            edgesToRemove = abstractHeap.edges.filter(e => e.source.equals(validLeftPaths.head._1.last.target) && e.field.equals(Some(leftAccPath.path.last)))
-          }
-          for (rPath <- rightPaths) {
-            for (lPath <- validLeftPaths) {
-              val nodeToAssign = rPath.last.target
-              // Create edge local ids, only if the node we want to assign (right hand side) is not null
-              if (nodeToAssign.isInstanceOf[HeapVertex]) {
-
+          // Conditions under which rightExpression refers to a Vertex
+          val rightStateWithVertex : Set[(S, Vertex)] = rightPaths.map(p => (graphPathCondition(p), p.last.target))
+          var edgesToAdd = Set.empty[EdgeWithState[S]]
+          for (lPath <- leftPaths) {
+            var leftCond = graphPathCondition(lPath)
+            if (leftCond.bottom().lessEqual(leftCond)) {
+              // The condition of the left path is not bottom. (i.e. can be possibly assigned)
+              for ((c,v) <- rightStateWithVertex) {
+                // We need to rename edge-local identifiers to be targets after the assignment
+                var renameFrom = List.empty[EdgeLocalIdentifier]
+                var renameTo = List.empty[EdgeLocalIdentifier]
+                val fieldToAssigne = leftAccPath.path.last
+                val idsToRename = c.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).asInstanceOf[Set[EdgeLocalIdentifier]]
+                for (elId <- idsToRename) {
+                  renameFrom = elId :: renameFrom
+                  renameTo = new EdgeLocalIdentifier(List(fieldToAssigne), elId.field, elId.getType(), elId.getProgramPoint()) :: renameTo
+                }
+                var newEdgeState = c.rename(renameFrom, renameTo)
+                leftCond = Utilities.createVariablesForState(leftCond, renameTo.toSet[Identifier])
+                newEdgeState = Utilities.createVariablesForState(newEdgeState, renameFrom.toSet[Identifier])
+                newEdgeState = newEdgeState.glb(leftCond, newEdgeState)
+                if (!newEdgeState.lessEqual(c.bottom())){
+                  // edge that represents the assignment
+                  edgesToAdd = edgesToAdd + new EdgeWithState[S](lPath.last.target, newEdgeState, Some(fieldToAssigne), v)
+                }
               }
             }
           }
-          throw new Exception("Not implemented yet for variables.")
+          if (edgesToAdd.isEmpty)
+            return bottom()
+          else
+            return new ValueDrivenHeapState[S](resultingAH.addEdges(edgesToAdd), generalValState, new ExpressionSet(right.getType()).add(leftAccPath), false, isBottom)
+//          throw new Exception("Not implemented yet for variables.")
         }
         case ap: AccessPathExpression => {
           throw new Exception("Not implemented yet for access path expressions.")
@@ -840,8 +855,11 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
      */
     def graphPathConditionRecursive(path : List[EdgeWithState[S]], state : S) : S = {
       // Base case is when the path is empty. (Termination)
-      if (path.isEmpty)
-        state
+      if (path.isEmpty) {
+        assert((state.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier])
+          -- state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty)).isEmpty)
+        return state
+      }
 
       // If the path is non-empty, the head of it must refer to a field (i.e. the firs node must be a HeapVertex).
       assert(path.head.source.isInstanceOf[HeapVertex])
