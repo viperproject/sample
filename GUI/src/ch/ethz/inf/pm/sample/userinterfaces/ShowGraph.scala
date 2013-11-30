@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.sample.userinterfaces
 
+import graph._
 import scala.collection.immutable._
 import ch.ethz.inf.pm.sample._
 import com.mxgraph.view._
@@ -16,6 +17,12 @@ import java.awt.{GridLayout, Dimension}
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
 import tracepartitioning.Leaf
 import tracepartitioning.Node
+import scala.Some
+import scala.collection.immutable.::
+import ch.ethz.inf.pm.sample.tracepartitioning.Node
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.FieldAndProgramPoint
+import ch.ethz.inf.pm.sample.tracepartitioning.Leaf
 
 private class Show extends JFrame {
   def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
@@ -184,6 +191,45 @@ object ShowGraph {
       });
       new Show(graphComponent, false, -1, -1);
     }
+  }
+
+  private class ShowValueDrivenHeapState[N <: SemanticDomain[N]](state: ValueDrivenHeapState[N]) {
+    val (graph, idToVertix, idToEdges): (mxGraph, Map[Vertex, Object], Map[EdgeWithState[N], Object]) = valueDrivenHeapStateToGraph[N](state)
+    val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
+    graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
+
+      override def mouseReleased(e: MouseEvent) {
+        val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
+        if (cell != null) {
+          val castedcell = cell.asInstanceOf[mxCell];
+          var i: Int = 0;
+          val vertixes = idToVertix.values;
+          //          for (vertix <- vertixes) {
+          //            if (cell == vertix) {
+          //              val ids = idToVertix.keySet
+          //              for (id <- ids)
+          //                if (idToVertix.apply(id) == cell) {
+          //                  val label = state.toString
+          //                  new Show(new JLabel("<HTML>" + label.replace(">", "&gt;").replace("<", "&lt;").replace("\n", "<BR>") + "<HTML>"), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
+          //                }
+          //            }
+          //            i = i + 1;
+          //          }
+          val edges = idToEdges.values
+          for (edge <- edges) {
+            if (cell == edge) {
+              for (id <- idToEdges.keySet) {
+                if (idToEdges.apply(id) == cell) {
+                  val label = id.state.toString// + "\n" + id
+                  new Show(new JLabel("<HTML>" + label.replace(">", "&gt;").replace("<", "&lt;").replace("\n", "<BR>") + "<HTML>"), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+    new Show(graphComponent, false, -1, -1);
   }
 
   private def ControlFlowGraphExecutiontoJGraph[S <: State[S]](wgraph: ControlFlowGraphExecution[S]): (mxGraph, List[Object]) = {
@@ -369,9 +415,69 @@ object ShowGraph {
     (graph, idToVertix)
   }
 
+  private def valueDrivenHeapStateToGraph[N <: SemanticDomain[N]](state: ValueDrivenHeapState[N]) = {
+    val graph: mxGraph = defaultGraphSettings()
+    var yposition: Double = ygap
+    var idToVertix = Map.empty[Vertex, Object]
+    var idToEdge = Map.empty[EdgeWithState[N], Object]
+
+    try {
+      var index: Int = 0
+      //      val ids = s.getIds() ++ heap.getIds()
+      val vertices = state.abstractHeap.vertices
+      //Create the nodes for variables
+      for (node <- vertices) {
+        if (node.isInstanceOf[LocalVariableVertex]) {
+          val (vertex, h) = createVertex(node.name, index, leftspace, yposition + ygap, graph, !node.label.equals(VertexConstants.DEFINITE), "rectangle")
+          idToVertix += ((node, vertex))
+          yposition = yposition + ygap * 4 + h
+          index = index + 1
+        }
+      }
+      yposition = ygap
+      val xposition: Int = leftspace + 200
+
+      // Create the nodes for abstract addresses
+      for (node <- vertices) {
+        if (!node.isInstanceOf[LocalVariableVertex]) {
+          val (vertix, h) = createVertex(node.name, index, xposition, yposition + ygap, graph, !node.label.equals(VertexConstants.DEFINITE), "ellipse")
+          yposition = yposition + ygap * 4 + h
+          idToVertix += ((node, vertix))
+          index = index + 1
+        }
+      }
+
+      for (edge <- state.abstractHeap.edges) {
+        val from = idToVertix.apply(edge.source)
+        val to = idToVertix.apply(edge.target)
+
+        val addedEdge = graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + "," + edge.field + ")" + index, edge.field, from, to, "edgeStyle=elbowEdgeStyle")
+        index = index + 1
+        idToEdge += ((edge, addedEdge))
+      }
+
+      val a = new java.util.LinkedList[Object]
+      for (id <- vertices) {
+        val vertex = idToVertix(id)
+        if(graph.getIncomingEdges(vertex).isEmpty) {
+          a.add(vertex)
+        }
+      }
+
+      // Layout the graph
+      val layout = new mxHierarchicalLayout(graph,SwingConstants.WEST)
+      layout.execute(graph.getDefaultParent(),a)
+    }
+    finally {
+      graph.getModel().endUpdate()
+    }
+    (graph, idToVertix, idToEdge)
+  }
+
   private def stateToGraph[S <: State[S], N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: S) = state match {
     case s: AbstractState[N, H, I] => genericStateToGraph(s)
     case s: PartitionedState[_] => partitionedStateToJComponent(s)
+    case s: ValueDrivenHeapState[N] => new ShowValueDrivenHeapState[N](s)
     case _ => new Show(stateToString(state), false, -1, -1)
   }
 
