@@ -819,7 +819,80 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   }
 
 
-  private def graphPathCondition(path : List[EdgeWithState[S]]) : S = ???
+  /**
+   * The method for computing the condition that is satisfied by the given path.
+   *
+   * @param path for which the condition should be computed
+   * @return abstract value condition that is satisfied by the given path
+   */
+  private def graphPathCondition(path : List[EdgeWithState[S]]) : S = {
+    // The path can not be empty. This should be caught previously and evaluated to bottom.
+    assert(!path.isEmpty)
+    // Every path must start with a local variable.
+    assert(path.head.source.isInstanceOf[LocalVariableVertex])
+
+    /**
+     * Inner helper method for computing the condition recursively.
+     *
+     * @param path to be proccesed
+     * @param state - starting state where are only the edge-loca identifiers with empty sequence of field access that represent targets
+     * @return
+     */
+    def graphPathConditionRecursive(path : List[EdgeWithState[S]], state : S) : S = {
+      // Base case is when the path is empty. (Termination)
+      if (path.isEmpty)
+        state
+
+      // If the path is non-empty, the head of it must refer to a field (i.e. the firs node must be a HeapVertex).
+      assert(path.head.source.isInstanceOf[HeapVertex])
+      val edge = path.head
+
+      // Only the edge-local identifiers that refer to target are present in the given state. (i.e. the once with empty sequence of field accesses).
+      assert(state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && !id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty).isEmpty)
+
+      // Originally, the edge local identifiers of the given state with the empty sequence of fields refer to the target
+      // and no other edge-local identifiers are present in the given state. We need to add them so that the edge-local
+      // identifiers of the currently procces edge do not get lost.
+      val edgeLocalIdsToAdd = edge.state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && !id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty)
+      var newState: S = Utilities.createVariablesForState(state, edgeLocalIdsToAdd.toSet[Identifier])
+      newState = newState.glb(newState, edge.state)
+
+      // Now, we need to rename source-edge local identifiers to the ones that are target of this edge and remove any others.
+      val originalSourceIds = newState.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty).toSet[Identifier]
+      newState = Utilities.removeVariablesFromState(newState, originalSourceIds)
+      // Renaming
+      val idsToRenameToSource = newState.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath == 1
+        && id.asInstanceOf[EdgeLocalIdentifier].accPath.head.equals(
+        edge.field match {
+          case None => ""
+          case Some(f) => f
+        })).asInstanceOf[Set[EdgeLocalIdentifier]]
+      // Building lists for renaming
+      var renameFrom = List.empty[EdgeLocalIdentifier]
+      var renameTo = List.empty[EdgeLocalIdentifier]
+      for (elId <- idsToRenameToSource) {
+        renameFrom = elId :: renameFrom
+        renameTo = new EdgeLocalIdentifier(List.empty[String], elId.field, elId.getType(), elId.getProgramPoint()) :: renameTo
+      }
+      newState = newState.rename(renameFrom, renameTo)
+      // Now we remove all edge-local identifiers that can not be the targets.
+      val elIdsToRemove = newState.getIds().filter(x => x.isInstanceOf[EdgeLocalIdentifier]) -- renameTo
+      newState = Utilities.removeVariablesFromState(newState, elIdsToRemove.toSet[Identifier])
+
+
+      // return
+      graphPathConditionRecursive(path.tail, newState)
+    }
+
+    /* The head of the path (edge sequence) is starting from a variable. Therefore, the edge local variables
+       that represent the target edge locat variables have an empty sequence of fields. However, we need to remove all
+       other edge-local identifier that might be possibly present.
+    */
+    val elIdsToRemove = path.head.state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && !id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty).asInstanceOf[Set[Identifier]]
+    // return
+    graphPathConditionRecursive(path.tail, Utilities.removeVariablesFromState(path.head.state, elIdsToRemove))
+  }
+
 
 
   /**
@@ -1921,7 +1994,7 @@ case class ValueHeapIdentifier(obj: HeapVertex, field: String, typ1 : Type, pp :
   }
 }
 
-case class EdgeLocalIdentifier(accPath: List[String], field: String, typ1: Type, pp: ProgramPoint) extends Identifier(typ1, pp) {
+case class EdgeLocalIdentifier(accPath: List[String],val field: String, typ1: Type, pp: ProgramPoint) extends Identifier(typ1, pp) {
 
   assert(!typ1.isObject(), "EdgeLocalIdentifier should represent value information.")
   assert(accPath.size <= 1, "For now, we allow at most single step look-ahead.")
@@ -1947,10 +2020,9 @@ case class EdgeLocalIdentifier(accPath: List[String], field: String, typ1: Type,
   def getField(): Option[String] = Some(field)
 
   /**
-  Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
-   identifier. This function tells if a node is a summary node.
+  Edge-local identifier always represents a field of a single object. Hence, this method always returns true.
 
-   @return true iff this identifier represents exactly one variable
+   @return true
     */
   def representSingleVariable(): Boolean = true
 
