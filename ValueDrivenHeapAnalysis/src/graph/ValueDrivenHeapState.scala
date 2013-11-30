@@ -6,11 +6,9 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.property._
 import apron.{Octagon, Box, Polka}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ShowGraphProperty, ApronInterface}
-
-import scala.collection.immutable.TreeSet
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.{BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics}
-import com.sun.org.apache.xpath.internal.operations.Bool
+
 
 /**
  * Created with IntelliJ IDEA.
@@ -28,7 +26,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 
   if (isTop && isBottom) throw new Exception("Being Top and Bottom in the same time is not allowed.")
 
-  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Polka(false)).top().asInstanceOf[S], newExpr, false, false)
+  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Polka(false), false, Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
 //  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Octagon()).top().asInstanceOf[S], newExpr, false, false)
 //  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Box()).top().asInstanceOf[S], newExpr, false, false)
 
@@ -46,73 +44,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   */
   def before(pp: ProgramPoint): ValueDrivenHeapState[S] = {
     return this
-    // throw new Exception("Method before is not implemented")
-  }
-
-  /**
-  Creates an object
-
-   @param typ The dynamic type of the created object
-  @param pp The point of the program that creates the object
-  @return The abstract state after the creation of the object
-    */
-  def createObject(typ: Type, pp: ProgramPoint, createFields: Boolean): ValueDrivenHeapState[S] = {
-    //**println("creatObject(" + typ + "," + pp + "," + createFields + ") is called.")
-    if (this.isBottom) return this
-
-    var resIds = Set.empty[Identifier]
-    var (newAbstractHeap, newVertex) = abstractHeap.addNewVertex(VertexConstants.DEFINITE, typ)
-    assert(newVertex.isInstanceOf[DefiniteHeapVertex], "The newly created object should be definite")
-    val createdObjVertex = newVertex.asInstanceOf[DefiniteHeapVertex]
-
-//    var edgeLocalIds = Set.empty[Identifier]
-    var resIdsAndEdgeLocalIds = Set.empty[(Identifier, Identifier)]
-
-    for (valField <- typ.getPossibleFields().filter(of => !of.getType().isObject())) {
-      // This means that we have a value field and this should be included in all abstract states on edges
-      // This is done via Replacement
-      val resId = new ValueHeapIdentifier(newVertex.asInstanceOf[DefiniteHeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
-      val edgeLocalId = new EdgeLocalIdentifier(List.empty[String], valField.getName(), valField.getType(), valField.getProgramPoint())
-      resIdsAndEdgeLocalIds = resIdsAndEdgeLocalIds + ((resId, edgeLocalId))
-      resIds= resIds + resId
-//      edgeLocalIds = edgeLocalIds + new EdgeLocalIdentifier(List.empty[String], valField.getName(), valField.getType(), valField.getProgramPoint())
-    }
-//    val resAH = newAbstractHeap.createVariablesInAllStates(resIds)
-    newAbstractHeap = newAbstractHeap.createVariablesInAllStates(resIds)
-    var newGeneralState = generalValState
-    for ((id,_) <- resIdsAndEdgeLocalIds)
-      newGeneralState = newGeneralState.createVariable(id, id.getType())
-    for (objField <- typ.getPossibleFields().filter(of => of.getType().isObject())) {
-      val res = newAbstractHeap.addNewVertex(VertexConstants.NULL, typ)
-      newAbstractHeap = res._1
-      newVertex = res._2
-      var edgeState = newGeneralState
-      for ((resId, edgeLocalId) <- resIdsAndEdgeLocalIds) {
-//        edgeState = edgeState.createVariable(resId, resId.getType())
-        edgeState = edgeState.createVariable(edgeLocalId, edgeLocalId.getType())
-        edgeState = edgeState.assume(new BinaryArithmeticExpression(resId,edgeLocalId, ArithmeticOperator.==, null))
-      }
-      newAbstractHeap = newAbstractHeap.addEdges(Set(new EdgeWithState[S](createdObjVertex, edgeState, Some(objField.getName()), newVertex)))
-    }
-
-//    for (objField <- typ.getPossibleFields().filter(of => of.getType().isObject())) {
-//      val res = newAbstractHeap.addNewVertex(VertexConstants.NULL, typ)
-//      newAbstractHeap = res._1
-//      newVertex = res._2
-//      var edgeState = generalValState
-//      for (edgeId <- edgeLocalIds)
-//        edgeState = edgeState.createVariable(edgeId, edgeId.getType())
-//      newAbstractHeap = newAbstractHeap.addEdges(Set(new EdgeWithState[S](createdObjVertex, edgeState, Some(objField.getName()), newVertex)))
-//    }
-
-    // Now we need to apply the replacement to all the states, including the general value state.
-
-    return new ValueDrivenHeapState[S](newAbstractHeap,
-                                       newGeneralState,
-                                       new ExpressionSet(typ).add(new VertexExpression(pp, typ, createdObjVertex)),
-                                       isTop, isBottom)
-
-//    throw new Exception("Method createObject is not implemented")
   }
 
   /**
@@ -134,7 +65,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
         case variable : VariableIdentifier => {
           if (variable.getType().isObject()) {
             result = new ValueDrivenHeapState[S](result.abstractHeap.addNewVertex(variable.getName(), typ)._1,
-                                                 result.generalValState.merge(new Replacement()),
+                                                 result.generalValState,
                                                  new ExpressionSet(typ).add(new VariableIdentifier(variable.getName(), variable.getType(), variable.getProgramPoint(), variable.scope)),
                                                  result.isTop, result.isBottom)
           } else {
@@ -177,7 +108,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
           var result = createVariable(x, typ, variable.getProgramPoint())
           if (variable.getType().isObject()) {
             val varExpr = result.getExpression()
-            result = result.createObject(typ, variable.getProgramPoint())
+            result = result.createObject(typ, variable.getProgramPoint(), Some(typ.getPossibleFields()))
             result = result.assignVariable(varExpr, result.getExpression())
           }
           return result
@@ -279,7 +210,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                 val sourceVertices = abstractHeap.vertices.filter(v => v.name.equals(variable.getName()))
                 assert(sourceVertices.size == 1, "The local variable vertices should be one of each.")
                 for (edge <- edgesOfRight) {
-                  edgesToAdd = edgesToAdd + new EdgeWithState[S](sourceVertices.head, edge.state.merge(new Replacement()), None, edge.target)
+                  edgesToAdd = edgesToAdd + new EdgeWithState[S](sourceVertices.head, edge.state, None, edge.target)
                 }
                 var resultingAH = abstractHeap.addEdges(edgesToAdd)
                 resultingAH = resultingAH.removeEdges(edgesToRemove -- edgesToAdd)
@@ -300,8 +231,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                       edgesToAdd = edgesToAdd + new EdgeWithState[S](varVertex, edgeState, None, edgeSeq.last.target)
                     }
                   }
-                var resultingAH = abstractHeap.addEdges(edgesToAdd)
-                resultingAH = resultingAH.removeEdges(edgesToRemove -- edgesToAdd)
+                var resultingAH = abstractHeap.removeEdges(edgesToRemove)
+                resultingAH = resultingAH.addEdges(edgesToAdd)
                 result = new ValueDrivenHeapState[S](resultingAH, generalValState, new ExpressionSet(variable.getType()).add(variable), false, isBottom)
 
 
@@ -1509,12 +1440,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     throw new Exception("Method getCollectionLength is not implemented")
   }
 
-  /**
-   * Removes all variables satisfying filter
-   */
-  def pruneVariables(filter: (VariableIdentifier) => Boolean): ValueDrivenHeapState[S] = {
-    throw new Exception("Method pruneVariables is not implemented")
-  }
 
   /**
    * Performs abstract garbage collection
@@ -1537,7 +1462,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     */
   def top(): ValueDrivenHeapState[S] = {
     //**println("top() is called")
-    return new ValueDrivenHeapState[S](new HeapGraph[S](), new ApronInterface(None, new Polka(false)).top().asInstanceOf[S], new ExpressionSet(SystemParameters.getType().top()), true, false)
+    return new ValueDrivenHeapState[S](new HeapGraph[S](), new ApronInterface(None, new Polka(false), false, Set.empty[Identifier]).top().asInstanceOf[S], new ExpressionSet(SystemParameters.getType().top()), true, false)
     throw new Exception("Method top is not implemented")
   }
 
@@ -1798,6 +1723,208 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
    * @return True if any collection is a summary node, false otherwise.
    */
   def isSummaryCollection(collectionSet: ExpressionSet): Boolean = ???
+
+  /**
+  Creates an object
+
+  @param typ The dynamic type of the created object
+  @param pp The point of the program that creates the object
+  @param fields If this is defined, the given fields will be created instead of the types fields (e.g. for reducing
+                  the set of initialized fields)
+  @return The abstract state after the creation of the object
+    */
+  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): ValueDrivenHeapState[S] = {
+    //**println("creatObject(" + typ + "," + pp + "," + fields + ") is called.")
+    if (this.isBottom) return this
+
+    var resIds = Set.empty[Identifier]
+    var (newAbstractHeap, newVertex) = abstractHeap.addNewVertex(VertexConstants.DEFINITE, typ)
+    assert(newVertex.isInstanceOf[DefiniteHeapVertex], "The newly created object should be definite")
+    val createdObjVertex = newVertex.asInstanceOf[DefiniteHeapVertex]
+
+    //    var edgeLocalIds = Set.empty[Identifier]
+    var resIdsAndEdgeLocalIds = Set.empty[(Identifier, Identifier)]
+
+    for (valField <- typ.getPossibleFields().filter(of => !of.getType().isObject())) {
+      // This means that we have a value field and this should be included in all abstract states on edges
+      // This is done via Replacement
+      val resId = new ValueHeapIdentifier(newVertex.asInstanceOf[DefiniteHeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
+      val edgeLocalId = new EdgeLocalIdentifier(List.empty[String], valField.getName(), valField.getType(), valField.getProgramPoint())
+      resIdsAndEdgeLocalIds = resIdsAndEdgeLocalIds + ((resId, edgeLocalId))
+      resIds= resIds + resId
+      //      edgeLocalIds = edgeLocalIds + new EdgeLocalIdentifier(List.empty[String], valField.getName(), valField.getType(), valField.getProgramPoint())
+    }
+    //    val resAH = newAbstractHeap.createVariablesInAllStates(resIds)
+    newAbstractHeap = newAbstractHeap.createVariablesInAllStates(resIds)
+    var newGeneralState = generalValState
+    for ((id,_) <- resIdsAndEdgeLocalIds)
+      newGeneralState = newGeneralState.createVariable(id, id.getType())
+    for (objField <- typ.getPossibleFields().filter(of => of.getType().isObject())) {
+      val res = newAbstractHeap.addNewVertex(VertexConstants.NULL, typ)
+      newAbstractHeap = res._1
+      newVertex = res._2
+      var edgeState = newGeneralState
+      for ((resId, edgeLocalId) <- resIdsAndEdgeLocalIds) {
+        //        edgeState = edgeState.createVariable(resId, resId.getType())
+        edgeState = edgeState.createVariable(edgeLocalId, edgeLocalId.getType())
+        edgeState = edgeState.assume(new BinaryArithmeticExpression(resId,edgeLocalId, ArithmeticOperator.==, null))
+      }
+      newAbstractHeap = newAbstractHeap.addEdges(Set(new EdgeWithState[S](createdObjVertex, edgeState, Some(objField.getName()), newVertex)))
+    }
+
+    //    for (objField <- typ.getPossibleFields().filter(of => of.getType().isObject())) {
+    //      val res = newAbstractHeap.addNewVertex(VertexConstants.NULL, typ)
+    //      newAbstractHeap = res._1
+    //      newVertex = res._2
+    //      var edgeState = generalValState
+    //      for (edgeId <- edgeLocalIds)
+    //        edgeState = edgeState.createVariable(edgeId, edgeId.getType())
+    //      newAbstractHeap = newAbstractHeap.addEdges(Set(new EdgeWithState[S](createdObjVertex, edgeState, Some(objField.getName()), newVertex)))
+    //    }
+
+    // Now we need to apply the replacement to all the states, including the general value state.
+
+    return new ValueDrivenHeapState[S](newAbstractHeap,
+      newGeneralState,
+      new ExpressionSet(typ).add(new VertexExpression(pp, typ, createdObjVertex)),
+      isTop, isBottom)
+
+    //    throw new Exception("Method createObject is not implemented")
+  }
+
+  /**
+  Creates an empty collection.
+
+    @param collTyp  The type of the collection
+  @param keyTyp The type of the collection's keys
+  @param valueTyp The type of the collection's values
+  @param lengthTyp The type of the collection length
+  @param tpp  The program point at which the collection is created
+    */
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]): ValueDrivenHeapState[S] = ???
+
+  /**
+   * Returns for each collection in the collectionSet either the collection identifier or if a summary collection for
+   * this collection identifier exists the identifier of the summary collection
+   *
+   * @param collectionSet
+   * @return The state with either the summary collection identifier or the collection identifier in the expression
+   */
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  /**
+   * Gets the values that are stored at the Collection Tuple Value Identifiers.
+   *
+   * @param valueIds  The Collection Tuple Value Identifiers
+   * @return  The state with the values as expression
+   */
+  def getCollectionValue(valueIds: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+
+  /**
+  Gets the Identifier of all the values of the collection for which the key Identifier matches the given
+    key expression.
+    A key expression (key) matches a Identifier if the Identifier represents a key of the collection
+    and has value k assigned such that
+        lub(k, key) != bottom
+
+    @param collectionSet  The collection expressions
+  @param keySet The key expressions
+  @param valueTyp The type of the collection's values
+  @return The state that has the mapped Identifier as expression
+    */
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  /**
+  Creates a new collection that contains all keys of the provided collection (fromCollection)
+    as values.
+
+    @param fromCollection The collection from which the keys shall be extracted
+  @param collTyp  The collection type of the newly created collection
+  @param keyTyp  The key type of the newly created collection
+  @param valueTyp The value type of the newly created collection
+  @param lengthTyp  The length type of the newly created collection@param pp
+  @return The state that contains the newly created collection and has it's CollectionHeapIdentifier as expression
+    */
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+
+  //TODO: comment
+  def getOriginalCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  def getKeysCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  /**
+  Copies all the key-value tuples from one collection to the other.
+
+    @param fromCollectionSet The collection from which the tuples are copied.
+  @param toCollectionSet The collection to which the tuples are copied to.
+  @param keyTyp  The key type of the collections
+  @param valueTyp  The value type of the collection
+  @return The state that has a copy of all the tuples of the fromCollection in the toCollection
+    */
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  /**
+  Creates a new key-value tuple and adds it to the collection.
+
+    @param collectionSet The collection to which the key-value pair shall be added
+  @param keySet  The expression that is assigned to the key node
+  @param rightSet  The expression that is assigned to the value node
+  @param pp  The program point that the new tuple shall have.
+               Key-value tuples of a collection are distinguished by their program point.
+               If a tuple with this program point already exists in the collection the new tuple
+               will be summarized with this tuple.
+  @return The state that contains the collection with the added collection-tuple
+    */
+  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+
+  /**
+  Removes the values from the collection who's key identifiers match the given key expression.
+    If the key expression (k) matches the key identifier's assigned value exactly, the tuple is completely removed.
+    Otherwise the tuple is not removed but the semantic state contains the assumption
+      key identifier != k
+
+    @param collectionSet The collection from which the value is removed
+  @param keySet The key expressions
+  @return The state in which the collection is represented without the collection value
+    */
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  /**
+   * Removes the first occurence of the value in a collection.
+   *
+   * @param collectionSet The set of collections from which the value is removed
+   * @param valueSet The value to be removed
+   * @return The state in which the collection is represented without the first occurence of the collection value
+   */
+  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  /**
+   * Assigns the value expression to all key identifiers of the collection.
+   *
+   * @param collectionSet The collection
+   * @param valueSet  The value expression
+   * @return  The state in which all the key identifiers of the collection have the value expression assigned
+   */
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+
+  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+
+  /**
+   * Removes all variables satisfying filter
+   */
+  def pruneVariables(filter: (Identifier) => Boolean): ValueDrivenHeapState[S] = ???
+
+  /**
+   * Detects summary nodes that are only reachable via a single access path and converts
+   * them to non-summary nodes
+   */
+  def optimizeSummaryNodes(): ValueDrivenHeapState[S] = ???
 }
 
 class ValueDrivenHeapAnalysis extends Analysis {
@@ -1823,7 +1950,7 @@ class ValueDrivenHeapAnalysis extends Analysis {
   def getInitialState(): ValueDrivenHeapState[ApronInterface] = new ValueDrivenHeapState[ApronInterface](new ExpressionSet(SystemParameters.getType.top)).top()
 
   def getProperties(): List[Property] = List(
-    new ShowGraphProperty().asInstanceOf[Property]
+//    new ShowGraphProperty().asInstanceOf[Property]
 //    new SingleStatementProperty(DivisionByZero),
 //    new SingleStatementProperty(new LowerBoundedValue("y", 0)),
 //    new SingleStatementProperty(new BoundedValue("y", -4, 4))
@@ -1861,11 +1988,12 @@ case class ValueHeapIdentifier(obj: HeapVertex, field: String, typ1 : Type, pp :
   override def toString(): String = obj.name + "." + field
 
   override def hashCode(): Int = {
-    return toString.hashCode() + typ1.hashCode()
+    return toString.hashCode()
   }
 
   override def equals(obj : Any): Boolean = obj match {
-    case ValueHeapIdentifier(otherObj, otherField, otherTyp, _) => this.typ1 == otherTyp && this.obj == otherObj && this.field == otherField
+    case x : ValueHeapIdentifier =>
+      this.toString().equals(x.toString())
     case _ => false
   }
 }
@@ -1908,11 +2036,12 @@ case class EdgeLocalIdentifier(accPath: List[String], field: String, typ1: Type,
   override def toString(): String = getName
 
   override def hashCode(): Int = {
-    return toString.hashCode() + typ1.hashCode()
+    return toString.hashCode()
   }
 
   override def equals(obj : Any): Boolean = obj match {
-    case EdgeLocalIdentifier(objAP, objField, objTyp, _) => this.typ1 == objTyp && this.accPath == objAP && this.field == objField
+    case x: EdgeLocalIdentifier =>
+      this.toString().equals(x.toString())
     case _ => false
   }
 }
@@ -1973,9 +2102,20 @@ case class VertexExpression(pp : ProgramPoint, typ: Type, vertex: Vertex) extend
   }
 
   override def equals(obj : Any): Boolean = obj match {
-    case VertexExpression(_, objTyp, objVertex) => this.typ == objTyp && this.vertex == objVertex
+    case VertexExpression(_, objTyp, objVertex) =>
+      this.typ.equals(objTyp) && this.vertex.equals(objVertex)
     case _ => false
   }
+
+  /**
+   * Runs f on the expression and all sub-expressions
+   *
+   * This also replaces identifiers inside heap ID sets.
+   *
+   * @param f the transformer
+   * @return the transformed expression
+   */
+  def transform(f: (Expression) => Expression): Expression = ???
 }
 
 object ValeDrivenHeapStateConstants {

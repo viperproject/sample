@@ -13,6 +13,26 @@ class Node {
   var next: Node = null
 
   def createNext(v : Int) = {
+
+    // First nat
+    var result : Node = this
+    value = v
+    var p : Node = null
+    var i = v - 1
+    while (i >= 0) {
+      p = new Node()
+      p.value = i
+      p.next = result
+      result = p
+      p = null
+      i = i - 1
+    }
+//    value = 0
+//    var p = this
+//    p.next = new Node()
+//    p = p.next
+//    p.value = 0
+
 //    value = 0
 //    var p = this
 //    var i = 1
@@ -40,6 +60,7 @@ class Node {
 //      next.value = v
 
 //    value = 0
+//    //assume(v > 0)
 //    var p = this
 //    var i = 1
 //    while (i < v) {
@@ -49,18 +70,18 @@ class Node {
 //      i = i + 1
 //    }
 
-    value = 0
-    var p = this
-    var i = 1
-    var tmp: Node = null
-    while (i < v) {
-      tmp = new Node()
-      p.next = tmp
-      tmp = null
-      p = p.next
-      p.value = i
-      i = i + 1
-    }
+//    value = 0
+//    var p = this
+//    var i = 1
+//    var tmp: Node = null
+//    while (i < v) {
+//      tmp = new Node()
+//      p.next = tmp
+//      tmp = null
+//      p = p.next
+//      p.value = i
+//      i = i + 1
+//    }
 
 //    var i = 0
 //    var p = this

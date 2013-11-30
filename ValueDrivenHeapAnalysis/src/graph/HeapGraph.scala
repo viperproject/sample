@@ -128,21 +128,35 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   }
 
   def meetStateOnAllEdges(state: S): HeapGraph[S] = {
-    val valueFields = vertices.map(v => v.typ.getPossibleFields().filter(!_.getType().isObject())).flatten
-    var allEdgeLocalIds = valueFields.map(f => new EdgeLocalIdentifier(List.empty[String], f.getName(), f.getType, f.getProgramPoint()))
-    var referenceFields = Set.empty[String]
+    // The given state may AccessPathIdentifiers. These need to be added to the edge states.
+    val apIDs = state.getIds().filter(_.isInstanceOf[AccessPathIdentifier]).toSet
+    var newEdges = Set.empty[EdgeWithState[S]]
     for (e <- edges) {
-      e.field match {
-        case None =>
-        case Some(f) => referenceFields = referenceFields + f
-      }
+      // Edges may contain edge local identifiers that are not in the given state. They need to be added.
+      val elIDs = e.state.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).toSet
+      val newState = Utilities.createVariablesForState(state, elIDs)
+      val newEdgeState = Utilities.createVariablesForState(e.state, apIDs)
+      newEdges += new EdgeWithState[S](e.source, e.state.glb(newState, newEdgeState), e.field, e.target)
     }
-    for (rf <- referenceFields) {
-      allEdgeLocalIds = allEdgeLocalIds ++ valueFields.map(f => new EdgeLocalIdentifier(List(rf), f.getName(), f.getType, f.getProgramPoint()))
-    }
-
-    val newEdges = edges.map(e => new EdgeWithState[S](e.source, e.state.glb(e.state, Utilities.createVariablesForState(state, allEdgeLocalIds.asInstanceOf[Set[Identifier]])), e.field, e.target))
     new HeapGraph[S](vertices, newEdges)
+
+
+
+//    val valueFields = vertices.map(v => v.typ.getPossibleFields().filter(!_.getType().isObject())).flatten
+//    var allEdgeLocalIds = valueFields.map(f => new EdgeLocalIdentifier(List.empty[String], f.getName(), f.getType, f.getProgramPoint()))
+//    var referenceFields = Set.empty[String]
+//    for (e <- edges) {
+//      e.field match {
+//        case None =>
+//        case Some(f) => referenceFields = referenceFields + f
+//      }
+//    }
+//    for (rf <- referenceFields) {
+//      allEdgeLocalIds = allEdgeLocalIds ++ valueFields.map(f => new EdgeLocalIdentifier(List(rf), f.getName(), f.getType, f.getProgramPoint()))
+//    }
+//
+//    val newEdges = edges.map(e => new EdgeWithState[S](e.source, e.state.glb(e.state, Utilities.createVariablesForState(state, allEdgeLocalIds.asInstanceOf[Set[Identifier]])), e.field, e.target))
+//    new HeapGraph[S](vertices, newEdges)
   }
 
 

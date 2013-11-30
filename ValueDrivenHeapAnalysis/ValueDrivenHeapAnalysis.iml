@@ -16,7 +16,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="scala-library" level="project" />
-    <orderEntry type="module" module-name="GUI" />
     <orderEntry type="module" module-name="NumericalAnalysis" />
     <orderEntry type="module" module-name="Sample" />
     <orderEntry type="module" module-name="ScalaPreprocessing" />
