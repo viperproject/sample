@@ -819,9 +819,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   }
 
 
-  private def graphPathCondition(path : List[EdgeWithState[S]]) : S = {
-    return null
-  }
+  private def graphPathCondition(path : List[EdgeWithState[S]]) : S = ???
 
 
   /**
@@ -907,7 +905,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     }
     val finalType = path.last.target.typ
     var finalId: AccessPathExpression = new AccessPathExpression(pp, finalType, currentPathList)
-    return (resultState, finalId, addedIdentifiers, expEdgeMap
+    return (resultState, finalId, addedIdentifiers, expEdgeMap)
   }
 
   /**
