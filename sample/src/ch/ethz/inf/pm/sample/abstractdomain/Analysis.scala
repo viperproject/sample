@@ -29,8 +29,8 @@ trait Analysis {
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
         if(SystemParameters.property!=null) {
           SystemParameters.property.check(c.name.getThisType(), x, s, output)
-          res = res ::: ((c.name.getThisType(), x, s) :: Nil)
         }
+        res = res ::: ((c.name.getThisType(), x, s) :: Nil)
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
         SystemParameters.currentMethod = null
       }
