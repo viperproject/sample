@@ -124,21 +124,39 @@ case class Assignment(programpoint : ProgramPoint, left : Statement, right : Sta
        * assigned to <code>right</code> 
 	   */
       override def forwardSemantics[S <: State[S]](state : S) : S = {
-        if(left.isInstanceOf[FieldAccess]) {
-          val castedLeft = left.asInstanceOf[FieldAccess];
-          val (listObjs, state1) = UtilitiesOnStates.forwardExecuteListStatements[S](state, castedLeft.objs)
-          val stateright : S = right.forwardSemantics[S](state1)
-          val exprright = stateright.getExpression();
-          return stateright.removeExpression().assignField(listObjs, castedLeft.field, exprright)
-        }
-        else {
-          var stateleft : S = left.forwardSemantics[S](state)
-          val exprleft = stateleft.getExpression();
-          stateleft = stateleft.removeExpression()
-          var stateright : S = right.forwardSemantics[S](stateleft)
-          val exprright = stateright.getExpression();
-          stateright = stateright.removeExpression()
-          return stateright.assignVariable(exprleft, exprright)
+        if (SystemParameters.isValueDrivenHeapAnalysis) {
+          val leftState = left.forwardSemantics[S](state)
+          val leftExpr = leftState.getExpression()
+          val rightState = right.forwardSemantics[S](leftState)
+          val rightExpr = rightState.getExpression()
+          assert(leftExpr.getSetOfExpressions.size == 1, "Left hand side must be a single expression.")
+          assert(rightExpr.getSetOfExpressions.size == 1, "Right-hand side must be a single expression.")
+          leftExpr.getSetOfExpressions.head match {
+            case ap: AccessPathExpression =>
+              val result = rightState.removeExpression().assignField(List(leftExpr), "", rightExpr)
+              result
+            case v: VariableIdentifier =>
+              val result = rightState.assignVariable(leftExpr, rightExpr)
+              result
+            case exp => throw new Exception(exp + " is not supported")
+          }
+        } else {
+          if(left.isInstanceOf[FieldAccess]) {
+            val castedLeft = left.asInstanceOf[FieldAccess];
+            val (listObjs, state1) = UtilitiesOnStates.forwardExecuteListStatements[S](state, castedLeft.objs)
+            val stateright : S = right.forwardSemantics[S](state1)
+            val exprright = stateright.getExpression();
+            return stateright.removeExpression().assignField(listObjs, castedLeft.field, exprright)
+          }
+          else {
+            var stateleft : S = left.forwardSemantics[S](state)
+            val exprleft = stateleft.getExpression();
+            stateleft = stateleft.removeExpression()
+            var stateright : S = right.forwardSemantics[S](stateleft)
+            val exprright = stateright.getExpression();
+            stateright = stateright.removeExpression()
+            return stateright.assignVariable(exprleft, exprright)
+          }
         }
       }
       
@@ -265,9 +283,42 @@ case class FieldAccess(pp : ProgramPoint, val objs : List[Statement], val field 
 	 * @return the initial state 
 	 */
     override def forwardSemantics[S <: State[S]](state : S) : S = {
-      val (listObjs, state1) = UtilitiesOnStates.forwardExecuteListStatements[S](state, objs)
-      val result = state1.getFieldValue(listObjs, field, typ)
-      result
+      if (SystemParameters.isValueDrivenHeapAnalysis) {
+        assert(objs.size >= 1, "FieldAccess has a path of length 0.")
+        // I need a List of ExpressionSet
+        var current: Statement = objs.head
+        var accPath: List[String] = Nil
+        while (current.isInstanceOf[FieldAccess]) {
+          val fieldAccSt = current.asInstanceOf[FieldAccess]
+          accPath = fieldAccSt.field :: accPath
+          current = fieldAccSt.objs.head
+        }
+        assert(current.isInstanceOf[Variable], "The root of FieldAccess should be a variable.")
+        val rootOfFieldAcc = current.asInstanceOf[Variable]
+        accPath = rootOfFieldAcc.getName() :: accPath
+        // TODO: The below fix is a hack and should not be handled this way
+        val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(objs.head).getPossibleFields().filter(f => f.getName().equals(field)).head.getType() else typ
+        val pathExpr = new AccessPathExpression(pp, finalType, accPath :+ field)
+        val newResult = state.getFieldValue(List(new ExpressionSet(pathExpr.getType()).add(pathExpr)), field, finalType)
+        newResult
+      } else {
+        val (listObjs, state1) = UtilitiesOnStates.forwardExecuteListStatements[S](state, objs)
+        val result = state1.getFieldValue(listObjs, field, typ)
+        result
+      }
+    }
+
+    private def getTypeOfStatement(s: Statement): Type = {
+      s match {
+        case v: Variable => {
+          return v.id.getType()
+        }
+        case fa : FieldAccess => {
+          assert(!fa.typ.toString.contains("<none>"), "Typ = " + fa.typ + " - The type uf field access should never be Unit")
+          return fa.typ
+        }
+        case _ => throw new Exception("Should not happen as we use this only inside access path.")
+      }
     }
 
     override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
@@ -446,10 +497,10 @@ case class New(pp : ProgramPoint, typ: Type) extends Statement(pp) {
 	   * @return the state in which a fresh address pointing to something 
        * of type <code>typ</code> has been created 
 	   */
-    override def forwardSemantics[S <: State[S]](state : S) : S = state createObject(typ, pp)
+    override def forwardSemantics[S <: State[S]](state : S) : S = state createObject(typ, pp, Some(typ.getPossibleFields()))
 
     override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
-      val ex=state.createObject(typ, pp).getExpression();
+      val ex=state.createObject(typ, pp, Some(typ.getPossibleFields())).getExpression();
       return state.removeExpression().removeVariable(ex);
     }
       

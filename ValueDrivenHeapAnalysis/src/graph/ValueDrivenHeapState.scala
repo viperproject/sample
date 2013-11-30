@@ -819,6 +819,10 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   }
 
 
+  private def graphPathCondition(path : List[EdgeWithState[S]]) : S = {
+    return null
+  }
+
 
   /**
    * This methods computes the state that must be satisfied when following the given access path,
@@ -903,86 +907,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     }
     val finalType = path.last.target.typ
     var finalId: AccessPathExpression = new AccessPathExpression(pp, finalType, currentPathList)
-    return (resultState, finalId, addedIdentifiers, expEdgeMap)
-
-
-
-//    assert(path.head.source.isInstanceOf[LocalVariableVertex], "The source of the path must represent a local variable.")
-//    for (edge <- path.tail) {
-//      edge.field match {
-//        case None => throw new Exception("The tail of the path should always be a field edge.")
-//        case Some(f) =>
-//      }
-//    }
-//    var sequenceOfStates: List[S] = for (edge <- path) yield edge.state
-//    var currentPathList = path.head.source.name :: Nil
-//    var addedIdentifiers = Set.empty[AccessPathIdentifier]
-//    // var replacementList = List.empty[Replacement]
-//    for (edge <- path) {
-//      //val currentReplacement = new Replacement()
-//      // Taking care of source edge local information
-//      for (valField <- edge.source.typ.getPossibleFields().filter(f => !f.getType().isObject())) {
-//        edge.field match {
-//          case  None =>
-//          case Some(f) => {
-//            val edgeLocId: Identifier = new EdgeLocalIdentifier(List.empty[String], valField.getName(), valField.getType(), valField.getProgramPoint())
-//            val newId = new AccessPathIdentifier(currentPathList :+ valField.getName(), valField.getType(), valField.getProgramPoint())
-//            addedIdentifiers = addedIdentifiers + newId
-//            currentReplacement.value += (Set(edgeLocId) -> Set(newId))
-//          }
-//        }
-//      }
-//      // Set currentId for target
-//      edge.field match {
-//        case None => {
-//          assert(currentPathList.size == 1, "At this point, currentId should be already set")
-//        }
-//        case Some(f) => currentPathList = currentPathList :+ f
-//      }
-//      // Taking care of target edge local information
-//      if (!edge.target.isInstanceOf[NullVertex]) {
-//        for (valField <- edge.target.typ.getPossibleFields().filter(f => !f.getType().isObject())) {
-//          val newId = new AccessPathIdentifier(currentPathList :+ valField.getName(), valField.getType(), valField.getProgramPoint())
-//          addedIdentifiers = addedIdentifiers + newId
-//          edge.field match {
-//            case None => {
-//              val edgeLocId: Identifier = new EdgeLocalIdentifier(List.empty[String], valField.getName(), valField.getType(), valField.getProgramPoint())
-//              currentReplacement.value += (Set(edgeLocId) -> Set(newId))
-//            }
-//            case Some(f) => {
-//              val edgeLocId: Identifier = new EdgeLocalIdentifier(List(f), valField.getName(), valField.getType(), valField.getProgramPoint())
-//              currentReplacement.value += (Set(edgeLocId) -> Set(newId))
-//            }
-//          }
-//        }
-//      }
-//      replacementList = replacementList :+ currentReplacement
-//    }
-//
-//    // Now we need to apply the computed changes.
-//    var index = 0
-//    var isInitialized = false
-//    var resultState = generalValState.top()
-//    for (state <- sequenceOfStates) {
-//      // First we replace the edge local identifiers
-//      var newState = state.merge(replacementList(index))
-//      // Then we add those identifiers that are missing
-//      val missingIdentifiers: Set[AccessPathIdentifier] = addedIdentifiers -- replacementList(index).value.values.flatten.asInstanceOf[Iterable[AccessPathIdentifier]]
-//      if (!missingIdentifiers.isEmpty) {
-//        val rep = new Replacement()
-//        rep.value += (Set.empty[Identifier] -> missingIdentifiers.asInstanceOf[Set[Identifier]])
-//        newState = newState.merge(rep)
-//      }
-//      if (!isInitialized) {
-//        resultState = newState
-//        isInitialized = true
-//      }
-//      resultState = resultState.glb(resultState, newState)
-//      index = index + 1
-//    }
-//    val finalType = path.last.target.typ
-//    var finalId: AccessPathExpression = new AccessPathExpression(pp, finalType, currentPathList)
-//    return (resultState, finalId, addedIdentifiers)
+    return (resultState, finalId, addedIdentifiers, expEdgeMap
   }
 
   /**
