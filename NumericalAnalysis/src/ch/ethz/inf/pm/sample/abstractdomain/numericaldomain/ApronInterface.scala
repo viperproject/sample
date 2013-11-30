@@ -302,7 +302,11 @@ class ApronInterface(val state: Option[Abstract1],
 
       // Boolean variables
       case x: Identifier =>
-        assume(BinaryArithmeticExpression(x, Constant("0", x.getType(), x.getProgramPoint()), ArithmeticOperator.!=, null))
+        // ApronInterface used to assume x != 0 here, which it struggles
+        // to handle properly (it is transformed to x < 0 || x > 0).
+        // Assuming the value to be equal to 1 is handled much better and
+        // is consistent with how ApronInterface treats boolean literals.
+        assume(BinaryArithmeticExpression(x, Constant("1", x.getType(), x.getProgramPoint()), ArithmeticOperator.==, null))
       case NegatedBooleanExpression(x: Identifier) =>
         assume(BinaryArithmeticExpression(x, Constant("0", x.getType(), x.getProgramPoint()), ArithmeticOperator.==, null))
 
