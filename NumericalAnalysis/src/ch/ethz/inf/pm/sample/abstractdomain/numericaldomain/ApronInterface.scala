@@ -21,6 +21,8 @@ class ApronInterface( val state: Option[Abstract1],
                       env: Set[Identifier]
                       ) extends RelationalNumericalDomain[ApronInterface] {
 
+  assert(env.map(_.toString).size == env.size)
+
   override def factory(): ApronInterface = {
     top()
   }
@@ -105,7 +107,7 @@ class ApronInterface( val state: Option[Abstract1],
   /**
    * Removes several variables at once
    */
-  def removeVariables(variables: Array[String]): ApronInterface = {
+  private def removeVariables(variables: Array[String]): ApronInterface = {
     if (variables.isEmpty) return this
     val varSet = variables.toSet
     state match {
@@ -146,7 +148,8 @@ class ApronInterface( val state: Option[Abstract1],
           index = index + 1
         }
         val newState = s.renameCopy(domain, newFrom.map(_.getName()).toArray[String], newTo.map(_.getName()).toArray[String])
-        new ApronInterface(Some(newState), domain, false, env -- from ++ to)
+        val newEnv = env -- from ++ to
+        new ApronInterface(Some(newState), domain, env = newEnv)
       }
     }
   }
@@ -544,10 +547,10 @@ class ApronInterface( val state: Option[Abstract1],
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-      val leftVars = leftState.getEnvironment.getVars.toSet[String]
-      val rightVars = rightState.getEnvironment.getVars.toSet[String]
-      val uncommonVariables: Array[String] = ((leftVars union rightVars) diff (leftVars intersect rightVars)).toArray[String]
+      val leftVars = leftState.getEnvironment.getVars.toSet[String] ++ left.getIds().map(_.getName())
+      val rightVars = rightState.getEnvironment.getVars.toSet[String] ++ right.getIds().map(_.getName())
       var result = leftState.unifyCopy(domain, rightState)
+      val uncommonVariables: Array[String] = (((leftVars union rightVars) intersect result.getEnvironment.getVars.toSet[String]) diff (leftVars intersect rightVars)).toArray[String]
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
       result = result.changeEnvironmentCopy(domain, result.getEnvironment.remove(uncommonVariables), false)
       val newEnv: Set[Identifier] =  left.getIds() intersect right.getIds()
