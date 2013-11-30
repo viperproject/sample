@@ -133,6 +133,7 @@ class ApronInterface( val state: Option[Abstract1],
   override def rename(from: List[Identifier], to: List[Identifier]): ApronInterface = {
     assert(from.size == to.size)
     assert(from.distinct.equals(from) && to.distinct.equals(to))
+    assert(from.toSet[Identifier] subsetOf this.getIds())
     state match {
       case None => return this
       case Some(s) => {
