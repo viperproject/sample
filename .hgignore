@@ -2,6 +2,7 @@ syntax: glob
 
 # Compilation output
 out
+*.class
 
 # Ideally, IntelliJ project files whould not be part of the repository,
 # because there is a constant danger of committing user-specific changes.
