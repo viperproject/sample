@@ -251,10 +251,22 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         cfg.addEdge(currentblock, definedLabel.get(calledMethod.asInstanceOf[Variable].getName()).get, None);
         (cfg, statementsUntilHere, currentblock, false)
       }
-      else
-    	  if(x.toString().equals("scala.Int.box") && args.size==1) //If it's the boxing of an integer, we can ignore that
-    	 	  return (cfg, statementsUntilHere ::: extractListCFG(args), currentblock, true)
-    	  else return (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
+      else {
+        x.toString match {
+          case u if u.equals("scala.Int.box") =>
+            (cfg, statementsUntilHere ::: extractListCFG(args), currentblock, true)
+          case _ => {
+            val result = (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
+            result
+          }
+        }
+      }
+//    	  if(x.toString().equals("scala.Int.box") && args.size==1) //If it's the boxing of an integer, we can ignore that
+//    	 	  return (cfg, statementsUntilHere ::: extractListCFG(args), currentblock, true)
+//    	  else {
+//          val result = (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
+//          return result
+//        }
 
     case Ident(name) =>
       (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier(name decode, new ScalaType(body.tpe), new ScalaProgramPoint(body.pos), EmptyScopeIdentifier())) :: Nil , currentblock, true)

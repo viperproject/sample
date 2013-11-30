@@ -14,7 +14,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
         }
 	    case _ => throw new MethodSemanticException("isInstanceOf cannot have parameters")
 	  } 
-   	  case "$asInstanceOf" => parameters match {
+    case "$asInstanceOf" => parameters match {
 	    case Nil => typeparameters match {
 	      case t :: Nil => return Some(state.setExpression(ExpressionFactory.createAbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.asInstanceOf, returnedtype)));
           case _ => throw new MethodSemanticException("asInstanceOf must have exactly one type parameters")
@@ -29,34 +29,38 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
         }
 	    case _ => None//throw new MethodSemanticException("asInstanceOf cannot have parameters")
 	  }*/
-      case "this" => parameters match {
-        case Nil => return Some(state.setExpression(thisExpr));
-         case _ => return this.analyzeConstructor(thisExpr, parameters, state, returnedtype)
+    case "this" => parameters match {
+      case Nil => return Some(state.setExpression(thisExpr));
+       case _ => return this.analyzeConstructor(thisExpr, parameters, state, returnedtype)
+    }
+    case "<init>" => parameters match {
+      case Nil => return Some(state.setExpression(thisExpr));
+      case _ => return this.analyzeConstructor(thisExpr, parameters, state, returnedtype)
+    }
+    case x : String if (x.length>=2 && x.substring(x.length-2, x.length).equals("_=")) => //obj.field_=expr is adopted to assign fields
+      throw new MethodSemanticException("This should not be here");
+      /*parameters match {
+        case assigned :: Nil =>
+          val field=x.substring(0, x.length-2)
+          var fieldaccess=state.getFieldValue(thisExpr :: Nil, field, returnedtype.top())
+          val fieldexpr=fieldaccess.getExpression();
+          fieldaccess=fieldaccess.removeExpression();
+          return Some(fieldaccess.assignVariable(fieldexpr, assigned))
+        case _ => return None;//throw new MethodSemanticException("I can only assign an expression to a field!")
       }
-      case x : String if (x.length>=2 && x.substring(x.length-2, x.length).equals("_=")) => //obj.field_=expr is adopted to assign fields
-        throw new MethodSemanticException("This should not be here");
-      	/*parameters match {
-          case assigned :: Nil =>
-          	val field=x.substring(0, x.length-2)
-            var fieldaccess=state.getFieldValue(thisExpr :: Nil, field, returnedtype.top())
-            val fieldexpr=fieldaccess.getExpression();
-            fieldaccess=fieldaccess.removeExpression();
-            return Some(fieldaccess.assignVariable(fieldexpr, assigned))
-          case _ => return None;//throw new MethodSemanticException("I can only assign an expression to a field!")
+      None*/
+    case x => parameters match {
+      case Nil =>
+        val fields=thisExpr.getType().getPossibleFields();
+        for(field <- fields) {
+          if(field.equals(x)) {
+            val fieldAccess=state.getFieldValue(thisExpr :: Nil, x, returnedtype);
+            return Some(fieldAccess);
         }
-        None*/
-      case x => parameters match {
-        case Nil => 
-          val fields=thisExpr.getType().getPossibleFields();
-          for(field <- fields) {
-            if(field.equals(x)) {
-		          val fieldAccess=state.getFieldValue(thisExpr :: Nil, x, returnedtype);
-		          return Some(fieldAccess);
-	        }
-         }
-         return None;
-      case _ => None
-      }
+       }
+       return None;
+    case _ => None
+    }
 	}
 	
 	def analyzeConstructor[S <: State[S]](thisExpr : ExpressionSet, parameters : List[ExpressionSet], state : S, returnedType : Type) : Option[S] = returnedType.toString() match {
