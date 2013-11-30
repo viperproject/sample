@@ -5,21 +5,22 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
 
 import apron._
-import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
-import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
 import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
+import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
+import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
+import ch.ethz.inf.pm.sample.abstractdomain.EmptyScopeIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.CollectionContainsExpression
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 
-class ApronInterface( val state: Option[Abstract1],
-                      val domain: Manager,
-                      isPureBottom:Boolean = false,
-                      env: Set[Identifier]
-                      ) extends RelationalNumericalDomain[ApronInterface] {
+class ApronInterface(val state: Option[Abstract1],
+                     val domain: Manager,
+                     val isPureBottom:Boolean = false,
+                     val env: Set[Identifier])
+  extends RelationalNumericalDomain[ApronInterface] {
 
   assert(env.map(_.toString).size == env.size)
 
@@ -626,16 +627,18 @@ class ApronInterface( val state: Option[Abstract1],
     if (isTop) return "T (pure)"
     val constraints = this.state.get.toLincons(domain).toList.filter(constraintContains(_, id.getName()))
     if(constraints.isEmpty) return "T"
-    toString(constraints)
+    val translator = ApronInterfaceTranslator(this)
+    val exps = constraints map translator.translate map ExpPrettyPrinter
+    exps.sorted.mkString("\n")
   }
 
   override def toString: String = {
     if (isBottom) return "_|_"
     if (isTop) return "Environment: "+env+"\n"+"T"
 
-    val constraints = this.state.get.toLincons(domain).toList
-    if(constraints.isEmpty) return "T"
-    "Environment: "+env+"\n"+toString(this.state.get.toLincons(domain).toList)
+    val exps = ApronInterfaceTranslator.translate(this) map ExpPrettyPrinter
+    if(exps.isEmpty) return "T"
+    "Environment: "+env+"\n"+ exps.toList.sorted.mkString("\n")
   }
 
   def expand(source:Identifier,target:Set[Identifier]):ApronInterface = {
@@ -651,55 +654,6 @@ class ApronInterface( val state: Option[Abstract1],
       val newEnv = env ++ target
       return new ApronInterface(newState,domain,isPureBottom,newEnv)
     } else return this
-  }
-
-  /**
-   * A custom, nicer textual representation.
-   */
-  private def toString(cons: List[Lincons1]): String = {
-    val strs = for (c <- cons) yield {
-
-      val (left, right) = (for (t <- c.getLinterms) yield {
-        val coeff = t.getCoefficient
-        val vari = t.getVariable
-        if (coeff.isEqual(1)) (Some(vari), None)
-        else if (coeff.isEqual(-1)) (None, Some("-" + vari))
-        else if (coeff.cmp(new DoubleScalar(0)) > 0) (Some(coeff.toString + vari), None)
-        else if (coeff.cmp(new DoubleScalar(0)) < 0) (None, Some(coeff.toString + vari))
-        else (None, None)
-      }).unzip
-
-      val const = c.getCst
-      val (constL, constR) =
-        if (const != None && !const.isZero)
-          if (const.cmp(new DoubleScalar(0)) > 0) (Some(const.toString), None)
-          else (None, Some(const.toString))
-        else (None, None)
-
-      val (leftX, rightX) = ((constL :: left.toList).flatten, (constR :: right.toList).flatten)
-      val (leftS, rightS) = (leftX.mkString(" + "), rightX.mkString(" + ").replace("-", ""))
-      val (leftR, rightR) = (if (leftS.isEmpty) "0" else leftS, if (rightS.isEmpty) "0" else rightS)
-
-      if (leftR.compare(rightR) > 0) leftR + opToStr(c.getKind) + rightR
-      else rightR + opToInvStr(c.getKind) + leftR
-
-    }
-
-    // This is super ugly but helps
-    val a = new scala.collection.mutable.HashSet[String]
-    for (str <- strs) {
-      val other = str.replace("<", "?").replace(">", "<").replace("?", ">")
-      if (!a.contains(other)) {
-        a += str
-      } else {
-        val third = str.replace("<", "=").replace(">", "=").replace("==", "=")
-        a.remove(other)
-        a += third
-      }
-    }
-
-    a.toList.sorted.mkString("\n")
-
   }
 
   private def constraintContains(c: Lincons1, variable: String): Boolean = {
@@ -962,7 +916,7 @@ class ApronInterface( val state: Option[Abstract1],
 
       }
     case NegatedBooleanExpression(BinaryArithmeticExpression(left, right, op, typ)) =>
-      toTcons1(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op).get, typ), env)
+      toTcons1(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ), env)
     case NegatedBooleanExpression(NegatedBooleanExpression(x)) => toTcons1(x, env)
     case NegatedBooleanExpression(x) =>
       toTcons1(BinaryArithmeticExpression(x, Constant("0", x.getType(), x.getProgramPoint()), ArithmeticOperator.==, x.getType()), env)
@@ -1009,24 +963,6 @@ class ApronInterface( val state: Option[Abstract1],
       else
         env.add(v, new Array[String](0))
     } else env
-  }
-
-  private def opToStr(kind: Int): String = {
-    kind match {
-      case Lincons1.DISEQ => " != "
-      case Lincons1.EQ => " = "
-      case Lincons1.SUP => " > "
-      case Lincons1.SUPEQ => " >= "
-    }
-  }
-
-  private def opToInvStr(kind: Int): String = {
-    kind match {
-      case Lincons1.DISEQ => " = "
-      case Lincons1.EQ => " != "
-      case Lincons1.SUP => " < "
-      case Lincons1.SUPEQ => " <= "
-    }
   }
 }
 

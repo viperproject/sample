@@ -18,18 +18,33 @@ object ArithmeticOperator extends Enumeration {
   val < = Value("<")
 
   /**
-   * Returns the negation of the given arithmetic operator.
+   * Negates the given given arithmetic operator if possible.
    * @param op the operator to negate
-   * @return None if the operator does not have a negation.
+   * @throws MatchError if the operator cannot be negated
    */
-  def negate(op: Value): Option[Value] = op match {
-    case `<=` => Some(`>`)
-    case `<` => Some(`>=`)
-    case `>=` => Some(`<`)
-    case `==` => Some(`!=`)
-    case `!=` => Some(`==`)
-    case `>` => Some(`<=`)
-    case _ => None
+  def negate(op: Value): Value = op match {
+    case `<=` => `>`
+    case `<` => `>=`
+    case `>=` => `<`
+    case `==` => `!=`
+    case `!=` => `==`
+    case `>` => `<=`
+  }
+
+  /**
+   * Flips the given arithmetic operator if possible.
+   * @param op the operator to flip
+   * @return MatchError if the operator cannot be flipped
+   */
+  def flip(op: Value): Value = op match {
+    case `+` => ArithmeticOperator.`+` // Make the compiler happy
+    case `*` => `*`
+    case `>=` => `<=`
+    case `<=` => `>=`
+    case `==` => `==`
+    case `!=` => `!=`
+    case `>` => `<`
+    case `<` => `>`
   }
 }
 
@@ -262,6 +277,24 @@ case class BinaryArithmeticExpression(val left : Expression, val right : Express
   override def transform(f:(Expression => Expression)):Expression =
     f(BinaryArithmeticExpression(left.transform(f),right.transform(f),op,returntyp))
 
+}
+
+object BinaryArithmeticExpression {
+  /**
+   * Creates an expression that represents the concatenation
+   * of a sequence of expressions with a certain arithmetic operator.
+   *
+   * @param exps the sequence of expressions to concatenate
+   * @param op the arithmetic operator to concatenate the expressions with
+   * @param typ the type of expressions and the resulting expressions
+   * @param emptyExp the expression to return if `exps` is empty
+   */
+  def apply(exps: Iterable[Expression],
+            op: ArithmeticOperator.Value,
+            typ: Type,
+            emptyExp: Expression): Expression =
+    if (exps.isEmpty) emptyExp
+    else exps.reduceLeft(BinaryArithmeticExpression(_, _, op, typ))
 }
 
 /** 
