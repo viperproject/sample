@@ -30,8 +30,8 @@ object ValueDrivenHeapAnalysisRun {
     SystemParameters.progressOutput = new StdOutOutput();
 
     //Files paths
-//    val file = "/home/milos/SampleMyBranch/ValueDrivenHeapAnalysis/src/test/files/TestFiles.scala";
-    val file = "/home/milos/SampleBitbucket/ValueDrivenHeapAnalysis/src/test/files/Node.scala";
+//    val file = "ValueDrivenHeapAnalysis/src/test/files/TestFiles.scala"
+    val file = "ValueDrivenHeapAnalysis/src/test/files/Node.scala"
 
     SystemParameters.compiler.compile(file :: Nil);
 
