@@ -154,7 +154,16 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       var stringname : String = name.decode;
       while(stringname.charAt(stringname.length-1)==' ')
     	  stringname=stringname.substring(0, stringname.length-1);
-      new FieldDeclaration(new ScalaProgramPoint(program.pos),  extractModifiers(mods), new Variable(new ScalaProgramPoint(program.pos), new VariableIdentifier(stringname, new ScalaType(tpt.tpe), new ScalaProgramPoint(program.pos), EmptyScopeIdentifier())), extractType(tpt), extractCFG(rhs) )
+      new FieldDeclaration(
+        new ScalaProgramPoint(program.pos),
+        extractModifiers(mods),
+        new Variable(
+          new ScalaProgramPoint(program.pos),
+          new VariableIdentifier(stringname,
+            new ScalaType(tpt.tpe),
+            new ScalaProgramPoint(program.pos), EmptyScopeIdentifier())),
+        extractType(tpt),
+        Some(extractCFG(rhs)))
   }
 
   /**It collects the label defined during the program by LabelDef statements*/
@@ -333,7 +342,15 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
   }
 
   private def extractVariableDefinition(definition : Tree) : VariableDeclaration = definition match {
-    case ValDef(mods, name, tpt, rhs) => new VariableDeclaration(new ScalaProgramPoint(definition.pos), new Variable(new ScalaProgramPoint(definition.pos), new VariableIdentifier(name.decode, extractType(tpt), new ScalaProgramPoint(definition.pos), EmptyScopeIdentifier())), extractType(tpt), extractCFG(rhs) )
+    case ValDef(mods, name, tpt, rhs) =>
+      new VariableDeclaration(
+        new ScalaProgramPoint(definition.pos),
+        new Variable(
+          new ScalaProgramPoint(definition.pos),
+          new VariableIdentifier(name.decode, extractType(tpt),
+            new ScalaProgramPoint(definition.pos), EmptyScopeIdentifier())),
+        extractType(tpt),
+        Some(extractCFG(rhs)))
   }
 
   private def extractModifiers(mod : Modifiers) : List[Modifier] = {

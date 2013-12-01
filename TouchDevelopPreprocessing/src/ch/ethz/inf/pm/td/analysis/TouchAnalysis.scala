@@ -126,7 +126,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     // Set global state to invalid
     for (v <- compiler.globalData) {
 
-      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.name.getName()),v.typ,v.programpoint, EmptyScopeIdentifier())
+      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.variable.getName()),v.typ,v.programpoint, EmptyScopeIdentifier())
       val leftExpr = new ExpressionSet(v.typ).add(variable)
       curState = curState.createVariable(leftExpr,v.typ,v.programpoint)
 

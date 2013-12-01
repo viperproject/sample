@@ -493,7 +493,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
   private def identifyingPP(s: Statement): ProgramPoint = s match {
     case Assignment(pp, l, r) => (pp :: identifyingPP(l) :: identifyingPP(r) :: Nil).min
     case MethodCall(pp, m, _, p, _) => (pp :: identifyingPP(m) :: p.map(identifyingPP)).min
-    case VariableDeclaration(pp, v, _, r) => (pp :: identifyingPP(v) :: identifyingPP(r) :: Nil).min
+    case VariableDeclaration(pp, v, _, r) =>
+      List(Some(pp), Some(identifyingPP(v)), r.map(identifyingPP)).flatten.min
     case FieldAccess(pp, s, _, _) => (pp :: s.map(identifyingPP)).min
     case _ => s.getPC()
   }

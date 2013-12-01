@@ -79,8 +79,8 @@ trait Visitor {
  * @version 0.1
  */
 class SingleStatementProperty(val visitor : Visitor) extends Property {
-  override final def getLabel() : String = visitor.getLabel();
-  override final def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+  override def getLabel() : String = visitor.getLabel();
+  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
 	SystemParameters.currentClass = className;
 	SystemParameters.currentMethod = methodName.name.toString;
     for(i <- 0 to result.nodes.size-1)
@@ -98,7 +98,7 @@ class SingleStatementProperty(val visitor : Visitor) extends Property {
           }
         }
       }
-  override final  def finalizeChecking(printer : OutputCollector) : Unit = Unit;
+  override def finalizeChecking(printer : OutputCollector) : Unit = Unit;
   private def checkStatement[S <: State[S]](className : Type, methodName : MethodDeclaration, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
         	  	case Assignment(programpoint, left, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
@@ -106,7 +106,7 @@ class SingleStatementProperty(val visitor : Visitor) extends Property {
         	  		this.checkStatement(className, methodName, visitor, left.forwardSemantics[S](state), right, printer)
         	  	case VariableDeclaration(programpoint, variable, typ, right) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		checkStatement(className, methodName, visitor, state, right, printer)
+        	  		if (right.isDefined) checkStatement(className, methodName, visitor, state, right.get, printer)
         	  	case Variable(programpoint, id) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  	case FieldAccess(pp, objs, field, typ) =>

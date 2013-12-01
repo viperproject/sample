@@ -204,8 +204,7 @@ object CFGGenerator {
           }).toList
           val name : Variable = parameterToVariable(variable,EmptyScopeIdentifier())
           val typ : Type = typeNameToType(variable.typeName)
-          val right : Statement = null
-          Some(new FieldDeclaration(programPoint,modifiers,name,typ,right))
+          Some(new FieldDeclaration(programPoint, modifiers, name, typ))
         case _ => None
       }
     }).flatten
@@ -252,8 +251,7 @@ object CFGGenerator {
     val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
     val variable : Variable = parameterToVariable(parameter,scope)
     val typ : Type = typeNameToType(parameter.typeName)
-    val right : Statement = null
-    VariableDeclaration(programPoint,variable,typ,right)
+    VariableDeclaration(programPoint, variable, typ)
   }
 
   private def parameterToVariable(parameter:parser.Parameter, scope:ScopeIdentifier):Variable = {

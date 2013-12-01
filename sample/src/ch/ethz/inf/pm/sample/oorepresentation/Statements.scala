@@ -87,10 +87,14 @@ abstract class Statement(programpoint : ProgramPoint) extends SingleLineRepresen
 	      }
           case _ => x
        }
-       case Assignment(programpoint, left, right) => Assignment(programpoint, left.normalize(), right.normalize())
-       case VariableDeclaration(programpoint, variable, typ, right) => VariableDeclaration(programpoint, variable, typ, right.normalize) 
-       case FieldAccess(pp, objs, field, typ) => FieldAccess(pp, normalizeList(objs), field, typ)
-       case MethodCall(pp, method, parametricTypes, parameters, returnedType) => MethodCall(pp, method.normalize(), parametricTypes, normalizeList(parameters), returnedType)
+       case Assignment(programpoint, left, right) =>
+         Assignment(programpoint, left.normalize(), right.normalize())
+       case VariableDeclaration(programpoint, variable, typ, right) =>
+         VariableDeclaration(programpoint, variable, typ, right.map(_.normalize))
+       case FieldAccess(pp, objs, field, typ) =>
+         FieldAccess(pp, normalizeList(objs), field, typ)
+       case MethodCall(pp, method, parametricTypes, parameters, returnedType) =>
+         MethodCall(pp, method.normalize(), parametricTypes, normalizeList(parameters), returnedType)
        case Throw(programpoint, expr) => Throw(programpoint, expr.normalize()) 
 	   case z => z
 	}
@@ -182,54 +186,66 @@ case class Assignment(programpoint : ProgramPoint, left : Statement, right : Sta
 
 }
 
-/** 
- * This class represents a variable declaration of the form
- * <code>typ variable[=right]</code>
- * 
- * @author Pietro Ferrara
- * @version 0.1
+/**
+ * Represents the declaration of a variable.
+ * @param programpoint where the variable is declared
+ * @param variable the variable being declared
+ * @param typ the type of the variable declaration
+ * @param right the optional statement assigned to the variable
  */
-case class VariableDeclaration(programpoint : ProgramPoint, val variable : Variable, val typ : Type, right : Statement) extends Statement(programpoint : ProgramPoint) {
+case class VariableDeclaration(
+    programpoint: ProgramPoint,
+    variable: Variable,
+    typ: Type,
+    right: Option[Statement] = None)
+  extends Statement(programpoint: ProgramPoint) {
 
-      /** 
-       * It creates the variable relying on the method 
-       * <code>createVariable</code> of class <code>State</code> 
-       * and it eventually assigns <code>right</code> relying on 
-       * the method <code>assignVariable</code> of class 
-       * <code>State</code>
-	   *
-       * @see State.createVariable(Variable, Type)
-       * @see State.assignVariable(Variable, Expression)
-	   * @param state the initial state
-	   * @return the state in which <code>variable</code> has been 
-       * created, and eventually it has been assigned to <code>right</code> 
-	   */
-    override def forwardSemantics[S <: State[S]](state : S) : S = {
-      var variableEval : S = variable.forwardSemantics[S](state)
-      val varExpr = variableEval.getExpression()
-      variableEval = variableEval.removeExpression()
-      var state1 = variableEval createVariable(varExpr, typ, programpoint);
-      if(right!=null) {
-        var rightEval : S = right.forwardSemantics[S](state1)
-        val rightExpr = rightEval.getExpression()
-        rightEval = rightEval.removeExpression()
-        rightEval assignVariable(varExpr, rightExpr)
-      }
-      else state1
-      }
-
-    override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
-      var st=state;
-      if(right!=null)
-        st=new Assignment(programpoint, variable, right).backwardSemantics[S](st, oldPreState);
-      return st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint))
+  /**
+   * It creates the variable relying on the method
+   * <code>createVariable</code> of class <code>State</code>
+   * and it eventually assigns <code>right</code> relying on
+   * the method <code>assignVariable</code> of class
+   * <code>State</code>
+   *
+   * @see State.createVariable(Variable, Type)
+   * @see State.assignVariable(Variable, Expression)
+   * @param state the initial state
+   * @return the state in which <code>variable</code> has been
+   * created, and eventually it has been assigned to <code>right</code>
+  */
+  override def forwardSemantics[S <: State[S]](state: S): S = {
+    var variableEval: S = variable.forwardSemantics[S](state)
+    val varExpr = variableEval.getExpression()
+    variableEval = variableEval.removeExpression()
+    val state1 = variableEval createVariable(varExpr, typ, programpoint)
+    if (right.isDefined) {
+      var rightEval: S = right.get.forwardSemantics[S](state1)
+      val rightExpr = rightEval.getExpression()
+      rightEval = rightEval.removeExpression()
+      rightEval assignVariable(varExpr, rightExpr)
     }
+    else state1
+  }
 
-    override def toString() : String = "declare "+ToStringUtilities.toStringIfNotNull(typ)+" "+variable.toString()+ToStringUtilities.assignedIfNotNull(right);
-    override def toSingleLineString() : String = "declare "+ToStringUtilities.toStringIfNotNull(typ)+" "+variable.toString()+
-      {if(right!=null) "="+right.toSingleLineString() else ""} ;
+  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
+    var st = state
+    if (right.isDefined)
+      st = new Assignment(programpoint, variable, right.get).backwardSemantics[S](st, oldPreState)
+    st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint))
+  }
 
-    override def getChildren: List[Statement] = List(variable,right)
+  override def toString(): String =
+    "declare " + ToStringUtilities.toStringIfNotNull(typ) + " " +
+      variable.toString() + ToStringUtilities.assignedIfNotNull(right)
+
+  override def toSingleLineString(): String =
+    "declare " + ToStringUtilities.toStringIfNotNull(typ) + " " +
+      variable.toString() + {
+        if (right.isDefined) "=" + right.get.toSingleLineString() else ""
+      }
+
+  override def getChildren: List[Statement] =
+    List(Some(variable), right).flatten
 }
 
 /** 

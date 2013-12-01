@@ -18,7 +18,8 @@ object RemoveGetterSetter {
   private def cleanStatement(st : Statement) : Statement = st match {
        case x: ControlFlowGraph => this.cleanCFG(x);
        case Assignment(pp, left, right) => return new Assignment(pp, cleanStatement(left), cleanStatement(right));
-       case VariableDeclaration(pp, variable, typ, right) => return new VariableDeclaration(pp, variable, typ, cleanStatement(right));  
+       case VariableDeclaration(pp, variable, typ, right) =>
+         new VariableDeclaration(pp, variable, typ, right.map(cleanStatement))
        case FieldAccess(pp, objs, field, typ) => return new FieldAccess(pp, cleanListStatement(objs), field, typ);
        case Variable(pp, id) => return st;
        case New(pp, typ) => return st;

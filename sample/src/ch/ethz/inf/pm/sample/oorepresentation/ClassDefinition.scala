@@ -142,26 +142,26 @@ class MethodDeclaration(
 }
 
 /** 
- * This class represents the declaration of a method.
- * 
+ * This class represents the declaration of a field.
+ *
+ * @param programpoint where the field is declared
  * @param modifiers the modifiers of the field
- * @param name the name of the field
+ * @param variable the name of the field
  * @param typ the type of the field
  * @param right the expression assigned to the field when it is initialized
- * 
- * @author Pietro Ferrara
- * @version 0.1
  */
 class FieldDeclaration(
-                      programpoint : ProgramPoint,
-                      val modifiers : List[Modifier],
-                      val name : Variable, 
-                      typ_ : Type,
-                      right : Statement
-                      ) extends VariableDeclaration(programpoint, name, typ_, right) with ClassElements {
-  
-  override def toString() : String = "field "+ToStringUtilities.toStringIfNotNull(typ)+name.toString+ToStringUtilities.assignedIfNotNull(right);
-  
+    override val programpoint: ProgramPoint,
+    val modifiers: List[Modifier],
+    override val variable: Variable,
+    override val typ : Type,
+    override val right: Option[Statement] = None)
+  extends VariableDeclaration(programpoint, variable, typ, right) with ClassElements {
+
+  override def toString(): String =
+    "field " +
+      ToStringUtilities.toStringIfNotNull(typ) + variable.toString +
+      ToStringUtilities.assignedIfNotNull(right)
 }
 
 /** 
