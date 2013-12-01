@@ -60,6 +60,7 @@ case object SealedModifier extends Modifier
 case object FinalModifier extends Modifier
 case object TraitModifier extends Modifier
 case object ImplicitModifier extends Modifier
+case object StaticModifier extends Modifier
 
 /** 
  * This class represents the declaration of a method.
@@ -99,23 +100,28 @@ class MethodDeclaration(
     "\n-------------------\nBODY:\n"+
     body.toString()+
     "\n-------------------\n\n"
-    
-  
-  
-  private def initializeArgument[S <: State[S]](state : S, parameters : List[List[VariableDeclaration]]) : S = {
-    SystemParameters.semanticsComputing=false;
-    var result : S = state;
-    result=new Variable(programpoint, new VariableIdentifier("this", ownerType, programpoint, EmptyScopeIdentifier())).forwardSemantics[S](result)
-    val variable=result.getExpression();
-    result=result.removeExpression().createVariableForArgument(variable, ownerType);
-    for(lv <- parameters)
-      for(variable <- lv) {
-        result = variable.variable.forwardSemantics[S](result);
-        val varExpr = result.getExpression();
-        result=result.removeExpression();
-        result=result.createVariableForArgument(varExpr, variable.typ);
+
+  private def initializeArgument[S <: State[S]](state: S, parameters: List[List[VariableDeclaration]]): S = {
+    SystemParameters.semanticsComputing = false
+    var result = state
+    // Create a variable for the current object unless the method is static
+    if (!modifiers.contains(StaticModifier)) {
+      val thisVar = new Variable(programpoint,
+        new VariableIdentifier("this", ownerType, programpoint, EmptyScopeIdentifier()))
+      result = thisVar.forwardSemantics[S](result)
+      val variable = result.getExpression()
+      result = result.removeExpression().createVariableForArgument(variable, ownerType)
+    }
+    // Create a variable for each formal parameter
+    for (lv <- parameters) {
+      for (variable <- lv) {
+        result = variable.variable.forwardSemantics[S](result)
+        val varExpr = result.getExpression()
+        result = result.removeExpression()
+        result = result.createVariableForArgument(varExpr, variable.typ)
       }
-    return result;
+    }
+    result
   }
 
   /** this is not run by the touchdevelop code! */
