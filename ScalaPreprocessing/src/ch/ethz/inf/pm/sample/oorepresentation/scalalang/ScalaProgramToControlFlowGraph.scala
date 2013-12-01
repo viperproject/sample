@@ -161,7 +161,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
           new ScalaProgramPoint(program.pos),
           new VariableIdentifier(stringname,
             new ScalaType(tpt.tpe),
-            new ScalaProgramPoint(program.pos), EmptyScopeIdentifier())),
+            new ScalaProgramPoint(program.pos))),
         extractType(tpt),
         Some(extractCFG(rhs)))
   }
@@ -278,9 +278,11 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 //        }
 
     case Ident(name) =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier(name decode, new ScalaType(body.tpe), new ScalaProgramPoint(body.pos), EmptyScopeIdentifier())) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos),
+        new VariableIdentifier(name decode, new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
     case Super(qual, mix) =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("super", new ScalaType(body.tpe), new ScalaProgramPoint(body.pos), EmptyScopeIdentifier())) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos),
+        new VariableIdentifier("super", new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
     //TODO: I have to consider also qual and mix
     case Select(ArrayValue(elemtpt, trees), field) =>
       (cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractListCFG(trees), field decode, new ScalaType(elemtpt.tpe)) :: Nil , currentblock, true)
@@ -299,7 +301,8 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       (cfg, statementsUntilHere ::: new ConstantStatement(new ScalaProgramPoint(body.pos), value.stringValue, new ScalaType(value.tpe)) :: Nil , currentblock, true)
     //TODO: Support also other numerical type, not only int!
     case x : This =>
-      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos), new VariableIdentifier("this", new ScalaType(x.tpe), new ScalaProgramPoint(body.pos), EmptyScopeIdentifier())) :: Nil , currentblock, true)
+      (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos),
+        new VariableIdentifier("this", new ScalaType(x.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
     case New(tpt) => (
       cfg, statementsUntilHere ::: new oorepresentation.New(new ScalaProgramPoint(body.pos), extractType(tpt)) :: Nil , currentblock, true)
 
@@ -348,7 +351,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         new Variable(
           new ScalaProgramPoint(definition.pos),
           new VariableIdentifier(name.decode, extractType(tpt),
-            new ScalaProgramPoint(definition.pos), EmptyScopeIdentifier())),
+            new ScalaProgramPoint(definition.pos))),
         extractType(tpt),
         Some(extractCFG(rhs)))
   }
@@ -535,7 +538,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
             	if(name.charAt(name.size-1).equals(' '))
             		name=name.substring(0, name.size-1);
             	if((! name.equals("_length")) && (! name.equals("$isInstanceOf")) && (! name.equals("$asInstanceOf")) )
-                result=result+(new VariableIdentifier(name, new ScalaType(typ), new ScalaProgramPoint(el.pos), EmptyScopeIdentifier()));
+                result = result + new VariableIdentifier(name, new ScalaType(typ), new ScalaProgramPoint(el.pos))
              }
             }
         }

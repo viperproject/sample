@@ -24,7 +24,7 @@ class SArt extends AAny {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = {
 
-  state.setExpression(new ExpressionSet(returnedType).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(method),returnedType,pp,EmptyScopeIdentifier())))
+  state.setExpression(new ExpressionSet(returnedType).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(method),returnedType,pp)))
 
   }
 }

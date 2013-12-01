@@ -46,13 +46,13 @@ class Libraries() extends NativeMethodSemantics {
           // Curiously, this is also used to access global data from libraries.
           if(parameters.isEmpty && returnedtype.toString != "Nothing") {
             // We are just guessing that this may be a global variable
-            Some(state.setExpression(new ExpressionSet(returnedtype).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(operator),returnedtype,pp,EmptyScopeIdentifier()))))
+            Some(state.setExpression(new ExpressionSet(returnedtype).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(operator),returnedtype,pp))))
           } else if (parameters.size == 1 && returnedtype.toString == "Nothing" && operator.startsWith("set ")) {
             // And we have also automatically generated setters. What the...
             val List(newVal) = parameters
             val variableName = operator.replace("set ","")
             val variableType = newVal.getType()
-            val variableExpr = new ExpressionSet(variableType).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(variableName),variableType,pp,EmptyScopeIdentifier()))
+            val variableExpr = new ExpressionSet(variableType).add(VariableIdentifier(CFGGenerator.globalReferenceIdent(variableName),variableType,pp))
             Some(RichNativeSemantics.Assign[S](RichNativeSemantics.toRichExpression(variableExpr),RichNativeSemantics.toRichExpression(newVal))(state,pp))
           } else {
             Reporter.reportImprecision("Could not find method "+operator,pp)

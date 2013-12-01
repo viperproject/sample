@@ -442,7 +442,7 @@ class ApronInterface(val state: Option[Abstract1],
 
         // Create a temporary identifier
         val tempVal = tempVarName + tempVersion
-        val tempValIdent = new VariableIdentifier(tempVal, from.head.getType(), from.head.getProgramPoint(), new EmptyScopeIdentifier)
+        val tempValIdent = new VariableIdentifier(tempVal, from.head.getType(), from.head.getProgramPoint())
         tempIdentifiers = tempIdentifiers + tempValIdent
         tempVersion = tempVersion + 1
 
@@ -690,7 +690,7 @@ class ApronInterface(val state: Option[Abstract1],
       case BinaryNondeterministicExpression(left, right, op, returnType) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
-        val identifier = new VariableIdentifier(label, expr.getType(), expr.getProgramPoint(), EmptyScopeIdentifier())
+        val identifier = new VariableIdentifier(label, expr.getType(), expr.getProgramPoint())
         (identifier, varL ::: varR ::: List((identifier, BinaryNondeterministicExpression(expL, expR, op, returnType))))
       case x: Expression => (x, Nil)
     }

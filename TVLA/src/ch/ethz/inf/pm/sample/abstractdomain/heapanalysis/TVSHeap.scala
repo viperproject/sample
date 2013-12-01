@@ -609,6 +609,6 @@ class TVSHeapIDSet(val pointedBy: String) extends DefiniteHeapIdSetDomain[NodeNa
 /**
  * Used to make a distinction between temporaries and normal variables
  */
-class TemporaryVariableIdentifier(name: String, typ1: Type, pp: ProgramPoint) extends VariableIdentifier(name, typ1, pp, EmptyScopeIdentifier())
+class TemporaryVariableIdentifier(name: String, typ1: Type, pp: ProgramPoint) extends VariableIdentifier(name, typ1, pp)
 
 class NotImplementedException(message: String) extends Exception(message)

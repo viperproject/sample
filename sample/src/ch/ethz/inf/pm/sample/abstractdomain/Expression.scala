@@ -386,19 +386,10 @@ abstract class Identifier(typ : Type, pp : ProgramPoint) extends Expression(pp) 
 trait ScopeIdentifier
 
 /**
- * If you do not care about scopes
+ * If you do not care about scopes.
  */
-case class EmptyScopeIdentifier() extends ScopeIdentifier {
-
-  override def hashCode() : Int = 0
-
-  override def equals(o : Any) = o match {
-    case EmptyScopeIdentifier() => true
-    case _ => false
-  }
-
+object EmptyScopeIdentifier extends ScopeIdentifier {
   override def toString = ""
-
 }
 
 /**
@@ -424,12 +415,16 @@ case class ProgramPointScopeIdentifier(pp:ProgramPoint) extends ScopeIdentifier 
  * The identifier of a variable
  * 
  * @param name The name of the variable
- * @param typ1 The type of the variable
- * @author Pietro Ferrara
- * @since 0.1
+ * @param typ The type of the variable
  */
-case class VariableIdentifier(var name : String, typ1 : Type, pp : ProgramPoint, scope: ScopeIdentifier) extends Identifier(typ1, pp) {
-	if(typ1==null) throw new Exception("The type of variables has to be specified")
+case class VariableIdentifier(
+    var name: String,
+    typ: Type,
+    pp: ProgramPoint,
+    scope: ScopeIdentifier = EmptyScopeIdentifier)
+  extends Identifier(typ, pp) {
+  require(typ != null)
+
   override def getName() = name.toString + scope.toString
   override def toString = getName()
   override def getField() = None

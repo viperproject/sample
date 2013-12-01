@@ -39,9 +39,8 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   val dom = new ApronInterface(None, manager, env = Set.empty)
   val typ = DummyNumericType
   val pp = DummyProgramPoint
-  val scope = EmptyScopeIdentifier()
 
-  def makeVarId(name: String) = new VariableIdentifier(name, typ, pp, scope)
+  def makeVarId(name: String) = new VariableIdentifier(name, typ, pp)
   def makeConst(value: Int) = new Constant(value.toString, typ, pp)
 
   val idx = makeVarId("x")

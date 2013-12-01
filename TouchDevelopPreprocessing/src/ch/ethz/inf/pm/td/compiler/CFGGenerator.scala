@@ -202,7 +202,7 @@ object CFGGenerator {
             case ("readonly","true") => Some(ReadOnlyModifier)
             case _ => None
           }).toList
-          val name : Variable = parameterToVariable(variable,EmptyScopeIdentifier())
+          val name: Variable = parameterToVariable(variable)
           val typ : Type = typeNameToType(variable.typeName)
           Some(new FieldDeclaration(programPoint, modifiers, name, typ))
         case _ => None
@@ -247,20 +247,20 @@ object CFGGenerator {
     }).flatten
   }
 
-  private def parameterToVariableDeclaration(parameter:parser.Parameter, scope:ScopeIdentifier):VariableDeclaration = {
+  private def parameterToVariableDeclaration(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): VariableDeclaration = {
     val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
     val variable : Variable = parameterToVariable(parameter,scope)
     val typ : Type = typeNameToType(parameter.typeName)
     VariableDeclaration(programPoint, variable, typ)
   }
 
-  private def parameterToVariable(parameter:parser.Parameter, scope:ScopeIdentifier):Variable = {
+  private def parameterToVariable(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): Variable = {
     val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
     val id : VariableIdentifier = parameterToVariableIdentifier(parameter,scope)
     Variable(programPoint,id)
   }
 
-  private def parameterToVariableIdentifier(parameter:parser.Parameter, scope:ScopeIdentifier):VariableIdentifier = {
+  private def parameterToVariableIdentifier(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): VariableIdentifier = {
     val name : String = parameter.ident
     val typ : Type = typeNameToType(parameter.typeName)
     val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
@@ -423,9 +423,8 @@ object CFGGenerator {
           ConstantStatement(pc,value,typ)
         } else throw new TouchException("Literals with type "+t.ident+" do not exist")
 
-      case parser.SingletonReference(singleton,typ) =>
-        Variable(pc,VariableIdentifier(singleton,typeNameToType(expr.typeName,true),pc,EmptyScopeIdentifier()))
-
+      case parser.SingletonReference(singleton, typ) =>
+        Variable(pc, VariableIdentifier(singleton, typeNameToType(expr.typeName, isSingleton = true), pc))
     }
 
   }
