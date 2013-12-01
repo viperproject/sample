@@ -2,13 +2,6 @@ package graph
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 
-/**
- * Created with IntelliJ IDEA.
- * User: milos
- * Date: 6/13/13
- * Time: 7:51 PM
- * To change this template use File | Settings | File Templates.
- */
 object Utilities {
 
   val BinaryBoolArithmeticOperators = Set(ArithmeticOperator.>,
@@ -37,25 +30,14 @@ object Utilities {
   def negateExpression(exp: Expression): Expression = exp match {
     case NegatedBooleanExpression(e) => e
     case BinaryArithmeticExpression(l,r,o,t) => {
-      new BinaryArithmeticExpression(negateExpression(l),negateExpression(r), negateArithmeticOperator(o), t)
+      new BinaryArithmeticExpression(negateExpression(l),negateExpression(r), ArithmeticOperator.negate(o), t)
     }
     case BinaryBooleanExpression(l,r,o,t) => {
       new BinaryBooleanExpression(negateExpression(l), negateExpression(r), negateBoolOperator(o), t)
     }
     case TrueExpression(pp, t) => new FalseExpression(pp, t)
     case FalseExpression(pp, t) => new TrueExpression(pp, t)
-    case ReferenceComparisonExpression(l,r,o,t) => new ReferenceComparisonExpression(l,r, negateArithmeticOperator(o), t)
-    case x => x
-  }
-
-
-  private def negateArithmeticOperator(op: ArithmeticOperator.Value): ArithmeticOperator.Value = op match {
-    case ArithmeticOperator.<= => ArithmeticOperator.>
-    case ArithmeticOperator.< => ArithmeticOperator.>=
-    case ArithmeticOperator.>= => ArithmeticOperator.<
-    case ArithmeticOperator.== => ArithmeticOperator.!=
-    case ArithmeticOperator.!= => ArithmeticOperator.==
-    case ArithmeticOperator.> => ArithmeticOperator.<=
+    case ReferenceComparisonExpression(l,r,o,t) => new ReferenceComparisonExpression(l,r, ArithmeticOperator.negate(o), t)
     case x => x
   }
 
