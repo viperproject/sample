@@ -104,8 +104,7 @@ class Prefix extends SimplifiedSemanticDomain[Prefix] with BoxedDomain[PrefixDom
     case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, returntyp) =>
       	return this.eval(thisExpr);
     case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) =>
-      if(parameters.size!=1) return new PrefixDomain().top();
-      val l : List[Expression] = parameters.head;
+      val l : List[Expression] = parameters;
       if(l.size != 2) return new PrefixDomain().top();
       l.apply(0) match {
 	    	    case Constant(s1, _, _) =>

@@ -65,6 +65,8 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
       dom.bottom()
     case Constant(constant, typ, pp) =>
       dom.singleton(constant)
+    case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) =>
+      dom.concat(eval(left),eval(right))
     case x: Identifier =>
       this.get(x)
     case xs: HeapIdSetDomain[_] =>
@@ -167,6 +169,8 @@ trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] {
 
   def singleton(a:String):T
 
+  def concat(a:T,b:T):T
+
 }
 
 class StringKSetDomain extends KSetDomain[String,StringKSetDomain] with StringValueDomain[StringKSetDomain] {
@@ -185,6 +189,13 @@ class StringKSetDomain extends KSetDomain[String,StringKSetDomain] with StringVa
 
   def singleton(a: String): StringKSetDomain = factory().add(a)
 
+  def concat(a:StringKSetDomain,b:StringKSetDomain):StringKSetDomain = {
+    var ret = factory()
+    for (left <- a.value)
+      for (right <- b.value)
+        ret = ret.add(left + right)
+    ret
+  }
 }
 
 abstract class NumericWithStringDomain[N <: NumericalDomain[N], V <: StringValueDomain[V], S <: StringDomain[V,S], T <: NumericWithStringDomain[N,V,S,T]](val initialNum:N,val initialStr:S)

@@ -35,8 +35,7 @@ class SurelyContainedCharacters extends SimplifiedSemanticDomain[SurelyContained
   def assume(expr : Expression) : SurelyContainedCharacters = expr match {    
 	case BinaryArithmeticExpression(AbstractOperator(thisExpr : Identifier, parameters, typeparameters, 
       AbstractOperatorIdentifiers.stringIndexof, returntyp), Constant("0", typ2, pp), ArithmeticOperator.>=, typ) =>
-	    	  if(parameters.size!=1) return this;
-	    	  val l : List[Expression] = parameters.head;
+	    	  val l : List[Expression] = parameters;
 	    	  if(l.size != 1) return this;
 	    	  l.apply(0) match {
 	    	    case Constant(s, typ2, pp) =>
@@ -46,8 +45,7 @@ class SurelyContainedCharacters extends SimplifiedSemanticDomain[SurelyContained
 	    	  }
 	case BinaryArithmeticExpression(AbstractOperator(thisExpr : Identifier, parameters, typeparameters, 
       AbstractOperatorIdentifiers.stringLastindexof, returntyp), Constant("0", typ2, pp), ArithmeticOperator.>=, typ) =>
-	    	  if(parameters.size!=1) return this;
-	    	  val l : List[Expression] = parameters.head;
+	    	  val l : List[Expression] = parameters
 	    	  if(l.size != 1) return this;
 	    	  l.apply(0) match {
 	    	    case Constant(s, typ2, pp) =>
@@ -57,8 +55,7 @@ class SurelyContainedCharacters extends SimplifiedSemanticDomain[SurelyContained
 	    	  }
 	case BinaryArithmeticExpression(AbstractOperator(thisExpr : Identifier, parameters, typeparameters, 
       AbstractOperatorIdentifiers.stringIndexof, returntyp), Constant("0", typ2, pp), ArithmeticOperator.<, typ) =>
-	    	  if(parameters.size!=1) return this;
-	    	  val l : List[Expression] = parameters.head;
+	    	  val l : List[Expression] = parameters;
 	    	  if(l.size != 1) return this;
 	    	  l.apply(0) match {
 	    	    case Constant(s, typ2, pp) =>
@@ -68,8 +65,7 @@ class SurelyContainedCharacters extends SimplifiedSemanticDomain[SurelyContained
 	    	  }
 	case BinaryArithmeticExpression(AbstractOperator(thisExpr : Identifier, parameters, typeparameters, 
       AbstractOperatorIdentifiers.stringLastindexof, returntyp), Constant("0", typ2, pp), ArithmeticOperator.<, typ) =>
-	    	  if(parameters.size!=1) return this;
-	    	  val l : List[Expression] = parameters.head;
+	    	  val l : List[Expression] = parameters;
 	    	  if(l.size != 1) return this;
 	    	  l.apply(0) match {
 	    	    case Constant(s, typ2, pp) =>
@@ -78,8 +74,7 @@ class SurelyContainedCharacters extends SimplifiedSemanticDomain[SurelyContained
 	    	    case _ => this;
 	    	  }
 	case AbstractOperator(thisExpr : Identifier, parameters, typeparameters, AbstractOperatorIdentifiers.stringContains, returntyp) =>
-    		  if(parameters.size!=1) return this;
-	    	  val l : List[Expression] = parameters.head;
+	    	  val l : List[Expression] = parameters;
 	    	  if(l.size != 1) return this;
 	    	  l.apply(0) match {
 	    	    case Constant(s, typ2, pp) =>
@@ -102,16 +97,14 @@ class SurelyContainedCharacters extends SimplifiedSemanticDomain[SurelyContained
         result=result.add(c);
       return result;
     case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, returntyp) =>
-      if(parameters.size == 1)
-        parameters.head match {
+        parameters match {
         	case p1 :: Nil => 
 	        	val left = this.eval(thisExpr);
 	        	val right = this.eval(p1);
 	        	return left.glb(left, right);
         	case _ => return new InverseSetCharacters().top();
       	}
-      else return new InverseSetCharacters().top();
-    case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) => 
+    case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) =>
       return new InverseSetCharacters().top();
     case _ => return new InverseSetCharacters().top();
   }  

@@ -106,13 +106,10 @@ class Suffix extends SimplifiedSemanticDomain[Suffix] with BoxedDomain[SuffixDom
       return result;
     }
     case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, returntyp) =>
-      if(parameters.size == 1)
-        parameters.head match {
-        	case p1 :: Nil => return this.eval(p1);
-        	case _ => new SuffixDomain().top();
-         }
-      else
-          return new SuffixDomain().top();
+      parameters match {
+        case p1 :: Nil => return this.eval(p1);
+        case _ => new SuffixDomain().top();
+       }
     case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) =>
       return new SuffixDomain().top();
     case _ => return new SuffixDomain().top();

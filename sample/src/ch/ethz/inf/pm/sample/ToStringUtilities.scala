@@ -85,7 +85,9 @@ object ToStringUtilities {
     }
     result
   }
-  
+
+  def listToString[T](list : List[T]) : String = list.mkString(",")
+
   def setToString[T](set : Set[T]) : String = set.mkString(",")
 
   def setOfListToString[T](set : Set[List[T]]) : String = {

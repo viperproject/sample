@@ -86,6 +86,14 @@ class BooleanInvalidDomain
       } else {
         if (l.canBeFalse && r.canBeFalse) domValid else domBottom
     }
+    case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) =>
+      val l = eval(left)
+      val r = eval(right)
+      if (l.canBeTrue || r.canBeTrue) {
+        if (l.canBeFalse && r.canBeFalse) domTop else domInvalid
+      } else {
+        if (l.canBeFalse && r.canBeFalse) domValid else domBottom
+      }
     case Constant(constant, typ, pp) =>
       if (constant == "invalid") domInvalid else domValid
     case i: HeapIdentifier[_] =>

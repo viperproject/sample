@@ -71,9 +71,10 @@ object ExpressionFactory {
 
   def createAbstractOperator(thisExpr : ExpressionSet, parameters : List[ExpressionSet], typeParameters : List[Type], op : AbstractOperatorIdentifiers.Value, ty : Type) : ExpressionSet = {
     var result = new ExpressionSet(ty)
-    val combination = combineListValue(parameters)
+    val combinations = combineListValue(parameters)
     for(thisexp <- thisExpr.getSetOfExpressions)
-      result=result.add(new AbstractOperator(thisexp, combination, typeParameters, op, ty))
+      for (combination <- combinations)
+        result=result.add(new AbstractOperator(thisexp, combination, typeParameters, op, ty))
     result
   }
 
