@@ -8,10 +8,10 @@ class SurelyAndMaybeContainedCharacters(protected var a1 : SurelyContainedCharac
                                     SurelyAndMaybeContainedCharacters](a1,a2)
      with SimplifiedSemanticDomain[SurelyAndMaybeContainedCharacters]
  {
-      override def merge(r : Replacement) = new SurelyAndMaybeContainedCharacters(this.d1.merge(r), this.d2.merge(r));
+      override def merge(r : Replacement) = new SurelyAndMaybeContainedCharacters(this._1.merge(r), this._2.merge(r));
 
-       def factory() : SurelyAndMaybeContainedCharacters = new SurelyAndMaybeContainedCharacters(
-    		   new SurelyContainedCharacters(), new MaybeContainedCharacters()); 
+       def factory(a:SurelyContainedCharacters,b:MaybeContainedCharacters) = new SurelyAndMaybeContainedCharacters(a,b)
+
        /*
        def removeVariable(variable : Identifier) : SurelyAndMaybeContainedCharacters = {
          val result : SurelyAndMaybeContainedCharacters = this.factory();
@@ -41,5 +41,5 @@ class SurelyAndMaybeContainedCharacters(protected var a1 : SurelyContainedCharac
          this.removeVariable(variable);
        }*/
        
-       override def getStringOfId(id : Identifier) : String = "{" + d1.getStringOfId(id) + "}; {" + d2.getStringOfId(id) + "}";
+       override def getStringOfId(id : Identifier) : String = "{" + _1.getStringOfId(id) + "}; {" + _2.getStringOfId(id) + "}";
  }

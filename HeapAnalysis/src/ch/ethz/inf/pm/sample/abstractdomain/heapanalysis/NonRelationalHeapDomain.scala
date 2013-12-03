@@ -537,39 +537,21 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
   override def widening(l : H, r : H):H = throw new UnsupportedOperationException("Use wideningWithReplacement")
 
   override def lubWithReplacement(left : H, right : H) = {
-    val (res1,rep1) = d1.lubWithReplacement(left._1, right._1)
-    val (res2,rep2) = d2.lubWithReplacement(left._2, right._2)
-
-    val result: H = this.factory()
-    result.d1 = res1
-    result.d2 = res2
-    result
-
-    (result, rep1 ++ rep2)
+    val (res1,rep1) = _1.lubWithReplacement(left._1, right._1)
+    val (res2,rep2) = _2.lubWithReplacement(left._2, right._2)
+    (factory(res1,res2), rep1 ++ rep2)
   }
 
   override def glbWithReplacement(left : H, right : H) = {
-    val (res1,rep1) = d1.glbWithReplacement(left._1, right._1)
-    val (res2,rep2) = d2.glbWithReplacement(left._2, right._2)
-
-    val result: H = this.factory()
-    result.d1 = res1
-    result.d2 = res2
-    result
-
-    (result, rep1 ++ rep2)
+    val (res1,rep1) = _1.glbWithReplacement(left._1, right._1)
+    val (res2,rep2) = _2.glbWithReplacement(left._2, right._2)
+    (factory(res1,res2), rep1 ++ rep2)
   }
 
   override def wideningWithReplacement(left : H, right : H) = {
-    val (res1,rep1) = d1.wideningWithReplacement(left._1, right._1)
-    val (res2,rep2) = d2.wideningWithReplacement(left._2, right._2)
-
-    val result: H = this.factory()
-    result.d1 = res1
-    result.d2 = res2
-    result
-
-    (result, rep1 ++ rep2)
+    val (res1,rep1) = _1.wideningWithReplacement(left._1, right._1)
+    val (res2,rep2) = _2.wideningWithReplacement(left._2, right._2)
+    (factory(res1,res2), rep1 ++ rep2)
   }
 
   override def reset() {
@@ -642,15 +624,9 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
     if (!getIds.contains(variable.asInstanceOf[Identifier])) {
       variable match {
         case x : VariableIdentifier =>
-          val heap = this.factory()
-          heap.d1 = this._1.add(x, cod.bottom())
-          heap.d2 = this._2
-          (heap, new Replacement)
+          (factory(this._1.add(x, cod.bottom()),this._2), new Replacement)
         case x : I =>
-          val heap = this.factory()
-          heap.d1 = this._1
-          heap.d2 = this._2.add(x, cod.bottom())
-          (heap, new Replacement)
+          (factory(this._1,this._2.add(x, cod.bottom())), new Replacement)
       }
     } else (this.asInstanceOf[H], new Replacement)
   }
@@ -666,10 +642,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
       else {
         var result = Map.empty[Identifier, List[String]];
         result=result+((x, variable.toString() :: Nil ))
-        val newHeap = this.factory()
-        newHeap.d1 = this.d1.add(x, cod.bottom())
-        newHeap.d2 = this.d2
-        (newHeap, result, new Replacement);
+        (factory(this._1.add(x, cod.bottom()),this._2), result, new Replacement);
       }
     case x : HeapIdentifier[I] => {throw new Exception("This should not happen!");}
   }
@@ -685,10 +658,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
           if(add.isInstanceOf[I] && add.getType().lessEqual(typ))
             newAdd.add(add.asInstanceOf[I])
       if(x.isInstanceOf[VariableIdentifier]) {
-        val newHeap = this.factory()
-        newHeap.d1 = result._1.add(x.asInstanceOf[VariableIdentifier], newAdd)
-        newHeap.d2 = result._2
-        result=newHeap
+        result = factory(result._1.add(x.asInstanceOf[VariableIdentifier], newAdd),result._2)
       }
 
       alreadyInitialized=alreadyInitialized+obj
@@ -699,10 +669,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
         //in the same way I ignore rep
         val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName(), field.getType(), field.getProgramPoint())
         for(id : I <- fieldAdd.value) {
-          val newHeap = this.factory()
-          newHeap.d1 = result._1
-          newHeap.d2 = result._2.add(id, adds)
-          result=newHeap
+          result=factory(result._1,result._2.add(id, adds))
           ids=ids+((id, path ::: (field.getName()) :: Nil))
           val r=initializeObject(id, id, id.getType, result, path ::: (field.getName()) :: Nil)
           alreadyInitialized=alreadyInitialized+id
@@ -764,36 +731,26 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
     // It does not modify the heap
       return (this.asInstanceOf[H], new Replacement)
 
-    val newHeap = this.factory()
-    newHeap.d1 = this.d1
-    newHeap.d2 = this.d2
     variable match {
       case x : VariableIdentifier =>
         expr match {
           case value : HeapIdSetDomain[I] =>
-            var result=this._1
-            //for(heapid <- this.normalize(value).value)
-            //	if(value.value.size==1)
-            result=result.add(x, this.normalize(value))
-            newHeap.d1 = result
-            //	else initial=initial.add(x, value.lub(this.normalize(value), this._1.get(x)));
-            (newHeap, new Replacement)
+            (factory(_1.add(x, this.normalize(value)),_2.factory()), new Replacement)
           case _ =>
             val value=this.eval(expr)
-            newHeap.d1 = this._1.add(x, this.normalize(value))
-            (newHeap, new Replacement)
+            (factory(_1.add(x, this.normalize(value)),_2.factory()), new Replacement)
         }
       case x : I =>
         val value=this.eval(expr)
 
         // Brutschy: Following my understanding of the weak update implementation, we need the
         //           following distinction between summary nodes and non-summary nodes
-        newHeap.d2 =
+        val heapEnv =
           if (x.representSingleVariable())
             this._2.add(x, this.normalize(value))
           else
             this._2.add(x, this.get(x).add(this.normalize(value)))
-        return (newHeap, new Replacement);
+        return (factory(_1,heapEnv), new Replacement);
 
       case x : HeapIdSetDomain[I] =>
         if(x.isTop)
@@ -803,51 +760,33 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
         //TODO:Distinguish between definite and maybe
         for(addr <- x.value/*this.normalize(x).value*/)
           result=result.add(addr, value.lub(this.normalize(value), this._2.get(addr)))
-        newHeap.d2 = result
-        return (newHeap, new Replacement)
+        return (factory(_1,result), new Replacement)
     }
   }
 
   override def setToTop(variable : Assignable) = variable match  {
     case x : VariableIdentifier =>
       val newHeap = this.factory()
-      newHeap.d1 = this._1.add(x, cod.top())
-      newHeap.d2 = this.d2
-      (newHeap, new Replacement)
+      (factory(_1.add(x, cod.top()),_2), new Replacement)
     case x : HeapIdSetDomain[I] =>
       var result=this._2
       for(addr <- x.value)
         result=result.add(addr, cod.top())
-      val newHeap = this.factory()
-      newHeap.d1 = this.d1
-      newHeap.d2 = result
-      (newHeap, new Replacement)
+      (factory(_1,result), new Replacement)
     case x : I =>
-      val newHeap = this.factory()
-      newHeap.d1 = this.d1
-      newHeap.d2 = this.d2.add(x, cod.top())
-      (newHeap, new Replacement)
+      (factory(_1,_2.add(x, cod.top())), new Replacement)
   }
 
   override def removeVariable(variable : Assignable) = variable match  {
     case x : VariableIdentifier =>
-      val newHeap = this.factory()
-      newHeap.d1 = this._1.remove(x)
-      newHeap.d2 = this._2
-      (newHeap, new Replacement)
+      (factory(_1.remove(x),_2), new Replacement)
     case x : HeapIdSetDomain[I] =>
       var result=this._2
       for(addr <- x.value)
         result=result.remove(addr)
-      val newHeap = this.factory()
-      newHeap.d1 = this._1
-      newHeap.d2 = result
-      (newHeap, new Replacement)
+      (factory(_1,result), new Replacement)
     case x : I =>
-      val newHeap = this.factory()
-      newHeap.d1 = this._1
-      newHeap.d2 = this._2.remove(x)
-      (newHeap, new Replacement)
+      (factory(_1,_2.remove(x)), new Replacement)
   }
 
   override def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], H, Replacement) = {
@@ -855,10 +794,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
   }
 
   def merge(rep:Replacement): H = {
-    val newHeap = this.factory()
-    newHeap.d1 = this._1.merge(rep)
-    newHeap.d2 = this._2.merge(rep)
-    newHeap
+    factory(_1.merge(rep),_2.merge(rep))
   }
 
   override def getFieldIdentifier(heapIdentifier : Assignable, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], H, Replacement) = {
@@ -914,10 +850,6 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
   }
 
   override def insertCollectionElementToApprox(collectionApprox: Assignable, pp: ProgramPoint) = {
-    var result = this.factory()
-    result.d1 = this.d1
-    result.d2 = this.d2
-
     val collectionApproxId = collectionApprox.asInstanceOf[I]
     val collectionId = collectionApprox.asInstanceOf[FieldAndProgramPoint].p1.asInstanceOf[CollectionIdentifier]
     val keyTyp = collectionId.keyTyp
@@ -925,22 +857,18 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
 
     val (tupleIds, res, rep) = makeSummaryIfRequired(dom.createCollectionTuple(collectionApproxId, keyTyp, valueTyp, pp))
     //val (res, rep) = result.createVariable(tupleId, tupleId.getType())
-    result = res
+    var result = res
 
     val newIds = result.heapEnv.get(collectionApproxId).add(tupleIds)
-    result.d2 = result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds)
+    result = result.set_2(result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds))
     (tupleIds, result, rep)
   }
 
   override def removeCollectionElement(collectionTuple: Assignable) = collectionTuple match {
     case id: CollectionTupleIdentifier =>
-      val result = this.factory()
-      result.d1 = this.d1
-
       val approx = id.collectionApprox.asInstanceOf[I]
-      val newTuples = this.d2.get(approx).remove(id.asInstanceOf[I])
-      result.d2 = this.d2.remove(approx).add(approx, newTuples)
-      result
+      val newTuples = this._2.get(approx).remove(id.asInstanceOf[I])
+      factory(this._1,this._2.remove(approx).add(approx, newTuples))
     case _ => throw new SemanticException("This is not a collection tuple " + collectionTuple.toString)
   }
 
@@ -1002,7 +930,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
   }
 
   override def getUnreachableHeap:Set[I] = {
-    ReachabilityAnalysis.getUnreachableLocations(d1,d2)
+    ReachabilityAnalysis.getUnreachableLocations(_1,_2)
   }
 
   /** this subsumes reachability analysis! */
@@ -1119,7 +1047,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
 
   protected def resolveVariables[T <: Lattice[T]](fact:T, a: Assignable, f : Assignable => T):T = {
     a match {
-      case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(d1.get(id)),f)
+      case id:VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(_1.get(id)),f)
       case ids:HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(ids),f)
       case id:I => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(new MaybeHeapIdSetDomain().convert(id)),f)
       case _ => f(a)
@@ -1209,16 +1137,14 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Variable
 
   override def getInitialState() = new NonRelationalHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
 
-  def factory() = new NonRelationalHeapDomain(d1.factory(), d2.factory(), cod.factory(), dom.factory())
+  def factory(a: VariableEnv[I], b: HeapEnv[I]) = new NonRelationalHeapDomain(a, b, cod.factory(), dom.factory())
 
   def getLabel(): String = "Heap Domain:"+dom.getLabel();
 
   override def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, originalCollectionTyp:Option[Type], keyCollectionTyp:Option[Type], pp:ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
     val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
 
-    var newHeap = this.factory()
-    newHeap.d1 = heap.d1
-    newHeap.d2 = heap.d2
+    var newHeap = this
 
     for (coll <- collections.value) {
       val approxId = dom.getCollectionOverApproximation(coll)
@@ -1236,9 +1162,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Variable
   }
 
   override def insertCollectionElement(collection: Assignable, pp: ProgramPoint) = {
-    var result = this.factory()
-    result.d1 = this.d1
-    result.d2 = this.d2
+    var result = this
 
     var resultRep = new Replacement()
 
@@ -1252,7 +1176,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Variable
       resultRep = resultRep ++ rep
 
       val newIds = result.heapEnv.get(collectionApproxId).add(tupleIds)
-      result.d2 = result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds)
+      result = result.set_2(result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds))
 
       return new MaybeHeapIdSetDomain[I]().add(tupleIds)
     }
@@ -1287,18 +1211,14 @@ class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Vari
 
   def getLabel(): String = "Must Heap Domain:"+dom.getLabel();
 
-  def factory(): NonRelationalMustHeapDomain[I] = new NonRelationalMustHeapDomain[I](env.factory(), heap.factory(), cod.factory(), dom.factory())
+  def factory(a: VariableEnv[I], b: HeapEnv[I]) = new NonRelationalMustHeapDomain(a, b, cod.factory(), dom.factory())
 
   def getInitialState(): NonRelationalMustHeapDomain[I] =  new NonRelationalMustHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
 
   override def lubWithReplacement[S <: SemanticDomain[S]](left: NonRelationalMustHeapDomain[I], right: NonRelationalMustHeapDomain[I], semantic: S): (NonRelationalMustHeapDomain[I], Replacement) = {
-    val (lub1, rep1) = this.d1.lubWithReplacement(left.d1, right.d1)
-    val (lub2, rep2) = this.d2.lubWithReplacementMust(left.d2, right.d2, semantic)
-
-    val result = this.factory()
-    result.d1 = lub1
-    result.d2 = lub2
-    (result, rep1 ++ rep2)
+    val (lub1, rep1) = this._1.lubWithReplacement(left._1, right._1)
+    val (lub2, rep2) = this._2.lubWithReplacementMust(left._2, right._2, semantic)
+    (factory(lub1,lub2), rep1 ++ rep2)
   }
 
   override def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp:Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMustHeapDomain[I], Replacement) = {
@@ -1334,10 +1254,7 @@ class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Vari
   }
 
   override def insertCollectionElement(collection: Assignable, pp: ProgramPoint) = {
-    var result = this.factory()
-    result.d1 = this.d1
-    result.d2 = this.d2
-
+    var result = this
     var resultRep = new Replacement()
 
     def insertCollectionElement(collection: Assignable): HeapIdSetDomain[I] = {
@@ -1352,7 +1269,7 @@ class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Vari
       resultRep = resultRep ++ rep
 
       val newIds = result.heapEnv.get(collectionApproxId).add(tupleIds)
-      result.d2 = result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds)
+      result = result.set_2(result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds))
 
       return new MaybeHeapIdSetDomain[I].add(tupleIds)
     }
@@ -1375,58 +1292,58 @@ class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](hea
   def get(key : I) : HeapIdSetDomain[I] = this._1.get(key).add(this._2.get(key))
 
   def createObject(typ: Type, pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (ids1, heap1, rep1) = this.d1.createObject(typ, pp)
-    val (ids2, heap2, rep2) = this.d2.createObject(typ, pp)
+    val (ids1, heap1, rep1) = this._1.createObject(typ, pp)
+    val (ids2, heap2, rep2) = this._2.createObject(typ, pp)
 
     (ids1.lub(ids1, ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def createArray[S <: SemanticDomain[S]](length: Expression, typ: Type, pp: ProgramPoint, state: S): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (ids1, heap1, rep1) = this.d1.createArray(length, typ, pp, state)
-    val (ids2, heap2, rep2) = this.d2.createArray(length, typ, pp, state)
+    val (ids1, heap1, rep1) = this._1.createArray(length, typ, pp, state)
+    val (ids2, heap2, rep2) = this._2.createArray(length, typ, pp, state)
 
     (ids1.lub(ids1, ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def getArrayLength(arrayId: Assignable): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (ids1, heap1, rep1) = this.d1.getArrayLength(arrayId)
-    val (ids2, heap2, rep2) = this.d2.getArrayLength(arrayId)
+    val (ids1, heap1, rep1) = this._1.getArrayLength(arrayId)
+    val (ids2, heap2, rep2) = this._2.getArrayLength(arrayId)
 
     (ids1.lub(ids1, ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def getFieldIdentifier(objectIdentifier: Assignable, name: String, typ: Type, pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
     if(isCollectionMayVariable(objectIdentifier)) {
-      val (ids1, heap1, rep1) = this.d1.getFieldIdentifier(objectIdentifier, name, typ, pp)
-      return (ids1, new NonRelationalMayAndMustHeapDomain[I](heap1, this.d2), rep1)
+      val (ids1, heap1, rep1) = this._1.getFieldIdentifier(objectIdentifier, name, typ, pp)
+      return (ids1, new NonRelationalMayAndMustHeapDomain[I](heap1, this._2), rep1)
     } else if(isCollectionMustVariable(objectIdentifier)) {
-      val (ids2, heap2, rep2) = this.d2.getFieldIdentifier(objectIdentifier, name, typ, pp)
-      return (new MaybeHeapIdSetDomain[I]().add(ids2), new NonRelationalMayAndMustHeapDomain[I](this.d1, heap2), rep2)
+      val (ids2, heap2, rep2) = this._2.getFieldIdentifier(objectIdentifier, name, typ, pp)
+      return (new MaybeHeapIdSetDomain[I]().add(ids2), new NonRelationalMayAndMustHeapDomain[I](this._1, heap2), rep2)
     } else {
-      val (ids1, heap1, rep1) = this.d1.getFieldIdentifier(objectIdentifier, name, typ, pp)
-      //return (ids1, new NonRelationalMayAndMustHeapDomain[I](heap1, this.d2), rep1)
-      val (ids2, heap2, rep2) = this.d2.getFieldIdentifier(objectIdentifier, name, typ, pp)
+      val (ids1, heap1, rep1) = this._1.getFieldIdentifier(objectIdentifier, name, typ, pp)
+      //return (ids1, new NonRelationalMayAndMustHeapDomain[I](heap1, this._2), rep1)
+      val (ids2, heap2, rep2) = this._2.getFieldIdentifier(objectIdentifier, name, typ, pp)
       return (ids1.glb(ids1, new MaybeHeapIdSetDomain[I]().add(ids2)), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
     }
   }
 
   def endOfAssignment(): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this.d1.endOfAssignment()
-    val (heap2, rep2) = this.d2.endOfAssignment()
+    val (heap1, rep1) = this._1.endOfAssignment()
+    val (heap2, rep2) = this._2.endOfAssignment()
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S, typ: Type): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (ids1, heap1, rep1) = this.d1.getArrayCell(arrayIdentifier, index, state, typ)
-    val (ids2, heap2, rep2) = this.d2.getArrayCell(arrayIdentifier, index, state, typ)
+    val (ids1, heap1, rep1) = this._1.getArrayCell(arrayIdentifier, index, state, typ)
+    val (ids2, heap2, rep2) = this._2.getArrayCell(arrayIdentifier, index, state, typ)
 
     (ids1.lub(ids1, ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def setToTop(variable: Assignable): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this.d1.setToTop(variable)
-    val (heap2, rep2) = this.d2.setToTop(variable)
+    val (heap1, rep1) = this._1.setToTop(variable)
+    val (heap2, rep2) = this._2.setToTop(variable)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
@@ -1447,128 +1364,128 @@ class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](hea
 
   def assign[S <: SemanticDomain[S]](variable: Assignable, expr: Expression, state: S): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
     if (isCollectionMustVariable(variable)) {
-      val (mustHeap, mustRep) = this.d2.assign(variable, expr, state)
-      return (new NonRelationalMayAndMustHeapDomain[I](this.d1, mustHeap), mustRep)
+      val (mustHeap, mustRep) = this._2.assign(variable, expr, state)
+      return (new NonRelationalMayAndMustHeapDomain[I](this._1, mustHeap), mustRep)
     } else if (isCollectionMayVariable(variable)) {
-      val (mayHeap, mayRep) = this.d1.assign(variable, expr, state)
-      return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this.d2), mayRep)
+      val (mayHeap, mayRep) = this._1.assign(variable, expr, state)
+      return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this._2), mayRep)
     } else {
-      val (mayHeap, mayRep) = this.d1.assign(variable, expr, state)
-      //return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this.d2), mayRep)
-      val (mustHeap, mustRep) = this.d2.assign(variable, expr, state)
+      val (mayHeap, mayRep) = this._1.assign(variable, expr, state)
+      //return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this._2), mayRep)
+      val (mustHeap, mustRep) = this._2.assign(variable, expr, state)
       return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, mustHeap), mayRep ++ mustRep)
     }
   }
 
   def assignField(obj: Assignable, field: String, expr: Expression): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
     if (isCollectionMustVariable(obj)) {
-      val (mustHeap, mustRep) = this.d2.assignField(obj, field, expr)
-      return (new NonRelationalMayAndMustHeapDomain[I](this.d1, mustHeap), mustRep)
+      val (mustHeap, mustRep) = this._2.assignField(obj, field, expr)
+      return (new NonRelationalMayAndMustHeapDomain[I](this._1, mustHeap), mustRep)
     } else if (isCollectionMayVariable(obj)) {
-      val (mayHeap, mayRep) = this.d1.assignField(obj, field, expr)
-      return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this.d2), mayRep)
+      val (mayHeap, mayRep) = this._1.assignField(obj, field, expr)
+      return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this._2), mayRep)
     } else {
-      val (mayHeap, mayRep) = this.d1.assignField(obj, field, expr)
-      //return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this.d2), mayRep)
-      val (mustHeap, mustRep) = this.d2.assignField(obj, field, expr)
+      val (mayHeap, mayRep) = this._1.assignField(obj, field, expr)
+      //return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this._2), mayRep)
+      val (mustHeap, mustRep) = this._2.assignField(obj, field, expr)
       return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, mustHeap), mayRep ++ mustRep)
     }
   }
 
   def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this.d1.assignArrayCell(obj, index, expr, state)
-    val (heap2, rep2) = this.d2.assignArrayCell(obj, index, expr, state)
+    val (heap1, rep1) = this._1.assignArrayCell(obj, index, expr, state)
+    val (heap2, rep2) = this._2.assignArrayCell(obj, index, expr, state)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def setArgument(variable: Assignable, expr: Expression): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this.d1.setArgument(variable, expr)
-    val (heap2, rep2) = this.d2.setArgument(variable, expr)
+    val (heap1, rep1) = this._1.setArgument(variable, expr)
+    val (heap2, rep2) = this._2.setArgument(variable, expr)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def assume(expr: Expression): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this.d1.assume(expr)
-    val (heap2, rep2) = this.d2.assume(expr)
+    val (heap1, rep1) = this._1.assume(expr)
+    val (heap2, rep2) = this._2.assume(expr)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def createVariable(variable: Assignable, typ: Type): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
     if (isCollectionMustVariable(variable)) {
-      val (mustHeap, mustRep) = this.d2.createVariable(variable, typ)
-      return (new NonRelationalMayAndMustHeapDomain[I](this.d1, mustHeap), mustRep)
+      val (mustHeap, mustRep) = this._2.createVariable(variable, typ)
+      return (new NonRelationalMayAndMustHeapDomain[I](this._1, mustHeap), mustRep)
     } else if (isCollectionMayVariable(variable)) {
-      val (mayHeap, mayRep) = this.d1.createVariable(variable, typ)
-      return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this.d2), mayRep)
+      val (mayHeap, mayRep) = this._1.createVariable(variable, typ)
+      return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this._2), mayRep)
     } else {
-      val (mayHeap, mayRep) = this.d1.createVariable(variable, typ)
-      //return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this.d2), mayRep)
-      val (mustHeap, mustRep) = this.d2.createVariable(variable, typ)
+      val (mayHeap, mayRep) = this._1.createVariable(variable, typ)
+      //return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, this._2), mayRep)
+      val (mustHeap, mustRep) = this._2.createVariable(variable, typ)
       return (new NonRelationalMayAndMustHeapDomain[I](mayHeap, mustHeap), mayRep.lub(mayRep, mustRep))
     }
   }
 
   def createVariableForArgument(variable: Assignable, typ: Type, path: List[String]): (NonRelationalMayAndMustHeapDomain[I], Map[Identifier, List[String]], Replacement) = {
-    val (heap1, map1, rep1) = this.d1.createVariableForArgument(variable, typ, path)
-    val (heap2, map2, rep2) = this.d2.createVariableForArgument(variable, typ, path)
+    val (heap1, map1, rep1) = this._1.createVariableForArgument(variable, typ, path)
+    val (heap2, map2, rep2) = this._2.createVariableForArgument(variable, typ, path)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), map1 ++ map2, rep1.lub(rep1, rep2))
   }
 
   def removeVariable(variable: Assignable): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this.d1.removeVariable(variable)
-    val (heap2, rep2) = this.d2.removeVariable(variable)
+    val (heap1, rep1) = this._1.removeVariable(variable)
+    val (heap2, rep2) = this._2.removeVariable(variable)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def backwardAssign(variable: Assignable, expr: Expression): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this.d1.backwardAssign(variable, expr)
-    val (heap2, rep2) = this.d2.backwardAssign(variable, expr)
+    val (heap1, rep1) = this._1.backwardAssign(variable, expr)
+    val (heap2, rep2) = this._2.backwardAssign(variable, expr)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def getIds(): collection.Set[Identifier] = {
-    val ids1 = this.d1.getIds()
-    val ids2 = this.d2.getIds()
+    val ids1 = this._1.getIds()
+    val ids2 = this._2.getIds()
     return ids1 ++ ids2
   }
 
   def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp:Option[Type], keyCollectionTyp:Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (ids1, heap1, rep1) = this.d1.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp)
-    val (ids2, heap2, rep2) = this.d2.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp)
+    val (ids1, heap1, rep1) = this._1.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp)
+    val (ids2, heap2, rep2) = this._2.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp)
 
     (ids1.lub(ids1, ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep1, rep2))
   }
 
   def getSummaryCollectionIfExists(collection: Assignable): HeapIdSetDomain[I] = {
-    val ids1 = this.d1.getSummaryCollectionIfExists(collection)
-    val ids2 = this.d2.getSummaryCollectionIfExists(collection)
+    val ids1 = this._1.getSummaryCollectionIfExists(collection)
+    val ids2 = this._2.getSummaryCollectionIfExists(collection)
     ids1.lub(ids1, ids2)
   }
 
   def insertCollectionTopElement(collection: Assignable, pp: ProgramPoint) = {
-    val (ids1, heap1, rep1) = this.d1.insertCollectionTopElement(collection, pp)
-    val (ids2, heap2, rep2) = this.d2.insertCollectionTopElement(collection, pp)
+    val (ids1, heap1, rep1) = this._1.insertCollectionTopElement(collection, pp)
+    val (ids2, heap2, rep2) = this._2.insertCollectionTopElement(collection, pp)
 
     (ids1.lub(ids1, ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1 ++ rep2)
   }
 
-  def getOriginalCollection(collection: Assignable): HeapIdSetDomain[I] = this.d1.getOriginalCollection(collection)
-  def getKeysCollection(collection: Assignable): HeapIdSetDomain[I] = this.d1.getKeysCollection(collection)
+  def getOriginalCollection(collection: Assignable): HeapIdSetDomain[I] = this._1.getOriginalCollection(collection)
+  def getKeysCollection(collection: Assignable): HeapIdSetDomain[I] = this._1.getKeysCollection(collection)
 
   def getCollectionKeyByTuple(collectionTuple: Assignable): Assignable =  collectionTuple match {
     case id: CollectionTupleIdentifier =>
       val collectionApprox = id.collectionApprox
       collectionApprox match {
         case FieldAndProgramPoint(_, "may", _, _) =>
-          return this.d1.getCollectionKeyByTuple(collectionTuple)
+          return this._1.getCollectionKeyByTuple(collectionTuple)
         case FieldAndProgramPoint(_, "must", _, _) =>
-          return this.d2.getCollectionKeyByTuple(collectionTuple)
+          return this._2.getCollectionKeyByTuple(collectionTuple)
         case _ => throw new SemanticException("This is not a collection approximation identifier " + collectionApprox)
       }
     case _ => throw new SemanticException("This is not a collection tuple " + collectionTuple.toString)
@@ -1579,118 +1496,118 @@ class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](hea
       val collectionApprox = id.collectionApprox
       collectionApprox match {
         case FieldAndProgramPoint(_, "may", _, _) =>
-          return this.d1.getCollectionValueByTuple(collectionTuple)
+          return this._1.getCollectionValueByTuple(collectionTuple)
         case FieldAndProgramPoint(_, "must", _, _) =>
-          return this.d2.getCollectionValueByTuple(collectionTuple)
+          return this._2.getCollectionValueByTuple(collectionTuple)
         case _ => throw new SemanticException("This is not a collection approximation identifier " + collectionApprox)
       }
     case _ => throw new SemanticException("This is not a collection tuple " + collectionTuple.toString)
   }
 
   def getCollectionTupleByKey(keyId: Assignable): Assignable = {
-     return this.d1.getCollectionTupleByKey(keyId)
+     return this._1.getCollectionTupleByKey(keyId)
   }
 
   def getCollectionTupleByValue(valueId: Assignable): Assignable = {
-    return this.d1.getCollectionTupleByValue(valueId)
+    return this._1.getCollectionTupleByValue(valueId)
   }
 
   def isSummaryCollection(collectionId: Assignable): Boolean = {
-    return this.d1.isSummaryCollection(collectionId)
+    return this._1.isSummaryCollection(collectionId)
   }
 
   def getCollectionTuples(collectionApprox: Assignable): HeapIdSetDomain[I] = collectionApprox match{
-    case FieldAndProgramPoint(_, "may", _, _) => this.d1.getCollectionTuples(collectionApprox)
-    case FieldAndProgramPoint(_, "must", _, _) => this.d2.getCollectionTuples(collectionApprox)
+    case FieldAndProgramPoint(_, "may", _, _) => this._1.getCollectionTuples(collectionApprox)
+    case FieldAndProgramPoint(_, "must", _, _) => this._2.getCollectionTuples(collectionApprox)
     case _ => throw new SemanticException("This is not a collection approximation identifier " + collectionApprox)
   }
 
-  def getCollectionOverApproximation(collection: Assignable): HeapIdSetDomain[I] = this.d1.getCollectionOverApproximation(collection)
+  def getCollectionOverApproximation(collection: Assignable): HeapIdSetDomain[I] = this._1.getCollectionOverApproximation(collection)
 
-  def getCollectionUnderApproximation(collection: Assignable): HeapIdSetDomain[I] = this.d2.getCollectionUnderApproximation(collection)
+  def getCollectionUnderApproximation(collection: Assignable): HeapIdSetDomain[I] = this._2.getCollectionUnderApproximation(collection)
 
   def getCollectionKeys(collectionApprox: Assignable): HeapIdSetDomain[I] = collectionApprox match{
-    case FieldAndProgramPoint(_, "may", _, _) => this.d1.getCollectionKeys(collectionApprox)
-    case FieldAndProgramPoint(_, "must", _, _) => this.d2.getCollectionKeys(collectionApprox)
+    case FieldAndProgramPoint(_, "may", _, _) => this._1.getCollectionKeys(collectionApprox)
+    case FieldAndProgramPoint(_, "must", _, _) => this._2.getCollectionKeys(collectionApprox)
     case _ => throw new SemanticException("This is not a collection approximation identifier " + collectionApprox)
   }
 
   def getCollectionValues(collectionApprox: Assignable): HeapIdSetDomain[I] = collectionApprox match{
-    case FieldAndProgramPoint(_, "may", _, _) => this.d1.getCollectionValues(collectionApprox)
-    case FieldAndProgramPoint(_, "must", _, _) => this.d2.getCollectionValues(collectionApprox)
+    case FieldAndProgramPoint(_, "may", _, _) => this._1.getCollectionValues(collectionApprox)
+    case FieldAndProgramPoint(_, "must", _, _) => this._2.getCollectionValues(collectionApprox)
     case _ => throw new SemanticException("This is not a collection approximation identifier " + collectionApprox)
   }
 
   def insertCollectionElement(collection: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (idsMay, heapMay, repMay) = this.d1.insertCollectionElement(collection, pp)
-    val (idsMust, heapMust, repMust) = this.d2.insertCollectionElement(collection, pp)
+    val (idsMay, heapMay, repMay) = this._1.insertCollectionElement(collection, pp)
+    val (idsMust, heapMust, repMust) = this._2.insertCollectionElement(collection, pp)
 
     (idsMay.lub(idsMay, idsMust), new NonRelationalMayAndMustHeapDomain[I](heapMay, heapMust), repMay ++ repMust)
   }
 
   def insertCollectionElementToApprox(collectionApprox: Assignable, pp: ProgramPoint) = collectionApprox match{
     case FieldAndProgramPoint(_, "may", _, _) =>
-      val (ids, heap1, rep1) = this.d1.insertCollectionElementToApprox(collectionApprox, pp)
-      (ids, new NonRelationalMayAndMustHeapDomain[I](heap1, this.d2), rep1)
+      val (ids, heap1, rep1) = this._1.insertCollectionElementToApprox(collectionApprox, pp)
+      (ids, new NonRelationalMayAndMustHeapDomain[I](heap1, this._2), rep1)
     case FieldAndProgramPoint(_, "must", _, _) =>
-      val (ids, heap2, rep2) = this.d2.insertCollectionElementToApprox(collectionApprox, pp)
-      (ids, new NonRelationalMayAndMustHeapDomain[I](this.d1, heap2), rep2)
+      val (ids, heap2, rep2) = this._2.insertCollectionElementToApprox(collectionApprox, pp)
+      (ids, new NonRelationalMayAndMustHeapDomain[I](this._1, heap2), rep2)
     case _ => throw new SemanticException("This is not a collection approximation identifier " + collectionApprox)
   }
 
   def removeCollectionElement(collectionTuple: Assignable): NonRelationalMayAndMustHeapDomain[I] = {
-    val mayHeap = this.d1.removeCollectionElement(collectionTuple)
-    val mustHeap = this.d2.removeCollectionElement(collectionTuple)
+    val mayHeap = this._1.removeCollectionElement(collectionTuple)
+    val mustHeap = this._2.removeCollectionElement(collectionTuple)
     new NonRelationalMayAndMustHeapDomain[I](mayHeap, mustHeap)
   }
 
-  def getCollectionLength(collection: Assignable): HeapIdSetDomain[I] = this.d1.getCollectionLength(collection)
+  def getCollectionLength(collection: Assignable): HeapIdSetDomain[I] = this._1.getCollectionLength(collection)
 
   def getUnreachableHeap: Set[I] = {
 
-    val unreachableHeapD1 = this.d1.getUnreachableHeap
-    val unreachableHeapD2 = this.d2.getUnreachableHeap
+    val unreachableHeap_1 = this._1.getUnreachableHeap
+    val unreachableHeap_2 = this._2.getUnreachableHeap
 
-    var unreachableHeap = unreachableHeapD1.intersect(unreachableHeapD2)
-    unreachableHeap = unreachableHeap ++ (unreachableHeapD1.filter(isCollectionMayVariable(_)))
-    unreachableHeap = unreachableHeap ++ (unreachableHeapD2.filter(isCollectionMustVariable(_)))
+    var unreachableHeap = unreachableHeap_1.intersect(unreachableHeap_2)
+    unreachableHeap = unreachableHeap ++ (unreachableHeap_1.filter(isCollectionMayVariable(_)))
+    unreachableHeap = unreachableHeap ++ (unreachableHeap_2.filter(isCollectionMustVariable(_)))
 
     return unreachableHeap
   }
 
   def getLabel(): String = {
-    "MayAndMustDomain(" + this.d1.getDomainLabel() + ")"
+    "MayAndMustDomain(" + this._1.getDomainLabel() + ")"
   }
 
   def parameters(): List[(String, Any)] = {
-    this.d1.parameters() ++ this.d2.parameters()
+    this._1.parameters() ++ this._2.parameters()
   }
 
   def setParameter(label: String, value: Any) = {
-    this.d1.setParameter(label, value)
-    this.d2.setParameter(label, value)
+    this._1.setParameter(label, value)
+    this._2.setParameter(label, value)
   }
 
   def getProperties(): List[Property] = {
-    this.d1.getProperties()
+    this._1.getProperties()
   }
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
-    this.d1.getNativeMethodsSemantics() ++ this.d2.getNativeMethodsSemantics()
+    this._1.getNativeMethodsSemantics() ++ this._2.getNativeMethodsSemantics()
   }
 
   def reset() = {
-    this.d1.reset()
-    this.d2.reset()
+    this._1.reset()
+    this._2.reset()
   }
 
-  def factory(): NonRelationalMayAndMustHeapDomain[I] = {
-    new NonRelationalMayAndMustHeapDomain[I](this.d1.factory(), this.d2.factory())
+  def factory(a:NonRelationalHeapDomain[I],b:NonRelationalMustHeapDomain[I]): NonRelationalMayAndMustHeapDomain[I] = {
+    new NonRelationalMayAndMustHeapDomain[I](a,b)
   }
 
   def lubWithReplacement(left: NonRelationalMayAndMustHeapDomain[I], right: NonRelationalMayAndMustHeapDomain[I]): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (lub1, rep1) = this.d1.lubWithReplacement(left.d1, right.d1)
-    val (lub2, rep2) = this.d2.lubWithReplacement(left.d2, right.d2)
+    val (lub1, rep1) = this._1.lubWithReplacement(left._1, right._1)
+    val (lub2, rep2) = this._2.lubWithReplacement(left._2, right._2)
 
     (new NonRelationalMayAndMustHeapDomain[I](lub1, lub2), rep1.lub(rep1, rep2))
   }
@@ -1703,22 +1620,22 @@ class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](hea
   }
 
   def glbWithReplacement(left: NonRelationalMayAndMustHeapDomain[I], right: NonRelationalMayAndMustHeapDomain[I]): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (glb1, rep1) = this.d1.glbWithReplacement(left.d1, right.d1)
-    val (glb2, rep2) = this.d2.glbWithReplacement(left.d2, right.d2)
+    val (glb1, rep1) = this._1.glbWithReplacement(left._1, right._1)
+    val (glb2, rep2) = this._2.glbWithReplacement(left._2, right._2)
 
     (new NonRelationalMayAndMustHeapDomain[I](glb1, glb2), rep1.lub(rep1, rep2))
   }
 
   def wideningWithReplacement(left: NonRelationalMayAndMustHeapDomain[I], right: NonRelationalMayAndMustHeapDomain[I]): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (widening1, rep1) = this.d1.wideningWithReplacement(left.d1, right.d1)
-    val (widening2, rep2) = this.d2.wideningWithReplacement(left.d2, right.d2)
+    val (widening1, rep1) = this._1.wideningWithReplacement(left._1, right._1)
+    val (widening2, rep2) = this._2.wideningWithReplacement(left._2, right._2)
 
     (new NonRelationalMayAndMustHeapDomain[I](widening1, widening2), rep1.lub(rep1, rep2))
   }
 
   def getInitialState(): NonRelationalMayAndMustHeapDomain[I] = {
-    val heap1 = this.d1.getInitialState()
-    val heap2 = this.d2.getInitialState()
+    val heap1 = this._1.getInitialState()
+    val heap2 = this._2.getInitialState()
     new NonRelationalMayAndMustHeapDomain[I](heap1, heap2)
   }
 
@@ -1726,8 +1643,8 @@ class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](hea
    * Converts summary nodes to regular nodes whenever possible and sound
    */
   def optimizeSummaryNodes: (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this.d1.optimizeSummaryNodes
-    val (heap2, rep2) = this.d2.optimizeSummaryNodes
+    val (heap1, rep1) = this._1.optimizeSummaryNodes
+    val (heap2, rep2) = this._2.optimizeSummaryNodes
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1 ++ rep2)
   }
@@ -1743,7 +1660,10 @@ class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[
 
   def getLabel(): String = "Summary Collection Heap Domain:"+dom.getLabel();
 
-  def factory(): NonRelationalSummaryCollectionHeapDomain[I] = new NonRelationalSummaryCollectionHeapDomain[I](env.factory(), heap.factory(), cod.factory(), dom.factory())
+
+  def factory(a:VariableEnv[I],b:HeapEnv[I]): NonRelationalSummaryCollectionHeapDomain[I] = {
+    new NonRelationalSummaryCollectionHeapDomain[I](a,b, cod.factory(), dom.factory())
+  }
 
   def getInitialState(): NonRelationalSummaryCollectionHeapDomain[I] =  new NonRelationalSummaryCollectionHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
 
@@ -1780,10 +1700,7 @@ class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[
   }
 
   override def insertCollectionElement(collection: Assignable, pp: ProgramPoint) = {
-    var result = this.factory()
-    result.d1 = this.d1
-    result.d2 = this.d2
-
+    var result = this
     var resultRep = new Replacement()
 
     def insertCollectionElement(collection: Assignable): HeapIdSetDomain[I] = {
@@ -1798,7 +1715,7 @@ class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[
       resultRep = resultRep ++ rep
 
       val newIds = result.heapEnv.get(collectionApproxId).add(tupleIds)
-      result.d2 = result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds)
+      result = result.set_2(result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds))
 
       new MaybeHeapIdSetDomain[I]().add(tupleIds)
     }

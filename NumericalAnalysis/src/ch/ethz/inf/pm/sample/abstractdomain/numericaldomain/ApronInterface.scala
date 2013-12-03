@@ -12,7 +12,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
 import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
-import ch.ethz.inf.pm.sample.abstractdomain.EmptyScopeIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.CollectionContainsExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 
@@ -22,7 +21,7 @@ class ApronInterface(val state: Option[Abstract1],
                      val env: Set[Identifier])
   extends RelationalNumericalDomain[ApronInterface] {
 
-  assert(env.map(_.toString).size == env.size)
+  //assert(env.map(_.toString).size == env.size)
 
   override def factory(): ApronInterface = {
     top()
