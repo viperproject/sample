@@ -659,7 +659,7 @@ abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: Se
 
   def backwardAssign(variable: Identifier, expr: Expression): T = factory(_1.backwardAssign(variable,expr),_2.backwardAssign(variable,expr))
 
-  def getStringOfId(id: Identifier): String = "( " + _1.getStringOfId(id) + ", " + _1.getStringOfId(id) + ")"
+  def getStringOfId(id: Identifier): String = "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
 
 }
 
