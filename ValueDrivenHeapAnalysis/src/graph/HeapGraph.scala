@@ -1,7 +1,7 @@
 package graph
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import scala.collection.immutable.{Set, TreeSet}
+import scala.collection.immutable.{Queue, Set, TreeSet}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 
@@ -819,8 +819,37 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return (resultAH, renameFrom, renameTo)
   }
 
+  /**
+   * BFS algorithm for computing from which local variables nodes are reachable.
+   *
+   * @return the map that maps HeapVertices to set of LocalVariableVertices from which the HeapVertex is reachable
+   *
+   * @author Milos Novacek
+   */
+  private def reachableFromLocalVariable() : Map[HeapVertex, Set[LocalVariableVertex]] = {
+    val queue = scala.collection.mutable.Queue.empty[HeapVertex]
+    var result = scala.collection.mutable.Map.empty[HeapVertex, Set[LocalVariableVertex]]
+    for (v <- vertices.filter(_.isInstanceOf[HeapVertex]).asInstanceOf[Set[HeapVertex]]) {
+      val initSet : Set[LocalVariableVertex] = edges.filter(e => e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex]).map(_.source).asInstanceOf[Set[LocalVariableVertex]]
+      result += (v -> initSet)
+      if (!initSet.isEmpty)
+        queue.enqueue(v)
+    }
+    while (!queue.isEmpty) {
+      val current = queue.dequeue()
+      for (succ <- edges.filter(e => e.source.equals(current) && e.target.isInstanceOf[HeapVertex]).map(_.target).asInstanceOf[Set[HeapVertex]]) {
+        if (!(result.apply(current) subsetOf result.apply(succ))) {
+          queue.enqueue(succ)
+          result.update(succ, result.apply(current) union result.apply(succ))
+        }
+      }
+    }
+    result
+  }
+
   def mergePointedNodes(): (HeapGraph[S], Replacement) = {
-    checkConsistancy(this)
+    //checkConsistancy(this)
+    val skuska = reachableFromLocalVariable()
     var resultGraph = new HeapGraph[S](vertices.filter(!_.isInstanceOf[HeapVertex]), Set.empty[EdgeWithState[S]])
     var pointedByMap = Map.empty[Set[Vertex], Set[Vertex]]
     for (v <- vertices.filter(_.isInstanceOf[HeapVertex])) {
