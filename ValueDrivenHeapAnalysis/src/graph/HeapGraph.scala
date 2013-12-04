@@ -771,9 +771,9 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return (result, idsToRemove.asInstanceOf[Set[Identifier]])
   }
 
-  private def joinCommonEdges(graph: HeapGraph[S]): HeapGraph[S] = {
+  def joinCommonEdges() : HeapGraph[S] = {
     var resultEdges = Set.empty[EdgeWithState[S]]
-    for (edge <- graph.edges) {
+    for (edge <- this.edges) {
       val weakEqualsSet = resultEdges.filter(_.weakEquals(edge))
       assert(weakEqualsSet.size <= 1)
       if (weakEqualsSet.isEmpty)
@@ -781,7 +781,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       else
         resultEdges = (resultEdges - weakEqualsSet.head) + new EdgeWithState[S](edge.source, edge.state.lub(weakEqualsSet.head.state, edge.state), edge.field, edge.target)
     }
-    return new HeapGraph[S](graph.vertices, resultEdges)
+    return new HeapGraph[S](this.vertices, resultEdges)
   }
 
   private def meetCommonEdges(graph: HeapGraph[S]): HeapGraph[S] = {
@@ -814,7 +814,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
 //    val (minCSBefore, renameFrom, renameTo) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(left, right))
 //    val (minCSBefore, nameMap) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(right))
     val (resultingGraph, renameFrom, renameTo) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(right)._1)
-    val resultAH = joinCommonEdges(resultingGraph)
+    val resultAH = resultingGraph.joinCommonEdges()
     checkConsistancy(resultAH)
     return (resultAH, renameFrom, renameTo)
   }
@@ -879,7 +879,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
     var result = resultGraph
     checkConsistancy(resultGraph)
-    result = joinCommonEdges(result)
+    result = result.joinCommonEdges()
     return (result, replacement)
   }
 
@@ -916,6 +916,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
     return true
   }
+
 
 //  def materializeAccessPath(a)
 //

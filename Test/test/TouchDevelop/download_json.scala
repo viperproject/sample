@@ -2,7 +2,6 @@ import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.webapi._
 import java.io.{File, PrintWriter}
-import net.liftweb.json._
 
 /**
  * Downloads all scripts in JSON format
@@ -20,7 +19,7 @@ TestRunner(new RootScripts,100000000,{ id:String =>
   val dir = new File("TouchDevelopPreprocessing/testfiles/"+dirs)
 
   if (dir.isDirectory || dir.mkdir()) {
-    val p = new PrintWriter(new File(dir+"/"+id+".json"))
+    val p = new PrintWriter(new File(dir+ "/" +id+".json"))
     try {
       p.println(fetchFile(ScriptListings.webastURLfromPubID(id)))
     } finally { p.close() }

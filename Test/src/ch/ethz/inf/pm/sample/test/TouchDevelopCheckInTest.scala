@@ -27,7 +27,12 @@ class TouchDevelopCheckInTest extends FlatSpec {
     Run.main(List("-v","-p","Test/test/TouchDevelop/summary").toArray)
   }
 
+  "TouchBoost" should "pass the PLDI TOP tests" in {
+    Run.main(List("-v","-p","Test/test/TouchDevelop/pldi_top").toArray)
+  }
 
-
+  "TouchBoost" should "pass the PLDI RANDOM tests" in {
+    Run.main(List("-v","-p","Test/test/TouchDevelop/pldi_random").toArray)
+  }
 
 }

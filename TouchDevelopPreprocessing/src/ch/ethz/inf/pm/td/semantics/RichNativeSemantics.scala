@@ -722,6 +722,9 @@ case class RichExpression(thisExpr : ExpressionSet) {
   def || (thatExpr : RichExpression) : RichExpression =
     RichExpression(ExpressionFactory.createBooleanBinaryExpression(thisExpr,thatExpr,BooleanOperator.||,TBoolean.typ))
 
+  def concat (thatExpr : RichExpression) : RichExpression =
+    RichExpression(ExpressionFactory.createAbstractOperator(thisExpr,List(thatExpr),Nil,AbstractOperatorIdentifiers.stringConcatenation,TString.typ))
+
   def not () : RichExpression =
     RichExpression(ExpressionFactory.createNegatedBooleanExpression(thisExpr))
 

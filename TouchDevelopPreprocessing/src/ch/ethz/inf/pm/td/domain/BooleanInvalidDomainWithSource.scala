@@ -202,6 +202,16 @@ class PositionedInvalidValueDomain extends SetDomain[InvalidValue,PositionedInva
     res
   }
 
+  override def toString:String = {
+    if (isTop) return "Valid or Invalid with unknown cause"
+    if (isBottom || value.isEmpty) return "Bottom"
+    if (mustBeValid) return "Valid"
+    value.map({
+      case Valid() => "Valid"
+      case Invalid(ss) => "Invalid due to "+ss
+    }).mkString(" or ")
+  }
+
 }
 
 trait InvalidValue

@@ -154,25 +154,25 @@ case class NegatedBooleanExpression(val thisExpr : Expression) extends Expressio
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class AbstractOperator(val thisExpr : Expression, val parameters : Set[List[Expression]], val typeparameters : List[Type], val op : AbstractOperatorIdentifiers.Value, val returntyp : Type) extends Expression(thisExpr.getProgramPoint) {
+case class AbstractOperator(val thisExpr : Expression, val parameters : List[Expression], val typeparameters : List[Type], val op : AbstractOperatorIdentifiers.Value, val returntyp : Type) extends Expression(thisExpr.getProgramPoint) {
   override def getType() = returntyp;
   override def hashCode() : Int = thisExpr.hashCode();
   override def equals(o : Any) = o match {
     case AbstractOperator(l, p, t, o, ty) => thisExpr.equals(l) && parameters.equals(p) && typeparameters.equals(t) & op.equals(o) 
     case _ => false
   }
-  override def toString() = thisExpr.toString() + "." + op.toString() + ToStringUtilities.parametricTypesToString(typeparameters)+"("+ToStringUtilities.setOfListToString(parameters)+")"
+  override def toString() = thisExpr.toString() + "." + op.toString() + ToStringUtilities.parametricTypesToString(typeparameters)+"("+ToStringUtilities.listToString(parameters)+")"
 
   def identifiers() : Set[Identifier] = thisExpr.identifiers()++{
     var result : Set[Identifier] = Set.empty;
     for(p<-parameters) {
-      for(p1 <- p) result++=p1.identifiers
+      result++=p.identifiers
     }
       result
   };
 
   override def transform(f:(Expression => Expression)):Expression =
-    f(AbstractOperator(thisExpr.transform(f),parameters.map(_.map(_.transform(f))),typeparameters,op,returntyp))
+    f(AbstractOperator(thisExpr.transform(f),parameters.map(_.transform(f)),typeparameters,op,returntyp))
 
 }
 

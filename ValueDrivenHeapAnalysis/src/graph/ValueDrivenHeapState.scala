@@ -579,67 +579,27 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     val rightExp = right.getSetOfExpressions.head
     assert(leftExp.isInstanceOf[AccessPathExpression], "The left hand side od the assignment is not an AccessPathExpression")
     val leftAccPath = leftExp.asInstanceOf[AccessPathExpression]
-    val leftPaths: Set[List[EdgeWithState[S]]] = abstractHeap.getPathsToBeAssigned(leftAccPath)
+    val leftPaths: Set[List[EdgeWithState[S]]] = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.last.target.isInstanceOf[HeapVertex])
     if (leftPaths.size == 0)
       return this.bottom()
     // Identifying valid left paths
+    // TODO: validLeftPaths should be computed differently, using graphPathCondition
     var validLeftPaths =  Set.empty[(List[EdgeWithState[S]], S, AccessPathExpression, Set[AccessPathIdentifier])]
     for (lPath <- leftPaths) {
       val (pathState, pathIdentifier, pathAddedIds, accPathExpEdgeMap) = evaluateGraphPath(lPath, leftAccPath.pp)
       if (!pathState.lessEqual(pathState.bottom()))
         validLeftPaths = validLeftPaths + new Tuple4(lPath, pathState, pathIdentifier, pathAddedIds)
     }
-    if (validLeftPaths.isEmpty)
-      return bottom() // No valid left paths
     if (rightExp.getType().isObject()) {
-      var resultingAH: HeapGraph[S] = abstractHeap
-      //TODO: The removal prior to assignment is unsound. Fix!!!
-      if (validLeftPaths.size == 1) {
-        // Strong update - removing the edges from the target of the path labeled with the assigned filed
-        val lastPathVertex: Vertex = validLeftPaths.head._1.last.target
-        val edgesToRemove = resultingAH.edges.filter(e => e.source.equals(lastPathVertex) && e.field.equals(Some(leftAccPath.path.last)))
-        resultingAH = resultingAH.removeEdges(edgesToRemove)
-      }
+      var edgesToAdd = Set.empty[EdgeWithState[S]]
       rightExp match {
         case x: VariableIdentifier => {
-          // TODO : Currently under re-implementation!!!
           val rightPaths = abstractHeap.getPaths(List(x.getName()))
-          // Conditions under which rightExpression refers to a Vertex
-          val rightStateWithVertex : Set[(S, Vertex)] = rightPaths.map(p => (graphPathCondition(p), p.last.target))
-          var edgesToAdd = Set.empty[EdgeWithState[S]]
-          for (lPath <- leftPaths) {
-            var leftCond = graphPathCondition(lPath)
-            if (leftCond.bottom().lessEqual(leftCond)) {
-              // The condition of the left path is not bottom. (i.e. can be possibly assigned)
-              for ((c,v) <- rightStateWithVertex) {
-                // We need to rename edge-local identifiers to be targets after the assignment
-                var renameFrom = List.empty[EdgeLocalIdentifier]
-                var renameTo = List.empty[EdgeLocalIdentifier]
-                val fieldToAssigne = leftAccPath.path.last
-                val idsToRename = c.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).asInstanceOf[Set[EdgeLocalIdentifier]]
-                for (elId <- idsToRename) {
-                  renameFrom = elId :: renameFrom
-                  renameTo = new EdgeLocalIdentifier(List(fieldToAssigne), elId.field, elId.getType(), elId.getProgramPoint()) :: renameTo
-                }
-                var newEdgeState = c.rename(renameFrom, renameTo)
-                leftCond = Utilities.createVariablesForState(leftCond, renameTo.toSet[Identifier])
-                newEdgeState = Utilities.createVariablesForState(newEdgeState, renameFrom.toSet[Identifier])
-                newEdgeState = newEdgeState.glb(leftCond, newEdgeState)
-                if (!newEdgeState.lessEqual(c.bottom())){
-                  // edge that represents the assignment
-                  edgesToAdd = edgesToAdd + new EdgeWithState[S](lPath.last.target, newEdgeState, Some(fieldToAssigne), v)
-                }
-              }
-            }
-          }
-          if (edgesToAdd.isEmpty)
-            return bottom()
-          else
-            return new ValueDrivenHeapState[S](resultingAH.addEdges(edgesToAdd), generalValState, new ExpressionSet(right.getType()).add(leftAccPath), false, isBottom)
-//          throw new Exception("Not implemented yet for variables.")
+          edgesToAdd = referencePathAssignmentEdges(leftAccPath.path.last, leftPaths, rightPaths)
         }
-        case ap: AccessPathExpression => {
-          throw new Exception("Not implemented yet for access path expressions.")
+        case rAP: AccessPathExpression => {
+          val rightPaths = abstractHeap.getPaths(rAP.path)
+          edgesToAdd = referencePathAssignmentEdges(leftAccPath.path.last, leftPaths, rightPaths)
         }
         case v: VertexExpression => {
           // Add new edges
@@ -651,12 +611,9 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             // Adding source edge local information to the state
             for (valField <- lPath.last.target.typ.getPossibleFields().filter(f => !f.getType().isObject())) {
               val newEdgeLocId: Identifier = new EdgeLocalIdentifier(List.empty[String], valField.getName(), valField.getType(), valField.getProgramPoint())
-              // TODO: pathString will change to Identifier, check it
-//              val idToReplace: Identifier = new VariableIdentifier(pathString + "." + valField.getName(), valField.getType(), valField.getProgramPoint(), new ProgramPointScopeIdentifier(valField.getProgramPoint()))
               val idToReplace: Identifier = new AccessPathIdentifier(pathIdentifier.path :+ valField.getName(), valField.getType(), valField.getProgramPoint())
               resultState = resultState.rename(List(idToReplace), List(newEdgeLocId))
               renamendIdsToRemove = renamendIdsToRemove + idToReplace
-//              pathStateReplacement.value += (Set(idToReplace) -> Set(idToReplace, newEdgeLocId))
             }
             if (!v.vertex.isInstanceOf[NullVertex]) {
               // Only if the assigned vertex is not null, add target edge local information
@@ -666,35 +623,45 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                 val idToAssign: Identifier = new ValueHeapIdentifier(v.vertex.asInstanceOf[HeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
                 resultState = resultState.createVariable(newEdgeLocId, newEdgeLocId.getType())
                 resultState = resultState.assign(idToAssign, newEdgeLocId)
-//                pathStateReplacement.value += (Set(idToAssign) -> Set(idToAssign, newEdgeLocId))
               }
             }
-//            resultState = resultState.merge(pathStateReplacement)
-//            val removingReplacement = new Replacement()
-//            removingReplacement.value += (pathAddedIds.asInstanceOf[Set[Identifier]] -> Set.empty[Identifier])
-//            resultState = resultState.merge(removingReplacement)
             val renamedIdsAsStrings = renamendIdsToRemove.map(_.getName())
             for (id <- pathAddedIds.filter(pId => !renamedIdsAsStrings.contains(pId.getName()))) {
               resultState = resultState.removeVariable(id)
             }
-            resultingAH = resultingAH.addEdges(Set(new EdgeWithState[S](lastPathVertex, resultState, Some(leftAccPath.path.last), v.vertex)))
+            edgesToAdd = edgesToAdd + new EdgeWithState[S](lastPathVertex, resultState, Some(leftAccPath.path.last), v.vertex)
           }
-          val (prunedResAH, prundeIds) = resultingAH.prune()
-          if (prunedResAH.isBottom())
-            return this.bottom()
-          if (!prundeIds.isEmpty)
-            return new ValueDrivenHeapState[S](prunedResAH, Utilities.removeVariablesFromState[S](generalValState,prundeIds), new ExpressionSet(right.getType()).add(leftAccPath), false, false)
-          else
-            return new ValueDrivenHeapState[S](resultingAH, generalValState, new ExpressionSet(right.getType()).add(leftAccPath), false, isBottom)
         }
         case c : Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
-          val (newAH, nullVertex) = resultingAH.addNewVertex(VertexConstants.NULL, c.getType())
+          val (newAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType())
           return new ValueDrivenHeapState[S](newAH, generalValState, expr, false, false).assignField(obj, field, new ExpressionSet(c.getType()).add(new VertexExpression(c.getProgramPoint(), c.getType(), nullVertex)))
         }
         case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
       }
-      throw new Exception("Not implemented")
+      // If there is no possible assignment, return bottom
+      if (edgesToAdd.isEmpty)
+        return bottom()
+      // If the assignment is strong, remove edges that are killed by the assignment. Then add edges representing the
+      // assignment. Last, prune the heap.
+      var resultingAH: HeapGraph[S] = abstractHeap
+      val sources : Set[Vertex] = edgesToAdd.map(_.source)
+      if (sources.size == 1 && (sources.head.isInstanceOf[DefiniteHeapVertex] || sources.head.isInstanceOf[LocalVariableVertex])) {
+        // Strong update - removing the edges from the target of the path labeled with the assigned filed
+        val lastPathVertex: Vertex = sources.head
+        val edgesToRemove = resultingAH.edges.filter(e => e.source.equals(lastPathVertex) && e.field.equals(Some(leftAccPath.path.last)))
+        resultingAH = resultingAH.removeEdges(edgesToRemove)
+      }
+      resultingAH = resultingAH.addEdges(edgesToAdd)
+      resultingAH = resultingAH.joinCommonEdges()
+      val (prunedResAH, prunedIds) = resultingAH.prune()
+      if (prunedResAH.isBottom())
+        return this.bottom()
+      // If some nodes were pruned, remove the identifiers corresponding to them from the general state.
+      if (!prunedIds.isEmpty)
+        return new ValueDrivenHeapState[S](prunedResAH, Utilities.removeVariablesFromState[S](generalValState,prunedIds), new ExpressionSet(right.getType()).add(leftAccPath), false, false)
+      else
+        return new ValueDrivenHeapState[S](resultingAH, generalValState, new ExpressionSet(right.getType()).add(leftAccPath), false, isBottom)
     } else {
       assert(rightExp.getType().isNumericalType(), "For now we allow only numerical values")
       if (validLeftPaths.size == 1) {
@@ -831,6 +798,57 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       }
     }
 //    throw new Exception("Method assignField is not implemented")
+  }
+
+  /**
+   * This method computes the edges that correspond to the reference assignment.
+   *
+   * @param field to be assigned to the target nodes of the leftPaths
+   * @param leftPaths sequence of edges that correspond to paths of LHS of the assignment (without the last field)
+   * @param rightPaths sequence of edges that correspond to paths of RHS of the assignment
+   * @return the set of edges that represent the reference assignment
+   *
+   * @author Milos Novacek
+   */
+  private def referencePathAssignmentEdges(field: String, leftPaths : Set[List[EdgeWithState[S]]], rightPaths : Set[List[EdgeWithState[S]]]) : Set[EdgeWithState[S]] = {val rightStateWithVertex : Set[(S, Vertex)] = rightPaths.map(p => (graphPathCondition(p), p.last.target))
+    var edgesToAdd = Set.empty[EdgeWithState[S]]
+    for (lPath <- leftPaths) {
+      var leftCond = graphPathCondition(lPath)
+      if (!leftCond.lessEqual(leftCond.bottom())) {
+        // The condition of the left path is not bottom. (i.e. can be possibly assigned)
+        for(rPath <- rightPaths) {
+          val rightCond = graphPathCondition(rPath)
+          var renameFrom = List.empty[EdgeLocalIdentifier]
+          var renameTo = List.empty[EdgeLocalIdentifier]
+          val idsToRename = rightCond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).asInstanceOf[Set[EdgeLocalIdentifier]]
+          for (elId <- idsToRename) {
+            renameFrom = elId :: renameFrom
+            renameTo = new EdgeLocalIdentifier(List(field), elId.field, elId.getType(), elId.getProgramPoint()) :: renameTo
+          }
+          var newEdgeState = rightCond.rename(renameFrom, renameTo)
+          leftCond = Utilities.createVariablesForState(leftCond, renameTo.toSet[Identifier])
+          newEdgeState = Utilities.createVariablesForState(newEdgeState, renameFrom.toSet[Identifier])
+          newEdgeState = newEdgeState.glb(leftCond, newEdgeState)
+          if (!newEdgeState.lessEqual(rightCond.bottom())){
+            // add edge that represents the assignment
+            edgesToAdd = edgesToAdd + new EdgeWithState[S](lPath.last.target, newEdgeState, Some(field), rPath.last.target)
+          }
+        }
+      }
+    }
+    edgesToAdd
+  }
+
+  /**
+   * Given the set of edges that represent a single reference assignment, the method returns true if the edges represent
+   * a strong assignment, false otherwise.
+   *
+   * @param edges representing a single reference assignemtn
+   * @return true if the edges represent a strong assignment, false otherwise
+   */
+  private def isStrongReferenceAssignment(edges : Set[EdgeWithState[S]]) : Boolean = {
+    val sources : Set[Vertex]  = edges.map(_.source)
+    sources.size == 1 && (sources.head.isInstanceOf[DefiniteHeapVertex] || sources.head.isInstanceOf[LocalVariableVertex])
   }
 
 

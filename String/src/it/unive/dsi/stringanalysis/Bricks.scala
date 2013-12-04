@@ -388,8 +388,7 @@ class Bricks extends SimplifiedSemanticDomain[Bricks] with BoxedDomain[BricksDom
 	      return result;
 	    }
 	    case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, returntyp) =>
-	      if(parameters.size == 1)
-	        parameters.head match {
+	        parameters match {
 	        	case p1 :: Nil => 
 		        	val left = this.eval(thisExpr);
 		        	val right = this.eval(p1);
@@ -402,11 +401,9 @@ class Bricks extends SimplifiedSemanticDomain[Bricks] with BoxedDomain[BricksDom
 	        		//Console.println("Concatenation between " + left + " and " + right + " ... " + normalizedResult );
 		        	return normalizedResult;
 	        	case _ => return new BricksDomain().top();
-	      	}
-	      else return new BricksDomain().top();	
+          }
 	    case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) =>
-	      if(parameters.size!=1) return new BricksDomain().top();
-	      val l : List[Expression] = parameters.head
+	      val l : List[Expression] = parameters
 	      if(l.size != 2) return new BricksDomain().top();
 	      l.apply(0) match {
     	    case Constant(s1, _, _) =>

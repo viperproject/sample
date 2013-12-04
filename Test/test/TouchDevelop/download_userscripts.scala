@@ -1,7 +1,6 @@
 import ch.ethz.inf.pm.td.webapi.URLFetcher._
 import ch.ethz.inf.pm.td.webapi.{ScriptRecord, DowncasedTypeHints}
 import java.io.{File, PrintWriter}
-import net.liftweb.json._
 
 /**
  * Downloads all scripts of a specific user to a local directory.
@@ -32,7 +31,7 @@ if (dir.isDirectory || dir.mkdir()) {
 
     if ( !s.haserrors ) {
 
-      val p = new PrintWriter(new File(dir+"/"+s.id+".td"))
+      val p = new PrintWriter(new File(dir+ "/" +s.id+".td"))
 
       try {
 

@@ -100,7 +100,8 @@ abstract class AAny extends NativeMethodSemantics {
       Skip // TODO: create reference from wall to this?
 
     case "∥" =>
-      Top[S](TString.typ)
+      val List(other) = parameters
+      Return[S]( this0 concat other )
 
     case "to string" =>
       Top[S](TString.typ)
