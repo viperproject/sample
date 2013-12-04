@@ -579,18 +579,31 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     val rightExp = right.getSetOfExpressions.head
     assert(leftExp.isInstanceOf[AccessPathExpression], "The left hand side od the assignment is not an AccessPathExpression")
     val leftAccPath = leftExp.asInstanceOf[AccessPathExpression]
-    val leftPaths: Set[List[EdgeWithState[S]]] = abstractHeap.getPathsToBeAssigned(leftAccPath)
+    val leftPaths: Set[List[EdgeWithState[S]]] = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.last.target.isInstanceOf[HeapVertex])
     if (leftPaths.size == 0)
       return this.bottom()
     // Identifying valid left paths
+    // TODO: validLeftPaths should be computed differently, using graphPathCondition
     var validLeftPaths =  Set.empty[(List[EdgeWithState[S]], S, AccessPathExpression, Set[AccessPathIdentifier])]
     for (lPath <- leftPaths) {
       val (pathState, pathIdentifier, pathAddedIds, accPathExpEdgeMap) = evaluateGraphPath(lPath, leftAccPath.pp)
       if (!pathState.lessEqual(pathState.bottom()))
         validLeftPaths = validLeftPaths + new Tuple4(lPath, pathState, pathIdentifier, pathAddedIds)
     }
-    if (validLeftPaths.isEmpty)
-      return bottom() // No valid left paths
+//    // We compute the set of vertices that are possibly assigned with the states under which they can be assigned
+//    var leftStateWithVertexSet = Set.empty[(S, Vertex)]
+//    for (lPath <- leftPaths) {
+//      val lastLeftVertex = lPath.last.target
+//      assert(!lastLeftVertex.isInstanceOf[LocalVariableVertex], "This should not happen, assignVariable should be called.")
+//      if (lastLeftVertex.isInstanceOf[HeapVertex]) {
+//        val leftState = graphPathCondition(lPath)
+//        if (!leftState.lessEqual(leftState.bottom())) {
+//          leftStateWithVertexSet = leftStateWithVertexSet + ((leftState, lastLeftVertex))
+//        }
+//      }
+//    }
+//    if (leftStateWithVertexSet.isEmpty)
+//      return bottom() // No valid left paths
     if (rightExp.getType().isObject()) {
       var resultingAH: HeapGraph[S] = abstractHeap
       //TODO: The removal prior to assignment is unsound. Fix!!!
@@ -602,7 +615,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       }
       rightExp match {
         case x: VariableIdentifier => {
-          // TODO : Currently under re-implementation!!!
+          // TODO: Update according to leftStateWithVertexSet (do not recompute)
           val rightPaths = abstractHeap.getPaths(List(x.getName()))
           // Conditions under which rightExpression refers to a Vertex
           val rightStateWithVertex : Set[(S, Vertex)] = rightPaths.map(p => (graphPathCondition(p), p.last.target))
@@ -626,7 +639,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                 newEdgeState = Utilities.createVariablesForState(newEdgeState, renameFrom.toSet[Identifier])
                 newEdgeState = newEdgeState.glb(leftCond, newEdgeState)
                 if (!newEdgeState.lessEqual(c.bottom())){
-                  // edge that represents the assignment
+                  // add edge that represents the assignment
                   edgesToAdd = edgesToAdd + new EdgeWithState[S](lPath.last.target, newEdgeState, Some(fieldToAssigne), v)
                 }
               }
@@ -639,6 +652,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 //          throw new Exception("Not implemented yet for variables.")
         }
         case ap: AccessPathExpression => {
+          // TODO: Under refactoring
+
           throw new Exception("Not implemented yet for access path expressions.")
         }
         case v: VertexExpression => {
@@ -831,6 +846,45 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       }
     }
 //    throw new Exception("Method assignField is not implemented")
+  }
+
+  /**
+   * This method computes the edges that correspond to the reference assignment.
+   *
+   * @param field to be assigned to the target nodes of the leftPaths
+   * @param leftPaths sequence of edges that correspond to paths of LHS of the assignment (without the last field)
+   * @param rightPaths sequence of edges that correspond to paths of RHS of the assignment
+   * @return the set of edges that represent the reference assignment
+   *
+   * @author Milos Novacek
+   */
+  private def referencePathAssignmentEdges(field: String, leftPaths : Set[List[EdgeWithState[S]]], rightPaths : Set[List[EdgeWithState[S]]]) : Set[EdgeWithState[S]]= {val rightStateWithVertex : Set[(S, Vertex)] = rightPaths.map(p => (graphPathCondition(p), p.last.target))
+    var edgesToAdd = Set.empty[EdgeWithState[S]]
+    for (lPath <- leftPaths) {
+      var leftCond = graphPathCondition(lPath)
+      if (!leftCond.lessEqual(leftCond.bottom())) {
+        // The condition of the left path is not bottom. (i.e. can be possibly assigned)
+        for(rPath <- rightPaths) {
+          val rightCond = graphPathCondition(rPath)
+          var renameFrom = List.empty[EdgeLocalIdentifier]
+          var renameTo = List.empty[EdgeLocalIdentifier]
+          val idsToRename = rightCond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).asInstanceOf[Set[EdgeLocalIdentifier]]
+          for (elId <- idsToRename) {
+            renameFrom = elId :: renameFrom
+            renameTo = new EdgeLocalIdentifier(List(field), elId.field, elId.getType(), elId.getProgramPoint()) :: renameTo
+          }
+          var newEdgeState = rightCond.rename(renameFrom, renameTo)
+          leftCond = Utilities.createVariablesForState(leftCond, renameTo.toSet[Identifier])
+          newEdgeState = Utilities.createVariablesForState(newEdgeState, renameFrom.toSet[Identifier])
+          newEdgeState = newEdgeState.glb(leftCond, newEdgeState)
+          if (!newEdgeState.lessEqual(rightCond.bottom())){
+            // add edge that represents the assignment
+            edgesToAdd = edgesToAdd + new EdgeWithState[S](lPath.last.target, newEdgeState, Some(field), rPath.last.target)
+          }
+        }
+      }
+    }
+    edgesToAdd
   }
 
 
