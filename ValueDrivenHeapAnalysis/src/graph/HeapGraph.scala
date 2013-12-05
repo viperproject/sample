@@ -844,12 +844,12 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
         }
       }
     }
-    result
+    result.toMap[HeapVertex, Set[LocalVariableVertex]]
   }
 
   def mergePointedNodes(): (HeapGraph[S], Replacement) = {
     //checkConsistancy(this)
-    val skuska = reachableFromLocalVariable()
+    val reachabilityMap = reachableFromLocalVariable()
     var resultGraph = new HeapGraph[S](vertices.filter(!_.isInstanceOf[HeapVertex]), Set.empty[EdgeWithState[S]])
     var pointedByMap = Map.empty[Set[Vertex], Set[Vertex]]
     for (v <- vertices.filter(_.isInstanceOf[HeapVertex])) {

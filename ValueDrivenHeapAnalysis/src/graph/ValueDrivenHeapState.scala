@@ -91,6 +91,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   @return The abstract state after the creation of the argument
     */
   def createVariableForArgument(x: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
+    // TODO: Fix this, should be sound, not use createObject.
     if(this.isBottom) return this
     //**println("createVariableForArgument(" + x.toString + ", " + typ.toString + ") is called")
 //    if (x.getSetOfExpressions.size < 1)
@@ -1569,18 +1570,36 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   def widening(left: ValueDrivenHeapState[S], right: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
     //**println("WIDENING IS CALLED")
     val (mergedLeft, replacementLeft) = left.abstractHeap.mergePointedNodes()
-    val (mergedRight, replacementRight) = right.abstractHeap.mergePointedNodes()
+    val newRight = lub(left, right)
+    val (mergedRight, replacementRight) = newRight.abstractHeap.mergePointedNodes()
     if (!mergedLeft.vertices.equals(mergedRight.vertices)) {
-//      val newLeft = new ValueDrivenHeapState[S](mergedLeft, left.generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
-//      val newRight = new ValueDrivenHeapState[S](mergedRight, right.generalValState.merge(replacementRight), new ExpressionSet(SystemParameters.getType().top), false, false)
-      val result = lub(left, right)
+      //      val newLeft = new ValueDrivenHeapState[S](mergedLeft, left.generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
+      //      val newRight = new ValueDrivenHeapState[S](mergedRight, right.generalValState.merge(replacementRight), new ExpressionSet(SystemParameters.getType().top), false, false)
+      val result = lub(left, newRight)
       return result
     }
-    val newGeneralValState = generalValState.widening(left.generalValState.merge(replacementLeft), right.generalValState.merge(replacementRight))
+    val newGeneralValState = generalValState.widening(left.generalValState.merge(replacementLeft), newRight.generalValState.merge(replacementRight))
     val result = new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, mergedRight), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
     return result
-//    return left.lub(left, right)
-//    throw new Exception("Method widening is not implemented")
+    //    return left.lub(left, right)
+    //    throw new Exception("Method widening is not implemented")
+
+    /**
+     * ORIGINAL CODE
+     */
+//    val (mergedLeft, replacementLeft) = left.abstractHeap.mergePointedNodes()
+//    val (mergedRight, replacementRight) = right.abstractHeap.mergePointedNodes()
+//    if (!mergedLeft.vertices.equals(mergedRight.vertices)) {
+////      val newLeft = new ValueDrivenHeapState[S](mergedLeft, left.generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
+////      val newRight = new ValueDrivenHeapState[S](mergedRight, right.generalValState.merge(replacementRight), new ExpressionSet(SystemParameters.getType().top), false, false)
+//      val result = lub(left, right)
+//      return result
+//    }
+//    val newGeneralValState = generalValState.widening(left.generalValState.merge(replacementLeft), right.generalValState.merge(replacementRight))
+//    val result = new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, mergedRight), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
+//    return result
+////    return left.lub(left, right)
+////    throw new Exception("Method widening is not implemented")
   }
 
   /**
