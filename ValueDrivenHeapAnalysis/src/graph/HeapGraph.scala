@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import scala.collection.immutable.{Queue, Set, TreeSet}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
+import scala.collection.mutable
 
 /**
  * Created with IntelliJ IDEA.
@@ -820,7 +821,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   }
 
   /**
-   * BFS algorithm for computing from which local variables nodes are reachable.
+   * BFS algorithm for computing from which local variables heap nodes are reachable.
    *
    * @return the map that maps HeapVertices to set of LocalVariableVertices from which the HeapVertex is reachable
    *
@@ -847,9 +848,30 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     result.toMap[HeapVertex, Set[LocalVariableVertex]]
   }
 
+  private def partition() : Map[(Set[LocalVariableVertex], Set[LocalVariableVertex]), Set[HeapVertex]] = {
+    // TODO: Extend to access paths of any kind, not just local variables
+    val reachabilityMap = reachableFromLocalVariable()
+    val partitions = mutable.Map.empty[(Set[LocalVariableVertex], Set[LocalVariableVertex]), Set[HeapVertex]]
+    val pointedByMap = mutable.Map.empty[HeapVertex, (Set[LocalVariableVertex], Set[LocalVariableVertex])]
+    for (v <- reachabilityMap.keySet) {
+      val pointingVars = edges.filter(e => e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex]).map(_.source).asInstanceOf[Set[LocalVariableVertex]]
+      pointedByMap.update(v,(pointingVars, reachabilityMap.apply(v)))
+    }
+    for (valCond <- pointedByMap.values.toSet[(Set[LocalVariableVertex], Set[LocalVariableVertex])]) {
+      val partition = pointedByMap.keySet.filter(pointedByMap.apply(_).equals(valCond))
+      partitions.update(valCond, partition.toSet[HeapVertex])
+    }
+    partitions.toMap[(Set[LocalVariableVertex], Set[LocalVariableVertex]), Set[HeapVertex]]
+  }
+
   def mergePointedNodes(): (HeapGraph[S], Replacement) = {
     //checkConsistancy(this)
-    val reachabilityMap = reachableFromLocalVariable()
+    val partitions = partition()
+
+
+    /**
+     * Original Code
+     */
     var resultGraph = new HeapGraph[S](vertices.filter(!_.isInstanceOf[HeapVertex]), Set.empty[EdgeWithState[S]])
     var pointedByMap = Map.empty[Set[Vertex], Set[Vertex]]
     for (v <- vertices.filter(_.isInstanceOf[HeapVertex])) {

@@ -1570,16 +1570,20 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   def widening(left: ValueDrivenHeapState[S], right: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
     //**println("WIDENING IS CALLED")
     val (mergedLeft, replacementLeft) = left.abstractHeap.mergePointedNodes()
-    val newRight = lub(left, right)
-    val (mergedRight, replacementRight) = newRight.abstractHeap.mergePointedNodes()
-    if (!mergedLeft.vertices.equals(mergedRight.vertices)) {
+    val (mergedRight, replacementRight) = right.abstractHeap.mergePointedNodes()
+    val rightGenValState = right.generalValState.merge(replacementRight)
+    var newRight = new ValueDrivenHeapState[S](mergedRight, rightGenValState, new ExpressionSet(SystemParameters.getType().top), false, false)
+    val newLeft = new ValueDrivenHeapState[S](mergedLeft, left.generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
+    //val (mergedRight, replacementRight) = newRight.abstractHeap.mergePointedNodes()
+    newRight = lub(newLeft, newRight)
+    if (!mergedLeft.vertices.equals(newRight.abstractHeap.vertices)) {
       //      val newLeft = new ValueDrivenHeapState[S](mergedLeft, left.generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
       //      val newRight = new ValueDrivenHeapState[S](mergedRight, right.generalValState.merge(replacementRight), new ExpressionSet(SystemParameters.getType().top), false, false)
-      val result = lub(left, newRight)
-      return result
+      //val result = lub(left, newRight)
+      return newRight
     }
-    val newGeneralValState = generalValState.widening(left.generalValState.merge(replacementLeft), newRight.generalValState.merge(replacementRight))
-    val result = new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, mergedRight), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
+    val newGeneralValState = generalValState.widening(newLeft.generalValState, newRight.generalValState.merge(replacementRight))
+    val result = new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, newRight.abstractHeap), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
     return result
     //    return left.lub(left, right)
     //    throw new Exception("Method widening is not implemented")
