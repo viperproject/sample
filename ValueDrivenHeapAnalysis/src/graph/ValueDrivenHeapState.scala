@@ -255,11 +255,10 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               }
               case c : Constant => {
                 assert(c.toString() == "null", "The only object constant is null.")
-                var (resultingAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType())
                 val varVertex = abstractHeap.vertices.filter(_.name.equals(variable.getName())).head
-                resultingAH = resultingAH.removeEdges(resultingAH.edges.filter(_.source.equals(varVertex)))
-                val (tempAH, idsToRemove) = resultingAH.prune()
+                val (tempAH, idsToRemove) = abstractHeap.removeEdges(abstractHeap.edges.filter(_.source.equals(varVertex))).prune()
                 val newGenValState = Utilities.removeVariablesFromState(generalValState, idsToRemove)
+                var (resultingAH, nullVertex) = tempAH.addNewVertex(VertexConstants.NULL, c.getType())
                 val addedEdge = new EdgeWithState[S](varVertex, newGenValState, None, nullVertex)
                 resultingAH = tempAH.addEdges(Set(addedEdge))
                 result = new ValueDrivenHeapState[S](resultingAH, newGenValState, new ExpressionSet(variable.getType()).add(variable), false, false)
