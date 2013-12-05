@@ -260,7 +260,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                 val newGenValState = Utilities.removeVariablesFromState(generalValState, idsToRemove)
                 var (resultingAH, nullVertex) = tempAH.addNewVertex(VertexConstants.NULL, c.getType())
                 val addedEdge = new EdgeWithState[S](varVertex, newGenValState, None, nullVertex)
-                resultingAH = tempAH.addEdges(Set(addedEdge))
+                resultingAH = resultingAH.addEdges(Set(addedEdge))
                 result = new ValueDrivenHeapState[S](resultingAH, newGenValState, new ExpressionSet(variable.getType()).add(variable), false, false)
               }
               case _ => throw new Exception("Not implemented yet.")
