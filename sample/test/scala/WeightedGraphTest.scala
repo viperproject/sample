@@ -1,8 +1,7 @@
-package ch.ethz.inf.pm.sample.test.unittests
+package ch.ethz.inf.pm.sample.oorepresentation
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
-import ch.ethz.inf.pm.sample.oorepresentation.WeightedGraph
 
 class WeightedGraphTest extends FunSuite with ShouldMatchers {
 
