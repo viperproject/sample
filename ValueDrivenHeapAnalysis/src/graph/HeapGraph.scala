@@ -866,7 +866,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
 
   def mergePointedNodes(): (HeapGraph[S], Replacement) = {
     //checkConsistancy(this)
-    val partitions = partition()
+    //val partitions = partition()
 
 
     /**

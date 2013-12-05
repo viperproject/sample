@@ -91,7 +91,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   @return The abstract state after the creation of the argument
     */
   def createVariableForArgument(x: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
-    // TODO: Fix this, should be sound, not use createObject.
+
     if(this.isBottom) return this
     //**println("createVariableForArgument(" + x.toString + ", " + typ.toString + ") is called")
 //    if (x.getSetOfExpressions.size < 1)
@@ -827,6 +827,12 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             renameTo = new EdgeLocalIdentifier(List(field), elId.field, elId.getType(), elId.getProgramPoint()) :: renameTo
           }
           var newEdgeState = rightCond.rename(renameFrom, renameTo)
+          if (renameTo.isEmpty) {
+            // This is the case when RHS is null. Hence, we need to create source edge-local identifiers in the right
+            // state in order to preserve the once from LHS.
+            val sourceIdsOfLHS = leftCond.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty)
+            newEdgeState = Utilities.createVariablesForState(newEdgeState, sourceIdsOfLHS.toSet[Identifier])
+          }
           leftCond = Utilities.createVariablesForState(leftCond, renameTo.toSet[Identifier])
           newEdgeState = Utilities.createVariablesForState(newEdgeState, renameFrom.toSet[Identifier])
           newEdgeState = newEdgeState.glb(leftCond, newEdgeState)
