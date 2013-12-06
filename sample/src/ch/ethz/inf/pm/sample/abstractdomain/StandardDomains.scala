@@ -18,7 +18,6 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @since 0.1
  */
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] extends Lattice[T] {
-  override def factory(): T;
 
   var value: Map[K, V] = Map.empty[K, V]
   var isBottom: Boolean = false;
