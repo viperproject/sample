@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import scala.collection.immutable.{Set, TreeSet}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
+import scala.collection.mutable
 
 /**
  * Created with IntelliJ IDEA.
@@ -771,9 +772,9 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return (result, idsToRemove.asInstanceOf[Set[Identifier]])
   }
 
-  private def joinCommonEdges(graph: HeapGraph[S]): HeapGraph[S] = {
+  def joinCommonEdges() : HeapGraph[S] = {
     var resultEdges = Set.empty[EdgeWithState[S]]
-    for (edge <- graph.edges) {
+    for (edge <- this.edges) {
       val weakEqualsSet = resultEdges.filter(_.weakEquals(edge))
       assert(weakEqualsSet.size <= 1)
       if (weakEqualsSet.isEmpty)
@@ -781,7 +782,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       else
         resultEdges = (resultEdges - weakEqualsSet.head) + new EdgeWithState[S](edge.source, edge.state.lub(weakEqualsSet.head.state, edge.state), edge.field, edge.target)
     }
-    return new HeapGraph[S](graph.vertices, resultEdges)
+    return new HeapGraph[S](this.vertices, resultEdges)
   }
 
   private def meetCommonEdges(graph: HeapGraph[S]): HeapGraph[S] = {
@@ -814,13 +815,63 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
 //    val (minCSBefore, renameFrom, renameTo) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(left, right))
 //    val (minCSBefore, nameMap) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(right))
     val (resultingGraph, renameFrom, renameTo) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(right)._1)
-    val resultAH = joinCommonEdges(resultingGraph)
+    val resultAH = resultingGraph.joinCommonEdges()
     checkConsistancy(resultAH)
     return (resultAH, renameFrom, renameTo)
   }
 
+  /**
+   * BFS algorithm for computing from which local variables heap nodes are reachable.
+   *
+   * @return the map that maps HeapVertices to set of LocalVariableVertices from which the HeapVertex is reachable
+   *
+   * @author Milos Novacek
+   */
+  private def reachableFromLocalVariable() : Map[HeapVertex, Set[LocalVariableVertex]] = {
+    val queue = scala.collection.mutable.Queue.empty[HeapVertex]
+    var result = scala.collection.mutable.Map.empty[HeapVertex, Set[LocalVariableVertex]]
+    for (v <- vertices.filter(_.isInstanceOf[HeapVertex]).asInstanceOf[Set[HeapVertex]]) {
+      val initSet : Set[LocalVariableVertex] = edges.filter(e => e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex]).map(_.source).asInstanceOf[Set[LocalVariableVertex]]
+      result += (v -> initSet)
+      if (!initSet.isEmpty)
+        queue.enqueue(v)
+    }
+    while (!queue.isEmpty) {
+      val current = queue.dequeue()
+      for (succ <- edges.filter(e => e.source.equals(current) && e.target.isInstanceOf[HeapVertex]).map(_.target).asInstanceOf[Set[HeapVertex]]) {
+        if (!(result.apply(current) subsetOf result.apply(succ))) {
+          queue.enqueue(succ)
+          result.update(succ, result.apply(current) union result.apply(succ))
+        }
+      }
+    }
+    result.toMap[HeapVertex, Set[LocalVariableVertex]]
+  }
+
+  private def partition() : Map[(Set[LocalVariableVertex], Set[LocalVariableVertex]), Set[HeapVertex]] = {
+    // TODO: Extend to access paths of any kind, not just local variables
+    val reachabilityMap = reachableFromLocalVariable()
+    val partitions = mutable.Map.empty[(Set[LocalVariableVertex], Set[LocalVariableVertex]), Set[HeapVertex]]
+    val pointedByMap = mutable.Map.empty[HeapVertex, (Set[LocalVariableVertex], Set[LocalVariableVertex])]
+    for (v <- reachabilityMap.keySet) {
+      val pointingVars = edges.filter(e => e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex]).map(_.source).asInstanceOf[Set[LocalVariableVertex]]
+      pointedByMap.update(v,(pointingVars, reachabilityMap.apply(v)))
+    }
+    for (valCond <- pointedByMap.values.toSet[(Set[LocalVariableVertex], Set[LocalVariableVertex])]) {
+      val partition = pointedByMap.keySet.filter(pointedByMap.apply(_).equals(valCond))
+      partitions.update(valCond, partition.toSet[HeapVertex])
+    }
+    partitions.toMap[(Set[LocalVariableVertex], Set[LocalVariableVertex]), Set[HeapVertex]]
+  }
+
   def mergePointedNodes(): (HeapGraph[S], Replacement) = {
-    checkConsistancy(this)
+    //checkConsistancy(this)
+    //val partitions = partition()
+
+
+    /**
+     * Original Code
+     */
     var resultGraph = new HeapGraph[S](vertices.filter(!_.isInstanceOf[HeapVertex]), Set.empty[EdgeWithState[S]])
     var pointedByMap = Map.empty[Set[Vertex], Set[Vertex]]
     for (v <- vertices.filter(_.isInstanceOf[HeapVertex])) {
@@ -879,7 +930,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
     var result = resultGraph
     checkConsistancy(resultGraph)
-    result = joinCommonEdges(result)
+    result = result.joinCommonEdges()
     return (result, replacement)
   }
 
@@ -916,6 +967,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
     return true
   }
+
 
 //  def materializeAccessPath(a)
 //

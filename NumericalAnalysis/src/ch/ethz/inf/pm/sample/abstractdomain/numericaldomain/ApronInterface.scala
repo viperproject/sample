@@ -136,10 +136,10 @@ class ApronInterface(val state: Option[Abstract1],
   override def rename(from: List[Identifier], to: List[Identifier]): ApronInterface = {
     assert(from.size == to.size)
     assert(from.distinct.equals(from) && to.distinct.equals(to))
+    if (from.isEmpty || this.isBottom)
+      return this
 //    if (!(from.toSet[Identifier] subsetOf this.getIds()))
 //      throw new Exception("Identifiers that should be renamed are not present.")
-    if (this.isBottom)
-      return this
     state match {
       case None => return this
       case Some(s) => {
