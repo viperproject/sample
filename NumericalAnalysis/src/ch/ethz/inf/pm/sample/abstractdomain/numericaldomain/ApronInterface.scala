@@ -565,16 +565,17 @@ class ApronInterface(val state: Option[Abstract1],
 
   override def glb(left: ApronInterface, right: ApronInterface): ApronInterface = {
 
+    val newEnv: Set[Identifier] =  left.getIds() intersect right.getIds()
     if (left == right)
       return left
-    if (left.isBottom)
+    if (left.isPureBottom)
       return left
-    if (right.isTop)
-      return new ApronInterface(left.state, domain, env = left.getIds().intersect(right.getIds()))
-    if (right.isBottom)
+    if (right.isPureBottom)
       return right
+    if (right.isTop)
+      return left.removeVariables((left.getIds -- right.getIds).map(_.getName).toArray)
     if (left.isTop)
-      return new ApronInterface(right.state, domain, env = left.getIds().intersect(right.getIds()))
+      return right.removeVariables((right.getIds -- left.getIds).map(_.getName).toArray)
 
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
@@ -585,10 +586,9 @@ class ApronInterface(val state: Option[Abstract1],
       val uncommonVariables: Array[String] = (((leftVars union rightVars) intersect result.getEnvironment.getVars.toSet[String]) diff (leftVars intersect rightVars)).toArray[String]
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
       result = result.changeEnvironmentCopy(domain, result.getEnvironment.remove(uncommonVariables), false)
-      val newEnv: Set[Identifier] =  left.getIds() intersect right.getIds()
       new ApronInterface(Some(result), domain, env = newEnv)
     } else {
-      new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain, env = left.getIds().intersect(right.getIds()))
+      new ApronInterface(Some(leftState.meetCopy(domain, rightState)), domain, env = newEnv)
     }
   }
 
