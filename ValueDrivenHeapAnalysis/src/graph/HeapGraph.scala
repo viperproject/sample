@@ -464,7 +464,10 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       resultingVertices = resultingVertices ++ addEdges.map(e => e.target)
       resultingEdgeSet = resultingEdgeSet ++ addEdges
     }
-    if (resultingEdgeSet.size == edges.size)
+    // It may be necessary to prune unreachable vertices even though the set
+    // of edges stays the same. This can happen if edges were removed before
+    // `prune` is called.
+    if (resultingEdgeSet.size == edges.size && resultingVertices.size == vertices.size)
       return (this, Set.empty[Identifier])
     val verticesToRemove = (vertices -- resultingVertices).filter(_.isInstanceOf[HeapVertex])
     var idsToRemove = Set.empty[ValueHeapIdentifier]
