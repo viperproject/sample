@@ -5,63 +5,67 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 /**
  * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
  *
- * @param <T> The current type of the Lattice
+ * @tparam T The current type of the Lattice
  * @author Pietro Ferrara
  * @since 0.1
  */
 trait Lattice[T <: Lattice[T]] {
 
   /**
-  Returns a new instance of the lattice
-   @return A new instance of the current object
-    */
+   * Returns a new instance of the lattice
+   *
+   * @return A new instance of the current object
+   */
   def factory() : T
 
   /**
-  Returns the top value of the lattice
-   @return The top value, that is, a value x that is greater or equal than any other value
-    */
+   * Returns the top value of the lattice
+   *
+   * @return The top value, that is, a value x that is greater or equal than any other value
+   */
   def top() : T
 
   /**
-  Returns the bottom value of the lattice
-   @return The bottom value, that is, a value x that is less or equal than any other value
-    */
+   * Returns the bottom value of the lattice
+   *
+   * @return The bottom value, that is, a value x that is less or equal than any other value
+   */
   def bottom() : T
 
   /**
-  Computes the upper bound of two elements
-
-   @param left One of the two values
-  @param right The other value
-  @return The least upper bound, that is, an element that is greater or equal than the two arguments
-    */
+   * Computes the upper bound of two elements
+   *
+   * @param left One of the two values
+   * @param right The other value
+   * @return The least upper bound, that is, an element that is greater or equal than the two arguments
+   */
   def lub(left : T, right : T) : T
 
   /**
-  Computes the greatest lower bound of two elements
-
-   @param left One of the two values
-  @param right The other value
-  @return The greatest upper bound, that is, an element that is less or equal than the two arguments, and greater or equal than any other lower bound of the two arguments
+   * Computes the greatest lower bound of two elements
+   *
+   * @param left One of the two values
+   * @param right The other value
+   * @return The greatest upper bound, that is, an element that is less or equal than the two arguments,
+   *         and greater or equal than any other lower bound of the two arguments
     */
   def glb(left : T, right : T) : T
 
   /**
-  Computes widening of two elements
-
-   @param left The previous value
-  @param right The new value
-  @return The widening of <code>left</code> and <code>right</code>
+   * Computes widening of two elements
+   *
+   * @param left The previous value
+   * @param right The new value
+   * @return The widening of <code>left</code> and <code>right</code>
     */
   def widening(left : T, right : T) : T
 
   /**
-  Returns true iff <code>this</code> is less or equal than <code>r</code>
-
-   @param r The value to compare
-  @return true iff <code>this</code> is less or equal than <code>r</code>
-    */
+   * Returns true iff <code>this</code> is less or equal than <code>r</code>
+   *
+   * @param r The value to compare
+   * @return true iff <code>this</code> is less or equal than <code>r</code>
+   */
   def lessEqual(r : T) : Boolean
 }
 

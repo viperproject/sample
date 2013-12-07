@@ -128,6 +128,7 @@ class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier],
  * @author Pietro Ferrara
  * @version 0.1
  */
+// TODO: type parameters are in the wrong order - not consistent
 trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   extends Analysis
   with Lattice[T]
@@ -140,7 +141,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @param key variable
    * @return  Heap Identifiers to which the variable points to
    */
-  def get(key : VariableIdentifier): HeapIdSetDomain[I]
+  def get(key: VariableIdentifier): HeapIdSetDomain[I]
 
   /**
    * Gets the Heap Identifiers to which the provided Variable points to
@@ -149,184 +150,180 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @param key Heap Identifier
    * @return  Heap Identifiers to which the Heap Identifier points to
    */
-  def get(key : I): HeapIdSetDomain[I]
+  def get(key: I): HeapIdSetDomain[I]
 
   /**
-  This method creates an object of a given type
-
-   @param typ The type of the object to be created
-  @param pp The point of the program that creates the reference
-  @return the identifier of the created object and the state of the heap after that
-    */
-  def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
-
-  /**
-  This method creates an array
-
-   @param length the length of the array to be created
-  @param typ its type
-  @param pp the program point
-  @param state the state of the semantic domain at that point.
-  @return the heap id of the array, the state after this action, and the replacement caused by the creation of the array
-    */
-  def createArray[S <: SemanticDomain[S]](length : Expression, typ : Type, pp : ProgramPoint, state : S) : (HeapIdSetDomain[I], T, Replacement);
+   * This method creates an object of a given type
+   *
+   * @param typ The type of the object to be created
+   * @param pp The point of the program that creates the reference
+   * @return the identifier of the created object and the state of the heap after that
+   */
+  def createObject(typ: Type, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
-  This method returns an id of the length of a given array
-
-   @param arrayId the id of the array we want to know the length
-  @return the heap id of the length of the array, the state after this action, and a replacement
-    */
-  def getArrayLength(arrayId : Assignable) : (HeapIdSetDomain[I], T, Replacement);
-
-  /**
-  This method returns the identifier of the field of an object
-
-   @param objectIdentifier the identifier of the object to be accessed
-  @param name the name of the field
-  @param typ the type of the accessed field
-  @param pp the program point that accesses the field
-  @return the identifier of accessed field and the state of the heap after that
-    */
-  def getFieldIdentifier(objectIdentifier : Assignable, name : String, typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], T, Replacement);
+   * This method creates an array
+   *
+   * @param length the length of the array to be created
+   * @param typ its type
+   * @param pp the program point
+   * @param state the state of the semantic domain at that point.
+   * @return the heap id of the array, the state after this action, and the replacement caused by the creation of the array
+   */
+  def createArray[S <: SemanticDomain[S]](length: Expression, typ: Type, pp: ProgramPoint, state: S): (HeapIdSetDomain[I], T, Replacement)
 
   /**
-  This method is used to signal that we have ended to assign something. For instance,
-   in TVLA we could create some temporary nodes when assigning. This method signals to
-   TVLA to drop all these temporary nodes.
-
-   @return the state of the heap after the action and a replacement
-    */
-  def endOfAssignment() : (T, Replacement);
-
-  /**
-  This method returns the identifier of the cell of an array
-
-   @param arrayIdentifier the identifier of the array to be accessed
-  @param index the index used to access the array
-  @param state the state of the semantic domain at that point. This could be useful to precisely
-   analyze inside which bounds of the array the access is
-  @param typ the type of the accessed cell
-  @return the identifier of accessed cell, the state of the heap after that (since we could create new
-   abstract ids when accessing the array in order to be more precise), and the eventual replacements (e.g.,
-   if the heap analyzed has summarize or splitted some cells)
-    */
-  def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier : Assignable, index : Expression, state : S, typ : Type) : (HeapIdSetDomain[I], T, Replacement);
+   * This method returns an id of the length of a given array
+   *
+   * @param arrayId the id of the array we want to know the length
+   * @return the heap id of the length of the array, the state after this action, and a replacement
+   */
+  def getArrayLength(arrayId: Assignable): (HeapIdSetDomain[I], T, Replacement)
 
   /**
-  This method sets to top a given variable
-
-   @param variable the variable to be set to top
-  @return the state after this action
-    */
-  def setToTop(variable : Assignable) : (T, Replacement);
-
-  /**
-  This method assigns a given variable to the given expression
-
-   @param variable the variable to be assigned
-  @param expr the expression to be assigned
-  @param state the state of the semantic domain at that point
-  @return the state after this action and the eventual replacements (e.g.,
-   if the heap analyzed has summarize or splitted some cells)
-    */
-  def assign[S <: SemanticDomain[S]](variable : Assignable, expr : Expression, state : S) : (T, Replacement);
+   * This method returns the identifier of the field of an object
+   *
+   * @param objectIdentifier the identifier of the object to be accessed
+   * @param name the name of the field
+   * @param typ the type of the accessed field
+   * @param pp the program point that accesses the field
+   * @return the identifier of accessed field and the state of the heap after that
+   */
+  def getFieldIdentifier(objectIdentifier: Assignable, name: String, typ: Type, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
-  This method assigns a given field of a given objectto the given expression
-
-   @param obj the object whose field has to be assigned
-  @param field the field to be assigned
-  @param expr the expression to be assigned
-  @return the state after this action and the eventual replacements (e.g.,
-   if the heap analyzed has summarize or splitted some cells)
-    */
-  def assignField(obj : Assignable, field : String, expr : Expression) : (T, Replacement);
+   * This method is used to signal that we have ended to assign something. For instance,
+   * in TVLA we could create some temporary nodes when assigning. This method signals to
+   * TVLA to drop all these temporary nodes.
+   * @return the state of the heap after the action and a replacement
+   */
+  def endOfAssignment(): (T, Replacement)
 
   /**
-  This method assigns a given field of a given objectto the given expression
-
-   @param obj the array whose cell has to be assigned
-  @param index the index to be assigned
-  @param expr the expression to be assigned
-  @param state the state of the semantic domain (useful to refine eventually the splitting of the array)
-  @return the state after this action and the eventual replacements (e.g.,
-   if the heap analyzed has summarize or splitted some cells)
+   * This method returns the identifier of the cell of an array
+   * @param arrayIdentifier the identifier of the array to be accessed
+   * @param index the index used to access the array
+   * @param state the state of the semantic domain at that point. This could be useful to precisely
+   *              analyze inside which bounds of the array the access is
+   * @param typ the type of the accessed cell
+   * @return the identifier of accessed cell, the state of the heap after that (since we could create new
+   *         abstract ids when accessing the array in order to be more precise), and the eventual replacements (e.g.,
+   *         if the heap analyzed has summarize or splitted some cells)
     */
-  def assignArrayCell[S <: SemanticDomain[S]](obj : Assignable, index : Expression, expr : Expression, state : S) : (T, Replacement);
+  def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S, typ: Type): (HeapIdSetDomain[I], T, Replacement)
 
   /**
-  This method set a paramenter (usually the parameter passed to a method) to the given expression
-
-   @param variable the variable to set
-  @param expr the expression to set
-  @return the state after this action
-    */
-  def setArgument(variable : Assignable, expr : Expression) : (T, Replacement);
-
-  /**
-  This method assumes that a given expression holds
-
-   @param expr the expression to be assumed
-  @return the state after this action
-    */
-  def assume(expr : Expression) : (T, Replacement);
+   * This method sets to top a given variable
+   *
+   * @param variable the variable to be set to top
+   * @return the state after this action
+   */
+  def setToTop(variable: Assignable): (T, Replacement)
 
   /**
-  This method creates a variable
-
-   @param variable the variable to be created
-  @param typ its type
-  @return the state after this action
-    */
-  def createVariable(variable : Assignable, typ : Type) : (T, Replacement);
-
-  /**
-  This method creates a variable that is a parameter of the analyzed method
-
-   @param variable the variable to be created
-  @param typ its type
-  @return the state after this action and a map relating identifiers to the path starting with the parameter
-     to access them (this is useful for the heap domain that has to create abstract references to approximate
-     the initial heap structure)
-    */
-  def createVariableForArgument(variable : Assignable, typ : Type, path : List[String]) : (T, Map[Identifier, List[String]], Replacement);
+   * This method assigns a given variable to the given expression
+   *
+   * @param variable the variable to be assigned
+   * @param expr the expression to be assigned
+   * @param state the state of the semantic domain at that point
+   * @return the state after this action and the eventual replacements (e.g.,
+   *         if the heap analyzed has summarize or splitted some cells)
+   */
+  def assign[S <: SemanticDomain[S]](variable: Assignable, expr: Expression, state: S): (T, Replacement)
 
   /**
-  This method removed a variable
-
-   @param variable the variable to be removed
-  @return the state after this action
-    */
-  def removeVariable(variable : Assignable) : (T, Replacement);
-
-  /**
-  This method provides the backward semantics of assignment
-
-   @param variable
-  @param expr
-  @return the state before variable=expr
-    */
-  def backwardAssign(variable : Assignable, expr : Expression) : (T, Replacement);
+   * This method assigns a given field of a given objectto the given expression
+   *
+   * @param obj the object whose field has to be assigned
+   * @param field the field to be assigned
+   * @param expr the expression to be assigned
+   * @return the state after this action and the eventual replacements (e.g.,
+   *         if the heap analyzed has summarize or splitted some cells)
+   */
+  def assignField(obj: Assignable, field: String, expr: Expression): (T, Replacement)
 
   /**
-  This method returns all the ids over whom the HeapDomain is defined
-
-   @return all ids contained in the heap
-    */
-  def getIds() : scala.collection.Set[Identifier]
+   * This method assigns a given field of a given objectto the given expression
+   *
+   * @param obj the array whose cell has to be assigned
+   * @param index the index to be assigned
+   * @param expr the expression to be assigned
+   * @param state the state of the semantic domain (useful to refine eventually the splitting of the array)
+   * @return the state after this action and the eventual replacements (e.g.,
+   *         if the heap analyzed has summarize or splitted some cells)
+   */
+  def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S): (T, Replacement)
 
   /**
-  Creates the heap structure for an empty collection
+   * This method set a paramenter (usually the parameter passed to a method) to the given expression
+   *
+   * @param variable the variable to set
+   * @param expr the expression to set
+   * @return the state after this action
+   */
+  def setArgument(variable: Assignable, expr: Expression): (T, Replacement)
 
-    @param collTyp  The type of the collection
-  @param keyTyp  The type of the collection's keys
-  @param valueTyp The type of the collection's values
-  @param lengthTyp  The type of the collection's length
-  @param pp The program point at which the collection is created
-  @return The Heapidentifier of the newly created collection and the heap with the newly created collection
+  /**
+   * This method assumes that a given expression holds
+   *
+   * @param expr the expression to be assumed
+   * @return the state after this action
+   */
+  def assume(expr: Expression): (T, Replacement)
+
+  /**
+   * This method creates a variable
+   * @param variable the variable to be created
+   * @param typ its type
+   * @return the state after this action
     */
-  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, originalCollectionTyp:Option[Type], keyCollectionTyp:Option[Type], pp:ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
+  def createVariable(variable: Assignable, typ: Type): (T, Replacement)
+
+  /**
+   * This method creates a variable that is a parameter of the analyzed method
+   *
+   * @param variable the variable to be created
+   * @param typ its type
+   * @return the state after this action and a map relating identifiers to the path starting with the parameter
+   *         to access them (this is useful for the heap domain that has to create abstract references to approximate
+   *         the initial heap structure)
+   */
+  def createVariableForArgument(variable: Assignable, typ: Type, path: List[String]): (T, Map[Identifier, List[String]], Replacement)
+
+  /**
+   * This method removed a variable
+   * @param variable the variable to be removed
+   * @return the state after this action
+   */
+  def removeVariable(variable: Assignable): (T, Replacement)
+
+  /**
+   * This method provides the backward semantics of assignment
+   *
+   * @param variable
+   * @param expr
+   * @return the state before variable=expr
+   */
+  def backwardAssign(variable: Assignable, expr: Expression): (T, Replacement)
+
+  /**
+   * This method returns all the ids over whom the HeapDomain is defined
+   *
+   * @return all ids contained in the heap
+   */
+  def getIds(): scala.collection.Set[Identifier]
+
+  /**
+   * Creates the heap structure for an empty collection
+   *
+   * @param collTyp  The type of the collection
+   * @param keyTyp  The type of the collection's keys
+   * @param valueTyp The type of the collection's values
+   * @param lengthTyp  The type of the collection's length
+   * @param pp The program point at which the collection is created
+   * @return The Heapidentifier of the newly created collection and the heap with the newly created collection
+    */
+  def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
    * Returns the collection identifier or if a summary collection for
@@ -335,103 +332,103 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @param collection
    * @return Either the summary collection identifier or the collection identifier
    */
-  def getSummaryCollectionIfExists(collection: Assignable) : HeapIdSetDomain[I]
+  def getSummaryCollectionIfExists(collection: Assignable): HeapIdSetDomain[I]
 
   def insertCollectionTopElement(collection: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
-  Returns the key identifier of a collection's key-value tuple
-
-    @param collectionTuple The tuple's identifier
-    @return The key identifier
-    */
+   * Returns the key identifier of a collection's key-value tuple
+   *
+   * @param collectionTuple The tuple's identifier
+   * @return The key identifier
+   */
   def getCollectionKeyByTuple(collectionTuple: Assignable): Assignable
 
   /**
-  Returns the value identifier of a collection's key-value tuple.
-
-    @param collectionTuple The tuple's identifier
-    @return The value identifier
-    */
+   * Returns the value identifier of a collection's key-value tuple.
+   *
+   * @param collectionTuple The tuple's identifier
+   * @return The value identifier
+   */
   def getCollectionValueByTuple(collectionTuple: Assignable): Assignable
 
   /**
-  Returns the identifier of the collection's key-value tuple given the key identifier.
-
-    @param keyId The identifier of the key
-  @return  The tuple identifier
-    */
-  def getCollectionTupleByKey(keyId: Assignable) : Assignable
-
-  /**
-  Returns the identifier of the collection's key-value tuple given the value identifier.
-
-    @param valueId The identifier of the value
-  @return  The tuple identifier
-    */
-  def getCollectionTupleByValue(valueId: Assignable) : Assignable
+   * Returns the identifier of the collection's key-value tuple given the key identifier.
+   *
+   * @param keyId The identifier of the key
+   * @return  The tuple identifier
+   */
+  def getCollectionTupleByKey(keyId: Assignable): Assignable
 
   /**
-   * Indicates whether a collection reprsents multiple collections or not.
+   * Returns the identifier of the collection's key-value tuple given the value identifier.
+   *
+   * @param valueId The identifier of the value
+   * @return The tuple identifier
+   */
+  def getCollectionTupleByValue(valueId: Assignable): Assignable
+
+  /**
+   * Indicates whether a collection represents multiple collections or not.
    *
    * @param collectionId The collection
    * @return True if collection is a summary node, false otherwise.
    */
-  def isSummaryCollection(collectionId: Assignable) : Boolean
+  def isSummaryCollection(collectionId: Assignable): Boolean
 
   def getOriginalCollection(collection: Assignable): HeapIdSetDomain[I]
 
   def getKeysCollection(collection: Assignable): HeapIdSetDomain[I]
 
   /**
-  Returns all key-value tuple identifiers of a collection approximation.
-
-    @param collectionApprox The collection approximation
-    @return All tuple identifiers of the collection approximation
-    */
+   * Returns all key-value tuple identifiers of a collection approximation.
+   *
+   * @param collectionApprox The collection approximation
+   * @return All tuple identifiers of the collection approximation
+   */
   def getCollectionTuples(collectionApprox: Assignable): HeapIdSetDomain[I]
 
   /**
-  Returns the collection over-approximation identifier for the given collection.
-
-    @param collection The collection
-  @return The collection over-approximation identifier
-    */
+   * Returns the collection over-approximation identifier for the given collection.
+   *
+   * @param collection The collection
+   * @return The collection over-approximation identifier
+   */
   def getCollectionOverApproximation(collection: Assignable): HeapIdSetDomain[I]
 
   /**
-  Returns the collection under-approximation identifier for the given collection.
-
-    @param collection The collection
-  @return The collection under-approximation identifier
-    */
+   * Returns the collection under-approximation identifier for the given collection.
+   *
+   * @param collection The collection
+   * @return The collection under-approximation identifier
+   */
   def getCollectionUnderApproximation(collection: Assignable): HeapIdSetDomain[I]
 
   /**
-  Returns all the key identifiers of a collection. approximation
-
-    @param collectionApprox  The collection approximation
-    @return  All key identifiers of the collection approximation
-    */
+   * Returns all the key identifiers of a collection. approximation
+   *
+   * @param collectionApprox  The collection approximation
+   * @return  All key identifiers of the collection approximation
+   */
   def getCollectionKeys(collectionApprox: Assignable): HeapIdSetDomain[I]
 
   /**
-  Returns all the value identifiers of a collection approximation.
-
-    @param collectionApprox The collection approximation
-    @return  All value identifiers of the collection
-    */
+   * Returns all the value identifiers of a collection approximation.
+   *
+   * @param collectionApprox The collection approximation
+   * @return  All value identifiers of the collection
+   */
   def getCollectionValues(collectionApprox: Assignable): HeapIdSetDomain[I]
 
   /**
-  Adds a key-value tuple to the Heap structure if no
-    other tuple exists in the same collection that has the same program point.
-
-    @param collection  The collection to which the new tuple shall be added.
-  @param pp  The program point that identifies the tuple.
-  @return The tuple identifier of the new tuple, the heap after the insertion, and the replacements that
-            need to be applied to the value domain
-    */
+   * Adds a key-value tuple to the Heap structure if no
+   * other tuple exists in the same collection that has the same program point.
+   *
+   * @param collection  The collection to which the new tuple shall be added.
+   * @param pp  The program point that identifies the tuple.
+   * @return The tuple identifier of the new tuple, the heap after the insertion, and the replacements that
+   *         need to be applied to the value domain
+   */
   def insertCollectionElement(collection: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
@@ -439,25 +436,25 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * .
    * @param collectionApprox  The Identifier of the approximation to which the element shall be added
    * @param pp The program point that identifies the tuple
-   * @return  The tuple identifier of the new tuple, the heap after the insertion, and the replacements that
-            need to be applied to the value domain
+   * @return The tuple identifier of the new tuple, the heap after the insertion, and the replacements that
+   *         need to be applied to the value domain
    */
   def insertCollectionElementToApprox(collectionApprox: Assignable, pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
-  Removes the specified key-value tuple from the collection.
-
-    @param collectionTuple The key-value tuple that shall be removed
-    @return  The new heap after the collection tuple has been removed
-    */
+   * Removes the specified key-value tuple from the collection.
+   *
+   * @param collectionTuple The key-value tuple that shall be removed
+   * @return  The new heap after the collection tuple has been removed
+   */
   def removeCollectionElement(collectionTuple: Assignable): T
 
   /**
-  Returns the identifier representing the length of the given collection
-
-   @param collection The collection from which we want to access the length
-  @return The identifier of the collection's length
-    */
+   * Returns the identifier representing the length of the given collection
+   *
+   * @param collection The collection from which we want to access the length
+   * @return The identifier of the collection's length
+   */
   def getCollectionLength(collection: Assignable): HeapIdSetDomain[I]
 
   def lubWithReplacement[S <: SemanticDomain[S]](left: T, right: T, semantic: S): (T, Replacement) = this.lubWithReplacement(left, right)
@@ -470,7 +467,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   /**
    * Converts summary nodes to regular nodes whenever possible and sound
    */
-  def optimizeSummaryNodes: (T,Replacement)
+  def optimizeSummaryNodes: (T, Replacement)
 }
 
 trait Assignable {

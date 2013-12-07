@@ -18,7 +18,6 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @since 0.1
  */
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] extends Lattice[T] {
-  override def factory(): T;
 
   var value: Map[K, V] = Map.empty[K, V]
   var isBottom: Boolean = false;
@@ -552,49 +551,29 @@ trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: CartesianProductDomain[T1, T2, T]](protected var d1: T1, protected var d2: T2) extends Lattice[T] {
+abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: CartesianProductDomain[T1, T2, T]]
+    (d1: T1, d2: T2) extends Lattice[T] {
 
   def _1: T1 = d1
 
   def _2: T2 = d2
 
-  override def factory(): T;
+  def factory(a :T1, b:T2):T
 
+  def set_1(a:T1) = factory(a,_2)
+  def set_2(b:T2) = factory(_1,b)
 
-  def top(): T = {
-    val result: T = this.factory();
-    result.d1 = d1.top()
-    result.d2 = d2.top()
-    result
-  }
+  override def factory(): T = factory(_1.factory(),_2.factory())
 
-  def bottom(): T = {
-    val result: T = this.factory()
-    result.d1 = d1.bottom()
-    result.d2 = d2.bottom()
-    result
-  }
+  def top(): T = factory(_1.top(),_2.top())
 
-  def lub(l: T, r: T): T = {
-    val result: T = this.factory();
-    result.d1 = d1.lub(l._1, r._1)
-    result.d2 = d2.lub(l._2, r._2)
-    result
-  }
+  def bottom(): T = factory(_1.bottom(),_2.bottom())
 
-  def glb(l: T, r: T): T = {
-    val result: T = this.factory();
-    result.d1 = d1.glb(l._1, r._1)
-    result.d2 = d2.glb(l._2, r._2)
-    result
-  }
+  def lub(l: T, r: T): T = factory(_1.lub(l._1, r._1),_2.lub(l._2, r._2))
 
-  def widening(l: T, r: T): T = {
-    val result: T = this.factory();
-    result.d1 = d1.widening(l._1, r._1)
-    result.d2 = d2.widening(l._2, r._2)
-    result
-  }
+  def glb(l: T, r: T): T = factory(_1.glb(l._1, r._1),_2.glb(l._2, r._2))
+
+  def widening(l: T, r: T): T = factory(_1.widening(l._1, r._1),_2.widening(l._2, r._2))
 
   def lessEqual(r: T): Boolean = {
     if (this._1.lessEqual(this._1.bottom()) || this._2.lessEqual(this._2.bottom())) return true
@@ -606,15 +585,16 @@ abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <:
     case right: T =>
       if (this._1.equals(this._1.bottom()) || this._2.equals(this._2.bottom())) {
         if (right._1.equals(right._1.bottom()) || right._2.equals(right._2.bottom()))
-          return true;
-        else return false;
+          return true
+        else return false
       }
-      this._1.equals(right._1) &&
-        this._2.equals(right._2)
+      this._1.equals(right._1) && this._2.equals(right._2)
     case _ => false
   }
 
-  override def toString() = "Cartesian,Left:\n" + ToStringUtilities.indent(this._1.toString) + "\nCartesian,Right:\n" + ToStringUtilities.indent(this._2.toString)
+  override def toString =
+    "Cartesian,Left:\n" + ToStringUtilities.indent(_1.toString) +
+      "\nCartesian,Right:\n" + ToStringUtilities.indent(_2.toString)
 
 }
 
@@ -635,7 +615,8 @@ abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: R
    * (that is, more precise) than the initial state.
    * @return The reduced abstract state
    */
-  def reduce(): T;
+  def reduce(): T
+
 }
 
 /**
@@ -649,94 +630,35 @@ abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: R
  */
 abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]](a1: T1, a2: T2) extends CartesianProductDomain[T1, T2, T](a1, a2) with SemanticDomain[T] {
 
-//  if (d1.equals(d1.bottom()) || d2.equals(d2.bottom())) {
-//    d1 = d1.bottom()
-//    d2 = d2.bottom()
-//  }
+  def getIds() = _1.getIds() ++ _2.getIds()
 
-  def getIds = this._1.getIds() ++ this._2.getIds()
+  def setToTop(variable: Identifier): T = factory(_1.setToTop(variable),_2.setToTop(variable))
 
-  def setToTop(variable: Identifier): T = {
-    val result: T = this.factory()
-    result.d1 = d1.setToTop(variable)
-    result.d2 = d2.setToTop(variable)
-    result
-  }
+  def assign(variable: Identifier, expr: Expression): T = factory(_1.assign(variable, expr),_2.assign(variable, expr))
 
-  def assign(variable: Identifier, expr: Expression): T = {
-    val result: T = this.factory()
-    result.d1 = d1.assign(variable, expr)
-    result.d2 = d2.assign(variable, expr)
-    result
-  }
+  def setArgument(variable: Identifier, expr: Expression): T = factory(_1.setArgument(variable, expr),_2.setArgument(variable, expr))
 
-  def setArgument(variable: Identifier, expr: Expression): T = {
-    val result: T = this.factory()
-    result.d1 = d1.setArgument(variable, expr)
-    result.d2 = d2.setArgument(variable, expr)
-    result
-  }
+  def assume(expr: Expression): T = factory(_1.assume(expr),_2.assume(expr))
 
-  def assume(expr: Expression): T = {
-    val result: T = this.factory();
-    result.d1 = d1.assume(expr)
-    result.d2 = d2.assume(expr)
-    result
-  }
+  def merge(r: Replacement): T = factory(_1.merge(r),_2.merge(r))
 
-  def merge(r: Replacement): T = {
-    val result: T = this.factory();
-    result.d1 = d1.merge(r)
-    result.d2 = d2.merge(r)
-    result
-  }
-
-  def createVariable(variable: Identifier, typ: Type): T = {
-    val result: T = this.factory();
-    result.d1 = d1.createVariable(variable, typ)
-    result.d2 = d2.createVariable(variable, typ)
-    result
-  }
+  def createVariable(variable: Identifier, typ: Type): T = factory(_1.createVariable(variable, typ),_2.createVariable(variable, typ))
 
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
-    val result: T = this.factory();
-    var (a1, b1) = d1.createVariableForArgument(variable, typ, path)
-    var (a2, b2) = d2.createVariableForArgument(variable, typ, path)
-    result.d1 = a1;
-    result.d2 = a2;
-    (result, b1 ++ b2)
+    val (a1, b1) = _1.createVariableForArgument(variable, typ, path)
+    val (a2, b2) = _2.createVariableForArgument(variable, typ, path)
+    (factory(a1,a2),b1 ++ b2)
   }
 
-  def removeVariable(variable: Identifier): T = {
-    val result: T = this.factory();
-    result.d1 = d1.removeVariable(variable)
-    result.d2 = d2.removeVariable(variable)
-    result
-  }
+  def removeVariable(variable: Identifier): T = factory(_1.removeVariable(variable),_2.removeVariable(variable))
 
-  def access(field: Identifier): T = {
-    val result: T = this.factory();
-    result.d1 = d1.access(field)
-    result.d2 = d2.access(field)
-    result
-  }
+  def access(field: Identifier): T = factory(_1.access(field),_2.access(field))
 
-  def backwardAccess(field: Identifier): T = {
-    val result: T = this.factory();
-    result.d1 = d1.backwardAccess(field)
-    result.d2 = d2.backwardAccess(field)
-    result
-  }
+  def backwardAccess(field: Identifier): T = factory(_1.backwardAccess(field),_2.backwardAccess(field))
 
-  def backwardAssign(variable: Identifier, expr: Expression): T = {
-    val result: T = this.factory();
-    result.d1 = d1.backwardAssign(variable, expr)
-    result.d2 = d2.backwardAssign(variable, expr)
-    result
-  }
+  def backwardAssign(variable: Identifier, expr: Expression): T = factory(_1.backwardAssign(variable,expr),_2.backwardAssign(variable,expr))
 
-  def getStringOfId(id: Identifier): String = "( " + d1.getStringOfId(id) + ", " + d2.getStringOfId(id) + ")"
-
+  def getStringOfId(id: Identifier): String = "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
 
 }
 

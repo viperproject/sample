@@ -15,15 +15,15 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 /**
  * A concrete variant of a domain for touch develop: Numerical with Invalid values.
  */
-class InvalidAnd[T <: NumericalDomain[T]](a1:T)
-  extends NumericWithInvalidDomain[T,BooleanInvalidDomain,InvalidAnd[T]](a1,new BooleanInvalidDomain()) {
-  override def factory() = new InvalidAnd(a1.factory())
+class InvalidAnd[T <: NumericalDomain[T]](a1:T, a2:BooleanInvalidDomainWithSource = new BooleanInvalidDomainWithSource())
+  extends NumericWithInvalidDomain[T,BooleanInvalidDomainWithSource,InvalidAnd[T]](a1,a2) {
+  override def factory(a:T,b:BooleanInvalidDomainWithSource) = new InvalidAnd(a,b)
 }
 
 /**
  * A concrete variant of a domain for touch develop: Numerical + Strings-K-Sets with Invalid values.
  */
-class StringsAnd[T <: NumericalDomain[T]](a1:T)
-  extends NumericWithStringDomain[T,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain],StringsAnd[T]](a1,new NonrelationalStringDomain[StringKSetDomain](new StringKSetDomain())) {
-  override def factory() = new StringsAnd(a1.factory())
+class StringsAnd[T <: NumericalDomain[T]](a1:T, a2:NonrelationalStringDomain[StringKSetDomain] = new NonrelationalStringDomain[StringKSetDomain](new StringKSetDomain()))
+  extends NumericWithStringDomain[T,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain],StringsAnd[T]](a1,a2) {
+  override def factory(a:T,b:NonrelationalStringDomain[StringKSetDomain]) = new StringsAnd(a,b)
 }
