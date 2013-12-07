@@ -21,7 +21,8 @@ class EdgeWithState[S <: SemanticDomain[S]] (val source: Vertex, val state: S, v
   override def hashCode(): Int = {
     var stateString = "null"
     if (state != null)
-      stateString = state.toString
+//      stateString = state.toString
+      stateString = state.hashCode().toString
     return (source.toString + target.toString + stateString + field.toString).hashCode
   }
 

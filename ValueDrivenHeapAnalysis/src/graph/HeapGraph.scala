@@ -15,7 +15,8 @@ import scala.collection.mutable
  */
 class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges: Set[EdgeWithState[S]]) {
 
-  checkConsistancy(this)
+  // This check should be carried out only in the debug mode.
+  //checkConsistancy(this)
 
 //  for (edge <- edges)
 //    if (!vertices.contains(edge.source) || !vertices.contains(edge.target)) {
@@ -39,34 +40,12 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return vertices collect {case hv : HeapVertex => hv.version}
   }
 
-//  /**
-//   * This method returns a copy of <code>this</code> in which all the states are produced by applying <code>repl</code>
-//   * to the corresponding states in <code>this</code>.
-//   *
-//   * @param repl - replacement that should be applied to value states on all edges
-//   * @return copy of <code>this</code> after applying <code>repl</code> to value states on each edge
-//   */
-//  def applyReplacementToAllStates(repl: Replacement): HeapGraph[S] = {
-//    var resEdges = Set.empty[EdgeWithState[S]]
-//    for (edge <- edges) {
-//      resEdges = resEdges + new EdgeWithState[S](edge.source, edge.state.merge(repl), edge.field, edge.target)
-//    }
-//    return new HeapGraph[S](this.vertices, resEdges)
-//  }
-
-  def createVariableInAllStates(id: Identifier): HeapGraph[S] = {
+  def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] = {
     var resEdges = Set.empty[EdgeWithState[S]]
     for (edge <- edges) {
-      resEdges = resEdges + new EdgeWithState[S](edge.source, edge.state.createVariable(id, id.getType()), edge.field, edge.target)
+      resEdges = resEdges + new EdgeWithState[S](edge.source, Utilities.createVariablesForState(edge.state, ids), edge.field, edge.target)
     }
     return new HeapGraph[S](this.vertices, resEdges)
-  }
-
-  def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] = {
-    var result = this
-    for (id <- ids)
-      result = result.createVariableInAllStates(id)
-    return result
   }
 
   def getPathsToBeAssigned(expr: AccessPathExpression): Set[List[EdgeWithState[S]]] = {
@@ -142,24 +121,6 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       newEdges += new EdgeWithState[S](e.source, e.state.glb(newState, newEdgeState), e.field, e.target)
     }
     new HeapGraph[S](vertices, newEdges)
-
-
-
-//    val valueFields = vertices.map(v => v.typ.getPossibleFields().filter(!_.getType().isObject())).flatten
-//    var allEdgeLocalIds = valueFields.map(f => new EdgeLocalIdentifier(List.empty[String], f.getName(), f.getType, f.getProgramPoint()))
-//    var referenceFields = Set.empty[String]
-//    for (e <- edges) {
-//      e.field match {
-//        case None =>
-//        case Some(f) => referenceFields = referenceFields + f
-//      }
-//    }
-//    for (rf <- referenceFields) {
-//      allEdgeLocalIds = allEdgeLocalIds ++ valueFields.map(f => new EdgeLocalIdentifier(List(rf), f.getName(), f.getType, f.getProgramPoint()))
-//    }
-//
-//    val newEdges = edges.map(e => new EdgeWithState[S](e.source, e.state.glb(e.state, Utilities.createVariablesForState(state, allEdgeLocalIds.asInstanceOf[Set[Identifier]])), e.field, e.target))
-//    new HeapGraph[S](vertices, newEdges)
   }
 
 
@@ -293,24 +254,6 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return newMaxEdges
   }
 
-
-  /**
-   * This method calculates minimum common supergraph (MCS) of <code>this</code> and <code>other</code>.
-   * <code>this</code> is the proper subgraph of <code>result</code>; i.e. vertices and edges of <code>this</code> are
-   * subsets of <code>result</code>. Furthermore, <code>other</code> is subgraph isomorphic to <code>result</code>. The
-   * method also returns the subgraph isomorphism <code>I</code> from <code>other</code> to <code>result</code>.
-   *
-   * MCS is calculated using <code>maximumCommonSubgraph</code> and gluing uncommon parts to it.
-   * See <a href="http://dl.acm.org/citation.cfm?id=349979">this article</a> for more information on the algorithm.
-   *
-   * @param other - graph for which MCS(<code>this, other</code>) should be calculated
-   * @return a pair (<code>G ,I</code>) where <code>G</code> = MCS(<code> this, other </code>) and <code>I</code> is the
-   *         subgraph isomorphism from <code>other</code> to <code>G</code>
-   */
-  def minimumCommonSupergraph(other: HeapGraph[S]): (HeapGraph[S], Map[Vertex,Vertex]) = {
-    return (null,null)
-  }
-
   /**
    * This method is used to calculate the maximum common subgraph (mcs) of <code>this</code> and <code>other</code>.
    * The resulting graph that is composed of vertices in keys of <code>I</code> and edges that are keys of <code>E</code>
@@ -352,118 +295,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
     // val resEdgeMap: Map[EdgeWithState[S], EdgeWithState[S]] = edgeMap.map(entry => (entry._1 -> entry._2.head))
     return (i, resEdgeMap)
-
-    //    var isomorphism =  Map.empty[Vertex, Vertex]
-    //    var possibleEdges = initialMaxEdges(other)
-    //    val sureSet = vertices.intersect(other.vertices).filter(v => !v.label.equals("def") && !v.label.equals("sum"))
-    //    for(v <- sureSet) {
-    //      isomorphism = isomorphism + (v -> v)
-    //      possibleEdges = refineMaxEdges(possibleEdges, v, v)
-    //    }
-    //    mcsCounter = 0
-    //    val result = mcsRecursive(vertices.filter(v => v.label.equals(VertexConstants.SUMMARY) || v.label.equals(VertexConstants.DEFINITE)),
-    //      other.vertices.filter(v => v.label.equals(VertexConstants.SUMMARY) || v.label.equals(VertexConstants.DEFINITE)),
-    //      isomorphism,
-    //      possibleEdges,
-    //      Map.empty[Vertex, Vertex],
-    //      Map.empty[EdgeWithState[S],Set[EdgeWithState[S]]])
-    //    //**println("When computing mcs " + mcsCounter + " nodes of the search tree were explored")
-    //    return result
   }
-
-
-//  private def mcsRecursive(V1: TreeSet[Vertex],
-//          V2: TreeSet[Vertex],
-//          isomorphism: Map[Vertex, Vertex],
-//          possibleEdges: Map[EdgeWithState[S],Set[EdgeWithState[S]]],
-//          bestIsomorphismAndEdges: Set[(Map[Vertex, Vertex], Map[EdgeWithState[S],Set[EdgeWithState[S]]])]): (Map[Vertex, Vertex], Set[Map[EdgeWithState[S],Set[EdgeWithState[S]]]]) =
-//  {
-////    mcsCounter = mcsCounter + 1
-//    // Checking whether it is possible to get better results, if not, prune the part of the search tree rooted at this node
-//    if (math.min(V1.size,V2.size) + isomorphism.size < bestIsomorphism.size
-//        || (math.min(V1.size,V2.size) + isomorphism.size == bestIsomorphism.size && bestEdges.head.size > possibleEdges.size))
-//      return (bestIsomorphism, bestEdges)
-//    if (math.min(V1.size,V2.size) + isomorphism.size < bestIsomorphism.size
-//      || (math.min(V1.size,V2.size) + isomorphism.size == bestIsomorphism.size && bestEdges.head.size == possibleEdges.size))
-//      return (bestIsomorphism, bestEdges + possibleEdges)
-//    // We reached the leaf of the search tree
-//    if (V1.isEmpty || V2.isEmpty) {
-//      if (isomorphism.size >= bestIsomorphism.size && possibleEdges.size > bestEdges.head.size)
-//        return (isomorphism, Set(possibleEdges))
-//      else if (isomorphism.size >= bestIsomorphism.size && possibleEdges.size == bestEdges.head.size)
-//        return (isomorphism, bestEdges + possibleEdges)
-//      else
-//        return (bestIsomorphism, bestEdges)
-//    }
-//
-//    // Checking all possible parings for the next node from the left graph
-//    var currentIsomorphism = bestIsomorphism
-//    var currentEdges = bestEdges
-//    val v1 = V1.min
-//    for (v2 <- V2) {
-//      if (v2.label.equals(v1.label)) {
-//        val (i, e) = (isomorphism + (v2 -> v1), refineMaxEdges(possibleEdges, v1, v2));
-//        val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2 - v2, i, e, currentIsomorphism, currentEdges)
-//        if (resIsomorphism.size >= currentIsomorphism.size && resEdge.head.size > currentEdges.head.size) {
-//          currentIsomorphism = resIsomorphism
-//          currentEdges = resEdge
-//        } else if (resIsomorphism.size >= currentIsomorphism.size && resEdge.head.size == currentEdges.head.size) {
-//          currentIsomorphism = resIsomorphism
-//          currentEdges = resEdge ++ currentEdges
-//        }
-//      }
-//    }
-//
-//    // The next node in the left graph might stay unpaired (not part of isomorphism). We check that here.
-//    val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2, isomorphism, possibleEdges, currentIsomorphism, currentEdges)
-//    if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size > currentEdges.size) {
-//      currentIsomorphism = resIsomorphism
-//      currentEdges = resEdge
-//    }
-//    if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size == currentEdges.size) {
-//      currentIsomorphism = resIsomorphism
-//      currentEdges = resEdge
-//    }
-//
-//    return (currentIsomorphism, currentEdges)
-//
-//////    mcsCounter = mcsCounter + 1
-////    // Checking whether it is possible to get better results, if not, prune the part of the search tree rooted at this node
-////    if (math.min(V1.size,V2.size) + isomorphism.size < bestIsomorphism.size
-////      || (math.min(V1.size,V2.size) + isomorphism.size == bestIsomorphism.size && bestEdges.size >= possibleEdges.size))
-////      return (bestIsomorphism, bestEdges)
-////    // We reached the leaf of the search tree
-////    if (V1.isEmpty || V2.isEmpty) {
-////      if (isomorphism.size >= bestIsomorphism.size && possibleEdges.size > bestEdges.size)
-////        return (isomorphism, possibleEdges)
-////      else
-////        return (bestIsomorphism, bestEdges)
-////    }
-////
-////    // Checking all possible parings for the next node from the left graph
-////    var currentIsomorphism = bestIsomorphism
-////    var currentEdges = bestEdges
-////    val v1 = V1.min
-////    for (v2 <- V2) {
-////      if (v2.label.equals(v1.label)) {
-////        val (i, e) = (isomorphism + (v1 -> v2), refineMaxEdges(possibleEdges, v1, v2));
-////        val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2 - v2, i, e, currentIsomorphism, currentEdges)
-////        if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size > currentEdges.size) {
-////          currentIsomorphism = resIsomorphism
-////          currentEdges = resEdge
-////        }
-////      }
-////    }
-////
-////    // The next node in the left graph might stay unpaired (not part of isomorphism). We check that here.
-////    val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2, isomorphism, possibleEdges, currentIsomorphism, currentEdges)
-////    if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size > currentEdges.size) {
-////      currentIsomorphism = resIsomorphism
-////      currentEdges = resEdge
-////    }
-////
-////    return (currentIsomorphism, currentEdges)
-//  }
 
   /**
    *
@@ -567,93 +399,6 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return (resultingGraph, renameFrom, renameTo)
   }
 
-//
-//  private def mcsRecursive(left: HeapGraph[S],
-//                           right: HeapGraph[S],
-//                           V1: TreeSet[Vertex],
-//                           V2: TreeSet[Vertex],
-//                           isomorphism: Map[Vertex, Vertex],
-//                           bestIsomorphism: Map[Vertex, Vertex]): Map[Vertex, Vertex] =
-//  {
-//    //    mcsCounter = mcsCounter + 1
-//    // Checking whether it is possible to get better results, if not, prune the part of the search tree rooted at this node
-//    if (math.min(V1.size,V2.size) + isomorphism.size < bestIsomorphism.size)
-//      return bestIsomorphism
-//    // We reached the leaf of the search tree
-//    if (V1.isEmpty || V2.isEmpty) {
-//      if (isomorphism.size > bestIsomorphism.size)
-//        return isomorphism
-//      if (isomorphism.size == bestIsomorphism.size) {
-//        if (minCommSuperEdgeSize(left, right, isomorphism) < minCommSuperEdgeSize(left, right, bestIsomorphism))
-//          return isomorphism
-//      }
-//      return bestIsomorphism
-//    }
-//
-//    // Checking all possible parings for the next node from the left graph
-//    var currentIsomorphism = bestIsomorphism
-//    val v1 = V1.min
-//    for (v2 <- V2) {
-//      if (v2.label.equals(v1.label)) {
-//        val i = isomorphism + (v2 -> v1)
-//        val resIsomorphism = mcsRecursive(left, right, V1 - v1, V2 - v2, i, currentIsomorphism)
-//        if (resIsomorphism.size > currentIsomorphism.size)
-//          currentIsomorphism = resIsomorphism
-//        if (resIsomorphism.size == currentIsomorphism.size)
-//          if (minCommSuperEdgeSize(left, right, resIsomorphism) < minCommSuperEdgeSize(left, right, currentIsomorphism))
-//            currentIsomorphism = resIsomorphism
-//      }
-//    }
-//
-//    // The next node in the left graph might stay unpaired (not part of isomorphism). We check that here.
-//    val resIsomorphism = mcsRecursive(left, right, V1 - v1, V2, isomorphism, currentIsomorphism)
-//    if (resIsomorphism.size > currentIsomorphism.size)
-//      currentIsomorphism = resIsomorphism
-//    if (resIsomorphism.size == currentIsomorphism.size)
-//      if (minCommSuperEdgeSize(left, right, resIsomorphism) < minCommSuperEdgeSize(left, right, currentIsomorphism))
-//        currentIsomorphism = resIsomorphism
-//
-//    return currentIsomorphism
-//
-//    ////    mcsCounter = mcsCounter + 1
-//    //    // Checking whether it is possible to get better results, if not, prune the part of the search tree rooted at this node
-//    //    if (math.min(V1.size,V2.size) + isomorphism.size < bestIsomorphism.size
-//    //      || (math.min(V1.size,V2.size) + isomorphism.size == bestIsomorphism.size && bestEdges.size >= possibleEdges.size))
-//    //      return (bestIsomorphism, bestEdges)
-//    //    // We reached the leaf of the search tree
-//    //    if (V1.isEmpty || V2.isEmpty) {
-//    //      if (isomorphism.size >= bestIsomorphism.size && possibleEdges.size > bestEdges.size)
-//    //        return (isomorphism, possibleEdges)
-//    //      else
-//    //        return (bestIsomorphism, bestEdges)
-//    //    }
-//    //
-//    //    // Checking all possible parings for the next node from the left graph
-//    //    var currentIsomorphism = bestIsomorphism
-//    //    var currentEdges = bestEdges
-//    //    val v1 = V1.min
-//    //    for (v2 <- V2) {
-//    //      if (v2.label.equals(v1.label)) {
-//    //        val (i, e) = (isomorphism + (v1 -> v2), refineMaxEdges(possibleEdges, v1, v2));
-//    //        val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2 - v2, i, e, currentIsomorphism, currentEdges)
-//    //        if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size > currentEdges.size) {
-//    //          currentIsomorphism = resIsomorphism
-//    //          currentEdges = resEdge
-//    //        }
-//    //      }
-//    //    }
-//    //
-//    //    // The next node in the left graph might stay unpaired (not part of isomorphism). We check that here.
-//    //    val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2, isomorphism, possibleEdges, currentIsomorphism, currentEdges)
-//    //    if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size > currentEdges.size) {
-//    //      currentIsomorphism = resIsomorphism
-//    //      currentEdges = resEdge
-//    //    }
-//    //
-//    //    return (currentIsomorphism, currentEdges)
-//  }
-
-
   private def mcsRecursive(V1: TreeSet[Vertex],
                            V2: TreeSet[Vertex],
                            isomorphism: Map[Vertex, Vertex],
@@ -697,43 +442,6 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
 
     return (currentIsomorphism, currentEdges)
-
-    ////    mcsCounter = mcsCounter + 1
-    //    // Checking whether it is possible to get better results, if not, prune the part of the search tree rooted at this node
-    //    if (math.min(V1.size,V2.size) + isomorphism.size < bestIsomorphism.size
-    //      || (math.min(V1.size,V2.size) + isomorphism.size == bestIsomorphism.size && bestEdges.size >= possibleEdges.size))
-    //      return (bestIsomorphism, bestEdges)
-    //    // We reached the leaf of the search tree
-    //    if (V1.isEmpty || V2.isEmpty) {
-    //      if (isomorphism.size >= bestIsomorphism.size && possibleEdges.size > bestEdges.size)
-    //        return (isomorphism, possibleEdges)
-    //      else
-    //        return (bestIsomorphism, bestEdges)
-    //    }
-    //
-    //    // Checking all possible parings for the next node from the left graph
-    //    var currentIsomorphism = bestIsomorphism
-    //    var currentEdges = bestEdges
-    //    val v1 = V1.min
-    //    for (v2 <- V2) {
-    //      if (v2.label.equals(v1.label)) {
-    //        val (i, e) = (isomorphism + (v1 -> v2), refineMaxEdges(possibleEdges, v1, v2));
-    //        val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2 - v2, i, e, currentIsomorphism, currentEdges)
-    //        if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size > currentEdges.size) {
-    //          currentIsomorphism = resIsomorphism
-    //          currentEdges = resEdge
-    //        }
-    //      }
-    //    }
-    //
-    //    // The next node in the left graph might stay unpaired (not part of isomorphism). We check that here.
-    //    val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2, isomorphism, possibleEdges, currentIsomorphism, currentEdges)
-    //    if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size > currentEdges.size) {
-    //      currentIsomorphism = resIsomorphism
-    //      currentEdges = resEdge
-    //    }
-    //
-    //    return (currentIsomorphism, currentEdges)
   }
 
   override def toString(): String = {
@@ -941,8 +649,6 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return widenCommonEdges(resGraph)
   }
 
-  // def getAllEdgesFromVertexViaField(vertex: Vertex, field: String): Set[EdgeWithState[S]] = edges.filter(e => e.source.equals(vertex) && e.field.equals(field))
-
   private def checkConsistancy(graph: HeapGraph[S]) = {
     for (edge <- graph.edges)
       if (!containsVertex(graph, edge.source) || !containsVertex(graph, edge.target)) {
@@ -968,6 +674,67 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return true
   }
 
+  def valueAssignOnEachEdge(variable: Option[VariableIdentifier],
+                       pathsToConds : Map[List[EdgeWithState[S]],S],
+                       field : Option[String],
+                       rightExp : Expression,
+                       condsForExp : Set[S]) : HeapGraph[S] = {
+    // Assume that each value state in pathsToConds.values does not have EdgeLocalIdentifiers (Precondition)
+    var resultingEdges = scala.collection.mutable.Set.empty[EdgeWithState[S]]
+    variable match {
+      case Some(v) => {
+        for (edge <- edges) {
+          var resultingState = edge.state.bottom()
+          for (cond <- Utilities.applyConditions(Set(edge.state), condsForExp))
+            resultingState = cond.lub(resultingState, cond.assign(v, rightExp))
+          if (!resultingState.lessEqual(resultingState.bottom()))
+            resultingEdges += new EdgeWithState[S](edge.source, resultingState, edge.field, edge.target)
+        }
+      }
+      case None =>
+    }
+    field match {
+      case Some(f) => {
+        val nodesToUpdate = pathsToConds.keySet.map(_.last.target).asInstanceOf[Set[HeapVertex]]
+        for (edge <- edges) {
+          // This is for weak updates
+          var resultingState = edge.state
+          if ((nodesToUpdate.size == 1 && nodesToUpdate.head.isInstanceOf[DefiniteHeapVertex]) || // Strong update
+              (pathsToConds.keySet.size == 1
+                && pathsToConds.keySet.head.last.target.equals(edge.target)
+                && pathsToConds.keySet.head.last.source.isInstanceOf[DefiniteHeapVertex])) { // Weak update with strong update of the target EdgeLocalIdentifier
+            resultingState = edge.state.bottom()
+          }
+          val conditions = Utilities.applyConditions(Set(edge.state), Utilities.applyConditions(pathsToConds.values.toSet[S], condsForExp))
+          for (nodeToUpdate <- nodesToUpdate) {
+            val valueHeapIdToAssign = new ValueHeapIdentifier(nodeToUpdate, f, rightExp.getType(), rightExp.getProgramPoint())
+            for (cond <- conditions) {
+              var tempEdgeState = cond.assign(valueHeapIdToAssign, rightExp)
+              if (edge.source.equals(nodeToUpdate)) {
+                val edgeLocId = new EdgeLocalIdentifier(List.empty[String], f, rightExp.getType(), rightExp.getProgramPoint())
+                tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
+              }
+              if (edge.target.equals(nodeToUpdate)) {
+                val path = edge.field match {
+                  case Some(g) => {
+                    List(g)
+                  }
+                  case None => List.empty[String]
+                }
+                val edgeLocId = new EdgeLocalIdentifier(path, f, rightExp.getType(), rightExp.getProgramPoint())
+                tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
+              }
+              resultingState = cond.lub(resultingState, Utilities.removeAccessPathIdentifiers(tempEdgeState))
+            }
+          }
+          resultingEdges = resultingEdges + new EdgeWithState[S](edge.source, resultingState, edge.field, edge.target)
+        }
+      }
+      case None =>
+    }
+    // return
+    new HeapGraph[S](vertices, resultingEdges.toSet)
+  }
 
 //  def materializeAccessPath(a)
 //

@@ -14,21 +14,21 @@ class Node {
 
   def createNext(v : Int) = {
 
-    var first = new Node()
-    first = null
+//    var first = new Node()
+//    first = null
 
     // First nat
-//    var result : Node = null
-//    var p : Node = null
-//    var i = v
-//    while (i >= 0) {
-//      p = new Node()
-//      p.value = i
-//      p.next = result
-//      result = p
-//      p = null
-//      i = i - 1
-//    }
+    var result : Node = null
+    var p : Node = null
+    var i = v
+    while (i >= 0) {
+      p = new Node()
+      p.value = i
+      p.next = result
+      result = p
+      p = null
+      i = i - 1
+    }
 
 
 //    value = 0
