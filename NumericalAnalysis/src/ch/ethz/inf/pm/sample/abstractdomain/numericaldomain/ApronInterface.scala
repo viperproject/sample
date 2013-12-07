@@ -26,6 +26,15 @@ class ApronInterface(val state: Option[Abstract1],
     println("When constructing ApronInterface: Two different identifiers have the same toString representation!")
   }
 
+  // TODO: Remove or only enable with debug flag - costly
+  state match {
+    case Some(s) => {
+      assert(s.getEnvironment.getVars.toSet[String] subsetOf env.map(_.getName()),
+        "The set of variables in the state is not a subset of variables in the environment.")
+    }
+    case None =>
+  }
+
   override def factory(): ApronInterface = {
     top()
   }
@@ -491,6 +500,18 @@ class ApronInterface(val state: Option[Abstract1],
     }
 
     val newEnvironment = result.getIds() -- r.value.map(_._1).flatten ++ r.value.map(_._2).flatten -- tempIdentifiers
+
+    // TODO: Hacked in bug fix, but this it should be investigated why it occures.
+    // There are cases where merge does not remove from the apron state variables that should be removed, leading to
+    // the situation where the set of identifiers in the ApronInterface environment is not a superset of the
+    // identifiers in the apron state (Abstract1).
+    val idsToRemoveFromState = (resultingState.getEnvironment.getVars.toSet[String] -- newEnvironment.map(_.getName())).toArray[String]
+    if (!idsToRemoveFromState.isEmpty) {
+      println("ApronInterface.merge: The set of variables in the state is not a subset of variables in the environment. This is a bug in merge, hacked in fix is provided.")
+      resultingState.changeEnvironment(domain, resultingState.getEnvironment.remove(idsToRemoveFromState), false)
+    }
+    // END OF HACKED FIX
+
     val newInterface = new ApronInterface(Some(resultingState), domain, env = newEnvironment)
     newInterface
   }
