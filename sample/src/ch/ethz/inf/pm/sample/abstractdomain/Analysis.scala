@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.util.Timer
  * @since 0.1
  */
 trait Analysis {
-  val runNrOfTimes = 30
+  //val runNrOfTimes = 30
 
   def analyze[S <: State[S]](toAnalyze : String, entryState : S, output : OutputCollector) : List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] =
     this.analyze( toAnalyze ::Nil, entryState, output)
@@ -26,12 +26,12 @@ trait Analysis {
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Analyzing method "+x.name.toString()+" in class "+c.name.toString());
         SystemParameters.currentMethod = x.name.toString
         var s = x.forwardSemantics[S](entryState)
-        s = x.forwardSemantics[S](entryState)
-        s = x.forwardSemantics[S](entryState)
-        time {
-          for (i <- 0 until runNrOfTimes)
-            s = x.forwardSemantics[S](entryState)
-        }
+//        s = x.forwardSemantics[S](entryState)
+//        s = x.forwardSemantics[S](entryState)
+//        time {
+//          for (i <- 0 until runNrOfTimes)
+//            s = x.forwardSemantics[S](entryState)
+//        }
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
         if(SystemParameters.property!=null) {
