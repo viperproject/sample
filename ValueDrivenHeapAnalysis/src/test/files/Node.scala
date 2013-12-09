@@ -14,6 +14,10 @@ class Node {
 
   def createNext(v : Int) = {
 
+//    if (this.value < 0) {
+//      this.value = 2 * this.value
+//    }
+
 //    var first = new Node()
 //    first = null
 

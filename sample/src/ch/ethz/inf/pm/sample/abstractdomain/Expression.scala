@@ -923,7 +923,7 @@ case class AccessPathExpression(pp : ProgramPoint, typ: Type, path: List[String]
 
   def getType(): Type = typ
 
-  def identifiers(): Set[Identifier] = throw new Exception("identifiers() should never be called!")
+  def identifiers(): Set[Identifier] = Set.empty[Identifier]
 
   override def toString(): String = {
     var result = ""

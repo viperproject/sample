@@ -677,7 +677,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     return true
   }
 
-  def valueAssignOnEachEdge(variable: Option[VariableIdentifier],
+  def valueAssignOnEachEdge(variable : Option[VariableIdentifier],
                        pathsToConds : Map[List[EdgeWithState[S]],S],
                        field : Option[String],
                        rightExp : Expression,
@@ -737,6 +737,20 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
     // return
     new HeapGraph[S](vertices, resultingEdges.toSet)
+  }
+
+  def valueAssumeOnEachEdge(exp : Expression, conds: Set[S]) : HeapGraph[S] = {
+    var resultingEdges = Set.empty[EdgeWithState[S]]
+    for(edge <- edges) {
+      val edgeStateAndConds = Utilities.applyConditions(Set(edge.state), conds)
+      var resultingEdgeCond = edge.state.bottom()
+      for (c <- edgeStateAndConds) {
+        resultingEdgeCond = c.lub(resultingEdgeCond, Utilities.removeAccessPathIdentifiers(c.assume(exp)))
+      }
+      resultingEdges = resultingEdges + new EdgeWithState[S](edge.source, resultingEdgeCond, edge.field, edge.target)
+    }
+    // return
+    new HeapGraph[S](this.vertices, resultingEdges)
   }
 
 //  def materializeAccessPath(a)

@@ -881,6 +881,7 @@ class ApronInterface(val state: Option[Abstract1],
           }
       }
     case _:CollectionContainsExpression => List(topExpression())
+    case ape : AccessPathExpression => List(new Texpr1VarNode(ape.toString()))
     case _ =>
       println("Unhandled expression type in APRON interface (returning top expression): "+e)
       List(topExpression())
