@@ -676,6 +676,11 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       assert(path.head.source.isInstanceOf[HeapVertex])
       val edge = path.head
 
+      val field = edge.field match {
+        case None => throw new Exception("This should not happen.")
+        case Some(f) => f
+      }
+
       // Only the edge-local identifiers that refer to target are present in the given state. (i.e. the once with empty sequence of field accesses).
       assert(state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && !id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty).isEmpty)
 
@@ -690,12 +695,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       val originalSourceIds = newState.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty).toSet[Identifier]
       newState = Utilities.removeVariablesFromState(newState, originalSourceIds)
       // Renaming
-      val idsToRenameToSource = newState.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath == 1
-        && id.asInstanceOf[EdgeLocalIdentifier].accPath.head.equals(
-        edge.field match {
-          case None => ""
-          case Some(f) => f
-        })).asInstanceOf[Set[EdgeLocalIdentifier]]
+      val idsToRenameToSource = newState.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.equals(List(field))).asInstanceOf[Set[EdgeLocalIdentifier]]
       // Building lists for renaming
       var renameFrom = List.empty[EdgeLocalIdentifier]
       var renameTo = List.empty[EdgeLocalIdentifier]
