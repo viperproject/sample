@@ -9,14 +9,6 @@ import apron.Polka
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.{BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics}
 
-
-/**
- * Created with IntelliJ IDEA.
- * User: milos
- * Date: 5/10/13
- * Time: 4:27 PM
- * To change this template use File | Settings | File Templates.
- */
 class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S],
                                                    val generalValState: S,
                                                    val expr: ExpressionSet,
@@ -464,18 +456,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   }
 
   /**
-  Create an array of length
-
-   @param length The length of the array
-  @param typ The type of the array
-  @param length The program point that created the array
-  @return The abstract state after the creation of the array
-    */
-  def createArray(length: ExpressionSet, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
-    throw new Exception("Method createArray is not implemented")
-  }
-
-  /**
   Assigns an expression to a field of an object
 
    @param obj The object whose field is assigned
@@ -811,19 +791,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   }
 
   /**
-  Assign a cell of an array
-
-   @param obj The object on which the array assignment
-  @param index The assigned index
-  @param typ The type of the cell
-  @param right The assigned expression
-  @return The abstract state obtained after the array cell assignment
-    */
-  def assignArrayCell(obj: ExpressionSet, index: ExpressionSet, right: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
-    throw new Exception("Method assignArrayCell is not implemented")
-  }
-
-  /**
   Assigns an expression to an argument
 
    @param x The assigned argument
@@ -893,61 +860,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     // TODO: May be I should check whether this exist and is feasible already here.
     return new ValueDrivenHeapState[S](abstractHeap, generalValState, new ExpressionSet(typ).add(obj.head), isTop, isBottom)
     // throw new Exception("Method getFieldValue is not implemented")
-  }
-
-  /**
-  Accesses a field of an object
-
-   @param obj The object on which the field access is performed
-  @param index The name of the field
-  @param typ The type of the field
-  @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
-    */
-  def getArrayCell(obj: ExpressionSet, index: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
-    throw new Exception("Method getArrayCell is not implemented")
-  }
-
-  /**
-  Returns the identifier representing the length of the given array
-
-   @param array The array from which we want to access the length
-  @return A state that contains as expression the symbolic representation of the length of the given array
-    */
-  def getArrayLength(array: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method getArrayLength is not implemented")
-  }
-
-  /**
-  Performs the backward semantics of a variable access
-
-   @param id The accessed variable
-  @return The abstract state obtained BEFORE accessing the variable
-    */
-  def backwardGetVariableValue(id: Assignable): ValueDrivenHeapState[S] = {
-    throw new Exception("Method backwardGetVariableValue is not implemented")
-  }
-
-  /**
-  Performs the backward semantics of a field access
-
-   @param objs The object on which the field access is performed
-  @param field The name of the field
-  @param typ The type of the field
-  @return The abstract state obtained before the field access
-    */
-  def backwardGetFieldValue(objs: List[ExpressionSet], field: String, typ: Type): ValueDrivenHeapState[S] = {
-    throw new Exception("Method backwardGetFieldValue is not implemented")
-  }
-
-  /**
-  Performs the backward semantics of an assignment
-
-   @param x The assigned variable
-  @param right The assigned expression
-  @return The abstract state before the assignment
-    */
-  def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method backwardAssignVariable is not implemented")
   }
 
   /**
@@ -1230,83 +1142,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   }
 
   /**
-  Create a collection (set, map, list...)
-
-  @param collTyp The type of the collection
-  @param keyTyp The type of the key
-  @param valueTyp The type of the value
-  @param lengthTyp The type of the length (integer/number)
-  @param tpp The program point of creation
-  @return The abstract state after the creation of the collection
-    */
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): ValueDrivenHeapState[S] = {
-    throw new Exception("Method createCollection is not implemented")
-  }
-
-  /**
-  Assign a cell of an collection
-
-  @param collectionSet The set of collection expressions
-  @param keySet The set of key expressions
-  @param rightSet The set of values
-  @return The abstract state obtained after the collection cell assignment
-    */
-  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method assignCollectionCell is not implemented")
-  }
-
-  /**
-  Insert a cell of an collection at the given index
-
-  @param collectionSet The set of collection expressions
-  @param keySet The set of key expressions
-  @param rightSet The set of values
-  @return The abstract state obtained after the collection cell assignment
-    */
-  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method insertCollectionCell is not implemented")
-  }
-
-  /**
-  Remove a cell of an collection
-
-  @param collectionSet The set of collection expressions
-  @param keySet The set of key expressions
-  @return The abstract state obtained after the collection cell assignment
-    */
-  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method removeCollectionCell is not implemented")
-  }
-
-  /**
-  Accesses a cell of a collection
-
-  @param collectionSet The set of collection expressions
-  @param keySet The set of key expressions
-  @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
-    */
-  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method getCollectionCell is not implemented")
-  }
-
-  /**
-   * Clears a collection
-   */
-  def clearCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method clearCollection is not implemented")
-  }
-
-  /**
-  Returns the identifier representing the length of the given collection
-   @param collectionSet The collection from which we want to access the length
-  @return A state that contains as expression the symbolic representation of the length of the given collection
-    */
-  def getCollectionLength(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method getCollectionLength is not implemented")
-  }
-
-
-  /**
    * Performs abstract garbage collection
    */
   def pruneUnreachableHeap(): ValueDrivenHeapState[S] = {
@@ -1484,135 +1319,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 //  }
 
   /**
-  Gets the Identifier of all the keys of the collection that match the given key expresssion.
-     A key expression (key) matches a Identifier if the Identifier represents a key of the collection
-     and has value k assigned such that
-        lub(k, key) != bottom
-
-    @param collectionSet  The collection expressions
-  @param keySet The key expressions
-  @return The state that has the mapped Identifier as expression
-    */
-  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  /**
-  Gets the Identifier of all the values of the collection for which the key Identifier matches the given
-    key expression.
-    A key expression (key) matches a Identifier if the Identifier represents a key of the collection
-    and has value k assigned such that
-        lub(k, key) != bottom
-
-    @param collectionSet  The collection expressions
-  @param keySet The key expressions
-  @param valueTyp The type of the collection's values
-  @return The state that has the mapped Identifier as expression
-    */
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): ValueDrivenHeapState[S] = ???
-
-  /**
-  Gets the HeapIdentifier of all the values of the collection that match the given value expresssion.
-    A value expression (value) matches a HeapIdentifier if the Heapidentifier represents a value of the collection
-    and has value v assigned such that
-        lub(v, value) != bottom
-
-    @param collectionSet  The collection expressions
-  @param valueSet The value expressions
-  @return The state that has the mapped HeapIdentifiers as expression
-    */
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  /**
-  Creates a new collection that contains all keys of the provided collection (fromCollection)
-    as values.
-
-    @param fromCollection The collection from which the keys shall be extracted
-  @param collTyp  The collection type of the newly created collection
-  @param keyTyp  The key type of the newly created collection
-  @param valueTyp The value type of the newly created collection
-  @param lengthTyp  The length type of the newly created collection@param pp
-  @return The state that contains the newly created collection and has it's CollectionHeapIdentifier as expression
-    */
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-
-  /**
-  Copies all the key-value tuples from one collection to the other.
-
-    @param fromCollectionSet The collection from which the tuples are copied.
-  @param toCollectionSet The collection to which the tuples are copied to.
-  @param keyTyp  The key type of the collections
-  @param valueTyp  The value type of the collection
-  @return The state that has a copy of all the tuples of the fromCollection in the toCollection
-    */
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): ValueDrivenHeapState[S] = ???
-
-  /**
-  Creates a new key-value tuple and adds it to the collection.
-
-    @param collectionSet The collection to which the key-value pair shall be added
-  @param keySet  The expression that is assigned to the key node
-  @param rightSet  The expression that is assigned to the value node
-  @param pp  The program point that the new tuple shall have.
-               Key-value tuples of a collection are distinguished by their program point.
-               If a tuple with this program point already exists in the collection the new tuple
-               will be summarized with this tuple.
-  @return The state that contains the collection with the added collection-tuple
-    */
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-
-  /**
-  Removes the values from the collection who's key identifiers match the given key expression.
-    If the key expression (k) matches the key identifier's assigned value exactly, the tuple is completely removed.
-    Otherwise the tuple is not removed but the semantic state contains the assumption
-      key identifier != k
-
-    @param collectionSet The collection from which the value is removed
-  @param keySet The key expressions
-  @param valueTyp The value type of the collection
-  @return The state in which the collection is represented without the collection value
-    */
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): ValueDrivenHeapState[S] = ???
-
-  /**
-  Removes the values from the collection who's value identifiers match the given value expression.
-    If the value expression (v) matches the value identifier's assigned value exactly, the tuple is completely removed.
-    Otherwise the tuple is not removed but the semantic state contains the assumption
-      value identifier != v
-
-    @param collectionSet The collection from which the value is removed
-  @param valueSet The value expressions
-  @param keyTyp The key type of the collection
-  @return The state in which the collection is represented without the collection value
-    */
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): ValueDrivenHeapState[S] = ???
-
-  /**
-   * Assigns the value expression to all key identifiers of the collection.
-   *
-   * @param collectionSet The collection
-   * @param valueSet  The value expression
-   * @param keyTyp  The collection's key type
-   * @return  The state in which all the key identifiers of the collection have the value expression assigned
-   */
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): ValueDrivenHeapState[S] = ???
-
-  /**
-   * Removes all the key-value tuples from a collection and sets it's length to 0.
-   * @param collectionSet The collection to be cleared
-   * @param keyTyp The key type of the collection
-   * @param valueTyp The value type of the collection
-   * @return The state with the cleared collection
-   */
-  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): ValueDrivenHeapState[S] = ???
-
-  /**
-   * Indicates whether any collection in the ExpressionSet represents multiple collections.
-   *
-   * @param collectionId The collection set
-   * @return True if any collection is a summary node, false otherwise.
-   */
-  def isSummaryCollection(collectionSet: ExpressionSet): Boolean = ???
-
-  /**
   Creates an object
 
   @param typ The dynamic type of the created object
@@ -1681,129 +1387,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   }
 
   /**
-  Creates an empty collection.
-
-    @param collTyp  The type of the collection
-  @param keyTyp The type of the collection's keys
-  @param valueTyp The type of the collection's values
-  @param lengthTyp The type of the collection length
-  @param tpp  The program point at which the collection is created
-    */
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]): ValueDrivenHeapState[S] = ???
-
-  /**
-   * Returns for each collection in the collectionSet either the collection identifier or if a summary collection for
-   * this collection identifier exists the identifier of the summary collection
-   *
-   * @param collectionSet
-   * @return The state with either the summary collection identifier or the collection identifier in the expression
-   */
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  /**
-   * Gets the values that are stored at the Collection Tuple Value Identifiers.
-   *
-   * @param valueIds  The Collection Tuple Value Identifiers
-   * @return  The state with the values as expression
-   */
-  def getCollectionValue(valueIds: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-
-  /**
-  Gets the Identifier of all the values of the collection for which the key Identifier matches the given
-    key expression.
-    A key expression (key) matches a Identifier if the Identifier represents a key of the collection
-    and has value k assigned such that
-        lub(k, key) != bottom
-
-    @param collectionSet  The collection expressions
-  @param keySet The key expressions
-  @param valueTyp The type of the collection's values
-  @return The state that has the mapped Identifier as expression
-    */
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  /**
-  Creates a new collection that contains all keys of the provided collection (fromCollection)
-    as values.
-
-    @param fromCollection The collection from which the keys shall be extracted
-  @param collTyp  The collection type of the newly created collection
-  @param keyTyp  The key type of the newly created collection
-  @param valueTyp The value type of the newly created collection
-  @param lengthTyp  The length type of the newly created collection@param pp
-  @return The state that contains the newly created collection and has it's CollectionHeapIdentifier as expression
-    */
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-
-  //TODO: comment
-  def getOriginalCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  def getKeysCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  /**
-  Copies all the key-value tuples from one collection to the other.
-
-    @param fromCollectionSet The collection from which the tuples are copied.
-  @param toCollectionSet The collection to which the tuples are copied to.
-  @param keyTyp  The key type of the collections
-  @param valueTyp  The value type of the collection
-  @return The state that has a copy of all the tuples of the fromCollection in the toCollection
-    */
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  /**
-  Creates a new key-value tuple and adds it to the collection.
-
-    @param collectionSet The collection to which the key-value pair shall be added
-  @param keySet  The expression that is assigned to the key node
-  @param rightSet  The expression that is assigned to the value node
-  @param pp  The program point that the new tuple shall have.
-               Key-value tuples of a collection are distinguished by their program point.
-               If a tuple with this program point already exists in the collection the new tuple
-               will be summarized with this tuple.
-  @return The state that contains the collection with the added collection-tuple
-    */
-  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-
-  /**
-  Removes the values from the collection who's key identifiers match the given key expression.
-    If the key expression (k) matches the key identifier's assigned value exactly, the tuple is completely removed.
-    Otherwise the tuple is not removed but the semantic state contains the assumption
-      key identifier != k
-
-    @param collectionSet The collection from which the value is removed
-  @param keySet The key expressions
-  @return The state in which the collection is represented without the collection value
-    */
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  /**
-   * Removes the first occurence of the value in a collection.
-   *
-   * @param collectionSet The set of collections from which the value is removed
-   * @param valueSet The value to be removed
-   * @return The state in which the collection is represented without the first occurence of the collection value
-   */
-  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  /**
-   * Assigns the value expression to all key identifiers of the collection.
-   *
-   * @param collectionSet The collection
-   * @param valueSet  The value expression
-   * @return  The state in which all the key identifiers of the collection have the value expression assigned
-   */
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-
-  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-
-  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-
-  /**
    * Removes all variables satisfying filter
    */
   def pruneVariables(filter: (Identifier) => Boolean): ValueDrivenHeapState[S] = ???
@@ -1813,6 +1396,53 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
    * them to non-summary nodes
    */
   def optimizeSummaryNodes(): ValueDrivenHeapState[S] = ???
+
+  // Arrays are currently not supported
+  def assignArrayCell(obj: ExpressionSet, index: ExpressionSet, right: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = ???
+  def createArray(length: ExpressionSet, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def getArrayCell(obj: ExpressionSet, index: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = ???
+  def getArrayLength(array: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  // Backwards analyses are currently not supported
+  def backwardGetVariableValue(id: Assignable): ValueDrivenHeapState[S] = ???
+  def backwardGetFieldValue(objs: List[ExpressionSet], field: String, typ: Type): ValueDrivenHeapState[S] = ???
+  def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = ???
+
+  // Collections are currently not supported
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def clearCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def getCollectionLength(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): ValueDrivenHeapState[S] = ???
+  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): ValueDrivenHeapState[S] = ???
+  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): ValueDrivenHeapState[S] = ???
+  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): ValueDrivenHeapState[S] = ???
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): ValueDrivenHeapState[S] = ???
+  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): ValueDrivenHeapState[S] = ???
+  def isSummaryCollection(collectionSet: ExpressionSet): Boolean = ???
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]): ValueDrivenHeapState[S] = ???
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def getCollectionValue(valueIds: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def getOriginalCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def getKeysCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
 }
 
 class ValueDrivenHeapAnalysis extends Analysis {
