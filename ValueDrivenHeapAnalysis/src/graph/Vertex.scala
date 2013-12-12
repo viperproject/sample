@@ -50,28 +50,19 @@ abstract class Vertex(val name: String, val label: String, val typ: Type) extend
 }
 
 class LocalVariableVertex(name: String, typ: Type) extends Vertex(name, name, typ) {
-  override def toString(): String = {
-    return name.toString
-  }
+  override def toString(): String = name
 }
 
 //class NullVertex extends Vertex(VertexConstants.NULL, VertexConstants.NULL, null) {
 class NullVertex extends Vertex(VertexConstants.NULL, VertexConstants.NULL, SystemParameters.getType().top()) {
-  override def toString(): String = {
-    return name
-  }
+  override def toString(): String = name
 }
 
 abstract class HeapVertex(label: String, val version: Int, typ: Type) extends Vertex("n"+version, label, typ: Type) {
 
   assert(version >= 0)
-//
-//  override def equals(obj : Any): Boolean = {
-//    if (!obj.isInstanceOf[HeapVertex])
-//      return false
-//    val other = obj.asInstanceOf[HeapVertex]
-//    return label.equals(other.label) && version == other.version
-//  }
+
+  def getVersion() : Int = version
 }
 
 class SummaryHeapVertex(version: Int, typ: Type) extends HeapVertex(VertexConstants.SUMMARY, version, typ)

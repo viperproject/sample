@@ -476,6 +476,49 @@ case class UnitExpression(typ : Type, pp : ProgramPoint) extends Expression(pp) 
 
 }
 
+case class AccessPathIdentifier(accPath: List[String], typ1: Type, pp: ProgramPoint) extends Identifier(typ1, pp) {
+  assert(accPath.size > 0, "The access path should not be empty.")
+
+  /**
+  Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
+   if they are the same identifier
+   @return The name of the identifier
+    */
+  def getName(): String = {
+    var result = ""
+    for (s <- accPath.dropRight(1)) {
+      result = result + s + "."
+    }
+    return result + accPath.last
+  }
+
+  /**
+  Returns the name of the field that is represented by this identifier if it is a heap identifier.
+
+   @return The name of the field pointed by this identifier
+    */
+  def getField(): Option[String] = ???
+
+  /**
+  Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
+   identifier. This function tells if a node is a summary node.
+
+   @return true iff this identifier represents exactly one variable
+    */
+  def representSingleVariable(): Boolean = true
+
+  def identifiers(): Set[Identifier] = Set(this)
+
+  override def equals(obj: Any): Boolean = obj match {
+    case other: AccessPathIdentifier => other.getName().equals(getName())
+    case _ => false
+  }
+
+  override def hashCode(): Int = getName().hashCode()
+
+  override def toString(): String = getName()
+}
+
 /** 
  * An helper object that perform some transformations to obtain simplified and standard numerical expressions.
  *
@@ -856,6 +899,8 @@ object Normalizer {
      */
 
     case BinaryNondeterministicExpression(left,right,op,typ) => return getIdsForExpression[I](left).union(getIdsForExpression[I](right));
+
+    case AccessPathExpression(pp, typ, path) => return Set(new AccessPathIdentifier(path, typ, pp))
 
     case _ => return Set.empty[Identifier];
   }

@@ -27,13 +27,14 @@ class ApronInterface(val state: Option[Abstract1],
   }
 
   // TODO: Remove or only enable with debug flag - costly
-  state match {
-    case Some(s) => {
-      assert(s.getEnvironment.getVars.toSet[String] subsetOf env.map(_.getName()),
-        "The set of variables in the state is not a subset of variables in the environment.")
-    }
-    case None =>
-  }
+//  state match {
+//    case Some(s) => {
+//      //assert(s.getEnvironment.getVars.toSet[String] subsetOf env.map(_.getName()), "The set of variables in the state is not a subset of variables in the environment.")
+//      if (!(s.getEnvironment.getVars.toSet[String] subsetOf env.map(_.getName())))
+//      throw new Exception("The set of variables in the state is not a subset of variables in the environment.")
+//    }
+//    case None =>
+//  }
 
   override def factory(): ApronInterface = {
     top()
@@ -150,7 +151,10 @@ class ApronInterface(val state: Option[Abstract1],
 //    if (!(from.toSet[Identifier] subsetOf this.getIds()))
 //      throw new Exception("Identifiers that should be renamed are not present.")
     state match {
-      case None => return this
+      case None => {
+        val newEnv = env -- from ++ to
+        return new ApronInterface(state, domain, env = newEnv)
+      }
       case Some(s) => {
         val stateVars = s.getEnvironment.getVars
         var index = 0

@@ -53,16 +53,16 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   }
 
   def getPaths(path: List[String]): Set[List[EdgeWithState[S]]] = {
-    //**assert(path.size > 0, "The path must be non-empty.")
-    val startingVertices = vertices.filter(v => v.name == path.head)
-    //**assert(startingVertices.size == 1, "The start of the path is not uniquely determined. This should not happen, " + "as the start should be always a variable.")
+    assert(path.size > 0, "The path must be non-empty.")
+    val startingVertices = vertices.filter(v => v.name.equals(path.head))
+    assert(startingVertices.size == 1, "The start of the path is not uniquely determined. This should not happen, " + "as the start should be always a variable.")
     val startingVertex = startingVertices.head
-    //**assert(startingVertex.isInstanceOf[LocalVariableVertex], "The starting node should always represent a local variable.")
+    assert(startingVertex.isInstanceOf[LocalVariableVertex], "The starting node should always represent a local variable.")
     paths(List.empty[EdgeWithState[S]], startingVertex, path)
   }
 
   def paths(prefix: List[EdgeWithState[S]], currentVertex : Vertex, path: List[String]): Set[List[EdgeWithState[S]]] = {
-    //**assert(path.size > 0, "The path should never be empty.")
+    assert(path.size > 0, "The path should never be empty.")
     var possibleNextEdges: Set[EdgeWithState[S]] = null
     if (currentVertex.isInstanceOf[LocalVariableVertex]) {
       possibleNextEdges = edges.filter(e => e.source.equals(currentVertex) && e.field == None)
@@ -75,7 +75,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
         return result
       }
       case x :: xs => {
-        //**assert(xs.size > 0, "This should never happen, should be caught by the previous case.")
+        assert(xs.size > 0, "This should never happen, should be caught by the previous case.")
         var result = Set.empty[List[EdgeWithState[S]]]
         for (e <- possibleNextEdges) {
           result = result.union(paths(prefix :+ e, e.target, path.tail))
@@ -88,7 +88,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   }
 
   def assignAllValStates(leftId: Identifier, rightExp: Expression): HeapGraph[S] = {
-    //**assert(leftId.isInstanceOf[VariableIdentifier] || leftId.isInstanceOf[ValueHeapIdentifier], "The other kinds of identifiers are not supported.")
+    assert(leftId.isInstanceOf[VariableIdentifier] || leftId.isInstanceOf[ValueHeapIdentifier], "The other kinds of identifiers are not supported.")
     rightExp match {
       case c: Constant => {
         var resEdges = Set.empty[EdgeWithState[S]]
@@ -155,7 +155,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       case _ =>
         newVertex = new LocalVariableVertex(label, typ)
     }
-    return (new HeapGraph[S](vertices + newVertex,edges), newVertex)
+    (new HeapGraph[S](vertices + newVertex,edges), newVertex)
   }
 
   def addVertices(vs: Set[Vertex]): HeapGraph[S] = {
@@ -181,8 +181,8 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
    */
   def addEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] = {
     for (e <- es) {
-      //**assert(containsVertex(this, e.source), "Trying to add edge that does not have source in the set of vertices")
-      //**assert(containsVertex(this, e.target), "Trying to add edge that does not have target in the set of vertices")
+      assert(containsVertex(this, e.source), "Trying to add edge that does not have source in the set of vertices")
+      assert(containsVertex(this, e.target), "Trying to add edge that does not have target in the set of vertices")
     }
     return new HeapGraph[S](vertices,edges ++ es.filter(e => (vertices.contains(e.source) && vertices.contains(e.target))))
   }
@@ -236,7 +236,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
    * @return
    */
   def refineMaxEdges(maxEdges: Map[EdgeWithState[S],Set[EdgeWithState[S]]], from: Vertex, to: Vertex) : Map[EdgeWithState[S],Set[EdgeWithState[S]]] = {
-    //**assert(from.label.equals(to.label), "The labels of " + from.toString + " and " + to.toString + " are not the same.")
+    assert(from.label.equals(to.label), "The labels of " + from.toString + " and " + to.toString + " are not the same.")
     var newMaxEdges = Map.empty[EdgeWithState[S],Set[EdgeWithState[S]]]
     for ((edge, edgeSet) <- maxEdges) {
       var newEdgeSet = edgeSet
@@ -289,7 +289,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     //    //**println("When computing mcs " + mcsCounter + " nodes of the search tree were explored")
     var resEdgeMap =  Map.empty[EdgeWithState[S], EdgeWithState[S]]
     for ((from,to) <- edgeMap) {
-      //**assert(to.size <= 1, "This should be always the case if the isomorphism is valid.")
+      assert(to.size <= 1, "This should be always the case if the isomorphism is valid.")
       if (to.size > 0)
         resEdgeMap = resEdgeMap + (from -> to.head)
     }
@@ -314,7 +314,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     var renameFrom = List.empty[Identifier]
     var renameTo = List.empty[Identifier]
     for ((from, to) <- iso) {
-      //**assert(from.typ.equals(to.typ))
+      assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
         for (valField <- from.typ.getPossibleFields().filter(!_.getType().isObject())) {
           renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
@@ -382,7 +382,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       renaming = renaming + (v -> newV)
     }
     for ((from, to) <- renaming) {
-      //**assert(from.typ.equals(to.typ))
+      assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
         for (valField <- from.typ.getPossibleFields().filter(!_.getType().isObject())) {
           renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
@@ -487,7 +487,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     var resultEdges = Set.empty[EdgeWithState[S]]
     for (edge <- this.edges) {
       val weakEqualsSet = resultEdges.filter(_.weakEquals(edge))
-      //**assert(weakEqualsSet.size <= 1)
+      assert(weakEqualsSet.size <= 1)
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
@@ -500,7 +500,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     var resultEdges = Set.empty[EdgeWithState[S]]
     for (edge <- graph.edges) {
       val weakEqualsSet = resultEdges.filter(_.weakEquals(edge))
-      //**assert(weakEqualsSet.size <= 1)
+      assert(weakEqualsSet.size <= 1)
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
@@ -513,7 +513,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     var resultEdges = Set.empty[EdgeWithState[S]]
     for (edge <- graph.edges) {
       val weakEqualsSet = resultEdges.filter(_.weakEquals(edge))
-      //**assert(weakEqualsSet.size <= 1)
+      assert(weakEqualsSet.size <= 1)
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
@@ -625,14 +625,14 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
             throw new Exception("repKeySet should never be empty.")
           }
           val key = replacementVertexMap.keySet.filter(_.contains(edge.source)).head
-          //**assert(key.size > 0, "The source vertex should be present in exactly one set.")
+          assert(key.size > 0, "The source vertex should be present in exactly one set.")
           replacementVertexMap.apply(key)
         } else
           edge.source
       val newTrgVertex: Vertex =
         if (edge.target.isInstanceOf[HeapVertex]) {
           val key = replacementVertexMap.keySet.filter(_.contains(edge.target)).head
-          //**assert(key.size > 0, "The target vertex should be present in exactly one set.")
+          assert(key.size > 0, "The target vertex should be present in exactly one set.")
           replacementVertexMap.apply(key)
         } else
           edge.target
@@ -646,7 +646,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   }
 
   def wideningAfterMerge(left: HeapGraph[S], right: HeapGraph[S]): HeapGraph[S] = {
-    //**assert(left.vertices.size == right.vertices.size)
+    assert(left.vertices.size == right.vertices.size)
     val resGraph = new HeapGraph[S](left.vertices ++ right.vertices, left.edges ++ right.edges)
     checkConsistancy(resGraph)
     return widenCommonEdges(resGraph)
@@ -705,7 +705,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
           if ((nodesToUpdate.size == 1 && nodesToUpdate.head.isInstanceOf[DefiniteHeapVertex]) || // Strong update
               (pathsToConds.keySet.size == 1
                 && pathsToConds.keySet.head.last.target.equals(edge.target)
-                && pathsToConds.keySet.head.last.source.isInstanceOf[DefiniteHeapVertex])) { // Weak update with strong update of the target EdgeLocalIdentifier
+                && (pathsToConds.keySet.head.last.source.isInstanceOf[DefiniteHeapVertex] || pathsToConds.keySet.head.last.source.isInstanceOf[LocalVariableVertex]))) { // Weak update with strong update of the target EdgeLocalIdentifier
             resultingState = edge.state.bottom()
           }
           val conditions = Utilities.applyConditions(Set(edge.state), Utilities.applyConditions(pathsToConds.values.toSet[S], condsForExp))
@@ -756,7 +756,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
 //  def materializeAccessPath(a)
 //
 //  def materializeVertex(v : HeapVertex): (HeapGraph[S], HeapVertex) = {
-//    //**assert(vertices.contains(v), "The vertex to be materialized is not present.")
+//    assert(vertices.contains(v), "The vertex to be materialized is not present.")
 //    if (v.isInstanceOf[DefiniteHeapVertex])
 //      return (this, v)
 //    var (resultingGraph, newVertex) = addNewVertex(VertexConstants.DEFINITE, v.typ)
