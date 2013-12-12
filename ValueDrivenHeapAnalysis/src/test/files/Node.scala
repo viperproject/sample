@@ -12,11 +12,11 @@ class Node {
   var value: Int = 0
   var next: Node = null
 
-  def createNext(v : Int, node1: Node, node2 : Node) = {
+  def createNext(v : Int) = {
 
-    if (this.value < 0) {
-      this.value = 2
-    }
+//    if (this.value < 0) {
+//      this.value = 2
+//    }
 
 //    var first = new Node()
 //    first = null
@@ -67,16 +67,16 @@ class Node {
 //    if (next != null)
 //      next.value = v
 
-//    var result = new Node()
-//    result.value = 0
-//    var p = result
-//    var i = 1
-//    while (i < v) {
-//      p.next = new Node()
-//      p = p.next
-//      p.value = i
-//      i = i + 1
-//    }
+    var result = new Node()
+    var p = result
+    p.value = 0
+    var i = 1
+    while (i < v) {
+      p.next = new Node()
+      p = p.next
+      p.value = i
+      i = i + 1
+    }
 
 //    value = 0
 //    var p = this
