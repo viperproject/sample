@@ -1,7 +1,7 @@
 package graph
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{StaticModifier, NativeMethodSemantics, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.property._
@@ -179,14 +179,31 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             }
             // Creating edges from LocalVariableVertices to HeapVertices (with sub-typing) and to NullVertex (except for "this" variable)
             for (locVarVertex <- newVertices.filter(_.isInstanceOf[LocalVariableVertex]).asInstanceOf[Set[LocalVariableVertex]]) {
+              // Only treat a local variable vertex named "this" differently
+              // if the current method is non-static.
+              // This is a simple work-around for the following issue:
+              // https://bitbucket.org/semperproject/sample/issue/16
+              // TODO: The constant "this" should probably not be hard-coded
+              // into analyses, if we want the analyses to be independent
+              // from source languages.
+
+              // We cannot use the compiler method `getMethod` as the current
+              // parameter list is not available.
+              val methods = SystemParameters.compiler.getMethods(SystemParameters.currentMethod)
+              // Works as long as there is no method overloading
+              assert(methods.size == 1)
+
+              val isInstanceVar = locVarVertex.name.equals("this") &&
+                !methods.head._2.modifiers.contains(StaticModifier)
+
               // Arguments can point to null
-              if (!locVarVertex.name.equals("this")) {
+              if (!isInstanceVar) {
                 // Only arguments other than "this" can point to null
                 resultingEdges += new EdgeWithState[S](locVarVertex, newGenValState, None, nullVertex)
               }
               for (heapVertex <- newVertices.filter(v => v.isInstanceOf[HeapVertex] && v.typ.lessEqual(locVarVertex.typ)).asInstanceOf[Set[HeapVertex]]) {
                 // "this" must have an exact type
-                if (!locVarVertex.name.equals("this") || heapVertex.typ.equals(locVarVertex.typ)) {
+                if (!isInstanceVar || heapVertex.typ.equals(locVarVertex.typ)) {
                   // Create target EdgeLocalIdentifiers
                   var trgValState = newGenValState
                   for (valField <- heapVertex.typ.getPossibleFields().filter(!_.getType().isObject())) {
