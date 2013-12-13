@@ -300,8 +300,10 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             if (edgesToAdd.isEmpty)
               result = bottom()
             else {
-              val tempAH = abstractHeap.addEdges(edgesToAdd)
-              val (resultingAH, idsToRemove) = tempAH.removeEdges(edgesToRemove).prune()
+              // Remove the old edges before adding the new ones.
+              // It's possible that the two sets of edges overlap.
+              var tempAH = abstractHeap.removeEdges(edgesToRemove).addEdges(edgesToAdd)
+              val (resultingAH, idsToRemove) = tempAH.prune()
               result = new ValueDrivenHeapState[S](resultingAH, Utilities.removeVariablesFromState(generalValState, idsToRemove), new ExpressionSet(rightExp.getType()).add(variable), false, isBottom)
             }
           }
