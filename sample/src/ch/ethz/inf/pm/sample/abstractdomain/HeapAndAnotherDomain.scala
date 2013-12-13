@@ -847,7 +847,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=applyToAssignable[N](variable, this.d1, _.createVariable(_, typ));
+    result.d1=applyToAssignable[N](variable, this.d1.merge(r), _.createVariable(_, typ));
     SystemParameters.domainTimer.stop();
     result
   }
@@ -858,7 +858,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=d;
     SystemParameters.heapTimer.stop();
     SystemParameters.domainTimer.start();
-    result.d1=applyToAssignable[N](variable, this.d1, _.removeVariable(_));
+    result.d1=applyToAssignable[N](variable, this.d1.merge(r), _.removeVariable(_));
     SystemParameters.domainTimer.stop();
     result
   }
@@ -919,18 +919,12 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   override def lubWithReplacement(l : T, r : T) : (T,Replacement) = {
     val result : T = this.factory()
-
-    SystemParameters.domainTimer.start()
-    val s = d1.lub(l.d1, r.d1)
-    SystemParameters.domainTimer.stop()
-
     SystemParameters.heapTimer.start()
-    val (d, rep) =d2.lubWithReplacement(l.d2, r.d2, s)
+    val (d, rep) =d2.lubWithReplacement(l.d2, r.d2)
     result.d2=d
     SystemParameters.heapTimer.stop()
-
     SystemParameters.domainTimer.start()
-    result.d1 = s.merge(rep)
+    result.d1 = d1.lub(l.d1.merge(rep), r.d1.merge(rep))
     SystemParameters.domainTimer.stop()
     (result,rep)
   }
@@ -944,8 +938,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=d
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
-    val s = d1.glb(l.d1, r.d1)
-    result.d1= s.merge(rep)
+    result.d1 = d1.glb(l.d1.merge(rep), r.d1.merge(rep))
     SystemParameters.domainTimer.stop()
     (result,rep)
   }
@@ -959,8 +952,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d2=d
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
-    val s = d1.widening(l.d1, r.d1)
-    result.d1= s.merge(rep)
+    result.d1 = d1.widening(l.d1.merge(rep), r.d1.merge(rep))
     SystemParameters.domainTimer.stop()
     (result,rep)
   }
@@ -985,7 +977,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       case x : VariableIdentifier =>
         return functor(state, x)
       case x : I =>
-        var result : L = functor(state, x)
+        val result : L = functor(state, x)
         return result;
     }
   }

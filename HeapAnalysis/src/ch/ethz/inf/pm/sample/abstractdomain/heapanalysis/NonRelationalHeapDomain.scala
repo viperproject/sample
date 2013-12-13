@@ -11,9 +11,8 @@ import scala.Some
 import scala.collection.mutable
 
 object NonRelationalHeapDomainSettings {
-  var unsoundEntryState : Boolean = true;
-  var maxInitialNodes : Int = 5;
-  var useExtendedLub: Boolean = true;
+  var unsoundEntryState : Boolean = true
+  var maxInitialNodes : Int = 5
 }
 
 class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint)
@@ -122,7 +121,7 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
   override def glb(l : HeapEnv[I], r : HeapEnv[I]):HeapEnv[I] = throw new UnsupportedOperationException("Use glbWithReplacement")
   override def widening(l : HeapEnv[I], r : HeapEnv[I]):HeapEnv[I] = throw new UnsupportedOperationException("Use wideningWithReplacement")
 
-  def lubWithReplacementMust[S <: SemanticDomain[S]](l: HeapEnv[I], r: HeapEnv[I], semantic: S): (HeapEnv[I], Replacement) = {
+  def lubWithReplacementMust[S <: SemanticDomain[S]](l: HeapEnv[I], r: HeapEnv[I]): (HeapEnv[I], Replacement) = {
     if(l.equals(r)) return (l, new Replacement())
     if (l.isBottom) return (r, new Replacement())
     if (r.isBottom) return (l, new Replacement())
@@ -131,9 +130,7 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
     val left = l.merge(repSummaries)
     val right = r.merge(repSummaries)
 
-    val repTuples =
-      if (NonRelationalHeapDomainSettings.useExtendedLub) lubReplacementsForTuples(left, right, semantic.merge(repSummaries))
-      else lubReplacementsForTuplesSimple(left, right)
+    val repTuples = lubReplacementsForTuplesSimple(left, right)
 
     val res = super.lub(left, right)
     val newHeap = res.merge(repTuples)
@@ -165,56 +162,6 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
 
     val replacements = new Replacement
     replacements.value += (removeIdentifiers -> Set.empty[Identifier])
-    replacements
-  }
-
-
-  private def lubReplacementsForTuples[S <: SemanticDomain[S]](l: HeapEnv[I], r: HeapEnv[I], semantic: S): Replacement = {
-    val leftTuples = l.getIds collect { case x:CollectionTupleIdentifier => x}
-    val rightTuples = r.getIds collect { case x:CollectionTupleIdentifier => x}
-
-    val replacements = new Replacement
-    var unusedTuples = leftTuples ++ rightTuples
-    for (leftTuple <- leftTuples;
-        rightTuple <- rightTuples) {
-      if (leftTuple.equals(rightTuple)) {
-        unusedTuples -= leftTuple
-      } else if (leftTuple.collectionApprox == rightTuple.collectionApprox) {
-        val rightKey = rightTuple.getCollectionKey(rightTuple)
-        val rightValue = rightTuple.getCollectionValue(rightTuple)
-        val leftKey = leftTuple.getCollectionKey(leftTuple)
-        val leftValue = leftTuple.getCollectionValue(leftTuple)
-        if (leftTuple.contains(rightTuple)) {
-          replacements.value += (Set[Identifier](rightTuple, leftTuple) -> Set[Identifier](leftTuple))
-          replacements.value += (Set[Identifier](rightKey, leftKey) -> Set[Identifier](leftKey))
-          replacements.value += (Set[Identifier](rightValue, leftValue) -> Set[Identifier](leftValue))
-          unusedTuples -= leftTuple
-          unusedTuples -= rightTuple
-        } else if(rightTuple.contains(leftTuple)) {
-          replacements.value += (Set[Identifier](rightTuple, leftTuple) -> Set[Identifier](rightTuple))
-          replacements.value += (Set[Identifier](rightKey, leftKey) -> Set[Identifier](rightKey))
-          replacements.value += (Set[Identifier](rightValue, leftValue) -> Set[Identifier](rightValue))
-          unusedTuples -= leftTuple
-          unusedTuples -= rightTuple
-        } else if (semantic.areEqual(leftKey, rightKey).equals(BooleanDomain.domTrue) || semantic.areEqual(leftValue, rightValue).equals(BooleanDomain.domTrue)) {
-          val newTuple = leftTuple.createCollectionTuple(leftTuple, rightTuple)
-          replacements.value += (Set[Identifier](leftTuple, rightTuple) -> Set[Identifier](newTuple))
-          replacements.value += (Set[Identifier](leftKey, rightKey) -> Set[Identifier](newTuple.getCollectionKey(newTuple)))
-          replacements.value += (Set[Identifier](leftValue, rightValue) -> Set[Identifier](newTuple.getCollectionValue(newTuple)))
-          unusedTuples -= leftTuple
-          unusedTuples -= rightTuple
-        }
-      }
-    }
-
-    var idsToRemove = unusedTuples.asInstanceOf[Set[I]]
-    for (tuple <- unusedTuples) {
-      idsToRemove += tuple.getCollectionKey(tuple).asInstanceOf[I]
-      idsToRemove += tuple.getCollectionValue(tuple).asInstanceOf[I]
-    }
-    if (!idsToRemove.isEmpty)
-      replacements.value += (idsToRemove.asInstanceOf[Set[Identifier]] -> Set.empty[Identifier])
-
     replacements
   }
 
@@ -518,7 +465,8 @@ abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
   def getCollectionValue(collectionTuple:Assignable): I
 }
 
-abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I], H <: AbstractNonRelationalHeapDomain[I, H]](env: VariableEnv[I], heap: HeapEnv[I], val cod: HeapIdSetDomain[I], dom: I)
+abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I], H <: AbstractNonRelationalHeapDomain[I, H]]
+    (env: VariableEnv[I], heap: HeapEnv[I], val cod: HeapIdSetDomain[I], dom: I)
   extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], H](env, heap)
   with HeapDomain[H, I]
   with HeapAnalysis[H, I] {
@@ -579,7 +527,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
 
   def getDomainLabel(): String = dom.getLabel()
 
-  override def parameters() : List[(String, Any)] = List((("UnsoundEntryState"), true), (("MaxEntryNodes"), 10), (("ExtendedLub", true)))
+  override def parameters() : List[(String, Any)] = List((("UnsoundEntryState"), true), (("MaxEntryNodes"), 10))
 
   override def setParameter(label : String, value : Any) : Unit = label match {
     case "UnsoundEntryState" => value match {
@@ -589,10 +537,6 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
     case "MaxEntryNodes" => value match {
       case b : Int => NonRelationalHeapDomainSettings.maxInitialNodes=b
       case s : String => NonRelationalHeapDomainSettings.maxInitialNodes=s.toInt
-    }
-    case "ExtendedLub" => value match {
-      case b: Boolean => NonRelationalHeapDomainSettings.useExtendedLub=b
-      case s: String => NonRelationalHeapDomainSettings.useExtendedLub=s.toBoolean
     }
   }
 
@@ -1215,12 +1159,6 @@ class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Vari
 
   def getInitialState(): NonRelationalMustHeapDomain[I] =  new NonRelationalMustHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
 
-  override def lubWithReplacement[S <: SemanticDomain[S]](left: NonRelationalMustHeapDomain[I], right: NonRelationalMustHeapDomain[I], semantic: S): (NonRelationalMustHeapDomain[I], Replacement) = {
-    val (lub1, rep1) = this._1.lubWithReplacement(left._1, right._1)
-    val (lub2, rep2) = this._2.lubWithReplacementMust(left._2, right._2, semantic)
-    (factory(lub1,lub2), rep1 ++ rep2)
-  }
-
   override def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp:Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMustHeapDomain[I], Replacement) = {
     val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
 
@@ -1610,13 +1548,6 @@ class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](hea
     val (lub2, rep2) = this._2.lubWithReplacement(left._2, right._2)
 
     (new NonRelationalMayAndMustHeapDomain[I](lub1, lub2), rep1.lub(rep1, rep2))
-  }
-
-  override def lubWithReplacement[S <: SemanticDomain[S]](left: NonRelationalMayAndMustHeapDomain[I], right: NonRelationalMayAndMustHeapDomain[I], semantic: S): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (lub1, rep1) = this._1.lubWithReplacement(left._1, right._1, semantic)
-    val (lub2, rep2) = this._2.lubWithReplacement(left._2, right._2, semantic)
-
-    (new NonRelationalMayAndMustHeapDomain[I](lub1, lub2), rep1 ++ rep2)
   }
 
   def glbWithReplacement(left: NonRelationalMayAndMustHeapDomain[I], right: NonRelationalMayAndMustHeapDomain[I]): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {

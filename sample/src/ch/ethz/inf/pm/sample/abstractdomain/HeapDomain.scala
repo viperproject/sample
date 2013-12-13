@@ -457,8 +457,6 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    */
   def getCollectionLength(collection: Assignable): HeapIdSetDomain[I]
 
-  def lubWithReplacement[S <: SemanticDomain[S]](left: T, right: T, semantic: S): (T, Replacement) = this.lubWithReplacement(left, right)
-
   /**
    * Performs abstract garbage collection
    */

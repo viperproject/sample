@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample
 
 import ch.ethz.inf.pm.sample.property._
-import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.Timer
 
@@ -12,6 +11,11 @@ import ch.ethz.inf.pm.sample.util.Timer
  * @since 0.1
  */
 object SystemParameters {
+
+  /**
+   * Enables costly debugging flags
+   */
+  val DEBUG = true
 
   /**
    * Flag that informs whether the running analysis is ValueDrivenHeapAnalysis

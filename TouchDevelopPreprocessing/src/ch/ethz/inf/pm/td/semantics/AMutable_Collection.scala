@@ -64,8 +64,10 @@ abstract class AMutable_Collection extends ALinearCollection {
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
-        val newState = CollectionRemove[S](this0, index)(state, pp)
-        CollectionInsert[S](this0, index, value)(newState, pp)
+        //val newState = CollectionRemove[S](this0, index)(state, pp)
+        //CollectionInsert[S](this0, index, value)(newState, pp)
+        // FIXME: This is broken
+        CollectionInsert[S](this0, index, value)(state,pp)
       }, Else=(state) => {
         state
       })
