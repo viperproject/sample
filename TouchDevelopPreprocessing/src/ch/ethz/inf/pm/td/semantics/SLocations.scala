@@ -28,10 +28,11 @@ class SLocations extends AAny {
     /** Creates a new geo coordinate location */
     case "create location" =>
       val List(latitude,longitude) = parameters // Number,Number
-      New[S](TLocation.typ,Map(
+      val res = New[S](TLocation.typ,Map(
         TLocation.field_latitude -> latitude,
         TLocation.field_longitude -> longitude
       ))
+      res
 
     /** Creates an empty list of locations */
     case "create location list" =>

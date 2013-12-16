@@ -24,7 +24,15 @@ class ApronInterface(val state: Option[Abstract1],
 
   if (SystemParameters.DEBUG) {
     if (env.map(_.getName()).size != env.size) {
-      throw new ApronException("When constructing ApronInterface: Two different identifiers have the same getName() representation!")
+      var seen:Map[String,Identifier] = Map.empty
+      var badBoys:Set[(Identifier,Identifier)] = Set.empty
+      for (e <- env) {
+        seen.get(e.getName()) match {
+          case Some(x) => badBoys = badBoys + ((x,e))
+          case None => seen = seen + (e.getName() -> e)
+        }
+      }
+      throw new ApronException("When constructing ApronInterface: Two different identifiers have the same getName() representation! "+badBoys)
     }
     state match {
       case Some(s) => {
@@ -270,15 +278,15 @@ class ApronInterface(val state: Option[Abstract1],
 
           val rightSummaryNodesNames = rightSummaryNodes.toList
           val newSummaryNodeNames = rightSummaryNodesNames map {x:Identifier => SimpleApronIdentifier(x.getName() + "__TEMP",!x.representSingleVariable,x.getType(),x.getProgramPoint())}
-          val materializedState = new ApronInterface(Some(assignedState),domain,env = env).rename(rightSummaryNodesNames,newSummaryNodeNames)
-          val summaryState = new ApronInterface(Some(newState),domain, env = env).removeVariable(variable)
+          val materializedState = new ApronInterface(Some(assignedState),domain,env = someState.env).rename(rightSummaryNodesNames,newSummaryNodeNames)
+          val summaryState = new ApronInterface(Some(newState),domain, env = someState.env).removeVariable(variable)
 
           val resultState = lub(materializedState,summaryState)
           resultState.removeVariables(newSummaryNodeNames.map(_.getName()).toArray)
 
         } else {
 
-          new ApronInterface(Some(assignedState),domain, env = env + variable)
+          new ApronInterface(Some(assignedState),domain, env = someState.env + variable)
 
         }
       })
@@ -426,6 +434,20 @@ class ApronInterface(val state: Option[Abstract1],
         cur = cur.lub(cur,this.expand(from.head,newVars))
       }
       return cur
+    }
+
+    // 5th trivial case: A set of simple renames
+    var isRenames = true
+    for ((from,to) <- r.value) {
+      if (from.size != 1 || to.size != 1) {
+        isRenames = false
+      }
+    }
+    if (isRenames) {
+      val unzipped = r.value.unzip
+      val leftSide = unzipped._1.map { x:Set[Identifier] => x.head}.toList
+      val rightSide = unzipped._2.map { x:Set[Identifier] => x.head}.toList
+      return this.rename(leftSide, rightSide)
     }
 
     // Filter out everything that is converting to a summary node -- we can handle this
@@ -738,7 +760,6 @@ class ApronInterface(val state: Option[Abstract1],
           newState = lub(newStateLeft, newStateRight)
         case NondeterministicOperator.to =>
           newState = newState.
-            createVariable(id, ndExpr.getType()).
             assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.getType())).
             assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=, ndExpr.getType()))
       }

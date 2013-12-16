@@ -671,18 +671,19 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
 
   override def assign[S <: SemanticDomain[S]](variable : Assignable, expr : Expression, state : S) : (H, Replacement) = {
 
-    if(! variable.getType().isObject)
-    // It does not modify the heap
-      return (this.asInstanceOf[H], new Replacement)
+    // THIS MAY CAUSE A PROBLEM - the heap domain must know about all identifiers to construct correct replacements
+//    if(! variable.getType().isObject)
+//    // It does not modify the heap
+//      return (this.asInstanceOf[H], new Replacement)
 
     variable match {
       case x : VariableIdentifier =>
         expr match {
           case value : HeapIdSetDomain[I] =>
-            (factory(_1.add(x, this.normalize(value)),_2.factory()), new Replacement)
+            (factory(_1.add(x, this.normalize(value)),_2), new Replacement)
           case _ =>
             val value=this.eval(expr)
-            (factory(_1.add(x, this.normalize(value)),_2.factory()), new Replacement)
+            (factory(_1.add(x, this.normalize(value)),_2), new Replacement)
         }
       case x : I =>
         val value=this.eval(expr)
