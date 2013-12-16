@@ -169,6 +169,8 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
     val leftSummaryNodes = l.getIds collect { case x:I if !x.representSingleVariable() => x }
     val rightSummaryNodes = r.getIds collect { case x:I if !x.representSingleVariable() => x }
 
+    if (leftSummaryNodes.isEmpty && rightSummaryNodes.isEmpty) return new Replacement()
+
     val makeSummaryLeft = (rightSummaryNodes -- leftSummaryNodes).map(_.toNonSummaryNode)
     val makeSummaryRight = (leftSummaryNodes -- rightSummaryNodes).map(_.toNonSummaryNode)
 
@@ -1089,7 +1091,7 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Variable
   override def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, originalCollectionTyp:Option[Type], keyCollectionTyp:Option[Type], pp:ProgramPoint) : (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
     val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
 
-    var newHeap = this
+    var newHeap = heap
 
     for (coll <- collections.value) {
       val approxId = dom.getCollectionOverApproximation(coll)

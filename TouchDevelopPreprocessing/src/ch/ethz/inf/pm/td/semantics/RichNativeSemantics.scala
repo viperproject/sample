@@ -556,7 +556,7 @@ object RichNativeSemantics {
 
       curState = curState.assignVariable(l,r)
     }
-    curState.optimizeSummaryNodes()
+    curState
 
   }
   /*-- Reading and writing of fields --*/

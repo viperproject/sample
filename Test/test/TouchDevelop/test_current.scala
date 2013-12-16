@@ -3,7 +3,7 @@ import ch.ethz.inf.pm.td.analysis.TestRunner
 
 
 val toAnalyze =
-  """
+  """aayea
   """.stripMargin.split("[\n,]").map(_.trim).toSet
 
 def analyzer(id:String) {
@@ -29,7 +29,7 @@ for(a <- toAnalyze) {
 //TestRunner("ayleioek",analyzer _)
 //TestRunner("uyphb",analyzer _)
 //TestRunner("wxoza",analyzer _) // SOMEWHAT, OKAY
-TestRunner("gyxha",analyzer _)
+//TestRunner("gyxha",analyzer _)
 //TestRunner("etww",analyzer _)
 //TestRunner("awaja",analyzer _)
 

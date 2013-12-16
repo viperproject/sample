@@ -199,7 +199,7 @@ case class CollectionIdentifier(override val pp:ProgramPoint, collTyp:Type, keyT
     case _ => false
   }
 
-  override def toString() : String = collTyp.toString + "("+pp.toString+")" + (if (summary) "Σ" else "")
+  override def toString() : String = collTyp.toString + "("+pp.toString+")" + (if (PPDSettings.printSummary && summary) "Σ" else "")
   override def factory() : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
   override def representSingleVariable() : Boolean= !summary
   override def clone() : Object = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
