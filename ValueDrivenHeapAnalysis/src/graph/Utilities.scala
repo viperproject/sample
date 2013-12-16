@@ -30,16 +30,16 @@ object Utilities {
   def negateExpression(exp: Expression): Expression = exp match {
     // TODO(severinh): Code is similar to ApronInterface.assume. Code sharing may be possible.
     case NegatedBooleanExpression(e) => e
-    case BinaryArithmeticExpression(l,r,o,t) => {
-      new BinaryArithmeticExpression(negateExpression(l),negateExpression(r), ArithmeticOperator.negate(o), t)
-    }
-    case BinaryBooleanExpression(l,r,o,t) => {
+    case BinaryArithmeticExpression(l, r, o, t) =>
+      new BinaryArithmeticExpression(l, r, ArithmeticOperator.negate(o), t)
+    case BinaryBooleanExpression(l, r, o, t) =>
       new BinaryBooleanExpression(negateExpression(l), negateExpression(r), negateBoolOperator(o), t)
-    }
-    case TrueExpression(pp, t) => new FalseExpression(pp, t)
-    case FalseExpression(pp, t) => new TrueExpression(pp, t)
-    case ReferenceComparisonExpression(l,r,o,t) => new ReferenceComparisonExpression(l,r, ArithmeticOperator.negate(o), t)
-    case x => x
+    case Constant("true", typ, pp) =>
+      Constant("false", typ, pp)
+    case Constant("false", typ, pp) =>
+      Constant("true", typ, pp)
+    case ReferenceComparisonExpression(l, r, o, t) =>
+      new ReferenceComparisonExpression(l, r, ArithmeticOperator.negate(o), t)
   }
 
   private def negateBoolOperator(op: BooleanOperator.Value): BooleanOperator.Value = op match {
