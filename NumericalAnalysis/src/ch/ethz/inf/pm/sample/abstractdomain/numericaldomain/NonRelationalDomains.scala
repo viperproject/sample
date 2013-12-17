@@ -28,48 +28,15 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
   def intersect(value: N): Boolean
 }
 
-class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N) extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]() with NumericalDomain[BoxedNonRelationalNumericalDomain[N]] {
+class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
+                                                                              _value:Map[Identifier, N] = Map.empty[Identifier, N],
+                                                                              _isBottom:Boolean = false,
+                                                                              _isTop:Boolean = false)
+  extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]](_value,_isBottom,_isTop)
+  with NumericalDomain[BoxedNonRelationalNumericalDomain[N]] {
 
-  /*
-  override def merge(r : Replacement) : BoxedNonRelationalNumericalDomain[N] = {
-    if(r.isEmpty) return this
-    var result : BoxedNonRelationalNumericalDomain[N] = this.clone
-    val removedVariables : scala.collection.Set[Identifier]= flatten(r.keySet)
-    //We remove the variables from the result state
-    for(v <- removedVariables)
-      result=result.remove(v)
-    for(s <- r.keySet) {
-      var value : N = dom.bottom()
-      //We compute the value that should be assigned to all other ids
-      for(v <- s)
-        value=value.lub(value, this.get(v))
-      //We assign the value to all other ids
-      for(v <- r.apply(s))
-        result=result.merge(v, value)
-    }
-    return result
-  }
-  override def clone() : BoxedNonRelationalNumericalDomain[N] = {
-    val result = this.factory()
-    for(k <- this.value.keySet)
-      result.value=result.value+((k, this.value.apply(k)))
-    return result
-  }
-  private def merge(id : Identifier, v : N) : BoxedNonRelationalNumericalDomain[N] = {
-    if(this.value.keySet.contains(id))
-      return this.add(id, v.lub(v, this.get(id)))
-    else return this.add(id, v)
-  }
-  private def flatten[A](s : scala.collection.Set[Set[A]]) : scala.collection.Set[A] = {
-    var result : scala.collection.Set[A] = Set.empty[A]
-    for(el <- s) {
-      result=result.union(el)
-    }
-    return result
-  }
-  */
-
-  def factory() = new BoxedNonRelationalNumericalDomain[N](dom.factory())
+  def functionalFactory(_value:Map[Identifier, N] = Map.empty[Identifier, N],_isBottom:Boolean = false,_isTop:Boolean = false) : BoxedNonRelationalNumericalDomain[N] =
+    new BoxedNonRelationalNumericalDomain[N](dom,_value,_isBottom,_isTop)
 
   def get(key: Identifier): N = value.get(key) match {
     case None => dom.bottom()

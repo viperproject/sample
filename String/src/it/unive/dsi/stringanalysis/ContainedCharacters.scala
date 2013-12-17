@@ -7,10 +7,13 @@ class InverseSetCharacters extends InverseSetDomain[Char, InverseSetCharacters] 
   def factory() : InverseSetCharacters = new InverseSetCharacters();
 }
 
-class SurelyContainedCharacters extends SimplifiedSemanticDomain[SurelyContainedCharacters] 
-     with BoxedDomain[InverseSetCharacters, SurelyContainedCharacters] {
+class SurelyContainedCharacters
+  (_value:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters],_isBottom:Boolean = false,_isTop:Boolean = false)
+  extends BoxedDomain[InverseSetCharacters, SurelyContainedCharacters](_value,_isBottom,_isTop)
+  with SimplifiedSemanticDomain[SurelyContainedCharacters] {
 
-  def factory() : SurelyContainedCharacters = new SurelyContainedCharacters ();
+  def functionalFactory(_value:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters],_isBottom:Boolean = false,_isTop:Boolean = false) : SurelyContainedCharacters =
+    new SurelyContainedCharacters(_value,_isBottom,_isTop)
   
   /*
    * The following methods are already defined by BoxedDomain

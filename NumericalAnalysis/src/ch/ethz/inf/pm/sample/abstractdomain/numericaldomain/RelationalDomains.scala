@@ -16,16 +16,19 @@ class UpperBoundRightPart extends InverseSetDomain[Identifier, UpperBoundRightPa
 	override def factory() = new UpperBoundRightPart();
 }
 
-class UpperBound extends RelationalNumericalDomain[UpperBound] with BoxedDomain[UpperBoundRightPart, UpperBound] {
-  //def getIds : Set[Identifier] = this.value.keySet.asInstanceOf[Set[Identifier]];
+class UpperBound(_value:Map[Identifier, UpperBoundRightPart] = Map.empty[Identifier, UpperBoundRightPart],
+                 _isBottom:Boolean = false,
+                 _isTop:Boolean = false)
+  extends BoxedDomain[UpperBoundRightPart, UpperBound](_value,_isBottom,_isTop)
+  with RelationalNumericalDomain[UpperBound] {
+
+  def functionalFactory(_value:Map[Identifier, UpperBoundRightPart] = Map.empty[Identifier, UpperBoundRightPart],
+                        _isBottom:Boolean = false,
+                        _isTop:Boolean = false) : UpperBound =
+    new UpperBound(_value,_isBottom,_isTop)
 
   override def merge(r : Replacement) = if(r.isEmpty) this; else throw new SemanticException("Merge not yet implemented");
-	
-	def this(v : Map[Identifier, UpperBoundRightPart]) {
-		this();
-		this.value=v;
-	}
-	
+
 	override def get(key : Identifier) : UpperBoundRightPart = this.value.get(key) match {
 		case Some(s) => s;
 		case None => new UpperBoundRightPart();

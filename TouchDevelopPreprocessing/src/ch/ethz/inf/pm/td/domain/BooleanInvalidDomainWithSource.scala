@@ -14,11 +14,16 @@ import PositionedInvalidValueDomain._
  * Time: 10:50 AM
  * 
  */
-class BooleanInvalidDomainWithSource
-  extends BoxedDomain[PositionedInvalidValueDomain,BooleanInvalidDomainWithSource]
+class BooleanInvalidDomainWithSource (_value:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
+                                      _isBottom:Boolean = false,
+                                      _isTop:Boolean = false)
+  extends BoxedDomain[PositionedInvalidValueDomain,BooleanInvalidDomainWithSource] (_value,_isBottom,_isTop)
   with InvalidDomain[BooleanInvalidDomainWithSource] {
 
-  override def factory() = new BooleanInvalidDomainWithSource
+  def functionalFactory(_value:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
+                        _isBottom:Boolean = false,
+                        _isTop:Boolean = false) : BooleanInvalidDomainWithSource =
+    new BooleanInvalidDomainWithSource(_value,_isBottom,_isTop)
 
   def get(key : Identifier) : PositionedInvalidValueDomain = value.get(key) match {
     case None => domBottom

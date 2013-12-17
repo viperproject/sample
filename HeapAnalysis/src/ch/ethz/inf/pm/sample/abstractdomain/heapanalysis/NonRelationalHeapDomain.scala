@@ -103,11 +103,20 @@ class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint)
   def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h1, h2)
 }
 
-class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : HeapIdSetDomain[I]) extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]]
-    with LatticeWithReplacement[HeapEnv[I]] {
+class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
+                                                   _value:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
+                                                   _isBottom:Boolean = false,
+                                                   _isTop:Boolean = false)
+  extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]](_value,_isBottom,_isTop)
+  with LatticeWithReplacement[HeapEnv[I]] {
+
+  def functionalFactory(_value:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
+                        _isBottom:Boolean = false,
+                        _isTop:Boolean = false) : HeapEnv[I] =
+    new HeapEnv[I](dom,_value,_isBottom,_isTop)
 
   def getIds = this.getAddresses;
-  override def factory() = new HeapEnv(typ, dom)
+
   private def getAddresses : Set[I] = {
     var result : Set[I] = Set.empty[I] ++ value.keySet;
     val it : Iterator[HeapIdSetDomain[I]] = value.values.iterator;
@@ -284,19 +293,24 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : Hea
     // handle values
     curVal = curVal.mapValues( _.merge(rep) )
 
-    val ret = this.factory()
-    ret.value = curVal
-    ret
-
+    functionalFactory(curVal)
   }
 }
 
-class VariableEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom : HeapIdSetDomain[I])
-    extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]]
+class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
+                                                       _value:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
+                                                       _isBottom:Boolean = false,
+                                                       _isTop:Boolean = false)
+    extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]](_value,_isBottom,_isTop)
     with LatticeWithReplacement[VariableEnv[I]] {
 
-  def getIds : Set[Identifier] = (this.getVariables++this.getAddresses).asInstanceOf[Set[Identifier]];
-  override def factory() = new VariableEnv(typ, dom)
+  def functionalFactory(_value:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
+                        _isBottom:Boolean = false,
+                        _isTop:Boolean = false) : VariableEnv[I] =
+    new VariableEnv[I](dom,_value,_isBottom,_isTop)
+
+  def getIds : Set[Identifier] = (this.getVariables++this.getAddresses)
+
   private def getVariables=value.keySet;
   private def getAddresses : Set[I]={
     var result : Set[I] = Set.empty[I];
@@ -419,11 +433,7 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](var typ : Type, val dom :
     }
 
     curVal = curVal.mapValues( _.merge(rep) )
-
-    val ret = this.factory()
-    ret.value = curVal
-    ret
-
+    functionalFactory(curVal)
   }
 
 }
@@ -1078,11 +1088,11 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
 class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom: I)
   extends AbstractNonRelationalHeapDomain[I, NonRelationalHeapDomain[I]](env, heap, cod, dom) {
 
-  def this(typ : Type, cod : HeapIdSetDomain[I], dom : I) = {
-    this(new VariableEnv(typ, cod), new HeapEnv(typ, cod), cod, dom)
+  def this(cod : HeapIdSetDomain[I], dom : I) = {
+    this(new VariableEnv(cod), new HeapEnv(cod), cod, dom)
   }
 
-  override def getInitialState() = new NonRelationalHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
+  override def getInitialState() = new NonRelationalHeapDomain(new VariableEnv(env.dom), new HeapEnv(heap.dom), cod, dom);
 
   def factory(a: VariableEnv[I], b: HeapEnv[I]) = new NonRelationalHeapDomain(a, b, cod.factory(), dom.factory())
 
@@ -1152,15 +1162,15 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Variable
 class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom:I)
   extends AbstractNonRelationalHeapDomain[I, NonRelationalMustHeapDomain[I]](env, heap, cod, dom) {
 
-  def this(typ : Type, cod : HeapIdSetDomain[I], dom : I) {
-    this(new VariableEnv(typ, cod), new HeapEnv(typ, cod), cod, dom)
+  def this(cod : HeapIdSetDomain[I], dom : I) {
+    this(new VariableEnv(cod), new HeapEnv(cod), cod, dom)
   }
 
   def getLabel(): String = "Must Heap Domain:"+dom.getLabel();
 
   def factory(a: VariableEnv[I], b: HeapEnv[I]) = new NonRelationalMustHeapDomain(a, b, cod.factory(), dom.factory())
 
-  def getInitialState(): NonRelationalMustHeapDomain[I] =  new NonRelationalMustHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
+  def getInitialState(): NonRelationalMustHeapDomain[I] =  new NonRelationalMustHeapDomain(new VariableEnv(env.dom), new HeapEnv(heap.dom), cod, dom);
 
   override def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp:Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMustHeapDomain[I], Replacement) = {
     val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
@@ -1588,8 +1598,8 @@ class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](hea
 class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom:I)
   extends AbstractNonRelationalHeapDomain[I, NonRelationalSummaryCollectionHeapDomain[I]](env, heap, cod, dom) {
 
-  def this(typ : Type, cod : HeapIdSetDomain[I], dom : I) {
-    this(new VariableEnv(typ, cod), new HeapEnv(typ, cod), cod, dom)
+  def this(cod : HeapIdSetDomain[I], dom : I) {
+    this(new VariableEnv(cod), new HeapEnv(cod), cod, dom)
   }
 
   def getLabel(): String = "Summary Collection Heap Domain:"+dom.getLabel();
@@ -1599,7 +1609,7 @@ class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[
     new NonRelationalSummaryCollectionHeapDomain[I](a,b, cod.factory(), dom.factory())
   }
 
-  def getInitialState(): NonRelationalSummaryCollectionHeapDomain[I] =  new NonRelationalSummaryCollectionHeapDomain(new VariableEnv(env.typ, env.dom), new HeapEnv(heap.typ, heap.dom), cod, dom);
+  def getInitialState(): NonRelationalSummaryCollectionHeapDomain[I] =  new NonRelationalSummaryCollectionHeapDomain(new VariableEnv(env.dom), new HeapEnv(heap.dom), cod, dom);
 
   override def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp:Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalSummaryCollectionHeapDomain[I], Replacement) = {
     val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))

@@ -7,10 +7,14 @@ class SetCharacters extends SetDomain[Char, SetCharacters] {
   def factory() : SetCharacters = new SetCharacters();
 }
 
-class MaybeContainedCharacters extends SimplifiedSemanticDomain[MaybeContainedCharacters] 
-     with BoxedDomain[SetCharacters, MaybeContainedCharacters] {
+class MaybeContainedCharacters
+  (_value:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters],_isBottom:Boolean = false,_isTop:Boolean = false)
+  extends BoxedDomain[SetCharacters, MaybeContainedCharacters](_value,_isBottom,_isTop)
+  with SimplifiedSemanticDomain[MaybeContainedCharacters] {
 
-  def factory() : MaybeContainedCharacters = new MaybeContainedCharacters();
+  def functionalFactory(_value:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters],_isBottom:Boolean = false,_isTop:Boolean = false) : MaybeContainedCharacters =
+    new MaybeContainedCharacters(_value,_isBottom,_isTop)
+
   /*
    * The following methods are already defined by BoxedDomain
    * def top() : ContainedCharacters

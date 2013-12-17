@@ -3,7 +3,7 @@ import ch.ethz.inf.pm.td.analysis.TestRunner
 
 
 val toAnalyze =
-  """aayea
+  """aagya
   """.stripMargin.split("[\n,]").map(_.trim).toSet
 
 def analyzer(id:String) {

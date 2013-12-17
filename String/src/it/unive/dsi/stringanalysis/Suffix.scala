@@ -80,9 +80,14 @@ class SuffixDomain extends Lattice[SuffixDomain]
   }
 }
 
-class Suffix extends SimplifiedSemanticDomain[Suffix] with BoxedDomain[SuffixDomain, Suffix] 
+class Suffix
+  (_value:Map[Identifier, SuffixDomain] = Map.empty[Identifier, SuffixDomain],_isBottom:Boolean = false,_isTop:Boolean = false)
+  extends BoxedDomain[SuffixDomain, Suffix](_value,_isBottom,_isTop) with SimplifiedSemanticDomain[Suffix]
 {
-   def factory() : Suffix = new Suffix();
+
+  def functionalFactory(_value:Map[Identifier, SuffixDomain] = Map.empty[Identifier, SuffixDomain],_isBottom:Boolean = false,_isTop:Boolean = false) : Suffix =
+    new Suffix(_value,_isBottom,_isTop)
+
    def setToTop(variable : Identifier) : Suffix = this.remove(variable);
    def assign(variable : Identifier, expr : Expression) : Suffix = this.add(variable, this.eval(expr));
    def assume(expr : Expression) : Suffix = this;

@@ -363,9 +363,13 @@ class BricksDomain extends Lattice[BricksDomain]
 }
 
 
-class Bricks extends SimplifiedSemanticDomain[Bricks] with BoxedDomain[BricksDomain, Bricks] 
+class Bricks (_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain],_isBottom:Boolean = false,_isTop:Boolean = false)
+  extends BoxedDomain[BricksDomain, Bricks](_value,_isBottom,_isTop)
+  with SimplifiedSemanticDomain[Bricks]
 {
-   def factory() : Bricks = new Bricks();
+   def functionalFactory(_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain],_isBottom:Boolean = false,_isTop:Boolean = false) : Bricks =
+     new Bricks(_value,_isBottom,_isTop)
+
    def setToTop(variable : Identifier) : Bricks = this.remove(variable);
    def assign(variable : Identifier, expr : Expression) : Bricks = this.add(variable, this.eval(expr));
    def assume(expr : Expression) : Bricks = this;

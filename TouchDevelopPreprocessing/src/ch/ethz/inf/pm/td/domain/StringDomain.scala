@@ -14,11 +14,17 @@ trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends Sim
  * @param dom An instance of the value domain. Only for factory purposes
  * @tparam T The type of the value domain
  */
-class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
-  extends BoxedDomain[T,NonrelationalStringDomain[T]]
+class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
+                                                          _value:Map[Identifier, T] = Map.empty[Identifier, T],
+                                                          _isBottom:Boolean = false,
+                                                          _isTop:Boolean = false)
+  extends BoxedDomain[T,NonrelationalStringDomain[T]] (_value,_isBottom,_isTop)
   with StringDomain[T,NonrelationalStringDomain[T]] {
 
-  override def factory() = new NonrelationalStringDomain[T](dom)
+  def functionalFactory(_value:Map[Identifier, T] = Map.empty[Identifier, T],
+                        _isBottom:Boolean = false,
+                        _isTop:Boolean = false) : NonrelationalStringDomain[T] =
+    new NonrelationalStringDomain[T](dom,_value,_isBottom,_isTop)
 
   def get(key : Identifier) : T = value.get(key) match {
     case None => dom.bottom()
@@ -75,8 +81,6 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T)
       result
     case x: Expression => dom.top()
   }
-
-  override def isCovered(i:Identifier):Boolean = i.getType().isStringType()
 
   /**
    * This is imprecise, but sound

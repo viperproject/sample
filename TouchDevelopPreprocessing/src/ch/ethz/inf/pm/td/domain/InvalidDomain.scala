@@ -19,11 +19,16 @@ import BooleanDomain._
 
 trait InvalidDomain[T <: InvalidDomain[T]] extends SimplifiedSemanticDomain[T]
 
-class BooleanInvalidDomain
-  extends BoxedDomain[BooleanDomain,BooleanInvalidDomain]
+class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Identifier, BooleanDomain],
+                            _isBottom:Boolean = false,
+                            _isTop:Boolean = false)
+  extends BoxedDomain[BooleanDomain,BooleanInvalidDomain] (_value,_isBottom,_isTop)
   with InvalidDomain[BooleanInvalidDomain] {
 
-  override def factory() = new BooleanInvalidDomain
+  def functionalFactory(_value:Map[Identifier, BooleanDomain] = Map.empty[Identifier, BooleanDomain],
+                        _isBottom:Boolean = false,
+                        _isTop:Boolean = false) : BooleanInvalidDomain =
+    new BooleanInvalidDomain(_value,_isBottom,_isTop)
 
   def get(key : Identifier) : BooleanDomain = value.get(key) match {
     case None => domBottom

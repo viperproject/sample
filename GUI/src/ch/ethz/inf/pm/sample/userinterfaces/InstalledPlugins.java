@@ -1,13 +1,11 @@
 package ch.ethz.inf.pm.sample.userinterfaces;
 
 import ch.ethz.inf.pm.sample.abstractdomain.HeapDomain;
-import ch.ethz.inf.pm.sample.abstractdomain.MaybeHeapIdSetDomain;
 import ch.ethz.inf.pm.sample.abstractdomain.SemanticAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.accesspermissions.AccessPermissionsAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.*;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NonRelationalNumericalAnalysis;
-import ch.ethz.inf.pm.sample.oorepresentation.Type;
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
 import ch.ethz.inf.pm.sample.td.cost.loops.CostAnalysis;
 import ch.ethz.inf.pm.sample.td.cost.loops.LoopCostCompiler;
@@ -43,41 +41,13 @@ public class InstalledPlugins {
         };
 
         heapanalyses = new HeapDomain[] {
-                createNonRelationalMayHeapDomain(new TopHeapIdentifier(null, null)),
-                createNonRelationalMayHeapDomain(new ClassHeapIdentifier(null, null)),
-                createNonRelationalMayHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0)),
-                createNonRelationalMayAndMustHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0)),
-                createNonRelationalSummaryCollectionHeapDomain(new NullProgramPointHeapIdentifier(null, null, 0)),
+                GuiRunner.createNonRelationalMayHeapDomain(new TopHeapIdentifier(null, null)),
+                GuiRunner.createNonRelationalMayHeapDomain(new ClassHeapIdentifier(null, null)),
+                GuiRunner.createNonRelationalMayHeapDomain((ProgramPointHeapIdentifier) new NullProgramPointHeapIdentifier(null, null, 0)),
+                GuiRunner.createNonRelationalMayAndMustHeapDomain((ProgramPointHeapIdentifier)new NullProgramPointHeapIdentifier(null, null, 0)),
+                GuiRunner.createNonRelationalSummaryCollectionHeapDomain((ProgramPointHeapIdentifier)new NullProgramPointHeapIdentifier(null, null, 0)),
                 new TVSHeap()
         };
 
-    }
-
-    private static NonRelationalHeapDomain createNonRelationalMayHeapDomain(NonRelationalHeapIdentifier id) {
-        Type typ=null;
-        MaybeHeapIdSetDomain ids = new MaybeHeapIdSetDomain();
-        VariableEnv env= new VariableEnv(typ, ids);
-        HeapEnv heap= new HeapEnv(typ, ids);
-        return new NonRelationalHeapDomain(env, heap, ids, id);
-    }
-
-    private static NonRelationalMayAndMustHeapDomain createNonRelationalMayAndMustHeapDomain(NonRelationalHeapIdentifier id) {
-        Type typ=null;
-        NonRelationalHeapDomain mayHeap = createNonRelationalMayHeapDomain(id);
-
-        TupleIdSetDomain mustIds = new TupleIdSetDomain();
-        VariableEnv mustEnv = new VariableEnv(typ, mustIds);
-        HeapEnv mustHeapEnv = new HeapEnv(typ, mustIds);
-        NonRelationalMustHeapDomain mustHeap = new NonRelationalMustHeapDomain(mustEnv, mustHeapEnv, mustIds, id);
-
-        return new NonRelationalMayAndMustHeapDomain(mayHeap, mustHeap);
-    }
-
-    private static NonRelationalSummaryCollectionHeapDomain createNonRelationalSummaryCollectionHeapDomain(NonRelationalHeapIdentifier id) {
-        Type typ=null;
-        MaybeHeapIdSetDomain ids = new MaybeHeapIdSetDomain();
-        VariableEnv env= new VariableEnv(typ, ids);
-        HeapEnv heap= new HeapEnv(typ, ids);
-        return new NonRelationalSummaryCollectionHeapDomain(env, heap, ids, id);
     }
 }

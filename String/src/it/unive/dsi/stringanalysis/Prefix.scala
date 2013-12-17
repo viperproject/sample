@@ -77,9 +77,14 @@ class PrefixDomain extends Lattice[PrefixDomain]
   }
 }
 
-class Prefix extends SimplifiedSemanticDomain[Prefix] with BoxedDomain[PrefixDomain, Prefix] 
+class Prefix
+  (_value:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain],_isBottom:Boolean = false,_isTop:Boolean = false)
+  extends BoxedDomain[PrefixDomain, Prefix](_value,_isBottom,_isTop) with SimplifiedSemanticDomain[Prefix]
 {
-   def factory() : Prefix = new Prefix();
+
+  def functionalFactory(_value:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain],_isBottom:Boolean = false,_isTop:Boolean = false) : Prefix =
+    new Prefix(_value,_isBottom,_isTop)
+
    def setToTop(variable : Identifier) : Prefix = this.remove(variable);
    def assign(variable : Identifier, expr : Expression) : Prefix = this.add(variable, this.eval(expr));
    def assume(expr : Expression) : Prefix = this;

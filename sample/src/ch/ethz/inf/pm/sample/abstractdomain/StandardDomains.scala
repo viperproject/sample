@@ -11,28 +11,35 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * codomain is a lattice. The lattice operators are the functional extensions of the lattice operators of
  * the codomain.
  *
- * @param <K> The type of the keys
- * @param <V> The type of the codomain that has to be a lattice
- * @param <T> The type of the current functional domain
- * @author Pietro Ferrara
+ * @tparam K The type of the keys
+ * @tparam V The type of the codomain that has to be a lattice
+ * @tparam T The type of the current functional domain
+ * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
-trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] extends Lattice[T] {
+abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
+  (val value:Map[K, V] = Map.empty[K, V],val isBottom:Boolean = false,val isTop:Boolean = false)
+  extends Lattice[T] {
 
-  var value: Map[K, V] = Map.empty[K, V]
-  var isBottom: Boolean = false;
+  override def factory():T = functionalFactory()
+
+  /**
+   * Creates a new instance of the functional domain with the given contents
+   *
+   * @param value The map of values, empty if bottom or top
+   * @param isBottom Domain is bottom
+   * @param isTop Domain is top for all keys
+   * @return A fresh instance
+   */
+  def functionalFactory(value:Map[K, V] = Map.empty[K, V],isBottom:Boolean = false,isTop:Boolean = false):T
 
   /**
    * Adds [key->value] to the domain 
    * @param key The key
-   * @param value The value 
+   * @param v The value
    * @return The state of the domain after the assignment
    */
-  def add(key: K, value: V): T = {
-    val result: T = this.factory();
-    result.value = this.value + ((key, value));
-    result
-  }
+  def add(key: K, v: V): T = functionalFactory(value + ((key, v)))
 
   /**
    * Returns the value of key. It is not implemented since in some domains if the domain is not defined on the given
@@ -43,18 +50,14 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
    * @param key The key
    * @return The value related to the given key
    */
-  def get(key: K): V;
+  def get(key: K): V
 
   /**
    * Removes the key from the domain. 
    * @param key The key to be removed
    * @return The state of the domain after the kays has been removed
    */
-  def remove(key: K): T = {
-    val result: T = this.factory();
-    result.value = this.value - (key);
-    result
-  }
+  def remove(key: K): T = functionalFactory(value - key)
 
   /**
    * Computes the upper bound between two states. It is defined by:
@@ -64,14 +67,11 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
    * @return The upper bound of left and right
    */
   def lub(left: T, right: T): T = {
-    if (left.equals(this.bottom())) return right;
-    if (right.equals(this.bottom())) return left;
-    //if(left.equals(this.top()) || right.equals(this.top())) return this.top();
-    if (left.equals(right)) return left;
-    val res: Map[K, V] = upperBoundFunctionalLifting(left, right);
-    val result = this.factory();
-    result.value = res
-    result
+    if (left.isBottom) return right
+    if (right.isBottom) return left
+    if (left.isTop) return left
+    if (right.isTop) return right
+    functionalFactory(upperBoundFunctionalLifting(left, right))
   }
 
 
@@ -83,16 +83,11 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
    * @return The lower bound of left and right
    */
   def glb(left: T, right: T): T = {
-    if (left.equals(this.bottom()) || right.equals(this.bottom())) return this.bottom();
-    if (left.equals(this.top())) return right;
-    if (right.equals(this.top())) return left;
-    var result: Map[K, V] = Map.empty[K, V]
-    for (el <- left.value.keySet ++ right.value.keySet) {
-      result = result + ((el, left.get(el).glb(left.get(el), right.get(el))))
-    }
-    val domain = this.factory()
-    domain.value = result
-    domain
+    if (left.isBottom) return left
+    if (right.isBottom) return right
+    if (left.isTop) return right
+    if (right.isTop) return left
+    this.functionalFactory(lowerBoundFunctionalLifting(left,right))
   }
 
   /**
@@ -103,13 +98,11 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
    * @return The upper bound of left and right
    */
   override def widening(left: T, right: T): T = {
-    if (left.isBottom && right.isBottom) return this.bottom();
-    if (left.isBottom) return right;
-    if (right.isBottom) return left;
-    val res: Map[K, V] = wideningFunctionalLifting(left, right);
-    val result = this.factory();
-    result.value = res
-    result
+    if (left.isBottom) return right
+    if (right.isBottom) return left
+    if (left.isTop) return left
+    if (right.isTop) return right
+    functionalFactory(wideningFunctionalLifting(left, right))
   }
 
   /**
@@ -121,8 +114,8 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
   override def lessEqual(r: T): Boolean = {
 
     // Case we are bottom
-    if (this.isBottom) return true
-    if (r.isBottom) return false
+    if (this.isBottom || r.isTop) return true
+    if (r.isBottom || this.isTop) return false
 
     for (variable <- this.value.keySet)
       if (!this.get(variable).lessEqual(r.get(variable)))
@@ -131,40 +124,40 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
       if (!this.get(variable).lessEqual(r.get(variable)))
         return false
 
-    return true
+    true
   }
 
   override def equals(a: Any): Boolean = a match {
     case right: T =>
-      //case bottom
-      if (this.isBottom && right.isBottom) return true;
-      if (this.isBottom || right.isBottom) return false;
+      if (this.isBottom && right.isBottom) return true
+      if (this.isBottom || right.isBottom) return false
+      if (this.isTop && right.isTop) return true
+      if (this.isTop || right.isTop) return false
       if (this.value.keySet.equals(right.value.keySet)) {
         for (variable <- this.value.keySet)
           if (!this.value.get(variable).get.equals(right.value.get(variable).get))
-            return false;
-        return true;
+            return false
+        true
       }
-      else return false
+      else false
     case _ => false
   }
 
-  override def toString(): String = {
-    if (isBottom) return "_|_";
-    else return ToStringUtilities.mapToString(value);
+  override def toString: String = {
+    if (isBottom) "_|_"
+    else if (isTop) "T"
+    else ToStringUtilities.mapToString(value)
   }
 
-  def top(): T = {
-    var result: T = this.factory();
-    result.value = Map.empty[K, V]
-    for (key <- this.value.keySet)
-      result = result.add(key, this.get(key).top())
-    result
-  }
+  def top(): T = functionalFactory(isTop = true)
 
-  def bottom(): T = {
-    val result: T = this.factory()
-    result.isBottom = true;
+  def bottom(): T = functionalFactory(isBottom = true)
+
+  private def lowerBoundFunctionalLifting(f1: T, f2: T): Map[K, V] = {
+    var result: Map[K, V] = Map.empty[K, V]
+    for (el <- f1.value.keySet ++ f2.value.keySet) {
+      result = result + ((el, f1.get(el).glb(f1.get(el), f2.get(el))))
+    }
     result
   }
 
@@ -173,7 +166,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
     for (el <- f1.value.keySet) {
       f2.value.get(el) match {
         case Some(x) => result = result + ((el, x.widening(f1.value.get(el).get, x)))
-        case None => result = result + ((el, f1.value.get(el).get));
+        case None => result = result + ((el, f1.value.get(el).get))
       }
     }
     for (el <- f2.value.keySet) {
@@ -190,7 +183,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
     for (el <- f1.value.keySet) {
       f2.value.get(el) match {
         case Some(x) => result = result + ((el, x.lub(f1.value.get(el).get, x)))
-        case None => result = result + ((el, f1.value.get(el).get));
+        case None => result = result + ((el, f1.value.get(el).get))
       }
     }
     for (el <- f2.value.keySet) {
@@ -207,90 +200,47 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]] exten
  * The representation of a boxed domain, that is, a domain that is a functional domain whose keys are (variable
  * or heap) identifiers
  *
- * @param <V> The type of the codomain that has to be a lattice
- * @param <T> The type of the current boxed domain
- * @author Pietro Ferrara
+ * @tparam V The type of the codomain that has to be a lattice
+ * @tparam T The type of the current boxed domain
+ * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
-trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]] extends FunctionalDomain[Identifier, V, T] {
+abstract class BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
+  (_value:Map[Identifier, V] = Map.empty[Identifier, V],_isBottom:Boolean = false,_isTop:Boolean = false)
+  extends FunctionalDomain[Identifier, V, T](_value,_isBottom,_isTop) {
+
   def merge(r: Replacement): T = {
-    if (r.isEmpty) return this.asInstanceOf[T];
-    var result: T = this.clone;
-    val removedVariables: scala.collection.Set[Identifier] = flatten(r.keySet);
-    //We remove the variables from the result state
+
+    if (r.isEmpty()) return this.asInstanceOf[T]
+    var result: T = this.asInstanceOf[T]
+    val removedVariables = r.keySet().flatten
+
+    // We remove the variables from the result state
     for (v <- removedVariables)
-      result = result.remove(v);
-    for (s <- r.keySet) {
-      var value: V = this.get(s.iterator.next).bottom();
-      //We compute the value that should be assigned to all other ids
-      for (v <- s)
-        value = value.lub(value, this.get(v));
-      //We assign the value to all other ids
-      for (v <- r.apply(s))
-        if (isCovered(v)) {
-          result = result.merge(v, value)
-        }
+      result = result.remove(v)
+
+    for (s <- r.keySet()) {
+      var value: V = this.get(s.head).bottom()
+
+      // We compute the value that should be assigned to all other ids
+      for (v <- s) value = value.lub(value, this.get(v))
+
+      // We assign the value to all other ids
+      for (v <- r.apply(s)) result = result.merge(v, value)
     }
 
     result
-
-//    if (r.isEmpty) return this.asInstanceOf[T];
-//    var result: T = this.clone;
-//    val removedVariables: scala.collection.Set[Identifier] = flatten(r.keySet);
-//    //We remove the variables from the result state
-//    for (v <- removedVariables)
-//      result = result.remove(v);
-//    for (s <- r.keySet) {
-//      if (!s.isEmpty) {
-//        var value: V = this.get(s.iterator.next).bottom();
-//        //We compute the value that should be assigned to all other ids
-//        for (v <- s)
-//          value = value.lub(value, this.get(v));
-//
-//        //We assign the value to all other ids
-//        if (!value.lessEqual(value.bottom())) {
-//          for (v <- r.apply(s))
-//            result = result.merge(v, value);
-//        }
-//      }
-//    }
-//    return result;
-  }
-
-  override def clone(): T = {
-    val result = this.factory();
-    for (k <- this.value.keySet)
-      result.value = result.value + ((k, this.value.apply(k)));
-    return result;
   }
 
   private def merge(id: Identifier, v: V): T = {
     if (this.value.keySet.contains(id))
-      return this.add(id, v.lub(v, this.get(id)));
-    else return this.add(id, v);
+      this.add(id, v.lub(v, this.get(id)))
+    else this.add(id, v)
   }
 
-  private def flatten[A](s: scala.collection.Set[Set[A]]): scala.collection.Set[A] = {
-    var result: scala.collection.Set[A] = Set.empty[A];
-    for (el <- s) {
-      result = result.union(el);
-    }
-    return result;
-  }
+  def getStringOfId(id: Identifier): String = this.get(id).toString
 
-
-  def getIds = this.value.keySet;
-
-  def getStringOfId(id: Identifier): String = this.get(id).toString();
-
-  def getAddresses[I <: HeapIdentifier[I]]() = {
-    var result: Set[I] = Set.empty[I];
-    for (id <- this.value.keySet) {
-      if (id.isInstanceOf[HeapIdentifier[I]]) result = result + id.asInstanceOf[I];
-    }
-  }
-
-  def isCovered(i:Identifier):Boolean = true
+  def getIds = value.keySet
 
 }
 

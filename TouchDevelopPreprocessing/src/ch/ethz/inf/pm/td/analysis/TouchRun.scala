@@ -42,7 +42,7 @@ object TouchRun {
         val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
         val heapDomain: NonRelationalHeapDomain[HeapId] =
-          new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
+          new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
         heapDomain.setParameter("UnsoundEntryState",false)
 
         val entryDomain =
@@ -103,7 +103,7 @@ object TouchApronRun {
         val entryValue = new ExpressionSet(SystemParameters.typ.top())
 
         if (TouchAnalysisParameters.enableCollectionSummaryAnalysis) {
-          val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
+          val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
           heapDomain.setParameter("UnsoundEntryState",false)
 
           val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId](numerical, heapDomain)
@@ -114,10 +114,10 @@ object TouchApronRun {
         }
         else if (TouchAnalysisParameters.enableCollectionMustAnalysis) {
           val mustHeapDomain: NonRelationalMustHeapDomain[HeapId] =
-            new NonRelationalMustHeapDomain[HeapId](heapID.getType(), new TupleIdSetDomain(), heapID)
+            new NonRelationalMustHeapDomain[HeapId](new TupleIdSetDomain(), heapID)
 
           val mayHeapDomain: NonRelationalHeapDomain[HeapId] =
-            new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
+            new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
 
           val heapDomain = new NonRelationalMayAndMustHeapDomain[HeapId](mayHeapDomain, mustHeapDomain)
           heapDomain.setParameter("UnsoundEntryState",false)
@@ -128,7 +128,7 @@ object TouchApronRun {
           val analysis = new TouchAnalysisWithApron[ApronInterface]
           analysis.analyze(entryState)
         } else {
-          val heapDomain = new NonRelationalHeapDomain[HeapId](heapID.getType(), new MaybeHeapIdSetDomain(), heapID)
+          val heapDomain = new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
           heapDomain.setParameter("UnsoundEntryState",false)
 
           val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
