@@ -19,9 +19,12 @@ object BooleanDomain {
  * Time: 10:49 AM
  * 
  */
-class BooleanDomain extends SetDomain[Boolean,BooleanDomain] {
+class BooleanDomain(_value: Set[Boolean] = Set.empty[Boolean], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends SetDomain[Boolean,BooleanDomain](_value,_isTop,_isBottom) {
 
-  override def factory() = new BooleanDomain()
+  def setFactory (_value: Set[Boolean] = Set.empty[Boolean], _isTop: Boolean = false, _isBottom: Boolean = false): BooleanDomain
+    = new BooleanDomain(_value,_isTop,_isBottom)
+
   def canBeTrue = isTop || value.contains(true)
   def canBeFalse = isTop || value.contains(false)
 

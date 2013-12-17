@@ -10,15 +10,18 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Expression}
  * @param right The right operand
  * @author Lucas Brutschy
  */
-case class MultiValExpression(left : Expression, right:Expression, returnTyp : Type) extends Expression(left.getProgramPoint()) {
-  override def getType() = returnTyp
+case class MultiValExpression(left : Expression, right:Expression, returnTyp : Type) extends Expression {
+
+  def getProgramPoint = left.getProgramPoint
+  def getType = returnTyp
+  def getIdentifiers : Set[Identifier] = left.getIdentifiers ++ right.getIdentifiers
+
   override def hashCode() : Int = left.hashCode()+right.hashCode()
   override def equals(o : Any) = o match {
     case MultiValExpression(l, r, t) => left.equals(l) && right.equals(r) && returnTyp.equals(t)
     case _ => false
   }
   override def toString = left.toString+","+right.toString
-  def identifiers() : Set[Identifier] = left.identifiers()++right.identifiers()
 
   override def transform(f:(Expression => Expression)):Expression =
     f(MultiValExpression(left.transform(f),right.transform(f),returnTyp))

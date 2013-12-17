@@ -15,29 +15,25 @@ object NonRelationalHeapDomainSettings {
   var maxInitialNodes : Int = 5
 }
 
-class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint)
-  extends HeapIdSetDomain[I](pp) {
+class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint,_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends HeapIdSetDomain[I](pp,_value,_isTop,_isBottom) {
+
+  def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
+    new TupleIdSetDomain[I](pp,_value,_isTop,_isBottom)
 
   def this() = this(null);
 
   override def getType() : Type = {
     var res=SystemParameters.getType().bottom();
     for(a <- this.value)
-      res=res.glb(res, a.getType());
+      res=res.glb(res, a.getType);
     return res;
   }
 
-  override def factory(): HeapIdSetDomain[I] = new TupleIdSetDomain[I](pp)
+  def getIdentifiers(): Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 
-  def identifiers(): Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
-
-  override def add(el: I): HeapIdSetDomain[I] = {
-    var result = factory();
-    result.isTop = false;
-    result.isBottom = false;
-    result.value = value + el;
-    result;
-  }
+  override def add(el: I): HeapIdSetDomain[I] =
+    setFactory(value + el)
 
   override def lub(left: HeapIdSetDomain[I], right: HeapIdSetDomain[I]) : (HeapIdSetDomain[I]) = {
     if (left.isBottom) return right
@@ -73,18 +69,14 @@ class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint)
       newValue = newValue ++ left.value
     }
 
-    val result = this.factory()
-    result.value = newValue
-    (result)
+    setFactory(newValue)
   }
 
   override def glb(left: HeapIdSetDomain[I], right: HeapIdSetDomain[I]): HeapIdSetDomain[I] = {
     if (left.isBottom || right.isBottom) return bottom();
     if (left.isTop) return right;
     if (right.isTop) return left;
-    val result = this.factory()
-    result.value = left.value ++ right.value;
-    result
+    setFactory(left.value ++ right.value)
   }
 
   override def widening(left: HeapIdSetDomain[I], right: HeapIdSetDomain[I]): HeapIdSetDomain[I] = this.lub(left, right)
@@ -95,12 +87,12 @@ class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint)
     right.value.subsetOf(this.value)
   }
 
-  def convert(add: I): HeapIdSetDomain[I] = new TupleIdSetDomain[I](add.getProgramPoint()).add(add)
+  def convert(add: I): HeapIdSetDomain[I] = new TupleIdSetDomain[I](add.getProgramPoint).add(add)
 
   //Used to now if it's definite - glb - or maybe - lub.
   def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s1, s2)
 
-  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h1, h2)
+  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h1, h2)
 }
 
 class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
@@ -529,7 +521,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
 
   override def assignArrayCell[S <: SemanticDomain[S]](obj : Assignable, index : Expression, expr : Expression, state : S) = {
     var result=this.bottom()
-    val ids = this.getArrayCell(obj, index, state, expr.getType())._1
+    val ids = this.getArrayCell(obj, index, state, expr.getType)._1
     for(id <- ids.value)
       result=result.lub(result, this.assign(id, expr, null)._1)
     (result, new Replacement)
@@ -611,7 +603,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
       val newAdd=cod.convert(obj)
       if(! NonRelationalHeapDomainSettings.unsoundEntryState)
         for(add <- result.getIds)
-          if(add.isInstanceOf[I] && add.getType().lessEqual(typ))
+          if(add.isInstanceOf[I] && add.getType.lessEqual(typ))
             newAdd.add(add.asInstanceOf[I])
       if(x.isInstanceOf[VariableIdentifier]) {
         result = factory(result._1.add(x.asInstanceOf[VariableIdentifier], newAdd),result._2)
@@ -620,10 +612,10 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
       alreadyInitialized=alreadyInitialized+obj
       val c = typ.getPossibleFields;
       for(field <- c) {
-        val adds = cod.convert(dom.createAddressForArgument(field.getType(), x.getProgramPoint))
+        val adds = cod.convert(dom.createAddressForArgument(field.getType, x.getProgramPoint))
         //I can ignore newHeap since it's equal to initial as it is not changed by getFieldIdentifier
         //in the same way I ignore rep
-        val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName(), field.getType(), field.getProgramPoint())
+        val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName(), field.getType, field.getProgramPoint)
         for(id : I <- fieldAdd.value) {
           result=factory(result._1,result._2.add(id, adds))
           ids=ids+((id, path ::: (field.getName()) :: Nil))
@@ -645,7 +637,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
   override def assignField(variable : Assignable, s : String, expr : Expression) : (H, Replacement) = {
     var result=this.bottom()
     var replacement=new Replacement()
-    val ids = this.getFieldIdentifier(variable, s, expr.getType, variable.getProgramPoint())._1
+    val ids = this.getFieldIdentifier(variable, s, expr.getType, variable.getProgramPoint)._1
     for(id <- ids.value) {
       val (assigned, repAssignment) = this.assign(id, expr, null)
       val (res, repLub) = result.lubWithReplacement(result, assigned)

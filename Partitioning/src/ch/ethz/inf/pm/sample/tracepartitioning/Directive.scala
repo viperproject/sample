@@ -411,7 +411,7 @@ case class PartitionCondition[D <: State[D]](pp: ProgramPoint, conditions: List[
 	override def apply(p: Partitioning[D]): Partitioning[D] = p match {
 		case Node(d, c) => Node(d, c.map(apply(_)))
 		case Leaf(v) => {
-			val c = conditions.map(c => Leaf(v.assume(new ExpressionSet(c.getType()).add(c))))
+			val c = conditions.map(c => Leaf(v.assume(new ExpressionSet(c.getType).add(c))))
 			Node(this, c)
 		}
 		case _ => p

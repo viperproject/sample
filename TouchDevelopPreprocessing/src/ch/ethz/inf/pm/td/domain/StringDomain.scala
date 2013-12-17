@@ -50,7 +50,7 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
   override def setArgument(variable: Identifier, expr: Expression): NonrelationalStringDomain[T]  = this.assign(variable, expr)
 
   override def assign(variable: Identifier, expr: Expression): NonrelationalStringDomain[T]  = {
-    if (variable.getType().isStringType()) {
+    if (variable.getType.isStringType()) {
       val res = eval(expr)
       //if (res.isBottom) bottom()
       if (variable.representSingleVariable()) this.add(variable, res)
@@ -92,7 +92,7 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
     // Check if we assume something about non-numerical values - if so, return
     val ids = Normalizer.getIdsForExpression(expr)
       for (id <- ids) {
-      if (!id.getType().isStringType()) {
+      if (!id.getType.isStringType()) {
         return this
       }
     }
@@ -177,9 +177,12 @@ trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] {
 
 }
 
-class StringKSetDomain extends KSetDomain[String,StringKSetDomain] with StringValueDomain[StringKSetDomain] {
+class StringKSetDomain(_value: Set[String] = Set.empty[String], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends KSetDomain[String,StringKSetDomain](_value,_isTop,_isBottom)
+  with StringValueDomain[StringKSetDomain] {
 
-  def factory(): StringKSetDomain = new StringKSetDomain
+  def setFactory (_value: Set[String] = Set.empty[String], _isTop: Boolean = false, _isBottom: Boolean = false): StringKSetDomain =
+    new StringKSetDomain(_value,_isTop,_isBottom)
 
   def isSingleton:Boolean = !isBottom && !isTop && value.size == 1
 

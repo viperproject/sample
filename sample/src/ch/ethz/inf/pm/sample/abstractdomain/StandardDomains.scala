@@ -248,30 +248,28 @@ abstract class BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
  * The representation of a set domain, that is, a domain that is represented by a set. The lattice operators 
  * are the common ones of sets, that is, the upper bound is the union, the lower bound the intersection, and so on.
  *
- * @param <V> The type of the values contained in the set
- * @param <T> The type of the current set domain
- * @author Pietro Ferrara
+ * @tparam V The type of the values contained in the set
+ * @tparam T The type of the current set domain
+ * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
-trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
+abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[V],
+                                                  val isTop: Boolean = false,
+                                                  val isBottom: Boolean = false)
+  extends Lattice[T] {
 
-  var value: Set[V] = Set.empty[V]
-  var isTop = false
-  var isBottom = false
+  /**
+   * Constructs a new set domain of the concrete type
+   *
+   * @return a fresh, empty instance of the set domain
+   */
+  def setFactory (value: Set[V] = Set.empty[V],
+                  isTop: Boolean = false,
+                  isBottom: Boolean = false):T
 
-  final def top(): T = {
-    val result: T = this.factory()
-    result.isBottom = false
-    result.isTop = true
-    result
-  }
-
-  def bottom(): T = {
-    val result: T = this.factory()
-    result.isTop = false
-    result.isBottom = true
-    result
-  }
+  override def factory() = setFactory()
+  final def top(): T = setFactory(isTop = true)
+  final def bottom(): T = setFactory(isBottom = true)
 
   /**
    * Removes an element from the set. Formally, return = old(this)\setminus {v}
@@ -282,10 +280,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     if (this.isTop) return this.top()
     if (this.isBottom) return this.bottom()
     val newSet = this.value.-(v)
-    val result = this.factory()
-    result.value = newSet
-    result.isBottom = (result.value.isEmpty)
-    result
+    setFactory(newSet,isBottom = newSet.isEmpty)
   }
 
   /**
@@ -298,10 +293,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
     if (v.isTop) return bottom()
     if (this.isTop) return top()
     val newSet = this.value -- v.value
-    val result = this.factory()
-    result.value = newSet
-    result.isBottom = (result.value.isEmpty)
-    result
+    setFactory(newSet,isBottom = newSet.isEmpty)
   }
 
   /**
@@ -311,9 +303,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
    */
   def add(v: V): T = {
     if (this.isTop) return this.top()
-    var result = factory()
-    result.value = value + v
-    result
+    setFactory(value + v)
   }
 
   /**
@@ -324,28 +314,22 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
   def add(v: T): T = {
     if (this.isTop || v.isTop) return top()
     if (this.isBottom) return v
-    val result: T = this.factory()
-    result.value = this.value ++ v.value
-    result
+    setFactory(this.value ++ v.value)
   }
 
   def lub(left: T, right: T): T = {
     if (left.isTop || right.isTop) return top()
     if (left.isBottom) return right
     if (right.isBottom) return left
-    val result: T = this.factory()
-    result.value = left.value ++ right.value
-    result
+    setFactory(left.value ++ right.value)
   }
 
   def glb(left: T, right: T): T = {
     if (left.isBottom || right.isBottom) return bottom()
     if (left.isTop) return right
     if (right.isTop) return left
-    val result: T = this.factory()
-    result.value = left.value.intersect(right.value)
-    result.isBottom = (result.value.isEmpty)
-    result
+    val newSet = left.value.intersect(right.value)
+    setFactory(newSet, isBottom = newSet.isEmpty)
   }
 
   def widening(left: T, right: T): T = this.lub(left, right)
@@ -391,8 +375,11 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
  *
  * @tparam V the values stored
  * @tparam T the type itself
+ * @author Lucas Brutschy
+ * @since 0.1
  */
-trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] {
+abstract class KSetDomain[V, T <: KSetDomain[V, T]](_value: Set[V] = Set.empty[V], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends SetDomain[V,T](_value,_isTop,_isBottom) {
 
   /**
    * Overwrite this method to set K
@@ -408,8 +395,7 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] {
    */
   override def add(v: V): T = {
     if (this.isTop) return this.top()
-    val result = factory()
-    result.value = value + v
+    val result = setFactory(value + v)
     if (result.value.size > getK) return this.top()
     result
   }
@@ -423,8 +409,7 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] {
   override def add(v: T): T = {
     if (this.isTop || v.isTop) return top()
     if (this.isBottom) return v
-    val result: T = this.factory()
-    result.value = this.value ++ v.value
+    val result: T = setFactory(this.value ++ v.value)
     if (result.value.size > getK) return this.top()
     result
   }
@@ -433,8 +418,7 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] {
     if (left.isBottom) return right
     if (right.isBottom) return left
     if (left.isTop || right.isTop) return top()
-    val result: T = this.factory()
-    result.value = left.value ++ right.value
+    val result: T = setFactory(left.value ++ right.value)
     if (result.value.size > getK) return this.top()
     result
   }
@@ -447,45 +431,37 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] {
  * operators are the inversed one. Formally, the upper bound is the intersection, the lower bound the union, and 
  * so on.
  *
- * @param <V> The type of the values contained in the set
- * @param <T> The type of the current set domain
- * @author Pietro Ferrara
+ * @tparam V The type of the values contained in the set
+ * @tparam T The type of the current set domain
+ * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
-trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
-  override def factory(): T;
+abstract class InverseSetDomain [V, T <: SetDomain[V, T]](_value: Set[V] = Set.empty[V], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends SetDomain[V, T](_value,_isTop,_isBottom) {
 
   override def add(el: V): T = {
-    var result = factory();
-    result.isTop = false;
-    result.isBottom = false;
-    result.value = value + el;
-    result;
+    setFactory(value + el)
   }
 
   override def lub(left: T, right: T): T = {
-    if (left.isTop || right.isTop) return top();
-    if (left.isBottom) return right;
-    if (right.isBottom) return left;
-    val result: T = this.factory()
-    result.value = left.value.intersect(right.value);
-    result
+    if (left.isTop || right.isTop) return top()
+    if (left.isBottom) return right
+    if (right.isBottom) return left
+    setFactory(left.value.intersect(right.value))
   }
 
   override def glb(left: T, right: T): T = {
-    if (left.isBottom || right.isBottom) return bottom();
-    if (left.isTop) return right;
-    if (right.isTop) return left;
-    val result: T = this.factory()
-    result.value = left.value ++ right.value;
-    result
+    if (left.isBottom || right.isBottom) return bottom()
+    if (left.isTop) return right
+    if (right.isTop) return left
+    setFactory(left.value ++ right.value)
   }
 
   override def widening(left: T, right: T): T = this.lub(left, right)
 
   override def lessEqual(right: T): Boolean = {
-    if (this.isBottom) return true;
-    if (right.isTop) return true;
+    if (this.isBottom) return true
+    if (right.isTop) return true
     right.value.subsetOf(this.value)
   }
 }
@@ -495,14 +471,16 @@ trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
  * passing information from one to the other. Each domain could track a different type of information, so their
  * combination could lead to more precise results than each domain separately.
  *
- * @param <T1> The type of the first domain
- * @param <T2> The type of the second domain
- * @param <T> The type of the current domain
- * @author Pietro Ferrara
+ * @tparam T1 The type of the first domain
+ * @tparam T2 The type of the second domain
+ * @tparam T The type of the current domain
+ * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
-abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: CartesianProductDomain[T1, T2, T]]
-    (d1: T1, d2: T2) extends Lattice[T] {
+abstract class CartesianProductDomain
+    [T1 <: Lattice[T1], T2 <: Lattice[T2], T <: CartesianProductDomain[T1, T2, T]]
+    (d1: T1, d2: T2)
+  extends Lattice[T] {
 
   def _1: T1 = d1
 
@@ -552,13 +530,16 @@ abstract class CartesianProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <:
  * The representation of a reduced Cartesian product, that is, a Cartesian product that could pass information
  * from one domain to the other.
  *
- * @param <T1> The type of the first domain
- * @param <T2> The type of the second domain
- * @param <T> The type of the current domain
- * @author Pietro Ferrara
+ * @tparam T1 The type of the first domain
+ * @tparam T2 The type of the second domain
+ * @tparam T The type of the current domain
+ * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
-abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: ReducedProductDomain[T1, T2, T]](d1: T1, d2: T2) extends CartesianProductDomain[T1, T2, T](d1, d2) {
+abstract class ReducedProductDomain
+    [T1 <: Lattice[T1], T2 <: Lattice[T2], T <: ReducedProductDomain[T1, T2, T]]
+    (d1: T1, d2: T2)
+  extends CartesianProductDomain[T1, T2, T](d1, d2) {
 
   /**
    * Reduce the information contained in the two domains. The returned value has to be less or equal
@@ -572,27 +553,37 @@ abstract class ReducedProductDomain[T1 <: Lattice[T1], T2 <: Lattice[T2], T <: R
 /**
  * The representation of a Cartesian product supporting the operations of the semantic domain. 
  *
- * @param <T1> The type of the first domain
- * @param <T2> The type of the second domain
- * @param <T> The type of the current domain
+ * @tparam T1 The type of the first domain
+ * @tparam T2 The type of the second domain
+ * @tparam T The type of the current domain
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]](a1: T1, a2: T2) extends CartesianProductDomain[T1, T2, T](a1, a2) with SemanticDomain[T] {
+abstract class SemanticCartesianProductDomain
+    [T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]]
+    (a1: T1, a2: T2)
+  extends CartesianProductDomain[T1, T2, T](a1, a2)
+  with SemanticDomain[T] {
 
   def getIds() = _1.getIds() ++ _2.getIds()
 
-  def setToTop(variable: Identifier): T = factory(_1.setToTop(variable),_2.setToTop(variable))
+  def setToTop(variable: Identifier): T =
+    factory(_1.setToTop(variable),_2.setToTop(variable))
 
-  def assign(variable: Identifier, expr: Expression): T = factory(_1.assign(variable, expr),_2.assign(variable, expr))
+  def assign(variable: Identifier, expr: Expression): T =
+    factory(_1.assign(variable, expr),_2.assign(variable, expr))
 
-  def setArgument(variable: Identifier, expr: Expression): T = factory(_1.setArgument(variable, expr),_2.setArgument(variable, expr))
+  def setArgument(variable: Identifier, expr: Expression): T =
+    factory(_1.setArgument(variable, expr),_2.setArgument(variable, expr))
 
-  def assume(expr: Expression): T = factory(_1.assume(expr),_2.assume(expr))
+  def assume(expr: Expression): T =
+    factory(_1.assume(expr),_2.assume(expr))
 
-  def merge(r: Replacement): T = factory(_1.merge(r),_2.merge(r))
+  def merge(r: Replacement): T =
+    factory(_1.merge(r),_2.merge(r))
 
-  def createVariable(variable: Identifier, typ: Type): T = factory(_1.createVariable(variable, typ),_2.createVariable(variable, typ))
+  def createVariable(variable: Identifier, typ: Type): T =
+    factory(_1.createVariable(variable, typ),_2.createVariable(variable, typ))
 
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     val (a1, b1) = _1.createVariableForArgument(variable, typ, path)
@@ -600,15 +591,20 @@ abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: Se
     (factory(a1,a2),b1 ++ b2)
   }
 
-  def removeVariable(variable: Identifier): T = factory(_1.removeVariable(variable),_2.removeVariable(variable))
+  def removeVariable(variable: Identifier): T =
+    factory(_1.removeVariable(variable),_2.removeVariable(variable))
 
-  def access(field: Identifier): T = factory(_1.access(field),_2.access(field))
+  def access(field: Identifier): T =
+    factory(_1.access(field),_2.access(field))
 
-  def backwardAccess(field: Identifier): T = factory(_1.backwardAccess(field),_2.backwardAccess(field))
+  def backwardAccess(field: Identifier): T =
+    factory(_1.backwardAccess(field),_2.backwardAccess(field))
 
-  def backwardAssign(variable: Identifier, expr: Expression): T = factory(_1.backwardAssign(variable,expr),_2.backwardAssign(variable,expr))
+  def backwardAssign(variable: Identifier, expr: Expression): T =
+    factory(_1.backwardAssign(variable,expr),_2.backwardAssign(variable,expr))
 
-  def getStringOfId(id: Identifier): String = "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
+  def getStringOfId(id: Identifier): String =
+    "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
 
 }
 
@@ -616,45 +612,46 @@ abstract class SemanticCartesianProductDomain[T1 <: SemanticDomain[T1], T2 <: Se
  * The representation of reduced a Cartesian product supporting the operations of the semantic domain. After each
  * semantic operation the reduction is applied. Note that this implementation is not particularly performant. 
  *
- * @param <T1> The type of the first domain
- * @param <T2> The type of the second domain
- * @param <T> The type of the current domain
+ * @tparam T1 The type of the first domain
+ * @tparam T2 The type of the second domain
+ * @tparam T The type of the current domain
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract class ReducedSemanticProductDomain[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: ReducedSemanticProductDomain[T1, T2, T]](d1: T1, d2: T2) extends SemanticCartesianProductDomain[T1, T2, T](d1, d2) {
-  def reduce(): T;
+abstract class ReducedSemanticProductDomain
+    [T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: ReducedSemanticProductDomain[T1, T2, T]]
+    (d1: T1, d2: T2)
+  extends SemanticCartesianProductDomain[T1, T2, T](d1, d2) {
 
-  override def lub(l: T, r: T): T = super.lub(l, r).reduce();
+  def reduce(): T
 
-  override def glb(l: T, r: T): T = super.glb(l, r).reduce();
+  override def lub(l: T, r: T): T = super.lub(l, r).reduce()
 
-  override def setToTop(variable: Identifier): T = super.setToTop(variable).reduce();
+  override def glb(l: T, r: T): T = super.glb(l, r).reduce()
 
-  override def assign(variable: Identifier, expr: Expression): T = super.assign(variable, expr).reduce();
+  override def setToTop(variable: Identifier): T = super.setToTop(variable).reduce()
 
-  override def setArgument(variable: Identifier, expr: Expression): T = super.setArgument(variable, expr).reduce();
+  override def assign(variable: Identifier, expr: Expression): T = super.assign(variable, expr).reduce()
 
-  override def assume(expr: Expression): T = super.assume(expr).reduce();
+  override def setArgument(variable: Identifier, expr: Expression): T = super.setArgument(variable, expr).reduce()
 
-  override def createVariable(variable: Identifier, typ: Type): T = super.createVariable(variable, typ).reduce();
+  override def assume(expr: Expression): T = super.assume(expr).reduce()
+
+  override def createVariable(variable: Identifier, typ: Type): T = super.createVariable(variable, typ).reduce()
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
-    val (result, i) = super.createVariableForArgument(variable, typ, path);
-    (result.reduce(), i);
+    val (result, i) = super.createVariableForArgument(variable, typ, path)
+    (result.reduce(), i)
   }
 
-  override def removeVariable(variable: Identifier): T = super.removeVariable(variable).reduce();
+  override def removeVariable(variable: Identifier): T = super.removeVariable(variable).reduce()
 
-  override def access(field: Identifier): T = super.access(field).reduce();
+  override def access(field: Identifier): T = super.access(field).reduce()
 
-  override def backwardAccess(field: Identifier): T = super.backwardAccess(field).reduce();
+  override def backwardAccess(field: Identifier): T = super.backwardAccess(field).reduce()
 
-  override def backwardAssign(variable: Identifier, expr: Expression): T = super.backwardAssign(variable, expr).reduce();
+  override def backwardAssign(variable: Identifier, expr: Expression): T = super.backwardAssign(variable, expr).reduce()
 
-  override def merge(r: Replacement): T = super.merge(r).reduce();
+  override def merge(r: Replacement): T = super.merge(r).reduce()
 
 }
-
-
-class StandardDomainException(message: String) extends Exception(message)

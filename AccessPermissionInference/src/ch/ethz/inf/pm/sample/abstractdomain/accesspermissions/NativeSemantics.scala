@@ -20,8 +20,8 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 		    case "share" =>   
 			      for(exp <- ids)
 			    	  exp match {
-			    	    case id : Identifier => result = Annotation.exhaleInvariants(exp.asInstanceOf[Identifier], exp.getType().getName(), castedState)
-			    	    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhaleInvariants(exp.asInstanceOf[MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]], exp.getType().getName(), castedState)
+			    	    case id : Identifier => result = Annotation.exhaleInvariants(exp.asInstanceOf[Identifier], exp.getType.getName(), castedState)
+			    	    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhaleInvariants(exp.asInstanceOf[MaybeHeapIdSetDomain[ProgramPointHeapIdentifier]], exp.getType.getName(), castedState)
 			    	  }
 		    case "unshare" => 
 		      /*if(ids.size == 1) 
@@ -33,14 +33,14 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 		      if(ids.size == 1) 
 			      for(exp <- ids)
 			    	  exp match {
-			    	    case id : Identifier => result = Annotation.inhaleInvariants(id, exp.getType().getName(), castedState)
-                case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhaleInvariants(id, exp.getType().getName(), castedState)
+			    	    case id : Identifier => result = Annotation.inhaleInvariants(id, exp.getType.getName(), castedState)
+                case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.inhaleInvariants(id, exp.getType.getName(), castedState)
 			    	  }
 		    case "release" =>  
 			      for(exp <- ids)
 			    	  exp match {
-			    	    case id : Identifier => result = Annotation.exhaleInvariants(id, exp.getType().getName(), castedState)
-                case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.exhaleInvariants(id, exp.getType().getName(), castedState)
+			    	    case id : Identifier => result = Annotation.exhaleInvariants(id, exp.getType.getName(), castedState)
+                case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result=Annotation.exhaleInvariants(id, exp.getType.getName(), castedState)
 			    	  }
 		    case "free" =>
 		    	  for(exp <- ids)

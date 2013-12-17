@@ -181,7 +181,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
     for (id <- setOfIdentifiers) {
       id match {
         case x: I => {
-          if (linterm.getVariable.contains(id.getProgramPoint().toString)) {
+          if (linterm.getVariable.contains(id.getProgramPoint.toString)) {
             return true
           }
         }

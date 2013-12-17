@@ -273,11 +273,11 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
       // Remove Env
       curState = curState.pruneVariables({
         case id:VariableIdentifier =>
-          id.getType().asInstanceOf[TouchType].isSingleton &&
-          id.getType().getName() != "art" &&
-          id.getType().getName() != "data" &&
-          id.getType().getName() != "code" &&
-          id.getType().getName() != "records"
+          id.getType.asInstanceOf[TouchType].isSingleton &&
+          id.getType.getName() != "art" &&
+          id.getType.getName() != "data" &&
+          id.getType.getName() != "code" &&
+          id.getType.getName() != "records"
         case _ => false
       })
       curState = curState.pruneUnreachableHeap()

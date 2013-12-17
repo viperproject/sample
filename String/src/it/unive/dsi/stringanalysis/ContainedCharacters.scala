@@ -3,8 +3,12 @@ package it.unive.dsi.stringanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-class InverseSetCharacters extends InverseSetDomain[Char, InverseSetCharacters] {
-  def factory() : InverseSetCharacters = new InverseSetCharacters();
+class InverseSetCharacters(_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends InverseSetDomain[Char, InverseSetCharacters](_value,_isTop,_isBottom) {
+
+  def setFactory (_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false, _isBottom: Boolean = false): InverseSetCharacters =
+    new InverseSetCharacters(_value,_isTop,_isBottom)
+
 }
 
 class SurelyContainedCharacters

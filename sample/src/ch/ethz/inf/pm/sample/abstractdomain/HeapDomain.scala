@@ -469,15 +469,16 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
 }
 
 trait Assignable {
-  def getProgramPoint() : ProgramPoint;
-  def getType() : Type;
+  def getProgramPoint : ProgramPoint
+  def getType : Type
 }
 
 
-case class CollectionContainsExpression(collection: Expression, key: Expression, value: Expression, returnTyp: Type, pp: ProgramPoint) extends Expression(pp) {
-  def getType(): Type = returnTyp
+case class CollectionContainsExpression(collection: Expression, key: Expression, value: Expression, returnTyp: Type, pp: ProgramPoint) extends Expression {
 
-  def identifiers(): Set[Identifier] = Set.empty[Identifier]
+  def getProgramPoint = pp
+  def getType: Type = returnTyp
+  def getIdentifiers: Set[Identifier] = Set.empty[Identifier]
 
   override def equals(obj: Any): Boolean = obj match {
     case CollectionContainsExpression(ppX, collectionX, keyX, valueX, returnTypeX) =>
@@ -490,91 +491,96 @@ case class CollectionContainsExpression(collection: Expression, key: Expression,
   def transform(f: (Expression) => Expression): Expression = {
     f(CollectionContainsExpression(f(collection), f(key), f(value), returnTyp, pp))
   }
+
 }
 
-abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](p1 : ProgramPoint) extends Expression(p1) with SetDomain[I, HeapIdSetDomain[I]] {
+abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](pp : ProgramPoint,_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends  SetDomain[I, HeapIdSetDomain[I]](_value,_isTop,_isBottom)
+  with Expression {
 
-  def this() = this(null);
+  def this() = this(null)
+  def getProgramPoint = pp
 
   override def equals(x : Any) : Boolean = x match {
     case x : I => if(value.size==1) return x.equals(value.head); else return false;
     case _ => return super.equals(x);
   }
-  def convert(add : I) : HeapIdSetDomain[I];
+
+  def convert(add : I) : HeapIdSetDomain[I]
 
   def merge(rep:Replacement) : HeapIdSetDomain[I] = {
 
     if (this.isBottom || this.isTop || this.value.isEmpty) return this
 
-    val result = this.factory()
-    result.value = this.value
+    var result = this.value
     for ((froms,tos) <- rep.value) {
 
       val fromsI = froms collect { case x:I => x }
       val tosI = tos collect { case x:I => x }
 
       if (!this.value.intersect(fromsI).isEmpty) {
-         result.value = result.value -- fromsI
-         result.value = result.value ++ tosI
+         result = result -- fromsI
+         result = result ++ tosI
       }
 
     }
-    result
+
+    setFactory(result)
   }
 
-  override def factory() : HeapIdSetDomain[I];
+  override def transform(f:(Expression => Expression)):Expression =
+    this.setFactory(this.value.map( x => f(x).asInstanceOf[I] ))
 
-  //Used to now if it's definite - glb - or maybe - lub.
-  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S;
-  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement);
-
-  override def transform(f:(Expression => Expression)):Expression = {
-    val n = this.factory()
-    n.value = this.value.map( x => f(x).asInstanceOf[I] )
-    n
-  }
-
-  def lubWithReplacement[S <: SemanticDomain[S]](left: HeapIdSetDomain[I], right: HeapIdSetDomain[I], state: S): (HeapIdSetDomain[I], Replacement) = {
+  def lubWithReplacement[S <: SemanticDomain[S]](left: HeapIdSetDomain[I], right: HeapIdSetDomain[I], state: S): (HeapIdSetDomain[I], Replacement) =
     (super.lub(left, right), new Replacement)
-  }
+
+  // Used to know if it's definite - glb - or maybe - lub.
+  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S
+  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement)
+
 }
 
-class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends HeapIdSetDomain[I](p2) {
-  def this() = this(null);
+class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint,_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends HeapIdSetDomain[I](p2,_value,_isTop,_isBottom) {
 
-  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.getProgramPoint()).add(add)
-  override def getType() : Type = {
-    var res=SystemParameters.getType().bottom();
-    for(a <- this.value)
-      res=res.lub(res, a.getType());
-    return res;
+  def this() = this(null)
+
+  def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
+    new MaybeHeapIdSetDomain[I](p2,_value,_isTop,_isBottom)
+
+  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.getProgramPoint).add(add)
+
+  override def getType : Type = {
+    var res=SystemParameters.getType().bottom()
+    for (a <- this.value) res=res.lub(res, a.getType)
+    res
   }
 
-  def factory() : HeapIdSetDomain[I]=new MaybeHeapIdSetDomain[I]();
+  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2)
 
-  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2);
+  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2);
 
-  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2);
-
-  def identifiers() : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
+  def getIdentifiers : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }
 
-class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint) extends HeapIdSetDomain[I](p2) {
-  def this() = this(null);
+class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint,_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends HeapIdSetDomain[I](p2,_value,_isTop,_isBottom) {
 
-  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.getProgramPoint()).add(add);
-  override def getType() : Type = {
-    var res=SystemParameters.getType().top();
+  def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
+    new DefiniteHeapIdSetDomain[I](p2,_value,_isTop,_isBottom)
+
+  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.getProgramPoint).add(add)
+
+  override def getType : Type = {
+    var res=SystemParameters.getType().top()
     for(a <- this.value)
-      res=res.glb(res, a.getType());
-    return res;
+      res=res.glb(res, a.getType)
+    res
   }
 
-  def factory() : HeapIdSetDomain[I]=new DefiniteHeapIdSetDomain[I]();
+  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s1, s2)
 
-  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s1, s2);
+  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2)
 
-  def heapcombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2);
-
-  def identifiers() : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
+  def getIdentifiers : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }

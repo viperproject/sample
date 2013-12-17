@@ -162,9 +162,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    */
   private def extractHeapId(tempvar: String, typ: Type): TVSHeapIDSet = {
     val ids: Set[NodeName] = structures.flatMap(_.programVariables(tempvar).value)
-    val heapidset = new TVSHeapIDSet(tempvar)
-    heapidset.value = ids
-    heapidset
+    new TVSHeapIDSet(tempvar,ids)
   }
 
   /**
@@ -281,7 +279,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def assign[S <: SemanticDomain[S]](variable: Assignable, expr: Expression, state: S): (TVSHeap, Replacement) = {
     // only consider assignments which change the heap
     // we consider strings not as objects since they are immutable
-    if (!variable.getType.isObject || variable.getType().getName().equals("String")) return (this, new Replacement)
+    if (!variable.getType.isObject || variable.getType.getName().equals("String")) return (this, new Replacement)
 
     val tvp = new TVP(this)
     val assignAction = variable match {
@@ -338,7 +336,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   private def createAcyclicListParameter(v: VariableIdentifier): (TVSHeap, Map[Identifier, List[String]], Replacement) = {
     val nextField = "n"
     val encodedField = "field_" + nextField
-    val pp = v.getProgramPoint()
+    val pp = v.getProgramPoint
     var newStructs: Set[TVS[NodeName]] = Set.empty
     var idPath: Map[Identifier, List[String]] = Map.empty
     for (tvs <- structures) {
@@ -385,7 +383,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     variable match {
       case v: TVSHeapIDSet => (this, new Replacement)
       case v: VariableIdentifier =>
-        if (v.getType().isObject) {
+        if (v.getType.isObject) {
           // we don't care about numerical variables
           val newheap = new TVSHeap(this)
           newheap.structures = this.structures.map(_.addVariable(v.name))
@@ -604,7 +602,8 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
  * nodes in the TVS again.
  *
  */
-class TVSHeapIDSet(val pointedBy: String) extends DefiniteHeapIdSetDomain[NodeName]
+class TVSHeapIDSet(val pointedBy: String,_value: Set[NodeName] = Set.empty[NodeName], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends DefiniteHeapIdSetDomain[NodeName](null,_value,_isTop,_isBottom)
 
 /**
  * Used to make a distinction between temporaries and normal variables

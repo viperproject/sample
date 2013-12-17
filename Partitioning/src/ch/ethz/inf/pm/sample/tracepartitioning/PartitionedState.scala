@@ -65,7 +65,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * in the leaf states.
    */
   lazy val programPoints: List[ProgramPoint] = {
-    getExpression.getSetOfExpressions.map(_.p).toList
+    getExpression.getSetOfExpressions.map(_.getProgramPoint).toList
   }
 
   /**
@@ -705,7 +705,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
       cx <- combinations(xs)
       val es = cx.map(_.getSetOfExpressions.head)
       val ps = for ((e, v) <- es.zip(cx)) yield this.partitioning
-      val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield new ExpressionSet(e.getType()).add(e)))
+      val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield new ExpressionSet(e.getType).add(e)))
     } yield new PartitionedState(pc)
 
     lub(separate)
@@ -732,8 +732,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
       val ps = for ((e, v) <- es.zip(cx:::cy)) yield this.partitioning
       val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => {
         f(s,
-          for ((e, t) <- es.zip(ss).take(n)) yield new ExpressionSet(e.getType()).add(e),
-          for ((e, t) <- es.zip(ss).drop(n)) yield new ExpressionSet(e.getType()).add(e))
+          for ((e, t) <- es.zip(ss).take(n)) yield new ExpressionSet(e.getType).add(e),
+          for ((e, t) <- es.zip(ss).drop(n)) yield new ExpressionSet(e.getType).add(e))
       })
     } yield new PartitionedState(pc)
 

@@ -316,16 +316,16 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     for ((from, to) <- iso) {
       assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
-        for (valField <- from.typ.getPossibleFields().filter(!_.getType().isObject())) {
-          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
-          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
+        for (valField <- from.typ.getPossibleFields().filter(!_.getType.isObject())) {
+          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
+          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
         }
       }
     }
     val verticesToRemove = (right.vertices.filter(_.isInstanceOf[HeapVertex]) -- iso.keySet).asInstanceOf[Set[HeapVertex]]
     var idsToRemove = Set.empty[ValueHeapIdentifier]
     for (v <- verticesToRemove) {
-      val removeForV: Set[ValueHeapIdentifier] = v.typ.getPossibleFields().map(f => new ValueHeapIdentifier(v, f.getName(), f.getType(), f.getProgramPoint()))
+      val removeForV: Set[ValueHeapIdentifier] = v.typ.getPossibleFields().map(f => new ValueHeapIdentifier(v, f.getName(), f.getType, f.getProgramPoint))
       idsToRemove = idsToRemove ++ removeForV
     }
     for (edgeRight <- edgeMap.values) {
@@ -345,7 +345,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       result = result || localVarEdges.isEmpty
     }
     for (heapVertex <- vertices.filter(_.isInstanceOf[HeapVertex])) {
-      for (refField <- heapVertex.typ.getPossibleFields().filter(f => f.getType().isObject())) {
+      for (refField <- heapVertex.typ.getPossibleFields().filter(f => f.getType.isObject())) {
         val outEdges = edges.filter(e => e.source.equals(heapVertex))
         var presentEdges = Set.empty[EdgeWithState[S]]
         for (oe <- outEdges) {
@@ -384,9 +384,9 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     for ((from, to) <- renaming) {
       assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
-        for (valField <- from.typ.getPossibleFields().filter(!_.getType().isObject())) {
-          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
-          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
+        for (valField <- from.typ.getPossibleFields().filter(!_.getType.isObject())) {
+          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
+          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
         }
       }
     }
@@ -472,8 +472,8 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     val verticesToRemove = (vertices -- resultingVertices).filter(_.isInstanceOf[HeapVertex])
     var idsToRemove = Set.empty[ValueHeapIdentifier]
     for (v <- verticesToRemove) {
-      for (valField <- v.typ.getPossibleFields().filter(!_.getType().isObject())) {
-        val idToRemove = new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName(), valField.getType(), valField.getProgramPoint())
+      for (valField <- v.typ.getPossibleFields().filter(!_.getType.isObject())) {
+        val idToRemove = new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
         idsToRemove = idsToRemove + idToRemove
       }
     }
@@ -608,9 +608,9 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
         resultGraph = newResGraph
         addedVertex = newVertex
       }
-      for (valField <- verType.getPossibleFields().filter(!_.getType().isObject())) {
-        val repFrom: Set[Identifier] = vs.map(v => new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName, valField.getType(), valField.getProgramPoint()))
-        val repTo:Set[Identifier] = Set(new ValueHeapIdentifier(addedVertex.asInstanceOf[HeapVertex], valField.getName, valField.getType(), valField.getProgramPoint()))
+      for (valField <- verType.getPossibleFields().filter(!_.getType.isObject())) {
+        val repFrom: Set[Identifier] = vs.map(v => new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint))
+        val repTo:Set[Identifier] = Set(new ValueHeapIdentifier(addedVertex.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint))
         replacement.value += (repFrom -> repTo)
       }
       replacementVertexMap = replacementVertexMap + (vs -> addedVertex)
@@ -710,11 +710,11 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
           }
           val conditions = Utilities.applyConditions(Set(edge.state), Utilities.applyConditions(pathsToConds.values.toSet[S], condsForExp))
           for (nodeToUpdate <- nodesToUpdate) {
-            val valueHeapIdToAssign = new ValueHeapIdentifier(nodeToUpdate, f, rightExp.getType(), rightExp.getProgramPoint())
+            val valueHeapIdToAssign = new ValueHeapIdentifier(nodeToUpdate, f, rightExp.getType, rightExp.getProgramPoint)
             for (cond <- conditions) {
               var tempEdgeState = cond.assign(valueHeapIdToAssign, rightExp)
               if (edge.source.equals(nodeToUpdate)) {
-                val edgeLocId = new EdgeLocalIdentifier(List.empty[String], f, rightExp.getType(), rightExp.getProgramPoint())
+                val edgeLocId = new EdgeLocalIdentifier(List.empty[String], f, rightExp.getType, rightExp.getProgramPoint)
                 tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
               }
               if (edge.target.equals(nodeToUpdate)) {
@@ -724,7 +724,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
                   }
                   case None => List.empty[String]
                 }
-                val edgeLocId = new EdgeLocalIdentifier(path, f, rightExp.getType(), rightExp.getProgramPoint())
+                val edgeLocId = new EdgeLocalIdentifier(path, f, rightExp.getType, rightExp.getProgramPoint)
                 tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
               }
               resultingState = cond.lub(resultingState, Utilities.removeAccessPathIdentifiers(tempEdgeState))

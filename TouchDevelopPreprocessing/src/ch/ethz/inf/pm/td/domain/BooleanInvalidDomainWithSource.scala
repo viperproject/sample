@@ -188,9 +188,12 @@ object PositionedInvalidValueDomain {
  * Time: 10:49 AM
  *
  */
-class PositionedInvalidValueDomain extends SetDomain[InvalidValue,PositionedInvalidValueDomain] {
+class PositionedInvalidValueDomain(_value: Set[InvalidValue] = Set.empty[InvalidValue], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends SetDomain[InvalidValue,PositionedInvalidValueDomain](_value,_isTop,_isBottom)  {
 
-  override def factory() = new PositionedInvalidValueDomain()
+  def setFactory (_value: Set[InvalidValue] = Set.empty[InvalidValue], _isTop: Boolean = false, _isBottom: Boolean = false): PositionedInvalidValueDomain
+   = new PositionedInvalidValueDomain(_value,_isTop,_isBottom)
+
   def canBeInvalid = isTop || value.exists { case Invalid(_) => true; case _ => false }
   def canBeValid = isTop || value.exists { case Valid() => true; case _ => false }
   def mustBeInvalid = canBeInvalid && !canBeValid
@@ -200,9 +203,9 @@ class PositionedInvalidValueDomain extends SetDomain[InvalidValue,PositionedInva
   def onlyIf(x : PositionedInvalidValueDomain):PositionedInvalidValueDomain = {
     if (x.isTop) return this
     if (this.isTop) return this
-    val res = new PositionedInvalidValueDomain()
-    if (x.canBeValid) res.value = res.value ++ this.value.collect { case x@Valid() => x }
-    if (x.canBeInvalid) res.value = res.value ++ this.value.collect { case x@Invalid(src) => x }
+    var res = new PositionedInvalidValueDomain()
+    if (x.canBeValid) res = res.setFactory(res.value ++ this.value.collect { case x@Valid() => x })
+    if (x.canBeInvalid) res = res.setFactory(res.value ++ this.value.collect { case x@Invalid(src) => x })
     if (res.value.isEmpty) return bottom()
     res
   }

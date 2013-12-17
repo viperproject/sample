@@ -23,7 +23,7 @@ object Utilities {
   def createVariablesForState[S <: SemanticDomain[S]](state: S, ids: Set[Identifier]): S = {
     var result = state
     for (id <- ids -- state.getIds())
-      result = result.createVariable(id, id.getType())
+      result = result.createVariable(id, id.getType)
     return result
   }
 

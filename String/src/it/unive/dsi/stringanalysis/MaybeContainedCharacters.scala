@@ -3,8 +3,11 @@ package it.unive.dsi.stringanalysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-class SetCharacters extends SetDomain[Char, SetCharacters] {
-  def factory() : SetCharacters = new SetCharacters();
+class SetCharacters(_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends SetDomain[Char, SetCharacters](_value,_isTop,_isBottom) {
+
+  def setFactory (_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false, _isBottom: Boolean = false): SetCharacters
+    = new SetCharacters(_value,_isTop,_isBottom)
 }
 
 class MaybeContainedCharacters

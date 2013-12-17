@@ -159,15 +159,15 @@ object RichNativeSemantics {
               val a = initials.get(f) match {
                 case None => f.default match {
                   case InvalidInitializer =>
-                    Invalid(f.getType())
+                    Invalid(f.getType)
                   case TopInitializer =>
-                    curState = Top[S](f.getType(),createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
+                    curState = Top[S](f.getType,createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression())
                   case TopWithInvalidInitializer =>
-                    curState = TopWithInvalid[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP)
+                    curState = TopWithInvalid[S](f.getType,initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression())
                   case NewInitializer =>
-                    curState = New[S](f.getType(),createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
+                    curState = New[S](f.getType,createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression())
                   case ExpressionInitializer(e) => e
                 }
@@ -262,10 +262,10 @@ object RichNativeSemantics {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName())
               val a = initials.get(f) match {
                 case None => f.topDefault match {
-                  case InvalidInitializer => Invalid(f.getType())
-                  case TopInitializer => curState = Top[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
-                  case TopWithInvalidInitializer => curState = TopWithInvalid[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
-                  case NewInitializer => curState = New[S](f.getType(),initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case InvalidInitializer => Invalid(f.getType)
+                  case TopInitializer => curState = Top[S](f.getType,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case TopWithInvalidInitializer => curState = TopWithInvalid[S](f.getType,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
+                  case NewInitializer => curState = New[S](f.getType,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression())
                   case ExpressionInitializer(e) => e
                 }
                 case Some(st) => st
@@ -579,7 +579,7 @@ object RichNativeSemantics {
   }
 
   def Field[S <: State[S]](obj:RichExpression, field:TouchField)(implicit state:S, pp:ProgramPoint):RichExpression = {
-    state.getFieldValue(List(obj),field.getName(),field.getType()).getExpression()
+    state.getFieldValue(List(obj),field.getName(),field.getType).getExpression()
   }
 
   /*-- Skipping --*/
@@ -649,7 +649,7 @@ object RichNativeSemantics {
     RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ,null)))
 
   implicit def toRichExpression(value:Expression) : RichExpression =
-    RichExpression(new ExpressionSet(value.getType()).add(value))
+    RichExpression(new ExpressionSet(value.getType).add(value))
 
   implicit def toExpressionSet(value:RichExpression) : ExpressionSet =
     value.thisExpr
@@ -658,15 +658,16 @@ object RichNativeSemantics {
 
 class TouchField(name:String, typName:String, val default: Initializer = NewInitializer, val topDefault: Initializer = TopInitializer, val isSummaryNode:Boolean = false)
   extends Identifier(null,null) {
-  override def getType():TouchType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
+
+  override def getType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
+
   override def getName() = name.toString
   override def toString = name.toString
   override def getField() = Some(name)
   override def hashCode() : Int = name.hashCode() + typName.hashCode()
   override def representSingleVariable()=isSummaryNode
   override def equals(o : Any) = (o.isInstanceOf[TouchField] && o.asInstanceOf[TouchField].getName() == this.getName()
-    && o.asInstanceOf[TouchField].getType() == this.getType())
-  def identifiers() : Set[Identifier] = Set(this)
+    && o.asInstanceOf[TouchField].getType == this.getType)
 }
 
 trait Initializer

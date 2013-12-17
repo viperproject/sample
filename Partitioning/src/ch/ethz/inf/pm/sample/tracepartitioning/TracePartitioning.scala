@@ -11,12 +11,11 @@
 
 package ch.ethz.inf.pm.sample.tracepartitioning
 
-import collection.mutable.HashMap
-import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaProgramPoint
+import scala.collection.mutable
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import scalalang.ScalaProgramPoint
 import tools.nsc.util.Position
-
 
 /**
  * Global object responsible for settings etc.
@@ -33,7 +32,7 @@ object TracePartitioning {
 	/**
 	 * A map containing program points and their associated directives.
 	 */
-	private val directives = new HashMap[(Int, Int), List[Directive[_]]]
+	private val directives = new mutable.HashMap[(Int, Int), List[Directive[_]]]
 
   def getDirectives(): Iterable[Directive[_]] = directives.values.flatten;
 
@@ -154,7 +153,7 @@ object ProgramPointConversions {
 	/**
 	 * Implicit conversion from program points to pairs.
 	 *
-	 * @param The program point
+	 * @param p The program point
 	 * @return A pair of the line and the column of the program point
 	 */
 	implicit def programPointToPair(p: ScalaProgramPoint): (Int, Int) = (p.getLine, p.getColumn)

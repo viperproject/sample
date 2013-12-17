@@ -415,7 +415,7 @@ public class WindowApplication {
                     HeapDomain heapDomain = getSelectedHeapAnalysis();
                     SemanticDomain domain = (SemanticDomain) getSelectedAnalysis().getInitialState();
                     HeapAndAnotherDomain entrydomain  = new HeapAndAnotherDomain(domain, heapDomain);
-                    ExpressionSet entryvalue =new ExpressionSet(SystemParameters.getType().top(), new SetOfExpressions());
+                    ExpressionSet entryvalue = GuiRunner.createEmptyValue();
                     AbstractState entryState =new AbstractState(entrydomain, entryvalue);
                     setProgress(50);
                     taskOutput.append("\nRunning the analysis");

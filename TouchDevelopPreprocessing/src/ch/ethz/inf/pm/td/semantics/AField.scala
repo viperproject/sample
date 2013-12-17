@@ -20,7 +20,7 @@ class AField(fieldType:TouchType,valueField:TouchField) extends AAny {
        AssignField[S](this0,valueField,value)
 
      case "clear" =>
-       AssignField[S](this0,valueField,Invalid(valueField.getType()))
+       AssignField[S](this0,valueField,Invalid(valueField.getType))
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

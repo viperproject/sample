@@ -128,7 +128,7 @@ object MethodSummaries {
 
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
-        !id.getType().asInstanceOf[TouchType].isSingleton &&
+        !id.getType.asInstanceOf[TouchType].isSingleton &&
         !CFGGenerator.isGlobalReferenceIdent(id.toString())
       case _ => false
     })
@@ -200,7 +200,7 @@ object MethodSummaries {
     var curState = entryState
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
-        id.getType().asInstanceOf[TouchType].isSingleton ||
+        id.getType.asInstanceOf[TouchType].isSingleton ||
           CFGGenerator.isGlobalReferenceIdent(id.toString()) ||
           CFGGenerator.isParamIdent(id.toString()) ||
           CFGGenerator.isReturnIdent(id.toString())
@@ -225,8 +225,8 @@ object MethodSummaries {
       // Initialize in-parameters to temporary variables
       val tempVars = for ((decl,value) <- inParameters.zip(parameters)) yield {
         val tempVar = VariableIdentifier(CFGGenerator.paramIdent(decl.variable.id.toString),decl.typ,callPoint,ProgramPointScopeIdentifier(callTarget.programpoint))
-        val expr = new ExpressionSet(tempVar.getType()).add(tempVar)
-        curState = curState.createVariable(expr, tempVar.getType(), callTarget.programpoint)
+        val expr = new ExpressionSet(tempVar.getType).add(tempVar)
+        curState = curState.createVariable(expr, tempVar.getType, callTarget.programpoint)
         curState = curState.assignVariable(expr,value)
         tempVar
       }
@@ -235,7 +235,7 @@ object MethodSummaries {
       if (TouchAnalysisParameters.localizeStateOnMethodCall) {
         curState = curState.pruneVariables({
           case id:VariableIdentifier =>
-            !id.getType().asInstanceOf[TouchType].isSingleton &&
+            !id.getType.asInstanceOf[TouchType].isSingleton &&
             !CFGGenerator.isGlobalReferenceIdent(id.toString()) &&
             !CFGGenerator.isParamIdent(id.toString())
           case _ => false
@@ -245,9 +245,9 @@ object MethodSummaries {
       // Initialize in-parameters to temp vars
       for ((decl,value) <- inParameters.zip(tempVars)) {
         val variable = decl.variable.id
-        val expr = new ExpressionSet(variable.getType()).add(variable)
-        curState = curState.createVariable(expr,variable.getType(),callTarget.programpoint)
-        curState = curState.assignVariable(expr,new ExpressionSet(value.getType()).add(value))
+        val expr = new ExpressionSet(variable.getType).add(variable)
+        curState = curState.createVariable(expr,variable.getType,callTarget.programpoint)
+        curState = curState.assignVariable(expr,new ExpressionSet(value.getType).add(value))
       }
 
       // Prune temporary variables
@@ -264,7 +264,7 @@ object MethodSummaries {
       // Prune local state
       curState = curState.pruneVariables({
         case id:VariableIdentifier =>
-          !id.getType().asInstanceOf[TouchType].isSingleton &&
+          !id.getType.asInstanceOf[TouchType].isSingleton &&
           !CFGGenerator.isGlobalReferenceIdent(id.toString())
         case _ => false
       })
@@ -307,7 +307,7 @@ object MethodSummaries {
     // Store returns in temporary variables
     val tempVars = for (outParam <- outParameters) yield {
       val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName()),outParam.typ,callPoint,ProgramPointScopeIdentifier(callTarget.programpoint))
-      val tempVarExpr = new ExpressionSet(tempVar.getType()).add(tempVar)
+      val tempVarExpr = new ExpressionSet(tempVar.getType).add(tempVar)
       curState = curState.createVariable(tempVarExpr,tempVarExpr.getType(),callTarget.programpoint)
       curState = curState.assignVariable(tempVarExpr,new ExpressionSet(outParam.typ).add(outParam.variable.id))
       tempVar
@@ -320,7 +320,7 @@ object MethodSummaries {
     }
 
     val z = buildMultiVal(tempVars)
-    curState = curState.setExpression(new ExpressionSet(z.getType()).add(z))
+    curState = curState.setExpression(new ExpressionSet(z.getType).add(z))
 
     // Prune local state (except return values)
     curState = curState.pruneVariables({

@@ -151,7 +151,7 @@ object CFGGenerator {
               val fieldMembers = createFieldMembers(fields)
 
               val indexMemberType = new TouchType(ident,fields = (fieldMembers map (_._1))  ::: keyMembers)
-              val keyTypes = keyMembers map (_.getType().asInstanceOf[TouchType])
+              val keyTypes = keyMembers map (_.getType.asInstanceOf[TouchType])
 
               addTouchType(new AIndexMember(indexMemberType,fieldMembers))
               val indexType =
@@ -174,7 +174,7 @@ object CFGGenerator {
               val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typ.ident)}
               val fieldMembers = createFieldMembers(fields)
 
-              val decoratedType = keyMembers.head.getType().asInstanceOf[TouchType]
+              val decoratedType = keyMembers.head.getType.asInstanceOf[TouchType]
               val decorationType = new TouchType(ident,fields = (fieldMembers map (_._1)) ::: keyMembers)
               val decoratorType = new TouchCollection(decoratedType+" Decorator",decoratedType.getName(),decorationType.getName())
 

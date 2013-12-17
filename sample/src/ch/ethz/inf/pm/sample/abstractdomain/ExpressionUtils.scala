@@ -33,9 +33,9 @@ object ExpSimplifier extends Function[Expression, Expression] {
       case BinaryArithmeticExpression(Constant("1", _, _), right, `*`, typ) => right
       case BinaryArithmeticExpression(left, Constant("1", _, _), `*`, typ) => left
       case BinaryArithmeticExpression(Constant("0", _, _), _, `*`, typ) =>
-        Constant("0", typ, exp.getProgramPoint())
+        Constant("0", typ, exp.getProgramPoint)
       case BinaryArithmeticExpression(_, Constant("0", _, _), `*`, typ) =>
-        Constant("0", typ, exp.getProgramPoint())
+        Constant("0", typ, exp.getProgramPoint)
 
       // Everything else
       case e => e
