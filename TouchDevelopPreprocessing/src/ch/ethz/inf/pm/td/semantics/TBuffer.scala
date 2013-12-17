@@ -31,18 +31,18 @@ class TBuffer extends ALinearCollection {
     /** Copies all bytes from `source` to current buffer at `offset` */
     case "clone" =>
       // TODO CHECK RANGE
-      Assign[S](CollectionSummary[S](this0),Top[S](TNumber.typ).getExpression())
+      Assign[S](CollectionSummary[S](this0),Top[S](TNumber.typ).getExpression)
 
     /** Copies all bytes from `source` to current buffer at `offset` */
     case "copy from" =>
        val List(target_offset,source) = parameters // Number,Buffer
       // TODO CHECK RANGE
-      Assign[S](CollectionSummary[S](this0),Top[S](TNumber.typ).getExpression())
+      Assign[S](CollectionSummary[S](this0),Top[S](TNumber.typ).getExpression)
 
     /** Fills the buffer with random values */
     case "fill random" =>
        val List() = parameters //
-      Assign[S](CollectionSummary[S](this0),Top[S](TNumber.typ).getExpression())
+      Assign[S](CollectionSummary[S](this0),Top[S](TNumber.typ).getExpression)
 
     /** Sets all bytes in buffer to `value` */
     case "fill" =>

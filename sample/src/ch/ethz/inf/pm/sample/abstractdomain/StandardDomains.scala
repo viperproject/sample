@@ -342,7 +342,7 @@ abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[
     this.value.subsetOf(right.value)
   }
 
-  override def toString(): String = {
+  override def toString: String = {
     if (this.isBottom) return "_|_"
     if (this.isTop) return "T"
     ToStringUtilities.setToString(value)

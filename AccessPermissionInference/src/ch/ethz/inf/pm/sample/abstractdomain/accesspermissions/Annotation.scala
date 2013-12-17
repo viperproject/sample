@@ -392,7 +392,7 @@ object Annotation {
 	  pd : P, 
 	  s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
-	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression(), field, s);
+	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression, field, s);
         val exprs = id1.getSetOfExpressions;
         if(exprs.size!=1)
         	return pd;
@@ -408,7 +408,7 @@ object Annotation {
 	  pd : P, 
 	  s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]
 	) : P = {
-	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression(), field, s);
+	  	var id1 = accessSequenceOfFields(s.getVariableValue(id).getExpression, field, s);
         val exprs = id1.getSetOfExpressions;
         var perm=pd;
         for(exp <- exprs )
@@ -467,7 +467,7 @@ object Annotation {
  	private def accessSequenceOfFields[P <: PermissionsDomain[P]](thisExpr : ExpressionSet, fields : List[String], s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]) : ExpressionSet = fields match {
  	  case Nil => thisExpr;
  	  case "this" :: x1 => accessSequenceOfFields(thisExpr, x1, s); 
- 	  case x :: x1 => accessSequenceOfFields(s.getFieldValue(thisExpr :: Nil, x, null).getExpression(), x1, s);
+ 	  case x :: x1 => accessSequenceOfFields(s.getFieldValue(thisExpr :: Nil, x, null).getExpression, x1, s);
  	}
  	
  	private def convertFieldAccessToListStrings(fieldAccess : FieldAccess) : List[String] = fieldAccess match {

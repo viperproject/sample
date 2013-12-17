@@ -109,14 +109,14 @@ class MethodDeclaration(
       val thisVar = new Variable(programpoint,
         new VariableIdentifier("this", ownerType, programpoint))
       result = thisVar.forwardSemantics[S](result)
-      val variable = result.getExpression()
+      val variable = result.getExpression
       result = result.removeExpression().createVariableForArgument(variable, ownerType)
     }
     // Create a variable for each formal parameter
     for (lv <- parameters) {
       for (variable <- lv) {
         result = variable.variable.forwardSemantics[S](result)
-        val varExpr = result.getExpression()
+        val varExpr = result.getExpression
         result = result.removeExpression()
         result = result.createVariableForArgument(varExpr, variable.typ)
       }

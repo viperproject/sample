@@ -191,20 +191,6 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
   }
 
   /**
-   * Creates an array in all leaf states.
-   *
-   * @param length
-   * @param t
-   * @param pp
-   * @return The state after creating the array in all leaves
-   *
-   * @see #map
-   */
-  override def createArray(length : ExpressionSet, typ : Type, pp : ProgramPoint) : PartitionedState[D] = {
-    mapValue(length, (s, v) => s.createArray(v, typ, pp))
-  }
-
-  /**
    * Creates the variable in all leaf states.
    *
    * @param x
@@ -339,50 +325,6 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    */
   override def getFieldValue(o: List[ExpressionSet], f: String, t: Type): PartitionedState[D] = {
     mapValueList(o, (s, v) => s.getFieldValue(v, f, t))
-  }
-
-  /**
-   * Gets the length of an array from all leaf states.
-   *
-   * @param o
-   * @return The lub of all partitioned states after mapping all combinations
-   * of <code>o</code> and <code>i</code> on all leaves
-   *
-   * @see #mapValueLists
-   */
-  override def getArrayLength(o: ExpressionSet): PartitionedState[D] = {
-    mapValue(o, (s, v) => s.getArrayLength(v))
-  }
-
-  /**
-   * Gets the cell of an array in all leaf states.
-   *
-   * @param o
-   * @param i
-   * @param t
-   * @return The lub of all partitioned states after mapping all combinations
-   * of <code>o</code> and <code>i</code> on all leaves
-   *
-   * @see #mapValueLists
-   */
-  override def getArrayCell(o: ExpressionSet, i: ExpressionSet, t: Type): PartitionedState[D] = {
-    mapValues(o, i, (s, vx, vr) => s.getArrayCell(vx, vr, t))
-  }
-
-  /**
-   * Assign the cell of an array in all leaf states.
-   *
-   * @param o
-   * @param i
-   * @param r
-   * @param t
-   * @return The lub of all partitioned states after mapping all combinations
-   * of <code>o</code> and <code>i</code> on all leaves
-   *
-   * @see #mapValueLists
-   */
-  override def assignArrayCell(o: ExpressionSet, i: ExpressionSet, r: ExpressionSet, t: Type): PartitionedState[D] = {
-    mapValues(o, i, r, (s, vx, vi, vr) => s.assignArrayCell(vx, vi, vr, t))
   }
 
   /**

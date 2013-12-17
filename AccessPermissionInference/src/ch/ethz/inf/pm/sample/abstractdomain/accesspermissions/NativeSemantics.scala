@@ -241,7 +241,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	    if(objs.size>1) throw new Exception("This should not happen");
 	    val o=objs.head
 	    val newState=state.getFieldValue(accessField(obj, o, state) :: Nil, field, typ);
-	    return newState.getExpression(); 
+	    return newState.getExpression;
 	  case Variable(programpoint, id) => return obj;
 	}
 	

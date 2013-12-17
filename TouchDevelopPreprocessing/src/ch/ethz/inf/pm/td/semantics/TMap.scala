@@ -89,7 +89,7 @@ class TMap extends AAny {
       // PRECISION: We could implement this
       val state1 = AssignField(this0,TMap.field_zoom,1 ndTo 21)
       val state2 = Top[S](TLocation.typ)(state1,pp)
-      AssignField(this0,TMap.field_center,state2.getExpression())(state2,pp)
+      AssignField(this0,TMap.field_center,state2.getExpression)(state2,pp)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

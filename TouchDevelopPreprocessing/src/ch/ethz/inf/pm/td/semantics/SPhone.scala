@@ -34,14 +34,14 @@ class SPhone extends AAny {
       val state1 = New[S](TLink.typ,Map(
         TLink.field_kind-> String("address"/*TODO*/)
       ))
-      Return[S](state1.getExpression(),Invalid(TLink.typ))(state1,pp)
+      Return[S](state1.getExpression,Invalid(TLink.typ))(state1,pp)
 
     /** Chooses a phone number from the contact list */
     case "choose phone number" =>
       val state1 = New[S](TLink.typ,Map(
         TLink.field_kind -> String("phone number")
       ))
-      Return[S](state1.getExpression(),Invalid(TLink.typ))(state1,pp)
+      Return[S](state1.getExpression,Invalid(TLink.typ))(state1,pp)
 
     /** Starts a phone call */
     case "dial phone number" =>

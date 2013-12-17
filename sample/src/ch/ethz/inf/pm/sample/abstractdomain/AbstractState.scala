@@ -186,51 +186,6 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   def before(pp : ProgramPoint) = this
 
-  def createArray(length : ExpressionSet, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] =  {
-    if(this.isBottom) return this
-    var result = this.bottom()._1
-    var heapId : HeapIdSetDomain[I] = null
-
-    for(exp <- length.getSetOfExpressions) {
-      var (createdLocation, newHeap, rep)=this._1._2.createArray(exp, typ, pp, this._1._1)
-      result=result.lub(result, new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap))
-      heapId = heapId match {
-        case null => createdLocation
-        case _ => heapId.lub(heapId, createdLocation)
-      }
-    }
-    if(heapId == null) this.bottom()
-    else this.setExpression(new ExpressionSet(typ).add(heapId)).setState(result)
-  }
-
-  def getArrayLength(array : ExpressionSet) : AbstractState[N,H,I] =  {
-    if(this.isBottom) return this
-    var result = this.bottom()._1
-    var heapId : HeapIdSetDomain[I] = null
-
-    for(exp <- array.getSetOfExpressions) {
-      exp match {
-        case id : Assignable =>
-          var (createdLocation, newHeap, rep)=this._1._2.getArrayLength(id)
-          result=result.lub(result, new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap))
-          heapId = heapId match {
-            case null => createdLocation
-            case _ => heapId.lub(heapId, createdLocation)
-          }
-        case ids : HeapIdSetDomain[I] =>
-          var (createdLocation, newHeap, rep)=HeapIdSetFunctionalLifting.applyGetFieldId(ids, this._1, this._1._2.getArrayLength(_))
-          result=result.lub(result, new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap))
-          heapId = heapId match {
-            case null => createdLocation
-            case _ => heapId.lub(heapId, createdLocation)
-          }
-        case _ => throw new SymbolicSemanticException("Not allowed")
-      }
-    }
-    if(heapId == null) this.bottom()
-    else this.setExpression(new ExpressionSet(SystemParameters.getType().top()).add(heapId)).setState(result)
-  }
-
   def createObject(typ : Type, pp : ProgramPoint, fields : Option[Set[Identifier]] = None) : AbstractState[N,H,I] =  {
 
     if(this.isBottom) return this
@@ -251,7 +206,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   }
 
-  def getExpression() : ExpressionSet = getResult()
+  def getExpression : ExpressionSet = getResult()
 
   def removeExpression() : AbstractState[N,H,I] = {
     if(this.isBottom) return this
@@ -440,13 +395,13 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   def getVariableValue(id : Assignable) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
-    val state = new AbstractState(this._1.access(id), this.removeExpression().getExpression())
+    val state = new AbstractState(this._1.access(id), this.removeExpression().getExpression)
     new AbstractState(state._1, new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]))
   }
 
   def backwardGetVariableValue(id : Assignable) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
-    val state = new AbstractState(this._1.backwardAccess(id), this.removeExpression().getExpression())
+    val state = new AbstractState(this._1.backwardAccess(id), this.removeExpression().getExpression)
     new AbstractState(state._1, new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]))
   }
 
@@ -475,51 +430,6 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       }
     }
     result
-  }
-
-  def getArrayCell(obj : ExpressionSet, index : ExpressionSet, typ : Type) : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
-    var result : AbstractState[N,H,I] = this.bottom()
-    //For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
-    for(expr <- obj.getSetOfExpressions) {
-      if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
-      for(indexexpr <- index.getSetOfExpressions) {
-        val (heapid, newHeap, rep) = this._1._2.getArrayCell(expr.asInstanceOf[Assignable], indexexpr, this._1._1, typ)
-        var result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-        val accessed=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
-        val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
-        result=result.lub(result, state)
-      }
-    }
-    result
-  }
-
-  def assignArrayCell(obj : ExpressionSet, index : ExpressionSet, right : ExpressionSet, typ : Type) : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
-    var result : Option[AbstractState[N,H,I]] = None
-    if(right.isTop) {
-      var t : AbstractState[N,H,I] = this.getArrayCell(obj, index, right.getType())
-      return t.setVariableToTop(t.getExpression).removeExpression()
-    }
-    for(el <- obj.getSetOfExpressions) {
-      //For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
-      el match {
-        case variable : Assignable => {
-          for(indexexpr <- index.getSetOfExpressions) {
-            for(assigned <- right.getSetOfExpressions) {
-              val done=new AbstractState[N,H,I](this._1.assignArrayCell(variable, indexexpr, assigned, right.getType()), this._2)
-              if(result==None)
-                result=Some(done)
-              else result=Some(done.lub(result.get, done))
-            }
-          }
-        }
-        case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
-      }
-    }
-    if(result==None)
-      throw new SymbolicSemanticException(("You should assign something to something"))
-    result.get.removeExpression()
   }
 
   def backwardGetFieldValue(objs : List[ExpressionSet], field : String, typ : Type) : AbstractState[N,H,I] = {
@@ -583,12 +493,12 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   }
 
   def testTrue() : AbstractState[N,H,I] = {
-    var result=this.assume(this.getExpression())
+    var result=this.assume(this.getExpression)
     result.removeExpression()
   }
 
   def testFalse() : AbstractState[N,H,I] = {
-    var result=this.assume(this.getExpression().not())
+    var result=this.assume(this.getExpression.not())
     result.removeExpression()
   }
 

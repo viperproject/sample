@@ -74,7 +74,7 @@ class TJson_Object extends AMap {
 
     /** Gets a field value as a string */
     case "string" =>
-      Return[S](Field[S](super.forwardSemantics(this0,"at",parameters,returnedType).getExpression(), TJson_Object.field_to_string))
+      Return[S](Field[S](super.forwardSemantics(this0,"at",parameters,returnedType).getExpression, TJson_Object.field_to_string))
 
     /** Gets the field value as a time */
     case "time" =>

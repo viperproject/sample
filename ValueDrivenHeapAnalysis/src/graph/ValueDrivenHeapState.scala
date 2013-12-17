@@ -1209,7 +1209,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     */
   def testTrue(): ValueDrivenHeapState[S] = {
     //**println("testTrue() is called")
-    return assume(getExpression())
+    return assume(getExpression)
 //    throw new Exception("Method testTrue is not implemented")
   }
 
@@ -1219,8 +1219,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
    @return The abstract state after assuming that the expression does not hold
     */
   def testFalse(): ValueDrivenHeapState[S] = {
-    val negatedExpressions = getExpression().getSetOfExpressions.map(exp => new NegatedBooleanExpression(exp))
-    var negatedExpSet = new ExpressionSet(getExpression().getType())
+    val negatedExpressions = getExpression.getSetOfExpressions.map(exp => new NegatedBooleanExpression(exp))
+    var negatedExpSet = new ExpressionSet(getExpression.getType())
     for (ne <- negatedExpressions)
       negatedExpSet = negatedExpSet.add(ne)
     return assume(negatedExpSet)
@@ -1232,7 +1232,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 
    @return The current expression
     */
-  def getExpression(): ExpressionSet = {
+  def getExpression: ExpressionSet = {
     //**println("getExpression is called")
     return expr
     //throw new Exception("Method getExpression is not implemented")
@@ -1516,12 +1516,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
    * them to non-summary nodes
    */
   def optimizeSummaryNodes(): ValueDrivenHeapState[S] = ???
-
-  // Arrays are currently not supported
-  def assignArrayCell(obj: ExpressionSet, index: ExpressionSet, right: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = ???
-  def createArray(length: ExpressionSet, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-  def getArrayCell(obj: ExpressionSet, index: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = ???
-  def getArrayLength(array: ExpressionSet): ValueDrivenHeapState[S] = ???
 
   // Backwards analyses are currently not supported
   def backwardGetVariableValue(id: Assignable): ValueDrivenHeapState[S] = ???
