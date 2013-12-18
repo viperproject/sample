@@ -1,8 +1,11 @@
-package ch.ethz.inf.pm.td.webapi
+package ch.ethz.inf.pm.td.output
 
 import ch.ethz.inf.pm.sample.Reporter
-import ch.ethz.inf.pm.td.compiler.TouchProgramPoint
+import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPoint}
 import net.liftweb.json.{DefaultFormats, Serialization}
+import java.io.{PrintWriter, FileWriter, File}
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.webapi.{JNode, WebAstTypeHints}
 
 case class JResult (
     scriptID:String, // A public ID or a private ID (guid)
@@ -33,7 +36,17 @@ case class JReplacement (
     replacement:JNode // Textual representation of the replacement (without nodeIDs?)
   )
 
-object ResultGenerator {
+class JSONExporter extends ErrorExporter {
+
+  def getExtension = "json"
+
+  def apply(compiler: TouchCompiler): String = {
+    (for ((id,_) <- compiler.parsedTouchScripts) yield makeJson(id)).mkString("\n")
+  }
+
+  def apply(compiler: TouchCompiler, id: String): String = {
+    makeJson(id)
+  }
 
   def makeResult(scriptID:String):JResult = {
 
@@ -65,12 +78,6 @@ object ResultGenerator {
 
     Serialization.write(result)
 
-  }
-
-  def printJson(scriptID:String) {
-    println("---- BEGIN JSON RECORD")
-    println(ResultGenerator.makeJson(scriptID))
-    println("---- END JSON RECORD")
   }
 
 }

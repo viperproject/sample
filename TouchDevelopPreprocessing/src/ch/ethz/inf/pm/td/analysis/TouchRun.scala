@@ -24,6 +24,7 @@ object TouchRun {
       sys.exit()
     }
 
+
     SystemParameters.compiler = new TouchCompiler
     SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
     SystemParameters.analysisOutput = new StdOutOutput()

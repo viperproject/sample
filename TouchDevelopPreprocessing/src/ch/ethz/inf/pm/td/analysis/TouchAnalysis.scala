@@ -14,8 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.td.output.{TSVExporter, HTMLExporter}
-import ch.ethz.inf.pm.td.webapi.ResultGenerator
+import ch.ethz.inf.pm.td.output.{FileSystemExporter, JSONExporter, TSVExporter, HTMLExporter}
 
 /**
  * 
@@ -195,10 +194,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
       SystemParameters.propertyTimer.stop()
     }
 
-    // Print some html
-    if (TouchAnalysisParameters.exportAsHtml) HTMLExporter()
-    if (TouchAnalysisParameters.exportAsTSV) TSVExporter()
-    if (TouchAnalysisParameters.printJsonErrorRecords) ResultGenerator.printJson(compiler.mainID)
+    FileSystemExporter(compiler)
 
     SystemParameters.progressOutput.end()
     results

@@ -2,42 +2,46 @@ package ch.ethz.inf.pm.td.output
 
 import ch.ethz.inf.pm.sample.Reporter
 import java.io.{PrintWriter, FileWriter, File}
+import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
 
-object TSVExporter {
+class TSVExporter extends ErrorExporter {
 
-  val file = File.createTempFile("testRunResults",".tsv")
+  def getExtension = "tsv"
 
-  def apply() {
+  def apply(compiler: TouchCompiler): String = {
+    (for ((id,_) <- compiler.parsedTouchScripts) yield apply(id)).mkString("\n")
+  }
 
+  def apply(compiler: TouchCompiler, id: String): String = {
+    apply(id)
+  }
 
-    if (file != null) {
-      var fw:FileWriter = null
-      var pw:PrintWriter = null
-      try {
+  def apply(id:String):String = {
 
-        fw = new FileWriter(file, true)
-        pw = new PrintWriter(fw)
+    var res = ""
 
-        for ((message,pp) <- Reporter.seenErrors) {
-          pw.println("Error\t"+message+"\t"+pp)
-        }
-        for ((message,pp) <- Reporter.seenBottom) {
-          pw.println("Bottom\t"+message+"\t"+pp)
-        }
-        for ((message,pp) <- Reporter.seenImprecision) {
-          pw.println("Imprecision\t"+message+"\t"+pp)
-        }
-
-      } finally {
-
-        if(pw != null) pw.close()
-        if(fw != null) fw.close()
-
+    for ((message,pp) <- Reporter.seenErrors) {
+      pp match {
+        case TouchProgramPoint(xScript, _) => if (xScript == id) res += "Error\t"+message+"\t"+pp else ""
+        case _ => ""
       }
-      println("Analysis result have been written to: "+file.toURI.toString)
-    } else {
-      println("Failed to write analysis results")
     }
+
+    for ((message,pp) <- Reporter.seenBottom) {
+      pp match {
+        case TouchProgramPoint(xScript, _) => if (xScript == id) res += "Bottom\t"+message+"\t"+pp else ""
+        case _ => ""
+      }
+    }
+
+    for ((message,pp) <- Reporter.seenImprecision) {
+      pp match {
+        case TouchProgramPoint(xScript, _) => if (xScript == id) res += "Imprecision\t"+message+"\t"+pp else ""
+        case _ => ""
+      }
+    }
+
+    res
 
   }
 

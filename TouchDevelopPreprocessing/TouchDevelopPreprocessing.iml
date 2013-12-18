@@ -60,6 +60,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="module" module-name="String" />
   </component>
 </module>
 
