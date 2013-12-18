@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import java.io.{PrintWriter, FileWriter, File}
 
@@ -19,12 +18,12 @@ object FileSystemExporter {
   /**
    * Enable HTML output
    */
-  val exportAsHTML = true
+  var exportAsHTML = true
 
   /**
    * Export analysis result in a tab-separated value format
    */
-  val exportAsTSV = true
+  var exportAsTSV = true
 
   /**
    * Export the resulting json records representing error information
