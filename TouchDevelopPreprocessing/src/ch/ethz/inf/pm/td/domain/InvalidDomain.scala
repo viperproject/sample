@@ -56,7 +56,7 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
   override def assign(variable: Identifier, expr: Expression): BooleanInvalidDomain = {
     val res = eval(expr)
     if (res.isBottom) bottom()
-    else if (variable.representSingleVariable) this.add(variable, res)
+    else if (variable.representsSingleVariable) this.add(variable, res)
     else this.add(variable, domBottom.lub(this.get(variable), res))
   }
 

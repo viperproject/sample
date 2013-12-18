@@ -167,8 +167,8 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
   }
 
   private def lubReplacementsForSummaries(l: HeapEnv[I], r: HeapEnv[I]): Replacement = {
-    val leftSummaryNodes = l.getIds collect { case x:I if !x.representSingleVariable() => x }
-    val rightSummaryNodes = r.getIds collect { case x:I if !x.representSingleVariable() => x }
+    val leftSummaryNodes = l.getIds collect { case x:I if !x.representsSingleVariable() => x }
+    val rightSummaryNodes = r.getIds collect { case x:I if !x.representsSingleVariable() => x }
 
     if (leftSummaryNodes.isEmpty && rightSummaryNodes.isEmpty) return new Replacement()
 
@@ -219,9 +219,9 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
     if (r.isBottom) return (r,new Replacement())
 
     val leftNonSummaryNodes = l.getIds collect
-      { case x:I if x.representSingleVariable() => x }
+      { case x:I if x.representsSingleVariable() => x }
     val rightNonSummaryNodes = r.getIds collect
-      { case x:I if x.representSingleVariable() => x }
+      { case x:I if x.representsSingleVariable() => x }
 
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
     val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
@@ -323,9 +323,9 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
     if (r.isBottom) return (l,new Replacement())
 
     val leftSummaryNodes = l.getIds collect
-      { case x:I if !x.representSingleVariable() => x }
+      { case x:I if !x.representsSingleVariable() => x }
     val rightSummaryNodes = r.getIds collect
-      { case x:I if !x.representSingleVariable() => x }
+      { case x:I if !x.representsSingleVariable() => x }
 
     val makeSummaryLeft = rightSummaryNodes -- leftSummaryNodes
     val makeSummaryRight = leftSummaryNodes -- rightSummaryNodes
@@ -360,9 +360,9 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
     if (r.isBottom) return (r,new Replacement())
 
     val leftNonSummaryNodes = l.getIds collect
-      { case x:I if x.representSingleVariable() => x }
+      { case x:I if x.representsSingleVariable() => x }
     val rightNonSummaryNodes = r.getIds collect
-      { case x:I if x.representSingleVariable() => x }
+      { case x:I if x.representsSingleVariable() => x }
 
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
     val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
@@ -615,11 +615,11 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
         val adds = cod.convert(dom.createAddressForArgument(field.getType, x.getProgramPoint))
         //I can ignore newHeap since it's equal to initial as it is not changed by getFieldIdentifier
         //in the same way I ignore rep
-        val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName(), field.getType, field.getProgramPoint)
+        val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName, field.getType, field.getProgramPoint)
         for(id : I <- fieldAdd.value) {
           result=factory(result._1,result._2.add(id, adds))
-          ids=ids+((id, path ::: (field.getName()) :: Nil))
-          val r=initializeObject(id, id, id.getType, result, path ::: (field.getName()) :: Nil)
+          ids=ids+((id, path ::: (field.getName) :: Nil))
+          val r=initializeObject(id, id, id.getType, result, path ::: (field.getName) :: Nil)
           alreadyInitialized=alreadyInitialized+id
           result=r._1
           ids=r._2++ids;//This order is quite important: in this way we keep the shortest path to arrive to an abstract node!
@@ -695,7 +695,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
         // Brutschy: Following my understanding of the weak update implementation, we need the
         //           following distinction between summary nodes and non-summary nodes
         val heapEnv =
-          if (x.representSingleVariable())
+          if (x.representsSingleVariable())
             this._2.add(x, this.normalize(value))
           else
             this._2.add(x, this.get(x).add(this.normalize(value)))
@@ -789,7 +789,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
 
     def f(a:Assignable): HeapIdSetDomain[I] = a match{
       case collectionId: CollectionIdentifier =>
-        isSummary = isSummary || ! collectionId.representSingleVariable()
+        isSummary = isSummary || ! collectionId.representsSingleVariable()
         new MaybeHeapIdSetDomain[I]()
       case _ => throw new SemanticException("This is not a collection identifier " + a.toString)
     }
@@ -1667,10 +1667,10 @@ case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelatio
   override def getArrayLength(array : Assignable) = this
   override def getLabel() = "Top"
   override def getNullNode(pp : ProgramPoint) = this
-  override def getField() : Option[String] = None
+  override def getField : Option[String] = None
   override def isNormalized() : Boolean = true
-  override def representSingleVariable()=false
-  override def getName() = "#abstractReference#"
+  override def representsSingleVariable()=false
+  override def getName = "#abstractReference#"
   override def equals(o : Any) = o match {
     case x : TopHeapIdentifier => true
     case _ => false

@@ -317,15 +317,15 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
         for (valField <- from.typ.getPossibleFields().filter(!_.getType.isObject())) {
-          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
-          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
+          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
         }
       }
     }
     val verticesToRemove = (right.vertices.filter(_.isInstanceOf[HeapVertex]) -- iso.keySet).asInstanceOf[Set[HeapVertex]]
     var idsToRemove = Set.empty[ValueHeapIdentifier]
     for (v <- verticesToRemove) {
-      val removeForV: Set[ValueHeapIdentifier] = v.typ.getPossibleFields().map(f => new ValueHeapIdentifier(v, f.getName(), f.getType, f.getProgramPoint))
+      val removeForV: Set[ValueHeapIdentifier] = v.typ.getPossibleFields().map(f => new ValueHeapIdentifier(v, f.getName, f.getType, f.getProgramPoint))
       idsToRemove = idsToRemove ++ removeForV
     }
     for (edgeRight <- edgeMap.values) {
@@ -352,7 +352,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
           oe.field match {
             case None =>
             case Some(f) => {
-              if (refField.getName().equals(f))
+              if (refField.getName.equals(f))
                 presentEdges = presentEdges + oe
             }
           }
@@ -385,8 +385,8 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
         for (valField <- from.typ.getPossibleFields().filter(!_.getType.isObject())) {
-          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
-          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
+          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
         }
       }
     }
@@ -473,7 +473,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     var idsToRemove = Set.empty[ValueHeapIdentifier]
     for (v <- verticesToRemove) {
       for (valField <- v.typ.getPossibleFields().filter(!_.getType.isObject())) {
-        val idToRemove = new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName(), valField.getType, valField.getProgramPoint)
+        val idToRemove = new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
         idsToRemove = idsToRemove + idToRemove
       }
     }

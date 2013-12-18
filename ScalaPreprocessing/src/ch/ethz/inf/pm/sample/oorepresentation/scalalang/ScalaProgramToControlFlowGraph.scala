@@ -254,10 +254,10 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), extractCFG(x), extractListTypes(targs), extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
     case Apply(x, args) =>
       val calledMethod : Statement = extractCFG(x).normalize();
-      if(calledMethod.isInstanceOf[Variable] && definedLabel.get(calledMethod.asInstanceOf[Variable].getName()).isInstanceOf[Some[Int]] && args.equals(Nil)) {
+      if(calledMethod.isInstanceOf[Variable] && definedLabel.get(calledMethod.asInstanceOf[Variable].getName).isInstanceOf[Some[Int]] && args.equals(Nil)) {
         //The method call represents a goto statement!
         cfg.setNode(currentblock, statementsUntilHere)
-        cfg.addEdge(currentblock, definedLabel.get(calledMethod.asInstanceOf[Variable].getName()).get, None);
+        cfg.addEdge(currentblock, definedLabel.get(calledMethod.asInstanceOf[Variable].getName).get, None);
         (cfg, statementsUntilHere, currentblock, false)
       }
       else {

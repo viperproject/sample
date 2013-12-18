@@ -189,7 +189,7 @@ object ConstraintsInference {
       //if(variable.isInstanceOf[VariableIdentifier])
       //  constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(variable.toString() :: Nil))), expr);
       //else 
-      if(! variable.isInstanceOf[VariableIdentifier] && (Settings.unsoundDischarging || (variable.representSingleVariable)))
+      if(! variable.isInstanceOf[VariableIdentifier] && (Settings.unsoundDischarging || (variable.representsSingleVariable)))
     	  reach(variable, env, store) match {
 	        case None =>
 	        case Some(s :: Nil) =>

@@ -107,7 +107,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
     // if the object has a new fields, we add the necessary predicates
     for (f <- (typ.getPossibleFields map {
-      _.getName()
+      _.getName
     })) {
       if (!fields.contains(f)) {
         tempheap.structures = this.structures.map(_.addField("field_" + f))

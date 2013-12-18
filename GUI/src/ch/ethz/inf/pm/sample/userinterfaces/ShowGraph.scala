@@ -15,10 +15,7 @@ import java.awt.event._
 import tracepartitioning._
 import java.awt.{GridLayout, Dimension}
 import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
-import tracepartitioning.Leaf
-import tracepartitioning.Node
 import scala.Some
-import scala.collection.immutable.::
 import ch.ethz.inf.pm.sample.tracepartitioning.Node
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.FieldAndProgramPoint
@@ -338,7 +335,7 @@ object ShowGraph {
       //Create the nodes for variables
       for (node <- ids) {
         if (node.isInstanceOf[VariableIdentifier]) {
-          val (vertix, h) = createVertex(node, index, leftspace, yposition + ygap, graph, !node.representSingleVariable, "ellipse")
+          val (vertix, h) = createVertex(node, index, leftspace, yposition + ygap, graph, !node.representsSingleVariable, "ellipse")
           idToVertix += ((node, vertix))
           yposition = yposition + ygap * 2 + h
           index = index + 1
@@ -350,7 +347,7 @@ object ShowGraph {
       // Create the nodes for abstract addresses
       for (node <- ids) {
         if (!node.isInstanceOf[VariableIdentifier]) {
-          val (vertix, h) = createVertex(node, index, xposition, yposition + ygap, graph, !node.representSingleVariable, "ellipse")
+          val (vertix, h) = createVertex(node, index, xposition, yposition + ygap, graph, !node.representsSingleVariable, "ellipse")
           yposition = yposition + ygap * 2 + h
           idToVertix += ((node, vertix))
           index = index + 1

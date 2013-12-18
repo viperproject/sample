@@ -451,7 +451,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (_value:Map
   private def inhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
 	if(! id.getType.toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(new SimpleVal(Settings.permissionType.maxLevel), new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
-	if(! Settings.unsoundInhaling && ! id.representSingleVariable) //In order to be sound, I cannot inhale on heap summary nodes 
+	if(! Settings.unsoundInhaling && ! id.representsSingleVariable) //In order to be sound, I cannot inhale on heap summary nodes
 		return this;
 	if(actual.equals(this.top()))
 		return this.add(id, new SymbolicLevelPermission(p));
@@ -534,7 +534,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (_value:Map
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil))
     if(! variable.isInstanceOf[VariableIdentifier])
-	    variable.getField() match {
+	    variable.getField match {
 		    case None => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path ::: Nil))))), result);
 		    case Some(s) => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path  ::: /*s :: */Nil))))), result);
 		  }

@@ -306,7 +306,7 @@ object MethodSummaries {
 
     // Store returns in temporary variables
     val tempVars = for (outParam <- outParameters) yield {
-      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName()),outParam.typ,callPoint,ProgramPointScopeIdentifier(callTarget.programpoint))
+      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName),outParam.typ,callPoint,ProgramPointScopeIdentifier(callTarget.programpoint))
       val tempVarExpr = new ExpressionSet(tempVar.getType).add(tempVar)
       curState = curState.createVariable(tempVarExpr,tempVarExpr.getType(),callTarget.programpoint)
       curState = curState.assignVariable(tempVarExpr,new ExpressionSet(outParam.typ).add(outParam.variable.id))

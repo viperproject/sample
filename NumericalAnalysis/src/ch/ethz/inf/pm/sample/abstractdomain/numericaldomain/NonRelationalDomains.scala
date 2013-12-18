@@ -68,7 +68,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 
   override def assign(variable: Identifier, expr: Expression): BoxedNonRelationalNumericalDomain[N] = {
     if (variable.getType.isNumericalType()) {
-      if (variable.representSingleVariable)
+      if (variable.representsSingleVariable)
         this.add(variable, eval(expr))
       else this.add(variable, this.get(variable).lub(this.get(variable), eval(expr)))
     } else this

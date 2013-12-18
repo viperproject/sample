@@ -53,7 +53,7 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
     if (variable.getType.isStringType()) {
       val res = eval(expr)
       //if (res.isBottom) bottom()
-      if (variable.representSingleVariable()) this.add(variable, res)
+      if (variable.representsSingleVariable()) this.add(variable, res)
       else this.add(variable, dom.lub(this.get(variable), res))
     } else this
   }

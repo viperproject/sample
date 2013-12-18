@@ -186,7 +186,7 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
           }
         }
         case x: VariableIdentifier => {
-          if (linterm.getVariable.equals(x.getName())) {
+          if (linterm.getVariable.equals(x.getName)) {
             return true
           }
         }

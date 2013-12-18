@@ -60,7 +60,7 @@ object LoopCostHelper {
     arguments = new mutable.HashSet[String]()
     for (list <- method.arguments) {
       for (argument <- list) {
-        arguments.add(NameEncoder.getVariableName(argument.variable.getName()))
+        arguments.add(NameEncoder.getVariableName(argument.variable.getName))
       }
     }
   }

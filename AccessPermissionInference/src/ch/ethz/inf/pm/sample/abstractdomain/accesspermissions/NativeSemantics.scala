@@ -221,10 +221,10 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	      val obj=access.objs.head;
 	      val p = extractParameter(obj);
 	      var p1 : ExpressionSet=null;
-	      if(p.getName().equals("this"))
+	      if(p.getName.equals("this"))
 	        p1=thisExpr;
 	      else for(i <- 0 to pars.length-1)
-	    	  		if(pars.apply(i).variable.getName().equals(p)) //It's not possible to have 2 parameters with the same name
+	    	  		if(pars.apply(i).variable.getName.equals(p)) //It's not possible to have 2 parameters with the same name
 	      				p1=par.apply(i);
 	      if(p1==null) throw new Exception("This should not happen"); //Contract defined on something that is not a parameter of the method?
 	      val v = accessField[S](p1, access, state);

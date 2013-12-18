@@ -23,20 +23,20 @@ class ApronInterface(val state: Option[Abstract1],
   extends RelationalNumericalDomain[ApronInterface] {
 
   if (SystemParameters.DEBUG) {
-    if (env.map(_.getName()).size != env.size) {
+    if (env.map(_.getName).size != env.size) {
       var seen:Map[String,Identifier] = Map.empty
       var badBoys:Set[(Identifier,Identifier)] = Set.empty
       for (e <- env) {
-        seen.get(e.getName()) match {
+        seen.get(e.getName) match {
           case Some(x) => badBoys = badBoys + ((x,e))
-          case None => seen = seen + (e.getName() -> e)
+          case None => seen = seen + (e.getName -> e)
         }
       }
       throw new ApronException("When constructing ApronInterface: Two different identifiers have the same getName() representation! "+badBoys)
     }
     state match {
       case Some(s) => {
-        if (!(s.getEnvironment.getVars.toSet[String] subsetOf env.map(_.getName())))
+        if (!(s.getEnvironment.getVars.toSet[String] subsetOf env.map(_.getName)))
           throw new ApronException("The set of variables in the state is not a subset of variables in the environment.")
       }
       case None =>
@@ -113,9 +113,9 @@ class ApronInterface(val state: Option[Abstract1],
     state match {
       case None => new ApronInterface(state, domain, env = env - variable)
       case Some(st) =>
-        if (st.getEnvironment.hasVar(variable.getName())) {
+        if (st.getEnvironment.hasVar(variable.getName)) {
           val v: Array[String] = new Array[String](1)
-          v.update(0, variable.getName())
+          v.update(0, variable.getName)
           val apronEnv = st.getEnvironment.remove(v)
           new ApronInterface(Some(st.changeEnvironmentCopy(domain, apronEnv, false)), domain, env = env - variable)
         } else {
@@ -132,13 +132,13 @@ class ApronInterface(val state: Option[Abstract1],
     val varSet = variables.toSet
     state match {
       case None =>
-        new ApronInterface(state, domain, env = env.filter({ x:Identifier => !varSet.contains(x.getName()) }))
+        new ApronInterface(state, domain, env = env.filter({ x:Identifier => !varSet.contains(x.getName) }))
       case Some(st) =>
         val apronEnv = st.getEnvironment.remove(variables.filter({ x:String => st.getEnvironment.hasVar(x) }))
         if (!apronEnv.equals(st.getEnvironment)) {
-          new ApronInterface(Some(st.changeEnvironmentCopy(domain, apronEnv, false)), domain, env = env.filter({ x:Identifier => !varSet.contains(x.getName()) }))
+          new ApronInterface(Some(st.changeEnvironmentCopy(domain, apronEnv, false)), domain, env = env.filter({ x:Identifier => !varSet.contains(x.getName) }))
         } else {
-          new ApronInterface(state, domain, env = env.filter({ x:Identifier => !varSet.contains(x.getName()) }))
+          new ApronInterface(state, domain, env = env.filter({ x:Identifier => !varSet.contains(x.getName) }))
         }
     }
   }
@@ -168,13 +168,13 @@ class ApronInterface(val state: Option[Abstract1],
         var newFrom = List.empty[Identifier]
         var newTo = List.empty[Identifier]
         for (f <- from) {
-          if (stateVars.contains(f.getName())) {
+          if (stateVars.contains(f.getName)) {
             newFrom = newFrom :+ f
             newTo = newTo :+ to(index)
           }
           index = index + 1
         }
-        val newState = s.renameCopy(domain, newFrom.map(_.getName()).toArray[String], newTo.map(_.getName()).toArray[String])
+        val newState = s.renameCopy(domain, newFrom.map(_.getName).toArray[String], newTo.map(_.getName).toArray[String])
         val newEnv = env -- from ++ to
         new ApronInterface(Some(newState), domain, env = newEnv)
       }
@@ -185,8 +185,8 @@ class ApronInterface(val state: Option[Abstract1],
     state match {
       case None => this
       case Some(st) =>
-        if (st.getEnvironment.hasVar(variable.getName())) {
-          new ApronInterface(Some(st.forgetCopy(domain, variable.getName(), false)), domain, env = env)
+        if (st.getEnvironment.hasVar(variable.getName)) {
+          new ApronInterface(Some(st.forgetCopy(domain, variable.getName, false)), domain, env = env)
         } else this
     }
   }
@@ -219,8 +219,8 @@ class ApronInterface(val state: Option[Abstract1],
 
         // (1) Create left side variable if it does not exist
         var newState = someState.instantiateState()
-        if (!newState.getEnvironment.hasVar(variable.getName())) {
-          val env = addToEnvironment(newState.getEnvironment, variable.getType, variable.getName())
+        if (!newState.getEnvironment.hasVar(variable.getName)) {
+          val env = addToEnvironment(newState.getEnvironment, variable.getType, variable.getName)
           newState = newState.changeEnvironmentCopy(domain, env, false)
         }
 
@@ -235,8 +235,8 @@ class ApronInterface(val state: Option[Abstract1],
           //  return bottom()
           //}
 
-          if (!newEnv.hasVar(id.getName())) {
-            newEnv = addToEnvironment(newEnv, id.getType, id.getName())
+          if (!newEnv.hasVar(id.getName)) {
+            newEnv = addToEnvironment(newEnv, id.getType, id.getName)
           }
 
         }
@@ -250,18 +250,18 @@ class ApronInterface(val state: Option[Abstract1],
           if (expr.size > 1) {
             var curState = new Abstract1(domain, newState.getEnvironment, true)
             for (e <- expr) {
-              curState = curState.joinCopy(domain, newState.assignCopy(domain, variable.getName(), e, null))
+              curState = curState.joinCopy(domain, newState.assignCopy(domain, variable.getName, e, null))
             }
             curState
           } else if (expr.size == 1) {
-            newState.assignCopy(domain, variable.getName(), expr.head, null)
+            newState.assignCopy(domain, variable.getName, expr.head, null)
           } else {
             throw new ApronException("Empty expression set created")
           }
 
         // (4) Handling of summary nodes on the right side
         // If variable is a summary node, perform weak update by computing S[x<-v] |_| S
-        if (!variable.representSingleVariable()) {
+        if (!variable.representsSingleVariable()) {
           assignedState.join(domain,newState)
         }
 
@@ -273,16 +273,16 @@ class ApronInterface(val state: Option[Abstract1],
         //   (4) Remove all renamed summary nodes
         // This way, we infer every thing we can about the "materialized" value
 
-        val rightSummaryNodes = (someExpr.getIdentifiers filter ( !_.representSingleVariable() )) - variable
+        val rightSummaryNodes = (someExpr.getIdentifiers filter ( !_.representsSingleVariable() )) - variable
         if (!rightSummaryNodes.isEmpty) {
 
           val rightSummaryNodesNames = rightSummaryNodes.toList
-          val newSummaryNodeNames = rightSummaryNodesNames map {x:Identifier => SimpleApronIdentifier(x.getName() + "__TEMP",!x.representSingleVariable,x.getType,x.getProgramPoint)}
+          val newSummaryNodeNames = rightSummaryNodesNames map {x:Identifier => SimpleApronIdentifier(x.getName + "__TEMP",!x.representsSingleVariable,x.getType,x.getProgramPoint)}
           val materializedState = new ApronInterface(Some(assignedState),domain,env = someState.env).rename(rightSummaryNodesNames,newSummaryNodeNames)
           val summaryState = new ApronInterface(Some(newState),domain, env = someState.env).removeVariable(variable)
 
           val resultState = lub(materializedState,summaryState)
-          resultState.removeVariables(newSummaryNodeNames.map(_.getName()).toArray)
+          resultState.removeVariables(newSummaryNodeNames.map(_.getName).toArray)
 
         } else {
 
@@ -385,7 +385,7 @@ class ApronInterface(val state: Option[Abstract1],
             var tmp = someState2.instantiateState()
             var expEnv = new Environment()
             for (id <- Normalizer.getIdsForExpression(someExpr2)) {
-              expEnv = addToEnvironment(expEnv, id.getType, id.getName())
+              expEnv = addToEnvironment(expEnv, id.getType, id.getName)
             }
             val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
             if (!unionEnv.isIncluded(tmp.getEnvironment)) {
@@ -423,7 +423,7 @@ class ApronInterface(val state: Option[Abstract1],
 
     // 3rd trivial case: A simple remove
     if (r.isPureRemoving || (r.value.size == 1 && r.value.head._2.size == 0)) {
-      return this.removeVariables(r.value.map(_._1.map(_.getName()).toArray).toArray.flatten)
+      return this.removeVariables(r.value.map(_._1.map(_.getName).toArray).toArray.flatten)
     }
 
     // 4th trivial case: A simple expand
@@ -452,7 +452,7 @@ class ApronInterface(val state: Option[Abstract1],
 
     // Filter out everything that is converting to a summary node -- we can handle this
     val simpleConversions = r.value.filter ( { p:((Set[Identifier],Set[Identifier])) =>
-      p._1.size == 1 && p._2.size == 1 && p._1.head.getName().equals(p._2.head.getName())
+      p._1.size == 1 && p._2.size == 1 && p._1.head.getName.equals(p._2.head.getName)
     })
     val nextEnv = env -- simpleConversions.map(_._1).flatten ++ simpleConversions.map(_._2).flatten
 
@@ -468,7 +468,7 @@ class ApronInterface(val state: Option[Abstract1],
     var tempIdentifiers = Set.empty[Identifier]
 
     for ((from,to) <- rep.value) {
-      val toVarsAsString: Array[String] = (for (v <- to) yield v.getName()).toArray[String]
+      val toVarsAsString: Array[String] = (for (v <- to) yield v.getName).toArray[String]
       if(!from.isEmpty) {
 
         val startingState = instantiateState()
@@ -480,11 +480,11 @@ class ApronInterface(val state: Option[Abstract1],
         tempVersion = tempVersion + 1
 
         // If we have a top variable (not in APRON state) on the left side
-        if (!(from.map(_.getName()) -- startingState.getEnvironment.getVars).isEmpty) {
-          foldedStates = foldedStates + this.createVariable(tempValIdent,from.head.getType).removeVariables(from.map(_.getName()).toArray)
+        if (!(from.map(_.getName) -- startingState.getEnvironment.getVars).isEmpty) {
+          foldedStates = foldedStates + this.createVariable(tempValIdent,from.head.getType).removeVariables(from.map(_.getName).toArray)
           postProcessMap = postProcessMap + (Some(tempVal) -> toVarsAsString)
         } else {
-          val fromVarsAsString: Array[String] = (for (v <- from) yield v.getName()).toArray[String]
+          val fromVarsAsString: Array[String] = (for (v <- from) yield v.getName).toArray[String]
           val presentVariablesToRemove = fromVarsAsString.intersect(startingState.getEnvironment.getVars)
           varsToRemove = varsToRemove ++ fromVarsAsString ++ toVarsAsString
           if (presentVariablesToRemove.size > 0) {
@@ -527,7 +527,7 @@ class ApronInterface(val state: Option[Abstract1],
     // There are cases where merge does not remove from the apron state variables that should be removed, leading to
     // the situation where the set of identifiers in the ApronInterface environment is not a superset of the
     // identifiers in the apron state (Abstract1).
-    val idsToRemoveFromState = (resultingState.getEnvironment.getVars.toSet[String] -- newEnvironment.map(_.getName())).toArray[String]
+    val idsToRemoveFromState = (resultingState.getEnvironment.getVars.toSet[String] -- newEnvironment.map(_.getName)).toArray[String]
     if (!idsToRemoveFromState.isEmpty) {
       println("ApronInterface.merge: The set of variables in the state is not a subset of variables in the environment. This is a bug in merge, hacked in fix is provided.")
       resultingState.changeEnvironment(domain, resultingState.getEnvironment.remove(idsToRemoveFromState), false)
@@ -547,9 +547,9 @@ class ApronInterface(val state: Option[Abstract1],
     if (right.isBottom)
       return left
     if (left.isTop)
-      return new ApronInterface(right.removeVariables(left.getIds().map(_.getName()).toArray).state, domain, env = left.getIds() ++ right.getIds())
+      return new ApronInterface(right.removeVariables(left.getIds().map(_.getName).toArray).state, domain, env = left.getIds() ++ right.getIds())
     if (right.isTop)
-      return new ApronInterface(left.removeVariables(right.getIds().map(_.getName()).toArray).state, domain, env = left.getIds() ++ right.getIds())
+      return new ApronInterface(left.removeVariables(right.getIds().map(_.getName).toArray).state, domain, env = left.getIds() ++ right.getIds())
 
     try {
       // NEW JOIN that supports different environments
@@ -560,7 +560,7 @@ class ApronInterface(val state: Option[Abstract1],
 
       // First we compute the common variables.
       if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-        val commonVariables = left.getIds().intersect(right.getIds()).map(_.getName())
+        val commonVariables = left.getIds().intersect(right.getIds()).map(_.getName)
         val commonRepVarsLeft: Array[String] = leftState.getEnvironment.getVars.filter( commonVariables.contains(_) )
         val commonRepVarsRight: Array[String] = rightState.getEnvironment.getVars.filter( commonVariables.contains(_) )
         // We need to forget the common variables in each state, otherwise we would be unsound
@@ -602,8 +602,8 @@ class ApronInterface(val state: Option[Abstract1],
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-      val leftVars = leftState.getEnvironment.getVars.toSet[String] ++ left.getIds().map(_.getName())
-      val rightVars = rightState.getEnvironment.getVars.toSet[String] ++ right.getIds().map(_.getName())
+      val leftVars = leftState.getEnvironment.getVars.toSet[String] ++ left.getIds().map(_.getName)
+      val rightVars = rightState.getEnvironment.getVars.toSet[String] ++ right.getIds().map(_.getName)
       var result = leftState.unifyCopy(domain, rightState)
       val uncommonVariables: Array[String] = (((leftVars union rightVars) intersect result.getEnvironment.getVars.toSet[String]) diff (leftVars intersect rightVars)).toArray[String]
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
@@ -623,9 +623,9 @@ class ApronInterface(val state: Option[Abstract1],
     if (right.isBottom)
       return left
     if (left.isTop)
-      return new ApronInterface(right.removeVariables(left.getIds().map(_.getName()).toArray).state, domain, env = left.getIds() ++ right.getIds())
+      return new ApronInterface(right.removeVariables(left.getIds().map(_.getName).toArray).state, domain, env = left.getIds() ++ right.getIds())
     if (right.isTop)
-      return new ApronInterface(left.removeVariables(right.getIds().map(_.getName()).toArray).state, domain, env = left.getIds() ++ right.getIds())
+      return new ApronInterface(left.removeVariables(right.getIds().map(_.getName).toArray).state, domain, env = left.getIds() ++ right.getIds())
 
     val leftState = left.instantiateState()
     val rightState = right.instantiateState()
@@ -674,7 +674,7 @@ class ApronInterface(val state: Option[Abstract1],
     if (isBottom) return "_|_ (pure)"
     if (!env.contains(id)) return "_|_"
     if (isTop) return "T (pure)"
-    val constraints = this.state.get.toLincons(domain).toList.filter(constraintContains(_, id.getName()))
+    val constraints = this.state.get.toLincons(domain).toList.filter(constraintContains(_, id.getName))
     if(constraints.isEmpty) return "T"
     val translator = ApronInterfaceTranslator(this)
     val exps = constraints map translator.translate map ExpPrettyPrinter
@@ -695,8 +695,8 @@ class ApronInterface(val state: Option[Abstract1],
       val newState = state match {
         case None => None
         case Some(x) =>
-          if (x.getEnvironment.hasVar(source.getName()))
-            Some(x.expandCopy(domain,source.getName(),target.map(_.getName()).toArray))
+          if (x.getEnvironment.hasVar(source.getName))
+            Some(x.expandCopy(domain,source.getName,target.map(_.getName).toArray))
           else
             Some(x)
       }
@@ -789,7 +789,7 @@ class ApronInterface(val state: Option[Abstract1],
    */
   private def summaryNodeWrapper(expr: Expression, state: ApronInterface, someFunc: (Expression, ApronInterface) => ApronInterface): ApronInterface = {
 
-    if (!expr.getIdentifiers.filter( x => !x.representSingleVariable() ).isEmpty) {
+    if (!expr.getIdentifiers.filter( x => !x.representsSingleVariable() ).isEmpty) {
 
       // We have a summary node.
 
@@ -800,8 +800,8 @@ class ApronInterface(val state: Option[Abstract1],
       val transformedExpression = expr.transform({
         x:Expression => x match {
           case x:Identifier =>
-            if (!x.representSingleVariable()) {
-              val newIdentifier = SimpleApronIdentifier(x.getName() + "__TMP" + temporaryCounter, summary = false, x.getType, x.getProgramPoint)
+            if (!x.representsSingleVariable()) {
+              val newIdentifier = SimpleApronIdentifier(x.getName + "__TMP" + temporaryCounter, summary = false, x.getType, x.getProgramPoint)
               temporaryCounter = temporaryCounter + 1
               expandTemporaryVariables.value(Set(x)) =
                 expandTemporaryVariables.value.get(Set(x)) match {
@@ -865,12 +865,12 @@ class ApronInterface(val state: Option[Abstract1],
       val a = new DoubleScalar()
       a.setInfty(-1)
       List(new Texpr1CstNode(a))
-    case x: Identifier => List(new Texpr1VarNode(x.getName()))
+    case x: Identifier => List(new Texpr1VarNode(x.getName))
     case setId: HeapIdSetDomain[Identifier] =>
       if (setId.isTop || setId.isBottom) List(topExpression())
       else
         (setId.value map {
-          x: Identifier => new Texpr1VarNode(x.getName())
+          x: Identifier => new Texpr1VarNode(x.getName)
         }).toList
     case Constant(v, typ, p) =>
       if (typ.isNumericalType())
@@ -1054,8 +1054,8 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
 class ApronException(s: String) extends Exception(s)
 
 case class SimpleApronIdentifier(name:String, summary:Boolean, typ:Type, override val pp:ProgramPoint) extends HeapIdentifier[SimpleApronIdentifier](typ,pp) {
-  def getName(): String = name
-  def representSingleVariable(): Boolean = !summary
-  def getField(): Option[String] = None
+  def getName: String = name
+  def representsSingleVariable(): Boolean = !summary
+  def getField: Option[String] = None
   override def toString:String = name
 }

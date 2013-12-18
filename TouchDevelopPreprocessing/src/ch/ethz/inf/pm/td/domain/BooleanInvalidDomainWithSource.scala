@@ -56,7 +56,7 @@ class BooleanInvalidDomainWithSource (_value:Map[Identifier, PositionedInvalidVa
     val res = eval(expr)
     if (!res.isTop && (res.isBottom || res.value.isEmpty))
       bottom()
-    else if (variable.representSingleVariable()) this.add(variable, res)
+    else if (variable.representsSingleVariable()) this.add(variable, res)
     else this.add(variable, domBottom.lub(this.get(variable), res))
   }
 

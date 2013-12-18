@@ -124,7 +124,7 @@ class LoopCostCompiler extends TouchCompiler {
       }
       case v: Variable => {
         val result : Set[String] = Set.empty[String]
-        result + v.getName()
+        result + v.getName
       }
       case vd: VariableDeclaration =>  variablesFromStatementAsString(vd.variable)
       case _ => Set.empty[String]

@@ -382,31 +382,29 @@ abstract class Identifier(typ : Type, pp : ProgramPoint) extends Expression with
   def getProgramPoint = pp
   def getType = if(typ==null && SystemParameters.typ!=null) SystemParameters.typ.top() else typ
   def getIdentifiers = Set(this)
+  def transform(f:(Expression => Expression)):Expression = f(this)
 
   /**
-   Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
-   if they are the same identifier
-   @return The name of the identifier
+   * Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
+   * if they are the same identifier
+   * @return The name of the identifier
    */
-  def getName() : String;
+  def getName : String
   
   /**
-   Returns the name of the field that is represented by this identifier if it is a heap identifier. 
-   
-   @return The name of the field pointed by this identifier
+   * Returns the name of the field that is represented by this identifier if it is a heap identifier.
+   *
+   * @return The name of the field pointed by this identifier
    */
-  def getField() : Option[String];
+  def getField : Option[String]
 
-  
   /**
-   Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
-   identifier. This function tells if a node is a summary node.  
-   
-   @return true iff this identifier represents exactly one variable
+   * Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
+   * identifier. This function tells if a node is a summary node.
+   *
+   * @return true iff this identifier represents exactly one variable
    */
-  def representSingleVariable() : Boolean;
-
-  override def transform(f:(Expression => Expression)):Expression = f(this)
+  def representsSingleVariable() : Boolean
 
 }
 
@@ -447,21 +445,18 @@ case class ProgramPointScopeIdentifier(pp:ProgramPoint) extends ScopeIdentifier 
  * @param name The name of the variable
  * @param typ The type of the variable
  */
-case class VariableIdentifier(
-    var name: String,
-    typ: Type,
-    pp: ProgramPoint,
-    scope: ScopeIdentifier = EmptyScopeIdentifier)
+case class VariableIdentifier(name: String,typ: Type,pp: ProgramPoint,scope: ScopeIdentifier = EmptyScopeIdentifier)
   extends Identifier(typ, pp) {
+
   require(typ != null)
 
-  override def getName() = name.toString + scope.toString
-  override def toString = getName()
-  override def getField() = None
+  override def getName = name.toString + scope.toString
+  override def toString = getName
+  override def getField = None
   override def hashCode() : Int = name.hashCode() + scope.hashCode()
   
   // Variables always represent exactly one concrete identifier
-  override def representSingleVariable()=true
+  override def representsSingleVariable()=true
   
   override def equals(o : Any) = o match {
     case VariableIdentifier(n, _, _, s) => name.equals(n) && scope.equals(s)
@@ -513,7 +508,7 @@ case class AccessPathIdentifier(accPath: List[String], typ1: Type, pp: ProgramPo
    if they are the same identifier
    @return The name of the identifier
     */
-  def getName(): String = {
+  def getName: String = {
     var result = ""
     for (s <- accPath.dropRight(1)) {
       result = result + s + "."
@@ -526,7 +521,7 @@ case class AccessPathIdentifier(accPath: List[String], typ1: Type, pp: ProgramPo
 
    @return The name of the field pointed by this identifier
     */
-  def getField(): Option[String] = ???
+  def getField: Option[String] = ???
 
   /**
   Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
@@ -534,16 +529,16 @@ case class AccessPathIdentifier(accPath: List[String], typ1: Type, pp: ProgramPo
 
    @return true iff this identifier represents exactly one variable
     */
-  def representSingleVariable(): Boolean = true
+  def representsSingleVariable(): Boolean = true
 
   override def equals(obj: Any): Boolean = obj match {
-    case other: AccessPathIdentifier => other.getName().equals(getName())
+    case other: AccessPathIdentifier => other.getName.equals(getName)
     case _ => false
   }
 
-  override def hashCode(): Int = getName().hashCode()
+  override def hashCode(): Int = getName.hashCode()
 
-  override def toString(): String = getName()
+  override def toString(): String = getName
 }
 
 /** 
@@ -764,7 +759,7 @@ object Normalizer {
     case x : AbstractOperator => return false;
 
     // I assume that the identifiers are the same if they have the same name.
-    case x : Identifier => return id.getName().equals(x.getName());
+    case x : Identifier => return id.getName.equals(x.getName);
 
     case x : HeapIdSetDomain[I] => {
       if (id.isInstanceOf[I]) {
@@ -832,7 +827,7 @@ object Normalizer {
 
         // I assume that the identifiers are the same if they have the same name.
         case x : Identifier => {
-          if (x.getName().equals(id.getName())) {
+          if (x.getName.equals(id.getName)) {
             return subExp;
           } else {
             return exp;
@@ -873,7 +868,7 @@ object Normalizer {
           return new BinaryNondeterministicExpression(substitute[I](left, id, subExp), substitute[I](right, id, subExp), op, typ)
         }
 
-        case _ => throw new Exception("Can not substitute " + subExp.toString + " for " + id.getName() + " in " + exp.toString);
+        case _ => throw new Exception("Can not substitute " + subExp.toString + " for " + id.getName + " in " + exp.toString);
       }
     } else {
       return exp;

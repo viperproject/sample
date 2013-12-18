@@ -83,13 +83,13 @@ object LinearExpressionFactory {
             val n = Integer.parseInt(bae.right.asInstanceOf[Constant].constant)
             val r = if (negated) new Rational(-n) else new Rational(n)
             val v = bae.left.asInstanceOf[VariableIdentifier]
-            coefficients.put(new PubsVariable(v.getName(), false), r)
+            coefficients.put(new PubsVariable(v.getName, false), r)
             true
           } else if (bae.right.isInstanceOf[VariableIdentifier] && bae.left.isInstanceOf[Constant]) {
             val n = Integer.parseInt(bae.left.asInstanceOf[Constant].constant)
             val r = if (negated) new Rational(-n) else new Rational(n)
             val v = bae.right.asInstanceOf[VariableIdentifier]
-            coefficients.put(new PubsVariable(v.getName(), false), r)
+            coefficients.put(new PubsVariable(v.getName, false), r)
             true
           } else false
         } else false
@@ -106,7 +106,7 @@ object LinearExpressionFactory {
         true
       }
       case v: VariableIdentifier => {
-        coefficients.put(new PubsVariable(v.getName(), false), if (negated) new Rational(-1) else new Rational(1))
+        coefficients.put(new PubsVariable(v.getName, false), if (negated) new Rational(-1) else new Rational(1))
         true
       }
       case _ => false

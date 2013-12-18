@@ -52,7 +52,7 @@ sealed abstract class ProgramPointHeapIdentifier(t: Type, pp1: ProgramPoint, cou
 
   override def getNullNode(p: ProgramPoint) = new NullProgramPointHeapIdentifier(t.top(), p)
 
-  override def getName(): String = this.toString
+  override def getName: String = this.toString
 
   override def isNormalized(): Boolean = true
 
@@ -137,7 +137,7 @@ sealed abstract class ProgramPointHeapIdentifier(t: Type, pp1: ProgramPoint, cou
 }
 
 case class NullProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint, cnt: Int = 0) extends ProgramPointHeapIdentifier(t2, pp1, cnt) {
-  def getField(): Option[String] = None
+  def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
@@ -150,7 +150,7 @@ case class NullProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint, cnt: Int 
 
   override def factory(): ProgramPointHeapIdentifier = new NullProgramPointHeapIdentifier(getType, this.getProgramPoint)
 
-  override def representSingleVariable(): Boolean = true
+  override def representsSingleVariable(): Boolean = true
 
   override def clone(): Object = new NullProgramPointHeapIdentifier(t2, this.getProgramPoint)
 
@@ -164,7 +164,7 @@ case class NullProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint, cnt: Int 
 }
 
 case class SimpleProgramPointHeapIdentifier(pp1: ProgramPoint, t2: Type, summary: Boolean = false, cnt: Int = 0) extends ProgramPointHeapIdentifier(t2, pp1, cnt) {
-  def getField(): Option[String] = None
+  def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
@@ -177,7 +177,7 @@ case class SimpleProgramPointHeapIdentifier(pp1: ProgramPoint, t2: Type, summary
 
   override def factory(): ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.getType)
 
-  override def representSingleVariable(): Boolean = !summary
+  override def representsSingleVariable(): Boolean = !summary
 
   override def clone(): Object = new SimpleProgramPointHeapIdentifier(pp, this.getType)
 
@@ -191,7 +191,7 @@ case class SimpleProgramPointHeapIdentifier(pp1: ProgramPoint, t2: Type, summary
 }
 
 case class CollectionIdentifier(override val pp:ProgramPoint, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], summary:Boolean = false, cnt: Int = 0) extends ProgramPointHeapIdentifier(collTyp, pp) {
-  def getField() : Option[String] = None
+  def getField : Option[String] = None
   override def isNormalized() : Boolean = true
   override def equals(x : Any) : Boolean = x match {
     case CollectionIdentifier(ppX, collTypX, keyTypX, valueTypX, lengthTypX, origCollTypX, keyCollTypX, summaryX, c) => pp == ppX && collTyp == collTypX && cnt == c &&
@@ -199,9 +199,9 @@ case class CollectionIdentifier(override val pp:ProgramPoint, collTyp:Type, keyT
     case _ => false
   }
 
-  override def toString() : String = collTyp.toString + "("+pp.toString+")" + (if (PPDSettings.printSummary && summary) "Σ" else "")
+  override def toString : String = collTyp.toString + "("+pp.toString+")" + (if (PPDSettings.printSummary && summary) "Σ" else "")
   override def factory() : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
-  override def representSingleVariable() : Boolean= !summary
+  override def representsSingleVariable() : Boolean= !summary
   override def clone() : Object = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
   override def toSummaryNode : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, true)
   override def toNonSummaryNode : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, false)
@@ -211,7 +211,7 @@ case class CollectionIdentifier(override val pp:ProgramPoint, collTyp:Type, keyT
 }
 
 case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier, keyTyp:Type, valueTyp:Type, pps: Set[ProgramPoint], summary: Boolean = false, cnt: Int = 0) extends ProgramPointHeapIdentifier(collectionApprox.getType, pps.head, cnt) {
-  def getField() : Option[String] = None
+  def getField : Option[String] = None
   override def isNormalized() : Boolean = false
 
   override def equals(x : Any) : Boolean = x match {
@@ -229,16 +229,16 @@ case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier
     case _ => false
   }
 
-  override def toString() : String = {
+  override def toString : String = {
     val approxType = this.collectionApprox match {
       case FieldAndProgramPoint(_, x, _, _) => x
     }
 
-    "T(" + approxType + "," + this.collectionApprox.pp + ", " + this.pps.mkString(",") + ")" + (if (PPDSettings.printSummary && !representSingleVariable()) "Σ" else "")
+    "T(" + approxType + "," + this.collectionApprox.pp + ", " + this.pps.mkString(",") + ")" + (if (PPDSettings.printSummary && !representsSingleVariable()) "Σ" else "")
   }
 
   override def factory() : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
-  override def representSingleVariable() : Boolean = !summary
+  override def representsSingleVariable() : Boolean = !summary
   override def clone() : Object = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
   override def toSummaryNode : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toSummaryNode, this.keyTyp, this.valueTyp, this.pps, true)
   override def toNonSummaryNode : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toNonSummaryNode, this.keyTyp, this.valueTyp, this.pps, false)
@@ -259,7 +259,7 @@ case class CollectionTupleIdentifier(collectionApprox:ProgramPointHeapIdentifier
 }
 
 case class ArrayTopIdentifier(cnt: Int = 0) extends ProgramPointHeapIdentifier(null, null, cnt) {
-  def getField(): Option[String] = None
+  def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
@@ -272,7 +272,7 @@ case class ArrayTopIdentifier(cnt: Int = 0) extends ProgramPointHeapIdentifier(n
 
   override def factory(): ProgramPointHeapIdentifier = new ArrayTopIdentifier()
 
-  override def representSingleVariable(): Boolean = false
+  override def representsSingleVariable(): Boolean = false
 
   override def clone(): Object = new ArrayTopIdentifier()
 
@@ -286,7 +286,7 @@ case class ArrayTopIdentifier(cnt: Int = 0) extends ProgramPointHeapIdentifier(n
 }
 
 case class ParameterHeapIdentifier(t2: Type, pp1: ProgramPoint, summary: Boolean = false, cnt: Int = 0) extends ProgramPointHeapIdentifier(t2, pp1, cnt) {
-  def getField(): Option[String] = None
+  def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
@@ -295,7 +295,7 @@ case class ParameterHeapIdentifier(t2: Type, pp1: ProgramPoint, summary: Boolean
     case _ => false
   }
 
-  override def representSingleVariable(): Boolean = !summary
+  override def representsSingleVariable(): Boolean = !summary
 
   override def factory(): ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.getType, this.getProgramPoint)
 
@@ -311,7 +311,7 @@ case class ParameterHeapIdentifier(t2: Type, pp1: ProgramPoint, summary: Boolean
 }
 
 case class UnsoundParameterHeapIdentifier(t2: Type, n: Int, pp1: ProgramPoint, cnt: Int = 0) extends ProgramPointHeapIdentifier(t2, pp1, cnt) {
-  def getField(): Option[String] = None
+  def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
@@ -320,7 +320,7 @@ case class UnsoundParameterHeapIdentifier(t2: Type, n: Int, pp1: ProgramPoint, c
     case _ => false
   }
 
-  override def representSingleVariable(): Boolean = this.n != NonRelationalHeapDomainSettings.maxInitialNodes
+  override def representsSingleVariable(): Boolean = this.n != NonRelationalHeapDomainSettings.maxInitialNodes
 
   override def factory(): ProgramPointHeapIdentifier = new UnsoundParameterHeapIdentifier(this.getType, this.n, this.getProgramPoint)
 
@@ -336,7 +336,7 @@ case class UnsoundParameterHeapIdentifier(t2: Type, n: Int, pp1: ProgramPoint, c
 }
 
 case class StaticProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint, cnt: Int = 0) extends ProgramPointHeapIdentifier(t2, pp1, cnt) {
-  def getField(): Option[String] = None
+  def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
@@ -345,7 +345,7 @@ case class StaticProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint, cnt: In
     case _ => false
   }
 
-  override def representSingleVariable(): Boolean = true
+  override def representsSingleVariable(): Boolean = true
 
   override def factory(): ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(this.getType, this.getProgramPoint)
 
@@ -361,7 +361,7 @@ case class StaticProgramPointHeapIdentifier(t2: Type, pp1: ProgramPoint, cnt: In
 }
 
 case class FieldAndProgramPoint(p1: ProgramPointHeapIdentifier, field: String, t2: Type, cnt: Int = 0) extends ProgramPointHeapIdentifier(t2, p1.getProgramPoint, cnt) {
-  def getField(): Option[String] = Some(field)
+  def getField: Option[String] = Some(field)
 
   override def isNormalized(): Boolean = false
 
@@ -370,7 +370,7 @@ case class FieldAndProgramPoint(p1: ProgramPointHeapIdentifier, field: String, t
     case _ => false
   }
 
-  override def representSingleVariable(): Boolean = p1.representSingleVariable()
+  override def representsSingleVariable(): Boolean = p1.representsSingleVariable()
 
   override def factory(): ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1, this.field, this.getType)
 

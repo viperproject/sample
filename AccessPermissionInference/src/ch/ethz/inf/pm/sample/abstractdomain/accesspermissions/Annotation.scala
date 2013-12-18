@@ -355,7 +355,7 @@ object Annotation {
 	  for(s <- id.getType.getPossibleFields()) {
       //TODO:Maybe this won't work if newHeap!=h
       //I have to test it with TVLA
-		  var (fieldId, newHeap, rep) = h.getFieldIdentifier(id, s.getName(), s.getType, s.getProgramPoint);
+		  var (fieldId, newHeap, rep) = h.getFieldIdentifier(id, s.getName, s.getType, s.getProgramPoint);
       for(singleId <- fieldId.value)
 	 	    p = p.free(singleId);
 	  }
@@ -472,7 +472,7 @@ object Annotation {
  	
  	private def convertFieldAccessToListStrings(fieldAccess : FieldAccess) : List[String] = fieldAccess match {
  	  case FieldAccess(pp, objs, field, typ) => objs match {
- 	    case Variable(pp, name) :: Nil => name.getName() :: field :: Nil
+ 	    case Variable(pp, name) :: Nil => name.getName :: field :: Nil
  	    case x :: Nil if x.isInstanceOf[FieldAccess] => convertFieldAccessToListStrings(x.asInstanceOf[FieldAccess]) ::: field :: Nil
  	  }
     }

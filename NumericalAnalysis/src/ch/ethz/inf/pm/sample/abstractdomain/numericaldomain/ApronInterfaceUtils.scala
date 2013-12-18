@@ -104,7 +104,7 @@ class ApronInterfaceTranslator(
     case None => sys.error(s"unknown variable $variable")
   }
 
-  private val idMap = env.groupBy(_.getName()).map { case (k,v) => {
+  private val idMap = env.groupBy(_.getName).map { case (k,v) => {
       if (v.size > 1) sys.error(s"non-unique identifier name $k")
       else (k, v.toList(0))
     }

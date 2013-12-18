@@ -48,7 +48,7 @@ object RemoveGetterSetter {
                  else t=t.top();
                if(! t.equals(t.top()))
 	               for(n <- t.getPossibleFields()) {
-	                 if(field.equals(n.getName()))
+	                 if(field.equals(n.getName))
 	                   return new FieldAccess(pp1, cleanedObjs, field, n.getType);
 	               }
              case _ => 

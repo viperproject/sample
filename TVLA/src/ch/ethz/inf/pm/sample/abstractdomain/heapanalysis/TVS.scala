@@ -424,9 +424,9 @@ class BinaryPredicate[N](val n: String, val values: Map[(N, N), Kleene]) extends
  * NodeName can be used to name all individuals in a TVS
  */
 abstract class NodeName extends HeapIdentifier[NodeName](null, null) {
-  def representSingleVariable(): Boolean = false
-  def getField(): Option[String] = null
-  def getName(): String = null
+  def representsSingleVariable(): Boolean = false
+  def getField: Option[String] = null
+  def getName: String = null
 }
 
 /**
