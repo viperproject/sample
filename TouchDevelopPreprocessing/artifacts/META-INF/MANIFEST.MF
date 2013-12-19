@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Class-Path: scalatest_2.10-1.9.1.jar java_cup.jar scala-actors.jar cpr
+ ep.jar tvla.jar lpsolve55j.jar scalatest_2.10-1.9.1.jar lift-json_2.1
+ 0-2.5-M4.jar mysql-connector-java-5.1.16.jar jgraphx.jar jgoodies-for
+ ms.jar gmp.jar paranamer-2.5.2.jar commons-lang3-3.0.1.jar scala-libr
+ ary.jar scala-reflect.jar trove-2.1.0.jar htmlparser-1.4.jar scala-co
+ mpiler.jar scala-library.jar scala-reflect.jar commons-io-2.0.1.jar c
+ ommons-lang3-3.1.jar apron.jar
+Main-Class: ch.ethz.inf.pm.td.Main
+
