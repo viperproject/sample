@@ -45,7 +45,7 @@ abstract class Vertex(val name: String, val label: String, val typ: Type) extend
   override def equals(obj : Any): Boolean = {
     if (!obj.isInstanceOf[Vertex])
       return false
-    return name.equals(obj.asInstanceOf[Vertex].name)  && label.equals(obj.asInstanceOf[Vertex].label)
+    return name.equals(obj.asInstanceOf[Vertex].name) && label.equals(obj.asInstanceOf[Vertex].label)
   }
 }
 

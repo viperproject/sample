@@ -10,6 +10,7 @@ package test.files
 class Node {
 
   var value: Int = 0
+//  var length: Int = 0
   var next: Node = null
 
   def createNext(v : Int) = {
@@ -21,17 +22,54 @@ class Node {
 //    var first = new Node()
 //    first = null
 
+//    var p = this
+//    p.value = 0
+//    p = p.next
+//    if (p != null) {
+//      p.value = 0
+//      p = p.next
+//    }
+
+
+//    var p = this
+//    while (p != null) {
+//      p.value = 0
+//      p.next = p
+//    }
+
     // First nat
+    var result : Node = null
+    var p : Node = null
+    var i = v
+    while (i >= 0) {
+      p = new Node()
+      p.value = i
+      p.next = result
+      result = p
+      p = null
+      i = i - 1
+    }
+
+//    acyclic list
 //    var result : Node = null
 //    var p : Node = null
-//    var i = v
-//    while (i >= 0) {
+//    var i = 1
+//    while (i <= v) {
 //      p = new Node()
-//      p.value = i
+//      p.length = i
 //      p.next = result
 //      result = p
 //      p = null
-//      i = i - 1
+//      i = i + 1
+//    }
+//    p = result
+//    while (p != null) {
+//      p.value = 0
+//      p = p.next
+//    }
+//    if (p != null) {
+//      p.value = 0
+//      p = p.next
 //    }
 
 
@@ -67,16 +105,16 @@ class Node {
 //    if (next != null)
 //      next.value = v
 
-    var result = new Node()
-    var p = result
-    p.value = 0
-    var i = 1
-    while (i < v) {
-      p.next = new Node()
-      p = p.next
-      p.value = i
-      i = i + 1
-    }
+//    var result = new Node()
+//    var p = result
+//    p.value = 0
+//    var i = 1
+//    while (i < v) {
+//      p.next = new Node()
+//      p = p.next
+//      p.value = i
+//      i = i + 1
+//    }
 
 //    value = 0
 //    var p = this

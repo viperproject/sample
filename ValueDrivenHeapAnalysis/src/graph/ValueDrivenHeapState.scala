@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{StaticModifier, NativeMethodSeman
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.property._
-import apron.Polka
+import apron.{Box, Octagon, Polka}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.{BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics}
 import scala.collection.mutable
@@ -19,9 +19,9 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 
   if (isTop && isBottom) throw new Exception("Being Top and Bottom in the same time is not allowed.")
 
-  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Polka(false), false, Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
-//  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Octagon()).top().asInstanceOf[S], newExpr, false, false)
-//  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Box()).top().asInstanceOf[S], newExpr, false, false)
+  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Polka(false), env =  Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
+//  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Octagon(), env = Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
+//  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Box(), env = Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
 
 
   def this(newAbstractHeap: HeapGraph[S], newGeneralValState: S, newExpr: ExpressionSet)  = this(newAbstractHeap,newGeneralValState,newExpr, false, false)
@@ -321,7 +321,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               // It's possible that the two sets of edges overlap.
               var tempAH = abstractHeap.removeEdges(edgesToRemove).addEdges(edgesToAdd)
               val (resultingAH, idsToRemove) = tempAH.prune()
-              result = new ValueDrivenHeapState[S](resultingAH, Utilities.removeVariablesFromState(generalValState, idsToRemove), new ExpressionSet(rightExp.getType).add(variable), false, isBottom)
+              result = new ValueDrivenHeapState[S](resultingAH.joinCommonEdges(), Utilities.removeVariablesFromState(generalValState, idsToRemove), new ExpressionSet(rightExp.getType).add(variable), false, isBottom)
             }
           }
         }
@@ -960,6 +960,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   def getVariableValue(id: Assignable): ValueDrivenHeapState[S] = {
     //**println("getVariableValue(" + id.toString + ") is called")
     if(this.isBottom) return this
+    assert(id.isInstanceOf[VariableIdentifier], "This should be VariableIdentifier.")
+
     return new ValueDrivenHeapState[S](abstractHeap, generalValState, new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]), isTop, isBottom)
     //throw new Exception("Method getVariableValue is not implemented")
   }
@@ -978,7 +980,12 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     assert(obj.head.getSetOfExpressions.size == 1, "We only support single field access.")
     assert(obj.head.getSetOfExpressions.head.isInstanceOf[AccessPathExpression], "The field access should be accessed via access path.")
     // TODO: May be I should check whether this exist and is feasible already here.
-    return new ValueDrivenHeapState[S](abstractHeap, generalValState, new ExpressionSet(typ).add(obj.head), isTop, isBottom)
+    if (ValueDrivenHeapProperty.materialize) {
+      val apObj = obj.head.getSetOfExpressions.head.asInstanceOf[AccessPathExpression]
+      val tempResult = materializePath({if (apObj.typ.isObject()) apObj.path else apObj.path.dropRight(1)})
+      new ValueDrivenHeapState[S](tempResult.abstractHeap, tempResult.generalValState, new ExpressionSet(typ).add(obj.head), tempResult.isTop, tempResult.isBottom)
+    } else
+      new ValueDrivenHeapState[S](abstractHeap, generalValState, new ExpressionSet(typ).add(obj.head), isTop, isBottom)
     // throw new Exception("Method getFieldValue is not implemented")
   }
 
@@ -1355,7 +1362,20 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   @return The widening of <code>left</code> and <code>right</code>
     */
   def widening(left: ValueDrivenHeapState[S], right: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
-    //**println("WIDENING IS CALLED")
+    def areGraphsIdentical(l: HeapGraph[S], r: HeapGraph[S]) : Boolean = {
+      var areGraphsIdentical = true
+      for (rEdge <- r.edges) {
+        areGraphsIdentical = areGraphsIdentical &&
+          {
+            val edgeSet = l.edges.filter(lEdge => lEdge.source.equals(rEdge.source) && lEdge.target.equals(rEdge.target))
+            edgeSet.size == 1 && edgeSet.head.state.getIds().equals(rEdge.state.getIds())
+          }
+      }
+      areGraphsIdentical
+    }
+
+
+//    //**println("WIDENING IS CALLED")
 //    val tempRight = lub(left,right)
 //    val (mergedLeft, replacementLeft) = left.abstractHeap.mergePointedNodes()
 //    val (mergedRight, replacementRight) = tempRight.abstractHeap.mergePointedNodes()
@@ -1375,23 +1395,95 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     var newRight = new ValueDrivenHeapState[S](mergedRight, rightGenValState, new ExpressionSet(SystemParameters.getType().top), false, false)
     val newLeft = new ValueDrivenHeapState[S](mergedLeft, left.generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
     newRight = lub(newLeft, newRight)
-    def areGraphsIdentical(l: HeapGraph[S], r: HeapGraph[S]) : Boolean = {
-      var areGraphsIdentical = true
-      for (rEdge <- r.edges) {
-        areGraphsIdentical = areGraphsIdentical &&
-           {
-             val edgeSet = l.edges.filter(lEdge => lEdge.source.equals(rEdge.source) && lEdge.target.equals(rEdge.target))
-             edgeSet.size == 1 && edgeSet.head.state.getIds().equals(rEdge.state.getIds())
-           }
-      }
-      areGraphsIdentical
-    }
     if (!mergedLeft.vertices.equals(newRight.abstractHeap.vertices) || !areGraphsIdentical(mergedLeft, mergedRight)) {
       return newRight
     }
     val newGeneralValState = generalValState.widening(newLeft.generalValState, newRight.generalValState.merge(replacementRight))
     val result = new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, newRight.abstractHeap), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
     return result
+  }
+
+  private def materializePath(pathToMaterialize : List[String]) : ValueDrivenHeapState[S] = {
+    val verticesToAdd = mutable.Set.empty[Vertex]
+    val edgesToAdd = mutable.Set.empty[EdgeWithState[S]]
+    val edgesToRemove = mutable.Set.empty[EdgeWithState[S]]
+    val repl = new Replacement(isPureExpanding = true)
+    var resultingAH = abstractHeap
+    val queue = mutable.Queue.empty[(EdgeWithState[S], List[String])]
+    for (e <- abstractHeap.edges.filter(edg => edg.source.name.equals(pathToMaterialize.head) && edg.target.isInstanceOf[HeapVertex]))
+      queue.enqueue((e, pathToMaterialize.tail))
+    while (!queue.isEmpty) {
+      val (edge, path) = queue.dequeue()
+      assert(edge.source.isInstanceOf[DefiniteHeapVertex] || edge.source.isInstanceOf[LocalVariableVertex])
+      if (edge.target.isInstanceOf[SummaryHeapVertex]) {
+        edgesToRemove += edge
+        // Creating a vertex that is a materialization of the summary vertex
+        val (tempAH, definiteVertex) = resultingAH.addNewVertex(VertexConstants.DEFINITE, edge.target.typ)
+        resultingAH = tempAH
+        // Add the information about the corresponding identifiers to replacement
+        for (valField <- definiteVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
+          val sumValHeapId = new ValueHeapIdentifier(edge.target.asInstanceOf[SummaryHeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+          val defValHeapId = new ValueHeapIdentifier(definiteVertex.asInstanceOf[DefiniteHeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+          repl.value.update(Set(sumValHeapId), Set(sumValHeapId, defValHeapId))
+        }
+
+        /**
+         * Adding edges
+         */
+        // Edge that represents the processed edge
+        edgesToAdd += new EdgeWithState[S](edge.source, edge.state, edge.field, definiteVertex)
+        for (e <- (resultingAH.edges -- edgesToRemove ++ edgesToAdd)) {
+          // Incoming edges
+          if (e.target.equals(edge.target)) {
+            edgesToAdd += new EdgeWithState[S](e.source, e.state, e.field, definiteVertex)
+          }
+          // Outgoing edges
+          if (e.source.equals(edge.target)) {
+            val edgeToAdd = new EdgeWithState[S](definiteVertex, e.state, e.field, e.target)
+            if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
+              queue.enqueue((edgeToAdd, path.tail))
+            edgesToAdd += edgeToAdd
+          }
+          // Self-loop edges
+          if (e.source.equals(edge.target) && e.target.equals(edge.target)) {
+            val edgeToAdd = new EdgeWithState[S](definiteVertex, e.state, e.field, definiteVertex)
+            if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
+              queue.enqueue((edgeToAdd, path.tail))
+            edgesToAdd += edgeToAdd
+          }
+        }
+      } else {
+        // Nothing to materialize for this edge
+        if (!path.isEmpty)
+          for (e <- (resultingAH.edges -- edgesToRemove ++ edgesToAdd).filter(edg => edg.source.equals(edge.target) && edg.field.equals(Some(path.head)) && edg.target.isInstanceOf[HeapVertex]))
+            queue.enqueue((e, path.tail))
+      }
+    }
+    resultingAH = resultingAH.removeEdges(edgesToRemove.toSet)
+    resultingAH = resultingAH.applyReplacement(repl)
+    // Updating source and target EdgeLocalIdentifiers in the edges to add.
+    val updatedEdgesToAdd = mutable.Set.empty[EdgeWithState[S]]
+    for (e <- edgesToAdd) {
+      // Updating EdgeLocalIdentifiers with empty path
+      var updatedEdgeState = e.state.merge(repl)
+      if (e.source.isInstanceOf[HeapVertex] || e.source.isInstanceOf[LocalVariableVertex]) {
+        val vtx = if (e.source.isInstanceOf[HeapVertex]) e.source else e.target
+        for (valHeapId <- updatedEdgeState.getIds().filter(id => id.isInstanceOf[ValueHeapIdentifier] && id.asInstanceOf[ValueHeapIdentifier].obj.equals(vtx)).asInstanceOf[Set[ValueHeapIdentifier]]) {
+          val edgLocId = new EdgeLocalIdentifier(List.empty[String], valHeapId.field, valHeapId.getType, valHeapId.getProgramPoint)
+          updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
+        }
+      }
+      // Updating EdgeLocalIdentifiers with non-empty path
+      if (e.target.isInstanceOf[HeapVertex] && !e.source.isInstanceOf[LocalVariableVertex]) {
+        for (valHeapId <- updatedEdgeState.getIds().filter(id => id.isInstanceOf[ValueHeapIdentifier] && id.asInstanceOf[ValueHeapIdentifier].obj.equals(e.target)).asInstanceOf[Set[ValueHeapIdentifier]]) {
+          val edgLocId = new EdgeLocalIdentifier(List(e.field match {case None => throw new Exception("Should not happen") case Some(f) => f}), valHeapId.field, valHeapId.getType, valHeapId.getProgramPoint)
+          updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
+        }
+      }
+      updatedEdgesToAdd += new EdgeWithState[S](e.source, updatedEdgeState, e.field, e.target)
+    }
+    resultingAH = resultingAH.addEdges(updatedEdgesToAdd.toSet)
+    new ValueDrivenHeapState[S](resultingAH, generalValState.merge(repl), expr, isTop, isBottom)
   }
 
   /**
@@ -1605,7 +1697,7 @@ case class ValueHeapIdentifier(obj: HeapVertex, field: String, typ1 : Type, pp :
 
    @return The name of the field pointed by this identifier
     */
-  def getField: Option[String] = Some(field)
+  def getField(): Option[String] = Some(field)
 
   /**
   Since an abstract identifier can be an abstract node of the heap, it can represent more than one concrete
@@ -1651,7 +1743,7 @@ case class EdgeLocalIdentifier(accPath: List[String],val field: String, typ1: Ty
 
    @return The name of the field pointed by this identifier
     */
-  def getField: Option[String] = Some(field)
+  def getField(): Option[String] = Some(field)
 
   /**
   Edge-local identifier always represents a field of a single object. Hence, this method always returns true.

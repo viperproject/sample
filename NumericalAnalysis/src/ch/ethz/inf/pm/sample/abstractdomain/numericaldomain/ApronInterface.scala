@@ -700,7 +700,7 @@ class ApronInterface(val state: Option[Abstract1],
           else
             Some(x)
       }
-      val newEnv = env ++ target
+      val newEnv = env ++ {if (env contains source) target else Set.empty[Identifier]}
       return new ApronInterface(newState,domain,isPureBottom,newEnv)
     } else return this
   }

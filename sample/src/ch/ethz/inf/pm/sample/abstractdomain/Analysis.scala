@@ -25,6 +25,10 @@ trait Analysis {
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Analyzing method "+x.name.toString()+" in class "+c.name.toString());
         SystemParameters.currentMethod = x.name.toString
         var s = x.forwardSemantics[S](entryState)
+//        val begin = System.currentTimeMillis()
+//        for (i <- 0 until 30)
+//          x.forwardSemantics[S](entryState)
+//        println("Time for single run is " + (System.currentTimeMillis() - begin)/30 + "ms.")
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
         if(SystemParameters.property!=null) {

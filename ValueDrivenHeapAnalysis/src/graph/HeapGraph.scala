@@ -577,72 +577,100 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
 
   def mergePointedNodes(): (HeapGraph[S], Replacement) = {
     //checkConsistancy(this)
-    //val partitions = partition()
-
+    val partitions = partition()
+    var newVertices = vertices.filter(!_.isInstanceOf[HeapVertex])
+    val mergeMap = mutable.Map.empty[Vertex, Vertex]
+    for (v <- newVertices)
+      mergeMap.update(v,v)
+    val repl = new Replacement()
+    for((k,v) <- partitions.filter(!_._2.isEmpty)) {
+      if (v.size > 1) {
+        var newType = v.head.typ.bottom()
+        for (vrtx <- v)
+          newType = newType.lub(newType, vrtx.typ)
+        val newVertex = new SummaryHeapVertex(v.head.version, newType)
+        newVertices = newVertices + newVertex
+        for (vrtx <- v)
+          mergeMap.update(vrtx, newVertex)
+        for (valField <- newType.getPossibleFields().filter(!_.getType.isObject())) {
+          val fromIds = mutable.Set.empty[ValueHeapIdentifier]
+          for (vrtx <- v)
+            fromIds += new ValueHeapIdentifier(vrtx, valField.getName, valField.getType, valField.getProgramPoint)
+          repl.value.update(fromIds.toSet, Set(new ValueHeapIdentifier(newVertex, valField.getName, valField.getType, valField.getProgramPoint)))
+        }
+      } else {
+        newVertices = newVertices + v.head
+        mergeMap.update(v.head, v.head)
+      }
+    }
+    val newEdges = mutable.Set.empty[EdgeWithState[S]]
+    for (e <- edges)
+      newEdges += new EdgeWithState[S](mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
+    (new HeapGraph[S](newVertices, newEdges.toSet[EdgeWithState[S]]).joinCommonEdges(), repl)
 
     /**
      * Original Code
      */
-    var resultGraph = new HeapGraph[S](vertices.filter(!_.isInstanceOf[HeapVertex]), Set.empty[EdgeWithState[S]])
-    var pointedByMap = Map.empty[Set[Vertex], Set[Vertex]]
-    for (v <- vertices.filter(_.isInstanceOf[HeapVertex])) {
-      val pointedBySet = edges.filter(e => e.source.isInstanceOf[LocalVariableVertex] && e.target.equals(v)).map(_.source)
-      if (pointedByMap.keySet.contains(pointedBySet))
-        pointedByMap = pointedByMap.updated(pointedBySet, pointedByMap.apply(pointedBySet) + v)
-      else
-        pointedByMap = pointedByMap + (pointedBySet-> Set(v))
-    }
-    var replacementVertexMap = Map.empty[Set[Vertex], Vertex]
-    val replacement = new Replacement()
-    for ((pointedBy, vs) <- pointedByMap) {
-      // merge vertices in vs
-      var addedVertex: Vertex = null
-      var verType = vs.head.typ
-      if (vs.size == 1 && vs.head.isInstanceOf[DefiniteHeapVertex]) {
-        val (newResGraph, newVertex) = resultGraph.addNewVertex(VertexConstants.DEFINITE, verType)
-        resultGraph = newResGraph
-        addedVertex = newVertex
-      } else {
-        for (t <- vs.map(_.typ)) verType = verType.lub(verType, t)
-        val (newResGraph, newVertex) = resultGraph.addNewVertex(VertexConstants.SUMMARY, verType)
-        resultGraph = newResGraph
-        addedVertex = newVertex
-      }
-      for (valField <- verType.getPossibleFields().filter(!_.getType.isObject())) {
-        val repFrom: Set[Identifier] = vs.map(v => new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint))
-        val repTo:Set[Identifier] = Set(new ValueHeapIdentifier(addedVertex.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint))
-        replacement.value += (repFrom -> repTo)
-      }
-      replacementVertexMap = replacementVertexMap + (vs -> addedVertex)
-    }
-    // now we add all edges
-    for (edge <- edges) {
-      val newSrcVertex: Vertex =
-        if (edge.source.isInstanceOf[HeapVertex]) {
-          val repKeySet = replacementVertexMap.keySet.filter(_.contains(edge.source))
-          if (repKeySet.isEmpty) {
-            checkConsistancy(this)
-            throw new Exception("repKeySet should never be empty.")
-          }
-          val key = replacementVertexMap.keySet.filter(_.contains(edge.source)).head
-          assert(key.size > 0, "The source vertex should be present in exactly one set.")
-          replacementVertexMap.apply(key)
-        } else
-          edge.source
-      val newTrgVertex: Vertex =
-        if (edge.target.isInstanceOf[HeapVertex]) {
-          val key = replacementVertexMap.keySet.filter(_.contains(edge.target)).head
-          assert(key.size > 0, "The target vertex should be present in exactly one set.")
-          replacementVertexMap.apply(key)
-        } else
-          edge.target
-      // TODO: Check weather to do merge first and then LUB or the other way around
-      resultGraph = resultGraph.addEdges(Set(new EdgeWithState[S](newSrcVertex, edge.state.merge(replacement), edge.field, newTrgVertex)))
-    }
-    var result = resultGraph
-    checkConsistancy(resultGraph)
-    result = result.joinCommonEdges()
-    return (result, replacement)
+//    var resultGraph = new HeapGraph[S](vertices.filter(!_.isInstanceOf[HeapVertex]), Set.empty[EdgeWithState[S]])
+//    var pointedByMap = Map.empty[Set[Vertex], Set[Vertex]]
+//    for (v <- vertices.filter(_.isInstanceOf[HeapVertex])) {
+//      val pointedBySet = edges.filter(e => e.source.isInstanceOf[LocalVariableVertex] && e.target.equals(v)).map(_.source)
+//      if (pointedByMap.keySet.contains(pointedBySet))
+//        pointedByMap = pointedByMap.updated(pointedBySet, pointedByMap.apply(pointedBySet) + v)
+//      else
+//        pointedByMap = pointedByMap + (pointedBySet-> Set(v))
+//    }
+//    var replacementVertexMap = Map.empty[Set[Vertex], Vertex]
+//    val replacement = new Replacement()
+//    for ((pointedBy, vs) <- pointedByMap) {
+//      // merge vertices in vs
+//      var addedVertex: Vertex = null
+//      var verType = vs.head.typ
+//      if (vs.size == 1 && vs.head.isInstanceOf[DefiniteHeapVertex]) {
+//        val (newResGraph, newVertex) = resultGraph.addNewVertex(VertexConstants.DEFINITE, verType)
+//        resultGraph = newResGraph
+//        addedVertex = newVertex
+//      } else {
+//        for (t <- vs.map(_.typ)) verType = verType.lub(verType, t)
+//        val (newResGraph, newVertex) = resultGraph.addNewVertex(VertexConstants.SUMMARY, verType)
+//        resultGraph = newResGraph
+//        addedVertex = newVertex
+//      }
+//      for (valField <- verType.getPossibleFields().filter(!_.getType.isObject())) {
+//        val repFrom: Set[Identifier] = vs.map(v => new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint))
+//        val repTo:Set[Identifier] = Set(new ValueHeapIdentifier(addedVertex.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint))
+//        replacement.value += (repFrom -> repTo)
+//      }
+//      replacementVertexMap = replacementVertexMap + (vs -> addedVertex)
+//    }
+//    // now we add all edges
+//    for (edge <- edges) {
+//      val newSrcVertex: Vertex =
+//        if (edge.source.isInstanceOf[HeapVertex]) {
+//          val repKeySet = replacementVertexMap.keySet.filter(_.contains(edge.source))
+//          if (repKeySet.isEmpty) {
+//            checkConsistancy(this)
+//            throw new Exception("repKeySet should never be empty.")
+//          }
+//          val key = replacementVertexMap.keySet.filter(_.contains(edge.source)).head
+//          assert(key.size > 0, "The source vertex should be present in exactly one set.")
+//          replacementVertexMap.apply(key)
+//        } else
+//          edge.source
+//      val newTrgVertex: Vertex =
+//        if (edge.target.isInstanceOf[HeapVertex]) {
+//          val key = replacementVertexMap.keySet.filter(_.contains(edge.target)).head
+//          assert(key.size > 0, "The target vertex should be present in exactly one set.")
+//          replacementVertexMap.apply(key)
+//        } else
+//          edge.target
+//      // TODO: Check weather to do merge first and then LUB or the other way around
+//      resultGraph = resultGraph.addEdges(Set(new EdgeWithState[S](newSrcVertex, edge.state.merge(replacement), edge.field, newTrgVertex)))
+//    }
+//    var result = resultGraph
+//    checkConsistancy(resultGraph)
+//    result = result.joinCommonEdges()
+//    return (result, replacement)
   }
 
   def wideningAfterMerge(left: HeapGraph[S], right: HeapGraph[S]): HeapGraph[S] = {
@@ -737,6 +765,14 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
     // return
     new HeapGraph[S](vertices, resultingEdges.toSet)
+  }
+
+  def applyReplacement(repl : Replacement) : HeapGraph[S] = {
+    val newEdges = mutable.Set.empty[EdgeWithState[S]]
+    for (e <- edges) {
+      newEdges += new EdgeWithState[S](e.source, e.state.merge(repl), e.field, e.target)
+    }
+    new HeapGraph[S](vertices, newEdges.toSet[EdgeWithState[S]])
   }
 
   def valueAssumeOnEachEdge(exp : Expression, conds: Set[S]) : HeapGraph[S] = {
