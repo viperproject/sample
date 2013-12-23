@@ -101,7 +101,7 @@ class MethodDeclaration(
     body.toString()+
     "\n-------------------\n\n"
 
-  private def initializeArgument[S <: State[S]](state: S, parameters: List[List[VariableDeclaration]]): S = {
+  protected def initializeArgument[S <: State[S]](state: S, parameters: List[List[VariableDeclaration]]): S = {
     SystemParameters.semanticsComputing = false
     var result = state
     // Create a variable for the current object unless the method is static
