@@ -19,7 +19,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  */
 abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   (val value:Map[K, V] = Map.empty[K, V],val isBottom:Boolean = false,val isTop:Boolean = false)
-  extends Lattice[T] {
+  extends Lattice[T] { this: T =>
 
   override def factory():T = functionalFactory()
 
@@ -207,7 +207,7 @@ abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, 
  */
 abstract class BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
   (_value:Map[Identifier, V] = Map.empty[Identifier, V],_isBottom:Boolean = false,_isTop:Boolean = false)
-  extends FunctionalDomain[Identifier, V, T](_value,_isBottom,_isTop) {
+  extends FunctionalDomain[Identifier, V, T](_value,_isBottom,_isTop) { this: T =>
 
   def merge(r: Replacement): T = {
 
@@ -256,7 +256,7 @@ abstract class BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
 abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[V],
                                                   val isTop: Boolean = false,
                                                   val isBottom: Boolean = false)
-  extends Lattice[T] {
+  extends Lattice[T] { this: T =>
 
   /**
    * Constructs a new set domain of the concrete type
@@ -379,7 +379,7 @@ abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[
  * @since 0.1
  */
 abstract class KSetDomain[V, T <: KSetDomain[V, T]](_value: Set[V] = Set.empty[V], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends SetDomain[V,T](_value,_isTop,_isBottom) {
+  extends SetDomain[V,T](_value,_isTop,_isBottom) { this: T =>
 
   /**
    * Overwrite this method to set K
@@ -437,7 +437,7 @@ abstract class KSetDomain[V, T <: KSetDomain[V, T]](_value: Set[V] = Set.empty[V
  * @since 0.1
  */
 abstract class InverseSetDomain [V, T <: SetDomain[V, T]](_value: Set[V] = Set.empty[V], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends SetDomain[V, T](_value,_isTop,_isBottom) {
+  extends SetDomain[V, T](_value,_isTop,_isBottom) { this: T =>
 
   override def add(el: V): T = {
     setFactory(value + el)
@@ -480,7 +480,7 @@ abstract class InverseSetDomain [V, T <: SetDomain[V, T]](_value: Set[V] = Set.e
 abstract class CartesianProductDomain
     [T1 <: Lattice[T1], T2 <: Lattice[T2], T <: CartesianProductDomain[T1, T2, T]]
     (d1: T1, d2: T2)
-  extends Lattice[T] {
+  extends Lattice[T] { this: T =>
 
   def _1: T1 = d1
 
@@ -539,7 +539,7 @@ abstract class CartesianProductDomain
 abstract class ReducedProductDomain
     [T1 <: Lattice[T1], T2 <: Lattice[T2], T <: ReducedProductDomain[T1, T2, T]]
     (d1: T1, d2: T2)
-  extends CartesianProductDomain[T1, T2, T](d1, d2) {
+  extends CartesianProductDomain[T1, T2, T](d1, d2) { this: T =>
 
   /**
    * Reduce the information contained in the two domains. The returned value has to be less or equal

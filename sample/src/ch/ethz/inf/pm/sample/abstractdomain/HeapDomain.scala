@@ -132,7 +132,7 @@ class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier],
 trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   extends Analysis
   with Lattice[T]
-  with LatticeWithReplacement[T] {
+  with LatticeWithReplacement[T] { this: T =>
 
   /**
    * Gets the Heap Identifiers to which the provided Variable points to

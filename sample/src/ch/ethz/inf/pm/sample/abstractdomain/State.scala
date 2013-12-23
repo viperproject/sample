@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait Lattice[T <: Lattice[T]] {
+trait Lattice[T <: Lattice[T]] { this: T =>
 
   /**
    * Returns a new instance of the lattice
@@ -82,7 +82,7 @@ trait Lattice[T <: Lattice[T]] {
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait State[S <: State[S]] extends Lattice[S] {
+trait State[S <: State[S]] extends Lattice[S] { this: S =>
 
   /**
    * Signals that we are going to analyze the statement at program point pp

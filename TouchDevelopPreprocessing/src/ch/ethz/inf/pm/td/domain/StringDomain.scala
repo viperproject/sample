@@ -159,7 +159,7 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
 
 }
 
-trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] {
+trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] { this: T =>
 
   def isBottom:Boolean
 

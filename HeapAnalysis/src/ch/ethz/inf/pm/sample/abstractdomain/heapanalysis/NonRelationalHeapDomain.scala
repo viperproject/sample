@@ -473,7 +473,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
     (env: VariableEnv[I], heap: HeapEnv[I], val cod: HeapIdSetDomain[I], dom: I)
   extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], H](env, heap)
   with HeapDomain[H, I]
-  with HeapAnalysis[H, I] {
+  with HeapAnalysis[H, I] { this: H =>
 
   protected def variableEnv = this._1
   protected def heapEnv = this._2
