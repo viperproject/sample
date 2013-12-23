@@ -157,7 +157,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               var sourceValState = newGenValState
               for (valField <- heapVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
                 val srcEdgeLocId = new EdgeLocalIdentifier(List.empty[String], valField.getName, valField.getType, valField.getProgramPoint)
-                val valHeapId = new ValueHeapIdentifier(heapVertex, valField.getName, heapVertex.typ, valField.getProgramPoint)
+                val valHeapId = new ValueHeapIdentifier(heapVertex, valField.getName, valField.getType, valField.getProgramPoint)
                 sourceValState = sourceValState.createVariable(srcEdgeLocId, srcEdgeLocId.getType)
                 sourceValState = sourceValState.assume(new BinaryArithmeticExpression(valHeapId, srcEdgeLocId, ArithmeticOperator.==, null))
               }
@@ -169,7 +169,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                   var trgValState = sourceValState
                   for (objValField <- objField.getType.getPossibleFields().filter(!_.getType.isObject())) {
                     val trgEdgeLocId = new EdgeLocalIdentifier(List(objField.getName), objValField.getName, objValField.getType, objValField.getProgramPoint)
-                    val valHeapId = new ValueHeapIdentifier(heapVertex, objValField.getName, heapVertex.typ, objValField.getProgramPoint)
+                    val valHeapId = new ValueHeapIdentifier(heapVertex, objValField.getName, objValField.getType, objValField.getProgramPoint)
                     trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
                     trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
                   }
@@ -208,7 +208,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                   var trgValState = newGenValState
                   for (valField <- heapVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
                     val trgEdgeLocId = new EdgeLocalIdentifier(List.empty[String], valField.getName, valField.getType, valField.getProgramPoint)
-                    val valHeapId = new ValueHeapIdentifier(heapVertex, valField.getName, heapVertex.typ, valField.getProgramPoint)
+                    val valHeapId = new ValueHeapIdentifier(heapVertex, valField.getName, valField.getType, valField.getProgramPoint)
                     trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
                     trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
                   }
