@@ -1064,149 +1064,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 
     return this
 
-    /**
-     * ORIGINAL CODE
-     */
-//    if (isBottom) return this
-//    assert(cond.getSetOfExpressions.size == 1, "Condition of several expressions are not supported.")
-//    val condition = cond.getSetOfExpressions.head
-//    condition match {
-//      case NegatedBooleanExpression(e) => {
-//        return assume(new ExpressionSet(e.getType()).add(Utilities.negateExpression(e)))
-//      }
-//      case baExp : BinaryArithmeticExpression => {
-//        // TODO: Implement this properly, using the edge sequences from evaluation of expressions
-//        val evaluatedCondition = evaluateExpression(baExp)
-//        var result = bottom()
-//        for (el <- evaluatedCondition._2) {
-//          val currentState = el._1.assume(evaluatedCondition._1)
-//          val newGeneralState = currentState.glb(currentState, generalValState)
-//          if (newGeneralState.lessEqual(newGeneralState.bottom()))
-//            return bottom()
-//          val tempAH = abstractHeap.meetStateOnAllEdges(currentState)
-//          var (resultAH, removedIds) = tempAH.prune()
-//          if (!resultAH.isBottom()) {
-//            val currentState = new ValueDrivenHeapState[S](resultAH, Utilities.removeVariablesFromState(newGeneralState, removedIds), getExpression(), false, false)
-//            result = lub(result, currentState)
-//          }
-//        }
-//        assert(result.abstractHeap.isNormalized(), "The abstract heap is not normalized.")
-//        return result
-//      }
-//      case BinaryBooleanExpression(l,r,o,t) => o match {
-//        case BooleanOperator.&& => {
-//          val result = assume(new ExpressionSet(l.getType()).add(l)).assume(new ExpressionSet(r.getType()).add(r))
-//          assert(result.abstractHeap.isNormalized(), "The abstract heap is not normalized.")
-//          return result
-//        }
-//        case BooleanOperator.|| => {
-//          val result = lub(assume(new ExpressionSet(l.getType()).add(l)), assume(new ExpressionSet(r.getType()).add(r)))
-//          assert(result.abstractHeap.isNormalized(), "The abstract heap is not normalized.")
-//          return result
-//        }
-//      }
-//      case ReferenceComparisonExpression(l,r,o,t) => {
-//        assert(l.getType().isObject(), "Reference comparison can be performed only on objects, not values.")
-//        assert(r.getType().isObject(), "Reference comparison can be performed only on objects, not values.")
-//        l match {
-//          case cL: Constant => {
-//            assert(cL.toString().equals("null"))
-//            r match {
-//              case cR : Constant => {
-//                assert(cR.toString().equals("null"))
-//                o match {
-//                  case ArithmeticOperator.!= => {
-//                    return bottom()
-//                  }
-//                  case ArithmeticOperator.== => {
-//                    return this
-//                  }
-//                  case _ => throw new Exception("ReferenceComparisonExpression should not have the operator " + o)
-//                }
-//              }
-//              case apR : AccessPathExpression => {
-//                val evalApR = evaluateExpression(apR)
-//                if (evalApR._2.isEmpty)
-//                  return bottom()
-//                var result = bottom()
-//                for (singleEvalApR <- evalApR._2) {
-//                  assert(singleEvalApR._3.get(apR) != None, "This should not happen. Would mean that expression evaluation does not work.")
-//                  val apPrefixVertex = singleEvalApR._3.apply(apR).last.source
-//                  var edgesToRemove = Set.empty[EdgeWithState[S]]
-//                  if (apPrefixVertex.isInstanceOf[DefiniteHeapVertex]) {
-//                    o match {
-//                      case ArithmeticOperator.!= => {
-//                        edgesToRemove = abstractHeap.edges.filter(e => e.source.equals(apPrefixVertex) && e.target.isInstanceOf[NullVertex])
-//                      }
-//                      case ArithmeticOperator.== => {
-//                        edgesToRemove = abstractHeap.edges.filter(e => e.source.equals(apPrefixVertex) && !e.target.isInstanceOf[NullVertex])
-//                      }
-//                      case _ => throw new Exception("ReferenceComparisonExpression should not have the operator " + o)
-//                    }
-//                  }
-//                  val tempAH = abstractHeap.removeEdges(edgesToRemove)
-//                  val (resultingAH, idsToRemove) = tempAH.prune()
-//                  var newGeneralValState = Utilities.removeVariablesFromState(generalValState, idsToRemove)
-//                  if (!newGeneralValState.lessEqual(newGeneralValState.bottom()) && !resultingAH.isBottom()) {
-//                    val newState = new ValueDrivenHeapState[S](resultingAH, newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
-//                    result = lub(result, newState)
-//                  }
-//                }
-//                assert(result.abstractHeap.isNormalized(), "The abstract heap is not normalized.")
-//                return result
-//              }
-//              case vR: VariableIdentifier => {
-//                val varVertex = abstractHeap.vertices.filter(_.name.equals(vR.getName)).head
-//                var edgesToRemove = Set.empty[EdgeWithState[S]]
-//                o match {
-//                  case ArithmeticOperator.!= => {
-//                    edgesToRemove = abstractHeap.edges.filter(e => e.source.equals(varVertex) && e.target.isInstanceOf[NullVertex])
-//                  }
-//                  case ArithmeticOperator.== => {
-//                    edgesToRemove = abstractHeap.edges.filter(e => e.source.equals(varVertex) && !e.target.isInstanceOf[NullVertex])
-//                  }
-//                  case _ => throw new Exception("ReferenceComparisonExpression should not have the operator " + o)
-//                }
-//                val tempAH = abstractHeap.removeEdges(edgesToRemove)
-//                val (resultingAH, idsToRemove) = tempAH.prune()
-//                var newGeneralValState = Utilities.removeVariablesFromState(generalValState, idsToRemove)
-//                if (!newGeneralValState.lessEqual(newGeneralValState.bottom()) && !resultingAH.isBottom())
-//                  return new ValueDrivenHeapState[S](resultingAH, newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
-//                else
-//                  return bottom()
-//              }
-//              case _ => throw new Exception("Not supported (e.g. result of method calls).")
-//            }
-//          }
-//          case apL : AccessPathExpression => {
-//            r match {
-//              case cR : Constant => {
-//                return assume(new ExpressionSet(cond.getType()).add(new ReferenceComparisonExpression(r,l,o,t)))
-//              }
-//              // TODO: Implement the rest
-//              case _ => {
-//                println("Not implemented properly.")
-//                return this
-//              }
-//            }
-//          }
-//          case v: VariableIdentifier => {
-//            r match {
-//              case cR : Constant => {
-//                return assume(new ExpressionSet(cond.getType()).add(new ReferenceComparisonExpression(r,l,o,t)))
-//              }
-//              // TODO: Implement the rest
-//              case _ => {
-//                println("Not implemented properly.")
-//                return this
-//              }
-//            }
-//          }
-//          case _ => throw new Exception("Not supported.")
-//        }
-//      }
-//      case _ => throw new Exception("Not supported.")
-//    }
+    // See version control history for the original code
   }
 
   /**
@@ -1523,13 +1381,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 //    throw new Exception("Method lessEqual is not implemented")
   }
 
-//  override def toString() : String = {
-//    val eol = System.getProperty("line.separator");
-//    var result = "ValState : " + generalValState.toString
-//    result = result + eol + "; AbstractHeap: " + abstractHeap.toString
-//    return result
-//  }
-
   /**
   Creates an object
 
@@ -1577,16 +1428,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       }
       newAbstractHeap = newAbstractHeap.addEdges(Set(new EdgeWithState[S](createdObjVertex, edgeState, Some(objField.getName), newVertex)))
     }
-
-    //    for (objField <- typ.getPossibleFields().filter(of => of.getType().isObject())) {
-    //      val res = newAbstractHeap.addNewVertex(VertexConstants.NULL, typ)
-    //      newAbstractHeap = res._1
-    //      newVertex = res._2
-    //      var edgeState = generalValState
-    //      for (edgeId <- edgeLocalIds)
-    //        edgeState = edgeState.createVariable(edgeId, edgeId.getType())
-    //      newAbstractHeap = newAbstractHeap.addEdges(Set(new EdgeWithState[S](createdObjVertex, edgeState, Some(objField.getName), newVertex)))
-    //    }
 
     // Now we need to apply the replacement to all the states, including the general value state.
 

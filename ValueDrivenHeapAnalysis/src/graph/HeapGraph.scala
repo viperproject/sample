@@ -6,13 +6,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import scala.collection.mutable
 
-/**
- * Created with IntelliJ IDEA.
- * User: milos
- * Date: 4/23/13
- * Time: 4:59 PM
- * To change this template use File | Settings | File Templates.
- */
 class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges: Set[EdgeWithState[S]]) {
 
   // This check should be carried out only in the debug mode.
@@ -608,69 +601,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       newEdges += new EdgeWithState[S](mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
     (new HeapGraph[S](newVertices, newEdges.toSet[EdgeWithState[S]]).joinCommonEdges(), repl)
 
-    /**
-     * Original Code
-     */
-//    var resultGraph = new HeapGraph[S](vertices.filter(!_.isInstanceOf[HeapVertex]), Set.empty[EdgeWithState[S]])
-//    var pointedByMap = Map.empty[Set[Vertex], Set[Vertex]]
-//    for (v <- vertices.filter(_.isInstanceOf[HeapVertex])) {
-//      val pointedBySet = edges.filter(e => e.source.isInstanceOf[LocalVariableVertex] && e.target.equals(v)).map(_.source)
-//      if (pointedByMap.keySet.contains(pointedBySet))
-//        pointedByMap = pointedByMap.updated(pointedBySet, pointedByMap.apply(pointedBySet) + v)
-//      else
-//        pointedByMap = pointedByMap + (pointedBySet-> Set(v))
-//    }
-//    var replacementVertexMap = Map.empty[Set[Vertex], Vertex]
-//    val replacement = new Replacement()
-//    for ((pointedBy, vs) <- pointedByMap) {
-//      // merge vertices in vs
-//      var addedVertex: Vertex = null
-//      var verType = vs.head.typ
-//      if (vs.size == 1 && vs.head.isInstanceOf[DefiniteHeapVertex]) {
-//        val (newResGraph, newVertex) = resultGraph.addNewVertex(VertexConstants.DEFINITE, verType)
-//        resultGraph = newResGraph
-//        addedVertex = newVertex
-//      } else {
-//        for (t <- vs.map(_.typ)) verType = verType.lub(verType, t)
-//        val (newResGraph, newVertex) = resultGraph.addNewVertex(VertexConstants.SUMMARY, verType)
-//        resultGraph = newResGraph
-//        addedVertex = newVertex
-//      }
-//      for (valField <- verType.getPossibleFields().filter(!_.getType.isObject())) {
-//        val repFrom: Set[Identifier] = vs.map(v => new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint))
-//        val repTo:Set[Identifier] = Set(new ValueHeapIdentifier(addedVertex.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint))
-//        replacement.value += (repFrom -> repTo)
-//      }
-//      replacementVertexMap = replacementVertexMap + (vs -> addedVertex)
-//    }
-//    // now we add all edges
-//    for (edge <- edges) {
-//      val newSrcVertex: Vertex =
-//        if (edge.source.isInstanceOf[HeapVertex]) {
-//          val repKeySet = replacementVertexMap.keySet.filter(_.contains(edge.source))
-//          if (repKeySet.isEmpty) {
-//            checkConsistancy(this)
-//            throw new Exception("repKeySet should never be empty.")
-//          }
-//          val key = replacementVertexMap.keySet.filter(_.contains(edge.source)).head
-//          assert(key.size > 0, "The source vertex should be present in exactly one set.")
-//          replacementVertexMap.apply(key)
-//        } else
-//          edge.source
-//      val newTrgVertex: Vertex =
-//        if (edge.target.isInstanceOf[HeapVertex]) {
-//          val key = replacementVertexMap.keySet.filter(_.contains(edge.target)).head
-//          assert(key.size > 0, "The target vertex should be present in exactly one set.")
-//          replacementVertexMap.apply(key)
-//        } else
-//          edge.target
-//      // TODO: Check weather to do merge first and then LUB or the other way around
-//      resultGraph = resultGraph.addEdges(Set(new EdgeWithState[S](newSrcVertex, edge.state.merge(replacement), edge.field, newTrgVertex)))
-//    }
-//    var result = resultGraph
-//    checkConsistancy(resultGraph)
-//    result = result.joinCommonEdges()
-//    return (result, replacement)
+    // See version control history for the original code
   }
 
   def wideningAfterMerge(left: HeapGraph[S], right: HeapGraph[S]): HeapGraph[S] = {
@@ -788,22 +719,4 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     // return
     new HeapGraph[S](this.vertices, resultingEdges)
   }
-
-//  def materializeAccessPath(a)
-//
-//  def materializeVertex(v : HeapVertex): (HeapGraph[S], HeapVertex) = {
-//    assert(vertices.contains(v), "The vertex to be materialized is not present.")
-//    if (v.isInstanceOf[DefiniteHeapVertex])
-//      return (this, v)
-//    var (resultingGraph, newVertex) = addNewVertex(VertexConstants.DEFINITE, v.typ)
-//    // compute the edges that need to be added
-//    // 1. add all the incoming edges
-//    val incomingEdges = edges.filter(_.target.equals(v))
-//    for (e <- incomingEdges) {
-//      if (e.source.equals(e.target)) {
-//
-//      }
-//    }
-//    null
-//  }
 }
