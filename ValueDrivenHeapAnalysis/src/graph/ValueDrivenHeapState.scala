@@ -10,14 +10,14 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.{BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics}
 import scala.collection.mutable
 
-class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S],
-                                                   val generalValState: S,
-                                                   val expr: ExpressionSet,
-                                                   val isTop: Boolean,
-                                                   val isBottom: Boolean) extends State[ValueDrivenHeapState[S]] {
+case class ValueDrivenHeapState[S <: SemanticDomain[S]](
+    abstractHeap: HeapGraph[S],
+    generalValState: S,
+    expr: ExpressionSet,
+    isTop: Boolean,
+    isBottom: Boolean) extends State[ValueDrivenHeapState[S]] {
 
-
-  if (isTop && isBottom) throw new Exception("Being Top and Bottom in the same time is not allowed.")
+  require(!isTop || !isBottom, "cannot be top and bottom at the same time")
 
   def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Polka(false), env =  Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
 //  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Octagon(), env = Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
@@ -57,23 +57,22 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       el match {
         case variable : VariableIdentifier => {
           if (variable.getType.isObject()) {
-            result = new ValueDrivenHeapState[S](result.abstractHeap.addNewVertex(variable.getName, typ)._1,
-                                                 result.generalValState,
-                                                 new ExpressionSet(typ).add(new VariableIdentifier(variable.getName, variable.getType, variable.getProgramPoint, variable.scope)),
-                                                 result.isTop, result.isBottom)
+            result = result.copy(
+              abstractHeap = result.abstractHeap.addNewVertex(variable.getName, typ)._1,
+              expr = new ExpressionSet(typ).add(new VariableIdentifier(variable.getName, variable.getType, variable.getProgramPoint, variable.scope))
+            )
           } else {
-            result = new ValueDrivenHeapState[S](result.abstractHeap.createVariablesInAllStates(Set(variable)),
-                                                 //result.generalValState.createVariable(variable.asInstanceOf[Identifier], variable.getType()),
-                                                 result.generalValState.createVariable(variable, variable.getType),
-                                                 new ExpressionSet(typ).add(new VariableIdentifier(variable.getName, variable.getType, variable.getProgramPoint, variable.scope)),
-                                                 result.isTop, result.isBottom)
+            result = result.copy(
+              abstractHeap = result.abstractHeap.createVariablesInAllStates(Set(variable)),
+              generalValState = result.generalValState.createVariable(variable, variable.getType),
+              expr = new ExpressionSet(typ).add(new VariableIdentifier(variable.getName, variable.getType, variable.getProgramPoint, variable.scope))
+            )
           }
         }
         case _ => throw new Exception("Only variables can be created.")
       }
     }
     return result
-//    throw new Exception("Method createVariable is not implemented")
   }
 
   /**
@@ -216,7 +215,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                 }
               }
             }
-            result = result.lub(new ValueDrivenHeapState[S](HeapGraph(newVertices, resultingEdges.toSet), newGenValState, new ExpressionSet(variable.getType).add(variable)))
+            result = result.lub(ValueDrivenHeapState(HeapGraph(newVertices, resultingEdges.toSet), newGenValState, new ExpressionSet(variable.getType).add(variable), isTop, isBottom))
           } else {
             // Arguments that are not objects are values and can not be aliased. Therefore, we just create them in the
             // ordinary fashion.
@@ -266,7 +265,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
              * Updating the abstract heap
              */
             val tempAH = abstractHeap.valueAssignOnEachEdge(Some(variable), Map.empty[List[EdgeWithState[S]],S], None, rightExp, rightExpConditions)
-            result = new ValueDrivenHeapState[S](tempAH, resultGenValState, new ExpressionSet(variable.getType).add(variable), false, false)
+            result = ValueDrivenHeapState(tempAH, resultGenValState, new ExpressionSet(variable.getType).add(variable), false, false)
           } else {
             val varVertex = abstractHeap.vertices.filter(v => v.name == variable.getName).head
             val edgesToRemove = abstractHeap.edges.filter(e => e.source.equals(varVertex))
@@ -309,7 +308,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               case c : Constant => {
                 assert(c.toString() == "null", "The only object constant is null.")
                 val (tempAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
-                val newState = new ValueDrivenHeapState[S](tempAH, generalValState, x, false, false)
+                val newState = ValueDrivenHeapState(tempAH, generalValState, x, false, false)
                 return newState.assignVariable(x, new ExpressionSet(variable.typ).add(new VertexExpression(c.pp, variable.typ, nullVertex)))
               }
               case _ => throw new Exception("Not supported (should not happen, let me know if does (Milos)).")
@@ -321,7 +320,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               // It's possible that the two sets of edges overlap.
               var tempAH = abstractHeap.removeEdges(edgesToRemove).addEdges(edgesToAdd)
               val (resultingAH, idsToRemove) = tempAH.prune()
-              result = new ValueDrivenHeapState[S](resultingAH.joinCommonEdges(), generalValState.removeVariables(idsToRemove), new ExpressionSet(rightExp.getType).add(variable), false, isBottom)
+              result = ValueDrivenHeapState(resultingAH.joinCommonEdges(), generalValState.removeVariables(idsToRemove), new ExpressionSet(rightExp.getType).add(variable), false, isBottom)
             }
           }
         }
@@ -625,7 +624,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
         case c : Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
           val (newAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
-          return new ValueDrivenHeapState[S](newAH, generalValState, expr, false, false).assignField(obj, field, new ExpressionSet(c.getType).add(new VertexExpression(c.getProgramPoint, c.getType, nullVertex)))
+          return ValueDrivenHeapState(newAH, generalValState, expr, false, false).assignField(obj, field, new ExpressionSet(c.getType).add(new VertexExpression(c.getProgramPoint, c.getType, nullVertex)))
         }
         case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
       }
@@ -649,9 +648,9 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
         return this.bottom()
       // If some nodes were pruned, remove the identifiers corresponding to them from the general state.
       if (!prunedIds.isEmpty)
-        return new ValueDrivenHeapState[S](prunedResAH, generalValState.removeVariables(prunedIds), new ExpressionSet(right.getType()).add(leftAccPath), false, false)
+        return ValueDrivenHeapState(prunedResAH, generalValState.removeVariables(prunedIds), new ExpressionSet(right.getType()).add(leftAccPath), false, false)
       else
-        return new ValueDrivenHeapState[S](resultingAH, generalValState, new ExpressionSet(right.getType()).add(leftAccPath), false, isBottom)
+        return ValueDrivenHeapState(resultingAH, generalValState, new ExpressionSet(right.getType()).add(leftAccPath), false, isBottom)
     } else {
       assert(rightExp.getType.isNumericalType(), "For now we allow only numerical values")
       val field = leftAccPath.path.last
@@ -695,8 +694,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 //      if (resultingAH.isBottom())
 //        bottom()
 //      else
-//        new ValueDrivenHeapState[S](resultingAH, resultGenValState, new ExpressionSet(leftExp.getType()).add(leftExp), false, false)
-      new ValueDrivenHeapState[S](tempAH, resultGenValState, new ExpressionSet(leftExp.getType).add(leftExp), false, false)
+//        ValueDrivenHeapState(resultingAH, resultGenValState, new ExpressionSet(leftExp.getType()).add(leftExp), false, false)
+      ValueDrivenHeapState(tempAH, resultGenValState, new ExpressionSet(leftExp.getType).add(leftExp), false, false)
     }
   }
 
@@ -910,46 +909,10 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     return (resultState, finalId, addedIdentifiers, expEdgeMap)
   }
 
-  /**
-  Assigns an expression to an argument
-
-   @param x The assigned argument
-  @param right The expression to be assigned
-  @return The abstract state after the assignment
-    */
-  def setArgument(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method setArgument is not implemented")
-  }
-
-  /**
-  Forgets the value of a variable
-
-   @param x The variable to be forgotten
-  @return The abstract state obtained after forgetting the variable
-    */
-  def setVariableToTop(x: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method setVariableToTop is not implemented")
-  }
-
-  /**
-  Removes a variable
-
-   @param x The variable to be removed
-  @return The abstract state obtained after removing the variable
-    */
-  def removeVariable(x: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method removeVariable is not implemented")
-  }
-
-  /**
-  Throws an exception
-
-   @param t The thrown exception
-  @return The abstract state after the thrown
-    */
-  def throws(t: ExpressionSet): ValueDrivenHeapState[S] = {
-    throw new Exception("Method throws is not implemented")
-  }
+  def setArgument(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def setVariableToTop(x: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def removeVariable(x: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def throws(t: ExpressionSet): ValueDrivenHeapState[S] = ???
 
   /**
   Gets the value of a variable
@@ -961,9 +924,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     //**println("getVariableValue(" + id.toString + ") is called")
     if(this.isBottom) return this
     assert(id.isInstanceOf[VariableIdentifier], "This should be VariableIdentifier.")
-
-    return new ValueDrivenHeapState[S](abstractHeap, generalValState, new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]), isTop, isBottom)
-    //throw new Exception("Method getVariableValue is not implemented")
+    copy(expr = new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]))
   }
 
   /**
@@ -983,10 +944,9 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     if (ValueDrivenHeapProperty.materialize) {
       val apObj = obj.head.getSetOfExpressions.head.asInstanceOf[AccessPathExpression]
       val tempResult = materializePath({if (apObj.typ.isObject()) apObj.path else apObj.path.dropRight(1)})
-      new ValueDrivenHeapState[S](tempResult.abstractHeap, tempResult.generalValState, new ExpressionSet(typ).add(obj.head), tempResult.isTop, tempResult.isBottom)
+      tempResult.copy(expr = new ExpressionSet(typ).add(obj.head))
     } else
-      new ValueDrivenHeapState[S](abstractHeap, generalValState, new ExpressionSet(typ).add(obj.head), isTop, isBottom)
-    // throw new Exception("Method getFieldValue is not implemented")
+      copy(expr = new ExpressionSet(typ).add(obj.head))
   }
 
   /**
@@ -1001,7 +961,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     //**println("evalConsta(" + value + "," + typ + "," + pp + ") is called.")
     if(this.isBottom) return this
     this.setExpression(new ExpressionSet(typ).add(new Constant(value, typ, pp)))
-    // throw new Exception("Method evalConstant is not implemented")
   }
 
   /**
@@ -1052,7 +1011,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
         val (resultingAH, idsToRemove) = tempAH.prune()
         resultingGenCond = resultingGenCond.removeVariables(idsToRemove)
 
-        return new ValueDrivenHeapState[S](resultingAH, resultingGenCond, new ExpressionSet(SystemParameters.getType().top), false, false)
+        return ValueDrivenHeapState(resultingAH, resultingGenCond, new ExpressionSet(SystemParameters.getType().top), false, false)
       }
       case x => {
         println("ValueDrivenHeapState.assume: " + x + " is not supported.")
@@ -1075,7 +1034,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   def testTrue(): ValueDrivenHeapState[S] = {
     //**println("testTrue() is called")
     return assume(getExpression)
-//    throw new Exception("Method testTrue is not implemented")
   }
 
   /**
@@ -1089,82 +1047,30 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     for (ne <- negatedExpressions)
       negatedExpSet = negatedExpSet.add(ne)
     return assume(negatedExpSet)
-//    throw new Exception("Method testFalse is not implemented")
   }
 
-  /**
-  Returns the current expression
+  def getExpression: ExpressionSet = expr
 
-   @return The current expression
-    */
-  def getExpression: ExpressionSet = {
-    //**println("getExpression is called")
-    return expr
-    //throw new Exception("Method getExpression is not implemented")
-  }
+  def setExpression(newExpr: ExpressionSet): ValueDrivenHeapState[S] =
+    copy(expr = newExpr)
 
-  /**
-  Sets the current expression
+  def removeExpression(): ValueDrivenHeapState[S] =
+    copy(expr = new ExpressionSet(SystemParameters.getType().top))
 
-   @param newExpr The current expression
-  @return The abstract state after changing the current expression with the given one
-    */
-  def setExpression(newExpr: ExpressionSet): ValueDrivenHeapState[S] = {
-    //**println("setExpression(" + newExpr + ") is called")
-    return new ValueDrivenHeapState[S](abstractHeap, generalValState, newExpr, isTop, isBottom)
-    //throw new Exception("Method setExpression is not implemented")
-  }
+  def pruneUnreachableHeap(): ValueDrivenHeapState[S] = ???
+  def factory(): ValueDrivenHeapState[S] = ???
 
-  /**
-  Removes the current expression
-
-   @return The abstract state after removing the current expression
-    */
-  def removeExpression(): ValueDrivenHeapState[S] = {
-    //**println("removeExpression() is called")
-    return new ValueDrivenHeapState(abstractHeap, generalValState, new ExpressionSet(SystemParameters.getType().top), isTop, isBottom)
-    //throw new Exception("Method removeExpression is not implemented")
-  }
-
-  /**
-   * Performs abstract garbage collection
-   */
-  def pruneUnreachableHeap(): ValueDrivenHeapState[S] = {
-    throw new Exception("Method pruneUnreachableHeap is not implemented")
-  }
-
-  /**
-  Returns a new instance of the lattice
-   @return A new instance of the current object
-    */
-  def factory(): ValueDrivenHeapState[S] = {
-    throw new Exception("Method factory is not implemented")
-  }
-
-  /**
-  Returns the top value of the lattice
-   @return The top value, that is, a value x that is greater or equal than any other value
-    */
   def top(): ValueDrivenHeapState[S] = {
-    //**println("top() is called")
-    return new ValueDrivenHeapState[S](new HeapGraph[S](), new ApronInterface(None, new Polka(false), false, Set.empty[Identifier]).top().asInstanceOf[S], new ExpressionSet(SystemParameters.getType().top()), true, false)
-    throw new Exception("Method top is not implemented")
+    return ValueDrivenHeapState(new HeapGraph[S](), new ApronInterface(None, new Polka(false), false, Set.empty[Identifier]).top().asInstanceOf[S], new ExpressionSet(SystemParameters.getType().top()), true, false)
   }
 
-  /**
-  Returns the bottom value of the lattice
-   @return The bottom value, that is, a value x that is less or equal than any other value
-    */
   def bottom(): ValueDrivenHeapState[S] = {
-    //**println("bottom() is called")
-    return new ValueDrivenHeapState[S](new HeapGraph[S](), generalValState.bottom(), expr, false, true)
-//    throw new Exception("Method bottom is not implemented")
+    return ValueDrivenHeapState(new HeapGraph[S](), generalValState.bottom(), expr, false, true)
   }
 
   /**
   Computes the upper bound of two elements
 
-   @param left One of the two values
   @param other The other value
   @return The least upper bound, that is, an element that is greater or equal than the two arguments
     */
@@ -1180,12 +1086,11 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 
     //**println("REAL LUB IS CALLED.")
 
-    return new ValueDrivenHeapState[S](resAH, resGeneralState, new ExpressionSet(SystemParameters.getType().top()), false, false)
+    return ValueDrivenHeapState(resAH, resGeneralState, new ExpressionSet(SystemParameters.getType().top()), false, false)
 
-//    return new ValueDrivenHeapState[S](right.abstractHeap,
+//    return ValueDrivenHeapState(right.abstractHeap,
 //                                       right.generalValState.lub(generalValState, right.generalValState),
 //                                       right.expr, false, false)
-//    throw new Exception("Method lub is not implemented")
   }
 
   /**
@@ -1207,8 +1112,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     val newGeneralValState = generalValState.glb(newRightGeneralValState)
     if (resultingAH.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
       return bottom()
-    return new ValueDrivenHeapState[S](resultingAH, newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
-    throw new Exception("Method glb is not implemented")
+    return ValueDrivenHeapState(resultingAH, newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
   }
 
   /**
@@ -1239,7 +1143,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 //      return tempRight
 //    }
 //    val newGeneralValState = generalValState.widening(generalValState.merge(replacementLeft), tempRight.generalValState.merge(replacementRight))
-//    return new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, mergedRight), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
+//    return ValueDrivenHeapState(mergedLeft.wideningAfterMerge(mergedLeft, mergedRight), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
 
 
     /**
@@ -1248,14 +1152,14 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     val (mergedLeft, replacementLeft) = abstractHeap.mergePointedNodes()
     val (mergedRight, replacementRight) = other.abstractHeap.mergePointedNodes()
     val rightGenValState = other.generalValState.merge(replacementRight)
-    var newRight = new ValueDrivenHeapState[S](mergedRight, rightGenValState, new ExpressionSet(SystemParameters.getType().top), false, false)
-    val newLeft = new ValueDrivenHeapState[S](mergedLeft, generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
+    var newRight = ValueDrivenHeapState(mergedRight, rightGenValState, new ExpressionSet(SystemParameters.getType().top), false, false)
+    val newLeft = ValueDrivenHeapState(mergedLeft, generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
     newRight = newLeft.lub(newRight)
     if (!mergedLeft.vertices.equals(newRight.abstractHeap.vertices) || !areGraphsIdentical(mergedLeft, mergedRight)) {
       return newRight
     }
     val newGeneralValState = newLeft.generalValState.widening(newRight.generalValState.merge(replacementRight))
-    val result = new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, newRight.abstractHeap), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
+    val result = ValueDrivenHeapState(mergedLeft.wideningAfterMerge(mergedLeft, newRight.abstractHeap), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
     return result
   }
 
@@ -1339,7 +1243,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       updatedEdgesToAdd += e.copy(state = updatedEdgeState)
     }
     resultingAH = resultingAH.addEdges(updatedEdgesToAdd.toSet)
-    new ValueDrivenHeapState[S](resultingAH, generalValState.merge(repl), expr, isTop, isBottom)
+    copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl))
   }
 
   /**
@@ -1376,7 +1280,6 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 //    }
       return false
     }
-//    throw new Exception("Method lessEqual is not implemented")
   }
 
   /**
@@ -1429,12 +1332,10 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 
     // Now we need to apply the replacement to all the states, including the general value state.
 
-    return new ValueDrivenHeapState[S](newAbstractHeap,
+    return ValueDrivenHeapState(newAbstractHeap,
       newGeneralState,
       new ExpressionSet(typ).add(new VertexExpression(pp, typ, createdObjVertex)),
       isTop, isBottom)
-
-    //    throw new Exception("Method createObject is not implemented")
   }
 
   /**
@@ -1493,6 +1394,3 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 object ValeDrivenHeapStateConstants {
   val edgeLocalIdentifier = "eLocId"
 }
-
-
-
