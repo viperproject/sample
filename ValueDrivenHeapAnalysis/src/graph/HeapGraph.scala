@@ -36,7 +36,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] = {
     var resEdges = Set.empty[EdgeWithState[S]]
     for (edge <- edges) {
-      resEdges = resEdges + new EdgeWithState[S](edge.source, edge.state.createVariables(ids), edge.field, edge.target)
+      resEdges = resEdges + edge.copy(state = edge.state.createVariables(ids))
     }
     return new HeapGraph[S](this.vertices, resEdges)
   }
@@ -86,14 +86,14 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       case c: Constant => {
         var resEdges = Set.empty[EdgeWithState[S]]
         for (edge <- edges) {
-          resEdges = resEdges + new EdgeWithState[S](edge.source, edge.state.assign(leftId, rightExp), edge.field, edge.target)
+          resEdges = resEdges + edge.copy(state = edge.state.assign(leftId, rightExp))
         }
         return new HeapGraph[S](this.vertices, resEdges)
       }
       case v: VariableIdentifier => {
         var resEdges = Set.empty[EdgeWithState[S]]
         for (edge <- edges) {
-          resEdges = resEdges + new EdgeWithState[S](edge.source, edge.state.assign(leftId, rightExp), edge.field, edge.target)
+          resEdges = resEdges + edge.copy(state = edge.state.assign(leftId, rightExp))
         }
         return new HeapGraph[S](this.vertices, resEdges)
       }
@@ -111,7 +111,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       val elIDs = e.state.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).toSet
       val newState = state.createVariables(elIDs)
       val newEdgeState = e.state.createVariables(apIDs)
-      newEdges += new EdgeWithState[S](e.source, e.state.glb(newState, newEdgeState), e.field, e.target)
+      newEdges += e.copy(state = e.state.glb(newState, newEdgeState))
     }
     new HeapGraph[S](vertices, newEdges)
   }
@@ -126,9 +126,9 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   def assignValueVariable(variable: VariableIdentifier, right: Expression): HeapGraph[S] = {
     var resEdges = Set.empty[EdgeWithState[S]]
     for (edge <- edges) {
-      resEdges = resEdges + new EdgeWithState[S](edge.source, edge.state.assign(variable, right), edge.field, edge.target)
+      resEdges = resEdges + edge.copy(state = edge.state.assign(variable, right))
     }
-    return new HeapGraph[S](this.vertices, resEdges)
+    new HeapGraph[S](this.vertices, resEdges)
   }
 
   /**
@@ -324,7 +324,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     for (edgeRight <- edgeMap.values) {
       var newState = edgeRight.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])
       newState = newState.rename(renameFrom, renameTo)
-      val edgeToAdd = new EdgeWithState[S](iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
+      val edgeToAdd = EdgeWithState(iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
       resultingGraph = resultingGraph.addEdges(Set(edgeToAdd))
     }
     resultingGraph = meetCommonEdges(resultingGraph)
@@ -386,7 +386,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     for (e <- edgesToAdd) {
       val newSrc = if (renaming.keySet.contains(e.source)) renaming.apply(e.source) else e.source
       val newTrg = if (renaming.keySet.contains(e.target)) renaming.apply(e.target) else e.target
-      resultingGraph = resultingGraph.addEdges(Set(new EdgeWithState[S](newSrc, e.state.rename(renameFrom, renameTo), e.field, newTrg)))
+      resultingGraph = resultingGraph.addEdges(Set(EdgeWithState(newSrc, e.state.rename(renameFrom, renameTo), e.field, newTrg)))
     }
     checkConsistancy(resultingGraph)
     return (resultingGraph, renameFrom, renameTo)
@@ -470,7 +470,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
         idsToRemove = idsToRemove + idToRemove
       }
     }
-    val finalEdges = resultingEdgeSet.map(e => new EdgeWithState[S](e.source, e.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]]), e.field, e.target))
+    val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])))
     val result = new HeapGraph[S](resultingVertices, finalEdges)
     checkConsistancy(result)
     return (result, idsToRemove.asInstanceOf[Set[Identifier]])
@@ -484,7 +484,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
-        resultEdges = (resultEdges - weakEqualsSet.head) + new EdgeWithState[S](edge.source, edge.state.lub(weakEqualsSet.head.state, edge.state), edge.field, edge.target)
+        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.lub(weakEqualsSet.head.state, edge.state))
     }
     return new HeapGraph[S](this.vertices, resultEdges)
   }
@@ -497,7 +497,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
-        resultEdges = (resultEdges - weakEqualsSet.head) + new EdgeWithState[S](edge.source, edge.state.glb(weakEqualsSet.head.state, edge.state), edge.field, edge.target)
+        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.glb(weakEqualsSet.head.state, edge.state))
     }
     return new HeapGraph[S](graph.vertices, resultEdges)
   }
@@ -510,7 +510,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
-        resultEdges = (resultEdges - weakEqualsSet.head) + new EdgeWithState[S](edge.source, edge.state.widening(weakEqualsSet.head.state, edge.state), edge.field, edge.target)
+        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.widening(weakEqualsSet.head.state, edge.state))
     }
     return new HeapGraph[S](graph.vertices, resultEdges)
   }
@@ -598,7 +598,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     }
     val newEdges = mutable.Set.empty[EdgeWithState[S]]
     for (e <- edges)
-      newEdges += new EdgeWithState[S](mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
+      newEdges += EdgeWithState(mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
     (new HeapGraph[S](newVertices, newEdges.toSet[EdgeWithState[S]]).joinCommonEdges(), repl)
 
     // See version control history for the original code
@@ -650,7 +650,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
           for (cond <- Utilities.applyConditions(Set(edge.state), condsForExp))
             resultingState = cond.lub(resultingState, cond.assign(v, rightExp))
           if (!resultingState.lessEqual(resultingState.bottom()))
-            resultingEdges += new EdgeWithState[S](edge.source, resultingState, edge.field, edge.target)
+            resultingEdges += edge.copy(state = resultingState)
         }
       }
       case None =>
@@ -689,7 +689,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
               resultingState = cond.lub(resultingState, Utilities.removeAccessPathIdentifiers(tempEdgeState))
             }
           }
-          resultingEdges = resultingEdges + new EdgeWithState[S](edge.source, resultingState, edge.field, edge.target)
+          resultingEdges = resultingEdges + edge.copy(state = resultingState)
         }
       }
       case None =>
@@ -701,7 +701,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   def applyReplacement(repl : Replacement) : HeapGraph[S] = {
     val newEdges = mutable.Set.empty[EdgeWithState[S]]
     for (e <- edges) {
-      newEdges += new EdgeWithState[S](e.source, e.state.merge(repl), e.field, e.target)
+      newEdges += e.copy(state = e.state.merge(repl))
     }
     new HeapGraph[S](vertices, newEdges.toSet[EdgeWithState[S]])
   }
@@ -714,7 +714,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       for (c <- edgeStateAndConds) {
         resultingEdgeCond = c.lub(resultingEdgeCond, Utilities.removeAccessPathIdentifiers(c.assume(exp)))
       }
-      resultingEdges = resultingEdges + new EdgeWithState[S](edge.source, resultingEdgeCond, edge.field, edge.target)
+      resultingEdges = resultingEdges + edge.copy(state = resultingEdgeCond)
     }
     // return
     new HeapGraph[S](this.vertices, resultingEdges)
