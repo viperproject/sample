@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import scala.collection.mutable
 
-class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges: Set[EdgeWithState[S]]) {
+case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: Set[EdgeWithState[S]]) {
 
   // This check should be carried out only in the debug mode.
   //checkConsistancy(this)
@@ -38,7 +38,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     for (edge <- edges) {
       resEdges = resEdges + edge.copy(state = edge.state.createVariables(ids))
     }
-    return new HeapGraph[S](this.vertices, resEdges)
+    copy(edges = resEdges)
   }
 
   def getPathsToBeAssigned(expr: AccessPathExpression): Set[List[EdgeWithState[S]]] = {
@@ -83,23 +83,13 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   def assignAllValStates(leftId: Identifier, rightExp: Expression): HeapGraph[S] = {
     assert(leftId.isInstanceOf[VariableIdentifier] || leftId.isInstanceOf[ValueHeapIdentifier], "The other kinds of identifiers are not supported.")
     rightExp match {
-      case c: Constant => {
+      case _: Constant | _: VariableIdentifier =>
         var resEdges = Set.empty[EdgeWithState[S]]
         for (edge <- edges) {
           resEdges = resEdges + edge.copy(state = edge.state.assign(leftId, rightExp))
         }
-        return new HeapGraph[S](this.vertices, resEdges)
-      }
-      case v: VariableIdentifier => {
-        var resEdges = Set.empty[EdgeWithState[S]]
-        for (edge <- edges) {
-          resEdges = resEdges + edge.copy(state = edge.state.assign(leftId, rightExp))
-        }
-        return new HeapGraph[S](this.vertices, resEdges)
-      }
-
+        copy(edges = resEdges)
     }
-    return null
   }
 
   def meetStateOnAllEdges(state: S): HeapGraph[S] = {
@@ -113,9 +103,8 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       val newEdgeState = e.state.createVariables(apIDs)
       newEdges += e.copy(state = newState.glb(newEdgeState))
     }
-    new HeapGraph[S](vertices, newEdges)
+    copy(edges = newEdges)
   }
-
 
   /**
    *
@@ -128,7 +117,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     for (edge <- edges) {
       resEdges = resEdges + edge.copy(state = edge.state.assign(variable, right))
     }
-    new HeapGraph[S](this.vertices, resEdges)
+    copy(edges = resEdges)
   }
 
   /**
@@ -148,11 +137,11 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       case _ =>
         newVertex = new LocalVariableVertex(label, typ)
     }
-    (new HeapGraph[S](vertices + newVertex,edges), newVertex)
+    (copy(vertices = vertices + newVertex), newVertex)
   }
 
   def addVertices(vs: Set[Vertex]): HeapGraph[S] = {
-    return new HeapGraph[S](vertices ++ vs,edges)
+    copy(vertices = vertices ++ vs)
   }
 
   /**
@@ -162,7 +151,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
    * @return graph without vertices vs and without edges containing vertices from vs
    */
   def removeVertices(vs: Set[Vertex]): HeapGraph[S] = {
-    return new HeapGraph[S](vertices -- vs, edges -- edges.filter(x => !(vs.contains(x.source) || vs.contains(x.target))))
+    HeapGraph(vertices -- vs, edges -- edges.filter(x => !(vs.contains(x.source) || vs.contains(x.target))))
   }
 
   /**
@@ -177,33 +166,18 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       assert(containsVertex(this, e.source), "Trying to add edge that does not have source in the set of vertices")
       assert(containsVertex(this, e.target), "Trying to add edge that does not have target in the set of vertices")
     }
-    return new HeapGraph[S](vertices,edges ++ es.filter(e => (vertices.contains(e.source) && vertices.contains(e.target))))
+    copy(edges = edges ++ es.filter(e => vertices.contains(e.source) && vertices.contains(e.target)))
   }
 
-  def removeEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] = {
-    return new HeapGraph[S](vertices, edges -- es)
-  }
+  def removeEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] =
+    copy(edges = edges -- es)
 
-  override def equals(obj: Any): Boolean = {
-    if (!obj.isInstanceOf[HeapGraph[S]])
-      return false
-    return vertices.equals(obj.asInstanceOf[HeapGraph[S]].vertices) && edges.equals(obj.asInstanceOf[HeapGraph[S]])
-  }
-
-  override def hashCode(): Int = {
-    return (vertices.toString + edges.toString).hashCode
-  }
-
-
-
-  def getVerticesWithLabel(label: String): TreeSet[Vertex] = {
-    return vertices.filter(v => v.label.equals(label))
-  }
+  def getVerticesWithLabel(label: String): TreeSet[Vertex] =
+    vertices.filter(v => v.label.equals(label))
 
   /**
    * Helper function that initializes the map of maximal possible correspondence between edges of <code>this</code> and
    * <code>other</code>.
-   *
    *
    * @param other
    * @return
@@ -471,9 +445,9 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       }
     }
     val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])))
-    val result = new HeapGraph[S](resultingVertices, finalEdges)
+    val result = HeapGraph(resultingVertices, finalEdges)
     checkConsistancy(result)
-    return (result, idsToRemove.asInstanceOf[Set[Identifier]])
+    (result, idsToRemove.asInstanceOf[Set[Identifier]])
   }
 
   def joinCommonEdges() : HeapGraph[S] = {
@@ -486,7 +460,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       else
         resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.lub(weakEqualsSet.head.state))
     }
-    return new HeapGraph[S](this.vertices, resultEdges)
+    copy(edges = resultEdges)
   }
 
   private def meetCommonEdges(graph: HeapGraph[S]): HeapGraph[S] = {
@@ -499,7 +473,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       else
         resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.glb(weakEqualsSet.head.state))
     }
-    return new HeapGraph[S](graph.vertices, resultEdges)
+    HeapGraph(graph.vertices, resultEdges)
   }
 
   private def widenCommonEdges(graph: HeapGraph[S]): HeapGraph[S] = {
@@ -512,7 +486,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       else
         resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.widening(weakEqualsSet.head.state))
     }
-    return new HeapGraph[S](graph.vertices, resultEdges)
+    graph.copy(edges = resultEdges)
   }
 
   def lub(left: HeapGraph[S], right: HeapGraph[S]): (HeapGraph[S], List[Identifier], List[Identifier]) = {
@@ -599,16 +573,16 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     val newEdges = mutable.Set.empty[EdgeWithState[S]]
     for (e <- edges)
       newEdges += EdgeWithState(mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
-    (new HeapGraph[S](newVertices, newEdges.toSet[EdgeWithState[S]]).joinCommonEdges(), repl)
+    (HeapGraph(newVertices, newEdges.toSet[EdgeWithState[S]]).joinCommonEdges(), repl)
 
     // See version control history for the original code
   }
 
   def wideningAfterMerge(left: HeapGraph[S], right: HeapGraph[S]): HeapGraph[S] = {
     assert(left.vertices.size == right.vertices.size)
-    val resGraph = new HeapGraph[S](left.vertices ++ right.vertices, left.edges ++ right.edges)
+    val resGraph = HeapGraph(left.vertices ++ right.vertices, left.edges ++ right.edges)
     checkConsistancy(resGraph)
-    return widenCommonEdges(resGraph)
+    widenCommonEdges(resGraph)
   }
 
   private def checkConsistancy(graph: HeapGraph[S]) = {
@@ -694,8 +668,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       }
       case None =>
     }
-    // return
-    new HeapGraph[S](vertices, resultingEdges.toSet)
+    copy(edges = resultingEdges.toSet)
   }
 
   def applyReplacement(repl : Replacement) : HeapGraph[S] = {
@@ -703,7 +676,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     for (e <- edges) {
       newEdges += e.copy(state = e.state.merge(repl))
     }
-    new HeapGraph[S](vertices, newEdges.toSet[EdgeWithState[S]])
+    copy(edges = newEdges.toSet)
   }
 
   def valueAssumeOnEachEdge(exp : Expression, conds: Set[S]) : HeapGraph[S] = {
@@ -716,7 +689,6 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       }
       resultingEdges = resultingEdges + edge.copy(state = resultingEdgeCond)
     }
-    // return
-    new HeapGraph[S](this.vertices, resultingEdges)
+    copy(edges = resultingEdges)
   }
 }

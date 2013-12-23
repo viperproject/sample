@@ -216,7 +216,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                 }
               }
             }
-            result = result.lub(new ValueDrivenHeapState[S](new HeapGraph[S](newVertices, resultingEdges.toSet), newGenValState, new ExpressionSet(variable.getType).add(variable)))
+            result = result.lub(new ValueDrivenHeapState[S](HeapGraph(newVertices, resultingEdges.toSet), newGenValState, new ExpressionSet(variable.getType).add(variable)))
           } else {
             // Arguments that are not objects are values and can not be aliased. Therefore, we just create them in the
             // ordinary fashion.
