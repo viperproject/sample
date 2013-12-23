@@ -310,15 +310,15 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
         for (valField <- from.typ.getPossibleFields().filter(!_.getType.isObject())) {
-          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
-          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+          renameFrom = renameFrom :+ ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField)
+          renameTo = renameTo :+ ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField)
         }
       }
     }
     val verticesToRemove = (right.vertices.filter(_.isInstanceOf[HeapVertex]) -- iso.keySet).asInstanceOf[Set[HeapVertex]]
     var idsToRemove = Set.empty[ValueHeapIdentifier]
     for (v <- verticesToRemove) {
-      val removeForV: Set[ValueHeapIdentifier] = v.typ.getPossibleFields().map(f => new ValueHeapIdentifier(v, f.getName, f.getType, f.getProgramPoint))
+      val removeForV: Set[ValueHeapIdentifier] = v.typ.getPossibleFields().map(ValueHeapIdentifier(v, _))
       idsToRemove = idsToRemove ++ removeForV
     }
     for (edgeRight <- edgeMap.values) {
@@ -378,8 +378,8 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
         for (valField <- from.typ.getPossibleFields().filter(!_.getType.isObject())) {
-          renameFrom = renameFrom :+ new ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
-          renameTo = renameTo :+ new ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+          renameFrom = renameFrom :+ ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField)
+          renameTo = renameTo :+ ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField)
         }
       }
     }
@@ -466,7 +466,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     var idsToRemove = Set.empty[ValueHeapIdentifier]
     for (v <- verticesToRemove) {
       for (valField <- v.typ.getPossibleFields().filter(!_.getType.isObject())) {
-        val idToRemove = new ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+        val idToRemove = ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField)
         idsToRemove = idsToRemove + idToRemove
       }
     }
@@ -588,8 +588,8 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
         for (valField <- newType.getPossibleFields().filter(!_.getType.isObject())) {
           val fromIds = mutable.Set.empty[ValueHeapIdentifier]
           for (vrtx <- v)
-            fromIds += new ValueHeapIdentifier(vrtx, valField.getName, valField.getType, valField.getProgramPoint)
-          repl.value.update(fromIds.toSet, Set(new ValueHeapIdentifier(newVertex, valField.getName, valField.getType, valField.getProgramPoint)))
+            fromIds += ValueHeapIdentifier(vrtx, valField)
+          repl.value.update(fromIds.toSet, Set(ValueHeapIdentifier(newVertex, valField)))
         }
       } else {
         newVertices = newVertices + v.head
@@ -669,7 +669,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
           }
           val conditions = Utilities.applyConditions(Set(edge.state), Utilities.applyConditions(pathsToConds.values.toSet[S], condsForExp))
           for (nodeToUpdate <- nodesToUpdate) {
-            val valueHeapIdToAssign = new ValueHeapIdentifier(nodeToUpdate, f, rightExp.getType, rightExp.getProgramPoint)
+            val valueHeapIdToAssign = ValueHeapIdentifier(nodeToUpdate, f, rightExp.getType, rightExp.getProgramPoint)
             for (cond <- conditions) {
               var tempEdgeState = cond.assign(valueHeapIdToAssign, rightExp)
               if (edge.source.equals(nodeToUpdate)) {

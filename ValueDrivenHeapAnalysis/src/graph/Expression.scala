@@ -39,6 +39,12 @@ case class ValueHeapIdentifier(obj: HeapVertex, field: String, typ1 : Type, pp :
   }
 }
 
+object ValueHeapIdentifier {
+  /** Creates a value heap identifier from a heap vertex and a field identifier. */
+  def apply(obj: HeapVertex, field: Identifier): ValueHeapIdentifier =
+    ValueHeapIdentifier(obj, field.getName, field.getType, field.getProgramPoint)
+}
+
 case class EdgeLocalIdentifier(accPath: List[String],val field: String, typ1: Type, pp: ProgramPoint) extends Identifier(typ1, pp) {
 
   assert(!typ1.isObject(), "EdgeLocalIdentifier should represent value information.")

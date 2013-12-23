@@ -138,7 +138,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               vertexId = vertexId + 1
               newVertices = newVertices + defVertexToAdd
               for (valField <- defType.getPossibleFields().filter(!_.getType.isObject()))
-                idsToCreate = idsToCreate + new ValueHeapIdentifier(defVertexToAdd, valField.getName, valField.getType, valField.getProgramPoint)
+                idsToCreate = idsToCreate + ValueHeapIdentifier(defVertexToAdd, valField)
             }
             // Adding summary vertices and corresponding identifiers
             for (sumType <- summaryTypes) {
@@ -146,7 +146,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               vertexId = vertexId + 1
               newVertices = newVertices + sumVertexToAdd
               for (valField <- sumType.getPossibleFields().filter(!_.getType.isObject()))
-                idsToCreate = idsToCreate + new ValueHeapIdentifier(sumVertexToAdd, valField.getName, valField.getType, valField.getProgramPoint)
+                idsToCreate = idsToCreate + ValueHeapIdentifier(sumVertexToAdd, valField)
             }
             var newGenValState = generalValState.factory()
             newGenValState = newGenValState.createVariables(idsToCreate)
@@ -157,7 +157,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               var sourceValState = newGenValState
               for (valField <- heapVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
                 val srcEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
-                val valHeapId = new ValueHeapIdentifier(heapVertex, valField.getName, valField.getType, valField.getProgramPoint)
+                val valHeapId = ValueHeapIdentifier(heapVertex, valField)
                 sourceValState = sourceValState.createVariable(srcEdgeLocId, srcEdgeLocId.getType)
                 sourceValState = sourceValState.assume(new BinaryArithmeticExpression(valHeapId, srcEdgeLocId, ArithmeticOperator.==, null))
               }
@@ -169,7 +169,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                   var trgValState = sourceValState
                   for (objValField <- objField.getType.getPossibleFields().filter(!_.getType.isObject())) {
                     val trgEdgeLocId = EdgeLocalIdentifier(List(objField.getName), objValField)
-                    val valHeapId = new ValueHeapIdentifier(heapVertex, objValField.getName, objValField.getType, objValField.getProgramPoint)
+                    val valHeapId = ValueHeapIdentifier(heapVertex, objField)
                     trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
                     trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
                   }
@@ -208,7 +208,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                   var trgValState = newGenValState
                   for (valField <- heapVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
                     val trgEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
-                    val valHeapId = new ValueHeapIdentifier(heapVertex, valField.getName, valField.getType, valField.getProgramPoint)
+                    val valHeapId = ValueHeapIdentifier(heapVertex, valField)
                     trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
                     trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
                   }
@@ -283,7 +283,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                     val edgeLocalId = EdgeLocalIdentifier(List.empty[String], valField)
                     addedIdentifiers = addedIdentifiers + edgeLocalId
                     newEdgeState = newEdgeState.createVariable(edgeLocalId, edgeLocalId.getType)
-                    val resId = new ValueHeapIdentifier(verExpr.vertex.asInstanceOf[HeapVertex], valField.getName, valField.getType, verExpr.getProgramPoint)
+                    val resId = ValueHeapIdentifier(verExpr.vertex.asInstanceOf[HeapVertex], valField)
                     newEdgeState = newEdgeState.assume(new BinaryArithmeticExpression(resId, edgeLocalId, ArithmeticOperator.==, null))
                   }
                 }
@@ -394,7 +394,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
           val renameTo : List[Identifier] = List(new AccessPathIdentifier(ap.path, ap.getType, ap.getProgramPoint))
           cond = cond.rename(renameFrom, renameTo)
           // The AccessPathIdentifier must agree also with the ValueHeapIdentifier
-          val resId = new ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, renameTo.head.getType, renameTo.head.getProgramPoint)
+          val resId = ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, renameTo.head.getType, renameTo.head.getProgramPoint)
           cond = cond.assume(new BinaryArithmeticExpression(resId, renameTo.head, ArithmeticOperator.==, null))
           // We remove all edge local identifiers
           cond = cond.removeVariables(cond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).toSet[Identifier])
@@ -677,7 +677,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 
       for ((path,cond) <- pathsToAssignUnderConditions) {
         for (c <- Utilities.applyConditions(Set(cond), genValAndExpressionConds)) {
-          val lhsIdToAssign = new ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, leftExp.getType, leftExp.getProgramPoint)
+          val lhsIdToAssign = ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, leftExp.getType, leftExp.getProgramPoint)
           resultGenValState = c.lub(resultGenValState, c.assign(lhsIdToAssign, rightExp))
         }
       }
@@ -1280,8 +1280,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
         resultingAH = tempAH
         // Add the information about the corresponding identifiers to replacement
         for (valField <- definiteVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
-          val sumValHeapId = new ValueHeapIdentifier(edge.target.asInstanceOf[SummaryHeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
-          val defValHeapId = new ValueHeapIdentifier(definiteVertex.asInstanceOf[DefiniteHeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+          val sumValHeapId = ValueHeapIdentifier(edge.target.asInstanceOf[SummaryHeapVertex], valField)
+          val defValHeapId = ValueHeapIdentifier(definiteVertex.asInstanceOf[DefiniteHeapVertex], valField)
           repl.value.update(Set(sumValHeapId), Set(sumValHeapId, defValHeapId))
         }
 
@@ -1405,7 +1405,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     for (valField <- typ.getPossibleFields().filter(of => !of.getType.isObject())) {
       // This means that we have a value field and this should be included in all abstract states on edges
       // This is done via Replacement
-      val resId = new ValueHeapIdentifier(newVertex.asInstanceOf[DefiniteHeapVertex], valField.getName, valField.getType, valField.getProgramPoint)
+      val resId = ValueHeapIdentifier(newVertex.asInstanceOf[DefiniteHeapVertex], valField)
       val edgeLocalId = EdgeLocalIdentifier(List.empty[String], valField)
       resIdsAndEdgeLocalIds = resIdsAndEdgeLocalIds + ((resId, edgeLocalId))
       resIds= resIds + resId
