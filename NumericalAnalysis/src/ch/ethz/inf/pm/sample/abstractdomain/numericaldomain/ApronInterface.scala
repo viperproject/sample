@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
 import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
 import ch.ethz.inf.pm.sample.abstractdomain.CollectionContainsExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
-import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
 
 class ApronInterface(val state: Option[Abstract1],
                      val domain: Manager,
@@ -302,6 +302,7 @@ class ApronInterface(val state: Option[Abstract1],
     val ids = Normalizer.getIdsForExpression(expr)
     for (id <- ids) {
       if (!id.getType.isNumericalType()) {
+        Reporter.reportError("Cannot assume expression on non-numerical values", expr.getProgramPoint)
         return this
       }
       //if (!getIds().contains(id)) {
