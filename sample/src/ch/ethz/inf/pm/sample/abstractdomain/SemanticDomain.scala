@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
+trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
 
   /**
   For each set of identifiers in the domain of f, this method merges these identifiers
@@ -166,7 +166,7 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] {
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends SemanticDomain[T] {
+trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends SemanticDomain[T] { this: T =>
   override def setArgument(variable: Identifier, expr: Expression): T = this.assign(variable, expr);
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]) = {

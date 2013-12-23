@@ -17,7 +17,7 @@ import BooleanDomain._
  * 
  */
 
-trait InvalidDomain[T <: InvalidDomain[T]] extends SimplifiedSemanticDomain[T]
+trait InvalidDomain[T <: InvalidDomain[T]] extends SimplifiedSemanticDomain[T] { this: T => }
 
 class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Identifier, BooleanDomain],
                             _isBottom:Boolean = false,
@@ -191,7 +191,7 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
 
 abstract class NumericWithInvalidDomain[N <: NumericalDomain[N], I <: InvalidDomain[I], T <: NumericWithInvalidDomain[N,I,T]](_initialNumerical:N,_initialInvalid:I)
   extends SemanticCartesianProductDomain[N,I,T](_initialNumerical,_initialInvalid)
-  with NumericalDomain[T] {
+  with NumericalDomain[T] { this: T =>
 
   override def toString() = "Numeric:\n"+ToStringUtilities.indent(this._1.toString)+"\nInvalid:\n"+ToStringUtilities.indent(this._2.toString)
 

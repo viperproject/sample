@@ -11,7 +11,7 @@ trait LevelPermission {
   def minPermission() : Double;
 }
 
-trait PermissionsDomain[P <: PermissionsDomain[P]] extends SemanticDomain[P] {
+trait PermissionsDomain[P <: PermissionsDomain[P]] extends SemanticDomain[P] { this: P =>
   def keys() : scala.collection.Set[Identifier];
   def get(id : Identifier) : LevelPermission;
   def inhale(id : Identifier, p : SymbolicValue) : P;

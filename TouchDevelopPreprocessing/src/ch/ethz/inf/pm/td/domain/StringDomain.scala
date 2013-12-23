@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.Type
 import numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.ToStringUtilities
 
-trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends SimplifiedSemanticDomain[X]
+trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends SimplifiedSemanticDomain[X] { this: X => }
 
 /**
  * Represents a non-relational string domain.
@@ -207,7 +207,7 @@ class StringKSetDomain(_value: Set[String] = Set.empty[String], _isTop: Boolean 
 
 abstract class NumericWithStringDomain[N <: NumericalDomain[N], V <: StringValueDomain[V], S <: StringDomain[V,S], T <: NumericWithStringDomain[N,V,S,T]](val initialNum:N,val initialStr:S)
   extends SemanticCartesianProductDomain[N,S,T](initialNum,initialStr)
-  with NumericalDomain[T] {
+  with NumericalDomain[T] { this: T =>
 
   override def toString() = "Numeric:\n"+ToStringUtilities.indent(_1.toString())+"\nString:\n"+ToStringUtilities.indent(_2.toString)
 }

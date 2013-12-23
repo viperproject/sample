@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-trait RelationalNumericalDomain[T <: RelationalNumericalDomain[T]] extends NumericalDomain[T] {
+trait RelationalNumericalDomain[T <: RelationalNumericalDomain[T]] extends NumericalDomain[T] { this: T =>
 	override def getStringOfId (id : Identifier) : String ;
 	override def setToTop(variable : Identifier) : T;
 	override def assign (variable : Identifier, expr : Expression) : T;

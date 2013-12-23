@@ -563,7 +563,7 @@ abstract class SemanticCartesianProductDomain
     [T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]]
     (a1: T1, a2: T2)
   extends CartesianProductDomain[T1, T2, T](a1, a2)
-  with SemanticDomain[T] {
+  with SemanticDomain[T] { this: T =>
 
   def getIds() = _1.getIds() ++ _2.getIds()
 
@@ -621,7 +621,7 @@ abstract class SemanticCartesianProductDomain
 abstract class ReducedSemanticProductDomain
     [T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: ReducedSemanticProductDomain[T1, T2, T]]
     (d1: T1, d2: T2)
-  extends SemanticCartesianProductDomain[T1, T2, T](d1, d2) {
+  extends SemanticCartesianProductDomain[T1, T2, T](d1, d2) { this: T =>
 
   def reduce(): T
 

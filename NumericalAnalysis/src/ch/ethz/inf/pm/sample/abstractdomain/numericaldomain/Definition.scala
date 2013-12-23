@@ -7,4 +7,6 @@ import ch.ethz.inf.pm.sample.abstractdomain._
  * @author Pietro Ferrara
  * @version 0.1
  */
-trait NumericalDomain[T <: NumericalDomain[T]] extends SimplifiedSemanticDomain[T]
+trait NumericalDomain[T <: NumericalDomain[T]] extends SimplifiedSemanticDomain[T] { this: T =>
+
+}
