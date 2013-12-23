@@ -25,13 +25,13 @@ object HeapIdSetFunctionalLifting {
         case None => ids = Some(address);
         case Some(s) => ids = Some(createdLocation.combinator(s, address));
       }
-      rep2 = rep2.lub(rep2, rep1)
+      rep2 = rep2.lub(rep1)
       state match {
         case None => state = Some(newHeap2);
         case Some(s) =>
           val (s1, rep3) = createdLocation.heapCombinator(s, newHeap2, result._1, result._1);
           state = Some(s1);
-          rep2 = rep2.lub(rep2, rep3);
+          rep2 = rep2.lub(rep3);
       }
     }
     if(state==None || ids == None) throw new SemanticException("We should have at least one abstract id in the HeapIdSetDomain");

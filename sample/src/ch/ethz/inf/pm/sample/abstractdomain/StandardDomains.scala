@@ -61,67 +61,64 @@ abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, 
 
   /**
    * Computes the upper bound between two states. It is defined by:
-   * left \sqcup right = [k -> left(k) \sqcup right(k) : k \in dom(left) \cup dom(right)]   
-   * @param left One of the two operands
-   * @param right The other operand
-   * @return The upper bound of left and right
+   * this \sqcup other = [k -> this(k) \sqcup other(k) : k \in dom(this) \cup dom(other)]
+   * @param other The other operand
+   * @return The upper bound of this and other
    */
-  def lub(left: T, right: T): T = {
-    if (left.isBottom) return right
-    if (right.isBottom) return left
-    if (left.isTop) return left
-    if (right.isTop) return right
-    functionalFactory(upperBoundFunctionalLifting(left, right))
+  def lub(other: T): T = {
+    if (isBottom) return other
+    if (other.isBottom) return this
+    if (isTop) return this
+    if (other.isTop) return other
+    functionalFactory(upperBoundFunctionalLifting(this, other))
   }
 
 
   /**
    * Computes the lower bound between two states. It is defined by:
-   * left \sqcap right = [k -> left(k) \sqcap right(k) : k \in dom(left) \cap dom(right)]   
-   * @param left One of the two operands
-   * @param right The other operand
-   * @return The lower bound of left and right
+   * this \sqcap other = [k -> this(k) \sqcap other(k) : k \in dom(this) \cap dom(other)]
+   * @param other The other operand
+   * @return The lower bound of this and other
    */
-  def glb(left: T, right: T): T = {
-    if (left.isBottom) return left
-    if (right.isBottom) return right
-    if (left.isTop) return right
-    if (right.isTop) return left
-    this.functionalFactory(lowerBoundFunctionalLifting(left,right))
+  def glb(other: T): T = {
+    if (isBottom) return this
+    if (other.isBottom) return other
+    if (isTop) return other
+    if (other.isTop) return this
+    functionalFactory(lowerBoundFunctionalLifting(this,other))
   }
 
   /**
    * Computes the widening between two states. It is defined by:
-   * left \nable right = [k -> left(k) \nabla right(k) : k \in dom(left) \cup dom(right)]   
-   * @param left The left operand
-   * @param right The right operand
-   * @return The upper bound of left and right
+   * this \nable other = [k -> this(k) \nabla other(k) : k \in dom(this) \cup dom(other)]
+   * @param other The other operand
+   * @return The upper bound of this and other
    */
-  override def widening(left: T, right: T): T = {
-    if (left.isBottom) return right
-    if (right.isBottom) return left
-    if (left.isTop) return left
-    if (right.isTop) return right
-    functionalFactory(wideningFunctionalLifting(left, right))
+  override def widening(other: T): T = {
+    if (isBottom) return other
+    if (other.isBottom) return this
+    if (isTop) return this
+    if (other.isTop) return other
+    functionalFactory(wideningFunctionalLifting(this, other))
   }
 
   /**
    * Implements the partial ordering between two states of functional domains. It is defined by: 
    * this \leq r <==> \forall k \in dom(this) : this(k) \leq r(k)   
-   * @param r The right operand
+   * @param r The other operand
    * @return true iff this is less or equal than t
    */
   override def lessEqual(r: T): Boolean = {
 
     // Case we are bottom
-    if (this.isBottom || r.isTop) return true
-    if (r.isBottom || this.isTop) return false
+    if (isBottom || r.isTop) return true
+    if (r.isBottom || isTop) return false
 
-    for (variable <- this.value.keySet)
-      if (!this.get(variable).lessEqual(r.get(variable)))
+    for (variable <- value.keySet)
+      if (!get(variable).lessEqual(r.get(variable)))
         return false
     for (variable <- r.value.keySet)
-      if (!this.get(variable).lessEqual(r.get(variable)))
+      if (!get(variable).lessEqual(r.get(variable)))
         return false
 
     true
@@ -129,13 +126,13 @@ abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, 
 
   override def equals(a: Any): Boolean = a match {
     case right: T =>
-      if (this.isBottom && right.isBottom) return true
-      if (this.isBottom || right.isBottom) return false
-      if (this.isTop && right.isTop) return true
-      if (this.isTop || right.isTop) return false
-      if (this.value.keySet.equals(right.value.keySet)) {
-        for (variable <- this.value.keySet)
-          if (!this.value.get(variable).get.equals(right.value.get(variable).get))
+      if (isBottom && right.isBottom) return true
+      if (isBottom || right.isBottom) return false
+      if (isTop && right.isTop) return true
+      if (isTop || right.isTop) return false
+      if (value.keySet.equals(right.value.keySet)) {
+        for (variable <- value.keySet)
+          if (!value.get(variable).get.equals(right.value.get(variable).get))
             return false
         true
       }
@@ -156,7 +153,7 @@ abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, 
   private def lowerBoundFunctionalLifting(f1: T, f2: T): Map[K, V] = {
     var result: Map[K, V] = Map.empty[K, V]
     for (el <- f1.value.keySet ++ f2.value.keySet) {
-      result = result + ((el, f1.get(el).glb(f1.get(el), f2.get(el))))
+      result = result + ((el, f1.get(el).glb(f2.get(el))))
     }
     result
   }
@@ -165,7 +162,7 @@ abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, 
     var result: Map[K, V] = Map.empty[K, V]
     for (el <- f1.value.keySet) {
       f2.value.get(el) match {
-        case Some(x) => result = result + ((el, x.widening(f1.value.get(el).get, x)))
+        case Some(x) => result = result + ((el, x.widening(f1.value.get(el).get)))
         case None => result = result + ((el, f1.value.get(el).get))
       }
     }
@@ -182,7 +179,7 @@ abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, 
     var result: Map[K, V] = Map.empty[K, V]
     for (el <- f1.value.keySet) {
       f2.value.get(el) match {
-        case Some(x) => result = result + ((el, x.lub(f1.value.get(el).get, x)))
+        case Some(x) => result = result + ((el, x.lub(f1.value.get(el).get)))
         case None => result = result + ((el, f1.value.get(el).get))
       }
     }
@@ -223,7 +220,7 @@ abstract class BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
       var value: V = this.get(s.head).bottom()
 
       // We compute the value that should be assigned to all other ids
-      for (v <- s) value = value.lub(value, this.get(v))
+      for (v <- s) value = value.lub(this.get(v))
 
       // We assign the value to all other ids
       for (v <- r.apply(s)) result = result.merge(v, value)
@@ -234,7 +231,7 @@ abstract class BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
 
   private def merge(id: Identifier, v: V): T = {
     if (this.value.keySet.contains(id))
-      this.add(id, v.lub(v, this.get(id)))
+      this.add(id, v.lub(this.get(id)))
     else this.add(id, v)
   }
 
@@ -317,29 +314,29 @@ abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[
     setFactory(this.value ++ v.value)
   }
 
-  def lub(left: T, right: T): T = {
-    if (left.isTop || right.isTop) return top()
-    if (left.isBottom) return right
-    if (right.isBottom) return left
-    setFactory(left.value ++ right.value)
+  def lub(other: T): T = {
+    if (this.isTop || other.isTop) return top()
+    if (this.isBottom) return other
+    if (other.isBottom) return this
+    setFactory(this.value ++ other.value)
   }
 
-  def glb(left: T, right: T): T = {
-    if (left.isBottom || right.isBottom) return bottom()
-    if (left.isTop) return right
-    if (right.isTop) return left
-    val newSet = left.value.intersect(right.value)
+  def glb(other: T): T = {
+    if (this.isBottom || other.isBottom) return bottom()
+    if (this.isTop) return other
+    if (other.isTop) return this
+    val newSet = this.value.intersect(other.value)
     setFactory(newSet, isBottom = newSet.isEmpty)
   }
 
-  def widening(left: T, right: T): T = this.lub(left, right)
+  def widening(other: T): T = this.lub(other)
 
-  def lessEqual(right: T): Boolean = {
+  def lessEqual(other: T): Boolean = {
     if (this.isBottom) return true
-    if (right.isTop) return true
-    if (right.isBottom) return false
+    if (other.isTop) return true
+    if (other.isBottom) return false
     if (this.isTop) return false
-    this.value.subsetOf(right.value)
+    this.value.subsetOf(other.value)
   }
 
   override def toString: String = {
@@ -414,11 +411,11 @@ abstract class KSetDomain[V, T <: KSetDomain[V, T]](_value: Set[V] = Set.empty[V
     result
   }
 
-  override def lub(left: T, right: T): T = {
-    if (left.isBottom) return right
-    if (right.isBottom) return left
-    if (left.isTop || right.isTop) return top()
-    val result: T = setFactory(left.value ++ right.value)
+  override def lub(other: T): T = {
+    if (this.isBottom) return other
+    if (other.isBottom) return this
+    if (this.isTop || other.isTop) return top()
+    val result: T = setFactory(this.value ++ other.value)
     if (result.value.size > getK) return this.top()
     result
   }
@@ -443,26 +440,26 @@ abstract class InverseSetDomain [V, T <: SetDomain[V, T]](_value: Set[V] = Set.e
     setFactory(value + el)
   }
 
-  override def lub(left: T, right: T): T = {
-    if (left.isTop || right.isTop) return top()
-    if (left.isBottom) return right
-    if (right.isBottom) return left
-    setFactory(left.value.intersect(right.value))
+  override def lub(other: T): T = {
+    if (this.isTop || other.isTop) return top()
+    if (this.isBottom) return other
+    if (other.isBottom) return this
+    setFactory(this.value.intersect(other.value))
   }
 
-  override def glb(left: T, right: T): T = {
-    if (left.isBottom || right.isBottom) return bottom()
-    if (left.isTop) return right
-    if (right.isTop) return left
-    setFactory(left.value ++ right.value)
+  override def glb(other: T): T = {
+    if (this.isBottom || other.isBottom) return bottom()
+    if (this.isTop) return other
+    if (other.isTop) return this
+    setFactory(this.value ++ other.value)
   }
 
-  override def widening(left: T, right: T): T = this.lub(left, right)
+  override def widening(other: T): T = this.lub(other)
 
-  override def lessEqual(right: T): Boolean = {
+  override def lessEqual(other: T): Boolean = {
     if (this.isBottom) return true
-    if (right.isTop) return true
-    right.value.subsetOf(this.value)
+    if (other.isTop) return true
+    other.value.subsetOf(this.value)
   }
 }
 
@@ -497,32 +494,32 @@ abstract class CartesianProductDomain
 
   def bottom(): T = factory(_1.bottom(),_2.bottom())
 
-  def lub(l: T, r: T): T = factory(_1.lub(l._1, r._1),_2.lub(l._2, r._2))
+  def lub(other: T): T = factory(_1.lub(other._1), _2.lub(other._2))
 
-  def glb(l: T, r: T): T = factory(_1.glb(l._1, r._1),_2.glb(l._2, r._2))
+  def glb(other: T): T = factory(_1.glb(other._1), _2.glb(other._2))
 
-  def widening(l: T, r: T): T = factory(_1.widening(l._1, r._1),_2.widening(l._2, r._2))
+  def widening(other: T): T = factory(_1.widening(other._1), _2.widening(other._2))
 
-  def lessEqual(r: T): Boolean = {
-    if (this._1.lessEqual(this._1.bottom()) || this._2.lessEqual(this._2.bottom())) return true
-    if (r._1.lessEqual(r._1.bottom()) || r._2.lessEqual(r._2.bottom())) return false
-    d1.lessEqual(r._1) && d2.lessEqual(r._2)
+  def lessEqual(other: T): Boolean = {
+    if (_1.lessEqual(_1.bottom()) || _2.lessEqual(_2.bottom())) return true
+    if (other._1.lessEqual(other._1.bottom()) || other._2.lessEqual(other._2.bottom())) return false
+    d1.lessEqual(other._1) && d2.lessEqual(other._2)
   }
 
   override def equals(a: Any): Boolean = a match {
-    case right: T =>
-      if (this._1.equals(this._1.bottom()) || this._2.equals(this._2.bottom())) {
-        if (right._1.equals(right._1.bottom()) || right._2.equals(right._2.bottom()))
+    case other: T =>
+      if (_1.equals(_1.bottom()) || _2.equals(_2.bottom())) {
+        if (other._1.equals(other._1.bottom()) || other._2.equals(other._2.bottom()))
           return true
         else return false
       }
-      this._1.equals(right._1) && this._2.equals(right._2)
+      _1.equals(other._1) && _2.equals(other._2)
     case _ => false
   }
 
   override def toString =
     "Cartesian,Left:\n" + ToStringUtilities.indent(_1.toString) +
-      "\nCartesian,Right:\n" + ToStringUtilities.indent(_2.toString)
+      "\nCartesian,other:\n" + ToStringUtilities.indent(_2.toString)
 
 }
 
@@ -625,9 +622,9 @@ abstract class ReducedSemanticProductDomain
 
   def reduce(): T
 
-  override def lub(l: T, r: T): T = super.lub(l, r).reduce()
+  override def lub(other: T): T = super.lub(other).reduce()
 
-  override def glb(l: T, r: T): T = super.glb(l, r).reduce()
+  override def glb(other: T): T = super.glb(other).reduce()
 
   override def setToTop(variable: Identifier): T = super.setToTop(variable).reduce()
 

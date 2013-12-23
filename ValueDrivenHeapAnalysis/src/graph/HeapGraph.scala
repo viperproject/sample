@@ -111,7 +111,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       val elIDs = e.state.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).toSet
       val newState = state.createVariables(elIDs)
       val newEdgeState = e.state.createVariables(apIDs)
-      newEdges += e.copy(state = e.state.glb(newState, newEdgeState))
+      newEdges += e.copy(state = newState.glb(newEdgeState))
     }
     new HeapGraph[S](vertices, newEdges)
   }
@@ -484,7 +484,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
-        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.lub(weakEqualsSet.head.state, edge.state))
+        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.lub(weakEqualsSet.head.state))
     }
     return new HeapGraph[S](this.vertices, resultEdges)
   }
@@ -497,7 +497,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
-        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.glb(weakEqualsSet.head.state, edge.state))
+        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.glb(weakEqualsSet.head.state))
     }
     return new HeapGraph[S](graph.vertices, resultEdges)
   }
@@ -510,7 +510,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       if (weakEqualsSet.isEmpty)
         resultEdges = resultEdges + edge
       else
-        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.widening(weakEqualsSet.head.state, edge.state))
+        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.widening(weakEqualsSet.head.state))
     }
     return new HeapGraph[S](graph.vertices, resultEdges)
   }
@@ -580,7 +580,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       if (v.size > 1) {
         var newType = v.head.typ.bottom()
         for (vrtx <- v)
-          newType = newType.lub(newType, vrtx.typ)
+          newType = newType.lub(vrtx.typ)
         val newVertex = new SummaryHeapVertex(v.head.version, newType)
         newVertices = newVertices + newVertex
         for (vrtx <- v)
@@ -648,7 +648,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
         for (edge <- edges) {
           var resultingState = edge.state.bottom()
           for (cond <- Utilities.applyConditions(Set(edge.state), condsForExp))
-            resultingState = cond.lub(resultingState, cond.assign(v, rightExp))
+            resultingState = resultingState.lub(cond.assign(v, rightExp))
           if (!resultingState.lessEqual(resultingState.bottom()))
             resultingEdges += edge.copy(state = resultingState)
         }
@@ -686,7 +686,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
                 val edgeLocId = EdgeLocalIdentifier(path, f, rightExp.getType, rightExp.getProgramPoint)
                 tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
               }
-              resultingState = cond.lub(resultingState, Utilities.removeAccessPathIdentifiers(tempEdgeState))
+              resultingState = resultingState.lub(Utilities.removeAccessPathIdentifiers(tempEdgeState))
             }
           }
           resultingEdges = resultingEdges + edge.copy(state = resultingState)
@@ -712,7 +712,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       val edgeStateAndConds = Utilities.applyConditions(Set(edge.state), conds)
       var resultingEdgeCond = edge.state.bottom()
       for (c <- edgeStateAndConds) {
-        resultingEdgeCond = c.lub(resultingEdgeCond, Utilities.removeAccessPathIdentifiers(c.assume(exp)))
+        resultingEdgeCond = resultingEdgeCond.lub(Utilities.removeAccessPathIdentifiers(c.assume(exp)))
       }
       resultingEdges = resultingEdges + edge.copy(state = resultingEdgeCond)
     }

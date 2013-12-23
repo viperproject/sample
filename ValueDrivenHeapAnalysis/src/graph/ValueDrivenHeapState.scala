@@ -216,11 +216,11 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                 }
               }
             }
-            result = result.lub(result, new ValueDrivenHeapState[S](new HeapGraph[S](newVertices, resultingEdges.toSet), newGenValState, new ExpressionSet(variable.getType).add(variable)))
+            result = result.lub(new ValueDrivenHeapState[S](new HeapGraph[S](newVertices, resultingEdges.toSet), newGenValState, new ExpressionSet(variable.getType).add(variable)))
           } else {
             // Arguments that are not objects are values and can not be aliased. Therefore, we just create them in the
             // ordinary fashion.
-            result = result.lub(result, createVariable(x, typ, variable.getProgramPoint))
+            result = result.lub(createVariable(x, typ, variable.getProgramPoint))
           }
         }
         case _ => throw new Exception("Argument to be created is not a variable")
@@ -257,7 +257,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             val rightExpConditions = newEvaluateExpression(rightExp)
             val genValAndExpressionConds = Utilities.applyConditions(Set(generalValState), rightExpConditions)
             for (c <- genValAndExpressionConds)
-              resultGenValState = c.lub(resultGenValState, c.assign(variable, rightExp))
+              resultGenValState = resultGenValState.lub(c.assign(variable, rightExp))
 
             if (resultGenValState.lessEqual(resultGenValState.bottom()))
               return bottom()
@@ -482,7 +482,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             }
             if (prefixesAgree) {
               currentState = currentState.createVariables(rStIdsMap._2)
-              currentState = currentState.glb(currentState, rStIdsMap._1.createVariables(lStIdsMap._2))
+              currentState = currentState.glb(rStIdsMap._1.createVariables(lStIdsMap._2))
               if (!currentState.lessEqual(currentState.bottom())) {
                 for (key <- lStIdsMap._3.keySet -- intersectedKeys) {
                   newAccPathExpEdgeMap = newAccPathExpEdgeMap + (key -> lStIdsMap._3.apply(key))
@@ -521,7 +521,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             }
             if (prefixesAgree) {
               currentState = currentState.createVariables(rStIdsMap._2)
-              currentState = currentState.glb(currentState, rStIdsMap._1.createVariables(lStIdsMap._2))
+              currentState = currentState.glb(rStIdsMap._1.createVariables(lStIdsMap._2))
               if (!currentState.lessEqual(currentState.bottom())) {
                 for (key <- lStIdsMap._3.keySet -- intersectedKeys) {
                   newAccPathExpEdgeMap = newAccPathExpEdgeMap + (key -> lStIdsMap._3.apply(key))
@@ -556,7 +556,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             }
             if (prefixesAgree) {
               currentState = currentState.createVariables(rStIdsMap._2)
-              currentState = currentState.glb(currentState, rStIdsMap._1.createVariables(lStIdsMap._2))
+              currentState = currentState.glb(rStIdsMap._1.createVariables(lStIdsMap._2))
               if (!currentState.lessEqual(currentState.bottom())) {
                 for (key <- lStIdsMap._3.keySet -- intersectedKeys) {
                   newAccPathExpEdgeMap = newAccPathExpEdgeMap + (key -> lStIdsMap._3.apply(key))
@@ -678,7 +678,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       for ((path,cond) <- pathsToAssignUnderConditions) {
         for (c <- Utilities.applyConditions(Set(cond), genValAndExpressionConds)) {
           val lhsIdToAssign = ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, leftExp.getType, leftExp.getProgramPoint)
-          resultGenValState = c.lub(resultGenValState, c.assign(lhsIdToAssign, rightExp))
+          resultGenValState = resultGenValState.lub(c.assign(lhsIdToAssign, rightExp))
         }
       }
 
@@ -735,7 +735,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
           }
           leftCond = leftCond.createVariables(renameTo.toSet[Identifier])
           newEdgeState = newEdgeState.createVariables(renameFrom.toSet[Identifier])
-          newEdgeState = newEdgeState.glb(leftCond, newEdgeState)
+          newEdgeState = leftCond.glb(newEdgeState)
           if (!newEdgeState.lessEqual(rightCond.bottom())){
             // add edge that represents the assignment
             edgesToAdd = edgesToAdd + EdgeWithState(lPath.last.target, newEdgeState, Some(field), rPath.last.target)
@@ -789,7 +789,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       // identifiers of the currently procces edge do not get lost.
       val edgeLocalIdsToAdd = edge.state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && !id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty)
       var newState: S = state.createVariables(edgeLocalIdsToAdd.toSet[Identifier])
-      newState = newState.glb(newState, edge.state)
+      newState = newState.glb(edge.state)
 
       // Now, we need to rename source-edge local identifiers to the ones that are target of this edge and remove any others.
       val originalSourceIds = newState.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty).toSet[Identifier]
@@ -903,7 +903,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
         resultState = newState
         isInitialized = true
       }
-      resultState = resultState.glb(resultState, newState)
+      resultState = resultState.glb(newState)
     }
     val finalType = path.last.target.typ
     var finalId: AccessPathExpression = new AccessPathExpression(pp, finalType, currentPathList)
@@ -1026,7 +1026,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
           return result
         }
         case BooleanOperator.|| => {
-          val result = lub(assume(new ExpressionSet(l.getType).add(l)), assume(new ExpressionSet(r.getType).add(r)))
+          val result = assume(new ExpressionSet(l.getType).add(l)).lub(assume(new ExpressionSet(r.getType).add(r)))
           assert(result.abstractHeap.isNormalized(), "The abstract heap is not normalized.")
           return result
         }
@@ -1041,7 +1041,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
         val expGenCond = Utilities.applyConditions(Set(generalValState), baExpConds)
         var resultingGenCond = generalValState.bottom()
         for (cond <- expGenCond) {
-          resultingGenCond = cond.lub(resultingGenCond, cond.assume(baExp))
+          resultingGenCond = resultingGenCond.lub(cond.assume(baExp))
         }
         resultingGenCond = Utilities.removeAccessPathIdentifiers(resultingGenCond)
 
@@ -1165,25 +1165,25 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   Computes the upper bound of two elements
 
    @param left One of the two values
-  @param right The other value
+  @param other The other value
   @return The least upper bound, that is, an element that is greater or equal than the two arguments
     */
-  def lub(left: ValueDrivenHeapState[S], right: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
-    //**println("lub(" + left.toString() + ", " + right.toString() + ") is called")
-    if (left.isBottom || right.isTop)
-      return right
-    if (left.isTop || right.isBottom)
-      return left
+  def lub(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
+    //**println("lub(" + toString() + ", " + right.toString() + ") is called")
+    if (isBottom || other.isTop)
+      return other
+    if (isTop || other.isBottom)
+      return this
     // TODO: Implement this properly
-    val (resAH, renameRightFrom, renameRightTo) = left.abstractHeap.lub(left.abstractHeap, right.abstractHeap)
-    val resGeneralState = left.generalValState.lub(left.generalValState, right.generalValState.rename(renameRightFrom, renameRightTo))
+    val (resAH, renameRightFrom, renameRightTo) = abstractHeap.lub(abstractHeap, other.abstractHeap)
+    val resGeneralState = generalValState.lub(other.generalValState.rename(renameRightFrom, renameRightTo))
 
     //**println("REAL LUB IS CALLED.")
 
     return new ValueDrivenHeapState[S](resAH, resGeneralState, new ExpressionSet(SystemParameters.getType().top()), false, false)
 
 //    return new ValueDrivenHeapState[S](right.abstractHeap,
-//                                       right.generalValState.lub(left.generalValState, right.generalValState),
+//                                       right.generalValState.lub(generalValState, right.generalValState),
 //                                       right.expr, false, false)
 //    throw new Exception("Method lub is not implemented")
   }
@@ -1191,21 +1191,20 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   /**
   Computes the greatest lower bound of two elements
 
-   @param left One of the two values
-  @param right The other value
+  @param other The other value
   @return The greatest upper bound, that is, an element that is less or equal than the two arguments, and greater or equal than any other lower bound of the two arguments
     */
-  def glb(left: ValueDrivenHeapState[S], right: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
-    if (left.isBottom || right.isBottom)
+  def glb(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
+    if (isBottom || other.isBottom)
       return bottom()
-    if (left.isTop)
-      return right
-    if (right.isTop)
-      return left
-    val (resultingAH, removeIds, renameFrom, renameTo) = left.abstractHeap.glb(left.abstractHeap, right.abstractHeap)
-    var newRightGeneralValState = right.generalValState.removeVariables(removeIds)
+    if (isTop)
+      return other
+    if (other.isTop)
+      return this
+    val (resultingAH, removeIds, renameFrom, renameTo) = abstractHeap.glb(abstractHeap, other.abstractHeap)
+    var newRightGeneralValState = other.generalValState.removeVariables(removeIds)
     newRightGeneralValState = newRightGeneralValState.rename(renameFrom, renameTo)
-    val newGeneralValState = left.generalValState.glb(left.generalValState, newRightGeneralValState)
+    val newGeneralValState = generalValState.glb(newRightGeneralValState)
     if (resultingAH.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
       return bottom()
     return new ValueDrivenHeapState[S](resultingAH, newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
@@ -1215,11 +1214,10 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
   /**
   Computes widening of two elements
 
-   @param left The previous value
-  @param right The new value
-  @return The widening of <code>left</code> and <code>right</code>
+  @param other The new value
+  @return The widening of <code>this</code> and <code>other</code>
     */
-  def widening(left: ValueDrivenHeapState[S], right: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
+  def widening(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
     def areGraphsIdentical(l: HeapGraph[S], r: HeapGraph[S]) : Boolean = {
       var areGraphsIdentical = true
       for (rEdge <- r.edges) {
@@ -1234,29 +1232,29 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
 
 
 //    //**println("WIDENING IS CALLED")
-//    val tempRight = lub(left,right)
-//    val (mergedLeft, replacementLeft) = left.abstractHeap.mergePointedNodes()
+//    val tempRight = left.lub(other)
+//    val (mergedLeft, replacementLeft) = abstractHeap.mergePointedNodes()
 //    val (mergedRight, replacementRight) = tempRight.abstractHeap.mergePointedNodes()
 //    if (!mergedLeft.vertices.equals(mergedRight.vertices) || !areGraphsIdentical(mergedLeft, mergedRight)) {
 //      return tempRight
 //    }
-//    val newGeneralValState = generalValState.widening(left.generalValState.merge(replacementLeft), tempRight.generalValState.merge(replacementRight))
+//    val newGeneralValState = generalValState.widening(generalValState.merge(replacementLeft), tempRight.generalValState.merge(replacementRight))
 //    return new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, mergedRight), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
 
 
     /**
      * ORIGINAL CODE
      */
-    val (mergedLeft, replacementLeft) = left.abstractHeap.mergePointedNodes()
-    val (mergedRight, replacementRight) = right.abstractHeap.mergePointedNodes()
-    val rightGenValState = right.generalValState.merge(replacementRight)
+    val (mergedLeft, replacementLeft) = abstractHeap.mergePointedNodes()
+    val (mergedRight, replacementRight) = other.abstractHeap.mergePointedNodes()
+    val rightGenValState = other.generalValState.merge(replacementRight)
     var newRight = new ValueDrivenHeapState[S](mergedRight, rightGenValState, new ExpressionSet(SystemParameters.getType().top), false, false)
-    val newLeft = new ValueDrivenHeapState[S](mergedLeft, left.generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
-    newRight = lub(newLeft, newRight)
+    val newLeft = new ValueDrivenHeapState[S](mergedLeft, generalValState.merge(replacementLeft), new ExpressionSet(SystemParameters.getType().top), false, false)
+    newRight = newLeft.lub(newRight)
     if (!mergedLeft.vertices.equals(newRight.abstractHeap.vertices) || !areGraphsIdentical(mergedLeft, mergedRight)) {
       return newRight
     }
-    val newGeneralValState = generalValState.widening(newLeft.generalValState, newRight.generalValState.merge(replacementRight))
+    val newGeneralValState = newLeft.generalValState.widening(newRight.generalValState.merge(replacementRight))
     val result = new ValueDrivenHeapState[S](mergedLeft.wideningAfterMerge(mergedLeft, newRight.abstractHeap), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
     return result
   }

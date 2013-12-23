@@ -88,7 +88,7 @@ object RichNativeSemantics {
     } else {
       val thenRes = Then(thenState)
       val elseRes = Else(elseState)
-      val res = state.lub(thenRes,elseRes)
+      val res = thenRes.lub(elseRes)
       res
     }
   }
@@ -415,7 +415,7 @@ object RichNativeSemantics {
     newState = Assign[S](CollectionSize[S](collection), 0)(newState, pp)
 
     val res = if (newState.isSummaryCollection(collection)) {
-      newState.lub(newState, state)
+      newState.lub(state)
     } else {
       newState
     }
@@ -459,7 +459,7 @@ object RichNativeSemantics {
     val newState = Assign[S](CollectionSize[S](collection), CollectionSize[S](collection) + 1)(state, pp)
 
     if (newState.isSummaryCollection(collection)){
-      return newState.lub(newState, state)
+      return newState.lub(state)
     } else {
       return newState
     }
@@ -471,7 +471,7 @@ object RichNativeSemantics {
     val newState = assigned.assume(CollectionSize[S](collection) >= 0)
 
     if (newState.isSummaryCollection(collection)) {
-      return newState.lub(newState, state)
+      return newState.lub(state)
     } else {
       return newState
     }

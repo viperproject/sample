@@ -16,49 +16,46 @@ trait Lattice[T <: Lattice[T]] { this: T =>
    *
    * @return A new instance of the current object
    */
-  def factory() : T
+  def factory(): T
 
   /**
    * Returns the top value of the lattice
    *
    * @return The top value, that is, a value x that is greater or equal than any other value
    */
-  def top() : T
+  def top(): T
 
   /**
    * Returns the bottom value of the lattice
    *
    * @return The bottom value, that is, a value x that is less or equal than any other value
    */
-  def bottom() : T
+  def bottom(): T
 
   /**
    * Computes the upper bound of two elements
    *
-   * @param left One of the two values
-   * @param right The other value
+   * @param other The other value
    * @return The least upper bound, that is, an element that is greater or equal than the two arguments
    */
-  def lub(left : T, right : T) : T
+  def lub(other: T): T
 
   /**
    * Computes the greatest lower bound of two elements
    *
-   * @param left One of the two values
-   * @param right The other value
+   * @param other The other value
    * @return The greatest upper bound, that is, an element that is less or equal than the two arguments,
    *         and greater or equal than any other lower bound of the two arguments
-    */
-  def glb(left : T, right : T) : T
+   */
+  def glb(other: T): T
 
   /**
    * Computes widening of two elements
    *
-   * @param left The previous value
-   * @param right The new value
+   * @param other The new value
    * @return The widening of <code>left</code> and <code>right</code>
-    */
-  def widening(left : T, right : T) : T
+   */
+  def widening(other: T): T
 
   /**
    * Returns true iff <code>this</code> is less or equal than <code>r</code>
@@ -66,7 +63,7 @@ trait Lattice[T <: Lattice[T]] { this: T =>
    * @param r The value to compare
    * @return true iff <code>this</code> is less or equal than <code>r</code>
    */
-  def lessEqual(r : T) : Boolean
+  def lessEqual(r: T): Boolean
 }
 
 /**
@@ -507,28 +504,28 @@ trait State[S <: State[S]] extends Lattice[S] { this: S =>
 trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
 
   /**
-   * Computes the upper bound of two elements, returning a replacement
-   * @param left One of the two values
-   * @param right The other value
-   * @return The least upper bound, that is, an element that is greater or equal than the two arguments
+   * Computes the upper bound of two elements, returning a replacement.
+   * @param other The other value
+   * @return The least upper bound, that is, an element that is greater
+   *         or equal than the two arguments
    */
-  def lubWithReplacement(left : T, right : T) : (T, Replacement)
+  def lubWithReplacement(other: T): (T, Replacement)
 
   /**
-   * Computes the greatest lower bound of two elements
-   * @param left One of the two values
-   * @param right The other value
-   * @return The greatest upper bound, that is, an element that is less or equal than the two arguments, and greater or equal than any other lower bound of the two arguments
+   * Computes the greatest lower bound of two elements.
+   * @param other The other value
+   * @return The greatest upper bound, that is, an element that is less
+   *         or equal than the two arguments, and greater or equal than
+   *         any other lower bound of the two arguments
    */
-  def glbWithReplacement(left : T, right : T) : (T, Replacement)
+  def glbWithReplacement(other: T): (T, Replacement)
 
   /**
-   * Computes widening of two elements
-   * @param left The previous value
-   * @param right The new value
+   * Computes widening of two elements.
+   * @param other The new value
    * @return The widening of <code>left</code> and <code>right</code>
    */
-  def wideningWithReplacement(left : T, right : T) : (T, Replacement)
+  def wideningWithReplacement(other: T): (T, Replacement)
 
 }
 

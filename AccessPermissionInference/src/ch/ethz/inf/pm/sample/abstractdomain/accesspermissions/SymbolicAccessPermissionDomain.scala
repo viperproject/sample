@@ -283,36 +283,36 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
     return Settings.permissionType.maxLevel;
   }
   
-  override def glb(a : SymbolicLevelPermission, b : SymbolicLevelPermission) : SymbolicLevelPermission = {
-    if(a.isBottom || b.isBottom) return bottom();
+  override def glb(other : SymbolicLevelPermission) : SymbolicLevelPermission = {
+    if(isBottom || other.isBottom) return bottom();
     var result : Set[CountedSymbolicValues] =  Set.empty[CountedSymbolicValues];
-    for(e1 <- a.value) {
+    for(e1 <- value) {
       var o : CountedSymbolicValues = null;
-      for(e2 <- b.value)
+      for(e2 <- other.value)
         if(e2.sameSymbolicValue(e1)) o=e2;
       if(o==null)
         result=this.addElement(result, e1);
       else result=this.addElement(result, e1.glb(e1, o));
     }
-    for(e1 <- b.value) {
+    for(e1 <- other.value) {
       var o : CountedSymbolicValues = null;
-      for(e2 <- a.value)
+      for(e2 <- value)
         if(e2.sameSymbolicValue(e1)) o=e2;
       if(o==null)
         result=this.addElement(result, e1);
     }
     new SymbolicLevelPermission(result);
   }
-  
-  override def widening(a : SymbolicLevelPermission, b : SymbolicLevelPermission)=this.lub(a, b);
 
-  override def lub(a : SymbolicLevelPermission, b : SymbolicLevelPermission): SymbolicLevelPermission = {
-    if(a.isBottom) return b;
-    if(b.isBottom) return a;
+  override def widening(other: SymbolicLevelPermission) = lub(other)
+
+  override def lub(other : SymbolicLevelPermission): SymbolicLevelPermission = {
+    if(isBottom) return other;
+    if(other.isBottom) return this;
     var result : Set[CountedSymbolicValues] =  Set.empty[CountedSymbolicValues];
-    for(e1 <- a.value) {
+    for(e1 <- value) {
       var o : CountedSymbolicValues = null;
-      for(e2 <- b.value)
+      for(e2 <- other.value)
         if(e2.sameSymbolicValue(e1)) o=e2;
       if(o!=null)
         result=this.addElement(result, e1.lub(e1, o));
@@ -496,7 +496,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (_value:Map
 	      var result = new SymbolicLevelPermission().bottom();
 	      for(id <- variable.asInstanceOf[HeapIdSetDomain[I]].value)
 	        this.value.get(id) match {
-	          case Some(y) => result=result.lub(result, y);
+	          case Some(y) => result=result.lub(y);
 	          case None => return new SymbolicLevelPermission().top();
 	          }
 	      return result;

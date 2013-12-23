@@ -57,7 +57,7 @@ class BooleanInvalidDomainWithSource (_value:Map[Identifier, PositionedInvalidVa
     if (!res.isTop && (res.isBottom || res.value.isEmpty))
       bottom()
     else if (variable.representsSingleVariable()) this.add(variable, res)
-    else this.add(variable, domBottom.lub(this.get(variable), res))
+    else this.add(variable, get(variable).lub(res))
   }
 
   override def backwardAssign(variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = this
@@ -75,14 +75,14 @@ class BooleanInvalidDomainWithSource (_value:Map[Identifier, PositionedInvalidVa
    *
    */
   private def eval(expr: Expression): PositionedInvalidValueDomain = expr match {
-    case BinaryArithmeticExpression(left, right, _, typ) => domBottom.lub(eval(left),eval(right))
-    case BinaryNondeterministicExpression(left, right, _, typ) => domBottom.lub(eval(left),eval(right))
+    case BinaryArithmeticExpression(left, right, _, typ) => eval(left).lub(eval(right))
+    case BinaryNondeterministicExpression(left, right, _, typ) => eval(left).lub(eval(right))
     case Constant("invalid", typ, pp) => domInvalid(pp)
     case Constant(_, _, _) => domValid
     case x: Identifier => this.get(x)
     case xs: HeapIdSetDomain[_] =>
       var result = domBottom
-      for (x <- xs.value) result = result.lub(result, this.get(x))
+      for (x <- xs.value) result = result.lub(get(x))
       result
     case x: Expression => domTop
   }
@@ -139,8 +139,8 @@ class BooleanInvalidDomainWithSource (_value:Map[Identifier, PositionedInvalidVa
         cur
 
       case BinaryBooleanExpression(left,right,op,typ) => op match {
-        case BooleanOperator.&& => this.assume(left).assume(right)
-        case BooleanOperator.|| => this.lub(this.assume(left),this.assume(right))
+        case BooleanOperator.&& => assume(left).assume(right)
+        case BooleanOperator.|| => assume(left).lub(assume(right))
       }
       case _ => this
     }

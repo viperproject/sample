@@ -57,7 +57,7 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
     val res = eval(expr)
     if (res.isBottom) bottom()
     else if (variable.representsSingleVariable) this.add(variable, res)
-    else this.add(variable, domBottom.lub(this.get(variable), res))
+    else this.add(variable, get(variable).lub(res))
   }
 
   override def backwardAssign(variable: Identifier, expr: Expression): BooleanInvalidDomain = this
@@ -107,7 +107,7 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
       this.get(x)
     case xs: HeapIdSetDomain[_] =>
       var result = domBottom
-      for (x <- xs.value) result = result.lub(result, this.get(x))
+      for (x <- xs.value) result = result.lub(this.get(x))
       result
     case x: Expression => domTop
   }
@@ -141,7 +141,7 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
       if (res.isBottom) bottom()
       else {
         var result = bottom()
-        for (x <- xs.value) result = result.lub(result,this.add(x,res))
+        for (x <- xs.value) result = result.lub(add(x,res))
         result
       }
     case NegatedBooleanExpression(BinaryArithmeticExpression(x:Identifier, Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
@@ -153,7 +153,7 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
       if (res.isBottom) bottom()
       else {
         var result = bottom()
-        for (x <- xs.value) result = result.lub(result,this.add(x,res))
+        for (x <- xs.value) result = result.lub(add(x,res))
         result
       }
     case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), x:Identifier, ArithmeticOperator.==, _)) =>
@@ -163,8 +163,8 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
     case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
       bottom()
     case BinaryBooleanExpression(left,right,op,typ) => op match {
-      case BooleanOperator.&& => this.assume(left).assume(right)
-      case BooleanOperator.|| => this.lub(this.assume(left),this.assume(right))
+      case BooleanOperator.&& => assume(left).assume(right)
+      case BooleanOperator.|| => assume(left).lub(assume(right))
     }
     case _ => this
   }

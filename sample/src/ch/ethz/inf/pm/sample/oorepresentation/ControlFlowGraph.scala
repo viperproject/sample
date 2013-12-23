@@ -374,7 +374,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
 
   private def glbOnListOfStates(left: List[S], right: List[S]): List[S] = left match {
     case x :: xs => right match {
-      case y :: ys => x.glb(x, y) :: this.glbOnListOfStates(xs, ys)
+      case y :: ys => x.glb(y) :: this.glbOnListOfStates(xs, ys)
       case Nil => x :: this.glbOnListOfStates(xs, Nil); //throw new CFGSemanticException("I cannot make the glb of lists of different length")
     }
     case Nil => right match {
@@ -396,7 +396,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
       }
       if (isExitPoint) this.getExecution(i) match {
         case Nil =>
-        case x => result = result.lub(result, this.getExecution(i).last)
+        case x => result = result.lub(this.getExecution(i).last)
 
       }
     }
@@ -440,7 +440,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
             if (weight == None) pointedBy.last
             else if (weight.get == true) pointedBy.last.testTrue()
             else pointedBy.last.testFalse()
-          result = result.lub(result, state)
+          result = result.lub(state)
         }
 
       }
@@ -451,9 +451,9 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
 
       val previousEntry = current.getExecution(index).head
       if (it > SystemParameters.wideningLimit)
-        result = result.widening(previousEntry,result)
+        result = result.widening(previousEntry)
       else
-        result = result.lub(previousEntry,result)
+        result = result.lub(previousEntry)
 
     }
 
@@ -534,7 +534,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
   }
 
   private def lubOnStates(left: S, right: S): S = {
-    left.lub(left, right)
+    left.lub(right)
   }
 
   def widening(right: ControlFlowGraphExecution[S]): ControlFlowGraphExecution[S] = {
@@ -553,7 +553,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
   }
 
   private def wideningOnStates(left: S, right: S): S = {
-    left.widening(left, right)
+    left.widening(right)
   }
 
   private def upperBoundsOnLists[T](left: List[T], right: List[T], operator: (T, T) => T): List[T] = {

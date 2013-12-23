@@ -17,10 +17,10 @@ object DummyNumericType extends Type {
   def factory(): Type = this
   def top(): Type = this
   def bottom(): Type = this
-  def lub(left: Type, right: Type): Type = this
-  def glb(left: Type, right: Type): Type = this
-  def widening(left: Type, right: Type): Type = this
-  def lessEqual(r: Type): Boolean = true
+  def lub(other: Type): Type = this
+  def glb(other: Type): Type = this
+  def widening(other: Type): Type = this
+  def lessEqual(other: Type): Boolean = true
   def isObject(): Boolean = false
   def isNumericalType(): Boolean = true
   def isFloatingPointType(): Boolean = true
@@ -65,7 +65,7 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
     i = i.assign(idx, idy)
     translate(i) should equal (Set("x = 0", "y = 0"))
 
-    i = i.lub(i, i.assign(idx, const2))
+    i = i.lub(i.assign(idx, const2))
     translate(i) should equal (Set("x ≥ 0", "x ≤ 2", "y = 0"))
 
     i = i.assign(idy, idx)

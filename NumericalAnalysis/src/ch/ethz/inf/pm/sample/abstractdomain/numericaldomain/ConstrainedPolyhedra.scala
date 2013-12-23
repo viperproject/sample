@@ -75,16 +75,16 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 	}
 	
 	override def factory() : ConstrainedPolyhedra = top()
-	
-	override def glb(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
-		val apInterface = super.glb(left, right)
-		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers, apInterface.getIds)
-	}
-	
-	override def lub(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
-		val apInterface = super.lub(left, right)
-		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers, apInterface.getIds)
-	}
+
+  override def glb(other: ApronInterface): ConstrainedPolyhedra = {
+    val apInterface = super.glb(other)
+    new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers, apInterface.getIds)
+  }
+
+  override def lub(other: ApronInterface): ConstrainedPolyhedra = {
+    val apInterface = super.lub(other)
+    new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers, apInterface.getIds)
+  }
 	
 	override def removeVariable(variable : Identifier) : ConstrainedPolyhedra = { 
 		val apInterface = super.removeVariable(variable)
@@ -100,11 +100,11 @@ class ConstrainedPolyhedra(	val cpstate : Abstract1,
 		val apInterface = super.top
 		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers, apInterface.getIds)
 	}
-	
-	override def widening(left : ApronInterface, right : ApronInterface) : ConstrainedPolyhedra =  {
-		val apInterface = super.widening(left, right)
-		new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables,this.setOfStringOfID, this.setOfIdentifiers, apInterface.getIds)
-	}
+
+  override def widening(other: ApronInterface): ConstrainedPolyhedra = {
+    val apInterface = super.widening(other)
+    new ConstrainedPolyhedra(apInterface.instantiateState(), apInterface.domain, this.coefficients, this.numOfVariables, this.setOfStringOfID, this.setOfIdentifiers, apInterface.getIds)
+  }
 	
 	/*
 	 * **************************************************

@@ -411,40 +411,41 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         isTop=true;
       }
 
-      def lub(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
-        if(l==null) return r;
-        if(r==null) return l;
-        val (left, right)=cast(l, r);
-        if(left.isTop || right.isTop) return top();
-        if(left.isBottom) return right;
-        if(right.isBottom) return left;
-        try{
-          new ScalaType(global.lub(left.typ :: right.typ :: Nil))
-        }
-        catch { case e : Exception => System.out.println("Overapproximation on types because of bug in Scala libraries"); top();}
+    def lub(other: oorepresentation.Type): oorepresentation.Type = {
+      if (other == null) return this
+      val (left, right) = cast(this, other)
+      if (left.isTop || right.isTop) return top()
+      if (left.isBottom) return right
+      if (right.isBottom) return left
+      try {
+        new ScalaType(global.lub(left.typ :: right.typ :: Nil))
       }
-
-      def glb(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
-        val (left, right)=cast(l, r);
-        if(left.isBottom || right.isBottom) return bottom()
-        if(left.isTop) return right
-        if(right.isTop) return left
-        new ScalaType(global.glb(left.typ :: right.typ :: Nil))
+      catch {
+        case e: Exception => System.out.println("Overapproximation on types because of bug in Scala libraries"); top();
       }
+    }
 
-      def cast(l : oorepresentation.Type, r : oorepresentation.Type) = {
-        if((! l.isInstanceOf[ScalaType]) || (! r.isInstanceOf[ScalaType]))
-          throw new ScalaException("Types are not congruent!");
-        (l.asInstanceOf[ScalaType], r.asInstanceOf[ScalaType])
-      }
+    def glb(other: oorepresentation.Type): oorepresentation.Type = {
+      val (left, right) = cast(this, other)
+      if (left.isBottom || right.isBottom) return bottom()
+      if (left.isTop) return right
+      if (right.isTop) return left
+      new ScalaType(global.glb(left.typ :: right.typ :: Nil))
+    }
 
-      def cast(l : oorepresentation.Type) = {
-        if(! l.isInstanceOf[ScalaType])
-          throw new ScalaException("Types are not congruent!");
-        l.asInstanceOf[ScalaType]
-      }
+    def cast(l: oorepresentation.Type, r: oorepresentation.Type) = {
+      if ((!l.isInstanceOf[ScalaType]) || (!r.isInstanceOf[ScalaType]))
+        throw new ScalaException("Types are not congruent!")
+      (l.asInstanceOf[ScalaType], r.asInstanceOf[ScalaType])
+    }
 
-      def widening(left : oorepresentation.Type, right : oorepresentation.Type) : oorepresentation.Type = lub(left, right)
+    def cast(l: oorepresentation.Type) = {
+      if (!l.isInstanceOf[ScalaType])
+        throw new ScalaException("Types are not congruent!")
+      l.asInstanceOf[ScalaType]
+    }
+
+    def widening(other: oorepresentation.Type): oorepresentation.Type = lub(other)
 
       def top() : oorepresentation.Type = new ScalaType(); //TODO: Any, problems interfacing with scala compiler
       def bottom() : oorepresentation.Type = { //TODO: Nothing, problems interfacing with scala compiler

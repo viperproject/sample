@@ -298,7 +298,7 @@ class TVP(heap: TVSHeap) {
       val (newNames, structRepl) = updateNames(tvs)
 
       // replacements are tracked for each structure individually, so we just take the upper bound
-      repl = repl.lub(repl, structRepl)
+      repl = repl.lub(structRepl)
 
       // translate the simple (string) names to the normal ones
       val s = tvs translateNames newNames

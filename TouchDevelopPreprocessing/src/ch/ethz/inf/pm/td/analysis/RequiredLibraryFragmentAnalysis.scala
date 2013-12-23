@@ -104,12 +104,17 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def before(pp: ProgramPoint): AccessCollectingState = this
 
   def bottom(): AccessCollectingState = new AccessCollectingState(myType.bottom())
-  def glb(left: AccessCollectingState, right: AccessCollectingState): AccessCollectingState =
-    new AccessCollectingState(myType.glb(left.getType,right.getType))
+
+  def glb(other: AccessCollectingState): AccessCollectingState =
+    new AccessCollectingState(getType.glb(other.getType))
+
   def lessEqual(r: AccessCollectingState): Boolean = myType.lessEqual(r.getType)
-  def lub(left: AccessCollectingState, right: AccessCollectingState): AccessCollectingState =
-    new AccessCollectingState(myType.lub(left.getType,right.getType))
+
+  def lub(other: AccessCollectingState): AccessCollectingState =
+    new AccessCollectingState(getType.lub(other.getType))
+
   def top(): AccessCollectingState = new AccessCollectingState(myType.top())
-  def widening(left: AccessCollectingState, right: AccessCollectingState): AccessCollectingState =
-    new AccessCollectingState(myType.widening(left.getType,right.getType))
+
+  def widening(other: AccessCollectingState): AccessCollectingState =
+    new AccessCollectingState(getType.widening(other.getType))
 }

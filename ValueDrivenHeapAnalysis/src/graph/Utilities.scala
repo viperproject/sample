@@ -51,7 +51,7 @@ object Utilities {
         val idsToAddLeft = rCond.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] || id.isInstanceOf[AccessPathIdentifier]) diff lCond.getIds()
         val newLeftCond = lCond.createVariables(idsToAddLeft.toSet[Identifier])
         val newRightCond = rCond.createVariables(idsToAddRight.toSet[Identifier])
-        resultingConds += lCond.glb(newLeftCond, newRightCond)
+        resultingConds += newLeftCond.glb(newRightCond)
       }
     resultingConds.toSet[S]
   }

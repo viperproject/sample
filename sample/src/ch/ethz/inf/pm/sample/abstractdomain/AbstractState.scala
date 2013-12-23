@@ -102,7 +102,7 @@ class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpressio
 
   def factory(a:Type,b:SetOfExpressions) = new ExpressionSet(a,b)
 
-  def getType() : Type = this._1.glb(this._1, this.computeType())
+  def getType() : Type = this._1.glb(this.computeType())
 
   def getSetOfExpressions = this._2.value
 
@@ -114,21 +114,21 @@ class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpressio
     if(this._2.isTop) return SystemParameters.typ.top()
     var typ : Type = null
     for(t <- this.getSetOfExpressions)
-      typ=if(typ==null) t.getType else typ.lub(t.getType, typ)
+      typ=if(typ==null) t.getType else typ.lub(t.getType)
     if(typ==null) SystemParameters.typ.top()
     else typ
   }
 
   def add(exp : Expression) : ExpressionSet = {
     val v2 :SetOfExpressions = this._2.add(exp)
-    val typ = this._1.glb(this._1,exp.getType)
+    val typ = this._1.glb(exp.getType)
     new ExpressionSet(typ, v2)
   }
 
   def add(expr : ExpressionSet) : ExpressionSet = {
     var set = this._2
     for (exp <- expr.getSetOfExpressions) set = set.add(exp)
-    val typ = this._1.glb(this._1,expr.getType())
+    val typ = this._1.glb(expr.getType())
     new ExpressionSet(typ,set)
   }
 
@@ -224,7 +224,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case variable : Assignable => {
           for(assigned <- x.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.createVariable(variable, typ), this._2)
-            result=result.lub(result, done)
+            result=result.lub(done)
             result=result.setExpression(new ExpressionSet(typ).add(new UnitExpression(variable.getType.top(), pp)))
           }
         }
@@ -247,7 +247,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
             val r = this._1.createVariableForArgument(variable, typ, Nil)
             val left = r._1
             val done=new AbstractState[N,H,I](left, this._2)
-            result=result.lub(result, done)
+            result=result.lub(done)
             result=result.setExpression(new ExpressionSet(typ).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
@@ -269,14 +269,14 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case variable : Assignable => {
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.assign(variable, assigned), this._2)
-            result=result.lub(result, done)
+            result=result.lub(done)
             result=result.setExpression(new ExpressionSet(variable.getType.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
         case ids : HeapIdSetDomain[I]=> {
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, ids, this._1.assign(_, assigned)), this._2)
-            result=result.lub(result, done)
+            result=result.lub(done)
             result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(ids.getType.top(), ids.getProgramPoint)))
           }
         }
@@ -302,7 +302,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
               val done=new AbstractState[N,H,I](this._1.assignField(variable, field, assigned, right.getType(), variable.getProgramPoint ), this._2)
               if(result==None)
                 result=Some(done)
-              else result=Some(done.lub(result.get, done))
+              else result=Some(done.lub(result.get))
               //initial=initial.setExpression(new ExpressionSet(new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
             }
           }
@@ -311,7 +311,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
               val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, assigned, right.getType(), heapid.getProgramPoint )), this._2)
               if(result==None)
                 result=Some(done)
-              else result=Some(done.lub(result.get, done))
+              else result=Some(done.lub(result.get))
             }
           }
           // FIXME: This belongs somewhere else
@@ -336,7 +336,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case variable : Assignable => {
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.backwardAssign(variable, assigned), this._2)
-            result=result.lub(result, done)
+            result=result.lub(done)
             result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
@@ -357,7 +357,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case variable : Assignable => {
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.setArgument(variable, assigned), this._2)
-            result=result.lub(result, done)
+            result=result.lub(done)
             result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
@@ -376,7 +376,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case variable : Assignable => {
           for(previousState <- x.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.removeVariable(variable), new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
-            result=result.lub(result, done)
+            result=result.lub(done)
             result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
@@ -425,7 +425,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
           var result2 = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
           val accessed = if (heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
           val state = new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
-          result = result.lub(result, state)
+          result = result.lub(state)
         }
       }
     }
@@ -443,7 +443,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         val result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
         val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.backwardAccess(_))
         val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
-        result=result.lub(result, state)
+        result=result.lub(state)
       }
     }
     result
@@ -456,11 +456,11 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       //For each variable that is forgotten, it computes the semantics and it considers the upper bound
       if(expr.isInstanceOf[Assignable]) {
         val variable : Assignable = expr.asInstanceOf[Assignable]
-        result=result.lub(result, new AbstractState(this._1.setToTop(variable), this._2))
+        result=result.lub(new AbstractState(this._1.setToTop(variable), this._2))
       }
       else if(expr.isInstanceOf[HeapIdSetDomain[I]]) {
         val variable : HeapIdSetDomain[I] = expr.asInstanceOf[HeapIdSetDomain[I]]
-        result=result.lub(result, new AbstractState(HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, variable, this._1.setToTop(_)), this._2))
+        result=result.lub(new AbstractState(HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, variable, this._1.setToTop(_)), this._2))
 
       }
       else throw new SymbolicSemanticException("Something assignable expected here")
@@ -485,7 +485,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       }
       else {
         val(d, r) = this._1.assume(expr)
-        d1=d1.lub(d1, d)
+        d1=d1.lub(d)
         rep = rep ++ r
       }
     }
@@ -560,7 +560,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -588,7 +588,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -611,7 +611,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, insertCollectionTopElement(this, keyTop, valueTop, pp))
         case _ => this.bottom()
       }
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
     result.removeExpression()
   }
@@ -633,7 +633,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, insertCollectionValue(this, key, right, pp))
         case _ => this.bottom()
       }
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result.removeExpression()
@@ -655,7 +655,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, removeCollectionValue(this, key))
         case _ => this.bottom()
       }
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result.removeExpression()
@@ -676,7 +676,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, removeFirstCollectionValue(this, value))
         case _ => this.bottom()
       }
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result.removeExpression()
@@ -698,7 +698,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result.removeExpression()
@@ -721,7 +721,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result.removeExpression()
@@ -736,7 +736,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
           var result = initial
           for (id <- set.value) {
             val newState = collectionContainsKey(result, id, booleanTyp, pp)(collection)
-            result = result.lub(result, newState)
+            result = result.lub(newState)
           }
           result
         case _ =>
@@ -764,7 +764,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
     result
   }
@@ -795,7 +795,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, collectionContainsValue(this, value, booleanTyp, pp))
         case _ => this.bottom()
       }
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -825,7 +825,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -855,7 +855,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -885,7 +885,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -914,7 +914,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, copyCollection(this, toCollection))
         case _ => this.bottom()
       }
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result.removeExpression()
@@ -939,7 +939,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -967,7 +967,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -995,7 +995,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case _ => this.bottom()
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result
@@ -1026,7 +1026,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, removeCollectionKeyConnection(this, keysCollection))
       }
 
-      result = result.lub(result, newState)
+      result = result.lub(newState)
     }
 
     result.removeExpression()
@@ -1040,10 +1040,10 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
     def getCollectionLength(id:Assignable):HeapIdSetDomain[I] = {
       val createdLocation = this._1._2.getCollectionLength(id)
-      result = result.lub(result, new HeapAndAnotherDomain[N, H, I](this._1._1, this._1._2))
+      result = result.lub(new HeapAndAnotherDomain[N, H, I](this._1._1, this._1._2))
       heapId = heapId match {
         case null => createdLocation
-        case _ => heapId.lub(heapId, createdLocation)
+        case _ => heapId.lub(createdLocation)
       }
       heapId
     }
@@ -1121,35 +1121,35 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     new AbstractState[N,H,I](state,this._2.merge(replacement))
   }
 
-  override def lubWithReplacement(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : (AbstractState[N,H,I],Replacement) = {
-    if (l.isBottom) return (r,new Replacement())
-    if (r.isBottom) return (l,new Replacement())
-    val (d, rep) =_1.lubWithReplacement(l._1, r._1)
-    val s = _2.lub(l._2, r._2)
-    val result = this.factory(d,s.merge(rep))
-    (result,rep)
+  override def lubWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
+    if (this.isBottom) return (other, new Replacement())
+    if (other.isBottom) return (this, new Replacement())
+    val (d, rep) = this._1.lubWithReplacement(other._1)
+    val s = this._2.lub(other._2)
+    val result = this.factory(d, s.merge(rep))
+    (result, rep)
   }
 
-  override def lub(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : AbstractState[N,H,I] = lubWithReplacement(l,r)._1
+  override def lub(other: AbstractState[N, H, I]): AbstractState[N, H, I] = lubWithReplacement(other)._1
 
-  override def glbWithReplacement(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : (AbstractState[N,H,I],Replacement) = {
-    if (l.isBottom || r.isBottom) return (bottom(),new Replacement())
-    val (d, rep) =_1.glbWithReplacement(l._1, r._1)
-    val s = _2.glb(l._2, r._2)
-    val result = this.factory(d,s.merge(rep))
-    (result,rep)
+  override def glbWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
+    if (this.isBottom || other.isBottom) return (bottom(), new Replacement())
+    val (d, rep) = this._1.glbWithReplacement(other._1)
+    val s = this._2.glb(other._2)
+    val result = this.factory(d, s.merge(rep))
+    (result, rep)
   }
 
-  override def glb(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : AbstractState[N,H,I] = glbWithReplacement(l,r)._1
+  override def glb(other: AbstractState[N, H, I]): AbstractState[N, H, I] = glbWithReplacement(other)._1
 
-  override def wideningWithReplacement(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : (AbstractState[N,H,I],Replacement) = {
-    if (l.isBottom) return (r,new Replacement())
-    if (r.isBottom) return (l,new Replacement())
-    val (d, rep) = _1.wideningWithReplacement(l._1, r._1)
-    val s = _2.widening(l._2, r._2)
-    val result = this.factory(d,s.merge(rep))
-    (result,rep)
+  override def wideningWithReplacement(other: AbstractState[N, H, I]): (AbstractState[N, H, I], Replacement) = {
+    if (this.isBottom) return (other, new Replacement())
+    if (other.isBottom) return (this, new Replacement())
+    val (d, rep) = _1.wideningWithReplacement(other._1)
+    val s = this._2.widening(other._2)
+    val result = this.factory(d, s.merge(rep))
+    (result, rep)
   }
 
-  override def widening(l : AbstractState[N,H,I], r : AbstractState[N,H,I]) : AbstractState[N,H,I] = wideningWithReplacement(l,r)._1
+  override def widening(other: AbstractState[N, H, I]): AbstractState[N, H, I] = wideningWithReplacement(other)._1
 }

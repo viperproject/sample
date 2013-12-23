@@ -542,36 +542,30 @@ class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Bo
   def top() = { val res = new TouchType("Top"); res.isTop = true; res }
   def bottom() = { val res = new TouchType("Bottom"); res.isBottom = true; res }
 
-  def lub(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
-    if(l==null) return r
-    if(r==null) return l
-    val (left, right)=cast(l, r)
-    if(left.isTop || right.isTop) return top()
-    if(left.isBottom) return right
-    if(right.isBottom) return left
-    if (!left.equals(right)) top()
-    else left
+  def lub(other: oorepresentation.Type): oorepresentation.Type = {
+    if (other == null) return this
+    val other_ = other.asInstanceOf[TouchType]
+    if (isTop || other_.isTop) return top()
+    if (isBottom) return other_
+    if (other_.isBottom) return this
+    if (!equals(other_)) top()
+    else this
   }
 
-  def glb(l : oorepresentation.Type, r : oorepresentation.Type) : oorepresentation.Type = {
-    if(l==null) return r
-    if(r==null) return l
-    val (left, right)=cast(l, r)
-    if(left.isBottom || right.isBottom) return bottom()
-    if(left.isTop) return right
-    if(right.isTop) return left
-    if (!left.equals(right)) bottom()
-    else left
+  def glb(other: oorepresentation.Type): oorepresentation.Type = {
+    if (other == null) return this
+    val other_ = other.asInstanceOf[TouchType]
+    if (isBottom || other_.isBottom) return bottom()
+    if (isTop) return other_
+    if (other_.isTop) return this
+    if (!equals(other_)) bottom()
+    else this
   }
 
-  def cast(l : oorepresentation.Type, r : oorepresentation.Type) = {
-    if((! l.isInstanceOf[TouchType]) || (! r.isInstanceOf[TouchType]))
-      throw new TouchException("Types are not congruent!");
-    (l.asInstanceOf[TouchType], r.asInstanceOf[TouchType])
-  }
+  def widening(other: Type) = lub(other)
+  
+  def lessEqual(other: Type) = other == this || this.isBottom || other == top()
 
-  def widening(left: Type, right: Type) = lub(left,right)
-  def lessEqual(r: Type) = r == this || this.isBottom || r == top()
   def isBottomExcluding(types: Set[Type]) = isBottom || types.contains(this)
 
   def isObject() = !isNumericalType() && !isStringType()

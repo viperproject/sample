@@ -107,8 +107,9 @@ class MaybeContainedCharacters
         	case p1 :: Nil => 
 	        	val left = this.eval(thisExpr);
 	        	val right = this.eval(p1);
-	        	return left.lub(left, right);
-        	case _ => return new SetCharacters().top();
+	        	left.lub(right)
+        	case _ =>
+            new SetCharacters().top()
       	}
     case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) =>
       return this.eval(thisExpr);

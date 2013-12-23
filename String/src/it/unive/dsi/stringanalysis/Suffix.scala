@@ -33,50 +33,45 @@ class SuffixDomain extends Lattice[SuffixDomain]
 	  else
 		return cnt;
   }
-  
-  def lub(left : SuffixDomain, right : SuffixDomain) : SuffixDomain = {
-	  val leftLength = left.stringValue.length();
-	  val rightLength = right.stringValue.length();
-	  if(leftLength == 0 || rightLength == 0)
+
+  def lub(other: SuffixDomain): SuffixDomain = {
+	  val leftLength = stringValue.length();
+	  val otherLength = other.stringValue.length();
+	  if(leftLength == 0 || otherLength == 0)
 		  return top();
-	  val cnt : Int = foo(0, leftLength, left.stringValue, rightLength, right.stringValue);
+	  val cnt : Int = foo(0, leftLength, stringValue, otherLength, other.stringValue);
    	  if(cnt <= 0)
    		  return top();
       else {
     	 val result = this.factory();
-    	 //Console.println("left: " + left.stringValue + "; right: " + right.stringValue + "; leftlength: "  + leftLength + "; cnt: " + cnt);
-    	 result.stringValue = left.stringValue.substring(leftLength - cnt, leftLength);
+    	 //Console.println("left: " + stringValue + "; other: " + other.stringValue + "; leftlength: "  + leftLength + "; cnt: " + cnt);
+    	 result.stringValue = stringValue.substring(leftLength - cnt, leftLength);
     	 return result
       }
   }
-  
-  def glb(left : SuffixDomain, right : SuffixDomain) : SuffixDomain = {
-	  if(left.lessEqual(right))
-		  left;
-	  else if(right.lessEqual(left))
-		  right;
+
+  def glb(other: SuffixDomain): SuffixDomain = {
+	  if(lessEqual(other))
+		  this
+	  else if(other.lessEqual(this))
+		  other
 	  else
-		  bottom();
+		  bottom()
   }
   
-  def widening(left : SuffixDomain, right : SuffixDomain) : SuffixDomain = {
-	  lub(left,right);
-  }
+  def widening(other : SuffixDomain) : SuffixDomain =
+	  lub(other)
   
-  def lessEqual(r : SuffixDomain) : Boolean = {
-	  if(this.stringValue.endsWith(r.stringValue))
-		  true;
-	  else
-		  false;
-  }  
-  
-  override def toString() : String = {
-    if(this.isBottom) 
-      return "_|_"; 
-    else if(this.isTop)
-      return "_T_";
+  def lessEqual(r : SuffixDomain) : Boolean =
+	  stringValue.endsWith(r.stringValue)
+
+  override def toString: String = {
+    if (isBottom)
+      "_|_"
+    else if (isTop)
+      "_T_"
     else
-      return stringValue;
+      stringValue
   }
 }
 

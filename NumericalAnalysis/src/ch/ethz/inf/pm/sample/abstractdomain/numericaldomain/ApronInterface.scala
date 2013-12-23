@@ -206,7 +206,7 @@ class ApronInterface(val state: Option[Abstract1],
       val state1 = assume(expr).assign(variable,tru)
       val state2 = assume(new NegatedBooleanExpression(expr)).assign(variable,fal)
 
-      lub(state1,state2)
+      state1.lub(state2)
 
     } else if (variable.getType.isNumericalType()) {
 
@@ -281,7 +281,7 @@ class ApronInterface(val state: Option[Abstract1],
           val materializedState = new ApronInterface(Some(assignedState),domain,env = someState.env).rename(rightSummaryNodesNames,newSummaryNodeNames)
           val summaryState = new ApronInterface(Some(newState),domain, env = someState.env).removeVariable(variable)
 
-          val resultState = lub(materializedState,summaryState)
+          val resultState = materializedState.lub(summaryState)
           resultState.removeVariables(newSummaryNodeNames.map(_.getName).toArray)
 
         } else {
@@ -333,7 +333,7 @@ class ApronInterface(val state: Option[Abstract1],
       // And, Or, De-Morgan, Double Negation
       case BinaryBooleanExpression(left, right, op, typ) => op match {
         case BooleanOperator.&& => assume(left).assume(right)
-        case BooleanOperator.|| => lub(assume(left), assume(right))
+        case BooleanOperator.|| => assume(left).lub(assume(right))
       }
       case NegatedBooleanExpression(NegatedBooleanExpression(x)) => {
         assume(x)
@@ -432,7 +432,7 @@ class ApronInterface(val state: Option[Abstract1],
       var cur = this.expand(r.value.head._1.head,r.value.head._2 - r.value.head._1.head)
       for ((from,to) <- r.value.tail) {
         val newVars = to -- from
-        cur = cur.lub(cur,this.expand(from.head,newVars))
+        cur = cur.lub(expand(from.head, newVars))
       }
       return cur
     }
@@ -506,7 +506,7 @@ class ApronInterface(val state: Option[Abstract1],
     // Join folded states
     var result = this.bottom()
     for (s <- foldedStates) {
-      result = result.lub(result, s.removeVariables(varsToRemove.toArray[String]))
+      result = result.lub(s.removeVariables(varsToRemove.toArray[String]))
     }
 
     var resultingState = result.instantiateState()
@@ -539,29 +539,29 @@ class ApronInterface(val state: Option[Abstract1],
     newInterface
   }
 
-  override def lub(left: ApronInterface, right: ApronInterface): ApronInterface = {
+  override def lub(other: ApronInterface): ApronInterface = {
 
-    if (left == right)
-      return left
-    if (left.isBottom)
-      return right
-    if (right.isBottom)
-      return left
-    if (left.isTop)
-      return new ApronInterface(right.removeVariables(left.getIds().map(_.getName).toArray).state, domain, env = left.getIds() ++ right.getIds())
-    if (right.isTop)
-      return new ApronInterface(left.removeVariables(right.getIds().map(_.getName).toArray).state, domain, env = left.getIds() ++ right.getIds())
+    if (this == other)
+      return this
+    if (isBottom)
+      return other
+    if (other.isBottom)
+      return this
+    if (isTop)
+      return new ApronInterface(other.removeVariables(getIds().map(_.getName).toArray).state, domain, env = getIds() ++ other.getIds())
+    if (other.isTop)
+      return new ApronInterface(removeVariables(other.getIds().map(_.getName).toArray).state, domain, env = getIds() ++ other.getIds())
 
     try {
       // NEW JOIN that supports different environments
-      var leftState = left.instantiateState()
-      var rightState = right.instantiateState()
+      var leftState = instantiateState()
+      var rightState = other.instantiateState()
 
-      if (leftState == rightState) return new ApronInterface(Some(leftState),domain,env = left.getIds() ++ right.getIds())
+      if (leftState == rightState) return new ApronInterface(Some(leftState),domain,env = getIds() ++ other.getIds())
 
       // First we compute the common variables.
       if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-        val commonVariables = left.getIds().intersect(right.getIds()).map(_.getName)
+        val commonVariables = getIds().intersect(other.getIds()).map(_.getName)
         val commonRepVarsLeft: Array[String] = leftState.getEnvironment.getVars.filter( commonVariables.contains(_) )
         val commonRepVarsRight: Array[String] = rightState.getEnvironment.getVars.filter( commonVariables.contains(_) )
         // We need to forget the common variables in each state, otherwise we would be unsound
@@ -575,9 +575,9 @@ class ApronInterface(val state: Option[Abstract1],
         // The result state is stored in the leftState in order to avoid creation of new state object.
         leftState.join(domain, rightState)
 
-        new ApronInterface(Some(leftState), domain, env = left.getIds() ++ right.getIds())
+        new ApronInterface(Some(leftState), domain, env = getIds() ++ other.getIds())
       } else {
-        new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain, env = left.getIds() ++ right.getIds())
+        new ApronInterface(Some(leftState.joinCopy(domain, rightState)), domain, env = getIds() ++ other.getIds())
       }
     } catch {
       case a:apron.ApronException => {
@@ -586,25 +586,25 @@ class ApronInterface(val state: Option[Abstract1],
     }
   }
 
-  override def glb(left: ApronInterface, right: ApronInterface): ApronInterface = {
+  override def glb(other: ApronInterface): ApronInterface = {
 
-    val newEnv: Set[Identifier] =  left.getIds() intersect right.getIds()
-    if (left == right)
-      return left
-    if (left.isPureBottom)
-      return left
-    if (right.isPureBottom)
-      return right
-    if (right.isTop)
-      return left.removeVariables((left.getIds -- right.getIds).map(_.getName).toArray)
-    if (left.isTop)
-      return right.removeVariables((right.getIds -- left.getIds).map(_.getName).toArray)
+    val newEnv: Set[Identifier] =  getIds() intersect other.getIds()
+    if (this == other)
+      return this
+    if (isPureBottom)
+      return this
+    if (other.isPureBottom)
+      return other
+    if (other.isTop)
+      return removeVariables((getIds -- other.getIds).map(_.getName).toArray)
+    if (isTop)
+      return other.removeVariables((other.getIds -- getIds).map(_.getName).toArray)
 
-    val leftState = left.instantiateState()
-    val rightState = right.instantiateState()
+    val leftState = instantiateState()
+    val rightState = other.instantiateState()
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-      val leftVars = leftState.getEnvironment.getVars.toSet[String] ++ left.getIds().map(_.getName)
-      val rightVars = rightState.getEnvironment.getVars.toSet[String] ++ right.getIds().map(_.getName)
+      val leftVars = leftState.getEnvironment.getVars.toSet[String] ++ getIds().map(_.getName)
+      val rightVars = rightState.getEnvironment.getVars.toSet[String] ++ other.getIds().map(_.getName)
       var result = leftState.unifyCopy(domain, rightState)
       val uncommonVariables: Array[String] = (((leftVars union rightVars) intersect result.getEnvironment.getVars.toSet[String]) diff (leftVars intersect rightVars)).toArray[String]
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
@@ -615,30 +615,30 @@ class ApronInterface(val state: Option[Abstract1],
     }
   }
 
-  override def widening(left: ApronInterface, right: ApronInterface): ApronInterface = {
+  override def widening(other: ApronInterface): ApronInterface = {
 
-    if (left == right)
-      return left
-    if (left.isBottom)
-      return right
-    if (right.isBottom)
-      return left
-    if (left.isTop)
-      return new ApronInterface(right.removeVariables(left.getIds().map(_.getName).toArray).state, domain, env = left.getIds() ++ right.getIds())
-    if (right.isTop)
-      return new ApronInterface(left.removeVariables(right.getIds().map(_.getName).toArray).state, domain, env = left.getIds() ++ right.getIds())
+    if (this == other)
+      return this
+    if (isBottom)
+      return other
+    if (other.isBottom)
+      return this
+    if (isTop)
+      return new ApronInterface(other.removeVariables(getIds().map(_.getName).toArray).state, domain, env = getIds() ++ other.getIds())
+    if (other.isTop)
+      return new ApronInterface(removeVariables(other.getIds().map(_.getName).toArray).state, domain, env = getIds() ++ other.getIds())
 
-    val leftState = left.instantiateState()
-    val rightState = right.instantiateState()
+    val leftState = instantiateState()
+    val rightState = other.instantiateState()
 
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
       val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
       val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
       val newRight = rightState.changeEnvironmentCopy(domain, env, false)
-      val res = new ApronInterface(Some(newLeft.widening(domain, newRight)), domain, env = left.getIds() ++ right.getIds())
+      val res = new ApronInterface(Some(newLeft.widening(domain, newRight)), domain, env = getIds() ++ other.getIds())
       res
     } else {
-      val res = new ApronInterface(Some(leftState.widening(domain, rightState)), domain, env = left.getIds() ++ right.getIds())
+      val res = new ApronInterface(Some(leftState.widening(domain, rightState)), domain, env = getIds() ++ other.getIds())
       res
     }
 
@@ -758,7 +758,7 @@ class ApronInterface(val state: Option[Abstract1],
         case NondeterministicOperator.or =>
           val newStateLeft = newState.assign(id, ndExpr.left)
           val newStateRight = newState.assign(id, ndExpr.right)
-          newState = lub(newStateLeft, newStateRight)
+          newState = newStateLeft.lub(newStateRight)
         case NondeterministicOperator.to =>
           newState = newState.
             assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.getType)).

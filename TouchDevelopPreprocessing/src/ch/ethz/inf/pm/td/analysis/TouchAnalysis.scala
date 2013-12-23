@@ -225,7 +225,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     // Compute the least upper bound of all public method exit states
     val exitState = exitStates.flatten.foldLeft(initialState.bottom())({
       (stateLeft:S,stateRight:S) =>
-        initialState.lub(stateLeft,stateRight)
+        stateLeft.lub(stateRight)
     })
 
     // Compute the fixpoint over all events
@@ -245,7 +245,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
     var cur = s
     for ((c,e) <- compiler.events) {
-      cur = cur.lub(cur,analyzeMethod(c,e,s,localHandlerScope = MethodSummaries.getClosureEntry[S](e.name.toString)))
+      cur = cur.lub(analyzeMethod(c,e,s,localHandlerScope = MethodSummaries.getClosureEntry[S](e.name.toString)))
     }
 
     resetEnv(cur)
@@ -309,7 +309,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
     var iteration = 1
     var prev = initialState
-    var cur = prev.lub(prev,singleIteration(prev))
+    var cur = prev.lub(singleIteration(prev))
     while(!cur.lessEqual(prev)) {
       val a1 = prev
       val a2 = cur
@@ -318,9 +318,9 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
       if(iteration > SystemParameters.wideningLimit) {
         if (iteration > SystemParameters.wideningLimit + 10)
           println("Looks like we are not terminating here!")
-        cur = prev.widening(prev,singleIteration(prev))
+        cur = prev.widening(singleIteration(prev))
       }
-      else cur = prev.lub(prev,singleIteration(prev))
+      else cur = prev.lub(singleIteration(prev))
     }
 
     cur

@@ -333,7 +333,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def getCollectionValueByValue(collection: Assignable, value: Expression): (T, HeapIdSetDomain[I]) = {
     val mayValues = this.getCollectionMayValuesByValue(collection, value)
     val mustValues = this.getCollectionMustValuesByValue(collection, value)
-    (this, mayValues.lub(mayValues, mustValues))
+    (this, mayValues.lub(mustValues))
   }
 
   def clearCollection(collection:Assignable) : T = {
@@ -346,7 +346,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       // If the collection is a summary collection it would be unsound to clear the over-approximation
       // since only one of the represented collections is cleared.
       val approxIds = if (this.isSummaryCollection(collection)) underApproxIds
-                      else overApproxIds.lub(overApproxIds, underApproxIds)
+                      else overApproxIds.lub(underApproxIds)
 
       for (approxId <- approxIds.value) {
         val tupleIds = result.d2.getCollectionTuples(approxId)
@@ -650,7 +650,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       val result = applyToAssignable[T](lengthId, initial, _.assign(_, BinaryArithmeticExpression(lengthId.asInstanceOf[I], Constant("1", lengthId.getType, null), ArithmeticOperator.+, lengthId.getType)))
 
       if (isSummaryCollection(collection)) {
-        result.lub(result, initial)
+        result.lub(initial)
       } else {
         result
       }
@@ -666,7 +666,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       result = res
 
       if(isSummaryCollection(collection)) {
-        result.lub(result, initial)
+        result.lub(initial)
       } else {
         result
       }
@@ -696,7 +696,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
           result = applyToAssignable[T](variable, result, _.assign(_, lengthId))
 
           if(isSummaryCollection(toCollection)) {
-            result.lub(result, state)
+            result.lub(state)
           } else {
             result
           }
@@ -725,7 +725,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result.d1 = HeapIdSetFunctionalLifting.applyToSetHeapId(result.d1.factory(), lengthIds, setToZero(result.d1))
 
     if (result.isSummaryCollection(collection)) {
-      result.lub(result, initial)
+      result.lub(initial)
     } else {
       result
     }
@@ -917,47 +917,47 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     result
   }
 
-  override def lubWithReplacement(l : T, r : T) : (T,Replacement) = {
-    val result : T = this.factory()
+  override def lubWithReplacement(other: T): (T, Replacement) = {
+    val result: T = this.factory()
     SystemParameters.heapTimer.start()
-    val (d, rep) =d2.lubWithReplacement(l.d2, r.d2)
-    result.d2=d
+    val (d, rep) = d2.lubWithReplacement(other.d2)
+    result.d2 = d
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
-    result.d1 = d1.lub(l.d1.merge(rep), r.d1.merge(rep))
+    result.d1 = d1.merge(rep).lub(other.d1.merge(rep))
     SystemParameters.domainTimer.stop()
-    (result,rep)
+    (result, rep)
   }
 
-  override def lub(l : T, r : T) : T = lubWithReplacement(l,r)._1
+  override def lub(other: T): T = lubWithReplacement(other)._1
 
-  override def glbWithReplacement(l : T, r : T) : (T,Replacement) = {
-    val result : T = this.factory()
+  override def glbWithReplacement(other: T): (T, Replacement) = {
+    val result: T = this.factory()
     SystemParameters.heapTimer.start()
-    val (d, rep) =d2.glbWithReplacement(l.d2, r.d2)
-    result.d2=d
+    val (d, rep) = d2.glbWithReplacement(other.d2)
+    result.d2 = d
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
-    result.d1 = d1.glb(l.d1.merge(rep), r.d1.merge(rep))
+    result.d1 = d1.merge(rep).glb(other.d1.merge(rep))
     SystemParameters.domainTimer.stop()
-    (result,rep)
+    (result, rep)
   }
 
-  override def glb(l : T, r : T) : T = glbWithReplacement(l,r)._1
+  override def glb(other: T): T = glbWithReplacement(other)._1
 
-  override def wideningWithReplacement(l : T, r : T) : (T,Replacement) = {
-    val result : T = this.factory()
+  override def wideningWithReplacement(other: T): (T, Replacement) = {
+    val result: T = this.factory()
     SystemParameters.heapTimer.start()
-    val (d, rep) =d2.wideningWithReplacement(l.d2, r.d2)
-    result.d2=d
+    val (d, rep) = d2.wideningWithReplacement(other.d2)
+    result.d2 = d
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
-    result.d1 = d1.widening(l.d1.merge(rep), r.d1.merge(rep))
+    result.d1 = d1.merge(rep).widening(other.d1.merge(rep))
     SystemParameters.domainTimer.stop()
-    (result,rep)
+    (result, rep)
   }
 
-  override def widening(l : T, r : T) : T = wideningWithReplacement(l,r)._1
+  override def widening(other: T): T = wideningWithReplacement(other)._1
 
   override def lessEqual(r : T) : Boolean = {
     if(this.d1.lessEqual(this.d1.bottom())) return true;

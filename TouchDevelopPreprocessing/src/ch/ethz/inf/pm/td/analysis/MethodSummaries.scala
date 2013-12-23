@@ -60,7 +60,7 @@ object MethodSummaries {
      */
     enteredState = localHandlerScope match {
       case Some(x) =>
-        enteredState.lub(x,enteredState)
+        enteredState.lub(x)
       case None => enteredState
     }
 
@@ -70,7 +70,7 @@ object MethodSummaries {
         // This is a recursive call (non top level).
         // Join the entry state and continue with previously recorded
         // exit + entryState (updates inside recursive calls are weak)
-        val newEntryState = enteredState.widening(oldEntryState.asInstanceOf[S],enteredState)
+        val newEntryState = enteredState.widening(oldEntryState.asInstanceOf[S])
         entries += ((identifyingPP,newEntryState))
         summaries.get(identifyingPP) match {
           case Some((_,_,prevExecution)) =>
@@ -80,7 +80,7 @@ object MethodSummaries {
             val localState = pruneGlobalState(entryState)
 
             // We immediately widen the entrystate for now
-            entryState.lub(localState,exitedState)
+            entryState.lub(localState)
 
           case None => entryState.bottom()
         }
@@ -113,7 +113,7 @@ object MethodSummaries {
         val exitState = exitFunction(callPoint,callTarget,currentSummary.exitState(),parameters)
         val localState = pruneGlobalState(entryState)
 
-        entryState.lub(localState,exitState)
+        localState.lub(exitState)
     }
 
     result
@@ -135,7 +135,7 @@ object MethodSummaries {
     curState = curState.pruneUnreachableHeap()
 
     abnormalExits = abnormalExits match {
-      case Some(x) => Some(curState.widening(x.asInstanceOf[S],curState))
+      case Some(x) => Some(curState.widening(x.asInstanceOf[S]))
       case None => Some(curState)
     }
 
@@ -149,7 +149,7 @@ object MethodSummaries {
     closureEntries += (handlerName ->
       (closureEntries.get(handlerName) match {
         case None => entryState
-        case Some(x) => entryState.lub(x.asInstanceOf[S],entryState)
+        case Some(x) => entryState.lub(x.asInstanceOf[S])
       })
     )
 
@@ -166,7 +166,7 @@ object MethodSummaries {
 
     abnormalExits match {
       case None => s
-      case Some(x) => s.lub(s,x.asInstanceOf[S])
+      case Some(x) => s.lub(x.asInstanceOf[S])
     }
 
   }

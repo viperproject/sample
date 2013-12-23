@@ -414,7 +414,7 @@ case class MethodCall(
     val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
     val calledMethod: String = castedStatement.field
     for (obj <- castedStatement.objs) {
-      result = result.lub(result, forwardAnalyzeMethodCallOnObject[S](obj, calledMethod, state, getPC()))
+      result = result.lub(forwardAnalyzeMethodCallOnObject[S](obj, calledMethod, state, getPC()))
     }
     result
   }
@@ -425,7 +425,7 @@ case class MethodCall(
     val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
     val calledMethod: String = castedStatement.field
     for (obj <- castedStatement.objs) {
-      result = result.lub(result, backwardAnalyzeMethodCallOnObject[S](obj, calledMethod, state, oldPreState, getPC()))
+      result = result.lub(backwardAnalyzeMethodCallOnObject[S](obj, calledMethod, state, oldPreState, getPC()))
     }
     result
   }

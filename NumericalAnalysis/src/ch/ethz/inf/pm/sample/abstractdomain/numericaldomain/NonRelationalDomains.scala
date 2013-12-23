@@ -70,7 +70,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     if (variable.getType.isNumericalType()) {
       if (variable.representsSingleVariable)
         this.add(variable, eval(expr))
-      else this.add(variable, this.get(variable).lub(this.get(variable), eval(expr)))
+      else this.add(variable, this.get(variable).lub(eval(expr)))
     } else this
   }
 
@@ -100,7 +100,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
       var result = dom.bottom()
       //TODO:Distinguish between definite and maybe
       for (x <- xs.value)
-        result = result.lub(result, this.get(x))
+        result = result.lub(this.get(x))
       result
     case x: Expression => dom.top()
   }
@@ -110,8 +110,8 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     expr match {
 
       case BinaryBooleanExpression(left,right,op,_) => op match {
-        case BooleanOperator.&& => this.assume(left).assume(right)
-        case BooleanOperator.|| => lub(this.assume(left),this.assume(right))
+        case BooleanOperator.&& => assume(left).assume(right)
+        case BooleanOperator.|| => assume(left).lub(assume(right))
       }
 
       // Boolean variables
@@ -155,7 +155,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
               //k*x+n >= 0 => x >= -(n/k)
               result = dom.divide(result, dom.evalConstant(index))
               result = dom.subtract(dom.evalConstant(0), result)
-              val newValue = dom.glb(this.get(variable), dom.valueGEQ(result))
+              val newValue = get(variable).glb(dom.valueGEQ(result))
               if (newValue.lessEqual(newValue.bottom()))
                 return stateResult.bottom()
               stateResult = stateResult.add(variable, newValue)
@@ -165,7 +165,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
               result = dom.divide(result, dom.evalConstant(-index))
               val oldvalue = this.get(variable)
               val newRestraint = dom.valueLEQ(result)
-              val newValue = dom.glb(oldvalue, newRestraint)
+              val newValue = oldvalue.glb(newRestraint)
               if (newValue.lessEqual(newValue.bottom()))
                 return stateResult.bottom()
               stateResult = stateResult.add(variable, newValue)
@@ -187,13 +187,13 @@ class Top extends NonRelationalNumericalDomain[Top] {
 
   def bottom(): Top = this
 
-  def lub(left: Top, right: Top): Top = this
+  def lub(other: Top): Top = this
 
-  def glb(left: Top, right: Top): Top = this
+  def glb(other: Top): Top = this
 
-  def widening(left: Top, right: Top): Top = this
+  def widening(other: Top): Top = this
 
-  def lessEqual(right: Top): Boolean = true
+  def lessEqual(other: Top): Boolean = true
 
   override def equals(o: Any) = true
 
@@ -247,27 +247,27 @@ class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sig
 
   def bottom(): Sign = new Sign(SignValues.BOT)
 
-  def lub(left: Sign, right: Sign): Sign = {
-    if (left.value == SignValues.T || right.value == SignValues.T) return top()
-    if (left.value == SignValues.BOT) return right
-    if (right.value == SignValues.BOT) return left
-    if (left.equals(right)) return left
+  def lub(other: Sign): Sign = {
+    if (value == SignValues.T || other.value == SignValues.T) return top()
+    if (value == SignValues.BOT) return other
+    if (other.value == SignValues.BOT) return this
+    if (equals(other)) return this
     return top()
   }
 
-  def glb(left: Sign, right: Sign): Sign = {
-    if (left.value == SignValues.BOT || right.value == SignValues.BOT) return bottom()
-    if (left.value == SignValues.T) return right
-    if (right.value == SignValues.T) return left
-    if (left.equals(right)) return left
+  def glb(other: Sign): Sign = {
+    if (value == SignValues.BOT || other.value == SignValues.BOT) return bottom()
+    if (value == SignValues.T) return other
+    if (other.value == SignValues.T) return this
+    if (equals(other)) return this
     return bottom()
   }
 
-  def widening(left: Sign, right: Sign): Sign = this.lub(left, right)
+  def widening(other: Sign): Sign = lub(other)
 
   def lessEqual(right: Sign): Boolean = {
     val left: Sign = this
-    if (left.value == SignValues.BOT || right.value == SignValues.T) return true
+    if (value == SignValues.BOT || right.value == SignValues.T) return true
     if (right.equals(left)) return true
     return false
   }
@@ -385,32 +385,32 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
 
   private def max(left: Int, right: Int) = if (left > right) left else right
 
-  def lub(left: Interval, right: Interval): Interval = {
-    if (left.isBottom) return right
-    if (right.isBottom) return left
-    return new Interval(min(left.left, right.left), max(left.right, right.right))
+  def lub(other: Interval): Interval = {
+    if (isBottom) return other
+    if (other.isBottom) return this
+    return new Interval(min(left, other.left), max(right, other.right))
   }
 
 
-  def glb(left: Interval, right: Interval): Interval = {
-    if (left.isBottom || right.isBottom) return bottom()
-    return new Interval(max(left.left, right.left), min(left.right, right.right))
+  def glb(other: Interval): Interval = {
+    if (isBottom || other.isBottom) return bottom()
+    return new Interval(max(left, other.left), min(right, other.right))
   }
 
-  def widening(left: Interval, right: Interval): Interval = {
-    var result = this.lub(left, right)
-    if (right.left < left.left)
+  def widening(other: Interval): Interval = {
+    var result = lub(other)
+    if (other.left < left)
       result = new Interval(Integer.MIN_VALUE, result.right)
-    if (right.right > left.right)
+    if (other.right > right)
       result = new Interval(result.left, Integer.MAX_VALUE)
     result
   }
 
-  def lessEqual(right: Interval): Boolean = {
-    val left: Interval = this
-    if (left.isBottom()) return true
-    if (right.isBottom()) return false
-    if (left.left >= right.left && left.right <= right.right)
+  def lessEqual(other: Interval): Boolean = {
+    val that: Interval = this
+    if (that.isBottom()) return true
+    if (other.isBottom()) return false
+    if (that.left >= other.left && that.right <= other.right)
       return true
     else return false
   }
@@ -480,7 +480,7 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
     val d = leftExpr.right / (if (rightExpr.right == 0) 0 - 1 else rightExpr.right)
     var result = new Interval(min(a, b, c, d), max(a, b, c, d))
     if (leftExpr.left < 0 && leftExpr.right > 0) //It contains 0
-      result = result.lub(result, new Interval(0, 0))
+      result = result.lub(new Interval(0, 0))
     if (rightExpr.left < 0 && rightExpr.right > 0) {
       //It contains 0
       if (leftExpr.right > 0)
@@ -493,7 +493,7 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
 
   def nondet(leftExpr: Interval, rightExpr: Interval): Interval = {
     if (leftExpr.isBottom || rightExpr.isBottom) return new Interval(1, 0)
-    leftExpr.lub(leftExpr,rightExpr)
+    leftExpr.lub(rightExpr)
   }
 
   def valueGEQ(value: Interval): Interval = return new Interval(value.left, Integer.MAX_VALUE)

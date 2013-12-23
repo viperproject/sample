@@ -41,11 +41,11 @@ class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier],
    * (may be too specific for that case).
    * @author Raphael Fuchs
    */
-  def lub(l : Replacement, r : Replacement) : Replacement = {
+  def lub(other: Replacement): Replacement = {
     type Entry = (Set[Identifier], Set[Identifier])
     def adjacent(x: Entry, y: Entry): Boolean = x != y && !(x._2 intersect y._2).isEmpty
 
-    val entries = (l.value.toList ++ r.value.toList).distinct
+    val entries = (value.toList ++ other.value.toList).distinct
     val g = UndirectedGraph.build(entries, adjacent _)
     val lubEntries =
       for (component <- g.getComponents) yield {
@@ -55,9 +55,9 @@ class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier],
     new Replacement(scala.collection.mutable.HashMap(lubEntries: _*))
   }
 
-  def glb(l : Replacement, r : Replacement) : Replacement = new Replacement(
-    l.value.retain( {
-      case (a, b) => r.value.keySet.contains(a) && r.value.apply(a).equals(b);
+  def glb(other: Replacement): Replacement = new Replacement(
+    value.retain( {
+      case (a, b) => other.value.keySet.contains(a) && other.value.apply(a).equals(b);
     }
     )
   )
@@ -531,8 +531,8 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](pp : ProgramPoint,_value:
   override def transform(f:(Expression => Expression)):Expression =
     this.setFactory(this.value.map( x => f(x).asInstanceOf[I] ))
 
-  def lubWithReplacement[S <: SemanticDomain[S]](left: HeapIdSetDomain[I], right: HeapIdSetDomain[I], state: S): (HeapIdSetDomain[I], Replacement) =
-    (super.lub(left, right), new Replacement)
+  def lubWithReplacement[S <: SemanticDomain[S]](other: HeapIdSetDomain[I], state: S): (HeapIdSetDomain[I], Replacement) =
+    (super.lub(other), new Replacement)
 
   // Used to know if it's definite - glb - or maybe - lub.
   def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S
@@ -552,13 +552,13 @@ class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint,_value: Set
 
   override def getType : Type = {
     var res=SystemParameters.getType().bottom()
-    for (a <- this.value) res=res.lub(res, a.getType)
+    for (a <- this.value) res=res.lub(a.getType)
     res
   }
 
-  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s1, s2)
+  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s2)
 
-  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2);
+  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
 
   def getIdentifiers : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }
@@ -574,13 +574,13 @@ class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint,_value: 
   override def getType : Type = {
     var res=SystemParameters.getType().top()
     for(a <- this.value)
-      res=res.glb(res, a.getType)
+      res=res.glb(a.getType)
     res
   }
 
-  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s1, s2)
+  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s2)
 
-  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement) = h1.lubWithReplacement(h1, h2)
+  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
 
   def getIdentifiers : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }

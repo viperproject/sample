@@ -33,39 +33,33 @@ class PrefixDomain extends Lattice[PrefixDomain]
 	  else
 		return cnt;
   }
-  
-  def lub(left : PrefixDomain, right : PrefixDomain) : PrefixDomain = {
-	  if(left.stringValue.length() == 0 || right.stringValue.length() == 0)
+
+  def lub(other: PrefixDomain): PrefixDomain = {
+	  if(stringValue.length() == 0 || other.stringValue.length() == 0)
 		  return top();
-	  val cnt : Int = foo(0, left.stringValue, right.stringValue, left.stringValue.length().min(right.stringValue.length()));
+	  val cnt : Int = foo(0, stringValue, other.stringValue, stringValue.length().min(other.stringValue.length()));
    	  if(cnt == 0)
    		  return top();
       else {
     	 val result = this.factory();
-    	 result.stringValue = left.stringValue.substring(0,cnt);
+    	 result.stringValue = stringValue.substring(0,cnt);
     	 return result
       }
   }
   
-  def glb(left : PrefixDomain, right : PrefixDomain) : PrefixDomain = {
-	  if(left.lessEqual(right))
-		  left;
-	  else if(right.lessEqual(left))
-		  right;
+  def glb(other : PrefixDomain) : PrefixDomain = {
+	  if(lessEqual(other))
+		  this;
+	  else if(other.lessEqual(this))
+		  other;
 	  else
 		  bottom();
   }
-  
-  def widening(left : PrefixDomain, right : PrefixDomain) : PrefixDomain = {
-	  lub(left,right);
-  }
-  
-  def lessEqual(r : PrefixDomain) : Boolean = {
-	  if(this.stringValue.startsWith(r.stringValue))
-		  true;
-	  else
-		  false;
-  }  
+
+  def widening(other: PrefixDomain): PrefixDomain = lub(other)
+
+  def lessEqual(r: PrefixDomain): Boolean =
+    this.stringValue.startsWith(r.stringValue)
   
   override def toString() : String = {
     if(this.isBottom) 

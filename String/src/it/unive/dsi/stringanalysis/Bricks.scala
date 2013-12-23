@@ -60,18 +60,18 @@ class Brick(protected var m : Int, protected var M : Int, protected var s : Set[
   
   def lessEqual(right : Brick) : Boolean =
   {
-    if(this.min >= right.min && this.max <= right.max && this.strings.subsetOf(right.strings))
+    if(min >= right.min && max <= right.max && strings.subsetOf(right.strings))
       return true;
     return false;
   }  
   
   override def toString() : String = {
-    if(this.isBottom)
+    if(isBottom)
     	return "_|_";
-    if(this.isTop)
+    if(isTop)
     	return "_T_";
     else
-    	return "[{" + this.strings.toString() + "}, " + this.min + ", " + this.max + "]";
+    	return "[{" + strings.toString() + "}, " + min + ", " + max + "]";
   }
 }
 
@@ -87,7 +87,7 @@ class BricksDomain extends Lattice[BricksDomain]
   override def factory() : BricksDomain = new BricksDomain();
   
   def top() : BricksDomain = {
-    val result : BricksDomain = this.factory();
+    val result : BricksDomain = factory();
     result.isTop = true;
     result.isBottom = false; 
     result.bricksList = List((new Brick(0,0,Set.empty)).top());
@@ -95,34 +95,34 @@ class BricksDomain extends Lattice[BricksDomain]
   }
   
   def bottom() : BricksDomain = { 
-	  val result : BricksDomain = this.factory();
+	  val result : BricksDomain = factory();
 	  result.isBottom = true;
       result.isTop = false;
       result.bricksList = Nil;
 	  result
   }
   
-  def lub(left : BricksDomain, right : BricksDomain) : BricksDomain = {
-     if(left.isTop || right.isTop)
+  def lub(other : BricksDomain) : BricksDomain = {
+     if(isTop || other.isTop)
     	 return top();
     
-     //Console.print("lub between " + left.toString() + " and " + right.toString());
+     //Console.print("lub between " + toString() + " and " + other.toString());
      
-     var newLeft : BricksDomain = this.factory();
-     var newRight : BricksDomain = this.factory();
-  	 newLeft.bricksList = left.bricksList;
-  	 newRight.bricksList = right.bricksList;
+     var newLeft : BricksDomain = factory();
+     var newRight : BricksDomain = factory();
+  	 newLeft.bricksList = bricksList;
+  	 newRight.bricksList = other.bricksList;
      
-     if(left.bricksList.length < right.bricksList.length) {
-        for(i <- 0 to (right.bricksList.length - left.bricksList.length - 1))
+     if(bricksList.length < other.bricksList.length) {
+        for(i <- 0 to (other.bricksList.length - bricksList.length - 1))
         	newLeft.bricksList = newLeft.bricksList ::: List(new Brick(0,0,Set.empty));
      }
-     if(right.bricksList.length < left.bricksList.length) {
-        for(i <- 0 to (left.bricksList.length - right.bricksList.length - 1))
+     if(other.bricksList.length < bricksList.length) {
+        for(i <- 0 to (bricksList.length - other.bricksList.length - 1))
         	newRight.bricksList = newRight.bricksList ::: List(new Brick(0,0,Set.empty));
      }
      
-     var result : BricksDomain = this.factory();
+     var result : BricksDomain = factory();
      result.bricksList = Nil;
      var lengthLeft = newLeft.bricksList.length;
      for(i <- 0 to lengthLeft - 1)
@@ -136,25 +136,25 @@ class BricksDomain extends Lattice[BricksDomain]
 	 return result;
   }
   
-  def glb(left : BricksDomain, right : BricksDomain) : BricksDomain = {
-     if(left.isBottom || right.isBottom)
+  def glb(other : BricksDomain) : BricksDomain = {
+     if(isBottom || other.isBottom)
     	 return bottom();
 
-     var newLeft : BricksDomain = this.factory();
-     var newRight : BricksDomain = this.factory();
-  	 newLeft.bricksList = left.bricksList;
-  	 newRight.bricksList = right.bricksList;
+     var newLeft : BricksDomain = factory();
+     var newRight : BricksDomain = factory();
+  	 newLeft.bricksList = bricksList;
+  	 newRight.bricksList = other.bricksList;
      
-     if(left.bricksList.length < right.bricksList.length) {
-        for(i <- 0 to (right.bricksList.length - left.bricksList.length - 1))
+     if(bricksList.length < other.bricksList.length) {
+        for(i <- 0 to (other.bricksList.length - bricksList.length - 1))
         	newLeft.bricksList = newLeft.bricksList ::: List(new Brick(0,0,Set.empty));
      }
-     if(right.bricksList.length < left.bricksList.length) {
-        for(i <- 0 to (left.bricksList.length - right.bricksList.length - 1))
+     if(other.bricksList.length < bricksList.length) {
+        for(i <- 0 to (bricksList.length - other.bricksList.length - 1))
         	newRight.bricksList = newRight.bricksList ::: List(new Brick(0,0,Set.empty));
      }
      
-     var result : BricksDomain = this.factory();
+     var result : BricksDomain = factory();
      //result.bricksList = Nil;
      var lengthLeft = newLeft.bricksList.length;
      for(i <- 0 to lengthLeft - 1)
@@ -169,35 +169,35 @@ class BricksDomain extends Lattice[BricksDomain]
 	 return result;
   }
   
-  def widening(left : BricksDomain, right : BricksDomain) : BricksDomain = {
+  def widening(other : BricksDomain) : BricksDomain = {
 	 var i = 0;
-	 if(!(left.lessEqual(right) && right.lessEqual(left)))
+	 if(!(lessEqual(other) && other.lessEqual(this)))
 		 i = 1;
 	
-	 if(!left.lessEqual(right) && !right.lessEqual(left))
+	 if(!lessEqual(other) && !other.lessEqual(this))
         return top();
-     if(left.bricksList.length > kl || right.bricksList.length > kl)
+     if(bricksList.length > kl || other.bricksList.length > kl)
         return top();
-     if(left.isTop || right.isTop)
+     if(isTop || other.isTop)
     	 return top();
 
-     //if(!(left.lessEqual(right) && right.lessEqual(left)))
-    	// Console.print("widening between " + left + " and " + right );
-     var newLeft : BricksDomain = this.factory();
-	 var newRight : BricksDomain = this.factory();
-	 newLeft.bricksList = left.bricksList;
-	 newRight.bricksList = right.bricksList;
+     //if(!(lessEqual(other) && other.lessEqual(this)))
+    	// Console.print("widening between " + this + " and " + other );
+     var newLeft : BricksDomain = factory();
+	 var newRight : BricksDomain = factory();
+	 newLeft.bricksList = bricksList;
+	 newRight.bricksList = other.bricksList;
 	 
-	 if(left.bricksList.length < right.bricksList.length) {
-	    for(i <- 0 to (right.bricksList.length - left.bricksList.length - 1))
+	 if(bricksList.length < other.bricksList.length) {
+	    for(i <- 0 to (other.bricksList.length - bricksList.length - 1))
 	    	newLeft.bricksList = newLeft.bricksList ::: List(new Brick(0,0,Set.empty));
 	 }
-	 if(right.bricksList.length < left.bricksList.length) {
-	    for(i <- 0 to (left.bricksList.length - right.bricksList.length - 1))
+	 if(other.bricksList.length < bricksList.length) {
+	    for(i <- 0 to (bricksList.length - other.bricksList.length - 1))
 	    	newRight.bricksList = newRight.bricksList ::: List(new Brick(0,0,Set.empty));
 	 }
 
-     var result : BricksDomain = this.factory();
+     var result : BricksDomain = factory();
      var lengthLeft = newLeft.bricksList.length;
      for(i <- 0 to lengthLeft - 1)
        {
@@ -206,24 +206,24 @@ class BricksDomain extends Lattice[BricksDomain]
          result.bricksList = newBrick :: result.bricksList; 
        }
      
-     //if(!(left.lessEqual(right) && right.lessEqual(left)))
+     //if(!(lessEqual(other) && other.lessEqual(this)))
     	 //Console.println("... " + result);
 	 return result;
   }
   
-  def lessEqual(right : BricksDomain) : Boolean = {
-	 if(this.isBottom || right.isTop)
+  def lessEqual(other : BricksDomain) : Boolean = {
+	 if(isBottom || other.isTop)
 		  return true;
    
-  	 var newLeftList = this.bricksList;
-  	 var newRightList = right.bricksList;
+  	 var newLeftList = bricksList;
+  	 var newRightList = other.bricksList;
      
-     if(this.bricksList.length < right.bricksList.length) {
-        for(i <- 0 to (right.bricksList.length - this.bricksList.length - 1))
+     if(bricksList.length < other.bricksList.length) {
+        for(i <- 0 to (other.bricksList.length - bricksList.length - 1))
         	newLeftList = newLeftList ::: List(new Brick(0,0,Set.empty));
      }
-     if(right.bricksList.length < this.bricksList.length) {
-        for(i <- 0 to (this.bricksList.length - right.bricksList.length - 1))
+     if(other.bricksList.length < bricksList.length) {
+        for(i <- 0 to (bricksList.length - other.bricksList.length - 1))
         	newRightList = newRightList ::: List(new Brick(0,0,Set.empty));
      }
      for(i <- 0 to (newLeftList.length-1))
@@ -279,17 +279,17 @@ class BricksDomain extends Lattice[BricksDomain]
     return true;
   }
   
-  def stringConcatenation(left : Set[String], right : Set[String]) : Set[String] = {
+  def stringConcatenation(left : Set[String], other : Set[String]) : Set[String] = {
     var newSet : Set[String] = Set.empty;
-    left.foreach(s1 => right.foreach(s2 => newSet = newSet + s1.concat(s2)));
+    left.foreach(s1 => other.foreach(s2 => newSet = newSet + s1.concat(s2)));
     return newSet;
   }
   def stringConcatenation(set : Set[String], times : Int) : Set[String] = {
     var left : Set[String] = set;
-    var right : Set[String] = set;
+    var other : Set[String] = set;
     var temp : Set[String] = Set.empty;
     for(i <- 0 to times-2) {
-    	left.foreach(s1 => right.foreach(s2 => temp = temp + s1.concat(s2)));
+    	left.foreach(s1 => other.foreach(s2 => temp = temp + s1.concat(s2)));
     	left = temp;
     	temp = Set.empty;
     }

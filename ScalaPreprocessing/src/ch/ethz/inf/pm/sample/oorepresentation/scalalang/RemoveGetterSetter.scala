@@ -40,11 +40,11 @@ object RemoveGetterSetter {
                val cleanedObjs=cleanListStatement(objs)
                for(obj <- cleanedObjs)
                  if(obj.isInstanceOf[Variable])
-                	 t=t.lub(t, obj.asInstanceOf[Variable].id.getType);
+                	 t=t.lub(obj.asInstanceOf[Variable].id.getType)
                  else if(obj.isInstanceOf[FieldAccess])
-                	 t=t.lub(t, obj.asInstanceOf[FieldAccess].typ);
+                	 t=t.lub(obj.asInstanceOf[FieldAccess].typ)
                  else if(obj.isInstanceOf[MethodCall])
-                	 t=t.lub(t, obj.asInstanceOf[MethodCall].returnedType);
+                	 t=t.lub(obj.asInstanceOf[MethodCall].returnedType)
                  else t=t.top();
                if(! t.equals(t.top()))
 	               for(n <- t.getPossibleFields()) {

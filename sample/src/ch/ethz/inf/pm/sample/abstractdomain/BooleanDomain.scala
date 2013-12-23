@@ -28,9 +28,6 @@ class BooleanDomain(_value: Set[Boolean] = Set.empty[Boolean], _isTop: Boolean =
   def canBeTrue = isTop || value.contains(true)
   def canBeFalse = isTop || value.contains(false)
 
-  // intersection corresponds to glb
-  def intersect(x : BooleanDomain, y : BooleanDomain) = {
-    glb(x,y)
-  }
+  def intersect(x: BooleanDomain, y: BooleanDomain) = x.glb(y)
 
 }

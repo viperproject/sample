@@ -108,8 +108,9 @@ class SurelyContainedCharacters
         	case p1 :: Nil => 
 	        	val left = this.eval(thisExpr);
 	        	val right = this.eval(p1);
-	        	return left.glb(left, right);
-        	case _ => return new InverseSetCharacters().top();
+	        	left.glb(right)
+        	case _ =>
+            new InverseSetCharacters().top()
       	}
     case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) =>
       return new InverseSetCharacters().top();

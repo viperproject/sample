@@ -54,7 +54,7 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
       val res = eval(expr)
       //if (res.isBottom) bottom()
       if (variable.representsSingleVariable()) this.add(variable, res)
-      else this.add(variable, dom.lub(this.get(variable), res))
+      else this.add(variable, get(variable).lub(res))
     } else this
   }
 
@@ -77,7 +77,7 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
       this.get(x)
     case xs: HeapIdSetDomain[_] =>
       var result = dom.bottom()
-      for (x <- xs.value) result = result.lub(result, this.get(x))
+      for (x <- xs.value) result = result.lub(get(x))
       result
     case x: Expression => dom.top()
   }
@@ -142,14 +142,14 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
 
       // DE MORGAN
       case NegatedBooleanExpression(BinaryBooleanExpression(left,right,op,typ)) => op match {
-        case BooleanOperator.|| => this.assume(NegatedBooleanExpression(left)).assume(NegatedBooleanExpression(right))
-        case BooleanOperator.&& => this.lub(this.assume(NegatedBooleanExpression(left)),this.assume(NegatedBooleanExpression(right)))
+        case BooleanOperator.|| => assume(NegatedBooleanExpression(left)).assume(NegatedBooleanExpression(right))
+        case BooleanOperator.&& => assume(NegatedBooleanExpression(left)).lub(assume(NegatedBooleanExpression(right)))
       }
 
       // AND, OR
       case BinaryBooleanExpression(left,right,op,typ) => op match {
-        case BooleanOperator.&& => this.assume(left).assume(right)
-        case BooleanOperator.|| => this.lub(this.assume(left),this.assume(right))
+        case BooleanOperator.&& => assume(left).assume(right)
+        case BooleanOperator.|| => assume(left).lub(assume(right))
       }
 
       case _ => this
@@ -189,10 +189,10 @@ class StringKSetDomain(_value: Set[String] = Set.empty[String], _isTop: Boolean 
   def getK: Int = TouchAnalysisParameters.stringRepresentationBound
 
   def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = {
-    lub(a.remove(b),b.remove(a))
+    a.remove(b).lub(b.remove(a))
   }
 
-  def intersect(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = glb(a,b)
+  def intersect(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = a.glb(b)
 
   def singleton(a: String): StringKSetDomain = factory().add(a)
 

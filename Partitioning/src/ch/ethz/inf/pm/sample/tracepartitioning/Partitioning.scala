@@ -19,7 +19,7 @@ import ch.ethz.inf.pm.sample.util.StringBlock
 /**
  * Represents a partitioning, the tree of tokens leading to a certain state.
  * 
- * @param <D> The leaf type
+ * @tparam D The leaf type
  *
  * @author Dominik Gabi
  * @version 0.1
@@ -55,50 +55,6 @@ sealed abstract class Partitioning[D <: State[D]] extends Lattice[Partitioning[D
 	def isSupremum: Boolean = {
 		this == Top() || this == Bottom()
 	}
-	
-	/**
-	 * The greatest lower bound.
-	 *
-	 * @param l The left partitioning
-	 * @param r The right partitioning
-	 * @return The greatest lower bound
-	 */
-	override def glb(l: Partitioning[D], r: Partitioning[D]): Partitioning[D] = l.glb(r)
-	
-	/**
-	 * The least upper bound.
-	 *
-	 * @param l The left partitioning
-	 * @param r The right partitioning
-	 * @return The least upper bound
-	 */
-	override def lub(l: Partitioning[D], r: Partitioning[D]): Partitioning[D] = l.lub(r)
-	
-	/**
-	 * The widening simply does not apply to the structure but solely to the states
-	 * in the leaves.
-	 *
-	 * @param l The left partitioning
-	 * @param r The right partitioning
-	 * @return The Top value
-	 */
-	override def widening(l: Partitioning[D], r: Partitioning[D]) = l.widening(r)
-	
-	/**
-	 * The <code>lessEqual</code> operator operates pairwise on the structure
-	 * of the partitioning and on the states of the leaves.
-	 *
-	 * @param p The partitioning
-	 * @return <code>true</code> if <code>this <= p</code>, <code>false</code>
-	 * otherwise
-	 */
-	override def lessEqual(p: Partitioning[D]): Boolean
-	
-	protected def glb(p: Partitioning[D]): Partitioning[D]
-	
-	protected def lub(p: Partitioning[D]): Partitioning[D]
-
-	protected def widening(p: Partitioning[D]): Partitioning[D]
 
 	/**
 	 * Computes a canonical representation for the current partitioning.
@@ -203,7 +159,7 @@ sealed abstract class Partitioning[D <: State[D]] extends Lattice[Partitioning[D
 /**
  * Represents an inner node of the <code>Partitioning</code>.
  *  
- * @param <D>
+ * @tparam D
  *
  * @author Dominik Gabi
  * @version 0.1
@@ -224,28 +180,28 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
 		case Top() => this
 		case Bottom() => Bottom()
 		case Node(d, cs) => if (directive.compatible(d)) {
-      Node(directive, for ((c1, c2) <- children.zip(cs)) yield glb(c1, c2))
+      Node(directive, for ((c1, c2) <- children.zip(cs)) yield c1.glb(c2))
     } else {
       Bottom()
     }
-		case Leaf(_) => glb(p,this)
+		case Leaf(_) => p.glb(this)
 	}
 	
 	override def lub(p: Partitioning[D]): Partitioning[D] = p match {
 		case Top() => Top()
 		case Bottom() => this
 		case Node(d, cs) => if (directive.compatible(d)) {
-      Node(directive, for ((c1, c2) <- children.zip(cs)) yield lub(c1, c2))
+      Node(directive, for ((c1, c2) <- children.zip(cs)) yield c1.lub(c2))
     } else {
 			(directive, d) match {
-				case (PartitionWhileComputing(_, _), _) => Node(directive, children.patch(1, List(p.lub(p, children(1))), 1))
-				case (_, PartitionWhileComputing(_, _)) => Node(d, cs.patch(1, List(this.lub(this, cs(1))), 1))
+				case (PartitionWhileComputing(_, _), _) => Node(directive, children.patch(1, List(p.lub(children(1))), 1))
+				case (_, PartitionWhileComputing(_, _)) => Node(d, cs.patch(1, List(this.lub(cs(1))), 1))
 				case _ => Top()
 			}
     }
 		case Leaf(v) => directive match {
-			case PartitionWhileComputing(_, n) => Node(directive, children.patch(1, List(p.lub(p, children(1))), 1))
-			case _ => Node(directive, children.map(lub(_, p)))
+			case PartitionWhileComputing(_, n) => Node(directive, children.patch(1, List(p.lub(children(1))), 1))
+			case _ => Node(directive, children.map(_.lub(p)))
 		}
 	}
 
@@ -253,15 +209,15 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
 		case Top() => Top()
 		case Bottom() => this
 		case Node(d, cs) => if (directive.compatible(d)) {
-			Node(directive, for ((c1, c2) <- children.zip(cs)) yield widening(c1, c2))
+			Node(directive, for ((c1, c2) <- children.zip(cs)) yield c1.widening(c2))
 		} else {
 			(directive, d) match {
-				case (PartitionWhileComputing(_, _), _) => Node(directive, children.patch(1, List(p.widening(p, children(1))), 1))
-				case (_, PartitionWhileComputing(_, _)) => Node(d, cs.patch(1, List(this.widening(this, cs(1))), 1))
+				case (PartitionWhileComputing(_, _), _) => Node(directive, children.patch(1, List(p.widening(children(1))), 1))
+				case (_, PartitionWhileComputing(_, _)) => Node(d, cs.patch(1, List(this.widening(cs(1))), 1))
 				case _ => Top()
 			}
 		}
-		case Leaf(v) => Node(directive, children.map(widening(_, p)))
+		case Leaf(v) => Node(directive, children.map(_.widening(p)))
 	}
 
 	override def canonical: Partitioning[D] = directive match {
@@ -303,21 +259,21 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
 	}
 	
 	override def glbState: D = {
-		val glb: Partitioning[D] = (top() /: children)((c1, c2) => c1.glb(c1, c2))
+		val glb: Partitioning[D] = (top() /: children)((c1, c2) => c1.glb(c2))
 		glb match {
 			case Top() => topState
 			case Bottom() => bottomState
-			case Node(d, c) => (topState /: c.map(_.glbState))((c1, c2) => c1.glb(c1, c2))
+			case Node(d, c) => (topState /: c.map(_.glbState))((c1, c2) => c1.glb(c2))
 			case Leaf(v) => v
 		}
 	}
 	
 	override def lubState: D = {
-		val lub: Partitioning[D] = (bottom() /: children)((c1, c2) => c1.lub(c1, c2))
+		val lub: Partitioning[D] = (bottom() /: children)((c1, c2) => c1.lub(c2))
 		lub match {
 			case Top() => topState
 			case Bottom() => bottomState
-			case Node(d, c) => (bottomState /: c.map(_.lubState))((c1, c2) => c1.lub(c1, c2))
+			case Node(d, c) => (bottomState /: c.map(_.lubState))((c1, c2) => c1.lub(c2))
 			case Leaf(v) => v
 		}
 	}
@@ -347,7 +303,7 @@ case class Node[D <: State[D]](directive: Directive[D], children: List[Partition
 /**
  * Represents a leaf of the <code>Partitioning</code>.
  *  
- * @param <D>
+ * @tparam D
  *
  * @author Dominik Gabi
  * @version 0.1
@@ -364,22 +320,22 @@ case class Leaf[D <: State[D]](value: D) extends Partitioning[D] {
 	override def glb(p: Partitioning[D]): Partitioning[D] = p match {
 		case Top() => this
 		case Bottom() => Bottom()
-		case Node(_, _) => Leaf(value.glb(value, p.glbState))
-		case Leaf(v) => Leaf(value.glb(value, v))
+		case Node(_, _) => Leaf(value.glb(p.glbState))
+		case Leaf(v) => Leaf(value.glb(v))
 	}
 	
 	override def lub(p: Partitioning[D]): Partitioning[D] = p match {
 		case Top() => Top()
 		case Bottom() => this
-		case Node(_, _) => p.lub(p, this)
-		case Leaf(v) => Leaf(value.lub(value, v))
+		case Node(_, _) => p.lub(this)
+		case Leaf(v) => Leaf(value.lub(v))
 	}
 
 	override def widening(p: Partitioning[D]): Partitioning[D] = p match {
 		case Top() => Top()
 		case Bottom() => this
-		case Node(_, _) => p.widening(p, this)
-		case Leaf(v) => Leaf(value.widening(value, v))
+		case Node(_, _) => p.widening(this)
+		case Leaf(v) => Leaf(value.widening(v))
 	}
 
 	override def canonical: Partitioning[D] = this
@@ -416,7 +372,7 @@ case class Leaf[D <: State[D]](value: D) extends Partitioning[D] {
 /**
  * Common operations on both Top() and Bottom()
  *
- * @param <D>
+ * @tparam D
  *
  * @author Dominik Gabi
  * @version 0.1
@@ -456,7 +412,7 @@ trait Supremum[D <: State[D]] extends Partitioning[D] {
 /**
  * The bottom element of the lattice.
  * 
- * @param <D>
+ * @tparam D
  *
  * @author Dominik Gabi
  * @version 0.1
@@ -478,7 +434,7 @@ case class Bottom[D <: State[D]]() extends Partitioning[D] with Supremum[D] {
 /**
  * The top element of the lattice.
  * 
- * @param <D>
+ * @tparam D
  *
  * @author Dominik Gabi
  * @version 0.1

@@ -432,18 +432,18 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    * Least upper bound of heap states left and right. Produces a Replacement to be used
    * by the semantic domain.
    */
-  override def lubWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = {
-    if (left.isTop || right.isTop) return (top(), new Replacement)
-    if (left.isBottom) return (right, new Replacement)
-    if (right.isBottom) return (left, new Replacement)
-    if (left == right) return (left, new Replacement)
+  override def lubWithReplacement(other: TVSHeap): (TVSHeap, Replacement) = {
+    if (isTop || other.isTop) return (top(), new Replacement)
+    if (isBottom) return (other, new Replacement)
+    if (other.isBottom) return (this, new Replacement)
+    if (this == other) return (this, new Replacement)
 
     val tempheap = new TVSHeap
-    tempheap.variables = left.variables union right.variables
-    tempheap.tempVariables = left.tempVariables union right.tempVariables
-    tempheap.structures = left.structures union right.structures
-    tempheap.fields = left.fields union right.fields
-    tempheap.ppCreates = MapUtil.mergeMaps(left.ppCreates, right.ppCreates)(math.max)
+    tempheap.variables = variables union other.variables
+    tempheap.tempVariables = tempVariables union other.tempVariables
+    tempheap.structures = structures union other.structures
+    tempheap.fields = fields union other.fields
+    tempheap.ppCreates = MapUtil.mergeMaps(ppCreates, other.ppCreates)(math.max)
 
     val tvp = new TVP(tempheap)
     tvp.addAction(new Lub())
@@ -456,11 +456,11 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    * Some support for a greatest lower bound. Only the obvious cases are handled.
    * There seems to be no support in TVLA for this notion.
    */
-  override def glbWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = {
-    if (left.isBottom || right.isBottom)  (bottom(), new Replacement)
-    else if (left.isTop)  (right, new Replacement)
-    else if (right.isTop)  (left, new Replacement)
-    else if (left == right)  (left, new Replacement())
+  override def glbWithReplacement(other: TVSHeap): (TVSHeap, Replacement) = {
+    if (isBottom || other.isBottom)  (bottom(), new Replacement)
+    else if (isTop)  (other, new Replacement)
+    else if (other.isTop)  (this, new Replacement)
+    else if (this == other)  (this, new Replacement())
     else throw new Exception("Cannot compute glb on heaps")
   }
 
@@ -474,9 +474,11 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   }
 
   // THROW INVALID OPERATION ERROR?
-  override def glb(left:TVSHeap, right:TVSHeap):TVSHeap = glbWithReplacement(left,right)._1
-  override def lub(left:TVSHeap, right:TVSHeap):TVSHeap = lubWithReplacement(left,right)._1
-  override def widening(left:TVSHeap, right:TVSHeap):TVSHeap = wideningWithReplacement(left,right)._1
+  override def glb(other: TVSHeap): TVSHeap = glbWithReplacement(other)._1
+
+  override def lub(other: TVSHeap): TVSHeap = lubWithReplacement(other)._1
+
+  override def widening(other: TVSHeap): TVSHeap = wideningWithReplacement(other)._1
 
   /**
    * Assume allows assumptions to be made in branches of the control flow.
@@ -545,7 +547,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
   def getIds(): Set[Identifier] = null
 
-  override def wideningWithReplacement(left: TVSHeap, right: TVSHeap): (TVSHeap, Replacement) = (left, new Replacement)
+  override def wideningWithReplacement(other: TVSHeap): (TVSHeap, Replacement) = (this, new Replacement)
 
 
   // not implemented

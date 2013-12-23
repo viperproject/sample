@@ -211,7 +211,7 @@ case class Merge[D <: State[D]](pp: ProgramPoint, source: Directive[D]) extends 
 	 */
 	override def apply(p: Partitioning[D]): Partitioning[D] = p match {
 		case Node(d, c) => if (source.compatible(d)) {
-				Node(PartitionNone(), c.reduceLeft((c1, c2) => c1.lub(c1, c2)) :: Nil)
+				Node(PartitionNone(), c.reduceLeft((c1, c2) => c1.lub(c2)) :: Nil)
 			} else {
 				Node(d, c.map(apply(_)))
 			}

@@ -21,7 +21,7 @@ import sun.reflect.generics.reflectiveObjects.NotImplementedException
 /**
  * Represents a partitioned state.
  *
- * @param <D> The leaf type
+ * @tparam D The leaf type
  *
  * @author Dominik Gabi
  * @version 0.1
@@ -132,12 +132,11 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * The least upper bound of two partitioned states operates on the pair-wise
    * on the structure of the partitioning and the leaf states.
    *
-   * @param l A partitioned state
-   * @param r Another partitioned state
+   * @param other Another partitioned state
    * @return The least upper bound of the two arguments
    */
-  override def lub(l: PartitionedState[D], r: PartitionedState[D]): PartitionedState[D] = {
-    new PartitionedState(l.partitioning.lub(l.partitioning, r.partitioning))
+  override def lub(other: PartitionedState[D]): PartitionedState[D] = {
+    new PartitionedState(partitioning.lub(other.partitioning))
   }
 
   /**
@@ -148,8 +147,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * @param r Another partitioned state
    * @return The greatest lower bound of the two arguments
    */
-  override def glb(l: PartitionedState[D], r: PartitionedState[D]) : PartitionedState[D] = {
-    new PartitionedState(l.partitioning.glb(l.partitioning, r.partitioning))
+  override def glb(other: PartitionedState[D]) : PartitionedState[D] = {
+    new PartitionedState(partitioning.glb(other.partitioning))
   }
 
   /**
@@ -161,8 +160,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * @param r Another partitioned state
    * @return The least upper bound of the two arguments
    */
-  override def widening(l: PartitionedState[D], r: PartitionedState[D]): PartitionedState[D] = {
-    new PartitionedState[D](l.partitioning.widening(l.partitioning, r.partitioning))
+  override def widening(other: PartitionedState[D]): PartitionedState[D] = {
+    new PartitionedState[D](partitioning.widening(other.partitioning))
   }
 
   /**
@@ -704,7 +703,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * @return The least upper bound of the arguments
    */
   private[this] def lub(l: Iterable[PartitionedState[D]]): PartitionedState[D] = {
-    (bottom /: l)((p1, p2) => lub(p1, p2))
+    (bottom /: l)((p1, p2) => p1.lub(p2))
   }
 
 
@@ -719,7 +718,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    */
   private[this] def dispatch(p: PartitionedState[D], f: (PartitionedStateObserver[D], Partitioning[D]) => Partitioning[D]): PartitionedState[D] = {
     if (!activeDirectives.isEmpty) {
-      (bottom /: activeDirectives)((l, r) => lub(l, new PartitionedState[D](f(r, p.partitioning))))
+      (bottom /: activeDirectives)((l, r) => l.lub(new PartitionedState[D](f(r, p.partitioning))))
     } else {
       p
     }

@@ -132,7 +132,7 @@ object Annotation {
 	) : P = {
      var result : P = s._1._1.bottom()
      for(loc <- id.value)
-       result=result.lub(result, this.inhalePredicate(loc, predicate, s));
+       result=result.lub(this.inhalePredicate(loc, predicate, s));
      return result;
  }
 
@@ -154,7 +154,7 @@ object Annotation {
 	) : P =  {
     var result = s._1._1.bottom();
     for(loc <- id.value)
-      result=result.lub(result, this.exhalePredicate(loc, predicate, s));
+      result=result.lub(exhalePredicate(loc, predicate, s));
     return result;
 	}
 
@@ -176,7 +176,7 @@ object Annotation {
 	) : P = {
      var result : P = s._1._1.bottom()
      for(loc <- id.value)
-       result=result.lub(result, this.inhaleInvariants(loc, t, s));
+       result=result.lub(inhaleInvariants(loc, t, s));
      return result;
 	}
 
@@ -205,7 +205,7 @@ object Annotation {
 	) : P =  {
     var result = s._1._1.bottom();
     for(loc <- id.value)
-      result=result.lub(result, this.exhalePrecondition(loc, className, methodName, s, p));
+      result=result.lub(exhalePrecondition(loc, className, methodName, s, p));
     return result;
 	}
  
@@ -234,7 +234,7 @@ object Annotation {
  ) : P = {
     var result : P = s._1._1.bottom()
      for(loc <- id.value)
-       result=result.lub(result, this.inhalePrecondition(loc, className, methodName, s, p));
+       result=result.lub(inhalePrecondition(loc, className, methodName, s, p));
      return result;
  }
 
@@ -262,7 +262,7 @@ object Annotation {
 	) : P =  {
     var result = s._1._1.bottom();
     for(loc <- id.value)
-      result=result.lub(result, this.exhalePostcondition(loc, className, methodName, s, p));
+      result=result.lub(exhalePostcondition(loc, className, methodName, s, p));
     return result;
 	}
 
@@ -289,7 +289,7 @@ object Annotation {
  ) : P = {
     var result : P = s._1._1.bottom()
      for(loc <- id.value)
-       result=result.lub(result, this.inhalePostcondition(loc, className, methodName, s, p));
+       result=result.lub(inhalePostcondition(loc, className, methodName, s, p));
      return result;
  }
 
@@ -342,7 +342,7 @@ object Annotation {
 	) : P =  {
     var result = s._1._1.bottom();
     for(loc <- id.value)
-      result=result.lub(result, this.exhaleInvariants(loc, t, s));
+      result=result.lub(exhaleInvariants(loc, t, s));
     return result;
 	}
    
@@ -369,7 +369,7 @@ object Annotation {
 	) : P =  {
     var result = s._1._1.bottom();
     for(loc <- id.value)
-      result=result.lub(result, this.exhaleEverything(loc, s));
+      result=result.lub(exhaleEverything(loc, s));
     return result;
 	}
  	
