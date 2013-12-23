@@ -36,7 +36,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] = {
     var resEdges = Set.empty[EdgeWithState[S]]
     for (edge <- edges) {
-      resEdges = resEdges + new EdgeWithState[S](edge.source, Utilities.createVariablesForState(edge.state, ids), edge.field, edge.target)
+      resEdges = resEdges + new EdgeWithState[S](edge.source, edge.state.createVariables(ids), edge.field, edge.target)
     }
     return new HeapGraph[S](this.vertices, resEdges)
   }
@@ -109,8 +109,8 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
     for (e <- edges) {
       // Edges may contain edge local identifiers that are not in the given state. They need to be added.
       val elIDs = e.state.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).toSet
-      val newState = Utilities.createVariablesForState(state, elIDs)
-      val newEdgeState = Utilities.createVariablesForState(e.state, apIDs)
+      val newState = state.createVariables(elIDs)
+      val newEdgeState = e.state.createVariables(apIDs)
       newEdges += new EdgeWithState[S](e.source, e.state.glb(newState, newEdgeState), e.field, e.target)
     }
     new HeapGraph[S](vertices, newEdges)
@@ -322,7 +322,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
       idsToRemove = idsToRemove ++ removeForV
     }
     for (edgeRight <- edgeMap.values) {
-      var newState = Utilities.removeVariablesFromState(edgeRight.state, idsToRemove.asInstanceOf[Set[Identifier]])
+      var newState = edgeRight.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])
       newState = newState.rename(renameFrom, renameTo)
       val edgeToAdd = new EdgeWithState[S](iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
       resultingGraph = resultingGraph.addEdges(Set(edgeToAdd))
@@ -470,7 +470,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
         idsToRemove = idsToRemove + idToRemove
       }
     }
-    val finalEdges = resultingEdgeSet.map(e => new EdgeWithState[S](e.source, Utilities.removeVariablesFromState[S](e.state, idsToRemove.asInstanceOf[Set[Identifier]]), e.field, e.target))
+    val finalEdges = resultingEdgeSet.map(e => new EdgeWithState[S](e.source, e.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]]), e.field, e.target))
     val result = new HeapGraph[S](resultingVertices, finalEdges)
     checkConsistancy(result)
     return (result, idsToRemove.asInstanceOf[Set[Identifier]])

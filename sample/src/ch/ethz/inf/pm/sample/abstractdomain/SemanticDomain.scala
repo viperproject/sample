@@ -80,13 +80,18 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
   }
 
   /**
-  This method creates a variable
-  
-   @param variable the variable to be created
-  @param typ its type
-  @return the state after this action
-    */
-  def createVariable(variable: Identifier, typ: Type): T;
+   * This method creates a variable.
+   *
+   * @param variable the variable to be created
+   * @param typ its type
+   * @return the state after this action
+   */
+  def createVariable(variable: Identifier, typ: Type): T
+
+  /** Returns a copy of this state with all given variables created. */
+  def createVariables(variables: Set[Identifier]): T =
+    variables.foldLeft(this)((state, variable) =>
+      state.createVariable(variable, variable.getType))
 
   /**
   This method creates a variable that is an argument of the analyzed method
@@ -100,13 +105,15 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]);
 
   /**
-  This method removed a variable
-  
-   @param variable the variable to be removed
-  @param typ its type
-  @return the state after this action
-    */
-  def removeVariable(variable: Identifier): T;
+   * This method removed a variable.
+   * @param variable the variable to be removed
+   * @return the state after this action
+   */
+  def removeVariable(variable: Identifier): T
+
+  /** Returns a copy of this state with all given variables removed. */
+  def removeVariables(variables: Set[Identifier]): T =
+    variables.foldLeft(this)(_.removeVariable(_))
 
   /**
   This method represents the semantics when accessing an identifier

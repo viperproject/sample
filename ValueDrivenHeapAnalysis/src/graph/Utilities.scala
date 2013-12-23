@@ -12,21 +12,6 @@ object Utilities {
                                     ArithmeticOperator.<=)
   val BinaryBoolOperators = Set(BooleanOperator.||, BooleanOperator.&&)
 
-  def removeVariablesFromState[S <: SemanticDomain[S]](state: S, ids: Set[Identifier]): S = {
-    var result = state
-    for (id <- ids) {
-      result = result.removeVariable(id)
-    }
-    return result
-  }
-
-  def createVariablesForState[S <: SemanticDomain[S]](state: S, ids: Set[Identifier]): S = {
-    var result = state
-    for (id <- ids -- state.getIds())
-      result = result.createVariable(id, id.getType)
-    return result
-  }
-
   def negateExpression(exp: Expression): Expression = exp match {
     // TODO(severinh): Code is similar to ApronInterface.assume. Code sharing may be possible.
     case NegatedBooleanExpression(e) => e
@@ -64,8 +49,8 @@ object Utilities {
       for (rCond <- rightConds) {
         val idsToAddRight = lCond.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] || id.isInstanceOf[AccessPathIdentifier]) diff rCond.getIds()
         val idsToAddLeft = rCond.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] || id.isInstanceOf[AccessPathIdentifier]) diff lCond.getIds()
-        val newLeftCond = Utilities.createVariablesForState(lCond, idsToAddLeft.toSet[Identifier])
-        val newRightCond = Utilities.createVariablesForState(rCond, idsToAddRight.toSet[Identifier])
+        val newLeftCond = lCond.createVariables(idsToAddLeft.toSet[Identifier])
+        val newRightCond = rCond.createVariables(idsToAddRight.toSet[Identifier])
         resultingConds += lCond.glb(newLeftCond, newRightCond)
       }
     resultingConds.toSet[S]
@@ -73,7 +58,7 @@ object Utilities {
 
   def removeAccessPathIdentifiers[S <: SemanticDomain[S]](state : S) : S = {
     val idsToRemove = state.getIds().filter(id => id.isInstanceOf[AccessPathIdentifier]).toSet[Identifier]
-    removeVariablesFromState(state, idsToRemove)
+    state.removeVariables(idsToRemove)
   }
 
 }

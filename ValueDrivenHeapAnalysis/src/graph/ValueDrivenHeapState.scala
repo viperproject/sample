@@ -149,7 +149,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
                 idsToCreate = idsToCreate + new ValueHeapIdentifier(sumVertexToAdd, valField.getName, valField.getType, valField.getProgramPoint)
             }
             var newGenValState = generalValState.factory()
-            newGenValState = Utilities.createVariablesForState(newGenValState, idsToCreate)
+            newGenValState = newGenValState.createVariables(idsToCreate)
             // Create edges between HeapVertices taking into account sub-typing.
             val resultingEdges = scala.collection.mutable.Set.empty[EdgeWithState[S]]
             for (heapVertex <- newVertices.filter(_.isInstanceOf[HeapVertex]).asInstanceOf[Set[HeapVertex]]) {
@@ -321,7 +321,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               // It's possible that the two sets of edges overlap.
               var tempAH = abstractHeap.removeEdges(edgesToRemove).addEdges(edgesToAdd)
               val (resultingAH, idsToRemove) = tempAH.prune()
-              result = new ValueDrivenHeapState[S](resultingAH.joinCommonEdges(), Utilities.removeVariablesFromState(generalValState, idsToRemove), new ExpressionSet(rightExp.getType).add(variable), false, isBottom)
+              result = new ValueDrivenHeapState[S](resultingAH.joinCommonEdges(), generalValState.removeVariables(idsToRemove), new ExpressionSet(rightExp.getType).add(variable), false, isBottom)
             }
           }
         }
@@ -397,7 +397,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
           val resId = new ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, renameTo.head.getType, renameTo.head.getProgramPoint)
           cond = cond.assume(new BinaryArithmeticExpression(resId, renameTo.head, ArithmeticOperator.==, null))
           // We remove all edge local identifiers
-          cond = Utilities.removeVariablesFromState(cond, cond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).toSet[Identifier])
+          cond = cond.removeVariables(cond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).toSet[Identifier])
           resultingSet += cond
         }
         resultingSet.toSet[S]
@@ -481,8 +481,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               }
             }
             if (prefixesAgree) {
-              currentState = Utilities.createVariablesForState(currentState, rStIdsMap._2)
-              currentState = currentState.glb(currentState, Utilities.createVariablesForState(rStIdsMap._1, lStIdsMap._2))
+              currentState = currentState.createVariables(rStIdsMap._2)
+              currentState = currentState.glb(currentState, rStIdsMap._1.createVariables(lStIdsMap._2))
               if (!currentState.lessEqual(currentState.bottom())) {
                 for (key <- lStIdsMap._3.keySet -- intersectedKeys) {
                   newAccPathExpEdgeMap = newAccPathExpEdgeMap + (key -> lStIdsMap._3.apply(key))
@@ -520,8 +520,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               }
             }
             if (prefixesAgree) {
-              currentState = Utilities.createVariablesForState(currentState, rStIdsMap._2)
-              currentState = currentState.glb(currentState, Utilities.createVariablesForState(rStIdsMap._1, lStIdsMap._2))
+              currentState = currentState.createVariables(rStIdsMap._2)
+              currentState = currentState.glb(currentState, rStIdsMap._1.createVariables(lStIdsMap._2))
               if (!currentState.lessEqual(currentState.bottom())) {
                 for (key <- lStIdsMap._3.keySet -- intersectedKeys) {
                   newAccPathExpEdgeMap = newAccPathExpEdgeMap + (key -> lStIdsMap._3.apply(key))
@@ -555,8 +555,8 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
               }
             }
             if (prefixesAgree) {
-              currentState = Utilities.createVariablesForState(currentState, rStIdsMap._2)
-              currentState = currentState.glb(currentState, Utilities.createVariablesForState(rStIdsMap._1, lStIdsMap._2))
+              currentState = currentState.createVariables(rStIdsMap._2)
+              currentState = currentState.glb(currentState, rStIdsMap._1.createVariables(lStIdsMap._2))
               if (!currentState.lessEqual(currentState.bottom())) {
                 for (key <- lStIdsMap._3.keySet -- intersectedKeys) {
                   newAccPathExpEdgeMap = newAccPathExpEdgeMap + (key -> lStIdsMap._3.apply(key))
@@ -649,7 +649,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
         return this.bottom()
       // If some nodes were pruned, remove the identifiers corresponding to them from the general state.
       if (!prunedIds.isEmpty)
-        return new ValueDrivenHeapState[S](prunedResAH, Utilities.removeVariablesFromState[S](generalValState,prunedIds), new ExpressionSet(right.getType()).add(leftAccPath), false, false)
+        return new ValueDrivenHeapState[S](prunedResAH, generalValState.removeVariables(prunedIds), new ExpressionSet(right.getType()).add(leftAccPath), false, false)
       else
         return new ValueDrivenHeapState[S](resultingAH, generalValState, new ExpressionSet(right.getType()).add(leftAccPath), false, isBottom)
     } else {
@@ -660,9 +660,9 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       for (lPath <- leftPaths) {
         val lPathCond = graphPathCondition(lPath)
         val lPathCondEdgeLocalIds = lPathCond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).asInstanceOf[Set[Identifier]]
-        val newPathCond = Utilities.removeVariablesFromState(lPathCond,lPathCondEdgeLocalIds)
+        val newPathCond = lPathCond.removeVariables(lPathCondEdgeLocalIds)
         if (!newPathCond.lessEqual(newPathCond.bottom()))
-          pathsToAssignUnderConditions.update(lPath, Utilities.removeVariablesFromState(lPathCond,lPathCondEdgeLocalIds))
+          pathsToAssignUnderConditions.update(lPath, newPathCond)
       }
 
       if (pathsToAssignUnderConditions.isEmpty)
@@ -731,10 +731,10 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
             // This is the case when RHS is null. Hence, we need to create source edge-local identifiers in the right
             // state in order to preserve the once from LHS.
             val sourceIdsOfLHS = leftCond.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty)
-            newEdgeState = Utilities.createVariablesForState(newEdgeState, sourceIdsOfLHS.toSet[Identifier])
+            newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS.toSet[Identifier])
           }
-          leftCond = Utilities.createVariablesForState(leftCond, renameTo.toSet[Identifier])
-          newEdgeState = Utilities.createVariablesForState(newEdgeState, renameFrom.toSet[Identifier])
+          leftCond = leftCond.createVariables(renameTo.toSet[Identifier])
+          newEdgeState = newEdgeState.createVariables(renameFrom.toSet[Identifier])
           newEdgeState = newEdgeState.glb(leftCond, newEdgeState)
           if (!newEdgeState.lessEqual(rightCond.bottom())){
             // add edge that represents the assignment
@@ -788,12 +788,12 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       // and no other edge-local identifiers are present in the given state. We need to add them so that the edge-local
       // identifiers of the currently procces edge do not get lost.
       val edgeLocalIdsToAdd = edge.state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && !id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty)
-      var newState: S = Utilities.createVariablesForState(state, edgeLocalIdsToAdd.toSet[Identifier])
+      var newState: S = state.createVariables(edgeLocalIdsToAdd.toSet[Identifier])
       newState = newState.glb(newState, edge.state)
 
       // Now, we need to rename source-edge local identifiers to the ones that are target of this edge and remove any others.
       val originalSourceIds = newState.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty).toSet[Identifier]
-      newState = Utilities.removeVariablesFromState(newState, originalSourceIds)
+      newState = newState.removeVariables(originalSourceIds)
       // Renaming
       val idsToRenameToSource = newState.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.equals(List(field))).asInstanceOf[Set[EdgeLocalIdentifier]]
       // Building lists for renaming
@@ -806,7 +806,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
       newState = newState.rename(renameFrom, renameTo)
       // Now we remove all edge-local identifiers that can not be the targets.
       val elIdsToRemove = newState.getIds().filter(x => x.isInstanceOf[EdgeLocalIdentifier]) -- renameTo
-      newState = Utilities.removeVariablesFromState(newState, elIdsToRemove.toSet[Identifier])
+      newState = newState.removeVariables(elIdsToRemove.toSet[Identifier])
 
 
       // return
@@ -819,7 +819,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     */
     val elIdsToRemove = path.head.state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && !id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty).asInstanceOf[Set[Identifier]]
     // return
-    graphPathConditionRecursive(path.tail, Utilities.removeVariablesFromState(path.head.state, elIdsToRemove))
+    graphPathConditionRecursive(path.tail, path.head.state.removeVariables(elIdsToRemove))
   }
 
 
@@ -898,7 +898,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     var isInitialized = false
     var resultState = generalValState.top()
     for (state <- sequenceOfStates) {
-      var newState = Utilities.createVariablesForState(state, addedIdentifiers.asInstanceOf[Set[Identifier]])
+      var newState = state.createVariables(addedIdentifiers.asInstanceOf[Set[Identifier]])
       if (!isInitialized) {
         resultState = newState
         isInitialized = true
@@ -1050,7 +1050,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
          */
         val tempAH = abstractHeap.valueAssumeOnEachEdge(baExp, expGenCond)
         val (resultingAH, idsToRemove) = tempAH.prune()
-        resultingGenCond = Utilities.removeVariablesFromState(resultingGenCond, idsToRemove)
+        resultingGenCond = resultingGenCond.removeVariables(idsToRemove)
 
         return new ValueDrivenHeapState[S](resultingAH, resultingGenCond, new ExpressionSet(SystemParameters.getType().top), false, false)
       }
@@ -1203,7 +1203,7 @@ class ValueDrivenHeapState[S <: SemanticDomain[S]](val abstractHeap: HeapGraph[S
     if (right.isTop)
       return left
     val (resultingAH, removeIds, renameFrom, renameTo) = left.abstractHeap.glb(left.abstractHeap, right.abstractHeap)
-    var newRightGeneralValState = Utilities.removeVariablesFromState(right.generalValState, removeIds)
+    var newRightGeneralValState = right.generalValState.removeVariables(removeIds)
     newRightGeneralValState = newRightGeneralValState.rename(renameFrom, renameTo)
     val newGeneralValState = left.generalValState.glb(left.generalValState, newRightGeneralValState)
     if (resultingAH.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
