@@ -742,7 +742,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
             for (cond <- conditions) {
               var tempEdgeState = cond.assign(valueHeapIdToAssign, rightExp)
               if (edge.source.equals(nodeToUpdate)) {
-                val edgeLocId = new EdgeLocalIdentifier(List.empty[String], f, rightExp.getType, rightExp.getProgramPoint)
+                val edgeLocId = EdgeLocalIdentifier(List.empty[String], f, rightExp.getType, rightExp.getProgramPoint)
                 tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
               }
               if (edge.target.equals(nodeToUpdate)) {
@@ -752,7 +752,7 @@ class HeapGraph[S <: SemanticDomain[S]](val vertices: TreeSet[Vertex], val edges
                   }
                   case None => List.empty[String]
                 }
-                val edgeLocId = new EdgeLocalIdentifier(path, f, rightExp.getType, rightExp.getProgramPoint)
+                val edgeLocId = EdgeLocalIdentifier(path, f, rightExp.getType, rightExp.getProgramPoint)
                 tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
               }
               resultingState = cond.lub(resultingState, Utilities.removeAccessPathIdentifiers(tempEdgeState))
