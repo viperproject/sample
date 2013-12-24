@@ -5,16 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, Con
 import scala.collection.immutable.TreeSet
 import ch.ethz.inf.pm.sample.util.Timer
 
-/**
- * Created with IntelliJ IDEA.
- * User: milos
- * Date: 4/24/13
- * Time: 12:10 PM
- * To change this template use File | Settings | File Templates.
- */
 object TestHeapGraph {
-
-
   def main(args: Array[String]) {
     val head = new LocalVariableVertex("head", null)
     val p = new LocalVariableVertex("p", null)
@@ -42,7 +33,7 @@ object TestHeapGraph {
 
     println("OUTCOME OF mcs(graph1, graph2): ")
     val (i, edgeMap) = graph1.mcs(graph2)
-    val mcsGraph = graph1.glb(graph1, graph2)
+    val mcsGraph = graph1.glb(graph2)
     for (entry <- i)
       println(entry)
     println("Size of i is " + i.size)

@@ -327,7 +327,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         case _ => throw new Exception("Left-hand side of variable assignment is not a variable.")
       }
     }
-    assert(result.abstractHeap.isNormalized(), "The abstract heap is not normalized.")
+    assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
     result
   }
 
@@ -981,12 +981,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       case BinaryBooleanExpression(l,r,o,t) => o match {
         case BooleanOperator.&& => {
           val result = assume(new ExpressionSet(l.getType).add(l)).assume(new ExpressionSet(r.getType).add(r))
-          assert(result.abstractHeap.isNormalized(), "The abstract heap is not normalized.")
+          assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
           return result
         }
         case BooleanOperator.|| => {
           val result = assume(new ExpressionSet(l.getType).add(l)).lub(assume(new ExpressionSet(r.getType).add(r)))
-          assert(result.abstractHeap.isNormalized(), "The abstract heap is not normalized.")
+          assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
           return result
         }
         case _ => throw new Exception("Not supported.")
@@ -1081,7 +1081,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     if (isTop || other.isBottom)
       return this
     // TODO: Implement this properly
-    val (resAH, renameRightFrom, renameRightTo) = abstractHeap.lub(abstractHeap, other.abstractHeap)
+    val (resAH, renameRightFrom, renameRightTo) = abstractHeap.lub(other.abstractHeap)
     val resGeneralState = generalValState.lub(other.generalValState.rename(renameRightFrom, renameRightTo))
 
     //**println("REAL LUB IS CALLED.")
@@ -1106,7 +1106,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       return other
     if (other.isTop)
       return this
-    val (resultingAH, removeIds, renameFrom, renameTo) = abstractHeap.glb(abstractHeap, other.abstractHeap)
+    val (resultingAH, removeIds, renameFrom, renameTo) = abstractHeap.glb(other.abstractHeap)
     var newRightGeneralValState = other.generalValState.removeVariables(removeIds)
     newRightGeneralValState = newRightGeneralValState.rename(renameFrom, renameTo)
     val newGeneralValState = generalValState.glb(newRightGeneralValState)
@@ -1159,7 +1159,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       return newRight
     }
     val newGeneralValState = newLeft.generalValState.widening(newRight.generalValState.merge(replacementRight))
-    val result = ValueDrivenHeapState(mergedLeft.wideningAfterMerge(mergedLeft, newRight.abstractHeap), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
+    val result = ValueDrivenHeapState(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
     return result
   }
 

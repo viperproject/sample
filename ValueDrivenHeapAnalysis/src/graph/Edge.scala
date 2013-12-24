@@ -18,6 +18,9 @@ case class EdgeWithState[S <: SemanticDomain[S]](source: Vertex, state: S, field
   def weakEquals(other: EdgeWithState[S]): Boolean = {
     source.equals(other.source) && target.equals(other.target) && field.equals(other.field)
   }
+
+  /** The set of vertices incident to the edge. */
+  def vertices: Set[Vertex] = Set(source, target)
 }
 
 
