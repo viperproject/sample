@@ -264,9 +264,18 @@ trait Type extends Lattice[Type] {
   def getName() : String;
   
   /**
-   * If the current type represents a class, it returns the list of the possible fields, an empty set otherwise. 
+   * If the current type represents a class, it returns the list
+   * of the possible fields, an empty set otherwise.
    */
-  def getPossibleFields() : Set[Identifier];
+  def getPossibleFields(): Set[Identifier]
+
+  /** Returns the possible fields with an object type. */
+  def objectFields: Set[Identifier] =
+    getPossibleFields.filter(_.getType.isObject)
+
+  /** Returns the possible fields with a non-object type. */
+  def nonObjectFields: Set[Identifier] =
+    getPossibleFields.filter(!_.getType.isObject)
   
   /**
    * If the current type represents an array, it returns the type of the elements contained in the array, None otherwise. 

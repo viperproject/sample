@@ -120,7 +120,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
                 definiteTypes = definiteTypes - typeAtTop
                 summaryTypes = summaryTypes + typeAtTop
               }
-              for (objectField <- typeAtTop.getPossibleFields().filter(_.getType.isObject()))
+              for (objectField <- typeAtTop.objectFields)
                 if (!summaryTypes.contains(objectField.getType))
                   typeStack.push(objectField.getType)
             }
@@ -136,7 +136,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               val defVertexToAdd = new DefiniteHeapVertex(vertexId, defType)
               vertexId = vertexId + 1
               newVertices = newVertices + defVertexToAdd
-              for (valField <- defType.getPossibleFields().filter(!_.getType.isObject()))
+              for (valField <- defType.nonObjectFields)
                 idsToCreate = idsToCreate + ValueHeapIdentifier(defVertexToAdd, valField)
             }
             // Adding summary vertices and corresponding identifiers
@@ -144,7 +144,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               val sumVertexToAdd = new SummaryHeapVertex(vertexId, sumType)
               vertexId = vertexId + 1
               newVertices = newVertices + sumVertexToAdd
-              for (valField <- sumType.getPossibleFields().filter(!_.getType.isObject()))
+              for (valField <- sumType.nonObjectFields)
                 idsToCreate = idsToCreate + ValueHeapIdentifier(sumVertexToAdd, valField)
             }
             var newGenValState = generalValState.factory()
@@ -154,19 +154,19 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             for (heapVertex <- newVertices.filter(_.isInstanceOf[HeapVertex]).asInstanceOf[Set[HeapVertex]]) {
               // Setting up source EdgeLocalIdentifiers
               var sourceValState = newGenValState
-              for (valField <- heapVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
+              for (valField <- heapVertex.typ.nonObjectFields) {
                 val srcEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
                 val valHeapId = ValueHeapIdentifier(heapVertex, valField)
                 sourceValState = sourceValState.createVariable(srcEdgeLocId, srcEdgeLocId.getType)
                 sourceValState = sourceValState.assume(new BinaryArithmeticExpression(valHeapId, srcEdgeLocId, ArithmeticOperator.==, null))
               }
-              for (objField <- heapVertex.typ.getPossibleFields().filter(_.getType.isObject())) {
+              for (objField <- heapVertex.typ.objectFields) {
                 // objField can always point to null (which has no target EdgeLocalIdentifiers)
                 resultingEdges += EdgeWithState(heapVertex, sourceValState, Some(objField.getName), nullVertex)
                 // Finding all possible HeapVertices to which this object field can point to, taking into account sub-typing
                 for (canPointToVertex <- newVertices.filter(v => v.isInstanceOf[HeapVertex] && v.typ.lessEqual(objField.getType)).asInstanceOf[Set[HeapVertex]]) {
                   var trgValState = sourceValState
-                  for (objValField <- objField.getType.getPossibleFields().filter(!_.getType.isObject())) {
+                  for (objValField <- objField.getType.nonObjectFields) {
                     val trgEdgeLocId = EdgeLocalIdentifier(List(objField.getName), objValField)
                     val valHeapId = ValueHeapIdentifier(heapVertex, objField)
                     trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
@@ -205,7 +205,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
                 if (!isInstanceVar || heapVertex.typ.equals(locVarVertex.typ)) {
                   // Create target EdgeLocalIdentifiers
                   var trgValState = newGenValState
-                  for (valField <- heapVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
+                  for (valField <- heapVertex.typ.nonObjectFields) {
                     val trgEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
                     val valHeapId = ValueHeapIdentifier(heapVertex, valField)
                     trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
@@ -268,7 +268,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             result = ValueDrivenHeapState(tempAH, resultGenValState, new ExpressionSet(variable.getType).add(variable), false, false)
           } else {
             val varVertex = abstractHeap.vertices.filter(v => v.name == variable.getName).head
-            val edgesToRemove = abstractHeap.edges.filter(e => e.source.equals(varVertex))
+            val edgesToRemove = abstractHeap.outEdges(varVertex)
             var edgesToAdd = Set.empty[EdgeWithState[S]]
             rightExp match {
               case verExpr: VertexExpression => {
@@ -278,7 +278,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
                   // adding edge local information
                   var addedIdentifiers = Set.empty[Identifier]
                   assert(varVertex.typ.equals(verExpr.getType), "We support only exact type, that is the fields should be the same")
-                  for (valField <- varVertex.typ.getPossibleFields().filter(f => !f.getType.isObject())) {
+                  for (valField <- varVertex.typ.nonObjectFields) {
                     val edgeLocalId = EdgeLocalIdentifier(List.empty[String], valField)
                     addedIdentifiers = addedIdentifiers + edgeLocalId
                     newEdgeState = newEdgeState.createVariable(edgeLocalId, edgeLocalId.getType)
@@ -345,7 +345,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     // adding source edge-local information
     var renamendIds = Set.empty[Identifier]
     if (sourceVertex.isInstanceOf[HeapVertex]) {
-      for (valField <- sourceVertex.typ.getPossibleFields().filter(f => !f.getType.isObject())) {
+      for (valField <- sourceVertex.typ.nonObjectFields) {
         val srcEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
         val correspAddedId = addedIds.filter(id => id.getName.equals(srcId.getName + "." + valField)).head
         resultingState = resultingState.rename(List(correspAddedId), List(srcEdgeLocId))
@@ -355,7 +355,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
     // adding target edge-local information
     if (targetVertex.isInstanceOf[HeapVertex]) {
-      for (valField <- targetVertex.typ.getPossibleFields().filter(f => !f.getType.isObject())) {
+      for (valField <- targetVertex.typ.nonObjectFields) {
         val trgEdgeLocId = EdgeLocalIdentifier(edgeLocTrgPath, valField)
         val correspAddedId = addedIds.filter(id => id.getName.equals(trgId.getName + "." + valField)).head
 //        resultingRep.value += (Set(correspAddedId) -> Set(correspAddedId, trgEdgeLocId))
@@ -638,7 +638,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       if (sources.size == 1 && (sources.head.isInstanceOf[DefiniteHeapVertex] || sources.head.isInstanceOf[LocalVariableVertex])) {
         // Strong update - removing the edges from the target of the path labeled with the assigned filed
         val lastPathVertex: Vertex = sources.head
-        val edgesToRemove = resultingAH.edges.filter(e => e.source.equals(lastPathVertex) && e.field.equals(Some(leftAccPath.path.last)))
+        val edgesToRemove = resultingAH.outEdges(lastPathVertex, Some(leftAccPath.path.last))
         resultingAH = resultingAH.removeEdges(edgesToRemove)
       }
       resultingAH = resultingAH.addEdges(edgesToAdd)
@@ -849,7 +849,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     for (edge <- path) {
       // Taking care of source edge local information
       var currentState = edge.state
-      for (valField <- edge.source.typ.getPossibleFields().filter(f => !f.getType.isObject())) {
+      for (valField <- edge.source.typ.nonObjectFields) {
         edge.field match {
           case  None =>
           case Some(f) => {
@@ -873,7 +873,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       currentAccPathExp = new AccessPathExpression(pp, edge.source.typ, currentPathList)
       // Taking care of target edge local information
       if (!edge.target.isInstanceOf[NullVertex]) {
-        for (valField <- edge.target.typ.getPossibleFields().filter(f => !f.getType.isObject())) {
+        for (valField <- edge.target.typ.nonObjectFields) {
           val newId = new AccessPathIdentifier(currentPathList :+ valField.getName, valField.getType, valField.getProgramPoint)
           addedIdentifiers = addedIdentifiers + newId
           edge.field match {
@@ -1181,7 +1181,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val (tempAH, definiteVertex) = resultingAH.addNewVertex(VertexConstants.DEFINITE, edge.target.typ)
         resultingAH = tempAH
         // Add the information about the corresponding identifiers to replacement
-        for (valField <- definiteVertex.typ.getPossibleFields().filter(!_.getType.isObject())) {
+        for (valField <- definiteVertex.typ.nonObjectFields) {
           val sumValHeapId = ValueHeapIdentifier(edge.target.asInstanceOf[SummaryHeapVertex], valField)
           val defValHeapId = ValueHeapIdentifier(definiteVertex.asInstanceOf[DefiniteHeapVertex], valField)
           repl.value.update(Set(sumValHeapId), Set(sumValHeapId, defValHeapId))
@@ -1303,7 +1303,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     //    var edgeLocalIds = Set.empty[Identifier]
     var resIdsAndEdgeLocalIds = Set.empty[(Identifier, Identifier)]
 
-    for (valField <- typ.getPossibleFields().filter(of => !of.getType.isObject())) {
+    for (valField <- typ.nonObjectFields) {
       // This means that we have a value field and this should be included in all abstract states on edges
       // This is done via Replacement
       val resId = ValueHeapIdentifier(newVertex.asInstanceOf[DefiniteHeapVertex], valField)
@@ -1317,7 +1317,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     var newGeneralState = generalValState
     for ((id,_) <- resIdsAndEdgeLocalIds)
       newGeneralState = newGeneralState.createVariable(id, id.getType)
-    for (objField <- typ.getPossibleFields().filter(of => of.getType.isObject())) {
+    for (objField <- typ.objectFields) {
       val res = newAbstractHeap.addNewVertex(VertexConstants.NULL, typ)
       newAbstractHeap = res._1
       newVertex = res._2

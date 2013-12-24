@@ -27,6 +27,14 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
   private def getCurrentVersionNumbers: Set[Int] =
     vertices collect {case hv : HeapVertex => hv.version}
 
+  /** Returns all edges going out of a given vertex. */
+  def outEdges(source: Vertex): Set[EdgeWithState[S]] =
+    edges.filter(_.source == source)
+
+  /** Returns all edges going out of a given vertex for a given field. */
+  def outEdges(source: Vertex, field: Option[String]): Set[EdgeWithState[S]] =
+    outEdges(source).filter(_.field == field)
+
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
@@ -46,9 +54,9 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     assert(path.size > 0, "The path should never be empty.")
     var possibleNextEdges: Set[EdgeWithState[S]] = null
     if (currentVertex.isInstanceOf[LocalVariableVertex]) {
-      possibleNextEdges = edges.filter(e => e.source.equals(currentVertex) && e.field == None)
+      possibleNextEdges = outEdges(currentVertex, None)
     } else {
-      possibleNextEdges = edges.filter(e => e.source.equals(currentVertex) && e.field.equals(Some(path.head)))
+      possibleNextEdges = outEdges(currentVertex, Some(path.head))
     }
     path match {
       case x :: Nil => {
@@ -239,14 +247,14 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     for ((from, to) <- iso) {
       assert(from.typ.equals(to.typ))
       if (from.isInstanceOf[HeapVertex]) {
-        for (valField <- from.typ.getPossibleFields().filter(!_.getType.isObject())) {
+        for (valField <- from.typ.nonObjectFields) {
           renameFrom = renameFrom :+ ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField)
           renameTo = renameTo :+ ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField)
         }
       }
     }
     val verticesToRemove = (other.vertices.filter(_.isInstanceOf[HeapVertex]) -- iso.keySet).asInstanceOf[Set[HeapVertex]]
-    var idsToRemove = Set.empty[ValueHeapIdentifier]
+    var idsToRemove = Set.empty[Identifier]
     for (v <- verticesToRemove) {
       val removeForV: Set[ValueHeapIdentifier] = v.typ.getPossibleFields().map(ValueHeapIdentifier(v, _))
       idsToRemove = idsToRemove ++ removeForV
@@ -258,25 +266,24 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
       resultingGraph = resultingGraph.addEdges(Set(edgeToAdd))
     }
     resultingGraph = resultingGraph.meetCommonEdges()
-    (resultingGraph, idsToRemove.asInstanceOf[Set[Identifier]], renameFrom, renameTo)
+    (resultingGraph, idsToRemove, renameFrom, renameTo)
   }
 
   def isBottom(): Boolean = {
     var result = false
     for (locVar <- vertices.filter(_.isInstanceOf[LocalVariableVertex])) {
-      val localVarEdges = edges.filter(_.source.equals(locVar))
+      val localVarEdges = outEdges(locVar)
       result = result || localVarEdges.isEmpty
     }
     for (heapVertex <- vertices.filter(_.isInstanceOf[HeapVertex])) {
-      for (refField <- heapVertex.typ.getPossibleFields().filter(f => f.getType.isObject())) {
-        val outEdges = edges.filter(e => e.source.equals(heapVertex))
+      for (refField <- heapVertex.typ.objectFields) {
         var presentEdges = Set.empty[EdgeWithState[S]]
-        for (oe <- outEdges) {
-          oe.field match {
+        for (outEdge <- outEdges(heapVertex)) {
+          outEdge.field match {
             case None =>
             case Some(f) => {
               if (refField.getName.equals(f))
-                presentEdges = presentEdges + oe
+                presentEdges = presentEdges + outEdge
             }
           }
         }
@@ -305,11 +312,12 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     }
     for ((from, to) <- renaming) {
       assert(from.typ.equals(to.typ))
-      if (from.isInstanceOf[HeapVertex]) {
-        for (valField <- from.typ.getPossibleFields().filter(!_.getType.isObject())) {
-          renameFrom = renameFrom :+ ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField)
-          renameTo = renameTo :+ ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField)
-        }
+      (from, to) match {
+        case (from: HeapVertex, to: HeapVertex) =>
+          for (valField <- from.typ.nonObjectFields) {
+            renameFrom = renameFrom :+ ValueHeapIdentifier(from, valField)
+            renameTo = renameTo :+ ValueHeapIdentifier(to, valField)
+          }
       }
     }
     for (e <- edgesToAdd) {
@@ -363,7 +371,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
       currentEdges = resEdge
     }
 
-    return (currentIsomorphism, currentEdges)
+    (currentIsomorphism, currentEdges)
   }
 
   override def toString = edges.mkString("\n")
@@ -386,17 +394,17 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     if (resultingEdgeSet.size == edges.size && resultingVertices.size == vertices.size)
       return (this, Set.empty[Identifier])
     val verticesToRemove = (vertices -- resultingVertices).filter(_.isInstanceOf[HeapVertex])
-    var idsToRemove = Set.empty[ValueHeapIdentifier]
+    var idsToRemove = Set.empty[Identifier]
     for (v <- verticesToRemove) {
-      for (valField <- v.typ.getPossibleFields().filter(!_.getType.isObject())) {
+      for (valField <- v.typ.nonObjectFields) {
         val idToRemove = ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField)
         idsToRemove = idsToRemove + idToRemove
       }
     }
-    val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])))
+    val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove)))
     val result = HeapGraph(resultingVertices, finalEdges)
     result.checkConsistency()
-    (result, idsToRemove.asInstanceOf[Set[Identifier]])
+    (result, idsToRemove)
   }
 
   /**
@@ -404,7 +412,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
    * equivalent, identical except for the state.
    */
   def weakEdgeEquivalenceSets: Set[Set[EdgeWithState[S]]] =
-    edges.map(e => edges.filter(e.weakEquals(_)))
+    edges.map(e => edges.filter(e.weakEquals))
 
   /**
    * Creates a copy of the heap where each set of weakly equivalent edges
@@ -499,7 +507,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
         newVertices = newVertices + newVertex
         for (vrtx <- v)
           mergeMap.update(vrtx, newVertex)
-        for (valField <- newType.getPossibleFields().filter(!_.getType.isObject())) {
+        for (valField <- newType.nonObjectFields) {
           val fromIds = mutable.Set.empty[ValueHeapIdentifier]
           for (vrtx <- v)
             fromIds += ValueHeapIdentifier(vrtx, valField)
