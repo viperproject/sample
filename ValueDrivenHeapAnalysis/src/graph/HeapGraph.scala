@@ -399,44 +399,35 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     (result, idsToRemove.asInstanceOf[Set[Identifier]])
   }
 
-  def joinCommonEdges() : HeapGraph[S] = {
-    var resultEdges = Set.empty[EdgeWithState[S]]
-    for (edge <- this.edges) {
-      val weakEqualsSet = resultEdges.filter(_.weakEquals(edge))
-      assert(weakEqualsSet.size <= 1)
-      if (weakEqualsSet.isEmpty)
-        resultEdges = resultEdges + edge
-      else
-        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.lub(weakEqualsSet.head.state))
-    }
-    copy(edges = resultEdges)
-  }
+  /**
+   * Returns the partition of edges into sets of edges that are weakly
+   * equivalent, identical except for the state.
+   */
+  def weakEdgeEquivalenceSets: Set[Set[EdgeWithState[S]]] =
+    edges.map(e => edges.filter(e.weakEquals(_)))
 
-  private def meetCommonEdges(): HeapGraph[S] = {
-    var resultEdges = Set.empty[EdgeWithState[S]]
-    for (edge <- edges) {
-      val weakEqualsSet = resultEdges.filter(_.weakEquals(edge))
-      assert(weakEqualsSet.size <= 1)
-      if (weakEqualsSet.isEmpty)
-        resultEdges = resultEdges + edge
-      else
-        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.glb(weakEqualsSet.head.state))
-    }
-    copy(edges = resultEdges)
-  }
+  /**
+   * Creates a copy of the heap where each set of weakly equivalent edges
+   * is combined into a single edge according to a given transformation
+   * function.
+   *
+   * @param f the state transformation function
+   * @return the transformed heap graph
+   */
+  def mapWeaklyEqualEdges(f: Set[S] => S) =
+    copy(edges = weakEdgeEquivalenceSets.map(eqSet => {
+      val someEdge = eqSet.iterator.next()
+      someEdge.copy(state = f(eqSet.map(_.state)))
+    }))
 
-  private def widenCommonEdges(): HeapGraph[S] = {
-    var resultEdges = Set.empty[EdgeWithState[S]]
-    for (edge <- edges) {
-      val weakEqualsSet = resultEdges.filter(_.weakEquals(edge))
-      assert(weakEqualsSet.size <= 1)
-      if (weakEqualsSet.isEmpty)
-        resultEdges = resultEdges + edge
-      else
-        resultEdges = (resultEdges - weakEqualsSet.head) + edge.copy(state = edge.state.widening(weakEqualsSet.head.state))
-    }
-    copy(edges = resultEdges)
-  }
+  def joinCommonEdges(): HeapGraph[S] =
+    mapWeaklyEqualEdges(Lattice.bigLub)
+
+  def meetCommonEdges(): HeapGraph[S] =
+    mapWeaklyEqualEdges(Lattice.bigGlb)
+
+  def widenCommonEdges(): HeapGraph[S] =
+    mapWeaklyEqualEdges(Lattice.bigWidening)
 
   def lub(other: HeapGraph[S]): (HeapGraph[S], List[Identifier], List[Identifier]) = {
 //    val (minCSBefore, renameFrom, renameTo) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(left, right))
