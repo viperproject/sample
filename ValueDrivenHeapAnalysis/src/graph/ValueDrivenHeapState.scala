@@ -318,9 +318,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             else {
               // Remove the old edges before adding the new ones.
               // It's possible that the two sets of edges overlap.
-              var tempAH = abstractHeap.removeEdges(edgesToRemove).addEdges(edgesToAdd)
-              val (resultingAH, idsToRemove) = tempAH.prune()
-              result = ValueDrivenHeapState(resultingAH.joinCommonEdges(), generalValState.removeVariables(idsToRemove), new ExpressionSet(rightExp.getType).add(variable), false, isBottom)
+              val tempAH = abstractHeap
+                .removeEdges(edgesToRemove)
+                .addEdges(edgesToAdd)
+                .joinCommonEdges()
+              val newExpr = new ExpressionSet(rightExp.getType).add(variable)
+              ValueDrivenHeapState(tempAH, generalValState, newExpr, false, isBottom).prune()
             }
           }
         }
@@ -643,14 +646,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       }
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
-      val (prunedResAH, prunedIds) = resultingAH.prune()
-      if (prunedResAH.isBottom())
-        return this.bottom()
-      // If some nodes were pruned, remove the identifiers corresponding to them from the general state.
-      if (!prunedIds.isEmpty)
-        return ValueDrivenHeapState(prunedResAH, generalValState.removeVariables(prunedIds), new ExpressionSet(right.getType()).add(leftAccPath), false, false)
-      else
-        return ValueDrivenHeapState(resultingAH, generalValState, new ExpressionSet(right.getType()).add(leftAccPath), false, isBottom)
+      val newExpr = new ExpressionSet(right.getType()).add(leftAccPath)
+      ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom).prune()
     } else {
       assert(rightExp.getType.isNumericalType(), "For now we allow only numerical values")
       val field = leftAccPath.path.last
@@ -688,13 +685,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
        * Updating the abstract heap
        */
       val tempAH = abstractHeap.valueAssignOnEachEdge(None, pathsToAssignUnderConditions.toMap, Some(field), rightExp, rightExpConditions)
-      // Pruning the heap
-      val (resultingAH, idsToRemove) = tempAH.prune()
-      resultGenValState = resultGenValState.removeVariables(idsToRemove)
-      if (resultingAH.isBottom())
-        bottom()
-      else
-        ValueDrivenHeapState(resultingAH, resultGenValState, new ExpressionSet(leftExp.getType).add(leftExp), false, false)
+      val expr = new ExpressionSet(leftExp.getType).add(leftExp)
+      ValueDrivenHeapState(tempAH, resultGenValState, expr, false, false).prune()
     }
   }
 
@@ -1007,10 +999,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
          * Updating abstract heap graph
          */
         val tempAH = abstractHeap.valueAssumeOnEachEdge(baExp, expGenCond)
-        val (resultingAH, idsToRemove) = tempAH.prune()
-        resultingGenCond = resultingGenCond.removeVariables(idsToRemove)
-
-        return ValueDrivenHeapState(resultingAH, resultingGenCond, new ExpressionSet(SystemParameters.getType().top), false, false)
+        val expr = new ExpressionSet(SystemParameters.getType().top)
+        ValueDrivenHeapState(tempAH, resultingGenCond, expr, false, false).prune()
       }
       case x => {
         println("ValueDrivenHeapState.assume: " + x + " is not supported.")
@@ -1335,6 +1325,19 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       newGeneralState,
       new ExpressionSet(typ).add(new VertexExpression(typ, createdObjVertex)(pp)),
       isTop, isBottom)
+  }
+
+  /**
+   * Prunes the abstract heap and removes all pruned identifiers
+   * from the general value state.
+   */
+  private def prune(): ValueDrivenHeapState[S] = {
+    val (newAbstractHeap, idsToRemove) = abstractHeap.prune()
+    val newGeneralValState = generalValState.removeVariables(idsToRemove)
+    if (newAbstractHeap.isBottom())
+      bottom()
+    else
+      copy(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
   }
 
   /**
