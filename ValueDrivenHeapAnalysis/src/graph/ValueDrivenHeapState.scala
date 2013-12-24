@@ -689,13 +689,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
        */
       val tempAH = abstractHeap.valueAssignOnEachEdge(None, pathsToAssignUnderConditions.toMap, Some(field), rightExp, rightExpConditions)
       // Pruning the heap
-      //val (resultingAH, idsToRemove) = tempAH.prune()
-      //resultGenValState = Utilities.removeVariablesFromState(resultGenValState, idsToRemove)
-//      if (resultingAH.isBottom())
-//        bottom()
-//      else
-//        ValueDrivenHeapState(resultingAH, resultGenValState, new ExpressionSet(leftExp.getType()).add(leftExp), false, false)
-      ValueDrivenHeapState(tempAH, resultGenValState, new ExpressionSet(leftExp.getType).add(leftExp), false, false)
+      val (resultingAH, idsToRemove) = tempAH.prune()
+      resultGenValState = resultGenValState.removeVariables(idsToRemove)
+      if (resultingAH.isBottom())
+        bottom()
+      else
+        ValueDrivenHeapState(resultingAH, resultGenValState, new ExpressionSet(leftExp.getType).add(leftExp), false, false)
     }
   }
 
