@@ -323,7 +323,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
                 .addEdges(edgesToAdd)
                 .joinCommonEdges()
               val newExpr = new ExpressionSet(rightExp.getType).add(variable)
-              ValueDrivenHeapState(tempAH, generalValState, newExpr, false, isBottom).prune()
+              ValueDrivenHeapState(tempAH, generalValState, newExpr, false, isBottom)
             }
           }
         }
@@ -331,7 +331,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       }
     }
     assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
-    result
+    result.prune()
   }
 
   private def createEdgeLocalState(srcId: Identifier, trgId: Identifier, field: Option[String], state: S, addedIds: Set[Identifier], sourceVertex: Vertex, targetVertex: Vertex): S = {
