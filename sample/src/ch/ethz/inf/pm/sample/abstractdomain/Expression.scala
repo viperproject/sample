@@ -406,6 +406,7 @@ abstract class Identifier(typ : Type, pp : ProgramPoint) extends Expression with
    */
   def representsSingleVariable() : Boolean
 
+  override def toString = getName
 }
 
 /**
