@@ -30,10 +30,10 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
-  def getPathsToBeAssigned(expr: AccessPathExpression): Set[List[EdgeWithState[S]]] =
+  def getPathsToBeAssigned(expr: AccessPathExpression): Set[Path[S]] =
     getPaths(expr.path.dropRight(1))
 
-  def getPaths(path: List[String]): Set[List[EdgeWithState[S]]] = {
+  def getPaths(path: List[String]): Set[Path[S]] = {
     assert(path.size > 0, "The path must be non-empty.")
     val startingVertices = vertices.filter(v => v.name.equals(path.head))
     assert(startingVertices.size == 1, "The start of the path is not uniquely determined. This should not happen, " + "as the start should be always a variable.")
@@ -42,7 +42,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     paths(List.empty[EdgeWithState[S]], startingVertex, path)
   }
 
-  def paths(prefix: List[EdgeWithState[S]], currentVertex : Vertex, path: List[String]): Set[List[EdgeWithState[S]]] = {
+  def paths(prefix: Path[S], currentVertex : Vertex, path: List[String]): Set[Path[S]] = {
     assert(path.size > 0, "The path should never be empty.")
     var possibleNextEdges: Set[EdgeWithState[S]] = null
     if (currentVertex.isInstanceOf[LocalVariableVertex]) {
@@ -52,12 +52,12 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     }
     path match {
       case x :: Nil => {
-        val result: Set[List[EdgeWithState[S]]] = possibleNextEdges.map(e => prefix :+ e)
+        val result: Set[Path[S]] = possibleNextEdges.map(e => prefix :+ e)
         return result
       }
       case x :: xs => {
         assert(xs.size > 0, "This should never happen, should be caught by the previous case.")
-        var result = Set.empty[List[EdgeWithState[S]]]
+        var result = Set.empty[Path[S]]
         for (e <- possibleNextEdges) {
           result = result.union(paths(prefix :+ e, e.target, path.tail))
         }
@@ -542,7 +542,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
   }
 
   def valueAssignOnEachEdge(variable : Option[VariableIdentifier],
-                       pathsToConds : Map[List[EdgeWithState[S]],S],
+                       pathsToConds : Map[Path[S],S],
                        field : Option[String],
                        rightExp : Expression,
                        condsForExp : Set[S]) : HeapGraph[S] = {
@@ -602,7 +602,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     copy(edges = resultingEdges.toSet)
   }
 
-  def applyReplacement(repl : Replacement) : HeapGraph[S] =
+  def applyReplacement(repl: Replacement): HeapGraph[S] =
     mapEdgeStates(_.merge(repl))
 
   def valueAssumeOnEachEdge(exp: Expression, conds: Set[S]): HeapGraph[S] = {

@@ -264,7 +264,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             /**
              * Updating the abstract heap
              */
-            val tempAH = abstractHeap.valueAssignOnEachEdge(Some(variable), Map.empty[List[EdgeWithState[S]],S], None, rightExp, rightExpConditions)
+            val tempAH = abstractHeap.valueAssignOnEachEdge(Some(variable), Map.empty[Path[S],S], None, rightExp, rightExpConditions)
             result = ValueDrivenHeapState(tempAH, resultGenValState, new ExpressionSet(variable.getType).add(variable), false, false)
           } else {
             val varVertex = abstractHeap.vertices.filter(v => v.name == variable.getName).head
@@ -431,19 +431,19 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
      * This methods returns an expression that represents the given expression, the set of states in which this
      * expression may exist and the set of added identifiers to the states with the last vertex of the expression.
      */
-  private def evaluateExpression(expr: Expression): (Expression, Set[(S, Set[Identifier], Map[AccessPathExpression, List[EdgeWithState[S]]])])= {
+  private def evaluateExpression(expr: Expression): (Expression, Set[(S, Set[Identifier], Map[AccessPathExpression, Path[S]])])= {
     expr match {
       case v: VariableIdentifier => {
         if (v.getType.isObject())
           return evaluateExpression(new AccessPathExpression(v.getProgramPoint,v.getType, List(v.getName)))
         else
-          return (v, Set((generalValState, Set.empty[Identifier], Map.empty[AccessPathExpression, List[EdgeWithState[S]]])))
+          return (v, Set((generalValState, Set.empty[Identifier], Map.empty[AccessPathExpression, Path[S]])))
       }
       case c: Constant => {
 //        if (c.getType().isObject())
 //          throw new Exception("Null constants should be handled separately.")
 //        else
-        return (c, Set((generalValState, Set.empty[Identifier], Map.empty[AccessPathExpression, List[EdgeWithState[S]]])))
+        return (c, Set((generalValState, Set.empty[Identifier], Map.empty[AccessPathExpression, Path[S]])))
       }
       case ap: AccessPathExpression => {
         // First we need to evaluate the access path, depending on whether it represents an object or a value
@@ -451,7 +451,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val objAccPath = if (!ap.typ.isObject()) ap.path.dropRight(1) else ap.path
         var graphPaths = abstractHeap.getPaths(objAccPath)
         // 2. We evaluate each graph path and collect only the valid ones
-        var validGraphPaths = Set.empty[(S, Set[Identifier], Map[AccessPathExpression, List[EdgeWithState[S]]])]
+        var validGraphPaths = Set.empty[(S, Set[Identifier], Map[AccessPathExpression, Path[S]])]
         for (path <- graphPaths) {
           val (st, apExp, apIds, apexpEdgeSeqMap) = evaluateGraphPath(path, expr.getProgramPoint)
           val isValid: Boolean = !st.lessEqual(st.bottom()) && (if (!ap.getType.isObject()) apIds.map(id => id.getName).contains(ap.toString()) else true)
@@ -465,12 +465,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val leftEval = evaluateExpression(l)
         val rightEval = evaluateExpression(r)
         val finalExp = new BinaryArithmeticExpression(leftEval._1, rightEval._1, o, t)
-        var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathExpression, List[EdgeWithState[S]]])]
+        var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathExpression, Path[S]])]
         for (lStIdsMap <- leftEval._2) {
           var currentState = lStIdsMap._1
           for (rStIdsMap <- rightEval._2) {
             var prefixesAgree = true
-            var newAccPathExpEdgeMap = Map.empty[AccessPathExpression, List[EdgeWithState[S]]]
+            var newAccPathExpEdgeMap = Map.empty[AccessPathExpression, Path[S]]
             val intersectedKeys = lStIdsMap._3.keySet.intersect(rStIdsMap._3.keySet)
             for (key <- intersectedKeys) {
               if (prefixesAgree && lStIdsMap._3.apply(key).equals(rStIdsMap._3.apply(key))) {
@@ -504,12 +504,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val leftEval = evaluateExpression(l)
         val rightEval = evaluateExpression(r)
         val finalExp = new BinaryBooleanExpression(leftEval._1, rightEval._1, o, t)
-        var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathExpression, List[EdgeWithState[S]]])]
+        var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathExpression, Path[S]])]
         for (lStIdsMap <- leftEval._2) {
           var currentState = lStIdsMap._1
           for (rStIdsMap <- rightEval._2) {
             var prefixesAgree = true
-            var newAccPathExpEdgeMap = Map.empty[AccessPathExpression, List[EdgeWithState[S]]]
+            var newAccPathExpEdgeMap = Map.empty[AccessPathExpression, Path[S]]
             val intersectedKeys = lStIdsMap._3.keySet.intersect(rStIdsMap._3.keySet)
             for (key <- intersectedKeys) {
               if (prefixesAgree && lStIdsMap._3.apply(key).equals(rStIdsMap._3.apply(key))) {
@@ -539,12 +539,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val leftEval = evaluateExpression(l)
         val rightEval = evaluateExpression(r)
         val finalExp = new ReferenceComparisonExpression(leftEval._1, rightEval._1, o, t)
-        var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathExpression, List[EdgeWithState[S]]])]
+        var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathExpression, Path[S]])]
         for (lStIdsMap <- leftEval._2) {
           var currentState = lStIdsMap._1
           for (rStIdsMap <- rightEval._2) {
             var prefixesAgree = true
-            var newAccPathExpEdgeMap = Map.empty[AccessPathExpression, List[EdgeWithState[S]]]
+            var newAccPathExpEdgeMap = Map.empty[AccessPathExpression, Path[S]]
             val intersectedKeys = lStIdsMap._3.keySet.intersect(rStIdsMap._3.keySet)
             for (key <- intersectedKeys) {
               if (prefixesAgree && lStIdsMap._3.apply(key).equals(rStIdsMap._3.apply(key))) {
@@ -591,7 +591,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val rightExp = right.getSetOfExpressions.head
     assert(leftExp.isInstanceOf[AccessPathExpression], "The left hand side od the assignment is not an AccessPathExpression")
     val leftAccPath = leftExp.asInstanceOf[AccessPathExpression]
-    val leftPaths: Set[List[EdgeWithState[S]]] = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.last.target.isInstanceOf[HeapVertex])
+    val leftPaths: Set[Path[S]] = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.last.target.isInstanceOf[HeapVertex])
     if (leftPaths.size == 0)
       return this.bottom()
     if (rightExp.getType.isObject()) {
@@ -655,7 +655,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       assert(rightExp.getType.isNumericalType(), "For now we allow only numerical values")
       val field = leftAccPath.path.last
       // We construct a map that says which id is assigned and under which condition
-      val pathsToAssignUnderConditions = scala.collection.mutable.Map.empty[List[EdgeWithState[S]], S]
+      val pathsToAssignUnderConditions = scala.collection.mutable.Map.empty[Path[S], S]
       for (lPath <- leftPaths) {
         val lPathCond = graphPathCondition(lPath)
         val lPathCondEdgeLocalIds = lPathCond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).asInstanceOf[Set[Identifier]]
@@ -710,7 +710,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
    *
    * @author Milos Novacek
    */
-  private def referencePathAssignmentEdges(field: String, leftPaths : Set[List[EdgeWithState[S]]], rightPaths : Set[List[EdgeWithState[S]]]) : Set[EdgeWithState[S]] = {val rightStateWithVertex : Set[(S, Vertex)] = rightPaths.map(p => (graphPathCondition(p), p.last.target))
+  private def referencePathAssignmentEdges(field: String, leftPaths : Set[Path[S]], rightPaths : Set[Path[S]]) : Set[EdgeWithState[S]] = {val rightStateWithVertex : Set[(S, Vertex)] = rightPaths.map(p => (graphPathCondition(p), p.last.target))
     var edgesToAdd = Set.empty[EdgeWithState[S]]
     for (lPath <- leftPaths) {
       var leftCond = graphPathCondition(lPath)
@@ -751,7 +751,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
    * @param path for which the condition should be computed
    * @return abstract value condition that is satisfied by the given path
    */
-  private def graphPathCondition(path : List[EdgeWithState[S]]) : S = {
+  private def graphPathCondition(path : Path[S]) : S = {
     // The path can not be empty. This should be caught previously and evaluated to bottom.
     assert(!path.isEmpty)
     // Every path must start with a local variable.
@@ -764,7 +764,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
      * @param state - starting state where are only the edge-loca identifiers with empty sequence of field access that represent targets
      * @return
      */
-    def graphPathConditionRecursive(path : List[EdgeWithState[S]], state : S) : S = {
+    def graphPathConditionRecursive(path : Path[S], state : S) : S = {
       // Base case is when the path is empty. (Termination)
       if (path.isEmpty) {
         assert((state.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]) -- state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] && id.asInstanceOf[EdgeLocalIdentifier].accPath.isEmpty)).isEmpty)
@@ -831,7 +831,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
    * @param path
    * @return
    */
-  private def evaluateGraphPath(path : List[EdgeWithState[S]], pp: ProgramPoint): (S, AccessPathExpression, Set[AccessPathIdentifier], Map[AccessPathExpression, List[EdgeWithState[S]]]) = {
+  private def evaluateGraphPath(path : Path[S], pp: ProgramPoint): (S, AccessPathExpression, Set[AccessPathIdentifier], Map[AccessPathExpression, Path[S]]) = {
     assert(path.head.source.isInstanceOf[LocalVariableVertex], "The source of the path must represent a local variable.")
     for (edge <- path.tail) {
       edge.field match {
@@ -843,7 +843,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     var sequenceOfStates = List.empty[S]
     var currentPathList = path.head.source.name :: Nil
     var addedIdentifiers = Set.empty[AccessPathIdentifier]
-    var expEdgeMap = Map.empty[AccessPathExpression, List[EdgeWithState[S]]]
+    var expEdgeMap = Map.empty[AccessPathExpression, Path[S]]
     var currentAccPathExp: AccessPathExpression = null
     var currentEdgeSeq = List.empty[EdgeWithState[S]]
     for (edge <- path) {
