@@ -1340,6 +1340,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       copy(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
   }
 
+  override def toString: String =
+    s"ValueDrivenHeapState(${abstractHeap.vertices.size} vertices, " +
+    s"${abstractHeap.edges.size} edges)"
+
   /**
    * Removes all variables satisfying filter
    */
