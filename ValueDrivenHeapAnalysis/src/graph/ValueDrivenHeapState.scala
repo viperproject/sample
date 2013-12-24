@@ -309,7 +309,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
                 assert(c.toString() == "null", "The only object constant is null.")
                 val (tempAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
                 val newState = ValueDrivenHeapState(tempAH, generalValState, x, false, false)
-                return newState.assignVariable(x, new ExpressionSet(variable.typ).add(new VertexExpression(c.pp, variable.typ, nullVertex)))
+                return newState.assignVariable(x, new ExpressionSet(variable.typ).add(new VertexExpression(variable.typ, nullVertex)(c.pp)))
               }
               case _ => throw new Exception("Not supported (should not happen, let me know if does (Milos)).")
             }
@@ -624,7 +624,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         case c : Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
           val (newAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
-          return ValueDrivenHeapState(newAH, generalValState, expr, false, false).assignField(obj, field, new ExpressionSet(c.getType).add(new VertexExpression(c.getProgramPoint, c.getType, nullVertex)))
+          return ValueDrivenHeapState(newAH, generalValState, expr, false, false).assignField(obj, field, new ExpressionSet(c.getType).add(new VertexExpression(c.getType, nullVertex)(c.getProgramPoint)))
         }
         case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
       }
@@ -723,7 +723,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           val idsToRename = rightCond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).asInstanceOf[Set[EdgeLocalIdentifier]]
           for (elId <- idsToRename) {
             renameFrom = elId :: renameFrom
-            renameTo = elId.copy(accPath=List(field)) :: renameTo
+            renameTo = elId.copy(accPath=List(field))(elId.getProgramPoint) :: renameTo
           }
           var newEdgeState = rightCond.rename(renameFrom, renameTo)
           if (renameTo.isEmpty) {
@@ -800,7 +800,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       var renameTo = List.empty[EdgeLocalIdentifier]
       for (elId <- idsToRenameToSource) {
         renameFrom = elId :: renameFrom
-        renameTo = elId.copy(accPath=List.empty) :: renameTo
+        renameTo = elId.copy(accPath=List.empty)(elId.getProgramPoint) :: renameTo
       }
       newState = newState.rename(renameFrom, renameTo)
       // Now we remove all edge-local identifiers that can not be the targets.
@@ -1229,14 +1229,14 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       if (e.source.isInstanceOf[HeapVertex] || e.source.isInstanceOf[LocalVariableVertex]) {
         val vtx = if (e.source.isInstanceOf[HeapVertex]) e.source else e.target
         for (valHeapId <- updatedEdgeState.getIds().filter(id => id.isInstanceOf[ValueHeapIdentifier] && id.asInstanceOf[ValueHeapIdentifier].obj.equals(vtx)).asInstanceOf[Set[ValueHeapIdentifier]]) {
-          val edgLocId = EdgeLocalIdentifier(List.empty[String], valHeapId.field, valHeapId.getType, valHeapId.getProgramPoint)
+          val edgLocId = EdgeLocalIdentifier(List.empty[String], valHeapId.field, valHeapId.getType)(valHeapId.getProgramPoint)
           updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
         }
       }
       // Updating EdgeLocalIdentifiers with non-empty path
       if (e.target.isInstanceOf[HeapVertex] && !e.source.isInstanceOf[LocalVariableVertex]) {
         for (valHeapId <- updatedEdgeState.getIds().filter(id => id.isInstanceOf[ValueHeapIdentifier] && id.asInstanceOf[ValueHeapIdentifier].obj.equals(e.target)).asInstanceOf[Set[ValueHeapIdentifier]]) {
-          val edgLocId = EdgeLocalIdentifier(List(e.field match {case None => throw new Exception("Should not happen") case Some(f) => f}), valHeapId.field, valHeapId.getType, valHeapId.getProgramPoint)
+          val edgLocId = EdgeLocalIdentifier(List(e.field match {case None => throw new Exception("Should not happen") case Some(f) => f}), valHeapId.field, valHeapId.getType)(valHeapId.getProgramPoint)
           updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
         }
       }
@@ -1334,7 +1334,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
     return ValueDrivenHeapState(newAbstractHeap,
       newGeneralState,
-      new ExpressionSet(typ).add(new VertexExpression(pp, typ, createdObjVertex)),
+      new ExpressionSet(typ).add(new VertexExpression(typ, createdObjVertex)(pp)),
       isTop, isBottom)
   }
 
@@ -1391,6 +1391,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
 }
 
-object ValeDrivenHeapStateConstants {
+object ValueDrivenHeapStateConstants {
   val edgeLocalIdentifier = "eLocId"
 }

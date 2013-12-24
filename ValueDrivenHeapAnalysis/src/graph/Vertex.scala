@@ -1,7 +1,5 @@
 package graph
 
-
-import scala.math
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
 
@@ -22,13 +20,6 @@ object VertexVersionNumbers {
   }
 }
 
-/**
- * Created with IntelliJ IDEA.
- * User: milos
- * Date: 4/23/13
- * Time: 3:28 PM
- * To change this template use File | Settings | File Templates.
- */
 abstract class Vertex(val name: String, val label: String, val typ: Type) extends Ordered[Vertex]{
 
   override def toString(): String = {
