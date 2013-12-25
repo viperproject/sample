@@ -323,7 +323,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
                 .addEdges(edgesToAdd)
                 .joinCommonEdges()
               val newExpr = new ExpressionSet(rightExp.getType).add(variable)
-              ValueDrivenHeapState(tempAH, generalValState, newExpr, false, isBottom)
+              result = ValueDrivenHeapState(tempAH, generalValState, newExpr, false, isBottom)
             }
           }
         }
