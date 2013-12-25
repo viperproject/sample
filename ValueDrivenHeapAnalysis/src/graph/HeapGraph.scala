@@ -540,14 +540,9 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
       }
   }
 
-  def isNormalized: Boolean = {
-    for (e <- edges) {
-      val weaklyEqualEdges = edges.filter(_.weakEquals(e))
-      if (weaklyEqualEdges.size > 1)
-        return false
-    }
-    return true
-  }
+  /** Returns true iff there is no weakly equal pair of edges in the grah. */
+  def isNormalized: Boolean =
+    weakEdgeEquivalenceSets.forall(_.size == 1)
 
   def valueAssignOnEachEdge(variable : Option[VariableIdentifier],
                        pathsToConds : Map[Path[S],S],
