@@ -111,8 +111,12 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
    */
   def removeVariable(variable: Identifier): T
 
-  /** Returns a copy of this state with all given variables removed. */
-  def removeVariables(variables: Set[Identifier]): T =
+  /**
+   * Removes a set of variables from the state.
+   * @param variables the variables to be removed
+   * @return the state after this action
+   */
+  def removeVariables[I <: Identifier](variables: Set[I]): T =
     variables.foldLeft(this)(_.removeVariable(_))
 
   /**
@@ -145,7 +149,7 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
 
    @return all ids contained in the abstract domain
     */
-  def getIds(): scala.collection.Set[Identifier]
+  def getIds(): Set[Identifier]
 
   /**
    * This method renames variable form the list <code>form</code> to variables form the list <code>to</code>
