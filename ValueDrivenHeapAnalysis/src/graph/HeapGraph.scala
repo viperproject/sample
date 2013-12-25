@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import scala.collection.mutable
 
-case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: Set[EdgeWithState[S]]) {
+case class HeapGraph[S <: SemanticDomain[S]](vertices: Set[Vertex], edges: Set[EdgeWithState[S]]) {
 
   // This check should be carried out only in the debug mode.
   // checkConsistency()
@@ -43,7 +43,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
 
   def getPaths(path: List[String]): Set[Path[S]] = {
     assert(path.size > 0, "The path must be non-empty.")
-    val startingVertices = vertices.filter(v => v.name.equals(path.head))
+    val startingVertices = vertices.filter(_.name == path.head)
     assert(startingVertices.size == 1, "The start of the path is not uniquely determined. This should not happen, " + "as the start should be always a variable.")
     val startingVertex = startingVertices.head
     assert(startingVertex.isInstanceOf[LocalVariableVertex], "The starting node should always represent a local variable.")
@@ -86,11 +86,11 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
 
   def meetStateOnAllEdges(state: S): HeapGraph[S] = {
     // The given state may AccessPathIdentifiers. These need to be added to the edge states.
-    val apIDs = state.getIds().filter(_.isInstanceOf[AccessPathIdentifier]).toSet
+    val apIDs = state.getIds().filter(_.isInstanceOf[AccessPathIdentifier])
     mapEdgeStates(edgeState => {
       // Edges may contain edge local identifiers that are not
       // in the given state. They need to be added.
-      val elIDs = edgeState.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]).toSet
+      val elIDs = edgeState.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier])
       val newState = state.createVariables(elIDs)
       val newEdgeState = edgeState.createVariables(apIDs)
       newState.glb(newEdgeState)
@@ -139,8 +139,8 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
   def removeEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] =
     copy(edges = edges -- es)
 
-  def getVerticesWithLabel(label: String): TreeSet[Vertex] =
-    vertices.filter(v => v.label.equals(label))
+  def getVerticesWithLabel(label: String): Set[Vertex] =
+    vertices.filter(_.label == label)
 
   /**
    * Helper function that initializes the map of maximal possible correspondence between edges of <code>this</code> and
@@ -174,10 +174,10 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     for ((edge, edgeSet) <- maxEdges) {
       var newEdgeSet = edgeSet
       if (edge.source.equals(from))
-        newEdgeSet = newEdgeSet.filter(e => e.source.equals(to))
+        newEdgeSet = newEdgeSet.filter(_.source == to)
 //      newEdgeSet = newEdgeSet.filter(e => e.source.equals(to) && edge.source.equals(from))
       if (edge.target.equals(from))
-        newEdgeSet = newEdgeSet.filter(e => e.target.equals(to))
+        newEdgeSet = newEdgeSet.filter(_.target == to)
 //      newEdgeSet = newEdgeSet.filter(e => e.target.equals(to)  && edge.source.equals(from))
       if (!edge.source.equals(from) && !edge.target.equals(from))
         newEdgeSet = newEdgeSet.filter(e => !e.source.equals(to) && !e.target.equals(to))
@@ -330,8 +330,8 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
     (resultingGraph, renameFrom, renameTo)
   }
 
-  private def mcsRecursive(V1: TreeSet[Vertex],
-                           V2: TreeSet[Vertex],
+  private def mcsRecursive(V1: Set[Vertex],
+                           V2: Set[Vertex],
                            isomorphism: Map[Vertex, Vertex],
                            possibleEdges: Map[EdgeWithState[S],Set[EdgeWithState[S]]],
                            bestIsomorphism: Map[Vertex, Vertex],
@@ -457,7 +457,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
   private def reachableFromLocalVariable() : Map[HeapVertex, Set[LocalVariableVertex]] = {
     val queue = scala.collection.mutable.Queue.empty[HeapVertex]
     var result = scala.collection.mutable.Map.empty[HeapVertex, Set[LocalVariableVertex]]
-    for (v <- vertices.filter(_.isInstanceOf[HeapVertex]).asInstanceOf[Set[HeapVertex]]) {
+    for (v <- vertices.collect({ case v: HeapVertex => v })) {
       val initSet : Set[LocalVariableVertex] = edges.filter(e => e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex]).map(_.source).asInstanceOf[Set[LocalVariableVertex]]
       result += (v -> initSet)
       if (!initSet.isEmpty)
@@ -587,9 +587,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
               }
               if (edge.target.equals(nodeToUpdate)) {
                 val path = edge.field match {
-                  case Some(g) => {
-                    List(g)
-                  }
+                  case Some(g) => List(g)
                   case None => List.empty[String]
                 }
                 val edgeLocId = EdgeLocalIdentifier(path, f, rightExp.getType)(rightExp.getProgramPoint)
