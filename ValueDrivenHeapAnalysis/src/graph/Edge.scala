@@ -10,7 +10,7 @@ case class EdgeWithState[S <: SemanticDomain[S]](
 
   override def toString: String = {
     val stateString = if (state != null) state.toString else "null"
-    source.toString + s"$source --> $target\nState = $stateString\nField = $field"
+    s"$source --> $target\nState = $stateString\nField = $field"
   }
 
   /**
