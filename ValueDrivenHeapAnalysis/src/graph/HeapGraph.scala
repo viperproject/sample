@@ -318,6 +318,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
             renameFrom = renameFrom :+ ValueHeapIdentifier(from, valField)
             renameTo = renameTo :+ ValueHeapIdentifier(to, valField)
           }
+        case _ => // Ignore all non-heap vertices
       }
     }
     for (e <- edgesToAdd) {
