@@ -42,12 +42,11 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def setType(typ:Type): AccessCollectingState = new AccessCollectingState(typ)
   def getType:Type = myType
 
-  def getFieldValue(obj: List[ExpressionSet], field: String, typ: Type): AccessCollectingState = {
-    for (o <- obj)
-      RequiredLibraryFragmentAnalysis.spottedFields =
-        RequiredLibraryFragmentAnalysis.spottedFields +
-          (o.getType().toString+"."+field) +
-          (o.getType().toString)
+  def getFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = {
+    RequiredLibraryFragmentAnalysis.spottedFields =
+      RequiredLibraryFragmentAnalysis.spottedFields +
+        (obj.getType().toString+"."+field) +
+        obj.getType().toString
     new AccessCollectingState(typ)
   }
 
@@ -91,13 +90,13 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def testTrue(): AccessCollectingState = this
   def assume(cond: ExpressionSet): AccessCollectingState = this
   def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): AccessCollectingState = this
-  def backwardGetFieldValue(objs: List[ExpressionSet], field: String, typ: Type): AccessCollectingState = this
+  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = this
   def backwardGetVariableValue(id: Assignable): AccessCollectingState = this
   def throws(t: ExpressionSet): AccessCollectingState = this
   def removeVariable(x: ExpressionSet): AccessCollectingState = this
   def setVariableToTop(x: ExpressionSet): AccessCollectingState = this
   def setArgument(x: ExpressionSet, right: ExpressionSet): AccessCollectingState = this
-  def assignField(obj: List[ExpressionSet], field: String, right: ExpressionSet): AccessCollectingState = this
+  def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): AccessCollectingState = this
   def assignVariable(x: ExpressionSet, right: ExpressionSet): AccessCollectingState = this
   def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): AccessCollectingState = this
   def createVariableForArgument(x: ExpressionSet, typ: Type): AccessCollectingState = this

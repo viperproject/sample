@@ -495,7 +495,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
     case MethodCall(pp, m, _, p, _) => (pp :: identifyingPP(m) :: p.map(identifyingPP)).min
     case VariableDeclaration(pp, v, _, r) =>
       List(Some(pp), Some(identifyingPP(v)), r.map(identifyingPP)).flatten.min
-    case FieldAccess(pp, s, _, _) => (pp :: s.map(identifyingPP)).min
+    case FieldAccess(pp, obj, _, _) => List(pp, identifyingPP(obj)).min
     case _ => s.getPC()
   }
 

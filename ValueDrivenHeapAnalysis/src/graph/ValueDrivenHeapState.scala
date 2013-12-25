@@ -537,11 +537,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  def assignField(obj: List[ExpressionSet], field: String, right: ExpressionSet): ValueDrivenHeapState[S] = {
+  def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): ValueDrivenHeapState[S] = {
     if (isBottom) return this
-    assert(obj.size == 1 && obj.head.getSetOfExpressions.size == 1, "We are allowed to assign only single access path.")
     assert(right.getSetOfExpressions.size == 1, "We allow to assign only single expression")
-    val leftExp = obj.head.getSetOfExpressions.head
+    val leftExp = obj.getSetOfExpressions.head
     val rightExp = right.getSetOfExpressions.head
     assert(leftExp.isInstanceOf[AccessPathExpression], "The left hand side od the assignment is not an AccessPathExpression")
     val leftAccPath = leftExp.asInstanceOf[AccessPathExpression]
@@ -858,18 +857,16 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     copy(expr = new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]))
   }
 
-  def getFieldValue(obj: List[ExpressionSet], field: String, typ: Type): ValueDrivenHeapState[S] = {
-    //**println("getFiledValue(" + obj.head.getSetOfExpressions.head + "," + field + "," + typ + ") is called")
-    assert(obj.size == 1, "There should be only one ExpressionSet in obj.")
-    assert(obj.head.getSetOfExpressions.size == 1, "We only support single field access.")
-    assert(obj.head.getSetOfExpressions.head.isInstanceOf[AccessPathExpression], "The field access should be accessed via access path.")
+  def getFieldValue(obj: ExpressionSet, field: String, typ: Type): ValueDrivenHeapState[S] = {
+    assert(obj.getSetOfExpressions.size == 1, "We only support single field access.")
+    assert(obj.getSetOfExpressions.head.isInstanceOf[AccessPathExpression], "The field access should be accessed via access path.")
     // TODO: May be I should check whether this exist and is feasible already here.
     if (ValueDrivenHeapProperty.materialize) {
-      val apObj = obj.head.getSetOfExpressions.head.asInstanceOf[AccessPathExpression]
+      val apObj = obj.getSetOfExpressions.head.asInstanceOf[AccessPathExpression]
       val tempResult = materializePath({if (apObj.typ.isObject()) apObj.path else apObj.path.dropRight(1)})
-      tempResult.copy(expr = new ExpressionSet(typ).add(obj.head))
+      tempResult.copy(expr = new ExpressionSet(typ).add(obj))
     } else
-      copy(expr = new ExpressionSet(typ).add(obj.head))
+      copy(expr = new ExpressionSet(typ).add(obj))
   }
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
@@ -1222,7 +1219,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
   // Backwards analyses are currently not supported
   def backwardGetVariableValue(id: Assignable): ValueDrivenHeapState[S] = ???
-  def backwardGetFieldValue(objs: List[ExpressionSet], field: String, typ: Type): ValueDrivenHeapState[S] = ???
+  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): ValueDrivenHeapState[S] = ???
   def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = ???
 
   // Collections are currently not supported

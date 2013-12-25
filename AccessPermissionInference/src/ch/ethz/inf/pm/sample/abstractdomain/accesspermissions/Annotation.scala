@@ -466,15 +466,14 @@ object Annotation {
  
  	private def accessSequenceOfFields[P <: PermissionsDomain[P]](thisExpr : ExpressionSet, fields : List[String], s : AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]) : ExpressionSet = fields match {
  	  case Nil => thisExpr;
- 	  case "this" :: x1 => accessSequenceOfFields(thisExpr, x1, s); 
- 	  case x :: x1 => accessSequenceOfFields(s.getFieldValue(thisExpr :: Nil, x, null).getExpression, x1, s);
+ 	  case "this" :: x1 => accessSequenceOfFields(thisExpr, x1, s);
+    case x :: x1 => accessSequenceOfFields(s.getFieldValue(thisExpr, x, null).getExpression, x1, s)
  	}
  	
  	private def convertFieldAccessToListStrings(fieldAccess : FieldAccess) : List[String] = fieldAccess match {
- 	  case FieldAccess(pp, objs, field, typ) => objs match {
- 	    case Variable(pp, name) :: Nil => name.getName :: field :: Nil
- 	    case x :: Nil if x.isInstanceOf[FieldAccess] => convertFieldAccessToListStrings(x.asInstanceOf[FieldAccess]) ::: field :: Nil
- 	  }
+ 	  case FieldAccess(pp, obj, field, typ) => obj match {
+ 	    case v: Variable => v.getName :: field :: Nil
+ 	    case fa: FieldAccess => convertFieldAccessToListStrings(fa) ::: field :: Nil
     }
-  
+  }
 }

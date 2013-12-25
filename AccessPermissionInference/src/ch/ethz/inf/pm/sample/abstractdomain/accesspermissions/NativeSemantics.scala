@@ -216,42 +216,37 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	  var result : Map[ExpressionSet, Int] = Map.empty; 
 	  if(parameters.size>1) throw new Exception("This should not happen");
 	  val pars = parameters.head;
-	  for(access <- cond.keySet) {
-	    if(access.objs.size==1) {
-	      val obj=access.objs.head;
-	      val p = extractParameter(obj);
-	      var p1 : ExpressionSet=null;
-	      if(p.getName.equals("this"))
-	        p1=thisExpr;
-	      else for(i <- 0 to pars.length-1)
-	    	  		if(pars.apply(i).variable.getName.equals(p)) //It's not possible to have 2 parameters with the same name
-	      				p1=par.apply(i);
-	      if(p1==null) throw new Exception("This should not happen"); //Contract defined on something that is not a parameter of the method?
-	      val v = accessField[S](p1, access, state);
-	      result=result+((v, cond.apply(access)));
-	    }
-     }
+    for (access <- cond.keySet) {
+      val p = extractParameter(access.obj)
+      var p1: ExpressionSet = null
+      if (p.getName.equals("this"))
+        p1 = thisExpr
+      else for (i <- 0 to pars.length - 1)
+        if (pars.apply(i).variable.getName.equals(p)) //It's not possible to have 2 parameters with the same name
+          p1 = par.apply(i)
+      if (p1 == null) throw new Exception("This should not happen"); //Contract defined on something that is not a parameter of the method?
+      val v = accessField[S](p1, access, state)
+      result = result + ((v, cond.apply(access)))
+    }
 	  result;
 	}
 	/**
 	 * It returns the result of the access of the given field on the given symbolic abstract value 
 	 */
 	private def accessField[S <: State[S]](obj : ExpressionSet, field : Statement, state : S) : ExpressionSet = field match {
-	  case FieldAccess(pp, objs, field, typ) if(objs.size==1) => 
-	    if(objs.size>1) throw new Exception("This should not happen");
-	    val o=objs.head
-	    val newState=state.getFieldValue(accessField(obj, o, state) :: Nil, field, typ);
-	    return newState.getExpression;
-	  case Variable(programpoint, id) => return obj;
+	  case FieldAccess(pp, fieldObj, field, typ) =>
+      val newState = state.getFieldValue(accessField(obj, fieldObj, state), field, typ)
+	    newState.getExpression
+	  case v: Variable => obj
 	}
 	
 	/**
 	 * Return the identifier of the most leftwing access (e.g., this.a.m => this)
 	 */
-	private def extractParameter(s : Statement) : Identifier = s match {
-	  case FieldAccess(pp, objs, field, typ) if(objs.size==1) => return extractParameter(objs.head);
-	  case Variable(programpoint, id) => return id;
-	}
+  private def extractParameter(s: Statement): Identifier = s match {
+    case FieldAccess(_, obj, _, _) => extractParameter(obj)
+    case Variable(_, id) => id
+  }
    
 	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = 
 		throw new MethodSemanticException("Backward semantics not yet supported");

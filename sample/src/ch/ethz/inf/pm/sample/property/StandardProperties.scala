@@ -16,9 +16,9 @@ object DivisionByZero extends Visitor {
   override def getLabel = "DivisionByZero";
 
   def checkSingleStatement[S <: State[S]](state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
-    case MethodCall(pp, FieldAccess(pp1, x :: Nil, "/", typ), parametricTypes, y :: Nil, returnedType) =>
-      var state1 = x.forwardSemantics(state);
-      state1 = y.forwardSemantics(state1);
+    case MethodCall(pp, FieldAccess(pp1, x, "/", typ), parametricTypes, y :: Nil, returnedType) =>
+      var state1 = x.forwardSemantics(state)
+      state1 = y.forwardSemantics(state1)
       for(divisor <- state1.getExpression.getSetOfExpressions) {
         if(! state1.assume(
           new ExpressionSet(SystemParameters.getType().top()).add(

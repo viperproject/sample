@@ -151,14 +151,14 @@ trait State[S <: State[S]] extends Lattice[S] { this: S =>
   def assignVariable(x : ExpressionSet, right : ExpressionSet) : S
 
   /**
-   * Assigns an expression to a field of an object
+   * Assigns an expression to a field of an object.
    *
-   * @param obj The object whose field is assigned
-   * @param field The assigned field
-   * @param right The assigned expression
-   * @return The abstract state after the assignment
+   * @param obj the object whose field is assigned
+   * @param field the assigned field
+   * @param right the assigned expression
+   * @return the abstract state after the assignment
    */
-  def assignField(obj : List[ExpressionSet], field : String, right : ExpressionSet) : S
+  def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): S
 
   /**
    * Assigns an expression to an argument
@@ -202,14 +202,16 @@ trait State[S <: State[S]] extends Lattice[S] { this: S =>
   def getVariableValue(id : Assignable) : S
 
   /**
-   * Accesses a field of an object
+   * Accesses a field of an object.
    *
-   * @param obj The object on which the field access is performed
-   * @param field The name of the field
-   * @param typ The type of the field
-   * @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
+   * @param obj the object on which the field access is performed
+   * @param field the name of the field
+   * @param typ the type of the field
+   * @return The abstract state obtained after the field access, that is,
+   *         the state that contains as expression the symbolic representation
+   *         of the value of the given field access
    */
-  def getFieldValue(obj : List[ExpressionSet], field : String, typ : Type) : S
+  def getFieldValue(obj: ExpressionSet, field: String, typ: Type): S
 
   /**
    * Performs the backward semantics of a variable access
@@ -220,14 +222,14 @@ trait State[S <: State[S]] extends Lattice[S] { this: S =>
   def backwardGetVariableValue(id : Assignable) : S
 
   /**
-   * Performs the backward semantics of a field access
+   * Performs the backward semantics of a field access.
    *
-   * @param objs The object on which the field access is performed
-   * @param field The name of the field
-   * @param typ The type of the field
-   * @return The abstract state obtained before the field access
+   * @param obj the object on which the field access is performed
+   * @param field the name of the field
+   * @param typ the type of the field
+   * @return the abstract state obtained before the field access
    */
-  def backwardGetFieldValue(objs : List[ExpressionSet], field : String, typ : Type) : S
+  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): S
 
   /**
    * Performs the backward semantics of an assignment

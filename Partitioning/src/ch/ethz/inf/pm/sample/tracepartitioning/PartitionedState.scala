@@ -235,15 +235,13 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
   /**
    * Assigns a field to a value in all leaf states.
    *
-   * @param o
-   * @param r
    * @return The lub of all partitioned states after assigning all possible
    * expressions to all possible combinations of fields in all leaves
    *
-   * @see #mapValueLists
+   * @see #mapValues
    */
-  override def assignField(o: List[ExpressionSet], f: String, r: ExpressionSet) = {
-    mapValueLists(o, List(r), (s, xs, ys) => s.assignField(xs, f, ys.head))
+  override def assignField(o: ExpressionSet, f: String, r: ExpressionSet) = {
+    mapValues(o, r, (s, ex, er) => s.assignField(ex, f, er))
   }
 
   /**
@@ -322,8 +320,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    *
    * @see #mapValueList
    */
-  override def getFieldValue(o: List[ExpressionSet], f: String, t: Type): PartitionedState[D] = {
-    mapValueList(o, (s, v) => s.getFieldValue(v, f, t))
+  override def getFieldValue(o: ExpressionSet, f: String, t: Type): PartitionedState[D] = {
+    mapValue(o, (s, v) => s.getFieldValue(v, f, t))
   }
 
   /**
@@ -346,10 +344,10 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * @param t
    * @return The state before accessing the field in all leaves
    *
-   * @see #mapValueList
+   * @see #mapValue
    */
-  override def backwardGetFieldValue(o: List[ExpressionSet], f: String, t: Type): PartitionedState[D] = {
-    mapValueList(o, (s, v) => s.backwardGetFieldValue(v, f, t))
+  override def backwardGetFieldValue(o: ExpressionSet, f: String, t: Type): PartitionedState[D] = {
+    mapValue(o, (s, v) => s.backwardGetFieldValue(v, f, t))
   }
 
   /**

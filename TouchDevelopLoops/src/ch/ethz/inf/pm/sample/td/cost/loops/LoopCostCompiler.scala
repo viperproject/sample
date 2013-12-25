@@ -117,11 +117,7 @@ class LoopCostCompiler extends TouchCompiler {
         for (p <- mc.parameters) result = result.union(variablesFromStatementAsString(p))
         result
       }
-      case fa: FieldAccess => {
-        var result : Set[String] = Set.empty[String]
-        for (o <- fa.objs) result = result.union(variablesFromStatementAsString(o))
-        result
-      }
+      case fa: FieldAccess => variablesFromStatementAsString(fa.obj)
       case v: Variable => {
         val result : Set[String] = Set.empty[String]
         result + v.getName
@@ -142,11 +138,7 @@ class LoopCostCompiler extends TouchCompiler {
         for (p <- mc.parameters) result = result.union(variablesFromStatement(p))
         result
       }
-      case fa: FieldAccess => {
-        var result : Set[Variable] = Set.empty[Variable]
-        for (o <- fa.objs) result = result.union(variablesFromStatement(o))
-        result
-      }
+      case fa: FieldAccess => variablesFromStatement(fa.obj)
       case v: Variable => {
         val result : Set[Variable] = Set.empty[Variable]
         result + v
@@ -161,8 +153,8 @@ class LoopCostCompiler extends TouchCompiler {
     var result : List[Variable] = List.empty
     for (statement <- statements) {
       statement match {
-        case a@MethodCall(_,FieldAccess(_,subjects,":=",_),_,_,_) => {
-          result = subjects.map(variablesFromStatement(_)).flatten ::: result
+        case a@MethodCall(_,FieldAccess(_,subject,":=",_),_,_,_) => {
+          result = variablesFromStatement(subject).toList ::: result
         }
         case vd: VariableDeclaration => {
           result = vd.variable :: result

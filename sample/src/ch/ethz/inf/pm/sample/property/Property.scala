@@ -109,10 +109,9 @@ class SingleStatementProperty(val visitor : Visitor) extends Property {
         	  		if (right.isDefined) checkStatement(className, methodName, visitor, state, right.get, printer)
         	  	case Variable(programpoint, id) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  	case FieldAccess(pp, objs, field, typ) =>
+        	  	case FieldAccess(pp, obj, field, typ) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
-        	  		for(obj <- objs)
-        	  			checkStatement(className, methodName, visitor, state, obj, printer)
+                checkStatement(className, methodName, visitor, state, obj, printer)
         	  	case MethodCall(pp, method, parametricTypes, parameters, returnedType) =>
         	  		visitor.checkSingleStatement[S](state, statement, printer)
         	  		checkStatement(className, methodName, visitor, state, method, printer)

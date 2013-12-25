@@ -415,7 +415,7 @@ object CFGGenerator {
         Variable(pc,VariableIdentifier(ident,typ,pc,scope))
 
       case parser.Access(subject,property,args) =>
-        val field = FieldAccess(mkTouchProgramPoint(property),List(expressionToStatement(subject,scope)),property.ident,typeNameToType(subject.typeName))
+        val field = FieldAccess(mkTouchProgramPoint(property), expressionToStatement(subject, scope), property.ident, typeNameToType(subject.typeName))
         MethodCall(mkTouchProgramPoint(property),field,Nil,args map (expressionToStatement(_,scope)),typ)
 
       case parser.Literal(t,value) =>

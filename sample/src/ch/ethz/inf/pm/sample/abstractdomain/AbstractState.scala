@@ -286,39 +286,37 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     result
   }
 
-  def assignField(x : List[ExpressionSet], field : String, right : ExpressionSet) : AbstractState[N,H,I] = {
+  def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): AbstractState[N, H, I] = {
     if(this.isBottom) return this
     var result : Option[AbstractState[N,H,I]] = None
     if(right.isTop) {
-      var t : AbstractState[N,H,I] = this.getFieldValue(x, field, right.getType())
+      val t : AbstractState[N,H,I] = this.getFieldValue(obj, field, right.getType())
       return t.setVariableToTop(t.getExpression).removeExpression()
     }
-    for(obj <- x) {
-      for(el <- obj.getSetOfExpressions) {
-        //For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
-        el match {
-          case variable : Identifier => {
-            for(assigned <- right.getSetOfExpressions) {
-              val done=new AbstractState[N,H,I](this._1.assignField(variable, field, assigned, right.getType(), variable.getProgramPoint ), this._2)
-              if(result==None)
-                result=Some(done)
-              else result=Some(done.lub(result.get))
-              //initial=initial.setExpression(new ExpressionSet(new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
-            }
+    for(el <- obj.getSetOfExpressions) {
+      //For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
+      el match {
+        case variable : Identifier => {
+          for(assigned <- right.getSetOfExpressions) {
+            val done=new AbstractState[N,H,I](this._1.assignField(variable, field, assigned, right.getType(), variable.getProgramPoint ), this._2)
+            if(result==None)
+              result=Some(done)
+            else result=Some(done.lub(result.get))
+            //initial=initial.setExpression(new ExpressionSet(new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
           }
-          case heapid : HeapIdSetDomain[I] => {
-            for(assigned <- right.getSetOfExpressions) {
-              val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, assigned, right.getType(), heapid.getProgramPoint )), this._2)
-              if(result==None)
-                result=Some(done)
-              else result=Some(done.lub(result.get))
-            }
-          }
-          // FIXME: This belongs somewhere else
-          case Constant("invalid",_,_) =>
-            if (result==None) Some(bottom())
-          case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
         }
+        case heapid : HeapIdSetDomain[I] => {
+          for(assigned <- right.getSetOfExpressions) {
+            val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, assigned, right.getType(), heapid.getProgramPoint )), this._2)
+            if(result==None)
+              result=Some(done)
+            else result=Some(done.lub(result.get))
+          }
+        }
+        // FIXME: This belongs somewhere else
+        case Constant("invalid",_,_) =>
+          if (result==None) Some(bottom())
+        case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
       }
     }
     if(result==None)
@@ -409,42 +407,36 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     variable.getType
   }
 
-  def getFieldValue(objs: List[ExpressionSet], field: String, typ: Type): AbstractState[N, H, I] = {
+  def getFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
     if (this.isBottom) return this
-    var result: AbstractState[N, H, I] = this.bottom()
-    for (obj: ExpressionSet <- objs) {
-      //For each object that is potentially accessed, it computes the semantics of the field access and it considers the upper bound
-      for (expr <- obj.getSetOfExpressions) {
-        if (expr.isInstanceOf[Assignable] || expr.isInstanceOf[HeapIdSetDomain[I]]) {
-          val (heapid, newHeap, rep) =
-            if (expr.isInstanceOf[Assignable])
-              this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint)
-            else HeapIdSetFunctionalLifting.applyGetFieldId(expr.asInstanceOf[HeapIdSetDomain[I]], this._1,
-              this._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint))
+    var result = this.bottom()
+    for (expr <- obj.getSetOfExpressions) {
+      if (expr.isInstanceOf[Assignable] || expr.isInstanceOf[HeapIdSetDomain[I]]) {
+        val (heapid, newHeap, rep) =
+          if (expr.isInstanceOf[Assignable])
+            this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint)
+          else HeapIdSetFunctionalLifting.applyGetFieldId(expr.asInstanceOf[HeapIdSetDomain[I]], this._1,
+            this._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint))
 
-          var result2 = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-          val accessed = if (heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
-          val state = new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
-          result = result.lub(state)
-        }
+        val result2 = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
+        val accessed = if (heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
+        val state = new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
+        result = result.lub(state)
       }
     }
     result
   }
 
-  def backwardGetFieldValue(objs : List[ExpressionSet], field : String, typ : Type) : AbstractState[N,H,I] = {
+  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
     if(this.isBottom) return this
     var result : AbstractState[N,H,I] = this.bottom()
-    for(obj : ExpressionSet <- objs) {
-      //For each object that is potentially accessed, it computes the backward semantics of the field access and it considers the upper bound
-      for(expr <- obj.getSetOfExpressions) {
-        if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
-        val (heapid, newHeap, rep) = this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint)
-        val result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-        val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.backwardAccess(_))
-        val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
-        result=result.lub(state)
-      }
+    for(expr <- obj.getSetOfExpressions) {
+      if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
+      val (heapid, newHeap, rep) = this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint)
+      val result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
+      val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.backwardAccess)
+      val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
+      result=result.lub(state)
     }
     result
   }

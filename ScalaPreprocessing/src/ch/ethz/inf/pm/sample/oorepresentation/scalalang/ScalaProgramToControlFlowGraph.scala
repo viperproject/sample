@@ -284,8 +284,9 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       (cfg, statementsUntilHere ::: new Variable(new ScalaProgramPoint(body.pos),
         new VariableIdentifier("super", new ScalaType(body.tpe), new ScalaProgramPoint(body.pos))) :: Nil , currentblock, true)
     //TODO: I have to consider also qual and mix
-    case Select(ArrayValue(elemtpt, trees), field) =>
-      (cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractListCFG(trees), field decode, new ScalaType(elemtpt.tpe)) :: Nil , currentblock, true)
+    // TODO: Should not pass list of statements to the 'FieldAccess' constructor
+    // case Select(ArrayValue(elemtpt, trees), field) =>
+    //   (cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractListCFG(trees), field decode, new ScalaType(elemtpt.tpe)) :: Nil , currentblock, true)
     //TODO: I forget the types in elemtpt
     case Select(a, field) =>
       if(body.toString.equals("scala.runtime.BoxedUnit.UNIT")) //Ad hoc method to put a Unit value and remove the results of method calls. I wanted to ignore it.
@@ -295,7 +296,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       if(member!=NoSymbol)
     	  tpe = new ScalaType(a.tpe.memberType(member));
       val fieldName=field.decode.replace(" ", "");//remove useless blank spaces, not allowed in fields' names
-      val res=(cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractCFG(a) :: Nil, fieldName, tpe) :: Nil , currentblock, true)
+      val res=(cfg, statementsUntilHere ::: new FieldAccess(new ScalaProgramPoint(body.pos), extractCFG(a), fieldName, tpe) :: Nil , currentblock, true)
       res;
     case Literal(value : Constant) =>
       (cfg, statementsUntilHere ::: new ConstantStatement(new ScalaProgramPoint(body.pos), value.stringValue, new ScalaType(value.tpe)) :: Nil , currentblock, true)

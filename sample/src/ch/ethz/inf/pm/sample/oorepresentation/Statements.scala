@@ -98,8 +98,8 @@ abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresent
       Assignment(programpoint, left.normalize(), right.normalize())
     case VariableDeclaration(programpoint, variable, typ, right) =>
       VariableDeclaration(programpoint, variable, typ, right.map(_.normalize))
-    case FieldAccess(pp, objs, field, typ) =>
-      FieldAccess(pp, normalizeList(objs), field, typ)
+    case FieldAccess(pp, obj, field, typ) =>
+      FieldAccess(pp, obj.normalize(), field, typ)
     case MethodCall(pp, method, parametricTypes, parameters, returnedType) =>
       MethodCall(pp, method.normalize(), parametricTypes, normalizeList(parameters), returnedType)
     case Throw(programpoint, expr) => Throw(programpoint, expr.normalize())
@@ -145,7 +145,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
       assert(rightExpr.getSetOfExpressions.size == 1, "Right-hand side must be a single expression.")
       leftExpr.getSetOfExpressions.head match {
         case ap: AccessPathExpression =>
-          val result = rightState.removeExpression().assignField(List(leftExpr), "", rightExpr)
+          val result = rightState.removeExpression().assignField(leftExpr, "", rightExpr)
           result
         case v: VariableIdentifier =>
           val result = rightState.assignVariable(leftExpr, rightExpr)
@@ -153,37 +153,28 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
         case exp => throw new Exception(exp + " is not supported")
       }
     } else {
-      if (left.isInstanceOf[FieldAccess]) {
-        val castedLeft = left.asInstanceOf[FieldAccess]
-        val (listObjs, state1) = UtilitiesOnStates.forwardExecuteListStatements[S](state, castedLeft.objs)
-        val stateright: S = right.forwardSemantics[S](state1)
-        val exprright = stateright.getExpression
-        return stateright.removeExpression().assignField(listObjs, castedLeft.field, exprright)
-      }
-      else {
-        var stateleft: S = left.forwardSemantics[S](state)
-        val exprleft = stateleft.getExpression
-        stateleft = stateleft.removeExpression()
-        var stateright: S = right.forwardSemantics[S](stateleft)
-        val exprright = stateright.getExpression
-        stateright = stateright.removeExpression()
-        return stateright.assignVariable(exprleft, exprright)
+      val leftStmt = left match { case f: FieldAccess => f.obj case _ => left }
+      val (leftExpr, leftState) = UtilitiesOnStates.forwardExecuteStatement(state, leftStmt)
+      val (rightExpr, rightState) = UtilitiesOnStates.forwardExecuteStatement(leftState, right)
+
+      left match {
+        case fa: FieldAccess =>
+          rightState.assignField(leftExpr, fa.field, rightExpr)
+        case _ =>
+          rightState.assignVariable(leftExpr, rightExpr)
       }
     }
   }
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     if (state.equals(state.bottom())) return state
-    var stateleft: S = left.backwardSemantics[S](state, oldPreState)
-    val exprleft = stateleft.getExpression
-    stateleft = stateleft.removeExpression()
-    var stateright: S = right.backwardSemantics[S](stateleft, oldPreState)
-    val exprright = stateright.getExpression
-    stateright = stateright.removeExpression()
-    var result = stateright.setVariableToTop(exprleft)
-    val condition = ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top()); //TODO type is wrong
+
+    val (leftExpr, leftState) = UtilitiesOnStates.backwardExecuteStatement(state, oldPreState, left)
+    val (rightExpr, rightState) = UtilitiesOnStates.backwardExecuteStatement(leftState, oldPreState, right)
+    var result = rightState.setVariableToTop(leftExpr)
+    val condition = ExpressionFactory.createBinaryExpression(leftExpr, rightExpr, ArithmeticOperator.==, leftExpr.getType().top()); //TODO type is wrong
     result = result.setExpression(condition)
-    return result.testTrue().backwardAssignVariable(exprleft, exprright)
+    result.testTrue().backwardAssignVariable(leftExpr, rightExpr)
   }
 
   override def toString(): String = left + " = " + right
@@ -297,7 +288,7 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class FieldAccess(pp: ProgramPoint, objs: List[Statement], field: String, typ: Type) extends Statement(pp) {
+case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Type) extends Statement(pp) {
 
   /**
    * It does nothing, since the access of a field does not modify
@@ -308,26 +299,25 @@ case class FieldAccess(pp: ProgramPoint, objs: List[Statement], field: String, t
    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     if (SystemParameters.isValueDrivenHeapAnalysis) {
-      assert(objs.size >= 1, "FieldAccess has a path of length 0.")
       // I need a List of ExpressionSet
-      var current: Statement = objs.head
+      var current: Statement = obj
       var accPath: List[String] = Nil
       while (current.isInstanceOf[FieldAccess]) {
         val fieldAccSt = current.asInstanceOf[FieldAccess]
         accPath = fieldAccSt.field :: accPath
-        current = fieldAccSt.objs.head
+        current = fieldAccSt.obj
       }
       assert(current.isInstanceOf[Variable], "The root of FieldAccess should be a variable.")
       val rootOfFieldAcc = current.asInstanceOf[Variable]
       accPath = rootOfFieldAcc.getName :: accPath
       // TODO: The below fix is a hack and should not be handled this way
-      val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(objs.head).getPossibleFields().filter(f => f.getName.equals(field)).head.getType else typ
+      val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(obj).getPossibleFields().filter(f => f.getName.equals(field)).head.getType else typ
       val pathExpr = new AccessPathExpression(pp, finalType, accPath :+ field)
-      val newResult = state.getFieldValue(List(new ExpressionSet(pathExpr.getType).add(pathExpr)), field, finalType)
+      val newResult = state.getFieldValue(new ExpressionSet(pathExpr.getType).add(pathExpr), field, finalType)
       newResult
     } else {
-      val (listObjs, state1) = UtilitiesOnStates.forwardExecuteListStatements[S](state, objs)
-      val result = state1.getFieldValue(listObjs, field, typ)
+      val (expr, objState) = UtilitiesOnStates.forwardExecuteStatement(state, obj)
+      val result = objState.getFieldValue(expr, field, typ)
       result
     }
   }
@@ -343,32 +333,19 @@ case class FieldAccess(pp: ProgramPoint, objs: List[Statement], field: String, t
   }
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
-    val (listObjs, state1) = UtilitiesOnStates.backwardExecuteListStatements[S](state, oldPreState, objs)
-    val result = state1.backwardGetFieldValue(listObjs, field, typ)
-    result
+    val (expr, newState) = UtilitiesOnStates.backwardExecuteStatement(state, oldPreState, obj)
+    newState.backwardGetFieldValue(expr, field, typ)
   }
 
   override def hashCode(): Int = field.hashCode
 
-  override def toString(): String = if (objs != null) {
-    if (objs.size == 1) objs.iterator.next.toString() + "." + field
-    else objs.toString() + "." + field
-  }
-  else "." + field
+  override def toString(): String =
+    s"${obj.toString()}.$field"
 
-  override def toSingleLineString(): String = {
-    var result: String = ""
-    var first: Boolean = true
-    for (obj <- objs)
-      if (first) {
-        first = false
-        result = result + obj.toSingleLineString
-      }
-      else result = result + ", " + obj.toSingleLineString
-    result + "." + field
-  }
+  override def toSingleLineString() =
+    s"${obj.toSingleLineString()}.$field"
 
-  override def getChildren: List[Statement] = objs
+  override def getChildren = List(obj)
 
 }
 
@@ -411,23 +388,16 @@ case class MethodCall(
 
     if (!body.isInstanceOf[FieldAccess]) return state
     //TODO: Sometimes it is a variable, check if $this is implicit!
-    val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
-    val calledMethod: String = castedStatement.field
-    for (obj <- castedStatement.objs) {
-      result = result.lub(forwardAnalyzeMethodCallOnObject[S](obj, calledMethod, state, getPC()))
-    }
-    result
+    val castedStatement = body.asInstanceOf[FieldAccess]
+    val calledMethod = castedStatement.field
+    forwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, getPC())
   }
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
     val body: Statement = method.normalize()
-    var result: S = state.bottom()
-    val castedStatement: FieldAccess = body.asInstanceOf[FieldAccess]
-    val calledMethod: String = castedStatement.field
-    for (obj <- castedStatement.objs) {
-      result = result.lub(backwardAnalyzeMethodCallOnObject[S](obj, calledMethod, state, oldPreState, getPC()))
-    }
-    result
+    val castedStatement = body.asInstanceOf[FieldAccess]
+    val calledMethod = castedStatement.field
+    backwardAnalyzeMethodCallOnObject[S](castedStatement.obj, calledMethod, state, oldPreState, getPC())
   }
 
   private def forwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, initialState: S,

@@ -399,8 +399,8 @@ object RichNativeSemantics {
     val newCollection = newState.getExpression
     // Make sure that our value is "valid"  now
     newState = newState.assignVariable(newCollection, Valid(newCollectionTyp))
-    newState = newState.assignField(List(newCollection), "orig", collection)
-    newState = newState.assignField(List(collection), "keys", newCollection)
+    newState = newState.assignField(newCollection, "orig", collection)
+    newState = newState.assignField(collection, "keys", newCollection)
 
 
     newState.setExpression(newCollection)
@@ -570,16 +570,16 @@ object RichNativeSemantics {
       SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+field)) {
 
       if (TouchAnalysisParameters.topFields.contains(field)) {
-        state.assignField(List(obj),field,Valid(value.getType()))
+        state.assignField(obj, field, Valid(value.getType()))
       } else {
-        state.assignField(List(obj),field,value)
+        state.assignField(obj, field, value)
       }
 
     } else state
   }
 
   def Field[S <: State[S]](obj:RichExpression, field:TouchField)(implicit state:S, pp:ProgramPoint):RichExpression = {
-    state.getFieldValue(List(obj),field.getName,field.getType).getExpression
+    state.getFieldValue(obj, field.getName, field.getType).getExpression
   }
 
   /*-- Skipping --*/

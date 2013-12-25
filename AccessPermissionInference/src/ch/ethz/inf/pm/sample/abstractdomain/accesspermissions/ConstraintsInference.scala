@@ -201,13 +201,12 @@ object ConstraintsInference {
 	      }
     }
   }
-  
-  private def statementToListString(s : Statement) : List[String] = s match {
-    //case x : VariableIdentifier => return x.toString() :: Nil
-    case Variable(pp, id) => return id.toString() :: Nil
-    case x : FieldAccess =>
-      if(x.objs.size != 1) throw new PermissionsException("This should NEVER happens HERE!");
-      else return statementToListString(x.objs.head) ::: x.field :: Nil;
+
+  private def statementToListString(s: Statement): List[String] = s match {
+    case v: Variable =>
+      v.id.toString() :: Nil
+    case x: FieldAccess =>
+      statementToListString(x.obj) ::: x.field :: Nil
   }
   
   def printConstraints() = {
@@ -555,7 +554,9 @@ object ConstraintsInference {
       var something : Boolean=false;
       x match {
         case FieldAndProgramPoint(pp, field, typ, _) => reach1(pp, env, store) match {
-          case Some(x) => something=true; result=FieldAccess(null, x :: Nil, field, typ) :: result;
+          case Some(x) =>
+            something = true
+            result = FieldAccess(null, x, field, typ) :: result
           case None =>
         }
         case v1 : SimpleProgramPointHeapIdentifier => reach1(v1, env, store) match {
@@ -584,7 +585,7 @@ object ConstraintsInference {
           case FieldAndProgramPoint(pp, field, typ, _) =>
             if(! pp.equals(id))
             reach1(pp, env, store) match {
-              case Some(x) => return Some(new FieldAccess(null, x :: Nil, field, null));
+              case Some(x) => return Some(new FieldAccess(null, x, field, null))
               case None =>
           }
     }
