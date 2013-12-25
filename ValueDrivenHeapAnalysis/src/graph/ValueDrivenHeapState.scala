@@ -23,32 +23,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 //  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Octagon(), env = Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
 //  def this(newExpr: ExpressionSet) = this(new HeapGraph[S](), new ApronInterface(None, new Box(), env = Set.empty[Identifier]).top().asInstanceOf[S], newExpr, false, false)
 
-
   def this(newAbstractHeap: HeapGraph[S], newGeneralValState: S, newExpr: ExpressionSet)  = this(newAbstractHeap,newGeneralValState,newExpr, false, false)
 
-
-  /**
-   Signals that we are going to analyze the statement at program point pp
-   This is particularly important to eventually partition a state following
-   the specified directives
-
-   @param pp The point of the program that is going to be analyzed
-   @return The abstract state eventually modified
-  */
-  def before(pp: ProgramPoint): ValueDrivenHeapState[S] = {
-    return this
-  }
-
-  /**
-  Creates a variable
-
-   @param x The name of the variable
-  @param typ The static type of the variable                                    \
-  @param pp The program point that creates the variable
-  @return The abstract state after the creation of the variable
-    */
   def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
-    //**println("creatVariable(" + x.toString + ", " + typ.toString + ". " + pp.toString + ") is called")
     if(this.isBottom) return this
     if(x.getSetOfExpressions.size != 1 || !x.getSetOfExpressions.head.isInstanceOf[VariableIdentifier])
       throw new SymbolicSemanticException("Cannot declare multiple variables together")
@@ -75,17 +52,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     return result
   }
 
-  /**
-  Creates a variable for an argument
-
-   @param x The name of the argument
-  @param typ The static type of the argument
-  @return The abstract state after the creation of the argument
-    */
   def createVariableForArgument(x: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
-
     if(this.isBottom) return this
-    //**println("createVariableForArgument(" + x.toString + ", " + typ.toString + ") is called")
     if(x.getSetOfExpressions.size != 1)
       throw new Exception("Cannot declare multiple variables together.")
     var result = bottom()
@@ -229,15 +197,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     result
   }
 
-  /**
-  Assigns an expression to a variable
-
-   @param x The assigned variable
-  @param right The assigned expression
-  @return The abstract state after the assignment
-    */
   def assignVariable(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = {
-    //**println("assignVariable(" + x.toString + "," + right.toString +") is called on " + this.toString())
     if(this.isBottom) return this
     if(right.isTop)
       return this.setVariableToTop(x).removeExpression()
@@ -430,10 +390,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-    /**
-     * This methods returns an expression that represents the given expression, the set of states in which this
-     * expression may exist and the set of added identifiers to the states with the last vertex of the expression.
-     */
+  /**
+   * This methods returns an expression that represents the given expression, the set of states in which this
+   * expression may exist and the set of added identifiers to the states with the last vertex of the expression.
+   */
   private def evaluateExpression(expr: Expression): (Expression, Set[(S, Set[Identifier], Map[AccessPathExpression, Path[S]])])= {
     expr match {
       case v: VariableIdentifier => {
@@ -577,17 +537,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  /**
-  Assigns an expression to a field of an object
-
-   @param obj The object whose field is assigned
-  @param field The assigned field
-  @param right The assigned expression
-  @return The abstract state after the assignment
-    */
   def assignField(obj: List[ExpressionSet], field: String, right: ExpressionSet): ValueDrivenHeapState[S] = {
     if (isBottom) return this
-    //**println("assignFiled(" + obj + ", " + field + ", " + right + ") is called.")
     assert(obj.size == 1 && obj.head.getSetOfExpressions.size == 1, "We are allowed to assign only single access path.")
     assert(right.getSetOfExpressions.size == 1, "We allow to assign only single expression")
     val leftExp = obj.head.getSetOfExpressions.head
@@ -690,13 +641,14 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-
   /**
-   * This method computes the edges that correspond to the reference assignment.
+   * This method computes the edges that correspond to a reference assignment.
    *
    * @param field to be assigned to the target nodes of the leftPaths
-   * @param leftPaths sequence of edges that correspond to paths of LHS of the assignment (without the last field)
-   * @param rightPaths sequence of edges that correspond to paths of RHS of the assignment
+   * @param leftPaths sequence of edges that correspond to paths of LHS
+   *                  of the assignment (without the last field)
+   * @param rightPaths sequence of edges that correspond to paths of RHS
+   *                   of the assignment
    * @return the set of edges that represent the reference assignment
    *
    * @author Milos Novacek
@@ -812,15 +764,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     graphPathConditionRecursive(path.tail, path.head.state.removeVariables(elIdsToRemove))
   }
 
-
-
   /**
-   * This methods computes the state that must be satisfied when following the given access path,
-   * the string representation of the access path and the set of identifiers that were newly created.
-   * Furthermore, the resulting state does not contain the edge local identifiers.
-   *
-   * @param path
-   * @return
+   * This methods computes the state that must be satisfied when following
+   * the given access path, the string representation of the access path and
+   * the set of identifiers that were newly created. Furthermore,
+   * the resulting state does not contain the edge local identifiers.
    */
   private def evaluateGraphPath(path : Path[S], pp: ProgramPoint): (S, AccessPathExpression, Set[AccessPathIdentifier], Map[AccessPathExpression, Path[S]]) = {
     assert(path.head.source.isInstanceOf[LocalVariableVertex], "The source of the path must represent a local variable.")
@@ -905,27 +853,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   def removeVariable(x: ExpressionSet): ValueDrivenHeapState[S] = ???
   def throws(t: ExpressionSet): ValueDrivenHeapState[S] = ???
 
-  /**
-  Gets the value of a variable
-
-   @param id The variable to access
-  @return The abstract state obtained after accessing the variable, that is, the state that contains as expression the symbolic representation of the value of the given variable
-    */
   def getVariableValue(id: Assignable): ValueDrivenHeapState[S] = {
-    //**println("getVariableValue(" + id.toString + ") is called")
     if(this.isBottom) return this
     assert(id.isInstanceOf[VariableIdentifier], "This should be VariableIdentifier.")
     copy(expr = new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]))
   }
 
-  /**
-  Accesses a field of an object
-
-   @param obj The object on which the field access is performed
-  @param field The name of the field
-  @param typ The type of the field
-  @return The abstract state obtained after the field access, that is, the state that contains as expression the symbolic representation of the value of the given field access
-    */
   def getFieldValue(obj: List[ExpressionSet], field: String, typ: Type): ValueDrivenHeapState[S] = {
     //**println("getFiledValue(" + obj.head.getSetOfExpressions.head + "," + field + "," + typ + ") is called")
     assert(obj.size == 1, "There should be only one ExpressionSet in obj.")
@@ -940,26 +873,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       copy(expr = new ExpressionSet(typ).add(obj.head))
   }
 
-  /**
-  Evaluates a numerical constant
-
-   @param value The string representing the numerical constant
-  @param typ The type of the numerical constant
-  @param pp The program point that contains the constant
-  @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
-    */
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
     //**println("evalConsta(" + value + "," + typ + "," + pp + ") is called.")
     if(this.isBottom) return this
     this.setExpression(new ExpressionSet(typ).add(new Constant(value, typ, pp)))
   }
 
-  /**
-  Assumes that a boolean expression holds
-
-   @param cond The assumed expression
-  @return The abstract state after assuming that the expression holds
-    */
   def assume(cond: ExpressionSet): ValueDrivenHeapState[S] = {
     if (isBottom) return this
 
@@ -1003,21 +922,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     // See version control history for the original code
   }
 
-  /**
-  Assumes that the current expression holds
-
-   @return The abstract state after assuming that the expression holds
-    */
   def testTrue(): ValueDrivenHeapState[S] = {
     //**println("testTrue() is called")
     return assume(getExpression)
   }
 
-  /**
-  Assumes that the current expression does not hold
-
-   @return The abstract state after assuming that the expression does not hold
-    */
   def testFalse(): ValueDrivenHeapState[S] = {
     val negatedExpressions = getExpression.getSetOfExpressions.map(exp => new NegatedBooleanExpression(exp))
     var negatedExpSet = new ExpressionSet(getExpression.getType())
@@ -1045,12 +954,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     return ValueDrivenHeapState(new HeapGraph[S](), generalValState.bottom(), expr, false, true)
   }
 
-  /**
-  Computes the upper bound of two elements
-
-  @param other The other value
-  @return The least upper bound, that is, an element that is greater or equal than the two arguments
-    */
   def lub(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
     //**println("lub(" + toString() + ", " + right.toString() + ") is called")
     if (isBottom || other.isTop)
@@ -1070,12 +973,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 //                                       right.expr, false, false)
   }
 
-  /**
-  Computes the greatest lower bound of two elements
-
-  @param other The other value
-  @return The greatest upper bound, that is, an element that is less or equal than the two arguments, and greater or equal than any other lower bound of the two arguments
-    */
   def glb(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
     if (isBottom || other.isBottom)
       return bottom()
@@ -1092,12 +989,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     return ValueDrivenHeapState(resultingAH, newGeneralValState, new ExpressionSet(SystemParameters.getType().top), false, false)
   }
 
-  /**
-  Computes widening of two elements
-
-  @param other The new value
-  @return The widening of <code>this</code> and <code>other</code>
-    */
   def widening(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
     def areGraphsIdentical(l: HeapGraph[S], r: HeapGraph[S]) : Boolean = {
       var areGraphsIdentical = true
@@ -1223,12 +1114,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl))
   }
 
-  /**
-  Returns true iff <code>this</code> is less or equal than <code>r</code>
-
-   @param r The value to compare
-  @return true iff <code>this</code> is less or equal than <code>r</code>
-    */
   def lessEqual(r: ValueDrivenHeapState[S]): Boolean = {
     // TODO: Implement properly
     //**println("lessEqua(" + r.toString + ") is called on " + this.toString)
@@ -1259,15 +1144,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  /**
-  Creates an object
-
-  @param typ The dynamic type of the created object
-  @param pp The point of the program that creates the object
-  @param fields If this is defined, the given fields will be created instead of the types fields (e.g. for reducing
-                  the set of initialized fields)
-  @return The abstract state after the creation of the object
-    */
   def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): ValueDrivenHeapState[S] = {
     //**println("creatObject(" + typ + "," + pp + "," + fields + ") is called.")
     if (this.isBottom) return this
@@ -1332,14 +1208,16 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     s"ValueDrivenHeapState(${abstractHeap.vertices.size} vertices, " +
     s"${abstractHeap.edges.size} edges)"
 
+  def before(pp: ProgramPoint): ValueDrivenHeapState[S] = this
+
   /**
    * Removes all variables satisfying filter
    */
   def pruneVariables(filter: (Identifier) => Boolean): ValueDrivenHeapState[S] = ???
 
   /**
-   * Detects summary nodes that are only reachable via a single access path and converts
-   * them to non-summary nodes
+   * Detects summary nodes that are only reachable via a single access path
+   * and converts them to non-summary nodes.
    */
   def optimizeSummaryNodes(): ValueDrivenHeapState[S] = ???
 
