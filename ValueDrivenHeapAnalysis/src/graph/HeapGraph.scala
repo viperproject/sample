@@ -541,7 +541,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: TreeSet[Vertex], edges: S
       }
   }
 
-  /** Returns true iff there is no weakly equal pair of edges in the grah. */
+  /** Returns true iff there is no weakly equal pair of edges in the graph. */
   def isNormalized: Boolean =
     weakEdgeEquivalenceSets.forall(_.size == 1)
 
