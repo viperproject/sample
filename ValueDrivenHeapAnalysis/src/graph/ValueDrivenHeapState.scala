@@ -965,29 +965,24 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
     assert(cond.getSetOfExpressions.size == 1, "Condition of several expressions are not supported.")
     val condition = cond.getSetOfExpressions.head
-    condition match {
+    val result = condition match {
       case NegatedBooleanExpression(e) => {
-        return assume(new ExpressionSet(e.getType).add(Utilities.negateExpression(e)))
+        assume(new ExpressionSet(e.getType).add(Utilities.negateExpression(e)))
       }
-      case BinaryBooleanExpression(l,r,o,t) => o match {
-        case BooleanOperator.&& => {
-          val result = assume(new ExpressionSet(l.getType).add(l)).assume(new ExpressionSet(r.getType).add(r))
-          assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
-          return result
+      case BinaryBooleanExpression(l,r,o,t) => {
+        val result = o match {
+          case BooleanOperator.&& =>
+            assume(new ExpressionSet(l.getType).add(l)).assume(new ExpressionSet(r.getType).add(r))
+          case BooleanOperator.|| =>
+            assume(new ExpressionSet(l.getType).add(l)).lub(assume(new ExpressionSet(r.getType).add(r)))
         }
-        case BooleanOperator.|| => {
-          val result = assume(new ExpressionSet(l.getType).add(l)).lub(assume(new ExpressionSet(r.getType).add(r)))
-          assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
-          return result
-        }
-        case _ => throw new Exception("Not supported.")
+        assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
+        result
       }
       case baExp : BinaryArithmeticExpression => {
         val baExpConds = newEvaluateExpression(baExp)
 
-        /**
-         * Computing new general condition
-         */
+        // Compute new general value state
         val expGenCond = Utilities.applyConditions(Set(generalValState), baExpConds)
         var resultingGenCond = generalValState.bottom()
         for (cond <- expGenCond) {
@@ -995,23 +990,16 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         }
         resultingGenCond = Utilities.removeAccessPathIdentifiers(resultingGenCond)
 
-        /**
-         * Updating abstract heap graph
-         */
+        // Update abstract heap
         val tempAH = abstractHeap.valueAssumeOnEachEdge(baExp, expGenCond)
         val expr = new ExpressionSet(SystemParameters.getType().top)
         ValueDrivenHeapState(tempAH, resultingGenCond, expr, false, false).prune()
       }
-      case x => {
+      case x =>
         println("ValueDrivenHeapState.assume: " + x + " is not supported.")
-        return this
-      }
-
+        this
     }
-
-
-    return this
-
+    result
     // See version control history for the original code
   }
 
