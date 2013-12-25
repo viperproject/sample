@@ -36,20 +36,20 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           if (variable.getType.isObject()) {
             result = result.copy(
               abstractHeap = result.abstractHeap.addNewVertex(variable.getName, typ)._1,
-              expr = new ExpressionSet(typ).add(new VariableIdentifier(variable.getName, variable.getType, variable.getProgramPoint, variable.scope))
+              expr = new ExpressionSet(typ).add(variable)
             )
           } else {
             result = result.copy(
               abstractHeap = result.abstractHeap.createVariablesInAllStates(Set(variable)),
               generalValState = result.generalValState.createVariable(variable, variable.getType),
-              expr = new ExpressionSet(typ).add(new VariableIdentifier(variable.getName, variable.getType, variable.getProgramPoint, variable.scope))
+              expr = new ExpressionSet(typ).add(variable)
             )
           }
         }
         case _ => throw new Exception("Only variables can be created.")
       }
     }
-    return result
+    result
   }
 
   def createVariableForArgument(x: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
