@@ -558,6 +558,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: Set[Vertex], edges: Set[E
           var resultingState = edge.state.bottom()
           for (cond <- Utilities.applyConditions(Set(edge.state), condsForExp))
             resultingState = resultingState.lub(cond.assign(v, rightExp))
+          resultingState = Utilities.removeAccessPathIdentifiers(resultingState)
           if (!resultingState.lessEqual(resultingState.bottom()))
             resultingEdges += edge.copy(state = resultingState)
         }

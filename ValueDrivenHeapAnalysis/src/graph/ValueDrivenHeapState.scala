@@ -218,6 +218,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             for (c <- genValAndExpressionConds)
               resultGenValState = resultGenValState.lub(c.assign(variable, rightExp))
 
+            resultGenValState = Utilities.removeAccessPathIdentifiers(resultGenValState)
+
             if (resultGenValState.lessEqual(resultGenValState.bottom()))
               return bottom()
 
