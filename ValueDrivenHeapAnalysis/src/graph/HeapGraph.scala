@@ -71,8 +71,6 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: Set[Vertex], edges: Set[E
         }
         return result
       }
-      case _ =>
-        throw new Exception("This should never happen.")
     }
   }
 
@@ -455,10 +453,12 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: Set[Vertex], edges: Set[E
    * @author Milos Novacek
    */
   private def reachableFromLocalVariable() : Map[HeapVertex, Set[LocalVariableVertex]] = {
-    val queue = scala.collection.mutable.Queue.empty[HeapVertex]
-    var result = scala.collection.mutable.Map.empty[HeapVertex, Set[LocalVariableVertex]]
+    val queue = mutable.Queue.empty[HeapVertex]
+    var result = mutable.Map.empty[HeapVertex, Set[LocalVariableVertex]]
     for (v <- vertices.collect({ case v: HeapVertex => v })) {
-      val initSet : Set[LocalVariableVertex] = edges.filter(e => e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex]).map(_.source).asInstanceOf[Set[LocalVariableVertex]]
+      val initSet : Set[LocalVariableVertex] = edges.filter(e =>
+        e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex])
+        .map(_.source).asInstanceOf[Set[LocalVariableVertex]]
       result += (v -> initSet)
       if (!initSet.isEmpty)
         queue.enqueue(v)
@@ -555,7 +555,7 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: Set[Vertex], edges: Set[E
                        rightExp : Expression,
                        condsForExp : Set[S]) : HeapGraph[S] = {
     // Assume that each value state in pathsToConds.values does not have EdgeLocalIdentifiers (Precondition)
-    var resultingEdges = scala.collection.mutable.Set.empty[EdgeWithState[S]]
+    var resultingEdges = mutable.Set.empty[EdgeWithState[S]]
     variable match {
       case Some(v) => {
         for (edge <- edges) {

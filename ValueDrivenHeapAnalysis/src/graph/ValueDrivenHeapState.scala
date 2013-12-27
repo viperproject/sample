@@ -130,7 +130,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       var newGenValState = generalValState.factory()
       newGenValState = newGenValState.createVariables(idsToCreate)
       // Create edges between HeapVertices taking into account sub-typing.
-      val resultingEdges = scala.collection.mutable.Set.empty[EdgeWithState[S]]
+      val resultingEdges = mutable.Set.empty[EdgeWithState[S]]
       for (heapVertex <- newVertices.collect({ case v: HeapVertex => v })) {
         // Setting up source EdgeLocalIdentifiers
         var sourceValState = newGenValState
@@ -351,7 +351,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       }
       case ap: AccessPathExpression => {
         val field = ap.path.last
-        val resultingSet = scala.collection.mutable.Set.empty[S]
+        val resultingSet = mutable.Set.empty[S]
         // Those that lead to null are not interesting
         for (path <- abstractHeap.getPaths(ap.path.dropRight(1)).filter(_.last.target.isInstanceOf[HeapVertex])) {
           // We find the condition for the path
@@ -609,7 +609,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       assert(rightExp.getType.isNumericalType(), "For now we allow only numerical values")
       val field = leftAccPath.path.last
       // We construct a map that says which id is assigned and under which condition
-      val pathsToAssignUnderConditions = scala.collection.mutable.Map.empty[Path[S], S]
+      val pathsToAssignUnderConditions = mutable.Map.empty[Path[S], S]
       for (lPath <- leftPaths) {
         val lPathCond = graphPathCondition(lPath)
         val lPathCondEdgeLocalIds = lPathCond.getIds().collect({case id: EdgeLocalIdentifier => id })
