@@ -27,7 +27,7 @@ class ValueDrivenHeapAnalysis extends Analysis {
 
   def reset() {}
 
-  def getInitialState(): ValueDrivenHeapState[ApronInterface] = new ValueDrivenHeapState[ApronInterface](new ExpressionSet(SystemParameters.getType.top)).top()
+  def getInitialState(): ValueDrivenHeapState[ApronInterface] = new ValueDrivenHeapState[ApronInterface](ExpressionSet()).top()
 
   def getProperties(): List[Property] = List(
     //    new ShowGraphProperty().asInstanceOf[Property]

@@ -159,6 +159,16 @@ class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpressio
 
 }
 
+object ExpressionSet {
+  /** Creates a singleton `ExpressionSet` from a given expression. */
+  def apply(exp: Expression): ExpressionSet =
+    new ExpressionSet(exp.getType).add(exp)
+
+  /** Creates an empty `ExpressionSet` whose type is top. */
+  def apply(): ExpressionSet =
+    new ExpressionSet(SystemParameters.typ.top())
+}
+
 class SetOfExpressions(_value: Set[Expression] = Set.empty[Expression], _isTop: Boolean = false, _isBottom: Boolean = false)
   extends SetDomain[Expression, SetOfExpressions](_value,_isTop,_isBottom) {
 
@@ -210,7 +220,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   def removeExpression() : AbstractState[N,H,I] = {
     if(this.isBottom) return this
-    new AbstractState(this._1, new ExpressionSet(SystemParameters.typ.top()))
+    new AbstractState(this._1, ExpressionSet())
   }
 
   def createVariable(x : ExpressionSet, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] = {
@@ -270,14 +280,14 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.assign(variable, assigned), this._2)
             result=result.lub(done)
-            result=result.setExpression(new ExpressionSet(variable.getType.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
         case ids : HeapIdSetDomain[I]=> {
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, ids, this._1.assign(_, assigned)), this._2)
             result=result.lub(done)
-            result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(ids.getType.top(), ids.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(ids.getType.top(), ids.getProgramPoint)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can assign only variables here")
@@ -335,7 +345,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.backwardAssign(variable, assigned), this._2)
             result=result.lub(done)
-            result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -356,7 +366,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.setArgument(variable, assigned), this._2)
             result=result.lub(done)
-            result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -373,9 +383,9 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       el match {
         case variable : Assignable => {
           for(previousState <- x.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](this._1.removeVariable(variable), new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            val done=new AbstractState[N,H,I](this._1.removeVariable(variable), ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
             result=result.lub(done)
-            result=result.setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can remove only variables")
@@ -388,19 +398,19 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   def evalConstant(value : String, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
-    this.setExpression(new ExpressionSet(typ).add(new Constant(value, typ, pp)))
+    this.setExpression(ExpressionSet(new Constant(value, typ, pp)))
   }
 
   def getVariableValue(id : Assignable) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
     val state = new AbstractState(this._1.access(id), this.removeExpression().getExpression)
-    new AbstractState(state._1, new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]))
+    new AbstractState(state._1, ExpressionSet(id.asInstanceOf[Expression]))
   }
 
   def backwardGetVariableValue(id : Assignable) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
     val state = new AbstractState(this._1.backwardAccess(id), this.removeExpression().getExpression)
-    new AbstractState(state._1, new ExpressionSet(id.getType).add(id.asInstanceOf[Expression]))
+    new AbstractState(state._1, ExpressionSet(id.asInstanceOf[Expression]))
   }
 
   def getType(variable : Identifier) : Type = {//TODO: is this correct???
@@ -539,7 +549,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
     def getCollectionValue(result: AbstractState[N, H, I])(valueId: Assignable) = {
       val (newHeapAndSemantic, ids) = result._1.getCollectionValue(valueId)
-      val newExpressions = new ExpressionSet(ids.getType).add(ids)
+      val newExpressions = ExpressionSet(ids)
       new AbstractState[N, H, I](newHeapAndSemantic, newExpressions)
     }
 
@@ -566,7 +576,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
       var expressions = new ExpressionSet(ids.getType).bottom()
       if (!ids.isBottom) {
-        expressions = new ExpressionSet(ids.getType).add(ids)
+        expressions = ExpressionSet(ids)
       }
 
       new AbstractState[N,H,I](newHeapAndSemantic, expressions)
@@ -801,7 +811,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
       var expressions = new ExpressionSet(ids.getType).bottom()
       if (!ids.isBottom) {
-        expressions = new ExpressionSet(ids.getType).add(ids)
+        expressions = ExpressionSet(ids)
       }
 
       new AbstractState(newHeapAndSemantic, expressions)
@@ -831,7 +841,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
       var expressions = new ExpressionSet(ids.getType)
       if (!ids.isBottom) {
-        expressions = new ExpressionSet(ids.getType).add(ids)
+        expressions = ExpressionSet(ids)
       }
 
       new AbstractState(newHeapAndSemantic, expressions)
@@ -861,7 +871,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
       var expressions = new ExpressionSet(ids.getType).bottom()
       if(!ids.isBottom){
-        expressions = new ExpressionSet(ids.getType).add(ids)
+        expressions = ExpressionSet(ids)
       }
 
       new AbstractState(newHeapAndSemantic, expressions)
@@ -945,7 +955,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
       var expressions = new ExpressionSet(ids.getType).bottom()
       if(!ids.isBottom){
-        expressions = new ExpressionSet(ids.getType).add(ids)
+        expressions = ExpressionSet(ids)
       }
 
       new AbstractState(newHeapAndSemantic, expressions)
@@ -973,7 +983,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
       var expressions = new ExpressionSet(ids.getType).bottom()
       if(!ids.isBottom){
-        expressions = new ExpressionSet(ids.getType).add(ids)
+        expressions = ExpressionSet(ids)
       }
 
       new AbstractState(newHeapAndSemantic, expressions)

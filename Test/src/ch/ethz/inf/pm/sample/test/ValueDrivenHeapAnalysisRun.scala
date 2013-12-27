@@ -36,7 +36,7 @@ object ValueDrivenHeapAnalysisRun {
     SystemParameters.compiler.compile(file :: Nil);
 
     //EntryState
-    val entryState = new ValueDrivenHeapState[ApronInterface](new ExpressionSet(SystemParameters.getType.top)).top()
+    val entryState = new ValueDrivenHeapState[ApronInterface](ExpressionSet()).top()
     //entryState.isBottom = true
 
     var analyzer = new ValueDrivenHeapAnalysis()

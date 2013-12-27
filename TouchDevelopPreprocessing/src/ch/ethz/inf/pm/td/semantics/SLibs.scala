@@ -25,7 +25,7 @@ class SLibs extends AAny {
                                               (implicit pp:ProgramPoint,state:S):S = {
 
     val typ = new TouchType("♻"+method,isSingleton = true)
-    state.setExpression(new ExpressionSet(typ).add(Constant("",typ,pp)))
+    state.setExpression(ExpressionSet(Constant("", typ, pp)))
 
   }
 }

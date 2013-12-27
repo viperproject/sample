@@ -938,7 +938,7 @@ object InterfaceTestRun {
 
     val domain: T = semanticAnalysis.getInitialState
     val entrydomain: HeapAndAnotherDomain[T, H, I] = new HeapAndAnotherDomain[T, H, I](domain, heapDomain)
-    val entryvalue: ExpressionSet = new ExpressionSet(SystemParameters.getType.top)
+    val entryvalue = ExpressionSet()
     val entryState = new AbstractState[T, H, I](entrydomain, entryvalue)
     var methods = List.empty[String]
     for (c <- classes)

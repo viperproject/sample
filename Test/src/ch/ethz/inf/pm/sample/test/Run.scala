@@ -189,7 +189,7 @@ object Run {
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
     val output: OutputCollector = new OutputCollector
-    val entryState = new AbstractState[N, H, I](entryDomain, new ExpressionSet(SystemParameters.typ.top()))
+    val entryState = new AbstractState[N, H, I](entryDomain, ExpressionSet())
     analysis.analyze(methods, entryState, output)
     val result = output.outputs
     (expectedOutput, result)

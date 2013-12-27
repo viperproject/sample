@@ -313,7 +313,7 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
       // TODO: The below fix is a hack and should not be handled this way
       val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(obj).getPossibleFields().filter(f => f.getName.equals(field)).head.getType else typ
       val pathExpr = new AccessPathExpression(pp, finalType, accPath :+ field)
-      val newResult = state.getFieldValue(new ExpressionSet(pathExpr.getType).add(pathExpr), field, finalType)
+      val newResult = state.getFieldValue(ExpressionSet(pathExpr), field, finalType)
       newResult
     } else {
       val (expr, objState) = UtilitiesOnStates.forwardExecuteStatement(state, obj)

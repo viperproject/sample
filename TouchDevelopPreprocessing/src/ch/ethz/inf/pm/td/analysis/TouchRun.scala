@@ -49,7 +49,7 @@ object TouchRun {
         val entryDomain =
           new HeapAndAnotherDomain[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
 
-        val entryValue = new ExpressionSet(SystemParameters.typ.top())
+        val entryValue = ExpressionSet()
 
         val entryState = new AbstractState[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
@@ -101,7 +101,7 @@ object TouchApronRun {
         val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain, env = Set.empty).factory()))
         val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
-        val entryValue = new ExpressionSet(SystemParameters.typ.top())
+        val entryValue = ExpressionSet()
 
         if (TouchAnalysisParameters.enableCollectionSummaryAnalysis) {
           val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)

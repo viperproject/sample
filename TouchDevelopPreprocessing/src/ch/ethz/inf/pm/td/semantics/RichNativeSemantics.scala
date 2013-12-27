@@ -43,7 +43,7 @@ object RichNativeSemantics {
 
   def Error[S <: State[S]](expr:RichExpression, message:String)(implicit state:S, pp:ProgramPoint):S = {
     if(!state.isInstanceOf[AccessCollectingState]) {
-      val errorState = state.assume( expr ).setExpression(new ExpressionSet(SystemParameters.typ.top()).add(new UnitExpression(SystemParameters.typ.top(),pp)))
+      val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
       if(!errorState.lessEqual(state.bottom())) {
         if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
           || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)) {
@@ -104,9 +104,9 @@ object RichNativeSemantics {
                          initialCollectionValue: Option[RichExpression] = None)(implicit s:S, pp:ProgramPoint): S = {
 
     typ.getName match {
-      case TNumber.typName => s.setExpression(new ExpressionSet(TNumber.typ).add(Constant("0",TNumber.typ,pp)))
+      case TNumber.typName => s.setExpression(ExpressionSet(Constant("0", TNumber.typ, pp)))
       case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(False))
-      case TString.typName => s.setExpression(new ExpressionSet(TString.typ).add(Constant("",TString.typ,pp)))
+      case TString.typName => s.setExpression(ExpressionSet(Constant("", TString.typ, pp)))
       case _ =>
 
         val fields =
@@ -642,14 +642,14 @@ object RichNativeSemantics {
   implicit def toRichExpression(value:Inclusive) : RichExpression =
     toRichExpression(value.head) ndTo toRichExpression(value.last)
 
-  implicit def toRichExpression(value:Int) : RichExpression =
-    RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ,null)))
+  implicit def toRichExpression(value: Int): RichExpression =
+    RichExpression(ExpressionSet(new Constant(value.toString, TNumber.typ, null)))
 
-  implicit def toRichExpression(value:Double) : RichExpression =
-    RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ,null)))
+  implicit def toRichExpression(value: Double): RichExpression =
+    RichExpression(ExpressionSet(new Constant(value.toString, TNumber.typ, null)))
 
-  implicit def toRichExpression(value:Expression) : RichExpression =
-    RichExpression(new ExpressionSet(value.getType).add(value))
+  implicit def toRichExpression(value: Expression): RichExpression =
+    RichExpression(ExpressionSet(value))
 
   implicit def toExpressionSet(value:RichExpression) : ExpressionSet =
     value.thisExpr

@@ -421,7 +421,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * @return The symbolic abstract value
    */
   override def getExpression: ExpressionSet = {
-    var expr = new ExpressionSet(SystemParameters.typ.top())//TODO:Maybe I could be more precise
+    var expr = ExpressionSet() // TODO: Maybe I could be more precise
     for (s <- partitioning.states; e <- s.getExpression.getSetOfExpressions)
       expr = expr.add(e)
     expr
@@ -644,7 +644,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
       cx <- combinations(xs)
       val es = cx.map(_.getSetOfExpressions.head)
       val ps = for ((e, v) <- es.zip(cx)) yield this.partitioning
-      val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield new ExpressionSet(e.getType).add(e)))
+      val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => f(s, for ((e, t) <- es.zip(ss)) yield ExpressionSet(e)))
     } yield new PartitionedState(pc)
 
     lub(separate)
@@ -671,8 +671,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
       val ps = for ((e, v) <- es.zip(cx:::cy)) yield this.partitioning
       val pc = partitioning.zipmap(ps, (s: D, ss: List[D]) => {
         f(s,
-          for ((e, t) <- es.zip(ss).take(n)) yield new ExpressionSet(e.getType).add(e),
-          for ((e, t) <- es.zip(ss).drop(n)) yield new ExpressionSet(e.getType).add(e))
+          for ((e, t) <- es.zip(ss).take(n)) yield ExpressionSet(e),
+          for ((e, t) <- es.zip(ss).drop(n)) yield ExpressionSet(e))
       })
     } yield new PartitionedState(pc)
 
