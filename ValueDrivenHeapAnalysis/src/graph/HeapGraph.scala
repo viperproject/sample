@@ -504,7 +504,11 @@ case class HeapGraph[S <: SemanticDomain[S]](vertices: Set[Vertex], edges: Set[E
         var newType = v.head.typ.bottom()
         for (vrtx <- v)
           newType = newType.lub(vrtx.typ)
-        val newVertex = new SummaryHeapVertex(v.head.version, newType)
+        // If there is a summary vertex among the vertices to be merged,
+        // reuse its version for the new summary vertex.
+        // See issue #22.
+        val newVersion = v.find(_.isInstanceOf[SummaryHeapVertex]).getOrElse(v.head).version
+        val newVertex = new SummaryHeapVertex(newVersion, newType)
         newVertices = newVertices + newVertex
         for (vrtx <- v)
           mergeMap.update(vrtx, newVertex)
