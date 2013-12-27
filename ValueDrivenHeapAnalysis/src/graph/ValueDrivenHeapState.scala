@@ -38,8 +38,20 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     if (this.isBottom) return this
 
     if (variable.getType.isObject()) {
+      // Initialize references variables to null such that the heap is not
+      // treated as bottom, making it possible to analyze programs with more
+      // than one local reference variable. This is unsound, e.g., since two
+      // uninitialized reference variables 'a' and 'b' should not be
+      // considered equal.
+      // A sound implementation would use a summary node (representing top)
+      // similar to `createVariableForArgument`.
+      val nullVertex = new NullVertex()
+      val varVertex = new LocalVariableVertex(variable.getName, variable.getType)
+      val newVertices = Set(nullVertex, varVertex)
+      val edgeToNull = EdgeWithState(varVertex, generalValState, None, nullVertex)
+      val newAbstractHeap = abstractHeap.addVertices(newVertices).addEdges(Set(edgeToNull))
       copy(
-        abstractHeap = abstractHeap.addNewVertex(variable.getName, typ)._1,
+        abstractHeap = newAbstractHeap,
         expr = new ExpressionSet(typ).add(variable))
     } else {
       copy(
