@@ -49,7 +49,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  private def createVariableForArgument(vars: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
+  def createVariableForArgument(vars: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
     require(vars.getSetOfExpressions.size == 1,
       "Cannot declare multiple variables together")
     require(vars.getSetOfExpressions.head.isInstanceOf[VariableIdentifier],
@@ -58,7 +58,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     createVariableForArgument(id, typ)
   }
 
-  def createVariableForArgument(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
+  private def createVariableForArgument(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
     if (this.isBottom) return this
     if (variable.getType.isObject()) {
       // If the variable is an object, we need to create an object for a method argument. This is different than
