@@ -9,17 +9,6 @@ object VertexConstants {
   val NULL = "null"
 }
 
-object VertexVersionNumbers {
-
-  def getNextSmallestVersion(usedVersionNumbers : Set[Int]): Int = {
-    for (i <- 0 to Int.MaxValue) {
-      if (!usedVersionNumbers.contains(i))
-        return i
-    }
-    return -1
-  }
-}
-
 abstract class Vertex(val name: String, val label: String, val typ: Type) extends Ordered[Vertex]{
 
   override def toString(): String = {
