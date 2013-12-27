@@ -25,176 +25,172 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
   def this(newAbstractHeap: HeapGraph[S], newGeneralValState: S, newExpr: ExpressionSet)  = this(newAbstractHeap,newGeneralValState,newExpr, false, false)
 
-  def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
-    if(this.isBottom) return this
-    if(x.getSetOfExpressions.size != 1 || !x.getSetOfExpressions.head.isInstanceOf[VariableIdentifier])
-      throw new SymbolicSemanticException("Cannot declare multiple variables together")
-    var result = this
-    for(el <- x.getSetOfExpressions) {
-      el match {
-        case variable : VariableIdentifier => {
-          if (variable.getType.isObject()) {
-            result = result.copy(
-              abstractHeap = result.abstractHeap.addNewVertex(variable.getName, typ)._1,
-              expr = new ExpressionSet(typ).add(variable)
-            )
-          } else {
-            result = result.copy(
-              abstractHeap = result.abstractHeap.createVariablesInAllStates(Set(variable)),
-              generalValState = result.generalValState.createVariable(variable, variable.getType),
-              expr = new ExpressionSet(typ).add(variable)
-            )
-          }
-        }
-        case _ => throw new Exception("Only variables can be created.")
-      }
-    }
-    result
+  def createVariable(vars: ExpressionSet, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
+    require(vars.getSetOfExpressions.size == 1,
+      "Cannot declare multiple variables together")
+    require(vars.getSetOfExpressions.head.isInstanceOf[VariableIdentifier],
+      "Expression must be a VariableIdentifier")
+    val id = vars.getSetOfExpressions.head.asInstanceOf[VariableIdentifier]
+    createVariable(id, typ)
   }
 
-  def createVariableForArgument(x: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
-    if(this.isBottom) return this
-    if(x.getSetOfExpressions.size != 1)
-      throw new Exception("Cannot declare multiple variables together.")
-    var result = bottom()
-    for(el <- x.getSetOfExpressions) {
-      el match {
-        case variable : VariableIdentifier => {
-          if (variable.getType.isObject()) {
-            // If the variable is an object, we need to create an object for a method argument. This is different than
-            // the normal object creation as we need to create such an object as Top and it can possibly alias(and be
-            // aliased by any) other argument (or this).
-            /**
-             * STRATEGY:
-             * We inspect the type and figure out whether such object already exists in the abstract heap. If so, we
-             * check, whether it is a summary or a definite node. If it is definite, we change it to summary. Than we
-             * point the variable to the summary node. If the object of the given type does not exist, we create it.
-             * We need to create objects for all the types that are reachable via fields of the given object. We need
-             * to take under consideration also the aliasing information.
-             *
-             * Furthermore, an argument may also point to null.
-             */
-            // We first check, whether an object of the given type already exists.
-            assert(abstractHeap.vertices.count(n => n.isInstanceOf[HeapVertex] && n.typ.equals(typ)) <= 1, "There should not be more than one heap node of a given type when creating arguments. If so, it should be a single summary node.")
-            // Let us first create all the vertices and only then the edges.
-            var definiteTypes = abstractHeap.vertices.filter(_.isInstanceOf[DefiniteHeapVertex]).map(_.typ)
-            var summaryTypes = abstractHeap.vertices.filter(_.isInstanceOf[SummaryHeapVertex]).map(_.typ)
-            val typeStack = mutable.Stack(typ)
-            while (!typeStack.isEmpty) {
-              val typeAtTop = typeStack.pop()
-              if (!definiteTypes.contains(typeAtTop) && !summaryTypes.contains(typeAtTop)) {
-                definiteTypes = definiteTypes + typeAtTop
-              } else if (definiteTypes.contains(typeAtTop)) {
-                definiteTypes = definiteTypes - typeAtTop
-                summaryTypes = summaryTypes + typeAtTop
-              }
-              for (objectField <- typeAtTop.objectFields)
-                if (!summaryTypes.contains(objectField.getType))
-                  typeStack.push(objectField.getType)
-            }
-            var newVertices = abstractHeap.vertices.filter(_.isInstanceOf[LocalVariableVertex])
-            var idsToCreate = generalValState.getIds().filter(_.isInstanceOf[VariableIdentifier])
-            // Add null vertex and LocalVariableVertex that represents the argument under creation
-            val nullVertex = new NullVertex()
-            newVertices = newVertices ++ Set(nullVertex, new LocalVariableVertex(variable.getName, variable.getType))
-            // The vertex version (bit of a hack but more efficient than creating new HeapGraph, needs refactoring)
-            var vertexId = 0
-            // Adding definite vertices and corresponding identifiers
-            for (defType <- definiteTypes) {
-              val defVertexToAdd = new DefiniteHeapVertex(vertexId, defType)
-              vertexId = vertexId + 1
-              newVertices = newVertices + defVertexToAdd
-              for (valField <- defType.nonObjectFields)
-                idsToCreate = idsToCreate + ValueHeapIdentifier(defVertexToAdd, valField)
-            }
-            // Adding summary vertices and corresponding identifiers
-            for (sumType <- summaryTypes) {
-              val sumVertexToAdd = new SummaryHeapVertex(vertexId, sumType)
-              vertexId = vertexId + 1
-              newVertices = newVertices + sumVertexToAdd
-              for (valField <- sumType.nonObjectFields)
-                idsToCreate = idsToCreate + ValueHeapIdentifier(sumVertexToAdd, valField)
-            }
-            var newGenValState = generalValState.factory()
-            newGenValState = newGenValState.createVariables(idsToCreate)
-            // Create edges between HeapVertices taking into account sub-typing.
-            val resultingEdges = scala.collection.mutable.Set.empty[EdgeWithState[S]]
-            for (heapVertex <- newVertices.collect({ case v: HeapVertex => v })) {
-              // Setting up source EdgeLocalIdentifiers
-              var sourceValState = newGenValState
-              for (valField <- heapVertex.typ.nonObjectFields) {
-                val srcEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
-                val valHeapId = ValueHeapIdentifier(heapVertex, valField)
-                sourceValState = sourceValState.createVariable(srcEdgeLocId, srcEdgeLocId.getType)
-                sourceValState = sourceValState.assume(new BinaryArithmeticExpression(valHeapId, srcEdgeLocId, ArithmeticOperator.==, null))
-              }
-              for (objField <- heapVertex.typ.objectFields) {
-                // objField can always point to null (which has no target EdgeLocalIdentifiers)
-                resultingEdges += EdgeWithState(heapVertex, sourceValState, Some(objField.getName), nullVertex)
-                // Finding all possible HeapVertices to which this object field can point to, taking into account sub-typing
-                for (canPointToVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(objField.getType) => v })) {
-                  var trgValState = sourceValState
-                  for (objValField <- objField.getType.nonObjectFields) {
-                    val trgEdgeLocId = EdgeLocalIdentifier(List(objField.getName), objValField)
-                    val valHeapId = ValueHeapIdentifier(heapVertex, objField)
-                    trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
-                    trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
-                  }
-                  resultingEdges += EdgeWithState(heapVertex, trgValState, Some(objField.getName), canPointToVertex)
-                }
-              }
-            }
-            // Creating edges from LocalVariableVertices to HeapVertices (with sub-typing) and to NullVertex (except for "this" variable)
-            for (locVarVertex <- newVertices.collect({ case v: LocalVariableVertex => v })) {
-              // Only treat a local variable vertex named "this" differently
-              // if the current method is non-static.
-              // This is a simple work-around for the following issue:
-              // https://bitbucket.org/semperproject/sample/issue/16
-              // TODO: The constant "this" should probably not be hard-coded
-              // into analyses, if we want the analyses to be independent
-              // from source languages.
+  private def createVariable(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
+    if (this.isBottom) return this
 
-              // We cannot use the compiler method `getMethod` as the current
-              // parameter list is not available.
-              val methods = SystemParameters.compiler.getMethods(SystemParameters.currentMethod)
-              // Works as long as there is no method overloading
-              assert(methods.size == 1)
+    if (variable.getType.isObject()) {
+      copy(
+        abstractHeap = abstractHeap.addNewVertex(variable.getName, typ)._1,
+        expr = new ExpressionSet(typ).add(variable))
+    } else {
+      copy(
+        abstractHeap = abstractHeap.createVariablesInAllStates(Set(variable)),
+        generalValState = generalValState.createVariable(variable, variable.getType),
+        expr = new ExpressionSet(typ).add(variable))
+    }
+  }
 
-              val isInstanceVar = locVarVertex.name.equals("this") &&
-                !methods.head._2.modifiers.contains(StaticModifier)
+  private def createVariableForArgument(vars: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
+    require(vars.getSetOfExpressions.size == 1,
+      "Cannot declare multiple variables together")
+    require(vars.getSetOfExpressions.head.isInstanceOf[VariableIdentifier],
+      "Expression must be a VariableIdentifier")
+    val id = vars.getSetOfExpressions.head.asInstanceOf[VariableIdentifier]
+    createVariableForArgument(id, typ)
+  }
 
-              // Arguments can point to null
-              if (!isInstanceVar) {
-                // Only arguments other than "this" can point to null
-                resultingEdges += EdgeWithState(locVarVertex, newGenValState, None, nullVertex)
-              }
-              for (heapVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(locVarVertex.typ) => v })) {
-                // "this" must have an exact type
-                if (!isInstanceVar || heapVertex.typ.equals(locVarVertex.typ)) {
-                  // Create target EdgeLocalIdentifiers
-                  var trgValState = newGenValState
-                  for (valField <- heapVertex.typ.nonObjectFields) {
-                    val trgEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
-                    val valHeapId = ValueHeapIdentifier(heapVertex, valField)
-                    trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
-                    trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
-                  }
-                  resultingEdges += EdgeWithState(locVarVertex, trgValState, None, heapVertex)
-                }
-              }
+  def createVariableForArgument(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
+    if (this.isBottom) return this
+    if (variable.getType.isObject()) {
+      // If the variable is an object, we need to create an object for a method argument. This is different than
+      // the normal object creation as we need to create such an object as Top and it can possibly alias(and be
+      // aliased by any) other argument (or this).
+      /**
+       * STRATEGY:
+       * We inspect the type and figure out whether such object already exists in the abstract heap. If so, we
+       * check, whether it is a summary or a definite node. If it is definite, we change it to summary. Than we
+       * point the variable to the summary node. If the object of the given type does not exist, we create it.
+       * We need to create objects for all the types that are reachable via fields of the given object. We need
+       * to take under consideration also the aliasing information.
+       *
+       * Furthermore, an argument may also point to null.
+       */
+      // We first check, whether an object of the given type already exists.
+      assert(abstractHeap.vertices.count(n => n.isInstanceOf[HeapVertex] && n.typ.equals(typ)) <= 1, "There should not be more than one heap node of a given type when creating arguments. If so, it should be a single summary node.")
+      // Let us first create all the vertices and only then the edges.
+      var definiteTypes = abstractHeap.vertices.filter(_.isInstanceOf[DefiniteHeapVertex]).map(_.typ)
+      var summaryTypes = abstractHeap.vertices.filter(_.isInstanceOf[SummaryHeapVertex]).map(_.typ)
+      val typeStack = mutable.Stack(typ)
+      while (!typeStack.isEmpty) {
+        val typeAtTop = typeStack.pop()
+        if (!definiteTypes.contains(typeAtTop) && !summaryTypes.contains(typeAtTop)) {
+          definiteTypes = definiteTypes + typeAtTop
+        } else if (definiteTypes.contains(typeAtTop)) {
+          definiteTypes = definiteTypes - typeAtTop
+          summaryTypes = summaryTypes + typeAtTop
+        }
+        for (objectField <- typeAtTop.objectFields)
+          if (!summaryTypes.contains(objectField.getType))
+            typeStack.push(objectField.getType)
+      }
+      var newVertices = abstractHeap.vertices.filter(_.isInstanceOf[LocalVariableVertex])
+      var idsToCreate = generalValState.getIds().filter(_.isInstanceOf[VariableIdentifier])
+      // Add null vertex and LocalVariableVertex that represents the argument under creation
+      val nullVertex = new NullVertex()
+      newVertices = newVertices ++ Set(nullVertex, new LocalVariableVertex(variable.getName, variable.getType))
+      // The vertex version (bit of a hack but more efficient than creating new HeapGraph, needs refactoring)
+      var vertexId = 0
+      // Adding definite vertices and corresponding identifiers
+      for (defType <- definiteTypes) {
+        val defVertexToAdd = new DefiniteHeapVertex(vertexId, defType)
+        vertexId = vertexId + 1
+        newVertices = newVertices + defVertexToAdd
+        for (valField <- defType.nonObjectFields)
+          idsToCreate = idsToCreate + ValueHeapIdentifier(defVertexToAdd, valField)
+      }
+      // Adding summary vertices and corresponding identifiers
+      for (sumType <- summaryTypes) {
+        val sumVertexToAdd = new SummaryHeapVertex(vertexId, sumType)
+        vertexId = vertexId + 1
+        newVertices = newVertices + sumVertexToAdd
+        for (valField <- sumType.nonObjectFields)
+          idsToCreate = idsToCreate + ValueHeapIdentifier(sumVertexToAdd, valField)
+      }
+      var newGenValState = generalValState.factory()
+      newGenValState = newGenValState.createVariables(idsToCreate)
+      // Create edges between HeapVertices taking into account sub-typing.
+      val resultingEdges = scala.collection.mutable.Set.empty[EdgeWithState[S]]
+      for (heapVertex <- newVertices.collect({ case v: HeapVertex => v })) {
+        // Setting up source EdgeLocalIdentifiers
+        var sourceValState = newGenValState
+        for (valField <- heapVertex.typ.nonObjectFields) {
+          val srcEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
+          val valHeapId = ValueHeapIdentifier(heapVertex, valField)
+          sourceValState = sourceValState.createVariable(srcEdgeLocId, srcEdgeLocId.getType)
+          sourceValState = sourceValState.assume(new BinaryArithmeticExpression(valHeapId, srcEdgeLocId, ArithmeticOperator.==, null))
+        }
+        for (objField <- heapVertex.typ.objectFields) {
+          // objField can always point to null (which has no target EdgeLocalIdentifiers)
+          resultingEdges += EdgeWithState(heapVertex, sourceValState, Some(objField.getName), nullVertex)
+          // Finding all possible HeapVertices to which this object field can point to, taking into account sub-typing
+          for (canPointToVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(objField.getType) => v })) {
+            var trgValState = sourceValState
+            for (objValField <- objField.getType.nonObjectFields) {
+              val trgEdgeLocId = EdgeLocalIdentifier(List(objField.getName), objValField)
+              val valHeapId = ValueHeapIdentifier(heapVertex, objField)
+              trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
+              trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
             }
-            result = result.lub(ValueDrivenHeapState(HeapGraph(newVertices, resultingEdges.toSet), newGenValState, new ExpressionSet(variable.getType).add(variable), isTop, isBottom))
-          } else {
-            // Arguments that are not objects are values and can not be aliased. Therefore, we just create them in the
-            // ordinary fashion.
-            result = result.lub(createVariable(x, typ, variable.getProgramPoint))
+            resultingEdges += EdgeWithState(heapVertex, trgValState, Some(objField.getName), canPointToVertex)
           }
         }
-        case _ => throw new Exception("Argument to be created is not a variable")
       }
+      // Creating edges from LocalVariableVertices to HeapVertices (with sub-typing) and to NullVertex (except for "this" variable)
+      for (locVarVertex <- newVertices.collect({ case v: LocalVariableVertex => v })) {
+        // Only treat a local variable vertex named "this" differently
+        // if the current method is non-static.
+        // This is a simple work-around for the following issue:
+        // https://bitbucket.org/semperproject/sample/issue/16
+        // TODO: The constant "this" should probably not be hard-coded
+        // into analyses, if we want the analyses to be independent
+        // from source languages.
+
+        // We cannot use the compiler method `getMethod` as the current
+        // parameter list is not available.
+        val methods = SystemParameters.compiler.getMethods(SystemParameters.currentMethod)
+        // Works as long as there is no method overloading
+        assert(methods.size == 1)
+
+        val isInstanceVar = locVarVertex.name.equals("this") &&
+          !methods.head._2.modifiers.contains(StaticModifier)
+
+        // Arguments can point to null
+        if (!isInstanceVar) {
+          // Only arguments other than "this" can point to null
+          resultingEdges += EdgeWithState(locVarVertex, newGenValState, None, nullVertex)
+        }
+        for (heapVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(locVarVertex.typ) => v })) {
+          // "this" must have an exact type
+          if (!isInstanceVar || heapVertex.typ.equals(locVarVertex.typ)) {
+            // Create target EdgeLocalIdentifiers
+            var trgValState = newGenValState
+            for (valField <- heapVertex.typ.nonObjectFields) {
+              val trgEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
+              val valHeapId = ValueHeapIdentifier(heapVertex, valField)
+              trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
+              trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
+            }
+            resultingEdges += EdgeWithState(locVarVertex, trgValState, None, heapVertex)
+          }
+        }
+      }
+      val newAbstractHeap = HeapGraph[S](newVertices, resultingEdges.toSet)
+      val newExp = new ExpressionSet(variable.getType).add(variable)
+      ValueDrivenHeapState(newAbstractHeap, newGenValState, newExp, isTop, isBottom)
+    } else {
+      // Arguments that are not objects are values and can not be aliased. Therefore, we just create them in the
+      // ordinary fashion.
+      createVariable(variable, typ)
     }
-    // return
-    result
   }
 
   def assignVariable(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = {
