@@ -890,7 +890,15 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
     assert(cond.getSetOfExpressions.size == 1, "Condition of several expressions are not supported.")
     val condition = cond.getSetOfExpressions.head
+
+    def notSupported() = {
+      println(s"ValueDrivenHeapState.assume: $condition is not supported.")
+      this
+    }
+
     val result = condition match {
+      case Constant("false", _, _) => bottom()
+      case Constant("true", _, _) => this
       case NegatedBooleanExpression(e) => {
         assume(new ExpressionSet(e.getType).add(Utilities.negateExpression(e)))
       }
@@ -920,9 +928,35 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val expr = new ExpressionSet(SystemParameters.getType().top)
         ValueDrivenHeapState(tempAH, resultingGenCond, expr, false, false).prune()
       }
-      case x =>
-        println("ValueDrivenHeapState.assume: " + x + " is not supported.")
-        this
+      case ReferenceComparisonExpression(left, right, op, returnTyp) => {
+        assert(left.getType.isObject(),
+          "Reference comparison can be performed only on objects, not values.")
+        assert(right.getType.isObject(),
+          "Reference comparison can be performed only on objects, not values.")
+
+        import ArithmeticOperator._
+
+        left match {
+          case Constant("null", _, _) => right match {
+            case Constant("null", _, _) =>
+              op match { case `==` => this case `!=` => bottom() }
+            case VariableIdentifier(varName, typ, _, _) =>
+              val varVertex = abstractHeap.vertices.filter(_.name == varName).head
+              val varEdges = abstractHeap.outEdges(varVertex)
+              val (nullEdges, nonNullEdges) = varEdges.partition(_.target.isInstanceOf[NullVertex])
+              val edgesToRemove = op match { case `==` => nonNullEdges case `!=` => nullEdges }
+              copy(abstractHeap = abstractHeap.removeEdges(edgesToRemove)).prune()
+            case _ => notSupported()
+          }
+          case _ => right match {
+            case Constant("null", _, _) =>
+              assume(new ExpressionSet(cond.getType()).add(
+                new ReferenceComparisonExpression(right, left, op, returnTyp)))
+            case _ => notSupported()
+          }
+        }
+      }
+      case _ => notSupported()
     }
     result
     // See version control history for the original code
