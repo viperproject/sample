@@ -162,9 +162,13 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
    */
   def rename(from: List[Identifier], to: List[Identifier]): T = {
     assert(from.length == to.length)
+    rename((from zip to).toMap)
+  }
+
+  def rename(map: Map[Identifier, Identifier]): T = {
     val replacement = new Replacement()
-    for ((f, t) <- from zip to)
-      replacement.value += (Set(f) -> Set(t))
+    for ((from, to) <- map)
+      replacement.value += (Set(from) -> Set(to))
     merge(replacement)
   }
 }

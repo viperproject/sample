@@ -985,8 +985,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     if (isTop || other.isBottom)
       return this
     // TODO: Implement this properly
-    val (resAH, renameRightFrom, renameRightTo) = abstractHeap.lub(other.abstractHeap)
-    val resGeneralState = generalValState.lub(other.generalValState.rename(renameRightFrom, renameRightTo))
+    val (resAH, renameMap) = abstractHeap.lub(other.abstractHeap)
+    val resGeneralState = generalValState.lub(other.generalValState.rename(renameMap))
 
     //**println("REAL LUB IS CALLED.")
 
@@ -1004,9 +1004,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       return other
     if (other.isTop)
       return this
-    val (resultingAH, removeIds, renameFrom, renameTo) = abstractHeap.glb(other.abstractHeap)
+    val (resultingAH, removeIds, renameMap) = abstractHeap.glb(other.abstractHeap)
     var newRightGeneralValState = other.generalValState.removeVariables(removeIds)
-    newRightGeneralValState = newRightGeneralValState.rename(renameFrom, renameTo)
+    newRightGeneralValState = newRightGeneralValState.rename(renameMap)
     val newGeneralValState = generalValState.glb(newRightGeneralValState)
     if (resultingAH.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
       return bottom()

@@ -5,6 +5,7 @@ import scala.collection.immutable.{Set, TreeSet}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import scala.collection.mutable
+import graph.ValueHeapIdentifier
 
 case class HeapGraph[S <: SemanticDomain[S]](
     vertices: Set[Vertex] = TreeSet.empty[Vertex],
@@ -235,22 +236,11 @@ case class HeapGraph[S <: SemanticDomain[S]](
    *         variables to be renamed in the right graph
    *         variables to which the above should be renamed in the right graph
    */
-  def glb(other: HeapGraph[S]): (HeapGraph[S], Set[Identifier], List[Identifier], List[Identifier])= {
+  def glb(other: HeapGraph[S]): (HeapGraph[S], Set[Identifier], Map[Identifier, Identifier])= {
     val (iso, edgeMap) = mcs(other)
-    var resultingGraph = new HeapGraph[S]()
-    resultingGraph = resultingGraph.addVertices(iso.values.toSet[Vertex])
-    resultingGraph = resultingGraph.addEdges(edgeMap.keySet)
-    var renameFrom = List.empty[Identifier]
-    var renameTo = List.empty[Identifier]
-    for ((from, to) <- iso) {
-      assert(from.typ.equals(to.typ))
-      if (from.isInstanceOf[HeapVertex]) {
-        for (valField <- from.typ.nonObjectFields) {
-          renameFrom = renameFrom :+ ValueHeapIdentifier(from.asInstanceOf[HeapVertex], valField)
-          renameTo = renameTo :+ ValueHeapIdentifier(to.asInstanceOf[HeapVertex], valField)
-        }
-      }
-    }
+    var resultingGraph = HeapGraph(vertices = iso.values.toSet, edges = edgeMap.keySet)
+    val renameMap = vertexToValueMap(iso)
+
     val verticesToRemove = (other.vertices.filter(_.isInstanceOf[HeapVertex]) -- iso.keySet).asInstanceOf[Set[HeapVertex]]
     var idsToRemove = Set.empty[Identifier]
     for (v <- verticesToRemove) {
@@ -259,12 +249,31 @@ case class HeapGraph[S <: SemanticDomain[S]](
     }
     for (edgeRight <- edgeMap.values) {
       var newState = edgeRight.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])
-      newState = newState.rename(renameFrom, renameTo)
+      newState = newState.rename(renameMap)
       val edgeToAdd = EdgeWithState(iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
       resultingGraph = resultingGraph.addEdges(Set(edgeToAdd))
     }
     resultingGraph = resultingGraph.meetCommonEdges()
-    (resultingGraph, idsToRemove, renameFrom, renameTo)
+    (resultingGraph, idsToRemove, renameMap)
+  }
+
+  /**
+   * Builds a value field map from a vertex map.
+   *
+   * For example, given a key-value pair of heap vertices `n0` -> `n1` with
+   * field `val` the resulting value field map will map `n0.val` to `n1.val`.
+   *
+   * @param vertexMap the mapping of vertices
+   * @return the mapping of `ValueHeapIdentifier`
+   */
+  private def vertexToValueMap(vertexMap: Map[Vertex, Vertex]):
+      Map[Identifier, Identifier] = {
+    vertexMap.collect({
+      case (from: HeapVertex, to: HeapVertex) =>
+        assert(from.typ == to.typ)
+        from.typ.nonObjectFields.map(field =>
+          ValueHeapIdentifier(from, field) -> ValueHeapIdentifier(to, field))
+    }).flatten.toMap
   }
 
   def isBottom(): Boolean = {
@@ -291,10 +300,9 @@ case class HeapGraph[S <: SemanticDomain[S]](
     return result
   }
 
-  private def minCommonSuperGraphBeforeJoin (other: HeapGraph[S], iso: Map[Vertex, Vertex]): (HeapGraph[S], List[Identifier], List[Identifier]) = {
+  private def minCommonSuperGraphBeforeJoin (other: HeapGraph[S], iso: Map[Vertex, Vertex]):
+      (HeapGraph[S], Map[Identifier, Identifier]) = {
     var resultingGraph = addVertices(other.vertices.filter(!_.isInstanceOf[HeapVertex]))
-    var renameFrom = List.empty[Identifier]
-    var renameTo = List.empty[Identifier]
     var edgesToAdd = other.edges
     //    var edgesToAdd: Set[EdgeWithState[S]] =
     //      if (!(right.vertices.filter(_.isInstanceOf[NullVertex]) -- left.vertices.filter(_.isInstanceOf[NullVertex])).isEmpty)
@@ -308,24 +316,14 @@ case class HeapGraph[S <: SemanticDomain[S]](
       edgesToAdd = edgesToAdd ++ other.edges.filter(e => e.source.equals(v) || e.target.equals(v))
       renaming = renaming + (v -> newV)
     }
-    for ((from, to) <- renaming) {
-      assert(from.typ.equals(to.typ))
-      (from, to) match {
-        case (from: HeapVertex, to: HeapVertex) =>
-          for (valField <- from.typ.nonObjectFields) {
-            renameFrom = renameFrom :+ ValueHeapIdentifier(from, valField)
-            renameTo = renameTo :+ ValueHeapIdentifier(to, valField)
-          }
-        case _ => // Ignore all non-heap vertices
-      }
-    }
+    val renameMap = vertexToValueMap(renaming)
     for (e <- edgesToAdd) {
       val newSrc = if (renaming.keySet.contains(e.source)) renaming.apply(e.source) else e.source
       val newTrg = if (renaming.keySet.contains(e.target)) renaming.apply(e.target) else e.target
-      resultingGraph = resultingGraph.addEdges(Set(EdgeWithState(newSrc, e.state.rename(renameFrom, renameTo), e.field, newTrg)))
+      resultingGraph = resultingGraph.addEdges(Set(EdgeWithState(newSrc, e.state.rename(renameMap), e.field, newTrg)))
     }
     resultingGraph.checkConsistency()
-    (resultingGraph, renameFrom, renameTo)
+    (resultingGraph, renameMap)
   }
 
   private def mcsRecursive(V1: Set[Vertex],
@@ -436,13 +434,11 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def widenCommonEdges(): HeapGraph[S] =
     mapWeaklyEqualEdges(Lattice.bigWidening)
 
-  def lub(other: HeapGraph[S]): (HeapGraph[S], List[Identifier], List[Identifier]) = {
-//    val (minCSBefore, renameFrom, renameTo) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(left, right))
-//    val (minCSBefore, nameMap) = minCommonSuperGraphBeforeJoin(left, right, left.mcs(right))
-    val (resultingGraph, renameFrom, renameTo) = minCommonSuperGraphBeforeJoin(other, mcs(other)._1)
+  def lub(other: HeapGraph[S]): (HeapGraph[S], Map[Identifier, Identifier]) = {
+    val (resultingGraph, renameMap) = minCommonSuperGraphBeforeJoin(other, mcs(other)._1)
     val resultAH = resultingGraph.joinCommonEdges()
     resultAH.checkConsistency()
-    (resultAH, renameFrom, renameTo)
+    (resultAH, renameMap)
   }
 
   /**
