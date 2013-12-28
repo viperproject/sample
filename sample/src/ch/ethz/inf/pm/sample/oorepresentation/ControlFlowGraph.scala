@@ -451,9 +451,11 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
 
       val previousEntry = current.getExecution(index).head
       if (it > SystemParameters.wideningLimit)
-        result = result.widening(previousEntry)
+        // Widening is not necessarily a commutative operator
+        // The state from the latest iteration should be the second operand
+        result = previousEntry.widening(result)
       else
-        result = result.lub(previousEntry)
+        result = previousEntry.lub(result)
 
     }
 
