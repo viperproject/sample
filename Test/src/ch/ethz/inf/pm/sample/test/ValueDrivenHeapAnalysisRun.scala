@@ -8,13 +8,6 @@ import ch.ethz.inf.pm.sample.property.OutputCollector
 import graph.{ValueDrivenHeapAnalysis, ValueDrivenHeapState}
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
 
-/**
- * Created with IntelliJ IDEA.
- * User: milos
- * Date: 5/10/13
- * Time: 4:46 PM
- * To change this template use File | Settings | File Templates.
- */
 object ValueDrivenHeapAnalysisRun {
 
   private val methods : List[String] = "createNext" :: Nil;
@@ -35,13 +28,8 @@ object ValueDrivenHeapAnalysisRun {
 
     SystemParameters.compiler.compile(file :: Nil);
 
-    //EntryState
-    val entryState = new ValueDrivenHeapState[ApronInterface](ExpressionSet()).top()
-    //entryState.isBottom = true
-
-    var analyzer = new ValueDrivenHeapAnalysis()
-
-    val analysisResult = analyzer.analyze(methods, entryState, new OutputCollector)
+    val analyzer = new ValueDrivenHeapAnalysis()
+    val analysisResult = analyzer.analyze(methods, analyzer.getInitialState(), new OutputCollector)
 
     ShowGraph.Show[ValueDrivenHeapState[ApronInterface]](analysisResult)
 

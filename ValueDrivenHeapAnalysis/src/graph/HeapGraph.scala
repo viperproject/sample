@@ -6,14 +6,14 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import scala.collection.mutable
 
-case class HeapGraph[S <: SemanticDomain[S]](vertices: Set[Vertex], edges: Set[EdgeWithState[S]]) {
+case class HeapGraph[S <: SemanticDomain[S]](
+    vertices: Set[Vertex] = TreeSet.empty[Vertex],
+    edges: Set[EdgeWithState[S]] = Set.empty[EdgeWithState[S]]) {
 
   // This check should be carried out only in the debug mode.
   // checkConsistency()
 
-  def this() = this(TreeSet.empty, Set.empty)
-
-//  private var mcsCounter = 0
+  // private var mcsCounter = 0
 
   private def getNewVersionNumber: Int = {
     val usedVersionNumbers = getCurrentVersionNumbers

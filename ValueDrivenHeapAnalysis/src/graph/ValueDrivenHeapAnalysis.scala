@@ -1,11 +1,12 @@
 package graph
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Analysis}
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, Analysis}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.{BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics}
 import ch.ethz.inf.pm.sample.property.Property
 import ch.ethz.inf.pm.sample.SystemParameters
+import apron.Polka
 
 class ValueDrivenHeapAnalysis extends Analysis {
 
@@ -27,7 +28,13 @@ class ValueDrivenHeapAnalysis extends Analysis {
 
   def reset() {}
 
-  def getInitialState(): ValueDrivenHeapState[ApronInterface] = new ValueDrivenHeapState[ApronInterface](ExpressionSet()).top()
+  def getInitialState(): ValueDrivenHeapState[ApronInterface] = {
+    val manager = new Polka(false)
+    // val manager = new Octagon()
+    // val manager = new Box()
+    val generalValState = new ApronInterface(None, manager, env =  Set.empty[Identifier]).top()
+    ValueDrivenHeapState(new HeapGraph[ApronInterface](), generalValState, ExpressionSet())
+  }
 
   def getProperties(): List[Property] = List(
     //    new ShowGraphProperty().asInstanceOf[Property]
