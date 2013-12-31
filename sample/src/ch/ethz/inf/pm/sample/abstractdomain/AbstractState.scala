@@ -91,7 +91,7 @@ object ExpressionFactory {
 
 }
 
-class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpressions)
+case class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpressions)
   extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet](initialTyp, s) {
 
   override def factory() : ExpressionSet =
@@ -219,7 +219,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   def getExpression : ExpressionSet = getResult()
 
   def removeExpression() : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
+    if(this.isBottom) return  new AbstractState(this._1, this._2.bottom())
     new AbstractState(this._1, ExpressionSet())
   }
 
