@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.parser
 
-import util.parsing.input.Positional
+import scala.util.parsing.input.{NoPosition, Positional}
 
 /**
  *
@@ -16,13 +16,13 @@ trait Typed {
 
 trait Scope
 
-case class Script (declarations:List[Declaration], isLibrary:Boolean) extends TouchPositional[Script]
+case class Script (declarations:List[Declaration], isLibrary:Boolean) extends IdPositional
 
 sealed trait Declaration extends IdPositional with Scope
 
 case class MetaDeclaration(ident:String,value:String)
   extends Declaration
-  with TouchPositional[MetaDeclaration]
+  with IdPositional
 
 case class ActionDefinition(ident:String,
                             inParameters:List[Parameter],
@@ -31,7 +31,7 @@ case class ActionDefinition(ident:String,
                             isEvent:Boolean,
                             isPrivate:Boolean)
   extends Declaration
-  with TouchPositional[ActionDefinition]
+  with IdPositional
 
 case class PageDefinition(ident:String,
                           inParameters:List[Parameter],
@@ -40,19 +40,19 @@ case class PageDefinition(ident:String,
                           displayBody:List[Statement],
                           isPrivate:Boolean)
   extends Declaration
-  with TouchPositional[PageDefinition]
+  with IdPositional
 
 case class VariableDefinition(variable:Parameter,
                               flags:Map[String,Any])
   extends Declaration
-  with TouchPositional[VariableDefinition]
+  with IdPositional
 
 case class TableDefinition(ident:String,
                            typName:String,
                            keys:List[Parameter],
                            fields:List[Parameter])
   extends Declaration
-  with TouchPositional[TableDefinition]
+  with IdPositional
 
 // Library Stuff
 
@@ -61,40 +61,40 @@ case class LibraryDefinition(name:String,
                              usages:List[UsageDeclaration],
                              resolves:List[ResolveBlock])
   extends Declaration
-  with TouchPositional[LibraryDefinition]
+  with IdPositional
 
 sealed trait UsageDeclaration extends IdPositional
 
 case class TypeUsage(ident:String)
   extends UsageDeclaration
-  with TouchPositional[TypeUsage]
+  with IdPositional
 
 case class ActionUsage(ident:String,
                        inParameters:List[Parameter],
                        outParameters:List[Parameter])
   extends UsageDeclaration
-  with TouchPositional[ActionUsage]
+  with IdPositional
 
 case class ResolveBlock(localName:String,
                         libName:String,
                         rules:List[ResolutionRule])
-  extends TouchPositional[ResolveBlock]
+  extends IdPositional
 
 sealed trait ResolutionRule extends IdPositional
 
 case class TypeResolution(localName:String,libName:TypeName)
   extends ResolutionRule
-  with TouchPositional[TypeResolution]
+  with IdPositional
 
 case class ActionResolution(localName:String,libName:String)
   extends ResolutionRule
-  with TouchPositional[ActionResolution]
+  with IdPositional
 
 case class Parameter(ident:String,typeName:TypeName)
-  extends TouchPositional[Parameter]
+  extends IdPositional
 
 case class TypeName(ident:String)
-  extends TouchPositional[TypeName] {
+  extends IdPositional {
   override def toString:String = ident
 }
 
@@ -102,75 +102,66 @@ sealed trait Statement extends IdPositional with Scope
 
 case class Skip()
   extends Statement
-  with TouchPositional[Skip]
+  with IdPositional
 
 case class Box(body:List[Statement])
   extends Statement
-  with TouchPositional[Box]
+  with IdPositional
 
 case class For(boundLocal: String, upperBound: Expression, body: List[Statement])
   extends Statement
-  with TouchPositional[For]
+  with IdPositional
 
 case class If(condition:Expression,thenBody:List[Statement],elseBody:List[Statement])
   extends Statement
-  with TouchPositional[If]
+  with IdPositional
 
 case class Foreach(boundLocal: String, collection: Expression, guards: List[Expression], body: List[Statement])
   extends Statement
-  with TouchPositional[Foreach]
+  with IdPositional
 
 case class While(condition: Expression, body: List[Statement])
   extends Statement
-  with TouchPositional[While]
+  with IdPositional
 
 case class MetaStatement(key: String, value: Any)
   extends Statement
-  with TouchPositional[MetaStatement]
+  with IdPositional
 
 case class ExpressionStatement(expr: Expression)
   extends Statement
-  with TouchPositional[ExpressionStatement]
+  with IdPositional
 
 case class WhereStatement(expr:Expression,handlers:List[InlineAction])
   extends Statement
-  with TouchPositional[WhereStatement]
+  with IdPositional
 
 case class InlineAction(handlerName:String,
                         inParameters:List[Parameter],
                         outParameters:List[Parameter],
                         body:List[Statement])
-  extends TouchPositional[InlineAction]
+  extends IdPositional
 
 sealed trait Expression extends IdPositional with Typed
 
 case class Access(subject:Expression,property:Identifier,args:List[Expression])
   extends Expression
-  with TouchPositional[Access]
+  with IdPositional
 
 case class Literal(typ:TypeName, value:String)
   extends Expression
-  with TouchPositional[Literal]
+  with IdPositional
 
 case class SingletonReference(singleton:String,typ:String)
   extends Expression
-  with TouchPositional[SingletonReference]
+  with IdPositional
 
 case class LocalReference(ident:String)
   extends Expression
-  with TouchPositional[LocalReference]
+  with IdPositional
 
-case class Identifier(ident:String) extends TouchPositional[Identifier] {
+case class Identifier(ident:String) extends IdPositional {
   override def toString = ident
-}
-
-trait IdPositional extends Positional {
-
-  def setOptionalId(x:Option[String])
-  def getId:Option[String]
-  def getPositionAsString:String
-  def getPositionDescription:String
-
 }
 
 /**
@@ -178,31 +169,35 @@ trait IdPositional extends Positional {
  *
  * Can be copied to another object
  */
-trait TouchPositional[T <: TouchPositional[T]] extends IdPositional {
+trait IdPositional extends Positional {
 
   var id:Option[String] = None
 
-  def copyPos(d:T):T = { pos = d.pos; id = d.id; this.asInstanceOf[T] }
+  def copyPos(d: IdPositional): this.type = { pos = d.pos; id = d.id; this }
 
-  def setId(newId:String):T = { id = Some(newId); this.asInstanceOf[T] }
+  def setId(newId:String): this.type = { id = Some(newId); this }
 
-  override def setOptionalId(x:Option[String]) { id = x }
+  def appendId(suffix: String): this.type = {
+    id = Some(id.getOrElse("") + suffix)
+    this
+  }
 
-  override def getId:Option[String] = id
+  def setOptionalId(x:Option[String]) { id = x }
 
-  override def getPositionAsString:String = {
+  def getId:Option[String] = id
+
+  def getPositionAsString:String = {
     id match {
-      case Some(x) => x
+      case Some(x) => if (pos == NoPosition) x else pos.toString + x
       case None => pos.toString()
     }
   }
 
-  override def getPositionDescription:String = {
+  def getPositionDescription:String = {
     id match {
       case Some(x) => "at node "+id
       case None => "at line "+pos.line+", column "+pos.column
     }
   }
-
 
 }
