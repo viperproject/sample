@@ -180,13 +180,12 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
     else
       analyzeExecution(compiler,methods)(curState)
 
+    val summaries = MethodSummaries.getSummaries[S]
     // Check properties on the results
-    val results = (MethodSummaries.getSummaries.values map {
-      (x:(ClassDefinition,MethodDeclaration,ControlFlowGraphExecution[_])) =>
-        if (x._1 == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript)
-          Some(x._1.typ,x._2,x._3.asInstanceOf[ControlFlowGraphExecution[S]])
-        else None
-    }).flatten.toList
+    val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
+    val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
+                  yield (mdecl.classDef.typ, mdecl, cfgState)
+
     if (SystemParameters.property!=null) {
       SystemParameters.propertyTimer.start()
       SystemParameters.property.check(results, output)
@@ -206,20 +205,21 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
 
     // filter out methods that contain anything other than number and string as arguments
     if(!compiler.isInLibraryMode) {
-      methodsToBeAnalyzed = methodsToBeAnalyzed filter { p:(ClassDefinition,MethodDeclaration) =>
-        !p._2.arguments.head.exists{ x:VariableDeclaration => x.typ.isObject() }
+      methodsToBeAnalyzed = methodsToBeAnalyzed filter { tm =>
+        !tm.arguments.head.exists{ x:VariableDeclaration => x.typ.isObject() }
       }
     }
 
     if (TouchAnalysisParameters.treatPrivateMethodLikePublicMethods)
       methodsToBeAnalyzed = methodsToBeAnalyzed ++ compiler.getPrivateMethods
-    if (!methods.isEmpty) methodsToBeAnalyzed = methodsToBeAnalyzed.filter {
-      case (x:ClassDefinition,y:MethodDeclaration) => methods.contains(y.name.toString)
+    if (!methods.isEmpty) methodsToBeAnalyzed = methodsToBeAnalyzed.filter { tm =>
+      val methodId = tm.name
+      methods.contains(methodId.toString)
     }
 
     // Execute abstract semantics of each public method (or the ones selected in the GUI)
-    val exitStates = for ((c,x) <- methodsToBeAnalyzed) yield {
-      Some(analyzeMethod(c,x,initialState))
+    val exitStates = for (mdecl <- methodsToBeAnalyzed) yield {
+      Some(analyzeMethod(mdecl, initialState))
     }
 
     // Compute the least upper bound of all public method exit states
@@ -244,17 +244,17 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
   private def analyzeEvents[S <: State[S]](compiler:TouchCompiler,methods:List[String])(s:S):S = {
 
     var cur = s
-    for ((c,e) <- compiler.events) {
-      cur = cur.lub(analyzeMethod(c,e,s,localHandlerScope = MethodSummaries.getClosureEntry[S](e.name.toString)))
+    for (mdecl <- compiler.events) {
+      cur = cur.lub(analyzeMethod(mdecl, s, localHandlerScope = MethodSummaries.getClosureEntry[S](mdecl.name.toString)))
     }
 
     resetEnv(cur)
   }
 
 
-  private def analyzeMethod[S <: State[S]](callType:ClassDefinition,callTarget:MethodDeclaration,entryState:S,localHandlerScope:Option[S] = None):S = {
+  private def analyzeMethod[S <: State[S]](callTarget: MethodDeclaration, entryState:S,localHandlerScope:Option[S] = None):S = {
 
-    val exitState = MethodSummaries.collect[S](callTarget.programpoint,callType,callTarget,entryState,Nil,localHandlerScope = localHandlerScope)
+    val exitState = MethodSummaries.collect[S](callTarget.programpoint, callTarget, entryState,Nil,localHandlerScope = localHandlerScope)
 
     resetEnv(exitState)
 

@@ -486,10 +486,13 @@ object RichNativeSemantics {
     state.assume(expr)
   }
 
-  def CallLocalAction[S <: State[S]](method:String,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {
-    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method,SystemParameters.typ,parameters map (_.getType())) match {
-      case Some((clazz,methodDef)) =>
-        val res = MethodSummaries.collect(pp,clazz,methodDef,state,parameters)
+  def CallLocalAction[S <: State[S]](method:String,parameters:List[ExpressionSet] = Nil)
+                                    (implicit state: S, pp:ProgramPoint): S = {
+    val context = SystemParameters.analysisUnitContext
+    val classType = context.clazzType
+    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method,classType, parameters map (_.getType())) match {
+      case Some(mdecl) =>
+        val res = MethodSummaries.collect(pp, mdecl, state,parameters)
         res
       case _ =>
         Reporter.reportImprecision("Could not find method "+method,pp)
