@@ -77,7 +77,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
    *
    */
   override def analyze[S <: State[S]](methods: List[String], entryState : S, output : OutputCollector)
-     : List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] = {
+     : List[(Type, MethodDeclaration, CFGState[S])] = {
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
     println("version 01.11.13 [1]")
@@ -422,7 +422,7 @@ class BottomVisitor extends Visitor {
  */
 class ComposedProperty(name:String,a:Property,b:Property) extends Property {
   def getLabel() = name
-  def check[S <: State[S]](classT : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) {
+  def check[S <: State[S]](classT : Type, methodName : MethodDeclaration, result : CFGState[S], printer : OutputCollector) {
     a.check(classT,methodName,result,printer)
     b.check(classT,methodName,result,printer)
   }
@@ -434,7 +434,7 @@ class ComposedProperty(name:String,a:Property,b:Property) extends Property {
    * @param results a list of the results, consisting of class type, method declaration and cfg
    * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
    */
-  override def check[S <: State[S]](results : List[(Type,MethodDeclaration,ControlFlowGraphExecution[S])], printer : OutputCollector):Unit = {
+  override def check[S <: State[S]](results : List[(Type,MethodDeclaration, CFGState[S])], printer : OutputCollector):Unit = {
     a.check(results,printer)
     b.check(results,printer)
   }
@@ -451,7 +451,7 @@ class ComposedProperty(name:String,a:Property,b:Property) extends Property {
  */
 class NoProperty extends Property {
   def getLabel() = ""
-  def check[S <: State[S]](classT : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) {}
+  def check[S <: State[S]](classT : Type, methodName : MethodDeclaration, result : CFGState[S], printer : OutputCollector) {}
   def finalizeChecking(printer : OutputCollector) {}
 }
 

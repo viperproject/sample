@@ -13,10 +13,10 @@ import ch.ethz.inf.pm.sample.util.Timer
  */
 trait Analysis {
 
-  def analyze[S <: State[S]](toAnalyze : String, entryState : S, output : OutputCollector) : List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] =
+  def analyze[S <: State[S]](toAnalyze : String, entryState : S, output : OutputCollector) : List[(Type, MethodDeclaration, CFGState[S])] =
     this.analyze( toAnalyze ::Nil, entryState, output)
 
-  def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] = {
+  def analyze[S <: State[S]](toAnalyze : List[String], entryState : S, output : OutputCollector) : List[(Type, MethodDeclaration, CFGState[S])] = {
     var res =  List.empty[(Type, MethodDeclaration, ControlFlowGraphExecution[S])]
     Timer.start;
     for (methodName <- toAnalyze) {

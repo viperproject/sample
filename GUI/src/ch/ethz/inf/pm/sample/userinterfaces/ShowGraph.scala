@@ -48,7 +48,7 @@ object ShowGraph {
   var exitOnClose: Boolean = false;
 
   def Show[S <: State[S]](a: Any): Unit = a match {
-    case results: List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])] => new ShowControlFlowGraphExecutions(results, exitOnClose)
+    case results: List[(Type, MethodDeclaration, CFGState[S])] => new ShowControlFlowGraphExecutions(results, exitOnClose)
     case graph: ControlFlowGraph => new Show(ShowGraph.ControlFlowGraphJGraph(graph), true, -1, -1);
     case state: S => ShowGraph.stateToGraph(state);
     case _ => System.out.println("I do not know how to visualize this!")
@@ -103,7 +103,7 @@ object ShowGraph {
   }
 
   private class ShowControlFlowGraphExecutions[S <: State[S]] {
-    def this(gs: List[(Type, MethodDeclaration, ControlFlowGraphExecution[S])], exitOnClose: Boolean) = {
+    def this(gs: List[(Type, MethodDeclaration, CFGState[S])], exitOnClose: Boolean) = {
       this()
       val components = for ((c, m, g) <- gs) yield {
         val (graph, vertixes): (mxGraph, List[Object]) = ShowGraph.ControlFlowGraphExecutiontoJGraph[S](g)
@@ -116,7 +116,7 @@ object ShowGraph {
               var i: Int = 0
               while (i < vertixes.size) {
                 if (vertixes.apply(i) == cell)
-                  new ShowCFGBlock(g.cfg.nodes.apply(i), g.nodes.apply(i))
+                  new ShowCFGBlock(g.cfg.nodes.apply(i), g.getStatesOfBlock(i))
                 i = i + 1
               }
             }
@@ -229,7 +229,7 @@ object ShowGraph {
     new Show(graphComponent, false, -1, -1);
   }
 
-  private def ControlFlowGraphExecutiontoJGraph[S <: State[S]](wgraph: ControlFlowGraphExecution[S]): (mxGraph, List[Object]) = {
+  private def ControlFlowGraphExecutiontoJGraph[S <: State[S]](wgraph: CFGState[S]): (mxGraph, List[Object]) = {
     val graph: mxGraph = defaultGraphSettings();
     var vertixes: List[Object] = Nil;
     var yposition: Double = ygap;

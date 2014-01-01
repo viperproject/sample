@@ -344,11 +344,16 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
 
   override def getChildren: List[Statement] = nodes.flatten
 
+  def getBasicBlockStatements(index: Int): List[Statement] = nodes(index)
 }
 
-class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val state: S) extends WeightedGraph[List[S], Boolean] {
+class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val state: S) extends CFGState[S] with WeightedGraph[List[S], Boolean]{
 
   this.nodes = getList[List[S]](this.cfg.nodes.size, state.bottom() :: Nil)
+
+  def getStatesOfBlock(idx: Int): List[S] = nodes(idx)
+
+  def factoryState: S = state
 
   def this(cfgEx: ControlFlowGraphExecution[S]) {
     this(cfgEx.cfg, cfgEx.state)

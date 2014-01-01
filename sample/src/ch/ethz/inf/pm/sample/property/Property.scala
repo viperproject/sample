@@ -25,7 +25,7 @@ trait Property {
 	   * @param result the abstract result
 	   * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
 	   */
-  def check[S <: State[S]](classe : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit;
+  def check[S <: State[S]](classe : Type, methodName : MethodDeclaration, result: CFGState[S], printer : OutputCollector) : Unit;
 
 
   /**
@@ -34,7 +34,7 @@ trait Property {
    * @param results a list of the results, consisting of class type, method declaration and cfg
    * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
    */
-  def check[S <: State[S]](results : List[(Type,MethodDeclaration,ControlFlowGraphExecution[S])], printer : OutputCollector):Unit = {
+  def check[S <: State[S]](results : List[(Type,MethodDeclaration, CFGState[S])], printer : OutputCollector):Unit = {
     for ((c,m,g) <- results) {
       check(c,m,g,printer)
     }
@@ -80,20 +80,21 @@ trait Visitor {
  */
 class SingleStatementProperty(val visitor : Visitor) extends Property {
   override def getLabel() : String = visitor.getLabel();
-  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : ControlFlowGraphExecution[S], printer : OutputCollector) : Unit = {
+  override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : CFGState[S], printer : OutputCollector) : Unit = {
 	SystemParameters.currentClass = className;
 	SystemParameters.currentMethod = methodName.name.toString;
-    for(i <- 0 to result.nodes.size-1)
+    for(i <- 0 to result.cfg.nodes.size-1)
         for(k <- 0 to result.cfg.nodes.apply(i).size-1) {
           val statement=result.cfg.nodes.apply(i).apply(k);
-          if(k >= result.nodes.apply(i).size-1) 
+          val blockStates = result.getStatesOfBlock(i)
+          if(k >= blockStates.size-1)
 	          visitor.checkSingleStatement[S](
-	            result.nodes.apply(i).apply(result.nodes.apply(i).size-1).bottom(), 
+	            blockStates.apply(blockStates.size-1).bottom(),
 	            statement, 
 	            printer
 	          )
           else {
-        	  val state=result.nodes.apply(i).apply(k);
+        	  val state=blockStates.apply(k);
         	  checkStatement(className, methodName, visitor, state, statement, printer)
           }
         }
