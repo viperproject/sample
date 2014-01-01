@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.property.{OutputCollector, Property}
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
 import ch.ethz.inf.pm.sample.util.Timer
 
 /**
@@ -23,20 +23,16 @@ trait Analysis {
       val methods = SystemParameters.compiler.getMethods(methodName)
       for((c,x) <- methods) {
         if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Analyzing method "+x.name.toString()+" in class "+c.name.toString());
-        SystemParameters.currentMethod = x.name.toString
-        var s = x.forwardSemantics[S](entryState)
-//        val begin = System.currentTimeMillis()
-//        for (i <- 0 until 30)
-//          x.forwardSemantics[S](entryState)
-//        println("Time for single run is " + (System.currentTimeMillis() - begin)/30 + "ms.")
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
-        if(SystemParameters.property!=null) {
-          SystemParameters.property.check(c.name.getThisType(), x, s, output)
+        SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method = x)) {
+          val s = x.forwardSemantics[S](entryState)
+          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the analysis of method "+x.name.toString()+" in class "+c.name.toString());
+          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.begin("Checking the property over method "+x.name.toString()+" in class "+c.name.toString());
+          if(SystemParameters.property!=null) {
+            SystemParameters.property.check(c.name.getThisType(), x, s, output)
+          }
+          res = res ::: ((c.name.getThisType(), x, s) :: Nil)
+          if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
         }
-        res = res ::: ((c.name.getThisType(), x, s) :: Nil)
-        if(SystemParameters.progressOutput!=null) SystemParameters.progressOutput.end("End of the check of the property over method "+x.name.toString()+" in class "+c.name.toString());
-        SystemParameters.currentMethod = null
       }
     }
     if(SystemParameters.property!=null) {

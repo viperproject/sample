@@ -29,15 +29,17 @@ object RichNativeSemantics {
 
   /*-- Checking / Reporting errors --*/
 
-  def Dummy[S <: State[S]](obj:RichExpression, method:String)(implicit state:S, pp:ProgramPoint) {
+  def Dummy[S <: State[S]](obj:RichExpression, method:String)(implicit state: S, pp:ProgramPoint) {
+    val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
     if(TouchAnalysisParameters.reportDummyImplementations &&
-      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
+      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
       Reporter.reportDummy(obj.getType().toString+"->"+method,pp)
   }
 
-  def Dummy[S <: State[S]](text:String)(implicit state:S, pp:ProgramPoint) {
+  def Dummy[S <: State[S]](text:String)(implicit state: S, pp:ProgramPoint) {
+    val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
     if(TouchAnalysisParameters.reportDummyImplementations &&
-      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
+      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
       Reporter.reportDummy(text,pp)
   }
 
@@ -45,8 +47,9 @@ object RichNativeSemantics {
     if(!state.isInstanceOf[AccessCollectingState]) {
       val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
       if(!errorState.lessEqual(state.bottom())) {
+        val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
         if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
-          || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)) {
+          || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)) {
             Reporter.reportError(message+" "+state.explainError(expr).map{x => x._1+" "+x._2.toString}.mkString(";"),pp)
         }
         val ret = state.assume(expr.not())

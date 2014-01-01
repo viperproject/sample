@@ -81,24 +81,24 @@ trait Visitor {
 class SingleStatementProperty(val visitor : Visitor) extends Property {
   override def getLabel() : String = visitor.getLabel();
   override def check[S <: State[S]](className : Type, methodName : MethodDeclaration, result : CFGState[S], printer : OutputCollector) : Unit = {
-	SystemParameters.currentClass = className;
-	SystemParameters.currentMethod = methodName.name.toString;
-    for(i <- 0 to result.cfg.nodes.size-1)
+    SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(methodName)) {
+      for(i <- 0 to result.cfg.nodes.size-1)
         for(k <- 0 to result.cfg.nodes.apply(i).size-1) {
-          val statement=result.cfg.nodes.apply(i).apply(k);
+          val statement = result.cfg.nodes.apply(i).apply(k)
           val blockStates = result.getStatesOfBlock(i)
-          if(k >= blockStates.size-1)
-	          visitor.checkSingleStatement[S](
-	            blockStates.apply(blockStates.size-1).bottom(),
-	            statement, 
-	            printer
-	          )
+          if(k > blockStates.size-1)
+            visitor.checkSingleStatement[S](
+              blockStates.apply(blockStates.size-1).bottom(),
+              statement,
+              printer
+            )
           else {
-        	  val state=blockStates.apply(k);
-        	  checkStatement(className, methodName, visitor, state, statement, printer)
+            val state = blockStates.apply(k)
+            checkStatement(className, methodName, visitor, state, statement, printer)
           }
         }
-      }
+    }
+  }
   override def finalizeChecking(printer : OutputCollector) : Unit = Unit;
   private def checkStatement[S <: State[S]](className : Type, methodName : MethodDeclaration, visitor : Visitor, state : S, statement : Statement, printer : OutputCollector) : Unit = statement match {
         	  	case Assignment(programpoint, left, right) =>
