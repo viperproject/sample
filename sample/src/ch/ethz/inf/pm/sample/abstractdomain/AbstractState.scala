@@ -78,6 +78,12 @@ object ExpressionFactory {
     result
   }
 
+  lazy val unitExpr = ExpressionSet(new UnitExpression(SystemParameters.typ.top(), DummyProgramPoint))
+
+  def createUnitExpression(pp: ProgramPoint): ExpressionSet = {
+    ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp))
+  }
+
   private def combineListValue(list : List[ExpressionSet]) : Set[List[Expression]] = list match {
     case Nil => Set.empty+(Nil)
     case x :: xs =>
