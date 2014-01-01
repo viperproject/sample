@@ -125,7 +125,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         // Setting up source EdgeLocalIdentifiers
         var sourceValState = newGenValState
         for (valField <- heapVertex.typ.nonObjectFields) {
-          val srcEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
+          val srcEdgeLocId = EdgeLocalIdentifier(valField)
           val valHeapId = ValueHeapIdentifier(heapVertex, valField)
           sourceValState = sourceValState.createVariable(srcEdgeLocId, srcEdgeLocId.getType)
           sourceValState = sourceValState.assume(new BinaryArithmeticExpression(valHeapId, srcEdgeLocId, ArithmeticOperator.==, null))
@@ -176,7 +176,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             // Create target EdgeLocalIdentifiers
             var trgValState = newGenValState
             for (valField <- heapVertex.typ.nonObjectFields) {
-              val trgEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
+              val trgEdgeLocId = EdgeLocalIdentifier(valField)
               val valHeapId = ValueHeapIdentifier(heapVertex, valField)
               trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
               trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
@@ -238,7 +238,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
                   var addedIdentifiers = Set.empty[Identifier]
                   assert(varVertex.typ.equals(verExpr.getType), "We support only exact type, that is the fields should be the same")
                   for (valField <- varVertex.typ.nonObjectFields) {
-                    val edgeLocalId = EdgeLocalIdentifier(List.empty[String], valField)
+                    val edgeLocalId = EdgeLocalIdentifier(valField)
                     addedIdentifiers = addedIdentifiers + edgeLocalId
                     newEdgeState = newEdgeState.createVariable(edgeLocalId, edgeLocalId.getType)
                     val resId = ValueHeapIdentifier(verExpr.vertex.asInstanceOf[HeapVertex], valField)
@@ -307,7 +307,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     var renamendIds = Set.empty[Identifier]
     if (sourceVertex.isInstanceOf[HeapVertex]) {
       for (valField <- sourceVertex.typ.nonObjectFields) {
-        val srcEdgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
+        val srcEdgeLocId = EdgeLocalIdentifier(valField)
         val correspAddedId = addedIds.filter(id => id.getName.equals(srcId.getName + "." + valField)).head
         resultingState = resultingState.rename(List(correspAddedId), List(srcEdgeLocId))
         renamendIds = renamendIds + correspAddedId
@@ -787,7 +787,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         edge.field match {
           case  None =>
           case Some(f) => {
-            val edgeLocId = EdgeLocalIdentifier(List.empty[String], valField)
+            val edgeLocId = EdgeLocalIdentifier(valField)
             val newId = new AccessPathIdentifier(currentPathList :+ valField.getName, valField.getType, valField.getProgramPoint)
             addedIdentifiers = addedIdentifiers + newId
             currentState = currentState.rename(List(edgeLocId), List(newId))
@@ -812,7 +812,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           addedIdentifiers = addedIdentifiers + newId
           edge.field match {
             case None => {
-              val edgeLocId: Identifier = EdgeLocalIdentifier(List.empty[String], valField)
+              val edgeLocId: Identifier = EdgeLocalIdentifier(valField)
               currentState = currentState.rename(List(edgeLocId), List(newId))
             }
             case Some(f) => {
@@ -1184,7 +1184,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       // This means that we have a value field and this should be included in all abstract states on edges
       // This is done via Replacement
       val resId = ValueHeapIdentifier(newVertex.asInstanceOf[DefiniteHeapVertex], valField)
-      val edgeLocalId = EdgeLocalIdentifier(List.empty[String], valField)
+      val edgeLocalId = EdgeLocalIdentifier(valField)
       resIdsAndEdgeLocalIds = resIdsAndEdgeLocalIds + ((resId, edgeLocalId))
       resIds= resIds + resId
       //      edgeLocalIds = edgeLocalIds + EdgeLocalIdentifier(List.empty[String], valField.getName)

@@ -84,6 +84,10 @@ object EdgeLocalIdentifier {
   /** Creates an edge-local identifier from an access path and a field identifier. */
   def apply(accPath: List[String], field: Identifier): EdgeLocalIdentifier =
     EdgeLocalIdentifier(accPath, field.getName, field.getType)(field.getProgramPoint)
+
+  /** Creates an edge-local identifier with an empty access path from a field identifier. */
+  def apply(field: Identifier): EdgeLocalIdentifier =
+    apply(List.empty, field)
 }
 
 case class VertexExpression(typ: Type, vertex: Vertex)(pp: ProgramPoint) extends Expression {
