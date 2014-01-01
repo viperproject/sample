@@ -9,7 +9,6 @@ import ch.ethz.inf.pm.sample.{oorepresentation, SystemParameters}
 import ch.ethz.inf.pm.sample.oorepresentation.Statement
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.td.parser.TableDefinition
-import ch.ethz.inf.pm.td.semantics.NewInitializer
 import ch.ethz.inf.pm.td.parser.WhereStatement
 import ch.ethz.inf.pm.td.parser.InlineAction
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
@@ -59,15 +58,19 @@ object CFGGenerator {
     val name : ClassIdentifier = TouchClassIdentifier(curScriptName,typ)
     val parametricTypes : List[Type] = Nil
     val extend : List[ClassIdentifier] = Nil
-    val fields : List[FieldDeclaration] = findFields(script)
-    val methods : List[MethodDeclaration] = findMethods(script,typ)
     val pack : PackageIdentifier = TouchPackageIdentifier()
     val inv : Expression = null
-    new ClassDefinition(programPoint, typ, modifiers, name, parametricTypes, extend, fields, methods, pack, inv)
+    val classDef = new ClassDefinition(programPoint, typ, modifiers, name, parametricTypes, extend, null, null, pack, inv)
+    val fields : List[FieldDeclaration] = findFields(script, classDef)
+    val methods : List[MethodDeclaration] = findMethods(script,typ, classDef)
+    classDef.fields = fields
+    classDef.methods = methods
+    classDef
   }
 
   def mkTouchProgramPoint(element:IdPositional) = {
-    TouchProgramPoint(curPubID,element.getPositionAsString)
+    val pos = element.getPositionAsString
+    TouchProgramPoint(curPubID,pos)
   }
 
   /**
@@ -192,7 +195,7 @@ object CFGGenerator {
     }
   }
 
-  private def findFields(script:parser.Script):List[FieldDeclaration] = {
+  private def findFields(script:parser.Script, currentClassDef: ClassDefinition):List[FieldDeclaration] = {
     (for (dec <- script.declarations) yield {
       dec match {
         case v@parser.VariableDefinition(variable,flags) =>
@@ -210,7 +213,7 @@ object CFGGenerator {
     }).flatten
   }
 
-  private def findMethods(script:parser.Script,ownerType:Type):List[MethodDeclaration] = {
+  private def findMethods(script:parser.Script,ownerType:Type, currentClassDef: ClassDefinition):List[MethodDeclaration] = {
     (for (dec <- script.declarations) yield {
       dec match {
         case act@parser.ActionDefinition(ident,in,out,body,isEvent,isPriv) =>
@@ -224,10 +227,11 @@ object CFGGenerator {
             List(in map (parameterToVariableDeclaration(_,scope)), out map (parameterToVariableDeclaration(_,scope)))
           val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,handlers) = addStatementsToCFG(body,newBody,scope)
+          val (_,_,handlers) = addStatementsToCFG(body,newBody,scope, currentClassDef)
           val preCond : Statement = null
           val postCond : Statement = null
-          handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
+          handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,
+            returnType,newBody,preCond,postCond, currentClassDef))
         case act@parser.PageDefinition(ident,in,out,initBody,displayBody,isPriv) =>
           val programPoint : ProgramPoint = mkTouchProgramPoint(act)
           val scope : ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
@@ -238,10 +242,11 @@ object CFGGenerator {
             List(in map (parameterToVariableDeclaration(_,scope)), out map (parameterToVariableDeclaration(_,scope)))
           val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,handlers) = addStatementsToCFG(initBody ::: displayBody,newBody,scope)
+          val (_,_,handlers) = addStatementsToCFG(initBody ::: displayBody,newBody,scope, currentClassDef)
           val preCond : Statement = null
           val postCond : Statement = null
-          handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
+          handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,
+            returnType,newBody,preCond,postCond, currentClassDef))
         case _ => Nil
       }
     }).flatten
@@ -273,7 +278,8 @@ object CFGGenerator {
     } else new TouchType(typeName.ident,isSingleton)
   }
 
-  private def addStatementsToCFG(statements:List[parser.Statement], cfg:ControlFlowGraph, scope:ScopeIdentifier):(Int,Int,List[MethodDeclaration]) = {
+  private def addStatementsToCFG(statements:List[parser.Statement], cfg:ControlFlowGraph, scope:ScopeIdentifier,
+                                  currentClassDef: ClassDefinition):(Int,Int,List[MethodDeclaration]) = {
 
     val firstNode = cfg.addNode(Nil)
     var newStatements:List[Statement] = Nil
@@ -291,10 +297,10 @@ object CFGGenerator {
       case parser.If(condition,thenBody,elseBody) =>
 
         val nextNode = cfg.addNode(Nil)
-        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope)
+        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
 
-        val (thenStart,thenEnd,handlersThen) = addStatementsToCFG(thenBody, cfg, scope)
-        val (elseStart,elseEnd,handlersElse) = addStatementsToCFG(elseBody, cfg, scope)
+        val (thenStart,thenEnd,handlersThen) = addStatementsToCFG(thenBody, cfg, scope, currentClassDef)
+        val (elseStart,elseEnd,handlersElse) = addStatementsToCFG(elseBody, cfg, scope, currentClassDef)
 
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, thenStart, Some(true))
@@ -310,8 +316,8 @@ object CFGGenerator {
       case parser.While(condition,body) =>
 
         val nextNode = cfg.addNode(Nil)
-        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope)
-        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body, cfg, scope)
+        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
+        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body, cfg, scope, currentClassDef)
 
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, bodyStart, Some(true))
@@ -331,7 +337,7 @@ object CFGGenerator {
 
         // TODO: what else?
         val nextNode = cfg.addNode(Nil)
-        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body,cfg, scope)
+        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body,cfg, scope, currentClassDef)
 
         cfg.addEdge(curNode, bodyStart, None)
         cfg.addEdge(bodyEnd, nextNode, None)
@@ -358,10 +364,11 @@ object CFGGenerator {
             List(inParameters map (parameterToVariableDeclaration(_,scope)), outParameters map (parameterToVariableDeclaration(_,scope)))
           val returnType : Type = null
           val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,subHandlers) = addStatementsToCFG(body,newBody,scope)
+          val (_,_,subHandlers) = addStatementsToCFG(body,newBody,scope, currentClassDef)
           val preCond : Statement = null
           val postCond : Statement = null
-          subHandlers ::: List(new MethodDeclaration(programPoint,SystemParameters.typ,modifiers,name,parametricType,arguments,returnType,newBody,preCond,postCond))
+          subHandlers ::: List(new MethodDeclaration(programPoint,currentClassDef.typ,modifiers,name,parametricType,
+            arguments,returnType,newBody,preCond,postCond, currentClassDef))
         }).flatten
 
         def ty (typ:String,expr:parser.Expression):parser.Expression = {

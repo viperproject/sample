@@ -94,7 +94,6 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 
   class TraverserPhase(prev: Phase) extends StdPhase(prev) {
 	def apply(unit: CompilationUnit) {
-	    SystemParameters.currentFile=unit.source.file.toString
         ScalaClasses.classes=transformProgram(unit.body, new ScalaPackageIdentifier("", null))
 	  }
     }
@@ -116,20 +115,25 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       SystemParameters.typ=currentType;
       val parametricTypes : List[ScalaType] = extractListTypes(tparams);
       val extend : List[ClassIdentifier] = Nil;
-      val members : (List[FieldDeclaration], List[MethodDeclaration]) = extractClassMembers(body, currentType);
-      val classname : String=name.decode;
-      new ClassDefinition(programpoint, currentType, extractModifiers(mods), new ScalaClassIdentifier(name decode, currentType), parametricTypes, extend, members._1, members._2, pack, null)
-      //TODO: I have to consider also parents, and self!
+      val classDef = new ClassDefinition(programpoint, currentType, extractModifiers(mods), new ScalaClassIdentifier(name decode, currentType), parametricTypes, extend, null, null, pack, null)
+      val members : (List[FieldDeclaration], List[MethodDeclaration]) = extractClassMembers(body, currentType, classDef)
+      classDef.methods = members._2
+      classDef.fields = members._1
+      classDef
+
+    //TODO: I have to consider also parents, and self!
 
     case _ => throw new ScalaException("I expected a class definition\n"+program.toString())
   }
 
-  private def extractClassMembers(members : List[Tree], currentType : ch.ethz.inf.pm.sample.oorepresentation.Type) : (List[FieldDeclaration], List[MethodDeclaration]) = {
+  private def extractClassMembers(members : List[Tree],
+                                  currentType : ch.ethz.inf.pm.sample.oorepresentation.Type,
+                                  currentClassDef: ClassDefinition) : (List[FieldDeclaration], List[MethodDeclaration]) = {
     var fields : List[FieldDeclaration] = Nil;
     var methods : List[MethodDeclaration] = Nil;
     var i : Int = 0;
     while(i < members.size) {
-      transformClassElement(members apply(i), currentType) match {
+      transformClassElement(members apply(i), currentType, currentClassDef) match {
         case x : FieldDeclaration => fields = fields ::: x :: Nil
         case x : MethodDeclaration => methods = methods ::: x :: Nil
       }
@@ -138,7 +142,8 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
     (fields, methods)
   }
 
-  private def transformClassElement(program : Tree, currentType : ch.ethz.inf.pm.sample.oorepresentation.Type) : ClassElements = program match {
+  private def transformClassElement(program : Tree, currentType : ch.ethz.inf.pm.sample.oorepresentation.Type,
+                                    currentClassDef: ClassDefinition) : ClassElements = program match {
     case DefDef(mods, name, tparams, vparamss, tpt, rhs) =>
       val programPoint : ScalaProgramPoint = new ScalaProgramPoint(program.pos);
       val parametricTypes : List[ScalaType] = extractListTypes(tparams);
@@ -147,7 +152,9 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       val body : ControlFlowGraph = new ControlFlowGraph(new ScalaProgramPoint(program.pos));
       var (cfg, sts, index, goon) = bodyToCFG(rhs, body, Nil, body.addNode(Nil));
       cfg.setNode(index, sts)
-      new MethodDeclaration(programPoint,  currentType, extractModifiers(mods), new ScalaMethodIdentifier(name.decode), parametricTypes, arguments, returnType, RemoveGetterSetter.cleanCFG(cfg), null, null)
+      new MethodDeclaration(programPoint,  currentType, extractModifiers(mods),
+        new ScalaMethodIdentifier(name.decode), parametricTypes, arguments, returnType,
+        RemoveGetterSetter.cleanCFG(cfg), null, null, currentClassDef)
     //TODO pre and post conditions and class invariants
 
     case ValDef(mods, name, tpt, rhs) =>

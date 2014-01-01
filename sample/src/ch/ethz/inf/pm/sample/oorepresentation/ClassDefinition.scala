@@ -87,7 +87,8 @@ class MethodDeclaration(
                       val returnType : Type,
                       val body : ControlFlowGraph,
                       val precond : Statement,
-                      val postcond : Statement
+                      val postcond : Statement,
+                      val classDef: ClassDefinition
               ) extends ClassElements 
 {
 
