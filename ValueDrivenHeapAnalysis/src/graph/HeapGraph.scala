@@ -508,11 +508,11 @@ case class HeapGraph[S <: SemanticDomain[S]](
       val pointingVars = edges.filter(e => e.target.equals(v) && e.source.isInstanceOf[LocalVariableVertex]).map(_.source).asInstanceOf[Set[LocalVariableVertex]]
       pointedByMap.update(v,(pointingVars, reachabilityMap.apply(v)))
     }
-    for (valCond <- pointedByMap.values.toSet[(Set[LocalVariableVertex], Set[LocalVariableVertex])]) {
+    for (valCond <- pointedByMap.values.toSet) {
       val partition = pointedByMap.keySet.filter(pointedByMap.apply(_).equals(valCond))
       partitions.update(valCond, partition.toSet[HeapVertex])
     }
-    partitions.toMap[(Set[LocalVariableVertex], Set[LocalVariableVertex]), Set[HeapVertex]]
+    partitions.toMap
   }
 
   def mergePointedNodes(): (HeapGraph[S], Replacement) = {
