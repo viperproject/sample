@@ -673,7 +673,7 @@ object HeapGraph {
     /**
      * Inner helper method for computing the condition recursively.
      *
-     * @param path to be proccesed
+     * @param path to be processed
      * @param state starting state where are only the edge-local identifiers
      *              with empty sequence of field access that represent targets
      */
