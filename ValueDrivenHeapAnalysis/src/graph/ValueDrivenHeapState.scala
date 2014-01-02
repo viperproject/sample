@@ -423,47 +423,59 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   /**
-   * This methods returns an expression that represents the given expression, the set of states in which this
-   * expression may exist and the set of added identifiers to the states with the last vertex of the expression.
+   * Replaces all `VariableIdentifier`s in the given expression
+   * with a corresponding `AccessPathIdentifier`.
    */
-  private def evaluateExpression(expr: Expression): (Expression, Set[(S, Set[Identifier], Map[AccessPathIdentifier, Path[S]])])= {
+  private def normalizeExpression(exp: Expression): Expression =
+    exp.transform({
+      case v: VariableIdentifier => AccessPathIdentifier(v)
+      case e => e
+    })
+
+  /**
+   * This methods returns the set of states in which the given expression
+   * may exist and the set of added identifiers to the states
+   * with the last vertex of the expression.
+   *
+   * Apply `normalizeExpression` to any expression passed to this method.
+   */
+  private def evaluateExpression(expr: Expression): Set[(S, Set[Identifier], Map[AccessPathIdentifier, Path[S]])] = {
     expr match {
-      case v: VariableIdentifier => {
-        if (v.getType.isObject())
-          return evaluateExpression(AccessPathIdentifier(v))
-        else
-          return (v, Set((generalValState, Set.empty[Identifier], Map.empty[AccessPathIdentifier, Path[S]])))
-      }
       case c: Constant => {
 //        if (c.getType().isObject())
 //          throw new Exception("Null constants should be handled separately.")
 //        else
-        return (c, Set((generalValState, Set.empty[Identifier], Map.empty[AccessPathIdentifier, Path[S]])))
+        Set((generalValState, Set.empty[Identifier], Map.empty[AccessPathIdentifier, Path[S]]))
       }
       case ap: AccessPathIdentifier => {
         // First we need to evaluate the access path, depending on whether it represents an object or a value
         // 1. we get all possible graph paths that the access path can follow
         val objAccPath = if (!ap.typ.isObject()) ap.path.dropRight(1) else ap.path
-        var graphPaths = abstractHeap.getPaths(objAccPath)
-        // 2. We evaluate each graph path and collect only the valid ones
-        var validGraphPaths = Set.empty[(S, Set[Identifier], Map[AccessPathIdentifier, Path[S]])]
-        for (path <- graphPaths) {
-          val (st, apExp, apIds, apexpEdgeSeqMap) = evaluateGraphPath(path, expr.getProgramPoint)
-          val isValid: Boolean = !st.lessEqual(st.bottom()) && (if (!ap.getType.isObject()) apIds.map(id => id.getName).contains(ap.toString()) else true)
-          if (isValid) {
-            validGraphPaths = validGraphPaths + ((st, apIds.asInstanceOf[Set[Identifier]], apexpEdgeSeqMap))
+
+        if (objAccPath.isEmpty) {
+          // Just a non-object variable
+          Set((generalValState, Set.empty[Identifier], Map.empty[AccessPathIdentifier, Path[S]]))
+        } else {
+          val graphPaths = abstractHeap.getPaths(objAccPath)
+          // 2. We evaluate each graph path and collect only the valid ones
+          var validGraphPaths = Set.empty[(S, Set[Identifier], Map[AccessPathIdentifier, Path[S]])]
+          for (path <- graphPaths) {
+            val (st, apExp, apIds, apexpEdgeSeqMap) = evaluateGraphPath(path, expr.getProgramPoint)
+            val isValid: Boolean = !st.lessEqual(st.bottom()) && (if (!ap.getType.isObject()) apIds.map(id => id.getName).contains(ap.toString()) else true)
+            if (isValid) {
+              validGraphPaths = validGraphPaths + ((st, apIds.asInstanceOf[Set[Identifier]], apexpEdgeSeqMap))
+            }
           }
+          validGraphPaths
         }
-        return (AccessPathIdentifier(ap.path)(ap.getType, ap.getProgramPoint), validGraphPaths)
       }
       case BinaryArithmeticExpression(l,r,o,t) => {
         val leftEval = evaluateExpression(l)
         val rightEval = evaluateExpression(r)
-        val finalExp = new BinaryArithmeticExpression(leftEval._1, rightEval._1, o, t)
         var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathIdentifier, Path[S]])]
-        for (lStIdsMap <- leftEval._2) {
+        for (lStIdsMap <- leftEval) {
           var currentState = lStIdsMap._1
-          for (rStIdsMap <- rightEval._2) {
+          for (rStIdsMap <- rightEval) {
             var prefixesAgree = true
             var newAccPathExpEdgeMap = Map.empty[AccessPathIdentifier, Path[S]]
             val intersectedKeys = lStIdsMap._3.keySet.intersect(rStIdsMap._3.keySet)
@@ -489,20 +501,17 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             }
           }
         }
-        return (finalExp, validStates)
+        validStates
       }
-      case NegatedBooleanExpression(e) => {
-        val evaluatedExp = evaluateExpression(e)
-        return (new NegatedBooleanExpression(evaluatedExp._1), evaluatedExp._2)
-      }
+      case NegatedBooleanExpression(e) =>
+        evaluateExpression(e)
       case BinaryBooleanExpression(l,r,o, t) => {
         val leftEval = evaluateExpression(l)
         val rightEval = evaluateExpression(r)
-        val finalExp = new BinaryBooleanExpression(leftEval._1, rightEval._1, o, t)
         var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathIdentifier, Path[S]])]
-        for (lStIdsMap <- leftEval._2) {
+        for (lStIdsMap <- leftEval) {
           var currentState = lStIdsMap._1
-          for (rStIdsMap <- rightEval._2) {
+          for (rStIdsMap <- rightEval) {
             var prefixesAgree = true
             var newAccPathExpEdgeMap = Map.empty[AccessPathIdentifier, Path[S]]
             val intersectedKeys = lStIdsMap._3.keySet.intersect(rStIdsMap._3.keySet)
@@ -528,16 +537,15 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             }
           }
         }
-        return (finalExp, validStates)
+        validStates
       }
       case ReferenceComparisonExpression(l,r,o,t) => {
         val leftEval = evaluateExpression(l)
         val rightEval = evaluateExpression(r)
-        val finalExp = new ReferenceComparisonExpression(leftEval._1, rightEval._1, o, t)
         var validStates = Set.empty[(S, Set[Identifier], Map[AccessPathIdentifier, Path[S]])]
-        for (lStIdsMap <- leftEval._2) {
+        for (lStIdsMap <- leftEval) {
           var currentState = lStIdsMap._1
-          for (rStIdsMap <- rightEval._2) {
+          for (rStIdsMap <- rightEval) {
             var prefixesAgree = true
             var newAccPathExpEdgeMap = Map.empty[AccessPathIdentifier, Path[S]]
             val intersectedKeys = lStIdsMap._3.keySet.intersect(rStIdsMap._3.keySet)
@@ -563,7 +571,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             }
           }
         }
-        return (finalExp, validStates)
+        validStates
       }
       case _ => throw new Exception("Not implemented yet.")
     }
