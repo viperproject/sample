@@ -32,6 +32,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def heapVertices: Set[HeapVertex] =
     vertices.collect({ case v: HeapVertex => v })
 
+  /** Returns all local variable vertices in the heap graph. */
+  def localVarVertices: Set[LocalVariableVertex] =
+    vertices.collect({ case v: LocalVariableVertex => v })
+
   /** Returns all edges going out of a given vertex. */
   def outEdges(source: Vertex): Set[EdgeWithState[S]] =
     edges.filter(_.source == source)
@@ -306,7 +310,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def isBottom(): Boolean = {
     var result = false
-    for (locVar <- vertices.filter(_.isInstanceOf[LocalVariableVertex])) {
+    for (locVar <- localVarVertices) {
       val localVarEdges = outEdges(locVar)
       result = result || localVarEdges.isEmpty
     }
@@ -404,7 +408,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def prune(): (HeapGraph[S], Set[Identifier]) = {
     var currentEdges = edges
     var resultingEdgeSet = Set.empty[EdgeWithState[S]]
-    var resultingVertices = vertices.filter(_.isInstanceOf[LocalVariableVertex])
+    var resultingVertices = localVarVertices.toSet[Vertex]
     var changed = true
     while (changed) {
       val addEdges = currentEdges.filter(e => resultingVertices.contains(e.source) && !e.state.lessEqual(e.state.bottom()))
