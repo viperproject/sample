@@ -657,3 +657,94 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def mapEdgeStates(f: S => S) =
     copy(edges = edges.map(e => e.copy(state = f(e.state))))
 }
+
+object HeapGraph {
+  /**
+   * Computes the condition that is satisfied by the given path.
+   *
+   * @param path for which the condition should be computed
+   * @return abstract value condition that is satisfied by the given path
+   */
+  def graphPathCondition[S <: SemanticDomain[S]](path: Path[S]): S = {
+    require(!path.isEmpty, "path cannot be empty")
+    require(path.head.source.isInstanceOf[LocalVariableVertex],
+      "path does not begin with a local variable")
+
+    /**
+     * Inner helper method for computing the condition recursively.
+     *
+     * @param path to be proccesed
+     * @param state starting state where are only the edge-local identifiers
+     *              with empty sequence of field access that represent targets
+     */
+    def graphPathConditionRecursive(path: Path[S], state: S): S = {
+      val stateEdgeLocalIds = state.getIds().collect({
+        case id: EdgeLocalIdentifier => id
+      })
+      // Base case is when the path is empty. (Termination)
+      if (path.isEmpty) {
+        assert((stateEdgeLocalIds -- stateEdgeLocalIds.filter(_.accPath.isEmpty)).isEmpty)
+        return state
+      }
+
+      // If the path is non-empty, the head of it must refer to a field
+      // (i.e. the firs node must be a HeapVertex).
+      assert(path.head.source.isInstanceOf[HeapVertex])
+      val edge = path.head
+
+      // Field should not be None here
+      val field = edge.field.get
+
+      // Only the edge-local identifiers that refer to target are present in
+      // the given state (i.e. the once with empty sequence of field accesses)
+      assert(stateEdgeLocalIds.forall(_.accPath.isEmpty))
+
+      // Originally, the edge local identifiers of the given state with the
+      // empty sequence of fields refer to the target and no other edge-local
+      // identifiers are present in the given state. We need to add them
+      // so that the edge-local identifiers of the currently processed edge
+      // do not get lost.
+      val edgeLocalIdsToAdd = edge.state.getIds().collect({
+        case id: EdgeLocalIdentifier if !id.accPath.isEmpty => id
+      })
+      var newState: S = state.createVariables(edgeLocalIdsToAdd.toSet[Identifier])
+      newState = newState.glb(edge.state)
+
+      // Now, we need to rename source-edge local identifiers to the ones that are target of this edge and remove any others.
+      val originalSourceIds = newState.getIds().collect({
+        case id: EdgeLocalIdentifier if id.accPath.isEmpty => id
+      }).toSet[Identifier]
+      newState = newState.removeVariables(originalSourceIds)
+
+      // Renaming
+      val idsToRenameToSource = newState.getIds().collect({
+        case id: EdgeLocalIdentifier if id.accPath.equals(List(field)) => id
+      })
+
+      // Building lists for renaming
+      var renameFrom = List.empty[EdgeLocalIdentifier]
+      var renameTo = List.empty[EdgeLocalIdentifier]
+      for (elId <- idsToRenameToSource) {
+        renameFrom = elId :: renameFrom
+        renameTo = elId.copy(accPath = List.empty)(elId.getProgramPoint) :: renameTo
+      }
+      newState = newState.rename(renameFrom, renameTo)
+
+      // Now we remove all edge-local identifiers that can not be the targets.
+      val elIdsToRemove = newState.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]) -- renameTo
+      newState = newState.removeVariables(elIdsToRemove.toSet[Identifier])
+
+      // return
+      graphPathConditionRecursive(path.tail, newState)
+    }
+
+    // The head of the path (edge sequence) is starting from a variable.
+    // Therefore, the edge local variables that represent the target edge-local
+    // variables have an empty sequence of fields. However, we need to remove
+    // all other edge-local identifier that might be possibly present.
+    val elIdsToRemove = path.head.state.getIds().collect({
+      case id: EdgeLocalIdentifier if !id.accPath.isEmpty => id
+    })
+    graphPathConditionRecursive(path.tail, path.head.state.removeVariables(elIdsToRemove))
+  }
+}
