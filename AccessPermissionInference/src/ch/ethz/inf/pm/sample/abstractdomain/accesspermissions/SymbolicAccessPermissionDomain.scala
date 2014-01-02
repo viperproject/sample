@@ -533,12 +533,15 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (_value:Map
   def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) : (SymbolicPermissionsDomain[I], Map[Identifier, List[String]]) = {
     var result = Map.empty[Identifier, List[String]];
     result=result+((variable, path ::: variable.toString() :: Nil))
-    if(! variable.isInstanceOf[VariableIdentifier])
+    if(! variable.isInstanceOf[VariableIdentifier]) {
+      val locationContext = SystemParameters.analysisUnitContext
+      val currentClass = locationContext.clazzType.getName()
+      val currentMethod = locationContext.methodName
 	    variable.getField match {
-		    case None => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path ::: Nil))))), result);
-		    case Some(s) => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(SystemParameters.currentClass.getName(), SystemParameters.currentMethod, new Path( path  ::: /*s :: */Nil))))), result);
+		    case None => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(currentClass, currentMethod, new Path( path ::: Nil))))), result);
+		    case Some(s) => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(currentClass, currentMethod, new Path( path  ::: /*s :: */Nil))))), result);
 		  }
-    else return (this, result);
+    } else return (this, result);
   }
   
   

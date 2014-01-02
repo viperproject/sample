@@ -35,9 +35,9 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   var parsedTouchScripts : Map[String,Script] = Map.empty
 
-  var publicMethods : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
-  var privateMethods : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
-  var events : Set[(ClassDefinition,MethodDeclaration)] = Set.empty
+  var publicMethods : Set[MethodDeclaration] = Set.empty
+  var privateMethods : Set[MethodDeclaration] = Set.empty
+  var events : Set[MethodDeclaration] = Set.empty
   var globalData : Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields : Set[String] = Set.empty
   var userTypes : Map[String,AAny] = Map.empty
@@ -80,21 +80,20 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     main = compileScriptRecursive(script,pubID)
     mainID = pubID
 
+    val allTouchMethods = main.methods.toSet
+
     // We analyze public methods from the main class, events from the main class but globalData from all files (library)
-    publicMethods = (main.methods filter {
-      m:MethodDeclaration =>
-        !m.name.asInstanceOf[TouchMethodIdentifier].isPrivate && !m.name.asInstanceOf[TouchMethodIdentifier].isEvent
-    }).map((main,_)).toSet
+    publicMethods = allTouchMethods filter { tm =>
+      !tm.name.asInstanceOf[TouchMethodIdentifier].isPrivate && !tm.name.asInstanceOf[TouchMethodIdentifier].isEvent
+    }
 
-    privateMethods = (main.methods filter {
-      m:MethodDeclaration =>
-        m.name.asInstanceOf[TouchMethodIdentifier].isPrivate
-    }).map((main,_)).toSet
+    privateMethods = allTouchMethods filter { tm =>
+      tm.name.asInstanceOf[TouchMethodIdentifier].isPrivate
+    }
 
-    events = (main.methods filter {
-      m:MethodDeclaration =>
-        m.name.asInstanceOf[TouchMethodIdentifier].isEvent
-    }).map((main,_)).toSet
+    events = allTouchMethods filter { tm =>
+      tm.name.asInstanceOf[TouchMethodIdentifier].isEvent
+    }
 
     globalData = Set.empty
     for (c <- parsedScripts) {
@@ -185,12 +184,12 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
     getMethodWithClassDefinition(name,classType,parameters) match {
-      case Some((cd,mf)) => Some((mf,cd.typ))
+      case Some(mdecl) => Some((mdecl,mdecl.ownerType))
       case None => None
     }
   }
 
-  def getMethodWithClassDefinition(name: String, classType: Type, parameters: List[Type]): Option[(ClassDefinition, MethodDeclaration)] = {
+  def getMethodWithClassDefinition(name: String, classType: Type, parameters: List[Type]): Option[MethodDeclaration] = {
     val matches = (for (clazz <- parsedScripts; if (clazz.typ.getName().equals(classType.getName())); method <- clazz.methods) yield {
       if (method.name.toString.equals(name) && method.arguments.apply(0).size==parameters.size) {
         var ok : Boolean = true
@@ -198,7 +197,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
           if(! parameters(i).lessEqual(method.arguments(0)(i).typ))
             ok=false
         }
-        if(ok) return Some((clazz,method))
+        if(ok) return Some(method)
         else None
       } else None
     }).flatten
@@ -210,12 +209,13 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     else throw new TouchException("Local or library call may resolve to multiple methods.")
   }
 
-  def getPublicMethods: Set[(ClassDefinition,MethodDeclaration)] = publicMethods
+  def getPublicMethods: Set[MethodDeclaration] = publicMethods
 
-  def getPrivateMethods: Set[(ClassDefinition,MethodDeclaration)] = privateMethods
+  def getPrivateMethods: Set[MethodDeclaration] = privateMethods
 
-  def getMethods(name:String): List[(ClassDefinition,MethodDeclaration)] =
-    (publicMethods filter (_._2.name.toString == name)).toList
+  def getMethods(name:String): List[(ClassDefinition, MethodDeclaration)] =
+    for (mdecl <- publicMethods.toList if mdecl.name.toString == name)
+    yield (mdecl.classDef, mdecl)
 
   def reset() {
     main = null

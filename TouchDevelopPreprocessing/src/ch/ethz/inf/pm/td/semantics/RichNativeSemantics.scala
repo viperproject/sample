@@ -29,15 +29,17 @@ object RichNativeSemantics {
 
   /*-- Checking / Reporting errors --*/
 
-  def Dummy[S <: State[S]](obj:RichExpression, method:String)(implicit state:S, pp:ProgramPoint) {
+  def Dummy[S <: State[S]](obj:RichExpression, method:String)(implicit state: S, pp:ProgramPoint) {
+    val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
     if(TouchAnalysisParameters.reportDummyImplementations &&
-      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
+      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
       Reporter.reportDummy(obj.getType().toString+"->"+method,pp)
   }
 
-  def Dummy[S <: State[S]](text:String)(implicit state:S, pp:ProgramPoint) {
+  def Dummy[S <: State[S]](text:String)(implicit state: S, pp:ProgramPoint) {
+    val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
     if(TouchAnalysisParameters.reportDummyImplementations &&
-      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
+      (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)))
       Reporter.reportDummy(text,pp)
   }
 
@@ -45,8 +47,9 @@ object RichNativeSemantics {
     if(!state.isInstanceOf[AccessCollectingState]) {
       val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
       if(!errorState.lessEqual(state.bottom())) {
+        val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
         if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
-          || SystemParameters.currentClass.toString.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)) {
+          || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)) {
             Reporter.reportError(message+" "+state.explainError(expr).map{x => x._1+" "+x._2.toString}.mkString(";"),pp)
         }
         val ret = state.assume(expr.not())
@@ -483,10 +486,13 @@ object RichNativeSemantics {
     state.assume(expr)
   }
 
-  def CallLocalAction[S <: State[S]](method:String,parameters:List[ExpressionSet] = Nil)(implicit state:S, pp:ProgramPoint): S = {
-    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method,SystemParameters.typ,parameters map (_.getType())) match {
-      case Some((clazz,methodDef)) =>
-        val res = MethodSummaries.collect(pp,clazz,methodDef,state,parameters)
+  def CallLocalAction[S <: State[S]](method:String,parameters:List[ExpressionSet] = Nil)
+                                    (implicit state: S, pp:ProgramPoint): S = {
+    val context = SystemParameters.analysisUnitContext
+    val classType = context.clazzType
+    SystemParameters.compiler.asInstanceOf[TouchCompiler].getMethodWithClassDefinition(method,classType, parameters map (_.getType())) match {
+      case Some(mdecl) =>
+        val res = MethodSummaries.collect(pp, mdecl, state,parameters)
         res
       case _ =>
         Reporter.reportImprecision("Could not find method "+method,pp)

@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.Timer
+import scala.util.DynamicVariable
 
 /**
  * <code>SystemParameters</code> contains all the parameters of Sample
@@ -25,23 +26,21 @@ object SystemParameters {
   /**
    The number of iterations after whom widening is applied
   */
-  val wideningLimit : Int = 1;
-  /**
-   The path of the file currently analyzed
-  */
-  var currentFile : String = "<not yet initialized>";
+  var wideningLimit : Int = 3
+
   /**
    The semantics of methods defined by hand
   */
   var nativeMethodsSemantics : List[NativeMethodSemantics] = Nil
-  /**
-   The class currently analyzed
-  */
-  var currentClass : Type = null;
-  /**
-   The method currently analyzed
-  */
-  var currentMethod : String = null;
+
+
+  val analysisUnitImpl: DynamicVariable[AnalysisUnitContext] = new DynamicVariable(null)
+
+  def analysisUnitContext: AnalysisUnitContext = analysisUnitImpl.value
+
+  def withAnalysisUnitContext[R](context: AnalysisUnitContext)(f: => R): R = {
+    analysisUnitImpl.withValue(context)(f)
+  }
   //TODO:Remove it
   var semanticsComputing : Boolean = false;
 
@@ -55,10 +54,7 @@ object SystemParameters {
    * performing arithmetical operations
    */
   var ignoreTypeForNumericalMethods : Boolean = false;
-  /**
-   The cfg currently under analysis
-  */
-  var currentCFG : ControlFlowGraph = null;
+
   /**
    The output for the window that shows the progresses of the analysis
   */

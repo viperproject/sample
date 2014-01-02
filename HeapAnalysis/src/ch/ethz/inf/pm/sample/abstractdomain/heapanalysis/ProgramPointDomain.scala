@@ -44,8 +44,10 @@ sealed abstract class ProgramPointHeapIdentifier(t: Type, pp1: ProgramPoint, cou
   override def createAddress(t: Type, p: ProgramPoint): ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(p, t)
 
   override def createAddressForArgument(t: Type, p: ProgramPoint): ProgramPointHeapIdentifier =
-    if (NonRelationalHeapDomainSettings.unsoundEntryState)
-      new UnsoundParameterHeapIdentifier(t, Math.min(ParameterIds.get(SystemParameters.currentMethod), NonRelationalHeapDomainSettings.maxInitialNodes), p)
+    if (NonRelationalHeapDomainSettings.unsoundEntryState) {
+      val context = SystemParameters.analysisUnitContext
+      new UnsoundParameterHeapIdentifier(t, Math.min(ParameterIds.get(context.methodName), NonRelationalHeapDomainSettings.maxInitialNodes), p)
+    }
     else new ParameterHeapIdentifier(t, p)
 
   override def hashCode(): Int = pp1.hashCode() + counter

@@ -87,7 +87,8 @@ class MethodDeclaration(
                       val returnType : Type,
                       val body : ControlFlowGraph,
                       val precond : Statement,
-                      val postcond : Statement
+                      val postcond : Statement,
+                      val classDef: ClassDefinition
               ) extends ClassElements 
 {
 
@@ -126,15 +127,13 @@ class MethodDeclaration(
 
   /** this is not run by the touchdevelop code! */
   def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
-    SystemParameters.currentCFG=body;
-    val result=initializeArgument[S](state, arguments);
-    SystemParameters.currentMethod=name.toString();
-    SystemParameters.semanticsComputing=true;
-    val r=new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
-    SystemParameters.semanticsComputing=false;
-    SystemParameters.currentMethod=null;
-    SystemParameters.currentCFG=null;
-    return r;
+    SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(this)) {
+      val result=initializeArgument[S](state, arguments);
+      SystemParameters.semanticsComputing=true;
+      val r=new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
+      SystemParameters.semanticsComputing=false;
+      r
+    }
   }
   
   def backwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {

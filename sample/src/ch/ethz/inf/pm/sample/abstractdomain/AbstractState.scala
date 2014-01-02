@@ -78,6 +78,12 @@ object ExpressionFactory {
     result
   }
 
+  lazy val unitExpr = ExpressionSet(new UnitExpression(SystemParameters.typ.top(), DummyProgramPoint))
+
+  def createUnitExpression(pp: ProgramPoint): ExpressionSet = {
+    ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp))
+  }
+
   private def combineListValue(list : List[ExpressionSet]) : Set[List[Expression]] = list match {
     case Nil => Set.empty+(Nil)
     case x :: xs =>
@@ -91,7 +97,7 @@ object ExpressionFactory {
 
 }
 
-class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpressions)
+case class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpressions)
   extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet](initialTyp, s) {
 
   override def factory() : ExpressionSet =
@@ -219,7 +225,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   def getExpression : ExpressionSet = getResult()
 
   def removeExpression() : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
+    if(this.isBottom) return  new AbstractState(this._1, this._2.bottom())
     new AbstractState(this._1, ExpressionSet())
   }
 

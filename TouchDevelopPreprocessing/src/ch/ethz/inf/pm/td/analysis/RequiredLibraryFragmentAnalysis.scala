@@ -27,7 +27,7 @@ object RequiredLibraryFragmentAnalysis {
     for (clazz <- classes; method <- clazz.methods) {
 
       val params = for (a <- method.arguments.head) yield { new ExpressionSet(a.typ) }
-      MethodSummaries.collect(method.programpoint,clazz,method,new AccessCollectingState(SystemParameters.getType().top()),params)
+      MethodSummaries.collect(method.programpoint, method, new AccessCollectingState(SystemParameters.getType().top()),params)
 
     }
 

@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{EmptyScopeIdentifier, VariableIdentifier, ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, NativeMethodSemantics, ProgramPoint, Type}
 import scala.{None, Some}
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
 import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchCompiler}
@@ -36,10 +36,10 @@ class Libraries() extends NativeMethodSemantics {
 
     if (CFGGenerator.isLibraryIdent(thisExpr.getType().getName())) {
       compiler.getMethodWithClassDefinition(operator,thisExpr.getType(),parameters map (_.getType())) match {
-        case Some((clazz,methodDef)) =>
+        case Some(mdecl: MethodDeclaration) =>
 
           // We may access a library function
-          Some(MethodSummaries.collect(pp,clazz,methodDef,state,parameters))
+          Some(MethodSummaries.collect(pp, mdecl, state, parameters))
 
         case _ =>
 

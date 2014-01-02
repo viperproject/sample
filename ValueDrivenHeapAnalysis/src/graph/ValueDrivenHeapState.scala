@@ -193,14 +193,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       // into analyses, if we want the analyses to be independent
       // from source languages.
 
-      // We cannot use the compiler method `getMethod` as the current
-      // parameter list is not available.
-      val methods = SystemParameters.compiler.getMethods(SystemParameters.currentMethod)
-      // Works as long as there is no method overloading
-      assert(methods.size == 1)
+      val unitContext = SystemParameters.analysisUnitContext
+      val method = unitContext.method
 
       val isInstanceVar = locVarVertex.name.equals("this") &&
-        !methods.head._2.modifiers.contains(StaticModifier)
+        !method.modifiers.contains(StaticModifier)
 
       // Arguments can point to null
       if (!isInstanceVar) {
