@@ -668,7 +668,11 @@ object HeapGraph {
   def pathCondition[S <: SemanticDomain[S]](path: Path[S]): S = {
     require(!path.isEmpty, "path cannot be empty")
     require(path.head.source.isInstanceOf[LocalVariableVertex],
-      "path does not begin with a local variable")
+      "first edge source is not a local variable vertex")
+    require(path.tail.forall(_.source.isInstanceOf[HeapVertex]),
+      "all edges (except the first) must have a heap vertex source")
+    require(path.zip(path.tail).forall(t => t._1.target == t._2.source),
+      "path is not consistent (edge target must equal source of next edge")
 
     /**
      * Inner helper method for computing the condition recursively.
@@ -689,7 +693,6 @@ object HeapGraph {
 
       // If the path is non-empty, the head of it must refer to a field
       // (i.e. the first node must be a HeapVertex).
-      assert(path.head.source.isInstanceOf[HeapVertex])
       val edge = path.head
 
       // Field should not be None here
