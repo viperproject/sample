@@ -114,7 +114,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
         // Recurse to object field types
         for (fieldType <- typ.objectFields.map(_.getType)) {
-          if (map.get(fieldType) == Some(SUMMARY)) {
+          if (map.get(fieldType) != Some(SUMMARY)) {
             map = buildTypeToLabelMap(fieldType, map)
           }
         }
