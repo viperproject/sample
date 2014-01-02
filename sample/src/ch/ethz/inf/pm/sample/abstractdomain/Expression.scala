@@ -501,12 +501,12 @@ case class UnitExpression(typ : Type, pp : ProgramPoint) extends Expression {
 
 }
 
-case class AccessPathIdentifier(accPath: List[String])
+case class AccessPathIdentifier(path: List[String])
                                (val typ: Type, val pp: ProgramPoint)
     extends Identifier(typ, pp) {
-  require(!accPath.isEmpty, "the access path must not be empty")
+  require(!path.isEmpty, "the access path must not be empty")
 
-  def getName: String = accPath.mkString(".")
+  def getName: String = path.mkString(".")
 
   def getField: Option[String] = ???
 
