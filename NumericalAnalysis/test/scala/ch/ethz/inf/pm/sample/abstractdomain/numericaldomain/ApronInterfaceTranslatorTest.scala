@@ -46,6 +46,7 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   val idx = makeVarId("x")
   val idy = makeVarId("y")
 
+  val constMinus1 = makeConst(-1)
   val const0 = makeConst(0)
   val const1 = makeConst(1)
   val const2 = makeConst(2)
@@ -73,5 +74,10 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
 
     i = i.assign(idx, BinaryArithmeticExpression(idx, const1, ArithmeticOperator.+, typ))
     translate(i) should equal (Set("x ≥ 1", "x ≤ 3", "1 + y = x"))
+
+    // Should prefer 'x = -1' over 'x + 1 = 0' for readability
+    // The unused variable 'y' is added on purpose
+    i = dom.createVariable(idx, typ).createVariable(idy, typ).assign(idx, constMinus1)
+    translate(i) should equal (Set("x = -1"))
   }
 }

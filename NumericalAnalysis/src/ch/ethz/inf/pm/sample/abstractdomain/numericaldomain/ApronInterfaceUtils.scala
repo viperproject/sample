@@ -26,7 +26,8 @@ class ApronInterfaceTranslator(
   def translate(c: Lincons1): Expression = {
     // Separate terms with positive and negative coefficients, such that we can
     // build a linear inequality whose terms only have positive coefficients.
-    var (leftTerms, rightTerms) = c.getLinterms.partition(
+    val nonZeroLinterms = c.getLinterms.filter(!_.getCoefficient.isZero)
+    var (leftTerms, rightTerms) = nonZeroLinterms.partition(
       _.getCoefficient.cmp(new DoubleScalar(0)) > 0)
 
     // Negate all negative terms
@@ -52,11 +53,17 @@ class ApronInterfaceTranslator(
 
     // Add the constant to the LHS or RHS of the inequality,
     // depending on whether it is positive or negative
-    if (const.cmp(new DoubleScalar(0)) > 0)
-      leftExps = Constant(const.toString, typ, DummyProgramPoint) :: leftExps.toList
-    else if (const.cmp(new DoubleScalar(0)) < 0)
-      rightExps = Constant(negateCoeff(const).toString, typ, DummyProgramPoint) ::
-        rightExps.toList
+    val sampleConst = Constant(const.toString, typ, DummyProgramPoint)
+    val sampleNegConst = Constant(negateCoeff(const).toString, typ, DummyProgramPoint)
+
+    if (const.cmp(new DoubleScalar(0)) > 0) {
+      if (rightExps.isEmpty) {
+        rightExps ::= sampleNegConst
+      } else {
+        leftExps ::= sampleConst
+      }
+    } else if (const.cmp(new DoubleScalar(0)) < 0)
+      rightExps ::= sampleNegConst
 
     val zero = Constant("0", typ, DummyProgramPoint)
     val result = BinaryArithmeticExpression(
