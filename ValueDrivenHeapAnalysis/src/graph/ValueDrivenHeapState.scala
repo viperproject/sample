@@ -385,7 +385,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             case id: EdgeLocalIdentifier if id.accPath.isEmpty && id.field == field => id
           }).toList
           assert(renameFrom.size == 1, "This should not happen, there should be exactly one identifier to rename.")
-          val renameTo : List[Identifier] = List(new AccessPathIdentifier(ap.path, ap.getType, ap.getProgramPoint))
+          val renameTo : List[Identifier] = List(AccessPathIdentifier(ap.path)(ap.getType, ap.getProgramPoint))
           cond = cond.rename(renameFrom, renameTo)
           // The AccessPathIdentifier must agree also with the ValueHeapIdentifier
           val resId = ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, renameTo.head.getType, renameTo.head.getProgramPoint)
@@ -454,7 +454,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             validGraphPaths = validGraphPaths + ((st, apIds.asInstanceOf[Set[Identifier]], apexpEdgeSeqMap))
           }
         }
-        return (new AccessPathIdentifier(ap.path, ap.getType, ap.getProgramPoint), validGraphPaths)
+        return (AccessPathIdentifier(ap.path)(ap.getType, ap.getProgramPoint), validGraphPaths)
       }
       case BinaryArithmeticExpression(l,r,o,t) => {
         val leftEval = evaluateExpression(l)
@@ -746,7 +746,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           case  None =>
           case Some(f) => {
             val edgeLocId = EdgeLocalIdentifier(valField)
-            val newId = new AccessPathIdentifier(currentPathList :+ valField.getName, valField.getType, valField.getProgramPoint)
+            val newId = AccessPathIdentifier(currentPathList :+ valField.getName)(valField.getType, valField.getProgramPoint)
             addedIdentifiers = addedIdentifiers + newId
             currentState = currentState.rename(List(edgeLocId), List(newId))
           }
@@ -766,7 +766,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       // Taking care of target edge local information
       if (!edge.target.isInstanceOf[NullVertex]) {
         for (valField <- edge.target.typ.nonObjectFields) {
-          val newId = new AccessPathIdentifier(currentPathList :+ valField.getName, valField.getType, valField.getProgramPoint)
+          val newId = AccessPathIdentifier(currentPathList :+ valField.getName)(valField.getType, valField.getProgramPoint)
           addedIdentifiers = addedIdentifiers + newId
           edge.field match {
             case None => {
