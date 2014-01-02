@@ -905,8 +905,6 @@ object Normalizer {
 
     case BinaryNondeterministicExpression(left,right,op,typ) => return getIdsForExpression[I](left).union(getIdsForExpression[I](right));
 
-    case AccessPathExpression(pp, typ, path) => Set(AccessPathIdentifier(path)(typ, pp))
-
     case _ => return Set.empty[Identifier];
   }
 }
@@ -959,39 +957,4 @@ case class BinaryNondeterministicExpression(left : Expression, right : Expressio
   override def transform(f:(Expression => Expression)):Expression =
     f(BinaryNondeterministicExpression(left.transform(f),right.transform(f),op,returnType))
 
-}
-
-/**
- * T
- *
- *
- * @author Milos Novacek
- */
-case class AccessPathExpression(pp : ProgramPoint, typ: Type, path: List[String]) extends Expression {
-
-  assert(path.size > 0, "The path is empty.")
-
-  def getProgramPoint = pp
-  def getType = typ
-  def getIdentifiers = Set.empty[Identifier]
-
-  override def toString(): String = {
-    var result = ""
-    for (current <- path.dropRight(1)) {
-      result = result + current + "."
-    }
-    return result + path.last
-  }
-
-  override def hashCode(): Int = {
-    return toString.hashCode() + typ.hashCode()
-  }
-
-  override def equals(obj : Any): Boolean = obj match {
-    case AccessPathExpression(_, objTyp, objPath) => this.typ == objTyp && this.path == objPath
-    case _ => false
-  }
-
-  // TODO: This should be reimplemented.
-  override def transform(f:(Expression => Expression)) : Expression = this
 }

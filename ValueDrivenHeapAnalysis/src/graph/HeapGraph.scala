@@ -71,8 +71,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
-  def getPathsToBeAssigned(expr: AccessPathExpression): Set[Path[S]] =
-    getPaths(expr.path.dropRight(1))
+  def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[Path[S]] =
+    getPaths(accPathId.path.dropRight(1))
 
   def getPaths(path: List[String]): Set[Path[S]] = {
     assert(path.size > 0, "The path must be non-empty.")

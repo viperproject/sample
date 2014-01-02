@@ -144,7 +144,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
       assert(leftExpr.getSetOfExpressions.size == 1, "Left hand side must be a single expression.")
       assert(rightExpr.getSetOfExpressions.size == 1, "Right-hand side must be a single expression.")
       leftExpr.getSetOfExpressions.head match {
-        case ap: AccessPathExpression =>
+        case ap: AccessPathIdentifier =>
           val result = rightState.removeExpression().assignField(leftExpr, "", rightExpr)
           result
         case v: VariableIdentifier =>
@@ -312,7 +312,7 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
       accPath = rootOfFieldAcc.getName :: accPath
       // TODO: The below fix is a hack and should not be handled this way
       val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(obj).getPossibleFields().filter(f => f.getName.equals(field)).head.getType else typ
-      val pathExpr = new AccessPathExpression(pp, finalType, accPath :+ field)
+      val pathExpr = AccessPathIdentifier(accPath :+ field)(finalType, pp)
       val newResult = state.getFieldValue(ExpressionSet(pathExpr), field, finalType)
       newResult
     } else {
