@@ -506,12 +506,6 @@ case class AccessPathIdentifier(accPath: List[String])
     extends Identifier(typ, pp) {
   require(!accPath.isEmpty, "the access path must not be empty")
 
-  /**
-   * Constructs an access path identifier from a given variable identifier,
-   * i.e., with an access path of length 1.
-   */
-  def this(id: VariableIdentifier) = this(List(id.name))(id.typ, id.pp)
-
   def getName: String = accPath.mkString(".")
 
   def getField: Option[String] = ???
@@ -519,6 +513,15 @@ case class AccessPathIdentifier(accPath: List[String])
   def representsSingleVariable(): Boolean = true
 
   override def toString: String = getName
+}
+
+object AccessPathIdentifier {
+  /**
+   * Constructs an access path identifier from a given variable identifier,
+   * i.e., with an access path of length 1.
+   */
+  def apply(id: VariableIdentifier): AccessPathIdentifier =
+    AccessPathIdentifier(List(id.name))(id.typ, id.pp)
 }
 
 /** 
