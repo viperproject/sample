@@ -28,6 +28,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
   private def getCurrentVersionNumbers: Set[Int] =
     vertices collect {case hv : HeapVertex => hv.version}
 
+  /** Returns all heap vertices in the heap graph. */
+  def heapVertices: Set[HeapVertex] =
+    vertices.collect({ case v: HeapVertex => v })
+
   /** Returns all edges going out of a given vertex. */
   def outEdges(source: Vertex): Set[EdgeWithState[S]] =
     edges.filter(_.source == source)
@@ -35,6 +39,30 @@ case class HeapGraph[S <: SemanticDomain[S]](
   /** Returns all edges going out of a given vertex for a given field. */
   def outEdges(source: Vertex, field: Option[String]): Set[EdgeWithState[S]] =
     outEdges(source).filter(_.field == field)
+
+  /** Replaces a given heap vertex with another one. */
+  def replaceVertex(oldVertex: HeapVertex, newVertex: HeapVertex):
+      (HeapGraph[S], Map[Identifier, Identifier]) = {
+    require(vertices.contains(oldVertex), "unknown old heap vertex")
+    require(!vertices.contains(newVertex), "new vertex already part of heap")
+    def maybeReplace(v: Vertex) = if (v == oldVertex) newVertex else v
+    val valueRenameMap = vertexToValueMap(Map(oldVertex -> newVertex))
+    val resultingHeap = copy(
+      vertices = vertices - oldVertex + newVertex,
+      edges = edges.map(e =>
+        e.copy(
+          source = maybeReplace(e.source),
+          target = maybeReplace(e.target),
+          state = e.state.rename(valueRenameMap))))
+    (resultingHeap, valueRenameMap)
+  }
+
+  /** Replaces a given definite heap vertex with a summary heap vertex. */
+  def replaceDefWithSumVertex(defVertex: DefiniteHeapVertex):
+      (HeapGraph[S], Map[Identifier, Identifier]) = {
+    val sumVertex = new SummaryHeapVertex(defVertex.version, defVertex.typ)
+    replaceVertex(defVertex, sumVertex)
+  }
 
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
