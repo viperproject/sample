@@ -665,7 +665,7 @@ object HeapGraph {
    * @param path for which the condition should be computed
    * @return abstract value condition that is satisfied by the given path
    */
-  def graphPathCondition[S <: SemanticDomain[S]](path: Path[S]): S = {
+  def pathCondition[S <: SemanticDomain[S]](path: Path[S]): S = {
     require(!path.isEmpty, "path cannot be empty")
     require(path.head.source.isInstanceOf[LocalVariableVertex],
       "path does not begin with a local variable")
@@ -677,7 +677,7 @@ object HeapGraph {
      * @param state starting state where are only the edge-local identifiers
      *              with empty sequence of field access that represent targets
      */
-    def graphPathConditionRecursive(path: Path[S], state: S): S = {
+    def pathConditionRecursive(path: Path[S], state: S): S = {
       val stateEdgeLocalIds = state.getIds().collect({
         case id: EdgeLocalIdentifier => id
       })
@@ -688,7 +688,7 @@ object HeapGraph {
       }
 
       // If the path is non-empty, the head of it must refer to a field
-      // (i.e. the firs node must be a HeapVertex).
+      // (i.e. the first node must be a HeapVertex).
       assert(path.head.source.isInstanceOf[HeapVertex])
       val edge = path.head
 
@@ -710,7 +710,8 @@ object HeapGraph {
       var newState: S = state.createVariables(edgeLocalIdsToAdd.toSet[Identifier])
       newState = newState.glb(edge.state)
 
-      // Now, we need to rename source-edge local identifiers to the ones that are target of this edge and remove any others.
+      // Now, we need to rename source-edge local identifiers to the ones
+      // that are target of this edge and remove any others.
       val originalSourceIds = newState.getIds().collect({
         case id: EdgeLocalIdentifier if id.accPath.isEmpty => id
       }).toSet[Identifier]
@@ -734,8 +735,7 @@ object HeapGraph {
       val elIdsToRemove = newState.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]) -- renameTo
       newState = newState.removeVariables(elIdsToRemove.toSet[Identifier])
 
-      // return
-      graphPathConditionRecursive(path.tail, newState)
+      pathConditionRecursive(path.tail, newState)
     }
 
     // The head of the path (edge sequence) is starting from a variable.
@@ -745,6 +745,6 @@ object HeapGraph {
     val elIdsToRemove = path.head.state.getIds().collect({
       case id: EdgeLocalIdentifier if !id.accPath.isEmpty => id
     })
-    graphPathConditionRecursive(path.tail, path.head.state.removeVariables(elIdsToRemove))
+    pathConditionRecursive(path.tail, path.head.state.removeVariables(elIdsToRemove))
   }
 }

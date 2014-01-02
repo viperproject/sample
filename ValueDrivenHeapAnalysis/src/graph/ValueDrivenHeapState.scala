@@ -292,7 +292,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               case rAP: AccessPathExpression => {
                 val rightPaths = abstractHeap.getPaths(rAP.path)
                 for (rPath <- rightPaths) {
-                  val rCond = HeapGraph.graphPathCondition(rPath)
+                  val rCond = HeapGraph.pathCondition(rPath)
                   if (!rCond.lessEqual(rCond.bottom())) {
                     edgesToAdd = edgesToAdd + EdgeWithState(varVertex, rCond, None, rPath.last.target)
                   }
@@ -379,7 +379,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         // Those that lead to null are not interesting
         for (path <- abstractHeap.getPaths(ap.path.dropRight(1)).filter(_.last.target.isInstanceOf[HeapVertex])) {
           // We find the condition for the path
-          var cond = HeapGraph.graphPathCondition(path)
+          var cond = HeapGraph.pathCondition(path)
           // We rename edge local identifier that corresponds to the access path to the access path
           val renameFrom = cond.getIds().collect({
             case id: EdgeLocalIdentifier if id.accPath.isEmpty && id.field == field => id
@@ -595,7 +595,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           // Add new edges
           for (lPath <- leftPaths) {
             // leftCond should contain source EdgeLocalIdentifiers
-            val leftCond = HeapGraph.graphPathCondition(lPath)
+            val leftCond = HeapGraph.pathCondition(lPath)
             // We build the replacement that for each ValueHeapIdentifier corresponding to the vertex, expands it to
             // target EdgeLocalIdentifier.
             val repl = new Replacement()
@@ -635,7 +635,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       // We construct a map that says which id is assigned and under which condition
       val pathsToAssignUnderConditions = mutable.Map.empty[Path[S], S]
       for (lPath <- leftPaths) {
-        val lPathCond = HeapGraph.graphPathCondition(lPath)
+        val lPathCond = HeapGraph.pathCondition(lPath)
         val lPathCondEdgeLocalIds = lPathCond.getIds().collect({case id: EdgeLocalIdentifier => id })
         val newPathCond = lPathCond.removeVariables(lPathCondEdgeLocalIds)
         if (!newPathCond.lessEqual(newPathCond.bottom()))
@@ -685,11 +685,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   private def referencePathAssignmentEdges(field: String, leftPaths : Set[Path[S]], rightPaths : Set[Path[S]]) : Set[EdgeWithState[S]] = {
     var edgesToAdd = Set.empty[EdgeWithState[S]]
     for (lPath <- leftPaths) {
-      var leftCond = HeapGraph.graphPathCondition(lPath)
+      var leftCond = HeapGraph.pathCondition(lPath)
       if (!leftCond.lessEqual(leftCond.bottom())) {
         // The condition of the left path is not bottom. (i.e. can be possibly assigned)
         for(rPath <- rightPaths) {
-          val rightCond = HeapGraph.graphPathCondition(rPath)
+          val rightCond = HeapGraph.pathCondition(rPath)
           var renameFrom = List.empty[EdgeLocalIdentifier]
           var renameTo = List.empty[EdgeLocalIdentifier]
           val idsToRename = rightCond.getIds().collect({ case id: EdgeLocalIdentifier => id })
