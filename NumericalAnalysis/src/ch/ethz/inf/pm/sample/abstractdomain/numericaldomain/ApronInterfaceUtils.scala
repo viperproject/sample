@@ -58,6 +58,7 @@ class ApronInterfaceTranslator(
 
     if (const.cmp(new DoubleScalar(0)) > 0) {
       if (rightExps.isEmpty) {
+        // Prefer 'x = -1' over 'x + 1 = 0'
         rightExps ::= sampleNegConst
       } else {
         leftExps ::= sampleConst
