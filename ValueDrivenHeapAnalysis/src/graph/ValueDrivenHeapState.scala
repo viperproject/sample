@@ -731,7 +731,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         case Some(f) =>
       }
     }
-//    var sequenceOfStates: List[S] = for (edge <- path) yield edge.state
     var sequenceOfStates = List.empty[S]
     var currentPathList = path.head.source.name :: Nil
     var addedIdentifiers = Set.empty[AccessPathIdentifier]
@@ -825,7 +824,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
-    //**println("evalConsta(" + value + "," + typ + "," + pp + ") is called.")
     if(this.isBottom) return this
     this.setExpression(ExpressionSet(new Constant(value, typ, pp)))
   }
@@ -907,7 +905,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   def testTrue(): ValueDrivenHeapState[S] = {
-    //**println("testTrue() is called")
     return assume(getExpression)
   }
 
@@ -937,7 +934,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     ValueDrivenHeapState(HeapGraph(), generalValState.bottom(), expr, isTop = false, isBottom = true)
 
   def lub(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
-    //**println("lub(" + toString() + ", " + right.toString() + ") is called")
     if (isBottom || other.isTop)
       return other
     if (isTop || other.isBottom)
@@ -946,13 +942,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val (resAH, renameMap) = abstractHeap.lub(other.abstractHeap)
     val resGeneralState = generalValState.lub(other.generalValState.rename(renameMap))
 
-    //**println("REAL LUB IS CALLED.")
-
-    return ValueDrivenHeapState(resAH, resGeneralState, ExpressionSet())
-
-//    return ValueDrivenHeapState(right.abstractHeap,
-//                                       right.generalValState.lub(generalValState, right.generalValState),
-//                                       right.expr)
+    ValueDrivenHeapState(resAH, resGeneralState, ExpressionSet())
   }
 
   def glb(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
@@ -984,21 +974,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       areGraphsIdentical
     }
 
-
-//    //**println("WIDENING IS CALLED")
-//    val tempRight = left.lub(other)
-//    val (mergedLeft, replacementLeft) = abstractHeap.mergePointedNodes()
-//    val (mergedRight, replacementRight) = tempRight.abstractHeap.mergePointedNodes()
-//    if (!mergedLeft.vertices.equals(mergedRight.vertices) || !areGraphsIdentical(mergedLeft, mergedRight)) {
-//      return tempRight
-//    }
-//    val newGeneralValState = generalValState.widening(generalValState.merge(replacementLeft), tempRight.generalValState.merge(replacementRight))
-//    return ValueDrivenHeapState(mergedLeft.wideningAfterMerge(mergedLeft, mergedRight), newGeneralValState, ExpressionSet())
-
-
-    /**
-     * ORIGINAL CODE
-     */
     val (mergedLeft, replacementLeft) = abstractHeap.mergePointedNodes()
     val (mergedRight, replacementRight) = other.abstractHeap.mergePointedNodes()
     val rightGenValState = other.generalValState.merge(replacementRight)
@@ -1009,12 +984,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       return newRight
     }
     val newGeneralValState = newLeft.generalValState.widening(newRight.generalValState.merge(replacementRight))
-    val result = ValueDrivenHeapState(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
-    return result
+    ValueDrivenHeapState(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
   }
 
   private def materializePath(pathToMaterialize : List[String]) : ValueDrivenHeapState[S] = {
-    val verticesToAdd = mutable.Set.empty[Vertex]
     val edgesToAdd = mutable.Set.empty[EdgeWithState[S]]
     val edgesToRemove = mutable.Set.empty[EdgeWithState[S]]
     val repl = new Replacement(isPureExpanding = true)
@@ -1098,7 +1071,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
   def lessEqual(r: ValueDrivenHeapState[S]): Boolean = {
     // TODO: Implement properly
-    //**println("lessEqua(" + r.toString + ") is called on " + this.toString)
     if (isBottom)
       return true
     if (r.isBottom)
@@ -1127,7 +1099,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): ValueDrivenHeapState[S] = {
-    //**println("creatObject(" + typ + "," + pp + "," + fields + ") is called.")
     if (this.isBottom) return this
 
     var resIds = Set.empty[Identifier]
