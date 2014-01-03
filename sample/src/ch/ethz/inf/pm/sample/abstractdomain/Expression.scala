@@ -513,6 +513,9 @@ case class AccessPathIdentifier(path: List[String])
   def representsSingleVariable(): Boolean = true
 
   override def toString: String = getName
+
+  def objPath: List[String] =
+    if (typ.isObject()) path else path.dropRight(1)
 }
 
 object AccessPathIdentifier {

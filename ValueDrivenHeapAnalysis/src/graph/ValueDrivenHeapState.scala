@@ -365,7 +365,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   private def newEvaluateExpression(expr: Expression) : Set[S] = {
-    //assert(!expr.getType().isObject(), "This should be evaluation of only value expressions!")
+    require(!expr.getType.isObject(), "can only evaluate value expressions")
     expr match {
       case v : VariableIdentifier => {
         Set(generalValState)
@@ -377,7 +377,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val field = ap.path.last
         val resultingSet = mutable.Set.empty[S]
         // Those that lead to null are not interesting
-        for (path <- abstractHeap.getPaths(ap.path.dropRight(1)).filter(_.last.target.isInstanceOf[HeapVertex])) {
+        for (path <- abstractHeap.getPaths(ap.objPath).filter(_.last.target.isInstanceOf[HeapVertex])) {
           // We find the condition for the path
           var cond = HeapGraph.pathCondition(path)
           // We rename edge local identifier that corresponds to the access path to the access path
@@ -413,12 +413,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       case NegatedBooleanExpression(e) => {
         newEvaluateExpression(e)
       }
-      case ReferenceComparisonExpression(l,r,o,t) => {
-        throw new Exception("This method should not be called with ReferenceComparisonExpression. " +
-          "(At least for now I do not see why it should be)")
-      }
-      case _ =>
-        throw new Exception("Not supported. Let me know. (Milos)")
+      case _ => ???
     }
   }
 
@@ -450,7 +445,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       case ap: AccessPathIdentifier => {
         // First we need to evaluate the access path, depending on whether it represents an object or a value
         // 1. we get all possible graph paths that the access path can follow
-        val objAccPath = if (!ap.typ.isObject()) ap.path.dropRight(1) else ap.path
+        val objAccPath = ap.objPath
 
         if (objAccPath.isEmpty) {
           // Just a non-object variable
@@ -825,7 +820,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     // TODO: May be I should check whether this exist and is feasible already here.
     if (ValueDrivenHeapProperty.materialize) {
       val apObj = obj.getSetOfExpressions.head.asInstanceOf[AccessPathIdentifier]
-      val tempResult = materializePath({if (apObj.typ.isObject()) apObj.path else apObj.path.dropRight(1)})
+      val tempResult = materializePath(apObj.objPath)
       tempResult.copy(expr = new ExpressionSet(typ).add(obj))
     } else
       copy(expr = new ExpressionSet(typ).add(obj))
