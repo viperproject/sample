@@ -873,11 +873,14 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val tempAH = abstractHeap.valueAssumeOnEachEdge(baExp, expGenCond)
         ValueDrivenHeapState(tempAH, resultingGenCond, ExpressionSet()).prune()
       }
-      case ReferenceComparisonExpression(left, right, op, returnTyp) => {
-        assert(left.getType.isObject(),
+      case ReferenceComparisonExpression(_left, _right, op, returnTyp) => {
+        assert(_left.getType.isObject(),
           "Reference comparison can be performed only on objects, not values.")
-        assert(right.getType.isObject(),
+        assert(_right.getType.isObject(),
           "Reference comparison can be performed only on objects, not values.")
+
+        val left = normalizeExpression(_left)
+        val right = normalizeExpression(_right)
 
         import ArithmeticOperator._
 
@@ -885,12 +888,25 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           case Constant("null", _, _) => right match {
             case Constant("null", _, _) =>
               op match { case `==` => this case `!=` => bottom() }
-            case VariableIdentifier(varName, typ, _, _) =>
-              val varVertex = abstractHeap.vertices.filter(_.name == varName).head
-              val varEdges = abstractHeap.outEdges(varVertex)
-              val (nullEdges, nonNullEdges) = varEdges.partition(_.target.isInstanceOf[NullVertex])
-              val edgesToRemove = op match { case `==` => nonNullEdges case `!=` => nullEdges }
-              copy(abstractHeap = abstractHeap.removeEdges(edgesToRemove)).prune()
+            case AccessPathIdentifier(path) =>
+              // It's unsound to remove null/non-null edges if there are
+              // summary heap vertices on the path. Thus, materialize first.
+              val state = if (path.size == 1) this else materializePath(path.dropRight(1))
+              var result = bottom()
+              val paths = state.abstractHeap.getPaths(path)
+
+              // The very last vertex on a path may be a summary node
+              val sourceVertices = paths.map(_.map(_.source)).flatten
+              assert(sourceVertices.forall(!_.isInstanceOf[SummaryHeapVertex]),
+                "paths contain summary source vertices (materialization bug?)")
+
+              // TODO: Ignore impossible paths (bottom path condition)
+              paths.map(_.last).groupBy(_.source).values.foreach(edges => {
+                val (nullEdges, nonNullEdges) = edges.partition(_.target.isInstanceOf[NullVertex])
+                val edgesToRemove = op match { case `==` => nonNullEdges case `!=` => nullEdges }
+                result = result.lub(state.copy(abstractHeap = state.abstractHeap.removeEdges(edgesToRemove)))
+              })
+              result.prune()
             case _ => notSupported()
           }
           case _ => right match {
