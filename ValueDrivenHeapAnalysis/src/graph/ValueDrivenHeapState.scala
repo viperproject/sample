@@ -575,6 +575,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     edgesToAdd
   }
 
+  // For the obsolete methods `evaluateExpression` and `evaluateGraphPath`,
+  // see https://bitbucket.org/semperproject/sample/commits/e1f5be3
+
   def setArgument(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = ???
   def setVariableToTop(x: ExpressionSet): ValueDrivenHeapState[S] = ???
   def removeVariable(x: ExpressionSet): ValueDrivenHeapState[S] = ???
