@@ -55,28 +55,14 @@ case class EdgeLocalIdentifier(
   require(!typ.isObject(), "EdgeLocalIdentifier should represent value information.")
   require(accPath.size <= 1, "For now, we allow at most single step look-ahead.")
 
-  /**
-   * Returns the name of the identifier. We suppose that if two identifiers
-   * return the same name if and only if they are the same identifier
-   * @return The name of the identifier
-   */
   def getName: String = {
     val fullPath = List(ValueDrivenHeapStateConstants.edgeLocalIdentifier) ++ accPath ++ List(field)
     fullPath.mkString(".")
   }
 
-  /**
-   * Returns the name of the field that is represented by this identifier
-   * if it is a heap identifier.
-   * @return The name of the field pointed by this identifier
-   */
-  def getField(): Option[String] = Some(field)
+  def getField: Option[String] = Some(field)
 
-  /**
-   * Edge-local identifier always represents a field of a single object.
-   * Hence, this method always returns true.
-   * @return true iff this identifier represents exactly one variable
-   */
+  /** An edge-local identifier always represents a field of a single object. */
   def representsSingleVariable(): Boolean = true
 }
 
