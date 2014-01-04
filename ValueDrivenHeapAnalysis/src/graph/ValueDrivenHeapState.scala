@@ -213,7 +213,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           val tempAH = abstractHeap.valueAssignOnEachEdge(Some(variable), Map.empty[Path[S], S], None, rightExp, rightExpConditions)
           result = ValueDrivenHeapState(tempAH, resultGenValState, ExpressionSet())
         } else {
-          val varVertex = abstractHeap.vertices.filter(_.name == variable.getName).head
+          val varVertex = abstractHeap.localVarVertex(variable.getName)
           val edgesToRemove = abstractHeap.outEdges(varVertex)
           var edgesToAdd = Set.empty[EdgeWithState[S]]
           rightExp match {
@@ -236,10 +236,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             }
             case v: VariableIdentifier => {
               val edgesOfRight = abstractHeap.edges.filter(_.source.name == v.getName)
-              val sourceVertices = abstractHeap.vertices.filter(_.name == variable.getName)
-              assert(sourceVertices.size == 1, "The local variable vertices should be one of each.")
+              val sourceVertex = abstractHeap.localVarVertex(variable.getName)
               for (edge <- edgesOfRight) {
-                edgesToAdd = edgesToAdd + EdgeWithState(sourceVertices.head, edge.state, None, edge.target)
+                edgesToAdd = edgesToAdd + EdgeWithState(sourceVertex, edge.state, None, edge.target)
               }
             }
             case rAP: AccessPathIdentifier => {

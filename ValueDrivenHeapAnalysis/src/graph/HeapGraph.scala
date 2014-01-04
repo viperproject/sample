@@ -44,6 +44,17 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def outEdges(source: Vertex, field: Option[String]): Set[EdgeWithState[S]] =
     outEdges(source).filter(_.field == field)
 
+  /** Returns the local variable vertex with the given name. */
+  def localVarVertex(name: String): LocalVariableVertex = {
+    val results = vertices.collect({
+      case v: LocalVariableVertex if v.name == name => v
+    })
+    require(!results.isEmpty, s"no local variable vertex named '$name'")
+    // TODO: Could check consistency when instantiating the heap graph
+    assert(results.size == 1, s"there may only be one vertex named '$name'")
+    results.head
+  }
+
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
@@ -52,12 +63,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def getPaths(path: List[String]): Set[Path[S]] = {
     require(!path.isEmpty, "path must be non-empty")
-
-    val startingVertices = vertices.filter(_.name == path.head)
-    assert(startingVertices.size == 1, "The start of the path is not uniquely determined. This should not happen, " + "as the start should be always a variable.")
-    val startingVertex = startingVertices.head
-    assert(startingVertex.isInstanceOf[LocalVariableVertex], "The starting node should always represent a local variable.")
-    paths(List.empty[EdgeWithState[S]], startingVertex, path)
+    val startVertex = localVarVertex(path.head)
+    paths(List.empty[EdgeWithState[S]], startVertex, path)
   }
 
   def paths(prefix: Path[S], currentVertex : Vertex, path: List[String]): Set[Path[S]] = {
