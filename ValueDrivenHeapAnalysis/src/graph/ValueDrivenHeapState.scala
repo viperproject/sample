@@ -210,7 +210,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             resultGenValState = resultGenValState.lub(c.assign(variable, rightExp))
 
           resultGenValState = Utilities.removeAccessPathIdentifiers(resultGenValState)
-          val tempAH = abstractHeap.assignVariableOnEachEdge(variable, Map.empty, rightExp, rightExpConditions)
+          val tempAH = abstractHeap.assignVariableOnEachEdge(variable, rightExp, rightExpConditions)
           result = ValueDrivenHeapState(tempAH, resultGenValState, ExpressionSet())
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)

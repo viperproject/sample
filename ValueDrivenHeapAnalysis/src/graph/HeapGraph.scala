@@ -566,7 +566,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def assignVariableOnEachEdge(
       variable: VariableIdentifier,
-      pathsToConds: Map[Path[S], S],
       rightExp: Expression,
       condsForExp: Set[S]): HeapGraph[S] = {
     var resultingEdges = mutable.Set.empty[EdgeWithState[S]]
