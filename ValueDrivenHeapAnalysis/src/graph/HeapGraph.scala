@@ -44,30 +44,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def outEdges(source: Vertex, field: Option[String]): Set[EdgeWithState[S]] =
     outEdges(source).filter(_.field == field)
 
-  /** Replaces a given heap vertex with another one. */
-  def replaceVertex(oldVertex: HeapVertex, newVertex: HeapVertex):
-      (HeapGraph[S], Map[Identifier, Identifier]) = {
-    require(vertices.contains(oldVertex), "unknown old heap vertex")
-    require(!vertices.contains(newVertex), "new vertex already part of heap")
-    def maybeReplace(v: Vertex) = if (v == oldVertex) newVertex else v
-    val valueRenameMap = vertexToValueMap(Map(oldVertex -> newVertex))
-    val resultingHeap = copy(
-      vertices = vertices - oldVertex + newVertex,
-      edges = edges.map(e =>
-        e.copy(
-          source = maybeReplace(e.source),
-          target = maybeReplace(e.target),
-          state = e.state.rename(valueRenameMap))))
-    (resultingHeap, valueRenameMap)
-  }
-
-  /** Replaces a given definite heap vertex with a summary heap vertex. */
-  def replaceDefWithSumVertex(defVertex: DefiniteHeapVertex):
-      (HeapGraph[S], Map[Identifier, Identifier]) = {
-    val sumVertex = new SummaryHeapVertex(defVertex.version, defVertex.typ)
-    replaceVertex(defVertex, sumVertex)
-  }
-
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
@@ -75,7 +51,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
     getPaths(accPathId.path.dropRight(1))
 
   def getPaths(path: List[String]): Set[Path[S]] = {
-    assert(path.size > 0, "The path must be non-empty.")
+    require(!path.isEmpty, "path must be non-empty")
+
     val startingVertices = vertices.filter(_.name == path.head)
     assert(startingVertices.size == 1, "The start of the path is not uniquely determined. This should not happen, " + "as the start should be always a variable.")
     val startingVertex = startingVertices.head
