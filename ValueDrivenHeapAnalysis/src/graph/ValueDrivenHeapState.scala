@@ -437,7 +437,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val leftPaths: Set[Path[S]] = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.last.target.isInstanceOf[HeapVertex])
     if (leftPaths.size == 0)
       return this.bottom()
-    if (rightExp.getType.isObject()) {
+    val result = if (rightExp.getType.isObject()) {
       var edgesToAdd = Set.empty[EdgeWithState[S]]
       rightExp match {
         case x: VariableIdentifier => {
@@ -486,7 +486,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
       val newExpr = new ExpressionSet(right.getType()).add(leftAccPath)
-      ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom).prune()
+      ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom)
     } else {
       assert(rightExp.getType.isNumericalType(), "For now we allow only numerical values")
       val field = leftAccPath.path.last
@@ -524,8 +524,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
        * Updating the abstract heap
        */
       val tempAH = abstractHeap.valueAssignOnEachEdge(None, pathsToAssignUnderConditions.toMap, Some(field), rightExp, rightExpConditions)
-      ValueDrivenHeapState(tempAH, resultGenValState, ExpressionSet(leftExp)).prune()
+      ValueDrivenHeapState(tempAH, resultGenValState, ExpressionSet(leftExp))
     }
+    result.prune()
   }
 
   /**
@@ -860,7 +861,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       updatedEdgesToAdd += e.copy(state = updatedEdgeState)
     }
     resultingAH = resultingAH.addEdges(updatedEdgesToAdd.toSet)
-    copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl))
+    copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl)).prune()
   }
 
   def lessEqual(r: ValueDrivenHeapState[S]): Boolean = {
