@@ -144,6 +144,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       val newSumTypes = newTypeToLabelMap.filter(_._2 == SUMMARY).keySet
       (oldDefTypes intersect newSumTypes).map(t => {
         val defHeapVertex = oldTypeToHeapVertexMap(t).asInstanceOf[DefiniteHeapVertex]
+        // TODO: This is unsound. When the definite heap vertex (say `n0`)
+        // was initially created, this method assumed `eLocLoc.val = n0.val`
+        // on the corresponding edge for every value field `val`.
+        // This constraint must not be part of the state anymore once the
+        // definite heap vertex is turned into a summary heap vertex.
         val result = newHeap.replaceDefWithSumVertex(defHeapVertex)
         newHeap = result._1
         newGenValState = newGenValState.rename(result._2)
