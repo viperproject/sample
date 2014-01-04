@@ -242,7 +242,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               }
             }
             case rAP: AccessPathIdentifier => {
-              val rightPaths = abstractHeap.getPaths(rAP.path)
+              val rightPaths = abstractHeap.paths(rAP.path)
               for (rPath <- rightPaths) {
                 val rCond = HeapGraph.pathCondition(rPath)
                 if (!rCond.lessEqual(rCond.bottom())) {
@@ -328,7 +328,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val field = ap.path.last
         val resultingSet = mutable.Set.empty[S]
         // Those that lead to null are not interesting
-        for (path <- abstractHeap.getPaths(ap.objPath).filter(_.last.target.isInstanceOf[HeapVertex])) {
+        for (path <- abstractHeap.paths(ap.objPath).filter(_.last.target.isInstanceOf[HeapVertex])) {
           // We find the condition for the path
           var cond = HeapGraph.pathCondition(path)
           // We rename edge local identifier that corresponds to the access path to the access path
@@ -406,7 +406,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         Seq((abstractHeap, generalValState))
       case ap: AccessPathIdentifier =>
         // Get path to the non-null receiver of the field access
-        val paths = abstractHeap.getPaths(ap.objPath)
+        val paths = abstractHeap.paths(ap.objPath)
           .filter(_.last.target.isInstanceOf[HeapVertex])
 
         var result = List.empty[(HeapGraph[S], S)]
@@ -481,11 +481,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       var edgesToAdd = Set.empty[EdgeWithState[S]]
       rightExp match {
         case x: VariableIdentifier => {
-          val rightPaths = abstractHeap.getPaths(List(x.getName))
+          val rightPaths = abstractHeap.paths(List(x.getName))
           edgesToAdd = referencePathAssignmentEdges(leftAccPath.path.last, leftPaths, rightPaths)
         }
         case rAP: AccessPathIdentifier => {
-          val rightPaths = abstractHeap.getPaths(rAP.path)
+          val rightPaths = abstractHeap.paths(rAP.path)
           edgesToAdd = referencePathAssignmentEdges(leftAccPath.path.last, leftPaths, rightPaths)
         }
         case v: VertexExpression => {
@@ -713,7 +713,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               // summary heap vertices on the path. Thus, materialize first.
               val state = if (path.size == 1) this else materializePath(path.dropRight(1))
               var result = bottom()
-              val paths = state.abstractHeap.getPaths(path)
+              val paths = state.abstractHeap.paths(path)
 
               // The very last vertex on a path may be a summary node
               val sourceVertices = paths.map(_.map(_.source)).flatten

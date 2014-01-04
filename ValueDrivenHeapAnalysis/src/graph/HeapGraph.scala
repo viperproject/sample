@@ -59,36 +59,39 @@ case class HeapGraph[S <: SemanticDomain[S]](
     mapEdgeStates(_.createVariables(ids))
 
   def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[Path[S]] =
-    getPaths(accPathId.path.dropRight(1))
+    paths(accPathId.path.dropRight(1))
 
-  def getPaths(path: List[String]): Set[Path[S]] = {
-    require(!path.isEmpty, "path must be non-empty")
-    val startVertex = localVarVertex(path.head)
-    paths(List.empty[EdgeWithState[S]], startVertex, path)
-  }
+  /**
+   * Returns the possible set of paths in the heap graph (lists of edges)
+   * corresponding to a given an access path of variable and field names.
+   *
+   * The first identifier in the access path must be a valid variable.
+   * For example, given the simple access path `List("a")`, the method
+   * will return the set of all edges (as singleton lists) going out of the
+   * local variable vertex 'a'.
+   *
+   * @param path the non-empty access path
+   * @return an empty set if there is no list of edges corresponding
+   *         to the given access path
+   */
+  def paths(path: List[String]): Set[Path[S]] = {
+    require(!path.isEmpty, "path must not be empty")
 
-  def paths(prefix: Path[S], currentVertex : Vertex, path: List[String]): Set[Path[S]] = {
-    assert(path.size > 0, "The path should never be empty.")
-    var possibleNextEdges: Set[EdgeWithState[S]] = null
-    if (currentVertex.isInstanceOf[LocalVariableVertex]) {
-      possibleNextEdges = outEdges(currentVertex, None)
-    } else {
-      possibleNextEdges = outEdges(currentVertex, Some(path.head))
-    }
-    path match {
-      case x :: Nil => {
-        val result: Set[Path[S]] = possibleNextEdges.map(e => prefix :+ e)
-        return result
+    def paths(path: List[String], vertex: Vertex): Set[Path[S]] = {
+      val field = vertex match {
+        case v: LocalVariableVertex => None
+        case _ => Some(path.head)
       }
-      case x :: xs => {
-        assert(xs.size > 0, "This should never happen, should be caught by the previous case.")
-        var result = Set.empty[Path[S]]
-        for (e <- possibleNextEdges) {
-          result = result.union(paths(prefix :+ e, e.target, path.tail))
-        }
-        return result
+      val nextEdges = outEdges(vertex, field)
+      path match {
+        case head :: Nil =>
+          nextEdges.map(List(_))
+        case head :: tail =>
+          nextEdges.map(e => paths(tail, e.target).map(e :: _)).flatten
       }
     }
+
+    paths(path, localVarVertex(path.head))
   }
 
   def assignAllValStates(leftId: Identifier, rightExp: Expression): HeapGraph[S] = {
