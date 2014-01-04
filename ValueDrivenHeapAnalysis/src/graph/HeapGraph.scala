@@ -564,62 +564,62 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def isNormalized: Boolean =
     weakEdgeEquivalenceSets.forall(_.size == 1)
 
-  def valueAssignOnEachEdge(variable : Option[VariableIdentifier],
-                       pathsToConds : Map[Path[S],S],
-                       field : Option[String],
-                       rightExp : Expression,
-                       condsForExp : Set[S]) : HeapGraph[S] = {
+  def assignVariableOnEachEdge(
+      variable: VariableIdentifier,
+      pathsToConds: Map[Path[S], S],
+      rightExp: Expression,
+      condsForExp: Set[S]): HeapGraph[S] = {
+    var resultingEdges = mutable.Set.empty[EdgeWithState[S]]
+    for (edge <- edges) {
+      var resultingState = edge.state.bottom()
+      for (cond <- Utilities.applyConditions(Set(edge.state), condsForExp))
+        resultingState = resultingState.lub(cond.assign(variable, rightExp))
+      resultingState = Utilities.removeAccessPathIdentifiers(resultingState)
+      if (!resultingState.lessEqual(resultingState.bottom()))
+        resultingEdges += edge.copy(state = resultingState)
+    }
+    copy(edges = resultingEdges.toSet)
+  }
+
+  def assignFieldOnEachEdge(
+      field: String,
+      pathsToConds: Map[Path[S], S],
+      rightExp: Expression,
+      condsForExp: Set[S]): HeapGraph[S] = {
     // Assume that each value state in pathsToConds.values does not have EdgeLocalIdentifiers (Precondition)
     var resultingEdges = mutable.Set.empty[EdgeWithState[S]]
-    variable match {
-      case Some(v) => {
-        for (edge <- edges) {
-          var resultingState = edge.state.bottom()
-          for (cond <- Utilities.applyConditions(Set(edge.state), condsForExp))
-            resultingState = resultingState.lub(cond.assign(v, rightExp))
-          resultingState = Utilities.removeAccessPathIdentifiers(resultingState)
-          if (!resultingState.lessEqual(resultingState.bottom()))
-            resultingEdges += edge.copy(state = resultingState)
-        }
+    val nodesToUpdate = pathsToConds.keySet.map(_.last.target).asInstanceOf[Set[HeapVertex]]
+    for (edge <- edges) {
+      // This is for weak updates
+      var resultingState = edge.state
+      if ((nodesToUpdate.size == 1 && nodesToUpdate.head.isInstanceOf[DefiniteHeapVertex]) || // Strong update
+        (pathsToConds.keySet.size == 1
+          && pathsToConds.keySet.head.last.target.equals(edge.target)
+          && (pathsToConds.keySet.head.last.source.isInstanceOf[DefiniteHeapVertex] || pathsToConds.keySet.head.last.source.isInstanceOf[LocalVariableVertex]))) {
+        // Weak update with strong update of the target EdgeLocalIdentifier
+        resultingState = edge.state.bottom()
       }
-      case None =>
-    }
-    field match {
-      case Some(f) => {
-        val nodesToUpdate = pathsToConds.keySet.map(_.last.target).asInstanceOf[Set[HeapVertex]]
-        for (edge <- edges) {
-          // This is for weak updates
-          var resultingState = edge.state
-          if ((nodesToUpdate.size == 1 && nodesToUpdate.head.isInstanceOf[DefiniteHeapVertex]) || // Strong update
-              (pathsToConds.keySet.size == 1
-                && pathsToConds.keySet.head.last.target.equals(edge.target)
-                && (pathsToConds.keySet.head.last.source.isInstanceOf[DefiniteHeapVertex] || pathsToConds.keySet.head.last.source.isInstanceOf[LocalVariableVertex]))) { // Weak update with strong update of the target EdgeLocalIdentifier
-            resultingState = edge.state.bottom()
+      val conditions = Utilities.applyConditions(Set(edge.state), Utilities.applyConditions(pathsToConds.values.toSet[S], condsForExp))
+      for (nodeToUpdate <- nodesToUpdate) {
+        val valueHeapIdToAssign = ValueHeapIdentifier(nodeToUpdate, field, rightExp.getType, rightExp.getProgramPoint)
+        for (cond <- conditions) {
+          var tempEdgeState = cond.assign(valueHeapIdToAssign, rightExp)
+          if (edge.source.equals(nodeToUpdate)) {
+            val edgeLocId = EdgeLocalIdentifier(List.empty[String], field, rightExp.getType)(rightExp.getProgramPoint)
+            tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
           }
-          val conditions = Utilities.applyConditions(Set(edge.state), Utilities.applyConditions(pathsToConds.values.toSet[S], condsForExp))
-          for (nodeToUpdate <- nodesToUpdate) {
-            val valueHeapIdToAssign = ValueHeapIdentifier(nodeToUpdate, f, rightExp.getType, rightExp.getProgramPoint)
-            for (cond <- conditions) {
-              var tempEdgeState = cond.assign(valueHeapIdToAssign, rightExp)
-              if (edge.source.equals(nodeToUpdate)) {
-                val edgeLocId = EdgeLocalIdentifier(List.empty[String], f, rightExp.getType)(rightExp.getProgramPoint)
-                tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
-              }
-              if (edge.target.equals(nodeToUpdate)) {
-                val path = edge.field match {
-                  case Some(g) => List(g)
-                  case None => List.empty[String]
-                }
-                val edgeLocId = EdgeLocalIdentifier(path, f, rightExp.getType)(rightExp.getProgramPoint)
-                tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
-              }
-              resultingState = resultingState.lub(Utilities.removeAccessPathIdentifiers(tempEdgeState))
+          if (edge.target.equals(nodeToUpdate)) {
+            val path = edge.field match {
+              case Some(g) => List(g)
+              case None => List.empty[String]
             }
+            val edgeLocId = EdgeLocalIdentifier(path, field, rightExp.getType)(rightExp.getProgramPoint)
+            tempEdgeState = tempEdgeState.assign(edgeLocId, rightExp)
           }
-          resultingEdges = resultingEdges + edge.copy(state = resultingState)
+          resultingState = resultingState.lub(Utilities.removeAccessPathIdentifiers(tempEdgeState))
         }
       }
-      case None =>
+      resultingEdges = resultingEdges + edge.copy(state = resultingState)
     }
     copy(edges = resultingEdges.toSet)
   }
