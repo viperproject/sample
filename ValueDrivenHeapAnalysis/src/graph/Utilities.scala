@@ -47,11 +47,7 @@ object Utilities {
     val resultingConds = scala.collection.mutable.Set.empty[S]
     for (lCond <- leftConds)
       for (rCond <- rightConds) {
-        val idsToAddRight = lCond.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] || id.isInstanceOf[AccessPathIdentifier]) diff rCond.getIds()
-        val idsToAddLeft = rCond.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] || id.isInstanceOf[AccessPathIdentifier]) diff lCond.getIds()
-        val newLeftCond = lCond.createVariables(idsToAddLeft.toSet[Identifier])
-        val newRightCond = rCond.createVariables(idsToAddRight.toSet[Identifier])
-        resultingConds += newLeftCond.glb(newRightCond)
+        resultingConds += glbPreserveIds(lCond, rCond)
       }
     resultingConds.toSet[S]
   }
@@ -61,4 +57,14 @@ object Utilities {
     state.removeVariables(idsToRemove)
   }
 
+  /** Returns the GLB of two states, but takes the union of their identifiers. */
+  def glbPreserveIds[S <: SemanticDomain[S]](left: S, right: S): S = {
+    val newRightIds = left.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
+      id.isInstanceOf[AccessPathIdentifier]) diff right.getIds()
+    val newLeftIds = right.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
+      id.isInstanceOf[AccessPathIdentifier]) diff left.getIds()
+    val newLeft = left.createVariables(newLeftIds.toSet[Identifier])
+    val newRight = right.createVariables(newRightIds.toSet[Identifier])
+    newLeft.glb(newRight)
+  }
 }
