@@ -445,13 +445,13 @@ case class HeapGraph[S <: SemanticDomain[S]](
     }))
 
   def joinCommonEdges(): HeapGraph[S] =
-    mapWeaklyEqualEdges(Lattice.bigLub)
+    mapWeaklyEqualEdges(Lattice.bigLub(_))
 
   def meetCommonEdges(): HeapGraph[S] =
-    mapWeaklyEqualEdges(Lattice.bigGlb)
+    mapWeaklyEqualEdges(Lattice.bigGlb(_))
 
   def widenCommonEdges(): HeapGraph[S] =
-    mapWeaklyEqualEdges(Lattice.bigWidening)
+    mapWeaklyEqualEdges(Lattice.bigWidening(_))
 
   def lub(other: HeapGraph[S]): (HeapGraph[S], Map[Identifier, Identifier]) = {
     val (resultingGraph, renameMap) = minCommonSuperGraphBeforeJoin(other, mcs(other)._1)
@@ -585,6 +585,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
       pathsToConds: Map[Path[S], S],
       rightExp: Expression,
       condsForExp: Set[S]): HeapGraph[S] = {
+    require(rightExp.getType.isNumericalType(),
+      "can only assign numerical variables")
     // Assume that each value state in pathsToConds.values does not have EdgeLocalIdentifiers (Precondition)
     var resultingEdges = mutable.Set.empty[EdgeWithState[S]]
     val nodesToUpdate = pathsToConds.keySet.map(_.last.target).asInstanceOf[Set[HeapVertex]]
@@ -625,17 +627,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def applyReplacement(repl: Replacement): HeapGraph[S] =
     mapEdgeStates(_.merge(repl))
-
-  def valueAssumeOnEachEdge(exp: Expression, conds: Set[S]): HeapGraph[S] = {
-    mapEdgeStates(state => {
-      val edgeStateAndConds = Utilities.applyConditions(Set(state), conds)
-      var resultingEdgeCond = state.bottom()
-      for (c <- edgeStateAndConds) {
-        resultingEdgeCond = resultingEdgeCond.lub(Utilities.removeAccessPathIdentifiers(c.assume(exp)))
-      }
-      resultingEdgeCond
-    })
-  }
 
   /**
    * Creates a copy of the heap where the state of all edges has been
@@ -734,4 +725,205 @@ object HeapGraph {
   /** Returns the set of all edge-local identifiers in the given state. */
   def edgeLocalIds[S <: SemanticDomain[S]](state: S): Set[EdgeLocalIdentifier] =
     state.getIds().collect({ case id: EdgeLocalIdentifier => id })
+}
+
+/**
+ * Combines a heap graph with a condition that the heap graph must satisfy.
+ *
+ * It is currently only used temporarily for expression evaluation. Such an
+ * object is basically a `ValueDrivenHeapState` without an expression and
+ * without the gigantic set of `State`-specific methods.
+ *
+ * In the future, it might be desirable to move the general value state to
+ * `HeapGraph` itself and merge `HeapGraph` and `CondHeapGraph`.
+ *
+ * The condition is (currently) not applied eagerly to the edges.
+ */
+case class CondHeapGraph[S <: SemanticDomain[S]](heap: HeapGraph[S], cond: S) {
+
+  import Utilities._
+  import CondHeapGraph._
+
+  /**
+   * Intersects this and another heap graph as well as their associated
+   * conditions.
+   *
+   * This cheap intersection requires that the two heap graphs are sub-graphs
+   * of some normalized heap graph.
+   *
+   * In the resulting heap sub-graph, an edge only occurs if
+   * it occurred in both heap sub-graphs (strong equality).
+   */
+  def intersect(other: CondHeapGraph[S]): CondHeapGraph[S] = {
+    require(heap.vertices == other.heap.vertices,
+      "the vertices of the two heap graphs do not match")
+    // TODO: Check the full precondition (the edges must no have been modified)
+
+    val newEdges = heap.edges intersect other.heap.edges
+    val newHeap = heap.copy(edges = newEdges)
+    val newCond = glbPreserveIds(cond, other.cond)
+    CondHeapGraph(newHeap, newCond)
+  }
+
+  /** Applies the condition to each edge state. */
+  def apply(): CondHeapGraph[S] = {
+    copy(heap = heap.mapEdgeStates(glbPreserveIds(_, cond)))
+  }
+
+  /**
+   * Applies the condition to each edge state and then applies a function
+   * to both the condition and all edge states.
+   */
+  def apply(f: S => S): CondHeapGraph[S] = {
+    val newCondHeap = apply()
+    val newCond = f(newCondHeap.cond)
+    val newSubHeap = newCondHeap.heap.mapEdgeStates(f)
+    copy(cond = newCond, heap = newSubHeap)
+  }
+
+  /**
+   * Returns whether either the heap or its condition are certainly bottom.
+   * @todo this method is not precise, as the condition is not applied eagerly
+   */
+  def isBottom: Boolean =
+    heap.isBottom() || cond.lessEqual(cond.bottom())
+
+  /**
+   * Recursively evaluates the given expression.
+   *
+   * For each access path expression in the given expression, the method
+   * enumerates the corresponding possible paths through the heap graph and
+   * for each such path, materializes the heap sub-graph where all edges
+   * are removed that are certainly not taken. Each such sub-graph is returned
+   * together with the corresponding path condition.
+   *
+   * @todo support reference expressions
+   */
+  def evalExp(expr: Expression): CondHeapGraphSeq[S] = {
+    require(!expr.getType.isObject(), "can only evaluate value expressions")
+
+    expr match {
+      case v: VariableIdentifier => this
+      case c: Constant => this
+      case ap: AccessPathIdentifier =>
+        // Get path to the non-null receiver of the field access
+        val paths = heap.paths(ap.objPath)
+          .filter(_.last.target.isInstanceOf[HeapVertex])
+
+        var result = List.empty[CondHeapGraph[S]]
+        for (path <- paths) {
+          val field = ap.path.last
+          val targetVertex = path.last.target.asInstanceOf[HeapVertex]
+          var cond = HeapGraph.pathCondition(path)
+
+          // Rename edge local identifier that corresponds to the access path
+          val renameFrom = HeapGraph.edgeLocalIds(cond).filter(_.field == field).toList
+          assert(renameFrom.size == 1, "there should be exactly one identifier to rename")
+          cond = cond.rename(renameFrom, List(ap))
+
+          // AccessPathIdentifier must agree also with the ValueHeapIdentifier
+          val resId = ValueHeapIdentifier(targetVertex, field, ap.getType, ap.getProgramPoint)
+          cond = cond.assume(new BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==, null))
+
+          // Remove all edge local identifiers
+          cond = cond.removeVariables(HeapGraph.edgeLocalIds(cond))
+
+          // Remove all edges that were NOT taken on this access path
+          // Never remove edges going out of a summary node.
+          var edgesToRemove = path.map(edge => {
+            val outEdges = heap.outEdges(edge.source, edge.field)
+            val otherOutEdges = outEdges - edge
+            otherOutEdges
+          }).flatten.toSet
+          edgesToRemove = edgesToRemove.filter(!_.source.isInstanceOf[SummaryHeapVertex])
+
+          cond = Utilities.glbPreserveIds(this.cond, cond)
+
+          val prunedHeap = heap.removeEdges(edgesToRemove)
+          result = CondHeapGraph(prunedHeap, cond) :: result
+        }
+        val lattice = this.cond.bottom()
+        CondHeapGraphSeq(result)(lattice)
+      case BinaryArithmeticExpression(left, right, _, _) =>
+        val evalLeft = evalExp(left)
+        val evalRight = evalExp(right)
+        evalLeft.intersect(evalRight)
+      case BinaryBooleanExpression(left, right, _, _) =>
+        val evalLeft = evalExp(left)
+        val evalRight = evalExp(right)
+        evalLeft.intersect(evalRight)
+      case NegatedBooleanExpression(e) =>
+        evalExp(e)
+      case _ => ???
+    }
+  }
+}
+
+object CondHeapGraph {
+  /** Converts a `ValueDrivenHeapState` to a `CondHeapGraph`. */
+  def apply[S <: SemanticDomain[S]]
+      (state: ValueDrivenHeapState[S]): CondHeapGraph[S] =
+    CondHeapGraph(state.abstractHeap, state.generalValState)
+
+  /**
+   * Implicitly converts a conditional heap graph to a singleton conditional
+   * heap graph sequence.
+   */
+  implicit def CondHeapGraphToCondHeapGraphSeq[S <: SemanticDomain[S]]
+  (condHeap: CondHeapGraph[S]): CondHeapGraphSeq[S] =
+    CondHeapGraphSeq(Seq(condHeap))(condHeap.cond.bottom())
+
+  /**
+   * Implicitly converts a conditional heap graph to a state
+   * with an empty expression. It also automatically prunes the state.
+   *
+   * @todo Pruning should happen before the conversion
+   */
+  implicit def CondHeapGraphToValueDrivenHeapState[S <: SemanticDomain[S]]
+  (condHeap: CondHeapGraph[S]): ValueDrivenHeapState[S] =
+    ValueDrivenHeapState(condHeap.heap, condHeap.cond, ExpressionSet()).prune()
+}
+
+/**
+ * Wraps a sequence of `CondHeapGraph`s and provides convenience methods.
+ * It can be empty, representing bottom.
+ *
+ * @param lattice used to get access to the bottom element of the value lattice
+ */
+case class CondHeapGraphSeq[S <: SemanticDomain[S]]
+    (condHeaps: Seq[CondHeapGraph[S]])(implicit lattice: S) {
+
+  import Utilities._
+
+  /**
+   * Intersects all conditional heap graphs in this and another
+   * given sequence pair-wise.
+   *
+   * This cheap intersection requires that the all heap graphs are sub-graphs
+   * of some normalized heap graph.
+   */
+  def intersect(other: CondHeapGraphSeq[S]): CondHeapGraphSeq[S] =
+    condHeaps.map(l => other.condHeaps.map(r => l.intersect(r))).flatten
+
+  /** Applies `apply(f)` to each conditional heap graph. */
+  def apply(f: S => S): CondHeapGraphSeq[S] =
+    condHeaps.map(_.apply(f))
+
+  /**
+   * Joins all conditional heap graphs in this sequence and returns
+   * the resulting conditional heap graph.
+   *
+   * Before joining, it removes the access path identifiers from the heaps.
+   */
+  def join: CondHeapGraph[S] = {
+    val newVertices = condHeaps.map(_.heap.vertices).flatten.toSet
+    val newEdges = condHeaps.map(_.heap.mapEdgeStates(removeAccessPathIdentifiers)).map(_.edges).flatten.toSet
+    val newHeap = HeapGraph(newVertices, newEdges).joinCommonEdges()
+    val newCond = removeAccessPathIdentifiers(Lattice.bigLub(condHeaps.map(_.cond), lattice))
+    CondHeapGraph(newHeap, newCond)
+  }
+
+  private implicit def CondHeapGraphSeqToCondHeapGraphSeq
+      (condHeaps: Seq[CondHeapGraph[S]]): CondHeapGraphSeq[S] =
+    CondHeapGraphSeq(condHeaps)
 }
