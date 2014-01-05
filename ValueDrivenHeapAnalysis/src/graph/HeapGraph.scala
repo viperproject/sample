@@ -564,22 +564,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def isNormalized: Boolean =
     weakEdgeEquivalenceSets.forall(_.size == 1)
 
-  def assignVariableOnEachEdge(
-      variable: VariableIdentifier,
-      rightExp: Expression,
-      condsForExp: Set[S]): HeapGraph[S] = {
-    var resultingEdges = mutable.Set.empty[EdgeWithState[S]]
-    for (edge <- edges) {
-      var resultingState = edge.state.bottom()
-      for (cond <- Utilities.applyConditions(Set(edge.state), condsForExp))
-        resultingState = resultingState.lub(cond.assign(variable, rightExp))
-      resultingState = Utilities.removeAccessPathIdentifiers(resultingState)
-      if (!resultingState.lessEqual(resultingState.bottom()))
-        resultingEdges += edge.copy(state = resultingState)
-    }
-    copy(edges = resultingEdges.toSet)
-  }
-
   def assignFieldOnEachEdge(
       field: String,
       pathsToConds: Map[Path[S], S],

@@ -203,14 +203,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     leftExp match {
       case variable: VariableIdentifier => {
         if (leftExp.getType.isNumericalType()) {
-          var resultGenValState = generalValState.bottom()
-          val rightExpConditions = newEvaluateExpression(rightExp)
-          val genValAndExpressionConds = Utilities.applyConditions(Set(generalValState), rightExpConditions)
-          for (c <- genValAndExpressionConds)
-            resultGenValState = resultGenValState.lub(c.assign(variable, rightExp))
-          resultGenValState = Utilities.removeAccessPathIdentifiers(resultGenValState)
-          val tempAH = abstractHeap.assignVariableOnEachEdge(variable, rightExp, rightExpConditions)
-          result = ValueDrivenHeapState(tempAH, resultGenValState, ExpressionSet())
+          result = evalExp(rightExp).apply(_.assign(variable, rightExp)).join
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)
           val edgesToRemove = abstractHeap.outEdges(varVertex)
