@@ -115,9 +115,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
     })
   }
 
-  def assignValueVariable(id: VariableIdentifier, right: Expression): HeapGraph[S] =
-    mapEdgeStates(_.assign(id, right))
-
   /**
    *
    * @param label - Tells us whether this is a null, summary, definite or variable node (See VariableConstants for more info)
