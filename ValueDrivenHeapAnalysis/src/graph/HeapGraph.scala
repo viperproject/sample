@@ -95,19 +95,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
       RootedHeapGraphPath[S](path.edges))
   }
 
-  def meetStateOnAllEdges(state: S): HeapGraph[S] = {
-    // The given state may AccessPathIdentifiers. These need to be added to the edge states.
-    val apIDs = state.getIds().filter(_.isInstanceOf[AccessPathIdentifier])
-    mapEdgeStates(edgeState => {
-      // Edges may contain edge local identifiers that are not
-      // in the given state. They need to be added.
-      val elIDs = edgeState.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier])
-      val newState = state.createVariables(elIDs)
-      val newEdgeState = edgeState.createVariables(apIDs)
-      newState.glb(newEdgeState)
-    })
-  }
-
   /**
    *
    * @param label - Tells us whether this is a null, summary, definite or variable node (See VariableConstants for more info)
