@@ -568,86 +568,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
     copy(edges = edges.map(e => e.copy(state = f(e.state))))
 }
 
-object HeapGraph {
-  /**
-   * Computes the condition that is satisfied by the given path.
-   *
-   * @param path for which the condition should be computed
-   * @return abstract value condition that is satisfied by the given path
-   */
-  def pathCondition[S <: SemanticDomain[S]](path: RootedHeapGraphPath[S]): S = {
-    /**
-     * Inner helper method for computing the condition recursively.
-     *
-     * @param path to be processed
-     * @param state starting state where are only the edge-local identifiers
-     *              with empty sequence of field access that represent targets
-     */
-    def pathConditionRecursive(path: List[EdgeWithState[S]], state: S): S = {
-      val stateEdgeLocalIds = edgeLocalIds(state)
-
-      // Only the edge-local identifiers that refer to target are present in
-      // the given state (i.e. the once with empty sequence of field accesses)
-      assert(stateEdgeLocalIds.forall(_.accPath.isEmpty))
-
-      // Base case is when the path is empty. (Termination)
-      if (path.isEmpty) {
-        return state
-      }
-
-      // If the path is non-empty, the head of it must refer to a field
-      // (i.e. the first node must be a HeapVertex).
-      val edge = path.head
-
-      // Field should not be None here
-      val field = edge.field.get
-
-      // Originally, the edge local identifiers of the given state with the
-      // empty sequence of fields refer to the target and no other edge-local
-      // identifiers are present in the given state. We need to add them
-      // so that the edge-local identifiers of the currently processed edge
-      // do not get lost.
-      val edgeLocalIdsToAdd = edgeLocalIds(edge.state).filter(!_.accPath.isEmpty)
-      var newState: S = state.createVariables(edgeLocalIdsToAdd.toSet[Identifier])
-      newState = newState.glb(edge.state)
-
-      // Now, we need to rename source-edge local identifiers to the ones
-      // that are target of this edge and remove any others.
-      val originalSourceIds = edgeLocalIds(newState).filter(_.accPath.isEmpty)
-      newState = newState.removeVariables(originalSourceIds)
-
-      // Renaming
-      val idsToRenameToSource = edgeLocalIds(newState).filter(_.accPath == List(field))
-
-      // Building lists for renaming
-      var renameFrom = List.empty[EdgeLocalIdentifier]
-      var renameTo = List.empty[EdgeLocalIdentifier]
-      for (elId <- idsToRenameToSource) {
-        renameFrom = elId :: renameFrom
-        renameTo = elId.copy(accPath = List.empty)(elId.getProgramPoint) :: renameTo
-      }
-      newState = newState.rename(renameFrom, renameTo)
-
-      // Now we remove all edge-local identifiers that can not be the targets.
-      val elIdsToRemove = newState.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]) -- renameTo
-      newState = newState.removeVariables(elIdsToRemove.toSet[Identifier])
-
-      pathConditionRecursive(path.tail, newState)
-    }
-
-    // The head of the path (edge sequence) is starting from a variable.
-    // Therefore, the edge local variables that represent the target edge-local
-    // variables have an empty sequence of fields. However, we need to remove
-    // all other edge-local identifier that might be possibly present.
-    val elIdsToRemove = edgeLocalIds(path.edges.head.state).filter(!_.accPath.isEmpty)
-    pathConditionRecursive(path.edges.tail, path.edges.head.state.removeVariables(elIdsToRemove))
-  }
-
-  /** Returns the set of all edge-local identifiers in the given state. */
-  def edgeLocalIds[S <: SemanticDomain[S]](state: S): Set[EdgeLocalIdentifier] =
-    state.getIds().collect({ case id: EdgeLocalIdentifier => id })
-}
-
 /**
  * Combines a heap graph with a condition that the heap graph must satisfy.
  *
@@ -750,10 +670,10 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         for (path <- paths) {
           val field = ap.path.last
           val targetVertex = path.target.asInstanceOf[HeapVertex]
-          var cond = HeapGraph.pathCondition(path)
+          var cond = path.condition
 
           // Rename edge local identifier that corresponds to the access path
-          val renameFrom = HeapGraph.edgeLocalIds(cond).filter(_.field == field).toList
+          val renameFrom = edgeLocalIds(cond).filter(_.field == field).toList
           assert(renameFrom.size == 1, "there should be exactly one identifier to rename")
           cond = cond.rename(renameFrom, List(ap))
 
@@ -762,7 +682,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
           cond = cond.assume(new BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==, null))
 
           // Remove all edge local identifiers
-          cond = cond.removeVariables(HeapGraph.edgeLocalIds(cond))
+          cond = cond.removeVariables(edgeLocalIds(cond))
 
           // Remove all edges that were NOT taken on this access path
           // Never remove edges going out of a summary node.
