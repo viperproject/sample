@@ -94,14 +94,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
     paths(path, localVarVertex(path.head))
   }
 
-  def assignAllValStates(leftId: Identifier, rightExp: Expression): HeapGraph[S] = {
-    assert(leftId.isInstanceOf[VariableIdentifier] || leftId.isInstanceOf[ValueHeapIdentifier], "The other kinds of identifiers are not supported.")
-    rightExp match {
-      case _: Constant | _: VariableIdentifier =>
-        mapEdgeStates(_.assign(leftId, rightExp))
-    }
-  }
-
   def meetStateOnAllEdges(state: S): HeapGraph[S] = {
     // The given state may AccessPathIdentifiers. These need to be added to the edge states.
     val apIDs = state.getIds().filter(_.isInstanceOf[AccessPathIdentifier])
