@@ -745,7 +745,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         for (valField <- definiteVertex.typ.nonObjectFields) {
           val sumValHeapId = ValueHeapIdentifier(edge.target.asInstanceOf[SummaryHeapVertex], valField)
           val defValHeapId = ValueHeapIdentifier(definiteVertex.asInstanceOf[DefiniteHeapVertex], valField)
-          repl.value.update(Set(sumValHeapId), Set(sumValHeapId, defValHeapId))
+          // TODO: Should use a multimap to make the code more readable
+          repl.value.update(Set(sumValHeapId), repl.value.getOrElse(Set(sumValHeapId), Set(sumValHeapId.asInstanceOf[Identifier])) union Set(defValHeapId))
         }
 
         /**
