@@ -387,7 +387,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val leftPaths: Set[Path[S]] = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.last.target.isInstanceOf[HeapVertex])
     if (leftPaths.size == 0)
       return this.bottom()
-    val result = if (rightExp.getType.isObject()) {
+
+    import CondHeapGraph._
+
+    if (rightExp.getType.isObject()) {
       var edgesToAdd = Set.empty[EdgeWithState[S]]
       rightExp match {
         case x: VariableIdentifier => {
@@ -436,47 +439,48 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
       val newExpr = new ExpressionSet(right.getType()).add(leftAccPath)
-      ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom)
+      ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom).prune()
     } else {
-      assert(rightExp.getType.isNumericalType(), "For now we allow only numerical values")
-      val field = leftAccPath.path.last
-      // We construct a map that says which id is assigned and under which condition
-      val pathsToAssignUnderConditions = mutable.Map.empty[Path[S], S]
-      for (lPath <- leftPaths) {
-        val lPathCond = HeapGraph.pathCondition(lPath)
-        val lPathCondEdgeLocalIds = lPathCond.getIds().collect({case id: EdgeLocalIdentifier => id })
-        val newPathCond = lPathCond.removeVariables(lPathCondEdgeLocalIds)
-        if (!newPathCond.lessEqual(newPathCond.bottom()))
-          pathsToAssignUnderConditions.update(lPath, newPathCond)
-      }
+      assert(rightExp.getType.isNumericalType(), "only numerical values allowed")
 
-      if (pathsToAssignUnderConditions.isEmpty)
-        return bottom()
+      // TODO: The 'field' parameter is actually an empty string
+      val actualField = leftAccPath.path.last
+      val lPP = leftExp.getProgramPoint
+      val lType = leftExp.getType
+      val rPP = rightExp.getProgramPoint
+      val rType = rightExp.getType
 
-      /**
-       * Computing resulting general value state
-       */
-      var resultGenValState = generalValState.bottom()
-      val rightExpConditions = newEvaluateExpression(rightExp)
-      val genValAndExpressionConds = Utilities.applyConditions(Set(generalValState), rightExpConditions)
+      evalExp(leftExp).intersect(evalExp(rightExp)).apply().map(condHeap => {
+        val leftPath = condHeap.takenPath(leftAccPath.objPath)
+        val vertexToAssign = leftPath.last.target.asInstanceOf[HeapVertex]
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField, lType, lPP)
 
-      for ((path,cond) <- pathsToAssignUnderConditions) {
-        for (c <- Utilities.applyConditions(Set(cond), genValAndExpressionConds)) {
-          val lhsIdToAssign = ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, leftExp.getType, leftExp.getProgramPoint)
-          resultGenValState = resultGenValState.lub(c.assign(lhsIdToAssign, rightExp))
-        }
-      }
+        // (in particular heap sub-graph)
+        val isWeakUpdate = vertexToAssign.isInstanceOf[SummaryHeapVertex]
 
-      if (resultGenValState.lessEqual(resultGenValState.bottom()))
-        return bottom()
+        var newCond = condHeap.cond.assign(idToAssign, rightExp)
+        // If it's a weak update, the assignment might not have taken place
+        if (isWeakUpdate) newCond = newCond.lub(condHeap.cond)
 
-      /**
-       * Updating the abstract heap
-       */
-      val tempAH = abstractHeap.assignFieldOnEachEdge(field, pathsToAssignUnderConditions.toMap, rightExp, rightExpConditions)
-      ValueDrivenHeapState(tempAH, resultGenValState, ExpressionSet(leftExp))
+        val newHeap = condHeap.heap.copy(edges = condHeap.heap.edges.map(edge => {
+          var newState = edge.state.assign(idToAssign, rightExp)
+          if (edge.source == vertexToAssign) {
+            val edgeLocId = EdgeLocalIdentifier(List.empty, actualField, rType)(rPP)
+            newState = newState.assign(edgeLocId, rightExp)
+          }
+          if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
+            val path = List(edge.field).flatten
+            val edgeLocId = EdgeLocalIdentifier(path, actualField, rType)(rPP)
+            newState = newState.assign(edgeLocId, rightExp)
+          }
+
+          // If it's a weak update, the assignment might not have taken place
+          if (isWeakUpdate) newState = newState.lub(edge.state)
+          edge.copy(state = newState)
+        }))
+        condHeap.copy(heap = newHeap, cond = newCond)
+      }).join
     }
-    result.prune()
   }
 
   /**
