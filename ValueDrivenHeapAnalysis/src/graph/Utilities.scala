@@ -66,6 +66,10 @@ object Utilities {
     newLeft.glb(newRight)
   }
 
+  /** Returns all edge-local identifiers in a state. */
+  def edgeLocalIds[S <: SemanticDomain[S]](state: S) =
+    state.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier])
+
   /** Returns all edge-local and access path identifiers in a state. */
   def edgeLocalAndAccessPathIds[S <: SemanticDomain[S]](state: S) =
     state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||

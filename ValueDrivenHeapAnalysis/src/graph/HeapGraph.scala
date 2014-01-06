@@ -725,6 +725,9 @@ case class CondHeapGraph[S <: SemanticDomain[S]](heap: HeapGraph[S], cond: S) {
   import Utilities._
   import CondHeapGraph._
 
+  require(edgeLocalIds(cond).isEmpty,
+    "condition must not contain edge-local identifiers")
+
   /**
    * Intersects this and another heap graph as well as their associated
    * conditions.
