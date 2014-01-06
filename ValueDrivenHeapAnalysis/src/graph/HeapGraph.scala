@@ -608,20 +608,16 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
   }
 
   /** Applies the condition to each edge state. */
-  def apply(): CondHeapGraph[S] = {
+  def apply(): CondHeapGraph[S] =
     copy(heap = heap.mapEdgeStates(glbPreserveIds(_, cond)))
-  }
 
-  /**
-   * Applies the condition to each edge state and then applies a function
-   * to both the condition and all edge states.
-   */
-  def apply(f: S => S): CondHeapGraph[S] = {
-    val newCondHeap = apply()
-    val newCond = f(newCondHeap.cond)
-    val newSubHeap = newCondHeap.heap.mapEdgeStates(f)
-    copy(cond = newCond, heap = newSubHeap)
-  }
+  /** Applies a function to both the condition and all edge states. */
+  def map(f: S => S): CondHeapGraph[S] =
+    copy(cond = f(cond), heap = heap.mapEdgeStates(f))
+
+  /** Applies a function to each edge. */
+  def mapEdges(f: EdgeWithState[S] => S) =
+    copy(heap = heap.copy(edges = heap.edges.map(e => e.copy(state = f(e)))))
 
   /**
    * Returns whether either the heap or its condition are certainly bottom.
@@ -750,15 +746,21 @@ case class CondHeapGraphSeq[S <: SemanticDomain[S]]
   def intersect(other: CondHeapGraphSeq[S]): CondHeapGraphSeq[S] =
     condHeaps.map(l => other.condHeaps.map(r => l.intersect(r))).flatten
 
+  /** Applies the condition to each heap graph. */
   def apply(): CondHeapGraphSeq[S] =
     condHeaps.map(_.apply())
 
-  /** Applies `apply(f)` to each conditional heap graph. */
-  def apply(f: S => S): CondHeapGraphSeq[S] =
-    condHeaps.map(_.apply(f))
+  /** Maps each condition and the state of each edge. */
+  def map(f: S => S): CondHeapGraphSeq[S] =
+    condHeaps.map(condHeap => condHeap.map(f))
 
-  def map(f: CondHeapGraph[S] => CondHeapGraph[S]): CondHeapGraphSeq[S] =
-    condHeaps.map(f)
+  /**
+   * Maps conditional heap graphs with the given function.
+   * The function may return multiple conditional heap graph.
+   * They will be joined.
+   */
+  def mapCondHeaps(f: CondHeapGraph[S] => Seq[CondHeapGraph[S]]): CondHeapGraphSeq[S] =
+    condHeaps.map(f).flatten
 
   /**
    * Joins all conditional heap graphs in this sequence and returns

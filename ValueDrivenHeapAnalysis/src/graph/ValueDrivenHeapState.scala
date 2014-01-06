@@ -203,7 +203,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     leftExp match {
       case variable: VariableIdentifier => {
         if (leftExp.getType.isNumericalType()) {
-          result = evalExp(rightExp).apply(_.assign(variable, rightExp)).join
+          result = evalExp(rightExp).apply().map(_.assign(variable, rightExp)).join
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)
           val edgesToRemove = abstractHeap.outEdges(varVertex)
@@ -388,6 +388,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     if (leftPaths.size == 0)
       return this.bottom()
 
+    // TODO: The 'field' parameter is actually an empty string
+    val actualField = leftAccPath.path.last
+
     import CondHeapGraph._
 
     if (rightExp.getType.isObject()) {
@@ -443,42 +446,30 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     } else {
       assert(rightExp.getType.isNumericalType(), "only numerical values allowed")
 
-      // TODO: The 'field' parameter is actually an empty string
-      val actualField = leftAccPath.path.last
-      val lPP = leftExp.getProgramPoint
-      val lType = leftExp.getType
-      val rPP = rightExp.getProgramPoint
-      val rType = rightExp.getType
+      evalExp(leftExp).intersect(evalExp(rightExp)).apply().mapCondHeaps(condHeap => {
+        val leftTakenPath = condHeap.takenPath(leftAccPath.objPath)
+        val vertexToAssign = leftTakenPath.target.asInstanceOf[HeapVertex]
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField, leftExp.getType, leftExp.getProgramPoint)
 
-      evalExp(leftExp).intersect(evalExp(rightExp)).apply().map(condHeap => {
-        val leftPath = condHeap.takenPath(leftAccPath.objPath)
-        val vertexToAssign = leftPath.target.asInstanceOf[HeapVertex]
-        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField, lType, lPP)
+        val condHeapAssigned = condHeap
+          .map(_.assign(idToAssign, rightExp))
+          .mapEdges(edge => {
+            var newState = edge.state
+            if (edge.source == vertexToAssign) {
+              val edgeLocId = EdgeLocalIdentifier(List.empty, actualField, rightExp.getType)(rightExp.getProgramPoint)
+              newState = newState.assign(edgeLocId, rightExp)
+            }
+            if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
+              val path = List(edge.field).flatten
+              val edgeLocId = EdgeLocalIdentifier(path, actualField, rightExp.getType)(rightExp.getProgramPoint)
+              newState = newState.assign(edgeLocId, rightExp)
+            }
+            newState
+          })
 
-        // (in particular heap sub-graph)
-        val isWeakUpdate = vertexToAssign.isInstanceOf[SummaryHeapVertex]
-
-        var newCond = condHeap.cond.assign(idToAssign, rightExp)
-        // If it's a weak update, the assignment might not have taken place
-        if (isWeakUpdate) newCond = newCond.lub(condHeap.cond)
-
-        val newHeap = condHeap.heap.copy(edges = condHeap.heap.edges.map(edge => {
-          var newState = edge.state.assign(idToAssign, rightExp)
-          if (edge.source == vertexToAssign) {
-            val edgeLocId = EdgeLocalIdentifier(List.empty, actualField, rType)(rPP)
-            newState = newState.assign(edgeLocId, rightExp)
-          }
-          if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
-            val path = List(edge.field).flatten
-            val edgeLocId = EdgeLocalIdentifier(path, actualField, rType)(rPP)
-            newState = newState.assign(edgeLocId, rightExp)
-          }
-
-          // If it's a weak update, the assignment might not have taken place
-          if (isWeakUpdate) newState = newState.lub(edge.state)
-          edge.copy(state = newState)
-        }))
-        condHeap.copy(heap = newHeap, cond = newCond)
+        // Perform a weak update if assigning to a summary heap vertex
+        if (vertexToAssign.isInstanceOf[SummaryHeapVertex]) Seq(condHeap, condHeapAssigned)
+        else Seq(condHeapAssigned)
       }).join
     }
   }
@@ -594,7 +585,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         result
       }
       case exp: BinaryArithmeticExpression =>
-        evalExp(exp).apply(_.assume(exp)).join
+        evalExp(exp).apply().map(_.assume(exp)).join
       case ReferenceComparisonExpression(_left, _right, op, returnTyp) => {
         assert(_left.getType.isObject(),
           "Reference comparison can be performed only on objects, not values.")
