@@ -68,7 +68,11 @@ object Utilities {
 
   /** Returns all edge-local identifiers in a state. */
   def edgeLocalIds[S <: SemanticDomain[S]](state: S) =
-    state.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier])
+    state.getIds().collect({ case id: EdgeLocalIdentifier => id })
+
+  /** Returns all access path identifiers in a state. */
+  def accPathIds[S <: SemanticDomain[S]](state: S) =
+    state.getIds().collect({ case id: AccessPathIdentifier => id })
 
   /** Returns all edge-local and access path identifiers in a state. */
   def edgeLocalAndAccessPathIds[S <: SemanticDomain[S]](state: S) =

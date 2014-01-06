@@ -5,7 +5,6 @@ import scala.collection.immutable.{Set, TreeSet}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import scala.collection.mutable
-import graph.ValueHeapIdentifier
 
 case class HeapGraph[S <: SemanticDomain[S]](
     vertices: Set[Vertex] = TreeSet.empty[Vertex],
@@ -58,7 +57,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
-  def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[Path[S]] =
+  def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[RootedHeapGraphPath[S]] =
     paths(accPathId.path.dropRight(1))
 
   /**
@@ -74,10 +73,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * @return an empty set if there is no list of edges corresponding
    *         to the given access path
    */
-  def paths(path: List[String]): Set[Path[S]] = {
+  def paths(path: List[String]): Set[RootedHeapGraphPath[S]] = {
     require(!path.isEmpty, "path must not be empty")
 
-    def paths(path: List[String], vertex: Vertex): Set[Path[S]] = {
+    def paths(path: List[String], vertex: Vertex): Set[PartialHeapGraphPath[S]] = {
       val field = vertex match {
         case v: LocalVariableVertex => None
         case _ => Some(path.head)
@@ -85,13 +84,15 @@ case class HeapGraph[S <: SemanticDomain[S]](
       val nextEdges = outEdges(vertex, field)
       path match {
         case head :: Nil =>
-          nextEdges.map(List(_))
+          nextEdges.map(e => PartialHeapGraphPath(List(e)))
         case head :: tail =>
-          nextEdges.map(e => paths(tail, e.target).map(e :: _)).flatten
+          nextEdges.map(e => paths(tail, e.target).map(
+            path => PartialHeapGraphPath(e :: path.edges))).flatten
       }
     }
 
-    paths(path, localVarVertex(path.head))
+    paths(path, localVarVertex(path.head)).map(path =>
+      RootedHeapGraphPath[S](path.edges))
   }
 
   def meetStateOnAllEdges(state: S): HeapGraph[S] = {
@@ -574,15 +575,7 @@ object HeapGraph {
    * @param path for which the condition should be computed
    * @return abstract value condition that is satisfied by the given path
    */
-  def pathCondition[S <: SemanticDomain[S]](path: Path[S]): S = {
-    require(!path.isEmpty, "path cannot be empty")
-    require(path.head.source.isInstanceOf[LocalVariableVertex],
-      "first edge source is not a local variable vertex")
-    require(path.tail.forall(_.source.isInstanceOf[HeapVertex]),
-      "all edges (except the first) must have a heap vertex source")
-    require(path.zip(path.tail).forall(t => t._1.target == t._2.source),
-      "path is not consistent (edge target must equal source of next edge")
-
+  def pathCondition[S <: SemanticDomain[S]](path: RootedHeapGraphPath[S]): S = {
     /**
      * Inner helper method for computing the condition recursively.
      *
@@ -590,7 +583,7 @@ object HeapGraph {
      * @param state starting state where are only the edge-local identifiers
      *              with empty sequence of field access that represent targets
      */
-    def pathConditionRecursive(path: Path[S], state: S): S = {
+    def pathConditionRecursive(path: List[EdgeWithState[S]], state: S): S = {
       val stateEdgeLocalIds = edgeLocalIds(state)
 
       // Only the edge-local identifiers that refer to target are present in
@@ -646,8 +639,8 @@ object HeapGraph {
     // Therefore, the edge local variables that represent the target edge-local
     // variables have an empty sequence of fields. However, we need to remove
     // all other edge-local identifier that might be possibly present.
-    val elIdsToRemove = edgeLocalIds(path.head.state).filter(!_.accPath.isEmpty)
-    pathConditionRecursive(path.tail, path.head.state.removeVariables(elIdsToRemove))
+    val elIdsToRemove = edgeLocalIds(path.edges.head.state).filter(!_.accPath.isEmpty)
+    pathConditionRecursive(path.edges.tail, path.edges.head.state.removeVariables(elIdsToRemove))
   }
 
   /** Returns the set of all edge-local identifiers in the given state. */
@@ -670,23 +663,20 @@ object HeapGraph {
 case class CondHeapGraph[S <: SemanticDomain[S]](
     heap: HeapGraph[S],
     cond: S,
-    // TODO: Create a separate class for edge paths with convenience methods
-    takenPaths: Set[Path[S]] = Set.empty[Path[S]]) {
+    takenPaths: Set[RootedHeapGraphPath[S]] = Set.empty[RootedHeapGraphPath[S]]) {
 
   import Utilities._
   import CondHeapGraph._
 
   require(edgeLocalIds(cond).isEmpty,
     "condition must not contain edge-local identifiers")
-  // TODO: Check that condition only mentions taken AccessPathIdentifiers
 
-  def takenPath(path: List[String]): Path[S] = {
-    takenPaths.find(takenPath => {
-      val localVar = takenPath.head.source.name
-      val fields = takenPath.tail.map(_.field.get).toList
-        (localVar :: fields) == path
-    }).get
-  }
+  require(accPathIds(cond).map(_.objPath).forall(objPath =>
+    takenPaths.exists(_.accPath.startsWith(objPath))),
+    "condition must only contain access path identifiers for taken paths")
+
+  def takenPath(path: List[String]): RootedHeapGraphPath[S] =
+    takenPaths.find(_.accPath == path).get
 
   /**
    * Intersects this and another heap graph as well as their associated
@@ -754,12 +744,12 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
       case ap: AccessPathIdentifier =>
         // Get path to the non-null receiver of the field access
         val paths = heap.paths(ap.objPath)
-          .filter(_.last.target.isInstanceOf[HeapVertex])
+          .filter(_.target.isInstanceOf[HeapVertex])
 
         var result = List.empty[CondHeapGraph[S]]
         for (path <- paths) {
           val field = ap.path.last
-          val targetVertex = path.last.target.asInstanceOf[HeapVertex]
+          val targetVertex = path.target.asInstanceOf[HeapVertex]
           var cond = HeapGraph.pathCondition(path)
 
           // Rename edge local identifier that corresponds to the access path
@@ -776,7 +766,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
 
           // Remove all edges that were NOT taken on this access path
           // Never remove edges going out of a summary node.
-          var edgesToRemove = path.map(edge => {
+          var edgesToRemove = path.edges.map(edge => {
             val outEdges = heap.outEdges(edge.source, edge.field)
             val otherOutEdges = outEdges - edge
             otherOutEdges
