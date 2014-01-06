@@ -307,59 +307,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     return resultingState
   }
 
-  private def newEvaluateExpression(expr: Expression) : Set[S] = {
-    require(!expr.getType.isObject(), "can only evaluate value expressions")
-    expr match {
-      case v : VariableIdentifier => {
-        Set(generalValState)
-      }
-      case c : Constant => {
-        Set(generalValState)
-      }
-      case ap: AccessPathIdentifier => {
-        val field = ap.path.last
-        val resultingSet = mutable.Set.empty[S]
-        // Those that lead to null are not interesting
-        for (path <- abstractHeap.paths(ap.objPath).filter(_.target.isInstanceOf[HeapVertex])) {
-          // We find the condition for the path
-          var cond = path.condition
-          // We rename edge local identifier that corresponds to the access path to the access path
-          val renameFrom = cond.getIds().collect({
-            case id: EdgeLocalIdentifier if id.accPath.isEmpty && id.field == field => id
-          }).toList
-          assert(renameFrom.size == 1, "This should not happen, there should be exactly one identifier to rename.")
-          val renameTo : List[Identifier] = List(ap)
-          cond = cond.rename(renameFrom, renameTo)
-          // The AccessPathIdentifier must agree also with the ValueHeapIdentifier
-          val resId = ValueHeapIdentifier(path.target.asInstanceOf[HeapVertex], field, renameTo.head.getType, renameTo.head.getProgramPoint)
-          cond = cond.assume(new BinaryArithmeticExpression(resId, renameTo.head, ArithmeticOperator.==, null))
-          // We remove all edge local identifiers
-          cond = cond.removeVariables(cond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]))
-          resultingSet += cond
-        }
-        resultingSet.toSet[S]
-      }
-      case BinaryArithmeticExpression(l,r,o,t) => {
-        // First, we calculate conditions from each side.
-        val leftConds = newEvaluateExpression(l)
-        val rightConds = newEvaluateExpression(r)
-        // Then we combine them together
-        Utilities.applyConditions(leftConds, rightConds)
-      }
-      case BinaryBooleanExpression(l,r,o, t) => {
-        // First, we calculate conditions from each side.
-        val leftConds = newEvaluateExpression(l)
-        val rightConds = newEvaluateExpression(r)
-        // Then we combine them together
-        Utilities.applyConditions(leftConds, rightConds)
-      }
-      case NegatedBooleanExpression(e) => {
-        newEvaluateExpression(e)
-      }
-      case _ => ???
-    }
-  }
-
   /**
    * Replaces all `VariableIdentifier`s in the given expression
    * with a corresponding `AccessPathIdentifier`.
