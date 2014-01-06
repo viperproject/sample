@@ -269,44 +269,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     result
   }
 
-  private def createEdgeLocalState(srcId: Identifier, trgId: Identifier, field: Option[String], state: S, addedIds: Set[Identifier], sourceVertex: Vertex, targetVertex: Vertex): S = {
-    if (sourceVertex.isInstanceOf[NullVertex] || state.lessEqual(state.bottom())) return state.bottom()
-    assert(srcId.getType.isObject(), "This is used only when objects are assigned.")
-    assert(trgId.getType.isObject(), "This is used only when objects are assigned.")
-    val edgeLocTrgPath = field match {
-      case None => List.empty[String]
-      case Some(f) => List(f)
-    }
-    //val resultingRep = new Replacement()
-    var resultingState = state
-    // TODO: Refactor this code, loads of duplication
-    // adding source edge-local information
-    var renamendIds = Set.empty[Identifier]
-    if (sourceVertex.isInstanceOf[HeapVertex]) {
-      for (valField <- sourceVertex.typ.nonObjectFields) {
-        val srcEdgeLocId = EdgeLocalIdentifier(valField)
-        val correspAddedId = addedIds.filter(id => id.getName.equals(srcId.getName + "." + valField)).head
-        resultingState = resultingState.rename(List(correspAddedId), List(srcEdgeLocId))
-        renamendIds = renamendIds + correspAddedId
-//        resultingRep.value += (Set(correspAddedId) -> Set(correspAddedId, srcEdgeLocId))
-      }
-    }
-    // adding target edge-local information
-    if (targetVertex.isInstanceOf[HeapVertex]) {
-      for (valField <- targetVertex.typ.nonObjectFields) {
-        val trgEdgeLocId = EdgeLocalIdentifier(edgeLocTrgPath, valField)
-        val correspAddedId = addedIds.filter(id => id.getName.equals(trgId.getName + "." + valField)).head
-//        resultingRep.value += (Set(correspAddedId) -> Set(correspAddedId, trgEdgeLocId))
-        resultingState = resultingState.rename(List(correspAddedId), List(trgEdgeLocId))
-        renamendIds = renamendIds + correspAddedId
-      }
-    }
-    for (id <- addedIds -- renamendIds) {
-      resultingState = resultingState.removeVariable(id)
-    }
-    return resultingState
-  }
-
   /**
    * Replaces all `VariableIdentifier`s in the given expression
    * with a corresponding `AccessPathIdentifier`.
