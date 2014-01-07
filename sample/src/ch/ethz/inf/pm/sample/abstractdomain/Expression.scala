@@ -245,30 +245,47 @@ case class TrueExpression(pp : ProgramPoint, returntyp : Type) extends Expressio
 }
 
 /**
- * A comparison between reference, that is, left==right or left!=right
+ * A comparison between reference, that is, left == right or left != right
  *
  * @param left One of the operands
  * @param right The other operand
  * @param op The identifier of the operation
- * @param typ The type of the returned value
+ * @param returntyp The type of the returned value
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class ReferenceComparisonExpression(val left : Expression, val right : Expression, val op : ArithmeticOperator.Value, returntyp : Type) extends Expression {
+case class ReferenceComparisonExpression(
+    left: Expression,
+    right: Expression,
+    op: ArithmeticOperator.Value,
+    returntyp: Type) extends Expression {
+
+  require(left.getType.isObject(),
+    "cannot perform reference comparisons on primitive values")
+  require(right.getType.isObject(),
+    "cannot perform reference comparisons on primitive values")
+
+  // TODO: Maybe introduce a ReferenceOperator enum with just two values
+  require(op == ArithmeticOperator.== || op == ArithmeticOperator.!=,
+    "operator must either be equality or inequality")
 
   def getProgramPoint = left.getProgramPoint
-  def getType = returntyp
-  def getIdentifiers = left.getIdentifiers++right.getIdentifiers
 
-  override def hashCode() : Int = left.hashCode();
-  override def equals(o : Any) = o match {
+  def getType = returntyp
+
+  def getIdentifiers = left.getIdentifiers ++ right.getIdentifiers
+
+  override def hashCode(): Int = left.hashCode()
+
+  override def equals(o: Any) = o match {
     case ReferenceComparisonExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o)
     case _ => false
   }
-  override def toString() = left.toString() + op.toString() + right.toString()
 
-  override def transform(f:(Expression => Expression)):Expression =
-    f(ReferenceComparisonExpression(left.transform(f),right.transform(f),op,returntyp))
+  override def toString = s"$left$op$right"
+
+  override def transform(f: (Expression => Expression)): Expression =
+    f(copy(left = left.transform(f), right = right.transform(f)))
 
 }
 

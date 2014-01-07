@@ -496,11 +496,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       case exp: BinaryArithmeticExpression =>
         evalExp(exp).apply().map(_.assume(exp)).join
       case ReferenceComparisonExpression(_left, _right, op, returnTyp) => {
-        assert(_left.getType.isObject(),
-          "Reference comparison can be performed only on objects, not values.")
-        assert(_right.getType.isObject(),
-          "Reference comparison can be performed only on objects, not values.")
-
         val left = normalizeExpression(_left)
         val right = normalizeExpression(_right)
 
