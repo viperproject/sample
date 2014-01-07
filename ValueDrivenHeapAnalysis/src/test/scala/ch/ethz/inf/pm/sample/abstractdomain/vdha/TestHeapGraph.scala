@@ -1,9 +1,7 @@
-package test.graph
+package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import graph._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ConstrainedPolyhedra}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import scala.collection.immutable.TreeSet
-import ch.ethz.inf.pm.sample.util.Timer
 
 object TestHeapGraph {
   def main(args: Array[String]) {

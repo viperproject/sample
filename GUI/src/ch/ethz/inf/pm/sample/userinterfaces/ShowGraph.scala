@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.userinterfaces
 
-import graph._
 import scala.collection.immutable._
 import ch.ethz.inf.pm.sample._
 import com.mxgraph.view._
@@ -20,6 +19,7 @@ import ch.ethz.inf.pm.sample.tracepartitioning.Node
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.FieldAndProgramPoint
 import ch.ethz.inf.pm.sample.tracepartitioning.Leaf
+import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 
 private class Show extends JFrame {
   def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {

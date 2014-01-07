@@ -1,11 +1,10 @@
-package graph
+package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, Analysis}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.{BooleanNativeMethodSemantics, IntegerNativeMethodSemantics, ObjectNativeMethodSemantics}
 import ch.ethz.inf.pm.sample.property.Property
-import ch.ethz.inf.pm.sample.SystemParameters
 import apron.Polka
 
 class ValueDrivenHeapAnalysis extends Analysis {

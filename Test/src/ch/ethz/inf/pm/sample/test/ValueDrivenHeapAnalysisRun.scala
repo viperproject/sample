@@ -3,10 +3,9 @@ package ch.ethz.inf.pm.sample.test
 import ch.ethz.inf.pm.sample.{StdOutOutput, SystemParameters}
 import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SimpleAnalyzer}
 import ch.ethz.inf.pm.sample.property.OutputCollector
-import graph.{ValueDrivenHeapAnalysis, ValueDrivenHeapState}
 import ch.ethz.inf.pm.sample.userinterfaces.ShowGraph
+import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 
 object ValueDrivenHeapAnalysisRun {
 
@@ -24,7 +23,7 @@ object ValueDrivenHeapAnalysisRun {
 
     //Files paths
 //    val file = "ValueDrivenHeapAnalysis/src/test/files/TestFiles.scala"
-    val file = "ValueDrivenHeapAnalysis/src/test/files/Node.scala"
+    val file = "ValueDrivenHeapAnalysis/src/test/resources/Node.scala"
 
     SystemParameters.compiler.compile(file :: Nil);
 

@@ -1,4 +1,4 @@
-package graph
+package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{StaticModifier, ProgramPoint, Type}

@@ -1,4 +1,4 @@
-package graph
+package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import scala.collection.immutable.{Set, TreeSet}
@@ -27,11 +27,11 @@ case class HeapGraph[S <: SemanticDomain[S]](
   private def getCurrentVersionNumbers: Set[Int] =
     vertices collect {case hv : HeapVertex => hv.version}
 
-  /** Returns all heap vertices in the heap graph. */
+  /** Returns all heap vertices in the heap ch.ethz.inf.pm.sample.abstractdomain.graph. */
   def heapVertices: Set[HeapVertex] =
     vertices.collect({ case v: HeapVertex => v })
 
-  /** Returns all local variable vertices in the heap graph. */
+  /** Returns all local variable vertices in the heap ch.ethz.inf.pm.sample.abstractdomain.graph. */
   def localVarVertices: Set[LocalVariableVertex] =
     vertices.collect({ case v: LocalVariableVertex => v })
 
@@ -49,7 +49,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
       case v: LocalVariableVertex if v.name == name => v
     })
     require(!results.isEmpty, s"no local variable vertex named '$name'")
-    // TODO: Could check consistency when instantiating the heap graph
+    // TODO: Could check consistency when instantiating the heap ch.ethz.inf.pm.sample.abstractdomain.graph
     assert(results.size == 1, s"there may only be one vertex named '$name'")
     results.head
   }
@@ -61,7 +61,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     paths(accPathId.path.dropRight(1))
 
   /**
-   * Returns the possible set of paths in the heap graph (lists of edges)
+   * Returns the possible set of paths in the heap ch.ethz.inf.pm.sample.abstractdomain.graph (lists of edges)
    * corresponding to a given an access path of variable and field names.
    *
    * The first identifier in the access path must be a valid variable.
@@ -98,7 +98,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   /**
    *
    * @param label - Tells us whether this is a null, summary, definite or variable node (See VariableConstants for more info)
-   * @return the heap graph that contains that new node and the newly created node itself.
+   * @return the heap ch.ethz.inf.pm.sample.abstractdomain.graph that contains that new node and the newly created node itself.
    */
   def addNewVertex(label : String, typ: Type): (HeapGraph[S], Vertex) = {
     var newVertex : Vertex = null
@@ -120,10 +120,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   /**
    * This method removes all given vertices and all edges that have vertices
-   * from vs as a source or target from the graph.
+   * from vs as a source or target from the ch.ethz.inf.pm.sample.abstractdomain.graph.
    *
-   * @param vs set of vertices to be removed from the graph
-   * @return graph without vertices vs and without edges containing vertices from vs
+   * @param vs set of vertices to be removed from the ch.ethz.inf.pm.sample.abstractdomain.graph
+   * @return ch.ethz.inf.pm.sample.abstractdomain.graph without vertices vs and without edges containing vertices from vs
    */
   def removeVertices(vs: Set[Vertex]): HeapGraph[S] =
     HeapGraph(vertices -- vs, edges -- edges.filter(_.vertices.intersect(vs).isEmpty))
@@ -184,7 +184,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   /**
    * This method is used to calculate the maximum common subgraph (mcs) of <code>this</code> and <code>other</code>.
-   * The resulting graph that is composed of vertices in keys of <code>I</code> and edges that are keys of <code>E</code>
+   * The resulting ch.ethz.inf.pm.sample.abstractdomain.graph that is composed of vertices in keys of <code>I</code> and edges that are keys of <code>E</code>
    * is a proper subgraph of <code>this</code> meaning that the vertices (keys of <code>I</code>) and edge (keys of
    * <code>E</code>) subsets of vertices and edges of <code>this</this> (respectively).
    *
@@ -192,7 +192,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
    *
    * <a href="http://onlinelibrary.wiley.com/doi/10.1002/spe.4380120103/abstract">McGregor's algorithms</a> is used to compute the mcs.
    *
-   * @param other - graph for which mcs(<code>this, other</code>) should be calculated
+   * @param other - ch.ethz.inf.pm.sample.abstractdomain.graph for which mcs(<code>this, other</code>) should be calculated
    * @return a pair (<code>I, E</code>) where <code>I</code> is subgraph isomorphism form mcs(<code> this, other </code>)
    *         to <code>other</code> and <code>E</code> is the edge correspondence between the resulting mcs and edges of
    *         <code>other</code>
@@ -229,8 +229,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * @param other
    * @return maximum common subgraph of left and right (with names from left)
    *         set of identifiers to be removed from right general value state
-   *         variables to be renamed in the right graph
-   *         variables to which the above should be renamed in the right graph
+   *         variables to be renamed in the right ch.ethz.inf.pm.sample.abstractdomain.graph
+   *         variables to which the above should be renamed in the right ch.ethz.inf.pm.sample.abstractdomain.graph
    */
   def glb(other: HeapGraph[S]): (HeapGraph[S], Set[Identifier], Map[Identifier, Identifier])= {
     val (iso, edgeMap) = mcs(other)
@@ -342,7 +342,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
         return (bestIsomorphism, bestEdges)
     }
 
-    // Checking all possible parings for the next node from the left graph
+    // Checking all possible parings for the next node from the left ch.ethz.inf.pm.sample.abstractdomain.graph
     var currentIsomorphism = bestIsomorphism
     var currentEdges = bestEdges
     val v1 = V1.min
@@ -357,7 +357,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
       }
     }
 
-    // The next node in the left graph might stay unpaired (not part of isomorphism). We check that here.
+    // The next node in the left ch.ethz.inf.pm.sample.abstractdomain.graph might stay unpaired (not part of isomorphism). We check that here.
     val (resIsomorphism, resEdge) = mcsRecursive(V1 - v1, V2, isomorphism, possibleEdges, currentIsomorphism, currentEdges)
     if (resIsomorphism.size >= currentIsomorphism.size && resEdge.size > currentEdges.size) {
       currentIsomorphism = resIsomorphism
@@ -413,7 +413,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * function.
    *
    * @param f the state transformation function
-   * @return the transformed heap graph
+   * @return the transformed heap ch.ethz.inf.pm.sample.abstractdomain.graph
    */
   def mapWeaklyEqualEdges(f: Set[S] => S) =
     copy(edges = weakEdgeEquivalenceSets.map(eqSet => {
@@ -537,7 +537,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
       }
   }
 
-  /** Returns true iff there is no weakly equal pair of edges in the graph. */
+  /** Returns true iff there is no weakly equal pair of edges in the ch.ethz.inf.pm.sample.abstractdomain.graph. */
   def isNormalized: Boolean =
     weakEdgeEquivalenceSets.forall(_.size == 1)
 
@@ -549,14 +549,14 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * transformed with the given function.
    *
    * @param f the state transformation function
-   * @return the transformed heap graph
+   * @return the transformed heap ch.ethz.inf.pm.sample.abstractdomain.graph
    */
   def mapEdgeStates(f: S => S) =
     copy(edges = edges.map(e => e.copy(state = f(e.state))))
 }
 
 /**
- * Combines a heap graph with a condition that the heap graph must satisfy.
+ * Combines a heap ch.ethz.inf.pm.sample.abstractdomain.graph with a condition that the heap ch.ethz.inf.pm.sample.abstractdomain.graph must satisfy.
  *
  * It is currently only used temporarily for expression evaluation. Such an
  * object is basically a `ValueDrivenHeapState` without an expression and
@@ -586,13 +586,13 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     takenPaths.find(_.accPath == path).get
 
   /**
-   * Intersects this and another heap graph as well as their associated
+   * Intersects this and another heap ch.ethz.inf.pm.sample.abstractdomain.graph as well as their associated
    * conditions.
    *
    * This cheap intersection requires that the two heap graphs are sub-graphs
-   * of some normalized heap graph.
+   * of some normalized heap ch.ethz.inf.pm.sample.abstractdomain.graph.
    *
-   * In the resulting heap sub-graph, an edge only occurs if
+   * In the resulting heap sub-ch.ethz.inf.pm.sample.abstractdomain.graph, an edge only occurs if
    * it occurred in both heap sub-graphs (strong equality).
    */
   def intersect(other: CondHeapGraph[S]): CondHeapGraph[S] = {
@@ -631,9 +631,9 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    * Recursively evaluates the given expression.
    *
    * For each access path expression in the given expression, the method
-   * enumerates the corresponding possible paths through the heap graph and
-   * for each such path, materializes the heap sub-graph where all edges
-   * are removed that are certainly not taken. Each such sub-graph is returned
+   * enumerates the corresponding possible paths through the heap ch.ethz.inf.pm.sample.abstractdomain.graph and
+   * for each such path, materializes the heap sub-ch.ethz.inf.pm.sample.abstractdomain.graph where all edges
+   * are removed that are certainly not taken. Each such sub-ch.ethz.inf.pm.sample.abstractdomain.graph is returned
    * together with the corresponding path condition.
    */
   def evalExp(expr: Expression): CondHeapGraphSeq[S] = expr match {

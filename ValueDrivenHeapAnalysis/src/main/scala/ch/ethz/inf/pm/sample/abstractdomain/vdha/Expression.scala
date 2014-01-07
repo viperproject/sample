@@ -1,4 +1,4 @@
-package graph
+package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, Identifier}
@@ -57,7 +57,7 @@ case class EdgeLocalIdentifier(
 
   def getName: String = {
     val fullPath = List(ValueDrivenHeapStateConstants.edgeLocalIdentifier) ++ accPath ++ List(field)
-    fullPath.mkString(".")
+    fullPath.mkString("")
   }
 
   def getField: Option[String] = Some(field)

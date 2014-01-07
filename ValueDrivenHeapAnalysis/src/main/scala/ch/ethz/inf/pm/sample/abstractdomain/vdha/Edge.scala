@@ -1,4 +1,4 @@
-package graph
+package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, AccessPathIdentifier, SemanticDomain}
 import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint

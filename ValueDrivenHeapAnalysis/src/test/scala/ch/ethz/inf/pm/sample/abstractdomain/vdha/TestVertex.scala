@@ -1,14 +1,5 @@
-package graph.test
+package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import graph._
-
-/**
- * Created with IntelliJ IDEA.
- * User: milos
- * Date: 4/23/13
- * Time: 3:28 PM
- * To change this template use File | Settings | File Templates.
- */
 object TestVertex {
 
   def main(args: Array[String]) {
