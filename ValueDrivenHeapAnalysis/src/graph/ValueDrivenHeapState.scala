@@ -138,7 +138,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             var trgValState = sourceValState
             for (objValField <- objField.getType.nonObjectFields) {
               val trgEdgeLocId = EdgeLocalIdentifier(List(objField.getName), objValField)
-              val valHeapId = ValueHeapIdentifier(heapVertex, objField)
+              val valHeapId = ValueHeapIdentifier(canPointToVertex, objValField)
               trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
               trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
             }
@@ -203,15 +203,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     leftExp match {
       case variable: VariableIdentifier => {
         if (leftExp.getType.isNumericalType()) {
-          var resultGenValState = generalValState.bottom()
-          val rightExpConditions = newEvaluateExpression(rightExp)
-          val genValAndExpressionConds = Utilities.applyConditions(Set(generalValState), rightExpConditions)
-          for (c <- genValAndExpressionConds)
-            resultGenValState = resultGenValState.lub(c.assign(variable, rightExp))
-
-          resultGenValState = Utilities.removeAccessPathIdentifiers(resultGenValState)
-          val tempAH = abstractHeap.assignVariableOnEachEdge(variable, rightExp, rightExpConditions)
-          result = ValueDrivenHeapState(tempAH, resultGenValState, ExpressionSet())
+          result = evalExp(rightExp).apply().map(_.assign(variable, rightExp)).join
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)
           val edgesToRemove = abstractHeap.outEdges(varVertex)
@@ -244,9 +236,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             case rAP: AccessPathIdentifier => {
               val rightPaths = abstractHeap.paths(rAP.path)
               for (rPath <- rightPaths) {
-                val rCond = HeapGraph.pathCondition(rPath)
+                val rCond = rPath.condition
                 if (!rCond.lessEqual(rCond.bottom())) {
-                  edgesToAdd = edgesToAdd + EdgeWithState(varVertex, rCond, None, rPath.last.target)
+                  edgesToAdd = edgesToAdd + EdgeWithState(varVertex, rCond, None, rPath.target)
                 }
               }
             }
@@ -267,194 +259,14 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               .removeEdges(edgesToRemove)
               .addEdges(edgesToAdd)
               .joinCommonEdges()
-            result = ValueDrivenHeapState(tempAH, generalValState, ExpressionSet(), false, isBottom)
+            result = ValueDrivenHeapState(tempAH, generalValState, ExpressionSet(), false, isBottom).prune()
           }
         }
       }
       case _ => throw new Exception("Left-hand side of variable assignment is not a variable.")
     }
     assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
-    result.prune()
-  }
-
-  private def createEdgeLocalState(srcId: Identifier, trgId: Identifier, field: Option[String], state: S, addedIds: Set[Identifier], sourceVertex: Vertex, targetVertex: Vertex): S = {
-    if (sourceVertex.isInstanceOf[NullVertex] || state.lessEqual(state.bottom())) return state.bottom()
-    assert(srcId.getType.isObject(), "This is used only when objects are assigned.")
-    assert(trgId.getType.isObject(), "This is used only when objects are assigned.")
-    val edgeLocTrgPath = field match {
-      case None => List.empty[String]
-      case Some(f) => List(f)
-    }
-    //val resultingRep = new Replacement()
-    var resultingState = state
-    // TODO: Refactor this code, loads of duplication
-    // adding source edge-local information
-    var renamendIds = Set.empty[Identifier]
-    if (sourceVertex.isInstanceOf[HeapVertex]) {
-      for (valField <- sourceVertex.typ.nonObjectFields) {
-        val srcEdgeLocId = EdgeLocalIdentifier(valField)
-        val correspAddedId = addedIds.filter(id => id.getName.equals(srcId.getName + "." + valField)).head
-        resultingState = resultingState.rename(List(correspAddedId), List(srcEdgeLocId))
-        renamendIds = renamendIds + correspAddedId
-//        resultingRep.value += (Set(correspAddedId) -> Set(correspAddedId, srcEdgeLocId))
-      }
-    }
-    // adding target edge-local information
-    if (targetVertex.isInstanceOf[HeapVertex]) {
-      for (valField <- targetVertex.typ.nonObjectFields) {
-        val trgEdgeLocId = EdgeLocalIdentifier(edgeLocTrgPath, valField)
-        val correspAddedId = addedIds.filter(id => id.getName.equals(trgId.getName + "." + valField)).head
-//        resultingRep.value += (Set(correspAddedId) -> Set(correspAddedId, trgEdgeLocId))
-        resultingState = resultingState.rename(List(correspAddedId), List(trgEdgeLocId))
-        renamendIds = renamendIds + correspAddedId
-      }
-    }
-    for (id <- addedIds -- renamendIds) {
-      resultingState = resultingState.removeVariable(id)
-    }
-    return resultingState
-  }
-
-  private def newEvaluateExpression(expr: Expression) : Set[S] = {
-    require(!expr.getType.isObject(), "can only evaluate value expressions")
-    expr match {
-      case v : VariableIdentifier => {
-        Set(generalValState)
-      }
-      case c : Constant => {
-        Set(generalValState)
-      }
-      case ap: AccessPathIdentifier => {
-        val field = ap.path.last
-        val resultingSet = mutable.Set.empty[S]
-        // Those that lead to null are not interesting
-        for (path <- abstractHeap.paths(ap.objPath).filter(_.last.target.isInstanceOf[HeapVertex])) {
-          // We find the condition for the path
-          var cond = HeapGraph.pathCondition(path)
-          // We rename edge local identifier that corresponds to the access path to the access path
-          val renameFrom = cond.getIds().collect({
-            case id: EdgeLocalIdentifier if id.accPath.isEmpty && id.field == field => id
-          }).toList
-          assert(renameFrom.size == 1, "This should not happen, there should be exactly one identifier to rename.")
-          val renameTo : List[Identifier] = List(ap)
-          cond = cond.rename(renameFrom, renameTo)
-          // The AccessPathIdentifier must agree also with the ValueHeapIdentifier
-          val resId = ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, renameTo.head.getType, renameTo.head.getProgramPoint)
-          cond = cond.assume(new BinaryArithmeticExpression(resId, renameTo.head, ArithmeticOperator.==, null))
-          // We remove all edge local identifiers
-          cond = cond.removeVariables(cond.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]))
-          resultingSet += cond
-        }
-        resultingSet.toSet[S]
-      }
-      case BinaryArithmeticExpression(l,r,o,t) => {
-        // First, we calculate conditions from each side.
-        val leftConds = newEvaluateExpression(l)
-        val rightConds = newEvaluateExpression(r)
-        // Then we combine them together
-        Utilities.applyConditions(leftConds, rightConds)
-      }
-      case BinaryBooleanExpression(l,r,o, t) => {
-        // First, we calculate conditions from each side.
-        val leftConds = newEvaluateExpression(l)
-        val rightConds = newEvaluateExpression(r)
-        // Then we combine them together
-        Utilities.applyConditions(leftConds, rightConds)
-      }
-      case NegatedBooleanExpression(e) => {
-        newEvaluateExpression(e)
-      }
-      case _ => ???
-    }
-  }
-
-  /**
-   * Recursively evaluates the given expression.
-   *
-   * For each access path expression in the given expression, the method
-   * enumerates the corresponding possible paths through the heap graph and
-   * for each such path, materializes the heap sub-graph where all edges
-   * are removed that are certainly not taken. Each such sub-graph is returned
-   * together with the corresponding path condition.
-   *
-   * @note Returns a sequence instead of a set as computing hash codes of
-   *       whole `HeapGraph`s may be unnecessarily expensive
-   * @todo support reference expressions
-   */
-  private def preciseEvaluateExpression(expr: Expression): Seq[(HeapGraph[S], S)] = {
-    require(!expr.getType.isObject(), "can only evaluate value expressions")
-
-    /**
-     * Intersects all heaps and associated conditions pair-wise.
-     * This is the more precise variant of `Utilities.applyConditions`.
-     * @todo Move it to a publicly accessible place
-     */
-    def intersect(left: Seq[(HeapGraph[S], S)], right: Seq[(HeapGraph[S], S)]): Seq[(HeapGraph[S], S)] = {
-      var result = List.empty[(HeapGraph[S], S)]
-      for ((lHeap, lCond) <- left; (rHeap, rCond) <- right) {
-        val heap = lHeap.copy(edges = lHeap.edges intersect rHeap.edges)
-        val cond = Utilities.glbPreserveIds(lCond, rCond)
-        result = (heap, cond) :: result
-      }
-      result
-    }
-
-    expr match {
-      case v: VariableIdentifier =>
-        Seq((abstractHeap, generalValState))
-      case c: Constant =>
-        Seq((abstractHeap, generalValState))
-      case ap: AccessPathIdentifier =>
-        // Get path to the non-null receiver of the field access
-        val paths = abstractHeap.paths(ap.objPath)
-          .filter(_.last.target.isInstanceOf[HeapVertex])
-
-        var result = List.empty[(HeapGraph[S], S)]
-        for (path <- paths) {
-          val field = ap.path.last
-          val targetVertex = path.last.target.asInstanceOf[HeapVertex]
-          var cond = HeapGraph.pathCondition(path)
-
-          // Rename edge local identifier that corresponds to the access path
-          val renameFrom = HeapGraph.edgeLocalIds(cond).filter(_.field == field).toList
-          assert(renameFrom.size == 1, "there should be exactly one identifier to rename")
-          cond = cond.rename(renameFrom, List(ap))
-
-          // AccessPathIdentifier must agree also with the ValueHeapIdentifier
-          val resId = ValueHeapIdentifier(targetVertex, field, ap.getType, ap.getProgramPoint)
-          cond = cond.assume(new BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==, null))
-
-          // Remove all edge local identifiers
-          cond = cond.removeVariables(HeapGraph.edgeLocalIds(cond))
-
-          // Remove all edges that were NOT taken on this access path
-          // Never remove edges going out of a summary node.
-          var edgesToRemove = path.map(edge => {
-            val outEdges = abstractHeap.outEdges(edge.source, edge.field)
-            val otherOutEdges = outEdges - edge
-            otherOutEdges
-          }).flatten.toSet
-          edgesToRemove = edgesToRemove.filter(!_.source.isInstanceOf[SummaryHeapVertex])
-
-          val prunedHeap = abstractHeap.removeEdges(edgesToRemove)
-
-          if (!prunedHeap.isBottom() && !cond.lessEqual(cond.bottom())) {
-            result = (prunedHeap, cond) :: result
-          }
-        }
-        result
-      case BinaryArithmeticExpression(left, right, o, t) =>
-        val evalLeft = preciseEvaluateExpression(left)
-        val evalRight = preciseEvaluateExpression(right)
-        intersect(evalLeft, evalRight)
-      case BinaryBooleanExpression(left, right, _, _) =>
-        val evalLeft = preciseEvaluateExpression(left)
-        val evalRight = preciseEvaluateExpression(right)
-        intersect(evalLeft, evalRight)
-      case NegatedBooleanExpression(e) =>
-        preciseEvaluateExpression(e)
-      case _ => ???
-    }
+    result
   }
 
   /**
@@ -467,6 +279,13 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       case e => e
     })
 
+  /**
+   * Convenience method that converts the state to a `CondHeapGraph` and
+   * evaluates the given expression.
+   */
+  private def evalExp(expr: Expression): CondHeapGraphSeq[S] =
+    CondHeapGraph(this).evalExp(expr)
+
   def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): ValueDrivenHeapState[S] = {
     if (isBottom) return this
     assert(right.getSetOfExpressions.size == 1, "We allow to assign only single expression")
@@ -474,10 +293,16 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val rightExp = right.getSetOfExpressions.head
     assert(leftExp.isInstanceOf[AccessPathIdentifier], "The left hand side od the assignment is not an AccessPathIdentifier")
     val leftAccPath = leftExp.asInstanceOf[AccessPathIdentifier]
-    val leftPaths: Set[Path[S]] = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.last.target.isInstanceOf[HeapVertex])
+    val leftPaths = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.target.isInstanceOf[HeapVertex])
     if (leftPaths.size == 0)
       return this.bottom()
-    val result = if (rightExp.getType.isObject()) {
+
+    // TODO: The 'field' parameter is actually an empty string
+    val actualField = leftAccPath.path.last
+
+    import CondHeapGraph._
+
+    if (rightExp.getType.isObject()) {
       var edgesToAdd = Set.empty[EdgeWithState[S]]
       rightExp match {
         case x: VariableIdentifier => {
@@ -493,14 +318,14 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           // Add new edges
           for (lPath <- leftPaths) {
             // leftCond should contain source EdgeLocalIdentifiers
-            val leftCond = HeapGraph.pathCondition(lPath)
+            val leftCond = lPath.condition
             // We build the replacement that for each ValueHeapIdentifier corresponding to the vertex, expands it to
             // target EdgeLocalIdentifier.
             val repl = new Replacement()
             for (id <- leftCond.getIds().collect({ case id: ValueHeapIdentifier if id.obj.equals(v.vertex) => id })) {
               repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(leftAccPath.path.last), id)))
             }
-            edgesToAdd = edgesToAdd + EdgeWithState(lPath.last.target, leftCond.merge(repl), Some(leftAccPath.path.last), v.vertex)
+            edgesToAdd = edgesToAdd + EdgeWithState(lPath.target, leftCond.merge(repl), Some(leftAccPath.path.last), v.vertex)
           }
         }
         case c : Constant => {
@@ -526,47 +351,36 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
       val newExpr = new ExpressionSet(right.getType()).add(leftAccPath)
-      ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom)
+      ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom).prune()
     } else {
-      assert(rightExp.getType.isNumericalType(), "For now we allow only numerical values")
-      val field = leftAccPath.path.last
-      // We construct a map that says which id is assigned and under which condition
-      val pathsToAssignUnderConditions = mutable.Map.empty[Path[S], S]
-      for (lPath <- leftPaths) {
-        val lPathCond = HeapGraph.pathCondition(lPath)
-        val lPathCondEdgeLocalIds = lPathCond.getIds().collect({case id: EdgeLocalIdentifier => id })
-        val newPathCond = lPathCond.removeVariables(lPathCondEdgeLocalIds)
-        if (!newPathCond.lessEqual(newPathCond.bottom()))
-          pathsToAssignUnderConditions.update(lPath, newPathCond)
-      }
+      assert(rightExp.getType.isNumericalType(), "only numerical values allowed")
 
-      if (pathsToAssignUnderConditions.isEmpty)
-        return bottom()
+      evalExp(leftExp).intersect(evalExp(rightExp)).apply().mapCondHeaps(condHeap => {
+        val leftTakenPath = condHeap.takenPath(leftAccPath.objPath)
+        val vertexToAssign = leftTakenPath.target.asInstanceOf[HeapVertex]
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField, leftExp.getType, leftExp.getProgramPoint)
 
-      /**
-       * Computing resulting general value state
-       */
-      var resultGenValState = generalValState.bottom()
-      val rightExpConditions = newEvaluateExpression(rightExp)
-      val genValAndExpressionConds = Utilities.applyConditions(Set(generalValState), rightExpConditions)
+        val condHeapAssigned = condHeap
+          .map(_.assign(idToAssign, rightExp))
+          .mapEdges(edge => {
+            var newState = edge.state
+            if (edge.source == vertexToAssign) {
+              val edgeLocId = EdgeLocalIdentifier(List.empty, actualField, rightExp.getType)(rightExp.getProgramPoint)
+              newState = newState.assign(edgeLocId, rightExp)
+            }
+            if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
+              val path = List(edge.field).flatten
+              val edgeLocId = EdgeLocalIdentifier(path, actualField, rightExp.getType)(rightExp.getProgramPoint)
+              newState = newState.assign(edgeLocId, rightExp)
+            }
+            newState
+          })
 
-      for ((path,cond) <- pathsToAssignUnderConditions) {
-        for (c <- Utilities.applyConditions(Set(cond), genValAndExpressionConds)) {
-          val lhsIdToAssign = ValueHeapIdentifier(path.last.target.asInstanceOf[HeapVertex], field, leftExp.getType, leftExp.getProgramPoint)
-          resultGenValState = resultGenValState.lub(c.assign(lhsIdToAssign, rightExp))
-        }
-      }
-
-      if (resultGenValState.lessEqual(resultGenValState.bottom()))
-        return bottom()
-
-      /**
-       * Updating the abstract heap
-       */
-      val tempAH = abstractHeap.assignFieldOnEachEdge(field, pathsToAssignUnderConditions.toMap, rightExp, rightExpConditions)
-      ValueDrivenHeapState(tempAH, resultGenValState, ExpressionSet(leftExp))
+        // Perform a weak update if assigning to a summary heap vertex
+        if (vertexToAssign.isInstanceOf[SummaryHeapVertex]) Seq(condHeap, condHeapAssigned)
+        else Seq(condHeapAssigned)
+      }).join
     }
-    result.prune()
   }
 
   /**
@@ -581,14 +395,17 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
    *
    * @author Milos Novacek
    */
-  private def referencePathAssignmentEdges(field: String, leftPaths : Set[Path[S]], rightPaths : Set[Path[S]]) : Set[EdgeWithState[S]] = {
+  private def referencePathAssignmentEdges(
+      field: String,
+      leftPaths: Set[RootedHeapGraphPath[S]],
+      rightPaths: Set[RootedHeapGraphPath[S]]): Set[EdgeWithState[S]] = {
     var edgesToAdd = Set.empty[EdgeWithState[S]]
     for (lPath <- leftPaths) {
-      var leftCond = HeapGraph.pathCondition(lPath)
+      var leftCond = lPath.condition
       if (!leftCond.lessEqual(leftCond.bottom())) {
         // The condition of the left path is not bottom. (i.e. can be possibly assigned)
         for(rPath <- rightPaths) {
-          val rightCond = HeapGraph.pathCondition(rPath)
+          val rightCond = rPath.condition
           var renameFrom = List.empty[EdgeLocalIdentifier]
           var renameTo = List.empty[EdgeLocalIdentifier]
           val idsToRename = rightCond.getIds().collect({ case id: EdgeLocalIdentifier => id })
@@ -608,7 +425,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           newEdgeState = leftCond.glb(newEdgeState)
           if (!newEdgeState.lessEqual(rightCond.bottom())){
             // add edge that represents the assignment
-            edgesToAdd = edgesToAdd + EdgeWithState(lPath.last.target, newEdgeState, Some(field), rPath.last.target)
+            edgesToAdd = edgesToAdd + EdgeWithState(lPath.target, newEdgeState, Some(field), rPath.target)
           }
         }
       }
@@ -650,6 +467,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   def assume(cond: ExpressionSet): ValueDrivenHeapState[S] = {
     if (isBottom) return this
 
+    import CondHeapGraph._
+
     assert(cond.getSetOfExpressions.size == 1, "Condition of several expressions are not supported.")
     val condition = cond.getSetOfExpressions.head
 
@@ -658,7 +477,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       this
     }
 
-    val result = condition match {
+    val result: ValueDrivenHeapState[S] = condition match {
       case Constant("false", _, _) => bottom()
       case Constant("true", _, _) => this
       case NegatedBooleanExpression(e) => {
@@ -674,25 +493,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
         result
       }
-      case baExp : BinaryArithmeticExpression => {
-        val heapsAndConds = preciseEvaluateExpression(baExp)
-        var newAbstractHeap = abstractHeap
-        var newGeneralValState = generalValState.bottom()
-
-        var newEdges = Set.empty[EdgeWithState[S]]
-
-        for ((heap, cond) <- heapsAndConds) {
-          val assumedCond = cond.assume(baExp)
-          newEdges = heap.edges.map(e => {
-            e.copy(state = Utilities.removeAccessPathIdentifiers(Utilities.glbPreserveIds(e.state, assumedCond)))
-          }) ++ newEdges
-          newGeneralValState = newGeneralValState.lub(assumedCond)
-        }
-        newAbstractHeap = newAbstractHeap.copy(edges = newEdges)
-        newGeneralValState = Utilities.removeAccessPathIdentifiers(newGeneralValState)
-        val newAbstractHeapJoined = newAbstractHeap.joinCommonEdges()
-        ValueDrivenHeapState(newAbstractHeapJoined, newGeneralValState, ExpressionSet()).prune()
-      }
+      case exp: BinaryArithmeticExpression =>
+        evalExp(exp).apply().map(_.assume(exp)).join
       case ReferenceComparisonExpression(_left, _right, op, returnTyp) => {
         assert(_left.getType.isObject(),
           "Reference comparison can be performed only on objects, not values.")
@@ -704,38 +506,22 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
         import ArithmeticOperator._
 
-        left match {
-          case Constant("null", _, _) => right match {
-            case Constant("null", _, _) =>
-              op match { case `==` => this case `!=` => bottom() }
-            case AccessPathIdentifier(path) =>
-              // It's unsound to remove null/non-null edges if there are
-              // summary heap vertices on the path. Thus, materialize first.
-              val state = if (path.size == 1) this else materializePath(path.dropRight(1))
-              var result = bottom()
-              val paths = state.abstractHeap.paths(path)
-
-              // The very last vertex on a path may be a summary node
-              val sourceVertices = paths.map(_.map(_.source)).flatten
-              assert(sourceVertices.forall(!_.isInstanceOf[SummaryHeapVertex]),
-                "paths contain summary source vertices (materialization bug?)")
-
-              // TODO: Ignore impossible paths (bottom path condition)
-              paths.map(_.last).groupBy(_.source).values.foreach(edges => {
-                val (nullEdges, nonNullEdges) = edges.partition(_.target.isInstanceOf[NullVertex])
-                val edgesToRemove = op match { case `==` => nonNullEdges case `!=` => nullEdges }
-                result = result.lub(state.copy(abstractHeap = state.abstractHeap.removeEdges(edgesToRemove)))
-              })
-              result.prune()
-            case _ => notSupported()
+        evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
+          def targetVertex(exp: Expression): Vertex = exp match {
+            case (Constant("null", _, _)) => new NullVertex()
+            case AccessPathIdentifier(path) => condHeap.takenPath(path).target
           }
-          case _ => right match {
-            case Constant("null", _, _) =>
-              assume(new ExpressionSet(cond.getType()).add(
-                new ReferenceComparisonExpression(right, left, op, returnTyp)))
-            case _ => notSupported()
+
+          val leftTarget = targetVertex(left)
+          val rightTarget = targetVertex(right)
+
+          op match {
+            case `==` =>
+              if (leftTarget == rightTarget) Seq(condHeap) else Seq()
+            case `!=` =>
+              if (leftTarget != rightTarget || leftTarget.isInstanceOf[SummaryHeapVertex]) Seq(condHeap) else Seq()
           }
-        }
+        }).join
       }
       case _ => notSupported()
     }
@@ -846,7 +632,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         for (valField <- definiteVertex.typ.nonObjectFields) {
           val sumValHeapId = ValueHeapIdentifier(edge.target.asInstanceOf[SummaryHeapVertex], valField)
           val defValHeapId = ValueHeapIdentifier(definiteVertex.asInstanceOf[DefiniteHeapVertex], valField)
-          repl.value.update(Set(sumValHeapId), Set(sumValHeapId, defValHeapId))
+          // TODO: Should use a multimap to make the code more readable
+          repl.value.update(Set(sumValHeapId), repl.value.getOrElse(Set(sumValHeapId), Set(sumValHeapId.asInstanceOf[Identifier])) union Set(defValHeapId))
         }
 
         /**
@@ -987,7 +774,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
    * Prunes the abstract heap and removes all pruned identifiers
    * from the general value state.
    */
-  private def prune(): ValueDrivenHeapState[S] = {
+  def prune(): ValueDrivenHeapState[S] = {
     val (newAbstractHeap, idsToRemove) = abstractHeap.prune()
     val newGeneralValState = generalValState.removeVariables(idsToRemove)
     if (newAbstractHeap.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))

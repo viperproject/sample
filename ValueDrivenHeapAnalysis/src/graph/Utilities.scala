@@ -59,12 +59,23 @@ object Utilities {
 
   /** Returns the GLB of two states, but takes the union of their identifiers. */
   def glbPreserveIds[S <: SemanticDomain[S]](left: S, right: S): S = {
-    val newRightIds = left.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
-      id.isInstanceOf[AccessPathIdentifier]) diff right.getIds()
-    val newLeftIds = right.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
-      id.isInstanceOf[AccessPathIdentifier]) diff left.getIds()
+    val newRightIds = edgeLocalAndAccessPathIds(left) diff right.getIds()
+    val newLeftIds = edgeLocalAndAccessPathIds(right) diff left.getIds()
     val newLeft = left.createVariables(newLeftIds.toSet[Identifier])
     val newRight = right.createVariables(newRightIds.toSet[Identifier])
     newLeft.glb(newRight)
   }
+
+  /** Returns all edge-local identifiers in a state. */
+  def edgeLocalIds[S <: SemanticDomain[S]](state: S) =
+    state.getIds().collect({ case id: EdgeLocalIdentifier => id })
+
+  /** Returns all access path identifiers in a state. */
+  def accPathIds[S <: SemanticDomain[S]](state: S) =
+    state.getIds().collect({ case id: AccessPathIdentifier => id })
+
+  /** Returns all edge-local and access path identifiers in a state. */
+  def edgeLocalAndAccessPathIds[S <: SemanticDomain[S]](state: S) =
+    state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
+      id.isInstanceOf[AccessPathIdentifier])
 }

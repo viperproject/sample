@@ -67,19 +67,25 @@ trait Lattice[T <: Lattice[T]] { this: T =>
 }
 
 object Lattice {
-  /** Returns the least upper bound of multiple lattice elements. */
+  /** Returns the least upper bound of one or more lattice elements. */
   def bigLub[S <: Lattice[S]](elements: Iterable[S]): S = {
     require(!elements.isEmpty, "there must be at least one element")
     elements.reduceLeft(_ lub _)
   }
 
-  /** Returns the greatest lower bound of multiple lattice elements. */
+  /** Returns the least upper bound of zero or more lattice elements. */
+  def bigLub[S <: Lattice[S]](elements: Iterable[S], lattice: S): S = {
+    if (elements.isEmpty) lattice.bottom()
+    else bigLub(elements)
+  }
+
+  /** Returns the greatest lower bound of one or more lattice elements. */
   def bigGlb[S <: Lattice[S]](elements: Iterable[S]): S = {
     require(!elements.isEmpty, "there must be at least one element")
     elements.reduceLeft(_ glb _)
   }
 
-  /** Returns the widening of multiple lattice elements. */
+  /** Returns the widening of multiple one or more elements. */
   def bigWidening[S <: Lattice[S]](elements: Iterable[S]): S = {
     require(!elements.isEmpty, "there must be at least one element")
     elements.reduceLeft(_ widening _)
