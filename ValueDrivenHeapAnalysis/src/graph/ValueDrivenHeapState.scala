@@ -138,7 +138,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             var trgValState = sourceValState
             for (objValField <- objField.getType.nonObjectFields) {
               val trgEdgeLocId = EdgeLocalIdentifier(List(objField.getName), objValField)
-              val valHeapId = ValueHeapIdentifier(heapVertex, objField)
+              val valHeapId = ValueHeapIdentifier(canPointToVertex, objValField)
               trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
               trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
             }
@@ -506,38 +506,22 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
         import ArithmeticOperator._
 
-        left match {
-          case Constant("null", _, _) => right match {
-            case Constant("null", _, _) =>
-              op match { case `==` => this case `!=` => bottom() }
-            case AccessPathIdentifier(path) =>
-              // It's unsound to remove null/non-null edges if there are
-              // summary heap vertices on the path. Thus, materialize first.
-              val state = if (path.size == 1) this else materializePath(path.dropRight(1))
-              var result = bottom()
-              val paths = state.abstractHeap.paths(path)
-
-              // The very last vertex on a path may be a summary node
-              val sourceVertices = paths.map(_.edges.map(_.source)).flatten
-              assert(sourceVertices.forall(!_.isInstanceOf[SummaryHeapVertex]),
-                "paths contain summary source vertices (materialization bug?)")
-
-              // TODO: Ignore impossible paths (bottom path condition)
-              paths.map(_.edges.last).groupBy(_.source).values.foreach(edges => {
-                val (nullEdges, nonNullEdges) = edges.partition(_.target.isInstanceOf[NullVertex])
-                val edgesToRemove = op match { case `==` => nonNullEdges case `!=` => nullEdges }
-                result = result.lub(state.copy(abstractHeap = state.abstractHeap.removeEdges(edgesToRemove)))
-              })
-              result.prune()
-            case _ => notSupported()
+        evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
+          def targetVertex(exp: Expression): Vertex = exp match {
+            case (Constant("null", _, _)) => new NullVertex()
+            case AccessPathIdentifier(path) => condHeap.takenPath(path).target
           }
-          case _ => right match {
-            case Constant("null", _, _) =>
-              assume(new ExpressionSet(cond.getType()).add(
-                new ReferenceComparisonExpression(right, left, op, returnTyp)))
-            case _ => notSupported()
+
+          val leftTarget = targetVertex(left)
+          val rightTarget = targetVertex(right)
+
+          op match {
+            case `==` =>
+              if (leftTarget == rightTarget) Seq(condHeap) else Seq()
+            case `!=` =>
+              if (leftTarget != rightTarget || leftTarget.isInstanceOf[SummaryHeapVertex]) Seq(condHeap) else Seq()
           }
-        }
+        }).join
       }
       case _ => notSupported()
     }

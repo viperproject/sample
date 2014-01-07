@@ -3,7 +3,7 @@ package graph
 import ch.ethz.inf.pm.sample.abstractdomain._
 import scala.collection.immutable.{Set, TreeSet}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.oorepresentation.Type
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
 import scala.collection.mutable
 
 case class HeapGraph[S <: SemanticDomain[S]](
@@ -635,25 +635,26 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    * for each such path, materializes the heap sub-graph where all edges
    * are removed that are certainly not taken. Each such sub-graph is returned
    * together with the corresponding path condition.
-   *
-   * @todo support reference expressions
    */
-  def evalExp(expr: Expression): CondHeapGraphSeq[S] = {
-    require(!expr.getType.isObject(), "can only evaluate value expressions")
+  def evalExp(expr: Expression): CondHeapGraphSeq[S] = expr match {
+    case v: VariableIdentifier =>
+      if (v.getType.isNumericalType()) this
+      else evalExp(AccessPathIdentifier(v))
+    case c: Constant => this
+    case ap: AccessPathIdentifier =>
+      // Get path to the non-null receiver of the field access
+      var paths = heap.paths(ap.objPath)
+      if (expr.getType.isNumericalType()) {
+        paths = paths.filter(_.target.isInstanceOf[HeapVertex])
+      }
 
-    expr match {
-      case v: VariableIdentifier => this
-      case c: Constant => this
-      case ap: AccessPathIdentifier =>
-        // Get path to the non-null receiver of the field access
-        val paths = heap.paths(ap.objPath)
-          .filter(_.target.isInstanceOf[HeapVertex])
+      var result = List.empty[CondHeapGraph[S]]
+      for (path <- paths) {
+        var cond = path.condition
 
-        var result = List.empty[CondHeapGraph[S]]
-        for (path <- paths) {
+        if (expr.getType.isNumericalType()) {
           val field = ap.path.last
           val targetVertex = path.target.asInstanceOf[HeapVertex]
-          var cond = path.condition
 
           // Rename edge local identifier that corresponds to the access path
           val renameFrom = edgeLocalIds(cond).filter(_.field == field).toList
@@ -663,38 +664,38 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
           // AccessPathIdentifier must agree also with the ValueHeapIdentifier
           val resId = ValueHeapIdentifier(targetVertex, field, ap.getType, ap.getProgramPoint)
           cond = cond.assume(new BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==, null))
-
-          // Remove all edge local identifiers
-          cond = cond.removeVariables(edgeLocalIds(cond))
-
-          // Remove all edges that were NOT taken on this access path
-          // Never remove edges going out of a summary node.
-          var edgesToRemove = path.edges.map(edge => {
-            val outEdges = heap.outEdges(edge.source, edge.field)
-            val otherOutEdges = outEdges - edge
-            otherOutEdges
-          }).flatten.toSet
-          edgesToRemove = edgesToRemove.filter(!_.source.isInstanceOf[SummaryHeapVertex])
-
-          cond = Utilities.glbPreserveIds(this.cond, cond)
-
-          val prunedHeap = heap.removeEdges(edgesToRemove)
-          result = CondHeapGraph(prunedHeap, cond, Set(path)) :: result
         }
-        val lattice = this.cond.bottom()
-        CondHeapGraphSeq(result)(lattice)
-      case BinaryArithmeticExpression(left, right, _, _) =>
-        val evalLeft = evalExp(left)
-        val evalRight = evalExp(right)
-        evalLeft.intersect(evalRight)
-      case BinaryBooleanExpression(left, right, _, _) =>
-        val evalLeft = evalExp(left)
-        val evalRight = evalExp(right)
-        evalLeft.intersect(evalRight)
-      case NegatedBooleanExpression(e) =>
-        evalExp(e)
-      case _ => ???
-    }
+
+        // Remove all edge local identifiers
+        cond = cond.removeVariables(edgeLocalIds(cond))
+
+        // Remove all edges that were NOT taken on this access path
+        // Never remove edges going out of a summary node.
+        var edgesToRemove = path.edges.map(edge => {
+          val outEdges = heap.outEdges(edge.source, edge.field)
+          val otherOutEdges = outEdges - edge
+          otherOutEdges
+        }).flatten.toSet
+        edgesToRemove = edgesToRemove.filter(!_.source.isInstanceOf[SummaryHeapVertex])
+
+        cond = Utilities.glbPreserveIds(this.cond, cond)
+
+        val prunedHeap = heap.removeEdges(edgesToRemove)
+        result = CondHeapGraph(prunedHeap, cond, Set(path)) :: result
+      }
+      val lattice = this.cond.bottom()
+      CondHeapGraphSeq(result)(lattice)
+    case BinaryArithmeticExpression(left, right, _, _) =>
+      val evalLeft = evalExp(left)
+      val evalRight = evalExp(right)
+      evalLeft.intersect(evalRight)
+    case BinaryBooleanExpression(left, right, _, _) =>
+      val evalLeft = evalExp(left)
+      val evalRight = evalExp(right)
+      evalLeft.intersect(evalRight)
+    case NegatedBooleanExpression(e) =>
+      evalExp(e)
+    case _ => ???
   }
 }
 
