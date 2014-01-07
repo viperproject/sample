@@ -444,7 +444,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   def getVariableValue(id: Assignable): ValueDrivenHeapState[S] = {
     if(this.isBottom) return this
     assert(id.isInstanceOf[VariableIdentifier], "This should be VariableIdentifier.")
-    copy(expr = ExpressionSet(id.asInstanceOf[VariableIdentifier]))
+    val variableId = id.asInstanceOf[VariableIdentifier]
+    if (ValueDrivenHeapProperty.materialize && variableId.getType.isObject()) {
+      materializePath(List(variableId.name)).copy(expr = ExpressionSet(variableId))
+    } else {
+      copy(expr = ExpressionSet(variableId))
+    }
   }
 
   def getFieldValue(obj: ExpressionSet, field: String, typ: Type): ValueDrivenHeapState[S] = {
