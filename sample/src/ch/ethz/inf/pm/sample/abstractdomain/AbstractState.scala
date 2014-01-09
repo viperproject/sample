@@ -329,9 +329,6 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
             else result=Some(done.lub(result.get))
           }
         }
-        // FIXME: This belongs somewhere else
-        case Constant("invalid",_,_) =>
-          if (result==None) Some(bottom())
         case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
       }
     }
