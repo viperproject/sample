@@ -2,9 +2,8 @@ package ch.ethz.inf.pm.td.domain
 
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.Type
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.ToStringUtilities
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
 import BooleanDomain._
@@ -99,8 +98,8 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
       } else {
         if (l.canBeFalse && r.canBeFalse) domValid else domBottom
       }
-    case Constant(constant, typ, pp) =>
-      if (constant == "invalid") domInvalid else domValid
+    case InvalidExpression(typ, pp) => domInvalid
+    case ValidExpression(typ, pp) => domValid
     case i: HeapIdentifier[_] =>
       this.get(i)
     case x: Identifier =>
@@ -136,7 +135,7 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
           this.add(x,domBottom.intersect(right,eval(y)))
         case _ => this
       }
-    case NegatedBooleanExpression(BinaryArithmeticExpression(xs:HeapIdSetDomain[_], Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
+    case NegatedBooleanExpression(BinaryArithmeticExpression(xs:HeapIdSetDomain[_], InvalidExpression(_,_), ArithmeticOperator.==, _)) =>
       val res = domBottom.intersect(domValid,eval(xs))
       if (res.isBottom) bottom()
       else {
@@ -144,11 +143,11 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
         for (x <- xs.value) result = result.lub(add(x,res))
         result
       }
-    case NegatedBooleanExpression(BinaryArithmeticExpression(x:Identifier, Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
+    case NegatedBooleanExpression(BinaryArithmeticExpression(x:Identifier, InvalidExpression(_,_), ArithmeticOperator.==, _)) =>
       val res = domBottom.intersect(domValid,eval(x))
       if (res.isBottom) bottom()
       else this.add(x,res)
-    case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), xs:HeapIdSetDomain[_], ArithmeticOperator.==, _)) =>
+    case NegatedBooleanExpression(BinaryArithmeticExpression(InvalidExpression(_,_), xs:HeapIdSetDomain[_], ArithmeticOperator.==, _)) =>
       val res = domBottom.intersect(domValid,eval(xs))
       if (res.isBottom) bottom()
       else {
@@ -156,11 +155,11 @@ class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Id
         for (x <- xs.value) result = result.lub(add(x,res))
         result
       }
-    case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), x:Identifier, ArithmeticOperator.==, _)) =>
+    case NegatedBooleanExpression(BinaryArithmeticExpression(InvalidExpression(_,_), x:Identifier, ArithmeticOperator.==, _)) =>
       val res = domBottom.intersect(domValid,eval(x))
       if (res.isBottom) bottom()
       else this.add(x,res)
-    case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",_,_), Constant("invalid",_,_), ArithmeticOperator.==, _)) =>
+    case NegatedBooleanExpression(BinaryArithmeticExpression(InvalidExpression(_,_), InvalidExpression(_,_), ArithmeticOperator.==, _)) =>
       bottom()
     case BinaryBooleanExpression(left,right,op,typ) => op match {
       case BooleanOperator.&& => assume(left).assume(right)
@@ -195,4 +194,30 @@ abstract class NumericWithInvalidDomain[N <: NumericalDomain[N], I <: InvalidDom
 
   override def toString() = "Numeric:\n"+ToStringUtilities.indent(this._1.toString)+"\nInvalid:\n"+ToStringUtilities.indent(this._2.toString)
 
+}
+
+/**
+ * Represents TouchDevelops "Invalid" value
+ * @param typ Type of the invalid value
+ * @param pp Program Point of the invalid value
+ */
+case class InvalidExpression(typ:Type, pp:ProgramPoint) extends Expression {
+  def getType: Type = typ
+  def getProgramPoint: ProgramPoint = pp
+  def getIdentifiers: Set[Identifier] = Set.empty
+  override def toString = "invalid"
+  def transform(f: (Expression) => Expression): Expression = f(this)
+}
+
+/**
+ * Represent an expression that is valid (no other information given, so essentially top minus invalid)
+ * @param typ Type of the valid value
+ * @param pp Program Point of the valid value
+ */
+case class ValidExpression(typ:Type, pp:ProgramPoint) extends Expression {
+  def getType: Type = typ
+  def getProgramPoint: ProgramPoint = pp
+  def getIdentifiers: Set[Identifier] = Set.empty
+  override def toString = "valid"
+  def transform(f: (Expression) => Expression): Expression = f(this)
 }

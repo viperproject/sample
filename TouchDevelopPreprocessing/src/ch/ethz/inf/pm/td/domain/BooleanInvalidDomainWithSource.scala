@@ -2,10 +2,9 @@ package ch.ethz.inf.pm.td.domain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.BinaryArithmeticExpression
-import PositionedInvalidValueDomain._
+import ch.ethz.inf.pm.td.domain.PositionedInvalidValueDomain._
+
 
 /**
  * 
@@ -77,7 +76,9 @@ class BooleanInvalidDomainWithSource (_value:Map[Identifier, PositionedInvalidVa
   private def eval(expr: Expression): PositionedInvalidValueDomain = expr match {
     case BinaryArithmeticExpression(left, right, _, typ) => eval(left).lub(eval(right))
     case BinaryNondeterministicExpression(left, right, _, typ) => eval(left).lub(eval(right))
-    case Constant("invalid", typ, pp) => domInvalid(pp)
+    case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) => eval(left).lub(eval(right))
+    case InvalidExpression(typ, pp) => domInvalid(pp)
+    case ValidExpression(typ,pp) => domValid
     case Constant(_, _, _) => domValid
     case x: Identifier => this.get(x)
     case xs: HeapIdSetDomain[_] =>

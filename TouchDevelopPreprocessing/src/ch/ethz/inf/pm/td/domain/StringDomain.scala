@@ -65,9 +65,9 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
   override def backwardAccess(field: Identifier) = this
 
   private def eval(expr: Expression): T = expr match {
-    case Constant("valid", typ, pp) => // FIXME: This will break once somebody has a string constant valid
+    case ValidExpression(_,_) =>
       dom.top()
-    case Constant("invalid", typ, pp) => // FIXME: This will break once somebody has a string constant invalid
+    case InvalidExpression(_,_) =>
       dom.bottom()
     case Constant(constant, typ, pp) =>
       dom.singleton(constant)
@@ -100,7 +100,7 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
     // Check if we just assume if something is invalid - we dont know that here
     // TODO: Filter everything with valid or invalid
     expr match {
-      case BinaryArithmeticExpression(_,Constant("invalid",_,_),_,_) => return this
+      case BinaryArithmeticExpression(_,InvalidExpression(_,_),_,_) => return this
       case _ => ()
     }
 

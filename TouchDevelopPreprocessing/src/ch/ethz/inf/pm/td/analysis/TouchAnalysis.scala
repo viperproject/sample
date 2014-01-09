@@ -7,14 +7,14 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.{StringsAnd, InvalidAnd}
+import ch.ethz.inf.pm.td.domain.{InvalidExpression, StringsAnd, InvalidAnd}
 import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.td.output.{FileSystemExporter, JSONExporter, TSVExporter, HTMLExporter}
+import ch.ethz.inf.pm.td.output.FileSystemExporter
 
 /**
  * 
@@ -149,7 +149,7 @@ class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd
               case "String" => Constant("",v.typ,v.programpoint)
               case "Number" => Constant("0",v.typ,v.programpoint)
               case "Boolean" => Constant("false",v.typ,v.programpoint)
-              case _ => Constant("invalid",v.typ.asInstanceOf[TouchType],v.programpoint)
+              case _ => InvalidExpression(v.typ.asInstanceOf[TouchType],v.programpoint)
             }))
           }
 

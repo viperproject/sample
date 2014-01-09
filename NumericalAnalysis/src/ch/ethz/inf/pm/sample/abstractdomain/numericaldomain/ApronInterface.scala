@@ -12,9 +12,8 @@ import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
 import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
-import ch.ethz.inf.pm.sample.abstractdomain.CollectionContainsExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
-import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
+import ch.ethz.inf.pm.sample.SystemParameters
 
 class ApronInterface(val state: Option[Abstract1],
                      val domain: Manager,
@@ -302,20 +301,12 @@ class ApronInterface(val state: Option[Abstract1],
     val ids = Normalizer.getIdsForExpression(expr)
     for (id <- ids) {
       if (!id.getType.isNumericalType()) {
-        Reporter.reportError("Cannot assume expression on non-numerical values", expr.getProgramPoint)
         return this
       }
-      //if (!getIds().contains(id)) {
-      //  println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
-      //  return bottom()
-      //}
-    }
-
-    // Check if we just assume if something is invalid - we dont know that here
-    // TODO: Filter everything with valid or invalid
-    expr match {
-      case BinaryArithmeticExpression(_,Constant("invalid",_,_),_,_) => return this
-      case _ => ()
+      if (!getIds().contains(id)) {
+        println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
+        return bottom()
+      }
     }
 
     expr match {
@@ -349,24 +340,6 @@ class ApronInterface(val state: Option[Abstract1],
       }
 
       // APRON fails to resolve !(a = b) and a != b. Instead, we have to specify a < b || a > b
-
-      case NegatedBooleanExpression(BinaryArithmeticExpression(left,Constant("invalid",ctyp,cpp),ArithmeticOperator.==,typ)) =>
-        assume(BinaryArithmeticExpression(left,Constant("valid",ctyp,cpp),ArithmeticOperator.==,typ))
-      case BinaryArithmeticExpression(left,Constant("invalid",ctyp,cpp),ArithmeticOperator.!=,typ) =>
-        assume(BinaryArithmeticExpression(left,Constant("valid",ctyp,cpp),ArithmeticOperator.==,typ))
-      case NegatedBooleanExpression(BinaryArithmeticExpression(left,Constant("valid",ctyp,cpp),ArithmeticOperator.==,typ)) =>
-        assume(BinaryArithmeticExpression(left,Constant("invalid",ctyp,cpp),ArithmeticOperator.==,typ))
-      case BinaryArithmeticExpression(left,Constant("valid",ctyp,cpp),ArithmeticOperator.!=,typ) =>
-        assume(BinaryArithmeticExpression(left,Constant("invalid",ctyp,cpp),ArithmeticOperator.==,typ))
-
-      case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("invalid",ctyp,cpp),right,ArithmeticOperator.==,typ)) =>
-        assume(BinaryArithmeticExpression(Constant("valid",ctyp,cpp),right,ArithmeticOperator.==,typ))
-      case BinaryArithmeticExpression(Constant("invalid",ctyp,cpp),right,ArithmeticOperator.!=,typ) =>
-        assume(BinaryArithmeticExpression(Constant("valid",ctyp,cpp),right,ArithmeticOperator.==,typ))
-      case NegatedBooleanExpression(BinaryArithmeticExpression(Constant("valid",ctyp,cpp),right,ArithmeticOperator.==,typ)) =>
-        assume(BinaryArithmeticExpression(Constant("invalid",ctyp,cpp),right,ArithmeticOperator.==,typ))
-      case BinaryArithmeticExpression(Constant("valid",ctyp,cpp),right,ArithmeticOperator.!=,typ) =>
-        assume(BinaryArithmeticExpression(Constant("invalid",ctyp,cpp),right,ArithmeticOperator.==,typ))
 
       case NegatedBooleanExpression(BinaryArithmeticExpression(left,right,ArithmeticOperator.==,typ)) =>
         val newLeft = BinaryArithmeticExpression(left,right,ArithmeticOperator.>,typ)
@@ -854,10 +827,6 @@ class ApronInterface(val state: Option[Abstract1],
   }
 
   private def toTexpr1Node(e: Expression): List[Texpr1Node] = e match {
-    case Constant("invalid", typ, p) =>
-      List(topExpression()) // SHOULD BE: BOTTOM. NOT IMPLEMENTABLE
-    case Constant("valid", typ, p) =>
-      List(topExpression())
     case Constant("posinfty", typ, p) =>
       val a = new DoubleScalar()
       a.setInfty(1)
@@ -902,10 +871,9 @@ class ApronInterface(val state: Option[Abstract1],
             new Texpr1UnNode(Texpr1UnNode.OP_NEG, l)
           }
       }
-    case _:CollectionContainsExpression => List(topExpression())
-    case AbstractOperator(_, _, _, AbstractOperatorIdentifiers.stringConcatenation, _) => List(topExpression())
     case _ =>
-      println("Unhandled expression type in APRON interface (returning top expression): "+e)
+      // Naturally, not all expressions will be supported by the numerical domain
+      // println("Unhandled expression type in APRON interface (returning top expression): "+e)
       List(topExpression())
   }
 
@@ -925,10 +893,6 @@ class ApronInterface(val state: Option[Abstract1],
   }
 
   private def toTcons1(e: Expression, env: Environment): List[Tcons1] = e match {
-    case Constant("invalid", typ, p) =>
-      List(bottomConstraint(env))
-    case Constant("valid", typ, p) =>
-      List(topConstraint(env))
     case BinaryArithmeticExpression(left, right, op, typ) =>
       var localOp = op
       var localLeft = left
@@ -973,7 +937,7 @@ class ApronInterface(val state: Option[Abstract1],
     case x: Expression =>
       toTcons1(BinaryArithmeticExpression(x, Constant("0", x.getType, x.getProgramPoint), ArithmeticOperator.!=, x.getType), env)
     case _ =>
-      println("Unhandled constraint type in APRON interface (returning top constraint): "+e)
+      // println("Unhandled constraint type in APRON interface (returning top constraint): "+e)
       List(topConstraint(env))
   }
 
