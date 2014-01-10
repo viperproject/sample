@@ -12,7 +12,6 @@ import ch.ethz.inf.pm.td.parser.TableDefinition
 import ch.ethz.inf.pm.td.parser.WhereStatement
 import ch.ethz.inf.pm.td.parser.InlineAction
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import scala.Some
 import ch.ethz.inf.pm.td.parser.ExpressionStatement
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
@@ -36,10 +35,28 @@ import ch.ethz.inf.pm.td.typecheck.Typer
  * Time: 4:21 PM
  *
  */
-object CFGGenerator {
 
-  var curPubID:String = ""
-  var curScriptName:String = ""
+object CFGGenerator {
+  def handlerIdent(ident:String) = "__handler_"+ident
+  def isHandlerIdent(ident:String) = ident.startsWith("__handler_")
+  def globalReferenceIdent(ident:String) = "__data_"+ident
+  def isGlobalReferenceIdent(ident:String) = ident.startsWith("__data_")
+  def paramIdent(ident:String) = "__param_"+ident
+  def isParamIdent(ident:String) = ident.startsWith("__param_")
+  def libraryIdent(ident:String) = "♻"+ident
+  def isLibraryIdent(ident:String) = ident.startsWith("♻") && ident.length() > 1
+  def getLibraryName(ident:String) = ident.substring(1)
+  def returnIdent(ident:String) = "__returned_"+ident
+  def isReturnIdent(ident:String) = ident.startsWith("__returned_")
+  def isNonDetIdent(ident:String) = ident.startsWith("__nondet")
+}
+
+
+class CFGGenerator(compiler: TouchCompiler) {
+  import CFGGenerator._
+
+  private var curPubID:String = ""
+  private var curScriptName:String = ""
 
   def process(script:parser.Script, pubID:String, libDef:Option[LibraryDefinition] = None):ClassDefinition = {
     //detectUnsupportedScripts(script)
@@ -83,8 +100,7 @@ object CFGGenerator {
   private def findTypes(script:parser.Script) {
 
     def addTouchType(semantics:AAny) {
-      SystemParameters.compiler.asInstanceOf[TouchCompiler].userTypes =
-        SystemParameters.compiler.asInstanceOf[TouchCompiler].userTypes + ((semantics.getTypeName,semantics))
+      compiler.userTypes += semantics.getTypeName -> semantics
     }
 
     def addRecordsField(field:TouchField) {
@@ -274,7 +290,7 @@ object CFGGenerator {
 
   private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
     if (!isLibraryIdent(typeName.ident)) {
-      SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typeName.ident).getTyp
+      compiler.getSemantics(typeName.ident).getTyp
     } else new TouchType(typeName.ident,isSingleton)
   }
 
@@ -435,19 +451,6 @@ object CFGGenerator {
     }
 
   }
-
-  def handlerIdent(ident:String) = "__handler_"+ident
-  def isHandlerIdent(ident:String) = ident.startsWith("__handler_")
-  def globalReferenceIdent(ident:String) = "__data_"+ident
-  def isGlobalReferenceIdent(ident:String) = ident.startsWith("__data_")
-  def paramIdent(ident:String) = "__param_"+ident
-  def isParamIdent(ident:String) = ident.startsWith("__param_")
-  def libraryIdent(ident:String) = "♻"+ident
-  def isLibraryIdent(ident:String) = ident.startsWith("♻") && ident.length() > 1
-  def getLibraryName(ident:String) = ident.substring(1)
-  def returnIdent(ident:String) = "__returned_"+ident
-  def isReturnIdent(ident:String) = ident.startsWith("__returned_")
-
 }
 
 
@@ -474,18 +477,6 @@ case class UnsupportedLanguageFeatureException(msg:String) extends Exception {
 }
 
 case class TouchPackageIdentifier() extends PackageIdentifier
-
-//class TouchClassDefinition(programpoint_ : ProgramPoint, typ_ : Type, modifiers_ : List[Modifier], name_ : ClassIdentifier,
-//                       parametricTypes_ : List[Type], extend_ : List[ClassIdentifier], fields_ : List[FieldDeclaration],
-//                       methods_ : List[MethodDeclaration], pack_ : PackageIdentifier, inv_ : Expression
-//                       ) extends ClassDefinition(programpoint_,typ_,modifiers_,name_,parametricTypes_,extend_,fields_,
-//                                  methods_,pack_,inv_)
-//{
-//
-//
-//
-//}
-
 
 case class TouchMethodIdentifier(ident:String,isEvent:Boolean,isPrivate:Boolean) extends MethodIdentifier {
   override def toString:String = ident

@@ -44,6 +44,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var isInLibraryMode = false
 
+  val cfgGenerator = new CFGGenerator(this)
+
   /**
    * This takes one of the following arguments:
    *
@@ -109,7 +111,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val rewrittenScript = LoopRewriter(script)
     Typer.processScript(rewrittenScript)
 
-    val newCFG =  CFGGenerator.process(rewrittenScript,pubID,libDef)
+    val newCFG =  cfgGenerator.process(rewrittenScript,pubID,libDef)
 
     // update fields
     parsedScripts = parsedScripts ::: List(newCFG)
