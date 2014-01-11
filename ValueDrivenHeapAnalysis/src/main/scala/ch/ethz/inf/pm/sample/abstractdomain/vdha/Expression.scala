@@ -57,7 +57,7 @@ case class EdgeLocalIdentifier(
 
   def getName: String = {
     val fullPath = List(ValueDrivenHeapStateConstants.edgeLocalIdentifier) ++ accPath ++ List(field)
-    fullPath.mkString("")
+    fullPath.mkString(".")
   }
 
   def getField: Option[String] = Some(field)
