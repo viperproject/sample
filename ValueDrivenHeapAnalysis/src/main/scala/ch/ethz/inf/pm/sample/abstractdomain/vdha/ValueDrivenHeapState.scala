@@ -485,9 +485,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val result: ValueDrivenHeapState[S] = condition match {
       case Constant("false", _, _) => bottom()
       case Constant("true", _, _) => this
-      case NegatedBooleanExpression(e) => {
+      case VariableIdentifier(_, _, _, _)
+         | NegatedBooleanExpression(VariableIdentifier(_, _, _, _))
+         | BinaryArithmeticExpression(_, _, _, _) =>
+        evalExp(condition).apply().map(_.assume(condition)).join
+      case NegatedBooleanExpression(e) =>
         assume(ExpressionSet(Utilities.negateExpression(e)))
-      }
       case BinaryBooleanExpression(l,r,o,t) => {
         val result = o match {
           case BooleanOperator.&& =>
@@ -498,8 +501,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
         result
       }
-      case exp: BinaryArithmeticExpression =>
-        evalExp(exp).apply().map(_.assume(exp)).join
       case ReferenceComparisonExpression(_left, _right, op, returnTyp) => {
         val left = normalizeExpression(_left)
         val right = normalizeExpression(_right)
