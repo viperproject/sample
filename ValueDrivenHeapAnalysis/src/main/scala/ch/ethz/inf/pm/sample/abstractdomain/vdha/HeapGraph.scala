@@ -628,74 +628,87 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     heap.isBottom() || cond.lessEqual(cond.bottom())
 
   /**
-   * Recursively evaluates the given expression.
+   * Finds all `AccessPathIdentifier`s contained within the given expression
+   * and returns a conditional heap sub-graph for every possible combination
+   * of corresponding paths taken through the heap.
    *
-   * For each access path expression in the given expression, the method
-   * enumerates the corresponding possible paths through the heap ch.ethz.inf.pm.sample.abstractdomain.graph and
-   * for each such path, materializes the heap sub-ch.ethz.inf.pm.sample.abstractdomain.graph where all edges
-   * are removed that are certainly not taken. Each such sub-ch.ethz.inf.pm.sample.abstractdomain.graph is returned
-   * together with the corresponding path condition.
+   * That is, in each returned conditional heap sub-graph, the taken path
+   * is fixed for each `AccessPathIdentifer` in the given expression.
+   *
+   * @param expr the expression whose `AccessPathIdentifier`s to consider
+   * @return the sequence of conditional heap sub-graphs
    */
-  def evalExp(expr: Expression): CondHeapGraphSeq[S] = expr match {
-    case v: VariableIdentifier =>
-      if (v.getType.isNumericalType()) this
-      else evalExp(AccessPathIdentifier(v))
-    case c: Constant => this
-    case ap: AccessPathIdentifier =>
-      // Get path to the non-null receiver of the field access
-      var paths = heap.paths(ap.objPath)
-      if (expr.getType.isNumericalType()) {
-        paths = paths.filter(_.target.isInstanceOf[HeapVertex])
+  def evalExp(expr: Expression): CondHeapGraphSeq[S] = {
+    // Translate non-numeric VariableIdentifiers to AccessPathIdentifiers
+    val accessPathIds = expr.getIdentifiers.collect {
+      case v: VariableIdentifier if !v.getType.isNumericalType() =>
+        AccessPathIdentifier(v)
+      case apId: AccessPathIdentifier => apId
+    }
+
+    // If there are no AccessPathIdentifers, just return this
+    accessPathIds.foldLeft[CondHeapGraphSeq[S]](this)((condHeaps, apId) => {
+      condHeaps.intersect(evalAccessPathId(apId))
+    })
+  }
+
+  /**
+   * Builds a conditional heap sub-graph for every possible path that could be
+   * taken in the heap for the given `AccessPathIdentifier`.
+   *
+   * Edges that certainly don't exist in a heap where a particular path is
+   * taken are removed.
+   *
+   * Note that the path conditions are not applied to the edges of the
+   * conditional heaps yet.
+   *
+   * @param ap the access path identifier to consider heap graph paths for
+   * @return a conditional heap sub-graph for every path that could be taken
+   */
+  def evalAccessPathId(ap: AccessPathIdentifier): CondHeapGraphSeq[S] = {
+    // Get path to the non-null receiver of the field access
+    var paths = heap.paths(ap.objPath)
+    if (ap.getType.isNumericalType()) {
+      paths = paths.filter(_.target.isInstanceOf[HeapVertex])
+    }
+
+    var result = List.empty[CondHeapGraph[S]]
+    for (path <- paths) {
+      var cond = path.condition
+
+      if (ap.getType.isNumericalType()) {
+        val field = ap.path.last
+        val targetVertex = path.target.asInstanceOf[HeapVertex]
+
+        // Rename edge local identifier that corresponds to the access path
+        val renameFrom = edgeLocalIds(cond).filter(_.field == field).toList
+        assert(renameFrom.size == 1, "there should be exactly one identifier to rename")
+        cond = cond.rename(renameFrom, List(ap))
+
+        // AccessPathIdentifier must agree also with the ValueHeapIdentifier
+        val resId = ValueHeapIdentifier(targetVertex, field, ap.getType, ap.getProgramPoint)
+        cond = cond.assume(new BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==, null))
       }
 
-      var result = List.empty[CondHeapGraph[S]]
-      for (path <- paths) {
-        var cond = path.condition
+      // Remove all edge local identifiers
+      cond = cond.removeVariables(edgeLocalIds(cond))
 
-        if (expr.getType.isNumericalType()) {
-          val field = ap.path.last
-          val targetVertex = path.target.asInstanceOf[HeapVertex]
+      // Remove all edges that were NOT taken on this access path
+      // Never remove edges going out of a summary node.
+      var edgesToRemove = path.edges.map(edge => {
+        val outEdges = heap.outEdges(edge.source, edge.field)
+        val otherOutEdges = outEdges - edge
+        otherOutEdges
+      }).flatten.toSet
+      edgesToRemove = edgesToRemove.filter(!_.source.isInstanceOf[SummaryHeapVertex])
 
-          // Rename edge local identifier that corresponds to the access path
-          val renameFrom = edgeLocalIds(cond).filter(_.field == field).toList
-          assert(renameFrom.size == 1, "there should be exactly one identifier to rename")
-          cond = cond.rename(renameFrom, List(ap))
+      cond = Utilities.glbPreserveIds(this.cond, cond)
 
-          // AccessPathIdentifier must agree also with the ValueHeapIdentifier
-          val resId = ValueHeapIdentifier(targetVertex, field, ap.getType, ap.getProgramPoint)
-          cond = cond.assume(new BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==, null))
-        }
-
-        // Remove all edge local identifiers
-        cond = cond.removeVariables(edgeLocalIds(cond))
-
-        // Remove all edges that were NOT taken on this access path
-        // Never remove edges going out of a summary node.
-        var edgesToRemove = path.edges.map(edge => {
-          val outEdges = heap.outEdges(edge.source, edge.field)
-          val otherOutEdges = outEdges - edge
-          otherOutEdges
-        }).flatten.toSet
-        edgesToRemove = edgesToRemove.filter(!_.source.isInstanceOf[SummaryHeapVertex])
-
-        cond = Utilities.glbPreserveIds(this.cond, cond)
-
-        val prunedHeap = heap.removeEdges(edgesToRemove)
-        result = CondHeapGraph(prunedHeap, cond, Set(path)) :: result
-      }
-      val lattice = this.cond.bottom()
-      CondHeapGraphSeq(result)(lattice)
-    case BinaryArithmeticExpression(left, right, _, _) =>
-      val evalLeft = evalExp(left)
-      val evalRight = evalExp(right)
-      evalLeft.intersect(evalRight)
-    case BinaryBooleanExpression(left, right, _, _) =>
-      val evalLeft = evalExp(left)
-      val evalRight = evalExp(right)
-      evalLeft.intersect(evalRight)
-    case NegatedBooleanExpression(e) =>
-      evalExp(e)
-    case _ => ???
+      val prunedHeap = heap.removeEdges(edgesToRemove)
+      result = CondHeapGraph(prunedHeap, cond, Set(path)) :: result
+    }
+    val lattice = this.cond.bottom()
+    CondHeapGraphSeq(result)(lattice)
   }
 }
 
