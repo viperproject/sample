@@ -136,33 +136,21 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
    *         assigned to <code>right</code>
    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
-    if (SystemParameters.isValueDrivenHeapAnalysis) {
-      val leftState = left.forwardSemantics[S](state)
-      val leftExpr = leftState.getExpression
-      val rightState = right.forwardSemantics[S](leftState)
-      val rightExpr = rightState.getExpression
-      assert(leftExpr.getSetOfExpressions.size == 1, "Left hand side must be a single expression.")
-      assert(rightExpr.getSetOfExpressions.size == 1, "Right-hand side must be a single expression.")
-      leftExpr.getSetOfExpressions.head match {
-        case ap: AccessPathIdentifier =>
-          val result = rightState.removeExpression().assignField(leftExpr, "", rightExpr)
-          result
-        case v: VariableIdentifier =>
-          val result = rightState.assignVariable(leftExpr, rightExpr)
-          result
-        case exp => throw new Exception(exp + " is not supported")
-      }
-    } else {
-      val leftStmt = left match { case f: FieldAccess => f.obj case _ => left }
-      val (leftExpr, leftState) = UtilitiesOnStates.forwardExecuteStatement(state, leftStmt)
-      val (rightExpr, rightState) = UtilitiesOnStates.forwardExecuteStatement(leftState, right)
+    // The value-driven heap analysis can execute the whole LHS statement,
+    // because its `getFieldValue` method returns an `AccessPathIdentifier`
+    // that can be passed to `assignField` directly.
+    val leftToExecute =
+      if (SystemParameters.isValueDrivenHeapAnalysis) left
+      else left match { case f: FieldAccess => f.obj case _ => left }
 
-      left match {
-        case fa: FieldAccess =>
-          rightState.assignField(leftExpr, fa.field, rightExpr)
-        case _ =>
-          rightState.assignVariable(leftExpr, rightExpr)
-      }
+    val (leftExpr, leftState) = UtilitiesOnStates.forwardExecuteStatement(state, leftToExecute)
+    val (rightExpr, rightState) = UtilitiesOnStates.forwardExecuteStatement(leftState, right)
+
+    left match {
+      case fa: FieldAccess =>
+        rightState.assignField(leftExpr, fa.field, rightExpr)
+      case _ =>
+        rightState.assignVariable(leftExpr, rightExpr)
     }
   }
 
