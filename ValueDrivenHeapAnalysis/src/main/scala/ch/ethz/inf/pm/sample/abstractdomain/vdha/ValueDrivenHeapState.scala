@@ -528,17 +528,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     // See version control history for the original code
   }
 
-  def testTrue(): ValueDrivenHeapState[S] = {
-    return assume(getExpression)
-  }
+  def testTrue(): ValueDrivenHeapState[S] =
+    assume(getExpression).removeExpression()
 
-  def testFalse(): ValueDrivenHeapState[S] = {
-    val negatedExpressions = getExpression.getSetOfExpressions.map(exp => new NegatedBooleanExpression(exp))
-    var negatedExpSet = new ExpressionSet(getExpression.getType())
-    for (ne <- negatedExpressions)
-      negatedExpSet = negatedExpSet.add(ne)
-    return assume(negatedExpSet)
-  }
+  def testFalse(): ValueDrivenHeapState[S] =
+    assume(getExpression.not()).removeExpression()
 
   def getExpression: ExpressionSet = expr
 
