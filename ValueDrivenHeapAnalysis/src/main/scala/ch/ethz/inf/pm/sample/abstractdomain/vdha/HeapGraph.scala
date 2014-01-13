@@ -628,6 +628,16 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     heap.isBottom() || cond.lessEqual(cond.bottom())
 
   /**
+   * Prunes the conditional heap-graph, e.g., removes edges with a bottom state
+   * as well as unreachable vertices.
+   */
+  def prune: CondHeapGraph[S] = {
+    val (newHeap, idsToRemove) = heap.prune()
+    val newCond = cond.removeVariables(idsToRemove)
+    copy(heap = newHeap, cond = newCond)
+  }
+
+  /**
    * Finds all `AccessPathIdentifier`s contained within the given expression
    * and returns a conditional heap sub-graph for every possible combination
    * of corresponding paths taken through the heap.
@@ -776,18 +786,23 @@ case class CondHeapGraphSeq[S <: SemanticDomain[S]]
   def mapCondHeaps(f: CondHeapGraph[S] => Seq[CondHeapGraph[S]]): CondHeapGraphSeq[S] =
     condHeaps.map(f).flatten
 
+  /** Prunes all conditional heap graphs and removes the ones that are bottom. */
+  def prune: CondHeapGraphSeq[S] =
+    condHeaps.map(_.prune).filter(!_.isBottom)
+
   /**
-   * Joins all conditional heap graphs in this sequence and returns
-   * the resulting conditional heap graph.
+   * Prunes and then joins all conditional heap graphs in this sequence
+   * and returns the resulting conditional heap graph.
    *
    * Before joining, it removes the access path identifiers from the heaps.
    */
   def join: CondHeapGraph[S] = {
-    val newVertices = condHeaps.map(_.heap.vertices).flatten.toSet
-    val newEdges = condHeaps.map(_.heap.mapEdgeStates(removeAccessPathIdentifiers)).map(_.edges).flatten.toSet
+    val prunedHeaps = prune.condHeaps
+    val newVertices = prunedHeaps.map(_.heap.vertices).flatten.toSet
+    val newEdges = prunedHeaps.map(_.heap.mapEdgeStates(removeAccessPathIdentifiers)).map(_.edges).flatten.toSet
     val newHeap = HeapGraph(newVertices, newEdges).joinCommonEdges()
-    val newCond = removeAccessPathIdentifiers(Lattice.bigLub(condHeaps.map(_.cond), lattice))
-    CondHeapGraph(newHeap, newCond)
+    val newCond = removeAccessPathIdentifiers(Lattice.bigLub(prunedHeaps.map(_.cond), lattice))
+    CondHeapGraph(newHeap, newCond).prune
   }
 
   private implicit def CondHeapGraphSeqToCondHeapGraphSeq
