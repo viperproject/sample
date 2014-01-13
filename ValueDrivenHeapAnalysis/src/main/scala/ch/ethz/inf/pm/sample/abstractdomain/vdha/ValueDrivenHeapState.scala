@@ -35,10 +35,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       // considered equal.
       // A sound implementation would use a summary node (representing top)
       // similar to `createVariableForArgument`.
-      val nullVertex = new NullVertex()
-      val varVertex = new LocalVariableVertex(variable.getName, variable.getType)
-      val newVertices = Set(nullVertex, varVertex)
-      val edgeToNull = EdgeWithState(varVertex, generalValState, None, nullVertex)
+      val varVertex = LocalVariableVertex(variable.getName)(variable.getType)
+      val newVertices = Set(NullVertex, varVertex)
+      val edgeToNull = EdgeWithState(varVertex, generalValState, None, NullVertex)
       val newAbstractHeap = abstractHeap.addVertices(newVertices).addEdges(Set(edgeToNull))
       copy(
         abstractHeap = newAbstractHeap,
@@ -97,13 +96,12 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       var newVertices = abstractHeap.vertices.filter(_.isInstanceOf[LocalVariableVertex])
       var idsToCreate = generalValState.getIds().filter(_.isInstanceOf[VariableIdentifier])
       // Add null vertex and LocalVariableVertex that represents the argument under creation
-      val nullVertex = new NullVertex()
-      newVertices = newVertices ++ Set(nullVertex, new LocalVariableVertex(variable.getName, variable.getType))
+      newVertices = newVertices ++ Set(NullVertex, LocalVariableVertex(variable.getName)(variable.getType))
       // The vertex version (bit of a hack but more efficient than creating new HeapGraph, needs refactoring)
       var vertexId = 0
       // Adding definite vertices and corresponding identifiers
       for (defType <- definiteTypes) {
-        val defVertexToAdd = new DefiniteHeapVertex(vertexId, defType)
+        val defVertexToAdd = DefiniteHeapVertex(vertexId)(defType)
         vertexId = vertexId + 1
         newVertices = newVertices + defVertexToAdd
         for (valField <- defType.nonObjectFields)
@@ -111,7 +109,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       }
       // Adding summary vertices and corresponding identifiers
       for (sumType <- summaryTypes) {
-        val sumVertexToAdd = new SummaryHeapVertex(vertexId, sumType)
+        val sumVertexToAdd = SummaryHeapVertex(vertexId)(sumType)
         vertexId = vertexId + 1
         newVertices = newVertices + sumVertexToAdd
         for (valField <- sumType.nonObjectFields)
@@ -132,7 +130,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         }
         for (objField <- heapVertex.typ.objectFields) {
           // objField can always point to null (which has no target EdgeLocalIdentifiers)
-          resultingEdges += EdgeWithState(heapVertex, sourceValState, Some(objField.getName), nullVertex)
+          resultingEdges += EdgeWithState(heapVertex, sourceValState, Some(objField.getName), NullVertex)
           // Finding all possible HeapVertices to which this object field can point to, taking into account sub-typing
           for (canPointToVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(objField.getType) => v })) {
             var trgValState = sourceValState
@@ -165,7 +163,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         // Arguments can point to null
         if (!isInstanceVar) {
           // Only arguments other than "this" can point to null
-          resultingEdges += EdgeWithState(locVarVertex, newGenValState, None, nullVertex)
+          resultingEdges += EdgeWithState(locVarVertex, newGenValState, None, NullVertex)
         }
         for (heapVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(locVarVertex.typ) => v })) {
           // "this" must have an exact type
@@ -509,7 +507,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
         evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
           def targetVertex(exp: Expression): Vertex = exp match {
-            case (Constant("null", _, _)) => new NullVertex()
+            case (Constant("null", _, _)) => NullVertex
             case AccessPathIdentifier(path) => condHeap.takenPath(path).target
           }
 

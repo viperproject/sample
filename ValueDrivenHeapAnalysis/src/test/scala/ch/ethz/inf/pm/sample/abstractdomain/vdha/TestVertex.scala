@@ -3,8 +3,8 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 object TestVertex {
 
   def main(args: Array[String]) {
-    val v1 = new LocalVariableVertex("a", null)
-    val v2 = new LocalVariableVertex("b", null)
+    val v1 = LocalVariableVertex("a")(null)
+    val v2 = LocalVariableVertex("b")(null)
     if (v1 < v2)
       println("v1 < v2")
     else

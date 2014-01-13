@@ -9,43 +9,42 @@ object VertexConstants {
   val NULL = "null"
 }
 
-abstract class Vertex(val name: String, val label: String, val typ: Type) extends Ordered[Vertex]{
+trait Vertex extends Ordered[Vertex] {
+  def name: String
 
-  override def toString(): String = {
-    return "(" + name.toString + ", " + label + ")"
-  }
+  // TODO: It seems odd that local variable vertices and null vertices
+  // also need a label, as it is identical to their name
+  def label: String
 
-  // For now, the order is lexicographical but can be overriden to other orders
-  override def compare(that: Vertex): Int = this.toString.compareTo(that.toString)
+  def typ: Type
 
-  override def hashCode(): Int = {
-    return toString.hashCode()
-  }
-
-  override def equals(obj : Any): Boolean = {
-    if (!obj.isInstanceOf[Vertex])
-      return false
-    return name.equals(obj.asInstanceOf[Vertex].name) && label.equals(obj.asInstanceOf[Vertex].label)
-  }
+  override def toString = s"($name, $label)"
+  override def compare(that: Vertex): Int = toString.compareTo(that.toString)
 }
 
-class LocalVariableVertex(name: String, typ: Type) extends Vertex(name, name, typ) {
-  override def toString(): String = name
+case class LocalVariableVertex(name: String)(val typ: Type) extends Vertex {
+  def label = name
+  override def toString = name
 }
 
-//class NullVertex extends Vertex(VertexConstants.NULL, VertexConstants.NULL, null) {
-class NullVertex extends Vertex(VertexConstants.NULL, VertexConstants.NULL, SystemParameters.getType().top()) {
-  override def toString(): String = name
+object NullVertex extends Vertex {
+  def name = VertexConstants.NULL
+  def label = VertexConstants.NULL
+  def typ = SystemParameters.getType().top()
+  override def toString = name
 }
 
-abstract class HeapVertex(label: String, val version: Int, typ: Type) extends Vertex("n"+version, label, typ: Type) {
+trait HeapVertex extends Vertex {
+  require(version >= 0)
 
-  assert(version >= 0)
-
-  def getVersion() : Int = version
+  val version: Int
+  def name = s"n$version"
 }
 
-class SummaryHeapVertex(version: Int, typ: Type) extends HeapVertex(VertexConstants.SUMMARY, version, typ)
+case class SummaryHeapVertex(version: Int)(val typ: Type) extends HeapVertex {
+  def label = VertexConstants.SUMMARY
+}
 
-class DefiniteHeapVertex(version: Int, typ: Type) extends HeapVertex(VertexConstants.DEFINITE, version, typ)
-
+case class DefiniteHeapVertex(version: Int)(val typ: Type) extends HeapVertex {
+  def label = VertexConstants.DEFINITE
+}

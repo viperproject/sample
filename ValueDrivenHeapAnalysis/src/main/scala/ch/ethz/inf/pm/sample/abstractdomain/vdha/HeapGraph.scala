@@ -100,17 +100,17 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * @param label - Tells us whether this is a null, summary, definite or variable node (See VariableConstants for more info)
    * @return the heap graph that contains that new node and the newly created node itself.
    */
-  def addNewVertex(label : String, typ: Type): (HeapGraph[S], Vertex) = {
+  def addNewVertex(label: String, typ: Type): (HeapGraph[S], Vertex) = {
     var newVertex : Vertex = null
     label match {
       case VertexConstants.NULL =>
-        newVertex = new NullVertex
+        newVertex = NullVertex
       case VertexConstants.SUMMARY =>
-        newVertex = new SummaryHeapVertex(getNewVersionNumber, typ)
+        newVertex = SummaryHeapVertex(getNewVersionNumber)(typ)
       case VertexConstants.DEFINITE =>
-        newVertex = new DefiniteHeapVertex(getNewVersionNumber, typ)
+        newVertex = DefiniteHeapVertex(getNewVersionNumber)(typ)
       case _ =>
-        newVertex = new LocalVariableVertex(label, typ)
+        newVertex = LocalVariableVertex(label)(typ)
     }
     (copy(vertices = vertices + newVertex), newVertex)
   }
@@ -133,9 +133,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def removeEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] =
     copy(edges = edges -- es)
-
-  def getVerticesWithLabel(label: String): Set[Vertex] =
-    vertices.filter(_.label == label)
 
   /**
    * Helper function that initializes the map of maximal possible correspondence between edges of <code>this</code> and
@@ -500,7 +497,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
         // reuse its version for the new summary vertex.
         // See issue #22.
         val newVersion = v.find(_.isInstanceOf[SummaryHeapVertex]).getOrElse(v.head).version
-        val newVertex = new SummaryHeapVertex(newVersion, newType)
+        val newVertex = SummaryHeapVertex(newVersion)(newType)
         newVertices = newVertices + newVertex
         for (vrtx <- v)
           mergeMap.update(vrtx, newVertex)
