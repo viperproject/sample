@@ -7,7 +7,7 @@ case class EdgeWithState[S <: SemanticDomain[S]](
     source: Vertex,
     state: S,
     field: Option[String],
-    target: Vertex) {
+    target: Vertex) extends Ordered[EdgeWithState[S]] {
 
   override def toString: String = {
     val stateString = if (state != null) state.toString else "null"
@@ -24,6 +24,13 @@ case class EdgeWithState[S <: SemanticDomain[S]](
 
   /** The set of vertices incident to the edge. */
   def vertices: Set[Vertex] = Set(source, target)
+
+  /** Compare lexicographically by source, field and target. */
+  override def compare(that: EdgeWithState[S]): Int = {
+    implicitly[Ordering[(Vertex, Option[String], Vertex)]].compare(
+      (source, field, target),
+      (that.source, that.field, that.target))
+  }
 }
 
 /** Represents a path of edges in a heap graph. */
