@@ -1,4 +1,4 @@
-package it.unive.dsi.stringanalysis
+package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain.{SemanticDomain, SemanticAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
