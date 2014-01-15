@@ -364,7 +364,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     (currentIsomorphism, currentEdges)
   }
 
-  override def toString = edges.mkString("\n")
+  override def toString = edges.toList.sorted.mkString("\n")
 
   def prune(): (HeapGraph[S], Set[Identifier]) = {
     var currentEdges = edges
