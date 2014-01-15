@@ -12,9 +12,9 @@ import ch.ethz.inf.pm.sample.td.cost.loops.LoopCostCompiler;
 import ch.ethz.inf.pm.td.analysis.TouchAnalysis;
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
-import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.BricksAnalysis;
-import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.PrefixAndSuffixAnalysis;
-import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.SurelyAndMaybeContainedCharactersAnalysis;
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.stringanalysis.BricksAnalysis;
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.stringanalysis.PrefixAndSuffixAnalysis;
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.stringanalysis.SurelyAndMaybeContainedCharactersAnalysis;
 
 public class InstalledPlugins {
     public static ch.ethz.inf.pm.sample.oorepresentation.Compiler[] compilers;

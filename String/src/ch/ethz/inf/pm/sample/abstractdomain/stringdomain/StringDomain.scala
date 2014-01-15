@@ -1,10 +1,11 @@
-package ch.ethz.inf.pm.td.domain
+package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.td.domain.{InvalidExpression, ValidExpression}
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 
 trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends SimplifiedSemanticDomain[X] { this: X => }
 
