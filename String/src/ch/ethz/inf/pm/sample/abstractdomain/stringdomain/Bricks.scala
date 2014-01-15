@@ -3,280 +3,297 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-class Brick(protected var m : Int, protected var M : Int, protected var s : Set[String])
+class Brick(protected var m : Int, protected var M : Int, protected var s : Set[String]) extends Lattice[Brick]
 {
-  var strings : Set[String] = s;
-  var min : Int = m;
-  var max : Int = M;
-  var isTop = false;
-  var isBottom = false;
-  var ks = 3;
-  var ki = 3;
+  var strings : Set[String] = s
+  var min : Int = m
+  var max : Int = M
+  var isTop = false
+  var isBottom = false
+  var ks = 3
+  var ki = 3
+
+  def factory() : Brick = new Brick(m,M,s)
   
-  def lub(left : Brick, right : Brick) : Brick =
+  def lub(other : Brick) : Brick =
   {
-	if(left.isTop || right.isTop)
-		return new Brick(0,0,Set.empty).top();
-	if(left.isBottom)
-		return right;
-	if(right.isBottom)
-		return left;
+	if(this.isTop || other.isTop)
+		return new Brick(0,0,Set.empty).top()
+	if(this.isBottom)
+		return other.factory()
+	if(other.isBottom)
+		return factory()
 	
-    val newMin = left.min.min(right.min);
-    val newMax = left.max.max(right.max);
-    val newStrings = left.strings.toList.union(right.strings.toList);
-    var newStringsSet = Set[String]();
+    val newMin = this.min.min(other.min)
+    val newMax = this.max.max(other.max)
+    val newStrings = this.strings.toList.union(other.strings.toList)
+    var newStringsSet = Set[String]()
     for(s <- newStrings)
-      newStringsSet += s;
+      newStringsSet += s
     
-    return new Brick(newMin, newMax, newStringsSet);
+    new Brick(newMin, newMax, newStringsSet)
   }
   
-  def glb(left : Brick, right : Brick) : Brick =
+  def glb(other : Brick) : Brick =
   {
-    val newMin = left.min.max(right.min);
-    val newMax = left.max.min(right.max);
-    val newStrings = left.strings.intersect(right.strings);
-    return new Brick(newMin, newMax, newStrings);
+    val newMin = this.min.max(other.min)
+    val newMax = this.max.min(other.max)
+    val newStrings = this.strings.intersect(other.strings)
+    new Brick(newMin, newMax, newStrings)
   }
   
-  def widening(left : Brick, right : Brick) : Brick = {	  
-    if(left.isTop || right.isTop || (left.strings ++ right.strings).size > ks)
-      return top();
-    val m = left.min.min(right.min);
-    val M = left.max.max(right.max);
+  def widening(other : Brick) : Brick = {
+    if(this.isTop || other.isTop || (this.strings ++ other.strings).size > ks)
+      return top()
+    val m = this.min.min(other.min)
+    val M = this.max.max(other.max)
     if(M - m > ki)
-      return new Brick(0, Int.MaxValue, left.strings ++ right.strings);
+      new Brick(0, Int.MaxValue, this.strings ++ other.strings)
     else
-      return new Brick(m, M, left.strings ++ right.strings);
+      new Brick(m, M, this.strings ++ other.strings)
   }
 
   def top() : Brick = {
-    var res = new Brick(0,0,Set.empty); //this brick should correspond to empty string, 
+    val res = new Brick(0,0,Set.empty); //this brick should correspond to empty string,
     //but we override its meaning with the label isTop set to true
-    res.isTop = true;
-    return res;
+    res.isTop = true
+    res
+  }
+
+  def bottom() : Brick ={
+    val res = new Brick(0,0,Set.empty); //this brick should correspond to empty string,
+    //but we override its meaning with the label isBottom set to true
+    res.isBottom = true
+    res
   }
   
   def lessEqual(right : Brick) : Boolean =
   {
-    if(min >= right.min && max <= right.max && strings.subsetOf(right.strings))
-      return true;
-    return false;
+    if(this.min >= right.min && this.max <= right.max && this.strings.subsetOf(right.strings))
+      true
+    else
+      false
   }  
   
-  override def toString() : String = {
-    if(isBottom)
-    	return "_|_";
-    if(isTop)
-    	return "_T_";
+  override def toString : String = {
+    if(this.isBottom)
+    	"⊥"
+    else if(this.isTop)
+    	"⊤"
     else
-    	return "[{" + strings.toString() + "}, " + min + ", " + max + "]";
+    	"[{" + this.strings.toString() + "}, " + this.min + ", " + this.max + "]"
   }
 }
 
 
 
-class BricksDomain extends Lattice[BricksDomain]
+class BricksDomain extends StringValueDomain[BricksDomain]
 {
-  var isBottom : Boolean = false;
-  var isTop : Boolean = false;
-  var bricksList : List[Brick] = Nil;
-  val kl = 20;
+  var isBottom : Boolean = false
+  var isTop : Boolean = false
+  var bricksList : List[Brick] = Nil
+  val kl = 20
   
-  override def factory() : BricksDomain = new BricksDomain();
+  override def factory() : BricksDomain = new BricksDomain()
+
+  def emptyBrick = new Brick(0,0,Set.empty)
   
   def top() : BricksDomain = {
-    val result : BricksDomain = factory();
-    result.isTop = true;
-    result.isBottom = false; 
-    result.bricksList = List((new Brick(0,0,Set.empty)).top());
+    val result : BricksDomain = factory()
+    result.isTop = true
+    result.isBottom = false
+    result.bricksList = List(new Brick(0,0,Set.empty).top())
     result
   }
   
   def bottom() : BricksDomain = { 
-	  val result : BricksDomain = factory();
-	  result.isBottom = true;
-      result.isTop = false;
-      result.bricksList = Nil;
+	  val result : BricksDomain = factory()
+	  result.isBottom = true
+    result.isTop = false
+    result.bricksList = Nil
 	  result
+  }
+
+  /**
+   * Takes two BricksDomains and appends the empty brick to the shorter list of bricks until
+   * both domains have a brick list of equal length
+   */
+  private def appendEmptyBricks(left : BricksDomain, right : BricksDomain) : Unit = {
+    if(left.bricksList.length < right.bricksList.length)
+      for(i <- 0 to (right.bricksList.length - left.bricksList.length - 1))
+        left.bricksList = left.bricksList :+ emptyBrick
+    else if(right.bricksList.length < left.bricksList.length)
+      for(i <- 0 to (left.bricksList.length - right.bricksList.length - 1))
+        right.bricksList = right.bricksList :+ emptyBrick
   }
   
   def lub(other : BricksDomain) : BricksDomain = {
-     if(isTop || other.isTop)
-    	 return top();
-    
-     //Console.print("lub between " + toString() + " and " + other.toString());
+     if(this.isTop || other.isTop)
+    	 return top()
      
-     var newLeft : BricksDomain = factory();
-     var newRight : BricksDomain = factory();
-  	 newLeft.bricksList = bricksList;
-  	 newRight.bricksList = other.bricksList;
+     val newLeft : BricksDomain = this.factory()
+     val newRight : BricksDomain = this.factory()
+  	 newLeft.bricksList = Nil ::: this.bricksList
+  	 newRight.bricksList = Nil ::: other.bricksList
      
-     if(bricksList.length < other.bricksList.length) {
-        for(i <- 0 to (other.bricksList.length - bricksList.length - 1))
-        	newLeft.bricksList = newLeft.bricksList ::: List(new Brick(0,0,Set.empty));
-     }
-     if(other.bricksList.length < bricksList.length) {
-        for(i <- 0 to (bricksList.length - other.bricksList.length - 1))
-        	newRight.bricksList = newRight.bricksList ::: List(new Brick(0,0,Set.empty));
-     }
+     appendEmptyBricks(newLeft, newRight)
      
-     var result : BricksDomain = factory();
-     result.bricksList = Nil;
-     var lengthLeft = newLeft.bricksList.length;
+     val result : BricksDomain = factory()
+     result.bricksList = Nil
+     val lengthLeft = newLeft.bricksList.length
      for(i <- 0 to lengthLeft - 1)
-       {
-         val newBrick = newLeft.bricksList(lengthLeft - 1 - i).lub(
-           newLeft.bricksList(lengthLeft - 1 - i), newRight.bricksList(lengthLeft - 1 - i));
-         result.bricksList = newBrick :: result.bricksList; 
-       }
-     
-     //Console.println("... " + result);
-	 return result;
+     {
+       val newBrick = newLeft.bricksList(lengthLeft - 1 - i).lub(newRight.bricksList(lengthLeft - 1 - i))
+       result.bricksList = newBrick :: result.bricksList
+     }
+	  result
   }
   
   def glb(other : BricksDomain) : BricksDomain = {
-     if(isBottom || other.isBottom)
-    	 return bottom();
+   if(this.isBottom || other.isBottom)
+     return bottom()
 
-     var newLeft : BricksDomain = factory();
-     var newRight : BricksDomain = factory();
-  	 newLeft.bricksList = bricksList;
-  	 newRight.bricksList = other.bricksList;
+   val newLeft : BricksDomain = factory()
+   val newRight : BricksDomain = factory()
+   newLeft.bricksList = Nil ::: this.bricksList
+   newRight.bricksList = Nil ::: other.bricksList
+
+   appendEmptyBricks(newLeft, newRight)
+
+   val result : BricksDomain = factory()
+   val lengthLeft = newLeft.bricksList.length
+   for(i <- 0 to lengthLeft - 1)
+   {
+     val newBrick = newLeft.bricksList(lengthLeft - 1 - i).glb(newRight.bricksList(lengthLeft - 1 - i))
+     if(newBrick.min > newBrick.max)
+       return bottom()
+     result.bricksList = newBrick :: result.bricksList
+   }
      
-     if(bricksList.length < other.bricksList.length) {
-        for(i <- 0 to (other.bricksList.length - bricksList.length - 1))
-        	newLeft.bricksList = newLeft.bricksList ::: List(new Brick(0,0,Set.empty));
-     }
-     if(other.bricksList.length < bricksList.length) {
-        for(i <- 0 to (bricksList.length - other.bricksList.length - 1))
-        	newRight.bricksList = newRight.bricksList ::: List(new Brick(0,0,Set.empty));
-     }
-     
-     var result : BricksDomain = factory();
-     //result.bricksList = Nil;
-     var lengthLeft = newLeft.bricksList.length;
-     for(i <- 0 to lengthLeft - 1)
-       {
-         val newBrick = newLeft.bricksList(lengthLeft - 1 - i).glb(
-           newLeft.bricksList(lengthLeft - 1 - i), newRight.bricksList(lengthLeft - 1 - i));
-         if(newBrick.min > newBrick.max)
-           return bottom();
-         result.bricksList = newBrick :: result.bricksList; 
-       }
-     
-	 return result;
+	 result
   }
-  
+
+  /**
+   * From the paper <b>Static Analysis of String Values</b>:
+   *
+   * The widening operator (BR × BR) -> BR is defined as follows:
+   *
+   * widening(L1,L2) = Top, if (not (L1 ≤ L2) ∧ not (L2 ≤ L1)) ∨ (∃i ∈ {1,2} : len(Li) > kl),
+   * widening(L1,L2) = w(L1,L2), otherwise
+   *
+   * where w(L1,L2) = [B1new(L1[1],L2[1]);B2new(L1[2],L2[2]);...;Bnnew(L1[n],L2[n])] with n
+   * being the size of the bigger list and Binew(L1[i],L2[i]) is defined by:
+   *
+   * Binew([S1i]^(m1i,M1i),[S2i]^(m2i,M2i)) = ⊤, if |S1i ∪ S2i| > kS
+   * Binew([S1i]^(m1i,M1i),[S2i]^(m2i,M2i)) = [S1i ∪ S2i]^(0,∞), if (M-m) > kI
+   * Binew([S1i]^(m1i,M1i),[S2i]^(m2i,M2i)) = [S1i ∪ S2i]^(m,M), otherwise
+   *
+   * where m = min(m1i,m2i) and M = max(M1i,M2i)
+   *
+   * @param other The new value
+   * @return The widening of <code>left</code> and <code>right</code>
+   */
+
   def widening(other : BricksDomain) : BricksDomain = {
-	 var i = 0;
-	 if(!(lessEqual(other) && other.lessEqual(this)))
-		 i = 1;
-	
-	 if(!lessEqual(other) && !other.lessEqual(this))
-        return top();
-     if(bricksList.length > kl || other.bricksList.length > kl)
-        return top();
-     if(isTop || other.isTop)
-    	 return top();
 
-     //if(!(lessEqual(other) && other.lessEqual(this)))
-    	// Console.print("widening between " + this + " and " + other );
-     var newLeft : BricksDomain = factory();
-	 var newRight : BricksDomain = factory();
-	 newLeft.bricksList = bricksList;
-	 newRight.bricksList = other.bricksList;
+	 if((!this.lessEqual(other) && !other.lessEqual(this)) ||
+     this.bricksList.length > kl || other.bricksList.length > kl ||
+     this.isTop || other.isTop)
+        return top()
+
+   val newLeft : BricksDomain = factory()
+	 val newRight : BricksDomain = factory()
+	 newLeft.bricksList = Nil ::: this.bricksList
+	 newRight.bricksList = Nil ::: other.bricksList
 	 
-	 if(bricksList.length < other.bricksList.length) {
-	    for(i <- 0 to (other.bricksList.length - bricksList.length - 1))
-	    	newLeft.bricksList = newLeft.bricksList ::: List(new Brick(0,0,Set.empty));
-	 }
-	 if(other.bricksList.length < bricksList.length) {
-	    for(i <- 0 to (bricksList.length - other.bricksList.length - 1))
-	    	newRight.bricksList = newRight.bricksList ::: List(new Brick(0,0,Set.empty));
-	 }
+	 appendEmptyBricks(newLeft, newRight)
 
-     var result : BricksDomain = factory();
-     var lengthLeft = newLeft.bricksList.length;
-     for(i <- 0 to lengthLeft - 1)
-       {
-         val newBrick = newLeft.bricksList.apply(lengthLeft - 1 - i).widening(
-           newLeft.bricksList.apply(lengthLeft - 1 - i), newRight.bricksList.apply(lengthLeft - 1 - i));
-         result.bricksList = newBrick :: result.bricksList; 
-       }
-     
-     //if(!(lessEqual(other) && other.lessEqual(this)))
-    	 //Console.println("... " + result);
-	 return result;
+   val result : BricksDomain = factory()
+   val n = newLeft.bricksList.length
+   for(i <- 0 to n - 1)
+   {
+     val newBrick = newLeft.bricksList.apply(n - 1 - i).widening(newRight.bricksList.apply(n - 1 - i))
+     result.bricksList = newBrick :: result.bricksList
+   }
+	 result
+  }
+
+  /**
+   * Compute whether this BricksDomain is partially ordered below the domain in the argument.
+   * According to the paper <b>Static Analysis of String Values</b> this is the case if either:
+   *  - <code>this</code> is bottom
+   *  - <code>right</code>
+   *  - ∀i <code>this(i)</code> is partially ordered below <code>right(i)</code>
+   *
+   * @param right The BricksDomain to which we want to evaluate the partial order
+   * @return true iff <code>this</code> is less or equal than <code>r</code>
+   */
+  def lessEqual(right : BricksDomain) : Boolean = {
+	 if(this.isBottom || right.isTop)
+		  return true
+
+   def compute(x : List[Brick], y : List[Brick]) : Boolean =
+     (x,y) match {
+       case (Nil,Nil) => true
+       case (Nil,yy::ys) => emptyBrick.lessEqual(yy) && compute(Nil,ys)
+       case (xx::xs,Nil) => xx.lessEqual(emptyBrick) && compute(xs,Nil)
+       case (xx::xs,yy::ys) => xx.lessEqual(yy) && compute(xs,ys)
+     }
+
+   compute(this.bricksList,right.bricksList)
   }
   
-  def lessEqual(other : BricksDomain) : Boolean = {
-	 if(isBottom || other.isTop)
-		  return true;
-   
-  	 var newLeftList = bricksList;
-  	 var newRightList = other.bricksList;
-     
-     if(bricksList.length < other.bricksList.length) {
-        for(i <- 0 to (other.bricksList.length - bricksList.length - 1))
-        	newLeftList = newLeftList ::: List(new Brick(0,0,Set.empty));
-     }
-     if(other.bricksList.length < bricksList.length) {
-        for(i <- 0 to (bricksList.length - other.bricksList.length - 1))
-        	newRightList = newRightList ::: List(new Brick(0,0,Set.empty));
-     }
-     for(i <- 0 to (newLeftList.length-1))
-       if(!newLeftList(i).lessEqual(newRightList(i)))
-          return false;
-          
-      return true;
-  }
-  
-  override def toString() : String = {
+  override def toString : String = {
     if(this.isTop)
-      return "_T_";
+      "⊤"
     else if(this.isBottom || this.bricksList.length == 0) 
-      return "_|_"; 
-
+      "⊥"
     else {
-      var returnVal = "";
+      var returnVal = ""
       for(b <- this.bricksList)
-    	  returnVal += b.toString(); //"[{" + b.strings.toString() + "}, " + b.min + ", " + b.max + "]";
-      return returnVal;
+    	  returnVal += b.toString; //"[{" + b.strings.toString() + "}, " + b.min + ", " + b.max + "]";
+      returnVal
     }
   }
   
-  def isNormalized() : Boolean = {
+  def isNormalized : Boolean = {
 	//RULE 1
-    if(this.bricksList.exists(b => b.isTop == false &&
+    if(this.bricksList.exists(b => !b.isTop &&
     		b.min == 0 && b.max == 0 && b.strings == Set.empty))
-		return false;
+		return false
     
     //RULE 3
     if(this.bricksList.exists(b => b.min > 1 && b.max == b.min))
-      return false;
+      return false
     
     //RULE 5
     if(this.bricksList.exists(b => b.min >= 1 && b.max > b.min))
-      return false;
-	
-    var i = 0;
+      return false
+
     for(i <- 0 to this.bricksList.length - 2)
     {
-      var first = this.bricksList.apply(i);
-      var second = this.bricksList.apply(i+1);
+      val first = this.bricksList.apply(i)
+      val second = this.bricksList.apply(i+1)
       
       //RULE 2
       if(first.min == 1 && first.max == 1 && second.min == 1 && second.max == 1)
-        return false;
+        return false
       
       //RULE 4
 	  if(first.strings.subsetOf(second.strings) && second.strings.subsetOf(first.strings))
-		  return false;
+		  return false
     }
     
-    return true;
+    true
+  }
+
+  def concat(right : BricksDomain) : BricksDomain = {
+    val result = factory()
+    if(right.isTop && this.isTop )
+      return result.top()
+    result.bricksList = (this.bricksList ++ right.bricksList).toList
+    val normalizedResult = result.normalize()
+    normalizedResult
   }
   
   def stringConcatenation(left : Set[String], other : Set[String]) : Set[String] = {
@@ -297,7 +314,7 @@ class BricksDomain extends Lattice[BricksDomain]
   }
   
   def normalize() : BricksDomain = {
-    while(!this.isNormalized()) {
+    while(!this.isNormalized) {
     	
     	//RULE 1
     	this.bricksList = this.bricksList.filter(b => !(b.isTop == false &&
@@ -364,74 +381,115 @@ class BricksDomain extends Lattice[BricksDomain]
 
 
 class Bricks (_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain],_isBottom:Boolean = false,_isTop:Boolean = false)
-  extends BoxedDomain[BricksDomain, Bricks](_value,_isBottom,_isTop)
-  with SimplifiedSemanticDomain[Bricks]
+  extends BoxedDomain[BricksDomain, Bricks] with StringDomain[BricksDomain, Bricks]
 {
    def functionalFactory(_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain],_isBottom:Boolean = false,_isTop:Boolean = false) : Bricks =
-     new Bricks(_value,_isBottom,_isTop)
+    new Bricks(_value,_isBottom,_isTop)
 
-   def setToTop(variable : Identifier) : Bricks = this.remove(variable);
-   def assign(variable : Identifier, expr : Expression) : Bricks = this.add(variable, this.eval(expr));
-   def assume(expr : Expression) : Bricks = this;
-   def createVariable(variable : Identifier, typ : Type) : Bricks = this;
-   def removeVariable(variable : Identifier) : Bricks = this.remove(variable);
+   def setToTop(variable : Identifier) : Bricks = this.remove(variable)
+
+   def assign(variable : Identifier, expr : Expression) : Bricks =
+     if(variable.getType.isStringType()) this.add(variable, this.eval(expr))
+     else this
+
+   def assume(expr : Expression) : Bricks = {
+     if(isBottom || !expr.getType.isStringType())return this
+     // Check if we assume something about non-numerical values - if so, return
+     val ids = Normalizer.getIdsForExpression(expr)
+     for (id <- ids) {
+       if (!id.getType.isStringType()) {
+         return this
+       }
+     }
+     // Check if we just assume if something is invalid - we dont know that here
+     // TODO: Filter everything with valid or invalid
+     expr match {
+       case BinaryArithmeticExpression(_,Constant("invalid",_,_),_,_) => return this
+       case _ => ()
+     }
+
+     expr match {
+       // Comparison
+       case BinaryArithmeticExpression(thisExpr,thatExpr,ArithmeticOperator.==,_) =>
+         val left = eval(thisExpr)
+         val right = eval(thatExpr)
+         val glb = left.glb(right)
+         if(glb.isBottom)bottom()
+         else
+           (thisExpr, thatExpr) match {
+             case(x: Identifier, y: Identifier) =>
+               this.add(x, glb).add(y, glb)
+             case(x: Identifier, _) =>
+               this.add(x, glb)
+             case(_, y: Identifier) =>
+               this.add(y, glb)
+             case _ => this
+           }
+
+       // negated comparison
+       case NegatedBooleanExpression(BinaryArithmeticExpression(thisExpr, thatExpr, ArithmeticOperator.==, _)) =>
+         val left = eval(thisExpr)
+         val right = eval(thatExpr)
+         (left, right) match {
+           case _ => this
+         }
+
+       // double negation
+       case NegatedBooleanExpression(NegatedBooleanExpression(thisExpr)) =>
+         assume(thisExpr)
+     }
+   }
+   def createVariable(variable : Identifier, typ : Type) : Bricks = this
+   def removeVariable(variable : Identifier) : Bricks = this.remove(variable)
  
    def get(variable : Identifier) = value.get(variable) match {
-	    case Some(x) => x;
-	    case None => new BricksDomain().top();
+	    case Some(x) => x
+	    case None => new BricksDomain().top()
    }
    override def getStringOfId(id : Identifier) : String = {
-	     get(id).toString();
+	     get(id).toString
    }
    
    private def eval(expr : Expression) : BricksDomain = expr match {
 	   	case x : Identifier => this.get(x)
-	    case x : Constant if x.constant.isInstanceOf[String] => {
-	      var result = new BricksDomain(); 
-	      result.bricksList = List(new Brick(1, 1, Set(x.constant.asInstanceOf[String])));
-	      return result;
-	    }
-	    case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringConcatenation, returntyp) =>
+	    case Constant(x,_,_) =>
+	      val result = new BricksDomain()
+	      result.bricksList = List(new Brick(1, 1, Set(x)))
+	      result
+	    case AbstractOperator(thisExpr, parameters, _, AbstractOperatorIdentifiers.stringConcatenation, _) =>
 	        parameters match {
 	        	case p1 :: Nil => 
-		        	val left = this.eval(thisExpr);
-		        	val right = this.eval(p1);
-		        	var i=0;
-		        	if(right.isTop == true && left.isTop == true)
-		        		return new BricksDomain().top();
-	        		val result = new BricksDomain();
-	        		result.bricksList = (left.bricksList ++ right.bricksList).toList;
-	        		val normalizedResult = result.normalize(); 
-	        		//Console.println("Concatenation between " + left + " and " + right + " ... " + normalizedResult );
-		        	return normalizedResult;
-	        	case _ => return new BricksDomain().top();
+		        	val left = this.eval(thisExpr)
+		        	val right = this.eval(p1)
+              left.concat(right)
+	        	case _ => new BricksDomain().top()
           }
-	    case AbstractOperator(thisExpr, parameters, typeparameters, AbstractOperatorIdentifiers.stringSubstring, returntyp) =>
+	    case AbstractOperator(thisExpr, parameters, _, AbstractOperatorIdentifiers.stringSubstring, _) =>
 	      val l : List[Expression] = parameters
 	      if(l.size != 2) return new BricksDomain().top();
 	      l.apply(0) match {
     	    case Constant(s1, _, _) =>
 		      l.apply(1) match {
 		    	    case Constant(s2, _, _) =>
-		    	    	  val beginIndex = Integer.decode(s1).intValue();
-	    	    	  	  val endIndex = Integer.decode(s2).intValue();
-					      val left = this.eval(thisExpr);
+		    	    	  val beginIndex = Integer.decode(s1).intValue()
+	    	    	  	  val endIndex = Integer.decode(s2).intValue()
+					      val left = this.eval(thisExpr)
 					      if(left.bricksList.length >= 1 && left.bricksList.apply(0).min == 1 && left.bricksList.apply(0).max == 1) {
-					    	  val firstBrick = left.bricksList.apply(0);
+					    	  val firstBrick = left.bricksList.apply(0)
 					    	  if(firstBrick.strings.forall(s => s.length() >= endIndex)) {
-					    	    val result = new BricksDomain();
-				    	    	var substrings : Set[String] = Set.empty; 
+					    	    val result = new BricksDomain()
+				    	    	var substrings : Set[String] = Set.empty
 					    	    firstBrick.strings.foreach(s => substrings = substrings + s.substring(beginIndex,endIndex));
 				    	    	result.bricksList = List(new Brick(1, 1, substrings));
-					    	    return result;
+					    	    result
 					    	  } else
-					    		  return new BricksDomain().top();
+					    		  new BricksDomain().top()
 					      } else
-					    	  return new BricksDomain().top();
-		    	    case _ => return new BricksDomain().top();
+					    	  new BricksDomain().top()
+		    	    case _ => new BricksDomain().top()
 		      }
-    	    case _ => return new BricksDomain().top();
+    	    case _ => new BricksDomain().top()
 	    }
-	    case _ => return new BricksDomain().top();
+	    case _ => new BricksDomain().top()
    }
 }
