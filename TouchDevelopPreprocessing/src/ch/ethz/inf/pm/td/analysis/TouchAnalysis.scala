@@ -7,7 +7,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.{InvalidExpression, StringsAnd, InvalidAnd}
+import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
@@ -15,6 +15,15 @@ import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.td.output.FileSystemExporter
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{StringValueDomain, BricksDomain, Bricks, NumericWithStringDomain, StringDomain}
+import ch.ethz.inf.pm.sample.property.WarningProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import scala.Some
+import ch.ethz.inf.pm.td.analysis.MethodSummary
+import ch.ethz.inf.pm.td.domain.InvalidExpression
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 
 /**
  * 
@@ -23,25 +32,44 @@ import ch.ethz.inf.pm.td.output.FileSystemExporter
  * Time: 5:50 PM
  * 
  */
-class TouchAnalysis[D <: NumericalDomain[D]] extends SemanticAnalysis[StringsAnd[InvalidAnd[D]]] {
+class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringDomain[V,S]]
+  //extends SemanticAnalysis[TouchStringsAnd[InvalidAnd[D],V,S]] {
+  extends SemanticAnalysis[StringsAnd[InvalidAnd[D],V,S]] {
+
+  protected val STRING_DOMAIN = "StringDomain"
+  protected val NUMERICAL_DOMAIN = "Domain"
 
   var domain: String = ""
 
+  var stringDomain: String = ""
+
   def getLabel(): String = "TouchDevelop analysis"
 
-  def parameters(): List[(String, Any)] = List(("Domain", List("Sign", "Interval")))
+  protected def numericalDomainList = (NUMERICAL_DOMAIN, List("Sign", "Interval"))
+
+  protected def stringDomainList = (STRING_DOMAIN, List("KSet", "Bricks"))
+
+  def parameters(): List[(String, Any)] = List(numericalDomainList, stringDomainList)
 
   def setParameter(label: String, value: Any) { label match {
-    case "Domain" => domain = value.toString
+    case NUMERICAL_DOMAIN => domain = value.toString
+    case STRING_DOMAIN => stringDomain = value.toString
   }}
 
-  def getInitialState(): StringsAnd[InvalidAnd[D]] = {
-    new StringsAnd(new InvalidAnd(
-      domain match {
-        case "Sign" => new BoxedNonRelationalNumericalDomain(new Sign(SignValues.T)).asInstanceOf[D]
-        case "Interval" => new BoxedNonRelationalNumericalDomain(new Interval(0, 0)).asInstanceOf[D]
-      }
-    ))
+  def getInitialState(): StringsAnd[InvalidAnd[D],V,S] = {
+    val numericSubDomain = domain match{
+      case "Sign" => new BoxedNonRelationalNumericalDomain(new Sign(SignValues.T)).asInstanceOf[D]
+      case "Interval" => new BoxedNonRelationalNumericalDomain(new Interval(0, 0)).asInstanceOf[D]
+    }
+
+    val invalidAndSubDomain = new InvalidAnd(numericSubDomain)
+
+    stringDomain match{
+      case "Bricks" => new StringsAnd[InvalidAnd[D],V,S](invalidAndSubDomain, new Bricks().asInstanceOf[S])
+      case _ => new StringsAnd[InvalidAnd[D],V,S](invalidAndSubDomain)
+    }
+
+
   }
 
   override def reset() { Unit }
