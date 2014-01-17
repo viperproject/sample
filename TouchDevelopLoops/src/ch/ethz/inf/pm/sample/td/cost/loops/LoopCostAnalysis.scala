@@ -455,8 +455,8 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     val lastNode = loop.lastNode
     val state = cfge.getStatesOfBlock(lastNode)(cfge.getStatesOfBlock(lastNode).size-1)
     state match {
-      case as : AbstractState[NumericWithStringDomain[InvalidAnd[ApronInterface],_,_,_],_,_] => {
-        val apronInterface = as.getSemanticDomain._1._1
+      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
+        val apronInterface = as.getSemanticDomain._1.numericalDomain
         val vars = apronInterface.instantiateState().getEnvironment.getVars
         val lincons = apronInterface.instantiateState().toLincons(apronInterface.instantiateState().getCreationManager)
         for (l <- lincons if l.isLinear) {
@@ -486,8 +486,8 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     val state = cfge.getStatesOfBlock(lastNode)(cfge.getStatesOfBlock(lastNode).size-1)
 
     state match {
-      case as : AbstractState[NumericWithStringDomain[InvalidAnd[ApronInterface],_,_,_],_,_] => {
-        val apronInterface = as.getSemanticDomain._1._1
+      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
+        val apronInterface = as.getSemanticDomain._1.numericalDomain
         val vars = apronInterface.instantiateState().getEnvironment.getVars
         var oldCount = 0
         var count = loop.variables.size
@@ -578,8 +578,8 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     val prevNode = loop.prevNode
     val state = cfge.getStatesOfBlock(prevNode)(cfge.getStatesOfBlock(prevNode).size-1)
     state match {
-      case as : AbstractState[NumericWithStringDomain[InvalidAnd[ApronInterface],_,_,_],_,_] => {
-        val apronInterface = as.getSemanticDomain._1._1
+      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
+        val apronInterface = as.getSemanticDomain._1.numericalDomain
         val vars = apronInterface.instantiateState().getEnvironment.getVars
         val lincons = apronInterface.instantiateState().toLincons(apronInterface.instantiateState().getCreationManager)
         for (l <- lincons) {

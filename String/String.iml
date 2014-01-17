@@ -17,7 +17,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="Sample" />
     <orderEntry type="library" name="scala-library" level="project" />
-    <orderEntry type="module" module-name="TouchDevelopPreprocessing" />
     <orderEntry type="module" module-name="NumericalAnalysis" />
   </component>
 </module>

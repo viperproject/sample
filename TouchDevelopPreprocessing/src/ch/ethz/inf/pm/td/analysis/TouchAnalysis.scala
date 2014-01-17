@@ -10,16 +10,11 @@ import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import scala.Some
-import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.td.output.FileSystemExporter
-import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{StringValueDomain, BricksDomain, Bricks, NumericWithStringDomain, StringDomain}
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{StringValueDomain, Bricks, StringDomain}
 import ch.ethz.inf.pm.sample.property.WarningProgramPoint
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import scala.Some
-import ch.ethz.inf.pm.td.analysis.MethodSummary
 import ch.ethz.inf.pm.td.domain.InvalidExpression
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.Constant

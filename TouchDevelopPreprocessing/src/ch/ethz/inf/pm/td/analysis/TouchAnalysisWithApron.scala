@@ -4,7 +4,6 @@ import apron._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.td.domain.{InvalidAnd, StringsAnd}
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain
 
 /**
  * 

@@ -2,7 +2,6 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.td.domain.{ValidExpression, InvalidExpression}
 
 class Brick(protected var m : Int, protected var M : Int, protected var s : Set[String]) extends Lattice[Brick]
 {
@@ -403,11 +402,6 @@ class Bricks (dom:BricksDomain,_value:Map[Identifier, BricksDomain] = Map.empty[
          return this
        }
      }
-     // Check if we just assume if something is invalid - we dont know that here
-     expr match {
-       case BinaryArithmeticExpression(_,InvalidExpression(_,_),_,_) => return this
-       case _ => ()
-     }
 
      expr match {
        // Comparison
@@ -438,6 +432,8 @@ class Bricks (dom:BricksDomain,_value:Map[Identifier, BricksDomain] = Map.empty[
        // double negation
        case NegatedBooleanExpression(NegatedBooleanExpression(thisExpr)) =>
          assume(thisExpr)
+
+       case _ => this
      }
    }
    def createVariable(variable : Identifier, typ : Type) : Bricks = this
@@ -445,15 +441,13 @@ class Bricks (dom:BricksDomain,_value:Map[Identifier, BricksDomain] = Map.empty[
  
    def get(variable : Identifier) = value.get(variable) match {
 	    case Some(x) => x
-	    case None => new BricksDomain().top()
+	    case None => dom.top()
    }
    override def getStringOfId(id : Identifier) : String = {
 	     get(id).toString
    }
    
    private def eval(expr : Expression) : BricksDomain = expr match {
-     case InvalidExpression(_,_) => dom.bottom()
-     case ValidExpression(_,_) => dom.top()
 	   	case x : Identifier => this.get(x)
 	    case Constant(x,_,_) =>
 	      val result = new BricksDomain()
@@ -465,7 +459,7 @@ class Bricks (dom:BricksDomain,_value:Map[Identifier, BricksDomain] = Map.empty[
 		        	val left = this.eval(thisExpr)
 		        	val right = this.eval(p1)
               left.concat(right)
-	        	case _ => new BricksDomain().top()
+	        	case _ => dom.top()
           }
 	    case AbstractOperator(thisExpr, parameters, _, AbstractOperatorIdentifiers.stringSubstring, _) =>
 	      val l : List[Expression] = parameters
@@ -486,13 +480,13 @@ class Bricks (dom:BricksDomain,_value:Map[Identifier, BricksDomain] = Map.empty[
 				    	    	result.bricksList = List(new Brick(1, 1, substrings));
 					    	    result
 					    	  } else
-					    		  new BricksDomain().top()
+                    dom.top()
 					      } else
-					    	  new BricksDomain().top()
-		    	    case _ => new BricksDomain().top()
+                  dom.top()
+		    	    case _ => dom.top()
 		      }
-    	    case _ => new BricksDomain().top()
+    	    case _ => dom.top()
 	    }
-	    case _ => new BricksDomain().top()
+	    case _ => dom.top()
    }
 }
