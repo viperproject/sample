@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.td.domain.{ValidExpression, InvalidExpression}
 
 class Brick(protected var m : Int, protected var M : Int, protected var s : Set[String]) extends Lattice[Brick]
 {
@@ -380,11 +381,12 @@ class BricksDomain extends StringValueDomain[BricksDomain]
 }
 
 
-class Bricks (_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain],_isBottom:Boolean = false,_isTop:Boolean = false)
-  extends BoxedDomain[BricksDomain, Bricks] with StringDomain[BricksDomain, Bricks]
+class Bricks (dom:BricksDomain,_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain],_isBottom:Boolean = false,_isTop:Boolean = false)
+  extends BoxedDomain[BricksDomain, Bricks](_value,_isBottom,_isTop) with StringDomain[BricksDomain, Bricks]
 {
+   def this() = this(new BricksDomain().top())
    def functionalFactory(_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain],_isBottom:Boolean = false,_isTop:Boolean = false) : Bricks =
-    new Bricks(_value,_isBottom,_isTop)
+    new Bricks(dom,_value,_isBottom,_isTop)
 
    def setToTop(variable : Identifier) : Bricks = this.remove(variable)
 
@@ -402,9 +404,8 @@ class Bricks (_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, Brick
        }
      }
      // Check if we just assume if something is invalid - we dont know that here
-     // TODO: Filter everything with valid or invalid
      expr match {
-       case BinaryArithmeticExpression(_,Constant("invalid",_,_),_,_) => return this
+       case BinaryArithmeticExpression(_,InvalidExpression(_,_),_,_) => return this
        case _ => ()
      }
 
@@ -451,6 +452,8 @@ class Bricks (_value:Map[Identifier, BricksDomain] = Map.empty[Identifier, Brick
    }
    
    private def eval(expr : Expression) : BricksDomain = expr match {
+     case InvalidExpression(_,_) => dom.bottom()
+     case ValidExpression(_,_) => dom.top()
 	   	case x : Identifier => this.get(x)
 	    case Constant(x,_,_) =>
 	      val result = new BricksDomain()
