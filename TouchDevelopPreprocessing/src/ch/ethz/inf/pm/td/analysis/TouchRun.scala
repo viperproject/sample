@@ -12,6 +12,7 @@ import property.SingleStatementProperty
 import apron._
 import heapanalysis.SimpleProgramPointHeapIdentifier
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, ApronInterface}
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
 
 object TouchRun {
 
@@ -39,7 +40,7 @@ object TouchRun {
         SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
         //EntryState
-        val numerical = new StringsAnd(new InvalidAnd(new BoxedNonRelationalNumericalDomain(new Interval(0,0))))
+        val numerical : StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]] = new StringsAnd(new InvalidAnd(new BoxedNonRelationalNumericalDomain(new Interval(0,0))))
         val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
         val heapDomain: NonRelationalHeapDomain[HeapId] =
@@ -47,20 +48,21 @@ object TouchRun {
         heapDomain.setParameter("UnsoundEntryState",false)
 
         val entryDomain =
-          new HeapAndAnotherDomain[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          new HeapAndAnotherDomain[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]],
+            NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
 
         val entryValue = ExpressionSet()
 
-        val entryState = new AbstractState[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+        val entryState = new AbstractState[StringsAnd[InvalidAnd[BoxedNonRelationalNumericalDomain[Interval]],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
-        val analysis = new TouchAnalysis[BoxedNonRelationalNumericalDomain[Interval]]
+        val analysis = new TouchAnalysis[BoxedNonRelationalNumericalDomain[Interval],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]]
         analysis.analyze(entryState)
       } catch {
         case e:UnsupportedLanguageFeatureException =>
           SystemParameters.progressOutput.put("UNSUPPORTED: Unsupported Language Feature: "+e.toString)
           SystemParameters.progressOutput.reset()
         case e:Exception =>
-          SystemParameters.progressOutput.put("ANALYSIS ERROR: Exception during analysis of "+file+": "+e.toString())
+          SystemParameters.progressOutput.put("ANALYSIS ERROR: Exception during analysis of "+file+": "+e.toString)
           for(line <- e.getStackTrace) SystemParameters.progressOutput.put(line.toString)
           SystemParameters.progressOutput.reset()
       }
@@ -98,7 +100,7 @@ object TouchApronRun {
 
         //EntryState
         val domain = new Octagon()
-        val numerical = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain, env = Set.empty).factory()))
+        val numerical : StringsAnd[InvalidAnd[ApronInterface],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]] = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain, env = Set.empty).factory()))
         val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
         val entryValue = ExpressionSet()
@@ -107,10 +109,10 @@ object TouchApronRun {
           val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
           heapDomain.setParameter("UnsoundEntryState",false)
 
-          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId](numerical, heapDomain)
-          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]], NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]], NonRelationalSummaryCollectionHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
-          val analysis = new TouchAnalysisWithApron[ApronInterface]
+          val analysis = new TouchAnalysisWithApron[ApronInterface,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]]
           analysis.analyze(entryState)
         }
         else if (TouchAnalysisParameters.enableCollectionMustAnalysis) {
@@ -123,19 +125,19 @@ object TouchApronRun {
           val heapDomain = new NonRelationalMayAndMustHeapDomain[HeapId](mayHeapDomain, mustHeapDomain)
           heapDomain.setParameter("UnsoundEntryState",false)
 
-          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalMayAndMustHeapDomain[HeapId], HeapId](numerical, heapDomain)
-          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalMayAndMustHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]], NonRelationalMayAndMustHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]], NonRelationalMayAndMustHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
-          val analysis = new TouchAnalysisWithApron[ApronInterface]
+          val analysis = new TouchAnalysisWithApron[ApronInterface,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]]
           analysis.analyze(entryState)
         } else {
           val heapDomain = new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
           heapDomain.setParameter("UnsoundEntryState",false)
 
-          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
-          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
+          val entryDomain = new HeapAndAnotherDomain[StringsAnd[InvalidAnd[ApronInterface],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]], NonRelationalHeapDomain[HeapId], HeapId](numerical, heapDomain)
+          val entryState = new AbstractState[StringsAnd[InvalidAnd[ApronInterface],StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]], NonRelationalHeapDomain[HeapId], HeapId](entryDomain, entryValue)
 
-          val analysis = new TouchAnalysisWithApron[ApronInterface]
+          val analysis = new TouchAnalysisWithApron[ApronInterface,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]]
           analysis.analyze(entryState)
         }
       } catch {
@@ -143,7 +145,7 @@ object TouchApronRun {
           SystemParameters.progressOutput.put("UNSUPPORTED: Unsupported Language Feature: "+e.toString)
           SystemParameters.progressOutput.reset()
         case e:Exception =>
-          SystemParameters.progressOutput.put("ANALYSIS ERROR: Exception during analysis of "+file+": "+e.toString())
+          SystemParameters.progressOutput.put("ANALYSIS ERROR: Exception during analysis of "+file+": "+e.toString)
           for(line <- e.getStackTrace) SystemParameters.progressOutput.put(line.toString)
           SystemParameters.progressOutput.reset()
       }

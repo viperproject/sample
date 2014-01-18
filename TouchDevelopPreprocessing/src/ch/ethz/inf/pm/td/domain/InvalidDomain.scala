@@ -192,6 +192,10 @@ abstract class NumericWithInvalidDomain[N <: NumericalDomain[N], I <: InvalidDom
   extends SemanticCartesianProductDomain[N,I,T](_initialNumerical,_initialInvalid)
   with NumericalDomain[T] { this: T =>
 
+  def numericalDomain : N = _1
+
+  def invalidDomain : I = _2
+
   override def toString() = "Numeric:\n"+ToStringUtilities.indent(this._1.toString)+"\nInvalid:\n"+ToStringUtilities.indent(this._2.toString)
 
 }

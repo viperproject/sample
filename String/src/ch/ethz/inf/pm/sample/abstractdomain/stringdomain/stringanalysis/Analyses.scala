@@ -1,8 +1,9 @@
-package it.unive.dsi.stringanalysis
+package ch.ethz.inf.pm.sample.abstractdomain.stringdomain.stringanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{SemanticDomain, SemanticAnalysis}
 import ch.ethz.inf.pm.sample.oorepresentation.NativeMethodSemantics
 import ch.ethz.inf.pm.sample.property.Property
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain._
 
 /**
  * Created by IntelliJ IDEA.
@@ -13,25 +14,25 @@ import ch.ethz.inf.pm.sample.property.Property
  */
 
 abstract class StringAnalysis[S <: SemanticDomain[S]] extends SemanticAnalysis[S] {
-  def getLabel() : String = "String analysis";
-  def parameters() : List[(String, Any)] = Nil;
+  def getLabel() : String = "String analysis"
+  def parameters() : List[(String, Any)] = Nil
   def setParameter(label : String, value : Any) = throw new StringException("Parameters are not supported")
-  override def reset() : Unit = Unit;
-  def getProperties() : List[Property] = Nil
-  def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(StringSemantics);
+  override def reset() : Unit = Unit
+  def getProperties: List[Property] = Nil
+  def getNativeMethodsSemantics() : List[NativeMethodSemantics] = List(StringSemantics)
 }
 
 class BricksAnalysis extends StringAnalysis[Bricks] {
-  override def getLabel() = super.getLabel()+": Bricks";
-  def getInitialState() : Bricks = new Bricks();
+  override def getLabel() = super.getLabel()+": Bricks"
+  def getInitialState() : Bricks = new Bricks()
 }
 
 class SurelyAndMaybeContainedCharactersAnalysis extends StringAnalysis[SurelyAndMaybeContainedCharacters] {
-  override def getLabel() = super.getLabel()+": SurelyAndMaybeContainedCharacters";
+  override def getLabel() = super.getLabel()+": SurelyAndMaybeContainedCharacters"
   def getInitialState() : SurelyAndMaybeContainedCharacters = new SurelyAndMaybeContainedCharacters(new SurelyContainedCharacters(), new MaybeContainedCharacters());
 }
 
 class PrefixAndSuffixAnalysis extends StringAnalysis[PrefixAndSuffix] {
-  override def getLabel() = super.getLabel()+": PrefixAndSuffix";
-  def getInitialState() : PrefixAndSuffix = new PrefixAndSuffix(new Prefix(), new Suffix());
+  override def getLabel() = super.getLabel()+": PrefixAndSuffix"
+  def getInitialState() : PrefixAndSuffix = new PrefixAndSuffix(new Prefix(), new Suffix())
 }

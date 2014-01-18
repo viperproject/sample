@@ -1,10 +1,9 @@
-package ch.ethz.inf.pm.td.domain
+package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import numericaldomain.NumericalDomain
 import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 
 trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends SimplifiedSemanticDomain[X] { this: X => }
 
@@ -14,7 +13,7 @@ trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends Sim
  * @param dom An instance of the value domain. Only for factory purposes
  * @tparam T The type of the value domain
  */
-class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
+class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
                                                           _value:Map[Identifier, T] = Map.empty[Identifier, T],
                                                           _isBottom:Boolean = false,
                                                           _isTop:Boolean = false)
@@ -65,14 +64,10 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
   override def backwardAccess(field: Identifier) = this
 
   private def eval(expr: Expression): T = expr match {
-    case ValidExpression(_,_) =>
-      dom.top()
-    case InvalidExpression(_,_) =>
-      dom.bottom()
     case Constant(constant, typ, pp) =>
       dom.singleton(constant)
     case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) =>
-      dom.concat(eval(left),eval(right))
+      eval(left).concat(eval(right))
     case x: Identifier =>
       this.get(x)
     case xs: HeapIdSetDomain[_] =>
@@ -96,14 +91,6 @@ class NonrelationalStringDomain[T <:StringValueDomain[T]](dom:T,
         return this
       }
     }
-
-    // Check if we just assume if something is invalid - we dont know that here
-    // TODO: Filter everything with valid or invalid
-    expr match {
-      case BinaryArithmeticExpression(_,InvalidExpression(_,_),_,_) => return this
-      case _ => ()
-    }
-
     expr match {
 
       // Comparison
@@ -165,6 +152,12 @@ trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] { this: T 
 
   def isTop:Boolean
 
+  def concat(right:T):T
+
+}
+
+trait StringValueSetDomain[T <: StringValueSetDomain[T]] extends StringValueDomain[T] { this: T =>
+
   def isSingleton:Boolean
 
   def intersect(a:T,b:T):T
@@ -173,20 +166,18 @@ trait StringValueDomain[T <: StringValueDomain[T]] extends Lattice[T] { this: T 
 
   def singleton(a:String):T
 
-  def concat(a:T,b:T):T
-
 }
 
-class StringKSetDomain(_value: Set[String] = Set.empty[String], _isTop: Boolean = false, _isBottom: Boolean = false)
+class StringKSetDomain(val K: Integer, _value: Set[String] = Set.empty[String], _isTop: Boolean = false, _isBottom: Boolean = false)
   extends KSetDomain[String,StringKSetDomain](_value,_isTop,_isBottom)
-  with StringValueDomain[StringKSetDomain] {
+  with StringValueSetDomain[StringKSetDomain] {
 
   def setFactory (_value: Set[String] = Set.empty[String], _isTop: Boolean = false, _isBottom: Boolean = false): StringKSetDomain =
-    new StringKSetDomain(_value,_isTop,_isBottom)
+    new StringKSetDomain(K, _value,_isTop,_isBottom)
 
   def isSingleton:Boolean = !isBottom && !isTop && value.size == 1
 
-  def getK: Int = TouchAnalysisParameters.stringRepresentationBound
+  def getK = K
 
   def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = {
     a.remove(b).lub(b.remove(a))
@@ -196,10 +187,10 @@ class StringKSetDomain(_value: Set[String] = Set.empty[String], _isTop: Boolean 
 
   def singleton(a: String): StringKSetDomain = factory().add(a)
 
-  def concat(a:StringKSetDomain,b:StringKSetDomain):StringKSetDomain = {
+  def concat(other:StringKSetDomain):StringKSetDomain = {
     var ret = factory()
-    for (left <- a.value)
-      for (right <- b.value)
+    for (left <- this.value)
+      for (right <- other.value)
         ret = ret.add(left + right)
     ret
   }

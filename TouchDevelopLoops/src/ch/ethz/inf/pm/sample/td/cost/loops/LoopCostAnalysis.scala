@@ -8,15 +8,16 @@ import ch.ethz.inf.pm.td.domain.{InvalidAnd, StringsAnd}
 import collection.mutable
 import ch.ethz.inf.pm.sample.property.{ValidatedProgramPoint, WarningProgramPoint, OutputCollector, Property}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain, NumericWithStringDomain}
 
 
-class CostAnalysis[D <: NumericalDomain[D]] extends TouchAnalysisWithApron[D] {
+class CostAnalysis[D <: NumericalDomain[D]] extends TouchAnalysisWithApron[D,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]] {
 
   override def reset() : Unit = NameEncoder.reset();
 
   override def getLabel(): String = "TouchDevelop loop cost analysis"
 
-  override def parameters(): List[(String, Any)] = List(("Domain", List("ApronLinearEqualities")))
+  override def numericalDomainList = ("Domain", List("ApronLinearEqualities"))
 
   override def getProperties: List[Property] = super.getProperties ::: List(new LoopCostProperty())
 
@@ -454,8 +455,8 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     val lastNode = loop.lastNode
     val state = cfge.getStatesOfBlock(lastNode)(cfge.getStatesOfBlock(lastNode).size-1)
     state match {
-      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface]],_,_] => {
-        val apronInterface = as.getSemanticDomain._1._1
+      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
+        val apronInterface = as.getSemanticDomain._1.numericalDomain
         val vars = apronInterface.instantiateState().getEnvironment.getVars
         val lincons = apronInterface.instantiateState().toLincons(apronInterface.instantiateState().getCreationManager)
         for (l <- lincons if l.isLinear) {
@@ -485,8 +486,8 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     val state = cfge.getStatesOfBlock(lastNode)(cfge.getStatesOfBlock(lastNode).size-1)
 
     state match {
-      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface]],_,_] => {
-        val apronInterface = as.getSemanticDomain._1._1
+      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
+        val apronInterface = as.getSemanticDomain._1.numericalDomain
         val vars = apronInterface.instantiateState().getEnvironment.getVars
         var oldCount = 0
         var count = loop.variables.size
@@ -577,8 +578,8 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     val prevNode = loop.prevNode
     val state = cfge.getStatesOfBlock(prevNode)(cfge.getStatesOfBlock(prevNode).size-1)
     state match {
-      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface]],_,_] => {
-        val apronInterface = as.getSemanticDomain._1._1
+      case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
+        val apronInterface = as.getSemanticDomain._1.numericalDomain
         val vars = apronInterface.instantiateState().getEnvironment.getVars
         val lincons = apronInterface.instantiateState().toLincons(apronInterface.instantiateState().getCreationManager)
         for (l <- lincons) {

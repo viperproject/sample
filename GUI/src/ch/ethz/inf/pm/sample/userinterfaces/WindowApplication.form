@@ -3,7 +3,7 @@
   <grid id="27dc6" binding="Sample" layout-manager="GridLayoutManager" row-count="14" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="5" vgap="5">
     <margin top="5" left="5" bottom="5" right="5"/>
     <constraints>
-      <xy x="20" y="20" width="528" height="511"/>
+      <xy x="20" y="20" width="528" height="553"/>
     </constraints>
     <properties/>
     <border type="none"/>

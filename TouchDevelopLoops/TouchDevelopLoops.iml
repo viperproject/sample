@@ -20,6 +20,7 @@
     <orderEntry type="module" module-name="TouchDevelopPreprocessing" />
     <orderEntry type="module" module-name="HeapAnalysis" />
     <orderEntry type="library" name="scala-library" level="project" />
+    <orderEntry type="module" module-name="String" />
   </component>
 </module>
 
