@@ -104,7 +104,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     }
 
     def addRecordsField(field:TouchField) {
-      SRecords.typ = new TouchType(SRecords.typName,isSingleton = true, fields = SRecords.typ.getPossibleFields().toList ::: List(field))
+      SRecords.typ = new TouchType(SRecords.typName,isSingleton = true, fields = SRecords.typ.possibleFields.toList ::: List(field))
     }
 
     def createFieldMembers(fields:List[Parameter]): List[(TouchField,TouchField)] = {
@@ -146,7 +146,7 @@ class CFGGenerator(compiler: TouchCompiler) {
               addTouchType(new AObjectCollection(collectionTyp,objectTyp))
               addTouchType(new AObjectConstructor(constructorTyp,objectTyp,collectionTyp))
 
-              addRecordsField(new TouchField(ident,constructorTyp.getName()))
+              addRecordsField(new TouchField(ident,constructorTyp.name))
 
             case "table" =>
 
@@ -162,7 +162,7 @@ class CFGGenerator(compiler: TouchCompiler) {
               addTouchType(new ARow(rowTyp,tableField))
               addTouchType(new ATable(tableTyp,rowTyp,tableField))
 
-              addRecordsField(new TouchField(ident+" table",tableTyp.getName()))
+              addRecordsField(new TouchField(ident+" table",tableTyp.name))
 
             case "index" =>
 
@@ -175,16 +175,16 @@ class CFGGenerator(compiler: TouchCompiler) {
               addTouchType(new AIndexMember(indexMemberType,fieldMembers))
               val indexType =
                 if (keyTypes.size > 0) {
-                  val ty = new TouchCollection(ident+" Index",TNumber.typName,indexMemberType.getName())
+                  val ty = new TouchCollection(ident+" Index",TNumber.typName,indexMemberType.name)
                   addTouchType(new AIndex(ty,keyTypes,indexMemberType))
                   ty
                 } else {
-                  val ty = new TouchType(ident+" Index",fields = List(new TouchField("singleton",indexMemberType.getName())))
+                  val ty = new TouchType(ident+" Index",fields = List(new TouchField("singleton",indexMemberType.name)))
                   addTouchType(new ASingletonIndex(ty,indexMemberType))
                   ty
                 }
 
-              addRecordsField(new TouchField(ident+" index",indexType.getName()))
+              addRecordsField(new TouchField(ident+" index",indexType.name))
 
             case "decorator" =>
 
@@ -195,12 +195,12 @@ class CFGGenerator(compiler: TouchCompiler) {
 
               val decoratedType = keyMembers.head.getType.asInstanceOf[TouchType]
               val decorationType = new TouchType(ident,fields = (fieldMembers map (_._1)) ::: keyMembers)
-              val decoratorType = new TouchCollection(decoratedType+" Decorator",decoratedType.getName(),decorationType.getName())
+              val decoratorType = new TouchCollection(decoratedType+" Decorator",decoratedType.name,decorationType.name)
 
               addTouchType(new AIndexMember(decorationType,fieldMembers))
               addTouchType(new AIndex(decoratorType,List(decoratedType),decorationType))
 
-              addRecordsField(new TouchField(decoratedType+" decorator",decoratorType.getName()))
+              addRecordsField(new TouchField(decoratedType+" decorator",decoratorType.name))
 
             case _ => throw TouchException("Table type "+typeName+" not supported "+thing.getPositionDescription)
 
@@ -455,17 +455,16 @@ class CFGGenerator(compiler: TouchCompiler) {
 
 
 abstract class Named {
+  def name: String
 
-  def getName() : String
-
-  override def equals(o : Any) : Boolean = o match {
-    case x : Named => x.getName().equals(getName()) && x.getClass.equals(this.getClass)
+  override def equals(o: Any): Boolean = o match {
+    case x: Named => x.name == name && x.getClass == this.getClass
     case _ => false
   }
 
-  override def hashCode() : Int = getName().hashCode()
+  override def hashCode: Int = name.hashCode()
 
-  override def toString = getName()
+  override def toString = name
 }
 
 case class TouchException(msg:String,pos:Position = null) extends Exception {
@@ -482,9 +481,8 @@ case class TouchMethodIdentifier(ident:String,isEvent:Boolean,isPrivate:Boolean)
   override def toString:String = ident
 }
 
-case class TouchClassIdentifier(name:String,typ:Type) extends Named with ClassIdentifier {
+case class TouchClassIdentifier(name: String, typ: Type) extends Named with ClassIdentifier {
   def getThisType() = typ
-  override def getName() = name
 }
 
 case class TouchProgramPoint(scriptID:String, pos:String) extends ProgramPoint {
@@ -528,13 +526,15 @@ case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends Prog
   override def getDescription = pp+" at initialization path "+path.mkString(",")
 }
 
-class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Boolean = false, fields: List[Identifier] = List.empty[Identifier]) extends Named with Type {
+class TouchType(
+    val name: String,
+    val isSingleton: Boolean = false,
+    val isImmutable: Boolean = false,
+    fields: List[Identifier] = List.empty[Identifier])
+  extends Named with Type {
 
-  var isBottom = false;
-  var isTop = false;
-
-  override def getName() = name
-  override def toString():String = name
+  var isBottom = false
+  var isTop = false
 
   def factory() = top()
   def top() = { val res = new TouchType("Top"); res.isTop = true; res }
@@ -566,19 +566,25 @@ class TouchType(name:String, val isSingleton:Boolean = false, val isImmutable:Bo
 
   def isBottomExcluding(types: Set[Type]) = isBottom || types.contains(this)
 
-  def isObject() = !isNumericalType() && !isStringType()
-  def isBooleanType() = name == "Boolean"
-  def isNumericalType() = (name == "Number") || (name == "Boolean")
-  def isFloatingPointType() = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
-  def isStringType() = name == "String"
-  def isStatic() = isSingleton
-  def getPossibleFields() = fields.toSet[Identifier]
-  def getPossibleTouchFields() = fields.toSet[Identifier] map (_.asInstanceOf[TouchField])
-  def getArrayElementsType() = None
+  def isObject = !isNumericalType && !isStringType
+  def isBooleanType = name == "Boolean"
+  def isNumericalType = (name == "Number") || (name == "Boolean")
+  def isFloatingPointType = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
+  def isStringType = name == "String"
+  def isStatic = isSingleton
+  def possibleFields = fields.toSet[Identifier]
+  def possibleTouchFields = fields.toSet[Identifier] map (_.asInstanceOf[TouchField])
+  def arrayElementsType = None
 
 }
 
-case class TouchCollection(name:String,keyType:String,valueType:String, fields: List[Identifier] = List.empty[Identifier], immutableCollection:Boolean = false) extends TouchType(name,false,immutableCollection,fields) {
+case class TouchCollection(
+    override val name: String,
+    keyType: String,
+    valueType: String,
+    fields: List[Identifier] = List.empty[Identifier],
+    immutableCollection: Boolean = false)
+  extends TouchType(name, false, immutableCollection, fields) {
 
   def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(keyType).getTyp
   def getValueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(valueType).getTyp

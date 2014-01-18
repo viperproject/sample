@@ -49,7 +49,7 @@ class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
   override def setArgument(variable: Identifier, expr: Expression): NonrelationalStringDomain[T]  = this.assign(variable, expr)
 
   override def assign(variable: Identifier, expr: Expression): NonrelationalStringDomain[T]  = {
-    if (variable.getType.isStringType()) {
+    if (variable.getType.isStringType) {
       val res = eval(expr)
       //if (res.isBottom) bottom()
       if (variable.representsSingleVariable()) this.add(variable, res)
@@ -87,7 +87,7 @@ class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     // Check if we assume something about non-numerical values - if so, return
     val ids = Normalizer.getIdsForExpression(expr)
       for (id <- ids) {
-      if (!id.getType.isStringType()) {
+      if (!id.getType.isStringType) {
         return this
       }
     }

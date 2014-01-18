@@ -106,7 +106,7 @@ object RichNativeSemantics {
                          initialCollectionSize: Option[RichExpression] = None,
                          initialCollectionValue: Option[RichExpression] = None)(implicit s:S, pp:ProgramPoint): S = {
 
-    typ.getName match {
+    typ.name match {
       case TNumber.typName => s.setExpression(ExpressionSet(Constant("0", TNumber.typ, pp)))
       case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(False))
       case TString.typName => s.setExpression(ExpressionSet(Constant("", TString.typ, pp)))
@@ -115,7 +115,7 @@ object RichNativeSemantics {
         val fields =
           if (TouchAnalysisParameters.libraryFieldPruning && (initializeFields || createFields)) {
             val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
-            val typFields = typ.getPossibleTouchFields()
+            val typFields = typ.possibleTouchFields
             Some(typFields
               .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName)})
               .toSet[Identifier])
@@ -155,7 +155,7 @@ object RichNativeSemantics {
           }
 
           // Assign fields with given arguments
-          for (f <- typ.getPossibleTouchFields()) {
+          for (f <- typ.possibleTouchFields) {
             if(!TouchAnalysisParameters.libraryFieldPruning ||
               SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName)) {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName)
@@ -194,7 +194,7 @@ object RichNativeSemantics {
                          initializeFields:Boolean = true,
                          initialCollectionSize: Option[RichExpression] = None)
                         (implicit s:S, pp:ProgramPoint): S = {
-    typ.getName match {
+    typ.name match {
       case TNumber.typName => s.setExpression(Valid(TNumber.typ))
       case TBoolean.typName => s.setExpression(new ExpressionSet(TBoolean.typ).add(True).add(False))
       case TString.typName => s.setExpression(Valid(TString.typ))
@@ -202,7 +202,7 @@ object RichNativeSemantics {
         val fields =
           if (TouchAnalysisParameters.libraryFieldPruning && (createFields || initializeFields)) {
             val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
-            val typFields = typ.getPossibleTouchFields()
+            val typFields = typ.possibleTouchFields
             Some(typFields
               .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName)})
               .map(_.asInstanceOf[Identifier]))
@@ -259,7 +259,7 @@ object RichNativeSemantics {
           }
 
           // Assign fields with given arguments
-          for (f <- typ.getPossibleTouchFields()) {
+          for (f <- typ.possibleTouchFields) {
             if(!TouchAnalysisParameters.libraryFieldPruning ||
               SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName)) {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName)
@@ -312,7 +312,7 @@ object RichNativeSemantics {
       curState = curState.copyCollection(obj, newObject)
     }
 
-    for (f <- obj.getType().asInstanceOf[TouchType].getPossibleTouchFields()) {
+    for (f <- obj.getType().asInstanceOf[TouchType].possibleTouchFields) {
       if(!TouchAnalysisParameters.libraryFieldPruning ||
         SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString+"."+f.getName)) {
         initials.get(f) match {
@@ -337,7 +337,7 @@ object RichNativeSemantics {
 
   }
 
-  private def getKeyCollectionTyp(colTyp:TouchCollection) = colTyp.getName match {
+  private def getKeyCollectionTyp(colTyp:TouchCollection) = colTyp.name match {
     case TString_Map.typName => Some(TString_Collection.typ)
     case TNumber_Map.typName => Some(TNumber_Collection.typ)
     case TJson_Object.typName => Some(TString_Collection.typ)
@@ -502,10 +502,10 @@ object RichNativeSemantics {
 
   def CallApi[S <: State[S]](obj:RichExpression,method:String,parameters:List[ExpressionSet] = Nil,returnedType:TouchType)(implicit state:S, pp:ProgramPoint): S = {
     // FIXME: Ugly
-    if (obj.getType().getName == "Bottom") {
+    if (obj.getType().name == "Bottom") {
        return state.bottom()
     }
-    val semantics = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(obj.getType().getName)
+    val semantics = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(obj.getType().name)
     semantics.forwardSemantics(obj,method,parameters,returnedType)(pp,state)
   }
 
@@ -604,7 +604,7 @@ object RichNativeSemantics {
     val fieldResult =
       if(parameters.length == 0)
       // Getters
-        typ.getPossibleFields().find(_.getName == method ) match {
+        typ.possibleFields.find(_.getName == method ) match {
           case Some(field) =>
             val fieldValue = Field[S](this0,field.asInstanceOf[TouchField])
             val stateWithExpr = Return[S](fieldValue)
@@ -613,7 +613,7 @@ object RichNativeSemantics {
         }
       else if (parameters.length == 1)
       // Setters
-        typ.getPossibleFields().find("set "+_.getName == method ) match {
+        typ.possibleFields.find("set "+_.getName == method ) match {
           case Some(field) =>
             Some(AssignField[S](this0,field,parameters.head))
           case None =>  None
@@ -638,7 +638,7 @@ object RichNativeSemantics {
   def NegativeInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("neginfty",TNumber.typ,pp))
   def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(InvalidExpression(typ,pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(ValidExpression(typ,pp))
-  def Singleton(typ:Type)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(VariableIdentifier(typ.getName.toLowerCase,typ,pp))
+  def Singleton(typ:Type)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(VariableIdentifier(typ.name.toLowerCase,typ,pp))
 
   /*-- Conversion --*/
 

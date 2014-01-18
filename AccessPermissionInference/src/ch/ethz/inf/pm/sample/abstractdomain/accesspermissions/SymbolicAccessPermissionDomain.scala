@@ -535,7 +535,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (_value:Map
     result=result+((variable, path ::: variable.toString() :: Nil))
     if(! variable.isInstanceOf[VariableIdentifier]) {
       val locationContext = SystemParameters.analysisUnitContext
-      val currentClass = locationContext.clazzType.getName()
+      val currentClass = locationContext.clazzType.name
       val currentMethod = locationContext.methodName
 	    variable.getField match {
 		    case None => return (this.add(variable, new SymbolicLevelPermission(new CountedSymbolicValues(new WrappedDouble(1), new SymbolicPreCondition(currentClass, currentMethod, new Path( path ::: Nil))))), result);

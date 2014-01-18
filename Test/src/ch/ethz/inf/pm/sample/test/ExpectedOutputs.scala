@@ -27,7 +27,7 @@ case class ValidatedPP(val ppIdent:String) extends ExpectedOutput {
 
 case class WarningMethod(val classe : String, val method : String) extends ExpectedOutput {
   override def cover(o : Output) : Boolean = o match {
-    case ch.ethz.inf.pm.sample.property.WarningMethod(classe, method, message) => return classe.getName().equals(this.classe) && method.equals(this.method)
+    case ch.ethz.inf.pm.sample.property.WarningMethod(classe, method, message) => return classe.name.equals(this.classe) && method.equals(this.method)
     case _ => return false;
   }
 
@@ -36,7 +36,7 @@ case class WarningMethod(val classe : String, val method : String) extends Expec
 
 case class ValidatedMethod(val classe : String, val method : String) extends ExpectedOutput  {
   override def cover(o : Output) : Boolean = o match {
-    case ch.ethz.inf.pm.sample.property.ValidatedMethod(classe, method, message) => return classe.getName().equals(this.classe) && method.equals(this.method)
+    case ch.ethz.inf.pm.sample.property.ValidatedMethod(classe, method, message) => return classe.name.equals(this.classe) && method.equals(this.method)
     case _ => return false;
   }
 

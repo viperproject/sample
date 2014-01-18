@@ -397,15 +397,15 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 	  var isTop : Boolean = false;
       var isBottom : Boolean = false;
 
-      override def toString() = getName()
+      override def toString = name
 
-      override def getName() : String = {
+      override def name: String = {
         if(isTop) return "Any";
         if(isBottom) return "Nothing";
         return typ.typeSymbol.name.decode;
       }
 
-      override def isStatic() : Boolean = {
+      override def isStatic: Boolean = {
         if(this.isTop || this.isBottom || typ==null || typ.typeSymbolDirect==NoSymbol)
           return false
         else
@@ -486,31 +486,31 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         return this.typ <:< r.typ || this.typ =:= r.typ
       }
 
-      def isObject() : Boolean = {
+      def isObject: Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;
-        return ! this.isNumericalType();
+        return ! this.isNumericalType;
       }
 
-      def isNumericalType() : Boolean = {
+      def isNumericalType: Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;
         return typ.typeSymbol.name.decode.equals("Int") || typ.typeSymbol.name.decode.equals("Float") || typ.typeSymbol.name.decode.equals("Double");
       }
 
-      def isBooleanType() : Boolean = {
+      def isBooleanType: Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;
         return typ.typeSymbol.name.decode.equals("Bool");
       }
 
-      def isFloatingPointType() : Boolean = {
+      def isFloatingPointType: Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;
         return typ.typeSymbol.name.decode.equals("Float") || typ.typeSymbol.name.decode.equals("Double");
       }
 
-      def isStringType() : Boolean = {
+      def isStringType: Boolean = {
         if(this.isTop) return true;
         if(this.isBottom) return false;
         return typ.typeSymbol.name.decode.equals("String");
@@ -532,7 +532,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         }
       }
 
-      def getPossibleFields() : Set[Identifier] = {
+      def possibleFields: Set[Identifier] = {
         if(! this.isObject) return Set.empty[Identifier];
         if(this.isTop) return Set.empty[Identifier]; //We suppose that Any does not have fields
         var result = Set.empty[Identifier];
@@ -554,7 +554,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
         result;
       }
 
-      def getArrayElementsType() : Option[oorepresentation.Type] =
+      def arrayElementsType: Option[oorepresentation.Type] =
     	  if(typ.toString().length>=5 && typ.toString().substring(0, 5).equals("Array"))
     	 	  Some(new ScalaType(typ.typeArgs.iterator.next))
     	  else None;

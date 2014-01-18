@@ -193,7 +193,7 @@ class ApronInterface(val state: Option[Abstract1],
 
   override def assign(variable: Identifier, expr: Expression): ApronInterface = {
 
-    if (variable.getType.isBooleanType() && !expr.isInstanceOf[Constant]) {
+    if (variable.getType.isBooleanType && !expr.isInstanceOf[Constant]) {
 
       // For state S, boolean variable X and boolean expression E we compute
       //       S.assume(E).assign(X,1) |_| S.assume(!E).assign(X,0)
@@ -207,7 +207,7 @@ class ApronInterface(val state: Option[Abstract1],
 
       state1.lub(state2)
 
-    } else if (variable.getType.isNumericalType()) {
+    } else if (variable.getType.isNumericalType) {
 
       //if (!getIds().contains(variable)) {
       //  println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
@@ -300,7 +300,7 @@ class ApronInterface(val state: Option[Abstract1],
     // Check if we assume something about non-numerical values - if so, return
     val ids = Normalizer.getIdsForExpression(expr)
     for (id <- ids) {
-      if (!id.getType.isNumericalType()) {
+      if (!id.getType.isNumericalType) {
         return this
       }
       if (!getIds().contains(id)) {
@@ -843,7 +843,7 @@ class ApronInterface(val state: Option[Abstract1],
           x: Identifier => new Texpr1VarNode(x.getName)
         }).toList
     case Constant(v, typ, p) =>
-      if (typ.isNumericalType())
+      if (typ.isNumericalType)
         v match {
           case "true" => List(new Texpr1CstNode(new DoubleScalar(1)))
           case "false" => List(new Texpr1CstNode(new DoubleScalar(0)))
@@ -972,7 +972,7 @@ class ApronInterface(val state: Option[Abstract1],
     if (!env.hasVar(varName)) {
       val v = new Array[String](1)
       v(0) = varName
-      if (typ.isFloatingPointType())
+      if (typ.isFloatingPointType)
         env.add(new Array[String](0), v)
       else
         env.add(v, new Array[String](0))

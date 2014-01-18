@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.oorepresentation
 
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.util.Predef._
 
 /** 
  * A class element can be a method or a field
@@ -225,73 +226,60 @@ class PackageDefinition(programpoint : ProgramPoint, name : PackageIdentifier, c
  * @version 0.1
  */
 trait Type extends Lattice[Type] {
-  
-  /**
-   * This method returns <code>true</code> if and only if the current type is not a primitive type
-   */
-  def isObject() : Boolean;
-  
-  /**
-   * This method returns <code>true</code> if and only if the current type is a numerical type
-   */
-  def isNumericalType() : Boolean;
+  require(isFloatingPointType implies isNumericalType)
 
-  /**
-   * This method returns <code>true</code> if and only if the current type represents a float type
-   * We assume that also isNumericalType.
-   */
-  def isFloatingPointType() : Boolean
+  /** Returns `true` iff the current type is not a primitive type. */
+  def isObject: Boolean
 
-  /**
-   * This method returns <code>true</code> if and only if the current type represents a boolean type
-   */
-  def isBooleanType() : Boolean
+  /** Returns `true` iff the current type is a numerical type. */
+  def isNumericalType: Boolean
 
-  /**
-   * This method returns true if and only if the current type represents a string type
-   */
-  def isStringType() : Boolean
+  /** Returns `true` iff the current type represents a float type. */
+  def isFloatingPointType: Boolean
 
-  /**
-   * This method returns <code>true</code> if and only if the current type is static, i.e. it represents only one runtime instance
-   */
-  def isStatic() : Boolean;
-  
-  /**
-   * This method returns the name of the type
-   */
-  def getName() : String;
-  
+  /** Returns `true` iff the current type represents a boolean type. */
+  def isBooleanType: Boolean
+
+  /** Returns `true` iff the current type represents a string type. */
+  def isStringType: Boolean
+
+  /** Returns `true` iff this type only represents one runtime instance. */
+  def isStatic: Boolean
+
+  /** Returns the name of the type. */
+  def name: String
+
   /**
    * If the current type represents a class, it returns the list
    * of the possible fields, an empty set otherwise.
    */
-  def getPossibleFields(): Set[Identifier]
+  def possibleFields: Set[Identifier]
 
   /** Returns the possible fields with an object type. */
   def objectFields: Set[Identifier] =
-    getPossibleFields.filter(_.getType.isObject)
+    possibleFields.filter(_.getType.isObject)
 
   /** Returns the possible fields with a non-object type. */
   def nonObjectFields: Set[Identifier] =
-    getPossibleFields.filter(!_.getType.isObject)
-  
+    possibleFields.filter(!_.getType.isObject)
+
   /**
-   * If the current type represents an array, it returns the type of the elements contained in the array, None otherwise. 
+   * If the current type represents an array, it returns the type
+   * of the elements contained in the array, None otherwise. 
    */
-  def getArrayElementsType() : Option[Type];
-  
+  def arrayElementsType: Option[Type]
+
   /**
-   * This method returns <code>true</code> if and only if the current type can be only instance 
+   * This method returns `true` iff the current type can be only instance
    * of one of the given types and none else.
    * For instance, suppose that:
    * - the current type cannot be instantiated (e.g. it is an interface in Java of a trait in Scala)
    * - it cannot be extended by external libraries (e.g. it is declared as sealed in Scala)
    * - it is extended only by two classes C1 and C2 that cannot be extended
-   * 
-   * If <code>types</code>={C1, C2}, then this method returns <code>true</code>
+   *
+   * If <code>types</code>={C1, C2}, then this method returns `true`
    */
-  def isBottomExcluding(types : Set[Type]) : Boolean;
+  def isBottomExcluding(types: Set[Type]): Boolean
 }
 
 /** 

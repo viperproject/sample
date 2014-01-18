@@ -11,7 +11,7 @@ class FieldHeapIdentifier(val obj : Type, val field : String, value : Type, pp :
   override def getLabel() = "Class";
   override def getField = throw new Exception("Not supported")
   override def isNormalized() : Boolean = false;
-  override def toString : String = obj.getName()+"."+field;
+  override def toString: String = obj.name + "." + field
   override def clone() : Object = new FieldHeapIdentifier(obj, field, value, pp);
   override def hashCode() : Int = field.hashCode();
   override def equals(a : Any) : Boolean = a match {
@@ -35,7 +35,7 @@ class ClassHeapIdentifier(val value : Type, pp : ProgramPoint) extends NonRelati
   override def createAddress(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
   override def createAddressForArgument(t : Type, p : ProgramPoint) : ClassHeapIdentifier=	new ClassHeapIdentifier(t, p);
   override def representsSingleVariable() : Boolean=false;
-  override def getName : String=value.getName();
+  override def getName: String = value.name
   override def clone() : Object =new ClassHeapIdentifier(this.value, this.getProgramPoint);
   override def equals(a : Any) :  Boolean = a match {
     case a1 : FieldHeapIdentifier => false;

@@ -299,7 +299,7 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
       val rootOfFieldAcc = current.asInstanceOf[Variable]
       accPath = rootOfFieldAcc.getName :: accPath
       // TODO: The below fix is a hack and should not be handled this way
-      val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(obj).getPossibleFields().filter(f => f.getName.equals(field)).head.getType else typ
+      val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(obj).possibleFields.filter(f => f.getName.equals(field)).head.getType else typ
       val pathExpr = AccessPathIdentifier(accPath :+ field)(finalType, pp)
       val newResult = state.getFieldValue(ExpressionSet(pathExpr), field, finalType)
       newResult
@@ -476,10 +476,11 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
    * @return the state in which a fresh address pointing to something
    *         of type <code>typ</code> has been created
    */
-  override def forwardSemantics[S <: State[S]](state: S): S = state createObject(typ, pp, Some(typ.getPossibleFields()))
+  override def forwardSemantics[S <: State[S]](state: S): S =
+    state.createObject(typ, pp, Some(typ.possibleFields))
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
-    val ex = state.createObject(typ, pp, Some(typ.getPossibleFields())).getExpression
+    val ex = state.createObject(typ, pp, Some(typ.possibleFields)).getExpression
     state.removeExpression().removeVariable(ex)
   }
 

@@ -32,7 +32,7 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "index of" =>
       val List(item,start) = parameters // Element_Type,Number
 
-      if (start.getType().getName() != TNumber.typName)
+      if (start.getType().name != TNumber.typName)
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, start) && CollectionContainsValue[S](this0, item) equal True , Then={
@@ -45,7 +45,7 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "insert at" =>
       val List(index,item) = parameters // Number,Element_Type
 
-      if (index.getType().getName() != TNumber.typName)
+      if (index.getType().name != TNumber.typName)
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
@@ -60,7 +60,7 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "set at" =>
       val List(index, value) = parameters // Number,Element_Type
 
-      if (index.getType().getName() != TNumber.typName)
+      if (index.getType().name != TNumber.typName)
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
@@ -89,7 +89,7 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "remove at" =>
       val List(index) = parameters // Number
 
-      if (index.getType().getName() != TNumber.typName)
+      if (index.getType().name != TNumber.typName)
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {

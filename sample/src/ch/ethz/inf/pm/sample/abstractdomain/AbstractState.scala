@@ -213,7 +213,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     // Create all variables involved representing the object
     result=HeapIdSetFunctionalLifting.applyToSetHeapId(result, createdLocation, result.createVariable(_, typ))
     var result2 = result
-    for(field <- fields.orElse(Some(typ.getPossibleFields())).get) {
+    for (field <- fields.orElse(Some(typ.possibleFields)).get) {
       val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName, field.getType, field.getProgramPoint))
       result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType))
     }
@@ -539,7 +539,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     // Create all variables involved representing the object
     resHeapAndSemantics=HeapIdSetFunctionalLifting.applyToSetHeapId(resHeapAndSemantics, createdLocation, resHeapAndSemantics.createVariable(_, collTyp))
 
-    for(field <- fields.orElse(Some(collTyp.getPossibleFields())).get) {
+    for (field <- fields.orElse(Some(collTyp.possibleFields)).get) {
       val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, resHeapAndSemantics, resHeapAndSemantics._2.getFieldIdentifier(_, field.getName, field.getType, field.getProgramPoint))
       resHeapAndSemantics=HeapIdSetFunctionalLifting.applyToSetHeapId(resHeapAndSemantics, ids, new HeapAndAnotherDomain[N, H, I](resHeapAndSemantics._1.merge(rep2), state).createVariable(_, field.getType))
     }

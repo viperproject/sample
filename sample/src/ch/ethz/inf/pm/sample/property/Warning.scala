@@ -73,7 +73,7 @@ case class WarningMethod(val classe : Type, val method : String, val message : S
     case _ => false
   }
   override def getMessage()=message;
-  override def toString() : String = "Warning: "+message+" on method "+method+" of class "+classe.getName()
+  override def toString() : String = "Warning: "+message+" on method "+method+" of class "+classe.name
 }
 
 /**
@@ -93,7 +93,7 @@ case class ValidatedMethod(val classe : Type, val method : String, val message :
     case _ => false
   }
   override def getMessage()=message;
-  override def toString() : String = "Validated: "+message+" on method "+method+" of class "+classe.getName()
+  override def toString() : String = "Validated: "+message+" on method "+method+" of class "+classe.name
 }
 
 /**

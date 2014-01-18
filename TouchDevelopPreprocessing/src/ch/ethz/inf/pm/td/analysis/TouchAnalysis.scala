@@ -128,9 +128,9 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
         val typ = sem.asInstanceOf[AAny].getTyp
         if(typ.isSingleton &&
           (!TouchAnalysisParameters.libraryFieldPruning ||
-            SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
-          val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
-          if(typ.getName() == "records")
+            SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.name))) {
+          val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
+          if(typ.name == "records")
             if ( ! TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode) {
               curState = RichNativeSemantics.New[S](typ)(curState,singletonProgramPoint)
             } else {
@@ -139,7 +139,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
           else
             curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
           val obj = curState.getExpression
-          val variable = ExpressionSet(VariableIdentifier(typ.getName.toLowerCase, typ, singletonProgramPoint))
+          val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase, typ, singletonProgramPoint))
           curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
         }
       }
@@ -168,7 +168,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
             curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
             curState.getExpression
           } else {
-            toExpressionSet(toRichExpression(v.typ.getName() match {
+            toExpressionSet(toRichExpression(v.typ.name match {
               case "String" => Constant("",v.typ,v.programpoint)
               case "Number" => Constant("0",v.typ,v.programpoint)
               case "Boolean" => Constant("false",v.typ,v.programpoint)
@@ -229,7 +229,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
     // filter out methods that contain anything other than number and string as arguments
     if(!compiler.isInLibraryMode) {
       methodsToBeAnalyzed = methodsToBeAnalyzed filter { tm =>
-        !tm.arguments.head.exists{ x:VariableDeclaration => x.typ.isObject() }
+        !tm.arguments.head.exists{ x:VariableDeclaration => x.typ.isObject }
       }
     }
 
@@ -293,10 +293,10 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
       curState = curState.pruneVariables({
         case id:VariableIdentifier =>
           id.getType.asInstanceOf[TouchType].isSingleton &&
-          id.getType.getName() != "art" &&
-          id.getType.getName() != "data" &&
-          id.getType.getName() != "code" &&
-          id.getType.getName() != "records"
+          id.getType.name != "art" &&
+          id.getType.name != "data" &&
+          id.getType.name != "code" &&
+          id.getType.name != "records"
         case _ => false
       })
       curState = curState.pruneUnreachableHeap()
@@ -307,12 +307,12 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
           val typ = sem.asInstanceOf[AAny].getTyp
           if(typ.isSingleton &&
             (!TouchAnalysisParameters.libraryFieldPruning ||
-              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.getName))) {
-            if(typ.getName() != "records" && typ.getName() != "art" && typ.getName() != "data" && typ.getName() != "code") {
-              val singletonProgramPoint = TouchSingletonProgramPoint(typ.getName)
+              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.name))) {
+            if(typ.name != "records" && typ.name != "art" && typ.name != "data" && typ.name != "code") {
+              val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
               curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
               val obj = curState.getExpression
-              val variable = ExpressionSet(VariableIdentifier(typ.getName.toLowerCase, typ, singletonProgramPoint))
+              val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase, typ, singletonProgramPoint))
               curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
             }
           }

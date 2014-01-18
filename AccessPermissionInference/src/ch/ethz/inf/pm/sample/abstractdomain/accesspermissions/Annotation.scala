@@ -352,7 +352,7 @@ object Annotation {
 	) : P =  {
 	  var p = s._1._1;
 	  var h = s._1._2;
-	  for(s <- id.getType.getPossibleFields()) {
+	  for(s <- id.getType.possibleFields) {
       //TODO:Maybe this won't work if newHeap!=h
       //I have to test it with TVLA
 		  var (fieldId, newHeap, rep) = h.getFieldIdentifier(id, s.getName, s.getType, s.getProgramPoint);

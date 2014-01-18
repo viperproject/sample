@@ -15,7 +15,7 @@ abstract class ALinearCollection extends ACollection {
     case "at" =>
       val List(index) = parameters // Key_Type
 
-      if (index.getType().getName() != TNumber.typName)
+      if (index.getType().name != TNumber.typName)
         throw new SemanticException("This is not a linear collection " + this0.toString)
 
       val newState = If[S](CollectionIndexInRange[S](this0, index), Then={

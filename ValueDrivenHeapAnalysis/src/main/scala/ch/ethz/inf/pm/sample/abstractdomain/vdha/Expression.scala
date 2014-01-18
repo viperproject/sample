@@ -52,7 +52,7 @@ case class EdgeLocalIdentifier(
     typ: Type)(
     pp: ProgramPoint) extends Identifier(typ, pp) {
 
-  require(!typ.isObject(), "EdgeLocalIdentifier should represent value information.")
+  require(!typ.isObject, "EdgeLocalIdentifier should represent value information.")
   require(accPath.size <= 1, "For now, we allow at most single step look-ahead.")
 
   def getName: String = {

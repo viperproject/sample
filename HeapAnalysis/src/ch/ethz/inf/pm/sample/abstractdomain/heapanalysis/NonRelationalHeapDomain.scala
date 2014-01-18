@@ -623,7 +623,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
       }
 
       alreadyInitialized=alreadyInitialized+obj
-      val c = typ.getPossibleFields;
+      val c = typ.possibleFields;
       for(field <- c) {
         val adds = cod.convert(dom.createAddressForArgument(field.getType, x.getProgramPoint))
         //I can ignore newHeap since it's equal to initial as it is not changed by getFieldIdentifier

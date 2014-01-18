@@ -257,8 +257,8 @@ object Run {
   private def singleOutputToExpectedOutput(o: Output): ExpectedOutput = o match {
     case WarningProgramPoint(pp, message) => new WarningPP(pp.toString)
     case ValidatedProgramPoint(pp, message) => new ValidatedPP(pp.toString)
-    case ch.ethz.inf.pm.sample.property.WarningMethod(classe, method, message) => new WarningMethod(classe.getName(), method)
-    case ch.ethz.inf.pm.sample.property.ValidatedMethod(classe, method, message) => new ValidatedMethod(classe.getName(), method)
+    case ch.ethz.inf.pm.sample.property.WarningMethod(classe, method, message) => new WarningMethod(classe.name, method)
+    case ch.ethz.inf.pm.sample.property.ValidatedMethod(classe, method, message) => new ValidatedMethod(classe.name, method)
     case ch.ethz.inf.pm.sample.property.InferredContract(c) => new ch.ethz.inf.pm.sample.test.InferredContract(contractToExpectedContract(c))
   }
 

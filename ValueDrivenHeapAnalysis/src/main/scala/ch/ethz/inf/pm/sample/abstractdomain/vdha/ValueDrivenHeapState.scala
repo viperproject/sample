@@ -27,7 +27,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   private def createVariable(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
     if (this.isBottom) return this
 
-    if (variable.getType.isObject()) {
+    if (variable.getType.isObject) {
       // Initialize references variables to null such that the heap is not
       // treated as bottom, making it possible to analyze programs with more
       // than one local reference variable. This is unsound, e.g., since two
@@ -61,7 +61,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
   private def createVariableForArgument(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
     if (this.isBottom) return this
-    if (variable.getType.isObject()) {
+    if (variable.getType.isObject) {
       // If the variable is an object, we need to create an object for a method argument. This is different than
       // the normal object creation as we need to create such an object as Top and it can possibly alias(and be
       // aliased by any) other argument (or this).
@@ -200,7 +200,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val rightExp = right.getSetOfExpressions.head
     leftExp match {
       case variable: VariableIdentifier => {
-        if (leftExp.getType.isNumericalType()) {
+        if (leftExp.getType.isNumericalType) {
           result = evalExp(rightExp).apply().map(_.assign(variable, rightExp)).join
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)
@@ -300,7 +300,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
     import CondHeapGraph._
 
-    if (rightExp.getType.isObject()) {
+    if (rightExp.getType.isObject) {
       var edgesToAdd = Set.empty[EdgeWithState[S]]
       rightExp match {
         case x: VariableIdentifier => {
@@ -351,7 +351,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       val newExpr = new ExpressionSet(right.getType()).add(leftAccPath)
       ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom).prune()
     } else {
-      assert(rightExp.getType.isNumericalType(), "only numerical values allowed")
+      assert(rightExp.getType.isNumericalType, "only numerical values allowed")
 
       evalExp(leftExp).intersect(evalExp(rightExp)).apply().mapCondHeaps(condHeap => {
         val leftTakenPath = condHeap.takenPath(leftAccPath.objPath)
@@ -443,7 +443,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     if(this.isBottom) return this
     assert(id.isInstanceOf[VariableIdentifier], "This should be VariableIdentifier.")
     val variableId = id.asInstanceOf[VariableIdentifier]
-    if (ValueDrivenHeapProperty.materialize && variableId.getType.isObject()) {
+    if (ValueDrivenHeapProperty.materialize && variableId.getType.isObject) {
       materializePath(List(variableId.name)).copy(expr = ExpressionSet(variableId))
     } else {
       copy(expr = ExpressionSet(variableId))

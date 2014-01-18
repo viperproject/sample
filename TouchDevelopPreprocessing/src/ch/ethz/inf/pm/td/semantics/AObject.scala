@@ -14,7 +14,7 @@ class AObject(objectTyp:TouchType) extends AAny {
 
     case "clear fields" =>
       var curState = state
-      for (field <- objectTyp.getPossibleTouchFields()) {
+      for (field <- objectTyp.possibleTouchFields) {
         curState = CallApi[S](Field[S](this0,field),"clear",Nil,TUnknown.typ)(curState,pp)
       }
       curState

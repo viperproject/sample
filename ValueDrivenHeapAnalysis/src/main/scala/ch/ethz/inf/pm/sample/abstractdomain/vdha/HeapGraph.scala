@@ -238,7 +238,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     val verticesToRemove = (other.vertices.filter(_.isInstanceOf[HeapVertex]) -- iso.keySet).asInstanceOf[Set[HeapVertex]]
     var idsToRemove = Set.empty[Identifier]
     for (v <- verticesToRemove) {
-      val removeForV: Set[ValueHeapIdentifier] = v.typ.getPossibleFields().map(ValueHeapIdentifier(v, _))
+      val removeForV: Set[ValueHeapIdentifier] = v.typ.possibleFields.map(ValueHeapIdentifier(v, _))
       idsToRemove = idsToRemove ++ removeForV
     }
     for (edgeRight <- edgeMap.values) {
@@ -637,7 +637,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
   def evalExp(expr: Expression): CondHeapGraphSeq[S] = {
     // Translate non-numeric VariableIdentifiers to AccessPathIdentifiers
     val accessPathIds = expr.getIdentifiers.collect {
-      case v: VariableIdentifier if !v.getType.isNumericalType() =>
+      case v: VariableIdentifier if !v.getType.isNumericalType =>
         AccessPathIdentifier(v)
       case apId: AccessPathIdentifier => apId
     }
@@ -664,7 +664,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
   def evalAccessPathId(ap: AccessPathIdentifier): CondHeapGraphSeq[S] = {
     // Get path to the non-null receiver of the field access
     var paths = heap.paths(ap.objPath)
-    if (ap.getType.isNumericalType()) {
+    if (ap.getType.isNumericalType) {
       paths = paths.filter(_.target.isInstanceOf[HeapVertex])
     }
 
@@ -672,7 +672,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     for (path <- paths) {
       var cond = path.condition
 
-      if (ap.getType.isNumericalType()) {
+      if (ap.getType.isNumericalType) {
         val field = ap.path.last
         val targetVertex = path.target.asInstanceOf[HeapVertex]
 

@@ -21,15 +21,15 @@ object DummyNumericType extends Type {
   def glb(other: Type): Type = this
   def widening(other: Type): Type = this
   def lessEqual(other: Type): Boolean = true
-  def isObject(): Boolean = false
-  def isNumericalType(): Boolean = true
-  def isFloatingPointType(): Boolean = true
-  def isBooleanType(): Boolean = false
-  def isStringType(): Boolean = false
-  def isStatic(): Boolean = false
-  def getName(): String = "Dummy Numeric Type"
-  def getPossibleFields(): Set[Identifier] = Set.empty
-  def getArrayElementsType(): Option[Type] = None
+  def isObject: Boolean = false
+  def isNumericalType: Boolean = true
+  def isFloatingPointType: Boolean = true
+  def isBooleanType: Boolean = false
+  def isStringType: Boolean = false
+  def isStatic: Boolean = false
+  def name: String = "Dummy Numeric Type"
+  def possibleFields: Set[Identifier] = Set.empty
+  def arrayElementsType: Option[Type] = None
   def isBottomExcluding(types: Set[Type]): Boolean = true
 }
 

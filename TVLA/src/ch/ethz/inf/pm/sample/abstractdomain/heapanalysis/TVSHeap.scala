@@ -106,7 +106,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     val tempvar = tempheap.addTemporaryVariable()
 
     // if the object has a new fields, we add the necessary predicates
-    for (f <- (typ.getPossibleFields map {
+    for (f <- (typ.possibleFields map {
       _.getName
     })) {
       if (!fields.contains(f)) {
@@ -209,7 +209,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
     // we represent numerical fields in the heap explicitly. createObject was never invoked for them before,
     // so we create a corresponding object now if the expr is numerical.
-    if (expr.getType.getName == "Int" || expr.getType.getName == "String") {
+    if (expr.getType.name == "Int" || expr.getType.name == "String") {
       return createNumericField(obj, field, expr.getType, expr.getProgramPoint)
     }
 
@@ -279,7 +279,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def assign[S <: SemanticDomain[S]](variable: Assignable, expr: Expression, state: S): (TVSHeap, Replacement) = {
     // only consider assignments which change the heap
     // we consider strings not as objects since they are immutable
-    if (!variable.getType.isObject || variable.getType.getName().equals("String")) return (this, new Replacement)
+    if (!variable.getType.isObject || variable.getType.name == "String") return (this, new Replacement)
 
     val tvp = new TVP(this)
     val assignAction = variable match {
@@ -322,7 +322,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     variable match {
       case v: TVSHeapIDSet => (this, Map(), new Replacement)
       case v: VariableIdentifier =>
-        if (typ.getName == "AcyclicList")
+        if (typ.name == "AcyclicList")
           createAcyclicListParameter(v)
         else
           (createVariable(v, typ)._1, Map(), new Replacement)

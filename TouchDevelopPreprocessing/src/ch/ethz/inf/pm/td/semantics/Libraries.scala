@@ -34,7 +34,7 @@ class Libraries() extends NativeMethodSemantics {
 
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
-    if (CFGGenerator.isLibraryIdent(thisExpr.getType().getName())) {
+    if (CFGGenerator.isLibraryIdent(thisExpr.getType().name)) {
       compiler.getMethodWithClassDefinition(operator,thisExpr.getType(),parameters map (_.getType())) match {
         case Some(mdecl: MethodDeclaration) =>
 

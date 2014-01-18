@@ -260,9 +260,9 @@ case class ReferenceComparisonExpression(
     op: ArithmeticOperator.Value,
     returntyp: Type) extends Expression {
 
-  require(left.getType.isObject(),
+  require(left.getType.isObject,
     "cannot perform reference comparisons on primitive values")
-  require(right.getType.isObject(),
+  require(right.getType.isObject,
     "cannot perform reference comparisons on primitive values")
 
   // TODO: Maybe introduce a ReferenceOperator enum with just two values
@@ -532,7 +532,7 @@ case class AccessPathIdentifier(path: List[String])
   override def toString: String = getName
 
   def objPath: List[String] =
-    if (typ.isObject()) path else path.dropRight(1)
+    if (typ.isObject) path else path.dropRight(1)
 }
 
 object AccessPathIdentifier {
