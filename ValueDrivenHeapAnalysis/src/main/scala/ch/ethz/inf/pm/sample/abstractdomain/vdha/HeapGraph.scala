@@ -10,8 +10,9 @@ case class HeapGraph[S <: SemanticDomain[S]](
     vertices: Set[Vertex] = TreeSet.empty[Vertex],
     edges: Set[EdgeWithState[S]] = Set.empty[EdgeWithState[S]]) {
 
-  // This check should be carried out only in the debug mode.
-  // checkConsistency()
+  // TODO: Should only check during debugging for the sake of performance
+  require(edges.forall(_.vertices.subsetOf(vertices)),
+    "graph contains edges with unknown source or target vertices")
 
   // private var mcsCounter = 0
 
@@ -315,7 +316,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
       val newTrg = if (renaming.keySet.contains(e.target)) renaming.apply(e.target) else e.target
       resultingGraph = resultingGraph.addEdges(Set(EdgeWithState(newSrc, e.state.rename(renameMap), e.field, newTrg)))
     }
-    resultingGraph.checkConsistency()
     (resultingGraph, renameMap)
   }
 
@@ -393,7 +393,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
     }
     val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove)))
     val result = HeapGraph(resultingVertices, finalEdges)
-    result.checkConsistency()
     (result, idsToRemove)
   }
 
@@ -430,7 +429,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def lub(other: HeapGraph[S]): (HeapGraph[S], Map[Identifier, Identifier]) = {
     val (resultingGraph, renameMap) = minCommonSuperGraphBeforeJoin(other, mcs(other)._1)
     val resultAH = resultingGraph.joinCommonEdges()
-    resultAH.checkConsistency()
     (resultAH, renameMap)
   }
 
@@ -481,7 +479,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
   }
 
   def mergePointedNodes(): (HeapGraph[S], Replacement) = {
-    //checkConsistancy(this)
     val partitions = partition()
     var newVertices = vertices.filter(!_.isInstanceOf[HeapVertex])
     val mergeMap = mutable.Map.empty[Vertex, Vertex]
@@ -523,15 +520,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def wideningAfterMerge(other: HeapGraph[S]): HeapGraph[S] = {
     assert(vertices.size == other.vertices.size)
     val resGraph = HeapGraph(vertices ++ other.vertices, edges ++ other.edges)
-    resGraph.checkConsistency()
     resGraph.widenCommonEdges()
-  }
-
-  private def checkConsistency() = {
-    for (edge <- edges)
-      if (!vertices.contains(edge.source) || !vertices.contains(edge.target)) {
-        throw new Exception("Source and target vertices should be present.")
-      }
   }
 
   /** Returns true iff there is no weakly equal pair of edges in the graph. */
