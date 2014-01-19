@@ -15,3 +15,5 @@ target
 # making it possible to remove all IntelliJ-specific files.
 .idea/highlighting.xml
 .idea/workspace.xml
+**.iml
+.idea/libraries
