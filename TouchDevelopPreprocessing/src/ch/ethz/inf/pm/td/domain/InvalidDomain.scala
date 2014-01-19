@@ -18,10 +18,10 @@ import BooleanDomain._
 
 trait InvalidDomain[T <: InvalidDomain[T]] extends SimplifiedSemanticDomain[T] { this: T => }
 
-class BooleanInvalidDomain (_value:Map[Identifier, BooleanDomain] = Map.empty[Identifier, BooleanDomain],
-                            _isBottom:Boolean = false,
-                            _isTop:Boolean = false)
-  extends BoxedDomain[BooleanDomain,BooleanInvalidDomain] (_value,_isBottom,_isTop)
+class BooleanInvalidDomain (val value:Map[Identifier, BooleanDomain] = Map.empty[Identifier, BooleanDomain],
+                            val isBottom:Boolean = false,
+                            val isTop:Boolean = false)
+  extends BoxedDomain[BooleanDomain,BooleanInvalidDomain]
   with InvalidDomain[BooleanInvalidDomain] {
 
   def functionalFactory(_value:Map[Identifier, BooleanDomain] = Map.empty[Identifier, BooleanDomain],

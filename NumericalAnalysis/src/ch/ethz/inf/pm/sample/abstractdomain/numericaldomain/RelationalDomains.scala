@@ -20,10 +20,10 @@ class UpperBoundRightPart(_value: Set[Identifier] = Set.empty[Identifier], _isTo
 
 }
 
-class UpperBound(_value:Map[Identifier, UpperBoundRightPart] = Map.empty[Identifier, UpperBoundRightPart],
-                 _isBottom:Boolean = false,
-                 _isTop:Boolean = false)
-  extends BoxedDomain[UpperBoundRightPart, UpperBound](_value,_isBottom,_isTop)
+class UpperBound(val value:Map[Identifier, UpperBoundRightPart] = Map.empty[Identifier, UpperBoundRightPart],
+                 val isBottom:Boolean = false,
+                 val isTop:Boolean = false)
+  extends BoxedDomain[UpperBoundRightPart, UpperBound]
   with RelationalNumericalDomain[UpperBound] {
 
   def functionalFactory(_value:Map[Identifier, UpperBoundRightPart] = Map.empty[Identifier, UpperBoundRightPart],

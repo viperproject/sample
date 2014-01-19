@@ -72,8 +72,8 @@ class PrefixDomain extends Lattice[PrefixDomain]
 }
 
 class Prefix
-  (_value:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain],_isBottom:Boolean = false,_isTop:Boolean = false)
-  extends BoxedDomain[PrefixDomain, Prefix](_value,_isBottom,_isTop) with SimplifiedSemanticDomain[Prefix]
+  (val value:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
+  extends BoxedDomain[PrefixDomain, Prefix] with SimplifiedSemanticDomain[Prefix]
 {
 
   def functionalFactory(_value:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain],_isBottom:Boolean = false,_isTop:Boolean = false) : Prefix =

@@ -14,10 +14,10 @@ trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends Sim
  * @tparam T The type of the value domain
  */
 class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
-                                                          _value:Map[Identifier, T] = Map.empty[Identifier, T],
-                                                          _isBottom:Boolean = false,
-                                                          _isTop:Boolean = false)
-  extends BoxedDomain[T,NonrelationalStringDomain[T]] (_value,_isBottom,_isTop)
+                                                          val value:Map[Identifier, T] = Map.empty[Identifier, T],
+                                                          val isBottom:Boolean = false,
+                                                          val isTop:Boolean = false)
+  extends BoxedDomain[T,NonrelationalStringDomain[T]]
   with StringDomain[T,NonrelationalStringDomain[T]] {
 
   def functionalFactory(_value:Map[Identifier, T] = Map.empty[Identifier, T],

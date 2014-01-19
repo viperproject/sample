@@ -17,9 +17,14 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
-abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
-  (val value:Map[K, V] = Map.empty[K, V],val isBottom:Boolean = false,val isTop:Boolean = false)
+trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   extends Lattice[T] { this: T =>
+
+  def isBottom: Boolean
+
+  def isTop: Boolean
+
+  def value: Map[K, V]
 
   override def factory():T = functionalFactory()
 
@@ -202,9 +207,8 @@ abstract class FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, 
  * @author Pietro Ferrara, Lucas Brutschy
  * @since 0.1
  */
-abstract class BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
-  (_value:Map[Identifier, V] = Map.empty[Identifier, V],_isBottom:Boolean = false,_isTop:Boolean = false)
-  extends FunctionalDomain[Identifier, V, T](_value,_isBottom,_isTop) { this: T =>
+trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
+  extends FunctionalDomain[Identifier, V, T]{ this: T =>
 
   def merge(r: Replacement): T = {
 

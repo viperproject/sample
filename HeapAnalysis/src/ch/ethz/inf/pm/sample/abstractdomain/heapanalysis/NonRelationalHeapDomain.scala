@@ -96,10 +96,10 @@ class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint,_value: Set[I] = 
 }
 
 class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
-                                                   _value:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
-                                                   _isBottom:Boolean = false,
-                                                   _isTop:Boolean = false)
-  extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]](_value,_isBottom,_isTop)
+                                                   val value:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
+                                                   val isBottom:Boolean = false,
+                                                   val isTop:Boolean = false)
+  extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]]
   with LatticeWithReplacement[HeapEnv[I]] {
 
   def functionalFactory(_value:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
@@ -295,10 +295,10 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
 }
 
 class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
-                                                       _value:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
-                                                       _isBottom:Boolean = false,
-                                                       _isTop:Boolean = false)
-    extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]](_value,_isBottom,_isTop)
+                                                       val value:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
+                                                       val isBottom:Boolean = false,
+                                                       val isTop: Boolean = false)
+    extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]]
     with LatticeWithReplacement[VariableEnv[I]] {
 
   def functionalFactory(_value:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
