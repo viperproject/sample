@@ -17,7 +17,7 @@ object SampleBuild extends Build {
                            base = file("NumericalAnalysis")) dependsOn(core,heap)
     
     lazy val touchdevelop = Project(id = "sample-touchdevelop",
-                           base = file("TouchDevelopPreprocessing")) dependsOn(core,heap,numerical)
+                           base = file("TouchDevelopPreprocessing")) dependsOn(core,heap,numerical,string)
 
     lazy val scalapreproc = Project(id = "sample-scala-preprocessing",
                            base = file("ScalaPreprocessing")) dependsOn(core)
@@ -29,7 +29,7 @@ object SampleBuild extends Build {
                            base = file("Partitioning")) dependsOn(core,scalapreproc)
     
     lazy val string = Project(id = "sample-string",
-                           base = file("String")) dependsOn(core)
+                           base = file("String")) dependsOn(core,numerical)
     
     lazy val loops = Project(id = "sample-touchdevel-loops",
                            base = file("TouchDevelopLoops")) dependsOn(core,numerical,touchdevelop,heap)
