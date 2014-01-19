@@ -1,3 +1,4 @@
 scalaSource in Compile := baseDirectory.value / "src"
 
-resourceDirectory in Test := baseDirectory.value / "test" / "resources"
+// dont do that for now, as intellij tries to compile test files which should be resources only
+// resourceDirectory in Test := baseDirectory.value / "test" / "resources"
