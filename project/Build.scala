@@ -2,6 +2,9 @@ import sbt._
 import Keys._
 
 object SampleBuild extends Build {
+
+    
+    
     lazy val root = Project(id = "sample",
                             base = file(".")) aggregate(core, heap,numerical,touchdevelop,
                             scalapreproc,accessperm,partitioning,string,loops,tvla,
@@ -14,8 +17,8 @@ object SampleBuild extends Build {
                            base = file("HeapAnalysis")) dependsOn(core)
     
     lazy val numerical = Project(id = "sample-numerical",
-                           base = file("NumericalAnalysis")) dependsOn(core,heap)
-    
+                           base = file("NumericalAnalysis")) dependsOn(core,heap)     
+
     lazy val touchdevelop = Project(id = "sample-touchdevelop",
                            base = file("TouchDevelopPreprocessing")) dependsOn(core,heap,numerical,string)
 
@@ -49,4 +52,20 @@ object SampleBuild extends Build {
                            base = file("Test")) dependsOn(core,numerical,heap,
                            touchdevelop,scalapreproc,accessperm,partitioning,
                            string,loops,tvla,valuedrivenheap,gui)
+    
+    // Custom configuration key to specify apron shared library location
+    lazy val apronLibPath = settingKey[String]("Absolute path with directory " +
+      "containing apron native libraries") 
+   
+    // Global settings across sub-projects
+    override lazy val settings = super.settings ++ Seq(
+      /* 
+       * Unfortunately we need this because of apron. Need to fork JVM to avoid 
+       * native library loading issues when running e.g. tests a second time in sbt
+       *
+       * Also, set the native library path 
+       *
+       */ 
+      fork := true,
+      javaOptions <+= apronLibPath map { p => "-Djava.library.path=" + p })
 }
