@@ -7,3 +7,4 @@ scalaSource in Compile <<= baseDirectory(_ / "src")
 
 libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.2"
 
+libraryDependencies += "mysql" % "mysql-connector-java" % "5.1.16"
