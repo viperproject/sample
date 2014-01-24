@@ -1,9 +1,9 @@
-scalaSource in Compile := baseDirectory.value / "src"
+scalaSource in Compile <<= baseDirectory(_ / "src")
 
-// the following is problematic: it makes the intellij compilation fail
+// The following is problematic: It makes the intellij compilation fail
 // because the test _resources_ are treated as source files (the .scala
 // resources may not be valid)
-//resourceDirectory in Test := baseDirectory.value / "test"
+// resourceDirectory in Test <<= baseDirectory(_ / "test")
 
 libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.2" % "test"
 

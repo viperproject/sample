@@ -1,4 +1,4 @@
-scalaSource in Compile := baseDirectory.value / "src"
+scalaSource in Compile <<= baseDirectory(_ / "src")
 
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.1"
 

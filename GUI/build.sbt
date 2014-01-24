@@ -1,3 +1,3 @@
-scalaSource in Compile := baseDirectory.value / "src"
+scalaSource in Compile <<= baseDirectory(_ / "src")
 
-javaSource in Compile := baseDirectory.value / "src"
+javaSource in Compile <<= baseDirectory(_ / "src")

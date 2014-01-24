@@ -65,8 +65,8 @@ object SampleBuild extends Build {
     string, loops, tvla, valuedrivenheap, gui)
 
   // Custom configuration key to specify apron shared library location
-  lazy val apronLibPath = settingKey[String]("Absolute path with directory " +
-    "containing apron native libraries")
+  lazy val apronLibPath = SettingKey[String]("apronLibPath",
+    "Absolute path with directory containing apron native libraries")
 
   // Global settings across sub-projects
   override lazy val settings = super.settings ++ Seq(

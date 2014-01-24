@@ -1,4 +1,4 @@
-scalaSource in Compile := baseDirectory.value / "src"
+scalaSource in Compile <<= baseDirectory(_ / "src")
 
-// dont do that for now, as intellij tries to compile test files which should be resources only
-// resourceDirectory in Test := baseDirectory.value / "test" / "resources"
+// Don't do that for now, as intellij tries to compile test files which should be resources only
+// resourceDirectory in Test <<= baseDirectory(_ / "test" / "resources")
