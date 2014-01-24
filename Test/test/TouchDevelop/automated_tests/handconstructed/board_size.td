@@ -1,3 +1,5 @@
+// rf: this test crashes with SIGSEGV in apron/libgmp.so on my system, but only with the Polka polyhedra domain
+
 action theOther() {
 
     $width := math->random(100);

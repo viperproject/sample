@@ -1,11 +1,9 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.sample.Reporter
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPoint}
 import net.liftweb.json.{DefaultFormats, Serialization}
-import java.io.{PrintWriter, FileWriter, File}
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.webapi.{JNode, WebAstTypeHints}
+import ch.ethz.inf.pm.sample.reporting.{SampleError, Reporter}
 
 case class JResult (
     scriptID:String, // A public ID or a private ID (guid)
@@ -50,7 +48,7 @@ class JSONExporter extends ErrorExporter {
 
   def makeResult(scriptID:String):JResult = {
 
-    val errors = (for ((string,pp) <- Reporter.seenErrors) yield {
+    val errors = (for (SampleError(id,string,pp) <- Reporter.seenErrors) yield {
       pp match {
         case TouchProgramPoint(scr,pos) =>
           if (scriptID == scr) {

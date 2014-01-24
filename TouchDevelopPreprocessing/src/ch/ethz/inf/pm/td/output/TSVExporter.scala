@@ -1,8 +1,7 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.sample.Reporter
-import java.io.{PrintWriter, FileWriter, File}
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
+import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleError}
 
 class TSVExporter extends ErrorExporter {
 
@@ -20,7 +19,7 @@ class TSVExporter extends ErrorExporter {
 
     var res = ""
 
-    for ((message,pp) <- Reporter.seenErrors) {
+    for (SampleError(id,message,pp) <- Reporter.seenErrors) {
       pp match {
         case TouchProgramPoint(xScript, _) => if (xScript == id) res += "Error\t"+message+"\t"+pp else ""
         case _ => ""

@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
-import ch.ethz.inf.pm.sample.{Reporter, SystemParameters}
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
@@ -19,6 +19,7 @@ import ch.ethz.inf.pm.td.domain.InvalidExpression
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
+import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
  * 

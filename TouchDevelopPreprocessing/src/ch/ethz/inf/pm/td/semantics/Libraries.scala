@@ -1,11 +1,12 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{EmptyScopeIdentifier, VariableIdentifier, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, NativeMethodSemantics, ProgramPoint, Type}
 import scala.{None, Some}
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
 import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchCompiler}
-import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
  * Implements user-defined libraries
