@@ -4,6 +4,10 @@ syntax: glob
 out
 *.class
 
+# Ephemeral test output
+*.test_last
+Test/test/TouchDevelop/cache
+
 # Ideally, IntelliJ project files whould not be part of the repository,
 # because there is a constant danger of committing user-specific changes.
 # We cannot remove them now because they define modules, dependencies etc.
