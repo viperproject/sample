@@ -380,7 +380,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
 }
 
 
-class Bricks (val value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
+class Bricks (dom:BricksDomain, val value:Map[Identifier, BricksDomain] = Map.empty[Identifier, BricksDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[BricksDomain, Bricks] with StringDomain[BricksDomain, Bricks]
 {
    def this() = this(new BricksDomain().top())
