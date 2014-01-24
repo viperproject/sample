@@ -2,14 +2,6 @@ package ch.ethz.inf.pm.sample.util
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 
-/**
- * Created by IntelliJ IDEA.
- * User: Pietro
- * Date: 25/11/11
- * Time: 12.32
- * To change this template use File | Settings | File Templates.
- */
-
 object HeapIdSetFunctionalLifting {
 
 
@@ -38,17 +30,23 @@ object HeapIdSetFunctionalLifting {
     (ids.get, state.get, rep2)
   }
 
-  def applyToSetHeapId[T <: Lattice[T], I <: HeapIdentifier[I]](fact: T, ids : HeapIdSetDomain[I], f: Assignable => T) : T = {
-      var result : Option[T] = None;
-      for(id <- ids.value)
-        result match {
-          case None => result=Some(f(id));
-          case Some(s) => result=Some(ids.combinator(s, f(id)))
-        }
-      result match {
-        case None => fact.bottom()
-        case Some(s) => s
-      }
-    }
+  /**
+   * Applies a function to a set of heap identifiers, combining (reducing) the result with the HeapIdSetDomain's
+   * combinator, from left to right. An empty heap id set yields bottom.
+   *
+   * @param latticeFactory a dummy lattice element used to retrieve bottom
+   * @param ids the set of heap ids to be transformed
+   * @param f transformer taking a heap id, yielding a lattice element
+   * @tparam T resulting lattice element type
+   * @tparam I heap identifier type of ids in set
+   * @return lattice element resulting from reduction
+   */
+  def applyToSetHeapId[T <: Lattice[T], I <: HeapIdentifier[I]](latticeFactory: T, ids : HeapIdSetDomain[I], f: Assignable => T) : T = {
+    val bottom = latticeFactory.bottom()
+    val idSet = ids.value
+    idSet.map(f)
+      .reduceLeftOption(ids.combinator)
+      .getOrElse(bottom)
+  }
 
 }

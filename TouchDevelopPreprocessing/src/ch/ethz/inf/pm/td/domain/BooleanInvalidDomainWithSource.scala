@@ -13,10 +13,10 @@ import ch.ethz.inf.pm.td.domain.PositionedInvalidValueDomain._
  * Time: 10:50 AM
  * 
  */
-class BooleanInvalidDomainWithSource (_value:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
-                                      _isBottom:Boolean = false,
-                                      _isTop:Boolean = false)
-  extends BoxedDomain[PositionedInvalidValueDomain,BooleanInvalidDomainWithSource] (_value,_isBottom,_isTop)
+class BooleanInvalidDomainWithSource (val value:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
+                                      val isBottom:Boolean = false,
+                                      val isTop:Boolean = false)
+  extends BoxedDomain[PositionedInvalidValueDomain,BooleanInvalidDomainWithSource]
   with InvalidDomain[BooleanInvalidDomainWithSource] {
 
   def functionalFactory(_value:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],

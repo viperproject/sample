@@ -12,8 +12,8 @@ class InverseSetCharacters(_value: Set[Char] = Set.empty[Char], _isTop: Boolean 
 }
 
 class SurelyContainedCharacters
-  (_value:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters],_isBottom:Boolean = false,_isTop:Boolean = false)
-  extends BoxedDomain[InverseSetCharacters, SurelyContainedCharacters](_value,_isBottom,_isTop)
+  (val value:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters], val isBottom:Boolean = false, val isTop:Boolean = false)
+  extends BoxedDomain[InverseSetCharacters, SurelyContainedCharacters]
   with SimplifiedSemanticDomain[SurelyContainedCharacters] {
 
   def functionalFactory(_value:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters],_isBottom:Boolean = false,_isTop:Boolean = false) : SurelyContainedCharacters =
