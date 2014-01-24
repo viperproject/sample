@@ -11,8 +11,8 @@ class SetCharacters(_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false
 }
 
 class MaybeContainedCharacters
-  (_value:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters],_isBottom:Boolean = false,_isTop:Boolean = false)
-  extends BoxedDomain[SetCharacters, MaybeContainedCharacters](_value,_isBottom,_isTop)
+  (val value:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters], val isBottom:Boolean = false, val isTop:Boolean = false)
+  extends BoxedDomain[SetCharacters, MaybeContainedCharacters]
   with SimplifiedSemanticDomain[MaybeContainedCharacters] {
 
   def functionalFactory(_value:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters],_isBottom:Boolean = false,_isTop:Boolean = false) : MaybeContainedCharacters =

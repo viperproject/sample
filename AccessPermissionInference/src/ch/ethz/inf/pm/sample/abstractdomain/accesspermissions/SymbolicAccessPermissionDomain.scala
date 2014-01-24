@@ -417,10 +417,10 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
   
 }
 
-class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (_value:Map[Identifier, SymbolicLevelPermission] = Map.empty[Identifier, SymbolicLevelPermission],
-                                                                      _isBottom:Boolean = false,
-                                                                      _isTop:Boolean = false)
-  extends BoxedDomain[SymbolicLevelPermission, SymbolicPermissionsDomain[I]] (_value,_isBottom,_isTop)
+class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:Map[Identifier, SymbolicLevelPermission] = Map.empty[Identifier, SymbolicLevelPermission],
+                                                                      val isBottom:Boolean = false,
+                                                                      val isTop:Boolean = false)
+  extends BoxedDomain[SymbolicLevelPermission, SymbolicPermissionsDomain[I]]
   with PermissionsDomain[SymbolicPermissionsDomain[I]] {
 
   def functionalFactory(_value:Map[Identifier, SymbolicLevelPermission] = Map.empty[Identifier, SymbolicLevelPermission],
