@@ -172,9 +172,24 @@ case class DomainParams(enableCollectionMustAnalysis: Boolean = false,
                         /**
                          * Maximum number of possible string values represented for a single variable
                          */
-                        stringRepresentationBound: Int = 3
+                        stringRepresentationBound: Int = 3,
 
+                        /**
+                         * The numerical domain to be used.
+                         *
+                         * IMPORTANT: This parameter is ONLY respected when using
+                         * TouchApronRun/TestRunner (important for test suites), but not the GUI.
+                         */
+                        numericalDomain: NumericDomainChoice.Value = NumericDomainChoice.Octagons
                          )
+
+object NumericDomainChoice extends Enumeration {
+  type NumericDomainChoice = Value
+
+  val Octagons = Value
+  val Polyhedra = Value
+  val StrictPolyhedra = Value
+}
 
 case class ReportingParams(reportNoncriticalParameterBoundViolations: Boolean = false,
                            reportDummyImplementations: Boolean = false,

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.domain
 
 
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, BottomVisitor, TouchAnalysis, TouchAnalysisWithApron}
+import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
@@ -11,9 +11,9 @@ import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import apron._
 import numericaldomain.{BoxedNonRelationalNumericalDomain, Interval, ApronInterface}
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
+import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.SimpleProgramPointHeapIdentifier
 import ch.ethz.inf.pm.td.compiler.UnsupportedLanguageFeatureException
-import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 
 object TouchRun {
 
@@ -96,8 +96,9 @@ object TouchApronRun {
 
 
 
-  def runSingle(file: String, touchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
-    touchParams.foreach(p => TouchAnalysisParameters.set(p))
+  def runSingle(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
+    customTouchParams.foreach(p => TouchAnalysisParameters.set(p))
+    val touchParams = TouchAnalysisParameters.get
 
     SystemParameters.compiler = new TouchCompiler
     SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
@@ -110,8 +111,13 @@ object TouchApronRun {
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
     //EntryState
-    val domain = new Octagon()
-    //val domain = new Polka(true)
+    val numericalDomainChoice = touchParams.domains.numericalDomain
+    val domain =
+      numericalDomainChoice match {
+        case NumericDomainChoice.Octagons => new Octagon()
+        case NumericDomainChoice.Polyhedra => new Polka(false)
+        case NumericDomainChoice.StrictPolyhedra => new Polka(true)
+      }
     val numerical: SemanticDomainType = new StringsAnd(new InvalidAnd(new ApronInterface(None, domain, env = Set.empty).factory()))
     val heapID = new SimpleProgramPointHeapIdentifier(null,SystemParameters.typ)
 
