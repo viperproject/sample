@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.test
 import semper.sil.testing.{AnnotatedTestInput, AbstractOutput, SystemUnderTest, AnnotationBasedTestSuite}
 import java.nio.file.Path
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
 
@@ -35,4 +36,6 @@ abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
   }
 
   def runOnFile(file: String): Seq[SampleMessage]
+
+  def touchBoostOptions: TouchAnalysisParameters = TouchAnalysisParameters()
 }

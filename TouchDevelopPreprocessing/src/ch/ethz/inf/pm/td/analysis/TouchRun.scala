@@ -96,7 +96,9 @@ object TouchApronRun {
 
 
 
-  def runSingle(file: String): Seq[SampleMessage] = {
+  def runSingle(file: String, touchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
+    touchParams.foreach(p => TouchAnalysisParameters.set(p))
+
     SystemParameters.compiler = new TouchCompiler
     SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
     SystemParameters.analysisOutput = new StdOutOutput()
@@ -194,7 +196,7 @@ object TouchApronRun {
       sys.exit()
     }
 
-    files foreach runSingle
+    files foreach (f => runSingle(f))
   }
 
 }
