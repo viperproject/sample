@@ -1,8 +1,7 @@
-package ch.ethz.inf.pm.td.domain
+package ch.ethz.inf.pm.td.analysis
 
 
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
-import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
@@ -14,6 +13,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDom
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.SimpleProgramPointHeapIdentifier
 import ch.ethz.inf.pm.td.compiler.UnsupportedLanguageFeatureException
+import ch.ethz.inf.pm.td.domain._
 
 object TouchRun {
 
