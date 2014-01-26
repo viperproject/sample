@@ -671,11 +671,9 @@ class TouchField(
     val isSummaryNode: Boolean = false)
   extends Identifier {
 
-  // Better use a `DummyProgramPoint than `null`
-  val pp = DummyProgramPoint
+  val pp = null
 
-  // Just an alias for `getType` rather than `null`
-  val typ = getType
+  val typ = null
 
   override def getType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
 
