@@ -40,7 +40,7 @@ class ScalaProgramPoint(pos : scala.tools.nsc.util.Position) extends LineColumnP
     case _ => false;
   }
 
-  override def toString() : String = {
+  override def toString : String = {
     var result : String ="";
     if(row != -1)
       result=result+"line "+row+" ";
@@ -64,7 +64,7 @@ abstract class Named(name : String) {
 
   override def hashCode() : Int = name.hashCode();
 
-  override def toString() = name
+  override def toString = name
 }
 
 class ScalaMethodIdentifier(name : String) extends Named(name) with MethodIdentifier
@@ -123,7 +123,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
 
     //TODO: I have to consider also parents, and self!
 
-    case _ => throw new ScalaException("I expected a class definition\n"+program.toString())
+    case _ => throw new ScalaException("I expected a class definition\n"+program.toString)
   }
 
   private def extractClassMembers(members : List[Tree],
@@ -277,7 +277,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
           }
         }
       }
-//    	  if(x.toString().equals("scala.Int.box") && args.size==1) //If it's the boxing of an integer, we can ignore that
+//    	  if(x.toString.equals("scala.Int.box") && args.size==1) //If it's the boxing of an integer, we can ignore that
 //    	 	  return (cfg, statementsUntilHere ::: extractListCFG(args), currentblock, true)
 //    	  else {
 //          val result = (cfg, statementsUntilHere ::: new MethodCall(new ScalaProgramPoint(body.pos), calledMethod, Nil, extractListCFG(args), new ScalaType(body.tpe)) :: Nil , currentblock, true)
@@ -555,7 +555,7 @@ class ScalaProgramToControlFlowGraph(val global: Global) extends PluginComponent
       }
 
       def arrayElementsType: Option[oorepresentation.Type] =
-    	  if(typ.toString().length>=5 && typ.toString().substring(0, 5).equals("Array"))
+    	  if(typ.toString.length>=5 && typ.toString.substring(0, 5).equals("Array"))
     	 	  Some(new ScalaType(typ.typeArgs.iterator.next))
     	  else None;
   }

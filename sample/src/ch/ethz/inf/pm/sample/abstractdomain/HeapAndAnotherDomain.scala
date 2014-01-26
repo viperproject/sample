@@ -21,7 +21,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   extends Lattice[HeapAndAnotherDomain[N, H, I]]
   with LatticeWithReplacement[HeapAndAnotherDomain[N,H,I]] {
 
-  override def toString() : String = "Heap state:\n"+ToStringUtilities.indent(d2.toString())+"\nSemantic state:\n"+ToStringUtilities.indent(d1.toString())
+  override def toString : String = "Heap state:\n"+ToStringUtilities.indent(d2.toString)+"\nSemantic state:\n"+ToStringUtilities.indent(d1.toString)
 
   type T = HeapAndAnotherDomain[N, H, I];
 

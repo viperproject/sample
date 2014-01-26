@@ -9,7 +9,7 @@ import oorepresentation._
 object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
   type P = SymbolicPermissionsDomain[ProgramPointHeapIdentifier]
 
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = thisExpr.getType().toString() match {
+	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = thisExpr.getType().toString match {
 	  case "Chalice" =>
 	    val castedState=state.asInstanceOf[AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier]]
 	    var result : P=castedState._1._1;
@@ -79,14 +79,14 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 					    var result=castedState._1._1;
 				        for(exp <- x.getSetOfExpressions)
 							    	  exp match {
-							    	    case id : Identifier => result = Annotation.exhalePrecondition(id, x.getType().toString(), s, castedState, result);
-                        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, x.getType().toString(), s, castedState, result);
+							    	    case id : Identifier => result = Annotation.exhalePrecondition(id, x.getType().toString, s, castedState, result);
+                        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, x.getType().toString, s, castedState, result);
 							    	  }
 				        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 					    val entryvalue =thisExpr.top().asInstanceOf[ExpressionSet]
 					    return new Some(new AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
 					    /*val methodName=s;
-					    val className=x.getType().toString();
+					    val className=x.getType().toString;
 					    if(this.getPrePostConditions(className, methodName)==None) return None;
 					  	val precondition=this.getPrePostConditions(className, methodName).get._1;
 					  	val method : Option[MethodDeclaration] = findMethod(className, methodName);
@@ -103,14 +103,14 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 					    var result=castedState._1._1;
 				        for(exp <- x.getSetOfExpressions)
 							    	  exp match {
-							    	    case id : Identifier => result = Annotation.inhalePostcondition(id, x.getType().toString(), s, castedState, result);
-                        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => Annotation.inhalePostcondition(id, x.getType().toString(), s, castedState, result);
+							    	    case id : Identifier => result = Annotation.inhalePostcondition(id, x.getType().toString, s, castedState, result);
+                        case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => Annotation.inhalePostcondition(id, x.getType().toString, s, castedState, result);
 							    	  }
 				        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 					    val entryvalue =thisExpr.top().asInstanceOf[ExpressionSet]
 					    return new Some(new AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
 					    /*val methodName=s;
-					    val className=x.getType().toString();
+					    val className=x.getType().toString;
 					    if(this.getPrePostConditions(className, methodName)==None) return None;
 					  	val postcondition=this.getPrePostConditions(className, methodName).get._2;
 					  	val method : Option[MethodDeclaration] = findMethod(className, methodName);

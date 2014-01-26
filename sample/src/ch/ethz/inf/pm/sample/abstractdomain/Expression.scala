@@ -142,7 +142,7 @@ case class NegatedBooleanExpression(thisExpr: Expression) extends Expression {
     case NegatedBooleanExpression(l) => thisExpr.equals(l) 
     case _ => false
   }
-  override def toString() = "! " + thisExpr.toString()
+  override def toString = "! " + thisExpr.toString
 
   override def transform(f:(Expression => Expression)):Expression =
     f(NegatedBooleanExpression(thisExpr.transform(f)))
@@ -183,7 +183,7 @@ case class AbstractOperator(
     case AbstractOperator(l, p, t, o, ty) => thisExpr.equals(l) && parameters.equals(p) && typeparameters.equals(t) & op.equals(o) 
     case _ => false
   }
-  override def toString() = thisExpr.toString() + "." + op.toString() + ToStringUtilities.parametricTypesToString(typeparameters)+"("+ToStringUtilities.listToString(parameters)+")"
+  override def toString = thisExpr.toString + "." + op.toString + ToStringUtilities.parametricTypesToString(typeparameters)+"("+ToStringUtilities.listToString(parameters)+")"
 
   override def transform(f:(Expression => Expression)):Expression =
     f(AbstractOperator(thisExpr.transform(f),parameters.map(_.transform(f)),typeparameters,op,returntyp))
@@ -215,7 +215,7 @@ case class BinaryBooleanExpression(
     case BinaryBooleanExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o) 
     case _ => false
   }
-  override def toString() = left.toString() + op.toString() + right.toString()
+  override def toString = left.toString + op.toString + right.toString
 
   override def transform(f:(Expression => Expression)):Expression =
     f(BinaryBooleanExpression(left.transform(f),right.transform(f),op,returntyp))
@@ -232,7 +232,7 @@ case class FalseExpression(pp: ProgramPoint, returntyp: Type) extends Expression
     case FalseExpression(pp, ty) => pp.equals(this.pp)
     case _ => false
   }
-  override def toString() = "false"
+  override def toString = "false"
 
   override def transform(f:(Expression => Expression)):Expression = f(this)
 
@@ -248,7 +248,7 @@ case class TrueExpression(pp: ProgramPoint, returntyp: Type) extends Expression 
     case TrueExpression(pp, ty) => pp.equals(this.pp)
     case _ => false
   }
-  override def toString() = "true"
+  override def toString = "true"
 
   override def transform(f:(Expression => Expression)):Expression = f(this)
 
@@ -324,7 +324,7 @@ case class BinaryArithmeticExpression(
     case BinaryArithmeticExpression(l, r, o, ty) => left.equals(l) && right.equals(r) && op.equals(o) 
     case _ => false
   }
-  override def toString() = left.toString() + op.toString() + right.toString()
+  override def toString = left.toString + op.toString + right.toString
 
   override def transform(f:(Expression => Expression)):Expression =
     f(BinaryArithmeticExpression(left.transform(f),right.transform(f),op,returntyp))
@@ -369,7 +369,7 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
     case UnaryArithmeticExpression(l, o, ty) => left.equals(l) && op.equals(o)
     case _ => false
   }
-  override def toString() = op.toString() + left.toString()
+  override def toString = op.toString + left.toString
 
   override def transform(f:(Expression => Expression)):Expression =
     f(UnaryArithmeticExpression(left.transform(f),op,returntyp))
@@ -394,7 +394,7 @@ case class Constant(constant: String, typ: Type, pp: ProgramPoint) extends Expre
     case Constant(c, t, pp) => constant.equals(c) && typ.equals(t)
     case _ => false
   }
-  override def toString() = constant
+  override def toString = constant
 
   override def transform(f:(Expression => Expression)):Expression = f(this)
 
@@ -525,7 +525,7 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
     case UnitExpression(t, pp) => true
     case _ => false
   }
-  override def toString() = "Unit"
+  override def toString = "Unit"
 
   override def transform(f:(Expression => Expression)):Expression = f(this)
 

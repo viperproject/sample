@@ -13,7 +13,7 @@ case class WarningPP(ppIdent: String) extends ExpectedOutput {
     case _ => return false;
   }
 
-  override def toString() : String = "warningPP(\"" +ppIdent+ "\")"
+  override def toString : String = "warningPP(\"" +ppIdent+ "\")"
 }
 
 case class ValidatedPP(ppIdent: String) extends ExpectedOutput {
@@ -22,7 +22,7 @@ case class ValidatedPP(ppIdent: String) extends ExpectedOutput {
     case _ => return false;
   }
 
-  override def toString() : String = "validatedPP(\"" +ppIdent+ "\")"
+  override def toString : String = "validatedPP(\"" +ppIdent+ "\")"
 }
 
 case class WarningMethod(classe: String, method: String) extends ExpectedOutput {
@@ -31,7 +31,7 @@ case class WarningMethod(classe: String, method: String) extends ExpectedOutput 
     case _ => return false;
   }
 
-  override def toString() : String = "warningMethod(" +classe+ ", " +method+ ")"
+  override def toString : String = "warningMethod(" +classe+ ", " +method+ ")"
 }
 
 case class ValidatedMethod(classe: String, method: String) extends ExpectedOutput {
@@ -40,7 +40,7 @@ case class ValidatedMethod(classe: String, method: String) extends ExpectedOutpu
     case _ => return false;
   }
 
-  override def toString() : String = "validatedMethod(" +classe+ ", " +method+ ")"
+  override def toString : String = "validatedMethod(" +classe+ ", " +method+ ")"
 }
 
 case class InferredContract(contract: Contract) extends ExpectedOutput {
@@ -49,12 +49,12 @@ case class InferredContract(contract: Contract) extends ExpectedOutput {
     case _ => return false;
   }
 
-  override def toString() : String = "inferredContract("+contract.toString+")"
+  override def toString : String = "inferredContract("+contract.toString+")"
 }
 
 
 sealed abstract class Contract(val exp: String) {
-  def cover(o : ch.ethz.inf.pm.sample.oorepresentation.Annotation) : Boolean = o.exp.toString().equals(exp)
+  def cover(o : ch.ethz.inf.pm.sample.oorepresentation.Annotation) : Boolean = o.exp.toString.equals(exp)
 }
 
 case class Invariant(classe: String, e: String) extends Contract(e) {
@@ -63,7 +63,7 @@ case class Invariant(classe: String, e: String) extends Contract(e) {
     case _ => false;
   }
 
-  override def toString() : String = "invariant(" + classe + ", \"" + exp + "\")"
+  override def toString : String = "invariant(" + classe + ", \"" + exp + "\")"
 }
 
 case class Predicate(classe: String, name: String, e: String) extends Contract(e) {
@@ -72,7 +72,7 @@ case class Predicate(classe: String, name: String, e: String) extends Contract(e
     case _ => false;
   }
 
-  override def toString() : String = "predicate(" + classe + "," + name + ", \"" + exp + "\")"
+  override def toString : String = "predicate(" + classe + "," + name + ", \"" + exp + "\")"
 }
 
 case class PreCondition(classe: String, method: String, e: String) extends Contract(e) {
@@ -81,7 +81,7 @@ case class PreCondition(classe: String, method: String, e: String) extends Contr
     case _ => false;
   }
 
-  override def toString() : String = "precondition(" + classe + "," + method + ", \"" + exp + "\")"
+  override def toString : String = "precondition(" + classe + "," + method + ", \"" + exp + "\")"
 }
 
 case class PostCondition(classe: String, method: String, e: String) extends Contract(e) {
@@ -90,7 +90,7 @@ case class PostCondition(classe: String, method: String, e: String) extends Cont
     case _ => false;
   }
 
-  override def toString() : String = "postcondition(" + classe + "," + method + ", \"" + exp + "\")"
+  override def toString : String = "postcondition(" + classe + "," + method + ", \"" + exp + "\")"
 }
 
 case class LoopInvariant(ppIdent: String, e: String) extends Contract(e) {
@@ -99,5 +99,5 @@ case class LoopInvariant(ppIdent: String, e: String) extends Contract(e) {
     case _ => false;
   }
 
-  override def toString() : String = "loopinvariant(" + ppIdent +", \"" + exp + "\")"
+  override def toString : String = "loopinvariant(" + ppIdent +", \"" + exp + "\")"
 }

@@ -35,7 +35,7 @@ case class ValueHeapIdentifier(
 
   override def equals(obj: Any): Boolean = obj match {
     case x: ValueHeapIdentifier =>
-      this.toString().equals(x.toString())
+      this.toString.equals(x.toString)
     case _ => false
   }
 }

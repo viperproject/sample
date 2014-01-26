@@ -34,7 +34,7 @@ case class Invariant(classe: String, e: String) extends Annotation(e) {
     case _ => false
   }
 
-    override def toString() = "Invariant of class "+classe+": "+exp;
+    override def toString = "Invariant of class "+classe+": "+exp;
 }
 
 /**
@@ -53,7 +53,7 @@ case class Predicate(classe: String, predName: String, e: String) extends Annota
     case _ => false
   }
 
-    override def toString() = "Predicate "+predName+" in class "+classe+": "+exp;
+    override def toString = "Predicate "+predName+" in class "+classe+": "+exp;
 }
 
 /**
@@ -72,7 +72,7 @@ case class PreCondition(classe: String, methodName: String, e: String) extends A
       case _ => false
     }
 
-    override def toString() = "Precondition in class "+classe+" of method "+methodName+": "+exp;
+    override def toString = "Precondition in class "+classe+" of method "+methodName+": "+exp;
 }
 
 /**
@@ -91,7 +91,7 @@ case class PostCondition(classe: String, methodName: String, e: String) extends 
       case _ => false
     }
 
-    override def toString() = "Postcondition in class "+classe+" of method "+methodName+": "+exp;
+    override def toString = "Postcondition in class "+classe+" of method "+methodName+": "+exp;
 }
 
 /**
@@ -109,5 +109,5 @@ case class LoopInvariant(pp: ProgramPoint, e: String) extends Annotation(e) {
       case _ => false
     }
 
-    override def toString() = "Loop invariant "+pp.getDescription+": "+exp;
+    override def toString = "Loop invariant "+pp.getDescription+": "+exp;
 }

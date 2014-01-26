@@ -118,11 +118,11 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     val tvp = new TVP(tempheap)
     tvp.newPP = Some(pp)
     tvp.newPPNum = ppCreates.getOrElse(pp, 0)
-    tvp.addAction(new CreateObject(tempvar.toString()))
+    tvp.addAction(new CreateObject(tempvar.toString))
     val (newheap, repl) = tvp.execute()
     newheap.ppCreates += pp -> (tvp.newPPNum + 1)
 
-    (newheap.extractHeapId(tempvar.toString(), typ), newheap, repl)
+    (newheap.extractHeapId(tempvar.toString, typ), newheap, repl)
   }
 
   /**

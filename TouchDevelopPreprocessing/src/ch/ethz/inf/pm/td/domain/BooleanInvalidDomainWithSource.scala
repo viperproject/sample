@@ -149,7 +149,7 @@ class BooleanInvalidDomainWithSource (val value:Map[Identifier, PositionedInvali
     res
   }
 
-  override def toString():String = {
+  override def toString:String = {
     if (isBottom) return "_|_"
     var result : String = ""
     value.foreach { case (k,v) =>

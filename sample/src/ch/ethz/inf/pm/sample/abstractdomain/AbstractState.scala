@@ -145,7 +145,7 @@ case class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpr
     new ExpressionSet(getType(), result)
   }
 
-  override def toString:String = "Type "+_1.toString()+": "+_1.toString()
+  override def toString:String = "Type "+_1.toString+": "+_1.toString
 
   def merge(r:Replacement) : ExpressionSet = {
 
@@ -523,7 +523,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     if(isBottom) "_|_"
     else this._1.toString+";\nExpr.: "+this._2.toString
   }
-  override def toString() : String = {
+  override def toString : String = {
     if(isBottom) "_|_"
     else this._1.toString+"\nExpression:\n"+ToStringUtilities.indent(this._2.toString)
   }

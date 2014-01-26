@@ -25,7 +25,7 @@ trait PermissionsDomain[P <: PermissionsDomain[P]] extends SemanticDomain[P] { t
 
 
 class Path(val p : List[String]) {
-  override def toString() : String = {
+  override def toString : String = {
     var result : String ="";
     for(el <- p)
       if(result.equals("")) result=el;
@@ -57,7 +57,7 @@ sealed abstract class SymbolicValue(var path : Path) {
 }
 
 case object Epsilon extends SymbolicValue(null) { 
-  override def toString() = "Epsilon";
+  override def toString = "Epsilon";
   override def hashCode() = 0;
   override def equals(a : Any) : Boolean = super.equals(a)
   /*a match {
@@ -68,7 +68,7 @@ case object Epsilon extends SymbolicValue(null) {
 }
 
 case class SymbolicMonitorInvariant(c: String, p: Path) extends SymbolicValue(p) {
-  override def toString() = "Invariant("+c.toString()+", "+path.toString()+")";
+  override def toString = "Invariant("+c.toString+", "+path.toString+")";
   override def hashCode() = c.hashCode();
   override def equals(a : Any) : Boolean = a match {
     case x: SymbolicMonitorInvariant => return c.equals(x.c) && path.equals(x.path);
@@ -78,7 +78,7 @@ case class SymbolicMonitorInvariant(c: String, p: Path) extends SymbolicValue(p)
 }
 
 case class SymbolicAbstractPredicates(c: String, name: String, p: Path) extends SymbolicValue(p) {
-  override def toString() = "Predicate("+c.toString()+"."+name+", "+path.toString()+")";
+  override def toString = "Predicate("+c.toString+"."+name+", "+path.toString+")";
   override def hashCode() = c.hashCode();
   override def equals(a : Any) : Boolean = a match {
     case x : SymbolicAbstractPredicates => return c.equals(x.c) && name.equals(x.name) && path.equals(x.path);
@@ -89,7 +89,7 @@ case class SymbolicAbstractPredicates(c: String, name: String, p: Path) extends 
 
 case class SymbolicPreCondition(className: String, methodName: String, p: Path) extends SymbolicValue(p) {
 	assert(className!=null && methodName!=null)
-  override def toString() = "pre("+className.toString()+"."+methodName.toString()+", "+path.toString()+")";
+  override def toString = "pre("+className.toString+"."+methodName.toString+", "+path.toString+")";
   override def hashCode() = methodName.hashCode();
   override def equals(a : Any) : Boolean = a match {
     case x : SymbolicPreCondition => className.equals(x.className) && methodName.equals(x.methodName) && path.equals(x.path);
@@ -100,7 +100,7 @@ case class SymbolicPreCondition(className: String, methodName: String, p: Path) 
 
 case class SymbolicPostCondition(className: String, methodName: String, p: Path) extends SymbolicValue(p) {
 	assert(className!=null && methodName!=null)
-  override def toString() = "post("+className.toString()+"."+methodName.toString()+", "+path.toString()+")";
+  override def toString = "post("+className.toString+"."+methodName.toString+", "+path.toString+")";
   override def hashCode() = methodName.hashCode();
   override def equals(a : Any) : Boolean = a match {
     case x : SymbolicPostCondition => className.equals(x.className) && methodName.equals(x.methodName) && path.equals(x.path);
@@ -150,9 +150,9 @@ sealed abstract class DoubleOrTop {
     }
   }
   
-  override def toString() = this match {
+  override def toString = this match {
     case Top => "Uknown"
-    case WrappedDouble(i) => i.toString();
+    case WrappedDouble(i) => i.toString;
   }
   
   override def hashCode() = this match {
@@ -185,9 +185,9 @@ class CountedSymbolicValues(val n : DoubleOrTop, val s : SymbolicValue) {
   
   def this(i : Double) = this(WrappedDouble(i), null);
   
-  override def toString() = s match {
-    case null => n.toString();
-    case k => n.toString()+"*"+s.toString();
+  override def toString = s match {
+    case null => n.toString;
+    case k => n.toString+"*"+s.toString;
   }
   
   override def hashCode() = n.hashCode();
@@ -244,17 +244,17 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
     return result;
   }
 
-  override def toString() : String = {
+  override def toString : String = {
     if(isBottom) return "_|_";
     if(value.isEmpty) return "0";
     var result : String = "";
     var first = true;
     for(el <- value)
       if(first) {
-    	  result=el.toString();
+    	  result=el.toString;
     	  first=false;
       }
-      else result = result+" + "+el.toString();
+      else result = result+" + "+el.toString;
     return result;
   }
   
@@ -450,7 +450,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:
   
   private def inhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
-	if(! id.getType.toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(new SimpleVal(Settings.permissionType.maxLevel), new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
+	if(! id.getType.toString.equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(new SimpleVal(Settings.permissionType.maxLevel), new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
 	if(! Settings.unsoundInhaling && ! id.representsSingleVariable) //In order to be sound, I cannot inhale on heap summary nodes
 		return this;
 	if(actual.equals(this.top()))
@@ -460,7 +460,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:
   private def exhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
 	//TODO:Is this right?
-	if(! id.getType.toString().equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(ConstraintsInference.convert(actual), ConstraintsInference.convert(p)));
+	if(! id.getType.toString.equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(ConstraintsInference.convert(actual), ConstraintsInference.convert(p)));
 	if(actual.equals(this.top()))
 		return this.add(id, new SymbolicLevelPermission(p));
 	else return this.add(id, actual-p);
@@ -511,7 +511,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:
   def removeVariable(variable : Identifier) : SymbolicPermissionsDomain[I] = this.remove(variable);
   
   def assign(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = {
-    if(! variable.getType.toString().equals("Chalice") && ! variable.isInstanceOf[VariableIdentifier])
+    if(! variable.getType.toString.equals("Chalice") && ! variable.isInstanceOf[VariableIdentifier])
     	ConstraintsInference.addConstraint(Settings.permissionType.ensureWriteLevel(ConstraintsInference.convert(this.get(variable))));
     return this
   }
@@ -521,7 +521,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:
   def setArgument(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = this
   
   def access(field : Identifier) : SymbolicPermissionsDomain[I] = {
-    if(! field.getType.toString().equals("Chalice") && ! field.isInstanceOf[VariableIdentifier])
+    if(! field.getType.toString.equals("Chalice") && ! field.isInstanceOf[VariableIdentifier])
     	ConstraintsInference.addConstraint(Settings.permissionType.ensureReadLevel(ConstraintsInference.convert(this.get(field))));
     return this
     }
@@ -532,7 +532,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:
   def createVariable(variable : Identifier, typ : Type) : SymbolicPermissionsDomain[I] = return this.setPermissionLevel(variable, Settings.permissionType.maxLevel);
   def createVariableForArgument(variable : Identifier, typ : Type, path : List[String]) : (SymbolicPermissionsDomain[I], Map[Identifier, List[String]]) = {
     var result = Map.empty[Identifier, List[String]];
-    result=result+((variable, path ::: variable.toString() :: Nil))
+    result=result+((variable, path ::: variable.toString :: Nil))
     if(! variable.isInstanceOf[VariableIdentifier]) {
       val locationContext = SystemParameters.analysisUnitContext
       val currentClass = locationContext.clazzType.name

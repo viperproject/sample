@@ -94,7 +94,7 @@ class Suffix
     case None => new SuffixDomain().top();
    }
    override def getStringOfId(id : Identifier) : String = {
-     get(id).toString();
+     get(id).toString;
    }
    
    private def eval(expr : Expression) : SuffixDomain = expr match {

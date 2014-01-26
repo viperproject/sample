@@ -275,7 +275,7 @@ class Conditional[S <: State[S]] (override val parent: LoopCostInternal[S], over
       val prefix = "c" + nodeId.toString
       val pv = pubsVariables
 
-      var result = "eq(" + pubsName + ",0,[c" + nodeId.toString() + "y1(" + pubsVariablesInitial+"),c"+ nodeId.toString() + "n1(" + pubsVariablesInitial+")],[]).\n"
+      var result = "eq(" + pubsName + ",0,[c" + nodeId.toString + "y1(" + pubsVariablesInitial+"),c"+ nodeId.toString + "n1(" + pubsVariablesInitial+")],[]).\n"
       for (branch <- List(true, false)) {
         val queue : mutable.Queue[Condition] = new mutable.Queue[Condition]
         val ic = if (branch) pubsInnerCallsTrue else pubsInnerCallsFalse
@@ -433,7 +433,7 @@ class Loop[S <: State[S]] (override val parent: LoopCostInternal[S], override va
     val cost = "nat(" + parent.costModel.loopCostExpression(parent.cfg, nodeId) + ")"
     val pvr = pubsVariablesRecursive
 
-    var result = "eq(" + pubsName + ",0,[l" + nodeId.toString() + "x1(" + pubsVariablesInitial+")],[]).\n"
+    var result = "eq(" + pubsName + ",0,[l" + nodeId.toString + "x1(" + pubsVariablesInitial+")],[]).\n"
 
     val queue : mutable.Queue[Condition] = new mutable.Queue[Condition]
     if (condition != null) queue.enqueue(condition)

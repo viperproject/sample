@@ -63,7 +63,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
     }
 	}
 	
-	def analyzeConstructor[S <: State[S]](thisExpr : ExpressionSet, parameters : List[ExpressionSet], state : S, returnedType : Type) : Option[S] = returnedType.toString() match {
+	def analyzeConstructor[S <: State[S]](thisExpr : ExpressionSet, parameters : List[ExpressionSet], state : S, returnedType : Type) : Option[S] = returnedType.toString match {
 	  case "Array" => None /*parameters match {
 		        case x :: Nil =>
 		        	if(thisExpr.getExpressions().size != 1) throw new MethodSemanticException("This is not yet supported!");
@@ -120,7 +120,7 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
   	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
   
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] =
-		if(thisExpr.getType().toString().equals("Int") || SystemParameters.ignoreTypeForNumericalMethods)
+		if(thisExpr.getType().toString.equals("Int") || SystemParameters.ignoreTypeForNumericalMethods)
 			operator match {
 			  case ">=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.>=, returnedtype);
 			  case "<=" => return createBinaryArithmeticExpression[S](state, thisExpr, parameters, ArithmeticOperator.<=, returnedtype);
@@ -167,7 +167,7 @@ object BooleanNativeMethodSemantics extends NativeMethodSemantics {
   	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
   
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = {
-		if(thisExpr.getType().toString().equals("Boolean"))
+		if(thisExpr.getType().toString.equals("Boolean"))
 			operator match {
 			  case "&&" => return createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.&&, returnedtype);
 			  case "||" => return createBinaryBooleanExpression[S](state, thisExpr, parameters, BooleanOperator.||, returnedtype);
