@@ -186,7 +186,7 @@ trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends Semanti
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]) = {
     var result = Map.empty[Identifier, List[String]];
-    result = result + ((variable, path ::: variable.toString() :: Nil));
+    result = result + ((variable, path ::: variable.toString :: Nil));
     return (this.createVariable(variable, typ), result);
   }
 

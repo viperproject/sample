@@ -31,7 +31,7 @@ abstract class AAny extends NativeMethodSemantics {
                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = {
 
 
-      if (thisExpr.getType().toString() == getTypeName) {
+      if (thisExpr.getType().toString == getTypeName) {
 
         if (state.lessEqual(state.bottom())) {
           return Some(state.bottom())

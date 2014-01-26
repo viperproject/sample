@@ -682,7 +682,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         cond = cond.rename(renameFrom, List(ap))
 
         // AccessPathIdentifier must agree also with the ValueHeapIdentifier
-        val resId = ValueHeapIdentifier(targetVertex, field, ap.getType, ap.getProgramPoint)
+        val resId = ValueHeapIdentifier(targetVertex, field, ap.getType, ap.pp)
         cond = cond.assume(new BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==, null))
       }
 

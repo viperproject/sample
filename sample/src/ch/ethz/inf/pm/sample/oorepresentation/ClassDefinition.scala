@@ -93,14 +93,14 @@ class MethodDeclaration(
               ) extends ClassElements 
 {
 
-  override def toString() : String = 
+  override def toString : String = 
     "method "+
     ToStringUtilities.toStringIfNotNull(returnType)+" "+
     name.toString+
     ToStringUtilities.parametricTypesToString(parametricType)+
     ToStringUtilities.listOfListToCommasRepresentation[VariableDeclaration](arguments)+
     "\n-------------------\nBODY:\n"+
-    body.toString()+
+    body.toString+
     "\n-------------------\n\n"
 
   protected def initializeArgument[S <: State[S]](state: S, parameters: List[List[VariableDeclaration]]): S = {
@@ -164,7 +164,7 @@ class FieldDeclaration(
     override val right: Option[Statement] = None)
   extends VariableDeclaration(programpoint, variable, typ, right) with ClassElements {
 
-  override def toString(): String =
+  override def toString: String =
     "field " +
       ToStringUtilities.toStringIfNotNull(typ) + variable.toString +
       ToStringUtilities.assignedIfNotNull(right)
@@ -199,7 +199,7 @@ class ClassDefinition(
   def addField(f : FieldDeclaration) : Unit = fields=fields ::: f :: Nil
   def addMethod(m : MethodDeclaration) : Unit = methods=methods ::: m :: Nil
   
-  override def toString() : String = 
+  override def toString : String = 
     ToStringUtilities.listToNewLineRepresentation[FieldDeclaration](fields)+
     "\n\n"+
     ToStringUtilities.listToNewLineRepresentation[MethodDeclaration](methods)
@@ -216,7 +216,7 @@ class ClassDefinition(
  * @version 0.1
  */
 class PackageDefinition(programpoint : ProgramPoint, name : PackageIdentifier, classes : List[ClassDefinition]) {
-  override def toString() : String = "package "+name+"\n\n"+ToStringUtilities.listToNewLineRepresentation[ClassDefinition](classes)
+  override def toString : String = "package "+name+"\n\n"+ToStringUtilities.listToNewLineRepresentation[ClassDefinition](classes)
 } 
 
 /** 

@@ -71,7 +71,7 @@ object Annotation {
  	def localConditionToString(cond : Map[FieldAccess, Int]) : String = {
  		var result : String = "";
  		for(fieldAccess <- cond.keySet) {
- 			if(! cond.apply(fieldAccess).toString().equals("0"))
+ 			if(! cond.apply(fieldAccess).toString.equals("0"))
  				result=result+fieldAccess+" -> "+cond.apply(fieldAccess)+"\n";
  		}
  		return result;
@@ -122,7 +122,7 @@ object Annotation {
 	  var p = s._1._1;
 	  if(predicates.keys.toList.contains(predicate))
 	    return this.inhaleFieldsPermissions(id, predicates.get(predicate).get, p, s)
-	  else return this.inhaleReachable(id, s._1._1, s._1._2._1, s._1._2._2, SymbolicAbstractPredicates(id.getType.toString(), predicate, null));
+	  else return this.inhaleReachable(id, s._1._1, s._1._2._1, s._1._2._2, SymbolicAbstractPredicates(id.getType.toString, predicate, null));
 	}
 
  	def inhalePredicate[P <: PermissionsDomain[P]](
@@ -144,7 +144,7 @@ object Annotation {
 	  var p = s._1._1;
 	  if(predicates.keys.toList.contains(predicate))
 	    return this.exhaleFieldsPermissions(id, predicates.get(predicate).get, p, s)
-	  else return this.exhaleReachable(id, s._1._1, s._1._2._1, s._1._2._2, SymbolicAbstractPredicates(id.getType.toString(), predicate, null));
+	  else return this.exhaleReachable(id, s._1._1, s._1._2._1, s._1._2._2, SymbolicAbstractPredicates(id.getType.toString, predicate, null));
 	}
 
   def exhalePredicate[P <: PermissionsDomain[P]](
@@ -355,7 +355,7 @@ object Annotation {
 	  for(s <- id.getType.possibleFields) {
       //TODO:Maybe this won't work if newHeap!=h
       //I have to test it with TVLA
-		  var (fieldId, newHeap, rep) = h.getFieldIdentifier(id, s.getName, s.getType, s.getProgramPoint);
+		  var (fieldId, newHeap, rep) = h.getFieldIdentifier(id, s.getName, s.getType, s.pp);
       for(singleId <- fieldId.value)
 	 	    p = p.free(singleId);
 	  }

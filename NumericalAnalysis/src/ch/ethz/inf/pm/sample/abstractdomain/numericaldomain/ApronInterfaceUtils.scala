@@ -83,7 +83,7 @@ class ApronInterfaceTranslator(
    */
   def translate(t: Linterm1): Expression = {
     val id = resolve(t.getVariable)
-    val coeff = Constant(t.coeff.toString, id.getType, id.getProgramPoint)
+    val coeff = Constant(t.coeff.toString, id.getType, id.pp)
     BinaryArithmeticExpression(coeff, id, ArithmeticOperator.*, id.getType)
   }
 

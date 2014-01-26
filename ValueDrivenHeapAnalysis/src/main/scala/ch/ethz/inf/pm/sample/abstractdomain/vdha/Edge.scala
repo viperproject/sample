@@ -128,7 +128,7 @@ case class RootedHeapGraphPath[S <: SemanticDomain[S]]
       var renameTo = List.empty[EdgeLocalIdentifier]
       for (elId <- idsToRenameToSource) {
         renameFrom = elId :: renameFrom
-        renameTo = elId.copy(accPath = List.empty)(elId.getProgramPoint) :: renameTo
+        renameTo = elId.copy(accPath = List.empty)(elId.pp) :: renameTo
       }
       newState = newState.rename(renameFrom, renameTo)
 

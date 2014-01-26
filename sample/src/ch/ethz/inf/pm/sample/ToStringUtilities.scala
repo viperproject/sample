@@ -56,13 +56,13 @@ object ToStringUtilities {
 
   def toStringIfNotNull(obj : AnyRef) : String = obj match {
     case null => ""
-    case x => x.toString()
+    case x => x.toString
   }
   
   def assignedIfNotNull(obj : AnyRef) : String = obj match {
     case null => ""
     case x: EmptyStatement => ""
-    case x => " = "+x.toString()
+    case x => " = "+x.toString
   }
   
   def optionToString[T](x : Option[T]) : String = x match {

@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Expression}
  */
 case class MultiValExpression(left : Expression, right:Expression, returnTyp : Type) extends Expression {
 
-  def getProgramPoint = left.getProgramPoint
+  def pp = left.pp
   def getType = returnTyp
   def getIdentifiers : Set[Identifier] = left.getIdentifiers ++ right.getIdentifiers
 

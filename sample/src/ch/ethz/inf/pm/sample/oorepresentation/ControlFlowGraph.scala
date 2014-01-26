@@ -335,7 +335,7 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
   //Work-around for Java interfacing
 
   override def toSingleLineString(): String = {
-    if (this.nodes.size != 1) return toString()
+    if (this.nodes.size != 1) return toString
     var result: String = ""
     for (st <- this.nodes.apply(0))
       result = result + st.toSingleLineString()

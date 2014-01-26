@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
 import ch.ethz.inf.pm.td.compiler._
 import collection.immutable.Range.Inclusive
@@ -117,7 +117,7 @@ object RichNativeSemantics {
             val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
             val typFields = typ.possibleTouchFields
             Some(typFields
-              .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName)})
+              .filter({ f:TouchField => relFields.contains(typ.toString+"."+f.getName)})
               .toSet[Identifier])
           }
           else if (!initializeFields) Some(Set.empty[Identifier])
@@ -157,7 +157,7 @@ object RichNativeSemantics {
           // Assign fields with given arguments
           for (f <- typ.possibleTouchFields) {
             if(!TouchAnalysisParameters.libraryFieldPruning ||
-              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName)) {
+              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString+"."+f.getName)) {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName)
               val a = initials.get(f) match {
                 case None => f.default match {
@@ -204,7 +204,7 @@ object RichNativeSemantics {
             val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
             val typFields = typ.possibleTouchFields
             Some(typFields
-              .filter({ f:TouchField => relFields.contains(typ.toString()+"."+f.getName)})
+              .filter({ f:TouchField => relFields.contains(typ.toString+"."+f.getName)})
               .map(_.asInstanceOf[Identifier]))
           }
           else if (!initializeFields) Some(Set.empty[Identifier])
@@ -261,7 +261,7 @@ object RichNativeSemantics {
           // Assign fields with given arguments
           for (f <- typ.possibleTouchFields) {
             if(!TouchAnalysisParameters.libraryFieldPruning ||
-              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString()+"."+f.getName)) {
+              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.toString+"."+f.getName)) {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName)
               val a = initials.get(f) match {
                 case None => f.topDefault match {
@@ -573,7 +573,7 @@ object RichNativeSemantics {
 
   def AssignField[S <: State[S]](obj:RichExpression,field:String,value:RichExpression)(implicit state:S, pp:ProgramPoint): S = {
     if(!TouchAnalysisParameters.libraryFieldPruning ||
-      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString()+"."+field)) {
+      SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(obj.getType().toString+"."+field)) {
 
       if (TouchAnalysisParameters.topFields.contains(field)) {
         state.assignField(obj, field, Valid(value.getType()))
@@ -662,8 +662,19 @@ object RichNativeSemantics {
 
 }
 
-class TouchField(name:String, typName:String, val default: Initializer = NewInitializer, val topDefault: Initializer = TopInitializer, val isSummaryNode:Boolean = false)
-  extends Identifier(null,null) {
+class TouchField(
+    name: String,
+    typName: String,
+    val default: Initializer = NewInitializer,
+    val topDefault: Initializer = TopInitializer,
+    val isSummaryNode: Boolean = false)
+  extends Identifier {
+
+  // Better use a `DummyProgramPoint than `null`
+  val pp = DummyProgramPoint
+
+  // Just an alias for `getType` rather than `null`
+  val typ = getType
 
   override def getType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
 

@@ -52,7 +52,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     var result = Map.empty[Identifier, List[String]]
-    result = result + ((variable, path ::: variable.toString() :: Nil))
+    result = result + ((variable, path ::: variable.toString :: Nil))
     (this.add(variable, dom.top()), result)
   }
 
@@ -181,7 +181,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 class Top extends NonRelationalNumericalDomain[Top] {
   final override def factory() = this
 
-  override def toString() = "T"
+  override def toString = "T"
 
   def top(): Top = this
 
@@ -241,7 +241,7 @@ class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sig
 
   final override def factory() = top()
 
-  override def toString() = value.toString
+  override def toString = value.toString
 
   def top(): Sign = new Sign(SignValues.T)
 
@@ -362,16 +362,16 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
 
   final override def factory() = top()
 
-  override def toString(): String = {
+  override def toString: String = {
     if (this.isBottom) return "_|_"
     var result: String = "["
     if (left == Integer.MIN_VALUE)
       result = result + "-oo"
-    else result = result + left.toString()
+    else result = result + left.toString
     result = result + ".."
     if (right == Integer.MAX_VALUE)
       result = result + "+oo"
-    else result = result + right.toString()
+    else result = result + right.toString
     result + "]"
   }
 

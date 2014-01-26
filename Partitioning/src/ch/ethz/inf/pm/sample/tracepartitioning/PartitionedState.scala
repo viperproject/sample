@@ -65,7 +65,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D]) extend
    * in the leaf states.
    */
   lazy val programPoints: List[ProgramPoint] = {
-    getExpression.getSetOfExpressions.map(_.getProgramPoint).toList
+    getExpression.getSetOfExpressions.map(_.pp).toList
   }
 
   /**

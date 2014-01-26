@@ -45,13 +45,13 @@ class UpperBound(val value:Map[Identifier, UpperBoundRightPart] = Map.empty[Iden
 		this.value.get(id) match {
 			case Some(s) =>
 				for(variable <- s.value)
-					result=result+id.toString()+" > "+variable.toString();
+					result=result+id.toString+" > "+variable.toString;
 			case None =>
 		}
 		for(key <- this.value.keySet) {
 			val vars = this.value.apply(key);
 			if(vars.value.contains(id))
-				result=result+key.toString()+" > "+id.toString();
+				result=result+key.toString+" > "+id.toString;
 		}
 		return result;
 	}
