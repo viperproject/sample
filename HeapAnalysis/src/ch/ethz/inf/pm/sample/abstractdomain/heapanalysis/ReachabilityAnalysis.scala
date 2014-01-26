@@ -71,12 +71,12 @@ object ReachabilityAnalysis {
       case x : VariableIdentifier => //It can be only as first step, so we removed the t.toString, it will be replaced by "this"
         for(hi <- env.get(x).value) {
           reachable(hi, to, env, store) match {
-            case (path, true) => return (/*x.toString()::*/path, true)
+            case (path, true) => return (/*x.toString::*/path, true)
             case _ =>
           }
           for(field <- from.getType.possibleFields)
             reachable(new FieldAndProgramPoint(hi.asInstanceOf[ProgramPointHeapIdentifier], field.getName, field.getType), to, env, store) match {
-              case (path, true) => return (/*x.toString()::*/field.getName::path, true)
+              case (path, true) => return (/*x.toString::*/field.getName::path, true)
               case _ =>
             }
         }

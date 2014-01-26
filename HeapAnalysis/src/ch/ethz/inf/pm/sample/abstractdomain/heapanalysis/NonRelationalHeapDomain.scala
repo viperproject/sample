@@ -15,8 +15,12 @@ object NonRelationalHeapDomainSettings {
   var maxInitialNodes : Int = 5
 }
 
-class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint,_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends HeapIdSetDomain[I](pp,_value,_isTop,_isBottom) {
+class TupleIdSetDomain[I <: HeapIdentifier[I]](
+    override val pp: ProgramPoint,
+    _value: Set[I] = Set.empty[I],
+    _isTop: Boolean = false,
+    _isBottom: Boolean = false)
+  extends HeapIdSetDomain[I](pp, _value, _isTop, _isBottom) {
 
   def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
     new TupleIdSetDomain[I](pp,_value,_isTop,_isBottom)
@@ -87,7 +91,7 @@ class TupleIdSetDomain[I <: HeapIdentifier[I]](pp:ProgramPoint,_value: Set[I] = 
     right.value.subsetOf(this.value)
   }
 
-  def convert(add: I): HeapIdSetDomain[I] = new TupleIdSetDomain[I](add.getProgramPoint).add(add)
+  def convert(add: I): HeapIdSetDomain[I] = new TupleIdSetDomain[I](add.pp).add(add)
 
   //Used to now if it's definite - glb - or maybe - lub.
   def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s2)
@@ -441,7 +445,7 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
 
 }
 
-abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](typ1 : Type, pp : ProgramPoint) extends HeapIdentifier[I](typ1, pp) {
+trait NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]] extends HeapIdentifier[I] {
   def getLabel() : String;
   def createAddress(typ : Type, pp : ProgramPoint) : I;
   def createAddressForArgument(typ : Type, p : ProgramPoint) : I;
@@ -560,8 +564,8 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
   override def getProperties() : List[Property] = Nil
 
   def getStringOfId(id : Identifier) : String = id match {
-    case x : VariableIdentifier => this.get(x).toString()
-    case x : HeapIdSetDomain[I] => this.get(x).toString()
+    case x : VariableIdentifier => this.get(x).toString
+    case x : HeapIdSetDomain[I] => this.get(x).toString
   }
 
   def get(key : VariableIdentifier) : HeapIdSetDomain[I] = this._1.value.get(key) match {
@@ -598,11 +602,11 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
         var (result, r)=this.createVariable(variable, typ); //r will be always empty, so I ignore it
         var ids : Map[Identifier, List[String]] = Map.empty[Identifier, List[String]];
         alreadyInitialized = Set.empty[I];
-        this.initializeObject(x, dom.createAddressForArgument(typ, x.getProgramPoint), typ, result, path ::: variable.toString() :: Nil);
+        this.initializeObject(x, dom.createAddressForArgument(typ, x.pp), typ, result, path ::: variable.toString :: Nil);
       }
       else {
         var result = Map.empty[Identifier, List[String]];
-        result=result+((x, variable.toString() :: Nil ))
+        result=result+((x, variable.toString :: Nil ))
         (factory(this._1.add(x, cod.bottom()),this._2), result, new Replacement);
       }
     case x : HeapIdentifier[I] => {throw new Exception("This should not happen!");}
@@ -625,10 +629,10 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
       alreadyInitialized=alreadyInitialized+obj
       val c = typ.possibleFields;
       for(field <- c) {
-        val adds = cod.convert(dom.createAddressForArgument(field.getType, x.getProgramPoint))
+        val adds = cod.convert(dom.createAddressForArgument(field.getType, x.pp))
         //I can ignore newHeap since it's equal to initial as it is not changed by getFieldIdentifier
         //in the same way I ignore rep
-        val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName, field.getType, field.getProgramPoint)
+        val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName, field.getType, field.pp)
         for(id : I <- fieldAdd.value) {
           result=factory(result._1,result._2.add(id, adds))
           ids=ids+((id, path ::: (field.getName) :: Nil))
@@ -650,7 +654,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
   override def assignField(variable : Assignable, s : String, expr : Expression) : (H, Replacement) = {
     var result=this.bottom()
     var replacement=new Replacement()
-    val ids = this.getFieldIdentifier(variable, s, expr.getType, variable.getProgramPoint)._1
+    val ids = this.getFieldIdentifier(variable, s, expr.getType, variable.pp)._1
     for(id <- ids.value) {
       val (assigned, repAssignment) = this.assign(id, expr, null)
       val (res, repLub) = result.lubWithReplacement(assigned)
@@ -775,7 +779,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
         }
 
         ids
-      case _ => throw new SemanticException("This is not a collection identifier " + a.toString())
+      case _ => throw new SemanticException("This is not a collection identifier " + a.toString)
     }
 
     resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getSummaryCollection(_))
@@ -1063,7 +1067,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
     if(obj.isTop) {//We manage the case in which we use the object to access a static object -> useful in Scala
       if(typ != null && typ.isStatic) {
         typ.isStatic;
-        return result.add(dom.accessStaticObject(typ, obj.getProgramPoint));
+        return result.add(dom.accessStaticObject(typ, obj.pp));
       }
     }
     val accessed = this.normalize(obj);
@@ -1674,7 +1678,8 @@ class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[
   }
 }
 
-case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ2, pp2) {
+case class TopHeapIdentifier(typ: Type, pp: ProgramPoint)
+  extends NonRelationalHeapIdentifier[TopHeapIdentifier] {
 
   override def getArrayCell(array : Assignable, index : Expression) = this
   override def getArrayLength(array : Assignable) = this

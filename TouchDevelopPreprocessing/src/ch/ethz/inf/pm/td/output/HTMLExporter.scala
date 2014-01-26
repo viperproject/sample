@@ -98,7 +98,7 @@ class HTMLExporter extends ErrorExporter {
                     pp match {
                       case TouchProgramPoint(xScript, xPos) =>
                         if (xScript.equals(id) && xPos.equals(pos))
-                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
+                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString
                         else ""
                       case _ => ""
                     }
@@ -107,7 +107,7 @@ class HTMLExporter extends ErrorExporter {
                     pp match {
                       case TouchProgramPoint(xScript, xPos) =>
                         if (xScript.equals(id) && xPos.equals(pos))
-                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
+                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString
                         else ""
                       case _ => ""
                     }
@@ -116,7 +116,7 @@ class HTMLExporter extends ErrorExporter {
                     pp match {
                       case TouchProgramPoint(xScript, xPos) =>
                         if (xScript.equals(id) && xPos.equals(pos))
-                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
+                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString
                         else ""
                       case _ => ""
                     }

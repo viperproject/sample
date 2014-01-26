@@ -200,5 +200,5 @@ abstract class NumericWithStringDomain[N <: NumericalDomain[N], V <: StringValue
   extends SemanticCartesianProductDomain[N,S,T](initialNum,initialStr)
   with NumericalDomain[T] { this: T =>
 
-  override def toString() = "Numeric:\n"+ToStringUtilities.indent(_1.toString())+"\nString:\n"+ToStringUtilities.indent(_2.toString)
+  override def toString = "Numeric:\n"+ToStringUtilities.indent(_1.toString)+"\nString:\n"+ToStringUtilities.indent(_2.toString)
 }

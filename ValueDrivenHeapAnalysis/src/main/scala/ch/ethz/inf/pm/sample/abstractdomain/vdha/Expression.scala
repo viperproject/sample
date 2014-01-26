@@ -7,7 +7,7 @@ case class ValueHeapIdentifier(
     obj: HeapVertex,
     field: String,
     typ: Type,
-    pp: ProgramPoint) extends Identifier(typ, pp) {
+    pp: ProgramPoint) extends Identifier {
 
   /**
    * Returns the name of the identifier. We suppose that if two identifiers
@@ -35,7 +35,7 @@ case class ValueHeapIdentifier(
 
   override def equals(obj: Any): Boolean = obj match {
     case x: ValueHeapIdentifier =>
-      this.toString().equals(x.toString())
+      this.toString.equals(x.toString)
     case _ => false
   }
 }
@@ -43,14 +43,14 @@ case class ValueHeapIdentifier(
 object ValueHeapIdentifier {
   /** Creates a value heap identifier from a heap vertex and a field identifier. */
   def apply(obj: HeapVertex, field: Identifier): ValueHeapIdentifier =
-    ValueHeapIdentifier(obj, field.getName, field.getType, field.getProgramPoint)
+    ValueHeapIdentifier(obj, field.getName, field.getType, field.pp)
 }
 
 case class EdgeLocalIdentifier(
     accPath: List[String],
     field: String,
     typ: Type)(
-    pp: ProgramPoint) extends Identifier(typ, pp) {
+    val pp: ProgramPoint) extends Identifier {
 
   require(!typ.isObject, "EdgeLocalIdentifier should represent value information.")
   require(accPath.size <= 1, "For now, we allow at most single step look-ahead.")
@@ -69,17 +69,14 @@ case class EdgeLocalIdentifier(
 object EdgeLocalIdentifier {
   /** Creates an edge-local identifier from an access path and a field identifier. */
   def apply(accPath: List[String], field: Identifier): EdgeLocalIdentifier =
-    EdgeLocalIdentifier(accPath, field.getName, field.getType)(field.getProgramPoint)
+    EdgeLocalIdentifier(accPath, field.getName, field.getType)(field.pp)
 
   /** Creates an edge-local identifier with an empty access path from a field identifier. */
   def apply(field: Identifier): EdgeLocalIdentifier =
     apply(List.empty, field)
 }
 
-case class VertexExpression(typ: Type, vertex: Vertex)(pp: ProgramPoint) extends Expression {
-
-  def getProgramPoint = pp
-
+case class VertexExpression(typ: Type, vertex: Vertex)(val pp: ProgramPoint) extends Expression {
   def getType: Type = typ
 
   def getIdentifiers: Set[Identifier] =

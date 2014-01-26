@@ -28,13 +28,13 @@ abstract sealed class Annotation(val exp : String) {
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class Invariant(val classe : String, e : String) extends Annotation(e) {
+case class Invariant(classe: String, e: String) extends Annotation(e) {
   override def equals(o : Any) : Boolean = o match {
     case x: Invariant => return x.classe.equals(classe) && super.equals(x);
     case _ => false
   }
 
-    override def toString() = "Invariant of class "+classe+": "+exp;
+    override def toString = "Invariant of class "+classe+": "+exp;
 }
 
 /**
@@ -47,13 +47,13 @@ case class Invariant(val classe : String, e : String) extends Annotation(e) {
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class Predicate(val classe : String, val predName : String, e : String) extends Annotation(e) {
+case class Predicate(classe: String, predName: String, e: String) extends Annotation(e) {
   override def equals(o : Any) : Boolean = o match {
     case x: Predicate => return x.classe.equals(classe) && x.predName.equals(predName) && super.equals(x);
     case _ => false
   }
 
-    override def toString() = "Predicate "+predName+" in class "+classe+": "+exp;
+    override def toString = "Predicate "+predName+" in class "+classe+": "+exp;
 }
 
 /**
@@ -66,13 +66,13 @@ case class Predicate(val classe : String, val predName : String, e : String) ext
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class PreCondition(val classe : String, val methodName : String, e : String) extends Annotation(e) {
+case class PreCondition(classe: String, methodName: String, e: String) extends Annotation(e) {
     override def equals(o : Any) : Boolean = o match {
       case x: PreCondition => return x.classe.equals(classe) && x.methodName.equals(methodName) && super.equals(x);
       case _ => false
     }
 
-    override def toString() = "Precondition in class "+classe+" of method "+methodName+": "+exp;
+    override def toString = "Precondition in class "+classe+" of method "+methodName+": "+exp;
 }
 
 /**
@@ -85,13 +85,13 @@ case class PreCondition(val classe : String, val methodName : String, e : String
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class PostCondition(val classe : String, val methodName : String, e : String) extends Annotation(e) {
+case class PostCondition(classe: String, methodName: String, e: String) extends Annotation(e) {
     override def equals(o : Any) : Boolean = o match {
       case x: PostCondition => return x.classe.equals(classe) && x.methodName.equals(methodName) && super.equals(x);
       case _ => false
     }
 
-    override def toString() = "Postcondition in class "+classe+" of method "+methodName+": "+exp;
+    override def toString = "Postcondition in class "+classe+" of method "+methodName+": "+exp;
 }
 
 /**
@@ -103,11 +103,11 @@ case class PostCondition(val classe : String, val methodName : String, e : Strin
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class LoopInvariant(val pp : ProgramPoint, e : String) extends Annotation(e) {
+case class LoopInvariant(pp: ProgramPoint, e: String) extends Annotation(e) {
     override def equals(o : Any) : Boolean = o match {
       case x: LoopInvariant => return x.pp.equals(pp) && super.equals(x);
       case _ => false
     }
 
-    override def toString() = "Loop invariant "+pp.getDescription+": "+exp;
+    override def toString = "Loop invariant "+pp.getDescription+": "+exp;
 }

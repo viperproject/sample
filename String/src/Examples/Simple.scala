@@ -12,7 +12,7 @@ class Simple {
 			//EXAMPLE 2
 			/*var q : String = "SELECT * FROM address";
 			if (i != 0)
-				q = q + "WHERE studentId=" //+ i.toString();*/
+				q = q + "WHERE studentId=" //+ i.toString;*/
 			
 			
 			//EXAMPLE 3
@@ -72,7 +72,7 @@ class Simple {
 			b = b+ "(";
 		var s : String = bar(n-1, n/2-1, "*").trim();
 		var t : String = bar(n-n/2, n-(n/2-1), "+").trim();
-		return b.toString() + n + (s+t);
+		return b.toString + n + (s+t);
 	}
 	
 	def main(args : Array[String]) : Unit = {

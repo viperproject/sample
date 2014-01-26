@@ -41,7 +41,7 @@ case object FractionalPermissions extends PermissionsType {
 	override def minLevel : Double = 0
   override def float : Boolean = true;
   override def epsilon : Boolean = false;
-  override def permissionToString(value : Double, epsilon : Option[Double]) : String = value.toString();;
+  override def permissionToString(value : Double, epsilon : Option[Double]) : String = value.toString;;
 }
 
 case object CountingPermissions extends PermissionsType {
@@ -70,9 +70,9 @@ case object ChalicePermissions extends PermissionsType {
     val (intval, epsval) = stringWithEpsilon(value, epsilon.get);
     var result : String = "";
     if(intval!=0)
-      result=result+intval.toString();
+      result=result+intval.toString;
     if(epsval!=0)
-      result=result+epsval.toString()+" epsilons";
+      result=result+epsval.toString+" epsilons";
     return result;
   }
 
@@ -113,30 +113,30 @@ case object ChalicePermissions extends PermissionsType {
 sealed trait Constraint
 
 case class Eq(left : ArithmeticExpression, right : ArithmeticExpression) extends Constraint {
-  override def toString()=left.toString()+"="+right.toString();
+  override def toString=left.toString+"="+right.toString;
 }
 
 case class Geq(left : ArithmeticExpression, right : ArithmeticExpression) extends Constraint {
-  override def toString()=left.toString()+">="+right.toString();
+  override def toString=left.toString+">="+right.toString;
 }
 
 case class Greater(left : ArithmeticExpression, right : ArithmeticExpression) extends Constraint {
-  override def toString()=left.toString()+">"+right.toString();
+  override def toString=left.toString+">"+right.toString;
 }
 
 
 sealed abstract trait ArithmeticExpression 
 
 case class Add(left : ArithmeticExpression, right : ArithmeticExpression) extends Constraint with ArithmeticExpression {
-  override def toString()=left.toString()+"+"+right.toString();
+  override def toString=left.toString+"+"+right.toString;
 }
 
 case class SimpleVal(value : Double) extends Constraint with ArithmeticExpression {
-  override def toString()=value.toString();
+  override def toString=value.toString;
 }
 
 case class Multiply(mul : Int, right : SymbolicValue) extends Constraint with ArithmeticExpression {
-  override def toString()=mul.toString()+"*"+right.toString();
+  override def toString=mul.toString+"*"+right.toString;
 }
 
 object ConstraintsInference {
@@ -187,7 +187,7 @@ object ConstraintsInference {
       
       //I removed this check because in this way I avoid to consider local variables
       //if(variable.isInstanceOf[VariableIdentifier])
-      //  constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(variable.toString() :: Nil))), expr);
+      //  constraints=constraints+new Eq(new Multiply(1, new SymbolicPostCondition(classe, method, new Path(variable.toString :: Nil))), expr);
       //else 
       if(! variable.isInstanceOf[VariableIdentifier] && (Settings.unsoundDischarging || (variable.representsSingleVariable)))
     	  reach(variable, env, store) match {
@@ -204,7 +204,7 @@ object ConstraintsInference {
 
   private def statementToListString(s: Statement): List[String] = s match {
     case v: Variable =>
-      v.id.toString() :: Nil
+      v.id.toString :: Nil
     case x: FieldAccess =>
       statementToListString(x.obj) ::: x.field :: Nil
   }
@@ -212,13 +212,13 @@ object ConstraintsInference {
   def printConstraints() = {
     SystemParameters.analysisOutput.put("INFERRED CONSTRAINTS\n---------------------\n\n");
     for(c <- constraints)
-      SystemParameters.analysisOutput.put(c.toString());
+      SystemParameters.analysisOutput.put(c.toString);
   }
   
   def printConstraints(constraints : Set[Constraint]) = {
     SystemParameters.analysisOutput.put("INFERRED CONSTRAINTS\n---------------------\n\n");
     for(c <- constraints)
-      SystemParameters.analysisOutput.put(c.toString());
+      SystemParameters.analysisOutput.put(c.toString);
   }
 
   def solve(constraints : Set[Constraint]) : (Map[SymbolicValue, Double], Option[Double]) = {
@@ -347,10 +347,10 @@ object ConstraintsInference {
     var s : String = "";
     for(v <- variables) {
       v match {
-        case x : SymbolicMonitorInvariant => s=s+(Settings.priorityInvariants).toString()+" ";
-        case x : SymbolicAbstractPredicates => s=s+(Settings.priorityPredicates).toString()+" ";
-        case x : SymbolicPreCondition => s=s+(Settings.priorityContracts).toString()+" ";
-        case x : SymbolicPostCondition => s=s+(Settings.priorityContracts).toString()+" ";
+        case x : SymbolicMonitorInvariant => s=s+(Settings.priorityInvariants).toString+" ";
+        case x : SymbolicAbstractPredicates => s=s+(Settings.priorityPredicates).toString+" ";
+        case x : SymbolicPreCondition => s=s+(Settings.priorityContracts).toString+" ";
+        case x : SymbolicPostCondition => s=s+(Settings.priorityContracts).toString+" ";
         case x if x.equals(Epsilon) => s=s+"-100000 ";
       }
     } 
@@ -366,7 +366,7 @@ object ConstraintsInference {
         	//We take 2* to understand if we have to add or subtract epsilons, +1 to impose < instead of <= 
         	//SystemParameters.analysisOutput.appendString("Max epsilon "+this.getMax(i+1, solver));
         	val ind=2*this.getMax(i+1, solver)+1; 
-        	s=s+ind.toString()+" ";
+        	s=s+ind.toString+" ";
         	}
         case _ => s=s+"0 ";
       }
@@ -403,7 +403,7 @@ object ConstraintsInference {
   private def arrayToString[T](array : Array[T]) : String = {
     var result : String = "";
     for(i <- 0 to array.size-1)
-      result=result+array(i).toString()+" ";
+      result=result+array(i).toString+" ";
     return result;
   }
   
@@ -472,7 +472,7 @@ object ConstraintsInference {
   def printLoopInvariants(l : Map[ProgramPoint, Map[Statement, Double]], epsilon : Option[Double]) = {
     SystemParameters.analysisOutput.put("\nLOOP INVARIANTS\n--------------------\n\n");
     for(pp <- l.keySet) {
-      SystemParameters.analysisOutput.put("Loop at "+pp.toString()+"\n");
+      SystemParameters.analysisOutput.put("Loop at "+pp.toString+"\n");
       val f = l.apply(pp);
       for(s <- f.keySet)
         SystemParameters.analysisOutput.put("Value of " + s + " = " + Settings.permissionType.permissionToString(f.apply(s), epsilon)+"\n");
