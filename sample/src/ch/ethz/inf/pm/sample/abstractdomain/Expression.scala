@@ -131,7 +131,7 @@ trait Expression {
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class NegatedBooleanExpression(thisExpr : Expression) extends Expression {
+case class NegatedBooleanExpression(thisExpr: Expression) extends Expression {
 
   def getType = thisExpr.getType
   def pp = thisExpr.pp
@@ -161,7 +161,12 @@ case class NegatedBooleanExpression(thisExpr : Expression) extends Expression {
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class AbstractOperator(thisExpr : Expression, parameters : List[Expression], typeparameters : List[Type], op : AbstractOperatorIdentifiers.Value, val returntyp : Type) extends Expression {
+case class AbstractOperator(
+      thisExpr: Expression,
+      parameters: List[Expression],
+      typeparameters: List[Type],
+      op: AbstractOperatorIdentifiers.Value,
+      returntyp: Type) extends Expression {
 
   def pp = thisExpr.pp
   def getType = returntyp
@@ -191,11 +196,15 @@ case class AbstractOperator(thisExpr : Expression, parameters : List[Expression]
  * @param left One of the operands
  * @param right The other operand
  * @param op The identifier of the operation
- * @param typ The type of the returned value
+ * @param returntyp The type of the returned value
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class BinaryBooleanExpression(left : Expression, right : Expression, op : BooleanOperator.Value, returntyp : Type) extends Expression {
+case class BinaryBooleanExpression(
+    left: Expression,
+    right: Expression,
+    op: BooleanOperator.Value,
+    returntyp: Type) extends Expression {
 
   def pp = left.pp
   def getType = returntyp
@@ -296,11 +305,15 @@ case class ReferenceComparisonExpression(
  * @param left One of the operands
  * @param right The other operand
  * @param op The identifier of the operation
- * @param typ The type of the returned value
+ * @param returntyp The type of the returned value
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class BinaryArithmeticExpression(val left : Expression, val right : Expression, val op : ArithmeticOperator.Value, returntyp : Type) extends Expression {
+case class BinaryArithmeticExpression(
+    left: Expression,
+    right: Expression,
+    op: ArithmeticOperator.Value,
+    returntyp: Type) extends Expression {
 
   def pp = if(left.pp==null) right.pp else left.pp
   def getType = returntyp
@@ -341,11 +354,11 @@ object BinaryArithmeticExpression {
  * 
  * @param left The operand
  * @param op The identifier of the operation
- * @param typ The type of the returned value
+ * @param returntyp The type of the returned value
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticOperator.Value, val returntyp : Type) extends Expression {
+case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Value, returntyp: Type) extends Expression {
 
   def pp = left.pp
   def getType = returntyp
@@ -371,7 +384,7 @@ case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticO
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class Constant(val constant: String, val typ: Type, pp: ProgramPoint) extends Expression {
+case class Constant(constant: String, typ: Type, pp: ProgramPoint) extends Expression {
 
   def getType = typ
   def getIdentifiers = Set.empty
@@ -444,7 +457,7 @@ object EmptyScopeIdentifier extends ScopeIdentifier {
  *
  * @param pp the program point of the beginning of the scope
  */
-case class ProgramPointScopeIdentifier(pp:ProgramPoint) extends ScopeIdentifier {
+case class ProgramPointScopeIdentifier(pp: ProgramPoint) extends ScopeIdentifier {
 
   override def hashCode() : Int = pp.hashCode()
 

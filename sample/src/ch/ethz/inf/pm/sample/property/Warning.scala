@@ -26,7 +26,7 @@ abstract sealed class Output {
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class WarningProgramPoint(val pp : ProgramPoint, val message : String) extends Output with Warning {
+case class WarningProgramPoint(pp: ProgramPoint, message: String) extends Output with Warning {
 
   override def equals(o : Any) : Boolean = o match {
     case x: WarningProgramPoint => return x.pp.equals(pp) && x.message.equals(message)
@@ -46,7 +46,7 @@ case class WarningProgramPoint(val pp : ProgramPoint, val message : String) exte
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class ValidatedProgramPoint(val pp : ProgramPoint, val message : String) extends Output with Validated {
+case class ValidatedProgramPoint(pp: ProgramPoint, message: String) extends Output with Validated {
 
   override def equals(o : Any) : Boolean = o match {
     case x: ValidatedProgramPoint => return x.pp.equals(pp) && x.message.equals(message)
@@ -66,7 +66,7 @@ case class ValidatedProgramPoint(val pp : ProgramPoint, val message : String) ex
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class WarningMethod(val classe : Type, val method : String, val message : String) extends Output with Warning {
+case class WarningMethod(classe: Type, method: String, message: String) extends Output with Warning {
 
   override def equals(o : Any) : Boolean = o match {
     case x: WarningMethod => return x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
@@ -86,7 +86,7 @@ case class WarningMethod(val classe : Type, val method : String, val message : S
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class ValidatedMethod(val classe : Type, val method : String, val message : String) extends Output with Validated {
+case class ValidatedMethod(classe: Type, method: String, message: String) extends Output with Validated {
 
   override def equals(o : Any) : Boolean = o match {
     case x: ValidatedMethod => return x.classe.equals(classe) && x.method.equals(method) && x.message.equals(message)
@@ -104,7 +104,7 @@ case class ValidatedMethod(val classe : Type, val method : String, val message :
  * @author Pietro Ferrara
  * @version 0.1
  */
-case class InferredContract(val c : Annotation) extends Output {
+case class InferredContract(c: Annotation) extends Output {
   override def getMessage()=c.getMessage();
 }
 

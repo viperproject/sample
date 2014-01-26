@@ -67,7 +67,7 @@ case object Epsilon extends SymbolicValue(null) {
   override def factory() : SymbolicValue = this;
 }
 
-case class SymbolicMonitorInvariant(val c : String, p : Path) extends SymbolicValue(p) { 
+case class SymbolicMonitorInvariant(c: String, p: Path) extends SymbolicValue(p) {
   override def toString() = "Invariant("+c.toString()+", "+path.toString()+")";
   override def hashCode() = c.hashCode();
   override def equals(a : Any) : Boolean = a match {
@@ -77,7 +77,7 @@ case class SymbolicMonitorInvariant(val c : String, p : Path) extends SymbolicVa
   override def factory() : SymbolicValue = new SymbolicMonitorInvariant(c, p);
 }
 
-case class SymbolicAbstractPredicates(val c : String, val name : String, p : Path) extends SymbolicValue(p) { 
+case class SymbolicAbstractPredicates(c: String, name: String, p: Path) extends SymbolicValue(p) {
   override def toString() = "Predicate("+c.toString()+"."+name+", "+path.toString()+")";
   override def hashCode() = c.hashCode();
   override def equals(a : Any) : Boolean = a match {
@@ -87,7 +87,7 @@ case class SymbolicAbstractPredicates(val c : String, val name : String, p : Pat
   override def factory() : SymbolicValue = new SymbolicAbstractPredicates(c, name, p);
 }
 
-case class SymbolicPreCondition(val className : String, val methodName : String, p : Path) extends SymbolicValue(p) {
+case class SymbolicPreCondition(className: String, methodName: String, p: Path) extends SymbolicValue(p) {
 	assert(className!=null && methodName!=null)
   override def toString() = "pre("+className.toString()+"."+methodName.toString()+", "+path.toString()+")";
   override def hashCode() = methodName.hashCode();
@@ -98,7 +98,7 @@ case class SymbolicPreCondition(val className : String, val methodName : String,
   override def factory() : SymbolicValue = new SymbolicPreCondition(className, methodName, p);
 }
 
-case class SymbolicPostCondition(val className : String, val methodName : String, p : Path) extends SymbolicValue(p) { 
+case class SymbolicPostCondition(className: String, methodName: String, p: Path) extends SymbolicValue(p) {
 	assert(className!=null && methodName!=null)
   override def toString() = "post("+className.toString()+"."+methodName.toString()+", "+path.toString()+")";
   override def hashCode() = methodName.hashCode();
@@ -165,7 +165,7 @@ sealed abstract class DoubleOrTop {
 
 case object Top extends DoubleOrTop
 
-case class WrappedDouble(val i : Double) extends DoubleOrTop  {
+case class WrappedDouble(i: Double) extends DoubleOrTop {
   override def equals(a : Any) : Boolean = a match {
     case WrappedDouble(i1) => return i==i1;
     case _ => return false;
