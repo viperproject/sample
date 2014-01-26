@@ -1017,7 +1017,13 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
 
 class ApronException(s: String) extends Exception(s)
 
-case class SimpleApronIdentifier(name:String, summary:Boolean, typ:Type, override val pp:ProgramPoint) extends HeapIdentifier[SimpleApronIdentifier](typ,pp) {
+case class SimpleApronIdentifier(
+    name: String,
+    summary: Boolean,
+    typ: Type,
+    pp: ProgramPoint)
+  extends HeapIdentifier[SimpleApronIdentifier] {
+
   def getName: String = name
   def representsSingleVariable(): Boolean = !summary
   def getField: Option[String] = None

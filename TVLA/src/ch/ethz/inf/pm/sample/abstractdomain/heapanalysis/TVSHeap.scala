@@ -118,11 +118,11 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     val tvp = new TVP(tempheap)
     tvp.newPP = Some(pp)
     tvp.newPPNum = ppCreates.getOrElse(pp, 0)
-    tvp.addAction(new CreateObject(tempvar.toString()))
+    tvp.addAction(new CreateObject(tempvar.toString))
     val (newheap, repl) = tvp.execute()
     newheap.ppCreates += pp -> (tvp.newPPNum + 1)
 
-    (newheap.extractHeapId(tempvar.toString(), typ), newheap, repl)
+    (newheap.extractHeapId(tempvar.toString, typ), newheap, repl)
   }
 
   /**
@@ -610,6 +610,6 @@ class TVSHeapIDSet(val pointedBy: String,_value: Set[NodeName] = Set.empty[NodeN
 /**
  * Used to make a distinction between temporaries and normal variables
  */
-class TemporaryVariableIdentifier(name: String, typ1: Type, pp: ProgramPoint) extends VariableIdentifier(name, typ1, pp)
+class TemporaryVariableIdentifier(name: String, typ: Type, pp: ProgramPoint) extends VariableIdentifier(name, typ, pp)
 
 class NotImplementedException(message: String) extends Exception(message)

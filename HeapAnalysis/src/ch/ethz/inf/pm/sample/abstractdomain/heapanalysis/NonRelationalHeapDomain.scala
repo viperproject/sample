@@ -445,7 +445,7 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
 
 }
 
-abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](typ1 : Type, pp : ProgramPoint) extends HeapIdentifier[I](typ1, pp) {
+trait NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]] extends HeapIdentifier[I] {
   def getLabel() : String;
   def createAddress(typ : Type, pp : ProgramPoint) : I;
   def createAddressForArgument(typ : Type, p : ProgramPoint) : I;
@@ -564,8 +564,8 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
   override def getProperties() : List[Property] = Nil
 
   def getStringOfId(id : Identifier) : String = id match {
-    case x : VariableIdentifier => this.get(x).toString()
-    case x : HeapIdSetDomain[I] => this.get(x).toString()
+    case x : VariableIdentifier => this.get(x).toString
+    case x : HeapIdSetDomain[I] => this.get(x).toString
   }
 
   def get(key : VariableIdentifier) : HeapIdSetDomain[I] = this._1.value.get(key) match {
@@ -602,11 +602,11 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
         var (result, r)=this.createVariable(variable, typ); //r will be always empty, so I ignore it
         var ids : Map[Identifier, List[String]] = Map.empty[Identifier, List[String]];
         alreadyInitialized = Set.empty[I];
-        this.initializeObject(x, dom.createAddressForArgument(typ, x.pp), typ, result, path ::: variable.toString() :: Nil);
+        this.initializeObject(x, dom.createAddressForArgument(typ, x.pp), typ, result, path ::: variable.toString :: Nil);
       }
       else {
         var result = Map.empty[Identifier, List[String]];
-        result=result+((x, variable.toString() :: Nil ))
+        result=result+((x, variable.toString :: Nil ))
         (factory(this._1.add(x, cod.bottom()),this._2), result, new Replacement);
       }
     case x : HeapIdentifier[I] => {throw new Exception("This should not happen!");}
@@ -779,7 +779,7 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
         }
 
         ids
-      case _ => throw new SemanticException("This is not a collection identifier " + a.toString())
+      case _ => throw new SemanticException("This is not a collection identifier " + a.toString)
     }
 
     resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getSummaryCollection(_))
@@ -1678,7 +1678,8 @@ class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[
   }
 }
 
-case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ2, pp2) {
+case class TopHeapIdentifier(typ: Type, pp: ProgramPoint)
+  extends NonRelationalHeapIdentifier[TopHeapIdentifier] {
 
   override def getArrayCell(array : Assignable, index : Expression) = this
   override def getArrayLength(array : Assignable) = this

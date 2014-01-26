@@ -61,7 +61,7 @@ class PrefixDomain extends Lattice[PrefixDomain]
   def lessEqual(r: PrefixDomain): Boolean =
     this.stringValue.startsWith(r.stringValue)
   
-  override def toString() : String = {
+  override def toString : String = {
     if(this.isBottom) 
       return "_|_"; 
     else if(this.isTop)
@@ -90,7 +90,7 @@ class Prefix
     case None => new PrefixDomain().top();
    }
    override def getStringOfId(id : Identifier) : String = {
-     get(id).toString();
+     get(id).toString;
    }
    
    private def eval(expr : Expression) : PrefixDomain = expr match {

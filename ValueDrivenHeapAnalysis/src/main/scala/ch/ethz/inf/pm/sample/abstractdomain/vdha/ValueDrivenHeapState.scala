@@ -241,7 +241,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               }
             }
             case c: Constant => {
-              assert(c.toString() == "null", "The only object constant is null.")
+              assert(c.toString == "null", "The only object constant is null.")
               val (tempAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
               val newState = ValueDrivenHeapState(tempAH, generalValState, left)
               return newState.assignVariable(left, ExpressionSet(new VertexExpression(variable.typ, nullVertex)(c.pp)))

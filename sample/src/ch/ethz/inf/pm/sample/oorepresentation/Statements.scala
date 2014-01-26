@@ -112,7 +112,7 @@ abstract class Statement(programpoint: ProgramPoint) extends SingleLineRepresent
     case x :: xs => x.normalize() :: normalizeList(xs)
   }
 
-  override def toString(): String
+  override def toString: String
 
   def getChildren: List[Statement]
 
@@ -166,7 +166,7 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     result.testTrue().backwardAssignVariable(leftExpr, rightExpr)
   }
 
-  override def toString(): String = left + " = " + right
+  override def toString: String = left + " = " + right
 
   override def toSingleLineString(): String = left.toSingleLineString + " = " + right.toSingleLineString
 
@@ -222,13 +222,13 @@ case class VariableDeclaration(
     st.removeVariable(ExpressionFactory.createVariable(variable, typ, programpoint))
   }
 
-  override def toString(): String =
+  override def toString: String =
     "declare " + ToStringUtilities.toStringIfNotNull(typ) + " " +
-      variable.toString() + ToStringUtilities.assignedIfNotNull(right)
+      variable.toString + ToStringUtilities.assignedIfNotNull(right)
 
   override def toSingleLineString(): String =
     "declare " + ToStringUtilities.toStringIfNotNull(typ) + " " +
-      variable.toString() + {
+      variable.toString + {
       if (right.isDefined) "=" + right.get.toSingleLineString() else ""
     }
 
@@ -258,7 +258,7 @@ case class Variable(programpoint: ProgramPoint, id: VariableIdentifier) extends 
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.backwardGetVariableValue(id)
 
-  override def toString(): String = id.getName
+  override def toString: String = id.getName
 
   override def toSingleLineString(): String = toString
 
@@ -328,8 +328,8 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
 
   override def hashCode(): Int = field.hashCode
 
-  override def toString(): String =
-    s"${obj.toString()}.$field"
+  override def toString: String =
+    s"${obj.toString}.$field"
 
   override def toSingleLineString() =
     s"${obj.toSingleLineString()}.$field"
@@ -447,8 +447,8 @@ case class MethodCall(
     }
   }
 
-  override def toString(): String =
-    method.toString() + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
+  override def toString: String =
+    method.toString + ToStringUtilities.parametricTypesToString(parametricTypes) + "(" +
       ToStringUtilities.listToCommasRepresentation[Statement](parameters) + ")"
 
   override def toSingleLineString(): String =
@@ -485,9 +485,9 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
     state.removeExpression().removeVariable(ex)
   }
 
-  override def toString(): String = "new " + typ.toString
+  override def toString: String = "new " + typ.toString
 
-  override def toSingleLineString(): String = toString()
+  override def toSingleLineString(): String = toString
 
   override def getChildren: List[Statement] = Nil
 
@@ -513,9 +513,9 @@ case class ConstantStatement(pp: ProgramPoint, value: String, typ: Type) extends
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.evalConstant(value, typ, pp)
 
-  override def toString(): String = value
+  override def toString: String = value
 
-  override def toSingleLineString(): String = toString()
+  override def toSingleLineString(): String = toString
 
   override def getChildren: List[Statement] = Nil
 
@@ -546,7 +546,7 @@ case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.top()
 
-  override def toString(): String = "throw " + expr.toString
+  override def toString: String = "throw " + expr.toString
 
   override def toSingleLineString(): String = "throw " + expr.toSingleLineString()
 
@@ -573,9 +573,9 @@ case class EmptyStatement(programpoint: ProgramPoint) extends Statement(programp
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = state.removeExpression()
 
-  override def toString(): String = "#empty statement#"
+  override def toString: String = "#empty statement#"
 
-  override def toSingleLineString(): String = toString()
+  override def toSingleLineString(): String = toString
 
   override def getChildren: List[Statement] = Nil
 

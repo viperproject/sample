@@ -485,7 +485,7 @@ case class CollectionContainsExpression(collection: Expression, key: Expression,
     case _ => false
   }
 
-  override def toString: String = "(" + key + ", " + value.toString() + ") in " + collection.toString()
+  override def toString: String = "(" + key + ", " + value.toString + ") in " + collection.toString
 
   def transform(f: (Expression) => Expression): Expression = {
     f(CollectionContainsExpression(f(collection), f(key), f(value), returnTyp, pp))

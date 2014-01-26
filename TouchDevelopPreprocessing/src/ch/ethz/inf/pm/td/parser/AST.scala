@@ -189,7 +189,7 @@ trait IdPositional extends Positional {
   def getPositionAsString:String = {
     id match {
       case Some(x) => if (pos == NoPosition) x else pos.toString + x
-      case None => pos.toString()
+      case None => pos.toString
     }
   }
 

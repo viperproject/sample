@@ -81,7 +81,7 @@ class Brick(protected var m : Int, protected var M : Int, protected var s : Set[
     else if(this.isTop)
     	"⊤"
     else
-    	"[{" + this.strings.toString() + "}, " + this.min + ", " + this.max + "]"
+    	"[{" + this.strings.toString + "}, " + this.min + ", " + this.max + "]"
   }
 }
 
@@ -251,7 +251,7 @@ class BricksDomain extends StringValueDomain[BricksDomain]
     else {
       var returnVal = ""
       for(b <- this.bricksList)
-    	  returnVal += b.toString; //"[{" + b.strings.toString() + "}, " + b.min + ", " + b.max + "]";
+    	  returnVal += b.toString; //"[{" + b.strings.toString + "}, " + b.min + ", " + b.max + "]";
       returnVal
     }
   }

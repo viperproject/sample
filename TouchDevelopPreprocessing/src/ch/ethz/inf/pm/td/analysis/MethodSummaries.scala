@@ -137,7 +137,7 @@ object MethodSummaries {
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
         !id.getType.asInstanceOf[TouchType].isSingleton &&
-        !CFGGenerator.isGlobalReferenceIdent(id.toString())
+        !CFGGenerator.isGlobalReferenceIdent(id.toString)
       case _ => false
     })
     curState = curState.pruneUnreachableHeap()
@@ -205,9 +205,9 @@ object MethodSummaries {
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
         id.getType.asInstanceOf[TouchType].isSingleton ||
-          CFGGenerator.isGlobalReferenceIdent(id.toString()) ||
-          CFGGenerator.isParamIdent(id.toString()) ||
-          CFGGenerator.isReturnIdent(id.toString())
+          CFGGenerator.isGlobalReferenceIdent(id.toString) ||
+          CFGGenerator.isParamIdent(id.toString) ||
+          CFGGenerator.isReturnIdent(id.toString)
       case _ => false
     })
 
@@ -239,8 +239,8 @@ object MethodSummaries {
         curState = curState.pruneVariables({
           case id:VariableIdentifier =>
             !id.getType.asInstanceOf[TouchType].isSingleton &&
-            !CFGGenerator.isGlobalReferenceIdent(id.toString()) &&
-            !CFGGenerator.isParamIdent(id.toString())
+            !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
+            !CFGGenerator.isParamIdent(id.toString)
           case _ => false
         })
       }
@@ -255,7 +255,7 @@ object MethodSummaries {
 
       // Prune temporary variables
       curState = curState.pruneVariables({
-        case id:VariableIdentifier => CFGGenerator.isParamIdent(id.toString())
+        case id:VariableIdentifier => CFGGenerator.isParamIdent(id.toString)
         case _ => false
       })
 
@@ -268,7 +268,7 @@ object MethodSummaries {
       curState = curState.pruneVariables({
         case id:VariableIdentifier =>
           !id.getType.asInstanceOf[TouchType].isSingleton &&
-          !CFGGenerator.isGlobalReferenceIdent(id.toString())
+          !CFGGenerator.isGlobalReferenceIdent(id.toString)
         case _ => false
       })
       curState = curState.pruneUnreachableHeap()
@@ -331,7 +331,7 @@ object MethodSummaries {
         // Belongs to scope of call target
         id.scope == ProgramPointScopeIdentifier(callTarget.programpoint) &&
         // Is not a return value
-        !CFGGenerator.isReturnIdent(id.toString())
+        !CFGGenerator.isReturnIdent(id.toString)
       case _ => false
     })
     curState = curState.pruneUnreachableHeap()

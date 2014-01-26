@@ -24,10 +24,10 @@ class ClassNullNodeHeapIdentifier(typ : Type, pp : ProgramPoint) extends ClassHe
   override def toString : String = "null"
 }
 
-class ClassHeapIdentifier(
-    val value: Type,
-    override val pp: ProgramPoint)
-  extends NonRelationalHeapIdentifier[ClassHeapIdentifier](value, pp) {
+class ClassHeapIdentifier(val value: Type, val pp: ProgramPoint)
+  extends NonRelationalHeapIdentifier[ClassHeapIdentifier] {
+
+  val typ = value
 
   override def getLabel() = "Class";
   override def getNullNode(p : ProgramPoint) = new ClassNullNodeHeapIdentifier(value.top(), p);

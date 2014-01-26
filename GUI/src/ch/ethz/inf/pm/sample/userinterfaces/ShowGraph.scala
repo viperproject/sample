@@ -122,7 +122,7 @@ object ShowGraph {
             }
           }
         })
-        (graphComponent, c.toString()+"."+m.name)
+        (graphComponent, c.toString+"."+m.name)
       }
 
       val tabbedPane = new JTabbedPane()
@@ -290,7 +290,7 @@ object ShowGraph {
           if (l.isInstanceOf[SingleLineRepresentation])
             l = l.asInstanceOf[SingleLineRepresentation].toSingleLineString;
           else l = l.toString;
-          graph.insertEdge(graph.getDefaultParent(), index.toString(), l.toString, vertixes.apply(index - 1), vertixes.apply(index), "edgeStyle=elbowEdgeStyle");
+          graph.insertEdge(graph.getDefaultParent(), index.toString, l.toString, vertixes.apply(index - 1), vertixes.apply(index), "edgeStyle=elbowEdgeStyle");
         }
         yposition = yposition + ygap * 2 + h;
         index = index + 1;
@@ -305,7 +305,7 @@ object ShowGraph {
 
   private def toSimplifiedString[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](a: Any): String = a match {
     case s: AbstractState[N, H, I] => "Click here to see the abstract heap structure\n\nExpression:\n" + s._2
-    case _ => return a.toString();
+    case _ => return a.toString;
   }
 
   private def maxLineLength(s: String): Int = {
@@ -521,7 +521,7 @@ object ShowGraph {
         for (c <- children)
           result = result ::: flatPartitioning(c, l ::: d :: Nil)
         return result
-      case x: Supremum[S] => (l, None, x.toString()) :: Nil
+      case x: Supremum[S] => (l, None, x.toString) :: Nil
     }
   }
 

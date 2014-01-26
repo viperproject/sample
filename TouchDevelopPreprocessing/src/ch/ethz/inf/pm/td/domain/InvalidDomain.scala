@@ -38,7 +38,7 @@ class BooleanInvalidDomain (val value:Map[Identifier, BooleanDomain] = Map.empty
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     var result = Map.empty[Identifier, List[String]]
-    result = result + ((variable, path ::: variable.toString() :: Nil))
+    result = result + ((variable, path ::: variable.toString :: Nil))
     (this.add(variable, domTop), result)
   }
 
@@ -168,7 +168,7 @@ class BooleanInvalidDomain (val value:Map[Identifier, BooleanDomain] = Map.empty
     case _ => this
   }
 
-  override def toString():String = {
+  override def toString:String = {
     if (isBottom) return "_|_"
     var result : String = ""
     value.foreach { case (k,v) =>
@@ -196,7 +196,7 @@ abstract class NumericWithInvalidDomain[N <: NumericalDomain[N], I <: InvalidDom
 
   def invalidDomain : I = _2
 
-  override def toString() = "Numeric:\n"+ToStringUtilities.indent(this._1.toString)+"\nInvalid:\n"+ToStringUtilities.indent(this._2.toString)
+  override def toString = "Numeric:\n"+ToStringUtilities.indent(this._1.toString)+"\nInvalid:\n"+ToStringUtilities.indent(this._2.toString)
 
 }
 

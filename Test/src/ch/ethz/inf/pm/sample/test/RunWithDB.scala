@@ -977,7 +977,7 @@ object InterfaceTestRun {
           case _ => -1
         }
         val sql = "INSERT INTO Output(TestRun, Program, ProgramPoint, Message) " +
-          "VALUES (" + idTestRun + ", " + idProgram + ", '" + programpoint.toString().replace("'", "''") + "', '" + msg + res.getMessage().replace("'", "''") + "')"
+          "VALUES (" + idTestRun + ", " + idProgram + ", '" + programpoint.toString.replace("'", "''") + "', '" + msg + res.getMessage().replace("'", "''") + "')"
         stmt.executeUpdate(sql)
       }
     }
