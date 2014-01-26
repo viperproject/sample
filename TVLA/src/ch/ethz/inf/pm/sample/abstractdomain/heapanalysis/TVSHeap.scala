@@ -610,6 +610,6 @@ class TVSHeapIDSet(val pointedBy: String,_value: Set[NodeName] = Set.empty[NodeN
 /**
  * Used to make a distinction between temporaries and normal variables
  */
-class TemporaryVariableIdentifier(name: String, typ1: Type, pp: ProgramPoint) extends VariableIdentifier(name, typ1, pp)
+class TemporaryVariableIdentifier(name: String, typ: Type, pp: ProgramPoint) extends VariableIdentifier(name, typ, pp)
 
 class NotImplementedException(message: String) extends Exception(message)

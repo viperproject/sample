@@ -477,7 +477,11 @@ case class ProgramPointScopeIdentifier(pp: ProgramPoint) extends ScopeIdentifier
  * @param name The name of the variable
  * @param typ The type of the variable
  */
-case class VariableIdentifier(name: String, typ: Type, override val pp: ProgramPoint, scope: ScopeIdentifier = EmptyScopeIdentifier)
+case class VariableIdentifier(
+    name: String,
+    typ: Type,
+    override val pp: ProgramPoint,
+    scope: ScopeIdentifier = EmptyScopeIdentifier)
   extends Identifier(typ, pp) {
 
   require(typ != null)
@@ -499,11 +503,11 @@ case class VariableIdentifier(name: String, typ: Type, override val pp: ProgramP
 /** 
  * The heap identifier that has to be implemented by particular heap analyses
  * 
- * @param typ1 The type of the identifier
+ * @param typ The type of the identifier
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract class HeapIdentifier[I <: HeapIdentifier[I]](typ1: Type, override val pp: ProgramPoint) extends Identifier(typ1, pp) {
+abstract class HeapIdentifier[I <: HeapIdentifier[I]](typ: Type, override val pp: ProgramPoint) extends Identifier(typ, pp) {
 
 }
 

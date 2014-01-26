@@ -445,7 +445,11 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
 
 }
 
-abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](typ1 : Type, pp : ProgramPoint) extends HeapIdentifier[I](typ1, pp) {
+abstract class NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]](
+    typ: Type,
+    pp: ProgramPoint)
+  extends HeapIdentifier[I](typ, pp) {
+
   def getLabel() : String;
   def createAddress(typ : Type, pp : ProgramPoint) : I;
   def createAddressForArgument(typ : Type, p : ProgramPoint) : I;
@@ -1678,7 +1682,8 @@ class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[
   }
 }
 
-case class TopHeapIdentifier(typ2 : Type, pp2 : ProgramPoint) extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ2, pp2) {
+case class TopHeapIdentifier(typ: Type, override val pp: ProgramPoint)
+  extends NonRelationalHeapIdentifier[TopHeapIdentifier](typ, pp) {
 
   override def getArrayCell(array : Assignable, index : Expression) = this
   override def getArrayLength(array : Assignable) = this
