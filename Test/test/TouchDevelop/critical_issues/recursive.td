@@ -1,3 +1,5 @@
+// rf: analysis does not reach fixpoint with octagons?
+
 action main() {
     data->a := 1;
     data->b := 1;

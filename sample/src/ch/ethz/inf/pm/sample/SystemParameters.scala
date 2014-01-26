@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.Timer
 import scala.util.DynamicVariable
+import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
  * <code>SystemParameters</code> contains all the parameters of Sample
@@ -189,56 +190,4 @@ class Timer {
     }
  	
  	def reset() = totalTime=0; lastValue=None;
-}
-
-
-
-object Reporter {
-
-  var seenErrors = Set[(String,ProgramPoint)]()
-  var seenImprecision = Set[(String,ProgramPoint)]()
-  var seenBottom = Set[(String,ProgramPoint)]()
-
-  def hasError(message:String,pp:ProgramPoint):Boolean = seenErrors.contains((message,pp))
-  def hasImprecision(message:String,pp:ProgramPoint):Boolean = seenImprecision.contains((message,pp))
-  def hasBottom(message:String,pp:ProgramPoint):Boolean = seenBottom.contains((message,pp))
-
-  def getErrors(pp:ProgramPoint):Set[String] = seenErrors.filter(_._2 == pp).map(_._1)
-  def getImprecision(pp:ProgramPoint):Set[String] = seenImprecision.filter(_._2 == pp).map(_._1)
-  def getBottom(pp:ProgramPoint):Set[String] = seenBottom.filter(_._2 == pp).map(_._1)
-
-  def reportError(message:String,pp:ProgramPoint) {
-    if (!hasError(message,pp) && SystemParameters.enableOutputOfAlarms) {
-      SystemParameters.progressOutput.put("ALARM: "+message+" at "+pp.toString)
-      seenErrors += ((message,pp))
-    }
-  }
-
-  def reportImprecision(message:String,pp:ProgramPoint) {
-    if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings) {
-      SystemParameters.progressOutput.put("PRECISION: "+message+" at "+pp.toString)
-      seenImprecision += ((message,pp))
-    }
-  }
-
-  def reportDummy(message:String,pp:ProgramPoint) {
-    if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings && SystemParameters.enableOutputOfDummyWarnings) {
-      SystemParameters.progressOutput.put("SOUND DUMMY: "+message+" at "+pp.toString)
-      seenImprecision += ((message,pp))
-    }
-}
-
-  def reportBottom(message:String,pp:ProgramPoint) {
-    if (!hasBottom(message,pp) && SystemParameters.enableOutputOfBottomWarnings) {
-      SystemParameters.progressOutput.put("BOTTOM: "+message+" at "+pp.toString)
-      seenBottom += ((message,pp))
-    }
-  }
-
-  def reset {
-    seenErrors = Set.empty[(String,ProgramPoint)]
-    seenBottom = Set.empty[(String,ProgramPoint)]
-    seenImprecision = Set.empty[(String,ProgramPoint)]
-  }
-
 }
