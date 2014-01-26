@@ -469,14 +469,13 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
 }
 
 trait Assignable {
-  def getProgramPoint : ProgramPoint
+  def pp : ProgramPoint
   def getType : Type
 }
 
 
 case class CollectionContainsExpression(collection: Expression, key: Expression, value: Expression, returnTyp: Type, pp: ProgramPoint) extends Expression {
 
-  def getProgramPoint = pp
   def getType: Type = returnTyp
   def getIdentifiers: Set[Identifier] = Set.empty[Identifier]
 
@@ -494,12 +493,15 @@ case class CollectionContainsExpression(collection: Expression, key: Expression,
 
 }
 
-abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](pp : ProgramPoint,_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends  SetDomain[I, HeapIdSetDomain[I]](_value,_isTop,_isBottom)
+abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](
+    pp: ProgramPoint,
+    _value: Set[I] = Set.empty[I],
+    _isTop: Boolean = false,
+    _isBottom: Boolean = false)
+  extends SetDomain[I, HeapIdSetDomain[I]](_value, _isTop, _isBottom)
   with Expression {
 
   def this() = this(null)
-  def getProgramPoint = pp
 
   override def equals(x : Any) : Boolean = x match {
     case x : I => if(value.size==1) return x.equals(value.head); else return false;
@@ -540,15 +542,19 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](pp : ProgramPoint,_value:
 
 }
 
-class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint,_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends HeapIdSetDomain[I](p2,_value,_isTop,_isBottom) {
+class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
+    val pp: ProgramPoint,
+    _value: Set[I] = Set.empty[I],
+    _isTop: Boolean = false,
+    _isBottom: Boolean = false)
+  extends HeapIdSetDomain[I](pp, _value, _isTop, _isBottom) {
 
   def this() = this(null)
 
   def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
-    new MaybeHeapIdSetDomain[I](p2,_value,_isTop,_isBottom)
+    new MaybeHeapIdSetDomain[I](pp, _value, _isTop, _isBottom)
 
-  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.getProgramPoint).add(add)
+  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.pp).add(add)
 
   override def getType : Type = {
     var res=SystemParameters.getType().bottom()
@@ -563,13 +569,17 @@ class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint,_value: Set
   def getIdentifiers : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }
 
-class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](p2 : ProgramPoint,_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends HeapIdSetDomain[I](p2,_value,_isTop,_isBottom) {
+class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
+    val pp: ProgramPoint,
+    _value: Set[I] = Set.empty[I],
+    _isTop: Boolean = false,
+    _isBottom: Boolean = false)
+  extends HeapIdSetDomain[I](pp, _value, _isTop, _isBottom) {
 
   def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
-    new DefiniteHeapIdSetDomain[I](p2,_value,_isTop,_isBottom)
+    new DefiniteHeapIdSetDomain[I](pp,_value,_isTop,_isBottom)
 
-  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.getProgramPoint).add(add)
+  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.pp).add(add)
 
   override def getType : Type = {
     var res=SystemParameters.getType().top()

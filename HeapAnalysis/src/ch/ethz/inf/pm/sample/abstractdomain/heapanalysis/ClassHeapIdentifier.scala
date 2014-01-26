@@ -24,19 +24,23 @@ class ClassNullNodeHeapIdentifier(typ : Type, pp : ProgramPoint) extends ClassHe
   override def toString : String = "null"
 }
 
-class ClassHeapIdentifier(val value : Type, pp : ProgramPoint) extends NonRelationalHeapIdentifier[ClassHeapIdentifier](value, pp) {
+class ClassHeapIdentifier(
+    val value: Type,
+    override val pp: ProgramPoint)
+  extends NonRelationalHeapIdentifier[ClassHeapIdentifier](value, pp) {
+
   override def getLabel() = "Class";
   override def getNullNode(p : ProgramPoint) = new ClassNullNodeHeapIdentifier(value.top(), p);
   override def getField = throw new Exception("Not supported")
   override def isNormalized() : Boolean = true;
-  override def factory() : ClassHeapIdentifier=new ClassHeapIdentifier(this.value, this.getProgramPoint);
-  override def extractField(h : ClassHeapIdentifier, s : String, t : Type) : ClassHeapIdentifier=new FieldHeapIdentifier(h.value, s, t, h.getProgramPoint);
+  override def factory() : ClassHeapIdentifier=new ClassHeapIdentifier(this.value, this.pp);
+  override def extractField(h : ClassHeapIdentifier, s : String, t : Type) : ClassHeapIdentifier=new FieldHeapIdentifier(h.value, s, t, h.pp);
   override def accessStaticObject(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
   override def createAddress(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
   override def createAddressForArgument(t : Type, p : ProgramPoint) : ClassHeapIdentifier=	new ClassHeapIdentifier(t, p);
   override def representsSingleVariable() : Boolean=false;
   override def getName: String = value.name
-  override def clone() : Object =new ClassHeapIdentifier(this.value, this.getProgramPoint);
+  override def clone() : Object =new ClassHeapIdentifier(this.value, this.pp);
   override def equals(a : Any) :  Boolean = a match {
     case a1 : FieldHeapIdentifier => false;
     case a1 : ClassHeapIdentifier => this.value.equals(a1.value);

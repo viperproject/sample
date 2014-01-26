@@ -210,7 +210,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     // we represent numerical fields in the heap explicitly. createObject was never invoked for them before,
     // so we create a corresponding object now if the expr is numerical.
     if (expr.getType.name == "Int" || expr.getType.name == "String") {
-      return createNumericField(obj, field, expr.getType, expr.getProgramPoint)
+      return createNumericField(obj, field, expr.getType, expr.pp)
     }
 
     val target = obj match {
@@ -336,7 +336,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   private def createAcyclicListParameter(v: VariableIdentifier): (TVSHeap, Map[Identifier, List[String]], Replacement) = {
     val nextField = "n"
     val encodedField = "field_" + nextField
-    val pp = v.getProgramPoint
+    val pp = v.pp
     var newStructs: Set[TVS[NodeName]] = Set.empty
     var idPath: Map[Identifier, List[String]] = Map.empty
     for (tvs <- structures) {

@@ -214,7 +214,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     result=HeapIdSetFunctionalLifting.applyToSetHeapId(result, createdLocation, result.createVariable(_, typ))
     var result2 = result
     for (field <- fields.orElse(Some(typ.possibleFields)).get) {
-      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName, field.getType, field.getProgramPoint))
+      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName, field.getType, field.pp))
       result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.getType))
     }
 
@@ -264,7 +264,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
             val left = r._1
             val done=new AbstractState[N,H,I](left, this._2)
             result=result.lub(done)
-            result=result.setExpression(new ExpressionSet(typ).add(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(new ExpressionSet(typ).add(new UnitExpression(variable.getType.top(), variable.pp)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -286,14 +286,14 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.assign(variable, assigned), this._2)
             result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.pp)))
           }
         }
         case ids : HeapIdSetDomain[I]=> {
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, ids, this._1.assign(_, assigned)), this._2)
             result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(ids.getType.top(), ids.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(ids.getType.top(), ids.pp)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can assign only variables here")
@@ -314,7 +314,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       el match {
         case variable : Identifier => {
           for(assigned <- right.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](this._1.assignField(variable, field, assigned, right.getType(), variable.getProgramPoint ), this._2)
+            val done=new AbstractState[N,H,I](this._1.assignField(variable, field, assigned, right.getType(), variable.pp ), this._2)
             if(result==None)
               result=Some(done)
             else result=Some(done.lub(result.get))
@@ -323,7 +323,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
         }
         case heapid : HeapIdSetDomain[I] => {
           for(assigned <- right.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, assigned, right.getType(), heapid.getProgramPoint )), this._2)
+            val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, assigned, right.getType(), heapid.pp )), this._2)
             if(result==None)
               result=Some(done)
             else result=Some(done.lub(result.get))
@@ -348,7 +348,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.backwardAssign(variable, assigned), this._2)
             result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.pp)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -369,7 +369,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](this._1.setArgument(variable, assigned), this._2)
             result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.pp)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can assign only variables")
@@ -386,9 +386,9 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       el match {
         case variable : Assignable => {
           for(previousState <- x.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](this._1.removeVariable(variable), ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            val done=new AbstractState[N,H,I](this._1.removeVariable(variable), ExpressionSet(new UnitExpression(variable.getType.top(), variable.pp)))
             result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.getProgramPoint)))
+            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.pp)))
           }
         }
         case _ => throw new SymbolicSemanticException("I can remove only variables")
@@ -427,9 +427,9 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       if (expr.isInstanceOf[Assignable] || expr.isInstanceOf[HeapIdSetDomain[I]]) {
         val (heapid, newHeap, rep) =
           if (expr.isInstanceOf[Assignable])
-            this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint)
+            this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.pp)
           else HeapIdSetFunctionalLifting.applyGetFieldId(expr.asInstanceOf[HeapIdSetDomain[I]], this._1,
-            this._1._2.getFieldIdentifier(_, field, typ, expr.getProgramPoint))
+            this._1._2.getFieldIdentifier(_, field, typ, expr.pp))
 
         val result2 = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
         val accessed = if (heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
@@ -445,7 +445,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     var result : AbstractState[N,H,I] = this.bottom()
     for(expr <- obj.getSetOfExpressions) {
       if(! expr.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
-      val (heapid, newHeap, rep) = this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.getProgramPoint)
+      val (heapid, newHeap, rep) = this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.pp)
       val result2=new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
       val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.backwardAccess)
       val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
@@ -540,7 +540,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     resHeapAndSemantics=HeapIdSetFunctionalLifting.applyToSetHeapId(resHeapAndSemantics, createdLocation, resHeapAndSemantics.createVariable(_, collTyp))
 
     for (field <- fields.orElse(Some(collTyp.possibleFields)).get) {
-      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, resHeapAndSemantics, resHeapAndSemantics._2.getFieldIdentifier(_, field.getName, field.getType, field.getProgramPoint))
+      val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, resHeapAndSemantics, resHeapAndSemantics._2.getFieldIdentifier(_, field.getName, field.getType, field.pp))
       resHeapAndSemantics=HeapIdSetFunctionalLifting.applyToSetHeapId(resHeapAndSemantics, ids, new HeapAndAnotherDomain[N, H, I](resHeapAndSemantics._1.merge(rep2), state).createVariable(_, field.getType))
     }
 

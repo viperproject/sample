@@ -92,9 +92,12 @@ object AbstractOperatorIdentifiers extends Enumeration {
  */
 trait Expression {
 
-  def getType : Type
-  def getProgramPoint : ProgramPoint
-  def getIdentifiers : Set[Identifier]
+  def getType: Type
+
+  /** Point in the program where this expression is located. */
+  def pp: ProgramPoint
+
+  def getIdentifiers: Set[Identifier]
 
   /**
    *
@@ -131,7 +134,7 @@ trait Expression {
 case class NegatedBooleanExpression(thisExpr : Expression) extends Expression {
 
   def getType = thisExpr.getType
-  def getProgramPoint = thisExpr.getProgramPoint
+  def pp = thisExpr.pp
   def getIdentifiers : Set[Identifier] = thisExpr.getIdentifiers
 
   override def hashCode() : Int = thisExpr.hashCode();
@@ -160,7 +163,7 @@ case class NegatedBooleanExpression(thisExpr : Expression) extends Expression {
  */
 case class AbstractOperator(thisExpr : Expression, parameters : List[Expression], typeparameters : List[Type], op : AbstractOperatorIdentifiers.Value, val returntyp : Type) extends Expression {
 
-  def getProgramPoint = thisExpr.getProgramPoint
+  def pp = thisExpr.pp
   def getType = returntyp
   def getIdentifiers : Set[Identifier] = thisExpr.getIdentifiers++{
     var result : Set[Identifier] = Set.empty;
@@ -194,7 +197,7 @@ case class AbstractOperator(thisExpr : Expression, parameters : List[Expression]
  */
 case class BinaryBooleanExpression(left : Expression, right : Expression, op : BooleanOperator.Value, returntyp : Type) extends Expression {
 
-  def getProgramPoint = left.getProgramPoint
+  def pp = left.pp
   def getType = returntyp
   def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
 
@@ -210,15 +213,14 @@ case class BinaryBooleanExpression(left : Expression, right : Expression, op : B
 
 }
 
-case class FalseExpression(pp : ProgramPoint, returntyp : Type) extends Expression {
+case class FalseExpression(pp: ProgramPoint, returntyp: Type) extends Expression {
 
-  def getProgramPoint = pp
   def getType() = returntyp
   def getIdentifiers() : Set[Identifier] = Set.empty;
 
   override def hashCode() : Int = 0;
   override def equals(o : Any) = o match {
-    case FalseExpression(pp, ty) => pp.equals(this.getProgramPoint)
+    case FalseExpression(pp, ty) => pp.equals(this.pp)
     case _ => false
   }
   override def toString() = "false"
@@ -227,15 +229,14 @@ case class FalseExpression(pp : ProgramPoint, returntyp : Type) extends Expressi
 
 }
 
-case class TrueExpression(pp : ProgramPoint, returntyp : Type) extends Expression {
+case class TrueExpression(pp: ProgramPoint, returntyp: Type) extends Expression {
 
-  def getProgramPoint = pp
   def getType = returntyp
   def getIdentifiers : Set[Identifier] = Set.empty;
 
   override def hashCode() : Int = 0;
   override def equals(o : Any) = o match {
-    case TrueExpression(pp, ty) => pp.equals(this.getProgramPoint)
+    case TrueExpression(pp, ty) => pp.equals(this.pp)
     case _ => false
   }
   override def toString() = "true"
@@ -269,7 +270,7 @@ case class ReferenceComparisonExpression(
   require(op == ArithmeticOperator.== || op == ArithmeticOperator.!=,
     "operator must either be equality or inequality")
 
-  def getProgramPoint = left.getProgramPoint
+  def pp = left.pp
 
   def getType = returntyp
 
@@ -301,7 +302,7 @@ case class ReferenceComparisonExpression(
  */
 case class BinaryArithmeticExpression(val left : Expression, val right : Expression, val op : ArithmeticOperator.Value, returntyp : Type) extends Expression {
 
-  def getProgramPoint = if(left.getProgramPoint==null) right.getProgramPoint else left.getProgramPoint
+  def pp = if(left.pp==null) right.pp else left.pp
   def getType = returntyp
   def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
 
@@ -346,7 +347,7 @@ object BinaryArithmeticExpression {
  */
 case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticOperator.Value, val returntyp : Type) extends Expression {
 
-  def getProgramPoint = left.getProgramPoint
+  def pp = left.pp
   def getType = returntyp
   def getIdentifiers = left.getIdentifiers
 
@@ -370,9 +371,8 @@ case class UnaryArithmeticExpression(val left : Expression, val op : ArithmeticO
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class Constant(val constant : String, val typ : Type, pp : ProgramPoint) extends Expression {
+case class Constant(val constant: String, val typ: Type, pp: ProgramPoint) extends Expression {
 
-  def getProgramPoint = pp
   def getType = typ
   def getIdentifiers = Set.empty
 
@@ -394,12 +394,13 @@ case class Constant(val constant : String, val typ : Type, pp : ProgramPoint) ex
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract class Identifier(typ : Type, pp : ProgramPoint) extends Expression with Assignable {
+abstract class Identifier(typ: Type, val pp: ProgramPoint) extends Expression with Assignable {
 
-  def getProgramPoint = pp
-  def getType = if(typ==null && SystemParameters.typ!=null) SystemParameters.typ.top() else typ
+  def getType = if (typ == null && SystemParameters.typ != null) SystemParameters.typ.top() else typ
+
   def getIdentifiers = Set(this)
-  def transform(f:(Expression => Expression)):Expression = f(this)
+
+  def transform(f: (Expression => Expression)): Expression = f(this)
 
   /**
    * Returns the name of the identifier. We suppose that if two identifiers return the same name if and only
@@ -463,7 +464,7 @@ case class ProgramPointScopeIdentifier(pp:ProgramPoint) extends ScopeIdentifier 
  * @param name The name of the variable
  * @param typ The type of the variable
  */
-case class VariableIdentifier(name: String,typ: Type,pp: ProgramPoint,scope: ScopeIdentifier = EmptyScopeIdentifier)
+case class VariableIdentifier(name: String, typ: Type, override val pp: ProgramPoint, scope: ScopeIdentifier = EmptyScopeIdentifier)
   extends Identifier(typ, pp) {
 
   require(typ != null)
@@ -489,7 +490,7 @@ case class VariableIdentifier(name: String,typ: Type,pp: ProgramPoint,scope: Sco
  * @author Pietro Ferrara
  * @since 0.1
  */
-abstract class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type, val pp : ProgramPoint) extends Identifier(typ1, pp) {
+abstract class HeapIdentifier[I <: HeapIdentifier[I]](typ1: Type, override val pp: ProgramPoint) extends Identifier(typ1, pp) {
 
 }
 
@@ -500,9 +501,8 @@ abstract class HeapIdentifier[I <: HeapIdentifier[I]](typ1 : Type, val pp : Prog
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class UnitExpression(typ : Type, pp : ProgramPoint) extends Expression {
+case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
 
-  def getProgramPoint = pp
   def getIdentifiers = Set.empty
   def getType = typ
 
@@ -519,7 +519,7 @@ case class UnitExpression(typ : Type, pp : ProgramPoint) extends Expression {
 }
 
 case class AccessPathIdentifier(path: List[String])
-                               (val typ: Type, val pp: ProgramPoint)
+                               (val typ: Type, override val pp: ProgramPoint)
     extends Identifier(typ, pp) {
   require(!path.isEmpty, "the access path must not be empty")
 
@@ -714,7 +714,7 @@ object Normalizer {
             return None;
           }
           case Some((monomes, const)) => {
-            val constExp = new Constant(const.toString, exp.getType, exp.getProgramPoint);
+            val constExp = new Constant(const.toString, exp.getType, exp.pp);
             monomes.length match {
               case 0 => {
                 return Some(constExp);
@@ -723,7 +723,7 @@ object Normalizer {
               case 1 => {
                 var result : BinaryArithmeticExpression = null;
                 for ((coef, id) <- monomes) {
-                  val coefExp = new Constant(coef.toString, exp.getType, exp.getProgramPoint);
+                  val coefExp = new Constant(coef.toString, exp.getType, exp.pp);
                   val coefAndVarExp : BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.getType);
                   result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.getType);
                 }
@@ -961,7 +961,7 @@ object NondeterministicOperator extends Enumeration {
  */
 case class BinaryNondeterministicExpression(left : Expression, right : Expression, op : NondeterministicOperator.Value, returnType : Type) extends Expression {
 
-  def getProgramPoint = left.getProgramPoint
+  def pp = left.pp
   def getType = returnType
   def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
 

@@ -7,7 +7,7 @@ case class ValueHeapIdentifier(
     obj: HeapVertex,
     field: String,
     typ: Type,
-    pp: ProgramPoint) extends Identifier(typ, pp) {
+    override val pp: ProgramPoint) extends Identifier(typ, pp) {
 
   /**
    * Returns the name of the identifier. We suppose that if two identifiers
@@ -43,7 +43,7 @@ case class ValueHeapIdentifier(
 object ValueHeapIdentifier {
   /** Creates a value heap identifier from a heap vertex and a field identifier. */
   def apply(obj: HeapVertex, field: Identifier): ValueHeapIdentifier =
-    ValueHeapIdentifier(obj, field.getName, field.getType, field.getProgramPoint)
+    ValueHeapIdentifier(obj, field.getName, field.getType, field.pp)
 }
 
 case class EdgeLocalIdentifier(
@@ -69,17 +69,14 @@ case class EdgeLocalIdentifier(
 object EdgeLocalIdentifier {
   /** Creates an edge-local identifier from an access path and a field identifier. */
   def apply(accPath: List[String], field: Identifier): EdgeLocalIdentifier =
-    EdgeLocalIdentifier(accPath, field.getName, field.getType)(field.getProgramPoint)
+    EdgeLocalIdentifier(accPath, field.getName, field.getType)(field.pp)
 
   /** Creates an edge-local identifier with an empty access path from a field identifier. */
   def apply(field: Identifier): EdgeLocalIdentifier =
     apply(List.empty, field)
 }
 
-case class VertexExpression(typ: Type, vertex: Vertex)(pp: ProgramPoint) extends Expression {
-
-  def getProgramPoint = pp
-
+case class VertexExpression(typ: Type, vertex: Vertex)(val pp: ProgramPoint) extends Expression {
   def getType: Type = typ
 
   def getIdentifiers: Set[Identifier] =
