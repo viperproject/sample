@@ -1,7 +1,8 @@
 package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint}
 import ch.ethz.inf.pm.sample.abstractdomain.HeapIdentifier
+import ch.ethz.inf.pm.sample.SystemParameters
 
 
 //================================================================================
@@ -423,7 +424,9 @@ class BinaryPredicate[N](val n: String, val values: Map[(N, N), Kleene]) extends
 /**
  * NodeName can be used to name all individuals in a TVS
  */
-abstract class NodeName extends HeapIdentifier[NodeName](null, null) {
+trait NodeName extends HeapIdentifier[NodeName] {
+  val typ = SystemParameters.typ.top()
+  val pp = DummyProgramPoint
   def representsSingleVariable(): Boolean = false
   def getField: Option[String] = null
   def getName: String = null

@@ -7,7 +7,7 @@ case class ValueHeapIdentifier(
     obj: HeapVertex,
     field: String,
     typ: Type,
-    override val pp: ProgramPoint) extends Identifier(typ, pp) {
+    pp: ProgramPoint) extends Identifier {
 
   /**
    * Returns the name of the identifier. We suppose that if two identifiers
@@ -50,7 +50,7 @@ case class EdgeLocalIdentifier(
     accPath: List[String],
     field: String,
     typ: Type)(
-    pp: ProgramPoint) extends Identifier(typ, pp) {
+    val pp: ProgramPoint) extends Identifier {
 
   require(!typ.isObject, "EdgeLocalIdentifier should represent value information.")
   require(accPath.size <= 1, "For now, we allow at most single step look-ahead.")

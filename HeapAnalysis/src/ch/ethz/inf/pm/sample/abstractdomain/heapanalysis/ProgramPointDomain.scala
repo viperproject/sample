@@ -25,11 +25,10 @@ object ParameterIds {
   }
 }
 
-sealed abstract class ProgramPointHeapIdentifier(
-    typ: Type,
-    pp: ProgramPoint,
-    counter: Int = 0)
-  extends NonRelationalHeapIdentifier[ProgramPointHeapIdentifier](typ, pp) {
+sealed trait ProgramPointHeapIdentifier
+  extends NonRelationalHeapIdentifier[ProgramPointHeapIdentifier] {
+
+  def counter: Int
 
   override def getLabel() = "Program point"
 
@@ -142,18 +141,15 @@ sealed abstract class ProgramPointHeapIdentifier(
 
 }
 
-case class NullProgramPointHeapIdentifier(
-    typ: Type,
-    override val pp: ProgramPoint,
-    cnt: Int = 0)
-  extends ProgramPointHeapIdentifier(typ, pp, cnt) {
+case class NullProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter: Int = 0)
+  extends ProgramPointHeapIdentifier {
 
   def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
   override def equals(x: Any): Boolean = x match {
-    case NullProgramPointHeapIdentifier(t3, _, c) => cnt == c
+    case NullProgramPointHeapIdentifier(t3, _, c) => counter == c
     case _ => false
   }
 
@@ -175,18 +171,18 @@ case class NullProgramPointHeapIdentifier(
 }
 
 case class SimpleProgramPointHeapIdentifier(
-    override val pp: ProgramPoint,
+    pp: ProgramPoint,
     typ: Type,
     summary: Boolean = false,
-    cnt: Int = 0)
-  extends ProgramPointHeapIdentifier(typ, pp, cnt) {
+    counter: Int = 0)
+  extends ProgramPointHeapIdentifier {
 
   def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
   override def equals(x: Any): Boolean = x match {
-    case SimpleProgramPointHeapIdentifier(ppX, _, summaryX, c) => this.pp.equals(ppX) && summaryX == summary && cnt == c
+    case SimpleProgramPointHeapIdentifier(ppX, _, summaryX, c) => this.pp.equals(ppX) && summaryX == summary && counter == c
     case _ => false
   }
 
@@ -208,7 +204,7 @@ case class SimpleProgramPointHeapIdentifier(
 }
 
 case class CollectionIdentifier(
-    override val pp: ProgramPoint,
+    pp: ProgramPoint,
     collTyp: Type,
     keyTyp: Type,
     valueTyp: Type,
@@ -216,13 +212,15 @@ case class CollectionIdentifier(
     originalCollectionTyp: Option[Type],
     keyCollectionTyp: Option[Type],
     summary: Boolean = false,
-    cnt: Int = 0)
-  extends ProgramPointHeapIdentifier(collTyp, pp) {
+    counter: Int = 0)
+  extends ProgramPointHeapIdentifier {
 
+  val typ = collTyp
+  
   def getField : Option[String] = None
   override def isNormalized() : Boolean = true
   override def equals(x : Any) : Boolean = x match {
-    case CollectionIdentifier(ppX, collTypX, keyTypX, valueTypX, lengthTypX, origCollTypX, keyCollTypX, summaryX, c) => pp == ppX && collTyp == collTypX && cnt == c &&
+    case CollectionIdentifier(ppX, collTypX, keyTypX, valueTypX, lengthTypX, origCollTypX, keyCollTypX, summaryX, c) => pp == ppX && collTyp == collTypX && counter == c &&
       keyTyp == keyTypX && valueTyp == valueTypX && lengthTyp == lengthTypX && origCollTypX == originalCollectionTyp && keyCollTypX == keyCollectionTyp && summary == summaryX
     case _ => false
   }
@@ -244,16 +242,20 @@ case class CollectionTupleIdentifier(
     valueTyp: Type,
     pps: Set[ProgramPoint],
     summary: Boolean = false,
-    cnt: Int = 0)
-  extends ProgramPointHeapIdentifier(collectionApprox.getType, pps.head, cnt) {
+    counter: Int = 0)
+  extends ProgramPointHeapIdentifier {
 
+  val typ = collectionApprox.getType
+
+  val pp = pps.head
+  
   def getField : Option[String] = None
   override def isNormalized() : Boolean = false
 
   override def equals(x : Any) : Boolean = x match {
     case CollectionTupleIdentifier(collectionApproxX, keyTypX, valueTypX, ppsX, summaryX, c) =>
       if (!this.collectionApprox.equals(collectionApproxX)) return false
-      if (c != cnt) return false
+      if (c != counter) return false
       if (!this.keyTyp.equals(keyTypX)) return false
       if (!this.valueTyp.equals(valueTypX)) return false
       if (pps.size != ppsX.size) return false
@@ -294,13 +296,17 @@ case class CollectionTupleIdentifier(
   override def setCounter(c:Int) =  new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary, c)
 }
 
-case class ArrayTopIdentifier(cnt: Int = 0) extends ProgramPointHeapIdentifier(null, null, cnt) {
+case class ArrayTopIdentifier(counter: Int = 0) extends ProgramPointHeapIdentifier {
+  val typ = SystemParameters.typ.top()
+
+  val pp = DummyProgramPoint
+
   def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
   override def equals(x: Any): Boolean = x match {
-    case ArrayTopIdentifier(c) => c == cnt
+    case ArrayTopIdentifier(c) => c == counter
     case _ => false
   }
 
@@ -323,17 +329,17 @@ case class ArrayTopIdentifier(cnt: Int = 0) extends ProgramPointHeapIdentifier(n
 
 case class ParameterHeapIdentifier(
     typ: Type,
-    override val pp: ProgramPoint,
+    pp: ProgramPoint,
     summary: Boolean = false,
-    cnt: Int = 0)
-  extends ProgramPointHeapIdentifier(typ, pp, cnt) {
+    counter: Int = 0)
+  extends ProgramPointHeapIdentifier {
 
   def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
   override def equals(x: Any): Boolean = x match {
-    case ParameterHeapIdentifier(t3, _, s, c) => this.typ.equals(t3) && this.summary == s && c == cnt
+    case ParameterHeapIdentifier(t3, _, s, c) => this.typ.equals(t3) && this.summary == s && c == counter
     case _ => false
   }
 
@@ -355,9 +361,9 @@ case class ParameterHeapIdentifier(
 case class UnsoundParameterHeapIdentifier(
     typ: Type,
     n: Int,
-    override val pp: ProgramPoint,
-    cnt: Int = 0)
-  extends ProgramPointHeapIdentifier(typ, pp, cnt) {
+    pp: ProgramPoint,
+    counter: Int = 0)
+  extends ProgramPointHeapIdentifier {
 
   def getField: Option[String] = None
 
@@ -383,18 +389,15 @@ case class UnsoundParameterHeapIdentifier(
   override def setCounter(c:Int) =  new UnsoundParameterHeapIdentifier(typ,n,pp,c)
 }
 
-case class StaticProgramPointHeapIdentifier(
-    typ: Type,
-    override val pp: ProgramPoint,
-    cnt: Int = 0)
-  extends ProgramPointHeapIdentifier(typ, pp, cnt) {
+case class StaticProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter: Int = 0)
+  extends ProgramPointHeapIdentifier {
 
   def getField: Option[String] = None
 
   override def isNormalized(): Boolean = true
 
   override def equals(x: Any): Boolean = x match {
-    case StaticProgramPointHeapIdentifier(t3, _, c) => this.getType.equals(t3) && c == cnt
+    case StaticProgramPointHeapIdentifier(t3, _, c) => this.getType.equals(t3) && c == counter
     case _ => false
   }
 
@@ -413,13 +416,21 @@ case class StaticProgramPointHeapIdentifier(
   override def setCounter(c:Int) =  new StaticProgramPointHeapIdentifier(typ,pp,c)
 }
 
-case class FieldAndProgramPoint(p1: ProgramPointHeapIdentifier, field: String, typ: Type, cnt: Int = 0) extends ProgramPointHeapIdentifier(typ, p1.pp, cnt) {
+case class FieldAndProgramPoint(
+    p1: ProgramPointHeapIdentifier,
+    field: String,
+    typ: Type,
+    counter: Int = 0)
+  extends ProgramPointHeapIdentifier {
+
+  val pp = p1.pp
+
   def getField: Option[String] = Some(field)
 
   override def isNormalized(): Boolean = false
 
   override def equals(x: Any): Boolean = x match {
-    case FieldAndProgramPoint(pp1, field1, _, c) => this.p1.equals(pp1) && this.field.equals(field1) && c == cnt
+    case FieldAndProgramPoint(pp1, field1, _, c) => this.p1.equals(pp1) && this.field.equals(field1) && c == counter
     case _ => false
   }
 

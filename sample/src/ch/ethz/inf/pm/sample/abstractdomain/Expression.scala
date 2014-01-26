@@ -401,14 +401,17 @@ case class Constant(constant: String, typ: Type, pp: ProgramPoint) extends Expre
 }
 
 /** 
- * An identifier, that could be a variable or a node of the abstract heap
- * 
- * @param typ The type of the identifier
- * @author Pietro Ferrara
- * @since 0.1
+ * An identifier, that could be a variable or a node of the abstract heap.
  */
-abstract class Identifier(typ: Type, val pp: ProgramPoint) extends Expression with Assignable {
+trait Identifier extends Expression with Assignable {
 
+  val typ: Type
+
+  val pp: ProgramPoint
+
+  /** Returns the identifier type (or top if the type is `null`).
+    * @todo null types should not occur in the first place
+    */
   def getType = if (typ == null && SystemParameters.typ != null) SystemParameters.typ.top() else typ
 
   def getIdentifiers = Set(this)
@@ -480,9 +483,9 @@ case class ProgramPointScopeIdentifier(pp: ProgramPoint) extends ScopeIdentifier
 case class VariableIdentifier(
     name: String,
     typ: Type,
-    override val pp: ProgramPoint,
+    pp: ProgramPoint,
     scope: ScopeIdentifier = EmptyScopeIdentifier)
-  extends Identifier(typ, pp) {
+  extends Identifier {
 
   require(typ != null)
 
@@ -501,15 +504,9 @@ case class VariableIdentifier(
 }
 
 /** 
- * The heap identifier that has to be implemented by particular heap analyses
- * 
- * @param typ The type of the identifier
- * @author Pietro Ferrara
- * @since 0.1
+ * The heap identifier that has to be implemented by particular heap analyses.
  */
-abstract class HeapIdentifier[I <: HeapIdentifier[I]](typ: Type, override val pp: ProgramPoint) extends Identifier(typ, pp) {
-
-}
+trait HeapIdentifier[I <: HeapIdentifier[I]] extends Identifier {}
 
 /**
  * The unit expression, that represents the absence of a concrete expression.
@@ -536,8 +533,9 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
 }
 
 case class AccessPathIdentifier(path: List[String])
-                               (val typ: Type, override val pp: ProgramPoint)
-    extends Identifier(typ, pp) {
+    (val typ: Type, val pp: ProgramPoint)
+  extends Identifier {
+
   require(!path.isEmpty, "the access path must not be empty")
 
   def getName: String = path.mkString(".")

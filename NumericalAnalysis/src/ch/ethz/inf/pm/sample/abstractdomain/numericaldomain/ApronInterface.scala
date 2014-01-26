@@ -1021,8 +1021,8 @@ case class SimpleApronIdentifier(
     name: String,
     summary: Boolean,
     typ: Type,
-    override val pp: ProgramPoint)
-  extends HeapIdentifier[SimpleApronIdentifier](typ, pp) {
+    pp: ProgramPoint)
+  extends HeapIdentifier[SimpleApronIdentifier] {
 
   def getName: String = name
   def representsSingleVariable(): Boolean = !summary
