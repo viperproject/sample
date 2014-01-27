@@ -11,6 +11,7 @@ import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 case class MethodSummary[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration,
                                         cfgState: CFGState[S])

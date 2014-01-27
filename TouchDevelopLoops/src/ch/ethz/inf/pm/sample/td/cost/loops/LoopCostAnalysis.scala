@@ -9,6 +9,7 @@ import collection.mutable
 import ch.ethz.inf.pm.sample.property.{ValidatedProgramPoint, WarningProgramPoint, OutputCollector, Property}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain, NumericWithStringDomain}
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 
 class CostAnalysis[D <: NumericalDomain[D]] extends TouchAnalysisWithApron[D,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]] {
@@ -278,7 +279,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
   private def checkCondition(loop: Loop[S]) = {
     val node = loop.node
     if (node.size == 1) {
-      val state = cfge.getStatesOfBlock(loop.nodeId).head
+      val state = cfge.statesOfBlock(loop.nodeId).head
       val expressions = node.head.forwardSemantics(state).getExpression.getSetOfExpressions
       if (expressions.size == 1) {
         loop.condition = getCondition(expressions.head, "1")
@@ -301,7 +302,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     //  for the cost of the conditional: cost of the true-branch + cost of the false-branch
     val node = conditional.node
     if (node.size == 1) {
-      val state = cfge.getStatesOfBlock(conditional.nodeId).head
+      val state = cfge.statesOfBlock(conditional.nodeId).head
       val expressions = node.head.forwardSemantics(state).getExpression.getSetOfExpressions
       if (expressions.size == 1) {
         conditional.condition = getCondition(expressions.head, "y1")
@@ -453,7 +454,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
    */
   private def findConstraints(loop: Loop[S]) = {
     val lastNode = loop.lastNode
-    val state = cfge.getStatesOfBlock(lastNode)(cfge.getStatesOfBlock(lastNode).size-1)
+    val state = cfge.statesOfBlock(lastNode)(cfge.statesOfBlock(lastNode).size-1)
     state match {
       case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
         val apronInterface = as.getSemanticDomain._1.numericalDomain
@@ -483,7 +484,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
    */
   private def checkVariableUpdates(loop: Loop[S]) = {
     val lastNode = loop.lastNode
-    val state = cfge.getStatesOfBlock(lastNode)(cfge.getStatesOfBlock(lastNode).size-1)
+    val state = cfge.statesOfBlock(lastNode)(cfge.statesOfBlock(lastNode).size-1)
 
     state match {
       case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
@@ -576,7 +577,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
    */
   private def findInitialValues(loop: Loop[S]) = {
     val prevNode = loop.prevNode
-    val state = cfge.getStatesOfBlock(prevNode)(cfge.getStatesOfBlock(prevNode).size-1)
+    val state = cfge.statesOfBlock(prevNode)(cfge.statesOfBlock(prevNode).size-1)
     state match {
       case as : AbstractState[StringsAnd[InvalidAnd[ApronInterface],_,_],_,_] => {
         val apronInterface = as.getSemanticDomain._1.numericalDomain
