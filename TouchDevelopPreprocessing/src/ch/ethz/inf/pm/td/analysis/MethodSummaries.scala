@@ -74,7 +74,7 @@ object MethodSummaries {
         // This is a recursive call (non top level).
         // Join the entry state and continue with previously recorded
         // exit + entryState (updates inside recursive calls are weak)
-        val newEntryState = enteredState.widening(oldEntryState.asInstanceOf[S])
+        val newEntryState = oldEntryState.asInstanceOf[S].widening(enteredState)
         entries += ((identifyingPP,newEntryState))
         summaries.get(identifyingPP) match {
           case Some(s) =>
@@ -143,7 +143,7 @@ object MethodSummaries {
     curState = curState.pruneUnreachableHeap()
 
     abnormalExits = abnormalExits match {
-      case Some(x) => Some(curState.widening(x.asInstanceOf[S]))
+      case Some(x) => Some(x.asInstanceOf[S].widening(curState))
       case None => Some(curState)
     }
 
@@ -159,7 +159,7 @@ object MethodSummaries {
         case None => entryState
         case Some(x) => entryState.lub(x.asInstanceOf[S])
       })
-    )
+      )
 
   }
 
@@ -218,7 +218,7 @@ object MethodSummaries {
   }
 
   def enterFunction[S <: State[S]](callPoint:ProgramPoint, callTarget: MethodDeclaration, entryState: S,
-                                           parameters: List[ExpressionSet]): S = {
+                                   parameters: List[ExpressionSet]): S = {
     var curState = entryState
 
     if (parameters.length == callTarget.arguments.apply(0).length) {

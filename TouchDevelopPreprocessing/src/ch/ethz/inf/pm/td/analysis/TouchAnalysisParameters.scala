@@ -1,112 +1,210 @@
 package ch.ethz.inf.pm.td.analysis
 
-/**
- * User: lucas
- * Date: 3/4/13
- * Time: 6:25 PM
- */
 object TouchAnalysisParameters {
 
-  /**
-   * When a public method (which can be executed by the user) has parameters, they are almost always expected to be
-   * non-invalid. Technically this is a bug, but something that nobody will fix. This parameter turns on the
-   * assumption that parameters to public methods are valid (if run by the user or when a library is called).
-   *
-   * Is that function called from a different function which might pass an invalid value, this error is still reported.
-   */
-  val argumentsToPublicMethodsValid = true
+  private var currentParams: TouchAnalysisParameters = TouchAnalysisParameters()
+
+  def get: TouchAnalysisParameters = currentParams
 
   /**
-   * Context-sensitivity in the interprocedural analysis.
+   * Sets the TouchAnalysisParameters to be used during the analysis. This method should ONLY be called once
+   * by test suites when setting up the analysis with non-standard parameters
    */
-  val contextSensitiveInterproceduralAnalysis = false
+  def set(params: TouchAnalysisParameters) = {
+    currentParams = params
+  }
 
+  // Accessors
 
-  /**
-   * If this is enabled, only relevant fields (i.e. that are read in the program) of objects from the library will be
-   * represented.
-   */
-  val libraryFieldPruning = true
+  def argumentsToPublicMethodsValid = currentParams.execution.argumentsToPublicMethodsValid
 
-  /**
-   * The default behavior of TouchBoost is to initialize the global state to invalid ("first run")
-   * and then compute the fixpoint over an arbitrary number of script executions.
-   *
-   * When this option is set to true, we will initialize the global state to Top instead ("any run")
-   * and just analyze a single execution of the script. This is faster, but less precise.
-   *
-   * EXPERIMENTAL
-   */
-  val singleExecution = false
+  def contextSensitiveInterproceduralAnalysis = currentParams.execution.contextSensitiveInterproceduralAnalysis
 
-  val fullAliasingInGenericInput = false
+  def libraryFieldPruning = currentParams.libraryFieldPruning
 
-  /** take into account premature abortion.
-    * This means, the persistent data at any program point will be included in the entry state. */
-  val prematureAbortion = true
+  def singleExecution = currentParams.execution.singleExecution
 
-  /**
-   * Reset assumptions about environment between events / public methods
-   */
-  val resetEnv = false
+  def fullAliasingInGenericInput = currentParams.execution.fullAliasingInGenericInput
 
-  /**
-   * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary number of event occurrences
-   * for each execution.
-   *
-   * When this option is set to true, we will analyze each event once with the top global state.
-   *
-   * EXPERIMENTAL
-   */
-  val singleEventOccurrence = false
+  def prematureAbortion = currentParams.execution.prematureAbortion
 
-  /**
-   *
-   * Treat private methods just like public methods
-   *
-   * That means, assume that they can be run by the user - analyze them separately with top entryState
-   *
-   */
-  val treatPrivateMethodLikePublicMethods = false
+  def resetEnv = currentParams.execution.resetEnv
 
-  /**
-   * Maximum number of possible string values represented for a single variable
-   */
-  val stringRepresentationBound = 3
+  def singleEventOccurrence = currentParams.execution.singleEventOccurrence
 
-  /**
-   * If this is set to true, we remove all local variables from the calling context when entering a function.
-   * This improves performance, but may reduce precision (since relations between passed values and removed
-   * values may be lost).
-   *
-   * TL;DR:
-   *  true = less precision, more speed.
-   *  false = more precision, less speed.
-   */
-  val localizeStateOnMethodCall = false
+  def treatPrivateMethodLikePublicMethods = currentParams.execution.treatPrivateMethodLikePublicMethods
 
-  val reportNoncriticalParameterBoundViolations = false
+  def stringRepresentationBound = currentParams.domains.stringRepresentationBound
 
-  val reportDummyImplementations = false
+  def localizeStateOnMethodCall = currentParams.execution.localizeStateOnMethodCall
 
-  val reportNumericalErrors = false
+  def reportNoncriticalParameterBoundViolations = currentParams.reporting.reportNoncriticalParameterBoundViolations
 
-  val reportPrematurelyOnInternetAccess = false
+  def reportDummyImplementations = currentParams.reporting.reportDummyImplementations
 
-  val enableCollectionMustAnalysis = false
+  def reportNumericalErrors = currentParams.reporting.reportNumericalErrors
 
-  val enableCollectionSummaryAnalysis = false
-  /**
-   * If this is true, the analysis will print something like "parameter X ("somevalue",invalid) may be invalid"
-   * This is helpful, but may confuse users and duplicate warnings
-   */
-  val printValuesInWarnings = false
+  def reportPrematurelyOnInternetAccess = currentParams.reporting.reportPrematurelyOnInternetAccess
 
-  /** do not report errors in libraries */
-  val reportOnlyAlarmsInMainScript = true
+  def enableCollectionMustAnalysis = currentParams.domains.enableCollectionMustAnalysis
 
-  // Fields that are always TOP
-  val topFields = Set("x","y","z","z index","speed x","speed y","speed z","width","height","acceleration x",
-    "acceleration y","angle","angular speed","leaderboard score")
+  def enableCollectionSummaryAnalysis = currentParams.domains.enableCollectionSummaryAnalysis
+
+  def printValuesInWarnings = currentParams.reporting.printValuesInWarnings
+
+  def reportOnlyAlarmsInMainScript = currentParams.reporting.reportOnlyAlarmsInMainScript
+
+  def topFields = currentParams.topFields
+
 
 }
+
+/**
+ * Parameters for the TouchBoost Analysis
+ *
+ * They are kept in case classes for several reasons:
+ *  1) Individual settings are immutable and type-safe like vals in an object.
+ *  2) Concise construction: Change a few options, keep all other parameters.
+ *      Example: TouchAnalysisParameters(reporting = ReportingParams(reportNumericalErrors = true)) to enable checking
+ *               for numerical errors.
+ *
+ *  Individual parameters are naturally grouped for better overview, and because case classes only support
+ *  up to 22 arguments :)
+ */
+case class TouchAnalysisParameters(
+                                    execution: ExecutionModelParams = ExecutionModelParams(),
+                                    domains: DomainParams = DomainParams(),
+                                    reporting: ReportingParams = ReportingParams(),
+
+                                    /**
+                                     * If this is enabled, only relevant fields (i.e. that are read in the program) of
+                                     * objects from the library will be represented.
+                                     */
+                                    libraryFieldPruning: Boolean = true,
+                                    // Fields that are always TOP
+                                    topFields: Set[String] = Set("x", "y", "z", "z index", "speed x", "speed y",
+                                      "speed z", "width", "height", "acceleration x", "acceleration y", "angle",
+                                      "angular speed", "leaderboard score")
+                                    )
+
+case class ExecutionModelParams(
+                                 /**
+                                  * When a public method (which can be executed by the user) has parameters, they are
+                                  * almost always expected to be non-invalid. Technically this is a bug, but something
+                                  * that nobody will fix. This parameter turns on the assumption that parameters to
+                                  * public methods are valid (if run by the user or when a library is called).
+                                  *
+                                  * Is that function called from a different function which might pass an invalid value,
+                                  * this error is still reported.
+                                  */
+                                 argumentsToPublicMethodsValid: Boolean = true,
+
+                                 /**
+                                  * Context-sensitivity in the interprocedural analysis.
+                                  */
+                                 contextSensitiveInterproceduralAnalysis: Boolean = false,
+
+
+                                 /**
+                                  * The default behavior of TouchBoost is to initialize the global state to invalid
+                                  * ("first run") and then compute the fixpoint over an arbitrary number of
+                                  * script executions.
+                                  *
+                                  * When this option is set to true, we will initialize the global state to Top instead
+                                  * ("any run") and just analyze a single execution of the script. This is faster,
+                                  * but less precise.
+                                  *
+                                  * EXPERIMENTAL
+                                  */
+                                 singleExecution: Boolean = false,
+
+                                 fullAliasingInGenericInput: Boolean = false,
+
+                                 /**
+                                  * Take into account premature abortion. This means, the persistent data at any
+                                  * program point will be included in the entry state.
+                                  */
+                                 prematureAbortion: Boolean = true,
+
+                                 /**
+                                  * Reset assumptions about environment between events / public methods
+                                  */
+                                 resetEnv: Boolean = false,
+
+                                 /**
+                                  * The default behavior of TouchBoost is to compute the fixpoint over an arbitrary
+                                  * number of event occurrences for each execution.
+                                  *
+                                  * When this option is set to true, we will analyze each event once with the
+                                  * top global state.
+                                  *
+                                  * EXPERIMENTAL
+                                  */
+                                 singleEventOccurrence: Boolean = false,
+
+                                 /**
+                                  *
+                                  * Treat private methods just like public methods
+                                  *
+                                  * That means, assume that they can be run by the user - analyze them separately
+                                  * with top entryState
+                                  *
+                                  */
+                                 treatPrivateMethodLikePublicMethods: Boolean = false,
+
+
+                                 /**
+                                  * If this is set to true, we remove all local variables from the calling context when
+                                  * entering a function. This improves performance, but may reduce precision (since
+                                  * relations between passed values and removed values may be lost).
+                                  *
+                                  * TL;DR:
+                                  * true = less precision, more speed.
+                                  * false = more precision, less speed.
+                                  */
+                                 localizeStateOnMethodCall: Boolean = false
+
+                                 )
+
+case class DomainParams(enableCollectionMustAnalysis: Boolean = false,
+                        enableCollectionSummaryAnalysis: Boolean = false,
+
+                        /**
+                         * Maximum number of possible string values represented for a single variable
+                         */
+                        stringRepresentationBound: Int = 3,
+
+                        /**
+                         * The numerical domain to be used.
+                         *
+                         * IMPORTANT: This parameter is ONLY respected when using
+                         * TouchApronRun/TestRunner (important for test suites), but not the GUI.
+                         */
+                        numericalDomain: NumericDomainChoice.Value = NumericDomainChoice.Octagons
+                         )
+
+object NumericDomainChoice extends Enumeration {
+  type NumericDomainChoice = Value
+
+  val Octagons = Value
+  val Polyhedra = Value
+  val StrictPolyhedra = Value
+}
+
+case class ReportingParams(reportNoncriticalParameterBoundViolations: Boolean = false,
+                           reportDummyImplementations: Boolean = false,
+                           reportNumericalErrors: Boolean = false,
+                           reportPrematurelyOnInternetAccess: Boolean = false,
+
+                           /**
+                            * do not report errors in libraries
+                            */
+                           reportOnlyAlarmsInMainScript: Boolean = true,
+
+                           /**
+                            * If this is true, the analysis will print something like
+                            * "parameter X ("somevalue",invalid) may be invalid"
+                            * This is helpful, but may confuse users and duplicate warnings
+                            */
+                           printValuesInWarnings: Boolean = false
+                            )

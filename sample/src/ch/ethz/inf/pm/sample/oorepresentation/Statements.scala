@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.oorepresentation
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
  * This class represents a point of the program. It is specific 

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.{SystemParameters, Reporter}
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.compiler._
 import collection.immutable.Range.Inclusive
 import RichNativeSemantics._
@@ -13,6 +13,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.UnitExpression
 import ch.ethz.inf.pm.td.analysis.{MethodSummaries, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.domain.{ValidExpression, InvalidExpression, MultiValExpression}
+import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
  *
@@ -670,11 +671,9 @@ class TouchField(
     val isSummaryNode: Boolean = false)
   extends Identifier {
 
-  // Better use a `DummyProgramPoint than `null`
-  val pp = DummyProgramPoint
+  val pp = null
 
-  // Just an alias for `getType` rather than `null`
-  val typ = getType
+  val typ = null
 
   override def getType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
 

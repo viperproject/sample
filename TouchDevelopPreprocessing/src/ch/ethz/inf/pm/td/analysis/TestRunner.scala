@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.td.analysis
 import java.io.{FileFilter, File}
 import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, ScriptListings}
 import ch.ethz.inf.pm.td.compiler.TouchException
-import ch.ethz.inf.pm.td.domain.{TouchApronRun, TouchRun}
 
 /**
  *

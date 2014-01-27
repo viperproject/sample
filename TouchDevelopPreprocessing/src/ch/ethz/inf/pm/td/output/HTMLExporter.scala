@@ -1,8 +1,8 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.sample.Reporter
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
 import ch.ethz.inf.pm.td.parser.{Script, IdPositional, PrettyPrinter}
+import ch.ethz.inf.pm.sample.reporting.{SampleError, Reporter}
 
 /**
  * Exports to HTML
@@ -94,7 +94,7 @@ class HTMLExporter extends ErrorExporter {
               case None => pretty
               case Some(pos) =>
                 "<span id='" + pos.toString + "'>" +
-                  (for ((message, pp) <- Reporter.seenErrors) yield {
+                  (for (SampleError(id, message, pp) <- Reporter.seenErrors) yield {
                     pp match {
                       case TouchProgramPoint(xScript, xPos) =>
                         if (xScript.equals(id) && xPos.equals(pos))

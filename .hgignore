@@ -4,6 +4,10 @@ syntax: glob
 target
 *.class
 
+# Ephemeral test output
+*.test_last
+Test/test/TouchDevelop/cache
+
 .idea
 .idea_modules
 
