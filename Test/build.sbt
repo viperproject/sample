@@ -5,6 +5,6 @@ scalaSource in Compile <<= baseDirectory(_ / "src")
 // resources may not be valid)
 // resourceDirectory in Test <<= baseDirectory(_ / "test")
 
-libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.2"
+libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.1"
 
 libraryDependencies += "mysql" % "mysql-connector-java" % "5.1.16"
