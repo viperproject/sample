@@ -5,6 +5,7 @@ package ch.ethz.inf.pm.sample.oorepresentation
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 /**
  * This class represents an oriented weighted graph.

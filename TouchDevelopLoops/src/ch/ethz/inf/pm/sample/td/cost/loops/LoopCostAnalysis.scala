@@ -9,6 +9,7 @@ import collection.mutable
 import ch.ethz.inf.pm.sample.property.{ValidatedProgramPoint, WarningProgramPoint, OutputCollector, Property}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain, NumericWithStringDomain}
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 
 class CostAnalysis[D <: NumericalDomain[D]] extends TouchAnalysisWithApron[D,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]] {

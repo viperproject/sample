@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.property
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 /**
  * The check of a property

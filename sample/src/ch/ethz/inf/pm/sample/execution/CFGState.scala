@@ -1,6 +1,7 @@
-package ch.ethz.inf.pm.sample.oorepresentation
+package ch.ethz.inf.pm.sample.execution
 
 import ch.ethz.inf.pm.sample.abstractdomain.State
+import ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph
 
 /**
  * Holds all the states associated with a ControlFlowGraph, that is the
