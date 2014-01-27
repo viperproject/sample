@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
@@ -10,7 +11,6 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @since 0.1
  */
 trait Lattice[T <: Lattice[T]] { this: T =>
-
   /**
    * Returns a new instance of the lattice
    *
@@ -519,6 +519,117 @@ trait State[S <: State[S]] extends Lattice[S] { this: S =>
    */
   def explainError(expr:ExpressionSet):Set[(String,ProgramPoint)] = Set.empty
 
+}
+
+/** Implements some methods of `State` that take `ExpressionSet`s as argument,
+  * performs the corresponding operations pair-wise for all `Expression`s
+  * and finally computes the upper bound or all resulting states.
+  *
+  * That is, classes implementing this trait only need to supply operations
+  * for single `Expression`s, not `ExpressionSet`s and can thus avoid a lot of
+  * boiler-plate code.
+  *
+  * In addition, the implemented methods also handle the cases where
+  * the this state or any argument is bottom.
+  *
+  * @tparam S the self-type of the state
+  */
+trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
+  def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): S = {
+    require(x.getSetOfExpressions.forall(_.isInstanceOf[VariableIdentifier]),
+      "can only create variable from variable identifiers")
+
+    unlessBottom(x, {
+      val variable = unpackSingle(x).asInstanceOf[VariableIdentifier]
+      createVariable(variable, typ, pp).setUnitExpression()
+    })
+  }
+
+  /** Creates a variable given a `VariableIdentifier`.
+    * Implementations can already assume that this state is non-bottom.
+    */
+  def createVariable(x: VariableIdentifier, typ: Type, pp: ProgramPoint): S
+
+  def createVariableForArgument(x: ExpressionSet, typ: Type): S = {
+    require(x.getSetOfExpressions.forall(_.isInstanceOf[VariableIdentifier]),
+      "can only create variable from variable identifiers")
+
+    unlessBottom(x, {
+      val variable = unpackSingle(x).asInstanceOf[VariableIdentifier]
+      createVariableForArgument(variable, typ).setUnitExpression()
+    })
+  }
+
+  /** Creates an argument variable given a `VariableIdentifier`.
+    * Implementations can already assume that this state is non-bottom.
+    */
+  def createVariableForArgument(x: VariableIdentifier, typ: Type): S
+
+  def assignVariable(leftSet: ExpressionSet, rightSet: ExpressionSet): S = {
+    unlessBottom(leftSet, {
+      unlessBottom(rightSet, {
+        val result = if (rightSet.isTop) {
+          setVariableToTop(leftSet)
+        } else {
+          Lattice.bigLub(for (
+            left <- leftSet.getSetOfExpressions;
+            right <- rightSet.getSetOfExpressions)
+          yield assignVariable(left, right))
+        }
+        result.setUnitExpression()
+      })
+    })
+  }
+
+  /** Assigns an expression to a variable.
+    * Implementations can already assume that this state is non-bottom.
+    */
+  def assignVariable(x: Expression, right: Expression): S
+
+  def assignField(objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
+    unlessBottom(objSet, {
+      unlessBottom(rightSet, {
+        val result = if (rightSet.isBottom) {
+          val t = getFieldValue(objSet, field, rightSet.getType())
+          t.setVariableToTop(t.getExpression)
+        } else {
+          Lattice.bigLub(for (
+            obj <- objSet.getSetOfExpressions;
+            right <- rightSet.getSetOfExpressions)
+          yield assignField(obj, field, right))
+        }
+        result.setUnitExpression()
+      })
+    })
+  }
+
+  /** Assigns an expression to a field.
+    * Implementations can already assume that this state is non-bottom.
+    */
+  def assignField(obj: Expression, field: String, right: Expression): S
+
+  /** Returns whether this state is bottom.
+    * @todo move method to `Lattice`
+    */
+  def isBottom: Boolean
+
+  /** Executes the given function only if this state and the given
+    * `ExpressionSet` is not bottom. */
+  def unlessBottom(set: ExpressionSet, f: => S): S =
+    if (isBottom || set.isBottom) bottom()
+    else f
+
+  /** @todo merge with `removeExpression`. */
+  def setUnitExpression(): S = {
+    val unitExp = new UnitExpression(SystemParameters.typ.top(), DummyProgramPoint)
+    setExpression(ExpressionSet().add(unitExp))
+  }
+
+  private def unpackSingle(set: ExpressionSet): Expression = {
+    require(set.getSetOfExpressions.size == 1,
+      "ExpressionSet must contain exactly one Expression")
+    set.getSetOfExpressions.head
+  }
 }
 
 /**

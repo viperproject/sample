@@ -184,9 +184,12 @@ class SetOfExpressions(_value: Set[Expression] = Set.empty[Expression], _isTop: 
 }
 
 
+
+
+
 class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : HeapAndAnotherDomain[N, H, I], initialExpression : ExpressionSet)
   extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N,H,I]](state, initialExpression)
-  with State[AbstractState[N,H,I]]
+  with SimpleState[AbstractState[N,H,I]]
   with SingleLineRepresentation
   with LatticeWithReplacement[AbstractState[N,H,I]]
   {
@@ -229,115 +232,35 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     new AbstractState(this._1, ExpressionSet())
   }
 
-  def createVariable(x : ExpressionSet, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
-    if(x.getSetOfExpressions.size != 1 || x.getSetOfExpressions.head.isInstanceOf[VariableIdentifier]==false)
-      throw new SymbolicSemanticException("Cannot declare multiple variables together")
-    var result=this.bottom()
-    for(el <- x.getSetOfExpressions) {
-      //For each variable that is potentially created, it computes its semantics and it considers the upper bound
-      el match {
-        case variable : Assignable => {
-          for(assigned <- x.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](this._1.createVariable(variable, typ), this._2)
-            result=result.lub(done)
-            result=result.setExpression(new ExpressionSet(typ).add(new UnitExpression(variable.getType.top(), pp)))
-          }
-        }
-        case _ => throw new SymbolicSemanticException("I can assign only variables")
-      }
+  def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] =
+    new AbstractState[N, H, I](_1.createVariable(variable, typ), _2)
+
+  def createVariableForArgument(variable: VariableIdentifier, typ: Type): AbstractState[N, H, I] =
+    new AbstractState[N, H, I](_1.createVariableForArgument(variable, typ, Nil)._1, _2)
+
+  def assignVariable(left: Expression, right: Expression): AbstractState[N, H, I] = {
+    left match {
+      case variable: Assignable =>
+         new AbstractState[N, H, I](this._1.assign(variable, right), this._2)
+      case ids: HeapIdSetDomain[I] =>
+         new AbstractState[N, H, I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, ids, this._1.assign(_, right)), this._2)
+      case _ =>
+        throw new SymbolicSemanticException("I can assign only variables here")
     }
-    result
   }
 
-  override def createVariableForArgument(x : ExpressionSet, typ : Type) : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
-    if(x.getSetOfExpressions.size != 1 || x.getSetOfExpressions.head.isInstanceOf[VariableIdentifier]==false)
-      throw new SymbolicSemanticException("Cannot declare multiple variables together")
-    var result=this.bottom()
-    for(el <- x.getSetOfExpressions) {
-      //For each variable that is potentially a parameter, it computes its semantics and it considers the upper bound
-      el match {
-        case variable : Assignable => {
-          for(assigned <- x.getSetOfExpressions) {
-            val r = this._1.createVariableForArgument(variable, typ, Nil)
-            val left = r._1
-            val done=new AbstractState[N,H,I](left, this._2)
-            result=result.lub(done)
-            result=result.setExpression(new ExpressionSet(typ).add(new UnitExpression(variable.getType.top(), variable.pp)))
-          }
-        }
-        case _ => throw new SymbolicSemanticException("I can assign only variables")
-      }
+  def assignField(obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
+    obj match {
+      case variable : Identifier =>
+        new AbstractState[N,H,I](this._1.assignField(variable, field, right, right.getType, variable.pp ), this._2)
+      case heapid : HeapIdSetDomain[I] =>
+        new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, right, right.getType, heapid.pp )), this._2)
+      case _ =>
+        throw new SymbolicSemanticException("I can assign only variables and heap ids here")
     }
-    result
   }
 
-  def assignVariable(x : ExpressionSet, right : ExpressionSet) : AbstractState[N,H,I] = {
-    if(this.isBottom) return bottom()
-    if(right.isTop)
-      return this.setVariableToTop(x).removeExpression()
-    if(right.isTop) return top()
-    var result : AbstractState[N,H,I] = this.bottom()
-    for(el <- x.getSetOfExpressions) {
-      //For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
-      el match {
-        case variable : Assignable => {
-          for(assigned <- right.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](this._1.assign(variable, assigned), this._2)
-            result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.pp)))
-          }
-        }
-        case ids : HeapIdSetDomain[I]=> {
-          for(assigned <- right.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, ids, this._1.assign(_, assigned)), this._2)
-            result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(ids.getType.top(), ids.pp)))
-          }
-        }
-        case _ => throw new SymbolicSemanticException("I can assign only variables here")
-      }
-    }
-    result
-  }
-
-  def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): AbstractState[N, H, I] = {
-    if(this.isBottom) return this
-    var result : Option[AbstractState[N,H,I]] = None
-    if(right.isTop) {
-      val t : AbstractState[N,H,I] = this.getFieldValue(obj, field, right.getType())
-      return t.setVariableToTop(t.getExpression).removeExpression()
-    }
-    for(el <- obj.getSetOfExpressions) {
-      //For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
-      el match {
-        case variable : Identifier => {
-          for(assigned <- right.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](this._1.assignField(variable, field, assigned, right.getType(), variable.pp ), this._2)
-            if(result==None)
-              result=Some(done)
-            else result=Some(done.lub(result.get))
-            //initial=initial.setExpression(new ExpressionSet(new UnitExpression(variable.getType().bottom(), variable.getProgramPoint), this.removeExpression()))
-          }
-        }
-        case heapid : HeapIdSetDomain[I] => {
-          for(assigned <- right.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, assigned, right.getType(), heapid.pp )), this._2)
-            if(result==None)
-              result=Some(done)
-            else result=Some(done.lub(result.get))
-          }
-        }
-        case _ => throw new SymbolicSemanticException("I can assign only variables and heap ids here")
-      }
-    }
-    if(result==None)
-      throw new SymbolicSemanticException(("You should assign something to something"))
-    result.get.removeExpression()
-  }
-
-  def backwardAssignVariable(x : ExpressionSet, right : ExpressionSet) : AbstractState[N,H,I] = {
+  override def backwardAssignVariable(x : ExpressionSet, right : ExpressionSet) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
     if(right.isTop) return top()
     var result : AbstractState[N,H,I] = this.bottom()
