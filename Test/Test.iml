@@ -45,17 +45,6 @@
     </orderEntry>
     <orderEntry type="module" module-name="GUI" />
     <orderEntry type="module" module-name="ValueDrivenHeapAnalysis" />
-    <orderEntry type="module-library">
-      <library>
-        <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/sil_2.10-0.1-SNAPSHOT.jar!/" />
-        </CLASSES>
-        <JAVADOC />
-        <SOURCES>
-          <root url="jar://$MODULE_DIR$/lib/sil_2.10-0.1-SNAPSHOT-sources.jar!/" />
-        </SOURCES>
-      </library>
-    </orderEntry>
   </component>
 </module>
 
