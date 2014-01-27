@@ -351,7 +351,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
 
   this.nodes = getList[List[S]](this.cfg.nodes.size, state.bottom() :: Nil)
 
-  def getStatesOfBlock(idx: Int): List[S] = nodes(idx)
+  def statesOfBlock(idx: Int): List[S] = nodes(idx)
 
   def factoryState: S = state
 

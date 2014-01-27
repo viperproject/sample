@@ -116,7 +116,7 @@ object ShowGraph {
               var i: Int = 0
               while (i < vertixes.size) {
                 if (vertixes.apply(i) == cell)
-                  new ShowCFGBlock(g.cfg.nodes.apply(i), g.getStatesOfBlock(i))
+                  new ShowCFGBlock(g.cfg.nodes.apply(i), g.statesOfBlock(i))
                 i = i + 1
               }
             }

@@ -85,7 +85,7 @@ class SingleStatementProperty(val visitor : Visitor) extends Property {
       for(i <- 0 to result.cfg.nodes.size-1)
         for(k <- 0 to result.cfg.nodes.apply(i).size-1) {
           val statement = result.cfg.nodes.apply(i).apply(k)
-          val blockStates = result.getStatesOfBlock(i)
+          val blockStates = result.statesOfBlock(i)
           if(k > blockStates.size-1)
             visitor.checkSingleStatement[S](
               blockStates.apply(blockStates.size-1).bottom(),

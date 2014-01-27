@@ -21,5 +21,5 @@ trait CFGState[S <: State[S]] {
 
   def exitState(): S
 
-  def getStatesOfBlock(idx: Int): List[S]
+  def statesOfBlock(idx: Int): List[S]
 }
