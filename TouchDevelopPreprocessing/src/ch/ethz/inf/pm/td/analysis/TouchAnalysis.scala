@@ -20,6 +20,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 /**
  * 

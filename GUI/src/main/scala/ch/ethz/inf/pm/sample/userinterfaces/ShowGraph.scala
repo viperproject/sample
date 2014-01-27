@@ -20,6 +20,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.FieldAndProgramPoint
 import ch.ethz.inf.pm.sample.tracepartitioning.Leaf
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 private class Show extends JFrame {
   def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
@@ -116,7 +117,7 @@ object ShowGraph {
               var i: Int = 0
               while (i < vertixes.size) {
                 if (vertixes.apply(i) == cell)
-                  new ShowCFGBlock(g.cfg.nodes.apply(i), g.getStatesOfBlock(i))
+                  new ShowCFGBlock(g.cfg.nodes.apply(i), g.statesOfBlock(i))
                 i = i + 1
               }
             }

@@ -5,6 +5,7 @@ package ch.ethz.inf.pm.sample.oorepresentation
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 /**
  * This class represents an oriented weighted graph.
@@ -133,8 +134,8 @@ trait WeightedGraph[T, W] {
       val node: T = nodes.apply(i)
       result = result +
         "Node n." + i + "\n-----------------\n" +
-        "Entry node:\n" + entryNodesToString(i) +
-        "\nExit node:\n" + exitNodesToString(i) +
+        "Pred: " + entryNodesToString(i) +
+        "\nSucc: " + exitNodesToString(i) +
         "\nBlock:\n" + nodeToString(node) + "\n-----------------\n"
       i = i + 1
     }
@@ -168,27 +169,25 @@ trait WeightedGraph[T, W] {
   private def weightToString(weight: Option[W]): String = weight match {
     case None => ""
     case null => ""
-    case Some(x) => x.toString
+    case Some(x) => "(" + x.toString + ")"
   }
 
-  protected def entryNodesToString(i: Int): String = {
-    var result: String = ""
-    for (edge: (Int, Int, Option[W]) <- edges) {
-      if (edge._2 == i)
-        result = result + edge._1 + ", " + weightLabel + ":" + weightToString(edge._3) + "\n"
-    }
-    result
+  def entryNodesToString(i: Int): String = {
+    val preds = for ((from, _, weight) <- entryEdges(i))
+      yield from + weightToString(weight)
+
+    preds mkString ", "
   }
 
-  protected def exitNodesToString(i: Int): String = {
-    var result: String = ""
-    for (edge: (Int, Int, Option[W]) <- edges) {
-      if (edge._1 == i)
-        result = result + edge._2 + ", " + weightLabel + ":" + weightToString(edge._3) + "\n"
-    }
-    result
+  def exitNodesToString(i: Int): String = {
+    val succ = for ((_, to, weight) <- exitEdges(i))
+    yield to + weightToString(weight)
+
+    succ mkString ", "
   }
 }
+
+case class CFGPosition(blockIdx: Int, stmtIdx: Int)
 
 /**
  * This class represents a control flow graph, i.e. a weighted graph where
@@ -285,48 +284,6 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
     return -1
   }
 
-  /**
-   * Return an ordered list of indexes that could be used for the computation of
-   * fixpoints over CFG.
-   * There is not guarantee that this sequence will give better results than others
-   * since it is based on some heuristics and should be deeply tested.
-   *
-   * @return A sequence of all the indexes of the CFG
-   */
-  def getIterativeSequence(): List[Int] = this.getIterativeSequence(Nil, Nil, 0)
-
-  private def getIterativeSequence(alreadyVisited: List[Int], pendingBlocks: List[Int], next: Int): List[Int] = {
-    //We consider the next blocks that have not yet been visited
-    def exitNodes = this.getDirectSuccessors(next)
-    def exitNodesNotVisited = exitNodes.--(alreadyVisited).-(next)
-    if (!exitNodesNotVisited.isEmpty) {
-      //We take the minimum since we expect to be the optimal one (heuristic)
-      val min = this.getMin(exitNodesNotVisited)
-      return next :: getIterativeSequence(alreadyVisited ::: next :: Nil, pendingBlocks ++ (exitNodesNotVisited - min), min)
-    }
-    else {
-      def pendingNodesNotVisited = pendingBlocks.toSet.--(alreadyVisited).-(next)
-      if (pendingNodesNotVisited.isEmpty) {
-        //We are at the end!
-        //assert(this.nodes.size==alreadyVisited.size+1)
-        return next :: Nil
-      }
-      else {
-        //Otherwise we consider the minimum of the pendingBlocks
-        val min = this.getMin(pendingNodesNotVisited.toSet)
-        return next :: getIterativeSequence(alreadyVisited ::: next :: Nil, pendingBlocks ++ (exitNodesNotVisited - min), min)
-      }
-    }
-  }
-
-  private def getMin(l: Set[Int]): Int = {
-    assert(!l.isEmpty)
-    var min: Int = 0 - 1
-    for (el <- l)
-      if (min == 0 - 1 || el < min) min = el
-    assert(min >= 0)
-    return min
-  }
 
   override protected def nodeToString(node: List[Statement]) = ToStringUtilities.listToDotCommaRepresentationSingleLine(node)
 
@@ -345,13 +302,62 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
   override def getChildren: List[Statement] = nodes.flatten
 
   def getBasicBlockStatements(index: Int): List[Statement] = nodes(index)
+
+  def statementAt(blockIdx: Int, stmtIdx: Int): Statement = getBasicBlockStatements(blockIdx)(stmtIdx)
+
+  /**
+   * Check if a basic block has a conditional expression as the last statement.
+   * We determine this by looking for conditional outgoing edges.
+   * @param blockIndex the block to look at
+   */
+  def hasExitCondition(blockIndex: Int): Boolean = {
+    val outEdges = exitEdges(blockIndex)
+    if (outEdges.isEmpty)
+      return false
+
+    val allConditional = outEdges.forall({ case (_,_,cond) => cond.isDefined } )
+    val allUnconditional = outEdges.forall({ case (_,_,cond) => !cond.isDefined } )
+    // should be a correct assumption about valid CFGs, otherwise we are in trouble
+    assert(allConditional || allUnconditional)
+    allConditional
+  }
+
+  def getExitConditions(blockIndex: Int): Option[(Statement, Int, Int)] = {
+    val succs = exitEdges(blockIndex).toList
+    succs match {
+      case List((_, aId, Some(aTruth)), (_, bId, Some(bTruth))) =>
+        assert(aTruth && !bTruth || !aTruth && bTruth)
+        val (trueSucc, falseSucc) = if (aTruth) (aId, bId) else (bId, aId)
+        val stmt = getBasicBlockStatements(blockIndex).last
+        Some(stmt, trueSucc, falseSucc)
+      case _ => None
+    }
+  }
+    /**
+   * Check if a basic block is executed conditionally after a direct predecessor and return the
+   * condition statement if so.
+   * NOTE: Our assumption here is that a basic block which is conditionally executed only ever has 1 predecessor.
+   *       This should be the case for CFGs for structured langauges without breaks etc.
+   */
+  def getEntryCondition(blockIndex: Int): Option[(Statement,Boolean)] = {
+    val edges = entryEdges(blockIndex)
+    var result: Option[(Statement,Boolean)] = None
+    for ((from,_,e) <- edges if hasExitCondition(from)) {
+      val condStmt = getBasicBlockStatements(from).last
+      val condValue = e.get
+      result = Some(condStmt, condValue)
+    }
+    // our assumption out CFG structure (only 1 conditional incoming edge, if any)
+    assert(!result.isDefined || edges.size == 1)
+    result
+  }
 }
 
 class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val state: S) extends CFGState[S] with WeightedGraph[List[S], Boolean]{
 
   this.nodes = getList[List[S]](this.cfg.nodes.size, state.bottom() :: Nil)
 
-  def getStatesOfBlock(idx: Int): List[S] = nodes(idx)
+  def statesOfBlock(idx: Int): List[S] = nodes(idx)
 
   def factoryState: S = state
 
