@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.accesspermissions
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
 import oorepresentation._
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 //import ch.ethz.inf.pm.sample.preprocessing.scalaprocessing.plugin._
 //import ch.ethz.inf.pm.sample.userinterfaces._

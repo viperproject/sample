@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample._
 import abstractdomain._
 import oorepresentation._
 import property._
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 class ContractsProperty extends Property {
 

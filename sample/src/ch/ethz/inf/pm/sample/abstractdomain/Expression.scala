@@ -48,17 +48,10 @@ object ArithmeticOperator extends Enumeration {
   }
 }
 
-/** 
- * Boolean operators
- *
- * @author Pietro Ferrara
- * @since 0.1
- */
+/** Boolean operators. */
 object BooleanOperator extends Enumeration {
-  val && = Value("&&");
-  val || = Value("||");
-  val ==> = Value("==>");
-  val <==> = Value("<==>");
+  val && = Value("&&")
+  val || = Value("||")
 }
 
 

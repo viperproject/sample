@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.property.{OutputCollector, Property}
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
 import ch.ethz.inf.pm.sample.util.Timer
+import ch.ethz.inf.pm.sample.execution.CFGState
 
 /**
  * An <code>Analysis</code> represents the interface to provide an analysis to Sample
