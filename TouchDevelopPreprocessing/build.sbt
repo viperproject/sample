@@ -12,4 +12,6 @@ libraryDependencies += "net.liftweb" % "lift-json_2.10" % "2.5-M4"
 
 libraryDependencies += "com.thoughtworks.paranamer" % "paranamer" % "2.5.2"
 
+// Make sure to use the same version of scalatest that was used to compile
+// the SIL testing infrastructure class files to avoid IncompatibleClassErrors
 libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.1"
