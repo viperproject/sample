@@ -3,15 +3,6 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.oorepresentation.{CFGPosition, ControlFlowGraph}
 
-/** Constructs `CFGState` objects from `ControlFlowGraph`s. */
-trait CFGStateFactory[S <: State[S], C <: CFGState[S]] {
-  def stateFactory: S
-
-  def allBottom(cfg: ControlFlowGraph): C
-
-  def allTop(cfg: ControlFlowGraph): C
-}
-
 /** Constructs `DefaultCFGState` objects from `ControlFlowGraph`s. */
 case class DefaultCFGStateFactory[S <: State[S]](stateFactory: S)
   extends CFGStateFactory[S, DefaultCFGState[S]] {
@@ -25,64 +16,6 @@ case class DefaultCFGStateFactory[S <: State[S]](stateFactory: S)
   def allTop(cfg: ControlFlowGraph): DefaultCFGState[S] = {
     val result = new DefaultCFGState(cfg, stateFactory)
     result.initializeStates(stateFactory.top())
-    result
-  }
-}
-
-/** Holds methods that are independent of how states are actually stored
-  * in the `CFGState`, i.e., by only using methods of the `CFGState` trait.
-  *
-  * @tparam S the underlying state type
-  */
-abstract class AbstractCFGState[S <: State[S]] extends CFGState[S] {
-  def preStateAt(pos: CFGPosition): S = {
-    val states = statesOfBlock(pos.blockIdx)
-    states(pos.stmtIdx)
-  }
-
-  def postStateAt(pos: CFGPosition): S = {
-    val states = statesOfBlock(pos.blockIdx)
-    states(pos.stmtIdx+1)
-  }
-
-  def exitState(): S = {
-    var result: S = stateFactory.bottom()
-    for (blockId <- 0 until cfg.nodes.size) {
-      val states = statesOfBlock(blockId)
-      var isExitPoint: Boolean = true
-      for ((from, to, weight) <- cfg.edges) {
-        if (from equals blockId)
-          isExitPoint = false
-      }
-      if (isExitPoint) states match {
-        case Nil =>
-        case x => result = result.lub(states.last)
-
-      }
-    }
-    result
-  }
-
-  def entryState(): S = statesOfBlock(0).head
-
-  override def toString: String = {
-    var result: String = ""
-    for (blockId <- 0 until cfg.nodes.size) {
-      val blockStates = statesOfBlock(blockId)
-      result = result +
-        "Node n." + blockId + "\n-----------------\n" +
-        "Preds: " + cfg.entryNodesToString(blockId) + "\n" +
-        "Succs: " + cfg.exitNodesToString(blockId) + "\n"
-      for ((state, idx) <- blockStates.zipWithIndex) {
-        result = result + state.toString + "\n"
-        if (idx < blockStates.size - 1)
-          result = result + "| " + cfg.statementAt(blockId, idx).toSingleLineString + "\nV\n"
-      }
-
-      if (cfg.hasExitCondition(blockId)) {
-        result += "exit cond: " + cfg.statementAt(blockId, blockStates.size-2) + "\n"
-      }
-    }
     result
   }
 }

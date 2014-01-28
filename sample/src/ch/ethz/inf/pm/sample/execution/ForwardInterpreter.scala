@@ -83,6 +83,11 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
 /** Forward interpreter that operates on `DefaultCFGState`s. */
 case class DefaultForwardInterpreter[S <: State[S]](stateFactory: S) extends ForwardInterpreter[S] {
   type C = DefaultCFGState[S]
-
   val cfgStateFactory = DefaultCFGStateFactory[S](stateFactory)
+}
+
+/** Forward interpreter that operates on `TrackingCFGState`s. */
+case class TrackingForwardInterpreter[S <: State[S]](stateFactory: S) extends ForwardInterpreter[S] {
+  type C = TrackingCFGState[S]
+  val cfgStateFactory = TrackingCFGStateFactory[S](stateFactory)
 }
