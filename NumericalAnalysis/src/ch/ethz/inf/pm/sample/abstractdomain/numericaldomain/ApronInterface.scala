@@ -650,11 +650,11 @@ class ApronInterface(val state: Option[Abstract1],
   }
 
   override def getStringOfId(id: Identifier): String = {
-    if (isBottom) return "_|_ (pure)"
-    if (!env.contains(id)) return "_|_"
-    if (isTop) return "T (pure)"
+    if (isBottom) return "⊥ (pure)"
+    if (!env.contains(id)) return "⊥"
+    if (isTop) return "⊤ (pure)"
     val constraints = this.state.get.toLincons(domain).toList.filter(constraintContains(_, id.getName))
-    if(constraints.isEmpty) return "T"
+    if(constraints.isEmpty) return "⊤"
     val translator = ApronInterfaceTranslator(this)
     val exps = constraints map translator.translate map ExpPrettyPrinter
     exps.sorted.mkString("\n")

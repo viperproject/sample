@@ -181,7 +181,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 class Top extends NonRelationalNumericalDomain[Top] {
   final override def factory() = this
 
-  override def toString = "T"
+  override def toString = "⊤"
 
   def top(): Top = this
 
@@ -226,8 +226,8 @@ object SignValues extends Enumeration {
   val + = Value("+")
   val ZERO = Value("0")
   val - = Value("-")
-  val T = Value("T")
-  val BOT = Value("_|_")
+  val T = Value("⊤")
+  val BOT = Value("⊥")
 }
 
 class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sign] {
@@ -363,7 +363,7 @@ class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDoma
   final override def factory() = top()
 
   override def toString: String = {
-    if (this.isBottom) return "_|_"
+    if (this.isBottom) return "⊥"
     var result: String = "["
     if (left == Integer.MIN_VALUE)
       result = result + "-oo"
