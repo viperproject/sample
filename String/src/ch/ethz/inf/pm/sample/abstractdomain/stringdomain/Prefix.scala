@@ -62,12 +62,9 @@ class PrefixDomain extends Lattice[PrefixDomain]
     this.stringValue.startsWith(r.stringValue)
   
   override def toString : String = {
-    if(this.isBottom) 
-      return "_|_"; 
-    else if(this.isTop)
-      return "_T_";
-    else
-      return stringValue;
+    if (isBottom) "⊥"
+    else if (isTop) "⊤"
+    else stringValue
   }
 }
 

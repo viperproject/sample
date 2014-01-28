@@ -169,7 +169,7 @@ class BooleanInvalidDomain (val value:Map[Identifier, BooleanDomain] = Map.empty
   }
 
   override def toString:String = {
-    if (isBottom) return "_|_"
+    if (isBottom) return "⊥"
     var result : String = ""
     value.foreach { case (k,v) =>
       if(v.canBeTrue)

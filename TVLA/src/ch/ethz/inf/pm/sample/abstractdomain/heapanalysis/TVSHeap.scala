@@ -57,7 +57,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   var isTop: Boolean = false
 
   /**
-   * Holds when state is _|_
+   * Holds when state is ⊥
    */
   var isBottom: Boolean = false
 
@@ -65,8 +65,8 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    * To pretty-print the heap state
    */
   override def toString = {
-    if (isTop) "T"
-    else if (isBottom) "_|_"
+    if (isTop) "⊤"
+    else if (isBottom) "⊥"
     else {
       "Variables: " + variables.mkString(",") + "\n" +
         "Temporaries: " + tempVariables.mkString(",") + "\n" +
@@ -411,7 +411,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def factory() = new TVSHeap
 
   /**
-   * Create a bottom "_|_" TVSHeap
+   * Create a bottom "⊥" TVSHeap
    */
   def bottom(): TVSHeap = {
     val result = new TVSHeap
@@ -420,7 +420,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   }
 
   /**
-   * Create a top "T" TVSHeap
+   * Create a top "⊤" TVSHeap
    */
   def top(): TVSHeap = {
     val result = new TVSHeap

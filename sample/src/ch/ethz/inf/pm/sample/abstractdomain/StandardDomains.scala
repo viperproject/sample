@@ -146,8 +146,8 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 
   override def toString: String = {
-    if (isBottom) "_|_"
-    else if (isTop) "T"
+    if (isBottom) "⊥"
+    else if (isTop) "⊤"
     else ToStringUtilities.mapToString(value)
   }
 
@@ -345,7 +345,7 @@ abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[
 
   override def toString: String = {
     if (this.isBottom) return "⊥"
-    if (this.isTop) return "T"
+    if (this.isTop) return "⊤"
     ToStringUtilities.setToString(value)
   }
 

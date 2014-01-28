@@ -66,12 +66,9 @@ class SuffixDomain extends Lattice[SuffixDomain]
 	  stringValue.endsWith(r.stringValue)
 
   override def toString: String = {
-    if (isBottom)
-      "_|_"
-    else if (isTop)
-      "_T_"
-    else
-      stringValue
+    if (isBottom) "⊥"
+    else if (isTop) "⊤"
+    else stringValue
   }
 }
 

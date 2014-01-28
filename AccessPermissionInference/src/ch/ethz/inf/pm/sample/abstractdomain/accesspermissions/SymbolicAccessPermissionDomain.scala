@@ -245,7 +245,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
   }
 
   override def toString : String = {
-    if(isBottom) return "_|_";
+    if (isBottom) return "⊥"
     if(value.isEmpty) return "0";
     var result : String = "";
     var first = true;
