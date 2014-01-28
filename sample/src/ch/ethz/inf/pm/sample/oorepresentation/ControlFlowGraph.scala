@@ -359,7 +359,7 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
 
   def statesOfBlock(idx: Int): List[S] = nodes(idx)
 
-  def factoryState: S = state
+  def stateFactory: S = state
 
   def this(cfgEx: ControlFlowGraphExecution[S]) {
     this(cfgEx.cfg, cfgEx.state)
@@ -608,6 +608,8 @@ class ControlFlowGraphExecution[S <: State[S]](val cfg: ControlFlowGraph, val st
     result
   }
 
+  def setStatesOfBlock(blockIdx: Int, states: List[S]): Unit =
+    setNode(blockIdx, states)
 }
 
 class CFGSemanticException(message: String) extends Exception(message)

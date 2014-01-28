@@ -11,22 +11,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     generalValState: S,
     expr: ExpressionSet,
     isTop: Boolean = false,
-    isBottom: Boolean = false) extends State[ValueDrivenHeapState[S]] {
+    isBottom: Boolean = false) extends SimpleState[ValueDrivenHeapState[S]] {
 
   require(!isTop || !isBottom, "cannot be top and bottom at the same time")
 
-  def createVariable(vars: ExpressionSet, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
-    require(vars.getSetOfExpressions.size == 1,
-      "Cannot declare multiple variables together")
-    require(vars.getSetOfExpressions.head.isInstanceOf[VariableIdentifier],
-      "Expression must be a VariableIdentifier")
-    val id = vars.getSetOfExpressions.head.asInstanceOf[VariableIdentifier]
-    createVariable(id, typ)
-  }
-
-  private def createVariable(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
-    if (this.isBottom) return this
-
+  def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
     if (variable.getType.isObject) {
       // Initialize references variables to null such that the heap is not
       // treated as bottom, making it possible to analyze programs with more
@@ -50,17 +39,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  def createVariableForArgument(vars: ExpressionSet, typ: Type): ValueDrivenHeapState[S] = {
-    require(vars.getSetOfExpressions.size == 1,
-      "Cannot declare multiple variables together")
-    require(vars.getSetOfExpressions.head.isInstanceOf[VariableIdentifier],
-      "Expression must be a VariableIdentifier")
-    val id = vars.getSetOfExpressions.head.asInstanceOf[VariableIdentifier]
-    createVariableForArgument(id, typ)
-  }
-
-  private def createVariableForArgument(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
-    if (this.isBottom) return this
+  def createVariableForArgument(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
     if (variable.getType.isObject) {
       // If the variable is an object, we need to create an object for a method argument. This is different than
       // the normal object creation as we need to create such an object as Top and it can possibly alias(and be
@@ -185,28 +164,21 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     } else {
       // Arguments that are not objects are values and can not be aliased. Therefore, we just create them in the
       // ordinary fashion.
-      createVariable(variable, typ)
+      createVariable(variable, typ, variable.pp)
     }
   }
 
-  def assignVariable(left: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = {
-    if (isBottom) return this
-    if (right.isTop)
-      return setVariableToTop(left).removeExpression()
-    var result = this
-    assert(left.getSetOfExpressions.size == 1 && right.getSetOfExpressions.size == 1,
-      "More than one identifier or right expression are to be assigned.")
-    val leftExp = left.getSetOfExpressions.head
-    val rightExp = right.getSetOfExpressions.head
-    leftExp match {
+  def assignVariable(left: Expression, right: Expression): ValueDrivenHeapState[S] = {
+    var result: ValueDrivenHeapState[S] = this
+    left match {
       case variable: VariableIdentifier => {
-        if (leftExp.getType.isNumericalType) {
-          result = evalExp(rightExp).apply().map(_.assign(variable, rightExp)).join
+        if (left.getType.isNumericalType) {
+          result = evalExp(right).apply().map(_.assign(variable, right)).join
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)
           val edgesToRemove = abstractHeap.outEdges(varVertex)
           var edgesToAdd = Set.empty[EdgeWithState[S]]
-          rightExp match {
+          right match {
             case verExpr: VertexExpression => {
               assert(abstractHeap.vertices.contains(verExpr.vertex), "Assigning a non-existing node")
               var newEdgeState = generalValState
@@ -243,8 +215,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             case c: Constant => {
               assert(c.toString == "null", "The only object constant is null.")
               val (tempAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
-              val newState = ValueDrivenHeapState(tempAH, generalValState, left)
-              return newState.assignVariable(left, ExpressionSet(new VertexExpression(variable.typ, nullVertex)(c.pp)))
+              val newState = ValueDrivenHeapState(tempAH, generalValState, ExpressionSet())
+              return newState.assignVariable(left, new VertexExpression(variable.typ, nullVertex)(c.pp))
             }
             case _ => throw new Exception("Not supported (should not happen, let me know if does (Milos)).")
           }
@@ -284,11 +256,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   private def evalExp(expr: Expression): CondHeapGraphSeq[S] =
     CondHeapGraph(this).evalExp(expr)
 
-  def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): ValueDrivenHeapState[S] = {
-    if (isBottom) return this
-    assert(right.getSetOfExpressions.size == 1, "We allow to assign only single expression")
-    val leftExp = obj.getSetOfExpressions.head
-    val rightExp = right.getSetOfExpressions.head
+  def assignField(leftExp: Expression, field: String, rightExp: Expression): ValueDrivenHeapState[S] = {
     assert(leftExp.isInstanceOf[AccessPathIdentifier], "The left hand side od the assignment is not an AccessPathIdentifier")
     val leftAccPath = leftExp.asInstanceOf[AccessPathIdentifier]
     val leftPaths = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.target.isInstanceOf[HeapVertex])
@@ -329,7 +297,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         case c : Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
           val (newAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
-          return ValueDrivenHeapState(newAH, generalValState, expr).assignField(obj, field, ExpressionSet(new VertexExpression(c.getType, nullVertex)(c.pp)))
+          return ValueDrivenHeapState(newAH, generalValState, expr).assignField(leftExp, field, new VertexExpression(c.getType, nullVertex)(c.pp))
         }
         case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
       }
@@ -348,7 +316,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       }
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
-      val newExpr = new ExpressionSet(right.getType()).add(leftAccPath)
+      val newExpr = new ExpressionSet(rightExp.getType).add(leftAccPath)
       ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom).prune()
     } else {
       assert(rightExp.getType.isNumericalType, "only numerical values allowed")
@@ -636,7 +604,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         edgesToAdd += edge.copy(target = definiteVertex)
         for (e <- resultingAH.edges -- edgesToRemove ++ edgesToAdd) {
           // Incoming edges
-          if (e.target.equals(edge.target)) {
+          if (e.target.equals(edge.target) &&
+            (!ValueDrivenHeapProperty.materializeOnlyAcyclic || !e.source.equals(e.target))) {
             edgesToAdd += e.copy(target = definiteVertex)
           }
           // Outgoing edges
@@ -647,7 +616,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             edgesToAdd += edgeToAdd
           }
           // Self-loop edges
-          if (e.source.equals(edge.target) && e.target.equals(edge.target)) {
+          if (e.source.equals(edge.target) && e.target.equals(edge.target) && !ValueDrivenHeapProperty.materializeOnlyAcyclic) {
             val edgeToAdd = e.copy[S](source = definiteVertex, target = definiteVertex)
             if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
               queue.enqueue((edgeToAdd, path.tail))
@@ -834,6 +803,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
   def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
 }
+
+
 
 object ValueDrivenHeapStateConstants {
   val edgeLocalIdentifier = "eLocId"
