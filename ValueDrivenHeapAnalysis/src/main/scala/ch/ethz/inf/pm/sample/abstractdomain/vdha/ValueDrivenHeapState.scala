@@ -604,7 +604,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         edgesToAdd += edge.copy(target = definiteVertex)
         for (e <- resultingAH.edges -- edgesToRemove ++ edgesToAdd) {
           // Incoming edges
-          if (e.target.equals(edge.target)) {
+          if (e.target.equals(edge.target) &&
+            (!ValueDrivenHeapProperty.materializeOnlyAcyclic || !e.source.equals(e.target))) {
             edgesToAdd += e.copy(target = definiteVertex)
           }
           // Outgoing edges
@@ -615,7 +616,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             edgesToAdd += edgeToAdd
           }
           // Self-loop edges
-          if (e.source.equals(edge.target) && e.target.equals(edge.target)) {
+          if (e.source.equals(edge.target) && e.target.equals(edge.target) && !ValueDrivenHeapProperty.materializeOnlyAcyclic) {
             val edgeToAdd = e.copy[S](source = definiteVertex, target = definiteVertex)
             if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
               queue.enqueue((edgeToAdd, path.tail))
