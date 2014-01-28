@@ -145,7 +145,7 @@ case class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpr
     new ExpressionSet(getType(), result)
   }
 
-  override def toString:String = "Type "+_1.toString+": "+_1.toString
+  override def toString:String = "Type "+_1.toString+": "+_2.toString
 
   def merge(r:Replacement) : ExpressionSet = {
 
@@ -229,14 +229,16 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   def removeExpression() : AbstractState[N,H,I] = {
     if(this.isBottom) return  new AbstractState(this._1, this._2.bottom())
-    new AbstractState(this._1, ExpressionSet())
+    new AbstractState(this._1, ExpressionFactory.unitExpr)
   }
+
 
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] =
     new AbstractState[N, H, I](_1.createVariable(variable, typ), _2)
 
   def createVariableForArgument(variable: VariableIdentifier, typ: Type): AbstractState[N, H, I] =
     new AbstractState[N, H, I](_1.createVariableForArgument(variable, typ, Nil)._1, _2)
+
 
   def assignVariable(left: Expression, right: Expression): AbstractState[N, H, I] = {
     left match {
@@ -443,12 +445,12 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
   private def getResult() : ExpressionSet = this._2
 
   override def toSingleLineString() : String = {
-    if(isBottom) "_|_"
+    if(isBottom) "⊥"
     else this._1.toString+";\nExpr.: "+this._2.toString
   }
   override def toString : String = {
-    if(isBottom) "_|_"
-    else this._1.toString+"\nExpression:\n"+ToStringUtilities.indent(this._2.toString)
+    if(isBottom) "⊥"
+    else this._1.toString+"\nExpression: " + this._2.toString
   }
 
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp:Type, keyCollectionTyp:Option[Type], tpp: ProgramPoint, fields : Option[Set[Identifier]] = None): AbstractState[N, H, I] = {

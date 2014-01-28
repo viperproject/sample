@@ -35,8 +35,13 @@ class ApronInterface(val state: Option[Abstract1],
     }
     state match {
       case Some(s) => {
-        if (!(s.getEnvironment.getVars.toSet[String] subsetOf env.map(_.getName)))
-          throw new ApronException("The set of variables in the state is not a subset of variables in the environment.")
+        val apronEnvVars = s.getEnvironment.getVars.toSet[String]
+        val fullEnvVars = env.map(_.getName)
+        if (!(apronEnvVars subsetOf fullEnvVars)) {
+          val varDiff = apronEnvVars diff fullEnvVars
+          throw new ApronException("The set of variables in the state is not " +
+            "a subset of variables in the environment. Offending variables: " + varDiff)
+        }
       }
       case None =>
     }
@@ -258,13 +263,13 @@ class ApronInterface(val state: Option[Abstract1],
             throw new ApronException("Empty expression set created")
           }
 
-        // (4) Handling of summary nodes on the right side
+        // (4) Handling of summary nodes on the left side
         // If variable is a summary node, perform weak update by computing S[x<-v] |_| S
         if (!variable.representsSingleVariable()) {
           assignedState.join(domain,newState)
         }
 
-        // (5) Handling of summary nodes on the left side
+        // (5) Handling of summary nodes on the right side
         // If the right side contains one or more summary nodes, create copies of those values by
         //   (1) Rename all appearing summary nodes in the resulting state (assignedState), call result (materializedState)
         //   (2) Remove the left side from the original state (someState), call result (summaryState)
@@ -656,11 +661,11 @@ class ApronInterface(val state: Option[Abstract1],
   }
 
   override def toString: String = {
-    if (isBottom) return "_|_"
-    if (isTop) return "Environment: "+env+"\n"+"T"
+    if (isBottom) return "⊥"
+    if (isTop) return "Environment: "+env+"\n"+"⊤"
 
     val exps = ApronInterfaceTranslator.translate(this) map ExpPrettyPrinter
-    if(exps.isEmpty) return "T"
+    if(exps.isEmpty) return "⊤"
     "Environment: "+env+"\n"+ exps.toList.sorted.mkString("\n")
   }
 
