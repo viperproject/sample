@@ -15,12 +15,16 @@ import ch.ethz.inf.pm.sample.oorepresentation.ControlFlowGraph
  * @tparam S the underlying state type
  */
 trait CFGState[S <: State[S]] {
-
   def cfg: ControlFlowGraph
 
-  def factoryState: S
+  def stateFactory: S
 
   def exitState(): S
 
   def statesOfBlock(idx: Int): List[S]
+
+  // Once `CFGState`s are immutable, having the following method in this trait
+  // should not be a problem anymore. It makes things simpler than having
+  // a separate immutable and mutable `CFGState` type hierarchy.
+  def setStatesOfBlock(blockIdx: Int, states: List[S])
 }
