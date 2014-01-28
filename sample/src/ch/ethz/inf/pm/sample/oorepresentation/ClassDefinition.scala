@@ -103,7 +103,7 @@ class MethodDeclaration(
     body.toString+
     "\n-------------------\n\n"
 
-  protected def initializeArgument[S <: State[S]](state: S, parameters: List[List[VariableDeclaration]]): S = {
+  def initializeArgument[S <: State[S]](state: S): S = {
     SystemParameters.semanticsComputing = false
     var result = state
     // Create a variable for the current object unless the method is static
@@ -115,7 +115,7 @@ class MethodDeclaration(
       result = result.removeExpression().createVariableForArgument(variable, ownerType)
     }
     // Create a variable for each formal parameter
-    for (lv <- parameters) {
+    for (lv <- arguments) {
       for (variable <- lv) {
         result = variable.variable.forwardSemantics[S](result)
         val varExpr = result.getExpression
@@ -129,10 +129,10 @@ class MethodDeclaration(
   /** this is not run by the touchdevelop code! */
   def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(this)) {
-      val result=initializeArgument[S](state, arguments);
-      SystemParameters.semanticsComputing=true;
-      val r=new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
-      SystemParameters.semanticsComputing=false;
+      val result = initializeArgument[S](state)
+      SystemParameters.semanticsComputing = true
+      val r = new ControlFlowGraphExecution[S](body, state).forwardSemantics(result)
+      SystemParameters.semanticsComputing = false
       r
     }
   }
