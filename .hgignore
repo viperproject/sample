@@ -10,5 +10,6 @@ Test/test/TouchDevelop/cache
 
 .idea
 .idea_modules
+out/
 
 apron.sbt
