@@ -10,7 +10,7 @@ action main() {
   $string1 := "a";
   $string2 := "b";
 
-  if $string1->equals("a") then {
+  if $string1->equals("b") then {
     contract->assert(false,"");
   }
 
