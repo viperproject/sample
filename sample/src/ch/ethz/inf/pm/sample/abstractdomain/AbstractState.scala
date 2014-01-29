@@ -258,7 +258,7 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
       case heapid : HeapIdSetDomain[I] =>
         new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, right, right.getType, heapid.pp )), this._2)
       case _ =>
-        throw new SymbolicSemanticException("I can assign only variables and heap ids here")
+        bottom()
     }
   }
 
