@@ -5,8 +5,7 @@ import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, ScriptListings}
 import ch.ethz.inf.pm.td.compiler.TouchException
 
 /**
- *
- * Lucas Brutschy
+ ** Lucas Brutschy
  * Date: 9/18/12
  * Time: 11:03 AM
  *
@@ -44,18 +43,6 @@ object TestRunner {
     }
   }
 
-  def runDirectory(dir:String) {
-    TouchRun.main(new File(basePath(dir)).listFiles(
-      new FileFilter {
-        def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") || p1.getName.matches(".*\\.json$") }
-      }
-    ) map (basePath(dir)+_.getName) toArray)
-  }
-
-  def runFile(file:String) {
-    TouchRun.main(Array(basePath+file))
-  }
-
   def runDirectoryWithApron(dir:String) {
     TouchApronRun.main(new File(basePath(dir)).listFiles(
       new FileFilter {
@@ -66,10 +53,6 @@ object TestRunner {
 
   def runFileWithApron(file:String) {
     TouchApronRun.main(Array(basePath+file))
-  }
-
-  def runId(id:String) {
-    TouchRun.main(Array("td://"+id))
   }
 
   def runIdWithApron(id:String) {
