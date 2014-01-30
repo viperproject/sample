@@ -548,9 +548,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
  * object is basically a `ValueDrivenHeapState` without an expression and
  * without the gigantic set of `State`-specific methods.
  *
- * In the future, it might be desirable to move the general value state to
- * `HeapGraph` itself and merge `HeapGraph` and `CondHeapGraph`.
- *
  * The condition is (currently) not applied eagerly to the edges.
  */
 case class CondHeapGraph[S <: SemanticDomain[S]](
@@ -703,9 +700,60 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
       val prunedHeap = heap.removeEdges(edgesToRemove)
       result = CondHeapGraph(prunedHeap, cond, Set(path)) :: result
     }
-    val lattice = this.cond.bottom()
     CondHeapGraphSeq(result)(lattice)
   }
+
+  /** Returns a sequence of heap sub-graphs on which the given expression
+    * has been assumed.
+    */
+  def assume(cond: Expression): CondHeapGraphSeq[S] = {
+    val result: CondHeapGraphSeq[S] = cond match {
+      case Constant("false", _, _) => CondHeapGraphSeq(Seq())(lattice)
+      case Constant("true", _, _) => this
+      case VariableIdentifier(_, _, _, _)
+           | NegatedBooleanExpression(VariableIdentifier(_, _, _, _))
+           | BinaryArithmeticExpression(_, _, _, _) =>
+        evalExp(cond).apply().map(_.assume(cond))
+      case NegatedBooleanExpression(e) =>
+        assume(negateExpression(e))
+      case BinaryBooleanExpression(l,r,o,t) => {
+        val result: CondHeapGraphSeq[S] = o match {
+          case BooleanOperator.&& =>
+            assume(l).assume(r)
+          case BooleanOperator.|| =>
+            // Delay joining, just return all heap graphs
+            CondHeapGraphSeq(assume(l).condHeaps ++ assume(r).condHeaps)(lattice)
+        }
+        result
+      }
+      case ReferenceComparisonExpression(left, right, op, returnTyp) => {
+        import ArithmeticOperator._
+
+        evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
+          def targetVertex(exp: Expression): Vertex = exp match {
+            case (Constant("null", _, _)) => NullVertex
+            case AccessPathIdentifier(path) => condHeap.takenPath(path).target
+          }
+
+          val leftTarget = targetVertex(left)
+          val rightTarget = targetVertex(right)
+
+          op match {
+            case `==` =>
+              if (leftTarget == rightTarget) Seq(condHeap) else Seq()
+            case `!=` =>
+              if (leftTarget != rightTarget || leftTarget.isInstanceOf[SummaryHeapVertex]) Seq(condHeap) else Seq()
+          }
+        })
+      }
+      case _ =>
+        println(s"CondHeapGraph.assume: $cond is not supported.")
+        this
+    }
+    result.prune
+  }
+
+  def lattice = cond.bottom()
 }
 
 object CondHeapGraph {
@@ -721,6 +769,10 @@ object CondHeapGraph {
   implicit def CondHeapGraphToCondHeapGraphSeq[S <: SemanticDomain[S]]
   (condHeap: CondHeapGraph[S]): CondHeapGraphSeq[S] =
     CondHeapGraphSeq(Seq(condHeap))(condHeap.cond.bottom())
+
+  implicit def CondHeapGraphSeqToCondHeapGraphSeq[S <: SemanticDomain[S]](
+      condHeapGraphSeq: CondHeapGraphSeq[S]): Seq[CondHeapGraph[S]] =
+    condHeapGraphSeq.condHeaps
 
   /**
    * Implicitly converts a conditional heap graph to a state
@@ -740,6 +792,7 @@ object CondHeapGraph {
  * @param lattice used to get access to the bottom element of the value lattice
  *
  * @todo prune bottom conditional heap graphs
+ * @todo could model as set domain
  */
 case class CondHeapGraphSeq[S <: SemanticDomain[S]]
     (condHeaps: Seq[CondHeapGraph[S]])(implicit lattice: S) {
@@ -764,6 +817,10 @@ case class CondHeapGraphSeq[S <: SemanticDomain[S]]
   def map(f: S => S): CondHeapGraphSeq[S] =
     condHeaps.map(condHeap => condHeap.map(f))
 
+  /** Assumes the given expression on each heap graph. */
+  def assume(cond: Expression): CondHeapGraphSeq[S] =
+    condHeaps.map(condHeap => condHeap.assume(cond).condHeaps).flatten
+
   /**
    * Maps conditional heap graphs with the given function.
    * The function may return multiple conditional heap graph.
@@ -775,6 +832,9 @@ case class CondHeapGraphSeq[S <: SemanticDomain[S]]
   /** Prunes all conditional heap graphs and removes the ones that are bottom. */
   def prune: CondHeapGraphSeq[S] =
     condHeaps.map(_.prune).filter(!_.isBottom)
+
+  def isBottom: Boolean =
+    condHeaps.isEmpty
 
   /**
    * Prunes and then joins all conditional heap graphs in this sequence
