@@ -15,6 +15,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
   require(!isTop || !isBottom, "cannot be top and bottom at the same time")
 
+  import Utilities._
+
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
     if (variable.getType.isObject) {
       // Initialize references variables to null such that the heap is not
@@ -169,10 +171,23 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   def assignVariable(left: Expression, right: Expression): ValueDrivenHeapState[S] = {
+    import CondHeapGraph._
+
     var result: ValueDrivenHeapState[S] = this
     left match {
       case variable: VariableIdentifier => {
-        if (left.getType.isNumericalType) {
+        val normalRight = normalizeExpression(right)
+        if (left.getType.isBooleanType) {
+          result = evalExp(normalRight).apply().mapCondHeaps(condHeap => {
+            val isCertainlyFalse = condHeap.assume(normalRight).isBottom
+            val isCertainlyTrue = condHeap.assume(negateExpression(normalRight)).isBottom
+            Seq(condHeap.map(state => {
+              if (isCertainlyFalse) state.assign(variable, Constant("false", left.getType, normalRight.pp))
+              else if (isCertainlyTrue) state.assign(variable, Constant("true", left.getType, normalRight.pp))
+              else state.setToTop(variable)
+            }))
+          }).join
+        } else if (left.getType.isNumericalType) {
           result = evalExp(right).apply().map(_.assign(variable, right)).join
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)
@@ -238,16 +253,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
     result
   }
-
-  /**
-   * Replaces all `VariableIdentifier`s in the given expression
-   * with a corresponding `AccessPathIdentifier`.
-   */
-  private def normalizeExpression(exp: Expression): Expression =
-    exp.transform({
-      case v: VariableIdentifier => AccessPathIdentifier(v)
-      case e => e
-    })
 
   /**
    * Convenience method that converts the state to a `CondHeapGraph` and
@@ -435,56 +440,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     this.setExpression(ExpressionSet(new Constant(value, typ, pp)))
   }
 
-  def assume(cond: Expression): ValueDrivenHeapState[S] = {
-    import CondHeapGraph._
-
-    cond match {
-      case Constant("false", _, _) => bottom()
-      case Constant("true", _, _) => this
-      case VariableIdentifier(_, _, _, _)
-         | NegatedBooleanExpression(VariableIdentifier(_, _, _, _))
-         | BinaryArithmeticExpression(_, _, _, _) =>
-        evalExp(cond).apply().map(_.assume(cond)).join
-      case NegatedBooleanExpression(e) =>
-        assume(ExpressionSet(Utilities.negateExpression(e)))
-      case BinaryBooleanExpression(l,r,o,t) => {
-        val result = o match {
-          case BooleanOperator.&& =>
-            assume(ExpressionSet(l)).assume(ExpressionSet(r))
-          case BooleanOperator.|| =>
-            assume(ExpressionSet(l)).lub(assume(ExpressionSet(r)))
-        }
-        assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
-        result
-      }
-      case ReferenceComparisonExpression(_left, _right, op, returnTyp) => {
-        val left = normalizeExpression(_left)
-        val right = normalizeExpression(_right)
-
-        import ArithmeticOperator._
-
-        evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
-          def targetVertex(exp: Expression): Vertex = exp match {
-            case (Constant("null", _, _)) => NullVertex
-            case AccessPathIdentifier(path) => condHeap.takenPath(path).target
-          }
-
-          val leftTarget = targetVertex(left)
-          val rightTarget = targetVertex(right)
-
-          op match {
-            case `==` =>
-              if (leftTarget == rightTarget) Seq(condHeap) else Seq()
-            case `!=` =>
-              if (leftTarget != rightTarget || leftTarget.isInstanceOf[SummaryHeapVertex]) Seq(condHeap) else Seq()
-          }
-        }).join
-      }
-      case _ =>
-        println(s"ValueDrivenHeapState.assume: $cond is not supported.")
-        this
-    }
-  }
+  def assume(cond: Expression): ValueDrivenHeapState[S] =
+    CondHeapGraph(this).assume(normalizeExpression(cond)).join
 
   def getExpression: ExpressionSet = expr
 
