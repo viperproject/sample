@@ -622,6 +622,12 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
     */
   def assume(cond: Expression): S
 
+  def testTrue(): S =
+    assume(getExpression).setUnitExpression()
+
+  def testFalse(): S =
+    assume(getExpression.not()).setUnitExpression()
+
   /** Returns whether this state is bottom.
     * @todo move method to `Lattice`
     */

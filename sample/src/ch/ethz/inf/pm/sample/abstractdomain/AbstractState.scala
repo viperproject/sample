@@ -419,16 +419,6 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
     new AbstractState[N,H,I](dom, _2.merge(replacement))
   }
 
-  def testTrue() : AbstractState[N,H,I] = {
-    val result=this.assume(this.getExpression)
-    result.removeExpression()
-  }
-
-  def testFalse() : AbstractState[N,H,I] = {
-    val result=this.assume(this.getExpression.not())
-    result.removeExpression()
-  }
-
   def setExpression(value : ExpressionSet) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
     new AbstractState(this._1, value)

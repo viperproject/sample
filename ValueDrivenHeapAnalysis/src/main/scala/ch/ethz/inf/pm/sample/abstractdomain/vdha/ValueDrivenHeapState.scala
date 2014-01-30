@@ -486,12 +486,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  def testTrue(): ValueDrivenHeapState[S] =
-    assume(getExpression).removeExpression()
-
-  def testFalse(): ValueDrivenHeapState[S] =
-    assume(getExpression.not()).removeExpression()
-
   def getExpression: ExpressionSet = expr
 
   def setExpression(newExpr: ExpressionSet): ValueDrivenHeapState[S] =
