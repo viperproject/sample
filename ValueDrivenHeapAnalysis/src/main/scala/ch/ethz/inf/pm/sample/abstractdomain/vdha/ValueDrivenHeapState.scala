@@ -435,26 +435,16 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     this.setExpression(ExpressionSet(new Constant(value, typ, pp)))
   }
 
-  def assume(cond: ExpressionSet): ValueDrivenHeapState[S] = {
-    if (isBottom) return this
-
+  def assume(cond: Expression): ValueDrivenHeapState[S] = {
     import CondHeapGraph._
 
-    assert(cond.getSetOfExpressions.size == 1, "Condition of several expressions are not supported.")
-    val condition = cond.getSetOfExpressions.head
-
-    def notSupported() = {
-      println(s"ValueDrivenHeapState.assume: $condition is not supported.")
-      this
-    }
-
-    val result: ValueDrivenHeapState[S] = condition match {
+    cond match {
       case Constant("false", _, _) => bottom()
       case Constant("true", _, _) => this
       case VariableIdentifier(_, _, _, _)
          | NegatedBooleanExpression(VariableIdentifier(_, _, _, _))
          | BinaryArithmeticExpression(_, _, _, _) =>
-        evalExp(condition).apply().map(_.assume(condition)).join
+        evalExp(cond).apply().map(_.assume(cond)).join
       case NegatedBooleanExpression(e) =>
         assume(ExpressionSet(Utilities.negateExpression(e)))
       case BinaryBooleanExpression(l,r,o,t) => {
@@ -490,10 +480,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           }
         }).join
       }
-      case _ => notSupported()
+      case _ =>
+        println(s"ValueDrivenHeapState.assume: $cond is not supported.")
+        this
     }
-    result
-    // See version control history for the original code
   }
 
   def testTrue(): ValueDrivenHeapState[S] =

@@ -589,14 +589,14 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
   def assignField(objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
     unlessBottom(objSet, {
       unlessBottom(rightSet, {
-        val result = if (rightSet.isBottom) {
+        val result = if (rightSet.isTop) {
           val t = getFieldValue(objSet, field, rightSet.getType())
           t.setVariableToTop(t.getExpression)
         } else {
           Lattice.bigLub(for (
             obj <- objSet.getSetOfExpressions;
             right <- rightSet.getSetOfExpressions)
-          yield assignField(obj, field, right))
+            yield assignField(obj, field, right))
         }
         result.setUnitExpression()
       })
@@ -607,6 +607,20 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
     * Implementations can already assume that this state is non-bottom.
     */
   def assignField(obj: Expression, field: String, right: Expression): S
+
+  def assume(condSet: ExpressionSet): S = {
+    // Return this, not bottom, when set of conditions is empty
+    if (isBottom || condSet.isBottom) this
+    else {
+      val result = Lattice.bigLub(condSet.getSetOfExpressions.map(assume))
+      result.setUnitExpression()
+    }
+  }
+
+  /** Assumes an expression.
+    * Implementations can already assume that this state is non-bottom.
+    */
+  def assume(cond: Expression): S
 
   /** Returns whether this state is bottom.
     * @todo move method to `Lattice`
@@ -622,7 +636,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
   /** @todo merge with `removeExpression`. */
   def setUnitExpression(): S = {
     val unitExp = new UnitExpression(SystemParameters.typ.top(), DummyProgramPoint)
-    setExpression(ExpressionSet().add(unitExp))
+    setExpression(ExpressionSet(unitExp))
   }
 
   private def unpackSingle(set: ExpressionSet): Expression = {

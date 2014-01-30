@@ -252,7 +252,9 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
  * @tparam V The type of the values contained in the set
  * @tparam T The type of the current set domain
  * @author Pietro Ferrara, Lucas Brutschy
- * @since 0.1
+ *
+ * @todo do not allow `value` to be empty while both `isTop` and `isBottom` are `false`
+ * @todo ideally, one should not allow access to `value` when the object is top
  */
 abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[V],
                                                   val isTop: Boolean = false,
