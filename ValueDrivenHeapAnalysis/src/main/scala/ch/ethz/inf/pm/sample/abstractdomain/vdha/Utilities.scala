@@ -14,6 +14,7 @@ object Utilities {
 
   def negateExpression(exp: Expression): Expression = exp match {
     // TODO(severinh): Code is similar to ApronInterface.assume. Code sharing may be possible.
+    case v: VariableIdentifier => NegatedBooleanExpression(v)
     case NegatedBooleanExpression(e) => e
     case BinaryArithmeticExpression(l, r, o, t) =>
       new BinaryArithmeticExpression(l, r, ArithmeticOperator.negate(o), t)
