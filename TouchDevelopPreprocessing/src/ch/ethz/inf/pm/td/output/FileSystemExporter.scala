@@ -43,7 +43,7 @@ object FileSystemExporter {
 
     if (dir.isDirectory || dir.mkdir()) {
 
-      for (pubID <- compiler.parsedNames) {
+      for (pubID <- compiler.parsedTouchScripts.keys) {
 
         val file = new File(exportPath+File.separator+pubID+"."+exporter.getExtension)
         var fw:FileWriter = null
@@ -57,11 +57,6 @@ object FileSystemExporter {
           pw.println(exporter(compiler,pubID))
 
           println("Exported errors for id "+pubID+" in "+exporter.getExtension+" format to "+file.toString)
-
-        } catch {
-
-          case e:Exception =>
-            throw new ExporterException("Failed to write id "+pubID+" in "+exporter.getExtension+": "+e.toString)
 
         } finally {
 
