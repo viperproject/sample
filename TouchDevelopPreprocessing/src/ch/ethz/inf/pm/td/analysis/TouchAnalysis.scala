@@ -108,7 +108,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
     println("version 01.11.13 [1]")
 
     // Set up the environment
-    SystemParameters.resetOutput
+    SystemParameters.resetOutput()
     MethodSummaries.reset[S]()
     SystemParameters.progressOutput.begin(" ANALYZING "+compiler.main.name)
 
@@ -117,7 +117,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
     if(TouchAnalysisParameters.libraryFieldPruning) {
       compiler.relevantLibraryFields = RequiredLibraryFragmentAnalysis(compiler.parsedScripts)
       compiler.relevantLibraryFields = compiler.relevantLibraryFields ++ Set("data","art","records","code")
-        SystemParameters.resetOutput
+        SystemParameters.resetOutput()
       MethodSummaries.reset[S]()
     }
     //SystemParameters.progressOutput.end()

@@ -10,6 +10,28 @@ object Reporter {
   var seenImprecision = Set[(String,ProgramPoint)]()
   var seenBottom = Set[(String,ProgramPoint)]()
 
+  var enableOutputOfAlarms: Boolean = true
+  var enableOutputOfInfos: Boolean = true
+  var enableOutputOfPrecisionWarnings: Boolean = true
+  var enableOutputOfDummyWarnings: Boolean = false
+  var enableOutputOfBottomWarnings: Boolean = true
+
+  def enableAllOutputs(): Unit = {
+    enableOutputOfAlarms = true
+    enableOutputOfInfos = true
+    enableOutputOfPrecisionWarnings = true
+    enableOutputOfBottomWarnings = true
+    enableOutputOfDummyWarnings = true
+  }
+
+  def disableAllOutputs(): Unit = {
+    enableOutputOfAlarms = false
+    enableOutputOfInfos = false
+    enableOutputOfPrecisionWarnings = false
+    enableOutputOfBottomWarnings = false
+    enableOutputOfDummyWarnings = false
+  }
+
   def hasError(err: SampleError):Boolean = seenErrors.contains(err)
   def hasInfo(info: SampleInfo):Boolean = seenInfos.contains(info)
   def hasImprecision(message:String,pp:ProgramPoint):Boolean = seenImprecision.contains((message,pp))
@@ -20,7 +42,7 @@ object Reporter {
   def getBottom(pp:ProgramPoint):Set[String] = seenBottom.filter(_._2 == pp).map(_._1)
 
   def reportError(err: SampleError) {
-    if (!hasError(err) && SystemParameters.enableOutputOfAlarms) {
+    if (!hasError(err) && enableOutputOfAlarms) {
       SystemParameters.progressOutput.put("ALARM: "+err.message+" at "+err.pp.toString)
       seenErrors += err
     }
@@ -33,34 +55,34 @@ object Reporter {
 
   def reportInfo(message:String,pp:ProgramPoint, id: String) {
     val info = SampleInfo(id, message, pp)
-    if (!hasInfo(info) && SystemParameters.enableOutputOfAlarms) {
+    if (!hasInfo(info) && enableOutputOfAlarms) {
       SystemParameters.progressOutput.put("INFO: "+message+" at "+pp.toString)
       seenInfos += info
     }
   }
 
   def reportImprecision(message:String,pp:ProgramPoint) {
-    if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings) {
+    if (!hasImprecision(message,pp) && enableOutputOfPrecisionWarnings) {
       SystemParameters.progressOutput.put("PRECISION: "+message+" at "+pp.toString)
       seenImprecision += ((message,pp))
     }
   }
 
   def reportDummy(message:String,pp:ProgramPoint) {
-    if (!hasImprecision(message,pp) && SystemParameters.enableOutputOfPrecisionWarnings && SystemParameters.enableOutputOfDummyWarnings) {
+    if (!hasImprecision(message,pp) && enableOutputOfPrecisionWarnings && enableOutputOfDummyWarnings) {
       SystemParameters.progressOutput.put("SOUND DUMMY: "+message+" at "+pp.toString)
       seenImprecision += ((message,pp))
     }
   }
 
   def reportBottom(message:String,pp:ProgramPoint) {
-    if (!hasBottom(message,pp) && SystemParameters.enableOutputOfBottomWarnings) {
+    if (!hasBottom(message,pp) && enableOutputOfBottomWarnings) {
       SystemParameters.progressOutput.put("BOTTOM: "+message+" at "+pp.toString)
       seenBottom += ((message,pp))
     }
   }
 
-  def reset {
+  def reset(): Unit = {
     seenErrors = Set.empty[SampleError]
     seenInfos = Set.empty[SampleInfo]
     seenBottom = Set.empty[(String,ProgramPoint)]

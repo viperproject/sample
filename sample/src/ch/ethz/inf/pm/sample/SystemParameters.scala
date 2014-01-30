@@ -45,11 +45,6 @@ object SystemParameters {
   //TODO:Remove it
   var semanticsComputing : Boolean = false;
 
-  var enableOutputOfAlarms : Boolean = true
-  var enableOutputOfPrecisionWarnings : Boolean = true
-  var enableOutputOfDummyWarnings : Boolean = false
-  var enableOutputOfBottomWarnings : Boolean = true
-
   /**
    * Ir true Sample supposes that if we invoke numerical methods like + on an object of any type we are
    * performing arithmetical operations
@@ -112,13 +107,11 @@ object SystemParameters {
   def setProgressOutput(p : ScreenOutput) = progressOutput=p;
   def setAnalysisOutput(p : ScreenOutput) = analysisOutput=p;
 
-  def resetOutput {
-    enableOutputOfAlarms = true
-    enableOutputOfPrecisionWarnings = true
-    enableOutputOfBottomWarnings = true
+  def resetOutput(): Unit = {
+    Reporter.enableAllOutputs()
     if (progressOutput != null) progressOutput.reset()
     if (analysisOutput != null) analysisOutput.reset()
-    Reporter.reset
+    Reporter.reset()
   }
   
 }

@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, Type, ProgramPoi
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.semantics.TNumber
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
+import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
  * User: lucas
@@ -18,11 +19,9 @@ object RequiredLibraryFragmentAnalysis {
   def apply(classes:List[ClassDefinition]):Set[String] = {
     spottedFields = Set.empty[String]
 
-    SystemParameters.resetOutput
+    SystemParameters.resetOutput()
     MethodSummaries.reset[AccessCollectingState]()
-    SystemParameters.enableOutputOfAlarms = false
-    SystemParameters.enableOutputOfBottomWarnings = false
-    SystemParameters.enableOutputOfPrecisionWarnings = false
+    Reporter.disableAllOutputs()
 
     for (clazz <- classes; method <- clazz.methods) {
 

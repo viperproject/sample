@@ -102,7 +102,7 @@ object TouchApronRun {
 
 
     val messages: Set[SampleMessage] = Reporter.seenErrors ++ Reporter.seenInfos
-    SystemParameters.resetOutput
+    SystemParameters.resetOutput()
     messages.toSeq
   }
 
