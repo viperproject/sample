@@ -105,8 +105,6 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
      : List[(Type, MethodDeclaration, CFGState[S])] = {
     val compiler = SystemParameters.compiler.asInstanceOf[TouchCompiler]
 
-    println("version 01.11.13 [1]")
-
     // Set up the environment
     SystemParameters.resetOutput()
     MethodSummaries.reset[S]()
