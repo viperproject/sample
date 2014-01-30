@@ -114,7 +114,21 @@ case class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpr
 
   def isTop = this._2.isTop
 
-  def isBottom = this._2.isBottom
+  def isBottom = {
+    // `SetDomain` objects may currently have an empty set, while both
+    // `isTop` and `isBottom` are set to `false`, which is inconsistent.
+    // Unfortunately, we cannot easily forbid such inconsistent `SetDomain`
+    // objects, since there is quite some code in Sample that produces such
+    // inconsistent objects, especially for `ExpressionSet`s.
+
+    // Quite some methods in `AbstractState` already make the
+    // the assumption that when the set is empty and `isTop` is `false`,
+    // then this means that the `SetDomain` object is actually bottom.
+
+    // Thus, make that assumption here as well, until the whole `ExpressionSet`
+    // mess is cleaned up properly.
+    _2.isBottom || (_2.value.isEmpty && !_2.isTop)
+  }
 
   private def computeType() : Type = {
     if(this._2.isTop) return SystemParameters.typ.top()
@@ -400,36 +414,9 @@ class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIden
 
   def assert(cond : ExpressionSet) : AbstractState[N,H,I] = this //TODO
 
-  def assume(cond : ExpressionSet) : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
-    var d1 = this._1
-    var isFirst = true
-    var rep = new Replacement()
-    for(expr <- cond.getSetOfExpressions) {
-      //For each expression that is assumed, it computes the semantics and it considers the upper bound
-      if(isFirst) {
-        val (d, r) = this._1.assume(expr)
-        d1= d
-        rep = rep ++ r
-        isFirst=false
-      }
-      else {
-        val(d, r) = this._1.assume(expr)
-        d1=d1.lub(d)
-        rep = rep ++ r
-      }
-    }
-    new AbstractState[N,H,I](d1, this._2.merge(rep))
-  }
-
-  def testTrue() : AbstractState[N,H,I] = {
-    var result=this.assume(this.getExpression)
-    result.removeExpression()
-  }
-
-  def testFalse() : AbstractState[N,H,I] = {
-    var result=this.assume(this.getExpression.not())
-    result.removeExpression()
+  def assume(cond: Expression): AbstractState[N, H, I] = {
+    val (dom, replacement) = _1.assume(cond)
+    new AbstractState[N,H,I](dom, _2.merge(replacement))
   }
 
   def setExpression(value : ExpressionSet) : AbstractState[N,H,I] = {
