@@ -39,6 +39,8 @@ trait CFGStateFactory[S <: State[S], C <: CFGState[S]] {
   def allBottom(cfg: ControlFlowGraph): C
 
   def allTop(cfg: ControlFlowGraph): C
+
+  def makeFrom(cfg: ControlFlowGraph, cfgState: CFGState[S]): C
 }
 
 /** Holds methods that are independent of how states are actually stored

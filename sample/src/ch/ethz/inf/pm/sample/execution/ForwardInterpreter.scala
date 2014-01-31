@@ -12,9 +12,33 @@ object ForwardInterpreter {
 trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
   val startBlockId: Int = 0
 
+  /**
+   * Perform forward abstract interpretation of cfg from  initial state.
+   *
+   * @param cfg the `ControlFlowGraph` to execute
+   * @param initialState the new entry state, may differ from old one in cfgState
+   * @return states in CFG after reaching fixed point
+   */
   def forwardExecuteFrom(cfg: ControlFlowGraph, initialState: S): C = {
-    implicit val cfgState = cfgStateFactory.allBottom(cfg)
+    val cfgState = cfgStateFactory.allBottom(cfg)
+    forwardExecuteWithCFGState(cfg, initialState)(cfgState)
+  }
 
+  /**
+   * Perform forward abstract interpretation, given a previous `CFGState` but starting from a new initial state.
+   *
+   * @param cfg the `ControlFlowGraph` to execute
+   * @param initialState the new entry state, may differ from old one in cfgState
+   * @param cfgState state to initialise the execution with
+   * @return states in CFG after reaching fixed point
+   */
+  def forwardExecuteWithCFGState(cfg: ControlFlowGraph, cfgState: CFGState[S], initialState: S): C = {
+    val newCfgState = cfgStateFactory.makeFrom(cfg, cfgState)
+    forwardExecuteWithCFGState(cfg, initialState)(newCfgState)
+  }
+
+
+  def forwardExecuteWithCFGState(cfg: ControlFlowGraph, initialState: S)(implicit cfgState: C): C = {
     var blocksToProcessIds = Set(startBlockId)
     var iterationCountAtBlock = Map.empty[Int, Int]
 

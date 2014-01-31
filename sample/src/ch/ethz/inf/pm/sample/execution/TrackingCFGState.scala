@@ -20,6 +20,10 @@ case class TrackingCFGStateFactory[S <: State[S]](stateFactory: S)
     result.initializeStates(stateFactory.top())
     result
   }
+
+  def makeFrom(cfg: ControlFlowGraph, cfgState: CFGState[S]): TrackingCFGState[S] = {
+    ???
+  }
 }
 
 /** Keeps track of all states that occurred throughout the interpretation.
