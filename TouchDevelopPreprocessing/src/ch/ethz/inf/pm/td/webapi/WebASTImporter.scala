@@ -4,6 +4,7 @@ import net.liftweb.json.{TypeHints, DefaultFormats}
 import net.liftweb.json.JsonAST.JObject
 import net.liftweb.json.parse
 import ch.ethz.inf.pm.td.parser._
+import ch.ethz.inf.pm.td.compiler.TouchException
 
 /**
  *
@@ -40,159 +41,162 @@ object WebASTImporter {
 
   def convertFromString(string: String): Script = {
     val json = parse(string)
-    val japp = json.asInstanceOf[JObject].extract[JApp]
-    convert(japp)
-  }
-
-  def convert(jAST:JApp):Script = {
-    Script(jAST.decls map (convert _),jAST.isLibrary).setId("")
-  }
-
-  def convert(jDecl:JDecl):Declaration = {
-    jDecl match {
-      case JArt(id,name,comment,typ,isReadonly,url) =>
-        VariableDefinition(Parameter(name,makeTypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString,"is_resource" -> "true")).setId(id)
-      case JData(id,name,comment,typ,isReadonly) =>
-        VariableDefinition(Parameter(name,makeTypeName(typ).setId(id)).setId(id),Map("readonly" -> isReadonly.toString)).setId(id)
-      case JPage(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,initBody,displayBody) =>
-        PageDefinition(name,inParameters map (convert _),outParameters map (convert _),convert(initBody),convert(displayBody),isPrivate).setId(id)
-      case JEvent(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,eventName,eventVariableId,body) =>
-        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),convert(body),isEvent = true,isPrivate = isPrivate).setId(id)
-      case JLibrary(id,name,libIdentifier,libIsPublished,exportedTypes,exportedActions,resolveClauses) =>
-        LibraryDefinition(name,libIdentifier,exportedActions map (convert _),resolveClauses map (convert _)).setId(id)
-      case JRecord(id,name,comment,category,isCloudEnabled,keys,fields) =>
-        TableDefinition(name,category,keys map (convert _),fields map (convert _)).setId(id)
-      case JAction(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,body) =>
-        ActionDefinition(name,inParameters map (convert _),outParameters map (convert _),convert(body),isEvent = false,isPrivate = isPrivate).setId(id)
+    json match {
+      case jobj: JObject => convert(jobj.extract[JApp])
+      case _ => throw TouchException("WebASTImporter failed to import JSON string: " + string)
     }
   }
 
-  def convert(jResolve:JResolveClause):ResolveBlock = {
-    ResolveBlock(jResolve.name,jResolve.defaultLibId,
-      (jResolve.withActions map (convert _)) ::: (jResolve.withTypes map (convert _))).setId(jResolve.id)
+  def convert(jAST: JApp): Script = {
+    Script(jAST.decls map convert, jAST.isLibrary).setId("")
   }
 
-  def convert(jLocalDef:JLocalDef):Parameter = {
-    Parameter(jLocalDef.name,makeTypeName(jLocalDef.`type`).setId(jLocalDef.id)).setId(jLocalDef.id)
+  def convert(jDecl: JDecl): Declaration = {
+    jDecl match {
+      case JArt(id, name, comment, typ, isReadonly, url) =>
+        VariableDefinition(Parameter(name, makeTypeName(typ).setId(id)).setId(id), Map("readonly" -> isReadonly.toString, "is_resource" -> "true")).setId(id)
+      case JData(id, name, comment, typ, isReadonly) =>
+        VariableDefinition(Parameter(name, makeTypeName(typ).setId(id)).setId(id), Map("readonly" -> isReadonly.toString)).setId(id)
+      case JPage(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, initBody, displayBody) =>
+        PageDefinition(name, inParameters map convert, outParameters map convert, convert(initBody), convert(displayBody), isPrivate).setId(id)
+      case JEvent(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, eventName, eventVariableId, body) =>
+        ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = true, isPrivate = isPrivate).setId(id)
+      case JLibrary(id, name, libIdentifier, libIsPublished, exportedTypes, exportedActions, resolveClauses) =>
+        LibraryDefinition(name, libIdentifier, exportedActions map convert, resolveClauses map convert).setId(id)
+      case JRecord(id, name, comment, category, isCloudEnabled, keys, fields) =>
+        TableDefinition(name, category, keys map convert, fields map convert).setId(id)
+      case JAction(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, body) =>
+        ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = false, isPrivate = isPrivate).setId(id)
+    }
   }
 
-  def convert(stmts:List[JStmt]):List[Statement] = {
+  def convert(jResolve: JResolveClause): ResolveBlock = {
+    ResolveBlock(jResolve.name, jResolve.defaultLibId,
+      (jResolve.withActions map convert) ::: (jResolve.withTypes map convert)).setId(jResolve.id)
+  }
+
+  def convert(jLocalDef: JLocalDef): Parameter = {
+    Parameter(jLocalDef.name, makeTypeName(jLocalDef.`type`).setId(jLocalDef.id)).setId(jLocalDef.id)
+  }
+
+  def convert(stmts: List[JStmt]): List[Statement] = {
 
     // The new version of the JSON AST has an awkward representation of elseIfs
     // as seperate if like statements IF(BLA) THEN A ELSE SKIP; ELSEIF(BLA2) THEN B ELSE C
     // here, we convert it to IF (BLA) THEN A ELSE { IF (BLA 2) THEN B ELSE C }
-    val noElseIfs = stmts.foldRight(List.empty[JStmt])({ (x:JStmt,y:List[JStmt]) =>
-      y match {
-        case JElseIf(id2,cond2,then2,els2) :: xs =>
-          x match {
-            case JIf(id,cond,then,els) =>
-              JIf(id,cond,then,els ::: List(JIf(id2,cond2,then2,els2))) :: xs
-            case JElseIf(id,cond,then,els) =>
-              JElseIf(id,cond,then,els ::: List(JIf(id2,cond2,then2,els2))) :: xs
-          }
-        case _ => x :: y
-      }
+    val noElseIfs = stmts.foldRight(List.empty[JStmt])({
+      (x: JStmt, y: List[JStmt]) =>
+        y match {
+          case JElseIf(id2, cond2, then2, els2) :: xs =>
+            x match {
+              case JIf(id, cond, then, els) =>
+                JIf(id, cond, then, els ::: List(JIf(id2, cond2, then2, els2))) :: xs
+              case JElseIf(id, cond, then, els) =>
+                JElseIf(id, cond, then, els ::: List(JIf(id2, cond2, then2, els2))) :: xs
+            }
+          case _ => x :: y
+        }
     })
 
-    noElseIfs map (convert _)
+    noElseIfs map convert
   }
 
-  def convert(jStatement:JStmt):Statement = {
+  def convert(jStatement: JStmt): Statement = {
     jStatement match {
-      case JComment(id,text) =>
+      case JComment(id, text) =>
         Skip().setId(id)
-      case JFor(id,index,bound,body) =>
-        For(index.name,convert(bound),convert(body)).setId(id)
-      case JForeach(id,iterator,collection,conditions,body) =>
-        Foreach(iterator.name,convert(collection),conditions map (convert _),convert(body)).setId(id)
-      case JWhile(id,condition,body) =>
-        While(convert(condition),convert(body)).setId(id)
-      case JIf(id,condition,thenBody,elseBody) =>
-        If(convert(condition),convert(thenBody), convert(elseBody)).setId(id)
-      case JBoxed(id,body) =>
+      case JFor(id, index, bound, body) =>
+        For(index.name, convert(bound), convert(body)).setId(id)
+      case JForeach(id, iterator, collection, conditions, body) =>
+        Foreach(iterator.name, convert(collection), conditions map convert, convert(body)).setId(id)
+      case JWhile(id, condition, body) =>
+        While(convert(condition), convert(body)).setId(id)
+      case JIf(id, condition, thenBody, elseBody) =>
+        If(convert(condition), convert(thenBody), convert(elseBody)).setId(id)
+      case JBoxed(id, body) =>
         Box(convert(body)).setId(id)
-      case JExprStmt(id,expr) =>
+      case JExprStmt(id, expr) =>
         ExpressionStatement(convert(expr)).setId(id)
-      case JInlineActions(id,expr,actions) =>
-        WhereStatement(convert(expr),actions map (convert _)).setId(id)
+      case JInlineActions(id, expr, actions) =>
+        WhereStatement(convert(expr), actions map convert).setId(id)
     }
   }
 
-  def convert(jExpression:JExprHolder):Expression = {
+  def convert(jExpression: JExprHolder): Expression = {
     convert(jExpression.tree)
   }
 
-  def convert(jExpression:JExpr):Expression = {
+  def convert(jExpression: JExpr): Expression = {
     jExpression match {
-      case JStringLiteral(id,value) =>
-        Literal(makeTypeName("String").setId(id),value).setId(id)
-      case JBooleanLiteral(id,value) =>
-        Literal(makeTypeName("Boolean").setId(id),value.toString).setId(id)
-      case JNumberLiteral(id,value) =>
-        Literal(makeTypeName("Number").setId(id),value.toString).setId(id)
-      case JLocalRef(id,name,localId) =>
+      case JStringLiteral(id, value) =>
+        Literal(makeTypeName("String").setId(id), value).setId(id)
+      case JBooleanLiteral(id, value) =>
+        Literal(makeTypeName("Boolean").setId(id), value.toString).setId(id)
+      case JNumberLiteral(id, value) =>
+        Literal(makeTypeName("Number").setId(id), value.toString).setId(id)
+      case JLocalRef(id, name, localId) =>
         LocalReference(name).setId(id)
-      case JPlaceholder(id,name,typ) =>
+      case JPlaceholder(id, name, typ) =>
         LocalReference(name).setId(id)
-      case JSingletonRef(id,name,typ) =>
-        SingletonReference(name,typ).setId(id)
-      case JCall(id,name,parent,declId,this0::args) =>
-        Access(convert(this0),Identifier(name).setId(id),args map (convert _)).setId(id)
+      case JSingletonRef(id, name, typ) =>
+        SingletonReference(name, typ).setId(id)
+      case JCall(id, name, parent, declId, this0 :: args) =>
+        Access(convert(this0), Identifier(name).setId(id), args map convert).setId(id)
     }
   }
 
-  def convert(jCondition:JCondition):Expression = {
+  def convert(jCondition: JCondition): Expression = {
     jCondition match {
-      case JWhere(id,condition) =>
+      case JWhere(id, condition) =>
         convert(condition)
     }
   }
 
-  def convert(jRecordKey:JRecordKey):Parameter = {
-    Parameter(jRecordKey.name,makeTypeName(jRecordKey.`type`).setId(jRecordKey.id)).setId(jRecordKey.id)
+  def convert(jRecordKey: JRecordKey): Parameter = {
+    Parameter(jRecordKey.name, makeTypeName(jRecordKey.`type`).setId(jRecordKey.id)).setId(jRecordKey.id)
   }
 
-  def convert(jRecordField:JRecordField):Parameter = {
-    Parameter(jRecordField.name,makeTypeName(jRecordField.`type`).setId(jRecordField.id)).setId(jRecordField.id)
+  def convert(jRecordField: JRecordField): Parameter = {
+    Parameter(jRecordField.name, makeTypeName(jRecordField.`type`).setId(jRecordField.id)).setId(jRecordField.id)
   }
 
-  def convert(jLibAction:JLibAction):ActionUsage = {
-    ActionUsage(jLibAction.name,jLibAction.inParameters map (convert _),jLibAction.outParameters map (convert _)).setId(jLibAction.id)
+  def convert(jLibAction: JLibAction): ActionUsage = {
+    ActionUsage(jLibAction.name, jLibAction.inParameters map convert, jLibAction.outParameters map convert).setId(jLibAction.id)
   }
 
-  def convert(jActionBinding:JActionBinding):ActionResolution = {
-    ActionResolution(jActionBinding.name,jActionBinding.actionId).setId(jActionBinding.id)
+  def convert(jActionBinding: JActionBinding): ActionResolution = {
+    ActionResolution(jActionBinding.name, jActionBinding.actionId).setId(jActionBinding.id)
   }
 
-  def convert(jTypeResolution:JTypeBinding):TypeResolution = {
-    TypeResolution(jTypeResolution.name,makeTypeName(jTypeResolution.`type`).setId(jTypeResolution.id)).setId(jTypeResolution.id)
+  def convert(jTypeResolution: JTypeBinding): TypeResolution = {
+    TypeResolution(jTypeResolution.name, makeTypeName(jTypeResolution.`type`).setId(jTypeResolution.id)).setId(jTypeResolution.id)
   }
 
-  def convert(jInlineAction:JInlineAction):InlineAction = {
+  def convert(jInlineAction: JInlineAction): InlineAction = {
     InlineAction(jInlineAction.reference.name,
-      jInlineAction.inParameters map (convert _),
-      jInlineAction.outParameters map (convert _),
+      jInlineAction.inParameters map convert,
+      jInlineAction.outParameters map convert,
       convert(jInlineAction.body)).setId(jInlineAction.id)
   }
 
-  def makeTypeName(a:String):TypeName = {
+  def makeTypeName(typeString: String): TypeName = {
     val JUserType = """\{"o":"(.*)"\}""".r
     val JLibraryType = """\{"l":"(.*)","o":"(.*)"\}""".r
     val JGenericTypeInstance = """\{"g":"(.*)","a":\["(.*)"\]\}""".r
     val JGenericUserTypeInstance = """\{"g":"(.*)","a":\[\{"o":"(.*)"\}\]\}""".r
 
 
-    a match {
-      case JLibraryType(l,o) =>
+    typeString match {
+      case JLibraryType(l, o) =>
         TypeName(o)
-      case JGenericTypeInstance(g,a) =>
-        TypeName(a+" "+g)
-      case JGenericUserTypeInstance(g,a) =>
-        TypeName(a+" "+g)
+      case JGenericTypeInstance(g, a) =>
+        TypeName(a + " " + g)
+      case JGenericUserTypeInstance(g, a) =>
+        TypeName(a + " " + g)
       case JUserType(o) =>
         TypeName(o)
       case _ =>
-        TypeName(a)
+        TypeName(typeString)
     }
   }
 
@@ -304,11 +308,11 @@ case class JIf(
                 ) extends JStmt(id)
 
 case class JElseIf(
-                id: String,
-                condition: JExprHolder,
-                thenBody: List[JStmt],
-                elseBody: List[JStmt]
-                ) extends JStmt(id)
+                    id: String,
+                    condition: JExprHolder,
+                    thenBody: List[JStmt],
+                    elseBody: List[JStmt]
+                    ) extends JStmt(id)
 
 case class JBoxed(id: String, body: List[JStmt]) extends JStmt(id)
 
@@ -406,7 +410,7 @@ case class JLibrary(
                      name: String,
                      libIdentifier: String,
                      libIsPublished: Boolean,
-                     exportedTypes: String /*JTypeRef*/,
+                     exportedTypes: String /*JTypeRef*/ ,
                      exportedActions: List[JLibAction],
                      resolveClauses: List[JResolveClause]
                      ) extends JDecl(id, name)

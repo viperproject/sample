@@ -29,7 +29,7 @@ object MethodSummaries {
   /**
    * Stores the entry states of a method that is currently on the stack (for recursive calls)
    */
-  private var entries:Map[ProgramPoint,_] = Map.empty
+  private var entriesOnStack:Map[ProgramPoint,_] = Map.empty
 
   /**
    * Stores the entry state of a closure method
@@ -69,25 +69,29 @@ object MethodSummaries {
       case None => enteredState
     }
 
-    val result = entries.get(identifyingPP) match {
+    val result = entriesOnStack.get(identifyingPP) match {
       case Some(oldEntryState) =>
 
         // This is a recursive call (non top level).
         // Join the entry state and continue with previously recorded
         // exit + entryState (updates inside recursive calls are weak)
         val newEntryState = oldEntryState.asInstanceOf[S].widening(enteredState)
-        entries += ((identifyingPP,newEntryState))
+        entriesOnStack += ((identifyingPP,newEntryState))
         summaries.get(identifyingPP) match {
           case Some(s) =>
+
+            // Get the result of the previous recursion depth and join it with the local state
             val summary = s.asInstanceOf[MethodSummary[S]]
             val prevExitState = summary.cfgState.exitState()
             val exitedState = exitFunction(callPoint,callTarget,prevExitState,parameters)
             val localState = pruneGlobalState(entryState)
+            exitedState.lub(localState)
 
-            // We immediately widen the entrystate for now
-            entryState.lub(localState)
+          case None =>
 
-          case None => entryState.bottom()
+            // We do not have a result for our recursion yet. Bottom.
+            entryState.bottom()
+
         }
 
       case None =>
@@ -95,14 +99,14 @@ object MethodSummaries {
         // This is a top-level call (recursive or non-recursive)
         // Record the effect of one iteration
 
-        entries += ((identifyingPP,enteredState))
+        entriesOnStack += ((identifyingPP,enteredState))
 
         var currentSummary = summaries.get(identifyingPP) match {
           case Some(prevSummary) =>
             val prev = prevSummary.asInstanceOf[MethodSummary[S]]
             executeMethod(enteredState, prev)
           case None =>
-            val factoryState = enteredState.top()
+            val factoryState = enteredState.factory()
             val cfgState = new ControlFlowGraphExecution(callTarget.body, factoryState)
             val prevSummary = new MethodSummary(identifyingPP, callTarget, cfgState)
             executeMethod(enteredState, prevSummary)
@@ -111,13 +115,13 @@ object MethodSummaries {
         summaries += ((identifyingPP, currentSummary))
 
         // Are there more possible depths?
-        while (!entries.get(identifyingPP).get.asInstanceOf[S].removeExpression().lessEqual(enteredState.removeExpression())) {
-          enteredState = entries.get(identifyingPP).get.asInstanceOf[S]
+        while (!entriesOnStack.get(identifyingPP).get.asInstanceOf[S].removeExpression().lessEqual(enteredState.removeExpression())) {
+          enteredState = entriesOnStack.get(identifyingPP).get.asInstanceOf[S]
           currentSummary = executeMethod(enteredState, currentSummary)
           summaries += ((identifyingPP, currentSummary))
         }
 
-        entries = entries - identifyingPP
+        entriesOnStack = entriesOnStack - identifyingPP
 
         val exitState = exitFunction(callPoint,callTarget,currentSummary.cfgState.exitState(),parameters)
         val localState = pruneGlobalState(entryState)
@@ -182,7 +186,7 @@ object MethodSummaries {
 
   def reset[S <: State[S]]() {
     summaries = Map.empty[ProgramPoint,MethodSummary[S]]
-    entries = Map.empty[ProgramPoint,S]
+    entriesOnStack = Map.empty[ProgramPoint,S]
     closureEntries = Map.empty
     abnormalExits = None
   }
@@ -193,10 +197,7 @@ object MethodSummaries {
     val methodDecl = currentSummary.method
     val newState =
       SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(methodDecl)) {
-        //SystemParameters.progressOutput.begin("METHOD: "+callTarget.name)
-        val cfge = new ControlFlowGraphExecution(methodDecl.body, entryState)
-        cfge.forwardSemantics(entryState)
-        //SystemParameters.progressOutput.end()
+        currentSummary.cfgState.asInstanceOf[ControlFlowGraphExecution[S]].forwardSemantics(entryState)
       }
     currentSummary.copy(cfgState = newState)
   }

@@ -60,4 +60,16 @@ object Utilities {
   def edgeLocalAndAccessPathIds[S <: SemanticDomain[S]](state: S) =
     state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
       id.isInstanceOf[AccessPathIdentifier])
+
+  /**
+   * Replaces all non-numerical `VariableIdentifier`s in the given expression
+   * with a corresponding `AccessPathIdentifier`.
+   *
+   * @todo replace all `VariableIdentifiers`, including numerical ones
+   */
+  def normalizeExpression(exp: Expression): Expression =
+    exp.transform({
+      case v: VariableIdentifier if v.typ.isObject => AccessPathIdentifier(v)
+      case e => e
+    })
 }
