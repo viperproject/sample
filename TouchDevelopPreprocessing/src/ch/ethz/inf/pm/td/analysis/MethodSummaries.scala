@@ -197,10 +197,7 @@ object MethodSummaries {
     val methodDecl = currentSummary.method
     val newState =
       SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(methodDecl)) {
-        //SystemParameters.progressOutput.begin("METHOD: "+callTarget.name)
-        val cfge = new ControlFlowGraphExecution(methodDecl.body, entryState)
-        cfge.forwardSemantics(entryState)
-        //SystemParameters.progressOutput.end()
+        currentSummary.cfgState.asInstanceOf[ControlFlowGraphExecution[S]].forwardSemantics(entryState)
       }
     currentSummary.copy(cfgState = newState)
   }
