@@ -31,6 +31,10 @@ case class EdgeWithState[S <: SemanticDomain[S]](
       (source, field, target),
       (that.source, that.field, that.target))
   }
+
+  /** Returns whether this edge points from a vertex to that vertex itself. */
+  def isSelfLoop: Boolean =
+    source == target
 }
 
 /** Represents a path of edges in a heap graph. */

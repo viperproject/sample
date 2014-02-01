@@ -145,7 +145,14 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def initialMaxEdges(other: HeapGraph[S]): Map[EdgeWithState[S],Set[EdgeWithState[S]]] = {
     var maxEdges = Map.empty[EdgeWithState[S],Set[EdgeWithState[S]]]
     for (edge <- this.edges) {
-      val possibleMatches = other.edges.filter(e => e.field.equals(edge.field) && e.source.label.equals(edge.source.label) && e.target.label.equals(edge.target.label))
+      val possibleMatches = other.edges.filter(e => {
+        e.field == edge.field &&
+          e.source.label == edge.source.label &&
+          e.target.label == edge.target.label &&
+          // It's not possible to match a self-loop edge to a regular edge
+          // or vice-versa. Hence, already remove such mappings here
+          (e.isSelfLoop) == (edge.isSelfLoop)
+      })
       if (!possibleMatches.isEmpty)
         maxEdges += (edge -> possibleMatches)
     }
