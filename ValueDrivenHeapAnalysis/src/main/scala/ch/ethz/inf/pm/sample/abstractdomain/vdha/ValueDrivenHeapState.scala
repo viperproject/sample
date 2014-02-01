@@ -114,11 +114,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           resultingEdges += EdgeWithState(heapVertex, sourceValState, Some(objField.getName), NullVertex)
           // Finding all possible HeapVertices to which this object field can point to, taking into account sub-typing
           for (canPointToVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(objField.getType) => v })) {
-            var edge = EdgeWithState(heapVertex, sourceValState, Some(objField.getName), canPointToVertex)
-            for (objValField <- objField.getType.nonObjectFields) {
-              edge = edge.createTargetEdgeLocalId(objValField)
-            }
-            resultingEdges += edge
+            val edge = EdgeWithState(heapVertex, sourceValState, Some(objField.getName), canPointToVertex)
+            resultingEdges += edge.createTargetEdgeLocalIds()
           }
         }
       }
@@ -146,12 +143,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         for (heapVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(locVarVertex.typ) => v })) {
           // "this" must have an exact type
           if (!isInstanceVar || heapVertex.typ.equals(locVarVertex.typ)) {
-            // Create target EdgeLocalIdentifiers
-            var edge = EdgeWithState(locVarVertex, newGenValState, None, heapVertex)
-            for (valField <- heapVertex.typ.nonObjectFields) {
-              edge = edge.createTargetEdgeLocalId(valField)
-            }
-            resultingEdges += edge
+            val edge = EdgeWithState(locVarVertex, newGenValState, None, heapVertex)
+            resultingEdges += edge.createTargetEdgeLocalIds()
           }
         }
       }

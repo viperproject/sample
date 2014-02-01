@@ -95,6 +95,12 @@ case class EdgeWithState[S <: SemanticDomain[S]](
 
     copy(state = newState)
   }
+
+  /** Create an `EdgeLocalIdentifier` in the edge state for each value field
+    * of the target vertex.
+    */
+  def createTargetEdgeLocalIds(): EdgeWithState[S] =
+    target.typ.nonObjectFields.foldLeft(this)(_.createTargetEdgeLocalId(_))
 }
 
 /** Represents a path of edges in a heap graph. */
