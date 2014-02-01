@@ -182,21 +182,16 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           var edgesToAdd = Set.empty[EdgeWithState[S]]
           right match {
             case verExpr: VertexExpression => {
-              assert(abstractHeap.vertices.contains(verExpr.vertex), "Assigning a non-existing node")
-              var newEdgeState = generalValState
-              if (verExpr.vertex.isInstanceOf[HeapVertex]) {
-                // adding edge local information
-                var addedIdentifiers = Set.empty[Identifier]
-                assert(varVertex.typ.equals(verExpr.getType), "We support only exact type, that is the fields should be the same")
-                for (valField <- varVertex.typ.nonObjectFields) {
-                  val edgeLocalId = EdgeLocalIdentifier(valField)
-                  addedIdentifiers = addedIdentifiers + edgeLocalId
-                  newEdgeState = newEdgeState.createVariable(edgeLocalId, edgeLocalId.getType)
-                  val resId = ValueHeapIdentifier(verExpr.vertex.asInstanceOf[HeapVertex], valField)
-                  newEdgeState = newEdgeState.assume(new BinaryArithmeticExpression(resId, edgeLocalId, ArithmeticOperator.==, null))
-                }
+              assert(abstractHeap.vertices.contains(verExpr.vertex),
+                "Assigning a non-existing node")
+              assert(varVertex.typ.equals(verExpr.getType),
+                "We support only exact type, that is the fields should be the same")
+
+              var edge = EdgeWithState(varVertex, generalValState, None, verExpr.vertex)
+              if (edge.target.isInstanceOf[HeapVertex]) {
+                edge = edge.createTargetEdgeLocalIds()
               }
-              edgesToAdd = edgesToAdd + EdgeWithState(varVertex, newEdgeState, None, verExpr.vertex)
+              edgesToAdd = edgesToAdd + edge
             }
             case v: VariableIdentifier => {
               val edgesOfRight = abstractHeap.edges.filter(_.source.name == v.getName)
