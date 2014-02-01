@@ -1,15 +1,30 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.LocalVariableVertex
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.EdgeWithState
+import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
+import ch.ethz.inf.pm.sample.util.Predef._
 
 case class EdgeWithState[S <: SemanticDomain[S]](
     source: Vertex,
     state: S,
     field: Option[String],
     target: Vertex) extends Ordered[EdgeWithState[S]] {
+
+  require(field.isDefined implies
+    source.typ.objectFields.exists(_.getName == field.get),
+    s"source vertex has no field named '${field.get}'")
+
+  require(target.typ.lessEqual(edgeType),
+    s"target type ${target.typ} must be a subtype of the edge type $edgeType")
+
+  require(field.isEmpty == source.isInstanceOf[LocalVariableVertex],
+    "field must be empty iff the source is a local variable vertex")
+
+  require(!target.isInstanceOf[LocalVariableVertex],
+    "edge target must not be a local variable vertex")
+
+  require(source != NullVertex,
+    "edge source must not be a null vertex")
 
   override def toString: String = {
     val stateString = if (state != null) state.toString else "null"
@@ -20,9 +35,8 @@ case class EdgeWithState[S <: SemanticDomain[S]](
    * Checks for equivalence of two edges, ignoring their state.
    * @param other the other edge to compare with
    */
-  def weakEquals(other: EdgeWithState[S]): Boolean = {
-    source.equals(other.source) && target.equals(other.target) && field.equals(other.field)
-  }
+  def weakEquals(other: EdgeWithState[S]): Boolean =
+    source == other.source && target == other.target && field == other.field
 
   /** The set of vertices incident to the edge. */
   def vertices: Set[Vertex] = Set(source, target)
@@ -37,6 +51,22 @@ case class EdgeWithState[S <: SemanticDomain[S]](
   /** Returns whether this edge points from a vertex to that vertex itself. */
   def isSelfLoop: Boolean =
     source == target
+
+  /** Returns the identifier representing the field (if the field is defined). */
+  def fieldId: Option[Identifier] = field match {
+    // Its existence is guaranteed with the constructor precondition
+    case Some(name) => source.typ.objectFields.find(_.getName == name)
+    case None => None
+  }
+
+  /** Returns the static type of the reference represented by this edge.
+    * If the source is a local variable vertex, the result is the variable type.
+    * If the source is an heap vertex, the result is the field type.
+    */
+  def edgeType: Type = fieldId match {
+    case Some(fieldId) => fieldId.getType
+    case None => source.typ
+  }
 
   /** Creates an `EdgeLocalIdentifier` in the edge state for a given value field
     * of the target vertex.

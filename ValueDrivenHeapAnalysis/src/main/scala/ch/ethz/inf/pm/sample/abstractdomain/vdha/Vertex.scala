@@ -37,7 +37,7 @@ object LocalVariableVertex {
 object NullVertex extends Vertex {
   def name = VertexConstants.NULL
   def label = VertexConstants.NULL
-  def typ = SystemParameters.getType().top()
+  def typ = SystemParameters.getType().bottom()
   override def toString = name
 }
 
