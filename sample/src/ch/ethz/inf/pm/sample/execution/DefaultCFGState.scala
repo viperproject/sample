@@ -18,6 +18,14 @@ case class DefaultCFGStateFactory[S <: State[S]](stateFactory: S)
     result.initializeStates(stateFactory.top())
     result
   }
+
+  def makeFrom(cfg: ControlFlowGraph, cfgState: CFGState[S]): DefaultCFGState[S] = {
+    val result = new DefaultCFGState(cfg, stateFactory)
+    for (idx <- 0 until cfg.nodes.size) {
+      result.setStatesOfBlock(idx, cfgState.statesOfBlock(idx))
+    }
+    result
+  }
 }
 
 /** Default implementation of `CFGState` that just keeps the most recent

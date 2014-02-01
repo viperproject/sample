@@ -17,7 +17,7 @@ object URLFetcher {
     conn.setConnectTimeout(connectionTimeout)
     conn.setReadTimeout(connectionTimeout)
     val inputStream = conn.getInputStream
-    Source.fromInputStream(inputStream)
+    Source.fromInputStream(inputStream)(io.Codec("UTF-8"))
   }
 
 
