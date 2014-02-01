@@ -82,10 +82,10 @@ case class EdgeWithState[S <: SemanticDomain[S]](
     * @return the resulting edge
    */
   def createTargetEdgeLocalId(valueField: Identifier): EdgeWithState[S] = {
-    require(valueField.getType.isNumericalType,
-      "field of the target vertex must be a value field")
     require(target.isInstanceOf[HeapVertex],
       "target vertex must be a heap vertex")
+    require(target.typ.nonObjectFields.contains(valueField),
+      s"target vertex has no value field $valueField")
 
     val edgeLocalId = EdgeLocalIdentifier(List(field).flatten, valueField)
     val valueHeapId = ValueHeapIdentifier(target.asInstanceOf[HeapVertex], valueField)
@@ -99,8 +99,44 @@ case class EdgeWithState[S <: SemanticDomain[S]](
   /** Create an `EdgeLocalIdentifier` in the edge state for each value field
     * of the target vertex.
     */
-  def createTargetEdgeLocalIds(): EdgeWithState[S] =
+  def createTargetEdgeLocalIds(): EdgeWithState[S] = {
+    require(target.isInstanceOf[HeapVertex],
+      "target vertex must be a heap vertex")
     target.typ.nonObjectFields.foldLeft(this)(_.createTargetEdgeLocalId(_))
+  }
+
+  /** Create an `EdgeLocalIdentifier` in the edge state for
+    * the given value field of the source vertex.
+    */
+  def createSourceEdgeLocalId(valueField: Identifier): EdgeWithState[S] = {
+    require(source.isInstanceOf[HeapVertex],
+      "source vertex must be a heap vertex")
+    require(source.typ.nonObjectFields.contains(valueField),
+      s"source vertex has no value field $valueField")
+
+    copy(state = source.asInstanceOf[HeapVertex]
+      .createEdgeLocalIdInState(state, valueField))
+  }
+
+  /** Create an `EdgeLocalIdentifier` in the edge state for each value field
+    * of the source vertex.
+    */
+  def createSourceEdgeLocalIds(): EdgeWithState[S] = {
+    require(source.isInstanceOf[HeapVertex],
+      "source vertex must be a heap vertex")
+
+    copy(state = source.asInstanceOf[HeapVertex]
+      .createEdgeLocalIdsInState(state))
+  }
+
+  def createEdgeLocalIds(): EdgeWithState[S] = {
+    var result = this
+    if (source.isInstanceOf[HeapVertex])
+      result = result.createSourceEdgeLocalIds()
+    if (target.isInstanceOf[HeapVertex])
+      result = result.createTargetEdgeLocalIds()
+    result
+  }
 }
 
 /** Represents a path of edges in a heap graph. */
