@@ -89,6 +89,10 @@ case class EdgeWithState[S <: SemanticDomain[S]](
 
     val edgeLocalId = EdgeLocalIdentifier(List(field).flatten, valueField)
     val valueHeapId = ValueHeapIdentifier(target.asInstanceOf[HeapVertex], valueField)
+
+    require(state.getIds().contains(valueHeapId),
+      s"edge state must already contain value heap identifier $valueHeapId")
+
     val newState = state
       .createVariable(edgeLocalId, edgeLocalId.getType)
       .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))

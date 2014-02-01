@@ -63,11 +63,16 @@ trait HeapVertex extends Vertex {
       state: S, valueField: Identifier): S = {
     require(typ.nonObjectFields.contains(valueField),
       s"vertex has no value field $valueField")
+
     val edgeLocalId = EdgeLocalIdentifier(valueField)
-    val valHeapId = ValueHeapIdentifier(this, valueField)
+    val valueHeapId = ValueHeapIdentifier(this, valueField)
+
+    require(state.getIds().contains(valueHeapId),
+      s"state must already contain value heap identifier $valueHeapId")
+
     state
       .createVariable(edgeLocalId, edgeLocalId.getType)
-      .assume(new BinaryArithmeticExpression(valHeapId, edgeLocalId, ArithmeticOperator.==, null))
+      .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
   }
 
   /** Adds an `EdgeLocalIdentifier` for each value field of this heap vertex

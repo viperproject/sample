@@ -100,7 +100,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       val resultingEdges = mutable.Set.empty[EdgeWithState[S]]
       for (heapVertex <- newVertices.collect({ case v: HeapVertex => v })) {
         // Setting up source EdgeLocalIdentifiers
-        val sourceValState = heapVertex.createEdgeLocalIdsInState(generalValState)
+        val sourceValState = heapVertex.createEdgeLocalIdsInState(newGenValState)
         for (objField <- heapVertex.typ.objectFields) {
           // objField can always point to null (which has no target EdgeLocalIdentifiers)
           resultingEdges += EdgeWithState(heapVertex, sourceValState, Some(objField.getName), NullVertex)
