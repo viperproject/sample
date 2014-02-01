@@ -96,28 +96,25 @@ case class HeapGraph[S <: SemanticDomain[S]](
       RootedHeapGraphPath[S](path.edges))
   }
 
-  /**
-   *
-   * @param label - Tells us whether this is a null, summary, definite or variable node (See VariableConstants for more info)
-   * @return the heap graph that contains that new node and the newly created node itself.
-   */
-  def addNewVertex(label: String, typ: Type): (HeapGraph[S], Vertex) = {
-    var newVertex : Vertex = null
-    label match {
-      case VertexConstants.NULL =>
-        newVertex = NullVertex
+  def addNonHeapVertices(vs: Set[Vertex]): HeapGraph[S] = {
+    require(!vs.exists(_.isInstanceOf[HeapVertex]))
+    copy(vertices = vertices ++ vs)
+  }
+
+  def addNonHeapVertex(v: Vertex): HeapGraph[S] = {
+    require(!v.isInstanceOf[HeapVertex])
+    copy(vertices = vertices + v)
+  }
+
+  def addHeapVertex(label: String, typ: Type): (HeapGraph[S], HeapVertex) = {
+    val newVertex = label match {
       case VertexConstants.SUMMARY =>
-        newVertex = SummaryHeapVertex(getNewVersionNumber)(typ)
+        SummaryHeapVertex(getNewVersionNumber)(typ)
       case VertexConstants.DEFINITE =>
-        newVertex = DefiniteHeapVertex(getNewVersionNumber)(typ)
-      case _ =>
-        newVertex = LocalVariableVertex(label)(typ)
+        DefiniteHeapVertex(getNewVersionNumber)(typ)
     }
     (copy(vertices = vertices + newVertex), newVertex)
   }
-
-  def addVertices(vs: Set[Vertex]): HeapGraph[S] =
-    copy(vertices = vertices ++ vs)
 
   /**
    * This method removes all given vertices and all edges that have vertices
@@ -131,6 +128,9 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def addEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] =
     copy(edges = edges ++ es)
+
+  def addEdge(e: EdgeWithState[S]): HeapGraph[S] =
+    copy(edges = edges + e)
 
   def removeEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] =
     copy(edges = edges -- es)
@@ -250,7 +250,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
       var newState = edgeRight.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])
       newState = newState.rename(renameMap)
       val edgeToAdd = EdgeWithState(iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
-      resultingGraph = resultingGraph.addEdges(Set(edgeToAdd))
+      resultingGraph = resultingGraph.addEdge(edgeToAdd)
     }
     resultingGraph = resultingGraph.meetCommonEdges()
     (resultingGraph, idsToRemove, renameMap)
@@ -301,7 +301,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   private def minCommonSuperGraphBeforeJoin (other: HeapGraph[S], iso: Map[Vertex, Vertex]):
       (HeapGraph[S], Map[Identifier, Identifier]) = {
-    var resultingGraph = addVertices(other.vertices.filter(!_.isInstanceOf[HeapVertex]))
+    var resultingGraph = addNonHeapVertices(other.vertices.filter(!_.isInstanceOf[HeapVertex]))
     var edgesToAdd = other.edges
     //    var edgesToAdd: Set[EdgeWithState[S]] =
     //      if (!(right.vertices.filter(_.isInstanceOf[NullVertex]) -- left.vertices.filter(_.isInstanceOf[NullVertex])).isEmpty)
@@ -310,7 +310,12 @@ case class HeapGraph[S <: SemanticDomain[S]](
     //        Set.empty[EdgeWithState[S]]
     var renaming = iso
     for (v <- other.vertices -- iso.keySet) {
-      val (rg, newV) = resultingGraph.addNewVertex(v.label, v.typ)
+      val (rg, newV) = v match {
+        // Recreate heap vertices (they may require a new version number)
+        case v: HeapVertex => resultingGraph.addHeapVertex(v.label, v.typ)
+        // Reuse all other heap vertices
+        case _ => (resultingGraph.addNonHeapVertex(v), v)
+      }
       resultingGraph = rg
       edgesToAdd = edgesToAdd ++ other.edges.filter(e => e.source.equals(v) || e.target.equals(v))
       renaming = renaming + (v -> newV)
@@ -319,7 +324,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     for (e <- edgesToAdd) {
       val newSrc = if (renaming.keySet.contains(e.source)) renaming.apply(e.source) else e.source
       val newTrg = if (renaming.keySet.contains(e.target)) renaming.apply(e.target) else e.target
-      resultingGraph = resultingGraph.addEdges(Set(EdgeWithState(newSrc, e.state.rename(renameMap), e.field, newTrg)))
+      resultingGraph = resultingGraph.addEdge(EdgeWithState(newSrc, e.state.rename(renameMap), e.field, newTrg))
     }
     (resultingGraph, renameMap)
   }

@@ -26,10 +26,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       // considered equal.
       // A sound implementation would use a summary node (representing top)
       // similar to `createVariableForArgument`.
-      val varVertex = LocalVariableVertex(variable.getName)(variable.getType)
+      val varVertex = LocalVariableVertex(variable)
       val newVertices = Set(NullVertex, varVertex)
       val edgeToNull = EdgeWithState(varVertex, generalValState, None, NullVertex)
-      val newAbstractHeap = abstractHeap.addVertices(newVertices).addEdges(Set(edgeToNull))
+      val newAbstractHeap = abstractHeap.addNonHeapVertices(newVertices).addEdge(edgeToNull)
       copy(
         abstractHeap = newAbstractHeap,
         expr = new ExpressionSet(typ).add(variable))
@@ -77,7 +77,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       var newVertices = abstractHeap.vertices.filter(_.isInstanceOf[LocalVariableVertex])
       var idsToCreate = generalValState.getIds().filter(_.isInstanceOf[VariableIdentifier])
       // Add null vertex and LocalVariableVertex that represents the argument under creation
-      newVertices = newVertices ++ Set(NullVertex, LocalVariableVertex(variable.getName)(variable.getType))
+      newVertices = newVertices ++ Set(NullVertex, LocalVariableVertex(variable))
       // The vertex version (bit of a hack but more efficient than creating new HeapGraph, needs refactoring)
       var vertexId = 0
       // Adding definite vertices and corresponding identifiers
@@ -223,9 +223,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             }
             case c: Constant => {
               assert(c.toString == "null", "The only object constant is null.")
-              val (tempAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
+              val tempAH = abstractHeap.addNonHeapVertex(NullVertex)
               val newState = ValueDrivenHeapState(tempAH, generalValState, ExpressionSet())
-              return newState.assignVariable(left, new VertexExpression(variable.typ, nullVertex)(c.pp))
+              return newState.assignVariable(left, new VertexExpression(variable.typ, NullVertex)(c.pp))
             }
             case _ => throw new Exception("Not supported (should not happen, let me know if does (Milos)).")
           }
@@ -295,8 +295,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         }
         case c : Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
-          val (newAH, nullVertex) = abstractHeap.addNewVertex(VertexConstants.NULL, c.getType)
-          return ValueDrivenHeapState(newAH, generalValState, expr).assignField(leftExp, field, new VertexExpression(c.getType, nullVertex)(c.pp))
+          val newAH = abstractHeap.addNonHeapVertex(NullVertex)
+          return ValueDrivenHeapState(newAH, generalValState, expr).assignField(leftExp, field, new VertexExpression(c.getType, NullVertex)(c.pp))
         }
         case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
       }
@@ -522,7 +522,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       if (edge.target.isInstanceOf[SummaryHeapVertex]) {
         edgesToRemove += edge
         // Creating a vertex that is a materialization of the summary vertex
-        val (tempAH, definiteVertex) = resultingAH.addNewVertex(VertexConstants.DEFINITE, edge.target.typ)
+        val (tempAH, definiteVertex) = resultingAH.addHeapVertex(VertexConstants.DEFINITE, edge.target.typ)
         resultingAH = tempAH
         // Add the information about the corresponding identifiers to replacement
         for (valField <- definiteVertex.typ.nonObjectFields) {
@@ -625,7 +625,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     if (this.isBottom) return this
 
     var resIds = Set.empty[Identifier]
-    var (newAbstractHeap, newVertex) = abstractHeap.addNewVertex(VertexConstants.DEFINITE, typ)
+    var (newAbstractHeap, newVertex) = abstractHeap.addHeapVertex(VertexConstants.DEFINITE, typ)
     assert(newVertex.isInstanceOf[DefiniteHeapVertex], "The newly created object should be definite")
     val createdObjVertex = newVertex.asInstanceOf[DefiniteHeapVertex]
 
@@ -647,16 +647,14 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     for ((id,_) <- resIdsAndEdgeLocalIds)
       newGeneralState = newGeneralState.createVariable(id, id.getType)
     for (objField <- typ.objectFields) {
-      val res = newAbstractHeap.addNewVertex(VertexConstants.NULL, typ)
-      newAbstractHeap = res._1
-      newVertex = res._2
+      newAbstractHeap = newAbstractHeap.addNonHeapVertex(NullVertex)
       var edgeState = newGeneralState
       for ((resId, edgeLocalId) <- resIdsAndEdgeLocalIds) {
         //        edgeState = edgeState.createVariable(resId, resId.getType())
         edgeState = edgeState.createVariable(edgeLocalId, edgeLocalId.getType)
         edgeState = edgeState.assume(new BinaryArithmeticExpression(resId,edgeLocalId, ArithmeticOperator.==, null))
       }
-      newAbstractHeap = newAbstractHeap.addEdges(Set(EdgeWithState(createdObjVertex, edgeState, Some(objField.getName), newVertex)))
+      newAbstractHeap = newAbstractHeap.addEdge(EdgeWithState(createdObjVertex, edgeState, Some(objField.getName), NullVertex))
     }
 
     // Now we need to apply the replacement to all the states, including the general value state.

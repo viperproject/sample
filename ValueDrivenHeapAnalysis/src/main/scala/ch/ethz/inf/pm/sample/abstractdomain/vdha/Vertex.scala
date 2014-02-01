@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
 object VertexConstants {
   val SUMMARY = "sum"
@@ -25,6 +26,12 @@ trait Vertex extends Ordered[Vertex] {
 case class LocalVariableVertex(name: String)(val typ: Type) extends Vertex {
   def label = name
   override def toString = name
+}
+
+object LocalVariableVertex {
+  /** Creates a new local variable vertex from a local variable. */
+  def apply(localVar: VariableIdentifier): LocalVariableVertex =
+    LocalVariableVertex(localVar.name)(localVar.typ)
 }
 
 object NullVertex extends Vertex {
