@@ -28,15 +28,11 @@ object TestHeapGraph {
     val edges2 = Set.empty[EdgeWithState[S]] + edgeHeadN2 + edgeHeadN1 + edgeN3NULL + edgePN3 + edgeN2N1 + edgeN1N3
     val graph1 = HeapGraph[S](vertices1, edges1)
     val graph2 = HeapGraph[S](vertices2, edges2)
-    val initMaxEdges = graph1.initialMaxEdges(graph2)
 
     println("OUTCOME OF mcs(graph1, graph2): ")
-    val (i, edgeMap) = graph1.mcs(graph2)
-    val mcsGraph = graph1.glb(graph2)
-    for (entry <- i)
-      println(entry)
-    println("Size of i is " + i.size)
-
+    val mcs = graph1.mcs(graph2)
+    println(mcs)
+    println("Size of i is " + mcs.size)
   }
 
 }
