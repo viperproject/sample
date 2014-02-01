@@ -300,7 +300,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def lub(other: HeapGraph[S]): (HeapGraph[S], Map[Identifier, Identifier]) = {
     val iso = mcs(other).vertexMap
-    // Oddly, `minCommonSuperGraphBeforeJoin` requires an invertex isomorphism map
+    // Oddly, `minCommonSuperGraphBeforeJoin` requires an inverted isomorphism map
     val invertedIso = iso.map({ case (from, to) => to -> from }).toMap
     val (resultingGraph, renameMap) = minCommonSuperGraphBeforeJoin(other, invertedIso)
     val resultAH = resultingGraph.joinCommonEdges()
