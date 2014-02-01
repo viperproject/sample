@@ -147,14 +147,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           // "this" must have an exact type
           if (!isInstanceVar || heapVertex.typ.equals(locVarVertex.typ)) {
             // Create target EdgeLocalIdentifiers
-            var trgValState = newGenValState
+            var edge = EdgeWithState(locVarVertex, newGenValState, None, heapVertex)
             for (valField <- heapVertex.typ.nonObjectFields) {
-              val trgEdgeLocId = EdgeLocalIdentifier(valField)
-              val valHeapId = ValueHeapIdentifier(heapVertex, valField)
-              trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
-              trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
+              edge = edge.createTargetEdgeLocalId(valField)
             }
-            resultingEdges += EdgeWithState(locVarVertex, trgValState, None, heapVertex)
+            resultingEdges += edge
           }
         }
       }

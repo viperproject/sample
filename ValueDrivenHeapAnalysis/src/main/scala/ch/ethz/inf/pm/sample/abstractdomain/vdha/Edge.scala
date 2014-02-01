@@ -39,7 +39,10 @@ case class EdgeWithState[S <: SemanticDomain[S]](
     source == target
 
   /** Creates an `EdgeLocalIdentifier` in the edge state for a given value field
-    * of the target vertex. For short: "eLocId.field.valField".
+    * of the target vertex.
+    *
+    * If this edge is corresponds to a field, the identifier looks like
+    * "eLocId.field.valField". Otherwise, it looks like "eLocId.valField".
     *
     * The method also assumes "eLocId.field.valField = target.valField" on the
     * edge state. However, that assumption only takes effect if the target
@@ -49,14 +52,12 @@ case class EdgeWithState[S <: SemanticDomain[S]](
     * @return the resulting edge
    */
   def createTargetEdgeLocalId(valueField: Identifier): EdgeWithState[S] = {
-    require(field.isDefined,
-      "the edge must have a field")
     require(valueField.getType.isNumericalType,
       "field of the target vertex must be a value field")
     require(target.isInstanceOf[HeapVertex],
       "target vertex must be a heap vertex")
 
-    val edgeLocalId = EdgeLocalIdentifier(List(field.get), valueField)
+    val edgeLocalId = EdgeLocalIdentifier(List(field).flatten, valueField)
     val valueHeapId = ValueHeapIdentifier(target.asInstanceOf[HeapVertex], valueField)
     val newState = state
       .createVariable(edgeLocalId, edgeLocalId.getType)
