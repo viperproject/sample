@@ -88,10 +88,13 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
    */
   def createVariable(variable: Identifier, typ: Type): T
 
+  /** Creates a variable whose type is the type of the given identifier. */
+  def createVariable(variable: Identifier): T =
+    createVariable(variable, variable.typ)
+
   /** Returns a copy of this state with all given variables created. */
   def createVariables(variables: Set[Identifier]): T =
-    variables.foldLeft(this)((state, variable) =>
-      state.createVariable(variable, variable.getType))
+    variables.foldLeft(this)(_.createVariable(_))
 
   /**
   This method creates a variable that is an argument of the analyzed method

@@ -94,7 +94,7 @@ case class EdgeWithState[S <: SemanticDomain[S]](
       s"edge state must already contain value heap identifier $valueHeapId")
 
     val newState = state
-      .createVariable(edgeLocalId, edgeLocalId.getType)
+      .createVariable(edgeLocalId)
       .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
 
     copy(state = newState)

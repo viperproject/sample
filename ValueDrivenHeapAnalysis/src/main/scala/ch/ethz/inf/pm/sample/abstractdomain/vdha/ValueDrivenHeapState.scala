@@ -36,7 +36,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     } else {
       copy(
         abstractHeap = abstractHeap.createVariablesInAllStates(Set(variable)),
-        generalValState = generalValState.createVariable(variable, variable.getType),
+        generalValState = generalValState.createVariable(variable),
         expr = new ExpressionSet(typ).add(variable))
     }
   }
@@ -625,13 +625,13 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     newAbstractHeap = newAbstractHeap.createVariablesInAllStates(resIds)
     var newGeneralState = generalValState
     for ((id,_) <- resIdsAndEdgeLocalIds)
-      newGeneralState = newGeneralState.createVariable(id, id.getType)
+      newGeneralState = newGeneralState.createVariable(id)
     for (objField <- typ.objectFields) {
       newAbstractHeap = newAbstractHeap.addNonHeapVertex(NullVertex)
       var edgeState = newGeneralState
       for ((resId, edgeLocalId) <- resIdsAndEdgeLocalIds) {
         //        edgeState = edgeState.createVariable(resId, resId.getType())
-        edgeState = edgeState.createVariable(edgeLocalId, edgeLocalId.getType)
+        edgeState = edgeState.createVariable(edgeLocalId)
         edgeState = edgeState.assume(new BinaryArithmeticExpression(resId,edgeLocalId, ArithmeticOperator.==, null))
       }
       newAbstractHeap = newAbstractHeap.addEdge(EdgeWithState(createdObjVertex, edgeState, Some(objField.getName), NullVertex))

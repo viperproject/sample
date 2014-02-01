@@ -71,7 +71,7 @@ trait HeapVertex extends Vertex {
       s"state must already contain value heap identifier $valueHeapId")
 
     state
-      .createVariable(edgeLocalId, edgeLocalId.getType)
+      .createVariable(edgeLocalId)
       .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
   }
 

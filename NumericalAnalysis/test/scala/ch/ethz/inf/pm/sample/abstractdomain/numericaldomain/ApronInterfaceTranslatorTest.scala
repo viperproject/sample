@@ -57,10 +57,10 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   test("Simple Translation") {
     var i: ApronInterface = dom
 
-    i = i.createVariable(idx, typ).assign(idx, const1)
+    i = i.createVariable(idx).assign(idx, const1)
     translate(i) should equal (Set("x = 1"))
 
-    i = i.createVariable(idy, typ).assign(idy, const0)
+    i = i.createVariable(idy).assign(idy, const0)
     translate(i) should equal (Set("x = 1", "y = 0"))
 
     i = i.assign(idx, idy)
@@ -77,7 +77,7 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
 
     // Should prefer 'x = -1' over 'x + 1 = 0' for readability
     // The unused variable 'y' is added on purpose
-    i = dom.createVariable(idx, typ).createVariable(idy, typ).assign(idx, constMinus1)
+    i = dom.createVariable(idx).createVariable(idy).assign(idx, constMinus1)
     translate(i) should equal (Set("x = -1"))
   }
 }

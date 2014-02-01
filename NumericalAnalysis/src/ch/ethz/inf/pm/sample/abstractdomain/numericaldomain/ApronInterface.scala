@@ -728,7 +728,7 @@ class ApronInterface(val state: Option[Abstract1],
 
     // Add all temporary variables
     for ((id, _) <- tempAssigns) {
-      newState = newState.createVariable(id,id.getType)
+      newState = newState.createVariable(id)
     }
 
     for ((id, ndExpr) <- tempAssigns) {
