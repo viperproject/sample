@@ -60,40 +60,10 @@ object MaxCommonSubGraphIsomorphism {
     * See <a href="http://onlinelibrary.wiley.com/doi/10.1002/spe.4380120103/abstract">
     * McGregor's algorithms</a>.
     */
-  def compute[S <: SemanticDomain[S]](
-      from: HeapGraph[S], to: HeapGraph[S]): MaxCommonSubGraphIsomorphism[S] = {
-    val current = CommonSubGraphIsomorphism.sure[S](from, to)
-    val best = CommonSubGraphIsomorphism.empty[S]
-    val result = recurse[S](current, best)
+  def compute[S <: SemanticDomain[S]](from: HeapGraph[S], to: HeapGraph[S]):
+      MaxCommonSubGraphIsomorphism[S] = {
+    val result = CommonSubGraphIsomorphism.sure[S](from, to).findMax()
     result.toMaxCommonSubGraph
-  }
-
-  private def recurse[S <: SemanticDomain[S]](
-      current: CommonSubGraphIsomorphism[S],
-      best: CommonSubGraphIsomorphism[S]): CommonSubGraphIsomorphism[S] = {
-    if (current.isComplete) {
-      // We reached the leaf of the search tree
-      if (current.isBetterThan(best)) current else best
-    } else if (!current.couldBeBetterThan(best)) {
-      // Prune the part of the search tree rooted at this node
-      best
-    } else {
-      // Checking all possible parings for the next node from the left graph
-      var result = best
-      val from = current.remainingVerticesFrom.min
-      for (to <- current.remainingVerticesTo) {
-        if (from.label == to.label) {
-          result = recurse(current.refine(from, to), result)
-        }
-      }
-
-      // The next node in the left graph might stay unpaired
-      // (not part of isomorphism). We check that here.
-      val currentWithoutFrom = current.copy(
-        remainingVerticesFrom = current.remainingVerticesFrom - from)
-      result = recurse(currentWithoutFrom, result)
-      result
-    }
   }
 }
 
@@ -123,6 +93,33 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
 
   require((remainingVerticesTo intersect verticesTo).isEmpty,
     "remaining and already mapped vertices must be disjoint")
+
+  def findMax(best: CommonSubGraphIsomorphism[S] = CommonSubGraphIsomorphism.empty[S]):
+      CommonSubGraphIsomorphism[S] = {
+    if (isComplete) {
+      // We reached the leaf of the search tree
+      if (isBetterThan(best)) this else best
+    } else if (!couldBeBetterThan(best)) {
+      // Prune the part of the search tree rooted at this node
+      best
+    } else {
+      // Checking all possible parings for the next node from the left graph
+      var result = best
+      val from = remainingVerticesFrom.min
+      for (to <- remainingVerticesTo) {
+        if (from.label == to.label) {
+          result = refine(from, to).findMax(result)
+        }
+      }
+
+      // The next node in the left graph might stay unpaired
+      // (not part of isomorphism). We check that here.
+      val thisWithoutFrom = copy[S](
+        remainingVerticesFrom = remainingVerticesFrom - from)
+      result = thisWithoutFrom.findMax(result)
+      result
+    }
+  }
 
   /** Convert computation result to a `MaxCommonSubGraphIsomorphism`. */
   def toMaxCommonSubGraph: MaxCommonSubGraphIsomorphism[S] = {
