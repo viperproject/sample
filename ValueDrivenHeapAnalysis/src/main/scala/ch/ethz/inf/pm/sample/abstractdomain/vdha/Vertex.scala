@@ -75,6 +75,10 @@ trait HeapVertex extends Vertex {
     */
   def createEdgeLocalIdsInState[S <: SemanticDomain[S]](state: S): S =
     typ.nonObjectFields.foldLeft(state)(createEdgeLocalIdInState)
+
+  /** Returns the set of all value heap identifiers of this heap vertex. */
+  def valueHeapIds[I >: Identifier]: Set[I] =
+    typ.nonObjectFields.map(ValueHeapIdentifier(this, _))
 }
 
 case class SummaryHeapVertex(version: Int)(val typ: Type) extends HeapVertex {

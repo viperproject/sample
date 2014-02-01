@@ -85,16 +85,14 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         val defVertexToAdd = DefiniteHeapVertex(vertexId)(defType)
         vertexId = vertexId + 1
         newVertices = newVertices + defVertexToAdd
-        for (valField <- defType.nonObjectFields)
-          idsToCreate = idsToCreate + ValueHeapIdentifier(defVertexToAdd, valField)
+        idsToCreate ++= defVertexToAdd.valueHeapIds
       }
       // Adding summary vertices and corresponding identifiers
       for (sumType <- summaryTypes) {
         val sumVertexToAdd = SummaryHeapVertex(vertexId)(sumType)
         vertexId = vertexId + 1
         newVertices = newVertices + sumVertexToAdd
-        for (valField <- sumType.nonObjectFields)
-          idsToCreate = idsToCreate + ValueHeapIdentifier(sumVertexToAdd, valField)
+        idsToCreate = sumVertexToAdd.valueHeapIds
       }
       var newGenValState = generalValState.factory()
       newGenValState = newGenValState.createVariables(idsToCreate)
