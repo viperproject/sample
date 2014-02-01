@@ -135,28 +135,26 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def removeEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] =
     copy(edges = edges -- es)
 
-  /**
-   * Helper function that initializes the map of maximal possible correspondence between edges of <code>this</code> and
-   * <code>other</code>.
-   *
-   * @param other
-   * @return
-   */
-  def initialMaxEdges(other: HeapGraph[S]): Map[EdgeWithState[S],Set[EdgeWithState[S]]] = {
-    var maxEdges = Map.empty[EdgeWithState[S],Set[EdgeWithState[S]]]
-    for (edge <- this.edges) {
-      val possibleMatches = other.edges.filter(e => {
-        e.field == edge.field &&
-          e.source.label == edge.source.label &&
-          e.target.label == edge.target.label &&
-          // It's not possible to match a self-loop edge to a regular edge
-          // or vice-versa. Hence, already remove such mappings here
-          e.isSelfLoop == edge.isSelfLoop
-      })
-      if (!possibleMatches.isEmpty)
-        maxEdges += (edge -> possibleMatches)
-    }
-    return maxEdges
+  /** For each edge in this heap graph, finds all edges in the other given
+    * heap graph that are mapping candidates. An edge in the other heap graph
+    * is a candidate if it's field is the same and has the same source and
+    * target vertex labels etc.
+    *
+    * @param other the heap graph to find candidate edges in
+    * @return initial map of maximal possible correspondence between edges
+    *         of this and the other given heap graph
+    */
+  def initialMaxEdges(other: HeapGraph[S]): Map[EdgeWithState[S], Set[EdgeWithState[S]]] = {
+    edges.map(thisEdge =>
+      thisEdge -> other.edges.filter(otherEdge =>
+        thisEdge.field == otherEdge.field &&
+        thisEdge.source.label == otherEdge.source.label &&
+        thisEdge.target.label == otherEdge.target.label &&
+        // It's not possible to match a self-loop edge to a regular edge
+        // or vice-versa. Hence, already remove such mappings here
+        thisEdge.isSelfLoop == otherEdge.isSelfLoop
+      )
+    ).toMap.filterNot(_._2.isEmpty)
   }
 
   /**
