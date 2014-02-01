@@ -114,14 +114,11 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
           resultingEdges += EdgeWithState(heapVertex, sourceValState, Some(objField.getName), NullVertex)
           // Finding all possible HeapVertices to which this object field can point to, taking into account sub-typing
           for (canPointToVertex <- newVertices.collect({ case v: HeapVertex if v.typ.lessEqual(objField.getType) => v })) {
-            var trgValState = sourceValState
+            var edge = EdgeWithState(heapVertex, sourceValState, Some(objField.getName), canPointToVertex)
             for (objValField <- objField.getType.nonObjectFields) {
-              val trgEdgeLocId = EdgeLocalIdentifier(List(objField.getName), objValField)
-              val valHeapId = ValueHeapIdentifier(canPointToVertex, objValField)
-              trgValState = trgValState.createVariable(trgEdgeLocId, trgEdgeLocId.getType)
-              trgValState = trgValState.assume(new BinaryArithmeticExpression(valHeapId, trgEdgeLocId, ArithmeticOperator.==, null))
+              edge = edge.createTargetEdgeLocalId(objValField)
             }
-            resultingEdges += EdgeWithState(heapVertex, trgValState, Some(objField.getName), canPointToVertex)
+            resultingEdges += edge
           }
         }
       }

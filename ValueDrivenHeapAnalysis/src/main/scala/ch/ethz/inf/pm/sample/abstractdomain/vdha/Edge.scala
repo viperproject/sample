@@ -1,7 +1,9 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, AccessPathIdentifier, SemanticDomain}
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.LocalVariableVertex
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.EdgeWithState
 
 case class EdgeWithState[S <: SemanticDomain[S]](
     source: Vertex,
@@ -35,6 +37,33 @@ case class EdgeWithState[S <: SemanticDomain[S]](
   /** Returns whether this edge points from a vertex to that vertex itself. */
   def isSelfLoop: Boolean =
     source == target
+
+  /** Creates an `EdgeLocalIdentifier` in the edge state for a given value field
+    * of the target vertex. For short: "eLocId.field.valField".
+    *
+    * The method also assumes "eLocId.field.valField = target.valField" on the
+    * edge state. However, that assumption only takes effect if the target
+    * is a `DefiniteHeapVertex`.
+    *
+    * @param valueField the identifier of the value field of the target vertex
+    * @return the resulting edge
+   */
+  def createTargetEdgeLocalId(valueField: Identifier): EdgeWithState[S] = {
+    require(field.isDefined,
+      "the edge must have a field")
+    require(valueField.getType.isNumericalType,
+      "field of the target vertex must be a value field")
+    require(target.isInstanceOf[HeapVertex],
+      "target vertex must be a heap vertex")
+
+    val edgeLocalId = EdgeLocalIdentifier(List(field.get), valueField)
+    val valueHeapId = ValueHeapIdentifier(target.asInstanceOf[HeapVertex], valueField)
+    val newState = state
+      .createVariable(edgeLocalId, edgeLocalId.getType)
+      .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
+
+    copy(state = newState)
+  }
 }
 
 /** Represents a path of edges in a heap graph. */
