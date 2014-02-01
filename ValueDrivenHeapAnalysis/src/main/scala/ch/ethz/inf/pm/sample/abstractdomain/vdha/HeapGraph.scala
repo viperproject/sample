@@ -151,7 +151,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
           e.target.label == edge.target.label &&
           // It's not possible to match a self-loop edge to a regular edge
           // or vice-versa. Hence, already remove such mappings here
-          (e.isSelfLoop) == (edge.isSelfLoop)
+          e.isSelfLoop == edge.isSelfLoop
       })
       if (!possibleMatches.isEmpty)
         maxEdges += (edge -> possibleMatches)
