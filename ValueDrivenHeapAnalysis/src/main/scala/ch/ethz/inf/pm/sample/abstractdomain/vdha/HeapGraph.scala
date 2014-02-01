@@ -322,8 +322,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
     }
     val renameMap = vertexToValueMap(renaming)
     for (e <- edgesToAdd) {
-      val newSrc = if (renaming.keySet.contains(e.source)) renaming.apply(e.source) else e.source
-      val newTrg = if (renaming.keySet.contains(e.target)) renaming.apply(e.target) else e.target
+      val newSrc = renaming.getOrElse(e.source, e.source)
+      val newTrg = renaming.getOrElse(e.target, e.target)
       resultingGraph = resultingGraph.addEdge(EdgeWithState(newSrc, e.state.rename(renameMap), e.field, newTrg))
     }
     (resultingGraph, renameMap)
