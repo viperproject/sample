@@ -32,7 +32,7 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
    * @param cfgState state to initialise the execution with
    * @return states in CFG after reaching fixed point
    */
-  def forwardExecuteWithCFGState(cfg: ControlFlowGraph, cfgState: CFGState[S], initialState: S): C = {
+  def forwardExecuteWithCFGState(cfg: ControlFlowGraph, cfgState: C, initialState: S): C = {
     val newCfgState = cfgStateFactory.makeFrom(cfg, cfgState)
     forwardExecuteWithCFGState(cfg, initialState)(newCfgState)
   }

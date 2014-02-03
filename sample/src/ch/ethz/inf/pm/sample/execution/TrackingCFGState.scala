@@ -21,7 +21,7 @@ case class TrackingCFGStateFactory[S <: State[S]](stateFactory: S)
     result
   }
 
-  def makeFrom(cfg: ControlFlowGraph, cfgState: CFGState[S]): TrackingCFGState[S] = {
+  def makeFrom(cfg: ControlFlowGraph, cfgState: TrackingCFGState[S]): TrackingCFGState[S] = {
     ???
   }
 }
