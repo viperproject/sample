@@ -150,7 +150,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     val iso = maxCommonSubGraph.vertexMap
     val edgeMap = maxCommonSubGraph.edgeMap
     var resultingGraph = HeapGraph(vertices = iso.values.toSet, edges = edgeMap.keySet)
-    val renameMap = vertexToValueMap(iso)
+    val renameMap = Vertex.vertexMapToValueHeapIdMap(iso)
 
     val verticesToRemove = (other.vertices.filter(_.isInstanceOf[HeapVertex]) -- iso.keySet).asInstanceOf[Set[HeapVertex]]
     var idsToRemove = Set.empty[Identifier]
@@ -160,31 +160,12 @@ case class HeapGraph[S <: SemanticDomain[S]](
     }
     for (edgeRight <- edgeMap.values) {
       var newState = edgeRight.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])
-      newState = newState.rename(renameMap)
+      newState = newState.rename(renameMap.toMap)
       val edgeToAdd = EdgeWithState(iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
       resultingGraph = resultingGraph.addEdge(edgeToAdd)
     }
     resultingGraph = resultingGraph.meetCommonEdges()
-    (resultingGraph, idsToRemove, renameMap)
-  }
-
-  /**
-   * Builds a value field map from a vertex map.
-   *
-   * For example, given a key-value pair of heap vertices `n0` -> `n1` with
-   * field `val` the resulting value field map will map `n0.val` to `n1.val`.
-   *
-   * @param vertexMap the mapping of vertices
-   * @return the mapping of `ValueHeapIdentifier`
-   */
-  private def vertexToValueMap(vertexMap: Map[Vertex, Vertex]):
-      Map[Identifier, Identifier] = {
-    vertexMap.collect({
-      case (from: HeapVertex, to: HeapVertex) =>
-        assert(from.typ == to.typ)
-        from.typ.nonObjectFields.map(field =>
-          ValueHeapIdentifier(from, field) -> ValueHeapIdentifier(to, field))
-    }).flatten.toMap
+    (resultingGraph, idsToRemove, renameMap.toMap)
   }
 
   def isBottom(): Boolean = {
@@ -212,7 +193,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   }
 
   private def minCommonSuperGraphBeforeJoin (other: HeapGraph[S], iso: Map[Vertex, Vertex]):
-      (HeapGraph[S], Map[Identifier, Identifier]) = {
+      (HeapGraph[S], Map[ValueHeapIdentifier, ValueHeapIdentifier]) = {
     var resultingGraph = addNonHeapVertices(other.vertices.filter(!_.isInstanceOf[HeapVertex]))
     var edgesToAdd = other.edges
     var renaming = iso
@@ -227,11 +208,11 @@ case class HeapGraph[S <: SemanticDomain[S]](
       edgesToAdd = edgesToAdd ++ other.edges.filter(e => e.source.equals(v) || e.target.equals(v))
       renaming = renaming + (v -> newV)
     }
-    val renameMap = vertexToValueMap(renaming)
+    val renameMap = Vertex.vertexMapToValueHeapIdMap(renaming)
     for (e <- edgesToAdd) {
       val newSrc = renaming.getOrElse(e.source, e.source)
       val newTrg = renaming.getOrElse(e.target, e.target)
-      resultingGraph = resultingGraph.addEdge(EdgeWithState(newSrc, e.state.rename(renameMap), e.field, newTrg))
+      resultingGraph = resultingGraph.addEdge(EdgeWithState(newSrc, e.state.rename(renameMap.toMap), e.field, newTrg))
     }
     (resultingGraph, renameMap)
   }
@@ -298,7 +279,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def widenCommonEdges(): HeapGraph[S] =
     mapWeaklyEqualEdges(Lattice.bigWidening(_))
 
-  def lub(other: HeapGraph[S]): (HeapGraph[S], Map[Identifier, Identifier]) = {
+  def lub(other: HeapGraph[S]): (HeapGraph[S], Map[ValueHeapIdentifier, ValueHeapIdentifier]) = {
     val iso = mcs(other).vertexMap
     // Oddly, `minCommonSuperGraphBeforeJoin` requires an inverted isomorphism map
     val invertedIso = iso.map({ case (from, to) => to -> from }).toMap

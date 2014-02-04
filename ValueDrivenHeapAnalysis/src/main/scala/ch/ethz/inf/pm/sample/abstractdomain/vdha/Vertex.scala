@@ -24,6 +24,25 @@ trait Vertex extends Ordered[Vertex] {
   override def compare(that: Vertex): Int = toString.compareTo(that.toString)
 }
 
+object Vertex {
+  /**
+   * Builds a map of `ValueHeapIdentifier`s from the given `Vertex` map.
+   *
+   * For example, when the vertex map contains `n0` -> `n1` and the vertices
+   * have the value field 'val', then the resulting map contains
+   * `n0.val` -> `n1.val`.
+   */
+  def vertexMapToValueHeapIdMap(vertexMap: Map[Vertex, Vertex]):
+      Map[ValueHeapIdentifier, ValueHeapIdentifier] = {
+    vertexMap.collect({
+      case (from: HeapVertex, to: HeapVertex) =>
+        assert(from.typ == to.typ)
+        from.typ.nonObjectFields.map(field =>
+          ValueHeapIdentifier(from, field) -> ValueHeapIdentifier(to, field))
+    }).flatten.toMap
+  }
+}
+
 case class LocalVariableVertex(name: String)(val typ: Type) extends Vertex {
   def label = name
   override def toString = name

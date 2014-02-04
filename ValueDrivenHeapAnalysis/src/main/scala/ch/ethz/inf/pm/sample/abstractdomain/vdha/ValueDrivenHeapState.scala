@@ -441,7 +441,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       return this
     // TODO: Implement this properly
     val (resAH, renameMap) = abstractHeap.lub(other.abstractHeap)
-    val resGeneralState = generalValState.lub(other.generalValState.rename(renameMap))
+    val resGeneralState = generalValState.lub(other.generalValState.rename(renameMap.toMap))
 
     ValueDrivenHeapState(resAH, resGeneralState, ExpressionSet())
   }
