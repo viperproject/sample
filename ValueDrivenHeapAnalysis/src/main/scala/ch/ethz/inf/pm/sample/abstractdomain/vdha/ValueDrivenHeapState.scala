@@ -441,7 +441,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       return this
     // TODO: Implement this properly
     val (resAH, renameMap) = abstractHeap.lub(other.abstractHeap)
-    val resGeneralState = generalValState.lub(other.generalValState.rename(renameMap.toMap))
+    val valueRenameMap = Vertex.vertexMapToValueHeapIdMap(renameMap)
+    val resGeneralState = generalValState.lub(other.generalValState.rename(valueRenameMap.toMap))
 
     ValueDrivenHeapState(resAH, resGeneralState, ExpressionSet())
   }
@@ -475,8 +476,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       areGraphsIdentical
     }
 
-    val (mergedLeft, replacementLeft) = abstractHeap.mergePointedNodes()
-    val (mergedRight, replacementRight) = other.abstractHeap.mergePointedNodes()
+    val (mergedLeft, replacementLeft, mergeMapLeft) = abstractHeap.mergePointedNodes()
+    val (mergedRight, replacementRight, mergeMapRight) = other.abstractHeap.mergePointedNodes()
     val rightGenValState = other.generalValState.merge(replacementRight)
     var newRight = ValueDrivenHeapState(mergedRight, rightGenValState, ExpressionSet())
     val newLeft = ValueDrivenHeapState(mergedLeft, generalValState.merge(replacementLeft), ExpressionSet())

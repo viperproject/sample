@@ -193,7 +193,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   }
 
   private def minCommonSuperGraphBeforeJoin (other: HeapGraph[S], iso: Map[Vertex, Vertex]):
-      (HeapGraph[S], Map[ValueHeapIdentifier, ValueHeapIdentifier]) = {
+      (HeapGraph[S], Map[Vertex, Vertex]) = {
     var resultingGraph = addNonHeapVertices(other.vertices.filter(!_.isInstanceOf[HeapVertex]))
     var edgesToAdd = other.edges
     var renaming = iso
@@ -214,7 +214,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
       val newTrg = renaming.getOrElse(e.target, e.target)
       resultingGraph = resultingGraph.addEdge(EdgeWithState(newSrc, e.state.rename(renameMap.toMap), e.field, newTrg))
     }
-    (resultingGraph, renameMap)
+    (resultingGraph, renaming)
   }
 
   override def toString = edges.toList.sorted.mkString("\n")
@@ -279,7 +279,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def widenCommonEdges(): HeapGraph[S] =
     mapWeaklyEqualEdges(Lattice.bigWidening(_))
 
-  def lub(other: HeapGraph[S]): (HeapGraph[S], Map[ValueHeapIdentifier, ValueHeapIdentifier]) = {
+  def lub(other: HeapGraph[S]): (HeapGraph[S], Map[Vertex, Vertex]) = {
     val iso = mcs(other).vertexMap
     // Oddly, `minCommonSuperGraphBeforeJoin` requires an inverted isomorphism map
     val invertedIso = iso.map({ case (from, to) => to -> from }).toMap
@@ -334,7 +334,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     partitions.toMap
   }
 
-  def mergePointedNodes(): (HeapGraph[S], Replacement) = {
+  def mergePointedNodes(): (HeapGraph[S], Replacement, Map[Vertex, Vertex]) = {
     val partitions = partition()
     var newVertices = vertices.filter(!_.isInstanceOf[HeapVertex])
     val mergeMap = mutable.Map.empty[Vertex, Vertex]
@@ -368,7 +368,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     val newEdges = mutable.Set.empty[EdgeWithState[S]]
     for (e <- edges)
       newEdges += EdgeWithState(mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
-    (HeapGraph(newVertices, newEdges.toSet[EdgeWithState[S]]).joinCommonEdges(), repl)
+    (HeapGraph(newVertices, newEdges.toSet[EdgeWithState[S]]).joinCommonEdges(), repl, mergeMap.toMap)
 
     // See version control history for the original code
   }
