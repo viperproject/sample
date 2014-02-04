@@ -334,9 +334,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def mergePointedNodes(): (HeapGraph[S], Replacement, Map[Vertex, Vertex]) = {
     val partitions = partition()
-    var newVertices = vertices.filter(!_.isInstanceOf[HeapVertex])
     val mergeMap = mutable.Map.empty[Vertex, Vertex]
-    for (v <- newVertices)
+    for (v <- vertices.filter(!_.isInstanceOf[HeapVertex]))
       mergeMap.update(v,v)
     val repl = new Replacement()
     for((k,v) <- partitions.filter(!_._2.isEmpty)) {
@@ -349,7 +348,6 @@ case class HeapGraph[S <: SemanticDomain[S]](
         // See issue #22.
         val newVersion = v.find(_.isInstanceOf[SummaryHeapVertex]).getOrElse(v.head).version
         val newVertex = SummaryHeapVertex(newVersion)(newType)
-        newVertices = newVertices + newVertex
         for (vrtx <- v)
           mergeMap.update(vrtx, newVertex)
         for (valField <- newType.nonObjectFields) {
@@ -359,10 +357,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
           repl.value.update(fromIds.toSet, Set(ValueHeapIdentifier(newVertex, valField)))
         }
       } else {
-        newVertices = newVertices + v.head
         mergeMap.update(v.head, v.head)
       }
     }
+    val newVertices = mergeMap.values.toSet
     val newEdges = mutable.Set.empty[EdgeWithState[S]]
     for (e <- edges)
       newEdges += EdgeWithState(mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
