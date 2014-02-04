@@ -141,7 +141,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         }
       }
       val newAbstractHeap = HeapGraph[S](newVertices, resultingEdges.toSet)
-      ValueDrivenHeapState(newAbstractHeap, newGenValState, ExpressionSet(variable), isTop, isBottom)
+      copy(abstractHeap = newAbstractHeap, generalValState = newGenValState, expr = ExpressionSet(variable))
     } else {
       // Arguments that are not objects are values and can not be aliased. Therefore, we just create them in the
       // ordinary fashion.
