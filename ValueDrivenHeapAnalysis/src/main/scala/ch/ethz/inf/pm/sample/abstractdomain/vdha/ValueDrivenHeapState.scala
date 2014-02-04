@@ -204,7 +204,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             case c: Constant => {
               assert(c.toString == "null", "The only object constant is null.")
               val tempAH = abstractHeap.addNonHeapVertex(NullVertex)
-              val newState = ValueDrivenHeapState(tempAH, generalValState, ExpressionSet())
+              val newState = copy(abstractHeap = tempAH)
               return newState.assignVariable(left, new VertexExpression(variable.typ, NullVertex)(c.pp))
             }
             case _ => throw new Exception("Not supported (should not happen, let me know if does (Milos)).")
@@ -218,7 +218,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               .removeEdges(edgesToRemove)
               .addEdges(edgesToAdd)
               .joinCommonEdges()
-            result = ValueDrivenHeapState(tempAH, generalValState, ExpressionSet(), false, isBottom).prune()
+            result = copy(abstractHeap = tempAH, isTop = false).prune()
           }
         }
       }
@@ -276,7 +276,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         case c : Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
           val newAH = abstractHeap.addNonHeapVertex(NullVertex)
-          return ValueDrivenHeapState(newAH, generalValState, expr).assignField(leftExp, field, new VertexExpression(c.getType, NullVertex)(c.pp))
+          return copy(abstractHeap = newAH).assignField(leftExp, field, new VertexExpression(c.getType, NullVertex)(c.pp))
         }
         case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
       }
@@ -296,7 +296,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
       val newExpr = new ExpressionSet(rightExp.getType).add(leftAccPath)
-      ValueDrivenHeapState(resultingAH, generalValState, newExpr, false, isBottom).prune()
+      copy(abstractHeap = resultingAH, isTop = false).prune()
     } else {
       assert(rightExp.getType.isNumericalType, "only numerical values allowed")
 
@@ -640,10 +640,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
     // Now we need to apply the replacement to all the states, including the general value state.
 
-    ValueDrivenHeapState(newAbstractHeap,
-      newGeneralState,
-      ExpressionSet(VertexExpression(typ, createdObjVertex)(pp)),
-      isTop, isBottom)
+    copy(
+      abstractHeap = newAbstractHeap,
+      generalValState = newGeneralState,
+      expr = ExpressionSet(VertexExpression(typ, createdObjVertex)(pp)))
   }
 
   /**
