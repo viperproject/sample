@@ -105,8 +105,9 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
     } else {
       // Checking all possible parings for the next node from the left graph
       var result = best
-      val from = remainingVerticesFrom.min
-      for (to <- remainingVerticesTo) {
+      // Find the best possible vertex to map from
+      val to = remainingVerticesTo.min
+      for (from <- remainingVerticesFrom) {
         if (from.label == to.label) {
           result = refine(from, to).findMax(result)
         }
@@ -114,9 +115,9 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
 
       // The next node in the left graph might stay unpaired
       // (not part of isomorphism). We check that here.
-      val thisWithoutFrom = copy[S](
-        remainingVerticesFrom = remainingVerticesFrom - from)
-      result = thisWithoutFrom.findMax(result)
+      val thisWithoutTo = copy[S](
+        remainingVerticesTo = remainingVerticesTo - to)
+      result = thisWithoutTo.findMax(result)
       result
     }
   }

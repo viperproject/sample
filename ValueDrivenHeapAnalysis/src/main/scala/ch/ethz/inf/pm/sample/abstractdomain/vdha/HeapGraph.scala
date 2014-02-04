@@ -136,7 +136,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     copy(edges = edges -- es)
 
   def mcs(other: HeapGraph[S]): MaxCommonSubGraphIsomorphism[S] =
-    MaxCommonSubGraphIsomorphism.compute(this, other)
+    MaxCommonSubGraphIsomorphism.compute(from = other, to = this)
 
   /**
    * @param other
@@ -281,9 +281,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def lub(other: HeapGraph[S]): (HeapGraph[S], Map[Vertex, Vertex]) = {
     val iso = mcs(other).vertexMap
-    // Oddly, `minCommonSuperGraphBeforeJoin` requires an inverted isomorphism map
-    val invertedIso = iso.map({ case (from, to) => to -> from }).toMap
-    val (resultingGraph, renameMap) = minCommonSuperGraphBeforeJoin(other, invertedIso)
+    val (resultingGraph, renameMap) = minCommonSuperGraphBeforeJoin(other, iso)
     val resultAH = resultingGraph.joinCommonEdges()
     (resultAH, renameMap)
   }
