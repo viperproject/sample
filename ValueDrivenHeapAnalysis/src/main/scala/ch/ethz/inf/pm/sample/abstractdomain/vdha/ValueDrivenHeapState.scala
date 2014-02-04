@@ -499,50 +499,51 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     while (!queue.isEmpty) {
       val (edge, path) = queue.dequeue()
       assert(edge.source.isInstanceOf[DefiniteHeapVertex] || edge.source.isInstanceOf[LocalVariableVertex])
-      if (edge.target.isInstanceOf[SummaryHeapVertex]) {
-        edgesToRemove += edge
-        // Creating a vertex that is a materialization of the summary vertex
-        val (tempAH, definiteVertex) = resultingAH.addHeapVertex(VertexConstants.DEFINITE, edge.target.typ)
-        resultingAH = tempAH
-        // Add the information about the corresponding identifiers to replacement
-        for (valField <- definiteVertex.typ.nonObjectFields) {
-          val sumValHeapId = ValueHeapIdentifier(edge.target.asInstanceOf[SummaryHeapVertex], valField)
-          val defValHeapId = ValueHeapIdentifier(definiteVertex.asInstanceOf[DefiniteHeapVertex], valField)
-          // TODO: Should use a multimap to make the code more readable
-          repl.value.update(Set(sumValHeapId), repl.value.getOrElse(Set(sumValHeapId), Set(sumValHeapId.asInstanceOf[Identifier])) union Set(defValHeapId))
-        }
+      edge.target match {
+        case summaryVertex: SummaryHeapVertex =>
+          edgesToRemove += edge
+          // Creating a vertex that is a materialization of the summary vertex
+          val (tempAH, definiteVertex) = resultingAH.addHeapVertex(VertexConstants.DEFINITE, summaryVertex.typ)
+          resultingAH = tempAH
+          // Add the information about the corresponding identifiers to replacement
+          for (valField <- definiteVertex.typ.nonObjectFields) {
+            val sumValHeapId = ValueHeapIdentifier(summaryVertex, valField)
+            val defValHeapId = ValueHeapIdentifier(definiteVertex.asInstanceOf[DefiniteHeapVertex], valField)
+            // TODO: Should use a multimap to make the code more readable
+            repl.value.update(Set(sumValHeapId), repl.value.getOrElse(Set(sumValHeapId), Set(sumValHeapId.asInstanceOf[Identifier])) union Set(defValHeapId))
+          }
 
-        /**
-         * Adding edges
-         */
-        // Edge that represents the processed edge
-        edgesToAdd += edge.copy(target = definiteVertex)
-        for (e <- resultingAH.edges -- edgesToRemove ++ edgesToAdd) {
-          // Incoming edges
-          if (e.target.equals(edge.target) &&
-            (!ValueDrivenHeapProperty.materializeOnlyAcyclic || !e.source.equals(e.target))) {
-            edgesToAdd += e.copy(target = definiteVertex)
+          /**
+           * Adding edges
+           */
+          // Edge that represents the processed edge
+          edgesToAdd += edge.copy(target = definiteVertex)
+          for (e <- resultingAH.edges -- edgesToRemove ++ edgesToAdd) {
+            // Incoming edges
+            if (e.target == summaryVertex &&
+              (!ValueDrivenHeapProperty.materializeOnlyAcyclic || e.source != e.target)) {
+              edgesToAdd += e.copy(target = definiteVertex)
+            }
+            // Outgoing edges
+            if (e.source == summaryVertex) {
+              val edgeToAdd = e.copy[S](source = definiteVertex)
+              if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
+                queue.enqueue((edgeToAdd, path.tail))
+              edgesToAdd += edgeToAdd
+            }
+            // Self-loop edges
+            if (e.source == summaryVertex && e.target == summaryVertex && !ValueDrivenHeapProperty.materializeOnlyAcyclic) {
+              val edgeToAdd = e.copy[S](source = definiteVertex, target = definiteVertex)
+              if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
+                queue.enqueue((edgeToAdd, path.tail))
+              edgesToAdd += edgeToAdd
+            }
           }
-          // Outgoing edges
-          if (e.source.equals(edge.target)) {
-            val edgeToAdd = e.copy[S](source = definiteVertex)
-            if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
-              queue.enqueue((edgeToAdd, path.tail))
-            edgesToAdd += edgeToAdd
-          }
-          // Self-loop edges
-          if (e.source.equals(edge.target) && e.target.equals(edge.target) && !ValueDrivenHeapProperty.materializeOnlyAcyclic) {
-            val edgeToAdd = e.copy[S](source = definiteVertex, target = definiteVertex)
-            if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
-              queue.enqueue((edgeToAdd, path.tail))
-            edgesToAdd += edgeToAdd
-          }
-        }
-      } else {
-        // Nothing to materialize for this edge
-        if (!path.isEmpty)
-          for (e <- (resultingAH.edges -- edgesToRemove ++ edgesToAdd).filter(edg => edg.source.equals(edge.target) && edg.field.equals(Some(path.head)) && edg.target.isInstanceOf[HeapVertex]))
-            queue.enqueue((e, path.tail))
+        case _ =>
+          // Nothing to materialize for this edge
+          if (!path.isEmpty)
+            for (e <- (resultingAH.edges -- edgesToRemove ++ edgesToAdd).filter(edg => edg.source.equals(edge.target) && edg.field.equals(Some(path.head)) && edg.target.isInstanceOf[HeapVertex]))
+              queue.enqueue((e, path.tail))
       }
     }
     resultingAH = resultingAH.removeEdges(edgesToRemove.toSet)
