@@ -21,7 +21,24 @@ trait Vertex extends Ordered[Vertex] {
   def typ: Type
 
   override def toString = s"($name, $label)"
-  override def compare(that: Vertex): Int = toString.compareTo(that.toString)
+
+  /** Orders vertices such that local variable vertices come first,
+    * heap vertices after and null vertices at the end. Two vertices
+    * of the same type are ordered lexicographically by their name.*/
+  override def compare(that: Vertex): Int = {
+    def vertexGroup(v: Vertex): Int = v match {
+      case _: LocalVariableVertex => 0
+      case _: HeapVertex => 1
+      case NullVertex => 2
+    }
+
+    val thisGroup = vertexGroup(this)
+    val thatGroup = vertexGroup(that)
+    if (thisGroup == thatGroup)
+      name.compareTo(that.name)
+    else
+      thisGroup.compareTo(thatGroup)
+  }
 }
 
 object Vertex {
