@@ -610,8 +610,8 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
 
 object CondHeapGraph {
   /** Converts a `ValueDrivenHeapState` to a `CondHeapGraph`. */
-  def apply[S <: SemanticDomain[S]]
-      (state: ValueDrivenHeapState[S]): CondHeapGraph[S] =
+  def apply[S <: SemanticDomain[S], T <: ValueDrivenHeapState[S, T]]
+      (state: T): CondHeapGraph[S] =
     CondHeapGraph(state.abstractHeap, state.generalValState)
 
   /**
@@ -625,16 +625,6 @@ object CondHeapGraph {
   implicit def CondHeapGraphSeqToCondHeapGraphSeq[S <: SemanticDomain[S]](
       condHeapGraphSeq: CondHeapGraphSeq[S]): Seq[CondHeapGraph[S]] =
     condHeapGraphSeq.condHeaps
-
-  /**
-   * Implicitly converts a conditional heap graph to a state
-   * with an empty expression. It also automatically prunes the state.
-   *
-   * @todo Pruning should happen before the conversion
-   */
-  implicit def CondHeapGraphToValueDrivenHeapState[S <: SemanticDomain[S]]
-  (condHeap: CondHeapGraph[S]): ValueDrivenHeapState[S] =
-    ValueDrivenHeapState(condHeap.heap, condHeap.cond, ExpressionSet()).prune()
 }
 
 /**

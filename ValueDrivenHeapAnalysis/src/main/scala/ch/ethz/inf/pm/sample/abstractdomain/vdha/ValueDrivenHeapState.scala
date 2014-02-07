@@ -6,18 +6,56 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
 import scala.collection.mutable
 
-case class ValueDrivenHeapState[S <: SemanticDomain[S]](
+/** Default implementation of `ValueDrivenHeapState`. */
+case class DefaultValueDrivenHeapState[S <: SemanticDomain[S]](
     abstractHeap: HeapGraph[S],
     generalValState: S,
     expr: ExpressionSet,
     isTop: Boolean = false,
-    isBottom: Boolean = false) extends SimpleState[ValueDrivenHeapState[S]] {
+    isBottom: Boolean = false)
+  extends ValueDrivenHeapState[S, DefaultValueDrivenHeapState[S]] {
+
+  def factory(
+      abstractHeap: HeapGraph[S] = abstractHeap,
+      generalValState: S = generalValState,
+      expr: ExpressionSet = expr,
+      isTop: Boolean = isTop,
+      isBottom: Boolean = isBottom): DefaultValueDrivenHeapState[S] = {
+    DefaultValueDrivenHeapState(
+      abstractHeap,
+      generalValState,
+      expr,
+      isTop,
+      isBottom)
+  }
+}
+
+trait ValueDrivenHeapState[
+    S <: SemanticDomain[S],
+    T <: ValueDrivenHeapState[S, T]]
+  extends SimpleState[T] { self: T =>
+
+  val abstractHeap: HeapGraph[S]
+  val generalValState: S
+  val expr: ExpressionSet
+  val isTop: Boolean
+  val isBottom: Boolean
 
   require(!isTop || !isBottom, "cannot be top and bottom at the same time")
 
   import Utilities._
 
-  def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
+  /** Builds a new value-driven heap state. Uses the value of this state
+    * for every argument not provided by the caller.
+   */
+  def factory(
+      abstractHeap: HeapGraph[S] = abstractHeap,
+      generalValState: S = generalValState,
+      expr: ExpressionSet = expr,
+      isTop: Boolean = isTop,
+      isBottom: Boolean = isBottom): T
+
+  def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     if (variable.getType.isObject) {
       // Initialize references variables to null such that the heap is not
       // treated as bottom, making it possible to analyze programs with more
@@ -30,18 +68,18 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       val newVertices = Set(NullVertex, varVertex)
       val edgeToNull = EdgeWithState(varVertex, generalValState, None, NullVertex)
       val newAbstractHeap = abstractHeap.addNonHeapVertices(newVertices).addEdge(edgeToNull)
-      copy(
+      factory(
         abstractHeap = newAbstractHeap,
         expr = new ExpressionSet(typ).add(variable))
     } else {
-      copy(
+      factory(
         abstractHeap = abstractHeap.createVariablesInAllStates(Set(variable)),
         generalValState = generalValState.createVariable(variable),
         expr = new ExpressionSet(typ).add(variable))
     }
   }
 
-  def createVariableForArgument(variable: VariableIdentifier, typ: Type): ValueDrivenHeapState[S] = {
+  def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
     if (variable.getType.isObject) {
       // If the variable is an object, we need to create an object for a method argument. This is different than
       // the normal object creation as we need to create such an object as Top and it can possibly alias(and be
@@ -141,7 +179,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         }
       }
       val newAbstractHeap = HeapGraph[S](newVertices, resultingEdges.toSet)
-      copy(abstractHeap = newAbstractHeap, generalValState = newGenValState, expr = ExpressionSet(variable))
+      factory(
+        abstractHeap = newAbstractHeap,
+        generalValState = newGenValState,
+        expr = ExpressionSet(variable))
     } else {
       // Arguments that are not objects are values and can not be aliased. Therefore, we just create them in the
       // ordinary fashion.
@@ -149,10 +190,8 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  def assignVariable(left: Expression, right: Expression): ValueDrivenHeapState[S] = {
-    import CondHeapGraph._
-
-    var result: ValueDrivenHeapState[S] = this
+  def assignVariable(left: Expression, right: Expression): T = {
+    var result: T = this
     left match {
       case variable: VariableIdentifier => {
         val normalRight = normalizeExpression(right)
@@ -204,7 +243,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
             case c: Constant => {
               assert(c.toString == "null", "The only object constant is null.")
               val tempAH = abstractHeap.addNonHeapVertex(NullVertex)
-              val newState = copy(abstractHeap = tempAH)
+              val newState = factory(abstractHeap = tempAH)
               return newState.assignVariable(left, new VertexExpression(variable.typ, NullVertex)(c.pp))
             }
             case _ => throw new Exception("Not supported (should not happen, let me know if does (Milos)).")
@@ -218,7 +257,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
               .removeEdges(edgesToRemove)
               .addEdges(edgesToAdd)
               .joinCommonEdges()
-            result = copy(abstractHeap = tempAH, isTop = false).prune()
+            result = factory(abstractHeap = tempAH, isTop = false).prune()
           }
         }
       }
@@ -233,9 +272,9 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
    * evaluates the given expression.
    */
   private def evalExp(expr: Expression): CondHeapGraphSeq[S] =
-    CondHeapGraph(this).evalExp(expr)
+    CondHeapGraph[S, T](this).evalExp(expr)
 
-  def assignField(leftExp: Expression, field: String, rightExp: Expression): ValueDrivenHeapState[S] = {
+  def assignField(leftExp: Expression, field: String, rightExp: Expression): T = {
     assert(leftExp.isInstanceOf[AccessPathIdentifier], "The left hand side od the assignment is not an AccessPathIdentifier")
     val leftAccPath = leftExp.asInstanceOf[AccessPathIdentifier]
     val leftPaths = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.target.isInstanceOf[HeapVertex])
@@ -244,8 +283,6 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
     // TODO: The 'field' parameter is actually an empty string
     val actualField = leftAccPath.path.last
-
-    import CondHeapGraph._
 
     if (rightExp.getType.isObject) {
       var edgesToAdd = Set.empty[EdgeWithState[S]]
@@ -276,7 +313,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
         case c : Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
           val newAH = abstractHeap.addNonHeapVertex(NullVertex)
-          return copy(abstractHeap = newAH).assignField(leftExp, field, new VertexExpression(c.getType, NullVertex)(c.pp))
+          return factory(abstractHeap = newAH).assignField(leftExp, field, new VertexExpression(c.getType, NullVertex)(c.pp))
         }
         case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
       }
@@ -296,7 +333,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
       val newExpr = new ExpressionSet(rightExp.getType).add(leftAccPath)
-      copy(abstractHeap = resultingAH, isTop = false).prune()
+      factory(abstractHeap = resultingAH, isTop = false).prune()
     } else {
       assert(rightExp.getType.isNumericalType, "only numerical values allowed")
 
@@ -381,60 +418,60 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
   // For the obsolete methods `evaluateExpression` and `evaluateGraphPath`,
   // see https://bitbucket.org/semperproject/sample/commits/e1f5be3
 
-  def setArgument(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def setVariableToTop(x: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def removeVariable(x: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def throws(t: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
+  def setVariableToTop(x: ExpressionSet): T = ???
+  def removeVariable(x: ExpressionSet): T = ???
+  def throws(t: ExpressionSet): T = ???
 
-  def getVariableValue(id: Assignable): ValueDrivenHeapState[S] = {
+  def getVariableValue(id: Assignable): T = {
     if(this.isBottom) return this
     assert(id.isInstanceOf[VariableIdentifier], "This should be VariableIdentifier.")
     val variableId = id.asInstanceOf[VariableIdentifier]
     if (ValueDrivenHeapProperty.materialize && variableId.getType.isObject) {
-      materializePath(List(variableId.name)).copy(expr = ExpressionSet(variableId))
+      materializePath(List(variableId.name)).factory(expr = ExpressionSet(variableId))
     } else {
-      copy(expr = ExpressionSet(variableId))
+      factory(expr = ExpressionSet(variableId))
     }
   }
 
-  def getFieldValue(obj: ExpressionSet, field: String, typ: Type): ValueDrivenHeapState[S] = {
+  def getFieldValue(obj: ExpressionSet, field: String, typ: Type): T = {
     assert(obj.getSetOfExpressions.size == 1, "We only support single field access.")
     assert(obj.getSetOfExpressions.head.isInstanceOf[AccessPathIdentifier], "The field access should be accessed via access path.")
     // TODO: May be I should check whether this exist and is feasible already here.
     if (ValueDrivenHeapProperty.materialize) {
       val apObj = obj.getSetOfExpressions.head.asInstanceOf[AccessPathIdentifier]
       val tempResult = materializePath(apObj.objPath)
-      tempResult.copy(expr = new ExpressionSet(typ).add(obj))
+      tempResult.factory(expr = new ExpressionSet(typ).add(obj))
     } else
-      copy(expr = new ExpressionSet(typ).add(obj))
+      factory(expr = new ExpressionSet(typ).add(obj))
   }
 
-  def evalConstant(value: String, typ: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = {
+  def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
     if(this.isBottom) return this
     this.setExpression(ExpressionSet(new Constant(value, typ, pp)))
   }
 
-  def assume(cond: Expression): ValueDrivenHeapState[S] =
-    CondHeapGraph(this).assume(normalizeExpression(cond)).join
+  def assume(cond: Expression): T =
+    CondHeapGraph[S, T](this).assume(normalizeExpression(cond)).join
 
   def getExpression: ExpressionSet = expr
 
-  def setExpression(newExpr: ExpressionSet): ValueDrivenHeapState[S] =
-    copy(expr = newExpr)
+  def setExpression(newExpr: ExpressionSet): T =
+    factory(expr = newExpr)
 
-  def removeExpression(): ValueDrivenHeapState[S] =
-    copy(expr = ExpressionSet())
+  def removeExpression(): T =
+    factory(expr = ExpressionSet())
 
-  def pruneUnreachableHeap(): ValueDrivenHeapState[S] = ???
-  def factory(): ValueDrivenHeapState[S] = ???
+  def pruneUnreachableHeap(): T = ???
+  def factory(): T = ???
 
-  def top(): ValueDrivenHeapState[S] =
-    ValueDrivenHeapState(HeapGraph(), generalValState.top(), ExpressionSet(), isTop = true, isBottom = false)
+  def top(): T =
+    factory(HeapGraph(), generalValState.top(), ExpressionSet(), isTop = true, isBottom = false)
 
-  def bottom(): ValueDrivenHeapState[S] =
-    ValueDrivenHeapState(HeapGraph(), generalValState.bottom(), expr, isTop = false, isBottom = true)
+  def bottom(): T =
+    factory(HeapGraph(), generalValState.bottom(), expr, isTop = false, isBottom = true)
 
-  def lub(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
+  def lub(other: T): T = {
     if (isBottom || other.isTop)
       return other
     if (isTop || other.isBottom)
@@ -444,10 +481,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val valueRenameMap = Vertex.vertexMapToValueHeapIdMap(renameMap)
     val resGeneralState = generalValState.lub(other.generalValState.rename(valueRenameMap.toMap))
 
-    ValueDrivenHeapState(resAH, resGeneralState, ExpressionSet())
+    factory(resAH, resGeneralState, ExpressionSet())
   }
 
-  def glb(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
+  def glb(other: T): T = {
     if (isBottom || other.isBottom)
       return bottom()
     if (isTop)
@@ -460,10 +497,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val newGeneralValState = generalValState.glb(newRightGeneralValState)
     if (resultingAH.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
       return bottom()
-    return ValueDrivenHeapState(resultingAH, newGeneralValState, ExpressionSet())
+    return factory(resultingAH, newGeneralValState, ExpressionSet())
   }
 
-  def widening(other: ValueDrivenHeapState[S]): ValueDrivenHeapState[S] = {
+  def widening(other: T): T = {
     def areGraphsIdentical(l: HeapGraph[S], r: HeapGraph[S]) : Boolean = {
       var areGraphsIdentical = true
       for (rEdge <- r.edges) {
@@ -479,17 +516,17 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     val (mergedLeft, replacementLeft, mergeMapLeft) = abstractHeap.mergePointedNodes()
     val (mergedRight, replacementRight, mergeMapRight) = other.abstractHeap.mergePointedNodes()
     val rightGenValState = other.generalValState.merge(replacementRight)
-    var newRight = ValueDrivenHeapState(mergedRight, rightGenValState, ExpressionSet())
-    val newLeft = ValueDrivenHeapState(mergedLeft, generalValState.merge(replacementLeft), ExpressionSet())
+    var newRight = factory(mergedRight, rightGenValState, ExpressionSet())
+    val newLeft = factory(mergedLeft, generalValState.merge(replacementLeft), ExpressionSet())
     newRight = newLeft.lub(newRight)
     if (!mergedLeft.vertices.equals(newRight.abstractHeap.vertices) || !areGraphsIdentical(mergedLeft, mergedRight)) {
       return newRight
     }
     val newGeneralValState = newLeft.generalValState.widening(newRight.generalValState.merge(replacementRight))
-    ValueDrivenHeapState(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
+    factory(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
   }
 
-  private def materializePath(pathToMaterialize : List[String]) : ValueDrivenHeapState[S] = {
+  private def materializePath(pathToMaterialize : List[String]) : T = {
     val edgesToAdd = mutable.Set.empty[EdgeWithState[S]]
     val edgesToRemove = mutable.Set.empty[EdgeWithState[S]]
     val repl = new Replacement(isPureExpanding = true)
@@ -571,10 +608,10 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
       updatedEdgesToAdd += e.copy(state = updatedEdgeState)
     }
     resultingAH = resultingAH.addEdges(updatedEdgesToAdd.toSet)
-    copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl)).prune()
+    factory(abstractHeap = resultingAH, generalValState = generalValState.merge(repl)).prune()
   }
 
-  def lessEqual(r: ValueDrivenHeapState[S]): Boolean = {
+  def lessEqual(r: T): Boolean = {
     // TODO: Implement properly
     if (isBottom)
       return true
@@ -603,7 +640,7 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): ValueDrivenHeapState[S] = {
+  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): T = {
     if (this.isBottom) return this
 
     var resIds = Set.empty[Identifier]
@@ -641,82 +678,91 @@ case class ValueDrivenHeapState[S <: SemanticDomain[S]](
 
     // Now we need to apply the replacement to all the states, including the general value state.
 
-    copy(
+    factory(
       abstractHeap = newAbstractHeap,
       generalValState = newGeneralState,
       expr = ExpressionSet(VertexExpression(typ, createdObjVertex)(pp)))
   }
 
   /**
+   * Implicitly converts a conditional heap graph to a state
+   * with an empty expression. It also automatically prunes the state.
+   *
+   * @todo Pruning should happen before the conversion
+   */
+  implicit def CondHeapGraphToValueDrivenHeapState(condHeap: CondHeapGraph[S]): T =
+    factory(condHeap.heap, condHeap.cond, ExpressionSet()).prune()
+
+  /**
    * Prunes the abstract heap and removes all pruned identifiers
    * from the general value state.
    */
-  def prune(): ValueDrivenHeapState[S] = {
+  def prune(): T = {
     val (newAbstractHeap, idsToRemove) = abstractHeap.prune()
     val newGeneralValState = generalValState.removeVariables(idsToRemove)
     if (newAbstractHeap.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
       bottom()
     else
-      copy(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
+      factory(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
   }
 
   override def toString: String =
     s"ValueDrivenHeapState(${abstractHeap.vertices.size} vertices, " +
     s"${abstractHeap.edges.size} edges)"
 
-  def before(pp: ProgramPoint): ValueDrivenHeapState[S] = this
+  def before(pp: ProgramPoint): T = this
 
   /**
    * Removes all variables satisfying filter
    */
-  def pruneVariables(filter: (Identifier) => Boolean): ValueDrivenHeapState[S] = ???
+  def pruneVariables(filter: (Identifier) => Boolean): T = ???
 
   /**
    * Detects summary nodes that are only reachable via a single access path
    * and converts them to non-summary nodes.
    */
-  def optimizeSummaryNodes(): ValueDrivenHeapState[S] = ???
+  def optimizeSummaryNodes(): T = ???
 
   // Backwards analyses are currently not supported
-  def backwardGetVariableValue(id: Assignable): ValueDrivenHeapState[S] = ???
-  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): ValueDrivenHeapState[S] = ???
-  def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): ValueDrivenHeapState[S] = ???
+  def backwardGetVariableValue(id: Assignable): T = ???
+  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): T = ???
+  def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): T = ???
 
   // Collections are currently not supported
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): ValueDrivenHeapState[S] = ???
-  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def clearCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def getCollectionLength(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): ValueDrivenHeapState[S] = ???
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): ValueDrivenHeapState[S] = ???
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): ValueDrivenHeapState[S] = ???
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): ValueDrivenHeapState[S] = ???
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): ValueDrivenHeapState[S] = ???
-  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): ValueDrivenHeapState[S] = ???
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): T = ???
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): T = ???
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): T = ???
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
+  def clearCollection(collectionSet: ExpressionSet): T = ???
+  def getCollectionLength(collectionSet: ExpressionSet): T = ???
+  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): T = ???
+  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): T = ???
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): T = ???
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): T = ???
+  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): T = ???
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): T = ???
+  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): T = ???
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): T = ???
+  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): T = ???
   def isSummaryCollection(collectionSet: ExpressionSet): Boolean = ???
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]): ValueDrivenHeapState[S] = ???
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def getCollectionValue(valueIds: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-  def getOriginalCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def getKeysCollection(collectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): ValueDrivenHeapState[S] = ???
-  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
-  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): ValueDrivenHeapState[S] = ???
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]): T = ???
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet): T = ???
+  def getCollectionValue(valueIds: ExpressionSet): T = ???
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint): T = ???
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): T = ???
+  def getOriginalCollection(collectionSet: ExpressionSet): T = ???
+  def getKeysCollection(collectionSet: ExpressionSet): T = ???
+  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet): T = ???
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): T = ???
+  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): T = ???
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
+  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): T = ???
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): T = ???
+  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): T = ???
+  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): T = ???
 }
 
 
