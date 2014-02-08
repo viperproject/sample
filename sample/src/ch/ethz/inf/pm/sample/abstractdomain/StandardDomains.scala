@@ -374,7 +374,24 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
       result = result + el.hashCode()
     result
   }
+}
 
+/** Default implementation of `SetDomain`.
+  *
+  * Use it if you don't want to add any additional methods or state
+  * to your `SetDomain` objects.
+  */
+case class DefaultSetDomain[V](
+    value: Set[V] = Set.empty[V],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends SetDomain[V, DefaultSetDomain[V]] {
+
+  def setFactory(
+      value: Set[V] = Set.empty[V],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    DefaultSetDomain(value, isTop, isBottom)
 }
 
 /**
@@ -427,9 +444,28 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] { this: T =>
     if (result.value.size > getK) return this.top()
     result
   }
-
 }
 
+/** Default implementation of `KSetDomain`.
+  *
+  * Use it if you don't want to add any additional methods or state
+  * to your `KSetDomain` objects.
+  */
+case class DefaultKSetDomain[V](
+    K: Int,
+    value: Set[V] = Set.empty[V],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends KSetDomain[V, DefaultKSetDomain[V]] {
+
+  def getK = K
+
+  def setFactory(
+      value: Set[V] = Set.empty[V],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    DefaultKSetDomain(K, value, isTop, isBottom)
+}
 
 /**
  * A domain that is represented by a set, and whose lattice operators are
@@ -525,6 +561,24 @@ trait CartesianProductDomain[
     "Cartesian,Left:\n" + ToStringUtilities.indent(_1.toString) +
       "\nCartesian,other:\n" + ToStringUtilities.indent(_2.toString)
 
+}
+
+/** Default implementation of `InverseSetDomain`.
+  *
+  * Use it if you don't want to add any additional methods or state
+  * to your `InverseSetDomain` objects.
+  */
+case class DefaultInverseSetDomain[V](
+    value: Set[V] = Set.empty[V],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends InverseSetDomain[V, DefaultInverseSetDomain[V]] {
+
+  def setFactory(
+      value: Set[V] = Set.empty[V],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    DefaultInverseSetDomain(value, isTop, isBottom)
 }
 
 /**
