@@ -470,35 +470,33 @@ abstract class InverseSetDomain [V, T <: SetDomain[V, T]](_value: Set[V] = Set.e
 }
 
 /**
- * The representation of a Cartesian product, that is, a lattice domain that combines two other lattices without
- * passing information from one to the other. Each domain could track a different type of information, so their
- * combination could lead to more precise results than each domain separately.
+ * A lattice domain that combines two other lattices without
+ * passing information from one to the other. Each domain could track
+ * a different type of information, so their combination could lead
+ * to more precise results than each domain separately.
  *
  * @tparam T1 The type of the first domain
  * @tparam T2 The type of the second domain
  * @tparam T The type of the current domain
  * @author Pietro Ferrara, Lucas Brutschy
- * @since 0.1
  */
-abstract class CartesianProductDomain
-    [T1 <: Lattice[T1], T2 <: Lattice[T2], T <: CartesianProductDomain[T1, T2, T]]
-    (d1: T1, d2: T2)
-  extends Lattice[T] { this: T =>
+trait CartesianProductDomain[
+    T1 <: Lattice[T1],
+    T2 <: Lattice[T2],
+    T <: CartesianProductDomain[T1, T2, T]]
+  extends Lattice[T] with Product2[T1, T2] { this: T =>
 
-  def _1: T1 = d1
+  def factory(a: T1, b: T2): T
 
-  def _2: T2 = d2
+  def set_1(a: T1) = factory(a, _2)
 
-  def factory(a :T1, b:T2):T
+  def set_2(b: T2) = factory(_1, b)
 
-  def set_1(a:T1) = factory(a,_2)
-  def set_2(b:T2) = factory(_1,b)
+  override def factory(): T = factory(_1.factory(), _2.factory())
 
-  override def factory(): T = factory(_1.factory(),_2.factory())
+  def top(): T = factory(_1.top(), _2.top())
 
-  def top(): T = factory(_1.top(),_2.top())
-
-  def bottom(): T = factory(_1.bottom(),_2.bottom())
+  def bottom(): T = factory(_1.bottom(), _2.bottom())
 
   def lub(other: T): T = factory(_1.lub(other._1), _2.lub(other._2))
 
@@ -509,7 +507,7 @@ abstract class CartesianProductDomain
   def lessEqual(other: T): Boolean = {
     if (_1.lessEqual(_1.bottom()) || _2.lessEqual(_2.bottom())) return true
     if (other._1.lessEqual(other._1.bottom()) || other._2.lessEqual(other._2.bottom())) return false
-    d1.lessEqual(other._1) && d2.lessEqual(other._2)
+    _1.lessEqual(other._1) && _2.lessEqual(other._2)
   }
 
   override def equals(a: Any): Boolean = a match {
@@ -530,131 +528,140 @@ abstract class CartesianProductDomain
 }
 
 /**
- * The representation of a reduced Cartesian product, that is, a Cartesian product that could pass information
- * from one domain to the other.
+ * Cartesian product that could pass information from one domain to the other.
  *
  * @tparam T1 The type of the first domain
  * @tparam T2 The type of the second domain
  * @tparam T The type of the current domain
  * @author Pietro Ferrara, Lucas Brutschy
- * @since 0.1
  */
-abstract class ReducedProductDomain
-    [T1 <: Lattice[T1], T2 <: Lattice[T2], T <: ReducedProductDomain[T1, T2, T]]
-    (d1: T1, d2: T2)
-  extends CartesianProductDomain[T1, T2, T](d1, d2) { this: T =>
+trait ReducedProductDomain[
+    T1 <: Lattice[T1],
+    T2 <: Lattice[T2],
+    T <: ReducedProductDomain[T1, T2, T]]
+  extends CartesianProductDomain[T1, T2, T] { this: T =>
 
   /**
-   * Reduce the information contained in the two domains. The returned value has to be less or equal
-   * (that is, more precise) than the initial state.
+   * Reduce the information contained in the two domains. The returned value
+   * has to be less or equal (that is, more precise) than the initial state.
    * @return The reduced abstract state
    */
   def reduce(): T
-
 }
 
 /**
- * The representation of a Cartesian product supporting the operations of the semantic domain. 
+ * Cartesian product supporting the operations of the semantic domain.
  *
  * @tparam T1 The type of the first domain
  * @tparam T2 The type of the second domain
  * @tparam T The type of the current domain
  * @author Pietro Ferrara
- * @since 0.1
  */
-abstract class SemanticCartesianProductDomain
-    [T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: SemanticCartesianProductDomain[T1, T2, T]]
-    (a1: T1, a2: T2)
-  extends CartesianProductDomain[T1, T2, T](a1, a2)
-  with SemanticDomain[T] { this: T =>
+trait SemanticCartesianProductDomain[
+    T1 <: SemanticDomain[T1],
+    T2 <: SemanticDomain[T2],
+    T <: SemanticCartesianProductDomain[T1, T2, T]]
+  extends CartesianProductDomain[T1, T2, T] with SemanticDomain[T] { this: T =>
 
   def getIds() = _1.getIds() ++ _2.getIds()
 
   def setToTop(variable: Identifier): T =
-    factory(_1.setToTop(variable),_2.setToTop(variable))
+    factory(_1.setToTop(variable), _2.setToTop(variable))
 
   def assign(variable: Identifier, expr: Expression): T =
-    factory(_1.assign(variable, expr),_2.assign(variable, expr))
+    factory(_1.assign(variable, expr), _2.assign(variable, expr))
 
   def setArgument(variable: Identifier, expr: Expression): T =
-    factory(_1.setArgument(variable, expr),_2.setArgument(variable, expr))
+    factory(_1.setArgument(variable, expr), _2.setArgument(variable, expr))
 
   def assume(expr: Expression): T =
-    factory(_1.assume(expr),_2.assume(expr))
+    factory(_1.assume(expr), _2.assume(expr))
 
   def merge(r: Replacement): T =
-    factory(_1.merge(r),_2.merge(r))
+    factory(_1.merge(r), _2.merge(r))
 
   def createVariable(variable: Identifier, typ: Type): T =
-    factory(_1.createVariable(variable, typ),_2.createVariable(variable, typ))
+    factory(_1.createVariable(variable, typ), _2.createVariable(variable, typ))
 
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     val (a1, b1) = _1.createVariableForArgument(variable, typ, path)
     val (a2, b2) = _2.createVariableForArgument(variable, typ, path)
-    (factory(a1,a2),b1 ++ b2)
+    (factory(a1, a2), b1 ++ b2)
   }
 
   def removeVariable(variable: Identifier): T =
-    factory(_1.removeVariable(variable),_2.removeVariable(variable))
+    factory(_1.removeVariable(variable), _2.removeVariable(variable))
 
   def access(field: Identifier): T =
-    factory(_1.access(field),_2.access(field))
+    factory(_1.access(field), _2.access(field))
 
   def backwardAccess(field: Identifier): T =
-    factory(_1.backwardAccess(field),_2.backwardAccess(field))
+    factory(_1.backwardAccess(field), _2.backwardAccess(field))
 
   def backwardAssign(variable: Identifier, expr: Expression): T =
-    factory(_1.backwardAssign(variable,expr),_2.backwardAssign(variable,expr))
+    factory(_1.backwardAssign(variable, expr), _2.backwardAssign(variable, expr))
 
   def getStringOfId(id: Identifier): String =
     "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
-
 }
 
 /**
- * The representation of reduced a Cartesian product supporting the operations of the semantic domain. After each
- * semantic operation the reduction is applied. Note that this implementation is not particularly performant. 
+ * Reduced Cartesian product supporting the operations of the semantic domain.
+ * After each semantic operation the reduction is applied.
+ * Note that this implementation is not particularly efficient.
  *
  * @tparam T1 The type of the first domain
  * @tparam T2 The type of the second domain
  * @tparam T The type of the current domain
  * @author Pietro Ferrara
- * @since 0.1
  */
-abstract class ReducedSemanticProductDomain
-    [T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2], T <: ReducedSemanticProductDomain[T1, T2, T]]
-    (d1: T1, d2: T2)
-  extends SemanticCartesianProductDomain[T1, T2, T](d1, d2) { this: T =>
+trait ReducedSemanticProductDomain[
+    T1 <: SemanticDomain[T1],
+    T2 <: SemanticDomain[T2],
+    T <: ReducedSemanticProductDomain[T1, T2, T]]
+  extends SemanticCartesianProductDomain[T1, T2, T] { this: T =>
 
   def reduce(): T
 
-  override def lub(other: T): T = super.lub(other).reduce()
+  override def lub(other: T): T =
+    super.lub(other).reduce()
 
-  override def glb(other: T): T = super.glb(other).reduce()
+  override def glb(other: T): T =
+    super.glb(other).reduce()
 
-  override def setToTop(variable: Identifier): T = super.setToTop(variable).reduce()
+  override def setToTop(variable: Identifier): T =
+    super.setToTop(variable).reduce()
 
-  override def assign(variable: Identifier, expr: Expression): T = super.assign(variable, expr).reduce()
+  override def assign(variable: Identifier, expr: Expression): T =
+    super.assign(variable, expr).reduce()
 
-  override def setArgument(variable: Identifier, expr: Expression): T = super.setArgument(variable, expr).reduce()
+  override def setArgument(variable: Identifier, expr: Expression): T =
+    super.setArgument(variable, expr).reduce()
 
-  override def assume(expr: Expression): T = super.assume(expr).reduce()
+  override def assume(expr: Expression): T =
+    super.assume(expr).reduce()
 
-  override def createVariable(variable: Identifier, typ: Type): T = super.createVariable(variable, typ).reduce()
+  override def createVariable(variable: Identifier, typ: Type): T =
+    super.createVariable(variable, typ).reduce()
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
     val (result, i) = super.createVariableForArgument(variable, typ, path)
     (result.reduce(), i)
   }
 
-  override def removeVariable(variable: Identifier): T = super.removeVariable(variable).reduce()
+  override def removeVariable(variable: Identifier): T =
+    super.removeVariable(variable).reduce()
 
-  override def access(field: Identifier): T = super.access(field).reduce()
+  override def access(field: Identifier): T =
+    super.access(field).reduce()
 
-  override def backwardAccess(field: Identifier): T = super.backwardAccess(field).reduce()
+  override def backwardAccess(field: Identifier): T =
+    super.backwardAccess(field).reduce()
 
-  override def backwardAssign(variable: Identifier, expr: Expression): T = super.backwardAssign(variable, expr).reduce()
+  override def backwardAssign(variable: Identifier, expr: Expression): T =
+    super.backwardAssign(variable, expr).reduce()
 
-  override def merge(r: Replacement): T = super.merge(r).reduce()
+  override def merge(r: Replacement): T =
+    super.merge(r).reduce()
 
 }

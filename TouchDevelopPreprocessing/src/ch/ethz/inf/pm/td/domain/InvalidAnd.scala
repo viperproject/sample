@@ -17,12 +17,20 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 /**
  * A concrete variant of a domain for touch develop: Numerical with Invalid values.
  */
-class InvalidAnd[T <: NumericalDomain[T]](a1:T, a2:BooleanInvalidDomainWithSource = new BooleanInvalidDomainWithSource())
-  extends NumericWithInvalidDomain[T,BooleanInvalidDomainWithSource,InvalidAnd[T]](a1,a2) {
+case class InvalidAnd[T <: NumericalDomain[T]](
+    _1: T,
+    _2: BooleanInvalidDomainWithSource = new BooleanInvalidDomainWithSource())
+  extends NumericWithInvalidDomain[T, BooleanInvalidDomainWithSource, InvalidAnd[T]] {
   override def factory(a:T,b:BooleanInvalidDomainWithSource) = new InvalidAnd(a,b)
 }
 
-class StringsAnd[T <: NumericalDomain[T],V <: StringValueDomain[V],S <: StringDomain[V,S]](a1:T, a2:S = new NonrelationalStringDomain[StringKSetDomain](new StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)).asInstanceOf[S])
-  extends NumericWithStringDomain[T,V,S,StringsAnd[T,V,S]](a1,a2) {
+case class StringsAnd[
+    T <: NumericalDomain[T],
+    V <: StringValueDomain[V],
+    S <: StringDomain[V,S]](
+    _1: T,
+    _2: S = new NonrelationalStringDomain[StringKSetDomain](
+      new StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)).asInstanceOf[S])
+  extends NumericWithStringDomain[T, V, S, StringsAnd[T, V, S]] {
   override def factory(a:T,b:S) = new StringsAnd(a,b)
 }

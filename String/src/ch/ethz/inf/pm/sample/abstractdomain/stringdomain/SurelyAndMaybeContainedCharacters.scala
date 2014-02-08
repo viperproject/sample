@@ -2,12 +2,14 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 
-class SurelyAndMaybeContainedCharacters(protected var a1 : SurelyContainedCharacters,
-        protected var a2 : MaybeContainedCharacters)
-     extends SemanticCartesianProductDomain[SurelyContainedCharacters, MaybeContainedCharacters, 
-                                    SurelyAndMaybeContainedCharacters](a1,a2)
-     with SimplifiedSemanticDomain[SurelyAndMaybeContainedCharacters]
- {
+case class SurelyAndMaybeContainedCharacters(
+    _1: SurelyContainedCharacters,
+    _2: MaybeContainedCharacters)
+  extends SemanticCartesianProductDomain[
+    SurelyContainedCharacters,
+    MaybeContainedCharacters,
+    SurelyAndMaybeContainedCharacters]
+  with SimplifiedSemanticDomain[SurelyAndMaybeContainedCharacters] {
       override def merge(r : Replacement) = new SurelyAndMaybeContainedCharacters(this._1.merge(r), this._2.merge(r));
 
        def factory(a:SurelyContainedCharacters,b:MaybeContainedCharacters) = new SurelyAndMaybeContainedCharacters(a,b)

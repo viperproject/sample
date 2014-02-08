@@ -484,14 +484,26 @@ trait NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]] extends H
   def getCollectionValue(collectionTuple:Assignable): I
 }
 
-abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I], H <: AbstractNonRelationalHeapDomain[I, H]]
-    (env: VariableEnv[I], heap: HeapEnv[I], val cod: HeapIdSetDomain[I], dom: I)
-  extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], H](env, heap)
+trait AbstractNonRelationalHeapDomain[
+    I <: NonRelationalHeapIdentifier[I],
+    H <: AbstractNonRelationalHeapDomain[I, H]]
+  extends CartesianProductDomain[VariableEnv[I], HeapEnv[I], H]
   with HeapDomain[H, I]
   with HeapAnalysis[H, I] { this: H =>
 
-  protected def variableEnv = this._1
-  protected def heapEnv = this._2
+  // TODO: Three symbols for the same thing is a bit much
+  def env: VariableEnv[I]
+  def variableEnv = env
+  def _1 = env
+
+  def heap: HeapEnv[I]
+  def heapEnv = heap
+  def _2 = heap
+
+  def cod: HeapIdSetDomain[I]
+
+  def dom: I
+
   protected var alreadyInitialized : Set[I] = Set.empty[I];
   protected var fieldsInitialized : Set[I] = Set.empty[I];
 
@@ -1094,8 +1106,9 @@ abstract class AbstractNonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[
 }
 
 //Approximates all the concrete references created at the same point of the program with a unique abstract reference
-class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom: I)
-  extends AbstractNonRelationalHeapDomain[I, NonRelationalHeapDomain[I]](env, heap, cod, dom) {
+case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
+    env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom: I)
+  extends AbstractNonRelationalHeapDomain[I, NonRelationalHeapDomain[I]] {
 
   def this(cod : HeapIdSetDomain[I], dom : I) = {
     this(new VariableEnv(cod), new HeapEnv(cod), cod, dom)
@@ -1168,8 +1181,9 @@ class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Variable
 }
 
 // Must analysis for collection Elements
-class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom:I)
-  extends AbstractNonRelationalHeapDomain[I, NonRelationalMustHeapDomain[I]](env, heap, cod, dom) {
+case class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](
+    env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom: I)
+  extends AbstractNonRelationalHeapDomain[I, NonRelationalMustHeapDomain[I]] {
 
   def this(cod : HeapIdSetDomain[I], dom : I) {
     this(new VariableEnv(cod), new HeapEnv(cod), cod, dom)
@@ -1240,10 +1254,15 @@ class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: Vari
 }
 
 // Combination of may and must analysis for collection elements
-class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](heapMay: NonRelationalHeapDomain[I], heapMust: NonRelationalMustHeapDomain[I])
-  extends CartesianProductDomain[NonRelationalHeapDomain[I], NonRelationalMustHeapDomain[I], NonRelationalMayAndMustHeapDomain[I]](heapMay, heapMust)
+case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](
+    heapMay: NonRelationalHeapDomain[I], heapMust: NonRelationalMustHeapDomain[I])
+  extends CartesianProductDomain[NonRelationalHeapDomain[I], NonRelationalMustHeapDomain[I], NonRelationalMayAndMustHeapDomain[I]]
   with HeapDomain[NonRelationalMayAndMustHeapDomain[I], I]
   with HeapAnalysis[NonRelationalMayAndMustHeapDomain[I], I] {
+
+  def _1 = heapMay
+
+  def _2 = heapMust
 
   def get(key : VariableIdentifier) : HeapIdSetDomain[I] = this._1.get(key).add(this._2.get(key))
 
@@ -1604,8 +1623,9 @@ class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](hea
 }
 
 // Approximates all collection elements to one summary node
-class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom:I)
-  extends AbstractNonRelationalHeapDomain[I, NonRelationalSummaryCollectionHeapDomain[I]](env, heap, cod, dom) {
+case class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdentifier[I]](
+    env: VariableEnv[I], heap: HeapEnv[I], cod: HeapIdSetDomain[I], dom: I)
+  extends AbstractNonRelationalHeapDomain[I, NonRelationalSummaryCollectionHeapDomain[I]] {
 
   def this(cod : HeapIdSetDomain[I], dom : I) {
     this(new VariableEnv(cod), new HeapEnv(cod), cod, dom)

@@ -196,9 +196,17 @@ class StringKSetDomain(val K: Integer, _value: Set[String] = Set.empty[String], 
   }
 }
 
-abstract class NumericWithStringDomain[N <: NumericalDomain[N], V <: StringValueDomain[V], S <: StringDomain[V,S], T <: NumericWithStringDomain[N,V,S,T]](val initialNum:N,val initialStr:S)
-  extends SemanticCartesianProductDomain[N,S,T](initialNum,initialStr)
+trait NumericWithStringDomain[
+    N <: NumericalDomain[N],
+    V <: StringValueDomain[V],
+    S <: StringDomain[V, S],
+    T <: NumericWithStringDomain[N, V, S, T]]
+  extends SemanticCartesianProductDomain[N, S, T]
   with NumericalDomain[T] { this: T =>
+
+  def initialNum: N = _1
+
+  def initialStr: S = _2
 
   override def toString = "Numeric:\n"+ToStringUtilities.indent(_1.toString)+"\nString:\n"+ToStringUtilities.indent(_2.toString)
 }

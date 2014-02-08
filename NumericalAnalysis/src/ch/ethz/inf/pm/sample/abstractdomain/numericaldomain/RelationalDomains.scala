@@ -73,13 +73,25 @@ class UpperBound(val value:Map[Identifier, UpperBoundRightPart] = Map.empty[Iden
 	override def assume(expr : Expression) : UpperBound = this;
 }
 
-class Pentagons(l : BoxedNonRelationalNumericalDomain[Interval], r : UpperBound)
-  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[Interval], UpperBound, Pentagons](l, r)
+case class Pentagons(_1: BoxedNonRelationalNumericalDomain[Interval], _2: UpperBound)
+  extends SemanticCartesianProductDomain[BoxedNonRelationalNumericalDomain[Interval], UpperBound, Pentagons]
   with RelationalNumericalDomain[Pentagons] {
-  override def merge(r : Replacement) = if(r.isEmpty) this; else throw new SemanticException("Merge not yet implemented");
-	override def getStringOfId (id : Identifier) : String = "Intervals:"+this._1.getStringOfId(id)+"\n\nUpper bound:\n"+this._2.getStringOfId(id)
-	override def setToTop(variable : Identifier) : Pentagons = new Pentagons(this._1.setToTop(variable), this._2.setToTop(variable));
-	override def assign (variable : Identifier, expr : Expression) : Pentagons = new Pentagons(this._1.assign(variable,expr), this._2.assign(variable, expr));
-	override def assume(expr : Expression) : Pentagons = new Pentagons(this._1.assume(expr), this._2.assume(expr));;
-	override def factory(a:BoxedNonRelationalNumericalDomain[Interval],b:UpperBound) : Pentagons = new Pentagons(a,b) ;
+
+  override def merge(r: Replacement) =
+   if (r.isEmpty) this; else throw new SemanticException("Merge not yet implemented")
+
+  override def getStringOfId(id: Identifier) =
+    "Intervals:" + this._1.getStringOfId(id) + "\n\nUpper bound:\n" + this._2.getStringOfId(id)
+
+  override def setToTop(variable: Identifier) =
+    new Pentagons(this._1.setToTop(variable), this._2.setToTop(variable))
+
+  override def assign(variable: Identifier, expr: Expression) =
+    new Pentagons(this._1.assign(variable, expr), this._2.assign(variable, expr))
+
+  override def assume(expr: Expression) =
+    new Pentagons(this._1.assume(expr), this._2.assume(expr))
+
+  override def factory(a: BoxedNonRelationalNumericalDomain[Interval], b: UpperBound) =
+    new Pentagons(a, b)
 }

@@ -97,8 +97,12 @@ object ExpressionFactory {
 
 }
 
-case class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpressions)
-  extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet](initialTyp, s) {
+case class ExpressionSet(initialTyp: Type, s: SetOfExpressions = new SetOfExpressions)
+  extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet] {
+
+  def _1 = initialTyp
+
+  def _2 = s
 
   override def factory() : ExpressionSet =
     new ExpressionSet(
@@ -176,7 +180,6 @@ case class ExpressionSet(initialTyp : Type, s : SetOfExpressions = new SetOfExpr
     new ExpressionSet(getType(),new SetOfExpressions(newSet))
 
   }
-
 }
 
 object ExpressionSet {
@@ -197,16 +200,20 @@ class SetOfExpressions(_value: Set[Expression] = Set.empty[Expression], _isTop: 
 
 }
 
-
-
-
-
-class AbstractState[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](state : HeapAndAnotherDomain[N, H, I], initialExpression : ExpressionSet)
-  extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N,H,I]](state, initialExpression)
-  with SimpleState[AbstractState[N,H,I]]
+case class AbstractState[
+    N <: SemanticDomain[N],
+    H <: HeapDomain[H, I],
+    I <: HeapIdentifier[I]](
+    state: HeapAndAnotherDomain[N, H, I],
+    initialExpression: ExpressionSet)
+  extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N, H, I]]
+  with SimpleState[AbstractState[N, H, I]]
   with SingleLineRepresentation
-  with LatticeWithReplacement[AbstractState[N,H,I]]
-  {
+  with LatticeWithReplacement[AbstractState[N, H, I]] {
+
+  def _1 = state
+
+  def _2 = initialExpression
 
   def factory(a:HeapAndAnotherDomain[N, H, I],b:ExpressionSet) = new AbstractState(a,b)
   override def bottom() = new AbstractState(this._1.bottom(), this._2.bottom())
