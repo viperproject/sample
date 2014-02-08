@@ -169,7 +169,7 @@ trait StringValueSetDomain[T <: StringValueSetDomain[T]] extends StringValueDoma
 }
 
 case class StringKSetDomain(
-    K: Integer,
+    K: Int,
     value: Set[String] = Set.empty[String],
     isTop: Boolean = false,
     isBottom: Boolean = false)
@@ -183,8 +183,6 @@ case class StringKSetDomain(
     StringKSetDomain(K, value, isTop, isBottom)
 
   def isSingleton:Boolean = !isBottom && !isTop && value.size == 1
-
-  def getK = K
 
   def diff(a: StringKSetDomain, b: StringKSetDomain): StringKSetDomain = {
     a.remove(b).lub(b.remove(a))

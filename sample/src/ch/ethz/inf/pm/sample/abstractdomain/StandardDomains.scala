@@ -401,13 +401,10 @@ case class DefaultSetDomain[V](
  * @tparam T the type itself
  * @author Lucas Brutschy
  */
-trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] { this: T =>
+trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V, T] { this: T =>
 
-  /**
-   * Overwrite this method to set K
-   * @return the maximum number of represented elements
-   */
-  def getK:Int
+  /** The maximum number of represented elements. */
+  def K: Int
 
   /**
    * Adds an element to the set. Formally, return = old(this) \cup {v}
@@ -418,7 +415,7 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] { this: T =>
   override def add(v: V): T = {
     if (this.isTop) return this.top()
     val result = setFactory(value + v)
-    if (result.value.size > getK) return this.top()
+    if (result.value.size > K) return this.top()
     result
   }
 
@@ -432,7 +429,7 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] { this: T =>
     if (this.isTop || v.isTop) return top()
     if (this.isBottom) return v
     val result: T = setFactory(this.value ++ v.value)
-    if (result.value.size > getK) return this.top()
+    if (result.value.size > K) return this.top()
     result
   }
 
@@ -441,7 +438,7 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] { this: T =>
     if (other.isBottom) return this
     if (this.isTop || other.isTop) return top()
     val result: T = setFactory(this.value ++ other.value)
-    if (result.value.size > getK) return this.top()
+    if (result.value.size > K) return this.top()
     result
   }
 }
@@ -457,8 +454,6 @@ case class DefaultKSetDomain[V](
     isTop: Boolean = false,
     isBottom: Boolean = false)
   extends KSetDomain[V, DefaultKSetDomain[V]] {
-
-  def getK = K
 
   def setFactory(
       value: Set[V] = Set.empty[V],
