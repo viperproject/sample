@@ -198,6 +198,30 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 }
 
+/** Default implementation of `FunctionalDomain`.
+  *
+  * Use it if you don't want to add any additional methods or state
+  * to your `FunctionalDomain` objects.
+  *
+  * @param defaultValue value returned by `get` for unknown keys (usually
+  *                     the top or bottom element of the value domain)
+  */
+case class DefaultFunctionalDomain[K, V <: Lattice[V]](
+    value: Map[K, V] = Map.empty[K, V],
+    isTop: Boolean = false,
+    isBottom: Boolean = false,
+    defaultValue: V)
+  extends FunctionalDomain[K, V, DefaultFunctionalDomain[K, V]] {
+
+  def get(key: K): V = value.getOrElse(key, defaultValue)
+
+  def functionalFactory(
+      value: Map[K, V],
+      isBottom: Boolean,
+      isTop: Boolean) =
+    DefaultFunctionalDomain(value, isTop, isBottom, defaultValue)
+}
+
 /**
  * The representation of a boxed domain, that is, a domain that is a functional domain whose keys are (variable
  * or heap) identifiers
@@ -652,6 +676,67 @@ trait SemanticCartesianProductDomain[
 
   def getStringOfId(id: Identifier): String =
     "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
+}
+
+/**
+ * Cartesian product of a `SemanticDomain` and an arbitrary other domain.
+ * This trait implements all `SemanticDomain`-specific methods, such that
+ * they forward calls to the wrapped `SemanticDomain` object,
+ * while the other domain object remains unchanged.
+ *
+ * @tparam S type of the wrapped semantic domain
+ * @tparam O type of the other domain
+ * @tparam T type of the current domain
+ */
+trait HalfSemanticCartesianProductDomain[
+    S <: SemanticDomain[S],
+    O <: Lattice[O],
+    T <: HalfSemanticCartesianProductDomain[S, O, T]]
+  extends CartesianProductDomain[S, O, T]
+  with SemanticDomain[T] { this: T =>
+
+  def getIds() = _1.getIds()
+
+  def copy(_1: S = _1, _2: O = _2): T =
+    factory(_1, _2)
+
+  def backwardAssign(variable: Identifier, expr: Expression) =
+    copy(_1.backwardAssign(variable, expr))
+
+  def backwardAccess(field: Identifier) =
+    copy(_1.backwardAccess(field))
+
+  def access(field: Identifier) =
+    copy(_1.access(field))
+
+  def removeVariable(variable: Identifier) =
+    copy(_1.removeVariable(variable))
+
+  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
+    val (result, map) = _1.createVariableForArgument(variable, typ, path)
+    (copy(result), map)
+  }
+
+  def createVariable(variable: Identifier, typ: Type) =
+    copy(_1.createVariable(variable, typ))
+
+  def assume(expr: Expression) =
+    copy(_1.assume(expr))
+
+  def setArgument(variable: Identifier, expr: Expression) =
+    copy(_1.setArgument(variable, expr))
+
+  def assign(variable: Identifier, expr: Expression) =
+    copy(_1.assign(variable, expr))
+
+  def setToTop(variable: Identifier) =
+    copy(_1.setToTop(variable))
+
+  def getStringOfId(id: Identifier) =
+    _1.getStringOfId(id)
+
+  def merge(f: Replacement) =
+    copy(_1.merge(f))
 }
 
 /**
