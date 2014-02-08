@@ -132,7 +132,7 @@ trait ValueDrivenHeapState[
         newVertices = newVertices + sumVertexToAdd
         idsToCreate = sumVertexToAdd.valueHeapIds
       }
-      var newGenValState = generalValState.factory()
+      var newGenValState = generalValState.top()
       newGenValState = newGenValState.createVariables(idsToCreate)
       // Create edges between HeapVertices taking into account sub-typing.
       val resultingEdges = mutable.Set.empty[EdgeWithState[S]]
