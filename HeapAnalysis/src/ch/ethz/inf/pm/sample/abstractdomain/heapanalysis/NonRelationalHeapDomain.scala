@@ -15,17 +15,20 @@ object NonRelationalHeapDomainSettings {
   var maxInitialNodes : Int = 5
 }
 
-class TupleIdSetDomain[I <: HeapIdentifier[I]](
-    override val pp: ProgramPoint,
-    _value: Set[I] = Set.empty[I],
-    _isTop: Boolean = false,
-    _isBottom: Boolean = false)
-  extends HeapIdSetDomain[I](pp, _value, _isTop, _isBottom) {
+case class TupleIdSetDomain[I <: HeapIdentifier[I]](
+    pp: ProgramPoint,
+    value: Set[I] = Set.empty[I],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends HeapIdSetDomain[I] {
 
-  def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
-    new TupleIdSetDomain[I](pp,_value,_isTop,_isBottom)
+  def setFactory (
+      value: Set[I] = Set.empty[I],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    TupleIdSetDomain[I](pp, value, isTop, isBottom)
 
-  def this() = this(null);
+  def this() = this(null)
 
   override def getType() : Type = {
     var res=SystemParameters.getType().bottom();

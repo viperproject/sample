@@ -3,11 +3,17 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-class SetCharacters(_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends SetDomain[Char, SetCharacters](_value,_isTop,_isBottom) {
+case class SetCharacters(
+    value: Set[Char] = Set.empty[Char],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends SetDomain[Char, SetCharacters] {
 
-  def setFactory (_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false, _isBottom: Boolean = false): SetCharacters
-    = new SetCharacters(_value,_isTop,_isBottom)
+  def setFactory(
+      value: Set[Char] = Set.empty[Char],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    SetCharacters(value, isTop, isBottom)
 }
 
 class MaybeContainedCharacters

@@ -12,18 +12,17 @@ object BooleanDomain {
 
 }
 
-/**
- * 
- * Lucas Brutschy
- * Date: 10/18/12
- * Time: 10:49 AM
- * 
- */
-class BooleanDomain(_value: Set[Boolean] = Set.empty[Boolean], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends SetDomain[Boolean,BooleanDomain](_value,_isTop,_isBottom) {
+case class BooleanDomain(
+    value: Set[Boolean] = Set.empty[Boolean],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends SetDomain[Boolean, BooleanDomain] {
 
-  def setFactory (_value: Set[Boolean] = Set.empty[Boolean], _isTop: Boolean = false, _isBottom: Boolean = false): BooleanDomain
-    = new BooleanDomain(_value,_isTop,_isBottom)
+  def setFactory(
+      value: Set[Boolean] = Set.empty[Boolean],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    BooleanDomain(value, isTop, isBottom)
 
   def canBeTrue = isTop || value.contains(true)
   def canBeFalse = isTop || value.contains(false)

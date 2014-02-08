@@ -181,19 +181,23 @@ object PositionedInvalidValueDomain {
 }
 
 /**
- *
  * Attaches a position to every invalid value
  *
  * Lucas Brutschy
  * Date: 06/09/13
  * Time: 10:49 AM
- *
  */
-class PositionedInvalidValueDomain(_value: Set[InvalidValue] = Set.empty[InvalidValue], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends SetDomain[InvalidValue,PositionedInvalidValueDomain](_value,_isTop,_isBottom)  {
+case class PositionedInvalidValueDomain(
+    value: Set[InvalidValue] = Set.empty[InvalidValue],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends SetDomain[InvalidValue, PositionedInvalidValueDomain] {
 
-  def setFactory (_value: Set[InvalidValue] = Set.empty[InvalidValue], _isTop: Boolean = false, _isBottom: Boolean = false): PositionedInvalidValueDomain
-   = new PositionedInvalidValueDomain(_value,_isTop,_isBottom)
+  def setFactory(
+      value: Set[InvalidValue] = Set.empty[InvalidValue],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    PositionedInvalidValueDomain(value, isTop, isBottom)
 
   def canBeInvalid = isTop || value.exists { case Invalid(_) => true; case _ => false }
   def canBeValid = isTop || value.exists { case Valid() => true; case _ => false }

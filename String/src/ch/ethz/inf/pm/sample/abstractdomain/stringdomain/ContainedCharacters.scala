@@ -3,12 +3,17 @@ package ch.ethz.inf.pm.sample.abstractdomain.stringdomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-class InverseSetCharacters(_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends InverseSetDomain[Char, InverseSetCharacters](_value,_isTop,_isBottom) {
+case class InverseSetCharacters(
+    value: Set[Char] = Set.empty[Char],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends InverseSetDomain[Char, InverseSetCharacters] {
 
-  def setFactory (_value: Set[Char] = Set.empty[Char], _isTop: Boolean = false, _isBottom: Boolean = false): InverseSetCharacters =
-    new InverseSetCharacters(_value,_isTop,_isBottom)
-
+  def setFactory(
+      value: Set[Char] = Set.empty[Char],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    InverseSetCharacters(value, isTop, isBottom)
 }
 
 class SurelyContainedCharacters

@@ -192,12 +192,17 @@ object ExpressionSet {
     new ExpressionSet(SystemParameters.typ.top())
 }
 
-class SetOfExpressions(_value: Set[Expression] = Set.empty[Expression], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends SetDomain[Expression, SetOfExpressions](_value,_isTop,_isBottom) {
+case class SetOfExpressions(
+    value: Set[Expression] = Set.empty[Expression],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends SetDomain[Expression, SetOfExpressions] {
 
-  def setFactory (_value: Set[Expression] = Set.empty[Expression], _isTop: Boolean = false, _isBottom: Boolean = false): SetOfExpressions
-    = new SetOfExpressions(_value,_isTop,_isBottom)
-
+  def setFactory(
+      value: Set[Expression] = Set.empty[Expression],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    SetOfExpressions(value, isTop, isBottom)
 }
 
 case class AbstractState[

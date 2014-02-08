@@ -168,12 +168,19 @@ trait StringValueSetDomain[T <: StringValueSetDomain[T]] extends StringValueDoma
 
 }
 
-class StringKSetDomain(val K: Integer, _value: Set[String] = Set.empty[String], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends KSetDomain[String,StringKSetDomain](_value,_isTop,_isBottom)
+case class StringKSetDomain(
+    K: Integer,
+    value: Set[String] = Set.empty[String],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends KSetDomain[String, StringKSetDomain]
   with StringValueSetDomain[StringKSetDomain] {
 
-  def setFactory (_value: Set[String] = Set.empty[String], _isTop: Boolean = false, _isBottom: Boolean = false): StringKSetDomain =
-    new StringKSetDomain(K, _value,_isTop,_isBottom)
+  def setFactory(
+      value: Set[String] = Set.empty[String],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    StringKSetDomain(K, value, isTop, isBottom)
 
   def isSingleton:Boolean = !isBottom && !isTop && value.size == 1
 

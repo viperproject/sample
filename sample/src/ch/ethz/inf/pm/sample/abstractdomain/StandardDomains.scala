@@ -246,8 +246,10 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
 }
 
 /**
- * The representation of a set domain, that is, a domain that is represented by a set. The lattice operators 
- * are the common ones of sets, that is, the upper bound is the union, the lower bound the intersection, and so on.
+ * A domain that is represented by a set.
+ *
+ * The lattice operators are the common ones of sets, that is, the upper bound
+ * is the union, the lower bound the intersection, and so on.
  *
  * @tparam V The type of the values contained in the set
  * @tparam T The type of the current set domain
@@ -256,19 +258,22 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
  * @todo do not allow `value` to be empty while both `isTop` and `isBottom` are `false`
  * @todo ideally, one should not allow access to `value` when the object is top
  */
-abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[V],
-                                                  val isTop: Boolean = false,
-                                                  val isBottom: Boolean = false)
-  extends Lattice[T] { this: T =>
+trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
+  def value: Set[V]
+
+  def isTop: Boolean
+
+  def isBottom: Boolean
 
   /**
    * Constructs a new set domain of the concrete type
    *
    * @return a fresh, empty instance of the set domain
    */
-  def setFactory (value: Set[V] = Set.empty[V],
-                  isTop: Boolean = false,
-                  isBottom: Boolean = false):T
+  def setFactory(
+      value: Set[V] = Set.empty[V],
+      isTop: Boolean = false,
+      isBottom: Boolean = false): T
 
   override def factory() = setFactory()
   final def top(): T = setFactory(isTop = true)
@@ -373,16 +378,13 @@ abstract class SetDomain[V, T <: SetDomain[V, T]](val value: Set[V] = Set.empty[
 }
 
 /**
- *
- * Implements a set domain which is bounded by a given K
+ * A set domain which is bounded by a given K.
  *
  * @tparam V the values stored
  * @tparam T the type itself
  * @author Lucas Brutschy
- * @since 0.1
  */
-abstract class KSetDomain[V, T <: KSetDomain[V, T]](_value: Set[V] = Set.empty[V], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends SetDomain[V,T](_value,_isTop,_isBottom) { this: T =>
+trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V,T] { this: T =>
 
   /**
    * Overwrite this method to set K
@@ -430,17 +432,15 @@ abstract class KSetDomain[V, T <: KSetDomain[V, T]](_value: Set[V] = Set.empty[V
 
 
 /**
- * The representation of an inverse set domain, that is, a domain that is represented by a set, and whose lattice
- * operators are the inversed one. Formally, the upper bound is the intersection, the lower bound the union, and 
- * so on.
+ * A domain that is represented by a set, and whose lattice operators are
+ * the inversed one. Formally, the upper bound is the intersection,
+ * the lower bound the union, and so on.
  *
  * @tparam V The type of the values contained in the set
  * @tparam T The type of the current set domain
  * @author Pietro Ferrara, Lucas Brutschy
- * @since 0.1
  */
-abstract class InverseSetDomain [V, T <: SetDomain[V, T]](_value: Set[V] = Set.empty[V], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends SetDomain[V, T](_value,_isTop,_isBottom) { this: T =>
+trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] { this: T =>
 
   override def add(el: V): T = {
     setFactory(value + el)

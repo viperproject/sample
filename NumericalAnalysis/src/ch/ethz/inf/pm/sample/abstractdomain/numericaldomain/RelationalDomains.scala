@@ -12,12 +12,17 @@ trait RelationalNumericalDomain[T <: RelationalNumericalDomain[T]] extends Numer
 	override def removeVariable(variable : Identifier) : T = this.setToTop(variable);
 }
 
-class UpperBoundRightPart(_value: Set[Identifier] = Set.empty[Identifier], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends InverseSetDomain[Identifier, UpperBoundRightPart](_value,_isTop,_isBottom) {
+case class UpperBoundRightPart(
+    value: Set[Identifier] = Set.empty[Identifier],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends InverseSetDomain[Identifier, UpperBoundRightPart] {
 
-  def setFactory (_value: Set[Identifier] = Set.empty[Identifier], _isTop: Boolean = false, _isBottom: Boolean = false): UpperBoundRightPart =
-    new UpperBoundRightPart(_value,_isTop,_isBottom)
-
+  def setFactory(
+      value: Set[Identifier] = Set.empty[Identifier],
+      isTop: Boolean = false,
+      isBottom: Boolean = false) =
+    UpperBoundRightPart(value, isTop, isBottom)
 }
 
 class UpperBound(val value:Map[Identifier, UpperBoundRightPart] = Map.empty[Identifier, UpperBoundRightPart],

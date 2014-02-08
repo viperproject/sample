@@ -493,15 +493,9 @@ case class CollectionContainsExpression(collection: Expression, key: Expression,
 
 }
 
-abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](
-    pp: ProgramPoint,
-    _value: Set[I] = Set.empty[I],
-    _isTop: Boolean = false,
-    _isBottom: Boolean = false)
-  extends SetDomain[I, HeapIdSetDomain[I]](_value, _isTop, _isBottom)
+trait HeapIdSetDomain[I <: HeapIdentifier[I]]
+  extends SetDomain[I, HeapIdSetDomain[I]]
   with Expression {
-
-  def this() = this(null)
 
   override def equals(x : Any) : Boolean = x match {
     case x : I => if(value.size==1) return x.equals(value.head); else return false;
@@ -542,12 +536,12 @@ abstract class HeapIdSetDomain[I <: HeapIdentifier[I]](
 
 }
 
-class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
-    val pp: ProgramPoint,
-    _value: Set[I] = Set.empty[I],
-    _isTop: Boolean = false,
-    _isBottom: Boolean = false)
-  extends HeapIdSetDomain[I](pp, _value, _isTop, _isBottom) {
+case class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
+    pp: ProgramPoint,
+    value: Set[I] = Set.empty[I],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends HeapIdSetDomain[I] {
 
   def this() = this(null)
 
@@ -569,12 +563,12 @@ class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
   def getIdentifiers : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
 }
 
-class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
-    val pp: ProgramPoint,
-    _value: Set[I] = Set.empty[I],
-    _isTop: Boolean = false,
-    _isBottom: Boolean = false)
-  extends HeapIdSetDomain[I](pp, _value, _isTop, _isBottom) {
+case class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
+    pp: ProgramPoint,
+    value: Set[I] = Set.empty[I],
+    isTop: Boolean = false,
+    isBottom: Boolean = false)
+  extends HeapIdSetDomain[I] {
 
   def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
     new DefiniteHeapIdSetDomain[I](pp,_value,_isTop,_isBottom)
