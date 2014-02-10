@@ -9,32 +9,19 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
  * This class represents a point of the program. It is specific 
  * for a given programming language, so it is defined as an abstract
  * class that should be extended by different parsers
- *
- * @author Pietro Ferrara
- * @version 0.1
  */
-abstract class ProgramPoint {
+trait ProgramPoint {
 
   /**
    * Gets a description of the program point, for example
    * "in file somefile.scala at line 1, column 2"
    */
-  def getDescription: String
+  def description: String
 
 }
 
-object DummyProgramPoint extends DummyProgramPoint
-
-class DummyProgramPoint extends ProgramPoint {
-  override def getDescription = "Dummy"
-
-  override def hashCode() = 1
-
-  override def equals(obj: Any) = obj match {
-    case x: DummyProgramPoint => true
-    case _ => false
-  }
-
+case object DummyProgramPoint extends ProgramPoint {
+  override def description = "Dummy"
   override def toString = "Dummy"
 }
 
@@ -43,7 +30,7 @@ abstract class LineColumnProgramPoint extends ProgramPoint {
 
   def getColumn: Int
 
-  override def getDescription: String = {
+  override def description: String = {
     "at line " + getLine + ", column " + getColumn
   }
 }

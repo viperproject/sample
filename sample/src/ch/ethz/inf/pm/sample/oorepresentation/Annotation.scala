@@ -109,5 +109,5 @@ case class LoopInvariant(pp: ProgramPoint, e: String) extends Annotation(e) {
       case _ => false
     }
 
-    override def toString = "Loop invariant "+pp.getDescription+": "+exp;
+    override def toString = "Loop invariant "+pp.description+": "+exp;
 }

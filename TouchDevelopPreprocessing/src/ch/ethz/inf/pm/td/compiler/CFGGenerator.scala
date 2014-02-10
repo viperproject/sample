@@ -488,12 +488,12 @@ case class TouchClassIdentifier(name: String, typ: Type) extends Named with Clas
 case class TouchProgramPoint(scriptID:String, pos:String) extends ProgramPoint {
   def getScriptID:String = scriptID
   override def toString = "PP("+getScriptID+":"+pos+")"
-  override def getDescription = "in script "+scriptID+" at node "+pos
+  override def description = "in script "+scriptID+" at node "+pos
 }
 
 case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
   override def toString = "Init("+name+")"
-  override def getDescription = "at initialization of singleton "+name
+  override def description = "at initialization of singleton "+name
 }
 
 /**
@@ -523,7 +523,7 @@ object DeepeningProgramPoint {
 
 case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends ProgramPoint {
   override def toString = pp+"("+path.mkString(",")+")"
-  override def getDescription = pp+" at initialization path "+path.mkString(",")
+  override def description = pp+" at initialization path "+path.mkString(",")
 }
 
 class TouchType(

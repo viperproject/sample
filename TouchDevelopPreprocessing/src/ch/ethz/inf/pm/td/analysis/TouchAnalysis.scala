@@ -187,7 +187,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
             curState.getExpression
           } else {
             curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType])(curState,
-              if (TouchAnalysisParameters.fullAliasingInGenericInput) new DummyProgramPoint else v.programpoint)
+              if (TouchAnalysisParameters.fullAliasingInGenericInput) DummyProgramPoint else v.programpoint)
             curState.getExpression
           }
 
