@@ -7,15 +7,14 @@ import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
 /**
- * The representation of a functional domain, that is, a domain that is represented by a function whose
- * codomain is a lattice. The lattice operators are the functional extensions of the lattice operators of
+ * Domain that is represented by a function whose codomain is a lattice.
+ * The lattice operators are the functional extensions of the lattice operators of
  * the codomain.
  *
  * @tparam K The type of the keys
  * @tparam V The type of the codomain that has to be a lattice
  * @tparam T The type of the current functional domain
  * @author Pietro Ferrara, Lucas Brutschy
- * @since 0.1
  */
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   extends Lattice[T] { this: T =>
@@ -26,17 +25,20 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
 
   def value: Map[K, V]
 
-  override def factory():T = functionalFactory()
+  override def factory(): T = functionalFactory()
 
   /**
-   * Creates a new instance of the functional domain with the given contents
+   * Creates a new instance of the functional domain with the given contents.
    *
    * @param value The map of values, empty if bottom or top
    * @param isBottom Domain is bottom
    * @param isTop Domain is top for all keys
    * @return A fresh instance
    */
-  def functionalFactory(value:Map[K, V] = Map.empty[K, V],isBottom:Boolean = false,isTop:Boolean = false):T
+  def functionalFactory(
+      value: Map[K, V] = Map.empty[K, V],
+      isBottom: Boolean = false,
+      isTop: Boolean = false): T
 
   /**
    * Adds [key->value] to the domain 
@@ -60,7 +62,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   /**
    * Removes the key from the domain. 
    * @param key The key to be removed
-   * @return The state of the domain after the kays has been removed
+   * @return The state of the domain after the key has been removed
    */
   def remove(key: K): T = functionalFactory(value - key)
 
@@ -75,7 +77,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
     if (other.isBottom) return this
     if (isTop) return this
     if (other.isTop) return other
-    functionalFactory(upperBoundFunctionalLifting(this, other))
+    lift(other, _ ++ _, _ lub _)
   }
 
 
@@ -90,7 +92,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
     if (other.isBottom) return other
     if (isTop) return other
     if (other.isTop) return this
-    functionalFactory(lowerBoundFunctionalLifting(this,other))
+    lift(other, _ ++ _, _ glb _)
   }
 
   /**
@@ -104,7 +106,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
     if (other.isBottom) return this
     if (isTop) return this
     if (other.isTop) return other
-    functionalFactory(wideningFunctionalLifting(this, other))
+    lift(other, _ ++ _, _ widening _)
   }
 
   /**
@@ -114,7 +116,6 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
    * @return true iff this is less or equal than t
    */
   override def lessEqual(r: T): Boolean = {
-
     // Case we are bottom
     if (isBottom || r.isTop) return true
     if (r.isBottom || isTop) return false
@@ -155,46 +156,10 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
 
   def bottom(): T = functionalFactory(isBottom = true)
 
-  private def lowerBoundFunctionalLifting(f1: T, f2: T): Map[K, V] = {
-    var result: Map[K, V] = Map.empty[K, V]
-    for (el <- f1.value.keySet ++ f2.value.keySet) {
-      result = result + ((el, f1.get(el).glb(f2.get(el))))
-    }
-    result
-  }
-
-  private def wideningFunctionalLifting(f1: T, f2: T): Map[K, V] = {
-    var result: Map[K, V] = Map.empty[K, V]
-    for (el <- f1.value.keySet) {
-      f2.value.get(el) match {
-        case Some(x) => result = result + ((el, x.widening(f1.value.get(el).get)))
-        case None => result = result + ((el, f1.value.get(el).get))
-      }
-    }
-    for (el <- f2.value.keySet) {
-      f1.value.get(el) match {
-        case Some(x) =>
-        case None => result = result + ((el, f2.get(el)))
-      }
-    }
-    result
-  }
-
-  private def upperBoundFunctionalLifting(f1: T, f2: T): Map[K, V] = {
-    var result: Map[K, V] = Map.empty[K, V]
-    for (el <- f1.value.keySet) {
-      f2.value.get(el) match {
-        case Some(x) => result = result + ((el, x.lub(f1.value.get(el).get)))
-        case None => result = result + ((el, f1.value.get(el).get))
-      }
-    }
-    for (el <- f2.value.keySet) {
-      f1.value.get(el) match {
-        case Some(x) =>
-        case None => result = result + ((el, f2.get(el)))
-      }
-    }
-    result
+  private def lift(other: T, keySetFunc: (Set[K], Set[K]) => Set[K], valueFunc: (V, V) => V): T = {
+    val newValue = keySetFunc(value.keySet, other.value.keySet).map(k =>
+      k -> valueFunc(get(k), other.get(k))).toMap
+    functionalFactory(newValue)
   }
 }
 
