@@ -90,6 +90,26 @@ object Lattice {
     require(!elements.isEmpty, "there must be at least one element")
     elements.reduceLeft(_ widening _)
   }
+
+  /** Returns (over-approximation) of least fix point of function iterates  */
+  def lfp[S <: Lattice[S]](s: S, f: (S => S), wideningLimit: Int): S = {
+    var iteration = 1
+    var prev = s
+    var cur = prev.lub(f(prev))
+    while(!cur.lessEqual(prev)) {
+      prev = cur
+      iteration += 1
+      if(iteration > wideningLimit) {
+        if (iteration > wideningLimit + 10)
+          // TODO: Not very helpful. Remove?
+          System.err.println("Looks like we are not terminating here!")
+        cur = prev.widening(f(prev))
+      }
+      else cur = prev.lub(f(prev))
+    }
+
+    cur
+  }
 }
 
 /**

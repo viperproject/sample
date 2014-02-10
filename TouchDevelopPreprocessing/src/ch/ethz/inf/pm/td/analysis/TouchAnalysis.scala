@@ -199,7 +199,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
 
     // The first fixpoint, which is computed over several executions of the same script
     if ( ! TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode)
-      lfp(curState, analyzeExecution(compiler,methods)(_:S))
+      Lattice.lfp(curState, analyzeExecution(compiler,methods)(_:S), SystemParameters.wideningLimit)
     else
       analyzeExecution(compiler,methods)(curState)
 
@@ -253,7 +253,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
 
     // Compute the fixpoint over all events
     var result = if ( ! TouchAnalysisParameters.singleEventOccurrence ) {
-      lfp(exitState,analyzeEvents(compiler,methods)(_:S))
+      Lattice.lfp(exitState,analyzeEvents(compiler,methods)(_:S), SystemParameters.wideningLimit)
     } else {
       analyzeEvents(compiler,methods)(exitState)
     }
@@ -324,32 +324,6 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
     } else s
 
   }
-
-  /**
-   * Computes the least fix point for states
-   */
-  private def lfp[S <: State[S]](initialState:S,singleIteration:(S => S)):S = {
-
-    var iteration = 1
-    var prev = initialState
-    var cur = prev.lub(singleIteration(prev))
-    while(!cur.lessEqual(prev)) {
-      val a1 = prev
-      val a2 = cur
-      prev = a2
-      iteration=iteration+1
-      if(iteration > SystemParameters.wideningLimit) {
-        if (iteration > SystemParameters.wideningLimit + 10)
-          println("Looks like we are not terminating here!")
-        cur = prev.widening(singleIteration(prev))
-      }
-      else cur = prev.lub(singleIteration(prev))
-    }
-
-    cur
-
-  }
-
 }
 
 /**
