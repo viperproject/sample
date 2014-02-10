@@ -69,7 +69,7 @@ class PrefixDomain extends Lattice[PrefixDomain]
 }
 
 class Prefix
-  (val value:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
+  (val map:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[PrefixDomain, Prefix] with SimplifiedSemanticDomain[Prefix]
 {
 
@@ -82,7 +82,7 @@ class Prefix
    def createVariable(variable : Identifier, typ : Type) : Prefix = this;
    def removeVariable(variable : Identifier) : Prefix = this.remove(variable);
  
-   def get(variable : Identifier) = value.get(variable) match {
+   def get(variable : Identifier) = map.get(variable) match {
     case Some(x) => x;
     case None => new PrefixDomain().top();
    }

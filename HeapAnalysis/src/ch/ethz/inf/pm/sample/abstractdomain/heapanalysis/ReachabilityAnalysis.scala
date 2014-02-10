@@ -23,7 +23,7 @@ object ReachabilityAnalysis {
 
     val dom = new MaybeHeapIdSetDomain[I]()
 
-    var reachable = env.value.values.foldLeft(dom.asInstanceOf[HeapIdSetDomain[I]])(_.lub(_)).value
+    var reachable = env.map.values.foldLeft(dom.asInstanceOf[HeapIdSetDomain[I]])(_.lub(_)).value
     var toVisit = reachable
     while (!toVisit.isEmpty) {
       val cur = toVisit.head

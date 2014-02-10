@@ -17,7 +17,7 @@ case class InverseSetCharacters(
 }
 
 class SurelyContainedCharacters
-  (val value:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters], val isBottom:Boolean = false, val isTop:Boolean = false)
+  (val map:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters], val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[InverseSetCharacters, SurelyContainedCharacters]
   with SimplifiedSemanticDomain[SurelyContainedCharacters] {
 
@@ -35,7 +35,7 @@ class SurelyContainedCharacters
    * def getStringOfId(id : Identifier) : String="";
    */
   
-  def get(variable : Identifier) = value.get(variable) match {
+  def get(variable : Identifier) = map.get(variable) match {
     case Some(x) => x;
     case None => new InverseSetCharacters().top();
   }

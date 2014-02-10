@@ -14,7 +14,7 @@ trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends Sim
  * @tparam T The type of the value domain
  */
 class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
-                                                          val value:Map[Identifier, T] = Map.empty[Identifier, T],
+                                                          val map:Map[Identifier, T] = Map.empty[Identifier, T],
                                                           val isBottom:Boolean = false,
                                                           val isTop:Boolean = false)
   extends BoxedDomain[T,NonrelationalStringDomain[T]]
@@ -25,7 +25,7 @@ class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
                         _isTop:Boolean = false) : NonrelationalStringDomain[T] =
     new NonrelationalStringDomain[T](dom,_value,_isBottom,_isTop)
 
-  def get(key : Identifier) : T = value.get(key) match {
+  def get(key : Identifier) : T = map.get(key) match {
     case None => dom.bottom()
     case Some(x) => x
   }

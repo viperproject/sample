@@ -103,7 +103,7 @@ case class TupleIdSetDomain[I <: HeapIdentifier[I]](
 }
 
 class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
-                                                   val value:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
+                                                   val map:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
                                                    val isBottom:Boolean = false,
                                                    val isTop:Boolean = false)
   extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]]
@@ -117,8 +117,8 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
   def getIds = this.getAddresses;
 
   private def getAddresses : Set[I] = {
-    var result : Set[I] = Set.empty[I] ++ value.keySet;
-    val it : Iterator[HeapIdSetDomain[I]] = value.values.iterator;
+    var result : Set[I] = Set.empty[I] ++ map.keySet;
+    val it : Iterator[HeapIdSetDomain[I]] = map.values.iterator;
     for(v <- it) {
       result++=v.value;
     }
@@ -261,14 +261,14 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
 
   override def wideningWithReplacement(other: HeapEnv[I]): (HeapEnv[I], Replacement) = lubWithReplacement(other)
 
-  def get(key : I) : HeapIdSetDomain[I] = this.value.get(key) match {
+  def get(key : I) : HeapIdSetDomain[I] = this.map.get(key) match {
     case None => dom.bottom(); //TODO: This is not sound!!!
     case Some(x) => x
   }
 
   def merge(rep:Replacement):HeapEnv[I] = {
 
-    var curVal = value
+    var curVal = map
 
     // handle keys
     for ( (froms,tos) <- rep.value ) {
@@ -302,7 +302,7 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
 }
 
 class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
-                                                       val value:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
+                                                       val map:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
                                                        val isBottom:Boolean = false,
                                                        val isTop: Boolean = false)
     extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]]
@@ -315,10 +315,10 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
 
   def getIds : Set[Identifier] = (this.getVariables++this.getAddresses)
 
-  private def getVariables=value.keySet;
+  private def getVariables=map.keySet;
   private def getAddresses : Set[I]={
     var result : Set[I] = Set.empty[I];
-    val it : Iterator[HeapIdSetDomain[I]] = value.values.iterator;
+    val it : Iterator[HeapIdSetDomain[I]] = map.values.iterator;
     for(v <- it) {
       result++=v.value;
     }
@@ -408,14 +408,14 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
 
   override def wideningWithReplacement(other : VariableEnv[I]):(VariableEnv[I],Replacement) = lubWithReplacement(other)
 
-  def get(key : VariableIdentifier) : HeapIdSetDomain[I] = this.value.get(key) match {
+  def get(key : VariableIdentifier) : HeapIdSetDomain[I] = this.map.get(key) match {
     case None => dom.bottom(); //TODO: This is not sound!!!
     case Some(x) => x
   }
 
   def merge(rep:Replacement):VariableEnv[I] = {
 
-    var curVal = value
+    var curVal = map
 
     // handle keys
     for ( (froms,tos) <- rep.value ) {
@@ -583,7 +583,7 @@ trait AbstractNonRelationalHeapDomain[
     case x : HeapIdSetDomain[I] => this.get(x).toString
   }
 
-  def get(key : VariableIdentifier) : HeapIdSetDomain[I] = this._1.value.get(key) match {
+  def get(key : VariableIdentifier) : HeapIdSetDomain[I] = this._1.map.get(key) match {
     case None => cod.top()
     case Some(x) => x
   }
@@ -591,7 +591,7 @@ trait AbstractNonRelationalHeapDomain[
   def get(key : HeapIdSetDomain[I]) : HeapIdSetDomain[I] = {
     var result = cod.bottom()
     for(addr <- key.value)
-      this._2.value.get(addr) match {
+      this._2.map.get(addr) match {
         case None => return cod.top()
         case Some(x) => result=result.lub(x)
       }
@@ -926,7 +926,7 @@ trait AbstractNonRelationalHeapDomain[
     val visitedTwice = mutable.HashSet.empty[I] // We keep this to detect loops
     var toVisit = List.empty[I]
     var toExcludeVisit = List.empty[I]
-    for (curs <- env.value.values) toVisit = toVisit ::: curs.value.toList
+    for (curs <- env.map.values) toVisit = toVisit ::: curs.value.toList
     while (!toVisit.isEmpty) {
       val cur = toVisit.head
 

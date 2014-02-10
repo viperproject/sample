@@ -417,7 +417,7 @@ class SymbolicLevelPermission() extends Lattice[SymbolicLevelPermission] with Le
   
 }
 
-class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:Map[Identifier, SymbolicLevelPermission] = Map.empty[Identifier, SymbolicLevelPermission],
+class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val map:Map[Identifier, SymbolicLevelPermission] = Map.empty[Identifier, SymbolicLevelPermission],
                                                                       val isBottom:Boolean = false,
                                                                       val isTop:Boolean = false)
   extends BoxedDomain[SymbolicLevelPermission, SymbolicPermissionsDomain[I]]
@@ -428,7 +428,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:
                         _isTop:Boolean = false) : SymbolicPermissionsDomain[I] =
     new SymbolicPermissionsDomain[I](_value,_isBottom,_isTop)
 
-  def keys() = value.keySet;
+  def keys() = map.keySet;
   
   def getAddresses() : Set[I] = {
     var result : Set[I] = Set.empty[I];
@@ -489,13 +489,13 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val value:
   
   //private def exhale(id : Identifier, p : SymbolicLevelPermission) : SymbolicPermissionsDomain[I] = this.add(id, this.get(id)--p)
   
-  def get(variable : Identifier) : SymbolicLevelPermission = this.value.get(variable) match {
+  def get(variable : Identifier) : SymbolicLevelPermission = this.map.get(variable) match {
     case Some(x) => x;
     case None => 
       if(variable.isInstanceOf[HeapIdSetDomain[I]]) {
 	      var result = new SymbolicLevelPermission().bottom();
 	      for(id <- variable.asInstanceOf[HeapIdSetDomain[I]].value)
-	        this.value.get(id) match {
+	        this.map.get(id) match {
 	          case Some(y) => result=result.lub(y);
 	          case None => return new SymbolicLevelPermission().top();
 	          }

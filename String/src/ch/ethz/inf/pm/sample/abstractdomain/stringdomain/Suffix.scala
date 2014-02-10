@@ -73,7 +73,7 @@ class SuffixDomain extends Lattice[SuffixDomain]
 }
 
 class Suffix
-  (val value: Map[Identifier, SuffixDomain] = Map.empty[Identifier, SuffixDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
+  (val map: Map[Identifier, SuffixDomain] = Map.empty[Identifier, SuffixDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[SuffixDomain, Suffix] with SimplifiedSemanticDomain[Suffix]
 {
 
@@ -86,7 +86,7 @@ class Suffix
    def createVariable(variable : Identifier, typ : Type) : Suffix = this;
    def removeVariable(variable : Identifier) : Suffix = this.remove(variable);
  
-   def get(variable : Identifier) = value.get(variable) match {
+   def get(variable : Identifier) = map.get(variable) match {
     case Some(x) => x;
     case None => new SuffixDomain().top();
    }

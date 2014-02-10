@@ -17,7 +17,7 @@ case class SetCharacters(
 }
 
 class MaybeContainedCharacters
-  (val value:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters], val isBottom:Boolean = false, val isTop:Boolean = false)
+  (val map:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters], val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[SetCharacters, MaybeContainedCharacters]
   with SimplifiedSemanticDomain[MaybeContainedCharacters] {
 
@@ -35,7 +35,7 @@ class MaybeContainedCharacters
    * def getStringOfId(id : Identifier) : String="";
    */
   
-  def get(variable : Identifier) = value.get(variable) match {
+  def get(variable : Identifier) = map.get(variable) match {
     case Some(x) => x;
     case None => new SetCharacters().top();
   }

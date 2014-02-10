@@ -182,7 +182,7 @@ object ConstraintsInference {
   def addPostconditionConstraints(s : State, className : Type, methodName : String) : Unit = this.addPostconditionConstraints(s._1._1, className.name, methodName, s._1._2._1, s._1._2._2);
   
   def addPostconditionConstraints(p : Permissions, classe : String, method : String, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) = {
-    for(variable <- p.value.keySet) {
+    for(variable <- p.map.keySet) {
       val expr = this.convert(p.get(variable));
       
       //I removed this check because in this way I avoid to consider local variables
@@ -487,7 +487,7 @@ object ConstraintsInference {
     val store =state._1._2._2
     
     var result : Map[Statement, Double]=Map.empty;
-    for(el <- ownedPermissions.value.keySet) 
+    for(el <- ownedPermissions.map.keySet)
       reach(el, environment, store) match {
         case Some( (x : Variable) :: Nil) => result=result+((x, this.symbolicPermissionToInt(ownedPermissions.get(el), substitution)));
         case Some(x) => 
@@ -574,10 +574,10 @@ object ConstraintsInference {
    * Given an heap identifier, it returns a field access that can be used to reach it
    */
   def reach1(id : ProgramPointHeapIdentifier, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier]) : Option[Statement]= {
-    for(k <- env.value.keySet)
+    for(k <- env.map.keySet)
       if(env.get(k).value.contains(id)) 
         return Some(new Variable(null, k));
-    for(k <- store.value.keySet)
+    for(k <- store.map.keySet)
       if(store.get(k).equals(id)) 
         k match {
           case x : SimpleProgramPointHeapIdentifier => 

@@ -23,30 +23,30 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
 
   def isTop: Boolean
 
-  def value: Map[K, V]
+  def map: Map[K, V]
 
   override def factory(): T = functionalFactory()
 
   /**
    * Creates a new instance of the functional domain with the given contents.
    *
-   * @param value The map of values, empty if bottom or top
+   * @param map The map of values, empty if bottom or top
    * @param isBottom Domain is bottom
    * @param isTop Domain is top for all keys
    * @return A fresh instance
    */
   def functionalFactory(
-      value: Map[K, V] = Map.empty[K, V],
+      map: Map[K, V] = Map.empty[K, V],
       isBottom: Boolean = false,
       isTop: Boolean = false): T
 
   /**
    * Adds [key->value] to the domain 
    * @param key The key
-   * @param v The value
+   * @param value The value
    * @return The state of the domain after the assignment
    */
-  def add(key: K, v: V): T = functionalFactory(value + ((key, v)))
+  def add(key: K, value: V): T = functionalFactory(map + ((key, value)))
 
   /**
    * Returns the value of key. It is not implemented since in some domains if the domain is not defined on the given
@@ -64,7 +64,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
    * @param key The key to be removed
    * @return The state of the domain after the key has been removed
    */
-  def remove(key: K): T = functionalFactory(value - key)
+  def remove(key: K): T = functionalFactory(map - key)
 
   /**
    * Computes the upper bound between two states. It is defined by:
@@ -120,10 +120,10 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
     if (isBottom || r.isTop) return true
     if (r.isBottom || isTop) return false
 
-    for (variable <- value.keySet)
+    for (variable <- map.keySet)
       if (!get(variable).lessEqual(r.get(variable)))
         return false
-    for (variable <- r.value.keySet)
+    for (variable <- r.map.keySet)
       if (!get(variable).lessEqual(r.get(variable)))
         return false
 
@@ -136,9 +136,9 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
       if (isBottom || right.isBottom) return false
       if (isTop && right.isTop) return true
       if (isTop || right.isTop) return false
-      if (value.keySet.equals(right.value.keySet)) {
-        for (variable <- value.keySet)
-          if (!value.get(variable).get.equals(right.value.get(variable).get))
+      if (map.keySet.equals(right.map.keySet)) {
+        for (variable <- map.keySet)
+          if (!map.get(variable).get.equals(right.map.get(variable).get))
             return false
         true
       }
@@ -149,7 +149,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   override def toString: String = {
     if (isBottom) "⊥"
     else if (isTop) "⊤"
-    else ToStringUtilities.mapToString(value)
+    else ToStringUtilities.mapToString(map)
   }
 
   def top(): T = functionalFactory(isTop = true)
@@ -157,9 +157,9 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   def bottom(): T = functionalFactory(isBottom = true)
 
   private def lift(other: T, keySetFunc: (Set[K], Set[K]) => Set[K], valueFunc: (V, V) => V): T = {
-    val newValue = keySetFunc(value.keySet, other.value.keySet).map(k =>
+    val newMap = keySetFunc(map.keySet, other.map.keySet).map(k =>
       k -> valueFunc(get(k), other.get(k))).toMap
-    functionalFactory(newValue)
+    functionalFactory(newMap)
   }
 }
 
@@ -172,13 +172,13 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   *                     the top or bottom element of the value domain)
   */
 case class DefaultFunctionalDomain[K, V <: Lattice[V]](
-    value: Map[K, V] = Map.empty[K, V],
+    map: Map[K, V] = Map.empty[K, V],
     isTop: Boolean = false,
     isBottom: Boolean = false,
     defaultValue: V)
   extends FunctionalDomain[K, V, DefaultFunctionalDomain[K, V]] {
 
-  def get(key: K): V = value.getOrElse(key, defaultValue)
+  def get(key: K): V = map.getOrElse(key, defaultValue)
 
   def functionalFactory(
       value: Map[K, V],
@@ -223,14 +223,14 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
   }
 
   private def merge(id: Identifier, v: V): T = {
-    if (this.value.keySet.contains(id))
+    if (this.map.keySet.contains(id))
       this.add(id, v.lub(this.get(id)))
     else this.add(id, v)
   }
 
   def getStringOfId(id: Identifier): String = this.get(id).toString
 
-  def getIds = value.keySet
+  def getIds = map.keySet
 
 }
 

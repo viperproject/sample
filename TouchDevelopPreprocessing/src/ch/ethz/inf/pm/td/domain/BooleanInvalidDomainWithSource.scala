@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.td.domain.PositionedInvalidValueDomain._
  * Time: 10:50 AM
  * 
  */
-class BooleanInvalidDomainWithSource (val value:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
+class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
                                       val isBottom:Boolean = false,
                                       val isTop:Boolean = false)
   extends BoxedDomain[PositionedInvalidValueDomain,BooleanInvalidDomainWithSource]
@@ -24,7 +24,7 @@ class BooleanInvalidDomainWithSource (val value:Map[Identifier, PositionedInvali
                         _isTop:Boolean = false) : BooleanInvalidDomainWithSource =
     new BooleanInvalidDomainWithSource(_value,_isBottom,_isTop)
 
-  def get(key : Identifier) : PositionedInvalidValueDomain = value.get(key) match {
+  def get(key : Identifier) : PositionedInvalidValueDomain = map.get(key) match {
     case None => domBottom
     case Some(x) => x
   }
@@ -152,7 +152,7 @@ class BooleanInvalidDomainWithSource (val value:Map[Identifier, PositionedInvali
   override def toString:String = {
     if (isBottom) return "⊥"
     var result : String = ""
-    value.foreach { case (k,v) =>
+    map.foreach { case (k,v) =>
       if(v.canBeInvalid)
         if(v.canBeValid)
           result += k.toString+" may be invalid\n"

@@ -129,7 +129,7 @@ object TouchApronRun {
     val stringAnd = state._1._1
     val invalidAnd = stringAnd._1
     val invalidDomain = invalidAnd._2
-    invalidDomain.value
+    invalidDomain.map
   }
 
 
