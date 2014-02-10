@@ -222,7 +222,7 @@ case class AbstractState[
 
   def factory(a:HeapAndAnotherDomain[N, H, I],b:ExpressionSet) = new AbstractState(a,b)
   override def bottom() = new AbstractState(this._1.bottom(), this._2.bottom())
-  def isBottom : Boolean = this._1.lessEqual(this._1.bottom()) || this._2.lessEqual(this._2.bottom())
+  override def isBottom : Boolean = this._1.lessEqual(this._1.bottom()) || this._2.lessEqual(this._2.bottom())
   def getStringOfId(id : Identifier) : String = this._1.getStringOfId(id)
   def getState = this._1
 

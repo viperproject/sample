@@ -112,6 +112,10 @@ object Lattice {
   }
 }
 
+trait LatticeHelpers[T <: Lattice[T]] extends Lattice[T] { self: T =>
+  def isBottom: Boolean = lessEqual(bottom())
+}
+
 /**
  * The representation of a state of our analysis.
  * Two main components can be distinguished:
@@ -125,7 +129,7 @@ object Lattice {
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait State[S <: State[S]] extends Lattice[S] { this: S =>
+trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =>
 
   /**
    * Signals that we are going to analyze the statement at program point pp
