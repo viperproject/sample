@@ -107,6 +107,8 @@ class ScriptQuery extends IteratorOverPrograms {
    */
   protected def searchOptions:List[String] = List("count=999")
 
+  private var count:Int = 0
+  private var limit:Option[Int] = None
   private var continuation:String = null
   private var hasMore = true
   private var scripts: List[ScriptRecord] = Nil
@@ -116,20 +118,27 @@ class ScriptQuery extends IteratorOverPrograms {
     override val typeHints = DowncasedTypeHints(List(classOf[ScriptRecord]))
   }
 
+  def setLimit(a:Int) {limit = Some(a)}
+
   def reset() {
     continuation = null
     hasMore = true
     scripts = Nil
+    count = 0
+    limit = None
   }
 
   def get():ScriptRecord = {
-    scripts match {
+    if (limit.isDefined && limit.get <= count) throw new NoMoreScriptsException
+    val res = scripts match {
       case head :: tail => { scripts = tail; head }
       case Nil => if (hasMore) {prepareMore(); get()} else throw new NoMoreScriptsException
     }
+    count += 1
+    res
   }
 
-  override def hasNext()=hasMore
+  override def hasNext()= (hasMore && (!limit.isDefined || limit.get > count))
 
   override def next() : ScriptRecord = {
     this.get()
@@ -157,7 +166,7 @@ class ScriptQuery extends IteratorOverPrograms {
 
   }
 
-  override def label = "TouchDevelop scripts"
+  override def label = "scripts"+(limit match {case Some(x) => ",limit"+x; case None => ""})
 
 
 }
@@ -169,7 +178,7 @@ trait ErrorFilter extends ScriptQuery {
 
 trait HiddenFilter extends ScriptQuery {
   override def filter(s:ScriptRecord) = super.filter(s) && !s.ishidden
-  override def label = super.label + ",no-errors"
+  override def label = super.label + ",no-hidden"
 }
 
 trait LibraryFilter extends ScriptQuery {
