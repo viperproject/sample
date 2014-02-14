@@ -1,0 +1,7 @@
+// Issue #11: Assignment of null to variable fails
+
+var next: Ref
+
+method assignNull() returns (other: Ref) {
+    other := null
+}

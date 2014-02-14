@@ -1,0 +1,6 @@
+// Issue #9: Non-aliasing always assumed on method parameters
+
+method aliasingPossible(a: Ref, b: Ref) {
+    //:: ExpectedOutput(sample.assert.failed)
+    assert(a != b)
+}

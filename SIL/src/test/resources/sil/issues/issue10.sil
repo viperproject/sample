@@ -1,0 +1,8 @@
+// Issue #10: assignField does not support AccessPathExpressions as RHS
+
+var val: Int
+
+method copy(this: Ref) returns (other: Ref) {
+    other := new()
+    other.val := this.val
+}

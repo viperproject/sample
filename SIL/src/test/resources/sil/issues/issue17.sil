@@ -1,0 +1,17 @@
+// Issue #17 Assume non-nullness when accessing an AccessPathExpression
+
+var b: Ref
+var c: Ref
+var val: Int
+
+method issue(a: Ref) {
+    a.b.c.val := 5
+    assert(a != null)
+    assert(a.b != null)
+}
+
+method issue2(a: Ref) {
+    var localVal: Int
+    localVal := a.b.val
+    assert(a.b != null)
+}

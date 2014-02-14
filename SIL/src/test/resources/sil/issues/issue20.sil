@@ -1,0 +1,10 @@
+// Issue #20: Access path identifiers in edge states cause renaming failure
+
+var val: Int
+
+method issue(this: Ref) {
+    var oldThisVal: Int
+    var oldThisVal2: Int
+    oldThisVal := this.val
+    oldThisVal2 := this.val // Must not fail
+}

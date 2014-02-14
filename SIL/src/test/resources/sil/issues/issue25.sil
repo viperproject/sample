@@ -1,0 +1,10 @@
+// Issue #25: Conditional heap sub-graphs are not pruned before joining
+
+var val: Int
+var next: Ref
+
+method issue(this: Ref) {
+    if (this.next != this) {
+        assert (this.next != this)
+    }
+}

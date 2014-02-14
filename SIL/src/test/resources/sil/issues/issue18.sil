@@ -1,0 +1,7 @@
+// Issue #18: Assigning null to a variable that could already be null fails
+
+method issue() {
+    var x: Ref
+    x := null
+    assert (x == null)
+}

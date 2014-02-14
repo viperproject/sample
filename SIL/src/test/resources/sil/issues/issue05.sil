@@ -1,0 +1,8 @@
+// Issue #5: Attempted cast of NullVertex to HeapVertex in assign
+
+var val: Int
+var next: Ref
+
+method issue(this: Ref) {
+    this.next.val := 2
+}

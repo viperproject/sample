@@ -1,0 +1,20 @@
+// Issue #21: Local object variables are initialized to null (unsound)
+
+method issue(param: Ref) {
+    var a: Ref
+    var b: Ref
+    if (a == b) {
+        //:: UnexpectedOutput(sample.assert.failed, /sample/issue/21/)
+        assert(false)
+    }
+
+    if (a != b) {
+        //:: MissingOutput(sample.assert.failed, /sample/issue/21/)
+        assert(false)
+    }
+
+    if (a == param) {
+        // Uninitialized local reference variable cannot be equal to parameter
+        assert(false)
+    }
+}
