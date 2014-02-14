@@ -15,7 +15,7 @@ case class PreciseValueDrivenHeapState[S <: SemanticDomain[S]](
     generalValState: SemanticAndGhostCartesianProductDomain[S],
     expr: ExpressionSet,
     isTop: Boolean = false,
-    isBottom: Boolean = false)
+    override val isBottom: Boolean = false)
   extends ValueDrivenHeapState[
     SemanticAndGhostCartesianProductDomain[S],
     PreciseValueDrivenHeapState[S]] {
