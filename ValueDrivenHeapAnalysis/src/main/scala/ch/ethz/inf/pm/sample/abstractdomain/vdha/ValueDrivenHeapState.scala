@@ -526,7 +526,7 @@ trait ValueDrivenHeapState[
     factory(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
   }
 
-  private def materializePath(pathToMaterialize : List[String]) : T = {
+  protected def materializePath(pathToMaterialize : List[String]) : T = {
     val edgesToAdd = mutable.Set.empty[EdgeWithState[S]]
     val edgesToRemove = mutable.Set.empty[EdgeWithState[S]]
     val repl = new Replacement(isPureExpanding = true)
