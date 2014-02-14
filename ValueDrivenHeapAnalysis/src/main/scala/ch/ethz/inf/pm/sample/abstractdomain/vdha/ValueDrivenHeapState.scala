@@ -12,7 +12,7 @@ case class DefaultValueDrivenHeapState[S <: SemanticDomain[S]](
     generalValState: S,
     expr: ExpressionSet,
     isTop: Boolean = false,
-    isBottom: Boolean = false)
+    override val isBottom: Boolean = false)
   extends ValueDrivenHeapState[S, DefaultValueDrivenHeapState[S]] {
 
   def factory(
@@ -39,7 +39,6 @@ trait ValueDrivenHeapState[
   val generalValState: S
   val expr: ExpressionSet
   val isTop: Boolean
-  val isBottom: Boolean
 
   require(!isTop || !isBottom, "cannot be top and bottom at the same time")
 
