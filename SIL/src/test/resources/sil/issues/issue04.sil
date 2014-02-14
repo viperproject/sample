@@ -1,0 +1,8 @@
+// Issue #4: Reference fields of method parameters are (wrongly) assumed to be null
+
+var next: Ref
+
+method issue(this: Ref) {
+    //:: ExpectedOutput(sample.assert.failed)
+    assert(this.next == null)
+}

@@ -1,0 +1,9 @@
+// Issue #16: "this" is not a keyword in SIL
+
+method issue(this: Ref) {
+    // Ensure that it is possible for 'this' to be null
+    if (this == null) {
+        //:: ExpectedOutput(sample.assert.failed)
+        assert(false)
+    }
+}

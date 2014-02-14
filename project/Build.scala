@@ -52,6 +52,10 @@ object SampleBuild extends Build {
     id = "sample-valuedriven-heap",
     base = file("ValueDrivenHeapAnalysis")) dependsOn(core, numerical, scalapreproc)
 
+  lazy val sil = Project(
+    id = "sample-sil",
+    base = file("SIL")) dependsOn(core, numerical, valuedrivenheap)
+
   lazy val gui = Project(
     id = "sample-gui",
     base = file("GUI")) dependsOn(core, numerical, heap,

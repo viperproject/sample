@@ -1,0 +1,51 @@
+// Issue #7: Assuming ReferenceComparisonExpression is not implemented yet
+
+var next: Ref
+
+method issue(this: Ref) {
+    assert(this.next == this.next)
+}
+
+// Only comparisons between null constants and variable identifiers
+method issueNull(param: Ref) {
+    var a: Ref
+    var b: Ref
+    var c: Ref
+
+    a := null
+    b := null
+    c := new()
+
+    assert(null == null)
+    assert(a == null)
+    assert(null == b)
+    assert(c != null)
+
+    if (param == null) {
+        assert(param == null)
+    } else {
+        assert(param != null)
+    }
+
+    //:: ExpectedOutput(sample.assert.failed)
+    assert(false)
+}
+
+// Comparisons between variable identifiers
+method issueVariables(x: Ref, y: Ref) {
+    var a: Ref
+    var b: Ref
+
+    a := new()
+    b := new()
+
+    assert(x == x)
+    assert(a != b)
+    assert(a != x)
+
+    a := b
+    assert(a == b)
+
+    //:: ExpectedOutput(sample.assert.failed)
+    assert(false)
+}

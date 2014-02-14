@@ -1,0 +1,37 @@
+// Issue #23: Null-edge states of argument variables contain identifiers
+// of nonexistent heap vertices
+
+var val: Int
+var ref: Ref
+
+method issue(a: Ref) {
+    var local: Ref
+    local := a
+    if (a == null) {
+        //:: UnexpectedOutput(sample.assert.failed, /sample/issue/23/)
+        assert(local == null)
+    }
+}
+
+method issue2(a: Ref, b: Ref) {
+    var local: Ref
+    local := b
+    if (a == null) {
+        //:: ExpectedOutput(sample.assert.failed)
+        assert(local == null)
+    }
+}
+
+
+method issue3(x: Ref, y: Ref) {
+    if (x == y) {
+        //:: UnexpectedOutput(sample.assert.failed, /sample/issue/23/)
+        assert(x == y)
+    } else {
+        //:: UnexpectedOutput(sample.assert.failed, /sample/issue/23/)
+        assert(x != y)
+    }
+
+    //:: ExpectedOutput(sample.assert.failed)
+    assert(false)
+}

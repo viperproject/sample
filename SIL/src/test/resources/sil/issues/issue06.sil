@@ -1,0 +1,9 @@
+// Issue #6: Utilities.negateExpression also called for non-boolean expressions
+
+method issue(i: Int, j: Int) returns (res: Int) {
+    if (i + 5 == j) {
+        res := 42
+    } else {
+        res := 43
+    }
+}

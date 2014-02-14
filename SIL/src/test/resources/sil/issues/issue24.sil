@@ -1,0 +1,19 @@
+// Issue #24: Imprecision in field assignment
+
+var val: Int
+
+method issue(a: Ref, b: Ref) {
+    var bVal: Int
+
+    bVal := b.val
+    a.val := bVal
+    assert(a.val == bVal)
+}
+
+method issueSymmetric(a: Ref, b: Ref) {
+    var aVal: Int
+
+    aVal := a.val
+    b.val := aVal
+    assert(b.val == aVal)
+}

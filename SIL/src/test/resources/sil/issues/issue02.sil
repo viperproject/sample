@@ -1,0 +1,16 @@
+// Issue #2: Assuming boolean constants and variables is not supported
+
+method test1() {
+    assert(true)
+}
+
+method test2() {
+    var b: Bool
+    b := true
+    assert(b)
+}
+
+method test3() {
+    //:: ExpectedOutput(sample.assert.failed)
+    assert(false)
+}

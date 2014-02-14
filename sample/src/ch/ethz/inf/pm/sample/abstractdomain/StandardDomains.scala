@@ -248,6 +248,8 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
  * @todo ideally, one should not allow access to `value` when the object is top
  */
 trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
+
+
   def value: Set[V]
 
   def isTop: Boolean

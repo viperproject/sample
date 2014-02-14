@@ -1,0 +1,8 @@
+// Issue #26: Crash when performing assignments on bottom state
+
+method issue() {
+    var i: Int
+    //:: ExpectedOutput(sample.assert.failed)
+    assert(false)
+    i := 10
+}

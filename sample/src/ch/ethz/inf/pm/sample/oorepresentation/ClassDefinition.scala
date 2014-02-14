@@ -4,48 +4,44 @@ package ch.ethz.inf.pm.sample.oorepresentation
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.util.Predef._
+import ch.ethz.inf.pm.sample.oorepresentation.MethodIdentifier
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import ch.ethz.inf.pm.sample.oorepresentation.Variable
+import ch.ethz.inf.pm.sample.AnalysisUnitContext
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
-/** 
- * A class element can be a method or a field
- * 
- * @author Pietro Ferrara
- * @version 0.1
- */
+/** Class element can be a method or a field. */
 trait ClassElements
 
-/** 
- * The identifier of a package
- * 
- * @author Pietro Ferrara
- * @version 0.1
- */
+/** The identifier of a package. */
 trait PackageIdentifier
 
-/** 
- * The identifier of a class
- * 
- * @author Pietro Ferrara
- * @version 0.1
- */
+/** Dummy package identifier. */
+object DummyPackageIdentifier extends PackageIdentifier
+
+/** The identifier of a class. */
 trait ClassIdentifier {
-	def getThisType() : Type;
+  def getThisType(): Type
 }
 
-/** 
- * The identifier of a method
- * 
- * @author Pietro Ferrara
- * @version 0.1
- */
+/** Dummy class identifier that just delegates to a type. */
+case class DummyClassIdentifier(typ: Type) extends ClassIdentifier {
+  def getThisType() = typ
+
+  override def toString: String = typ.name
+}
+
+/** The identifier of a method. */
 trait MethodIdentifier
 
-/** 
- * A modifier of a field, parameters or method (e.g. <code>static</code>, and <code>abstract</code>)
- * 
- * @author Pietro Ferrara
- * @version 0.1
- */
+/** Dummy method identifier that is just based on a string. */
+case class DummyMethodIdentifier(name: String) extends MethodIdentifier {
+  override def toString: String = name
+}
+
+/** A modifier of a field, parameters or method (e.g. static or abstract). */
 abstract class Modifier
+
 case object CovariantModifier extends Modifier
 case object ContravariantModifier extends Modifier
 case object PrivateModifier extends Modifier
@@ -62,6 +58,7 @@ case object FinalModifier extends Modifier
 case object TraitModifier extends Modifier
 case object ImplicitModifier extends Modifier
 case object StaticModifier extends Modifier
+case object PureModifier extends Modifier
 
 /** 
  * This class represents the declaration of a method.
@@ -298,7 +295,7 @@ trait NativeMethodSemantics {
 	   * @param thisExpr the expression representing the object on whom the method is called
 	   * @param operator the string of the called method
 	   * @param parameters the parameters of the called method
-	   * @param listparameters the list of type generics 
+	   * @param typeparameters the list of type generics
 	   * @param returnedtype the type of the returned value
 	   * @param state the abstract state in which the method call is evaluated
 	   * @return the abstract state obtained after the forward evaluation of the native method call, None if the semantics of the method call is not defined 
@@ -311,7 +308,7 @@ trait NativeMethodSemantics {
 	   * @param thisExpr the expression representing the object on whom the method is called
 	   * @param operator the string of the called method
 	   * @param parameters the parameters of the called method
-	   * @param listparameters the list of type generics
+	   * @param typeparameters the list of type generics
 	   * @param returnedtype the type of the returned value
 	   * @param programpoint the program point of the method call
 	   * @param state the abstract state in which the method call is evaluated
@@ -320,3 +317,14 @@ trait NativeMethodSemantics {
 	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] ;
 }
 
+/** Native method semantics without backward semantics. */
+trait ForwardNativeMethodSemantics extends NativeMethodSemantics {
+  def applyBackwardNativeSemantics[S <: State[S]](
+    thisExpr: ExpressionSet,
+    operator: String,
+    parameters: List[ExpressionSet],
+    typeParameters: List[Type],
+    returnType: Type,
+    programPoint: ProgramPoint,
+    state: S): Option[S] = None
+}

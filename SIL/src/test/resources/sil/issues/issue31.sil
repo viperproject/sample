@@ -1,0 +1,39 @@
+// Issue #31: Boolean variable assignment only supports constants and identifiers
+
+method issue() {
+    var this: Ref
+    var isNull: Bool
+
+    this := null
+    isNull := (this == null)
+
+    assert(isNull)
+}
+
+method issue2(this: Ref) {
+    var isNull: Bool
+
+    isNull := (this == null)
+
+    if (isNull) {
+        assert(this == null)
+    }
+
+    if (this == null) {
+        assert(isNull)
+    }
+}
+
+method issue3(this: Ref) {
+    var isNotNull: Bool
+
+    isNotNull := (this == null)
+
+    if (isNotNull) {
+        assert(this == null)
+    }
+
+    if (this == null) {
+        assert(isNotNull)
+    }
+}

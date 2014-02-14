@@ -4,6 +4,8 @@ scalaSource in Test <<= baseDirectory(_ / "test/scala")
 
 resourceDirectory in Test <<= baseDirectory(_ / "test/resources")
 
+unmanagedBase <<= baseDirectory(_ / "../SIL/lib")
+
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.1"
 
 libraryDependencies += "nu.validator.htmlparser" % "htmlparser" % "1.4"

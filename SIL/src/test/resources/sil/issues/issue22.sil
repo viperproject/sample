@@ -1,0 +1,12 @@
+// Issue #22: Infinite loop when analyzing program with loop
+
+var next: Ref
+
+method traverse(list: Ref) {
+    var cur: Ref
+    cur := list
+    // The analysis should terminate after a while
+    while (cur != null) {
+        cur := cur.next
+    }
+}
