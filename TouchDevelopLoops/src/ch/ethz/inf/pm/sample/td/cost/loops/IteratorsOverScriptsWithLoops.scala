@@ -1,48 +1,17 @@
 package ch.ethz.inf.pm.sample.td.cost.loops
 
-import ch.ethz.inf.pm.td.webapi.{RootScripts, ScriptListings, ScriptRecord}
+import ch.ethz.inf.pm.td.webapi.{ScriptQuery, ScriptRecord}
 import ch.ethz.inf.pm.sample.SystemParameters
 
-class RootScriptsWithLoops() extends RootScripts {
-  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= {
+trait LoopFilter extends ScriptQuery {
 
-    super.filter(s).filter( (t : ScriptRecord) => {
-      val compiler=new LoopCostCompiler();
-      SystemParameters.setCompiler(compiler);
-      compiler.compileFile(t.getCodeURL);
-      compiler.loops;
-    }
-    )
+  override def filter(s : ScriptRecord) : Boolean = {
+    val compiler=new LoopCostCompiler()
+    SystemParameters.setCompiler(compiler)
+    compiler.compileFile(s.getCodeURL)
+    super.filter(s) && compiler.loops
   }
 
+  override def label = label + ",loops"
 
-  override def getLabel() = "TouchDevelop root scripts with loops"
-}
-
-class RootSampleScriptsWithLoops extends RootScriptsWithLoops {
-  override protected val service = "pboj/scripts?"
-
-  override def getLabel() = "TouchDevelop root sample scripts with loops"
-}
-
-class TopRootScriptsWithLoops extends RootScriptsWithLoops {
-  override protected val service = "top-scripts?"
-
-  override def getLabel() = "TouchDevelop top root scripts with loops"
-}
-
-class ScriptsWithLoops() extends ScriptListings {
-  override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= {
-
-    super.filter(s).filter( (t : ScriptRecord) => {
-      val compiler=new LoopCostCompiler();
-      SystemParameters.setCompiler(compiler);
-      compiler.compileFile(t.getCodeURL);
-      compiler.loops;
-    }
-    )
-  }
-
-
-  override def getLabel() = "TouchDevelop scripts with loops"
 }

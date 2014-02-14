@@ -10,7 +10,6 @@ import java.sql.{ResultSet, Statement, DriverManager}
 import java.util.Date
 import java.io._
 import ch.ethz.inf.pm.td.webapi._
-import ch.ethz.inf.pm.sample.td.cost.loops.{ScriptsWithLoops, TopRootScriptsWithLoops, RootSampleScriptsWithLoops, RootScriptsWithLoops}
 import ch.ethz.inf.pm.sample.property.WarningProgramPoint
 import scala.Some
 import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
@@ -49,37 +48,27 @@ import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
 
 object Iterators {
 
-  val iterators = new Array[IteratorOverPrograms](15)
-  iterators(0) = new TopScripts
-  iterators(1) = new NewScripts
-  iterators(2) = new FeaturedScripts
-  iterators(3) = new RootScripts
-  iterators(4) = new SampleScript
-  iterators(5) = new RootScriptsWithLoops
-  iterators(6) = new RootSampleScriptsWithLoops
-  iterators(7) = new TopRootScriptsWithLoops
-  iterators(8) = new ScriptsWithLoops
-  iterators(9) = new ScriptListings
-  iterators(10) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/131101_R", "131101_R")
-  iterators(11) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/A_131101", "A_131101")
-  iterators(12) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/AA_131101", "AA_131101")
-  iterators(13) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101", "TOP_131101")
-  iterators(14) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101_NR", "TOP_131101_NR")
+  val allScripts = new ScriptQuery
+  val topScripts = new ScriptQuery with ErrorFilter with TopService
+  val newScripts = new ScriptQuery with ErrorFilter with NewService
+
+  val iterators = List(allScripts,topScripts,newScripts).toArray[IteratorOverPrograms]
 
 }
 
 object InterfaceTestRun {
 
-  val CONNECTION = "jdbc:mysql://127.0.0.1:3306/mydb"
-
-  private def getConnection = DriverManager.getConnection(CONNECTION, "root", "")
+  private def getConnection = DriverManager.getConnection(
+    System.getProperty("sql_connection","jdbc:mysql://127.0.0.1:3306/mydb"),
+    System.getProperty("sql_user","root"),
+    System.getProperty("sql_password","")
+  )
 
   private val c = getConnection
   private val stmt = c.createStatement()
 
   private var SampleHome = new BufferedReader(new InputStreamReader(Runtime.getRuntime().exec(Array[String]("sh", "-c", "echo ~")).getInputStream())).readLine() + "/Sample/"
   private var OutputDirectory = SampleHome
-
 
   def main(args: Array[String]): Unit = {
     println("version 01.11.13 [1]")
@@ -525,17 +514,17 @@ object InterfaceTestRun {
 
 
     var iterator: IteratorOverPrograms = null
-    println("Existing iterators:\n" + Iterators.iterators.map(c => c.getLabel()).mkString("\n"))
+    println("Existing iterators:\n" + Iterators.iterators.map(c => c.label).mkString("\n"))
     while (iterator == null) {
       println("Name of the iterator:")
       val input: String = readLine()
-      name2Object[IteratorOverPrograms](input, Iterators.iterators, p => p.getLabel()) match {
+      name2Object[IteratorOverPrograms](input, Iterators.iterators, p => p.label) match {
         case Some(i) => iterator = i
         case None => println("Unknown iterator, please try again")
       }
     }
 
-    val id = recordTestRun(compiler.getLabel(), analysis.getLabel(), heapanalysis.getLabel(), property.getLabel(), iterator.getLabel())
+    val id = recordTestRun(compiler.getLabel(), analysis.getLabel(), heapanalysis.getLabel(), property.getLabel(), iterator.label)
 
     for ((a, b) <- parameters)
       recordParameter("TestRunAnalysisParameters", a, b, id)
@@ -572,7 +561,7 @@ object InterfaceTestRun {
     while (iterator.hasNext) {
       var program: String = "<Program not compiled>"
       try {
-        program = iterator.next()
+        program = iterator.next().getCodeURL
         if (!program.isEmpty) {
           println("Adding program " + program)
           val idprogram = add2Programs(program, compiler)

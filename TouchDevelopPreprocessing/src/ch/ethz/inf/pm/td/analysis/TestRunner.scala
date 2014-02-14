@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.analysis
 
 import java.io.{FileFilter, File}
-import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, ScriptListings}
+import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, ScriptQuery}
 import ch.ethz.inf.pm.td.compiler.TouchException
 
 /**
@@ -20,7 +20,7 @@ object TestRunner {
     for (pubId <- pubIds) apply(pubId,func)
   }
 
-  def apply(scr:ScriptListings,num:Int,func:(String => Unit)) {
+  def apply(scr:ScriptQuery,num:Int,func:(String => Unit)) {
     try {
       for (i <- 1 to num) {
         val script = scr.get()

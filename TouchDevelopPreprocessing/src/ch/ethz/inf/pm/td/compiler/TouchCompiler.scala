@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import io.Source
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.typecheck.Typer
-import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptListings}
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptQuery}
 import ch.ethz.inf.pm.td.transform.LoopRewriter
 import ch.ethz.inf.pm.td.semantics._
 import scala.Some
@@ -61,15 +61,15 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   def retrieveScript(path:String): (Script,String) = {
     if (path.startsWith("http://"))
-      (ScriptCache.get(ScriptListings.pubIDfromURL(path)),ScriptListings.pubIDfromURL(path))
+      (ScriptCache.get(ScriptQuery.pubIDfromURL(path)),ScriptQuery.pubIDfromURL(path))
     else if (path.startsWith("https://"))
-      (ScriptCache.get(ScriptListings.pubIDfromURL(path)),ScriptListings.pubIDfromURL(path))
+      (ScriptCache.get(ScriptQuery.pubIDfromURL(path)),ScriptQuery.pubIDfromURL(path))
     else if (path.startsWith("td://"))
       (ScriptCache.get(path.substring(5)),path.substring(5))
     else if (path.toLowerCase.endsWith(".td"))
-      (ScriptParser(Source.fromFile(path).getLines().mkString("\n")),ScriptListings.pubIDfromFilename(path))
+      (ScriptParser(Source.fromFile(path).getLines().mkString("\n")),ScriptQuery.pubIDfromFilename(path))
     else if (path.toLowerCase.endsWith(".json"))
-      (WebASTImporter.convertFromString(Source.fromFile(path).getLines().mkString("\n")),ScriptListings.pubIDfromFilename(path))
+      (WebASTImporter.convertFromString(Source.fromFile(path).getLines().mkString("\n")),ScriptQuery.pubIDfromFilename(path))
     else throw TouchException("Unrecognized path "+path)
   }
 

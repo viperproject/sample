@@ -343,9 +343,9 @@ public class WindowApplication {
 
     public class ScriptFetcher implements ActionListener {
 
-        private ScriptListings scr;
+        private ScriptQuery scr;
 
-        public ScriptFetcher(ScriptListings scr) {
+        public ScriptFetcher(ScriptQuery scr) {
             this.scr = scr;
         }
 

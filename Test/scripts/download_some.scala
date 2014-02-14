@@ -19,7 +19,7 @@ TestRunner(new NonErroneousRootScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").
   if (dir.isDirectory || dir.mkdir()) {
     val p = new PrintWriter(new File(dir+"/"+id+".json"))
     try {
-      p.println(fetchFile(ScriptListings.webastURLfromPubID(id)))
+      p.println(fetchFile(ScriptQuery.webastURLfromPubID(id)))
       println("written")
     } finally { p.close() }
   } else { println("could not create dir") }
@@ -29,9 +29,9 @@ TestRunner(new NonErroneousRootScriptsBefore(new SimpleDateFormat("dd/MM/yyyy").
 
 
 
-class NonErroneousRootScriptsBefore(d:java.util.Date) extends ScriptListings {
+class NonErroneousRootScriptsBefore(d:java.util.Date) extends ScriptQuery {
 
-  override protected val service = "scripts?count=100&"
+  override protected val service = "scripts?"+ScriptQuery.searchOptions.mkString("&")
   override def getLabel() = "Root,NoError,Before"+new SimpleDateFormat("dd/MM/yyyy").format(d)
 
   override protected def filter(s : List[ScriptRecord]) : List[ScriptRecord]= {
