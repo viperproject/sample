@@ -6,7 +6,7 @@ object SampleBuild extends Build {
     id = "sample",
     base = file(".")) aggregate(core, heap, numerical, touchdevelop,
     scalapreproc, accessperm, partitioning, string, loops, tvla,
-    valuedrivenheap, gui, test)
+    valuedrivenheap, sil, gui, test)
 
   lazy val core = Project(
     id = "sample-core",
