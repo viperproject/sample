@@ -43,10 +43,16 @@ object TBoard {
   val field_is_landscape = new TouchField("is landscape",TBoolean.typName)
 
   /** [**dbg**] Read the current position of virtual joystick */
-  val field_joystick = new TouchField("joystick",TVector3.typName) // TODO: What is this and does it change?
+  val field_joystick = new TouchField("joystick", TVector3.typName)
 
   /** [**dbg**] joystick (default), wheel, balance, drag or swipe. */
   val field_joystick_profile = new TouchField("joystick profile",TVector3.typName)
+
+  /** PRIVATE HANDLER FIELDS */
+  val field_swipe_handler = new TouchField("swipe handler", TVector_Action.typName)
+  val field_tap_handler = new TouchField("tap handler", TPosition_Action.typName)
+  val field_touch_down_handler = new TouchField("touch down handler", TPosition_Action.typName)
+  val field_touch_up_handler = new TouchField("touch up handler", TPosition_Action.typName)
 
   /** String name of the type */
   val typName = "Board"
@@ -63,7 +69,11 @@ object TBoard {
     field_gravity_y,
     field_is_landscape,
     field_joystick,
-    field_joystick_profile
+    field_joystick_profile,
+    field_swipe_handler,
+    field_tap_handler,
+    field_touch_down_handler,
+    field_touch_up_handler
   ))
 
 }
@@ -78,7 +88,7 @@ class TBoard extends AMutable_Collection {
     /** add an action that fires for every display frame. */
     case "add on every frame" =>
        val List(perform) = parameters // Action
-       Skip
+      New[S](TEvent_Binding.typ)
 
     // Clears the background camera
     case "clear background camera" =>
@@ -90,6 +100,10 @@ class TBoard extends AMutable_Collection {
 
     // Clear all queued events related to this board
     case "clear events" =>
+      Skip
+
+    /** Stops and clears all the `every frame` timers */
+    case "clear every frame timers" =>
       Skip
 
     // Create an anchor sprite.
@@ -128,7 +142,7 @@ class TBoard extends AMutable_Collection {
         CheckInRangeInclusive[S](y_segment,0,Field[S](this0,TBoard.field_width)-y,"create obstacle","y_segment")
         CheckInRangeInclusive[S](elasticity,0,1,"create obstacle","elasticity")
       }
-      Skip
+      New[S](TObstacle.typ)
 
     // Create a new picture sprite.
     case "create picture" =>
@@ -158,11 +172,16 @@ class TBoard extends AMutable_Collection {
     // Create a spring between the two sprites.
     case "create spring" =>
       val List(sprite1, sprite2, stiffness) = parameters
-      Skip
+      New[S](TSpring.typ)
 
     // Create a new collection for sprites.
     case "create sprite set" =>
       New[S](TSprite_Set.typ)
+
+    /** Create a new sprite sheet. */
+    case "create sprite sheet" =>
+      val List(picture) = parameters // Picture
+      New[S](TSprite_Sheet.typ, initials = Map(TSprite_Sheet.field_picture -> picture))
 
     // Create a new text sprite.
     case "create text" =>
@@ -193,23 +212,27 @@ class TBoard extends AMutable_Collection {
 
     /** set the handler that is invoked when the board is swiped */
     case "on swipe" =>
-       val List(swiped) = parameters // Vector_Action
-       Skip
+      val List(swiped) = parameters // Vector_Action
+    val newState = AssignField[S](this0, TBoard.field_swipe_handler, swiped)
+      New[S](TEvent_Binding.typ)(newState, pp)
 
     /** set the handler that is invoked when the board is tapped */
     case "on tap" =>
-       val List(tapped) = parameters // Position_Action
-       Skip
+      val List(tapped) = parameters // Position_Action
+    val newState = AssignField[S](this0, TBoard.field_tap_handler, tapped)
+      New[S](TEvent_Binding.typ)(newState, pp)
 
     /** set the handler that is invoked when the board is touched */
     case "on touch down" =>
-       val List(touch_down) = parameters // Position_Action
-       Skip
+      val List(touch_down) = parameters // Position_Action
+    val newState = AssignField[S](this0, TBoard.field_touch_down_handler, touch_down)
+      New[S](TEvent_Binding.typ)(newState, pp)
 
     /** set the handler that is invoked when the board touch is released */
     case "on touch up" =>
-       val List(touch_up) = parameters // Position_Action
-       Skip
+      val List(touch_up) = parameters // Position_Action
+    val newState = AssignField[S](this0, TBoard.field_touch_up_handler, touch_up)
+      New[S](TEvent_Binding.typ)(newState, pp)
 
     // Sets the default friction for sprites to a fraction of speed loss between 0 and 1
     case "set friction" =>

@@ -31,13 +31,14 @@ object TypeList  {
     TVector_Action.typName -> new TVector_Action(),
     TWeb_Response_Action.typName -> new TWeb_Response_Action(),
     TMessage_Collection_Action.typName -> new TMessage_Collection_Action(),
+    SApp.typName -> new SApp(),
     TAppointment.typName -> new TAppointment(),
     TAppointment_Collection.typName -> new TAppointment_Collection(),
     SBazaar.typName -> new SBazaar(),
     SBits.typName -> new SBits(),
     TBluetooth_Device.typName -> new TBluetooth_Device(),
-    TBluetooth_Device_Collection.typName -> new TBluetooth_Device_Collection(),
     TBoard.typName -> new TBoard(),
+    TObstacle.typName -> new TObstacle(),
     TBoolean.typName -> new TBoolean(),
     SBox.typName -> new SBox(),
     TBuffer.typName -> new TBuffer(),
@@ -54,6 +55,7 @@ object TypeList  {
     TDevice.typName -> new TDevice(),
     TDevice_Collection.typName -> new TDevice_Collection(),
     TEnumerator.typName -> new TEnumerator(),
+    TEvent_Binding.typName -> new TEvent_Binding(),
     TForm_Builder.typName -> new TForm_Builder(),
     SHome.typName -> new SHome(),
     SInvalid.typName -> new SInvalid(),
@@ -65,6 +67,7 @@ object TypeList  {
     TLocation.typName -> new TLocation(),
     TLocation_Collection.typName -> new TLocation_Collection(),
     SLocations.typName -> new SLocations(),
+    TMap_Pushpin.typName -> new TMap_Pushpin(),
     TMap.typName -> new TMap(),
     SMaps.typName -> new SMaps(),
     SMath.typName -> new SMath(),
@@ -108,7 +111,9 @@ object TypeList  {
     TSound.typName -> new TSound(),
     TSpring.typName -> new TSpring(),
     TSprite.typName -> new TSprite(),
+    TSprite_Animation.typName -> new TSprite_Animation(),
     TSprite_Set.typName -> new TSprite_Set(),
+    TSprite_Sheet.typName -> new TSprite_Sheet(),
     TString.typName -> new TString(),
     TString_Collection.typName -> new TString_Collection(),
     TString_Map.typName -> new TString_Map(),
@@ -126,7 +131,13 @@ object TypeList  {
     TWeb_Request.typName -> new TWeb_Request(),
     TWeb_Response.typName -> new TWeb_Response(),
     TXml_Object.typName -> new TXml_Object(),
-    TUnknown.typName -> new TUnknown()
+    TUnknown.typName -> new TUnknown(),
+
+    GCollection.typName(TAction.typName) -> new GCollection(TAction.typName),
+    GCollection.typName(TUser.typName) -> new GCollection(TUser.typName),
+    GCollection.typName(TPicture.typName) -> new GCollection(TPicture.typName),
+    GCollection.typName(TSound.typName) -> new GCollection(TSound.typName),
+    GCollection.typName(TBluetooth_Device.typName) -> new GCollection(TBluetooth_Device.typName)
 
   )
 

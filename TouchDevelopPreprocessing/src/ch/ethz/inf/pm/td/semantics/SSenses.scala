@@ -37,12 +37,22 @@ object SSenses {
   val field_battery_level = new TouchField("battery level",TNumber.typName)
 
   /** Get the list of Bluetooth widgets paired with your device. */
-  val field_bluetooth_devices = new TouchField("bluetooth devices",TBluetooth_Device_Collection.typName)
+  val field_bluetooth_devices = new TouchField("bluetooth devices", GCollection.typName(TBluetooth_Device.typName))
+
+  /** PRIVATE HANDLER FIELDS */
+  val field_shake_handler = new TouchField("shake handler", TAction.typName)
+  val field_phone_face_up_handler = new TouchField("phone face up handler", TAction.typName)
+  val field_phone_face_down_handler = new TouchField("phone face down handler", TAction.typName)
+  val field_phone_portrait = new TouchField("phone portrait handler", TAction.typName)
+  val field_phone_landscape_left = new TouchField("phone landscape left handler", TAction.typName)
+  val field_phone_langscape_right = new TouchField("phone landscape right handler", TAction.typName)
 
   val typName = "Senses"
   val typ = new TouchType(typName,isSingleton = true,
     fields = List(field_front_camera,field_camera,field_has_accelerometer,field_has_compass,field_has_front_camera,
-      field_has_gyroscope,field_bluetooth_devices,field_battery_level))
+      field_has_gyroscope, field_bluetooth_devices, field_battery_level, field_shake_handler, field_phone_face_up_handler,
+      field_phone_face_down_handler, field_phone_portrait, field_phone_landscape_left, field_phone_langscape_right
+    ))
 
 }
 
@@ -129,6 +139,42 @@ class SSenses extends AAny {
         }
       )
 
+
+    /** Attaches a handler to the `phone face down` event. */
+    case "on phone face down" =>
+      val List(handler) = parameters // Action
+    val newState = AssignField[S](this0, SSenses.field_phone_face_down_handler, handler)
+      New[S](TEvent_Binding.typ)(newState, pp)
+
+    /** Attaches a handler to the `phone face up` event. */
+    case "on phone face up" =>
+      val List(handler) = parameters // Action
+    val newState = AssignField[S](this0, SSenses.field_phone_face_up_handler, handler)
+      New[S](TEvent_Binding.typ)(newState, pp)
+
+    /** Attaches a handler to the `phone landscape left` event. */
+    case "on phone landscape left" =>
+      val List(handler) = parameters // Action
+    val newState = AssignField[S](this0, SSenses.field_phone_landscape_left, handler)
+      New[S](TEvent_Binding.typ)(newState, pp)
+
+    /** Attaches a handler to the `phone landscape right` event. */
+    case "on phone landscape right" =>
+      val List(handler) = parameters // Action
+    val newState = AssignField[S](this0, SSenses.field_phone_langscape_right, handler)
+      New[S](TEvent_Binding.typ)(newState, pp)
+
+    /** Attaches a handler to the `phone portrait` event. */
+    case "on phone portrait" =>
+      val List(handler) = parameters // Action
+    val newState = AssignField[S](this0, SSenses.field_phone_portrait, handler)
+      New[S](TEvent_Binding.typ)(newState, pp)
+
+    /** Attaches a handler to the `shake` event. */
+    case "on shake" =>
+      val List(handler) = parameters // Action
+    val newState = AssignField[S](this0, SSenses.field_shake_handler, handler)
+      New[S](TEvent_Binding.typ)(newState, pp)
 
     /** Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */
     case "orientation" =>
