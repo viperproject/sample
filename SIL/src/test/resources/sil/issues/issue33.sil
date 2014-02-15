@@ -1,0 +1,5 @@
+// Issue #33: ApronInterface Does not support modulo operator
+
+method issue() {
+    assert (3 % 2 == 1)
+}

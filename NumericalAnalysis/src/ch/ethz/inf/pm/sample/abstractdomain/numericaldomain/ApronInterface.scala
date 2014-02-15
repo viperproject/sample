@@ -887,6 +887,7 @@ class ApronInterface(val state: Option[Abstract1],
     case ArithmeticOperator.- => Some(Texpr1BinNode.OP_SUB)
     case ArithmeticOperator./ => Some(Texpr1BinNode.OP_DIV)
     case ArithmeticOperator.* => Some(Texpr1BinNode.OP_MUL)
+    case ArithmeticOperator.% => Some(Texpr1BinNode.OP_MOD)
     case _ => None
   }
 
