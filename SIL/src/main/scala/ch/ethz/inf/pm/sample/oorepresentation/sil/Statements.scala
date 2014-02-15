@@ -141,11 +141,11 @@ trait ContractAwareMethodCall extends MethodCall {
 }
 
 class SilFunctionCall(
-                       override val pp: ProgramPoint,
-                       override val method: Statement,
-                       override val parametricTypes: List[Type],
-                       override val parameters: List[Statement],
-                       override val returnedType: Type)
+    override val pp: ProgramPoint,
+    override val method: Statement,
+    override val parametricTypes: List[Type],
+    override val parameters: List[Statement],
+    override val returnedType: Type)
   extends MethodCall(pp, method, parametricTypes, parameters, returnedType) with ContractAwareMethodCall {
 
   /**
@@ -159,11 +159,11 @@ class SilFunctionCall(
 }
 
 class SilMethodCall(
-                     override val pp: ProgramPoint,
-                     override val method: Statement,
-                     override val parametricTypes: List[Type],
-                     override val parameters: List[Statement],
-                     targets: List[Variable])
+    override val pp: ProgramPoint,
+    override val method: Statement,
+    override val parametricTypes: List[Type],
+    override val parameters: List[Statement],
+    targets: List[Variable])
   extends MethodCall(pp, method, parametricTypes, parameters, returnedType = null) with ContractAwareMethodCall {
 
   /**

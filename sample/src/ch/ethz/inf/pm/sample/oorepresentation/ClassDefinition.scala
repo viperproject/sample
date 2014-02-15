@@ -92,18 +92,18 @@ case object PureModifier extends Modifier
  * @version 0.1
  */
 class MethodDeclaration(
-                         val programpoint: ProgramPoint,
-                         val ownerType: Type,
-                         val modifiers: List[Modifier],
-                         val name: MethodIdentifier,
-                         val parametricType: List[Type],
-                         val arguments: List[List[VariableDeclaration]],
-                         val returnType: Type,
-                         val body: ControlFlowGraph,
-                         val precond: Statement,
-                         val postcond: Statement,
-                         val classDef: ClassDefinition
-                         ) extends ClassElements {
+    val programpoint: ProgramPoint,
+    val ownerType: Type,
+    val modifiers: List[Modifier],
+    val name: MethodIdentifier,
+    val parametricType: List[Type],
+    val arguments: List[List[VariableDeclaration]],
+    val returnType: Type,
+    val body: ControlFlowGraph,
+    val precond: Statement,
+    val postcond: Statement,
+    val classDef: ClassDefinition)
+  extends ClassElements {
 
   override def toString: String =
     "method " +
@@ -169,11 +169,11 @@ class MethodDeclaration(
  * @param right the expression assigned to the field when it is initialized
  */
 class FieldDeclaration(
-                        override val programpoint: ProgramPoint,
-                        val modifiers: List[Modifier],
-                        override val variable: Variable,
-                        override val typ: Type,
-                        override val right: Option[Statement] = None)
+    override val programpoint: ProgramPoint,
+    val modifiers: List[Modifier],
+    override val variable: Variable,
+    override val typ: Type,
+    override val right: Option[Statement] = None)
   extends VariableDeclaration(programpoint, variable, typ, right) with ClassElements {
 
   override def toString: String =
@@ -196,17 +196,16 @@ class FieldDeclaration(
  * @version 0.1
  */
 class ClassDefinition(
-                       val programpoint: ProgramPoint,
-                       val typ: Type,
-                       val modifiers: List[Modifier],
-                       val name: ClassIdentifier,
-                       val parametricTypes: List[Type],
-                       val extend: List[ClassIdentifier],
-                       var fields: List[FieldDeclaration],
-                       var methods: List[MethodDeclaration],
-                       val pack: PackageIdentifier,
-                       val inv: Expression
-                       ) {
+    val programpoint: ProgramPoint,
+    val typ: Type,
+    val modifiers: List[Modifier],
+    val name: ClassIdentifier,
+    val parametricTypes: List[Type],
+    val extend: List[ClassIdentifier],
+    var fields: List[FieldDeclaration],
+    var methods: List[MethodDeclaration],
+    val pack: PackageIdentifier,
+    val inv: Expression) {
   def addField(f: FieldDeclaration): Unit = fields = fields ::: f :: Nil
 
   def addMethod(m: MethodDeclaration): Unit = methods = methods ::: m :: Nil
@@ -335,11 +334,11 @@ trait NativeMethodSemantics {
 /** Native method semantics without backward semantics. */
 trait ForwardNativeMethodSemantics extends NativeMethodSemantics {
   def applyBackwardNativeSemantics[S <: State[S]](
-                                                   thisExpr: ExpressionSet,
-                                                   operator: String,
-                                                   parameters: List[ExpressionSet],
-                                                   typeParameters: List[Type],
-                                                   returnType: Type,
-                                                   programPoint: ProgramPoint,
-                                                   state: S): Option[S] = None
+      thisExpr: ExpressionSet,
+      operator: String,
+      parameters: List[ExpressionSet],
+      typeParameters: List[Type],
+      returnType: Type,
+      programPoint: ProgramPoint,
+      state: S): Option[S] = None
 }

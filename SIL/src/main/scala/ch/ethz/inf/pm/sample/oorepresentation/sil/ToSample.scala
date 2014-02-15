@@ -328,10 +328,10 @@ object DefaultSilConverter extends SilConverter {
     sample.Variable(go(pos), sample.VariableIdentifier(name, go(typ), go(pos)))
 
   private def makeNativeMethodCall(
-                                    pos: sil.Position,
-                                    name: String,
-                                    args: Seq[sil.Exp],
-                                    returnType: sample.Type): sample.Statement = {
+      pos: sil.Position,
+      name: String,
+      args: Seq[sil.Exp],
+      returnType: sample.Type): sample.Statement = {
     sample.MethodCall(go(pos),
       method = sample.FieldAccess(go(pos), go(args.head), name, null),
       parametricTypes = Nil,
