@@ -218,7 +218,10 @@ trait ValueDrivenHeapState[
             Seq(condHeap.map(state => {
               if (isCertainlyFalse) state.assign(variable, Constant("false", left.getType, normalRight.pp))
               else if (isCertainlyTrue) state.assign(variable, Constant("true", left.getType, normalRight.pp))
-              else state.setToTop(variable)
+              // When neither is certain, fall back to an assignment.
+              // The variable will be set to top unless the semantic domain
+              // can actually handle the right-hand side.
+              else state.assign(variable, right)
             }))
           }).join
         } else if (left.getType.isNumericalType) {
