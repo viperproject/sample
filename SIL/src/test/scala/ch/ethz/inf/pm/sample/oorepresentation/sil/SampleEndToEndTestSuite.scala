@@ -56,7 +56,7 @@ case class SampleAssertFailed(pos: Position) extends AbstractError {
 }
 
 class SampleEndToEndTestSuite extends SilSuite {
-  def testDirectories = Seq("sil/issues")
+  def testDirectories = Seq("sil/issues", "sil/translation")
 
   def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
     val fe = new SampleFrontend()

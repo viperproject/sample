@@ -1,0 +1,43 @@
+// Test semantics of while statement (simple cases)
+method test_no_iteration() {
+	var a: Int
+	a := 1
+	while (false) {
+		a := 2
+	}
+	assert (a == 1)
+}
+
+method test_one_iteration() {
+	var a: Int
+	var b: Bool
+	a := 1
+	b := true
+	while (b) {
+		a := 2
+		b := false
+	}
+
+	assert (a == 2)
+	assert (!b)
+
+    //:: ExpectedOutput(sample.assert.failed)
+	assert(false)
+}
+
+method test_one_or_two_iterations(b: Bool) {
+	var a: Int
+	var bLocal: Bool
+	a := 1
+	bLocal := b // Sample does not allow changes to values of formal parameters
+	while (bLocal) {
+		a := 2
+		bLocal := false
+	}
+
+	assert (a == 1 || a == 2)
+	assert (!bLocal)
+
+    //:: ExpectedOutput(sample.assert.failed)
+	assert(false)
+}

@@ -1,0 +1,12 @@
+// Test the assert statement
+method test() {
+	assert(true)
+
+	//:: ExpectedOutput(sample.assert.failed)
+	assert(false)
+}
+
+method test_unknown(b: Bool) {
+	//:: ExpectedOutput(sample.assert.failed)
+	assert(b)
+}

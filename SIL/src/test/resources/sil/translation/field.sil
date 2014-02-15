@@ -1,0 +1,24 @@
+// Test declaration and access of fields
+var val: Int
+var next: Ref
+
+method test_access(this: Ref)
+	requires (this != null)
+{
+	this.val := 2
+	assert (this.val == 2)
+}
+
+method test_unknown_value(this: Ref)
+	requires (this != null)
+{
+    //:: ExpectedOutput(sample.assert.failed)
+	assert (this.val == 2)
+}
+
+method test_nested_field(this: Ref)
+	requires (this != null)
+{
+	this.next.val := 2
+	assert (this.next.val == 2)
+}

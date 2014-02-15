@@ -1,0 +1,32 @@
+// Test the null literal
+var field: Ref
+
+method test_variables(flag: Bool) {
+	var a: Ref
+	var b: Ref
+
+	a := null
+	b := null
+	assert (null == null)
+	assert (a == null)
+	assert (null == a)
+	assert (a == b)
+
+	a := new()
+	assert (a != null)
+}
+
+method test_fields(this: Ref)
+	requires (this == null)
+{
+	var local: Ref
+
+	local := new()
+	this.field := local
+	assert (this.field != null)
+}
+
+method test_fields_of_params(this: Ref) {
+	//:: ExpectedOutput(sample.assert.failed)
+	assert (this.field == null)
+}

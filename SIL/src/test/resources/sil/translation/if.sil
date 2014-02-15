@@ -1,0 +1,46 @@
+// Test semantics of if statement
+method test_unknown_condition(b: Bool) {
+	var a: Int
+	if (b) {
+		a := 2
+	} else {
+		a := 1
+	}
+
+	assert (a == 1 || a == 2)
+}
+
+method test_always_true() {
+	var a: Int
+	if (true) {
+		a := 2
+	} else {
+		a := 1
+	}
+
+	assert (a == 2)
+}
+
+method test_always_false() {
+	var a: Int
+	if (false) {
+		a := 2
+	} else {
+		a := 1
+	}
+
+	assert (a == 1)
+}
+
+method test_elsif() {
+	var a: Int
+	if (false) {
+		a := 2
+	} elsif (true) {
+		a := 3
+	} else {
+		a := 1
+	}
+
+	assert (a == 3)
+}

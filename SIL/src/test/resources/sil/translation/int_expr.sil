@@ -1,0 +1,25 @@
+// Test arithmetic operators
+method test_ordering() {
+	assert (1 < 2);
+	assert (1 <= 2);
+	assert (2 > 1);
+	assert (2 >= 1);
+}
+
+method test_binary() {
+	assert (2 + 3 == 5)
+	assert (2 - 3 == -1)
+	assert (2 * 3 == 6)
+	assert (3 % 2 == 1)
+
+	// ApronInterface currently fails to verify the following assertion
+	// as it always operates on floating point values.
+	// This problem has a very low priority and thus no issue was created
+	//:: UnexpectedOutput(sample.assert.failed, /sample/issue/0/)
+	assert (3 \ 2 == 0)
+}
+
+method test_unary() {
+	assert (+1 == 1)
+	assert (-(-1) == 1)
+}

@@ -1,0 +1,21 @@
+// Test the semantics of the goto statement
+method test_simple_goto() {
+	var a: Int
+	a := 2
+	goto label
+	a := 3
+label:
+	assert (a == 2)
+}
+
+method test_goto_in_while() {
+	var a: Int
+	while (true) {
+		a := 2
+		goto exit
+		a := 3
+	}
+	a := 4
+exit:
+	assert(a == 2)
+}

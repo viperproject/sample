@@ -1,0 +1,19 @@
+// Test the semantics of conditional expressions
+method t1() {
+	var a: Int
+	var b: Int
+	var max: Int
+	var min: Int
+
+	a := 10
+	b := 20
+
+	max := (a < b) ? b : a
+	min := (a < b) ? a : b
+
+	assert (max == 20)
+	assert (min == 10)
+
+    //:: ExpectedOutput(sample.assert.failed)
+    assert(false)
+}

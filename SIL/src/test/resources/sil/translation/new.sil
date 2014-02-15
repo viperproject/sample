@@ -1,0 +1,8 @@
+// Test the creation of new objects
+method test_inequality() {
+	var a: Ref
+	var b: Ref
+	a := new()
+	b := new()
+	assert (a != b)
+}

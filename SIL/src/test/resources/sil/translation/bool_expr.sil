@@ -1,0 +1,71 @@
+// Test the semantics of operators with boolean operands
+method test_implication() {
+	assert (false ==> false)
+	assert (false ==> true)
+	assert (true ==> true)
+	assert (!(true ==> false))
+}
+
+method test_disjunction() {
+	assert (!(false || false))
+	assert (false || true)
+	assert (true || false)
+	assert (true || true)
+}
+
+method test_conjunction() {
+	assert (!(false && false))
+	assert (!(false && true))
+	assert (!(true && false))
+	assert (true && true)
+}
+
+method test_negation() {
+	assert (!false)
+}
+
+method test_equality() {
+	assert (true == true)
+	assert (false == false)
+	assert (!(false == true))
+}
+
+method test_inequality() {
+	assert (false != true)
+	assert (!(true != true))
+}
+
+method test_tertium_non_datur(b: Bool) {
+	assert (b || !b)
+	assert (b == true || b == false)
+}
+
+method test_relational(b: Bool) {
+  var bLocal: Bool
+  bLocal := b
+  if (bLocal) {
+    assert b
+  }
+}
+
+method test_implication2() {
+	var b: Bool
+	var a: Int
+	a := 10
+	b := true
+	if (b) {
+		a := 20
+	}
+	assert (a == 20)
+	assert (b ==> (a == 20))
+	assert (!b ==> (a == 129309))
+}
+
+method test_implication3(b: Bool) {
+	var a: Int
+	a := 10
+	if (b) {
+		a := 20
+	}
+	assert (b ==> (a == 20))
+}

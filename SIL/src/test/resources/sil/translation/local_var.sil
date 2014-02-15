@@ -1,0 +1,41 @@
+// Test declaration and access of local variables
+method test_not_initialized_int() {
+	var i: Int
+
+	//:: ExpectedOutput(sample.assert.failed)
+	assert (i == 0)
+}
+
+method test_not_initialized_bool() {
+	var b: Bool
+
+	//:: ExpectedOutput(sample.assert.failed)
+	assert (!b)
+}
+
+method test_not_initialized_ref() {
+    var r: Ref
+
+    //:: MissingOutput(sample.assert.failed, /sample/issue/21/)
+    assert (r == null)
+}
+
+method test_read_write() {
+	var i: Int
+	var b: Bool
+	var r: Ref
+
+	i := 0
+	b := false
+	r := null
+
+	assert (i == 0)
+	assert (!b)
+	assert (r == null)
+}
+
+method test_this_variable() {
+	var this: Int
+	this := 1
+	assert (this == 1)
+}

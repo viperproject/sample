@@ -1,0 +1,17 @@
+// Test referential equality and inequality
+method test_certain_equality(this: Ref) {
+	assert (this == this)
+}
+
+method test_possible_aliasing(this: Ref, other: Ref) {
+	//:: ExpectedOutput(sample.assert.failed)
+	assert (this == other)
+}
+
+method test_certain_inequality() {
+	var a: Ref
+	var b: Ref
+	a := new()
+	b := new()
+	assert (a != b)
+}
