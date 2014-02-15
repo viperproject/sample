@@ -8,19 +8,19 @@ import scala.collection.mutable
 
 /** Default implementation of `ValueDrivenHeapState`. */
 case class DefaultValueDrivenHeapState[S <: SemanticDomain[S]](
-                                                                abstractHeap: HeapGraph[S],
-                                                                generalValState: S,
-                                                                expr: ExpressionSet,
-                                                                isTop: Boolean = false,
-                                                                override val isBottom: Boolean = false)
+    abstractHeap: HeapGraph[S],
+    generalValState: S,
+    expr: ExpressionSet,
+    isTop: Boolean = false,
+    override val isBottom: Boolean = false)
   extends ValueDrivenHeapState[S, DefaultValueDrivenHeapState[S]] {
 
   def factory(
-               abstractHeap: HeapGraph[S] = abstractHeap,
-               generalValState: S = generalValState,
-               expr: ExpressionSet = expr,
-               isTop: Boolean = isTop,
-               isBottom: Boolean = isBottom): DefaultValueDrivenHeapState[S] = {
+      abstractHeap: HeapGraph[S] = abstractHeap,
+      generalValState: S = generalValState,
+      expr: ExpressionSet = expr,
+      isTop: Boolean = isTop,
+      isBottom: Boolean = isBottom): DefaultValueDrivenHeapState[S] = {
     DefaultValueDrivenHeapState(
       abstractHeap,
       generalValState,
@@ -31,10 +31,9 @@ case class DefaultValueDrivenHeapState[S <: SemanticDomain[S]](
 }
 
 trait ValueDrivenHeapState[
-S <: SemanticDomain[S],
-T <: ValueDrivenHeapState[S, T]]
-  extends SimpleState[T] {
-  self: T =>
+    S <: SemanticDomain[S],
+    T <: ValueDrivenHeapState[S, T]]
+  extends SimpleState[T] with StateWithCollectionStubs[T] { self: T =>
 
   val abstractHeap: HeapGraph[S]
   val generalValState: S
@@ -49,11 +48,11 @@ T <: ValueDrivenHeapState[S, T]]
     * for every argument not provided by the caller.
     */
   def factory(
-               abstractHeap: HeapGraph[S] = abstractHeap,
-               generalValState: S = generalValState,
-               expr: ExpressionSet = expr,
-               isTop: Boolean = isTop,
-               isBottom: Boolean = isBottom): T
+    abstractHeap: HeapGraph[S] = abstractHeap,
+    generalValState: S = generalValState,
+    expr: ExpressionSet = expr,
+    isTop: Boolean = isTop,
+    isBottom: Boolean = isBottom): T
 
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     if (variable.getType.isObject) {
@@ -388,9 +387,9 @@ T <: ValueDrivenHeapState[S, T]]
    * @author Milos Novacek
    */
   private def referencePathAssignmentEdges(
-                                            field: String,
-                                            leftPaths: Set[RootedHeapGraphPath[S]],
-                                            rightPaths: Set[RootedHeapGraphPath[S]]): Set[EdgeWithState[S]] = {
+      field: String,
+      leftPaths: Set[RootedHeapGraphPath[S]],
+      rightPaths: Set[RootedHeapGraphPath[S]]): Set[EdgeWithState[S]] = {
     var edgesToAdd = Set.empty[EdgeWithState[S]]
     for (lPath <- leftPaths) {
       var leftCond = lPath.condition
@@ -753,75 +752,6 @@ T <: ValueDrivenHeapState[S, T]]
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): T = ???
 
   def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): T = ???
-
-  // Collections are currently not supported
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint): T = ???
-
-  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): T = ???
-
-  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet): T = ???
-
-  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
-
-  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
-
-  def clearCollection(collectionSet: ExpressionSet): T = ???
-
-  def getCollectionLength(collectionSet: ExpressionSet): T = ???
-
-  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
-
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): T = ???
-
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): T = ???
-
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): T = ???
-
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): T = ???
-
-  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): T = ???
-
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type): T = ???
-
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): T = ???
-
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type): T = ???
-
-  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type): T = ???
-
-  def isSummaryCollection(collectionSet: ExpressionSet): Boolean = ???
-
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]): T = ???
-
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet): T = ???
-
-  def getCollectionValue(valueIds: ExpressionSet): T = ???
-
-  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint): T = ???
-
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
-
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): T = ???
-
-  def getOriginalCollection(collectionSet: ExpressionSet): T = ???
-
-  def getKeysCollection(collectionSet: ExpressionSet): T = ???
-
-  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet): T = ???
-
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): T = ???
-
-  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint): T = ???
-
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): T = ???
-
-  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): T = ???
-
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet): T = ???
-
-  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): T = ???
-
-  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint): T = ???
 }
 
 

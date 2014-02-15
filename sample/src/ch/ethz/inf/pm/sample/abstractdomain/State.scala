@@ -545,6 +545,79 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
 
 }
 
+/** State whose collection-related methods throw a `NotImplementedError`.
+  * Useful to avoid code clutter in states not supporting collections.
+  */
+trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S] { this: S =>
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint) = ???
+
+  def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet) = ???
+
+  def insertCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet) = ???
+
+  def removeCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet) = ???
+
+  def getCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet) = ???
+
+  def clearCollection(collectionSet: ExpressionSet) = ???
+
+  def getCollectionLength(collectionSet: ExpressionSet) = ???
+
+  def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = ???
+
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = ???
+
+  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = ???
+
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) = ???
+
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = ???
+
+  def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = ???
+
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = ???
+
+  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = ???
+
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = ???
+
+  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = ???
+
+  def isSummaryCollection(collectionSet: ExpressionSet): Boolean = ???
+
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]) = ???
+
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = ???
+
+  def getCollectionValue(valueIds: ExpressionSet) = ???
+
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint) = ???
+
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = ???
+
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) = ???
+
+  def getOriginalCollection(collectionSet: ExpressionSet) = ???
+
+  def getKeysCollection(collectionSet: ExpressionSet) = ???
+
+  def removeCollectionKeyConnection(origCollectionSet: ExpressionSet, keyCollectionSet: ExpressionSet) = ???
+
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet) = ???
+
+  def insertCollectionElement(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = ???
+
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = ???
+
+  def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = ???
+
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet) = ???
+
+  def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = ???
+
+  def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = ???
+}
+
 /** Implements some methods of `State` that take `ExpressionSet`s as argument,
   * performs the corresponding operations pair-wise for all `Expression`s
   * and finally computes the upper bound or all resulting states.
