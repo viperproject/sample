@@ -1,0 +1,60 @@
+@(state: ch.ethz.inf.pm.sample.abstractdomain.Lattice[_])
+@import ch.ethz.inf.pm.sample.abstractdomain._
+@import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
+
+@state match {
+    case a: ApronInterface => {
+        @if(a.isBottom) {
+            @Bottom()
+        } else {
+            @if(a.isTop) {
+                @Top()
+            } else {
+            <ul class="list-unstyled apron-interface">
+                @ApronInterfaceTranslator.translate(a).map(ExpPrettyPrinter).toList.sorted.map { line =>
+                <li>@line</li>
+                }
+            </ul>
+            }
+        }
+    }
+    case c: CartesianProductDomain[_, _, _] => {
+        <div class="cartesian-product-domain">
+            <div class="cartesian-product-domain-part well well-sm">
+                @LatticeFragment(c._1)
+            </div>
+            <div class="cartesian-product-domain-cross">✕</div>
+            <div class="cartesian-product-domain-part well well-sm">
+                @LatticeFragment(c._2)
+            </div>
+        </div>
+    }
+    case s: SetDomain[_, _] => {
+        @s
+    }
+    case f: FunctionalDomain[_, _, _] => {
+        @if(f.isBottom) {
+            @Bottom()
+        } else {
+            @if(f.isTop) {
+                @Top()
+            } else {
+            <dl class="functional-domain">
+                @f.map.map { keyValuePair =>
+                    <dt>@keyValuePair._1</dt>
+                    <dd>@LatticeFragment(keyValuePair._2)</dd>
+                }
+            </dl>
+            <div class="clearfix"></div>
+            }
+        }
+    }
+}
+
+@Top() = {
+   <div class="lattice-top">⊤</div>
+}
+
+@Bottom() = {
+    <div class="lattice-bottom">⊥</div>
+}

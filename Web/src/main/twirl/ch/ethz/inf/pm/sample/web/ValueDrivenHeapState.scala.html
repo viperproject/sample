@@ -1,0 +1,54 @@
+@(result: ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_], blockIndex: Int, stateIndex: Int, iter: Int)
+@import ch.ethz.inf.pm.sample.abstractdomain._
+@import ch.ethz.inf.pm.sample.oorepresentation._
+
+@stmtSpan(stmt: Statement) = {
+    <span class="code">@stmt</span>
+}
+
+@stateDesc() = @{
+    val stmts = result.cfgState.cfg.nodes(blockIndex)
+    if (stmts.size == 0) Html("(<i>empty</i>)")
+    else if (stateIndex == 0) Html(s"before ${stmtSpan(stmts.head)}")
+    else if (stateIndex == stmts.size) Html(s"after ${stmtSpan(stmts.last)}")
+    else Html(s"between ${stmtSpan(stmts(stateIndex - 1))} and ${stmtSpan(stmts(stateIndex))}")
+}
+
+@Base(title = "Value-Driven Heap State") {
+    <ol class="breadcrumb">
+        <li><a href="/cfg">CFG for <span class="code">@result.method.name</span></a></li>
+        <li><a href="/cfg/@blockIndex?iter=@iter">Block @blockIndex</a></li>
+        <li class="active">State @stateDesc()</li>
+    </ol>
+
+    <ul class="pagination">
+        @for(linkIter <- 0 to result.cfgState.trackedStatesOfBlock(blockIndex).size - 1) {
+        <li class="@if(linkIter == iter) {active}"><a href="?iter=@linkIter">@linkIter</a></li>
+        }
+    </ul>
+
+    <ul class="pagination pull-right">
+        @if(stateIndex == 0) {
+        <li class="disabled"><a href="#">Previous Statement</a></li>
+        } else {
+        <li><a href="/cfg/@blockIndex/@(stateIndex - 1)?iter=@iter">Previous Statement</a></li>
+        }
+
+        @if(stateIndex == result.cfgState.trackedStatesOfBlock(blockIndex)(iter).size - 1) {
+        <li class="disabled"><a href="#">Next Statement</a></li>
+        } else {
+        <li><a href="/cfg/@blockIndex/@(stateIndex + 1)?iter=@iter">Next Statement</a></li>
+        }
+    </ul>
+
+    @defining(result.cfgState.trackedStatesOfBlock(blockIndex)(iter)(stateIndex)) { state =>
+        @HeapGraphFragment(state.asInstanceOf[vdha.ValueDrivenHeapState[_, _]].abstractHeap) {
+            <div class="panel panel-info" id="general-state">
+                <div class="panel-heading">General Value State</div>
+                <div class="panel-body">
+                    @LatticeFragment(state.asInstanceOf[vdha.ValueDrivenHeapState[_, _]].generalValState.asInstanceOf[Lattice[_]])
+                </div>
+            </div>
+        }
+    }
+}

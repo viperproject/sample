@@ -1,0 +1,40 @@
+@(title: String)(content: Html)
+<!doctype html>
+<html>
+<head>
+    <title>@title</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,600,700' rel='stylesheet' type='text/css'>
+
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+
+    <script type="text/javascript" src="/js/jquery.jsPlumb-1.5.5.js"></script>
+    <script type="text/javascript" src="/js/dagre.js"></script>
+
+    <script type="text/javascript" src="/js/sample.js"></script>
+
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+    <link type="text/css" href="/css/sample.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-inverse navbar-static-top" role="navigation">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            <a class="navbar-brand" href="#">Sample Abstract Interpreter</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        @content
+    </div>
+</body>
+</html>

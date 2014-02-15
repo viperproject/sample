@@ -1,12 +1,14 @@
 import sbt._
 import Keys._
+import org.scalatra.sbt._
+import twirl.sbt.TwirlPlugin.Twirl
 
 object SampleBuild extends Build {
   lazy val root = Project(
     id = "sample",
     base = file(".")) aggregate(core, heap, numerical, touchdevelop,
     scalapreproc, accessperm, partitioning, string, loops, tvla,
-    valuedrivenheap, sil, gui, test)
+    valuedrivenheap, sil, web, gui, test)
 
   lazy val core = Project(
     id = "sample-core",
@@ -55,6 +57,15 @@ object SampleBuild extends Build {
   lazy val sil = Project(
     id = "sample-sil",
     base = file("SIL")) dependsOn(core, numerical, valuedrivenheap)
+
+  lazy val web = Project(
+    id = "sample-web",
+    base = file("Web"),
+    settings =
+      Defaults.defaultSettings ++
+      ScalatraPlugin.scalatraSettings ++
+      Twirl.settings) dependsOn(
+    core, numerical, valuedrivenheap, sil)
 
   lazy val gui = Project(
     id = "sample-gui",

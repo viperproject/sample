@@ -1,0 +1,48 @@
+@(result: ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_])
+@nodeId(index: Int) = { "node-@index" }
+@Base(title = "Control Flow Graph State") {
+    <ol class="breadcrumb">
+        <li class="active">CFG for <span class="code">@result.method.name</span></li>
+    </ol>
+
+    @defining(result.cfgState.cfg) { cfg =>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="well graph-well">
+                <div class="graph control-flow-graph" id="graph">
+                @cfg.nodes.zipWithIndex.map { nodeAndIndex =>
+                    <a href="/cfg/@nodeAndIndex._2">
+                        <div class="node" id=@nodeId(nodeAndIndex._2)>
+                        @if(nodeAndIndex._1.isEmpty) {
+                            <i>empty</i>
+                        } else {
+                            <ul class="list-unstyled">
+                                @nodeAndIndex._1.map { stmt =>
+                                <li>@stmt</li>
+                                }
+                            </ul>
+                        }
+                        </div>
+                    </a>
+                }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        jsPlumb.ready(function() {
+            var view = new GraphView();
+            view.rankDir = "TB";
+
+            @cfg.edges.map { edge =>
+                view.graph.addEdge(null, @nodeId(edge._1), @nodeId(edge._2), {
+                    label: "@edge._3.getOrElse("")"
+                });
+            }
+
+            view.display();
+        });
+    </script>
+    }
+}

@@ -1,0 +1,111 @@
+body {
+    font-family: 'Open Sans', sans-serif;
+}
+
+/** Fixed-size well that contains a graph. */
+.graph-well {
+    height: 600px;
+    overflow: auto;
+}
+
+.graph {
+    position: relative;
+}
+
+/** Node in a graph. */
+.node {
+    padding: 0em 1em;
+
+    position: absolute;
+    z-index: 4;
+
+    border: 2px solid #2e6f9a;
+    -webkit-box-shadow: 2px 2px 19px #e0e0e0;
+    -moz-box-shadow: 2px 2px 19px #e0e0e0;
+    -o-box-shadow: 2px 2px 19px #e0e0e0;
+    box-shadow: 2px 2px 19px #e0e0e0;
+
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+    cursor: move;
+    background-color: white;
+
+    font-weight: bold;
+    text-align: center;
+    line-height: 3em;
+
+    -webkit-transition: background-color 0.25s ease-in;
+    -moz-transition: background-color 0.25s ease-in;
+    transition: background-color 0.25s ease-in;
+}
+
+.control-flow-graph .node ul {
+    margin: 0;
+    text-align: left;
+}
+
+.code {
+    font-family: monospace;
+}
+
+.heap-node,
+.null-node {
+    -moz-border-radius: 100%;
+    border-radius: 100%;
+}
+
+.summary-heap-node {
+    border: 2px dashed #2e6f9a;
+}
+
+.edgeLabel {
+    opacity: 0.8;
+    filter: alpha(opacity=80);
+    background-color: white;
+
+    border: 1px solid #2e6f9a;
+    -moz-border-radius: 2px;
+    border-radius: 2px;
+
+    -webkit-box-shadow: 2px 2px 19px #e0e0e0;
+    -moz-box-shadow: 2px 2px 19px #e0e0e0;
+    -o-box-shadow: 2px 2px 19px #e0e0e0;
+    box-shadow: 2px 2px 19px #e0e0e0;
+}
+
+/** Styles for standard domains. */
+.cartesian-product-domain-part,
+.apron-interface {
+    margin: 0px;
+}
+
+.cartesian-product-domain-cross {
+    text-align: center;
+}
+
+.lattice-top,
+.lattice-bottom {
+    text-align: center;
+}
+
+.functional-domain dt:after {
+    content: ' →';
+}
+
+.functional-domain dt,
+.functional-domain dd {
+    display: inline;
+    float: left;
+}
+
+.functional-domain dd {
+    margin-left: 4px;
+}
+
+.functional-domain dd + dt,
+.functional-domain dd + dd {
+    clear: left;
+}
+.functional-domain dd + dd {
+    float: none;
+}
