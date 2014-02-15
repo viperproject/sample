@@ -12,8 +12,8 @@ import ch.ethz.inf.pm.sample.AnalysisUnitContext
 import semper.sil.ast.Program
 
 object AnalysisRunner {
-  val analysis = DefaultAnalysis[DefaultValueDrivenHeapState[ApronInterface]](DefaultEntryStateBuilder)
-  // val analysis = DefaultAnalysis[DefaultPreciseValueDrivenHeapState[ApronInterface]](PreciseEntryStateBuilder)
+  // val analysis = DefaultAnalysis[DefaultValueDrivenHeapState[ApronInterface]](DefaultEntryStateBuilder)
+  val analysis = DefaultAnalysis[DefaultPreciseValueDrivenHeapState[ApronInterface]](PreciseEntryStateBuilder)
 
   def run(file: File): List[AnalysisResult[_]] = {
     val compiler = new SilCompiler

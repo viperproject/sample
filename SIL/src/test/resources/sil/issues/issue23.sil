@@ -8,7 +8,6 @@ method issue(a: Ref) {
     var local: Ref
     local := a
     if (a == null) {
-        //:: UnexpectedOutput(sample.assert.failed, /sample/issue/23/)
         assert(local == null)
     }
 }
@@ -25,10 +24,8 @@ method issue2(a: Ref, b: Ref) {
 
 method issue3(x: Ref, y: Ref) {
     if (x == y) {
-        //:: UnexpectedOutput(sample.assert.failed, /sample/issue/23/)
         assert(x == y)
     } else {
-        //:: UnexpectedOutput(sample.assert.failed, /sample/issue/23/)
         assert(x != y)
     }
 
