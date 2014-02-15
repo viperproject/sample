@@ -1,7 +1,12 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import java.nio.file.Path
-import semper.sil.frontend.SilFrontend
+import semper.sil.frontend.{Frontend, SilFrontendConfig, SilFrontend}
+import semper.sil.verifier._
+import semper.sil.ast.{Position, Program}
+import ch.ethz.inf.pm.sample.reporting.Reporter
+import semper.sil.verifier.Failure
+import semper.sil.testing.SilSuite
 
 /**
  * Just a dummy front-end such that we gain easy access to the fully parsed

@@ -1,6 +1,10 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import ch.ethz.inf.pm.sample.oorepresentation._
+import semper.sil.{ast => sil}
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.SystemParameters
 
 case class WrappedProgramPoint(pos: sil.RealPosition) extends LineColumnProgramPoint {
   def getLine: Int = pos.line
