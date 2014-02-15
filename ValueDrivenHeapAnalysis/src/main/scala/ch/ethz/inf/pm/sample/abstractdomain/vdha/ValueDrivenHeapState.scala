@@ -44,15 +44,24 @@ trait ValueDrivenHeapState[
 
   import Utilities._
 
-  /** Builds a new value-driven heap state. Uses the value of this state
-    * for every argument not provided by the caller.
+  /** Builds a copy of this value-driven heap state overriding fields
+    * at the discretion of the caller.
     */
+  def copy(
+      abstractHeap: HeapGraph[S] = abstractHeap,
+      generalValState: S = generalValState,
+      expr: ExpressionSet = expr,
+      isTop: Boolean = isTop,
+      isBottom: Boolean = isBottom): T =
+    factory(abstractHeap, generalValState, expr, isTop, isBottom)
+
+  /** Builds a new value-driven heap state. */
   def factory(
-    abstractHeap: HeapGraph[S] = abstractHeap,
-    generalValState: S = generalValState,
-    expr: ExpressionSet = expr,
-    isTop: Boolean = isTop,
-    isBottom: Boolean = isBottom): T
+      abstractHeap: HeapGraph[S],
+      generalValState: S,
+      expr: ExpressionSet,
+      isTop: Boolean = false,
+      isBottom: Boolean = false): T
 
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     if (variable.getType.isObject) {
@@ -67,11 +76,11 @@ trait ValueDrivenHeapState[
       val newVertices = Set(NullVertex, varVertex)
       val edgeToNull = EdgeWithState(varVertex, generalValState, None, NullVertex)
       val newAbstractHeap = abstractHeap.addNonHeapVertices(newVertices).addEdge(edgeToNull)
-      factory(
+      copy(
         abstractHeap = newAbstractHeap,
         expr = new ExpressionSet(typ).add(variable))
     } else {
-      factory(
+      copy(
         abstractHeap = abstractHeap.createVariablesInAllStates(Set(variable)),
         generalValState = generalValState.createVariable(variable),
         expr = new ExpressionSet(typ).add(variable))
@@ -250,7 +259,7 @@ trait ValueDrivenHeapState[
             case c: Constant => {
               assert(c.toString == "null", "The only object constant is null.")
               val tempAH = abstractHeap.addNonHeapVertex(NullVertex)
-              val newState = factory(abstractHeap = tempAH)
+              val newState = copy(abstractHeap = tempAH)
               return newState.assignVariable(left, new VertexExpression(variable.typ, NullVertex)(c.pp))
             }
             case _ => throw new Exception("Not supported (should not happen, let me know if does (Milos)).")
@@ -264,7 +273,7 @@ trait ValueDrivenHeapState[
               .removeEdges(edgesToRemove)
               .addEdges(edgesToAdd)
               .joinCommonEdges()
-            result = factory(abstractHeap = tempAH, isTop = false).prune()
+            result = copy(abstractHeap = tempAH, isTop = false).prune()
           }
         }
       }
@@ -322,7 +331,7 @@ trait ValueDrivenHeapState[
         case c: Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
           val newAH = abstractHeap.addNonHeapVertex(NullVertex)
-          return factory(abstractHeap = newAH).assignField(leftExp, field, new VertexExpression(c.getType, NullVertex)(c.pp))
+          return copy(abstractHeap = newAH).assignField(leftExp, field, new VertexExpression(c.getType, NullVertex)(c.pp))
         }
         case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
       }
@@ -342,7 +351,7 @@ trait ValueDrivenHeapState[
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
       val newExpr = new ExpressionSet(rightExp.getType).add(leftAccPath)
-      factory(abstractHeap = resultingAH, isTop = false).prune()
+      copy(abstractHeap = resultingAH, isTop = false).prune()
     } else {
       assert(rightExp.getType.isNumericalType, "only numerical values allowed")
 
@@ -444,9 +453,9 @@ trait ValueDrivenHeapState[
     assert(id.isInstanceOf[VariableIdentifier], "This should be VariableIdentifier.")
     val variableId = id.asInstanceOf[VariableIdentifier]
     if (ValueDrivenHeapProperty.materialize && variableId.getType.isObject) {
-      materializePath(List(variableId.name)).factory(expr = ExpressionSet(variableId))
+      materializePath(List(variableId.name)).copy(expr = ExpressionSet(variableId))
     } else {
-      factory(expr = ExpressionSet(variableId))
+      copy(expr = ExpressionSet(variableId))
     }
   }
 
@@ -457,9 +466,9 @@ trait ValueDrivenHeapState[
     if (ValueDrivenHeapProperty.materialize) {
       val apObj = obj.getSetOfExpressions.head.asInstanceOf[AccessPathIdentifier]
       val tempResult = materializePath(apObj.objPath)
-      tempResult.factory(expr = new ExpressionSet(typ).add(obj))
+      tempResult.copy(expr = new ExpressionSet(typ).add(obj))
     } else
-      factory(expr = new ExpressionSet(typ).add(obj))
+      copy(expr = new ExpressionSet(typ).add(obj))
   }
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
@@ -473,10 +482,10 @@ trait ValueDrivenHeapState[
   def getExpression: ExpressionSet = expr
 
   def setExpression(newExpr: ExpressionSet): T =
-    factory(expr = newExpr)
+    copy(expr = newExpr)
 
   def removeExpression(): T =
-    factory(expr = ExpressionSet())
+    copy(expr = ExpressionSet())
 
   def pruneUnreachableHeap(): T = ???
 
@@ -514,7 +523,7 @@ trait ValueDrivenHeapState[
     val newGeneralValState = generalValState.glb(newRightGeneralValState)
     if (resultingAH.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
       return bottom()
-    return factory(resultingAH, newGeneralValState, ExpressionSet())
+    factory(resultingAH, newGeneralValState, ExpressionSet())
   }
 
   def widening(other: T): T = {
@@ -631,7 +640,7 @@ trait ValueDrivenHeapState[
       updatedEdgesToAdd += e.copy(state = updatedEdgeState)
     }
     resultingAH = resultingAH.addEdges(updatedEdgesToAdd.toSet)
-    factory(abstractHeap = resultingAH, generalValState = generalValState.merge(repl)).prune()
+    copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl)).prune()
   }
 
   def lessEqual(r: T): Boolean = {
@@ -701,7 +710,7 @@ trait ValueDrivenHeapState[
 
     // Now we need to apply the replacement to all the states, including the general value state.
 
-    factory(
+    copy(
       abstractHeap = newAbstractHeap,
       generalValState = newGeneralState,
       expr = ExpressionSet(VertexExpression(typ, createdObjVertex)(pp)))
@@ -726,7 +735,7 @@ trait ValueDrivenHeapState[
     if (newAbstractHeap.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
       bottom()
     else
-      factory(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
+      copy(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
   }
 
   override def toString: String =

@@ -4,24 +4,14 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.DefaultSetDomain
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 
-/** Combines each value state with a ghost state to be more precise
-  * in the presence of ambiguous out-going edges.
-  *
-  * Currently, ghost state is only added when creating variables for arguments
-  * as well as after materializing.
-  */
-case class PreciseValueDrivenHeapState[S <: SemanticDomain[S]](
-    abstractHeap: HeapGraph[SemanticAndGhostCartesianProductDomain[S]],
-    generalValState: SemanticAndGhostCartesianProductDomain[S],
-    expr: ExpressionSet,
-    isTop: Boolean = false,
-    override val isBottom: Boolean = false)
-  extends ValueDrivenHeapState[
-    SemanticAndGhostCartesianProductDomain[S],
-    PreciseValueDrivenHeapState[S]] {
-
-  // Alias for the type of states on edges
-  private type W = SemanticAndGhostCartesianProductDomain[S]
+/** Default implementation of the precise value-driven heap state. */
+case class DefaultPreciseValueDrivenHeapState[S <: SemanticDomain[S]](
+      abstractHeap: HeapGraph[SemanticAndGhostCartesianProductDomain[S]],
+      generalValState: SemanticAndGhostCartesianProductDomain[S],
+      expr: ExpressionSet,
+      isTop: Boolean = false,
+      override val isBottom: Boolean = false)
+  extends PreciseValueDrivenHeapState[S] {
 
   override def factory(
       abstractHeap: HeapGraph[W],
@@ -29,7 +19,22 @@ case class PreciseValueDrivenHeapState[S <: SemanticDomain[S]](
       expr: ExpressionSet,
       isTop: Boolean,
       isBottom: Boolean) =
-    PreciseValueDrivenHeapState[S](abstractHeap, generalValState, expr, isTop, isBottom)
+    DefaultPreciseValueDrivenHeapState[S](abstractHeap, generalValState, expr, isTop, isBottom)
+}
+
+/** Combines each value state with a ghost state to be more precise
+  * in the presence of ambiguous out-going edges.
+  *
+  * Currently, ghost state is only added when creating variables for arguments
+  * as well as after materializing.
+  */
+trait PreciseValueDrivenHeapState[S <: SemanticDomain[S]]
+  extends ValueDrivenHeapState[
+    SemanticAndGhostCartesianProductDomain[S],
+    PreciseValueDrivenHeapState[S]] {
+
+  // Alias for the type of states on edges
+  protected type W = SemanticAndGhostCartesianProductDomain[S]
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) =
     super.createVariableForArgument(variable, typ).addGhostState()

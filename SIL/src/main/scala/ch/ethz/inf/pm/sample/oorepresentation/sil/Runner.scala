@@ -13,7 +13,7 @@ import semper.sil.ast.Program
 
 object AnalysisRunner {
   val analysis = DefaultAnalysis[DefaultValueDrivenHeapState[ApronInterface]](DefaultEntryStateBuilder)
-  // val analysis = DefaultAnalysis[PreciseValueDrivenHeapState[ApronInterface]](PreciseEntryStateBuilder)
+  // val analysis = DefaultAnalysis[DefaultPreciseValueDrivenHeapState[ApronInterface]](PreciseEntryStateBuilder)
 
   def run(file: File): List[AnalysisResult[_]] = {
     val compiler = new SilCompiler
@@ -57,8 +57,8 @@ trait EntryStateBuilder[S <: State[S]] {
 }
 
 trait ValueDrivenHeapEntryStateBuilder[
-Q <: SemanticDomain[Q],
-S <: ValueDrivenHeapState[Q, S]]
+    Q <: SemanticDomain[Q],
+    S <: ValueDrivenHeapState[Q, S]]
   extends EntryStateBuilder[S] {
 
   protected def topApronInterface: ApronInterface =
@@ -83,7 +83,7 @@ object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
 
   def topState = {
     val generalValState = SemanticAndGhostCartesianProductDomain(topApronInterface)
-    PreciseValueDrivenHeapState(topHeapGraph, generalValState, ExpressionSet())
+    DefaultPreciseValueDrivenHeapState(topHeapGraph, generalValState, ExpressionSet())
   }
 }
 
