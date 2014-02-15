@@ -4,7 +4,11 @@ scalaSource in Test <<= baseDirectory(_ / "test/scala")
 
 resourceDirectory in Test <<= baseDirectory(_ / "test/resources")
 
-unmanagedBase <<= baseDirectory(_ / "../SIL/lib")
+unmanagedJars in Compile <++= baseDirectory map { base =>
+            val additionalDirectories = (base / "../SIL/lib") 
+            val customJars = (additionalDirectories ** "*.jar") 
+            customJars.classpath
+}
 
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.1"
 
