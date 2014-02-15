@@ -11,7 +11,7 @@ case class DefaultPreciseValueDrivenHeapState[S <: SemanticDomain[S]](
       expr: ExpressionSet,
       isTop: Boolean = false,
       override val isBottom: Boolean = false)
-  extends PreciseValueDrivenHeapState[S] {
+  extends PreciseValueDrivenHeapState[S, DefaultPreciseValueDrivenHeapState[S]] {
 
   override def factory(
       abstractHeap: HeapGraph[W],
@@ -28,10 +28,11 @@ case class DefaultPreciseValueDrivenHeapState[S <: SemanticDomain[S]](
   * Currently, ghost state is only added when creating variables for arguments
   * as well as after materializing.
   */
-trait PreciseValueDrivenHeapState[S <: SemanticDomain[S]]
+trait PreciseValueDrivenHeapState[
+    S <: SemanticDomain[S],
+    T <: PreciseValueDrivenHeapState[S, T]]
   extends ValueDrivenHeapState[
-    SemanticAndGhostCartesianProductDomain[S],
-    PreciseValueDrivenHeapState[S]] {
+    SemanticAndGhostCartesianProductDomain[S], T] { this: T =>
 
   // Alias for the type of states on edges
   protected type W = SemanticAndGhostCartesianProductDomain[S]
@@ -50,7 +51,7 @@ trait PreciseValueDrivenHeapState[S <: SemanticDomain[S]]
     *
     * @return the value-driven heap state, possibly with more ghost state
     */
-  def addGhostState(): PreciseValueDrivenHeapState[S] = {
+  def addGhostState(): T = {
     require(abstractHeap.isNormalized)
 
     val groupedEdges = abstractHeap.edges.groupBy(edge => (edge.source, edge.field))

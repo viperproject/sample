@@ -79,7 +79,7 @@ object DefaultEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
 
 object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   SemanticAndGhostCartesianProductDomain[ApronInterface],
-  PreciseValueDrivenHeapState[ApronInterface]] {
+  DefaultPreciseValueDrivenHeapState[ApronInterface]] {
 
   def topState = {
     val generalValState = SemanticAndGhostCartesianProductDomain(topApronInterface)
