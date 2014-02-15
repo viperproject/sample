@@ -83,24 +83,3 @@ trait Compiler {
   def generateTopType()
 
 }
-
-
-/**
- * A <code>IteratorOverPrograms</code> iterates over a list of paths from which programs can be retrieved
- *
- * @author Pietro Ferrara
- * @since 0.1
- */
-trait IteratorOverPrograms extends Iterator[String] {
-
-
-  /**
-  This method returns a short description of the iterator.
-
-   @return a short the description of the iterator (e.g., files in a directory)
-    */
-  def getLabel() : String;
-
-
-}
-

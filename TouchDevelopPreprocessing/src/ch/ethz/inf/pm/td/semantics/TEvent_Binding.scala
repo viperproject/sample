@@ -1,38 +1,36 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import RichNativeSemantics._
 
 /**
- * Specifies the abstract semantics of Spring
+ * Specifies the abstract semantics of Event Binding
  *
- * A spring between two sprites.
+ * A handler attached to an event.
  *
  * @author Lucas Brutschy
  */
 
-object TSpring {
+object TEvent_Binding {
 
-  /** Sets the spring stiffness. */
-  val field_stiffness = new TouchField("stiffness", TNumber.typName)
-
-  val typName = "Spring"
-  val typ = new TouchType(typName, fields = List(field_stiffness))
+  val typName = "Event Binding"
+  val typ = new TouchType(typName)
 
 }
 
-class TSpring extends AAny {
+class TEvent_Binding extends AAny {
 
-  def getTyp = TSpring.typ
+  def getTyp = TEvent_Binding.typ
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 
-    /** Deletes the spring */
+    /** Detaches the handler from the event. */
     case "delete" =>
+      val List() = parameters // IGNORED
       Skip
 
     case _ =>

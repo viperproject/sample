@@ -7,16 +7,17 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /** Native method semantic for arithmetic and boolean operators */
 object ArithmeticAndBooleanNativeMethodSemantics extends ForwardNativeMethodSemantics {
+
   import ExpressionFactory._
 
   def applyForwardNativeSemantics[S <: State[S]](
-      leftExp: ExpressionSet,
-      op: String,
-      parameters: List[ExpressionSet],
-      typeParameters: List[Type],
-      returnType: Type,
-      programPoint: ProgramPoint,
-      state: S): Option[S] = {
+                                                  leftExp: ExpressionSet,
+                                                  op: String,
+                                                  parameters: List[ExpressionSet],
+                                                  typeParameters: List[Type],
+                                                  returnType: Type,
+                                                  programPoint: ProgramPoint,
+                                                  state: S): Option[S] = {
     val exprSet = (leftExp.getType(), op, parameters) match {
       case (IntType, "==" | "!=" | "<" | "<=" | ">" | ">=" | "+" | "-" | "*" | "\\" | "%", _ :: Nil) |
            (BoolType, "==" | "!=", _ :: Nil) =>
@@ -41,13 +42,13 @@ object ArithmeticAndBooleanNativeMethodSemantics extends ForwardNativeMethodSema
 
 object RichNativeMethodSemantics extends ForwardNativeMethodSemantics {
   def applyForwardNativeSemantics[S <: State[S]](
-      thisExpr: ExpressionSet,
-      operator: String,
-      parameters: List[ExpressionSet],
-      typeParameters: List[Type],
-      returnType: Type,
-      programPoint: ProgramPoint,
-      state: S): Option[S] = {
+                                                  thisExpr: ExpressionSet,
+                                                  operator: String,
+                                                  parameters: List[ExpressionSet],
+                                                  typeParameters: List[Type],
+                                                  returnType: Type,
+                                                  programPoint: ProgramPoint,
+                                                  state: S): Option[S] = {
     val nativeMethod = NativeMethods.values.find(_.toString == operator)
     nativeMethod match {
       // Semantics of conditional expressions like '(cond) ? a : b'

@@ -192,11 +192,11 @@ object DefaultSilConverter extends SilConverter {
       makeNativeMethodCall(e.pos, e.op, e.args, go(e.typ))
     case l: sil.Literal =>
       sample.ConstantStatement(go(e.pos), l match {
-      case sil.IntLit(i) => i.toString()
-      case sil.BoolLit(value) =>
-        value.toString // Use the strings "true" and "false"
-      case sil.NullLit() => "null"
-    }, go(l.typ))
+        case sil.IntLit(i) => i.toString()
+        case sil.BoolLit(value) =>
+          value.toString // Use the strings "true" and "false"
+        case sil.NullLit() => "null"
+      }, go(l.typ))
     case v: sil.LocalVar => makeVariable(v)
     case sil.FuncLikeApp(func, args) =>
       new sample.ContractAwareFunctionCall(
@@ -314,8 +314,9 @@ object DefaultSilConverter extends SilConverter {
    * `LocalVarDecl` declare the `name` field independently.
    * Alternatively, one could add a trait `Named` to them.
    */
-  private type Named = { def name: String }
+  private type Named = {def name: String}
   private type LocalVarOrField = sil.Node with sil.Typed with sil.Positioned with Named
+
   private def makeVariable(n: LocalVarOrField) =
     sample.Variable(go(n.pos), makeVariableIdentifier(n))
 
@@ -327,10 +328,10 @@ object DefaultSilConverter extends SilConverter {
     sample.Variable(go(pos), sample.VariableIdentifier(name, go(typ), go(pos)))
 
   private def makeNativeMethodCall(
-      pos: sil.Position,
-      name: String,
-      args: Seq[sil.Exp],
-      returnType: sample.Type): sample.Statement = {
+                                    pos: sil.Position,
+                                    name: String,
+                                    args: Seq[sil.Exp],
+                                    returnType: sample.Type): sample.Statement = {
     sample.MethodCall(go(pos),
       method = sample.FieldAccess(go(pos), go(args.head), name, null),
       parametricTypes = Nil,
@@ -340,11 +341,18 @@ object DefaultSilConverter extends SilConverter {
 
   // Convenience aliases
   private def go(f: sil.Function) = convert(f)
+
   private def go(m: sil.Method) = convert(m)
+
   private def go(f: sil.Field) = convert(f)
+
   private def go(v: sil.LocalVarDecl) = convert(v)
+
   private def go(pos: sil.Position) = convert(pos)
+
   private def go(t: sil.Type) = convert(t)
+
   private def go(s: sil.Stmt) = convert(s)
+
   private def go(e: sil.Exp) = convert(e)
 }

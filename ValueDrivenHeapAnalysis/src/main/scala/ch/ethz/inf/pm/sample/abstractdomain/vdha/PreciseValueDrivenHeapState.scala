@@ -11,11 +11,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.Type
   * as well as after materializing.
   */
 case class PreciseValueDrivenHeapState[S <: SemanticDomain[S]](
-    abstractHeap: HeapGraph[SemanticAndGhostCartesianProductDomain[S]],
-    generalValState: SemanticAndGhostCartesianProductDomain[S],
-    expr: ExpressionSet,
-    isTop: Boolean = false,
-    override val isBottom: Boolean = false)
+                                                                abstractHeap: HeapGraph[SemanticAndGhostCartesianProductDomain[S]],
+                                                                generalValState: SemanticAndGhostCartesianProductDomain[S],
+                                                                expr: ExpressionSet,
+                                                                isTop: Boolean = false,
+                                                                override val isBottom: Boolean = false)
   extends ValueDrivenHeapState[
     SemanticAndGhostCartesianProductDomain[S],
     PreciseValueDrivenHeapState[S]] {
@@ -24,11 +24,11 @@ case class PreciseValueDrivenHeapState[S <: SemanticDomain[S]](
   private type W = SemanticAndGhostCartesianProductDomain[S]
 
   override def factory(
-      abstractHeap: HeapGraph[W],
-      generalValState: W,
-      expr: ExpressionSet,
-      isTop: Boolean,
-      isBottom: Boolean) =
+                        abstractHeap: HeapGraph[W],
+                        generalValState: W,
+                        expr: ExpressionSet,
+                        isTop: Boolean,
+                        isBottom: Boolean) =
     PreciseValueDrivenHeapState[S](abstractHeap, generalValState, expr, isTop, isBottom)
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) =
@@ -94,9 +94,9 @@ object PreciseValueDrivenHeapState {
 }
 
 case class GhostStateDomain(
-    map: Map[Int, DefaultSetDomain[Int]] = Map.empty[Int, DefaultSetDomain[Int]],
-    isTop: Boolean = true,
-    isBottom: Boolean = false)
+                             map: Map[Int, DefaultSetDomain[Int]] = Map.empty[Int, DefaultSetDomain[Int]],
+                             isTop: Boolean = true,
+                             isBottom: Boolean = false)
   extends FunctionalDomain[Int, DefaultSetDomain[Int], GhostStateDomain] {
 
   def get(key: Int): DefaultSetDomain[Int] =
@@ -110,9 +110,9 @@ case class GhostStateDomain(
   }
 
   def functionalFactory(
-      map: Map[Int, DefaultSetDomain[Int]],
-      isBottom: Boolean,
-      isTop: Boolean) = {
+                         map: Map[Int, DefaultSetDomain[Int]],
+                         isBottom: Boolean,
+                         isTop: Boolean) = {
     var newIsBottom = isBottom
     var newIsTop = isTop && map.isEmpty
     // Treat the ghost state as bottom when at least one ghost variable
@@ -128,7 +128,7 @@ case class GhostStateDomain(
 
 /** Combines a `SemanticDomain` with the `GhostStateDomain`. */
 case class SemanticAndGhostCartesianProductDomain[S <: SemanticDomain[S]](
-    _1: S, _2: GhostStateDomain = GhostStateDomain())
+                                                                           _1: S, _2: GhostStateDomain = GhostStateDomain())
   extends HalfSemanticCartesianProductDomain[
     S,
     GhostStateDomain,

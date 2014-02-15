@@ -64,6 +64,19 @@ class SMath extends AAny {
       val List(x) = parameters // Number
       Top[S](TNumber.typ) // TODO
 
+    /** Clamps `value` between `min` and `max` */
+    case "clamp" =>
+      val List(min, max, value) = parameters // Number,Number,Number
+      If[S](value <= min, Then = (state) => {
+        Return[S](min)(state, pp)
+      }, Else = (state) => {
+        If[S](value >= max, Then = (state2) => {
+          Return[S](max)(state2, pp)
+        }, Else = (state2) => {
+          Return[S](value)(state2, pp)
+        })(state, pp)
+      })
+
     /** Returns the cosine of the specified angle (in radians) */
     case "cos" =>
       val List(angle) = parameters // Number
@@ -168,6 +181,19 @@ class SMath extends AAny {
     case "mod" =>
       val List(x,y) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
+
+    /** Clamps `value` between 0 and 1. */
+    case "normalize" =>
+      val List(value) = parameters // Number
+      If[S](value <= 0, Then = (state) => {
+        Return[S](0)(state, pp)
+      }, Else = (state) => {
+        If[S](value >= 1, Then = (state2) => {
+          Return[S](1)(state2, pp)
+        }, Else = (state2) => {
+          Return[S](value)(state2, pp)
+        })(state, pp)
+      })
 
     /** Returns a specified number raised to the specified power */
     case "pow" =>

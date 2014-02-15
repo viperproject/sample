@@ -1,6 +1,6 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
 import ch.ethz.inf.pm.td.typecheck.Typer
-import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptListings}
+import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptQuery}
 
 def typer(id:String) {
   if( id != "byxva" && id != "yemc" && id != "tpll") {
@@ -13,6 +13,6 @@ def typer(id:String) {
 //Typer.processScript(WebASTImporter.queryAndConvert("mscv"))
 //Typer.processScript(WebASTImporter.queryAndConvert("ehqe"))
 //Typer.processScript(WebASTImporter.queryAndConvert("bkkimpmk"))
-TestRunner(new ScriptListings,100000,typer _)
+TestRunner(new ScriptQuery,100000,typer _)
 
 

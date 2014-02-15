@@ -22,7 +22,7 @@ var i = 0
 // TODO
 def countLines(id:String):Int = {
 
-  val x = URLFetcher.fetchFile(ScriptListings.codeURLfromPubID(id))
+  val x = URLFetcher.fetchFile(ScriptQuery.codeURLfromPubID(id))
 
   return x.split("\n").length
 

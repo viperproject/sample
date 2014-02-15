@@ -15,7 +15,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.stringdomain._
 class TouchAnalysisWithApron[D <: NumericalDomain[D],V <:StringValueDomain[V], S <: StringDomain[V,S]]
   extends TouchAnalysis[D,V,S] {
 
-  override def getLabel(): String = "TouchDevelop analysis with APRON"
+  override def getLabel(): String = "TouchDevelop/APRON"
 
   override def numericalDomainList = ("Domain", List("ApronInterval", "ApronOctagons", "ApronPolka", "ApronLinearEqualities"))
 

@@ -21,6 +21,15 @@ abstract class ACollection extends AAny {
     case "count" =>
       Return[S](CollectionSize[S](this0))
 
+    /** [**dbg**] Exports a JSON representation of the contents. */
+    case "to json" =>
+      Top[S](TJson_Object.typ)
+
+    /** [**dbg**] Imports a JSON representation of the contents. */
+    case "from json" =>
+      val List(jobj) = parameters // Json_Object UNSOUND
+      Skip
+
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 

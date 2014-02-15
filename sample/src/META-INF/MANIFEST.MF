@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
 Class-Path: mysql.jar
-Main-Class: ch.ethz.inf.pm.sample.test.InterfaceTestRun
+Main-Class: ch.ethz.inf.pm.sample.test.RunWithDB
 

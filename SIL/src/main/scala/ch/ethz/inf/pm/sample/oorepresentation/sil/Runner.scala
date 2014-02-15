@@ -57,8 +57,8 @@ trait EntryStateBuilder[S <: State[S]] {
 }
 
 trait ValueDrivenHeapEntryStateBuilder[
-    Q <: SemanticDomain[Q],
-    S <: ValueDrivenHeapState[Q, S]]
+Q <: SemanticDomain[Q],
+S <: ValueDrivenHeapState[Q, S]]
   extends EntryStateBuilder[S] {
 
   protected def topApronInterface: ApronInterface =

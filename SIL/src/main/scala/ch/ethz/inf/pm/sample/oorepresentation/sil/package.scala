@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.oorepresentation
 import ch.ethz.inf.pm.sample.{oorepresentation => rep, abstractdomain => dom}
 
 package object sil {
+
   /**
    * Makes it possible to access many different Sample types and values
    * under a single namespace.
@@ -69,4 +70,5 @@ package object sil {
     val ClassIdentifier = rep.DummyClassIdentifier
     val MethodIdentifier = rep.DummyMethodIdentifier
   }
+
 }

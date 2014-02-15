@@ -43,26 +43,42 @@ case class DummyMethodIdentifier(name: String) extends MethodIdentifier {
 abstract class Modifier
 
 case object CovariantModifier extends Modifier
+
 case object ContravariantModifier extends Modifier
+
 case object PrivateModifier extends Modifier
+
 case object ProtectedModifier extends Modifier
+
 case object VariableModifier extends Modifier
+
 case object ArgumentModifier extends Modifier
+
 case object AccessorModifier extends Modifier
+
 case object OverrideModifier extends Modifier
+
 case object AbstractModifier extends Modifier
+
 case object DeferredModifier extends Modifier
+
 case object CaseModifier extends Modifier
+
 case object SealedModifier extends Modifier
+
 case object FinalModifier extends Modifier
+
 case object TraitModifier extends Modifier
+
 case object ImplicitModifier extends Modifier
+
 case object StaticModifier extends Modifier
+
 case object PureModifier extends Modifier
 
-/** 
+/**
  * This class represents the declaration of a method.
- * 
+ *
  * @param modifiers the modifiers of the declared method
  * @param name the name of the declared method
  * @param parametricType the values of generic types on which the method is parameterized
@@ -71,34 +87,33 @@ case object PureModifier extends Modifier
  * @param body the control flow graph representing the body of the method
  * @param precond the preconditions
  * @param postcond the postconditions
- * 
+ *
  * @author Pietro Ferrara
  * @version 0.1
  */
 class MethodDeclaration(
-                      val programpoint : ProgramPoint,
-                      val ownerType : Type,
-                      val modifiers : List[Modifier],
-                      val name : MethodIdentifier,
-                      val parametricType : List[Type],
-                      val arguments : List[List[VariableDeclaration]],
-                      val returnType : Type,
-                      val body : ControlFlowGraph,
-                      val precond : Statement,
-                      val postcond : Statement,
-                      val classDef: ClassDefinition
-              ) extends ClassElements 
-{
+                         val programpoint: ProgramPoint,
+                         val ownerType: Type,
+                         val modifiers: List[Modifier],
+                         val name: MethodIdentifier,
+                         val parametricType: List[Type],
+                         val arguments: List[List[VariableDeclaration]],
+                         val returnType: Type,
+                         val body: ControlFlowGraph,
+                         val precond: Statement,
+                         val postcond: Statement,
+                         val classDef: ClassDefinition
+                         ) extends ClassElements {
 
-  override def toString : String = 
-    "method "+
-    ToStringUtilities.toStringIfNotNull(returnType)+" "+
-    name.toString+
-    ToStringUtilities.parametricTypesToString(parametricType)+
-    ToStringUtilities.listOfListToCommasRepresentation[VariableDeclaration](arguments)+
-    "\n-------------------\nBODY:\n"+
-    body.toString+
-    "\n-------------------\n\n"
+  override def toString: String =
+    "method " +
+      ToStringUtilities.toStringIfNotNull(returnType) + " " +
+      name.toString +
+      ToStringUtilities.parametricTypesToString(parametricType) +
+      ToStringUtilities.listOfListToCommasRepresentation[VariableDeclaration](arguments) +
+      "\n-------------------\nBODY:\n" +
+      body.toString +
+      "\n-------------------\n\n"
 
   def initializeArgument[S <: State[S]](state: S): S = {
     SystemParameters.semanticsComputing = false
@@ -124,7 +139,7 @@ class MethodDeclaration(
   }
 
   /** this is not run by the touchdevelop code! */
-  def forwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
+  def forwardSemantics[S <: State[S]](state: S): ControlFlowGraphExecution[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(this)) {
       val result = initializeArgument[S](state)
       SystemParameters.semanticsComputing = true
@@ -133,18 +148,18 @@ class MethodDeclaration(
       r
     }
   }
-  
-  def backwardSemantics[S <: State[S]](state : S) : ControlFlowGraphExecution[S] = {
+
+  def backwardSemantics[S <: State[S]](state: S): ControlFlowGraphExecution[S] = {
     new ControlFlowGraphExecution[S](body, state).definiteBackwardSemantics(state)
   }
-  
-//  def combinedSemantics[S <: State[S]](entrystate : S, exitstate : S) : ControlFlowGraphExecution[S] = {
-//    var result : S = initializeArgument[S](entrystate, arguments);
-//    new ControlFlowGraphExecution[S](body, entrystate).combinedSemantics(result, exitstate);
-//  }
+
+  //  def combinedSemantics[S <: State[S]](entrystate : S, exitstate : S) : ControlFlowGraphExecution[S] = {
+  //    var result : S = initializeArgument[S](entrystate, arguments);
+  //    new ControlFlowGraphExecution[S](body, entrystate).combinedSemantics(result, exitstate);
+  //  }
 }
 
-/** 
+/**
  * This class represents the declaration of a field.
  *
  * @param programpoint where the field is declared
@@ -154,11 +169,11 @@ class MethodDeclaration(
  * @param right the expression assigned to the field when it is initialized
  */
 class FieldDeclaration(
-    override val programpoint: ProgramPoint,
-    val modifiers: List[Modifier],
-    override val variable: Variable,
-    override val typ : Type,
-    override val right: Option[Statement] = None)
+                        override val programpoint: ProgramPoint,
+                        val modifiers: List[Modifier],
+                        override val variable: Variable,
+                        override val typ: Type,
+                        override val right: Option[Statement] = None)
   extends VariableDeclaration(programpoint, variable, typ, right) with ClassElements {
 
   override def toString: String =
@@ -167,58 +182,58 @@ class FieldDeclaration(
       ToStringUtilities.assignedIfNotNull(right)
 }
 
-/** 
+/**
  * This class represents the declaration of a class.
- * 
+ *
  * @param modifiers the modifiers of the class
  * @param name the name of the class
  * @param parametricTypes the type on which the class is parameterized on
  * @param extend the list of the classes extended (note: it is a list in order to support multiple inheritance)
  * @param fields the list of the fields of the class
  * @param methods the list of the methods of the class
- * 
+ *
  * @author Pietro Ferrara
  * @version 0.1
  */
 class ClassDefinition(
-                      val programpoint : ProgramPoint,
-                      val typ : Type,
-                      val modifiers : List[Modifier],
-                      val name : ClassIdentifier,
-                      val parametricTypes : List[Type],
-                      val extend : List[ClassIdentifier],
-                      var fields : List[FieldDeclaration], 
-                      var methods : List[MethodDeclaration],
-                      val pack : PackageIdentifier,
-                      val inv : Expression
-                     )
-{
-  def addField(f : FieldDeclaration) : Unit = fields=fields ::: f :: Nil
-  def addMethod(m : MethodDeclaration) : Unit = methods=methods ::: m :: Nil
-  
-  override def toString : String = 
-    ToStringUtilities.listToNewLineRepresentation[FieldDeclaration](fields)+
-    "\n\n"+
-    ToStringUtilities.listToNewLineRepresentation[MethodDeclaration](methods)
+                       val programpoint: ProgramPoint,
+                       val typ: Type,
+                       val modifiers: List[Modifier],
+                       val name: ClassIdentifier,
+                       val parametricTypes: List[Type],
+                       val extend: List[ClassIdentifier],
+                       var fields: List[FieldDeclaration],
+                       var methods: List[MethodDeclaration],
+                       val pack: PackageIdentifier,
+                       val inv: Expression
+                       ) {
+  def addField(f: FieldDeclaration): Unit = fields = fields ::: f :: Nil
+
+  def addMethod(m: MethodDeclaration): Unit = methods = methods ::: m :: Nil
+
+  override def toString: String =
+    ToStringUtilities.listToNewLineRepresentation[FieldDeclaration](fields) +
+      "\n\n" +
+      ToStringUtilities.listToNewLineRepresentation[MethodDeclaration](methods)
 
 }
 
-/** 
+/**
  * This class represents a package.
- * 
+ *
  * @param name the name of the package
  * @param classes the classes beloging to the package
- * 
+ *
  * @author Pietro Ferrara
  * @version 0.1
  */
-class PackageDefinition(programpoint : ProgramPoint, name : PackageIdentifier, classes : List[ClassDefinition]) {
-  override def toString : String = "package "+name+"\n\n"+ToStringUtilities.listToNewLineRepresentation[ClassDefinition](classes)
-} 
+class PackageDefinition(programpoint: ProgramPoint, name: PackageIdentifier, classes: List[ClassDefinition]) {
+  override def toString: String = "package " + name + "\n\n" + ToStringUtilities.listToNewLineRepresentation[ClassDefinition](classes)
+}
 
-/** 
+/**
  * This trait represents a type. It extends <code>Lattice</code> in order to represent the type hierarchy.
- * 
+ *
  * @author Pietro Ferrara
  * @version 0.1
  */
@@ -279,52 +294,52 @@ trait Type extends Lattice[Type] {
   def isBottomExcluding(types: Set[Type]): Boolean
 }
 
-/** 
+/**
  * The semantics of the native methods.
  * Since we represent native operators (e.g. arithmetic operators, or dynamic type castings),
  * this class has to explain which is the semantics of such "native" method calls.
- * 
+ *
  * @author Pietro Ferrara
  * @version 0.1
  */
 trait NativeMethodSemantics {
-  
-	  /**
-	   * It defines the forward semantics of native method calls
-	   * 
-	   * @param thisExpr the expression representing the object on whom the method is called
-	   * @param operator the string of the called method
-	   * @param parameters the parameters of the called method
-	   * @param typeparameters the list of type generics
-	   * @param returnedtype the type of the returned value
-	   * @param state the abstract state in which the method call is evaluated
-	   * @return the abstract state obtained after the forward evaluation of the native method call, None if the semantics of the method call is not defined 
-	   */
-	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] ;
- 
-	  /**
-	   * It defines the backward semantics of native method calls
-	   * 
-	   * @param thisExpr the expression representing the object on whom the method is called
-	   * @param operator the string of the called method
-	   * @param parameters the parameters of the called method
-	   * @param typeparameters the list of type generics
-	   * @param returnedtype the type of the returned value
-	   * @param programpoint the program point of the method call
-	   * @param state the abstract state in which the method call is evaluated
-	   * @return the abstract state obtained after the backward evaluation of the native method call, None if the semantics of the method call is not defined
-	   */
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] ;
+
+  /**
+   * It defines the forward semantics of native method calls
+   *
+   * @param thisExpr the expression representing the object on whom the method is called
+   * @param operator the string of the called method
+   * @param parameters the parameters of the called method
+   * @param typeparameters the list of type generics
+   * @param returnedtype the type of the returned value
+   * @param state the abstract state in which the method call is evaluated
+   * @return the abstract state obtained after the forward evaluation of the native method call, None if the semantics of the method call is not defined
+   */
+  def applyForwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet, operator: String, parameters: List[ExpressionSet], typeparameters: List[Type], returnedtype: Type, programpoint: ProgramPoint, state: S): Option[S];
+
+  /**
+   * It defines the backward semantics of native method calls
+   *
+   * @param thisExpr the expression representing the object on whom the method is called
+   * @param operator the string of the called method
+   * @param parameters the parameters of the called method
+   * @param typeparameters the list of type generics
+   * @param returnedtype the type of the returned value
+   * @param programpoint the program point of the method call
+   * @param state the abstract state in which the method call is evaluated
+   * @return the abstract state obtained after the backward evaluation of the native method call, None if the semantics of the method call is not defined
+   */
+  def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet, operator: String, parameters: List[ExpressionSet], typeparameters: List[Type], returnedtype: Type, programpoint: ProgramPoint, state: S): Option[S];
 }
 
 /** Native method semantics without backward semantics. */
 trait ForwardNativeMethodSemantics extends NativeMethodSemantics {
   def applyBackwardNativeSemantics[S <: State[S]](
-    thisExpr: ExpressionSet,
-    operator: String,
-    parameters: List[ExpressionSet],
-    typeParameters: List[Type],
-    returnType: Type,
-    programPoint: ProgramPoint,
-    state: S): Option[S] = None
+                                                   thisExpr: ExpressionSet,
+                                                   operator: String,
+                                                   parameters: List[ExpressionSet],
+                                                   typeParameters: List[Type],
+                                                   returnType: Type,
+                                                   programPoint: ProgramPoint,
+                                                   state: S): Option[S] = None
 }

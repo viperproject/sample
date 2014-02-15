@@ -1,4 +1,4 @@
-package ch.ethz.inf.pm.sample.test
+package ch.ethz.inf.pm.sample.test.db
 
 import ch.ethz.inf.pm.sample.userinterfaces.InstalledPlugins
 import java.lang.Exception
@@ -6,84 +6,29 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample._
 import abstractdomain._
-import java.sql.{ResultSet, Statement, DriverManager}
+import java.sql.{SQLException, ResultSet, Statement, DriverManager}
 import java.util.Date
 import java.io._
 import ch.ethz.inf.pm.td.webapi._
-import ch.ethz.inf.pm.sample.td.cost.loops.{ScriptsWithLoops, TopRootScriptsWithLoops, RootSampleScriptsWithLoops, RootScriptsWithLoops}
-import ch.ethz.inf.pm.sample.property.WarningProgramPoint
 import scala.Some
-import ch.ethz.inf.pm.sample.property.ValidatedProgramPoint
 
-//import ch.ethz.inf.pm.td.webapi.{NoMoreScriptsException, ScriptRecord, ScriptListings}
 
-//object PopulateTags {
-//  val CONNECTION = "jdbc:mysql://127.0.0.1:3306/mydb";
-//
-//  private def getConnection() =DriverManager.getConnection(CONNECTION, "root", "");
-//  private val c = getConnection();
-//  private val stmt = c.createStatement();
-//
-//  def main(args : Array[String]) : Unit =  {
-//    val iterator : ScriptListings = new ScriptListings();
-//    try {
-//      while(true) {
-//        val script : ScriptRecord = iterator.get();
-//        println("Script "+script.getCodeURL+" tags "+script.toptagids)
-//        for(tag <- script.toptagids) {
-//          val sql = "INSERT INTO ProgramTags(Name, Tag) VALUES ('"+script.getCodeURL.replace("'", "''")+"', '"+tag.replace("'", "''")+"')";
-//          try{
-//            stmt.executeUpdate(sql)
-//          }
-//          catch {
-//            case e => println("Database error:\n"+e.getMessage); e.printStackTrace()
-//          }
-//        }
-//      }
-//    }
-//    catch {
-//      case e : NoMoreScriptsException => println("End");
-//    }
-//  }
-//}
+object RunWithDB {
 
-object Iterators {
-
-  val iterators = new Array[IteratorOverPrograms](15)
-  iterators(0) = new TopScripts
-  iterators(1) = new NewScripts
-  iterators(2) = new FeaturedScripts
-  iterators(3) = new RootScripts
-  iterators(4) = new SampleScript
-  iterators(5) = new RootScriptsWithLoops
-  iterators(6) = new RootSampleScriptsWithLoops
-  iterators(7) = new TopRootScriptsWithLoops
-  iterators(8) = new ScriptsWithLoops
-  iterators(9) = new ScriptListings
-  iterators(10) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/131101_R", "131101_R")
-  iterators(11) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/A_131101", "A_131101")
-  iterators(12) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/AA_131101", "AA_131101")
-  iterators(13) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101", "TOP_131101")
-  iterators(14) = new ReadIdsFromFile("Test/test/TouchDevelop/testsets/TOP_131101_NR", "TOP_131101_NR")
-
-}
-
-object InterfaceTestRun {
-
-  val CONNECTION = "jdbc:mysql://127.0.0.1:3306/mydb"
-
-  private def getConnection = DriverManager.getConnection(CONNECTION, "root", "")
+  private def getConnection = DriverManager.getConnection(
+    System.getProperty("sql_connection", "jdbc:mysql://127.0.0.1:3306/mydb"),
+    System.getProperty("sql_user", "root"),
+    System.getProperty("sql_password", "")
+  )
 
   private val c = getConnection
   private val stmt = c.createStatement()
 
-  private var SampleHome = new BufferedReader(new InputStreamReader(Runtime.getRuntime().exec(Array[String]("sh", "-c", "echo ~")).getInputStream())).readLine() + "/Sample/"
+  private var SampleHome = new BufferedReader(new InputStreamReader(Runtime.getRuntime.exec(Array[String]("sh", "-c", "echo ~")).getInputStream())).readLine() + "/Sample/"
   private var OutputDirectory = SampleHome
 
-
   def main(args: Array[String]): Unit = {
-    println("version 01.11.13 [1]")
-    extractMode(args) match {
+    extractMode(args.toList) match {
       case "-i" =>
         setOptionalParameters(args)
         mainMenu()
@@ -91,10 +36,13 @@ object InterfaceTestRun {
         val (id, timeout) = extractIdTimeout(args)
         setOptionalParameters(args)
         runAnalyses(id, timeout * 1000)
+      case "-t" =>
+        populateTags()
       case "" =>
         println("Wrong option\n" +
           "One of the two following parameters is mandatory:\n" +
-          "-i  => run the command line interface for test runs\n" +
+          "-i => run the command line interface for test runs\n" +
+          "-t => populate tags\n" +
           "-r <id> <timeout>  => run the testrun with id <id> given a timeout of <timeout> seconds\n\n" +
           "In addition, the following two parameters are optional:\n" +
           "-sh <dir> => set the home directory of Sample to <dir>. By default, <dir>=" + SampleHome + "\n" +
@@ -104,6 +52,23 @@ object InterfaceTestRun {
     }
   }
 
+  def populateTags() {
+    val c = getConnection
+    val stmt = c.createStatement()
+    val iterator: ScriptQuery = new ScriptQuery()
+    for (script <- iterator) {
+      println("Script " + script.id + " tags " + script.toptagids)
+      for (tag <- script.toptagids) {
+        val sql = "INSERT INTO ProgramTags(Name, Tag) VALUES ('" + script.id + "', '" + tag.replace("'", "''") + "')"
+        try {
+          stmt.executeUpdate(sql)
+        }
+        catch {
+          case e:SQLException => println("Database error:\n" + e.getMessage); e.printStackTrace()
+        }
+      }
+    }
+  }
 
   private def setOptionalParameters(args: Array[String]) {
     extractParameterValue(args, "-sh") match {
@@ -117,11 +82,13 @@ object InterfaceTestRun {
   }
 
   //given the arguments' list, checks whether we have to run the menu mode or run the analysis
-  private def extractMode(args: Array[String]): String = {
-    for (arg <- args)
+  private def extractMode(args: List[String]): String = {
+    for (arg <- args) {
       if (arg.equals("-i")) return "-i"
       else if (arg.equals("-r")) return arg
-    return ""
+      else if (arg.equals("-t")) return arg
+    }
+    ""
   }
 
   //given the arguments' list and a parameter, return the value of the given parameter
@@ -133,9 +100,9 @@ object InterfaceTestRun {
       }
     }
     catch {
-      case _ : Throwable =>
+      case _: Throwable =>
     }
-    return result
+    result
   }
 
 
@@ -148,14 +115,14 @@ object InterfaceTestRun {
       }
     }
     catch {
-      case _ : Throwable =>
+      case _: Throwable =>
     }
     if (result._1 == 0 - 1 || result._2 == 0 - 1) {
       println("The parameter for running the test run do not conform the standard '-r <id> <timeout>'")
       System.exit(1)
-      return (-1, -1)
+      (-1, -1)
     }
-    else return result
+    else result
   }
 
 
@@ -170,7 +137,7 @@ object InterfaceTestRun {
         value = input.toInt
       }
       catch {
-        case _ : Throwable => println("Wrong input: " + input); readLine()
+        case _: Throwable => println("Wrong input: " + input); readLine()
       }
       if (value != 0 - 1 && !selection(value))
         flag = false
@@ -298,11 +265,12 @@ object InterfaceTestRun {
           cmds.update(1, "-c")
           cmds.update(2, SampleHome + "Test/runTestRun.sh " + idTestRun.toString + " " + timeout + " -sh " + SampleHome + " -oh " + OutputDirectory)
           val p = Runtime.getRuntime.exec(cmds)
-          val output = new BufferedReader(new InputStreamReader(p.getInputStream()));
+          val output = new BufferedReader(new InputStreamReader(p.getInputStream))
           println(output.readLine)
           var s: String = ""
-          while ({
-            s = output.readLine; s
+          while ( {
+            s = output.readLine
+            s
           } != null)
             println(s)
           true
@@ -417,7 +385,8 @@ object InterfaceTestRun {
       if (stmt.executeQuery("SELECT * FROM TestRun WHERE idTestRun=" + input.toInt).next())
         return input.toInt
       else {
-        println("Wrong id, please retry"); readLine();
+        println("Wrong id, please retry")
+        readLine()
       }
     }
     -1
@@ -443,6 +412,47 @@ object InterfaceTestRun {
 
   //This method asks the user for all the parameters of a test run, and record them in the database
   private def createTestRun(): Int = {
+    var config: Configuration = null
+    var custom = false
+    println("Existing configurations:\n" + Configurations.configs.map(c => c.label).mkString("\n"))
+    while (config == null && custom == false) {
+      println("Name of the configuration or custom for custom configuration:")
+      val input: String = readLine()
+      if (input != "custom") {
+        name2Object[Configuration](input, Configurations.configs.toArray,c => c.label) match {
+          case Some(c) => config = c
+          case None => println("Unknown configuration, please try again")
+        }
+      } else {
+        custom = true
+      }
+    }
+
+    if (!custom) {
+
+      var iterator: IteratorOverPrograms = null
+      println("Existing iterators:\n" + Iterators.iterators.map(c => c.label).mkString("\n"))
+      while (iterator == null) {
+        println("Name of the iterator:")
+        val input: String = readLine()
+        name2Object[IteratorOverPrograms](input, Iterators.iterators, p => p.label) match {
+          case Some(i) => iterator = i
+          case None => println("Unknown iterator, please try again")
+        }
+      }
+
+      val id = recordTestRun(config.compiler, config.analysis, config.heapAnalysis, config.property, iterator.label)
+
+      for ((a, b) <- config.parameters)
+        recordParameter("TestRunAnalysisParameters", a, b, id)
+      for ((a, b) <- config.heapParameters)
+        recordParameter("TestRunHeapAnalysisParameters", a, b, id)
+
+      populateToBeAnalyzed(iterator, name2Object[Compiler](config.compiler,InstalledPlugins.compilers, p => p.getLabel()).get, id)
+
+      return id
+    }
+
     var compiler: Compiler = null
     println("Existing compilers:\n" + InstalledPlugins.compilers.map(c => c.getLabel()).mkString("\n"))
     while (compiler == null) {
@@ -525,17 +535,17 @@ object InterfaceTestRun {
 
 
     var iterator: IteratorOverPrograms = null
-    println("Existing iterators:\n" + Iterators.iterators.map(c => c.getLabel()).mkString("\n"))
+    println("Existing iterators:\n" + Iterators.iterators.map(c => c.label).mkString("\n"))
     while (iterator == null) {
       println("Name of the iterator:")
       val input: String = readLine()
-      name2Object[IteratorOverPrograms](input, Iterators.iterators, p => p.getLabel()) match {
+      name2Object[IteratorOverPrograms](input, Iterators.iterators, p => p.label) match {
         case Some(i) => iterator = i
         case None => println("Unknown iterator, please try again")
       }
     }
 
-    val id = recordTestRun(compiler.getLabel(), analysis.getLabel(), heapanalysis.getLabel(), property.getLabel(), iterator.getLabel())
+    val id = recordTestRun(compiler.getLabel(), analysis.getLabel(), heapanalysis.getLabel(), property.getLabel(), iterator.label)
 
     for ((a, b) <- parameters)
       recordParameter("TestRunAnalysisParameters", a, b, id)
@@ -544,14 +554,14 @@ object InterfaceTestRun {
 
     populateToBeAnalyzed(iterator, compiler, id)
 
-    return id
+    id
   }
 
 
   //create the test run
   private def recordTestRun(compiler: String, valueanalysis: String, heapanalysis: String, property: String, iterator: String): Int = {
     stmt.executeUpdate("INSERT INTO TestRun(Analysis, HeapAnalysis, Compiler, Property, Iterator, Date) VALUES ('" + valueanalysis + "', '" + heapanalysis + "', '" + compiler + "', '" + property + "', '" + iterator + "', '" + new Date().toString + "')", Statement.RETURN_GENERATED_KEYS)
-    val rs: ResultSet = stmt.getGeneratedKeys()
+    val rs: ResultSet = stmt.getGeneratedKeys
     rs.next()
     val id = rs.getInt(1)
     /*try {
@@ -563,7 +573,7 @@ object InterfaceTestRun {
       case e =>
         println("Something wrong happened: " + e.getMessage)
     }*/
-    return id
+    id
   }
 
   //add all the programs contained in the iterator to the to be analyzed list of the current test run
@@ -572,7 +582,7 @@ object InterfaceTestRun {
     while (iterator.hasNext) {
       var program: String = "<Program not compiled>"
       try {
-        program = iterator.next()
+        program = iterator.next().id
         if (!program.isEmpty) {
           println("Adding program " + program)
           val idprogram = add2Programs(program, compiler)
@@ -582,7 +592,10 @@ object InterfaceTestRun {
         }
       }
       catch {
-        case e : Throwable => println("Program " + program + " not added.\n" + e.getMessage)
+        case e: Throwable =>
+          println(e);
+          e.printStackTrace()
+          println("Program " + program + " not added.\n" + e.getMessage)
       }
     }
     println("END OF ADDING PROGRAMS TO THE TODO LIST")
@@ -598,7 +611,7 @@ object InterfaceTestRun {
     var analysis: Array[A] = arr.filter(p => getName(p).equals(name))
     if (analysis.size == 0) return None
     if (analysis.size > 1) throw new TestRunException("More than one " + arr.head.getClass.getName + " object with name " + name)
-    else return Some(analysis.head)
+    else Some(analysis.head)
   }
 
 
@@ -824,17 +837,17 @@ object InterfaceTestRun {
   //Add a given program to the Programs table, or it returns its id if it is already in the table
   def add2Programs(path: String, compiler: Compiler): Int = {
     val rs = stmt.executeQuery("SELECT ProgramId FROM Programs WHERE Name='" + path + "'")
-    if (rs.next()) return rs.getInt("ProgramId")
+    if (rs.next()) rs.getInt("ProgramId")
     else {
       stmt.executeUpdate("INSERT INTO Programs(Name, LOC) VALUES ('" + path + "', " +
-        compiler.getSourceCode(path).count(_ match {
+        compiler.getSourceCode("td://"+path).count(_ match {
           case '\n' => true
           case _ => false
         })
         + ")", Statement.RETURN_GENERATED_KEYS)
-      val rs: ResultSet = stmt.getGeneratedKeys()
+      val rs: ResultSet = stmt.getGeneratedKeys
       rs.next()
-      return rs.getInt(1)
+      rs.getInt(1)
     }
   }
 
@@ -842,10 +855,10 @@ object InterfaceTestRun {
   def add2ToBeAnalyzed(idProgram: Int, testRun: Int): Boolean = {
     try {
       stmt.executeUpdate("INSERT INTO ToBeAnalyzed(TestRun, Program) VALUES (" + testRun + ", " + idProgram + ")")
-      return true
+      true
     }
     catch {
-      case _ : Throwable => return false
+      case _: Throwable => return false
     }
   }
 
@@ -863,7 +876,7 @@ object InterfaceTestRun {
 
 
       this.synchronized {
-        val t = new AnalysisThread(rows.getString("Name"), programId, idTestRun, state._2, state._3, state._1, state._4)
+        val t = new AnalysisThread(rows.getString("Name"), programId, idTestRun, state._2, state._3, state._1, state._4, stmt)
         val initialTime = System.currentTimeMillis()
         t.start()
         while (t.isAlive && System.currentTimeMillis() - initialTime < timeout)
@@ -902,106 +915,10 @@ object InterfaceTestRun {
     while (rs.next())
       heapAnalysis.setParameter(rs.getString("Name"), rs.getString("Value"))
 
-    return (compiler, analysis, heapAnalysis, property)
+    (compiler, analysis, heapAnalysis, property)
   }
 
-
-  //analyze one given program setting all the parameters of the analysis, and recording the results in the database
-  def analyzeOneProgram[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](url: String, idProgram: Int, idTestRun: Int, semanticAnalysis: N, heapDomain: H, compiler: Compiler, property: Property): Unit = {
-    System.gc()
-    System.runFinalization()
-
-    println("Program: " + url + " - " + new Date().toString)
-    semanticAnalysis.reset()
-    heapDomain.reset()
-    SystemParameters.setCompiler(compiler)
-    SystemParameters.setAnalysisOutput(new StringCollector)
-    SystemParameters.setProgressOutput(new StringCollector)
-    SystemParameters.compiler.reset()
-    SystemParameters.resetNativeMethodsSemantics()
-    val classes = try {
-      SystemParameters.compilerTimer.start()
-      SystemParameters.compiler.compileFile(url)
-    }
-    catch {
-      case e : Throwable => println("Compiler's error: " + e.toString)
-      stmt.executeUpdate("INSERT INTO BrokenCompilations(TestRun, Program, Error) VALUES(" + idTestRun + ", " + idProgram + ", '" + e.toString.replace("'", "''") + "')")
-      SystemParameters.compilerTimer.stop();
-      return
-    }
-
-    SystemParameters.compilerTimer.stop()
-    val output: OutputCollector = new OutputCollector
-    SystemParameters.setProperty(property)
-
-    SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
-
-    val domain: T = semanticAnalysis.getInitialState
-    val entrydomain: HeapAndAnotherDomain[T, H, I] = new HeapAndAnotherDomain[T, H, I](domain, heapDomain)
-    val entryvalue = ExpressionSet()
-    val entryState = new AbstractState[T, H, I](entrydomain, entryvalue)
-    var methods = List.empty[String]
-    for (c <- classes)
-      for (m <- c.methods)
-        methods = methods ::: m.name.toString :: Nil
-    try {
-      semanticAnalysis.analyze(methods, entryState, output)
-      val outputs = output.outputs
-
-
-      val warnings = outputs.count(_ match {
-        case x: WarningProgramPoint => true
-        case _ => false
-      })
-      val computed = outputs.size - warnings
-
-      System.out.println("Warnings:" + warnings)
-      System.out.println("Validated:" + computed)
-      val compilerTime: Double = (SystemParameters.compilerTimer.totalTime).toDouble / 1000
-      val analysisTime: Double = (SystemParameters.domainTimer.totalTime + SystemParameters.heapTimer.totalTime).toDouble / 1000
-      val propertyTime: Double = (SystemParameters.propertyTimer.totalTime).toDouble / 1000
-
-      val sql = "INSERT INTO Analyses(Program, TestRun, CompilerTime, AnalysisTime, PropertyTime, Warnings, Validated) " +
-        "VALUES (" + idProgram + ", " + idTestRun + ", " + compilerTime + ", " + analysisTime + ", " + propertyTime + ", " + warnings + ", " + computed + ")"
-      stmt.executeUpdate(sql)
-
-      for (res <- outputs) {
-        val programpoint = res match {
-          case x: WarningProgramPoint => x.pp.toString
-          case x: ValidatedProgramPoint => x.pp.toString
-          case _ => -1
-        }
-        val msg = res match {
-          case x: WarningProgramPoint => "WARNING:"
-          case x: ValidatedProgramPoint => "VALIDATED:"
-          case _ => -1
-        }
-        val sql = "INSERT INTO Output(TestRun, Program, ProgramPoint, Message) " +
-          "VALUES (" + idTestRun + ", " + idProgram + ", '" + programpoint.toString.replace("'", "''") + "', '" + msg + res.getMessage().replace("'", "''") + "')"
-        stmt.executeUpdate(sql)
-      }
-    }
-    catch {
-      case e : Throwable =>
-        println("Error when running the analysis: " + e.toString)
-        val sql = "INSERT INTO BrokenAnalyses(TestRun, Program, Error) " +
-          "VALUES (" + idTestRun + ", " + idProgram + ", '" + e.toString.replace("'", "''") + "')"
-        try {
-          stmt.executeUpdate(sql);
-        } catch {
-          case _ : Throwable => println("Program " + idProgram + " already in the broken analyses of test run " + idTestRun)
-        }
-    }
-    SystemParameters.domainTimer.reset()
-    SystemParameters.heapTimer.reset()
-    SystemParameters.propertyTimer.reset()
-    SystemParameters.compilerTimer.reset()
-  }
 }
 
-class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](val url: String, val idProgram: Int, val idTestRun: Int, val semanticAnalysis: N, val heapDomain: H, val compiler: Compiler, val property: Property) extends Thread {
-
-  override def run() = InterfaceTestRun.analyzeOneProgram[T, N, H, I](url, idProgram, idTestRun, semanticAnalysis, heapDomain, compiler, property)
-}
 
 class TestRunException(exc: String) extends Exception(exc)

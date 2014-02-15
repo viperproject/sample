@@ -18,6 +18,7 @@ class SilCompiler extends Compiler {
   var program: sil.Program = null
 
   def getLabel(): String = "SIL"
+
   def extensions(): List[String] = "sil" :: Nil
 
   /**
@@ -47,7 +48,7 @@ class SilCompiler extends Compiler {
     for (clazz <- classes.get; method <- clazz.methods) yield method.name.toString
 
   def getMethods(name: String) =
-    for (clazz <- classes.get; method <- clazz.methods; if method.name.toString == name) yield(clazz, method)
+    for (clazz <- classes.get; method <- clazz.methods; if method.name.toString == name) yield (clazz, method)
 
   def getMethod(name: String, classType: Type, parameters: List[Type]) = getMethods(name) match {
     case Nil => None
@@ -57,7 +58,7 @@ class SilCompiler extends Compiler {
 
   def getNativeMethodsSemantics() =
     ArithmeticAndBooleanNativeMethodSemantics ::
-    RichNativeMethodSemantics :: Nil
+      RichNativeMethodSemantics :: Nil
 
   def reset(): Unit = {
     classes = None

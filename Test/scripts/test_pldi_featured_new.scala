@@ -11,7 +11,7 @@ val skipList =
   """.stripMargin.split("[\n,]").map(_.trim).toSet
 
 def countLines(id:String):Int = {
-  val x = URLFetcher.fetchFile(ScriptListings.codeURLfromPubID(id))
+  val x = URLFetcher.fetchFile(ScriptQuery.codeURLfromPubID(id))
   x.split("\n").length
 }
 

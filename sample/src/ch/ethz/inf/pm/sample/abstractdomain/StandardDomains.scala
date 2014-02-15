@@ -17,7 +17,8 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara, Lucas Brutschy
  */
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
-  extends Lattice[T] { this: T =>
+  extends Lattice[T] {
+  this: T =>
 
   def isBottom: Boolean
 
@@ -36,9 +37,9 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
    * @return A fresh instance
    */
   def functionalFactory(
-      map: Map[K, V] = Map.empty[K, V],
-      isBottom: Boolean = false,
-      isTop: Boolean = false): T
+                         map: Map[K, V] = Map.empty[K, V],
+                         isBottom: Boolean = false,
+                         isTop: Boolean = false): T
 
   /**
    * Adds [key->value] to the domain 
@@ -172,18 +173,18 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   *                     the top or bottom element of the value domain)
   */
 case class DefaultFunctionalDomain[K, V <: Lattice[V]](
-    map: Map[K, V] = Map.empty[K, V],
-    isTop: Boolean = false,
-    isBottom: Boolean = false,
-    defaultValue: V)
+                                                        map: Map[K, V] = Map.empty[K, V],
+                                                        isTop: Boolean = false,
+                                                        isBottom: Boolean = false,
+                                                        defaultValue: V)
   extends FunctionalDomain[K, V, DefaultFunctionalDomain[K, V]] {
 
   def get(key: K): V = map.getOrElse(key, defaultValue)
 
   def functionalFactory(
-      value: Map[K, V],
-      isBottom: Boolean,
-      isTop: Boolean) =
+                         value: Map[K, V],
+                         isBottom: Boolean,
+                         isTop: Boolean) =
     DefaultFunctionalDomain(value, isTop, isBottom, defaultValue)
 }
 
@@ -197,7 +198,8 @@ case class DefaultFunctionalDomain[K, V <: Lattice[V]](
  * @since 0.1
  */
 trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
-  extends FunctionalDomain[Identifier, V, T]{ this: T =>
+  extends FunctionalDomain[Identifier, V, T] {
+  this: T =>
 
   def merge(r: Replacement): T = {
 
@@ -247,7 +249,8 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
  * @todo do not allow `value` to be empty while both `isTop` and `isBottom` are `false`
  * @todo ideally, one should not allow access to `value` when the object is top
  */
-trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
+trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] {
+  this: T =>
 
 
   def value: Set[V]
@@ -262,12 +265,14 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
    * @return a fresh, empty instance of the set domain
    */
   def setFactory(
-      value: Set[V] = Set.empty[V],
-      isTop: Boolean = false,
-      isBottom: Boolean = false): T
+                  value: Set[V] = Set.empty[V],
+                  isTop: Boolean = false,
+                  isBottom: Boolean = false): T
 
   override def factory() = setFactory()
+
   final def top(): T = setFactory(isTop = true)
+
   final def bottom(): T = setFactory(isBottom = true)
 
   /**
@@ -279,7 +284,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
     if (this.isTop) return this.top()
     if (this.isBottom) return this.bottom()
     val newSet = this.value.-(v)
-    setFactory(newSet,isBottom = newSet.isEmpty)
+    setFactory(newSet, isBottom = newSet.isEmpty)
   }
 
   /**
@@ -292,7 +297,7 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
     if (v.isTop) return bottom()
     if (this.isTop) return top()
     val newSet = this.value -- v.value
-    setFactory(newSet,isBottom = newSet.isEmpty)
+    setFactory(newSet, isBottom = newSet.isEmpty)
   }
 
   /**
@@ -373,15 +378,15 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
   * to your `SetDomain` objects.
   */
 case class DefaultSetDomain[V](
-    value: Set[V] = Set.empty[V],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
+                                value: Set[V] = Set.empty[V],
+                                isTop: Boolean = false,
+                                isBottom: Boolean = false)
   extends SetDomain[V, DefaultSetDomain[V]] {
 
   def setFactory(
-      value: Set[V] = Set.empty[V],
-      isTop: Boolean = false,
-      isBottom: Boolean = false) =
+                  value: Set[V] = Set.empty[V],
+                  isTop: Boolean = false,
+                  isBottom: Boolean = false) =
     DefaultSetDomain(value, isTop, isBottom)
 }
 
@@ -392,7 +397,8 @@ case class DefaultSetDomain[V](
  * @tparam T the type itself
  * @author Lucas Brutschy
  */
-trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V, T] { this: T =>
+trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V, T] {
+  this: T =>
 
   /** The maximum number of represented elements. */
   def K: Int
@@ -440,16 +446,16 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V, T] { this: T =>
   * to your `KSetDomain` objects.
   */
 case class DefaultKSetDomain[V](
-    K: Int,
-    value: Set[V] = Set.empty[V],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
+                                 K: Int,
+                                 value: Set[V] = Set.empty[V],
+                                 isTop: Boolean = false,
+                                 isBottom: Boolean = false)
   extends KSetDomain[V, DefaultKSetDomain[V]] {
 
   def setFactory(
-      value: Set[V] = Set.empty[V],
-      isTop: Boolean = false,
-      isBottom: Boolean = false) =
+                  value: Set[V] = Set.empty[V],
+                  isTop: Boolean = false,
+                  isBottom: Boolean = false) =
     DefaultKSetDomain(K, value, isTop, isBottom)
 }
 
@@ -462,7 +468,8 @@ case class DefaultKSetDomain[V](
  * @tparam T The type of the current set domain
  * @author Pietro Ferrara, Lucas Brutschy
  */
-trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] { this: T =>
+trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] {
+  this: T =>
 
   override def add(el: V): T = {
     setFactory(value + el)
@@ -503,10 +510,11 @@ trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] { this: 
  * @author Pietro Ferrara, Lucas Brutschy
  */
 trait CartesianProductDomain[
-    T1 <: Lattice[T1],
-    T2 <: Lattice[T2],
-    T <: CartesianProductDomain[T1, T2, T]]
-  extends Lattice[T] with Product2[T1, T2] { this: T =>
+T1 <: Lattice[T1],
+T2 <: Lattice[T2],
+T <: CartesianProductDomain[T1, T2, T]]
+  extends Lattice[T] with Product2[T1, T2] {
+  this: T =>
 
   def factory(a: T1, b: T2): T
 
@@ -555,15 +563,15 @@ trait CartesianProductDomain[
   * to your `InverseSetDomain` objects.
   */
 case class DefaultInverseSetDomain[V](
-    value: Set[V] = Set.empty[V],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
+                                       value: Set[V] = Set.empty[V],
+                                       isTop: Boolean = false,
+                                       isBottom: Boolean = false)
   extends InverseSetDomain[V, DefaultInverseSetDomain[V]] {
 
   def setFactory(
-      value: Set[V] = Set.empty[V],
-      isTop: Boolean = false,
-      isBottom: Boolean = false) =
+                  value: Set[V] = Set.empty[V],
+                  isTop: Boolean = false,
+                  isBottom: Boolean = false) =
     DefaultInverseSetDomain(value, isTop, isBottom)
 }
 
@@ -576,10 +584,11 @@ case class DefaultInverseSetDomain[V](
  * @author Pietro Ferrara, Lucas Brutschy
  */
 trait ReducedProductDomain[
-    T1 <: Lattice[T1],
-    T2 <: Lattice[T2],
-    T <: ReducedProductDomain[T1, T2, T]]
-  extends CartesianProductDomain[T1, T2, T] { this: T =>
+T1 <: Lattice[T1],
+T2 <: Lattice[T2],
+T <: ReducedProductDomain[T1, T2, T]]
+  extends CartesianProductDomain[T1, T2, T] {
+  this: T =>
 
   /**
    * Reduce the information contained in the two domains. The returned value
@@ -598,10 +607,11 @@ trait ReducedProductDomain[
  * @author Pietro Ferrara
  */
 trait SemanticCartesianProductDomain[
-    T1 <: SemanticDomain[T1],
-    T2 <: SemanticDomain[T2],
-    T <: SemanticCartesianProductDomain[T1, T2, T]]
-  extends CartesianProductDomain[T1, T2, T] with SemanticDomain[T] { this: T =>
+T1 <: SemanticDomain[T1],
+T2 <: SemanticDomain[T2],
+T <: SemanticCartesianProductDomain[T1, T2, T]]
+  extends CartesianProductDomain[T1, T2, T] with SemanticDomain[T] {
+  this: T =>
 
   def getIds() = _1.getIds() ++ _2.getIds()
 
@@ -656,11 +666,12 @@ trait SemanticCartesianProductDomain[
  * @tparam T type of the current domain
  */
 trait HalfSemanticCartesianProductDomain[
-    S <: SemanticDomain[S],
-    O <: Lattice[O],
-    T <: HalfSemanticCartesianProductDomain[S, O, T]]
+S <: SemanticDomain[S],
+O <: Lattice[O],
+T <: HalfSemanticCartesianProductDomain[S, O, T]]
   extends CartesianProductDomain[S, O, T]
-  with SemanticDomain[T] { this: T =>
+  with SemanticDomain[T] {
+  this: T =>
 
   def getIds() = _1.getIds()
 
@@ -717,10 +728,11 @@ trait HalfSemanticCartesianProductDomain[
  * @author Pietro Ferrara
  */
 trait ReducedSemanticProductDomain[
-    T1 <: SemanticDomain[T1],
-    T2 <: SemanticDomain[T2],
-    T <: ReducedSemanticProductDomain[T1, T2, T]]
-  extends SemanticCartesianProductDomain[T1, T2, T] { this: T =>
+T1 <: SemanticDomain[T1],
+T2 <: SemanticDomain[T2],
+T <: ReducedSemanticProductDomain[T1, T2, T]]
+  extends SemanticCartesianProductDomain[T1, T2, T] {
+  this: T =>
 
   def reduce(): T
 

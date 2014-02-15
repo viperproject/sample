@@ -1,16 +1,6 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.ProgramPointScopeIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.oorepresentation.Assignment
-import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
-import ch.ethz.inf.pm.sample.oorepresentation.Variable
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.reporting.Reporter
-import semper.sil.{ast => sil}
 
 case class WrappedProgramPoint(pos: sil.RealPosition) extends LineColumnProgramPoint {
   def getLine: Int = pos.line
@@ -147,11 +137,11 @@ trait ContractAwareMethodCall extends MethodCall {
 }
 
 class SilFunctionCall(
-    override val pp: ProgramPoint,
-    override val method: Statement,
-    override val parametricTypes: List[Type],
-    override val parameters: List[Statement],
-    override val returnedType: Type)
+                       override val pp: ProgramPoint,
+                       override val method: Statement,
+                       override val parametricTypes: List[Type],
+                       override val parameters: List[Statement],
+                       override val returnedType: Type)
   extends MethodCall(pp, method, parametricTypes, parameters, returnedType) with ContractAwareMethodCall {
 
   /**
@@ -165,11 +155,11 @@ class SilFunctionCall(
 }
 
 class SilMethodCall(
-    override val pp: ProgramPoint,
-    override val method: Statement,
-    override val parametricTypes: List[Type],
-    override val parameters: List[Statement],
-    targets: List[Variable])
+                     override val pp: ProgramPoint,
+                     override val method: Statement,
+                     override val parametricTypes: List[Type],
+                     override val parameters: List[Statement],
+                     targets: List[Variable])
   extends MethodCall(pp, method, parametricTypes, parameters, returnedType = null) with ContractAwareMethodCall {
 
   /**

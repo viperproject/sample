@@ -16,8 +16,11 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 object STime {
 
+  /** PRIVATE HANDLER FIELDS */
+  val field_every_frame_handler = new TouchField("every frame handler", TAction.typName)
+
   val typName = "Time"
-  val typ = new TouchType(typName,isSingleton = true)
+  val typ = new TouchType(typName, isSingleton = true, fields = List(field_every_frame_handler))
 
 }
 
@@ -25,13 +28,30 @@ class STime extends AAny {
 
   def getTyp = STime.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                              (implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
+                                              (implicit pp: ProgramPoint, state: S): S = method match {
+
+
+    /** Attaches a handler to run on every time frame, roughly every 20ms. */
+    case "on every frame" =>
+      val List(perform) = parameters // Action
+    val newState = AssignField[S](this0, STime.field_every_frame_handler, perform)
+      New[S](TEvent_Binding.typ)(newState, pp)
+
+    /** Starts a timer to run ``perform`` after ``seconds`` seconds. */
+    case "run after" =>
+      val List(seconds, perform) = parameters // Number,Action
+      New[S](TTimer.typ, initials = Map(TTimer.field_is_active -> True, TTimer.field_trigger_handler -> perform))
+
+    /** Starts a timer to run ``perform`` every ``seconds`` seconds. */
+    case "run every" =>
+      val List(seconds, perform) = parameters // Number,Action
+      New[S](TTimer.typ, initials = Map(TTimer.field_is_active -> True, TTimer.field_trigger_handler -> perform))
 
     /** Creates a new date instance */
     case "create" =>
-      val List(year,month,day,hour,minute,second) = parameters // Number,Number,Number,Number,Number,Number
-      New[S](TDateTime.typ,Map(
+      val List(year, month, day, hour, minute, second) = parameters // Number,Number,Number,Number,Number,Number
+      New[S](TDateTime.typ, Map(
         TDateTime.field_year -> year,
         TDateTime.field_month -> month,
         TDateTime.field_day -> day,
@@ -40,38 +60,38 @@ class STime extends AAny {
         TDateTime.field_second -> second
       ))
 
-    /** Aborts the execution if the condition is false. */
+    /* [**obsolete**] Use `app->fail_if_not` instead. */
     case "fail if not" =>
       val List(condition) = parameters // Boolean
       if (TouchAnalysisParameters.printValuesInWarnings)
-        Error[S](condition.not(),"fail if not","fail if not "+condition+" might fail")
+        Error[S](condition.not(), "fail if not", "fail if not " + condition + " might fail")
       else
-        Error[S](condition.not(),"fail if not","fail if not might fail")
+        Error[S](condition.not(), "fail if not", "fail if not might fail")
       Skip
 
-    /** Appends this message to the debug log. Does nothing when the script is published. */
+    /* Use `app->log` instead. */
     case "log" =>
       val List(message) = parameters // String
       Skip
 
     /** Gets the current time */
     case "now" =>
-       Top[S](TDateTime.typ)
+      Top[S](TDateTime.typ)
 
     /** Waits for a specified amount of seconds */
     case "sleep" =>
       val List(seconds) = parameters // Number
       Skip
 
-    /** Stops the execution and stays on the wall. */
+    /* Use `app->stop` instead. */
     case "stop" =>
       Exit[S]
       state.bottom()
 
     /** Stops the execution and leaves the wall. */
-     case "stop and close" =>
-       Exit[S]
-       state.bottom()
+    case "stop and close" =>
+      Exit[S]
+      state.bottom()
 
     /** Gets today's date without time */
     case "today" =>
@@ -82,7 +102,7 @@ class STime extends AAny {
       Top[S](TDateTime.typ)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
+      super.forwardSemantics(this0, method, parameters, returnedType)
 
   }
 }

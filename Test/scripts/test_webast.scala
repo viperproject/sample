@@ -1,5 +1,5 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
-import ch.ethz.inf.pm.td.webapi.{ScriptListings, WebASTImporter}
+import ch.ethz.inf.pm.td.webapi.{ScriptQuery, WebASTImporter}
 
 /**
  * User: lucas
@@ -14,4 +14,4 @@ def prnt(id:String) {
 }
 
 prnt("dmwm")
-TestRunner(new ScriptListings,1000000,prnt _)
+TestRunner(new ScriptQuery,1000000,prnt _)

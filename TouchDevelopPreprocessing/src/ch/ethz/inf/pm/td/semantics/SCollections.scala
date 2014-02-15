@@ -26,6 +26,22 @@ class SCollections extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
+    /** Creates an empty user collection */
+    case "create user collection" =>
+      New[S](GCollection.typ(TUser.typName))
+
+    /** Creates an empty picture collection */
+    case "create picture collection" =>
+      New[S](GCollection.typ(TPicture.typName))
+
+    /** Creates an empty sound collection */
+    case "create sound collection" =>
+      New[S](GCollection.typ(TSound.typName))
+
+    /** Creates an empty action collection */
+    case "create action collection" =>
+      New[S](GCollection.typ(TAction.typName))
+
     /** Creates an empty link collection */
     case "create link collection" =>
       New[S](TLink_Collection.typ)

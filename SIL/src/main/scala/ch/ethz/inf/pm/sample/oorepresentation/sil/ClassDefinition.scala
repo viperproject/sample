@@ -12,17 +12,17 @@ import ch.ethz.inf.pm.sample.abstractdomain.State
  * @todo Integrate it into the official Sample base class.
  */
 class MethodDeclWithOutParams(
-    override val programpoint: rep.ProgramPoint,
-    override val ownerType: rep.Type,
-    override val modifiers: List[rep.Modifier],
-    override val name: MethodIdentifier,
-    override val parametricType: List[Type],
-    override val arguments: List[List[VariableDeclaration]],
-    override val returnType: Type,
-    override val body: ControlFlowGraph,
-    override val precond: Statement,
-    override val postcond: Statement,
-    override val classDef: ClassDefinition)
+                               override val programpoint: rep.ProgramPoint,
+                               override val ownerType: rep.Type,
+                               override val modifiers: List[rep.Modifier],
+                               override val name: MethodIdentifier,
+                               override val parametricType: List[Type],
+                               override val arguments: List[List[VariableDeclaration]],
+                               override val returnType: Type,
+                               override val body: ControlFlowGraph,
+                               override val precond: Statement,
+                               override val postcond: Statement,
+                               override val classDef: ClassDefinition)
   extends sample.MethodDeclaration(
     programpoint,
     ownerType,
