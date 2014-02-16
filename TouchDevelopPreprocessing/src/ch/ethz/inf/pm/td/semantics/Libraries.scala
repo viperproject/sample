@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchCompiler}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
+
 /**
  * Implements user-defined libraries
  *
@@ -22,7 +23,7 @@ class Libraries() extends NativeMethodSemantics {
    */
   def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String,
                                                   parameters : List[ExpressionSet], typeparameters : List[Type],
-                                                  returnedtype : Type, pp : ProgramPoint, state : S) : Option[S] = None
+                                                  returnedtype : Type, pp : ProgramPoint, state : S, oldPreState: S) : Option[S] = None
 
   /**
    * Delegates forward semantics to concrete classes.

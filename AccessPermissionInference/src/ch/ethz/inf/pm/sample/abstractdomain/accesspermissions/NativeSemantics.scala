@@ -248,7 +248,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
     case Variable(_, id) => id
   }
    
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = 
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S, oldPreState: S) : Option[S] =
 		throw new MethodSemanticException("Backward semantics not yet supported");
 		
 	private def getPrePostConditions(className : String, methodName : String) : Option[(Map[FieldAccess, Int], Map[FieldAccess, Int])] = {

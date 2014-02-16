@@ -362,9 +362,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @see #mapValues
    */
-  override def backwardAssignVariable(x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = {
-    mapValues(x, r, (s, vx, vr) => s.backwardAssignVariable(vx, vr))
-  }
+  override def backwardAssignVariable(oldPreState: PartitionedState[D], x: ExpressionSet, r: ExpressionSet): PartitionedState[D] = ???
 
   /**
    * Evaluates the numerical constant in all leaf states.
@@ -640,6 +638,18 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
       p
     }
   }
+
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): PartitionedState[D] = ???
+
+  def removeObject(oldPreState: PartitionedState[D], obj: ExpressionSet, fields: Option[Set[Identifier]]): PartitionedState[D] = ???
+
+  def backwardAssignField(oldPreState: PartitionedState[D], obj: ExpressionSet, field: String, right: ExpressionSet): PartitionedState[D] = ???
+
+  def undoPruneVariables(unprunedPreState: PartitionedState[D], filter: (Identifier) => Boolean): PartitionedState[D] = ???
+
+  def undoPruneUnreachableHeap(preState: PartitionedState[D]): PartitionedState[D] = ???
+
+  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): PartitionedState[D] = ???
 }
 
 
