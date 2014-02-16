@@ -30,7 +30,7 @@ trait VertexIsomorphism {
   */
 case class MaxCommonSubGraphIsomorphism[S <: SemanticDomain[S]](
     vertexMap: Map[Vertex, Vertex],
-    edgeMap: Map[EdgeWithState[S], EdgeWithState[S]])
+    edgeMap: Map[Edge[S], Edge[S]])
   extends VertexIsomorphism {
 
   require(edgeMap.values.toSet.size == edgeMap.size,
@@ -82,7 +82,7 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
     remainingVerticesFrom: Set[Vertex],
     remainingVerticesTo: Set[Vertex],
     vertexMap: Map[Vertex, Vertex],
-    possibleEdgeMap: Map[EdgeWithState[S], Set[EdgeWithState[S]]])
+    possibleEdgeMap: Map[Edge[S], Set[Edge[S]]])
   extends VertexIsomorphism {
 
   require(possibleEdgeMap.values.forall(!_.isEmpty),

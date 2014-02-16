@@ -55,7 +55,7 @@ trait PreciseValueDrivenHeapState[
     require(abstractHeap.isNormalized)
 
     val groupedEdges = abstractHeap.edges.groupBy(edge => (edge.source, edge.field))
-    val newEdges: Set[EdgeWithState[W]] = groupedEdges.map {
+    val newEdges: Set[Edge[W]] = groupedEdges.map {
       case ((source, field), outgoingEdges) =>
         if (!source.isInstanceOf[SummaryHeapVertex] && outgoingEdges.size > 1) {
           // 'source' is a non-summary node that has more than one out-going edge

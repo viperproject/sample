@@ -4,11 +4,11 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.util.Predef._
 
-case class EdgeWithState[S <: SemanticDomain[S]](
+case class Edge[S <: SemanticDomain[S]](
     source: Vertex,
     state: S,
     field: Option[String],
-    target: Vertex) extends Ordered[EdgeWithState[S]] {
+    target: Vertex) extends Ordered[Edge[S]] {
 
   require(field.isDefined implies
     source.typ.objectFields.exists(_.getName == field.get),
@@ -35,14 +35,14 @@ case class EdgeWithState[S <: SemanticDomain[S]](
    * Checks for equivalence of two edges, ignoring their state.
    * @param other the other edge to compare with
    */
-  def weakEquals(other: EdgeWithState[S]): Boolean =
+  def weakEquals(other: Edge[S]): Boolean =
     source == other.source && target == other.target && field == other.field
 
   /** The set of vertices incident to the edge. */
   def vertices: Set[Vertex] = Set(source, target)
 
   /** Compare lexicographically by source, field and target. */
-  override def compare(that: EdgeWithState[S]): Int = {
+  override def compare(that: Edge[S]): Int = {
     implicitly[Ordering[(Vertex, Option[String], Vertex)]].compare(
       (source, field, target),
       (that.source, that.field, that.target))
@@ -81,7 +81,7 @@ case class EdgeWithState[S <: SemanticDomain[S]](
     * @param valueField the identifier of the value field of the target vertex
     * @return the resulting edge
    */
-  def createTargetEdgeLocalId(valueField: Identifier): EdgeWithState[S] = {
+  def createTargetEdgeLocalId(valueField: Identifier): Edge[S] = {
     require(target.isInstanceOf[HeapVertex],
       "target vertex must be a heap vertex")
     require(target.typ.nonObjectFields.contains(valueField),
@@ -103,7 +103,7 @@ case class EdgeWithState[S <: SemanticDomain[S]](
   /** Create an `EdgeLocalIdentifier` in the edge state for each value field
     * of the target vertex.
     */
-  def createTargetEdgeLocalIds(): EdgeWithState[S] = {
+  def createTargetEdgeLocalIds(): Edge[S] = {
     require(target.isInstanceOf[HeapVertex],
       "target vertex must be a heap vertex")
     target.typ.nonObjectFields.foldLeft(this)(_.createTargetEdgeLocalId(_))
@@ -112,7 +112,7 @@ case class EdgeWithState[S <: SemanticDomain[S]](
   /** Create an `EdgeLocalIdentifier` in the edge state for
     * the given value field of the source vertex.
     */
-  def createSourceEdgeLocalId(valueField: Identifier): EdgeWithState[S] = {
+  def createSourceEdgeLocalId(valueField: Identifier): Edge[S] = {
     require(source.isInstanceOf[HeapVertex],
       "source vertex must be a heap vertex")
     require(source.typ.nonObjectFields.contains(valueField),
@@ -125,7 +125,7 @@ case class EdgeWithState[S <: SemanticDomain[S]](
   /** Create an `EdgeLocalIdentifier` in the edge state for each value field
     * of the source vertex.
     */
-  def createSourceEdgeLocalIds(): EdgeWithState[S] = {
+  def createSourceEdgeLocalIds(): Edge[S] = {
     require(source.isInstanceOf[HeapVertex],
       "source vertex must be a heap vertex")
 
@@ -133,7 +133,7 @@ case class EdgeWithState[S <: SemanticDomain[S]](
       .createEdgeLocalIdsInState(state))
   }
 
-  def createEdgeLocalIds(): EdgeWithState[S] = {
+  def createEdgeLocalIds(): Edge[S] = {
     var result = this
     if (source.isInstanceOf[HeapVertex])
       result = result.createSourceEdgeLocalIds()
@@ -151,7 +151,7 @@ trait HeapGraphPath[S <: SemanticDomain[S]] {
   require(edges.zip(edges.tail).forall(t => t._1.target == t._2.source),
     "path is not consistent (edge target must equal source of next edge")
 
-  val edges: List[EdgeWithState[S]]
+  val edges: List[Edge[S]]
 
   /** Returns the target vertex of the last edge on the path. */
   def target: Vertex =
@@ -160,11 +160,11 @@ trait HeapGraphPath[S <: SemanticDomain[S]] {
 
 /** Represents a heap graph path that may start with any vertex. */
 case class PartialHeapGraphPath[S <: SemanticDomain[S]]
-    (edges: List[EdgeWithState[S]]) extends HeapGraphPath[S] { }
+    (edges: List[Edge[S]]) extends HeapGraphPath[S] { }
 
 /** Represents a heap graph path that starts with a local variable vertex. */
 case class RootedHeapGraphPath[S <: SemanticDomain[S]]
-    (edges: List[EdgeWithState[S]]) extends HeapGraphPath[S] {
+    (edges: List[Edge[S]]) extends HeapGraphPath[S] {
 
   import Utilities._
 
@@ -197,7 +197,7 @@ case class RootedHeapGraphPath[S <: SemanticDomain[S]]
      * @param state starting state where are only the edge-local identifiers
      *              with empty sequence of field access that represent targets
      */
-    def recurse(path: List[EdgeWithState[S]], state: S): S = {
+    def recurse(path: List[Edge[S]], state: S): S = {
       val stateEdgeLocalIds = edgeLocalIds(state)
 
       // Only the edge-local identifiers that refer to target are present in

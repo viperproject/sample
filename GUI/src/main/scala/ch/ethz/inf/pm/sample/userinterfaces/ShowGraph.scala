@@ -192,7 +192,7 @@ object ShowGraph {
   }
 
   private class ShowValueDrivenHeapState[N <: SemanticDomain[N]](state: DefaultValueDrivenHeapState[N]) {
-    val (graph, idToVertix, idToEdges): (mxGraph, Map[Vertex, Object], Map[EdgeWithState[N], Object]) = valueDrivenHeapStateToGraph[N](state)
+    val (graph, idToVertix, idToEdges): (mxGraph, Map[Vertex, Object], Map[Edge[N], Object]) = valueDrivenHeapStateToGraph[N](state)
     val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
     graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
 
@@ -417,7 +417,7 @@ object ShowGraph {
     val graph: mxGraph = defaultGraphSettings()
     var yposition: Double = ygap
     var idToVertix = Map.empty[Vertex, Object]
-    var idToEdge = Map.empty[EdgeWithState[N], Object]
+    var idToEdge = Map.empty[Edge[N], Object]
 
     try {
       var index: Int = 0

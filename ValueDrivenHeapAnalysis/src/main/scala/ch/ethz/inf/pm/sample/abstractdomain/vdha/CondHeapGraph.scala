@@ -60,7 +60,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     copy(cond = f(cond), heap = heap.mapEdgeStates(f))
 
   /** Applies a function to each edge. */
-  def mapEdges(f: EdgeWithState[S] => S) =
+  def mapEdges(f: Edge[S] => S) =
     copy(heap = heap.copy(edges = heap.edges.map(e => e.copy(state = f(e)))))
 
   /**

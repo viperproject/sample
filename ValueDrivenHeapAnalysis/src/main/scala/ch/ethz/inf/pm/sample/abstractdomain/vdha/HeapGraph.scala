@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 case class HeapGraph[S <: SemanticDomain[S]](
     vertices: Set[Vertex] = TreeSet.empty[Vertex],
-    edges: Set[EdgeWithState[S]] = Set.empty[EdgeWithState[S]]) {
+    edges: Set[Edge[S]] = Set.empty[Edge[S]]) {
 
   // TODO: Should only check during debugging for the sake of performance
   require(edges.forall(_.vertices.subsetOf(vertices)),
@@ -37,11 +37,11 @@ case class HeapGraph[S <: SemanticDomain[S]](
     vertices.collect({ case v: LocalVariableVertex => v })
 
   /** Returns all edges going out of a given vertex. */
-  def outEdges(source: Vertex): Set[EdgeWithState[S]] =
+  def outEdges(source: Vertex): Set[Edge[S]] =
     edges.filter(_.source == source)
 
   /** Returns all edges going out of a given vertex for a given field. */
-  def outEdges(source: Vertex, field: Option[String]): Set[EdgeWithState[S]] =
+  def outEdges(source: Vertex, field: Option[String]): Set[Edge[S]] =
     outEdges(source).filter(_.field == field)
 
   /** Returns the local variable vertex with the given name. */
@@ -126,13 +126,13 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def removeVertices(vs: Set[Vertex]): HeapGraph[S] =
     HeapGraph(vertices -- vs, edges -- edges.filter(_.vertices.intersect(vs).isEmpty))
 
-  def addEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] =
+  def addEdges(es: Set[Edge[S]]): HeapGraph[S] =
     copy(edges = edges ++ es)
 
-  def addEdge(e: EdgeWithState[S]): HeapGraph[S] =
+  def addEdge(e: Edge[S]): HeapGraph[S] =
     copy(edges = edges + e)
 
-  def removeEdges(es: Set[EdgeWithState[S]]): HeapGraph[S] =
+  def removeEdges(es: Set[Edge[S]]): HeapGraph[S] =
     copy(edges = edges -- es)
 
   def mcs(other: HeapGraph[S]): MaxCommonSubGraphIsomorphism[S] =
@@ -161,7 +161,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     for (edgeRight <- edgeMap.values) {
       var newState = edgeRight.state.removeVariables(idsToRemove.asInstanceOf[Set[Identifier]])
       newState = newState.rename(renameMap.toMap)
-      val edgeToAdd = EdgeWithState(iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
+      val edgeToAdd = Edge(iso.apply(edgeRight.source), newState, edgeRight.field, iso.apply(edgeRight.target))
       resultingGraph = resultingGraph.addEdge(edgeToAdd)
     }
     resultingGraph = resultingGraph.meetCommonEdges()
@@ -176,7 +176,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     }
     for (heapVertex <- vertices.filter(_.isInstanceOf[HeapVertex])) {
       for (refField <- heapVertex.typ.objectFields) {
-        var presentEdges = Set.empty[EdgeWithState[S]]
+        var presentEdges = Set.empty[Edge[S]]
         for (outEdge <- outEdges(heapVertex)) {
           outEdge.field match {
             case None =>
@@ -212,7 +212,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     for (e <- edgesToAdd) {
       val newSrc = renaming.getOrElse(e.source, e.source)
       val newTrg = renaming.getOrElse(e.target, e.target)
-      resultingGraph = resultingGraph.addEdge(EdgeWithState(newSrc, e.state.rename(renameMap.toMap), e.field, newTrg))
+      resultingGraph = resultingGraph.addEdge(Edge(newSrc, e.state.rename(renameMap.toMap), e.field, newTrg))
     }
     (resultingGraph, renaming)
   }
@@ -221,7 +221,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
 
   def prune(): (HeapGraph[S], Set[Identifier]) = {
     var currentEdges = edges
-    var resultingEdgeSet = Set.empty[EdgeWithState[S]]
+    var resultingEdgeSet = Set.empty[Edge[S]]
     var resultingVertices = localVarVertices.toSet[Vertex]
     var changed = true
     while (changed) {
@@ -253,7 +253,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * Returns the partition of edges into sets of edges that are weakly
    * equivalent, identical except for the state.
    */
-  def weakEdgeEquivalenceSets: Set[Set[EdgeWithState[S]]] =
+  def weakEdgeEquivalenceSets: Set[Set[Edge[S]]] =
     edges.map(e => edges.filter(e.weakEquals))
 
   /**
@@ -361,10 +361,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
       }
     }
     val newVertices = mergeMap.values.toSet
-    val newEdges = mutable.Set.empty[EdgeWithState[S]]
+    val newEdges = mutable.Set.empty[Edge[S]]
     for (e <- edges)
-      newEdges += EdgeWithState(mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
-    (HeapGraph(newVertices, newEdges.toSet[EdgeWithState[S]]).joinCommonEdges(), repl, mergeMap.toMap)
+      newEdges += Edge(mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
+    (HeapGraph(newVertices, newEdges.toSet[Edge[S]]).joinCommonEdges(), repl, mergeMap.toMap)
   }
 
   def wideningAfterMerge(other: HeapGraph[S]): HeapGraph[S] = {
