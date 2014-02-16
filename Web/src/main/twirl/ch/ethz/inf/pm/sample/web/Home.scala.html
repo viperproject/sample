@@ -1,6 +1,14 @@
 @(testFiles: Seq[ch.ethz.inf.pm.sample.web.TestFile])
 @Base(title = "Sample Abstract Interpreter") {
     <div class="row-fluid">
+        @if(testFiles.isEmpty) {
+            <div class="col-md-12">
+                <div class="alert alert-warning">
+                    Could not find any test files available for analysis on the classpath.
+                </div>
+            </div>
+        }
+
         @testFiles.groupBy(_.prefix).map { arg =>
         <div class="col-md-2">
             <div class="panel panel-default">
