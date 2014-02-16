@@ -230,7 +230,7 @@ trait ValueDrivenHeapState[
           val varVertex = abstractHeap.localVarVertex(variable.getName)
           val edgesToRemove = abstractHeap.outEdges(varVertex)
           var edgesToAdd = Set.empty[Edge[S]]
-          right match {
+          normalizeExpression(right) match {
             case verExpr: VertexExpression => {
               assert(abstractHeap.vertices.contains(verExpr.vertex),
                 "Assigning a non-existing node")
@@ -242,13 +242,6 @@ trait ValueDrivenHeapState[
                 edge = edge.createTargetEdgeLocalIds()
               }
               edgesToAdd = edgesToAdd + edge
-            }
-            case v: VariableIdentifier => {
-              val edgesOfRight = abstractHeap.edges.filter(_.source.name == v.getName)
-              val sourceVertex = abstractHeap.localVarVertex(variable.getName)
-              for (edge <- edgesOfRight) {
-                edgesToAdd = edgesToAdd + Edge(sourceVertex, edge.state, None, edge.target)
-              }
             }
             case rAP: AccessPathIdentifier => {
               val rightPaths = abstractHeap.paths(rAP.path)
@@ -305,11 +298,7 @@ trait ValueDrivenHeapState[
 
     if (rightExp.getType.isObject) {
       var edgesToAdd = Set.empty[Edge[S]]
-      rightExp match {
-        case x: VariableIdentifier => {
-          val rightPaths = abstractHeap.paths(List(x.getName))
-          edgesToAdd = referencePathAssignmentEdges(leftAccPath.path.last, leftPaths, rightPaths)
-        }
+      normalizeExpression(rightExp) match {
         case rAP: AccessPathIdentifier => {
           val rightPaths = abstractHeap.paths(rAP.path)
           edgesToAdd = referencePathAssignmentEdges(leftAccPath.path.last, leftPaths, rightPaths)
