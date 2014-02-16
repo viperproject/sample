@@ -1,0 +1,19 @@
+@(testFiles: Seq[ch.ethz.inf.pm.sample.web.TestFile])
+@Base(title = "Sample Abstract Interpreter") {
+    <div class="row-fluid">
+        @testFiles.groupBy(_.prefix).map { arg =>
+        <div class="col-md-2">
+            <div class="panel panel-default">
+                <div class="panel-heading">@arg._1</div>
+                <div class="panel-body">
+                    <ul class="list-unstyled">
+                    @arg._2.map { testFile =>
+                        <li><a href="analyze?file=@testFile">@testFile.path.getFileName</a></li>
+                    }
+                    </ul>
+                </div>
+            </div>
+        </div>
+        }
+    </div>
+}

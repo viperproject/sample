@@ -1,14 +1,18 @@
 package ch.ethz.inf.pm.sample.web
 
 import org.scalatra._
-import scala.reflect.io.File
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{AnalysisResult, AnalysisRunner}
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
 
-/** A web application that lets users explore a `TrackingCFGState`,
+/** Web application that lets users analyze programs and explore the result.
+  *
+  * The user may analyze any files that are resources on the classpath.
+  * That is, these provided test files can actually be embedded in a JAR file.
+  *
+  * The user can explore the resulting `TrackingCFGState`,
   * i.e., the CFG itself, blocks, pre- and post-states of statements
   * in that blocks at any point in the iteration. It also offers convenient
   * navigation between all of these views.
@@ -19,31 +23,60 @@ import org.eclipse.jetty.server.Server
   * @todo add support for other compilers than SIL, especially Scala
   * @todo add support for `DefaultCFGState`
   * @todo add support for states other than `ValueDrivenHeapState`
-  * @todo make it possible to select the file to be analyzed
+  * @todo add support for more than one method per test file
   */
 class App extends ScalatraServlet {
-  // Hard-coded file to analyze
-  var result: AnalysisResult[_] = analyze("heap/list/prepend.sil")
+  /** Provides all test files that the user can choose to analyze. */
+  val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
 
-  private def analyze(resourceSilFile: String): AnalysisResult[_] =
-    AnalysisRunner.run(File(s"SIL/src/test/resources/sil/$resourceSilFile")).head
+  /** The currently active analysis result that the user can inspect. */
+  var resultOption: Option[AnalysisResult[_]] = None
+
+  /** Renders the list of test files that can be analyzed. */
+  get("/") {
+    html.Home(fileProvider.testFiles)
+  }
+
+  /** Analyzes the test file passed as a parameter. */
+  get("/analyze") {
+    val testFileString = params("file")
+    fileProvider.testFiles.find(_.toString == testFileString) match {
+      case Some(testFile) =>
+        resultOption = Some(AnalysisRunner.run(testFile.path).head)
+        redirect("/cfg")
+      case None =>
+        // TODO: Should probably output an error message
+        redirect("/")
+    }
+  }
 
   /** Renders the CFG of the current result. */
   get("/cfg") {
-    html.CFGState(result)
+    resultOption match {
+      case Some(result) => html.CFGState(result)
+      case None => redirect("/")
+    }
   }
 
   /** Renders a single CFG block of the current result. */
   get("/cfg/:block") {
-    val blockIndex = params("block").toInt
-    html.CFGBlockState(result, blockIndex, iter(blockIndex))
+    resultOption match {
+      case Some(result) =>
+        val blockIndex = params("block").toInt
+        html.CFGBlockState(result, blockIndex, iter(blockIndex))
+      case None => redirect("/")
+    }
   }
 
   /** Renders a single state in some CFG block of the current result. */
   get("/cfg/:block/:state") {
-    val blockIndex = params("block").toInt
-    val stateIndex = params("state").toInt
-    html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))
+    resultOption match {
+      case Some(result) =>
+        val blockIndex = params("block").toInt
+        val stateIndex = params("state").toInt
+        html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))
+      case None => redirect("/")
+    }
   }
 
   /** Returns at which iteration to display the states of a CFG block.
@@ -53,13 +86,9 @@ class App extends ScalatraServlet {
     */
   private def iter(blockIndex: Int): Int =
     if (params.contains("iter")) params("iter").toInt
-    else result.cfgState.trackedStatesOfBlock(blockIndex).size - 1
-
-  get("/analyze/*.*") {
-    result = analyze(multiParams("splat").mkString("."))
-    redirect("/cfg")
-  }
+    else resultOption.get.cfgState.trackedStatesOfBlock(blockIndex).size - 1
 }
+
 
 /** Launches the web server.
   *

@@ -10,14 +10,15 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.MethodDeclaration
 import ch.ethz.inf.pm.sample.AnalysisUnitContext
 import semper.sil.ast.Program
+import java.nio.file.Path
 
 object AnalysisRunner {
   // val analysis = DefaultAnalysis[DefaultValueDrivenHeapState[ApronInterface]](DefaultEntryStateBuilder)
   val analysis = DefaultAnalysis[DefaultPreciseValueDrivenHeapState[ApronInterface]](PreciseEntryStateBuilder)
 
-  def run(file: File): List[AnalysisResult[_]] = {
+  def run(path: Path): List[AnalysisResult[_]] = {
     val compiler = new SilCompiler
-    compiler.compileFile(file.toAbsolute.toString())
+    compiler.compileFile(path.toAbsolutePath.toString)
     _run(compiler)
   }
 
