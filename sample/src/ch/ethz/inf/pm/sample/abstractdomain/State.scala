@@ -345,7 +345,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
     if (trueCondState.isBottom) return falseBranchResult
     if (falseCondState.isBottom) return trueBranchResult
 
-    trueBranchResult.lub(Else(falseBranchResult))
+    trueBranchResult.lub(falseBranchResult)
   }
 
   /**
