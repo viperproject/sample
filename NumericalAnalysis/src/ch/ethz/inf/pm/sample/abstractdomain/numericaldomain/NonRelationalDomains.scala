@@ -74,7 +74,9 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     } else this
   }
 
-  override def backwardAssign(variable: Identifier, expr: Expression): BoxedNonRelationalNumericalDomain[N] = this
+  override def backwardAssign(oldPreState: BoxedNonRelationalNumericalDomain[N], variable: Identifier, expr: Expression): BoxedNonRelationalNumericalDomain[N] = {
+    ??? // only support for apron domains
+  }
 
   override def access(field: Identifier) = this
 

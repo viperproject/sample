@@ -187,6 +187,12 @@ trait WeightedGraph[T, W] {
   }
 }
 
+/**
+ * Denotes position of a (top-level) statement in a `ControlFlowGraph`
+ *
+ * @param blockIdx index of block in which the statement occurs
+ * @param stmtIdx the index within the block
+ */
 case class CFGPosition(blockIdx: Int, stmtIdx: Int)
 
 /**
@@ -304,6 +310,15 @@ class ControlFlowGraph(val programpoint: ProgramPoint) extends Statement(program
   def getBasicBlockStatements(index: Int): List[Statement] = nodes(index)
 
   def statementAt(blockIdx: Int, stmtIdx: Int): Statement = getBasicBlockStatements(blockIdx)(stmtIdx)
+
+  def exitBlockId: Int = {
+    val blocksWithoutSuccessors = (0 until nodes.size)
+      .filter(blockId => getDirectSuccessors(blockId).isEmpty)
+
+    // all reasonable control flow graphs should have exactly one exit block
+    assert(blocksWithoutSuccessors.size == 1)
+    blocksWithoutSuccessors.head
+  }
 
   /**
    * Check if a basic block has a conditional expression as the last statement.

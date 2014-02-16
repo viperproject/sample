@@ -494,6 +494,14 @@ trait ValueDrivenHeapState[
 
   def factory(): T = ???
 
+  def removeObject(oldPreState: T, obj: ExpressionSet, fields: Option[Set[Identifier]]): T = ???
+
+  def undoPruneVariables(unprunedPreState: T, filter: (Identifier) => Boolean): T = ???
+
+  def undoPruneUnreachableHeap(preState: T): T = ???
+
+  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): T = ???
+
   def top(): T =
     factory(HeapGraph(), generalValState.top(), ExpressionSet(), isTop = true, isBottom = false)
 
@@ -764,6 +772,12 @@ trait ValueDrivenHeapState[
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): T = ???
 
   def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): T = ???
+  def backwardAssignVariable(oldPreState: T, x: Expression, right: Expression): T = ???
+  def testBackwardTrue(): T = ???
+  def testBackwardFalse(): T = ???
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): T = ???
+  def getNonDeterminismSource(pp: ProgramPoint, typ: Type): T = ???
+  def backwardAssignField(oldPreState: T, obj: Expression, field: String, right: Expression): T = ???
 }
 
 

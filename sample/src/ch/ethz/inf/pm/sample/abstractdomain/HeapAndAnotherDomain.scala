@@ -25,8 +25,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   type T = HeapAndAnotherDomain[N, H, I];
 
-  def _1 = d1;
-  def _2 = d2;
+  def _1 = d1
+  def _2 = d2
+
+  def semantic = _1
+  def heap = _2
 
   def merge(r : Replacement) : T = if(r.isEmpty) return this; else throw new SemanticException("Merge not yet implemented");
 
@@ -42,6 +45,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     //    assert(d2 != null);
     new HeapAndAnotherDomain[N, H, I](d1.factory(), d2.factory());
   }
+
+  def factory(semantic: N, heap: H): T = new HeapAndAnotherDomain[N, H, I](semantic, heap)
 
   def createVariableForArgument(variable : Assignable, typ : Type, path : List[String]) = {
     SystemParameters.heapTimer.start();
@@ -146,6 +151,32 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
         if(newd1==None)
           newd1=Some(result.d1.assign(singleheapid, expr))
         else newd1=Some(id.combinator(newd1.get, result.d1.assign(singleheapid, expr)))
+      }
+    if(newd1!=None)
+      result.d1=newd1.get; //throw new SemanticException("You should assign to something")
+    else result.d1=result.d1;
+    SystemParameters.domainTimer.stop();
+    result
+  }
+
+  def backwardAssignField(oldPreState: T, variable : Assignable, field : String, expr : Expression, typ : Type, pp : ProgramPoint) : T= {
+    val result : T = this.factory();
+    SystemParameters.heapTimer.start();
+    val (h2,r2)=d2.backwardAssignField(oldPreState.d2, variable, field, expr)
+    val (id, h, r1) = h2.getFieldIdentifier(variable, field, typ, pp)
+    val (h3, r3)= h.endOfAssignment();
+    result.d2=h3;
+    SystemParameters.heapTimer.stop();
+    SystemParameters.domainTimer.start();
+    result.d1=d1.merge(r2).merge(r1).merge(r3);
+    var newd1 : Option[N]= None;
+    if(id.isTop)
+      newd1 = Some(result.d1.top());
+    else
+      for(singleheapid <- id.value) {
+        if(newd1==None)
+          newd1=Some(result.d1.backwardAssign(oldPreState.d1, singleheapid, expr))
+        else newd1=Some(id.combinator(newd1.get, result.d1.backwardAssign(oldPreState.d1, singleheapid, expr)))
       }
     if(newd1!=None)
       result.d1=newd1.get; //throw new SemanticException("You should assign to something")
@@ -268,6 +299,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     }
 
     result
+  }
+
+  def setCollectionToTop(collection: Assignable): T = {
+    val newHeap = heap.setCollectionToTop(collection)
+    factory(semantic, newHeap)
   }
 
   def removeFirstCollectionElementByValue(collection: Assignable, value: Expression): T = {
@@ -862,6 +898,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.domainTimer.stop();
     result
   }
+
   def access(field : Assignable) : T= {
     val result : T = this.factory();
     SystemParameters.domainTimer.start();
@@ -882,16 +919,17 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.heapTimer.stop();
     result
   }
-  def backwardAssign(variable : Assignable, expr : Expression) : T= {
-    val result : T = this.factory();
-    SystemParameters.heapTimer.start();
-    val (d, r) =d2.backwardAssign(variable, expr)
-    result.d2=d;
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
-    result.d1=d1.merge(r);
-    result.d1=applyToAssignable[N](variable, result.d1, _.backwardAssign(_, expr));
-    SystemParameters.domainTimer.stop();
+  def backwardAssign(oldPreState: T, variable : Assignable, expr : Expression) : T= {
+    val result : T = this.factory()
+    SystemParameters.heapTimer.start()
+    val (d, r) =d2.backwardAssign(oldPreState.d2, variable, expr)
+    val (meet, glbrepl) = oldPreState.d2.glbWithReplacement(d)
+    result.d2 =meet
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
+    result.d1=d1.merge(r)
+    result.d1=applyToAssignable[N](variable, result.d1, _.backwardAssign(oldPreState.d1, _, expr))
+    SystemParameters.domainTimer.stop()
     result
   }
 

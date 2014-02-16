@@ -638,8 +638,8 @@ trait SemanticCartesianProductDomain[
   def backwardAccess(field: Identifier): T =
     factory(_1.backwardAccess(field), _2.backwardAccess(field))
 
-  def backwardAssign(variable: Identifier, expr: Expression): T =
-    factory(_1.backwardAssign(variable, expr), _2.backwardAssign(variable, expr))
+  def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T =
+    factory(_1.backwardAssign(oldPreState._1, variable, expr), _2.backwardAssign(oldPreState._2, variable, expr))
 
   def getStringOfId(id: Identifier): String =
     "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
@@ -667,8 +667,8 @@ trait HalfSemanticCartesianProductDomain[
   def copy(_1: S = _1, _2: O = _2): T =
     factory(_1, _2)
 
-  def backwardAssign(variable: Identifier, expr: Expression) =
-    copy(_1.backwardAssign(variable, expr))
+  def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) =
+    copy(_1.backwardAssign(oldPreState._1, variable, expr))
 
   def backwardAccess(field: Identifier) =
     copy(_1.backwardAccess(field))
@@ -759,8 +759,7 @@ trait ReducedSemanticProductDomain[
   override def backwardAccess(field: Identifier): T =
     super.backwardAccess(field).reduce()
 
-  override def backwardAssign(variable: Identifier, expr: Expression): T =
-    super.backwardAssign(variable, expr).reduce()
+  override def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T = super.backwardAssign(oldPreState, variable, expr).reduce()
 
   override def merge(r: Replacement): T =
     super.merge(r).reduce()

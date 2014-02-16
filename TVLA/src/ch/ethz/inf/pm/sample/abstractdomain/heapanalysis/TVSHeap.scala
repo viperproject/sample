@@ -553,7 +553,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   // not implemented
   def get(key: VariableIdentifier) = throw new NotImplementedException("not implemented yet")
   def get(key: NodeName) = throw new NotImplementedException("not implemented yet")
-  def backwardAssign(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
+  def backwardAssign(oldPreState: TVSHeap, variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
   def backwardAccess(field: Assignable) = throw new NotImplementedException("not implemented yet")
   override def setArgument(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
   def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S) = throw new NotImplementedException("not implemented yet")
@@ -585,6 +585,8 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def getCollectionLength(collection: Assignable) = throw new NotImplementedException("not implemented yet")
   def getUnreachableHeap = throw new NotImplementedException("not implemented yet")
   def optimizeSummaryNodes = throw new NotImplementedException("not implemented yet")
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): (HeapIdSetDomain[NodeName], TVSHeap, Replacement) = ???
+  def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = ???
 
   // methods required by Analysis trait
   override def reset() {}

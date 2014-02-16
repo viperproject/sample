@@ -516,7 +516,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val map:Ma
     return this
   }
 
-  def backwardAssign(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = throw new PermissionsException("Backward analysis not yet supported");
+  def backwardAssign(oldPreState: SymbolicPermissionsDomain[I], variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = throw new PermissionsException("Backward analysis not yet supported");
   
   def setArgument(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = this
   

@@ -230,9 +230,15 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
     if (isBottom) return (this, new Replacement())
     if (other.isBottom) return (other, new Replacement())
 
-    val leftNonSummaryNodes = getIds collect
+    // The following code tries to make an id non-summary (by creating a replacement)
+    // if it's a non-summary in one of the environments. We only need to do that for
+    // ids occuring in _both_ environments, namely the ones in this set. All ids only occuring in one environment
+    // should disappear anyway.
+    val commonIdNames = getIds.map(_.getName) intersect other.getIds.map(_.getName)
+
+    val leftNonSummaryNodes = getIds.filter(id => commonIdNames.contains(id.getName)) collect
       { case x:I if x.representsSingleVariable() => x }
-    val rightNonSummaryNodes = other.getIds collect
+    val rightNonSummaryNodes = other.getIds.filter(id => commonIdNames.contains(id.getName)) collect
       { case x:I if x.representsSingleVariable() => x }
 
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
@@ -315,8 +321,9 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
 
   def getIds : Set[Identifier] = (this.getVariables++this.getAddresses)
 
-  private def getVariables=map.keySet;
-  private def getAddresses : Set[I]={
+  def getVariables = map.keySet;
+
+  def getAddresses : Set[I]={
     var result : Set[I] = Set.empty[I];
     val it : Iterator[HeapIdSetDomain[I]] = map.values.iterator;
     for(v <- it) {
@@ -377,9 +384,15 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
     if (isBottom) return (this, new Replacement())
     if (other.isBottom) return (other, new Replacement())
 
-    val leftNonSummaryNodes = getIds collect
+    // The following code tries to make an id non-summary (by creating a replacement)
+    // if it's a non-summary in one of the environments. We only need to do that for
+    // ids occuring in _both_ environments, namely the ones in this set. All ids only occuring in one environment
+    // should disappear anyway.
+    val commonIdNames = getIds.map(_.getName) intersect other.getIds.map(_.getName)
+
+    val leftNonSummaryNodes = getIds.filter(id => commonIdNames.contains(id.getName)) collect
       { case x:I if x.representsSingleVariable() => x }
-    val rightNonSummaryNodes = other.getIds collect
+    val rightNonSummaryNodes = other.getIds.filter(id => commonIdNames.contains(id.getName)) collect
       { case x:I if x.representsSingleVariable() => x }
 
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
@@ -485,6 +498,7 @@ trait NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]] extends H
   def getCollectionLength(collection: Assignable): I
   def getCollectionKey(collectionTuple:Assignable): I
   def getCollectionValue(collectionTuple:Assignable): I
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, multiple: Boolean): I
 }
 
 trait AbstractNonRelationalHeapDomain[
@@ -664,7 +678,21 @@ trait AbstractNonRelationalHeapDomain[
 
   override def setArgument(variable : Assignable, expr : Expression) = this.assign(variable, expr, null)
 
-  override def backwardAssign(variable : Assignable, expr : Expression) = (this.asInstanceOf[H], new Replacement)
+  override def backwardAssign(oldPreState: H, variable : Assignable, expr : Expression): (H, Replacement) = {
+//    if(!variable.getType.isObject)
+//      return (this.asInstanceOf[H], new Replacement)
+
+    variable match {
+      case x : VariableIdentifier =>
+        val h = factory(_1.add(x, this._1.get(x).top()), _2)
+        (h, new Replacement)
+      case x : I =>
+        val value=this.eval(expr)
+        // TODO: consider summary nodes
+        val h = factory(_1, this._2.add(x, this.normalize(value)))
+        (h, new Replacement)
+    }
+  }
 
   override def assignField(variable : Assignable, s : String, expr : Expression) : (H, Replacement) = {
     var result=this.bottom()
@@ -679,6 +707,20 @@ trait AbstractNonRelationalHeapDomain[
 
     (result, replacement)
     //We ignore the other parts since getting a field does not modify a non relational heap domain
+  }
+
+  override def backwardAssignField(oldPreState: H, variable : Assignable, s : String, expr : Expression) : (H, Replacement) = {
+    var result=this.bottom()
+    var replacement=new Replacement()
+    val ids = this.getFieldIdentifier(variable, s, expr.getType, variable.pp)._1
+    for(id <- ids.value) {
+      val (assigned, repAssignment) = this.backwardAssign(oldPreState, id, expr)
+      val (res, repLub) = result.lubWithReplacement(assigned)
+      result = res
+      replacement = replacement ++ repAssignment ++ repLub
+    }
+
+    (result, replacement)
   }
 
   /*
@@ -758,6 +800,7 @@ trait AbstractNonRelationalHeapDomain[
       (factory(_1,_2.add(x, cod.top())), new Replacement)
   }
 
+
   override def removeVariable(variable : Assignable) = variable match  {
     case x : VariableIdentifier =>
       (factory(_1.remove(x),_2), new Replacement)
@@ -768,6 +811,16 @@ trait AbstractNonRelationalHeapDomain[
       (factory(_1,result), new Replacement)
     case x : I =>
       (factory(_1,_2.remove(x)), new Replacement)
+  }
+
+  override def removeObject(objId: Assignable): (H, Replacement) = objId match {
+    case id: I =>
+      val d2n =
+        if (id.representsSingleVariable()) {
+          _2.remove(id)
+        } else _2
+      (factory(_1, d2n), new Replacement())
+    case _ => throw new SemanticException("Can only remove MaybeHeapIdSetDomain ids")
   }
 
   override def createObject(typ : Type, pp : ProgramPoint) : (HeapIdSetDomain[I], H, Replacement) = {
@@ -911,7 +964,10 @@ trait AbstractNonRelationalHeapDomain[
   }
 
   override def getUnreachableHeap:Set[I] = {
-    ReachabilityAnalysis.getUnreachableLocations(_1,_2)
+    ReachabilityAnalysis.getUnreachableLocations(_1,_2) filter {
+      case id: NonDeterminismSourceHeapId => false
+      case _ => true
+    }
   }
 
   /** this subsumes reachability analysis! */
@@ -1038,7 +1094,7 @@ trait AbstractNonRelationalHeapDomain[
   override def assume(expr : Expression) =
     (this.asInstanceOf[H], new Replacement) //TODO: for now there is nothing about the heap structure
 
-  protected def evalFieldAccess[S <: State[S]](expr : Assignable, field : String, typ : Type) : HeapIdSetDomain[I] = expr match {
+  def evalFieldAccess[S <: State[S]](expr : Assignable, field : String, typ : Type) : HeapIdSetDomain[I] = expr match {
     case obj : VariableIdentifier => return extractField(this.get(obj), field, typ)
 
     case obj : HeapIdSetDomain[I] => {
@@ -1059,7 +1115,7 @@ trait AbstractNonRelationalHeapDomain[
     //case _ => return throw new Exception();//cod.top();
   }
 
-  protected def extractField(obj : I, field : String, typ : Type) : HeapIdSetDomain[I] = {
+  def extractField(obj : I, field : String, typ : Type) : HeapIdSetDomain[I] = {
     var result : HeapIdSetDomain[I] = cod.bottom();
     for(id <- this.normalize(cod.convert(obj)).value)
       result=result.add(dom.extractField(id, field, typ));
@@ -1105,6 +1161,21 @@ trait AbstractNonRelationalHeapDomain[
     //TODO: correct?
     case x : I => return cod.convert(x);
     case x => return cod.top();
+  }
+
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint,
+                                 summary: Boolean): (HeapIdSetDomain[I], H, Replacement) = {
+    val nondetId = dom.createNonDeterminismSource(typ, pp, summary)
+    (cod.convert(nondetId), this.asInstanceOf[H], new Replacement())
+  }
+
+  def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = {
+    val matchingIds = getIds collect { case id@NonDeterminismSourceHeapId(_, idPP, _) if pp == idPP => id }
+    if (matchingIds.size != 1) {
+      throw new IllegalStateException(s"Non-deterministic source for $pp not found on heap")
+    }
+    val nonDetId = matchingIds.head.asInstanceOf[I]
+    nonDetId
   }
 }
 
@@ -1178,6 +1249,15 @@ case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
     resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getApprox(_))
   }
 
+  override def setCollectionToTop(collection: Assignable): NonRelationalHeapDomain[I] = {
+    def setTop(collectionId: Assignable): NonRelationalHeapDomain[I] = setToTop(collectionId)._1
+
+    val overApproxId = getCollectionOverApproximation(collection)
+    HeapIdSetFunctionalLifting.applyToSetHeapId(bottom(), overApproxId, setTop)
+  }
+
+
+
   override def getCollectionUnderApproximation(collection: Assignable): HeapIdSetDomain[I] = {
     return new MaybeHeapIdSetDomain[I]().bottom()
   }
@@ -1197,6 +1277,14 @@ case class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](
   def factory(a: VariableEnv[I], b: HeapEnv[I]) = new NonRelationalMustHeapDomain(a, b, cod.factory(), dom.factory())
 
   def getInitialState(): NonRelationalMustHeapDomain[I] =  new NonRelationalMustHeapDomain(new VariableEnv(env.dom), new HeapEnv(heap.dom), cod, dom);
+
+  override def setCollectionToTop(collection: Assignable): NonRelationalMustHeapDomain[I] = {
+    def setTop(collectionId: Assignable): NonRelationalMustHeapDomain[I] = setToTop(collectionId)._1
+
+    val overApproxId = getCollectionUnderApproximation(collection)
+    HeapIdSetFunctionalLifting.applyToSetHeapId(bottom(), overApproxId, setTop)
+  }
+
 
   override def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp:Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMustHeapDomain[I], Replacement) = {
     val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
@@ -1280,6 +1368,12 @@ case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]
     (ids1.lub(ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
   }
 
+  override def removeObject(obj: Assignable): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
+    val (heap1, rep1) = this._1.removeObject(obj)
+    val (heap2, rep2) = this._2.removeObject(obj)
+    (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
+  }
+
   def createArray[S <: SemanticDomain[S]](length: Expression, typ: Type, pp: ProgramPoint, state: S): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
     val (ids1, heap1, rep1) = this._1.createArray(length, typ, pp, state)
     val (ids2, heap2, rep2) = this._2.createArray(length, typ, pp, state)
@@ -1328,6 +1422,13 @@ case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]
     val (heap2, rep2) = this._2.setToTop(variable)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
+  }
+
+
+  override def setCollectionToTop(collection: Assignable): NonRelationalMayAndMustHeapDomain[I] = {
+    val heap1 = this._1.setCollectionToTop(collection)
+    val heap2 = this._2.setCollectionToTop(collection)
+    new NonRelationalMayAndMustHeapDomain[I](heap1, heap2)
   }
 
   private def isCollectionMustVariable(variable: Assignable): Boolean = variable match {
@@ -1424,9 +1525,9 @@ case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
   }
 
-  def backwardAssign(variable: Assignable, expr: Expression): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (heap1, rep1) = this._1.backwardAssign(variable, expr)
-    val (heap2, rep2) = this._2.backwardAssign(variable, expr)
+  def backwardAssign(oldPreState: NonRelationalMayAndMustHeapDomain[I], variable: Assignable, expr: Expression): (NonRelationalMayAndMustHeapDomain[I], Replacement) = {
+    val (heap1, rep1) = this._1.backwardAssign(oldPreState._1, variable, expr)
+    val (heap2, rep2) = this._2.backwardAssign(oldPreState._2, variable, expr)
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
   }
@@ -1623,6 +1724,20 @@ case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]
 
     (new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1 ++ rep2)
   }
+
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint,
+                                 summary: Boolean): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
+    val (ids1, heap1, rep1) = this._1.createNonDeterminismSource(typ, pp, summary)
+    val (ids2, heap2, rep2) = this._2.createNonDeterminismSource(typ, pp, summary)
+
+    (ids1.lub(ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
+  }
+
+  def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = {
+    val ids1 = this._1.getNonDeterminismSource(pp, typ)
+    //val ids2 = this._2.getNonDeterminismSource(pp, typ)
+   ids1
+  }
 }
 
 // Approximates all collection elements to one summary node
@@ -1742,4 +1857,5 @@ case class TopHeapIdentifier(typ: Type, pp: ProgramPoint)
   override def getCollectionLength(collection: Assignable) = this
   override def getCollectionKey(collectionTuple:Assignable) = this
   override def getCollectionValue(collectionTuple:Assignable) = this
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, multiple: Boolean): TopHeapIdentifier = this
 }

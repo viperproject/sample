@@ -136,6 +136,10 @@ sealed trait ProgramPointHeapIdentifier
     case _ => throw new SemanticException("This is not a collection tuple: " + collectionTuple.toString)
   }
 
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, multiple: Boolean): ProgramPointHeapIdentifier = {
+    NonDeterminismSourceHeapId(typ, pp, multiple)
+  }
+
   override def hasMultipleAccessPaths = false
   override def getCounter = counter
 
@@ -202,6 +206,33 @@ case class SimpleProgramPointHeapIdentifier(
 
   override def setCounter(c:Int) = new SimpleProgramPointHeapIdentifier(pp, typ, summary, c)
 }
+
+case class NonDeterminismSourceHeapId(override val typ: Type, override val pp: ProgramPoint, summary: Boolean = false) extends ProgramPointHeapIdentifier {
+  override val counter = 0
+
+  override def equals(other: Any): Boolean = other match {
+    case NonDeterminismSourceHeapId(otherTyp, otherPP, otherSummary) =>
+      (pp == otherPP) && (summary == otherSummary)
+    case _ => false
+  }
+  override def toString: String = "__nondet_"+ pp.toString + (if (PPDSettings.printSummary && summary) "Σ" else "")
+
+  override def factory(): NonDeterminismSourceHeapId = this.copy()
+
+  override def representsSingleVariable(): Boolean = !summary
+
+  override def toSummaryNode: ProgramPointHeapIdentifier = this.copy(summary = true)
+
+  override def toNonSummaryNode: ProgramPointHeapIdentifier = this.copy(summary = false)
+
+  override def hasMultipleAccessPaths: Boolean = true
+
+  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def setCounter(c:Int) = this
+  def getField(): Option[String] = None
+  override def isNormalized(): Boolean = true
+}
+
 
 case class CollectionIdentifier(
     pp: ProgramPoint,

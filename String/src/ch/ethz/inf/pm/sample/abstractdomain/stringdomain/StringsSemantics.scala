@@ -62,8 +62,7 @@ object StringSemantics extends NativeMethodSemantics {
 		typeparameters : List[Type], 
 		returnedtype : Type,
     programpoint : ProgramPoint,
-		state : S
-	) : Option[S] = throw new StringException("Backward analysis not implemented/existing :)");
+		state : S, oldPreState: S) : Option[S] = throw new StringException("Backward analysis not implemented/existing :)")
 }
 
 class StringException(s : String) extends Exception(s)
