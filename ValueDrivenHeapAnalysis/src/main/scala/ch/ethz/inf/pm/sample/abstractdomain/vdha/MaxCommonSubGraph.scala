@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain
 /** An isomorphism between two sets of vertices.
   * It requires that any two corresponding vertices have the same label.
   */
-trait VertexIsomorphism {
+trait VertexIso {
   require(verticesFrom.size == verticesTo.size,
     "vertex map must be an isomorphism")
 
@@ -28,10 +28,10 @@ trait VertexIsomorphism {
 /** Isomorphism of maximum size between two heap sub-graphs.
   * @todo add further consistency checks
   */
-case class MaxCommonSubGraphIsomorphism[S <: SemanticDomain[S]](
+case class MaxCommonSubGraphIso[S <: SemanticDomain[S]](
     vertexMap: Map[Vertex, Vertex],
     edgeMap: Map[Edge[S], Edge[S]])
-  extends VertexIsomorphism {
+  extends VertexIso {
 
   require(edgeMap.values.toSet.size == edgeMap.size,
     "edge map must be an isomorphism")
@@ -49,7 +49,7 @@ case class MaxCommonSubGraphIsomorphism[S <: SemanticDomain[S]](
     HeapGraph[S](vertices = verticesTo, edges = edgeMap.values.toSet)
 }
 
-object MaxCommonSubGraphIsomorphism {
+object MaxCommonSubGraphIso {
   /** Finds the maximum common sub-graph of two given heap graphs and
     * returns the corresponding isomorphim between the two sub-graphs.
     *
@@ -61,8 +61,8 @@ object MaxCommonSubGraphIsomorphism {
     * McGregor's algorithms</a>.
     */
   def compute[S <: SemanticDomain[S]](from: HeapGraph[S], to: HeapGraph[S]):
-      MaxCommonSubGraphIsomorphism[S] = {
-    val result = CommonSubGraphIsomorphism.sure[S](from, to).findMax()
+      MaxCommonSubGraphIso[S] = {
+    val result = CommonSubGraphIso.sure[S](from, to).findMax()
     result.toMaxCommonSubGraph
   }
 }
@@ -78,12 +78,12 @@ object MaxCommonSubGraphIsomorphism {
  * @param possibleEdgeMap stores for each edge what edges in the other heap graph
  *                        are still candidates for the edge isomorphism
  */
-case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
+case class CommonSubGraphIso[S <: SemanticDomain[S]](
     remainingVerticesFrom: Set[Vertex],
     remainingVerticesTo: Set[Vertex],
     vertexMap: Map[Vertex, Vertex],
     possibleEdgeMap: Map[Edge[S], Set[Edge[S]]])
-  extends VertexIsomorphism {
+  extends VertexIso {
 
   require(possibleEdgeMap.values.forall(!_.isEmpty),
     "each edge in the edge map must map to a non-empty set")
@@ -94,8 +94,8 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
   require((remainingVerticesTo intersect verticesTo).isEmpty,
     "remaining and already mapped vertices must be disjoint")
 
-  def findMax(best: CommonSubGraphIsomorphism[S] = CommonSubGraphIsomorphism.empty[S]):
-      CommonSubGraphIsomorphism[S] = {
+  def findMax(best: CommonSubGraphIso[S] = CommonSubGraphIso.empty[S]):
+      CommonSubGraphIso[S] = {
     if (isComplete) {
       // We reached the leaf of the search tree
       if (isBetterThan(best)) this else best
@@ -123,8 +123,8 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
   }
 
   /** Convert computation result to a `MaxCommonSubGraphIsomorphism`. */
-  def toMaxCommonSubGraph: MaxCommonSubGraphIsomorphism[S] = {
-    MaxCommonSubGraphIsomorphism(vertexMap, possibleEdgeMap.map({
+  def toMaxCommonSubGraph: MaxCommonSubGraphIso[S] = {
+    MaxCommonSubGraphIso(vertexMap, possibleEdgeMap.map({
       case (fromEdge, toEdges) =>
         assert(toEdges.size == 1, s"$fromEdge maps to multiple possible edges")
         fromEdge -> toEdges.head
@@ -144,13 +144,13 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
     * from the possible edge map that have become impossible.
     * Also removes the given vertices from the sets of remaining vertices.
     */
-  def refine(from: Vertex, to: Vertex): CommonSubGraphIsomorphism[S] = {
+  def refine(from: Vertex, to: Vertex): CommonSubGraphIso[S] = {
     require(remainingVerticesFrom.contains(from),
       s"$from is not a remaining vertex")
     require(remainingVerticesTo.contains(to),
       s"$to is not a remaining vertex")
 
-    // Parameter validity will be checked in constructor of CommonSubGraphIsomorphism
+    // Parameter validity will be checked in constructor of CommonSubGraphIso
     val newPossibleEdgeMap = possibleEdgeMap.map({
       case (fromEdge, toEdges) =>
         var newToEdges = toEdges
@@ -163,27 +163,27 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
         fromEdge -> newToEdges
     }).toMap.filterNot(_._2.isEmpty)
 
-    CommonSubGraphIsomorphism(
+    CommonSubGraphIso(
       remainingVerticesFrom = remainingVerticesFrom - from,
       remainingVerticesTo = remainingVerticesTo - to,
       vertexMap = vertexMap + (from -> to),
       newPossibleEdgeMap)
   }
 
-  def refine(vertexMap: Map[Vertex, Vertex]): CommonSubGraphIsomorphism[S] = {
+  def refine(vertexMap: Map[Vertex, Vertex]): CommonSubGraphIso[S] = {
     vertexMap.foldLeft(this)({
       case (commonSubGraph, (from, to)) => commonSubGraph.refine(from, to)
     })
   }
 
-  def refine(vertices: Set[Vertex]): CommonSubGraphIsomorphism[S] =
+  def refine(vertices: Set[Vertex]): CommonSubGraphIso[S] =
     refine(vertices.map(v => v -> v).toMap)
 
   /** Returns whether future refinements of this common sub-graph isomorphism,
     * could possibly lead of a complete common sub-graph isomorphism that is
     * better than the other given complete common sub-graph isomorphism.
     */
-  def couldBeBetterThan(other: CommonSubGraphIsomorphism[S]): Boolean = {
+  def couldBeBetterThan(other: CommonSubGraphIso[S]): Boolean = {
     require(other.isComplete, "the common sub-graph to compare to must be complete")
     (size + maxRemainingVertices > other.size) ||
     (size + maxRemainingVertices >= other.size && possibleEdgeMap.size > other.possibleEdgeMap.size)
@@ -192,16 +192,16 @@ case class CommonSubGraphIsomorphism[S <: SemanticDomain[S]](
   /** Returns whether this complete common sub-graph isomorphism is better
     * than a given other one.
     */
-  def isBetterThan(other: CommonSubGraphIsomorphism[S]): Boolean = {
+  def isBetterThan(other: CommonSubGraphIso[S]): Boolean = {
     require(isComplete, "only compare completed common sub-graphs")
     require(other.isComplete, "only compare completed common sub-graphs")
     size >= other.size && possibleEdgeMap.size > other.possibleEdgeMap.size
   }
 }
 
-object CommonSubGraphIsomorphism {
+object CommonSubGraphIso {
   def empty[S <: SemanticDomain[S]] =
-    CommonSubGraphIsomorphism[S](Set.empty, Set.empty, Map.empty, Map.empty)
+    CommonSubGraphIso[S](Set.empty, Set.empty, Map.empty, Map.empty)
 
   /**
    * Returns the initial common sub-graph isomorphism with trivial mappings.
@@ -214,7 +214,7 @@ object CommonSubGraphIsomorphism {
    * @param to the heap graph to map vertices and edges to
    */
   def sure[S <: SemanticDomain[S]](
-      from: HeapGraph[S], to: HeapGraph[S]): CommonSubGraphIsomorphism[S] = {
+      from: HeapGraph[S], to: HeapGraph[S]): CommonSubGraphIso[S] = {
     val possibleEdgeMap = from.edges.map(fromEdge =>
       fromEdge -> to.edges.filter(toEdge =>
         fromEdge.field == toEdge.field &&
@@ -229,7 +229,7 @@ object CommonSubGraphIsomorphism {
     val sureVertices = from.vertices.intersect(to.vertices).filter(!_.isInstanceOf[HeapVertex])
     val remainingVerticesFrom = sureVertices ++ from.heapVertices
     val remainingVerticesTo = sureVertices ++ to.heapVertices
-    val initial = CommonSubGraphIsomorphism[S](
+    val initial = CommonSubGraphIso[S](
       remainingVerticesFrom,
       remainingVerticesTo,
       Map.empty,

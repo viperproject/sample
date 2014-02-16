@@ -135,8 +135,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def removeEdges(es: Set[Edge[S]]): HeapGraph[S] =
     copy(edges = edges -- es)
 
-  def mcs(other: HeapGraph[S]): MaxCommonSubGraphIsomorphism[S] =
-    MaxCommonSubGraphIsomorphism.compute(from = other, to = this)
+  def mcs(other: HeapGraph[S]): MaxCommonSubGraphIso[S] =
+    MaxCommonSubGraphIso.compute(from = other, to = this)
 
   /**
    * @param other
