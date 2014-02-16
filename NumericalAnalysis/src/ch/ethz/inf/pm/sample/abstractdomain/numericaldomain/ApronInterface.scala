@@ -14,6 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
 import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.SystemParameters
+import ApronTools._
 
 class ApronInterface(val state: Option[Abstract1],
                      val domain: Manager,
@@ -194,6 +195,82 @@ class ApronInterface(val state: Option[Abstract1],
         } else this
     }
   }
+  override def backwardAssign(oldPre: ApronInterface, variable: Identifier, expr: Expression): ApronInterface = {
+    val varType = expr.getType
+
+    val resultState = if (varType.isBooleanType) {
+      val tru = Constant("1",variable.getType,variable.pp)
+      val fal = Constant("0",variable.getType,variable.pp)
+      val state1 = this.assign(variable, tru)
+      val state2 =this.assign(variable, fal)
+      return state1.lub(state2)
+    } else if (varType.isNumericalType) {
+      var post = this.instantiateState()
+      var oldApronPre = oldPre.instantiateState()
+      if (!post.getEnvironment.equals(oldApronPre.getEnvironment)) {
+        val env = unionOfEnvironments(post.getEnvironment, oldApronPre.getEnvironment)
+        post = post.changeEnvironmentCopy(domain, env, false)
+        oldApronPre = oldApronPre.changeEnvironmentCopy(domain, env, false)
+      }
+
+      // for non-deterministic expressions, we fall back to simply forgetting the variable
+      if (!isDeterministicExpr(expr)) {
+        return this.setToTop(variable)
+      }
+
+      // handle multiple tree expressions (due to HeapIdSetDomain expressions)
+      val texprs = toTexpr1Intern(expr, post.getEnvironment)
+      val refinedPre =
+        if (texprs.size > 1) {
+          var curState = new Abstract1(domain, oldApronPre.getEnvironment, true)
+          for (e <- texprs) {
+            curState = curState.joinCopy(domain, post.substituteCopy(domain, variable.getName, e, oldApronPre))
+          }
+          curState
+        } else if (texprs.size == 1) {
+          post.substituteCopy(domain, variable.getName, texprs.head, oldApronPre)
+        } else {
+          throw new ApronException("Empty expression set created")
+        }
+
+      val result = new ApronInterface(Some(refinedPre), domain, env = env)
+      result
+    } else this
+    resultState
+  }
+
+  def boundVariable(variable: Identifier, itv: apron.Interval): ApronInterface = {
+    val lowBound = isIntervalBoundedBelow(itv)
+    val upBound = isIntervalBoundedAbove(itv)
+
+    val (low, up) = intervalBounds(itv)
+
+    val s = this.addAllToApronEnv
+    val si = s.instantiateState()
+
+    if (!lowBound && !upBound) return s
+
+    var constraints = List[apron.Lincons1]()
+    if (lowBound) {
+      val linexpr = new Linexpr1(si.getEnvironment)
+      val lowneg = low.copy()
+      lowneg.neg()
+      linexpr.setCst(lowneg)
+      linexpr.setCoeff(variable.getName, 1)
+      constraints = new Lincons1(Lincons1.SUPEQ, linexpr) :: constraints
+    }
+    if (upBound) {
+      val linexpr = new Linexpr1(si.getEnvironment)
+      linexpr.setCst(up)
+      linexpr.setCoeff(variable.getName, -1)
+      constraints = new Lincons1(Lincons1.SUPEQ, linexpr) :: constraints
+    }
+
+    val r = si.meetCopy(domain, constraints.toArray)
+    new ApronInterface(Some(r), domain, env = env)
+  }
+
+  override def backwardAccess(field: Identifier): ApronInterface = this
 
 
   override def assign(variable: Identifier, expr: Expression): ApronInterface = {
@@ -691,6 +768,24 @@ class ApronInterface(val state: Option[Abstract1],
     false
   }
 
+  private def isDeterministicExpr(expr: Expression): Boolean = {
+    expr match {
+      case BinaryArithmeticExpression(left, right, op, typ) =>
+        isDeterministicExpr(left) && isDeterministicExpr(right)
+      case BinaryBooleanExpression(left, right, op, typ) =>
+        isDeterministicExpr(left) && isDeterministicExpr(right)
+      case ReferenceComparisonExpression(left, right, op, typ) =>
+        isDeterministicExpr(left) && isDeterministicExpr(right)
+      case NegatedBooleanExpression(left) =>
+        isDeterministicExpr(left)
+      case UnaryArithmeticExpression(left, op, ret) =>
+        isDeterministicExpr(left)
+      case BinaryNondeterministicExpression(left, right, op, returnType) =>
+        false
+      case x: Expression => true
+    }
+  }
+
   private def removeNondeterminism(label: String, expr: Expression): (Expression, List[(Identifier, BinaryNondeterministicExpression)]) = {
     expr match {
       case BinaryArithmeticExpression(left, right, op, typ) =>
@@ -812,16 +907,7 @@ class ApronInterface(val state: Option[Abstract1],
     for (e <- e1) yield new Texpr1Intern(env, e)
   }
 
-  private def topExpression(): Texpr1Node = {
-    val a = new apron.Interval(0, 0)
-    val b = new DoubleScalar()
-    val c = new DoubleScalar()
-    b.setInfty(-1)
-    c.setInfty(1)
-    a.setInf(b)
-    a.setSup(c)
-    new Texpr1CstNode(a)
-  }
+  private def topExpression(): Texpr1Node = new Texpr1CstNode(topInterval)
 
   private def topConstraint(env: Environment): Tcons1 = {
     new Tcons1(Tcons1.EQ, new Texpr1Intern(env, new Texpr1CstNode(new DoubleScalar(0)))) // always true
@@ -971,6 +1057,16 @@ class ApronInterface(val state: Option[Abstract1],
       }
     }
     resEnv
+  }
+
+  def addAllToApronEnv: ApronInterface = {
+    val state1 = this.instantiateState()
+    var apronEnv = state1.getEnvironment()
+    for (e <- env) {
+      apronEnv = addToEnvironment(apronEnv, e.getType, e.getName)
+    }
+    val r = state1.changeEnvironmentCopy(domain, apronEnv, false)
+    new ApronInterface(Some(r), domain, isPureBottom, env = env)
   }
 
   private def addToEnvironment(env: Environment, typ: Type, varName: String): Environment = {

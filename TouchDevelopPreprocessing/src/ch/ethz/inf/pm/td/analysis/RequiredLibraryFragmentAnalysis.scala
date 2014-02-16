@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.semantics.TNumber
-import ch.ethz.inf.pm.td.analysis.MethodSummaries
+import ch.ethz.inf.pm.td.analysis.{MethodSummaries}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
@@ -12,6 +12,10 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
  * Date: 3/1/13
  * Time: 2:19 PM
  */
+
+trait CollectingState
+
+
 object RequiredLibraryFragmentAnalysis {
 
   var spottedFields = Set.empty[String]
@@ -35,7 +39,7 @@ object RequiredLibraryFragmentAnalysis {
 
 }
 
-class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
+class AccessCollectingState(myType:Type) extends State[AccessCollectingState] with CollectingState {
 
   def factory(): AccessCollectingState = new AccessCollectingState(SystemParameters.getType().top())
   def setType(typ:Type): AccessCollectingState = new AccessCollectingState(typ)
@@ -88,7 +92,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
   def testFalse(): AccessCollectingState = this
   def testTrue(): AccessCollectingState = this
   def assume(cond: ExpressionSet): AccessCollectingState = this
-  def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): AccessCollectingState = this
+  def backwardAssignVariable(oldPreState: AccessCollectingState, x: ExpressionSet, right: ExpressionSet): AccessCollectingState = this
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AccessCollectingState = this
   def backwardGetVariableValue(id: Assignable): AccessCollectingState = this
   def throws(t: ExpressionSet): AccessCollectingState = this
@@ -115,4 +119,20 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] {
 
   def widening(other: AccessCollectingState): AccessCollectingState =
     new AccessCollectingState(getType.widening(other.getType))
+
+
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): AccessCollectingState = this
+
+  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): AccessCollectingState = this
+
+  def removeObject(oldPreState: AccessCollectingState, obj: ExpressionSet, fields: Option[Set[Identifier]]): AccessCollectingState = this
+
+  def backwardAssignField(oldPreState: AccessCollectingState, obj: ExpressionSet, field: String, right: ExpressionSet): AccessCollectingState = this
+
+  def setCollectionToTop(collectionSet: ExpressionSet): AccessCollectingState = this
+
+  def undoPruneVariables(unprunedPreState: AccessCollectingState, filter: (Identifier) => Boolean): AccessCollectingState = this
+
+  def undoPruneUnreachableHeap(preState: AccessCollectingState): AccessCollectingState = this
+
 }

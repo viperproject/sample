@@ -59,7 +59,7 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
     else this.add(variable, get(variable).lub(res))
   }
 
-  override def backwardAssign(variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = this
+  override def backwardAssign(oldPreState: BooleanInvalidDomainWithSource, variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = this
 
   override def access(field: Identifier) = this
 

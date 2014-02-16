@@ -142,10 +142,10 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
   This method provides the backward semantics of assignment
   
    @param variable
-  @param expr
-  @return the state before variable=expr
-    */
-  def backwardAssign(variable: Identifier, expr: Expression): T;
+   @param expr 
+   @return the state before variable=expr
+   */
+  def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) : T
 
   /**
   This method returns all the ids over whom the SemanticDomain is defined
@@ -192,12 +192,12 @@ trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends Semanti
     result = result + ((variable, path ::: variable.toString :: Nil));
     return (this.createVariable(variable, typ), result);
   }
+  
+  override def access(field : Identifier) : T = this.asInstanceOf[T]
 
-  override def access(field: Identifier): T = this.asInstanceOf[T];
+  override def backwardAccess(field : Identifier) : T = throw new SymbolicSemanticException("Backward analysis not supported")
 
-  override def backwardAccess(field: Identifier): T = throw new SymbolicSemanticException("Backward analysis not supported");
-
-  override def backwardAssign(variable: Identifier, expr: Expression): T = throw new SymbolicSemanticException("Backward analysis not supported");
+  override def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) : T = throw new SymbolicSemanticException("Backward analysis not supported")
 }
 
 

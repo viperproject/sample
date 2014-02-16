@@ -153,6 +153,18 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
   def createObject(typ : Type, pp : ProgramPoint, fields : Option[Set[Identifier]] = None) : S
 
   /**
+   * Undoes the effect of object creation. Intended to be the backward version
+   * of createObject and should only be used on a post state immediately after
+   * object creation.
+   *
+   * @param oldPreState
+   * @param obj the heap id of the object to be removed
+   * @param fields the fields that were created
+   * @return state without the object
+   */
+  def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]) : S
+
+  /**
    * Creates a variable
    *
    * @param x The name of the variable
@@ -189,6 +201,17 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @return the abstract state after the assignment
    */
   def assignField(obj: ExpressionSet, field: String, right: ExpressionSet): S
+
+  /**
+   * Refining backward transformer for field assignments
+   *
+   * @param oldPreState state before this operation
+   * @param obj field target object
+   * @param field field to be assigned
+   * @param right assigned expression
+   * @return refined pre state before the field assignment
+   */
+  def backwardAssignField(oldPreState: S, obj: ExpressionSet, field: String, right: ExpressionSet): S
 
   /**
    * Assigns an expression to an argument
@@ -262,13 +285,14 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): S
 
   /**
-   * Performs the backward semantics of an assignment
+   * Performs refining backward assignment of variables
    *
+   * @param oldPreState the pre state to be refined
    * @param x The assigned variable
    * @param right The assigned expression
    * @return The abstract state before the assignment
    */
-  def backwardAssignVariable(x : ExpressionSet, right : ExpressionSet) : S
+  def backwardAssignVariable(oldPreState: S, x: ExpressionSet, right: ExpressionSet): S
 
   /**
    * Evaluates a numerical constant
@@ -301,6 +325,28 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @return The abstract state after assuming that the expression does not hold
    */
   def testFalse() : S
+
+  /**
+   * Applies state transformations conditionally
+   * depending on expression (essentially equivalent to an "if-else" construct
+   * in the ControlFlowGraph)
+   *
+   * @param expr condition to be assumed in branches
+   * @param Then transformer for true branch
+   * @param Else transformer for false branch
+   * @return joined result over branches
+   */
+  def condBranch(expr: ExpressionSet, Then: S => S, Else: S => S): S = {
+    val trueCondState = assume(expr)
+    val falseCondState = assume(expr.not())
+    lazy val trueBranchResult = Then(trueCondState)
+    lazy val falseBranchResult = Else(falseCondState)
+
+    if (trueCondState.isBottom) return falseBranchResult
+    if (falseCondState.isBottom) return trueBranchResult
+
+    trueBranchResult.lub(Else(falseBranchResult))
+  }
 
   /**
    * Returns the current expression
@@ -476,6 +522,15 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
   def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet): S
 
   /**
+   * Modifies collection state so that it may contain anything afterwards.
+   * Can be used as coarse backward transformer for collection operations
+   *
+   * @param collectionSet collection to be set to top
+   * @return state where collection is top
+   */
+  def setCollectionToTop(collectionSet: ExpressionSet): S
+
+  /**
    * Removes the first occurence of the value in a collection.
    *
    * @param collectionSet The set of collections from which the value is removed
@@ -525,11 +580,36 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
   def pruneVariables(filter:Identifier => Boolean) : S
 
   /**
+   * Undoes the effect of `pruneVariables`.
+   *
+   * All the variables that existed in `unprunedPreState` and that match
+   * the given filter are created and set to top.
+   *
+   * @param unprunedPreState state before pruning
+   * @param filter the filter that was used to prune variables
+   * @return state with pruned variables created again
+   */
+  def undoPruneVariables(unprunedPreState: S, filter: Identifier => Boolean): S
+
+
+  /**
    * Performs abstract garbage collection
    */
   def pruneUnreachableHeap() : S
 
   /**
+   * Undoes the effect of pruning the unreachable heap ids. That is,
+   * all heap ids present in `preState` but not in this state are created
+   * and set to top. Everything else stays the same as in the
+   * post state (this `State`)
+   *
+   * @param preState old pre state before heap pruning was applied
+   * @return unpruned heap
+   */
+  def undoPruneUnreachableHeap(preState: S): S
+
+
+ /**
    * Detects summary nodes that are only reachable via a single access path and converts
    * them to non-summary nodes
    */
@@ -542,6 +622,26 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @return If a cause of the error is found, it returns an explanation and the program point of the cause
    */
   def explainError(expr:ExpressionSet):Set[(String,ProgramPoint)] = Set.empty
+
+  /**
+   * Marks the given program point as a source of non-determinism and an internal
+   * hidden identifier for it.
+   *
+   * @param typ typ for the non-deterministic value
+   * @param pp identifying program point
+   * @param summary source is summary if it may be queries multiple times
+   * @return identifier for non-det source
+   */
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): S
+
+  /**
+   * Obtains the identifier for the non-determinism source  at program point.
+   *
+   * @param pp pp of source
+   * @param typ type of value returned by source
+   * @return identifier for non-det source
+   */
+  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): S
 
 }
 
@@ -616,6 +716,8 @@ trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S
   def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = ???
 
   def collectionContainsValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = ???
+
+  def setCollectionToTop(collectionSet: ExpressionSet) = ???
 }
 
 /** Implements some methods of `State` that take `ExpressionSet`s as argument,
@@ -694,6 +796,43 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
             obj <- objSet.getSetOfExpressions;
             right <- rightSet.getSetOfExpressions)
             yield assignField(obj, field, right))
+        }
+        result.setUnitExpression()
+      })
+    })
+  }
+
+  def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression): S
+
+  def backwardAssignVariable(oldPreState: S, varSet: ExpressionSet, rhsSet: ExpressionSet): S = {
+    unlessBottom(varSet, {
+      unlessBottom(rhsSet, {
+        val result = if (rhsSet.isTop) {
+          setVariableToTop(varSet)
+        } else {
+          Lattice.bigLub(for (
+            left <- varSet.getSetOfExpressions;
+            right <- rhsSet.getSetOfExpressions)
+          yield backwardAssignVariable(oldPreState, left, right))
+        }
+        result.removeExpression()
+      })
+    })
+  }
+
+  def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression): S
+
+  override def backwardAssignField(oldPreState: S, objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
+    unlessBottom(objSet, {
+      unlessBottom(rightSet, {
+        val result = if (rightSet.isTop) {
+          val t = this.getFieldValue(objSet, field, rightSet.getType())
+          t.setVariableToTop(t.getExpression).setExpression(ExpressionFactory.unitExpr)
+        } else {
+          Lattice.bigLub(for (
+            obj <- objSet.getSetOfExpressions;
+            right <- rightSet.getSetOfExpressions)
+            yield backwardAssignField(oldPreState, obj, field, right))
         }
         result.setUnitExpression()
       })
@@ -786,23 +925,21 @@ trait LatticeWithReplacement[T <: LatticeWithReplacement[T]] {
 }
 
 /**
- * Some trivial helper functions that executes forward/backward semantics on single and list of states
- *
- * @author Pietro Ferrara
- * @since 0.1
+ * Some trivial helper functions that execute forward/backward semantics on single and list of states
+ * @author Pietro
  */
 object UtilitiesOnStates {
 
-  def forwardExecuteStatement[S <: State[S]](state : S, statement : Statement) : (ExpressionSet, S)= {
-    val finalState : S =statement.forwardSemantics[S](state)
-    val expr=finalState.getExpression
+  def forwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {
+    val finalState = statement.forwardSemantics[S](state)
+    val expr = finalState.getExpression
     (expr, finalState)
   }
 
-  def backwardExecuteStatement[S <: State[S]](state : S, oldPreState: S, statement : Statement) : (ExpressionSet, S)= {
-    val finalState : S =statement.backwardSemantics[S](state, oldPreState)
-    val expr=finalState.getExpression
-    (expr, finalState.removeExpression())
+  def backwardExecuteStatement[S <: State[S]](state: S, oldPreState: S, statement: Statement): (ExpressionSet, S) = {
+    val finalState = statement.backwardSemantics[S](state, oldPreState)
+    val expr = finalState.getExpression
+    (expr, finalState.setExpression(ExpressionFactory.unitExpr))
   }
 
   def forwardExecuteListStatements[S <: State[S]](state : S, statements : List[Statement]) : (List[ExpressionSet], S)= statements match {
@@ -814,14 +951,12 @@ object UtilitiesOnStates {
       (expr :: otherExpr, finalState.removeExpression())
   }
 
-  def backwardExecuteListStatements[S <: State[S]](state: S, oldPreState: S, statements: List[Statement]): (List[ExpressionSet], S) = statements match {
-    // TODO: This is not correct yet. We would also need the intermediate forward states which we don't have
-    case Nil => (Nil, state)
+  def forwardExecuteListStatementsWithIntermediateStates[S <: State[S]](pre: S, statements: List[Statement]): List[S] = statements match {
+    case Nil => Nil
     case statement :: xs =>
-      val state1 : S =statement.normalize().backwardSemantics[S](state, oldPreState)
-      val expr=state1.getExpression
-      val (otherExpr, finalState)= backwardExecuteListStatements[S](state1, oldPreState, xs)
-      (expr :: otherExpr, finalState)
+      val post = statement.forwardSemantics[S](pre)
+      val expr = post.getExpression
+      val otherStates = forwardExecuteListStatementsWithIntermediateStates[S](post, xs)
+      post :: otherStates
   }
-
 }

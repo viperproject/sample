@@ -329,7 +329,7 @@ trait NativeMethodSemantics {
    * @param state the abstract state in which the method call is evaluated
    * @return the abstract state obtained after the backward evaluation of the native method call, None if the semantics of the method call is not defined
    */
-  def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet, operator: String, parameters: List[ExpressionSet], typeparameters: List[Type], returnedtype: Type, programpoint: ProgramPoint, state: S): Option[S];
+  def applyBackwardNativeSemantics[S <: State[S]](thisExpr: ExpressionSet, operator: String, parameters: List[ExpressionSet], typeparameters: List[Type], returnedtype: Type, programpoint: ProgramPoint, state: S, oldPreState: S): Option[S];
 }
 
 /** Native method semantics without backward semantics. */
@@ -341,5 +341,6 @@ trait ForwardNativeMethodSemantics extends NativeMethodSemantics {
                                                    typeParameters: List[Type],
                                                    returnType: Type,
                                                    programPoint: ProgramPoint,
-                                                   state: S): Option[S] = None
+                                                   state: S,
+                                                   oldPreState: S): Option[S] = None
 }

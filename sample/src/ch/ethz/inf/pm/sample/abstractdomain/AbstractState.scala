@@ -180,6 +180,8 @@ case class ExpressionSet(initialTyp: Type, s: SetOfExpressions = new SetOfExpres
     new ExpressionSet(getType(),new SetOfExpressions(newSet))
 
   }
+
+  def isUnitExprSet: Boolean = this == ExpressionFactory.unitExpr
 }
 
 object ExpressionSet {
@@ -190,6 +192,7 @@ object ExpressionSet {
   /** Creates an empty `ExpressionSet` whose type is top. */
   def apply(): ExpressionSet =
     new ExpressionSet(SystemParameters.typ.top())
+
 }
 
 case class SetOfExpressions(
@@ -254,10 +257,9 @@ case class AbstractState[
   def getExpression : ExpressionSet = getResult()
 
   def removeExpression() : AbstractState[N,H,I] = {
-    if(this.isBottom) return  new AbstractState(this._1, this._2.bottom())
-    new AbstractState(this._1, ExpressionFactory.unitExpr)
+    if (this.isBottom) return  factory(_1, _2.bottom())
+    factory(_1, ExpressionFactory.unitExpr)
   }
-
 
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): AbstractState[N, H, I] =
     new AbstractState[N, H, I](_1.createVariable(variable, typ), _2)
@@ -280,32 +282,36 @@ case class AbstractState[
   def assignField(obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
     obj match {
       case variable : Identifier =>
-        new AbstractState[N,H,I](this._1.assignField(variable, field, right, right.getType, variable.pp ), this._2)
+        factory(_1.assignField(variable, field, right, right.getType, variable.pp ), this._2)
       case heapid : HeapIdSetDomain[I] =>
-        new AbstractState[N,H,I](HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, right, right.getType, heapid.pp )), this._2)
+        factory(HeapIdSetFunctionalLifting.applyToSetHeapId(this._1, heapid, this._1.assignField(_, field, right, right.getType, heapid.pp )), this._2)
       case _ =>
         bottom()
     }
   }
 
-  override def backwardAssignVariable(x : ExpressionSet, right : ExpressionSet) : AbstractState[N,H,I] = {
-    if(this.isBottom) return this
-    if(right.isTop) return top()
-    var result : AbstractState[N,H,I] = this.bottom()
-    for(el <- x.getSetOfExpressions) {
-      //For each variable that is potentially assigned, it computes its semantics and it considers the upper bound
-      el match {
-        case variable : Assignable => {
-          for(assigned <- right.getSetOfExpressions) {
-            val done=new AbstractState[N,H,I](this._1.backwardAssign(variable, assigned), this._2)
-            result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(variable.getType.top(), variable.pp)))
-          }
-        }
-        case _ => throw new SymbolicSemanticException("I can assign only variables")
-      }
+  def backwardAssignField(oldPreState: AbstractState[N, H, I], obj: Expression, field: String, right: Expression): AbstractState[N, H, I] = {
+    obj match {
+      case variable: Identifier =>
+        new AbstractState[N,H,I](this._1.backwardAssignField(oldPreState._1, variable, field, right, right.getType, variable.pp), this._2).setUnitExpression()
+      case heapId: HeapIdSetDomain[I] =>
+        val newInner = HeapIdSetFunctionalLifting.applyToSetHeapId(_1, heapId, _1.backwardAssignField(oldPreState._1, _, field, right, right.getType, heapId.pp))
+        factory(newInner, _2)
+      case _ =>
+        bottom()
     }
-    result
+  }
+
+  def backwardAssignVariable(oldPreState: AbstractState[N,H,I], lhs : Expression,
+                             rhs : Expression) : AbstractState[N,H,I] = {
+    lhs match {
+      case variable: Assignable => new AbstractState[N,H,I](_1.backwardAssign(oldPreState._1, variable, rhs), _2)
+      case ids: HeapIdSetDomain[I] =>
+        val factoryState = _1
+        val newInner = HeapIdSetFunctionalLifting.applyToSetHeapId(factoryState, ids, _1.backwardAssign(oldPreState._1, _, rhs))
+        factory(newInner, _2)
+      case _ => bottom()
+    }
   }
 
   override def setArgument(x : ExpressionSet, right : ExpressionSet) : AbstractState[N,H,I] = {
@@ -343,6 +349,36 @@ case class AbstractState[
           }
         }
         case _ => throw new SymbolicSemanticException("I can remove only variables")
+      }
+    }
+    result
+  }
+
+
+  override def removeObject(oldPreState: AbstractState[N,H,I], x: ExpressionSet, fields: Option[Set[Identifier]]): AbstractState[N, H, I] = {
+    if(this.isBottom) return this
+
+    // for all exprs in x, do the following, then take lub
+    var result : AbstractState[N,H,I] = this.bottom()
+    for(e <- x.getSetOfExpressions) {
+      e match {
+        case objectIds: HeapIdSetDomain[I] =>
+          // remove field variable identifiers from ._1
+          var heapAndOther = this._1
+          for(field <- fields.getOrElse(Set.empty[Identifier])) {
+            val (fieldIdSet, _, _) = HeapIdSetFunctionalLifting.applyGetFieldId(objectIds, heapAndOther, heapAndOther._2.getFieldIdentifier(_, field.getName, field.getType, field.pp))
+            heapAndOther = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther, fieldIdSet, heapAndOther.removeVariable(_))
+          }
+          // remove variable for created heap object itself
+          heapAndOther = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther, objectIds, heapAndOther.removeVariable(_))
+
+          // remove heap object
+          val newHeap = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther._2, objectIds, heapAndOther._2.removeObject(_)._1)
+          heapAndOther =  new HeapAndAnotherDomain[N, H, I](heapAndOther._1, newHeap)
+
+          val newState = new AbstractState[N,H,I](heapAndOther, ExpressionFactory.unitExpr)
+          result = result.lub(newState)
+          result = result.setExpression(ExpressionFactory.unitExpr)
       }
     }
     result
@@ -588,6 +624,29 @@ case class AbstractState[
     }
 
     result.removeExpression()
+  }
+
+
+  override def setCollectionToTop(collectionSet: ExpressionSet): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
+
+
+    def setTop(result: AbstractState[N, H, I]) (collection: Assignable): AbstractState[N, H, I] = {
+      val newHeapAndSemantic = result._1.setCollectionToTop(collection)
+      new AbstractState[N, H, I](newHeapAndSemantic, result._2)
+    }
+
+    var result = this.bottom()
+    for (collection <- collectionSet.getSetOfExpressions) {
+      val newState = collection match {
+        case id: Assignable => setTop(this)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, setTop(this))
+        case _ => this.bottom()
+      }
+      result = result.lub(newState)
+    }
+
+    result.setExpression(ExpressionFactory.unitExpr)
   }
 
   def removeFirstCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = {
@@ -1027,6 +1086,35 @@ case class AbstractState[
     new AbstractState(curState, this._2)
   }
 
+  override def undoPruneVariables(unprunedPreState: AbstractState[N, H, I], filter:Identifier => Boolean) : AbstractState[N, H, I] = {
+    var curState = this._1
+    for (id <- unprunedPreState._1.getIds()) {
+      id match {
+        case va:Identifier =>
+          if (filter(va)) {
+            curState = curState.createVariable(id, id.typ)
+            curState = curState.setToTop(id)
+          }
+        case _ => ()
+
+      }
+    }
+
+    new AbstractState(curState, this._2)
+  }
+
+  override def undoPruneUnreachableHeap(preState: AbstractState[N, H, I]): AbstractState[N, H, I] = {
+    val unreachable = preState._1._2.getUnreachableHeap
+    val oldInnerState = this._1
+    val newInnerState =
+      unreachable.foldLeft(oldInnerState) { case (curInnerState, hId) =>
+        curInnerState.createVariable(hId, hId.typ)
+                     .setToTop(hId)
+      }
+    factory(newInnerState, _2)
+  }
+
+
   /**
    * Performs abstract garbage collection
    */
@@ -1081,4 +1169,28 @@ case class AbstractState[
   }
 
   override def widening(other: AbstractState[N, H, I]): AbstractState[N, H, I] = wideningWithReplacement(other)._1
+
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): AbstractState[N, H, I] = {
+    if(this.isBottom) return this
+
+    // dispatch creation of identifier to heap domain
+    val (nonDetId, newHeap, rep) = this._1._2.createNonDeterminismSource(typ, pp, summary)
+    Predef.assert(nonDetId.getIdentifiers.size == 1)
+    val heapIdCreatedState = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
+
+    // create a corresponding numerical variable
+    val varCreatedState = HeapIdSetFunctionalLifting.applyToSetHeapId(heapIdCreatedState, nonDetId, heapIdCreatedState.createVariable(_, typ))
+
+    // TODO: fix this, simply return single identifier from createNonDeterminismSource, then we dont have to do this
+    val nonDetIdF = varCreatedState._2.getNonDeterminismSource(pp, typ)
+
+
+    factory(varCreatedState, new ExpressionSet(typ).add(nonDetIdF))
+  }
+
+  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): AbstractState[N, H, I] = {
+    val nonDetId = this._1._2.getNonDeterminismSource(pp, typ)
+    val idExpr = new ExpressionSet(nonDetId.getType).add(nonDetId)
+    setExpression(idExpr)
+  }
 }

@@ -142,16 +142,19 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
     }
   }
 
-  override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
-    if (state.equals(state.bottom())) return state
-
-    val (leftExpr, leftState) = UtilitiesOnStates.backwardExecuteStatement(state, oldPreState, left)
-    val (rightExpr, rightState) = UtilitiesOnStates.backwardExecuteStatement(leftState, oldPreState, right)
-    var result = rightState.setVariableToTop(leftExpr)
-    val condition = ExpressionFactory.createBinaryExpression(leftExpr, rightExpr, ArithmeticOperator.==, leftExpr.getType().top()); //TODO type is wrong
-    result = result.setExpression(condition)
-    result.testTrue().backwardAssignVariable(leftExpr, rightExpr)
-  }
+      override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
+        if(state.equals(state.bottom())) return state
+        var stateleft : S = left.backwardSemantics[S](state, oldPreState)
+        val exprleft = stateleft.getExpression
+        stateleft=stateleft.removeExpression()
+        var stateright : S = right.backwardSemantics[S](stateleft, oldPreState)
+        val exprright = stateright.getExpression
+        stateright=stateright.removeExpression()
+        var result=stateright.setVariableToTop(exprleft)
+        val condition=ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top());//TODO type is wrong
+        result=result.setExpression(condition)
+        return result.testTrue().backwardAssignVariable(oldPreState, exprleft, exprright)
+	  }
 
   override def toString: String = left + " = " + right
 
@@ -404,34 +407,9 @@ case class MethodCall(
     state.top()
   }
 
-  private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, initialState: S, oldPreState: S, programpoint: ProgramPoint): S = {
-    if (initialState.lessEqual(initialState.bottom()))
-      return return initialState.bottom()
-
-    // TODO: This way method arguments are executed backward is not sound in case they have side effects
-    val (callTargetExpr, callTargetState) = UtilitiesOnStates.backwardExecuteStatement(initialState, oldPreState, obj)
-    val (parametersExpr, resultingState1) = UtilitiesOnStates.backwardExecuteListStatements[S](callTargetState, oldPreState, parameters)
-
-    // the handling of following special cases is questionable but a lot of code seems to rely on it
-    if (callTargetExpr.isBottom)
-      return initialState.bottom()
-    if (callTargetExpr.isTop)
-      return initialState.top()
-
-    // collect results of applicable native semantics  (lazy, not evaluated yet)
-    val nativeSemanticsResults = (
-      for (sem <- SystemParameters.nativeMethodsSemantics.view) yield
-        sem.applyBackwardNativeSemantics[S](callTargetExpr, calledMethod, parametersExpr, parametricTypes, returnedType, programpoint, initialState)
-      ).flatten
-
-    // return first successful application (applies all semantics until first successful one, if any)
-    val firstSuccess = nativeSemanticsResults.headOption
-    firstSuccess match {
-      case Some(s) => s
-      case None =>
-        Reporter.reportImprecision("Native backward semantics for type " + callTargetExpr.getType() + " with method " + calledMethod + " not implemented", programpoint)
-        initialState.top()
-    }
+  private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S, oldPreState: S, programpoint: ProgramPoint): S = {
+    // to be included when ExecutionHistoryState is committed
+	???
   }
 
   override def toString: String =

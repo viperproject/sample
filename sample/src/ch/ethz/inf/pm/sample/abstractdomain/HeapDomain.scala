@@ -242,6 +242,9 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    */
   def assignField(obj: Assignable, field: String, expr: Expression): (T, Replacement)
 
+  def backwardAssignField(oldPreState: T, obj : Assignable, field : String, expr : Expression) : (T, Replacement) = ???
+
+
   /**
    * This method assigns a given field of a given objectto the given expression
    *
@@ -297,14 +300,18 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    */
   def removeVariable(variable: Assignable): (T, Replacement)
 
+
+  def removeObject(obj : Assignable) : (T, Replacement) = ???
+
   /**
-   * This method provides the backward semantics of assignment
+   * This method provides the backward semantics of assignment on the post state (this)
    *
-   * @param variable
-   * @param expr
-   * @return the state before variable=expr
+   * @param oldPreState the prestate to be refined
+   * @param variable the variable to be assigned
+   * @param expr RHS expression of assignment
+   * @return the refined prestate before variable=expr
    */
-  def backwardAssign(variable: Assignable, expr: Expression): (T, Replacement)
+  def backwardAssign(oldPreState: T, variable: Assignable, expr: Expression): (T, Replacement)
 
   /**
    * This method returns all the ids over whom the HeapDomain is defined
@@ -449,6 +456,8 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    */
   def removeCollectionElement(collectionTuple: Assignable): T
 
+  def setCollectionToTop(collection: Assignable): T = ???
+
   /**
    * Returns the identifier representing the length of the given collection
    *
@@ -466,6 +475,10 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * Converts summary nodes to regular nodes whenever possible and sound
    */
   def optimizeSummaryNodes: (T, Replacement)
+
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): (HeapIdSetDomain[I], T, Replacement)
+
+  def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier
 }
 
 trait Assignable {

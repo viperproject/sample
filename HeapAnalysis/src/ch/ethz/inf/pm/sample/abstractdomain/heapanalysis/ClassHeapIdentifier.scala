@@ -70,4 +70,5 @@ class ClassHeapIdentifier(val value: Type, val pp: ProgramPoint)
   override def getCollectionLength(collection: Assignable) = throw new SemanticException("Not yet supported")
   override def getCollectionKey(collectionTuple:Assignable) = throw new SemanticException("Not yet supported")
   override def getCollectionValue(collectionTuple:Assignable) = throw new SemanticException("Not yet supported")
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, multiple: Boolean): ClassHeapIdentifier = ???
 }

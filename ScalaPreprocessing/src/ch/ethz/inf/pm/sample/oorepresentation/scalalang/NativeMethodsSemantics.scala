@@ -81,7 +81,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 	  case _ => new Some(state.setExpression(thisExpr));//or None? It depends, this is used to call the contructor...
 	}
  
-	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = operator match {
+	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S, oldPreState: S) : Option[S] = operator match {
       case "this" => parameters match {
         case Nil => return Some(state.removeExpression());
         case _ => None
@@ -117,7 +117,7 @@ object ObjectNativeMethodSemantics extends NativeMethodSemantics {
 }
 
 object IntegerNativeMethodSemantics extends NativeMethodSemantics {
-  	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
+  	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S, oldPreState: S) : Option[S] = None
   
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] =
 		if(thisExpr.getType().toString.equals("Int") || SystemParameters.ignoreTypeForNumericalMethods)
@@ -164,7 +164,7 @@ object IntegerNativeMethodSemantics extends NativeMethodSemantics {
 
 
 object BooleanNativeMethodSemantics extends NativeMethodSemantics {
-  	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = None
+  	def applyBackwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S, oldPreState: S) : Option[S] = None
   
 	def applyForwardNativeSemantics[S <: State[S]](thisExpr : ExpressionSet, operator : String, parameters : List[ExpressionSet], typeparameters : List[Type], returnedtype : Type, programpoint : ProgramPoint, state : S) : Option[S] = {
 		if(thisExpr.getType().toString.equals("Boolean"))
