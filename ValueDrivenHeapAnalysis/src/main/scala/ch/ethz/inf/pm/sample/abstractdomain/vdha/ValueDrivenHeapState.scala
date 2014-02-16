@@ -400,8 +400,8 @@ trait ValueDrivenHeapState[
    */
   private def referencePathAssignmentEdges(
       field: String,
-      leftPaths: Set[RootedHeapGraphPath[S]],
-      rightPaths: Set[RootedHeapGraphPath[S]]): Set[Edge[S]] = {
+      leftPaths: Set[RootedPath[S]],
+      rightPaths: Set[RootedPath[S]]): Set[Edge[S]] = {
     var edgesToAdd = Set.empty[Edge[S]]
     for (lPath <- leftPaths) {
       var leftCond = lPath.condition

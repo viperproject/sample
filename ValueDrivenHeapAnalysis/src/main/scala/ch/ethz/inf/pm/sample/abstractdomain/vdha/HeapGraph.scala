@@ -58,7 +58,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
-  def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[RootedHeapGraphPath[S]] =
+  def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[RootedPath[S]] =
     paths(accPathId.path.dropRight(1))
 
   /**
@@ -74,10 +74,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * @return an empty set if there is no list of edges corresponding
    *         to the given access path
    */
-  def paths(path: List[String]): Set[RootedHeapGraphPath[S]] = {
+  def paths(path: List[String]): Set[RootedPath[S]] = {
     require(!path.isEmpty, "path must not be empty")
 
-    def paths(path: List[String], vertex: Vertex): Set[PartialHeapGraphPath[S]] = {
+    def paths(path: List[String], vertex: Vertex): Set[PartialPath[S]] = {
       val field = vertex match {
         case v: LocalVariableVertex => None
         case _ => Some(path.head)
@@ -85,15 +85,15 @@ case class HeapGraph[S <: SemanticDomain[S]](
       val nextEdges = outEdges(vertex, field)
       path match {
         case head :: Nil =>
-          nextEdges.map(e => PartialHeapGraphPath(List(e)))
+          nextEdges.map(e => PartialPath(List(e)))
         case head :: tail =>
           nextEdges.map(e => paths(tail, e.target).map(
-            path => PartialHeapGraphPath(e :: path.edges))).flatten
+            path => PartialPath(e :: path.edges))).flatten
       }
     }
 
     paths(path, localVarVertex(path.head)).map(path =>
-      RootedHeapGraphPath[S](path.edges))
+      RootedPath[S](path.edges))
   }
 
   def addNonHeapVertices(vs: Set[Vertex]): HeapGraph[S] = {

@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 case class CondHeapGraph[S <: SemanticDomain[S]](
     heap: HeapGraph[S],
     cond: S,
-    takenPaths: Set[RootedHeapGraphPath[S]] = Set.empty[RootedHeapGraphPath[S]]) {
+    takenPaths: Set[RootedPath[S]] = Set.empty[RootedPath[S]]) {
 
   import Utilities._
   import CondHeapGraph._
@@ -26,7 +26,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     takenPaths.exists(_.accPath.startsWith(objPath))),
     "condition must only contain access path identifiers for taken paths")
 
-  def takenPath(path: List[String]): RootedHeapGraphPath[S] =
+  def takenPath(path: List[String]): RootedPath[S] =
     takenPaths.find(_.accPath == path).get
 
   /**
