@@ -5,7 +5,7 @@
     s"node-${vertex.name}"
 }
 
-@edgeId(edge: vdha.EdgeWithState[_]) = @{
+@edgeId(edge: vdha.Edge[_]) = @{
     val field = edge.field.getOrElse("")
     s"edge-${edge.source.name}-$field-${edge.target.name}"
 }
@@ -36,7 +36,7 @@
             <div class="panel-heading">Edge Value State</div>
             <div class="panel-body">
                 <i class="placeholder">Move your mouse over an edge</i>
-                @heapGraph.edges.map { edge: vdha.EdgeWithState[_] =>
+                @heapGraph.edges.map { edge: vdha.Edge[_] =>
                 <div class="edge-state" id="@edgeId(edge)" style="display: none;">
                     @LatticeFragment(edge.state.asInstanceOf[Lattice[_]])
                 </div>
@@ -50,7 +50,7 @@
     jsPlumb.ready(function() {
         var view = new GraphView();
         view.rankDir = "LR";
-        @heapGraph.edges.map { edge: vdha.EdgeWithState[_] =>
+        @heapGraph.edges.map { edge: vdha.Edge[_] =>
             view.graph.addEdge(null, "@nodeId(edge.source)", "@nodeId(edge.target)", {
                 label: "@edge.field.getOrElse("")",
                 onConnected: function(con) {
