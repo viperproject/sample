@@ -473,6 +473,8 @@ trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] { this: 
   override def lessEqual(other: T): Boolean = {
     if (this.isBottom) return true
     if (other.isTop) return true
+    if (other.isBottom) return false
+    if (this.isTop) return false
     other.value.subsetOf(this.value)
   }
 }
