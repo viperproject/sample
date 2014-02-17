@@ -408,14 +408,14 @@ case class AbstractState[
   }
 
   def getFieldValue(obj: Expression, field: String, typ: Type): AbstractState[N, H, I] = {
-    // The old implementation used to silently ignore other expressions
-    // like InvalidExpression. Not sure if this is the intended behavior.
     val (heapId, newHeap, rep) = obj match {
       case obj: Assignable =>
         _1._2.getFieldIdentifier(obj, field, typ, obj.pp)
       case obj: HeapIdSetDomain[I] =>
         HeapIdSetFunctionalLifting.applyGetFieldId(obj, _1,
           _1._2.getFieldIdentifier(_, field, typ, obj.pp))
+      // Ignore other expressions like InvalidExpression
+      case _ => return bottom()
     }
 
     val result = new HeapAndAnotherDomain[N, H, I](_1._1.merge(rep), newHeap)
