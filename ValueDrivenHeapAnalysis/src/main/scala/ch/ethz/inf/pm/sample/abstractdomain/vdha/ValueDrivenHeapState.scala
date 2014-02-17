@@ -6,30 +6,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.SystemParameters
 import scala.collection.mutable
 
-/** Default implementation of `ValueDrivenHeapState`. */
-case class DefaultValueDrivenHeapState[S <: SemanticDomain[S]](
-    abstractHeap: HeapGraph[S],
-    generalValState: S,
-    expr: ExpressionSet,
-    isTop: Boolean = false,
-    override val isBottom: Boolean = false)
-  extends ValueDrivenHeapState[S, DefaultValueDrivenHeapState[S]] {
-
-  def factory(
-      abstractHeap: HeapGraph[S] = abstractHeap,
-      generalValState: S = generalValState,
-      expr: ExpressionSet = expr,
-      isTop: Boolean = isTop,
-      isBottom: Boolean = isBottom): DefaultValueDrivenHeapState[S] = {
-    DefaultValueDrivenHeapState(
-      abstractHeap,
-      generalValState,
-      expr,
-      isTop,
-      isBottom)
-  }
-}
-
 trait ValueDrivenHeapState[
     S <: SemanticDomain[S],
     T <: ValueDrivenHeapState[S, T]]
@@ -767,6 +743,27 @@ trait ValueDrivenHeapState[
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): T = ???
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): T = ???
   def backwardAssignField(oldPreState: T, obj: Expression, field: String, right: Expression): T = ???
+}
+
+object ValueDrivenHeapState {
+  /** Default implementation of `ValueDrivenHeapState`. */
+  case class Default[S <: SemanticDomain[S]](
+      abstractHeap: HeapGraph[S],
+      generalValState: S,
+      expr: ExpressionSet,
+      isTop: Boolean = false,
+      override val isBottom: Boolean = false)
+    extends ValueDrivenHeapState[S, Default[S]] {
+
+    def factory(
+        abstractHeap: HeapGraph[S] = abstractHeap,
+        generalValState: S = generalValState,
+        expr: ExpressionSet = expr,
+        isTop: Boolean = isTop,
+        isBottom: Boolean = isBottom): Default[S] = {
+      Default(abstractHeap, generalValState, expr, isTop, isBottom)
+    }
+  }
 }
 
 

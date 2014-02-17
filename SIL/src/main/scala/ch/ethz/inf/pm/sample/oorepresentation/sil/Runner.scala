@@ -13,8 +13,8 @@ import semper.sil.ast.Program
 import java.nio.file.Path
 
 object AnalysisRunner {
-  // val analysis = DefaultAnalysis[DefaultValueDrivenHeapState[ApronInterface]](DefaultEntryStateBuilder)
-  val analysis = DefaultAnalysis[DefaultPreciseValueDrivenHeapState[ApronInterface]](PreciseEntryStateBuilder)
+  // val analysis = DefaultAnalysis[ValueDrivenHeapState.Default[ApronInterface]](DefaultEntryStateBuilder)
+  val analysis = DefaultAnalysis[PreciseValueDrivenHeapState.Default[ApronInterface]](PreciseEntryStateBuilder)
 
   def run(path: Path): List[AnalysisResult[_]] = {
     val compiler = new SilCompiler
@@ -71,20 +71,20 @@ trait ValueDrivenHeapEntryStateBuilder[
 
 object DefaultEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   ApronInterface,
-  DefaultValueDrivenHeapState[ApronInterface]] {
+  ValueDrivenHeapState.Default[ApronInterface]] {
 
   def topState = {
-    DefaultValueDrivenHeapState[ApronInterface](topHeapGraph, topApronInterface, ExpressionSet())
+    ValueDrivenHeapState.Default[ApronInterface](topHeapGraph, topApronInterface, ExpressionSet())
   }
 }
 
 object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  SemanticAndGhostCartesianProductDomain[ApronInterface],
-  DefaultPreciseValueDrivenHeapState[ApronInterface]] {
+  PreciseValueDrivenHeapState.EdgeStateDomain[ApronInterface],
+  PreciseValueDrivenHeapState.Default[ApronInterface]] {
 
   def topState = {
-    val generalValState = SemanticAndGhostCartesianProductDomain(topApronInterface)
-    DefaultPreciseValueDrivenHeapState(topHeapGraph, generalValState, ExpressionSet())
+    val generalValState = PreciseValueDrivenHeapState.makeTopEdgeState(topApronInterface)
+    PreciseValueDrivenHeapState.Default(topHeapGraph, generalValState, ExpressionSet())
   }
 }
 

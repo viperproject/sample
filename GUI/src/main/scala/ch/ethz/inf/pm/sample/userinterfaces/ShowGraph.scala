@@ -191,7 +191,7 @@ object ShowGraph {
     }
   }
 
-  private class ShowValueDrivenHeapState[N <: SemanticDomain[N]](state: DefaultValueDrivenHeapState[N]) {
+  private class ShowValueDrivenHeapState[N <: SemanticDomain[N]](state: ValueDrivenHeapState.Default[N]) {
     val (graph, idToVertix, idToEdges): (mxGraph, Map[Vertex, Object], Map[Edge[N], Object]) = valueDrivenHeapStateToGraph[N](state)
     val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
     graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
@@ -413,7 +413,7 @@ object ShowGraph {
     (graph, idToVertix)
   }
 
-  private def valueDrivenHeapStateToGraph[N <: SemanticDomain[N]](state: DefaultValueDrivenHeapState[N]) = {
+  private def valueDrivenHeapStateToGraph[N <: SemanticDomain[N]](state: ValueDrivenHeapState.Default[N]) = {
     val graph: mxGraph = defaultGraphSettings()
     var yposition: Double = ygap
     var idToVertix = Map.empty[Vertex, Object]
@@ -475,7 +475,7 @@ object ShowGraph {
   private def stateToGraph[S <: State[S], N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: NonRelationalHeapIdentifier[I]](state: S) = state match {
     case s: AbstractState[N, H, I] => genericStateToGraph(s)
     case s: PartitionedState[_] => partitionedStateToJComponent(s)
-    case s: DefaultValueDrivenHeapState[N] => new ShowValueDrivenHeapState[N](s)
+    case s: ValueDrivenHeapState.Default[N] => new ShowValueDrivenHeapState[N](s)
     case _ => new Show(stateToString(state), false, -1, -1)
   }
 

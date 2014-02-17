@@ -706,6 +706,13 @@ trait HalfSemanticCartesianProductDomain[
     copy(_1.merge(f))
 }
 
+object HalfSemanticCartesianProductDomain {
+  case class Default[S <: SemanticDomain[S], O <: Lattice[O]](_1: S, _2: O)
+    extends HalfSemanticCartesianProductDomain[S, O, Default[S, O]] {
+    def factory(a: S, b: O): Default[S, O] = Default(a, b)
+  }
+}
+
 /**
  * Reduced Cartesian product supporting the operations of the semantic domain.
  * After each semantic operation the reduction is applied.

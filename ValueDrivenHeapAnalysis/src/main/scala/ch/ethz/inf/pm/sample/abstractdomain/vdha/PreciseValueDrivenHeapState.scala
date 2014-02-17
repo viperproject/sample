@@ -3,24 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.DefaultSetDomain
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-
-/** Default implementation of the precise value-driven heap state. */
-case class DefaultPreciseValueDrivenHeapState[S <: SemanticDomain[S]](
-      abstractHeap: HeapGraph[SemanticAndGhostCartesianProductDomain[S]],
-      generalValState: SemanticAndGhostCartesianProductDomain[S],
-      expr: ExpressionSet,
-      isTop: Boolean = false,
-      override val isBottom: Boolean = false)
-  extends PreciseValueDrivenHeapState[S, DefaultPreciseValueDrivenHeapState[S]] {
-
-  override def factory(
-      abstractHeap: HeapGraph[W],
-      generalValState: W,
-      expr: ExpressionSet,
-      isTop: Boolean,
-      isBottom: Boolean) =
-    DefaultPreciseValueDrivenHeapState[S](abstractHeap, generalValState, expr, isTop, isBottom)
-}
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PreciseValueDrivenHeapState.EdgeStateDomain
 
 /** Combines each value state with a ghost state to be more precise
   * in the presence of ambiguous out-going edges.
@@ -31,11 +14,7 @@ case class DefaultPreciseValueDrivenHeapState[S <: SemanticDomain[S]](
 trait PreciseValueDrivenHeapState[
     S <: SemanticDomain[S],
     T <: PreciseValueDrivenHeapState[S, T]]
-  extends ValueDrivenHeapState[
-    SemanticAndGhostCartesianProductDomain[S], T] { this: T =>
-
-  // Alias for the type of states on edges
-  protected type W = SemanticAndGhostCartesianProductDomain[S]
+  extends ValueDrivenHeapState[EdgeStateDomain[S], T] { this: T =>
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) =
     super.createVariableForArgument(variable, typ).addGhostState()
@@ -55,7 +34,7 @@ trait PreciseValueDrivenHeapState[
     require(abstractHeap.isNormalized)
 
     val groupedEdges = abstractHeap.edges.groupBy(edge => (edge.source, edge.field))
-    val newEdges: Set[Edge[W]] = groupedEdges.map {
+    val newEdges: Set[Edge[EdgeStateDomain[S]]] = groupedEdges.map {
       case ((source, field), outgoingEdges) =>
         if (!source.isInstanceOf[SummaryHeapVertex] && outgoingEdges.size > 1) {
           // 'source' is a non-summary node that has more than one out-going edge
@@ -90,12 +69,37 @@ trait PreciseValueDrivenHeapState[
 }
 
 object PreciseValueDrivenHeapState {
-  // TODO: Should make this variable thread-local
-  private var lastGhostVariableId: Int = -1
+  type EdgeStateDomain[S <: SemanticDomain[S]] =
+    HalfSemanticCartesianProductDomain.Default[S, GhostStateDomain]
+
+  def makeTopEdgeState[S <: SemanticDomain[S]](
+      semanticDomain: S): EdgeStateDomain[S] =
+    HalfSemanticCartesianProductDomain.Default(semanticDomain, GhostStateDomain())
+
+  /** Default implementation of the precise value-driven heap state. */
+  case class Default[S <: SemanticDomain[S]](
+      abstractHeap: HeapGraph[EdgeStateDomain[S]],
+      generalValState: EdgeStateDomain[S],
+      expr: ExpressionSet,
+      isTop: Boolean = false,
+      override val isBottom: Boolean = false)
+    extends PreciseValueDrivenHeapState[S, Default[S]] {
+
+    override def factory(
+        abstractHeap: HeapGraph[EdgeStateDomain[S]],
+        generalValState: EdgeStateDomain[S],
+        expr: ExpressionSet,
+        isTop: Boolean,
+        isBottom: Boolean) =
+      Default[S](abstractHeap, generalValState, expr, isTop, isBottom)
+  }
+
+  private val nextGhostVariableId = new ThreadLocal[Int]
 
   def makeFreshGhostVariableId(): Int = {
-    lastGhostVariableId += 1
-    lastGhostVariableId
+    val id = nextGhostVariableId.get
+    nextGhostVariableId.set(id + 1)
+    id
   }
 }
 
@@ -130,17 +134,4 @@ case class GhostStateDomain(
     val newMap = map.filterNot(_._2.isTop)
     GhostStateDomain(newMap, newIsTop, newIsBottom)
   }
-}
-
-/** Combines a `SemanticDomain` with the `GhostStateDomain`. */
-case class SemanticAndGhostCartesianProductDomain[S <: SemanticDomain[S]](
-    _1: S,
-    _2: GhostStateDomain = GhostStateDomain())
-  extends HalfSemanticCartesianProductDomain[
-    S,
-    GhostStateDomain,
-    SemanticAndGhostCartesianProductDomain[S]] {
-
-  def factory(_1: S, _2: GhostStateDomain) =
-    SemanticAndGhostCartesianProductDomain(_1, _2)
 }

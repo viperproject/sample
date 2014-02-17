@@ -27,12 +27,12 @@ class ValueDrivenHeapAnalysis extends Analysis {
 
   def reset() {}
 
-  def getInitialState(): DefaultValueDrivenHeapState[ApronInterface] = {
+  def getInitialState(): ValueDrivenHeapState.Default[ApronInterface] = {
     val manager = new Polka(false)
     // val manager = new Octagon()
     // val manager = new Box()
     val generalValState = new ApronInterface(None, manager, env =  Set.empty[Identifier]).top()
-    DefaultValueDrivenHeapState(new HeapGraph[ApronInterface](), generalValState, ExpressionSet())
+    ValueDrivenHeapState.Default(new HeapGraph[ApronInterface](), generalValState, ExpressionSet())
   }
 
   def getProperties(): List[Property] = List(

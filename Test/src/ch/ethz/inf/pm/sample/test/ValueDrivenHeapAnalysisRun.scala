@@ -28,9 +28,9 @@ object ValueDrivenHeapAnalysisRun {
     SystemParameters.compiler.compile(file :: Nil);
 
     val analyzer = new ValueDrivenHeapAnalysis()
-    val analysisResult = analyzer.analyze[DefaultValueDrivenHeapState[ApronInterface]](methods, analyzer.getInitialState(), new OutputCollector)
+    val analysisResult = analyzer.analyze[ValueDrivenHeapState.Default[ApronInterface]](methods, analyzer.getInitialState(), new OutputCollector)
 
-    ShowGraph.Show[DefaultValueDrivenHeapState[ApronInterface]](analysisResult)
+    ShowGraph.Show[ValueDrivenHeapState.Default[ApronInterface]](analysisResult)
 
   }
 }
