@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.td.analysis.MethodSummaries
 import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchCompiler}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import RichExpressionImplicits._
 
 
 /**
@@ -55,7 +56,7 @@ class Libraries() extends NativeMethodSemantics {
             val variableName = operator.replace("set ","")
             val variableType = newVal.getType()
             val variableExpr = ExpressionSet(VariableIdentifier(CFGGenerator.globalReferenceIdent(variableName), variableType, pp))
-            Some(RichNativeSemantics.Assign[S](RichNativeSemantics.toRichExpression(variableExpr),RichNativeSemantics.toRichExpression(newVal))(state,pp))
+            Some(RichNativeSemantics.Assign[S](variableExpr, newVal)(state,pp))
           } else {
             Reporter.reportImprecision("Could not find method "+operator,pp)
             None

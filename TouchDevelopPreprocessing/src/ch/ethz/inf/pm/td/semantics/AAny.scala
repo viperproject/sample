@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  * Date: 11/8/12
  * Time: 5:36 PM
  */
-abstract class AAny extends NativeMethodSemantics {
+abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
 
   /**
    * Backward semantics are empty for all native function for now

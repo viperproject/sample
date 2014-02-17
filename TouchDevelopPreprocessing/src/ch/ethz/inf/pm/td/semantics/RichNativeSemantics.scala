@@ -26,7 +26,7 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
  *
  */
 
-object RichNativeSemantics {
+object RichNativeSemantics extends RichExpressionImplicits {
 
   /*-- Checking / Reporting errors --*/
 
@@ -627,40 +627,6 @@ object RichNativeSemantics {
     }
 
   }
-
-
-  /*-- Constants --*/
-
-  def String(a:String)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant(a,TString.typ,pp))
-  def True(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("true",TBoolean.typ,pp))
-  def False(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("false",TBoolean.typ,pp))
-  def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
-  def PositiveInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("posinfty",TNumber.typ,pp))
-  def NegativeInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("neginfty",TNumber.typ,pp))
-  def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(InvalidExpression(typ,pp))
-  def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(ValidExpression(typ,pp))
-  def Singleton(typ:Type)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(VariableIdentifier(typ.name.toLowerCase,typ,pp))
-
-  /*-- Conversion --*/
-
-  implicit def toRichExpression(value:ExpressionSet) : RichExpression =
-    RichExpression(value)
-
-  implicit def toRichExpression(value:Inclusive) : RichExpression =
-    toRichExpression(value.head) ndTo toRichExpression(value.last)
-
-  implicit def toRichExpression(value: Int): RichExpression =
-    RichExpression(ExpressionSet(new Constant(value.toString, TNumber.typ, null)))
-
-  implicit def toRichExpression(value: Double): RichExpression =
-    RichExpression(ExpressionSet(new Constant(value.toString, TNumber.typ, null)))
-
-  implicit def toRichExpression(value: Expression): RichExpression =
-    RichExpression(ExpressionSet(value))
-
-  implicit def toExpressionSet(value:RichExpression) : ExpressionSet =
-    value.thisExpr
-
 }
 
 class TouchField(
@@ -692,59 +658,3 @@ case object NewInitializer extends Initializer
 case object TopInitializer extends Initializer
 case object TopWithInvalidInitializer extends Initializer
 case class ExpressionInitializer(e: RichExpression) extends Initializer
-
-case class RichExpression(thisExpr : ExpressionSet) {
-
-  override def toString:String = thisExpr.toString
-
-  def <= (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.<=, TBoolean.typ))
-
-  def >= (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.>=,TBoolean.typ))
-
-  def < (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.<, TBoolean.typ))
-
-  def > (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.>, TBoolean.typ))
-
-  def equal (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.==, TBoolean.typ))
-
-  def unequal (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.!=, TBoolean.typ))
-
-  def + (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.+, TNumber.typ))
-
-  def * (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.*, TNumber.typ))
-
-  def - (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator.-, TNumber.typ))
-
-  def / (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBinaryExpression(thisExpr, thatExpr, ArithmeticOperator./, TNumber.typ))
-
-  def or (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createNondeterministicBinaryExpression(thisExpr,thatExpr,NondeterministicOperator.or,thisExpr.getType()))
-
-  def ndTo (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createNondeterministicBinaryExpression(thisExpr,thatExpr,NondeterministicOperator.to,TNumber.typ))
-
-  def && (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBooleanBinaryExpression(thisExpr,thatExpr,BooleanOperator.&&,TBoolean.typ))
-
-  def || (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createBooleanBinaryExpression(thisExpr,thatExpr,BooleanOperator.||,TBoolean.typ))
-
-  def concat (thatExpr : RichExpression) : RichExpression =
-    RichExpression(ExpressionFactory.createAbstractOperator(thisExpr,List(thatExpr),Nil,AbstractOperatorIdentifiers.stringConcatenation,TString.typ))
-
-  def not () : RichExpression =
-    RichExpression(ExpressionFactory.createNegatedBooleanExpression(thisExpr))
-
-  def contains (key: RichExpression, value: RichExpression, pp: ProgramPoint) : RichExpression =
-    RichExpression(ExpressionFactory.createCollectionContains(thisExpr, key, value, TBoolean.typ, pp))
-}
