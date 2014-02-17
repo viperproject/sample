@@ -196,8 +196,8 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
   extends FunctionalDomain[Identifier, V, T] { this: T =>
 
   def merge(r: Replacement): T = {
-    if (r.isEmpty()) return this.asInstanceOf[T]
-    var result: T = this.asInstanceOf[T]
+    if (r.isEmpty()) return this
+    var result: T = this
     val removedVariables = r.keySet().flatten
 
     // We remove the variables from the result state
