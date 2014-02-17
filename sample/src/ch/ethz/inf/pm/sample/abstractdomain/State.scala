@@ -802,7 +802,10 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
     })
   }
 
-  def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression): S
+  /** Assigns an expression to a field.
+    * Implementations can already assume that this state is non-bottom.
+    */
+  def assignField(obj: Expression, field: String, right: Expression): S
 
   def backwardAssignVariable(oldPreState: S, varSet: ExpressionSet, rhsSet: ExpressionSet): S = {
     unlessBottom(varSet, {
@@ -820,9 +823,10 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
     })
   }
 
-  def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression): S
 
-  override def backwardAssignField(oldPreState: S, objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
+  def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression): S
+
+  def backwardAssignField(oldPreState: S, objSet: ExpressionSet, field: String, rightSet: ExpressionSet): S = {
     unlessBottom(objSet, {
       unlessBottom(rightSet, {
         val result = if (rightSet.isTop) {
@@ -839,10 +843,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
     })
   }
 
-  /** Assigns an expression to a field.
-    * Implementations can already assume that this state is non-bottom.
-    */
-  def assignField(obj: Expression, field: String, right: Expression): S
+  def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression): S
 
   def assume(condSet: ExpressionSet): S = {
     // Return this, not bottom, when set of conditions is empty
