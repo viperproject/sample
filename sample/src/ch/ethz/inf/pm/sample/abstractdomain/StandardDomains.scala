@@ -707,6 +707,7 @@ trait HalfSemanticCartesianProductDomain[
 }
 
 object HalfSemanticCartesianProductDomain {
+  /** Default implementation of `HalfSemanticCartesianProductDomain`. */
   case class Default[S <: SemanticDomain[S], O <: Lattice[O]](_1: S, _2: O)
     extends HalfSemanticCartesianProductDomain[S, O, Default[S, O]] {
     def factory(a: S, b: O): Default[S, O] = Default(a, b)

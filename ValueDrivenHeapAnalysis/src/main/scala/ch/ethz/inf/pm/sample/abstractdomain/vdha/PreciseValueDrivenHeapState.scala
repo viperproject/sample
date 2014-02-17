@@ -69,6 +69,7 @@ trait PreciseValueDrivenHeapState[
 }
 
 object PreciseValueDrivenHeapState {
+  /** Type of edge states in the precise value-driven heap analysis. */
   type EdgeStateDomain[S <: SemanticDomain[S]] =
     HalfSemanticCartesianProductDomain.Default[S, GhostStateDomain]
 
