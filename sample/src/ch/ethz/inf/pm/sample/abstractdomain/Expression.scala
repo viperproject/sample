@@ -17,6 +17,10 @@ object ArithmeticOperator extends Enumeration {
   val > = Value(">")
   val < = Value("<")
 
+  def isComparison(op: Value): Boolean = Set(>=, <=, ==, !=, >, <) contains op
+
+  def isArithmetic(op: Value): Boolean = !isComparison(op)
+
   /**
    * Negates the given given arithmetic operator if possible.
    * @param op the operator to negate
