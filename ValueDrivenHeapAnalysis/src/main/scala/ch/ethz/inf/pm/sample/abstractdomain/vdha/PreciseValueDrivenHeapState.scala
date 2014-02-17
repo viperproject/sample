@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.DefaultSetDomain
+import ch.ethz.inf.pm.sample.abstractdomain.SetDomain.Default
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PreciseValueDrivenHeapState.EdgeStateDomain
 
@@ -57,7 +57,7 @@ trait PreciseValueDrivenHeapState[
             val freshId = PreciseValueDrivenHeapState.makeFreshGhostVariableId()
             outgoingEdges.zipWithIndex.map {
               case (edge, index) =>
-                val newIdState = edge.state._2.add(freshId, DefaultSetDomain[Int](Set(index)))
+                val newIdState = edge.state._2.add(freshId, SetDomain.Default[Int](Set(index)))
                 edge.copy(state = edge.state.copy(_2 = newIdState))
             }
           } else outgoingEdges
@@ -105,23 +105,23 @@ object PreciseValueDrivenHeapState {
 }
 
 case class GhostStateDomain(
-    map: Map[Int, DefaultSetDomain[Int]] = Map.empty[Int, DefaultSetDomain[Int]],
+    map: Map[Int, SetDomain.Default[Int]] = Map.empty[Int, SetDomain.Default[Int]],
     isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends FunctionalDomain[Int, DefaultSetDomain[Int], GhostStateDomain] {
+  extends FunctionalDomain[Int, SetDomain.Default[Int], GhostStateDomain] {
 
-  def get(key: Int): DefaultSetDomain[Int] =
+  def get(key: Int): SetDomain.Default[Int] =
     map.getOrElse(key, defaultValue)
 
-  def defaultValue: DefaultSetDomain[Int] = {
+  def defaultValue: SetDomain.Default[Int] = {
     if (isBottom)
-      DefaultSetDomain[Int](isBottom = true)
+      SetDomain.Default[Int](isBottom = true)
     else
-      DefaultSetDomain[Int](isTop = true)
+      SetDomain.Default[Int](isTop = true)
   }
 
   def functionalFactory(
-      map: Map[Int, DefaultSetDomain[Int]],
+      map: Map[Int, SetDomain.Default[Int]],
       isBottom: Boolean,
       isTop: Boolean) = {
     var newIsBottom = isBottom

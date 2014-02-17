@@ -163,28 +163,24 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 }
 
-/** Default implementation of `FunctionalDomain`.
-  *
-  * Use it if you don't want to add any additional methods or state
-  * to your `FunctionalDomain` objects.
-  *
-  * @param defaultValue value returned by `get` for unknown keys (usually
-  *                     the top or bottom element of the value domain)
-  */
-case class DefaultFunctionalDomain[K, V <: Lattice[V]](
-    map: Map[K, V] = Map.empty[K, V],
-    isTop: Boolean = false,
-    isBottom: Boolean = false,
-    defaultValue: V)
-  extends FunctionalDomain[K, V, DefaultFunctionalDomain[K, V]] {
+object FunctionalDomain {
+  /** Simple implementation of `FunctionalDomain`. Cannot be extended.
+    *
+    * @param defaultValue value returned by `get` for unknown keys (usually
+    *                     the top or bottom element of the value domain)
+    */
+  final case class Default[K, V <: Lattice[V]](
+      map: Map[K, V] = Map.empty[K, V],
+      isTop: Boolean = false,
+      isBottom: Boolean = false,
+      defaultValue: V)
+    extends FunctionalDomain[K, V, Default[K, V]] {
 
-  def get(key: K): V = map.getOrElse(key, defaultValue)
+    def get(key: K): V = map.getOrElse(key, defaultValue)
 
-  def functionalFactory(
-      value: Map[K, V],
-      isBottom: Boolean,
-      isTop: Boolean) =
-    DefaultFunctionalDomain(value, isTop, isBottom, defaultValue)
+    def functionalFactory(value: Map[K, V], isBottom: Boolean, isTop: Boolean) =
+      Default(value, isTop, isBottom, defaultValue)
+  }
 }
 
 /**
@@ -366,22 +362,17 @@ trait SetDomain[V, T <: SetDomain[V, T]] extends Lattice[T] { this: T =>
   }
 }
 
-/** Default implementation of `SetDomain`.
-  *
-  * Use it if you don't want to add any additional methods or state
-  * to your `SetDomain` objects.
-  */
-case class DefaultSetDomain[V](
-    value: Set[V] = Set.empty[V],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
-  extends SetDomain[V, DefaultSetDomain[V]] {
-
-  def setFactory(
+object SetDomain {
+  /** Simple implementation of `SetDomain`. Cannot be extended. */
+  final case class Default[V](
       value: Set[V] = Set.empty[V],
       isTop: Boolean = false,
-      isBottom: Boolean = false) =
-    DefaultSetDomain(value, isTop, isBottom)
+      isBottom: Boolean = false)
+    extends SetDomain[V, Default[V]] {
+
+    def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
+      Default(value, isTop, isBottom)
+  }
 }
 
 /**
@@ -434,23 +425,18 @@ trait KSetDomain[V, T <: KSetDomain[V, T]] extends SetDomain[V, T] {
   }
 }
 
-/** Default implementation of `KSetDomain`.
-  *
-  * Use it if you don't want to add any additional methods or state
-  * to your `KSetDomain` objects.
-  */
-case class DefaultKSetDomain[V](
-    K: Int,
-    value: Set[V] = Set.empty[V],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
-  extends KSetDomain[V, DefaultKSetDomain[V]] {
-
-  def setFactory(
+object KSetDomain {
+  /** Simple implementation of `KSetDomain`. Cannot be extended. */
+  case class Default[V](
+      K: Int,
       value: Set[V] = Set.empty[V],
       isTop: Boolean = false,
-      isBottom: Boolean = false) =
-    DefaultKSetDomain(K, value, isTop, isBottom)
+      isBottom: Boolean = false)
+    extends KSetDomain[V, Default[V]] {
+
+    def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
+      Default(K, value, isTop, isBottom)
+  }
 }
 
 /**
@@ -488,6 +474,19 @@ trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] { this: 
     if (this.isBottom) return true
     if (other.isTop) return true
     other.value.subsetOf(this.value)
+  }
+}
+
+object InverseSetDomain {
+  /** Simple implementation of `InverseSetDomain`. Cannot be extended. */
+  final case class Default[V](
+      value: Set[V] = Set.empty[V],
+      isTop: Boolean = false,
+      isBottom: Boolean = false)
+    extends InverseSetDomain[V, Default[V]] {
+
+    def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
+      Default(value, isTop, isBottom)
   }
 }
 
@@ -547,24 +546,6 @@ trait CartesianProductDomain[
     "Cartesian,Left:\n" + ToStringUtilities.indent(_1.toString) +
       "\nCartesian,other:\n" + ToStringUtilities.indent(_2.toString)
 
-}
-
-/** Default implementation of `InverseSetDomain`.
-  *
-  * Use it if you don't want to add any additional methods or state
-  * to your `InverseSetDomain` objects.
-  */
-case class DefaultInverseSetDomain[V](
-    value: Set[V] = Set.empty[V],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
-  extends InverseSetDomain[V, DefaultInverseSetDomain[V]] {
-
-  def setFactory(
-      value: Set[V] = Set.empty[V],
-      isTop: Boolean = false,
-      isBottom: Boolean = false) =
-    DefaultInverseSetDomain(value, isTop, isBottom)
 }
 
 /**
@@ -707,8 +688,10 @@ trait HalfSemanticCartesianProductDomain[
 }
 
 object HalfSemanticCartesianProductDomain {
-  /** Default implementation of `HalfSemanticCartesianProductDomain`. */
-  case class Default[S <: SemanticDomain[S], O <: Lattice[O]](_1: S, _2: O)
+  /** Simple implementation of `HalfSemanticCartesianProductDomain`.
+    * Cannot be extended.
+    */
+  final case class Default[S <: SemanticDomain[S], O <: Lattice[O]](_1: S, _2: O)
     extends HalfSemanticCartesianProductDomain[S, O, Default[S, O]] {
     def factory(a: S, b: O): Default[S, O] = Default(a, b)
   }
