@@ -94,7 +94,7 @@ class HTMLExporter extends ErrorExporter {
               case None => pretty
               case Some(pos) =>
                 "<span id='" + pos.toString + "'>" +
-                  (for (SampleError(id, message, pp) <- Reporter.seenErrors) yield {
+                  (for (SampleError(errorTypeId, message, pp) <- Reporter.seenErrors) yield {
                     pp match {
                       case TouchProgramPoint(xScript, xPos) =>
                         if (xScript.equals(id) && xPos.equals(pos))
