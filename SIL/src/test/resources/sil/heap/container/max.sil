@@ -1,0 +1,28 @@
+var val: Int
+
+method max(a: Ref, b: Ref) returns (res: Ref) {
+    if (a.val > b.val) {
+        res := a
+    } else {
+        res := b
+    }
+}
+
+method testMax() {
+    var a: Ref
+    var b: Ref
+    var res: Ref
+    a := new()
+    a.val := 2
+    b := new()
+    b.val := 5
+
+    res := max(a, b)
+    assert(res == b)
+
+    res := max(b, a)
+    assert(res == b)
+
+    res := max(a, a)
+    assert(res == a)
+}

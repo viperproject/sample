@@ -1,0 +1,6 @@
+var val: Int
+var next: Ref
+
+method peek(list: Ref) returns (res: Int) {
+    res := list.val
+}

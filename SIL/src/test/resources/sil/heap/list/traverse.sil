@@ -1,0 +1,11 @@
+var val: Int
+var next: Ref
+
+method traverse(list: Ref)
+{
+    var cur: Ref
+    cur := list
+    while (cur != null) {
+        cur := cur.next
+    }
+}

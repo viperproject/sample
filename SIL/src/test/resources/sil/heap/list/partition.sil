@@ -1,0 +1,25 @@
+var val: Int
+var next: Ref
+
+method partition(this: Ref, key: Int)
+    returns (smaller: Ref, greaterOrEqual: Ref)
+{
+    var cur: Ref
+    var next: Ref
+    smaller := null
+    greaterOrEqual := null
+    cur := this
+    while (cur != null) {
+        next := cur.next
+        if (cur.val < key) {
+            cur.next := smaller
+            smaller := cur
+        } else {
+            cur.next := greaterOrEqual
+            greaterOrEqual := cur
+        }
+
+        cur := next
+        next := null
+    }
+}

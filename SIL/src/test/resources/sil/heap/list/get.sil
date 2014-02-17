@@ -1,0 +1,14 @@
+var val: Int
+var next: Ref
+
+method get(this: Ref, n: Int) returns (res: Int) {
+    var cur: Ref
+    var i: Int
+    i := n
+    cur := this
+    while (i > 0) {
+        cur := cur.next
+        i := i - 1
+    }
+    res := cur.val
+}

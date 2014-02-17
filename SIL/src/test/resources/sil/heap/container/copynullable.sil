@@ -1,0 +1,24 @@
+var val: Int
+
+method copyNullable(this: Ref) returns (other: Ref) {
+    if (this == null) {
+        other := null
+    } else {
+        other := new()
+        other.val := this.val
+    }
+}
+
+method testCopyNullable() {
+    var c: Ref
+    var res: Ref
+    c := new()
+    c.val := 42
+
+    res := copyNullable(c)
+    assert (res.val == 42)
+    assert (c.val == 42)
+
+    res := copyNullable(null)
+    assert (res == null)
+}

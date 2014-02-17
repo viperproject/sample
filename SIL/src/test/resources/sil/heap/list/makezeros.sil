@@ -1,0 +1,18 @@
+var val: Int
+var next: Ref
+
+method makeZeros(n: Int) returns (first: Ref) requires (n >= 0) {
+    var p: Ref
+    var i: Int
+    first := null
+    p := null
+    i := n
+    while (i >= 0) {
+        p := new()
+        p.val := 0
+        p.next := first
+        first := p
+        p := null
+        i := i - 1
+    }
+}

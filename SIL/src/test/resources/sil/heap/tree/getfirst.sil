@@ -1,0 +1,13 @@
+var val: Int
+var left: Ref
+var right: Ref
+
+method getFirst(tree: Ref) returns (first: Int) {
+    var cur: Ref
+    cur := tree
+
+    while (cur != null) {
+        first := cur.val
+        cur := cur.left
+    }
+}

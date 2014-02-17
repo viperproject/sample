@@ -1,0 +1,23 @@
+var val: Int
+
+method inc(this: Ref) returns (other: Ref) {
+  other := new()
+  other.val := this.val + 1
+}
+
+method incWithOldGhostVars(this: Ref) returns (other: Ref) {
+  var oldThisVal: Int
+  other := new()
+  oldThisVal := this.val
+  other.val := this.val + 1
+}
+
+method testInc() {
+    var c: Ref
+    var res: Ref
+    c := new()
+    c.val := 5
+    res := inc(c)
+    assert(c.val == 5)
+    assert(res.val == 6)
+}

@@ -1,0 +1,15 @@
+var val: Int
+var next: Ref
+
+method make2(i: Int, j: Int)
+    returns (res: Ref)
+{
+    var second: Ref
+    second := new()
+    second.val := j
+    second.next := null
+
+    res := new()
+    res.val := i
+    res.next := second
+}

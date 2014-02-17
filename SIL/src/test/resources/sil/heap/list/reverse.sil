@@ -1,0 +1,19 @@
+var val: Int
+var next: Ref
+
+method reverse(list: Ref)
+    returns (newList: Ref)
+    requires (list != null)
+{
+    var oldList: Ref
+    var tmp: Ref
+    oldList := list
+    newList := null
+    tmp := null
+    while (oldList != null) {
+        tmp := oldList
+        oldList := oldList.next
+        tmp.next := newList
+        newList := tmp
+    }
+}

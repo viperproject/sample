@@ -1,0 +1,23 @@
+var val: Int
+
+method copy(this: Ref) returns (other: Ref) {
+    other := new()
+    other.val := this.val
+}
+
+method copyWithOldGhostVars(this: Ref) returns (other: Ref) {
+    var oldThisVal: Int
+    other := new()
+    oldThisVal := this.val
+    other.val := this.val
+}
+
+method testCopy() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+    other := copy(this)
+    assert(this.val == 42)
+    assert(other.val == 42)
+}

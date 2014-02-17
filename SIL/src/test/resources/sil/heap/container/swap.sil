@@ -1,0 +1,38 @@
+var val: Int
+
+method swap(this: Ref, other: Ref){
+    var tmp: Int
+    tmp := this.val
+    this.val := other.val
+    other.val := tmp
+}
+
+method swapWithOldGhostVars(this: Ref, other: Ref) {
+    var tmp: Int
+    var thisValOld: Int
+    var otherValOld: Int
+
+    thisValOld := this.val
+    otherValOld := other.val
+
+    tmp := this.val
+    this.val := other.val
+    other.val := tmp
+}
+
+method testSwap() {
+    var a: Ref
+    var b: Ref
+
+    a := new()
+    a.val := 4
+    b := new()
+    b.val := 6
+
+    swap(a, b)
+    assert(a.val == 6)
+    assert(b.val == 4)
+
+    swap(a, a)
+    assert(a.val == 6)
+}
