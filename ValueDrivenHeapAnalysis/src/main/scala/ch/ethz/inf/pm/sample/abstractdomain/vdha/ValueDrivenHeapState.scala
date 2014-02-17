@@ -427,12 +427,12 @@ trait ValueDrivenHeapState[
     }
   }
 
-  def getFieldValue(obj: ExpressionSet, field: String, typ: Type): T = {
-    assert(obj.getSetOfExpressions.size == 1, "We only support single field access.")
-    assert(obj.getSetOfExpressions.head.isInstanceOf[AccessPathIdentifier], "The field access should be accessed via access path.")
+  def getFieldValue(obj: Expression, field: String, typ: Type): T = {
+    require(obj.isInstanceOf[AccessPathIdentifier],
+      "field access must occur via an access path identifier")
     // TODO: May be I should check whether this exist and is feasible already here.
     if (ValueDrivenHeapProperty.materialize) {
-      val apObj = obj.getSetOfExpressions.head.asInstanceOf[AccessPathIdentifier]
+      val apObj = obj.asInstanceOf[AccessPathIdentifier]
       val tempResult = materializePath(apObj.objPath)
       tempResult.copy(expr = new ExpressionSet(typ).add(obj))
     } else

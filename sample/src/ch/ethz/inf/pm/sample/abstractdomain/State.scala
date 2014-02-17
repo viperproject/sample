@@ -807,6 +807,17 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
     */
   def assignField(obj: Expression, field: String, right: Expression): S
 
+  def getFieldValue(objSet: ExpressionSet, field: String, typ: Type): S = {
+    unlessBottom(objSet, {
+      Lattice.bigLub(objSet.getSetOfExpressions.map(getFieldValue(_, field, typ)))
+    })
+  }
+
+  /** Returns a new state whose `ExpressionSet` holds the value of the given field.
+    * Implementations can already assume that this state is non-bottom.
+    */
+  def getFieldValue(obj: Expression, field: String, typ: Type): S
+
   def backwardAssignVariable(oldPreState: S, varSet: ExpressionSet, rhsSet: ExpressionSet): S = {
     unlessBottom(varSet, {
       unlessBottom(rhsSet, {

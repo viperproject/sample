@@ -407,24 +407,21 @@ case class AbstractState[
     variable.getType
   }
 
-  def getFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
-    if (this.isBottom) return this
-    var result = this.bottom()
-    for (expr <- obj.getSetOfExpressions) {
-      if (expr.isInstanceOf[Assignable] || expr.isInstanceOf[HeapIdSetDomain[I]]) {
-        val (heapid, newHeap, rep) =
-          if (expr.isInstanceOf[Assignable])
-            this._1._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, expr.pp)
-          else HeapIdSetFunctionalLifting.applyGetFieldId(expr.asInstanceOf[HeapIdSetDomain[I]], this._1,
-            this._1._2.getFieldIdentifier(_, field, typ, expr.pp))
-
-        val result2 = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
-        val accessed = if (heapid.isTop) result2.top() else HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.access(_))
-        val state = new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
-        result = result.lub(state)
-      }
+  def getFieldValue(obj: Expression, field: String, typ: Type): AbstractState[N, H, I] = {
+    // The old implementation used to silently ignore other expressions
+    // like InvalidExpression. Not sure if this is the intended behavior.
+    val (heapId, newHeap, rep) = obj match {
+      case obj: Assignable =>
+        _1._2.getFieldIdentifier(obj, field, typ, obj.pp)
+      case obj: HeapIdSetDomain[I] =>
+        HeapIdSetFunctionalLifting.applyGetFieldId(obj, _1,
+          _1._2.getFieldIdentifier(_, field, typ, obj.pp))
     }
-    result
+
+    val result = new HeapAndAnotherDomain[N, H, I](_1._1.merge(rep), newHeap)
+    val accessed = if (heapId.isTop) result.top()
+      else HeapIdSetFunctionalLifting.applyToSetHeapId(result, heapId, result.access)
+    new AbstractState(accessed, new ExpressionSet(typ).add(heapId))
   }
 
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): AbstractState[N, H, I] = {
