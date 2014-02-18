@@ -36,7 +36,7 @@ object DummyNumericType extends Type {
 /** Tests ApronInterfaceTranslator. */
 class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with ShouldMatchers {
   val manager = new Polka(true)
-  val dom = new ApronInterface(None, manager, env = Set.empty)
+  val dom = ApronInterface.Default(None, manager, env = Set.empty)
   val typ = DummyNumericType
   val pp = DummyProgramPoint
 
@@ -51,11 +51,11 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   val const1 = makeConst(1)
   val const2 = makeConst(2)
 
-  def translate(iFace: ApronInterface): Set[String] =
+  def translate(iFace: ApronInterface.Default): Set[String] =
     ApronInterfaceTranslator.translate(iFace).map(ExpPrettyPrinter).toSet
 
   test("Simple Translation") {
-    var i: ApronInterface = dom
+    var i: ApronInterface.Default = dom
 
     i = i.createVariable(idx).assign(idx, const1)
     translate(i) should equal (Set("x = 1"))

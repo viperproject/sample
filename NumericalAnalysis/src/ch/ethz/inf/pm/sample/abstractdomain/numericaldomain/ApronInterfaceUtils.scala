@@ -127,7 +127,7 @@ object ApronInterfaceTranslator {
    * @param a the interface to the Apron state
    * @return the equivalent expressions
    */
-  def translate(a: ApronInterface): Set[Expression] =
+  def translate(a: ApronInterface[_]): Set[Expression] =
     if (a.state.isDefined) {
       val translator = this(a)
       val linearConstraints = a.state.get.toLincons(a.domain)
@@ -138,6 +138,6 @@ object ApronInterfaceTranslator {
    * Build an ApronInterfaceTranslator that can translate individual
    * Apron constraints in a given ApronInterface.
    */
-  def apply(a: ApronInterface): ApronInterfaceTranslator =
+  def apply(a: ApronInterface[_]): ApronInterfaceTranslator =
     new ApronInterfaceTranslator(a.env)
 }

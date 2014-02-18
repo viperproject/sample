@@ -5,7 +5,7 @@ import scala.collection.immutable.TreeSet
 
 object TestHeapGraph {
   def main(args: Array[String]) {
-    type S = ApronInterface
+    type S = ApronInterface.Default
 
     val head = LocalVariableVertex("head")(null)
     val p = LocalVariableVertex("p")(null)

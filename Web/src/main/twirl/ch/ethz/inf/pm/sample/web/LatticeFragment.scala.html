@@ -3,7 +3,7 @@
 @import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 
 @state match {
-    case a: ApronInterface => {
+    case a: ApronInterface.Default => {
         @if(a.isBottom) {
             @Bottom()
         } else {

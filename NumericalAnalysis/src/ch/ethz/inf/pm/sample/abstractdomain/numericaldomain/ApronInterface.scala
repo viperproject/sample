@@ -16,12 +16,34 @@ import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
 import ch.ethz.inf.pm.sample.SystemParameters
 import ApronTools._
 
-case class ApronInterface(
-    state: Option[Abstract1],
-    domain: Manager,
-    isPureBottom: Boolean = false,
-    env: Set[Identifier])
-  extends RelationalNumericalDomain[ApronInterface] {
+object ApronInterface {
+  /** Simple implementation of `ApronInterface`. Cannot be extended. */
+  final case class Default(
+      state: Option[Abstract1],
+      domain: Manager,
+      isPureBottom: Boolean = false,
+      env: Set[Identifier])
+    extends ApronInterface[Default] {
+
+    def factory(
+        state: Option[Abstract1],
+        domain: Manager,
+        isPureBottom: Boolean = false,
+        env: Set[Identifier]) =
+      Default(state, domain, isPureBottom, env)
+  }
+}
+
+trait ApronInterface[T <: ApronInterface[T]]
+  extends RelationalNumericalDomain[T] { self: T =>
+
+  def state: Option[Abstract1]
+
+  def domain: Manager
+
+  def isPureBottom: Boolean
+
+  def env: Set[Identifier]
 
   if (SystemParameters.DEBUG) {
     if (env.map(_.getName).size != env.size) {
@@ -52,19 +74,18 @@ case class ApronInterface(
   def factory(
       state: Option[Abstract1],
       domain: Manager,
-      isPureBottom:Boolean = false,
-      env: Set[Identifier]): ApronInterface =
-    ApronInterface(state, domain, isPureBottom, env)
+      isPureBottom: Boolean = false,
+      env: Set[Identifier]): T
 
-  override def factory(): ApronInterface = {
+  override def factory(): T = {
     top()
   }
 
-  override def top(): ApronInterface = {
+  override def top(): T = {
     factory(None, domain, env = Set.empty)
   }
 
-  override def bottom(): ApronInterface = {
+  override def bottom(): T = {
     factory(None, domain, isPureBottom = true, env = Set.empty)
   }
 
@@ -115,14 +136,14 @@ case class ApronInterface(
    * @param typ its type
    * @return the state after this action
    */
-  override def createVariable(variable: Identifier, typ: Type): ApronInterface = {
+  override def createVariable(variable: Identifier, typ: Type): T = {
     factory(state, domain, env = env + variable)
   }
 
   /**
    * Removes a variable from the domain (the domains environment)
    */
-  override def removeVariable(variable: Identifier): ApronInterface = {
+  override def removeVariable(variable: Identifier): T = {
     state match {
       case None => factory(state, domain, env = env - variable)
       case Some(st) =>
@@ -140,7 +161,7 @@ case class ApronInterface(
   /**
    * Removes several variables at once
    */
-  private def removeVariables(variables: Array[String]): ApronInterface = {
+  private def removeVariables(variables: Array[String]): T = {
     if (variables.isEmpty) return this
     val varSet = variables.toSet
     state match {
@@ -163,7 +184,7 @@ case class ApronInterface(
    * @param to
    * @return state after substituting variables from first list to variables in second list
    */
-  override def rename(from: List[Identifier], to: List[Identifier]): ApronInterface = {
+  override def rename(from: List[Identifier], to: List[Identifier]): T = {
     assert(from.size == to.size)
     assert(from.distinct.equals(from) && to.distinct.equals(to))
     if (from.isEmpty || this.isBottom)
@@ -194,7 +215,7 @@ case class ApronInterface(
     }
   }
 
-  override def setToTop(variable: Identifier): ApronInterface = {
+  override def setToTop(variable: Identifier): T = {
     state match {
       case None => this
       case Some(st) =>
@@ -203,7 +224,7 @@ case class ApronInterface(
         } else this
     }
   }
-  override def backwardAssign(oldPre: ApronInterface, variable: Identifier, expr: Expression): ApronInterface = {
+  override def backwardAssign(oldPre: T, variable: Identifier, expr: Expression): T = {
     val varType = expr.getType
 
     val resultState = if (varType.isBooleanType) {
@@ -247,7 +268,7 @@ case class ApronInterface(
     resultState
   }
 
-  def boundVariable(variable: Identifier, itv: apron.Interval): ApronInterface = {
+  def boundVariable(variable: Identifier, itv: apron.Interval): T = {
     val lowBound = isIntervalBoundedBelow(itv)
     val upBound = isIntervalBoundedAbove(itv)
 
@@ -278,9 +299,9 @@ case class ApronInterface(
     factory(Some(r), domain, env = env)
   }
 
-  override def backwardAccess(field: Identifier): ApronInterface = this
+  override def backwardAccess(field: Identifier): T = this
 
-  override def assign(variable: Identifier, expr: Expression): ApronInterface = {
+  override def assign(variable: Identifier, expr: Expression): T = {
 
     if (variable.getType.isBooleanType && !expr.isInstanceOf[Constant]) {
 
@@ -382,7 +403,7 @@ case class ApronInterface(
     } else this
   }
 
-  override def assume(expr: Expression): ApronInterface = {
+  override def assume(expr: Expression): T = {
 
     if (isBottom) return this
 
@@ -473,7 +494,7 @@ case class ApronInterface(
     }
   }
 
-  override def merge(r: Replacement): ApronInterface = {
+  override def merge(r: Replacement): T = {
 
     // 1st trivial case: empty replacement, no modification
     if (r.isEmpty()) return this
@@ -526,7 +547,7 @@ case class ApronInterface(
     var tempVersion = 0
     val tempVarName = "tempVarStar"
     var postProcessMap = Map.empty[Option[String], Array[String]]
-    var foldedStates = Set.empty[ApronInterface]
+    var foldedStates = Set.empty[T]
     var varsToRemove = Set.empty[String]
     var tempIdentifiers = Set.empty[Identifier]
 
@@ -601,7 +622,7 @@ case class ApronInterface(
     newInterface
   }
 
-  override def lub(other: ApronInterface): ApronInterface = {
+  override def lub(other: T): T = {
 
     if (this == other)
       return this
@@ -648,7 +669,7 @@ case class ApronInterface(
     }
   }
 
-  override def glb(other: ApronInterface): ApronInterface = {
+  override def glb(other: T): T = {
 
     val newEnv: Set[Identifier] =  getIds() intersect other.getIds()
     if (this == other)
@@ -677,7 +698,7 @@ case class ApronInterface(
     }
   }
 
-  override def widening(other: ApronInterface): ApronInterface = {
+  override def widening(other: T): T = {
 
     if (this == other)
       return this
@@ -706,7 +727,7 @@ case class ApronInterface(
 
   }
 
-  override def lessEqual(r: ApronInterface): Boolean = {
+  override def lessEqual(r: T): Boolean = {
 
     if (this == r)
       return true
@@ -753,7 +774,7 @@ case class ApronInterface(
     "Environment: "+env+"\n"+ exps.toList.sorted.mkString("\n")
   }
 
-  def expand(source:Identifier,target:Set[Identifier]):ApronInterface = {
+  def expand(source: Identifier, target: Set[Identifier]): T = {
     if (!target.isEmpty && getIds().contains(source)) {
       val newState = state match {
         case None => None
@@ -822,7 +843,7 @@ case class ApronInterface(
     }
   }
 
-  private def nondeterminismWrapper(expr: Expression, state: ApronInterface, someFunc: (Expression, ApronInterface) => ApronInterface): ApronInterface = {
+  private def nondeterminismWrapper(expr: Expression, state: T, someFunc: (Expression, T) => T): T = {
 
     // Extract all non-deterministic expressions and store them in temporary variables
     var newState = state
@@ -868,7 +889,7 @@ case class ApronInterface(
    * @param someFunc The function to be executed
    * @return The modified state, the set of temporary variables
    */
-  private def summaryNodeWrapper(expr: Expression, state: ApronInterface, someFunc: (Expression, ApronInterface) => ApronInterface): ApronInterface = {
+  private def summaryNodeWrapper(expr: Expression, state: T, someFunc: (Expression, T) => T): T = {
 
     if (!expr.getIdentifiers.filter( x => !x.representsSingleVariable() ).isEmpty) {
 
@@ -1067,7 +1088,7 @@ case class ApronInterface(
     resEnv
   }
 
-  def addAllToApronEnv: ApronInterface = {
+  def addAllToApronEnv: T = {
     val state1 = this.instantiateState()
     var apronEnv = state1.getEnvironment()
     for (e <- env) {
@@ -1090,7 +1111,7 @@ case class ApronInterface(
 }
 
 
-class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
+class ApronAnalysis extends SemanticAnalysis[ApronInterface.Default] {
 
   var domain: Manager = null
 
@@ -1112,7 +1133,7 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface] {
 
   def reset() {}
 
-  def getInitialState(): ApronInterface = ApronInterface(None, domain, env = Set.empty).top()
+  def getInitialState(): ApronInterface.Default = ApronInterface.Default(None, domain, env = Set.empty).top()
 
   def getProperties: List[Property] = List(
     new SingleStatementProperty(DivisionByZero),

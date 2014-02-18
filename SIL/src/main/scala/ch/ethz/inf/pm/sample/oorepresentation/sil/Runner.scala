@@ -14,7 +14,7 @@ import java.nio.file.Path
 
 object AnalysisRunner {
   // val analysis = DefaultAnalysis[ValueDrivenHeapState.Default[ApronInterface]](DefaultEntryStateBuilder)
-  val analysis = DefaultAnalysis[PreciseValueDrivenHeapState.Default[ApronInterface]](PreciseEntryStateBuilder)
+  val analysis = DefaultAnalysis[PreciseValueDrivenHeapState.Default[ApronInterface.Default]](PreciseEntryStateBuilder)
 
   def run(path: Path): List[AnalysisResult[_]] = {
     val compiler = new SilCompiler
@@ -62,25 +62,25 @@ trait ValueDrivenHeapEntryStateBuilder[
     S <: ValueDrivenHeapState[Q, S]]
   extends EntryStateBuilder[S] {
 
-  protected def topApronInterface: ApronInterface =
-    new ApronInterface(None, new Polka(false), env = Set.empty[Identifier]).top()
+  protected def topApronInterface: ApronInterface.Default =
+    ApronInterface.Default(None, new Polka(false), env = Set.empty[Identifier]).top()
 
   protected def topHeapGraph: HeapGraph[Q] =
-    new HeapGraph[Q]()
+    HeapGraph[Q]()
 }
 
 object DefaultEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  ApronInterface,
-  ValueDrivenHeapState.Default[ApronInterface]] {
+  ApronInterface.Default,
+  ValueDrivenHeapState.Default[ApronInterface.Default]] {
 
   def topState = {
-    ValueDrivenHeapState.Default[ApronInterface](topHeapGraph, topApronInterface, ExpressionSet())
+    ValueDrivenHeapState.Default[ApronInterface.Default](topHeapGraph, topApronInterface, ExpressionSet())
   }
 }
 
 object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  PreciseValueDrivenHeapState.EdgeStateDomain[ApronInterface],
-  PreciseValueDrivenHeapState.Default[ApronInterface]] {
+  PreciseValueDrivenHeapState.EdgeStateDomain[ApronInterface.Default],
+  PreciseValueDrivenHeapState.Default[ApronInterface.Default]] {
 
   def topState = {
     val generalValState = PreciseValueDrivenHeapState.makeTopEdgeState(topApronInterface)

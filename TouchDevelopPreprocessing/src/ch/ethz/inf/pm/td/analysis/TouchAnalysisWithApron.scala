@@ -23,16 +23,16 @@ class TouchAnalysisWithApron[D <: NumericalDomain[D],V <:StringValueDomain[V], S
     val numericSubDomain = domain match {
       case "ApronInterval" =>
         val man = new Box()
-        new ApronInterface(None, man, env = Set.empty).factory().asInstanceOf[D]
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
       case "ApronOctagons" =>
         val man = new Octagon()
-        new ApronInterface(None, man, env = Set.empty).factory().asInstanceOf[D]
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
       case "ApronPolka" =>
         val man = new Polka(false)
-        new ApronInterface(None, man, env = Set.empty).factory().asInstanceOf[D]
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
       case "ApronLinearEqualities" =>
         val man = new PolkaEq()
-        new ApronInterface(None, man, env = Set.empty).factory().asInstanceOf[D]
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
     }
     val invalidAndSubDomain = new InvalidAnd(numericSubDomain)
     stringDomain match{
