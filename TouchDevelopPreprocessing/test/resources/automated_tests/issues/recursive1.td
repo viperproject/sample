@@ -1,3 +1,4 @@
+//:: IgnoreFile(/TouchBoost/issue/32/)
 action main() {
     $res1 := code->fib(3);
     $res2 := code->fib(4);
