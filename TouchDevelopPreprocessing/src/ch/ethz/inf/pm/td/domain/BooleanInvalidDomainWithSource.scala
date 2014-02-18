@@ -4,6 +4,17 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import scala.Some
 import ch.ethz.inf.pm.td.domain.PositionedInvalidValueDomain._
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.td.domain.ValidExpression
+import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
+import ch.ethz.inf.pm.td.domain.Invalid
+import ch.ethz.inf.pm.td.domain.Valid
+import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
+import ch.ethz.inf.pm.td.domain.InvalidExpression
+import ch.ethz.inf.pm.sample.abstractdomain.AbstractOperator
+import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
+import ch.ethz.inf.pm.td.semantics.TBoolean
 
 
 /**
@@ -40,10 +51,16 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
   }
 
   override def setToTop(variable: Identifier): BooleanInvalidDomainWithSource = {
+    // Check necessary, otherwise bottomness of state is lost
+    if (this.isBottom) return this
+
     this.add(variable, domTop)
   }
 
   override def removeVariable(variable: Identifier): BooleanInvalidDomainWithSource = {
+    // Check necessary, otherwise bottomness of state is lost
+    if (this.isBottom) return this
+
     this.remove(variable)
   }
 
@@ -59,7 +76,10 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
     else this.add(variable, get(variable).lub(res))
   }
 
-  override def backwardAssign(oldPreState: BooleanInvalidDomainWithSource, variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = this
+  override def backwardAssign(oldPreState: BooleanInvalidDomainWithSource, variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = {
+    val s = assume(BinaryArithmeticExpression(variable, expr, ArithmeticOperator.== , TBoolean.typ))
+    s.setToTop(variable)
+  }
 
   override def access(field: Identifier) = this
 
@@ -97,6 +117,10 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
    */
   override def assume(expr: Expression): BooleanInvalidDomainWithSource = {
     val res = expr match {
+      // double negation (happens e.g. when using  "not foo->is_invalid")
+      case NegatedBooleanExpression(NegatedBooleanExpression(x)) => {
+        assume(x)
+      }
       case BinaryArithmeticExpression(a:Expression, b:Expression, ArithmeticOperator.==, _) =>
 
         val left = eval(a)
@@ -162,9 +186,26 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
         if(v.canBeValid)
           result += k.toString+" is valid\n"
         else
-          result += k.toString+" is BOTTOM\n"
+          result += k.toString+" is ⊥\n"
     }
     result
+  }
+
+  override def glb(other: BooleanInvalidDomainWithSource): BooleanInvalidDomainWithSource = {
+    val r = super.glb(other)
+    if (r.isTop || r.isBottom) return r
+
+    /*
+      To find false alarms, we have to make the state bottom for glb(a,b)
+      if there is an id s.t.  a(id) = Invalid, b(id) = Valid, or vice versa. The functional domain by default only
+      sets invidivdual entry glb(a,b)(id) = Bottom, not the whole functional domain.
+     */
+    val funcMap = r.map
+    // safer check but should not be necessary anymore (and less general):
+    //  funcMap.exists({case (id, validity) => validity.isBottom && !this.get(id).isBottom && !other.get(id).isBottom})
+    if (funcMap.values.exists(_.isBottom)) {
+      r.bottom()
+    } else r
   }
 
 }
