@@ -187,7 +187,7 @@ object SymbolicPredicateDef {
         nextId.set(id + 1)
         s"pred-$id"
     }
-    VariableIdentifier(name, IntType, DummyProgramPoint)
+    VariableIdentifier(name)(IntType, DummyProgramPoint)
   }
 }
 

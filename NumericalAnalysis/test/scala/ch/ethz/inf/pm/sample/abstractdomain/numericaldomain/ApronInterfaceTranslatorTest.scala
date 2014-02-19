@@ -40,8 +40,8 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   val typ = DummyNumericType
   val pp = DummyProgramPoint
 
-  def makeVarId(name: String) = new VariableIdentifier(name, typ, pp)
-  def makeConst(value: Int) = new Constant(value.toString, typ, pp)
+  def makeVarId(name: String) = VariableIdentifier(name)(typ, pp)
+  def makeConst(value: Int) = Constant(value.toString, typ, pp)
 
   val idx = makeVarId("x")
   val idy = makeVarId("y")

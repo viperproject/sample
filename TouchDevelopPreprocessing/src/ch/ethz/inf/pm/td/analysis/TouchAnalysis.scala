@@ -139,7 +139,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
           else
             curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
           val obj = curState.getExpression
-          val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase, typ, singletonProgramPoint))
+          val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
           curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
         }
       }
@@ -148,7 +148,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
     // Set global state to invalid
     for (v <- compiler.globalData) {
 
-      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.variable.getName),v.typ,v.programpoint)
+      val variable = VariableIdentifier(CFGGenerator.globalReferenceIdent(v.variable.getName))(v.typ, v.programpoint)
       val leftExpr = ExpressionSet(variable)
       curState = curState.createVariable(leftExpr,v.typ,v.programpoint)
 
@@ -312,7 +312,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
               val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
               curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
               val obj = curState.getExpression
-              val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase, typ, singletonProgramPoint))
+              val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
               curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
             }
           }

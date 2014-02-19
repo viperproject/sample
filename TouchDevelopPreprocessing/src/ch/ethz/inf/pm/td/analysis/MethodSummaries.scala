@@ -229,7 +229,7 @@ object MethodSummaries {
 
       // Initialize in-parameters to temporary variables
       val tempVars = for ((decl,value) <- inParameters.zip(parameters)) yield {
-        val tempVar = VariableIdentifier(CFGGenerator.paramIdent(decl.variable.id.toString),decl.typ,callPoint,ProgramPointScopeIdentifier(callTarget.programpoint))
+        val tempVar = VariableIdentifier(CFGGenerator.paramIdent(decl.variable.id.toString), ProgramPointScopeIdentifier(callTarget.programpoint))(decl.typ, callPoint)
         val expr = ExpressionSet(tempVar)
         curState = curState.createVariable(expr, tempVar.getType, callTarget.programpoint)
         curState = curState.assignVariable(expr,value)
@@ -311,7 +311,7 @@ object MethodSummaries {
 
     // Store returns in temporary variables
     val tempVars = for (outParam <- outParameters) yield {
-      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName),outParam.typ,callPoint,ProgramPointScopeIdentifier(callTarget.programpoint))
+      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName), ProgramPointScopeIdentifier(callTarget.programpoint))(outParam.typ, callPoint)
       val tempVarExpr = ExpressionSet(tempVar)
       curState = curState.createVariable(tempVarExpr, tempVarExpr.getType(), callTarget.programpoint)
       curState = curState.assignVariable(tempVarExpr, ExpressionSet(outParam.variable.id))

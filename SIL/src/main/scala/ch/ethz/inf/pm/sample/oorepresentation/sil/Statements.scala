@@ -40,8 +40,7 @@ trait ContractAwareMethodCall extends MethodCall {
     // and the second one all out-parameters.
     // TODO: What if there are in-parameters and out-parameters with the same name?
     def createTmpParam(param: VariableDeclaration): VariableIdentifier = {
-      val tmpParam = VariableIdentifier(makeTempVariableName(param.variable.id.toString()), param.typ, pp,
-        ProgramPointScopeIdentifier(callTarget.programpoint))
+      val tmpParam = VariableIdentifier(makeTempVariableName(param.variable.id.toString()), ProgramPointScopeIdentifier(callTarget.programpoint))(param.typ, pp)
       val expr = new ExpressionSet(tmpParam.getType).add(tmpParam)
       result = result.createVariable(expr, tmpParam.getType, callTarget.programpoint)
       tmpParam
@@ -113,7 +112,7 @@ trait ContractAwareMethodCall extends MethodCall {
 
   /** Returns the declaration corresponding to the called method. */
   protected lazy val callTarget: MethodDeclaration = method match {
-    case Variable(programPoint, VariableIdentifier(name, _, _, _)) =>
+    case Variable(programPoint, VariableIdentifier(name, _)) =>
       // In SIL, function and method names must be globally unique.
       // TODO: Accessing the compiler through the global variable is incredibly ugly
       SystemParameters.compiler.asInstanceOf[SilCompiler].getMethods(name)(0)._2

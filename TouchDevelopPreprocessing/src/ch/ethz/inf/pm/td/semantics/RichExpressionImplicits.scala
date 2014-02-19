@@ -39,5 +39,5 @@ trait RichExpressionImplicits {
   def NegativeInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("neginfty",TNumber.typ,pp))
   def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(InvalidExpression(typ,pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(ValidExpression(typ,pp))
-  def Singleton(typ:Type)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(VariableIdentifier(typ.name.toLowerCase,typ,pp))
+  def Singleton(typ: Type)(implicit pp: ProgramPoint): RichExpression = toRichExpression(VariableIdentifier(typ.name.toLowerCase)(typ, pp))
 }

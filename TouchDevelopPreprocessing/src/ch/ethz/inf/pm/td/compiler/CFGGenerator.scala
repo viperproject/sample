@@ -285,7 +285,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     val name : String = parameter.ident
     val typ : Type = typeNameToType(parameter.typeName)
     val programPoint : ProgramPoint = mkTouchProgramPoint(parameter)
-    VariableIdentifier(name,typ,programPoint,scope)
+    VariableIdentifier(name, scope)(typ, programPoint)
   }
 
   private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
@@ -435,7 +435,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     expr match {
 
       case parser.LocalReference(ident) =>
-        Variable(pc,VariableIdentifier(ident,typ,pc,scope))
+        Variable(pc, VariableIdentifier(ident, scope)(typ, pc))
 
       case parser.Access(subject,property,args) =>
         val field = FieldAccess(mkTouchProgramPoint(property), expressionToStatement(subject, scope), property.ident, typeNameToType(subject.typeName))
@@ -447,7 +447,7 @@ class CFGGenerator(compiler: TouchCompiler) {
         } else throw new TouchException("Literals with type "+t.ident+" do not exist")
 
       case parser.SingletonReference(singleton, typ) =>
-        Variable(pc, VariableIdentifier(singleton, typeNameToType(expr.typeName, isSingleton = true), pc))
+        Variable(pc, VariableIdentifier(singleton)(typeNameToType(expr.typeName, isSingleton = true), pc))
     }
 
   }

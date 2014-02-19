@@ -43,7 +43,7 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 				val sa = stmt.forwardSemantics(s)
 				for (pl <- sl.getExpression.getSetOfExpressions) {
 					pl match {
-						case VariableIdentifier(v, _, pp, _) => {
+						case VariableIdentifier(v, _) => {
 							if (v == variable) {
 								val expr = BinaryBooleanExpression(
 									BinaryArithmeticExpression(pl, new Constant(lower.toString, null, null), ArithmeticOperator.>=, null),
@@ -52,9 +52,9 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 									null
 								)
 								if (!sa.lessEqual(sa.assume(new ExpressionSet(SystemParameters.getType().top()).add(expr)))) {
-									out.add(new WarningProgramPoint(pp, "Possible unbounded assignment to " + v))
+									out.add(new WarningProgramPoint(pl.pp, "Possible unbounded assignment to " + v))
 								} else {
-									out.add(new ValidatedProgramPoint(pp, "Bounded assignment to " + v))
+									out.add(new ValidatedProgramPoint(pl.pp, "Bounded assignment to " + v))
 								}
 							}
 						}

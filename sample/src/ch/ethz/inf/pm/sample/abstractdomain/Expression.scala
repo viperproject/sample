@@ -470,34 +470,27 @@ case class ProgramPointScopeIdentifier(pp: ProgramPoint) extends ScopeIdentifier
 
 }
 
-
 /** 
- * The identifier of a variable
+ * The identifier of a variable.
  * 
  * @param name The name of the variable
  * @param typ The type of the variable
  */
-case class VariableIdentifier(
-    name: String,
-    typ: Type,
-    pp: ProgramPoint,
-    scope: ScopeIdentifier = EmptyScopeIdentifier)
+case class VariableIdentifier
+    (name: String, scope: ScopeIdentifier = EmptyScopeIdentifier)
+    (val typ: Type, val pp: ProgramPoint)
   extends Identifier {
 
   require(typ != null)
 
   override def getName = name.toString + scope.toString
+
   override def toString = getName
+
   override def getField = None
-  override def hashCode() : Int = name.hashCode() + scope.hashCode()
-  
+
   // Variables always represent exactly one concrete identifier
-  override def representsSingleVariable()=true
-  
-  override def equals(o : Any) = o match {
-    case VariableIdentifier(n, _, _, s) => name.equals(n) && scope.equals(s)
-    case _ => false
-  }
+  override def representsSingleVariable() = true
 }
 
 /** 

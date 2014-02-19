@@ -321,11 +321,10 @@ object DefaultSilConverter extends SilConverter {
     sample.Variable(go(n.pos), makeVariableIdentifier(n))
 
   private def makeVariableIdentifier(n: LocalVarOrField) =
-    sample.VariableIdentifier(name = n.name, go(n.typ), go(n.pos),
-      scope = sample.EmptyScopeIdentifier)
+    sample.VariableIdentifier(n.name)(go(n.typ), go(n.pos))
 
   private def makeVariable(pos: sil.Position, typ: sil.Type, name: String) =
-    sample.Variable(go(pos), sample.VariableIdentifier(name, go(typ), go(pos)))
+    sample.Variable(go(pos), sample.VariableIdentifier(name)(go(typ), go(pos)))
 
   private def makeNativeMethodCall(
       pos: sil.Position,

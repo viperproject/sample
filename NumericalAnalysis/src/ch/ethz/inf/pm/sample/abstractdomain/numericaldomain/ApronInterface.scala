@@ -559,7 +559,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
         // Create a temporary identifier
         val tempVal = tempVarName + tempVersion
-        val tempValIdent = new VariableIdentifier(tempVal, from.head.getType, from.head.pp)
+        val tempValIdent = new VariableIdentifier(tempVal)(from.head.getType, from.head.pp)
         tempIdentifiers = tempIdentifiers + tempValIdent
         tempVersion = tempVersion + 1
 
@@ -837,7 +837,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       case BinaryNondeterministicExpression(left, right, op, returnType) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
-        val identifier = new VariableIdentifier(label, expr.getType, expr.pp)
+        val identifier = new VariableIdentifier(label)(expr.getType, expr.pp)
         (identifier, varL ::: varR ::: List((identifier, BinaryNondeterministicExpression(expL, expR, op, returnType))))
       case x: Expression => (x, Nil)
     }

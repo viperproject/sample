@@ -24,7 +24,7 @@ class SData extends AAny {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = {
 
-    state.setExpression(ExpressionSet(VariableIdentifier(CFGGenerator.globalReferenceIdent(method), returnedType, pp)))
+    state.setExpression(ExpressionSet(VariableIdentifier(CFGGenerator.globalReferenceIdent(method))(returnedType, pp)))
 
   }
 }
