@@ -36,15 +36,7 @@
         }
     }
     case c: CartesianProductDomain[_, _, _] => {
-        <div class="cartesian-product-domain">
-            <div class="cartesian-product-domain-part well well-sm">
-                @LatticeFragment(c._1)
-            </div>
-            <div class="cartesian-product-domain-cross">✕</div>
-            <div class="cartesian-product-domain-part well well-sm">
-                @LatticeFragment(c._2)
-            </div>
-        </div>
+        @CartesianProductDomain(List(c._1, c._2))
     }
     case s: SetDomain[_, _] => {
         @s
@@ -86,6 +78,16 @@
             <div class="clearfix"></div>
         }
     }
+}
+
+@CartesianProductDomain(lattices: List[Lattice[_]]) = {
+    <div class="cartesian-product-domain">
+        @lattices.map { lattice =>
+        <div class="cartesian-product-domain-part well well-sm">
+            @LatticeFragment(lattice)
+        </div>
+        }
+    </div>
 }
 
 @Top() = {
