@@ -63,12 +63,12 @@ object DefaultSampleConverter extends SampleConverter {
       }
       case _ => sys.error(s"unexpected constant type $typ")
     }
-    case sample.VariableIdentifier(name, typ, pp, scope) =>
+    case id @ sample.VariableIdentifier(name, scope) =>
       name match {
         case Constants.ResultVariableName =>
-          sil.Result()(go(typ), go(pp))
+          sil.Result()(go(id.typ), go(id.pp))
         case _ =>
-          sil.LocalVar(name)(go(typ), go(pp))
+          sil.LocalVar(name)(go(id.typ), go(id.pp))
       }
     case id@sample.AccessPathIdentifier(path) =>
       // All proper prefixes of the access path are references

@@ -171,8 +171,8 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     val result: CondHeapGraphSeq[S] = cond match {
       case Constant("false", _, _) => CondHeapGraphSeq(Seq())(lattice)
       case Constant("true", _, _) => this
-      case VariableIdentifier(_, _, _, _)
-           | NegatedBooleanExpression(VariableIdentifier(_, _, _, _))
+      case VariableIdentifier(_, _)
+           | NegatedBooleanExpression(VariableIdentifier(_, _))
            | BinaryArithmeticExpression(_, _, _, _) =>
         evalExp(cond).apply().map(_.assume(cond))
       case NegatedBooleanExpression(e) =>
