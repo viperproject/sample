@@ -592,14 +592,12 @@ trait ValueDrivenHeapState[
     for (e <- edgesToAdd) {
       // Updating EdgeLocalIdentifiers with empty path
       var updatedEdgeState = e.state.merge(repl)
-      if (e.source.isInstanceOf[HeapVertex] || e.source.isInstanceOf[LocalVariableVertex]) {
-        val vtx = if (e.source.isInstanceOf[HeapVertex]) e.source else e.target
-        for (valHeapId <- updatedEdgeState.getIds().collect({
-          case id: ValueHeapIdentifier if id.obj == vtx => id
-        })) {
-          val edgLocId = EdgeLocalIdentifier(List.empty[String], valHeapId.field, valHeapId.getType)(valHeapId.pp)
-          updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
-        }
+      val vtx = if (e.source.isInstanceOf[LocalVariableVertex]) e.target else e.source
+      for (valHeapId <- updatedEdgeState.getIds().collect({
+        case id: ValueHeapIdentifier if id.obj == vtx => id
+      })) {
+        val edgLocId = EdgeLocalIdentifier(List.empty[String], valHeapId.field, valHeapId.getType)(valHeapId.pp)
+        updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
       }
       // Updating EdgeLocalIdentifiers with non-empty path
       if (e.target.isInstanceOf[HeapVertex] && !e.source.isInstanceOf[LocalVariableVertex]) {

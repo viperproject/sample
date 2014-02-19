@@ -71,5 +71,8 @@ class SilCompiler extends Compiler {
   def generateTopType(): Unit = {
     SystemParameters.typ = TopType
   }
+
+  def refType: RefType =
+    classes.get(0).typ.asInstanceOf[RefType]
 }
 

@@ -3,19 +3,36 @@
 @import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 
 @state match {
-    case a: ApronInterface.Default => {
-        @if(a.isBottom) {
-            @Bottom()
+    case i: vdha.SymbolicPredicateInstsDomain => {
+        @LatticeDescription("Instances")
+        @ApronInterface(i)
+    }
+    case d: vdha.SymbolicPredicateDefsDomain => {
+        @LatticeDescription("Definitions")
+        @FunctionalDomain(d)
+    }
+    case g: vdha.GhostStateDomain => {
+        @LatticeDescription("Edge Ambiguity")
+        @FunctionalDomain(g)
+    }
+    case a: ApronInterface[_] => {
+        @LatticeDescription("Values")
+        @ApronInterface(a)
+    }
+    case s: vdha.SymbolicPredicateDef => {
+        @if(s.valFieldPerms.isTop && s.refFieldPerms.isTop) {
+            @Top()
         } else {
-            @if(a.isTop) {
-                @Top()
-            } else {
-            <ul class="list-unstyled apron-interface">
-                @ApronInterfaceTranslator.translate(a).map(ExpPrettyPrinter).toList.sorted.map { line =>
-                <li>@line</li>
-                }
-            </ul>
+            <dl class="symbolic-predicate-def">
+            @if(!s.valFieldPerms.isTop) {
+                <dt class="lattice-description">Vals</dt>
+                <dd>@s.valFieldPerms.value.mkString(", ")</dd>
             }
+            @if(!s.refFieldPerms.isTop) {
+                <dt class="lattice-description">Refs</dt>
+                <dd>@s.refFieldPerms.map.keys.mkString(", ")</dd>
+            }
+            </dl>
         }
     }
     case c: CartesianProductDomain[_, _, _] => {
@@ -33,20 +50,40 @@
         @s
     }
     case f: FunctionalDomain[_, _, _] => {
-        @if(f.isBottom) {
-            @Bottom()
+        @FunctionalDomain(f)
+    }
+}
+
+@ApronInterface(a: ApronInterface[_]) = {
+    @if(a.isBottom) {
+        @Bottom()
+    } else {
+        @if(a.isTop) {
+            @Top()
         } else {
-            @if(f.isTop) {
-                @Top()
-            } else {
+            <ul class="list-unstyled apron-interface">
+                @ApronInterfaceTranslator.translate(a).map(ExpPrettyPrinter).toList.sorted.map { line =>
+                <li>@line</li>
+                }
+            </ul>
+        }
+    }
+}
+
+@FunctionalDomain(f: FunctionalDomain[_, _, _]) = {
+    @if(f.isBottom) {
+        @Bottom()
+    } else {
+        @if(f.isTop) {
+            @Top()
+        } else {
             <dl class="functional-domain">
                 @f.map.map { keyValuePair =>
-                    <dt>@keyValuePair._1</dt>
-                    <dd>@LatticeFragment(keyValuePair._2)</dd>
+                <dt>@keyValuePair._1</dt>
+                <dd>@LatticeFragment(keyValuePair._2.asInstanceOf[Lattice[_]])</dd>
                 }
             </dl>
             <div class="clearfix"></div>
-            }
         }
     }
 }
@@ -57,4 +94,8 @@
 
 @Bottom() = {
     <div class="lattice-bottom">⊥</div>
+}
+
+@LatticeDescription(s: String) = {
+    <div class="lattice-description">@s</div>
 }

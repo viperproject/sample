@@ -73,8 +73,13 @@ object LocalVariableVertex {
 
 object NullVertex extends Vertex {
   def name = VertexConstants.NULL
+
   def label = VertexConstants.NULL
-  def typ = SystemParameters.getType().bottom()
+
+  // Make it possible to set the type to something other than bottom.
+  // There is actually a dedicated Null type in Scala and other type systems.
+  var typ = SystemParameters.getType().bottom()
+
   override def toString = name
 }
 

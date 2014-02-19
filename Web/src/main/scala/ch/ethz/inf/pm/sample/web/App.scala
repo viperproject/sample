@@ -42,7 +42,9 @@ class App extends ScalatraServlet {
     val testFileString = params("file")
     fileProvider.testFiles.find(_.toString == testFileString) match {
       case Some(testFile) =>
-        resultOption = Some(AnalysisRunner.run(testFile.path).head)
+        // TODO: Make it configurable
+        val runner = AnalysisRunner(AnalysisRunner.PreciseAnalysis)
+        resultOption = Some(runner.run(testFile.path).head)
         redirect("/cfg")
       case None =>
         // TODO: Should probably output an error message

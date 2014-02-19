@@ -82,20 +82,26 @@ case class Edge[S <: SemanticDomain[S]](
     * @return the resulting edge
    */
   def createTargetEdgeLocalId(valueField: Identifier): Edge[S] = {
-    require(target.isInstanceOf[HeapVertex],
-      "target vertex must be a heap vertex")
     require(target.typ.nonObjectFields.contains(valueField),
-      s"target vertex has no value field $valueField")
+       s"target vertex has no value field $valueField")
 
     val edgeLocalId = EdgeLocalIdentifier(List(field).flatten, valueField)
-    val valueHeapId = ValueHeapIdentifier(target.asInstanceOf[HeapVertex], valueField)
+    var newState = state.createVariable(edgeLocalId)
 
-    require(state.getIds().contains(valueHeapId),
-      s"edge state must already contain value heap identifier $valueHeapId")
+    target match {
+      case obj: HeapVertex =>
+        val valueHeapId = ValueHeapIdentifier(obj, valueField)
 
-    val newState = state
-      .createVariable(edgeLocalId)
-      .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
+        require(state.getIds().contains(valueHeapId),
+          s"edge state must already contain value heap identifier $valueHeapId")
+
+        newState = state
+          .createVariable(edgeLocalId)
+          .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
+      case _ =>
+        // The target vertex may also be a NullVertex, in which case we cannot
+        // make the equality assumption anyway
+    }
 
     copy(state = newState)
   }

@@ -77,25 +77,40 @@ body {
 .cartesian-product-domain-part,
 .apron-interface {
     margin: 0px;
+    position: relative;
+    min-width: 100px;
 }
 
 .cartesian-product-domain-cross {
     text-align: center;
 }
 
-.lattice-top,
-.lattice-bottom {
-    text-align: center;
+.lattice-description {
+    font-color: gray;
+    font-weight: normal;
+    font-size: 80%;
 }
 
+.cartesian-product-domain-part > .lattice-description {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+}
+
+/* .lattice-top,
+.lattice-bottom {
+    text-align: center;
+} */
+
 .functional-domain dt:after {
-    content: ' →';
+    content: ':';
 }
 
 .functional-domain dt,
 .functional-domain dd {
     display: inline;
     float: left;
+    text-align: left;
 }
 
 .functional-domain dd {

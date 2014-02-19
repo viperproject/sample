@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.{execution, StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
-import scala.reflect.io.File
 import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import apron.Polka
 import ch.ethz.inf.pm.sample.abstractdomain._
@@ -12,23 +11,20 @@ import ch.ethz.inf.pm.sample.AnalysisUnitContext
 import semper.sil.ast.Program
 import java.nio.file.Path
 
-object AnalysisRunner {
-  // val analysis = DefaultAnalysis[ValueDrivenHeapState.Default[ApronInterface]](DefaultEntryStateBuilder)
-  val analysis = DefaultAnalysis[PreciseValueDrivenHeapState.Default[ApronInterface.Default]](PreciseEntryStateBuilder)
-
+case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
   def run(path: Path): List[AnalysisResult[_]] = {
     val compiler = new SilCompiler
     compiler.compileFile(path.toAbsolutePath.toString)
     _run(compiler)
   }
 
-  def run(program: Program): List[AnalysisResult[_]] = {
+  def run(program: Program): List[AnalysisResult[S]] = {
     val compiler = new SilCompiler
     compiler.compileProgram(program)
     _run(compiler)
   }
 
-  def _run(compiler: SilCompiler): List[AnalysisResult[_]] = {
+  def _run(compiler: SilCompiler): List[AnalysisResult[S]] = {
     SystemParameters.analysisOutput = new StringCollector
     SystemParameters.progressOutput = new StringCollector
     SystemParameters.resetOutput()
@@ -37,6 +33,8 @@ object AnalysisRunner {
     SystemParameters.typ = TopType
     SystemParameters.wideningLimit = 3
     SystemParameters.compiler = compiler
+
+    NullVertex.typ = compiler.refType
 
     // Set up native methods
     SystemParameters.resetNativeMethodsSemantics()
@@ -48,6 +46,14 @@ object AnalysisRunner {
     // Analyze
     compiler.allMethods.map(analysis.analyze)
   }
+}
+
+object AnalysisRunner {
+  type S = ApronInterface.Default
+
+  val DefaultAnalysis = Analysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)
+  val PreciseAnalysis = Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)
+  val SymbolicPredicateAnalysis = Analysis[ValueDrivenHeapStateWithSymbolicPredicates[S]](SymbolicPredicateEntryStateBuilder)
 }
 
 trait EntryStateBuilder[S <: State[S]] {
@@ -88,13 +94,19 @@ object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   }
 }
 
-trait Analysis[S <: State[S]] {
-  def analyze(method: MethodDeclaration): AnalysisResult[S]
+object SymbolicPredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
+  ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[ApronInterface.Default],
+  ValueDrivenHeapStateWithSymbolicPredicates[ApronInterface.Default]] {
+
+  def topState = {
+    val generalValState = ValueDrivenHeapStateWithSymbolicPredicates.makeTopEdgeState(topApronInterface)
+    ValueDrivenHeapStateWithSymbolicPredicates(topHeapGraph, generalValState, ExpressionSet())
+  }
 }
 
 case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S])
 
-case class DefaultAnalysis[S <: State[S]](entryStateBuilder: EntryStateBuilder[S]) extends Analysis[S] {
+case class Analysis[S <: State[S]](entryStateBuilder: EntryStateBuilder[S]) {
   def analyze(method: MethodDeclaration): AnalysisResult[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = entryStateBuilder.build(method)
