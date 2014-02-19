@@ -52,9 +52,9 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
           // Experimental:
           // Constrain the initial state manually by making the predicate
           // definition recursive over all reference fields
-          for (objectField <- typ.objectFields) {
+          /* for (objectField <- typ.objectFields) {
             symbolicPredicateDef = symbolicPredicateDef.addRefFieldPerm(objectField.getName, id.getName)
-          }
+          } */
 
           result = result.add(id.getName, symbolicPredicateDef)
         })
@@ -83,7 +83,7 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
     val originalResult = super.getFieldValue(obj, field, typ)
     var result = originalResult
 
-    val apObj = obj.asInstanceOf[AccessPathIdentifier]
+    /* val apObj = obj.asInstanceOf[AccessPathIdentifier]
     val receiver = AccessPathIdentifier(apObj.path.dropRight(1))(typ.top(), DummyProgramPoint)
 
     // Experimental:
@@ -93,7 +93,7 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
       val curNextIdAp = AccessPathIdentifier(apObj.path ++ List("pred-list"))(IntType, DummyProgramPoint)
       result = result.assignField(curIdAp, "pred-list", Unfolded)
       result = result.assignField(curNextIdAp, "pred-list", Folded)
-    }
+    } */
 
     // We've lost the expression due to the assignField calls
     result.setExpression(originalResult.getExpression)
@@ -109,7 +109,7 @@ object ValueDrivenHeapStateWithSymbolicPredicates {
   val RefFieldPermDomain = new RefFieldPermDomain(
     defaultValue = InverseSetDomain.Must[String]().top()).top()
 
-  type SymbolicPredicateDomain = HalfSemanticCartesianProductDomain.Default[
+  type SymbolicPredicateDomain = SemanticCartesianProductDomain.Default[
     SymbolicPredicateInstsDomain, SymbolicPredicateDefsDomain]
   val SymbolicPredicateDomain = new SymbolicPredicateDomain(
     SymbolicPredicateInstsDomain().top(), SymbolicPredicateDefsDomain().top()).top()
@@ -306,7 +306,8 @@ case class SymbolicPredicateDefsDomain(
     isTop: Boolean = false,
     isBottom: Boolean = false,
     defaultValue: SymbolicPredicateDef = SymbolicPredicateDef())
-  extends FunctionalDomain[String, SymbolicPredicateDef, SymbolicPredicateDefsDomain] {
+  extends FunctionalDomain[String, SymbolicPredicateDef, SymbolicPredicateDefsDomain]
+  with DummySemanticDomain[SymbolicPredicateDefsDomain] {
 
   def get(key: String): SymbolicPredicateDef = map.getOrElse(key, defaultValue)
 

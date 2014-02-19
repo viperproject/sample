@@ -176,6 +176,40 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
   }
 }
 
+/** Semantic domain whose methods do not change the state in any way.
+  * Use it as mixin to turn an arbitrary `Lattice` into a `SemanticDomain`.
+  * This is useful when building a `SemanticCartesianProductDomain`
+  * of a `SemanticDomain` and some other `Lattice`.
+  * @tparam T the self-type of the lattice
+  */
+trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T] { this: T =>
+  def getIds() = Set.empty
+
+  def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression) = this
+
+  def backwardAccess(field: Identifier) = this
+
+  def access(field: Identifier) = this
+
+  def removeVariable(variable: Identifier) = this
+
+  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = (this, Map.empty)
+
+  def createVariable(variable: Identifier, typ: Type) = this
+
+  def assume(expr: Expression) = this
+
+  def setArgument(variable: Identifier, expr: Expression) = this
+
+  def assign(variable: Identifier, expr: Expression) = this
+
+  def setToTop(variable: Identifier) = this
+
+  def getStringOfId(id: Identifier): String = ""
+
+  def merge(f: Replacement) = this
+}
+
 /**
  * A <code>SimplifiedSemanticDomain</code> is a simplified version of the <code>SemanticDomain</code>
  * Some methods are implemented relying on a common semantics that can be applied to 

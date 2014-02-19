@@ -647,74 +647,11 @@ trait SemanticCartesianProductDomain[
     "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
 }
 
-/**
- * Cartesian product of a `SemanticDomain` and an arbitrary other domain.
- * This trait implements all `SemanticDomain`-specific methods, such that
- * they forward calls to the wrapped `SemanticDomain` object,
- * while the other domain object remains unchanged.
- *
- * @tparam S type of the wrapped semantic domain
- * @tparam O type of the other domain
- * @tparam T type of the current domain
- */
-trait HalfSemanticCartesianProductDomain[
-    S <: SemanticDomain[S],
-    O <: Lattice[O],
-    T <: HalfSemanticCartesianProductDomain[S, O, T]]
-  extends CartesianProductDomain[S, O, T]
-  with SemanticDomain[T] { this: T =>
-
-  def getIds() = _1.getIds()
-
-  def copy(_1: S = _1, _2: O = _2): T =
-    factory(_1, _2)
-
-  def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) =
-    copy(_1.backwardAssign(oldPreState._1, variable, expr))
-
-  def backwardAccess(field: Identifier) =
-    copy(_1.backwardAccess(field))
-
-  def access(field: Identifier) =
-    copy(_1.access(field))
-
-  def removeVariable(variable: Identifier) =
-    copy(_1.removeVariable(variable))
-
-  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
-    val (result, map) = _1.createVariableForArgument(variable, typ, path)
-    (copy(result), map)
-  }
-
-  def createVariable(variable: Identifier, typ: Type) =
-    copy(_1.createVariable(variable, typ))
-
-  def assume(expr: Expression) =
-    copy(_1.assume(expr))
-
-  def setArgument(variable: Identifier, expr: Expression) =
-    copy(_1.setArgument(variable, expr))
-
-  def assign(variable: Identifier, expr: Expression) =
-    copy(_1.assign(variable, expr))
-
-  def setToTop(variable: Identifier) =
-    copy(_1.setToTop(variable))
-
-  def getStringOfId(id: Identifier) =
-    _1.getStringOfId(id)
-
-  def merge(f: Replacement) =
-    copy(_1.merge(f))
-}
-
-object HalfSemanticCartesianProductDomain {
-  /** Simple implementation of `HalfSemanticCartesianProductDomain`.
-    * Cannot be extended.
-    */
-  final case class Default[S <: SemanticDomain[S], O <: Lattice[O]](_1: S, _2: O)
-    extends HalfSemanticCartesianProductDomain[S, O, Default[S, O]] {
-    def factory(a: S, b: O): Default[S, O] = Default(a, b)
+object SemanticCartesianProductDomain {
+  /** Simple implementation of `SemanticCartesianProductDomain`. Cannot be extended. */
+  final case class Default[T1 <: SemanticDomain[T1], T2 <: SemanticDomain[T2]](_1: T1, _2: T2)
+    extends SemanticCartesianProductDomain[T1, T2, Default[T1, T2]] {
+    def factory(_1: T1, _2: T2): Default[T1, T2] = Default(_1, _2)
   }
 }
 

@@ -70,11 +70,11 @@ trait PreciseValueDrivenHeapState[
 object PreciseValueDrivenHeapState {
   /** Type of edge states in the precise value-driven heap analysis. */
   type EdgeStateDomain[S <: SemanticDomain[S]] =
-    HalfSemanticCartesianProductDomain.Default[S, GhostStateDomain]
+    SemanticCartesianProductDomain.Default[S, GhostStateDomain]
 
   def makeTopEdgeState[S <: SemanticDomain[S]](
       semanticDomain: S): EdgeStateDomain[S] =
-    HalfSemanticCartesianProductDomain.Default(semanticDomain, GhostStateDomain())
+    SemanticCartesianProductDomain.Default(semanticDomain, GhostStateDomain())
 
   /** Default implementation of the precise value-driven heap state. */
   case class Default[S <: SemanticDomain[S]](
@@ -107,7 +107,8 @@ case class GhostStateDomain(
     map: Map[Int, SetDomain.Default[Int]] = Map.empty[Int, SetDomain.Default[Int]],
     isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends FunctionalDomain[Int, SetDomain.Default[Int], GhostStateDomain] {
+  extends FunctionalDomain[Int, SetDomain.Default[Int], GhostStateDomain]
+  with DummySemanticDomain[GhostStateDomain] {
 
   def get(key: Int): SetDomain.Default[Int] =
     map.getOrElse(key, defaultValue)
