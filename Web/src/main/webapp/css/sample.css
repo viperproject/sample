@@ -78,8 +78,7 @@ body {
     margin-bottom: 0px;
 }
 
-.cartesian-product-domain > li,
-.apron-interface {
+.cartesian-product-domain > li {
     margin: 5px 0px;
     position: relative;
     min-width: 100px;
