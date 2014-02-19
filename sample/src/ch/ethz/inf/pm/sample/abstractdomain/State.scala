@@ -110,6 +110,15 @@ object Lattice {
 
     cur
   }
+
+  /** Mixin that causes a lattice to have a must semantics, where the
+    * join operator uses the greatest lower bound.
+    *
+    * @tparam T the self-type of the lattice
+    */
+  trait Must[T <: Must[T]] extends Lattice[T] { this: T =>
+    override def lub(other: T) = glb(other)
+  }
 }
 
 trait LatticeHelpers[T <: Lattice[T]] extends Lattice[T] { self: T =>

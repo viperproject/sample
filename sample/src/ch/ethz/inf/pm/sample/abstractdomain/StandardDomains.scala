@@ -490,6 +490,17 @@ object InverseSetDomain {
     def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
       Default(value, isTop, isBottom)
   }
+
+  /** Simple implementation of a must-`InverseSetDomain`. Cannot be extended. */
+  final case class Must[V](
+      value: Set[V] = Set.empty[V],
+      isTop: Boolean = false,
+      isBottom: Boolean = false)
+    extends InverseSetDomain[V, Must[V]] with Lattice.Must[Must[V]] {
+
+    def setFactory(value: Set[V], isTop: Boolean, isBottom: Boolean) =
+      Must(value, isTop, isBottom)
+  }
 }
 
 /**
@@ -548,6 +559,14 @@ trait CartesianProductDomain[
     "Cartesian,Left:\n" + ToStringUtilities.indent(_1.toString) +
       "\nCartesian,other:\n" + ToStringUtilities.indent(_2.toString)
 
+}
+
+object CartesianProductDomain {
+  /** Simple implementation of `CartesianProductDomain`. Cannot be extended. */
+  final case class Default[T1 <: Lattice[T1], T2 <: Lattice[T2]](_1: T1, _2: T2)
+    extends CartesianProductDomain[T1, T2, Default[T1, T2]] {
+    def factory(_1: T1, _2: T2): Default[T1, T2] = Default(_1, _2)
+  }
 }
 
 /**
