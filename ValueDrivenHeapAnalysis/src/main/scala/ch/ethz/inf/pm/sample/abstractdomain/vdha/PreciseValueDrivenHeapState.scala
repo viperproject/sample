@@ -42,7 +42,7 @@ trait PreciseValueDrivenHeapState[
           // When building the list of states on these edges, it's important
           // to consider that some of these states might be identical.
           // Thus, convert the set of out-going edges to a list first.
-          val ambiguityStates = outgoingEdges.toList.map(_.state._2)
+          val ambiguityStates = outgoingEdges.toList.map(_.state.edgeAmbiguityState)
 
           // We only need to add ghost state if for some pair of edges,
           // the ghost states intersect
@@ -56,8 +56,8 @@ trait PreciseValueDrivenHeapState[
             val freshId = PreciseValueDrivenHeapState.makeFreshGhostVariableId()
             outgoingEdges.zipWithIndex.map {
               case (edge, index) =>
-                val newIdState = edge.state._2.add(freshId, SetDomain.Default[Int](Set(index)))
-                edge.copy(state = edge.state.copy(_2 = newIdState))
+                val newIdState = edge.state.edgeAmbiguityState.add(freshId, SetDomain.Default[Int](Set(index)))
+                edge.copy(state = edge.state.copy(edgeAmbiguityState = newIdState))
             }
           } else outgoingEdges
         } else outgoingEdges
@@ -69,12 +69,20 @@ trait PreciseValueDrivenHeapState[
 
 object PreciseValueDrivenHeapState {
   /** Type of edge states in the precise value-driven heap analysis. */
-  type EdgeStateDomain[S <: SemanticDomain[S]] =
-    SemanticCartesianProductDomain.Default[S, GhostStateDomain]
+  final case class EdgeStateDomain[S <: SemanticDomain[S]](
+      valueState: S,
+      edgeAmbiguityState: EdgeAmbiguityState)
+    extends SemanticCartesianProductDomain[S, EdgeAmbiguityState, EdgeStateDomain[S]] {
+    def factory(valueState: S, edgeAmbiguityState: EdgeAmbiguityState): EdgeStateDomain[S] =
+      EdgeStateDomain(valueState, edgeAmbiguityState)
 
-  def makeTopEdgeState[S <: SemanticDomain[S]](
-      semanticDomain: S): EdgeStateDomain[S] =
-    SemanticCartesianProductDomain.Default(semanticDomain, GhostStateDomain())
+    override def _1: S = valueState
+
+    override def _2: EdgeAmbiguityState = edgeAmbiguityState
+  }
+
+  def makeTopEdgeState[S <: SemanticDomain[S]](state: S): EdgeStateDomain[S] =
+    EdgeStateDomain(state, EdgeAmbiguityState())
 
   /** Default implementation of the precise value-driven heap state. */
   case class Default[S <: SemanticDomain[S]](
@@ -103,12 +111,12 @@ object PreciseValueDrivenHeapState {
   }
 }
 
-case class GhostStateDomain(
+case class EdgeAmbiguityState(
     map: Map[Int, SetDomain.Default[Int]] = Map.empty[Int, SetDomain.Default[Int]],
     isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends FunctionalDomain[Int, SetDomain.Default[Int], GhostStateDomain]
-  with DummySemanticDomain[GhostStateDomain] {
+  extends FunctionalDomain[Int, SetDomain.Default[Int], EdgeAmbiguityState]
+  with DummySemanticDomain[EdgeAmbiguityState] {
 
   def get(key: Int): SetDomain.Default[Int] =
     map.getOrElse(key, defaultValue)
@@ -133,6 +141,6 @@ case class GhostStateDomain(
       newIsTop = false
     }
     val newMap = map.filterNot(_._2.isTop)
-    GhostStateDomain(newMap, newIsTop, newIsBottom)
+    EdgeAmbiguityState(newMap, newIsTop, newIsBottom)
   }
 }

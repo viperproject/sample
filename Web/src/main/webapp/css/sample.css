@@ -74,29 +74,28 @@ body {
 }
 
 /** Styles for standard domains. */
-.cartesian-product-domain-part,
+.cartesian-product-domain {
+    margin-bottom: 0px;
+}
+
+.cartesian-product-domain > li,
 .apron-interface {
-    margin: 0px;
+    margin: 5px 0px;
     position: relative;
     min-width: 100px;
 }
 
-.lattice-description {
-    font-color: gray;
-    font-weight: normal;
-    font-size: 80%;
-}
-
-.cartesian-product-domain-part > .lattice-description {
+.cartesian-product-domain > li > .lattice-description {
     position: absolute;
     top: 5px;
     right: 5px;
 }
 
-/* .lattice-top,
-.lattice-bottom {
-    text-align: center;
-} */
+.lattice-description {
+    color: gray;
+    font-weight: normal;
+    font-size: 80%;
+}
 
 .functional-domain dt:after {
     content: ':';

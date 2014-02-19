@@ -3,6 +3,9 @@
 @import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 
 @state match {
+    case s: vdha.ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[_] => {
+        @CartesianProductDomain(List(s.valueState._1, s.valueState._2._1, s.valueState._2._2, s.edgeAmbiguityState))
+    }
     case i: vdha.SymbolicPredicateInstsDomain => {
         @LatticeDescription("Instances")
         @ApronInterface(i)
@@ -11,7 +14,7 @@
         @LatticeDescription("Definitions")
         @FunctionalDomain(d)
     }
-    case g: vdha.GhostStateDomain => {
+    case g: vdha.EdgeAmbiguityState => {
         @LatticeDescription("Edge Ambiguity")
         @FunctionalDomain(g)
     }
@@ -81,13 +84,13 @@
 }
 
 @CartesianProductDomain(lattices: List[Lattice[_]]) = {
-    <div class="cartesian-product-domain">
+    <ul class="list-unstyled cartesian-product-domain">
         @lattices.map { lattice =>
-        <div class="cartesian-product-domain-part well well-sm">
+        <li class="cartesian-product-domain-part well well-sm">
             @LatticeFragment(lattice)
-        </div>
+        </li>
         }
-    </div>
+    </ul>
 }
 
 @Top() = {

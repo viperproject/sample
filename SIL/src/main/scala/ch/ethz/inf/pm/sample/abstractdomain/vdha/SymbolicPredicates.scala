@@ -126,8 +126,8 @@ object ValueDrivenHeapStateWithSymbolicPredicates {
       state: EdgeStateDomain[S],
       f: SymbolicPredicateDefsDomain => SymbolicPredicateDefsDomain): EdgeStateDomain[S] = {
     state.copy(
-      _1 = {
-        val semanticAndSymbolicPredicateState = state._1
+      valueState = {
+        val semanticAndSymbolicPredicateState = state.valueState
         semanticAndSymbolicPredicateState.copy(
           _2 = {
             val symbolicPredicateState = semanticAndSymbolicPredicateState._2
@@ -140,8 +140,8 @@ object ValueDrivenHeapStateWithSymbolicPredicates {
        state: EdgeStateDomain[S],
        f: SymbolicPredicateInstsDomain => SymbolicPredicateInstsDomain): EdgeStateDomain[S] = {
     state.copy(
-      _1 = {
-        val semanticAndSymbolicPredicateState = state._1
+      valueState = {
+        val semanticAndSymbolicPredicateState = state.valueState
         semanticAndSymbolicPredicateState.copy(
           _2 = {
             val symbolicPredicateState = semanticAndSymbolicPredicateState._2
