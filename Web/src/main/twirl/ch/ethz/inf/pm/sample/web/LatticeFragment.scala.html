@@ -6,10 +6,6 @@
     case s: vdha.ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[_] => {
         @CartesianProductDomain(List(s.valueState._1, s.valueState._2._1, s.valueState._2._2, s.edgeAmbiguityState))
     }
-    case a: ApronInterface[_] => {
-        @LatticeDescription("Values")
-        @ApronInterface(a)
-    }
     case i: vdha.SymbolicPredicateInstsDomain => {
         @LatticeDescription("Instances")
         @ApronInterface(i)
@@ -21,6 +17,11 @@
     case g: vdha.EdgeAmbiguityState => {
         @LatticeDescription("Edge Ambiguity")
         @FunctionalDomain(g)
+    }
+    case a: ApronInterface[_] => {
+        @* ApronInterface itself must come after any subclasses of ApronInterface *@
+        @LatticeDescription("Values")
+        @ApronInterface(a)
     }
     case s: vdha.SymbolicPredicateDef => {
         @if(s.valFieldPerms.isTop && s.refFieldPerms.isTop) {
