@@ -4,7 +4,11 @@
 
 @state match {
     case s: vdha.ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[_] => {
-        @CartesianProductDomain(List(s.valueState._1, s.valueState._2._1, s.valueState._2._2, s.edgeAmbiguityState))
+        @CartesianProductDomain(List(
+            s.valueState.valueState,
+            s.valueState.symbolicPredicateState.instances,
+            s.valueState.symbolicPredicateState.definitions,
+            s.edgeAmbiguityState))
     }
     case i: vdha.SymbolicPredicateInstsDomain => {
         @LatticeDescription("Instances")

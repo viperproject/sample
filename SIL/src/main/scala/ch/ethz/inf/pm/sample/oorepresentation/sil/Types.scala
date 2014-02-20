@@ -10,10 +10,7 @@ abstract class AbstractType(val name: String) extends Type {
 
   def isBooleanType: Boolean = this == BoolType
 
-  def isObject: Boolean = !isNumericalType && !isStringType
-
-  // So that Apron converts "false" to 0 etc.
-  def isNumericalType: Boolean = this == IntType || this == BoolType
+  def isObject: Boolean = !isNumericalType
 
   def isStringType: Boolean = false
 
@@ -58,14 +55,24 @@ abstract class AbstractType(val name: String) extends Type {
   }
 }
 
-case object TopType extends AbstractType("Top")
+case object TopType extends AbstractType("Top") {
+  def isNumericalType = false
+}
 
-case object BottomType extends AbstractType("Bottom")
+case object BottomType extends AbstractType("Bottom") {
+  def isNumericalType = false
+}
 
-case object BoolType extends AbstractType("Bool")
+case object BoolType extends AbstractType("Bool") {
+  def isNumericalType = true
+}
 
-case object IntType extends AbstractType("Int")
+case object IntType extends AbstractType("Int") {
+  def isNumericalType = true
+}
 
 case class RefType(var fields: Set[Identifier] = Set.empty) extends AbstractType("Ref") {
   override def possibleFields = fields
+
+  def isNumericalType = false
 }

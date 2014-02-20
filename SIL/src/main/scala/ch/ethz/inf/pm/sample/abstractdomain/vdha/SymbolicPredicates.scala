@@ -7,8 +7,9 @@ import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import apron.{Manager, Abstract1, Box}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{SilCompiler, IntType}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, SilCompiler, IntType}
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.SymbolicPredicateDef.{RefFieldPermDomain, ValFieldPermDomain}
 
 case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
     abstractHeap: HeapGraph[EdgeStateDomain[S]],
@@ -19,7 +20,6 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
     SemanticAndSymbolicPredicateDomain[S],
     ValueDrivenHeapStateWithSymbolicPredicates[S]] {
 
-  import Utilities._
   import ValueDrivenHeapStateWithSymbolicPredicates._
   import SymbolicPredicateInstsDomain._
   
@@ -37,44 +37,31 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
       refType.fields += id
     }
 
-    val state = super.createVariableForArgument(variable, typ)
+    var state = super.createVariableForArgument(variable, typ)
 
-    val newGeneralValState = mapSymbolicPredicateDefs(state.generalValState,
-      symbolicPredicateDefs => {
-        var result = symbolicPredicateDefs
-        state.abstractHeap.localVarVertices.map(localVarVertex => {
-          val variableName = localVarVertex.name
-          val id = SymbolicPredicateDef.makeId(Some(variableName))
-          var symbolicPredicateDef = SymbolicPredicateDef().top()
-
-          // Experimental:
-          // Constrain the initial state manually by making the predicate
-          // definition recursive over all reference fields
-          /* for (objectField <- typ.objectFields) {
-            symbolicPredicateDef = symbolicPredicateDef.addRefFieldPerm(objectField.getName, id.getName)
-          } */
-
-          result = result.add(id.getName, symbolicPredicateDef)
-        })
-        result
-      })
+    state.abstractHeap.localVarVertices.foreach(localVarVertex => {
+      val variableName = localVarVertex.name
+      val id = SymbolicPredicateDef.makeId(Some(variableName))
+      state = state.createVariable(id, SymbolicPredicateDefType, DummyProgramPoint)
+    })
 
     val newAbstractHeap = state.abstractHeap.copy(edges = {
       state.abstractHeap.edges.map(edge => {
-        var newEdge = edge.copy(state = glbPreserveIds(edge.state, newGeneralValState))
+        var newEdge = edge
 
         if (edge.source.isInstanceOf[LocalVariableVertex]) {
           val variableName = edge.source.name
-          val symPredId = SymbolicPredicateDef.makeId(Some(variableName))
-          val edgeLocalId = EdgeLocalIdentifier(List.empty, symPredId)
-          newEdge = newEdge.createTargetEdgeLocalId(symPredId)
+          val symPredDefId = SymbolicPredicateDef.makeId(Some(variableName))
+          val symPredInstId = SymbolicPredicateDef.makeInstId(symPredDefId)
+          val edgeLocalId = EdgeLocalIdentifier(List.empty, symPredInstId)
+          newEdge = newEdge.createTargetEdgeLocalId(symPredInstId)
           newEdge = newEdge.copy(state = newEdge.state.assign(edgeLocalId, Folded))
         }
         newEdge
       })
     })
 
-    state.copy(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
+    state.copy(abstractHeap = newAbstractHeap)
   }
 
   override def getFieldValue(obj: Expression, field: String, typ: Type) = {
@@ -99,54 +86,37 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
 }
 
 object ValueDrivenHeapStateWithSymbolicPredicates {
-  type ValFieldPermDomain = InverseSetDomain.Must[String]
-  val ValFieldPermDomain = new ValFieldPermDomain().top()
-
-  type RefFieldPermDomain =
-    FunctionalDomain.Default[String, InverseSetDomain.Must[String]]
-  val RefFieldPermDomain = new RefFieldPermDomain(
-    defaultValue = InverseSetDomain.Must[String]().top()).top()
-
-  type SymbolicPredicateDomain = SemanticCartesianProductDomain.Default[
-    SymbolicPredicateInstsDomain, SymbolicPredicateDefsDomain]
-  val SymbolicPredicateDomain = new SymbolicPredicateDomain(
-    SymbolicPredicateInstsDomain().top(), SymbolicPredicateDefsDomain().top()).top()
-
   type EdgeStateDomain[S <: SemanticDomain[S]] =
     PreciseValueDrivenHeapState.EdgeStateDomain[SemanticAndSymbolicPredicateDomain[S]]
 
   def makeTopEdgeState[S <: SemanticDomain[S]](s: S): EdgeStateDomain[S] = {
     PreciseValueDrivenHeapState.makeTopEdgeState(
-      SemanticAndSymbolicPredicateDomain(s, SymbolicPredicateDomain).top())
+      SemanticAndSymbolicPredicateDomain(s, SymbolicPredicateDomain()).top())
   }
+}
 
-  def mapSymbolicPredicateDefs[S <: SemanticDomain[S]](
-      state: EdgeStateDomain[S],
-      f: SymbolicPredicateDefsDomain => SymbolicPredicateDefsDomain): EdgeStateDomain[S] = {
-    state.copy(
-      valueState = {
-        val semanticAndSymbolicPredicateState = state.valueState
-        semanticAndSymbolicPredicateState.copy(
-          _2 = {
-            val symbolicPredicateState = semanticAndSymbolicPredicateState._2
-            symbolicPredicateState.copy(_2 = f(symbolicPredicateState._2))
-          })
-      })
-  }
+case class SymbolicPredicateDomain(
+    instances: SymbolicPredicateInstsDomain = SymbolicPredicateInstsDomain(),
+    definitions: SymbolicPredicateDefsDomain = SymbolicPredicateDefsDomain())
+  extends RoutingSemanticCartesianProductDomain[
+    SymbolicPredicateInstsDomain,
+    SymbolicPredicateDefsDomain,
+    SymbolicPredicateDomain] {
 
-  def mapSymbolicPredicateInsts[S <: SemanticDomain[S]](
-       state: EdgeStateDomain[S],
-       f: SymbolicPredicateInstsDomain => SymbolicPredicateInstsDomain): EdgeStateDomain[S] = {
-    state.copy(
-      valueState = {
-        val semanticAndSymbolicPredicateState = state.valueState
-        semanticAndSymbolicPredicateState.copy(
-          _2 = {
-            val symbolicPredicateState = semanticAndSymbolicPredicateState._2
-            symbolicPredicateState.copy(_1 = f(symbolicPredicateState._1))
-          })
-      })
-  }
+  def isHandledByFirstDomain(id: Identifier) =
+    id.typ == SymbolicPredicateInstType
+
+  def isHandledBySecondDomain(id: Identifier) =
+    id.typ == SymbolicPredicateDefType
+
+  def factory(
+      instances: SymbolicPredicateInstsDomain,
+      definitions: SymbolicPredicateDefsDomain) =
+    SymbolicPredicateDomain(instances, definitions)
+
+  def _1 = instances
+
+  def _2 = definitions
 }
 
 case class SymbolicPredicateDef(
@@ -175,19 +145,40 @@ case class SymbolicPredicateDef(
 }
 
 object SymbolicPredicateDef {
+  type ValFieldPermDomain = InverseSetDomain.Must[String]
+  val ValFieldPermDomain = new ValFieldPermDomain().top()
+
+  type RefFieldPermDomain =
+  FunctionalDomain.Default[String, InverseSetDomain.Must[String]]
+  val RefFieldPermDomain = new RefFieldPermDomain(
+    defaultValue = InverseSetDomain.Must[String]().top()).top()
+
   private val nextId = new ThreadLocal[Int]
 
-  def makeId(variableOption: Option[String]): Identifier = {
+  def makeId(variableOption: Option[String]): VariableIdentifier = {
     val name = variableOption match {
-      case Some(variable) => s"pred-$variable"
+      case Some(variable) => variable
       case None =>
         val id = nextId.get
         nextId.set(id + 1)
-        s"pred-$id"
+        id.toString
     }
-    VariableIdentifier(name)(IntType, DummyProgramPoint)
+    VariableIdentifier("pred-" + name)(SymbolicPredicateDefType, DummyProgramPoint)
   }
+
+  def makeInstId(defId: VariableIdentifier): VariableIdentifier =
+    VariableIdentifier(defId.name)(SymbolicPredicateInstType, DummyProgramPoint)
 }
+
+case object SymbolicPredicateDefType extends AbstractType("Pred") {
+  def isNumericalType = true
+}
+
+case object SymbolicPredicateInstType extends AbstractType("PredInstance") {
+  override def isBooleanType = true
+  def isNumericalType = true
+}
+
 
 /**
  * Cartesian product supporting the operations of the semantic domain.
@@ -285,7 +276,7 @@ trait RoutingSemanticCartesianProductDomain[
 }
 
 case class SemanticAndSymbolicPredicateDomain[S <: SemanticDomain[S]](
-    _1: S, _2: SymbolicPredicateDomain)
+    valueState: S, symbolicPredicateState: SymbolicPredicateDomain)
   extends RoutingSemanticCartesianProductDomain[
     S, SymbolicPredicateDomain, SemanticAndSymbolicPredicateDomain[S]] {
 
@@ -293,24 +284,53 @@ case class SemanticAndSymbolicPredicateDomain[S <: SemanticDomain[S]](
     !isHandledBySecondDomain(id)
 
   def isHandledBySecondDomain(id: Identifier) =
-    id.getName.contains("pred")
+    id.typ == SymbolicPredicateDefType || id.typ == SymbolicPredicateInstType
 
-  def factory(_1: S, _2: SymbolicPredicateDomain) =
-    SemanticAndSymbolicPredicateDomain(_1, _2)
+  def factory(valueState: S, symbolicPredicateState: SymbolicPredicateDomain) =
+    SemanticAndSymbolicPredicateDomain(valueState, symbolicPredicateState)
+
+  def _1 = valueState
+
+  def _2 = symbolicPredicateState
 }
 
 case class SymbolicPredicateDefsDomain(
-    map: Map[String, SymbolicPredicateDef] = Map.empty[String, SymbolicPredicateDef],
+    map: Map[Identifier, SymbolicPredicateDef] = Map.empty[Identifier, SymbolicPredicateDef],
     isTop: Boolean = false,
     isBottom: Boolean = false,
-    defaultValue: SymbolicPredicateDef = SymbolicPredicateDef())
-  extends FunctionalDomain[String, SymbolicPredicateDef, SymbolicPredicateDefsDomain]
-  with DummySemanticDomain[SymbolicPredicateDefsDomain] {
+    defaultValue: SymbolicPredicateDef = SymbolicPredicateDef().top())
+  extends BoxedDomain[SymbolicPredicateDef, SymbolicPredicateDefsDomain]
+  with SemanticDomain[SymbolicPredicateDefsDomain] {
 
-  def get(key: String): SymbolicPredicateDef = map.getOrElse(key, defaultValue)
+  def get(key: Identifier): SymbolicPredicateDef = map.getOrElse(key, defaultValue)
 
-  def functionalFactory(value: Map[String, SymbolicPredicateDef], isBottom: Boolean, isTop: Boolean) =
+  def functionalFactory(
+      value: Map[Identifier, SymbolicPredicateDef],
+      isBottom: Boolean,
+      isTop: Boolean) =
     SymbolicPredicateDefsDomain(value, isTop, isBottom, defaultValue)
+
+  def removeVariable(variable: Identifier) = remove(variable)
+
+  def createVariable(variable: Identifier, typ: Type) =
+    add(variable, defaultValue.top())
+
+  def setToTop(variable: Identifier) =
+    add(variable, defaultValue.top())
+
+  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
+
+  def access(field: Identifier) = ???
+
+  def assume(expr: Expression) = this
+
+  def setArgument(variable: Identifier, expr: Expression) = ???
+
+  def assign(variable: Identifier, expr: Expression) = ???
+
+  def backwardAssign(oldPreState: SymbolicPredicateDefsDomain, variable: Identifier, expr: Expression) = ???
+
+  def backwardAccess(field: Identifier) = ???
 }
 
 case class SymbolicPredicateInstsDomain(
