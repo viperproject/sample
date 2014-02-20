@@ -27,17 +27,19 @@ trait ValueDrivenHeapState[
       abstractHeap: HeapGraph[S] = abstractHeap,
       generalValState: S = generalValState,
       expr: ExpressionSet = expr,
-      isTop: Boolean = isTop,
-      isBottom: Boolean = isBottom): T =
-    factory(abstractHeap, generalValState, expr, isTop, isBottom)
+      isTop: Boolean = isTop): T =
+    factory(abstractHeap, generalValState, expr, isTop)
 
   /** Builds a new value-driven heap state. */
   def factory(
       abstractHeap: HeapGraph[S],
       generalValState: S,
       expr: ExpressionSet,
-      isTop: Boolean = false,
-      isBottom: Boolean = false): T
+      isTop: Boolean = false): T
+
+  override def isBottom = {
+    abstractHeap.isBottom() || generalValState.lessEqual(generalValState.bottom())
+  }
 
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     if (variable.getType.isObject) {
@@ -468,10 +470,10 @@ trait ValueDrivenHeapState[
   def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): T = ???
 
   def top(): T =
-    factory(HeapGraph(), generalValState.top(), ExpressionSet(), isTop = true, isBottom = false)
+    factory(HeapGraph(), generalValState.top(), ExpressionSet(), isTop = true)
 
   def bottom(): T =
-    factory(HeapGraph(), generalValState.bottom(), expr, isTop = false, isBottom = true)
+    factory(HeapGraph(), generalValState.bottom(), expr, isTop = false)
 
   def lub(other: T): T = {
     if (isBottom || other.isTop)
@@ -497,8 +499,6 @@ trait ValueDrivenHeapState[
     var newRightGeneralValState = other.generalValState.removeVariables(removeIds)
     newRightGeneralValState = newRightGeneralValState.rename(renameMap)
     val newGeneralValState = generalValState.glb(newRightGeneralValState)
-    if (resultingAH.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
-      return bottom()
     factory(resultingAH, newGeneralValState, ExpressionSet())
   }
 
@@ -706,10 +706,7 @@ trait ValueDrivenHeapState[
   def prune(): T = {
     val (newAbstractHeap, idsToRemove) = abstractHeap.prune()
     val newGeneralValState = generalValState.removeVariables(idsToRemove)
-    if (newAbstractHeap.isBottom() || newGeneralValState.lessEqual(newGeneralValState.bottom()))
-      bottom()
-    else
-      copy(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
+    copy(abstractHeap = newAbstractHeap, generalValState = newGeneralValState)
   }
 
   override def toString: String =
@@ -749,17 +746,15 @@ object ValueDrivenHeapState {
       abstractHeap: HeapGraph[S],
       generalValState: S,
       expr: ExpressionSet,
-      isTop: Boolean = false,
-      override val isBottom: Boolean = false)
+      isTop: Boolean = false)
     extends ValueDrivenHeapState[S, Default[S]] {
 
     def factory(
         abstractHeap: HeapGraph[S] = abstractHeap,
         generalValState: S = generalValState,
         expr: ExpressionSet = expr,
-        isTop: Boolean = isTop,
-        isBottom: Boolean = isBottom): Default[S] = {
-      Default(abstractHeap, generalValState, expr, isTop, isBottom)
+        isTop: Boolean = isTop): Default[S] = {
+      Default(abstractHeap, generalValState, expr, isTop)
     }
   }
 }

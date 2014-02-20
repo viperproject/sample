@@ -14,8 +14,7 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
     abstractHeap: HeapGraph[EdgeStateDomain[S]],
     generalValState: EdgeStateDomain[S],
     expr: ExpressionSet,
-    isTop: Boolean = false,
-    override val isBottom: Boolean = false)
+    isTop: Boolean = false)
   extends PreciseValueDrivenHeapState[
     SemanticAndSymbolicPredicateDomain[S],
     ValueDrivenHeapStateWithSymbolicPredicates[S]] {
@@ -28,9 +27,8 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
       abstractHeap: HeapGraph[EdgeStateDomain[S]],
       generalValState: EdgeStateDomain[S],
       expr: ExpressionSet,
-      isTop: Boolean,
-      isBottom: Boolean) =
-    ValueDrivenHeapStateWithSymbolicPredicates(abstractHeap, generalValState, expr, isTop, isBottom)
+      isTop: Boolean) =
+    ValueDrivenHeapStateWithSymbolicPredicates(abstractHeap, generalValState, expr, isTop)
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     if (variable.typ.isObject) {

@@ -89,17 +89,15 @@ object PreciseValueDrivenHeapState {
       abstractHeap: HeapGraph[EdgeStateDomain[S]],
       generalValState: EdgeStateDomain[S],
       expr: ExpressionSet,
-      isTop: Boolean = false,
-      override val isBottom: Boolean = false)
+      isTop: Boolean = false)
     extends PreciseValueDrivenHeapState[S, Default[S]] {
 
     override def factory(
         abstractHeap: HeapGraph[EdgeStateDomain[S]],
         generalValState: EdgeStateDomain[S],
         expr: ExpressionSet,
-        isTop: Boolean,
-        isBottom: Boolean) =
-      Default[S](abstractHeap, generalValState, expr, isTop, isBottom)
+        isTop: Boolean) =
+      Default[S](abstractHeap, generalValState, expr, isTop)
   }
 
   private val nextGhostVariableId = new ThreadLocal[Int]

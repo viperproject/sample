@@ -168,28 +168,31 @@ case class HeapGraph[S <: SemanticDomain[S]](
     (resultingGraph, idsToRemove, renameMap.toMap)
   }
 
+  /** Returns true only if there exist certainly no concretizations
+    * of this abstract heap.
+    *
+    * The complexity of this method is O(V * F + E), where F is the number of
+    * maximum number of object fields that a object type may have.
+    * The old complexity was O(V * F * E).
+    */
   def isBottom(): Boolean = {
-    var result = false
-    for (locVar <- localVarVertices) {
-      val localVarEdges = outEdges(locVar)
-      result = result || localVarEdges.isEmpty
-    }
-    for (heapVertex <- vertices.filter(_.isInstanceOf[HeapVertex])) {
-      for (refField <- heapVertex.typ.objectFields) {
-        var presentEdges = Set.empty[Edge[S]]
-        for (outEdge <- outEdges(heapVertex)) {
-          outEdge.field match {
-            case None =>
-            case Some(f) => {
-              if (refField.getName.equals(f))
-                presentEdges = presentEdges + outEdge
-            }
-          }
-        }
-        result = result || presentEdges.isEmpty
-      }
-    }
-    return result
+    // Check whether there is a local variable vertex without any outgoing edge
+    val connectedLocalVarVertices = edges
+      .filter(_.source.isInstanceOf[LocalVariableVertex]).map(_.source)
+    if (localVarVertices.size > connectedLocalVarVertices.size) return true
+
+    // Check whether there is a heap vertex without any outgoing edge for
+    // at least one of its object fields
+    val persentFieldsPerHeapVertex = edges
+      .filter(_.source.isInstanceOf[HeapVertex])
+      .groupBy(_.source)
+      .mapValues(_.map(_.field))
+
+    heapVertices.exists(heapVertex => {
+      val fields = heapVertex.typ.objectFields.map(_.getName)
+      val presentFields = persentFieldsPerHeapVertex.getOrElse(heapVertex, Set())
+      fields.size > presentFields.size
+    })
   }
 
   private def minCommonSuperGraphBeforeJoin (other: HeapGraph[S], iso: Map[Vertex, Vertex]):
