@@ -69,7 +69,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    * @todo also return true if the taken paths are contradicting
    */
   def isBottom: Boolean =
-    heap.isBottom() || cond.lessEqual(cond.bottom())
+    heap.isBottom || cond.lessEqual(cond.bottom())
 
   /**
    * Prunes the conditional heap-graph, e.g., removes edges with a bottom state

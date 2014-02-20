@@ -175,7 +175,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     * maximum number of object fields that a object type may have.
     * The old complexity was O(V * F * E).
     */
-  def isBottom(): Boolean = {
+  def isBottom: Boolean = {
     // Check whether there is a local variable vertex without any outgoing edge
     val connectedLocalVarVertices = edges
       .filter(_.source.isInstanceOf[LocalVariableVertex]).map(_.source)

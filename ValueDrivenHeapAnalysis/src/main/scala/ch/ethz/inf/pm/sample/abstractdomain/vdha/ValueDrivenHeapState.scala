@@ -38,7 +38,7 @@ trait ValueDrivenHeapState[
       isTop: Boolean = false): T
 
   override def isBottom = {
-    abstractHeap.isBottom() || generalValState.lessEqual(generalValState.bottom())
+    abstractHeap.isBottom || generalValState.lessEqual(generalValState.bottom())
   }
 
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
