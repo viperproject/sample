@@ -103,10 +103,10 @@ case class SymbolicPredicateDomain(
     SymbolicPredicateDefsDomain,
     SymbolicPredicateDomain] {
 
-  def isHandledByFirstDomain(id: Identifier) =
+  def _1canHandle(id: Identifier) =
     id.typ == SymbolicPredicateInstType
 
-  def isHandledBySecondDomain(id: Identifier) =
+  def _2canHandle(id: Identifier) =
     id.typ == SymbolicPredicateDefType
 
   def factory(
@@ -179,111 +179,15 @@ case object SymbolicPredicateInstType extends AbstractType("PredInstance") {
   def isNumericalType = true
 }
 
-
-/**
- * Cartesian product supporting the operations of the semantic domain.
- *
- * Depending on the type or name of identifiers it receives, applies operations
- * to only one or both of the domains.
- *
- * @tparam T1 The type of the first domain
- * @tparam T2 The type of the second domain
- * @tparam T The type of the current domain
- */
-trait RoutingSemanticCartesianProductDomain[
-    T1 <: SemanticDomain[T1],
-    T2 <: SemanticDomain[T2],
-    T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
-  extends CartesianProductDomain[T1, T2, T] with SemanticDomain[T] { this: T =>
-
-  def isHandledByFirstDomain(id: Identifier): Boolean
-
-  def isHandledBySecondDomain(id: Identifier): Boolean
-
-  def getIds() = _1.getIds() ++ _2.getIds()
-
-  def factory(ids: Set[Identifier], firstOp: () => T1, secondOp: () => T2): T = {
-    val newFirst = if (ids.forall(isHandledByFirstDomain)) firstOp() else _1
-    val newSecond = if (ids.forall(isHandledBySecondDomain)) secondOp() else _2
-    factory(newFirst, newSecond)
-  }
-
-  def setToTop(variable: Identifier): T =
-    factory(Set(variable), () => _1.setToTop(variable), () => _2.setToTop(variable))
-
-  def assign(variable: Identifier, expr: Expression): T =
-    factory(Set(variable) ++ expr.getIdentifiers, () => _1.assign(variable, expr), () => _2.assign(variable, expr))
-
-  def setArgument(variable: Identifier, expr: Expression): T =
-    factory(Set(variable) ++ expr.getIdentifiers, () => _1.setArgument(variable, expr), () => _2.setArgument(variable, expr))
-
-  def assume(expr: Expression): T =
-    factory(expr.getIdentifiers, () => _1.assume(expr), () => _2.assume(expr))
-
-  def merge(r: Replacement): T = {
-    def filter(r: Replacement, f: Identifier => Boolean): Replacement = {
-      val result = new Replacement(
-        isPureExpanding = r.isPureExpanding,
-        isPureRemoving = r.isPureRemoving,
-        isPureRenaming = r.isPureRenaming)
-      r.value.map {
-        case (from, to) =>
-          if (from.forall(f) && to.forall(f))
-            result.value += from -> to
-      }
-      result
-    }
-
-    val firstReplacement = filter(r, isHandledByFirstDomain)
-    val secondReplacemnt = filter(r, isHandledBySecondDomain)
-    factory(_1.merge(firstReplacement), _2.merge(secondReplacemnt))
-  }
-
-  def createVariable(variable: Identifier, typ: Type): T =
-    factory(Set(variable), () => _1.createVariable(variable, typ), () => _2.createVariable(variable, typ))
-
-  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
-    val (a1, b1) = if (isHandledByFirstDomain(variable)) _1.createVariableForArgument(variable, typ, path) else (_1, Map.empty[Identifier, List[String]])
-    val (a2, b2) = if (isHandledBySecondDomain(variable)) _2.createVariableForArgument(variable, typ, path) else (_2, Map.empty[Identifier, List[String]])
-    (factory(a1, a2), b1 ++ b2)
-  }
-
-  def removeVariable(variable: Identifier): T =
-    factory(Set(variable), () => _1.removeVariable(variable), () => _2.removeVariable(variable))
-
-  def access(field: Identifier): T =
-    factory(Set(field), () => _1.access(field), () => _2.access(field))
-
-  def backwardAccess(field: Identifier): T =
-    factory(Set(field), () => _1.backwardAccess(field), () => _2.backwardAccess(field))
-
-  def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T =
-    factory(
-      Set(variable) ++ expr.getIdentifiers,
-      () => _1.backwardAssign(oldPreState._1, variable, expr),
-      () => _2.backwardAssign(oldPreState._2, variable, expr))
-
-  def getStringOfId(id: Identifier): String = {
-    if (isHandledByFirstDomain(id) && isHandledBySecondDomain(id))
-      "(" + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
-    else if (isHandledByFirstDomain(id))
-      _1.getStringOfId(id)
-    else if (isHandledBySecondDomain(id))
-      _2.getStringOfId(id)
-    else
-      ""
-  }
-}
-
 case class SemanticAndSymbolicPredicateDomain[S <: SemanticDomain[S]](
     valueState: S, symbolicPredicateState: SymbolicPredicateDomain)
   extends RoutingSemanticCartesianProductDomain[
     S, SymbolicPredicateDomain, SemanticAndSymbolicPredicateDomain[S]] {
 
-  def isHandledByFirstDomain(id: Identifier) =
-    !isHandledBySecondDomain(id)
+  def _1canHandle(id: Identifier) =
+    !_2canHandle(id)
 
-  def isHandledBySecondDomain(id: Identifier) =
+  def _2canHandle(id: Identifier) =
     id.typ == SymbolicPredicateDefType || id.typ == SymbolicPredicateInstType
 
   def factory(valueState: S, symbolicPredicateState: SymbolicPredicateDomain) =

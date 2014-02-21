@@ -594,6 +594,134 @@ trait ReducedProductDomain[
 /**
  * Cartesian product supporting the operations of the semantic domain.
  *
+ * It applies operations to neither, one or both domains depending on the
+ * identifiers in the expressions that the operations operate upon.
+ * Subclasses can define which domain can handle which identifiers.
+ *
+ * @tparam T1 The type of the first domain
+ * @tparam T2 The type of the second domain
+ * @tparam T The type of the current domain
+ */
+trait RoutingSemanticCartesianProductDomain[
+    T1 <: SemanticDomain[T1],
+    T2 <: SemanticDomain[T2],
+    T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
+  extends CartesianProductDomain[T1, T2, T] with SemanticDomain[T] { this: T =>
+
+  /** Returns true if the first domain can handle the given identifier. */
+  def _1canHandle(id: Identifier): Boolean
+
+  /** Returns true if the first domain can handle all identifiers
+    * in the given expressions.
+    */
+  private def _1canHandle(exps: Expression*): Boolean =
+    exps.flatMap(_.getIdentifiers).forall(_1canHandle)
+
+  /** Returns true if the second domain can handle the given identifier. */
+  def _2canHandle(id: Identifier): Boolean
+
+  /** Returns true if the second domain can handle all identifiers
+    * in the given expressions.
+    */
+  private def _2canHandle(exps: Expression*): Boolean =
+    exps.flatMap(_.getIdentifiers).forall(_2canHandle)
+
+  /**
+   * Constructs a new state with `op_1` applied to the state of the first
+   * domain only if it can handle the identifiers in the expression passed
+   * as an argument. Analogous for `op_2`.
+   *
+   * @param exp the expression to supply to the operations
+   * @param op_1 to apply to the first domain if it can handle `exp`
+   * @param op_2 to apply to the second domain if it can handle `exp`
+   * @tparam E the type of the expression
+   * @return the new state
+   */
+  def factory[E <: Expression](exp: E, op_1: E => T1, op_2: E => T2): T = {
+    factory(
+      if (_1canHandle(exp)) op_1(exp) else _1,
+      if (_2canHandle(exp)) op_2(exp) else _2)
+  }
+
+  /** Analogous to `factory`, but with two expressions passed as arguments. */
+  def factory[E1 <: Expression, E2 <: Expression](
+      a: E1, b: E2, op_1: (E1, E2) => T1, op_2: (E1, E2) => T2): T = {
+    factory(
+      if (_1canHandle(a, b)) op_1(a, b) else _1,
+      if (_2canHandle(a, b)) op_2(a, b) else _2)
+  }
+
+  def getIds() = _1.getIds() ++ _2.getIds()
+
+  def setToTop(variable: Identifier): T =
+    factory(variable, _1.setToTop, _2.setToTop)
+
+  def assign(variable: Identifier, expr: Expression): T =
+    factory(variable, expr, _1.assign, _2.assign)
+
+  def setArgument(variable: Identifier, expr: Expression): T =
+    factory(variable, expr, _1.setArgument, _2.setArgument)
+
+  def assume(expr: Expression): T =
+    factory(expr, _1.assume, _2.assume)
+
+  def merge(r: Replacement): T = {
+    def filter(r: Replacement, f: Identifier => Boolean): Replacement = {
+      val result = new Replacement(
+        isPureExpanding = r.isPureExpanding,
+        isPureRemoving = r.isPureRemoving,
+        isPureRenaming = r.isPureRenaming)
+      r.value.map {
+        case (from, to) =>
+          if (from.forall(f) && to.forall(f))
+            result.value += from -> to
+      }
+      result
+    }
+
+    val firstReplacement = filter(r, _1canHandle)
+    val secondReplacement = filter(r, _2canHandle)
+    factory(_1.merge(firstReplacement), _2.merge(secondReplacement))
+  }
+
+  def createVariable(variable: Identifier, typ: Type): T =
+    factory[Identifier](variable, _1.createVariable(_, typ), _2.createVariable(_, typ))
+
+  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
+    val (a1, b1) = if (_1canHandle(variable)) _1.createVariableForArgument(variable, typ, path) else (_1, Map.empty[Identifier, List[String]])
+    val (a2, b2) = if (_2canHandle(variable)) _2.createVariableForArgument(variable, typ, path) else (_2, Map.empty[Identifier, List[String]])
+    (factory(a1, a2), b1 ++ b2)
+  }
+
+  def removeVariable(variable: Identifier): T =
+    factory(variable, _1.removeVariable, _2.removeVariable)
+
+  def access(field: Identifier): T =
+    factory(field, _1.access, _2.access)
+
+  def backwardAccess(field: Identifier): T =
+    factory(field, _1.backwardAccess, _2.backwardAccess)
+
+  def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T =
+    factory[Identifier, Expression](variable, expr,
+      _1.backwardAssign(oldPreState._1, _, _),
+      _2.backwardAssign(oldPreState._2, _, _))
+
+  def getStringOfId(id: Identifier): String = {
+    if (_1canHandle(id) && _2canHandle(id))
+      "(" + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
+    else if (_1canHandle(id))
+      _1.getStringOfId(id)
+    else if (_2canHandle(id))
+      _2.getStringOfId(id)
+    else
+      ""
+  }
+}
+
+/**
+ * Cartesian product supporting the operations of the semantic domain.
+ *
  * @tparam T1 The type of the first domain
  * @tparam T2 The type of the second domain
  * @tparam T The type of the current domain
@@ -603,48 +731,11 @@ trait SemanticCartesianProductDomain[
     T1 <: SemanticDomain[T1],
     T2 <: SemanticDomain[T2],
     T <: SemanticCartesianProductDomain[T1, T2, T]]
-  extends CartesianProductDomain[T1, T2, T] with SemanticDomain[T] { this: T =>
+  extends RoutingSemanticCartesianProductDomain[T1, T2, T] { this: T =>
 
-  def getIds() = _1.getIds() ++ _2.getIds()
+  def _1canHandle(id: Identifier) = true
 
-  def setToTop(variable: Identifier): T =
-    factory(_1.setToTop(variable), _2.setToTop(variable))
-
-  def assign(variable: Identifier, expr: Expression): T =
-    factory(_1.assign(variable, expr), _2.assign(variable, expr))
-
-  def setArgument(variable: Identifier, expr: Expression): T =
-    factory(_1.setArgument(variable, expr), _2.setArgument(variable, expr))
-
-  def assume(expr: Expression): T =
-    factory(_1.assume(expr), _2.assume(expr))
-
-  def merge(r: Replacement): T =
-    factory(_1.merge(r), _2.merge(r))
-
-  def createVariable(variable: Identifier, typ: Type): T =
-    factory(_1.createVariable(variable, typ), _2.createVariable(variable, typ))
-
-  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = {
-    val (a1, b1) = _1.createVariableForArgument(variable, typ, path)
-    val (a2, b2) = _2.createVariableForArgument(variable, typ, path)
-    (factory(a1, a2), b1 ++ b2)
-  }
-
-  def removeVariable(variable: Identifier): T =
-    factory(_1.removeVariable(variable), _2.removeVariable(variable))
-
-  def access(field: Identifier): T =
-    factory(_1.access(field), _2.access(field))
-
-  def backwardAccess(field: Identifier): T =
-    factory(_1.backwardAccess(field), _2.backwardAccess(field))
-
-  def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T =
-    factory(_1.backwardAssign(oldPreState._1, variable, expr), _2.backwardAssign(oldPreState._2, variable, expr))
-
-  def getStringOfId(id: Identifier): String =
-    "( " + _1.getStringOfId(id) + ", " + _2.getStringOfId(id) + ")"
+  def _2canHandle(id: Identifier) = true
 }
 
 object SemanticCartesianProductDomain {
@@ -654,6 +745,7 @@ object SemanticCartesianProductDomain {
     def factory(_1: T1, _2: T2): Default[T1, T2] = Default(_1, _2)
   }
 }
+
 
 /**
  * Reduced Cartesian product supporting the operations of the semantic domain.
