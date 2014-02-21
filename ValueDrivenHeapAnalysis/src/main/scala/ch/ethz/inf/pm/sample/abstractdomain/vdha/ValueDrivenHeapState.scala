@@ -320,7 +320,6 @@ trait ValueDrivenHeapState[
       }
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
-      val newExpr = new ExpressionSet(rightExp.getType).add(leftAccPath)
       copy(abstractHeap = resultingAH, isTop = false).prune()
     } else {
       assert(rightExp.getType.isNumericalType, "only numerical values allowed")
@@ -378,20 +377,17 @@ trait ValueDrivenHeapState[
           val rightCond = rPath.condition
           var renameFrom = List.empty[EdgeLocalIdentifier]
           var renameTo = List.empty[EdgeLocalIdentifier]
-          val idsToRename = rightCond.getIds().collect({
-            case id: EdgeLocalIdentifier => id
-          })
+          val idsToRename = edgeLocalIds(rightCond)
           for (elId <- idsToRename) {
             renameFrom = elId :: renameFrom
             renameTo = elId.copy(accPath = List(field))(elId.pp) :: renameTo
           }
           var newEdgeState = rightCond.rename(renameFrom, renameTo)
           if (renameTo.isEmpty) {
-            // This is the case when RHS is null. Hence, we need to create source edge-local identifiers in the right
-            // state in order to preserve the once from LHS.
-            val sourceIdsOfLHS = leftCond.getIds().collect({
-              case id: EdgeLocalIdentifier if id.accPath.isEmpty => id
-            })
+            // This is the case when RHS is null. Hence, we need to create
+            // source edge-local identifiers in the right state in order to
+            // preserve the ones from LHS.
+            val sourceIdsOfLHS = edgeLocalIds(leftCond).filter(_.isForSource)
             newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS)
           }
           leftCond = leftCond.createVariables(renameTo.toSet)

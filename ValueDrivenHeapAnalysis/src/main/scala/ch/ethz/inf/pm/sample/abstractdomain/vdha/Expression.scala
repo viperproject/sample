@@ -38,6 +38,12 @@ case class EdgeLocalIdentifier
 
   /** An edge-local identifier always represents a field of a single object. */
   def representsSingleVariable(): Boolean = true
+
+  /** Whether the edge-local identifier refers to a field of the source. */
+  def isForSource: Boolean = accPath.isEmpty
+
+  /** Whether the edge-local identifier refers to a field of the target. */
+  def isForTarget: Boolean = !accPath.isEmpty
 }
 
 object EdgeLocalIdentifier {
