@@ -10,6 +10,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.MethodDeclaration
 import ch.ethz.inf.pm.sample.AnalysisUnitContext
 import semper.sil.ast.Program
 import java.nio.file.Path
+import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisRunner.S
+import java.io.File
 
 case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
   def run(path: Path): List[AnalysisResult[_]] = {
@@ -46,15 +48,24 @@ case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     // Analyze
     compiler.allMethods.map(analysis.analyze)
   }
+
+  def main(args: Array[String]) {
+    run(new File(args(0)).toPath)
+  }
 }
 
 object AnalysisRunner {
   type S = ApronInterface.Default
-
-  val DefaultAnalysis = Analysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)
-  val PreciseAnalysis = Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)
-  val SymbolicPredicateAnalysis = Analysis[ValueDrivenHeapStateWithSymbolicPredicates[S]](SymbolicPredicateEntryStateBuilder)
 }
+
+object DefaultAnalysisRunner extends AnalysisRunner(
+  Analysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {}
+
+object PreciseAnalysisRunner extends AnalysisRunner(
+  Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
+
+object SymbolicPredicateAnalysisRunner extends AnalysisRunner(
+  Analysis[ValueDrivenHeapStateWithSymbolicPredicates[S]](SymbolicPredicateEntryStateBuilder)) {}
 
 trait EntryStateBuilder[S <: State[S]] {
   def topState: S

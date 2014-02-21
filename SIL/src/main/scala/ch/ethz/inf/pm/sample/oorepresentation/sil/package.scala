@@ -54,7 +54,7 @@ package object sil {
     // Value-driven heap analysis
     val ValueHeapIdentifier = dom.vdha.ValueHeapIdentifier
 
-    // Simplon specific types and values
+    // Simplon-specific types and values
     type RefType = rep.sil.RefType
     type ContractAwareFunctionCall = SilFunctionCall
     type ContractAwareMethodCall = SilMethodCall

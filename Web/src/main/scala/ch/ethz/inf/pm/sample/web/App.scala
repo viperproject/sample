@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.web
 
 import org.scalatra._
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{AnalysisResult, AnalysisRunner}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{PreciseAnalysisRunner, AnalysisResult}
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
@@ -43,8 +43,7 @@ class App extends ScalatraServlet {
     fileProvider.testFiles.find(_.toString == testFileString) match {
       case Some(testFile) =>
         // TODO: Make it configurable
-        val runner = AnalysisRunner(AnalysisRunner.PreciseAnalysis)
-        resultOption = Some(runner.run(testFile.path).head)
+        resultOption = Some(PreciseAnalysisRunner.run(testFile.path).head)
         redirect("/cfg")
       case None =>
         // TODO: Should probably output an error message

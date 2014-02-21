@@ -70,7 +70,7 @@ object DefaultSampleConverter extends SampleConverter {
         case _ =>
           sil.LocalVar(name)(go(id.typ), go(id.pp))
       }
-    case id@sample.AccessPathIdentifier(path) =>
+    case id @ sample.AccessPathIdentifier(path) =>
       // All proper prefixes of the access path are references
       val types = (0 until path.size - 1).map(id => sil.Ref) ++ List(go(id.getType))
       // Augment the access path with corresponding types

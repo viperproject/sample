@@ -36,7 +36,7 @@ class SampleVerifier() extends Verifier {
   def parseCommandLine(args: Seq[String]): Unit = {}
 
   def verify(program: Program): VerificationResult = {
-    AnalysisRunner(AnalysisRunner.PreciseAnalysis).run(program)
+    PreciseAnalysisRunner.run(program)
 
     // TODO: Maybe check for bottom at the end
     if (Reporter.seenErrors.isEmpty)
