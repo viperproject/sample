@@ -149,7 +149,7 @@ case class ConstrainedPolyhedra(
 		  if (!linCons.isEmpty) {
 			  newState = new Abstract1(domain, linCons.toArray)
 		  }
-		  new ConstrainedPolyhedra(newState, cp.domain, cp.coefficients, cp.numOfVariables, cp.setOfStringOfID, this.setOfIdentifiers, this.isPureBottom, cp.getIds)
+		  new ConstrainedPolyhedra(newState, cp.domain, cp.coefficients, cp.numOfVariables, cp.setOfStringOfID, this.setOfIdentifiers, this.isPureBottom, cp.ids)
 	  }
 }
 

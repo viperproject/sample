@@ -225,8 +225,7 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
 
   def getStringOfId(id: Identifier): String = this.get(id).toString
 
-  def getIds = map.keySet
-
+  def ids = map.keySet
 }
 
 /**
@@ -651,7 +650,7 @@ trait RoutingSemanticCartesianProductDomain[
       if (_2canHandle(a, b)) op_2(a, b) else _2)
   }
 
-  def getIds() = _1.getIds() ++ _2.getIds()
+  def ids = _1.ids ++ _2.ids
 
   def setToTop(variable: Identifier): T =
     factory(variable, _1.setToTop, _2.setToTop)

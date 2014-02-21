@@ -99,7 +99,7 @@ trait ValueDrivenHeapState[
             typeStack.push(objectField.getType)
       }
       var newVertices = abstractHeap.vertices.filter(_.isInstanceOf[LocalVariableVertex])
-      var idsToCreate = generalValState.getIds().filter(_.isInstanceOf[VariableIdentifier])
+      var idsToCreate = generalValState.ids.filter(_.isInstanceOf[VariableIdentifier])
       // Add null vertex and LocalVariableVertex that represents the argument under creation
       newVertices = newVertices ++ Set(NullVertex, LocalVariableVertex(variable))
       // The vertex version (bit of a hack but more efficient than creating new HeapGraph, needs refactoring)
@@ -290,7 +290,7 @@ trait ValueDrivenHeapState[
             // We build the replacement that for each ValueHeapIdentifier corresponding to the vertex, expands it to
             // target EdgeLocalIdentifier.
             val repl = new Replacement()
-            for (id <- leftCond.getIds().collect({
+            for (id <- leftCond.ids.collect({
               case id: ValueHeapIdentifier if id.obj.equals(v.vertex) => id
             })) {
               repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(leftAccPath.path.last), id)))
@@ -504,7 +504,7 @@ trait ValueDrivenHeapState[
       for (rEdge <- r.edges) {
         areGraphsIdentical = areGraphsIdentical && {
           val edgeSet = l.edges.filter(lEdge => lEdge.source.equals(rEdge.source) && lEdge.target.equals(rEdge.target))
-          edgeSet.size == 1 && edgeSet.head.state.getIds().equals(rEdge.state.getIds())
+          edgeSet.size == 1 && edgeSet.head.state.ids == rEdge.state.ids
         }
       }
       areGraphsIdentical
@@ -591,7 +591,7 @@ trait ValueDrivenHeapState[
       // Updating EdgeLocalIdentifiers with empty path
       var updatedEdgeState = e.state.merge(repl)
       val vtx = if (e.source.isInstanceOf[LocalVariableVertex]) e.target else e.source
-      for (valHeapId <- updatedEdgeState.getIds().collect({
+      for (valHeapId <- updatedEdgeState.ids.collect({
         case id: ValueHeapIdentifier if id.obj == vtx => id
       })) {
         val edgLocId = EdgeLocalIdentifier(List.empty[String], valHeapId.field, valHeapId.getType)(valHeapId.pp)
@@ -599,7 +599,7 @@ trait ValueDrivenHeapState[
       }
       // Updating EdgeLocalIdentifiers with non-empty path
       if (e.target.isInstanceOf[HeapVertex] && !e.source.isInstanceOf[LocalVariableVertex]) {
-        for (valHeapId <- updatedEdgeState.getIds().collect({
+        for (valHeapId <- updatedEdgeState.ids.collect({
           case id: ValueHeapIdentifier if id.obj == e.target => id
         })) {
           val edgLocId = EdgeLocalIdentifier(List(e.field match {

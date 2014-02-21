@@ -102,7 +102,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       newState = newState.rename(renameFrom, renameTo)
 
       // Now we remove all edge-local identifiers that can not be the targets.
-      val elIdsToRemove = newState.getIds().filter(_.isInstanceOf[EdgeLocalIdentifier]) -- renameTo
+      val elIdsToRemove = newState.ids.filter(_.isInstanceOf[EdgeLocalIdentifier]) -- renameTo
       newState = newState.removeVariables(elIdsToRemove.toSet[Identifier])
 
       recurse(path.tail, newState)

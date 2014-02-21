@@ -49,23 +49,23 @@ object Utilities {
   implicit class ExtendedSemanticDomain[S <: SemanticDomain[S]](state: S) {
     /** Returns all edge-local identifiers in the state. */
     def edgeLocalIds: Set[EdgeLocalIdentifier] =
-      state.getIds().collect({ case id: EdgeLocalIdentifier => id })
+      state.ids.collect({ case id: EdgeLocalIdentifier => id })
 
     /** Returns all access path identifiers in th state. */
     def accPathIds: Set[AccessPathIdentifier] =
-      state.getIds().collect({ case id: AccessPathIdentifier => id })
+      state.ids.collect({ case id: AccessPathIdentifier => id })
 
     /** Returns all edge-local and access path identifiers in the state. */
     def edgeLocalAndAccessPathIds: Set[Identifier] =
-      state.getIds().filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
+      state.ids.filter(id => id.isInstanceOf[EdgeLocalIdentifier] ||
         id.isInstanceOf[AccessPathIdentifier])
 
     /** Returns the GLB of this and another state, but takes the union
       * of their identifiers.
       */
     def glbPreserveIds(right: S): S = {
-      val newRightIds = state.edgeLocalAndAccessPathIds diff right.getIds()
-      val newLeftIds = right.edgeLocalAndAccessPathIds diff state.getIds()
+      val newRightIds = state.edgeLocalAndAccessPathIds diff right.ids
+      val newLeftIds = right.edgeLocalAndAccessPathIds diff state.ids
       val newLeft = state.createVariables(newLeftIds)
       val newRight = right.createVariables(newRightIds)
       newLeft.glb(newRight)

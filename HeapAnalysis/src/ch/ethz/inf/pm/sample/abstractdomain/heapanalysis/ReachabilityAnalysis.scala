@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 object ReachabilityAnalysis {
 
   def getUnreachableLocations[I <: NonRelationalHeapIdentifier[I]](env:VariableEnv[I],store:HeapEnv[I]): Set[I] = {
-    store.getIds -- getReachableLocations(env,store)
+    store.ids -- getReachableLocations(env,store)
   }
 
   def getReachableLocations[I <: NonRelationalHeapIdentifier[I]](env:VariableEnv[I],store:HeapEnv[I]): Set[I] = {
@@ -28,7 +28,7 @@ object ReachabilityAnalysis {
     while (!toVisit.isEmpty) {
       val cur = toVisit.head
       val reachableViaReferences = store.get(cur).value
-      val reachableViaFieldAccessEtc = store.getIds.filter( _.getReachableFromIds.contains(cur) )
+      val reachableViaFieldAccessEtc = store.ids.filter( _.getReachableFromIds.contains(cur) )
       val newSuccessors = reachableViaReferences ++ reachableViaFieldAccessEtc -- reachable
       reachable = reachable ++ newSuccessors
       toVisit = toVisit.tail ++ newSuccessors
@@ -41,7 +41,7 @@ object ReachabilityAnalysis {
     @Deprecated
     var result : List[String] = Nil
 	  var b : Boolean = false
-	  for(id <- env.getIds) {
+	  for(id <- env.ids) {
 	 	  if(id.isInstanceOf[VariableIdentifier]) {
          reachable(id, to, env, store) match {
            case (l, true) =>

@@ -329,9 +329,9 @@ object ShowGraph {
     var idToVertix: Map[Identifier, Object] = Map.empty[Identifier, Object]
     try {
       var index: Int = 0
-      val sIds = s.getIds()
-      val heapIds = heap.getIds()
-      val ids = s.getIds() ++ heap.getIds()
+      val sIds = s.ids
+      val heapIds = heap.ids
+      val ids = s.ids ++ heap.ids
 
       //Create the nodes for variables
       for (node <- ids) {
@@ -421,7 +421,7 @@ object ShowGraph {
 
     try {
       var index: Int = 0
-      //      val ids = s.getIds() ++ heap.getIds()
+      //      val ids = s.ids ++ heap.ids
       val vertices = state.abstractHeap.vertices
       //Create the nodes for variables
       for (node <- vertices) {

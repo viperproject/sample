@@ -124,7 +124,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
   def copyState():Abstract1 = new Abstract1(domain,instantiateState())
 
-  def getIds(): Set[Identifier] = env
+  def ids: Set[Identifier] = env
 
   /**
    *
@@ -189,7 +189,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     assert(from.distinct.equals(from) && to.distinct.equals(to))
     if (from.isEmpty || this.isBottom)
       return this
-//    if (!(from.toSet[Identifier] subsetOf this.getIds()))
+//    if (!(from.toSet[Identifier] subsetOf this.ids))
 //      throw new Exception("Identifiers that should be renamed are not present.")
     state match {
       case None => {
@@ -319,7 +319,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
     } else if (variable.getType.isNumericalType) {
 
-      //if (!getIds().contains(variable)) {
+      //if (!ids.contains(variable)) {
       //  println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
       //  return bottom()
       //}
@@ -339,7 +339,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         var newEnv = newState.getEnvironment
         for (id <- Normalizer.getIdsForExpression(someExpr)) {
 
-          //if (!someState.getIds().contains(id)) {
+          //if (!someState.ids.contains(id)) {
           //  println("It is forbidden to use a non-existing identifier on the right side of an assignment! Going to bottom.")
           //  return bottom()
           //}
@@ -413,7 +413,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       if (!id.getType.isNumericalType) {
         return this
       }
-      if (!getIds().contains(id)) {
+      if (!ids.contains(id)) {
         println("It is forbidden to use a non-existing identifier in an assumption! Going to bottom.")
         return bottom()
       }
@@ -605,7 +605,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       }
     }
 
-    val newEnvironment = result.getIds() -- r.value.map(_._1).flatten ++ r.value.map(_._2).flatten -- tempIdentifiers
+    val newEnvironment = result.ids -- r.value.map(_._1).flatten ++ r.value.map(_._2).flatten -- tempIdentifiers
 
     // TODO: Hacked in bug fix, but this it should be investigated why it occures.
     // There are cases where merge does not remove from the apron state variables that should be removed, leading to
@@ -631,20 +631,20 @@ trait ApronInterface[T <: ApronInterface[T]]
     if (other.isBottom)
       return this
     if (isTop)
-      return factory(other.removeVariables(getIds().map(_.getName).toArray).state, domain, env = getIds() ++ other.getIds())
+      return factory(other.removeVariables(ids.map(_.getName).toArray).state, domain, env = ids ++ other.ids)
     if (other.isTop)
-      return factory(removeVariables(other.getIds().map(_.getName).toArray).state, domain, env = getIds() ++ other.getIds())
+      return factory(removeVariables(other.ids.map(_.getName).toArray).state, domain, env = ids ++ other.ids)
 
     try {
       // NEW JOIN that supports different environments
       var leftState = instantiateState()
       var rightState = other.instantiateState()
 
-      if (leftState == rightState) return factory(Some(leftState),domain,env = getIds() ++ other.getIds())
+      if (leftState == rightState) return factory(Some(leftState),domain,env = ids ++ other.ids)
 
       // First we compute the common variables.
       if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-        val commonVariables = getIds().intersect(other.getIds()).map(_.getName)
+        val commonVariables = ids.intersect(other.ids).map(_.getName)
         val commonRepVarsLeft: Array[String] = leftState.getEnvironment.getVars.filter( commonVariables.contains(_) )
         val commonRepVarsRight: Array[String] = rightState.getEnvironment.getVars.filter( commonVariables.contains(_) )
         // We need to forget the common variables in each state, otherwise we would be unsound
@@ -658,9 +658,9 @@ trait ApronInterface[T <: ApronInterface[T]]
         // The result state is stored in the leftState in order to avoid creation of new state object.
         leftState.join(domain, rightState)
 
-        factory(Some(leftState), domain, env = getIds() ++ other.getIds())
+        factory(Some(leftState), domain, env = ids ++ other.ids)
       } else {
-        factory(Some(leftState.joinCopy(domain, rightState)), domain, env = getIds() ++ other.getIds())
+        factory(Some(leftState.joinCopy(domain, rightState)), domain, env = ids ++ other.ids)
       }
     } catch {
       case a:apron.ApronException => {
@@ -671,7 +671,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
   override def glb(other: T): T = {
 
-    val newEnv: Set[Identifier] =  getIds() intersect other.getIds()
+    val newEnv: Set[Identifier] =  ids intersect other.ids
     if (this == other)
       return this
     if (isPureBottom)
@@ -679,15 +679,15 @@ trait ApronInterface[T <: ApronInterface[T]]
     if (other.isPureBottom)
       return other
     if (other.isTop)
-      return removeVariables((getIds -- other.getIds).map(_.getName).toArray)
+      return removeVariables((ids -- other.ids).map(_.getName).toArray)
     if (isTop)
-      return other.removeVariables((other.getIds -- getIds).map(_.getName).toArray)
+      return other.removeVariables((other.ids -- ids).map(_.getName).toArray)
 
     val leftState = instantiateState()
     val rightState = other.instantiateState()
     if (!leftState.getEnvironment.equals(rightState.getEnvironment)) {
-      val leftVars = leftState.getEnvironment.getVars.toSet[String] ++ getIds().map(_.getName)
-      val rightVars = rightState.getEnvironment.getVars.toSet[String] ++ other.getIds().map(_.getName)
+      val leftVars = leftState.getEnvironment.getVars.toSet[String] ++ ids.map(_.getName)
+      val rightVars = rightState.getEnvironment.getVars.toSet[String] ++ other.ids.map(_.getName)
       var result = leftState.unifyCopy(domain, rightState)
       val uncommonVariables: Array[String] = (((leftVars union rightVars) intersect result.getEnvironment.getVars.toSet[String]) diff (leftVars intersect rightVars)).toArray[String]
       // We remove the variables taht are not in common. (As they are bottom values in the other state)
@@ -707,9 +707,9 @@ trait ApronInterface[T <: ApronInterface[T]]
     if (other.isBottom)
       return this
     if (isTop)
-      return factory(other.removeVariables(getIds().map(_.getName).toArray).state, domain, env = getIds() ++ other.getIds())
+      return factory(other.removeVariables(ids.map(_.getName).toArray).state, domain, env = ids ++ other.ids)
     if (other.isTop)
-      return factory(removeVariables(other.getIds().map(_.getName).toArray).state, domain, env = getIds() ++ other.getIds())
+      return factory(removeVariables(other.ids.map(_.getName).toArray).state, domain, env = ids ++ other.ids)
 
     val leftState = instantiateState()
     val rightState = other.instantiateState()
@@ -718,10 +718,10 @@ trait ApronInterface[T <: ApronInterface[T]]
       val env = unionOfEnvironments(leftState.getEnvironment, rightState.getEnvironment)
       val newLeft = leftState.changeEnvironmentCopy(domain, env, false)
       val newRight = rightState.changeEnvironmentCopy(domain, env, false)
-      val res = factory(Some(newLeft.widening(domain, newRight)), domain, env = getIds() ++ other.getIds())
+      val res = factory(Some(newLeft.widening(domain, newRight)), domain, env = ids ++ other.ids)
       res
     } else {
-      val res = factory(Some(leftState.widening(domain, rightState)), domain, env = getIds() ++ other.getIds())
+      val res = factory(Some(leftState.widening(domain, rightState)), domain, env = ids ++ other.ids)
       res
     }
 
@@ -734,11 +734,11 @@ trait ApronInterface[T <: ApronInterface[T]]
     if (this.isBottom)
       return true
     if (r.isTop)
-      return (this.getIds() -- r.getIds()).isEmpty
+      return (this.ids -- r.ids).isEmpty
     if (r.isBottom)
       return false
     if (this.isTop)
-      return !(r.getIds() -- this.getIds()).isEmpty
+      return !(r.ids -- this.ids).isEmpty
 
     val leftState = this.instantiateState()
     val rightState = r.instantiateState()
@@ -775,7 +775,7 @@ trait ApronInterface[T <: ApronInterface[T]]
   }
 
   def expand(source: Identifier, target: Set[Identifier]): T = {
-    if (!target.isEmpty && getIds().contains(source)) {
+    if (!target.isEmpty && ids.contains(source)) {
       val newState = state match {
         case None => None
         case Some(x) =>

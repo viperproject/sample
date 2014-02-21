@@ -92,7 +92,7 @@ case class Edge[S <: SemanticDomain[S]](
       case obj: HeapVertex =>
         val valueHeapId = ValueHeapIdentifier(obj, valueField)
 
-        require(state.getIds().contains(valueHeapId),
+        require(state.ids.contains(valueHeapId),
           s"edge state must already contain value heap identifier $valueHeapId")
 
         newState = state

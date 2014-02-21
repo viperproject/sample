@@ -1067,7 +1067,7 @@ case class AbstractState[
   def pruneVariables(filter:Identifier => Boolean) : AbstractState[N, H, I] = {
 
     var curState = this._1
-    for (id <- this._1.getIds()) {
+    for (id <- this._1.ids) {
       id match {
 
         case va:Identifier =>
@@ -1085,7 +1085,7 @@ case class AbstractState[
 
   override def undoPruneVariables(unprunedPreState: AbstractState[N, H, I], filter:Identifier => Boolean) : AbstractState[N, H, I] = {
     var curState = this._1
-    for (id <- unprunedPreState._1.getIds()) {
+    for (id <- unprunedPreState._1.ids) {
       id match {
         case va:Identifier =>
           if (filter(va)) {

@@ -147,12 +147,8 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
    */
   def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) : T
 
-  /**
-  This method returns all the ids over whom the SemanticDomain is defined
-
-   @return all ids contained in the abstract domain
-    */
-  def getIds(): Set[Identifier]
+  /** Returns all identifiers over whom the `SemanticDomain` is defined. */
+  def ids: Set[Identifier]
 
   /**
    * This method renames variable form the list <code>form</code> to variables form the list <code>to</code>
@@ -183,7 +179,7 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
   * @tparam T the self-type of the lattice
   */
 trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T] { this: T =>
-  def getIds() = Set.empty
+  def ids = Set.empty
 
   def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression) = this
 

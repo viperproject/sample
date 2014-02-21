@@ -108,7 +108,7 @@ trait HeapVertex extends Vertex {
     val edgeLocalId = EdgeLocalIdentifier(valueField)
     val valueHeapId = ValueHeapIdentifier(this, valueField)
 
-    require(state.getIds().contains(valueHeapId),
+    require(state.ids.contains(valueHeapId),
       s"state must already contain value heap identifier $valueHeapId")
 
     state

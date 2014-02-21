@@ -418,7 +418,7 @@ object Annotation {
  
  	private def exhaleReachable[P <: PermissionsDomain[P]](id : Identifier, state : P, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier], s : SymbolicValue) : P = {
  	  var result=state;
- 	  val addresses= state.getIds()++store.getIds++env.getIds
+    val addresses = state.ids ++ store.ids ++ env.ids
  	  val it=addresses.iterator;
  	  while(it.hasNext) { //the for(... <- ...) was not effective for debugging purposes :(
  		  it.next match {
@@ -440,7 +440,7 @@ object Annotation {
    	
   private def inhaleReachable[P <: PermissionsDomain[P]](id : Identifier, state : P, env : VariableEnv[ProgramPointHeapIdentifier], store : HeapEnv[ProgramPointHeapIdentifier], s : SymbolicValue) : P = {
  	  var result=state;
- 	  val addresses=state.getIds()++store.getIds++env.getIds
+    val addresses = state.ids ++ store.ids ++ env.ids
  	  val it=addresses.iterator;
  	  while(it.hasNext) { //the for(... <- ...) was not effective for debugging purposes :(
  		  it.next match {

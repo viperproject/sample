@@ -313,12 +313,8 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    */
   def backwardAssign(oldPreState: T, variable: Assignable, expr: Expression): (T, Replacement)
 
-  /**
-   * This method returns all the ids over whom the HeapDomain is defined
-   *
-   * @return all ids contained in the heap
-   */
-  def getIds(): scala.collection.Set[Identifier]
+  /** Returns all identifiers over whom the `HeapDomain` is defined. */
+  def ids: scala.collection.Set[Identifier]
 
   /**
    * Creates the heap structure for an empty collection

@@ -38,7 +38,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def getHeap() : H = return d2;
   def getSemanticDomain() : N = return d1;
 
-  def getIds() = this._1.getIds()++this._2.getIds();
+  def ids = _1.ids ++ _2.ids
 
   def factory() = {
     //    assert(d1 != null);
@@ -784,11 +784,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val keyId = result.d2.getCollectionKeyByTuple(tupleId)
     val valueId = result.d2.getCollectionValueByTuple(tupleId)
 
-    if (!result.getIds().contains(keyId.asInstanceOf[Identifier]))
+    if (!result.ids.contains(keyId.asInstanceOf[Identifier]))
       result = applyToAssignable[T](keyId, result, _.createVariable(_, keyId.getType))
     result = applyToAssignable[T](keyId, result, _.assign(_, key))
 
-    if (!result.getIds().contains(valueId.asInstanceOf[Identifier]))
+    if (!result.ids.contains(valueId.asInstanceOf[Identifier]))
       result = applyToAssignable[T](valueId, result, _.createVariable(_, valueId.getType))
     result = applyToAssignable[T](valueId, result, _.assign(_, value))
 

@@ -545,7 +545,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     }
   }
 
-  def getIds(): Set[Identifier] = null
+  def ids: Set[Identifier] = null
 
   override def wideningWithReplacement(other: TVSHeap): (TVSHeap, Replacement) = (this, new Replacement)
 
