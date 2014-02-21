@@ -375,23 +375,20 @@ trait ValueDrivenHeapState[
         // The condition of the left path is not bottom. (i.e. can be possibly assigned)
         for (rPath <- rightPaths) {
           val rightCond = rPath.condition
-          var renameFrom = List.empty[EdgeLocalIdentifier]
-          var renameTo = List.empty[EdgeLocalIdentifier]
-          val idsToRename = rightCond.edgeLocalIds
-          for (elId <- idsToRename) {
-            renameFrom = elId :: renameFrom
-            renameTo = elId.copy(accPath = List(field))(elId.pp) :: renameTo
-          }
-          var newEdgeState = rightCond.rename(renameFrom, renameTo)
-          if (renameTo.isEmpty) {
+          val renameMap = rightCond.edgeLocalIds.map(id => {
+            id -> id.copy(accPath = List(field))(id.pp)
+          }).toMap
+
+          var newEdgeState = rightCond.rename(renameMap)
+          if (renameMap.isEmpty) {
             // This is the case when RHS is null. Hence, we need to create
             // source edge-local identifiers in the right state in order to
             // preserve the ones from LHS.
             val sourceIdsOfLHS = leftCond.sourceEdgeLocalIds
             newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS)
           }
-          leftCond = leftCond.createVariables(renameTo.toSet)
-          newEdgeState = newEdgeState.createVariables(renameFrom.toSet)
+          leftCond = leftCond.createVariables(renameMap.values.toSet)
+          newEdgeState = newEdgeState.createVariables(renameMap.keySet)
           newEdgeState = leftCond.glb(newEdgeState)
           if (!newEdgeState.lessEqual(rightCond.bottom())) {
             // add edge that represents the assignment

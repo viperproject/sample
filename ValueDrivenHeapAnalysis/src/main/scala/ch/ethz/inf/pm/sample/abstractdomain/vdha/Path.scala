@@ -91,16 +91,13 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       val idsToRenameToSource = newState.edgeLocalIds.filter(_.accPath == List(field))
 
       // Building lists for renaming
-      var renameFrom = List.empty[EdgeLocalIdentifier]
-      var renameTo = List.empty[EdgeLocalIdentifier]
-      for (elId <- idsToRenameToSource) {
-        renameFrom = elId :: renameFrom
-        renameTo = elId.copy(accPath = List.empty)(elId.pp) :: renameTo
-      }
-      newState = newState.rename(renameFrom, renameTo)
+      val renameMap = idsToRenameToSource.map(id => {
+        id -> id.copy(accPath = List.empty)(id.pp)
+      }).toMap
+      newState = newState.rename(renameMap)
 
       // Now we remove all edge-local identifiers that can not be the targets.
-      val elIdsToRemove = newState.edgeLocalIds -- renameTo
+      val elIdsToRemove = newState.edgeLocalIds -- renameMap.values
       newState = newState.removeVariables(elIdsToRemove)
 
       recurse(path.tail, newState)
