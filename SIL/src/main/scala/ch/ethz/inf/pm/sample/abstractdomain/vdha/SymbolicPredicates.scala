@@ -103,12 +103,6 @@ case class SymbolicPredicateDomain(
     SymbolicPredicateDefsDomain,
     SymbolicPredicateDomain] {
 
-  def _1canHandle(id: Identifier) =
-    id.typ == SymbolicPredicateInstType
-
-  def _2canHandle(id: Identifier) =
-    id.typ == SymbolicPredicateDefType
-
   def factory(
       instances: SymbolicPredicateInstsDomain,
       definitions: SymbolicPredicateDefsDomain) =
@@ -116,7 +110,13 @@ case class SymbolicPredicateDomain(
 
   def _1 = instances
 
+  def _1canHandle(id: Identifier) =
+    id.typ == SymbolicPredicateInstType
+
   def _2 = definitions
+
+  def _2canHandle(id: Identifier) =
+    id.typ == SymbolicPredicateDefType
 }
 
 case class SymbolicPredicateDef(
@@ -184,18 +184,18 @@ case class SemanticAndSymbolicPredicateDomain[S <: SemanticDomain[S]](
   extends RoutingSemanticCartesianProductDomain[
     S, SymbolicPredicateDomain, SemanticAndSymbolicPredicateDomain[S]] {
 
-  def _1canHandle(id: Identifier) =
-    !_2canHandle(id)
-
-  def _2canHandle(id: Identifier) =
-    id.typ == SymbolicPredicateDefType || id.typ == SymbolicPredicateInstType
-
   def factory(valueState: S, symbolicPredicateState: SymbolicPredicateDomain) =
     SemanticAndSymbolicPredicateDomain(valueState, symbolicPredicateState)
 
   def _1 = valueState
 
+  def _1canHandle(id: Identifier) =
+    !_2canHandle(id)
+
   def _2 = symbolicPredicateState
+
+  def _2canHandle(id: Identifier) =
+    id.typ == SymbolicPredicateDefType || id.typ == SymbolicPredicateInstType
 }
 
 case class SymbolicPredicateDefsDomain(
