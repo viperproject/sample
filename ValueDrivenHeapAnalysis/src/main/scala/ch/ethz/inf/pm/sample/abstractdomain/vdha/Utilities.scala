@@ -51,6 +51,14 @@ object Utilities {
     def edgeLocalIds: Set[EdgeLocalIdentifier] =
       state.ids.collect({ case id: EdgeLocalIdentifier => id })
 
+    /** Returns all target edge-local identifiers in the state. */
+    def sourceEdgeLocalIds: Set[EdgeLocalIdentifier] =
+      edgeLocalIds.filter(_.isForSource)
+
+    /** Returns all target edge-local identifiers in the state. */
+    def targetEdgeLocalIds: Set[EdgeLocalIdentifier] =
+      edgeLocalIds.filter(_.isForTarget)
+
     /** Returns all access path identifiers in th state. */
     def accPathIds: Set[AccessPathIdentifier] =
       state.ids.collect({ case id: AccessPathIdentifier => id })

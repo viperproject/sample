@@ -80,14 +80,12 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       // identifiers are present in the given state. We need to add them
       // so that the edge-local identifiers of the currently processed edge
       // do not get lost.
-      val edgeLocalIdsToAdd = edge.state.edgeLocalIds.filter(_.isForTarget)
-      var newState: S = state.createVariables(edgeLocalIdsToAdd)
+      var newState: S = state.createVariables(edge.state.targetEdgeLocalIds)
       newState = newState.glb(edge.state)
 
       // Now, we need to rename source-edge local identifiers to the ones
       // that are target of this edge and remove any others.
-      val originalSourceIds = newState.edgeLocalIds.filter(_.isForSource)
-      newState = newState.removeVariables(originalSourceIds)
+      newState = newState.removeVariables(newState.sourceEdgeLocalIds)
 
       // Renaming
       val idsToRenameToSource = newState.edgeLocalIds.filter(_.accPath == List(field))
@@ -102,8 +100,8 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       newState = newState.rename(renameFrom, renameTo)
 
       // Now we remove all edge-local identifiers that can not be the targets.
-      val elIdsToRemove = newState.ids.filter(_.isInstanceOf[EdgeLocalIdentifier]) -- renameTo
-      newState = newState.removeVariables(elIdsToRemove.toSet[Identifier])
+      val elIdsToRemove = newState.edgeLocalIds -- renameTo
+      newState = newState.removeVariables(elIdsToRemove)
 
       recurse(path.tail, newState)
     }
@@ -112,7 +110,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
     // Therefore, the edge local variables that represent the target edge-local
     // variables have an empty sequence of fields. However, we need to remove
     // all other edge-local identifier that might be possibly present.
-    val elIdsToRemove = edges.head.state.edgeLocalIds.filter(_.isForTarget)
+    val elIdsToRemove = edges.head.state.targetEdgeLocalIds
     recurse(edges.tail, edges.head.state.removeVariables(elIdsToRemove))
   }
 }
