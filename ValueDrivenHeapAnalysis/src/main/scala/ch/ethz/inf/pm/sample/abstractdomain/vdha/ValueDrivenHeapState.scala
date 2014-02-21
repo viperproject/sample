@@ -328,7 +328,7 @@ trait ValueDrivenHeapState[
       evalExp(leftExp).intersect(evalExp(rightExp)).apply().mapCondHeaps(condHeap => {
         val leftTakenPath = condHeap.takenPath(leftAccPath.objPath)
         val vertexToAssign = leftTakenPath.target.asInstanceOf[HeapVertex]
-        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField, leftExp.getType, leftExp.pp)
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField)(leftExp.getType, leftExp.pp)
 
         val condHeapAssigned = condHeap
           .map(_.assign(idToAssign, rightExp))
