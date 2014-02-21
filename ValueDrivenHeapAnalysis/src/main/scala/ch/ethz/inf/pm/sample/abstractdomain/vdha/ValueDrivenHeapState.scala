@@ -713,22 +713,10 @@ trait ValueDrivenHeapState[
 
   def before(pp: ProgramPoint): T = this
 
-  /**
-   * Removes all variables satisfying filter
-   */
   def pruneVariables(filter: (Identifier) => Boolean): T = ???
-
-  /**
-   * Detects summary nodes that are only reachable via a single access path
-   * and converts them to non-summary nodes.
-   */
   def optimizeSummaryNodes(): T = ???
-
-  // Backwards analyses are currently not supported
   def backwardGetVariableValue(id: Assignable): T = ???
-
   def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type): T = ???
-
   def backwardAssignVariable(x: ExpressionSet, right: ExpressionSet): T = ???
   def backwardAssignVariable(oldPreState: T, x: Expression, right: Expression): T = ???
   def testBackwardTrue(): T = ???
