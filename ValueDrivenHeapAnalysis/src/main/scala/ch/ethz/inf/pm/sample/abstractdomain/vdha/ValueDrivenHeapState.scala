@@ -406,14 +406,6 @@ trait ValueDrivenHeapState[
   // For the obsolete methods `evaluateExpression` and `evaluateGraphPath`,
   // see https://bitbucket.org/semperproject/sample/commits/e1f5be3
 
-  def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
-
-  def setVariableToTop(x: ExpressionSet): T = ???
-
-  def removeVariable(x: ExpressionSet): T = ???
-
-  def throws(t: ExpressionSet): T = ???
-
   /** Delegates to `getVariableValue(id: VariableIdentifier)`. */
   final def getVariableValue(id: Assignable): T = id match {
     case id: VariableIdentifier => getVariableValue(id)
@@ -452,18 +444,6 @@ trait ValueDrivenHeapState[
 
   def removeExpression(): T =
     copy(expr = ExpressionSet())
-
-  def pruneUnreachableHeap(): T = ???
-
-  def factory(): T = ???
-
-  def removeObject(oldPreState: T, obj: ExpressionSet, fields: Option[Set[Identifier]]): T = ???
-
-  def undoPruneVariables(unprunedPreState: T, filter: (Identifier) => Boolean): T = ???
-
-  def undoPruneUnreachableHeap(preState: T): T = ???
-
-  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): T = ???
 
   def top(): T =
     factory(HeapGraph(), generalValState.top(), ExpressionSet(), isTop = true)
@@ -713,6 +693,16 @@ trait ValueDrivenHeapState[
 
   def before(pp: ProgramPoint): T = this
 
+  def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
+  def setVariableToTop(x: ExpressionSet): T = ???
+  def removeVariable(x: ExpressionSet): T = ???
+  def throws(t: ExpressionSet): T = ???
+  def pruneUnreachableHeap(): T = ???
+  def factory(): T = ???
+  def removeObject(oldPreState: T, obj: ExpressionSet, fields: Option[Set[Identifier]]): T = ???
+  def undoPruneVariables(unprunedPreState: T, filter: (Identifier) => Boolean): T = ???
+  def undoPruneUnreachableHeap(preState: T): T = ???
+  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): T = ???
   def pruneVariables(filter: (Identifier) => Boolean): T = ???
   def optimizeSummaryNodes(): T = ???
   def backwardGetVariableValue(id: Assignable): T = ???
