@@ -418,27 +418,21 @@ trait ValueDrivenHeapState[
 
   def throws(t: ExpressionSet): T = ???
 
-  def getVariableValue(id: Assignable): T = {
-    if (this.isBottom) return this
-    assert(id.isInstanceOf[VariableIdentifier], "This should be VariableIdentifier.")
-    val variableId = id.asInstanceOf[VariableIdentifier]
-    if (ValueDrivenHeapProperty.materialize && variableId.getType.isObject) {
-      materializePath(List(variableId.name)).copy(expr = ExpressionSet(variableId))
-    } else {
-      copy(expr = ExpressionSet(variableId))
-    }
+  def getVariableValue(id: Assignable): T = id match {
+    case id: VariableIdentifier =>
+      val result = if (id.getType.isObject) materializePath(List(id.name)) else this
+      result.copy(expr = ExpressionSet(id))
+    case _ =>
+      throw new IllegalArgumentException(
+        "variable access must occur via a variable identifier")
   }
 
-  def getFieldValue(obj: Expression, field: String, typ: Type): T = {
-    require(obj.isInstanceOf[AccessPathIdentifier],
-      "field access must occur via an access path identifier")
-    // TODO: May be I should check whether this exist and is feasible already here.
-    if (ValueDrivenHeapProperty.materialize) {
-      val apObj = obj.asInstanceOf[AccessPathIdentifier]
-      val tempResult = materializePath(apObj.objPath)
-      tempResult.copy(expr = new ExpressionSet(typ).add(obj))
-    } else
-      copy(expr = new ExpressionSet(typ).add(obj))
+  def getFieldValue(obj: Expression, field: String, typ: Type): T = obj match {
+    case obj: AccessPathIdentifier =>
+      materializePath(obj.objPath).copy(expr = new ExpressionSet(typ).add(obj))
+    case _ =>
+      throw new IllegalArgumentException(
+        "field access must occur via an access path identifier")
   }
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
@@ -528,6 +522,8 @@ trait ValueDrivenHeapState[
   }
 
   protected def materializePath(pathToMaterialize: List[String]): T = {
+    if (!ValueDrivenHeapProperty.materialize) return this
+
     val edgesToAdd = mutable.Set.empty[Edge[S]]
     val edgesToRemove = mutable.Set.empty[Edge[S]]
     val repl = new Replacement(isPureExpanding = true)
