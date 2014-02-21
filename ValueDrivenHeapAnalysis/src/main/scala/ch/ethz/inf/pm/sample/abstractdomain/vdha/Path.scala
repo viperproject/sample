@@ -5,16 +5,20 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, AccessPathIdentifier, S
 /** Represents a path of edges in a heap graph. */
 trait Path[S <: SemanticDomain[S]] {
   require(!edges.isEmpty, "path cannot be empty")
+
   require(edges.tail.forall(_.source.isInstanceOf[HeapVertex]),
     "all edges (except the first) must have a heap vertex source")
+
   require(edges.zip(edges.tail).forall(t => t._1.target == t._2.source),
     "path is not consistent (edge target must equal source of next edge")
 
   val edges: List[Edge[S]]
 
+  /** Returns the source vertex of the first edge on the path. */
+  def source: Vertex = edges.head.source
+
   /** Returns the target vertex of the last edge on the path. */
-  def target: Vertex =
-    edges.last.target
+  def target: Vertex = edges.last.target
 }
 
 /** Represents a heap graph path that may start with any vertex. */
@@ -27,12 +31,12 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
 
   import Utilities._
 
-  require(edges.head.source.isInstanceOf[LocalVariableVertex],
+  require(source.isInstanceOf[LocalVariableVertex],
     "first edge source is not a local variable vertex")
 
   /** Returns the local variable vertex from which the path starts. */
   def localVarVertex: LocalVariableVertex =
-    edges.head.source.asInstanceOf[LocalVariableVertex]
+    source.asInstanceOf[LocalVariableVertex]
 
   /**
    * Returns the access path of strings.
@@ -45,7 +49,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
 
   /** Returns the access path identifier corresponding to this path. */
   def accPathId: AccessPathIdentifier =
-    AccessPathIdentifier(accPath)(edges.last.target.typ)
+    AccessPathIdentifier(accPath)(target.typ)
 
   /** The condition satisfied by this path. */
   lazy val condition: S = {
@@ -57,11 +61,9 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
      *              with empty sequence of field access that represent targets
      */
     def recurse(path: List[Edge[S]], state: S): S = {
-      val stateEdgeLocalIds = state.edgeLocalIds
-
       // Only the edge-local identifiers that refer to target are present in
       // the given state (i.e. the once with empty sequence of field accesses)
-      assert(stateEdgeLocalIds.forall(_.isForSource))
+      assert(state.edgeLocalIds.forall(_.isForSource))
 
       // Base case is when the path is empty. (Termination)
       if (path.isEmpty) {
@@ -107,7 +109,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
     // Therefore, the edge local variables that represent the target edge-local
     // variables have an empty sequence of fields. However, we need to remove
     // all other edge-local identifier that might be possibly present.
-    val elIdsToRemove = edges.head.state.targetEdgeLocalIds
-    recurse(edges.tail, edges.head.state.removeVariables(elIdsToRemove))
+    val state = edges.head.state
+    recurse(edges.tail, state.removeVariables(state.targetEdgeLocalIds))
   }
 }
