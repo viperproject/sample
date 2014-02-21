@@ -377,7 +377,7 @@ trait ValueDrivenHeapState[
           val rightCond = rPath.condition
           var renameFrom = List.empty[EdgeLocalIdentifier]
           var renameTo = List.empty[EdgeLocalIdentifier]
-          val idsToRename = edgeLocalIds(rightCond)
+          val idsToRename = rightCond.edgeLocalIds
           for (elId <- idsToRename) {
             renameFrom = elId :: renameFrom
             renameTo = elId.copy(accPath = List(field))(elId.pp) :: renameTo
@@ -387,7 +387,7 @@ trait ValueDrivenHeapState[
             // This is the case when RHS is null. Hence, we need to create
             // source edge-local identifiers in the right state in order to
             // preserve the ones from LHS.
-            val sourceIdsOfLHS = edgeLocalIds(leftCond).filter(_.isForSource)
+            val sourceIdsOfLHS = leftCond.edgeLocalIds.filter(_.isForSource)
             newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS)
           }
           leftCond = leftCond.createVariables(renameTo.toSet)

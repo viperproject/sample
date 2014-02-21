@@ -19,10 +19,10 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
   import Utilities._
   import CondHeapGraph._
 
-  require(edgeLocalIds(cond).isEmpty,
+  require(cond.edgeLocalIds.isEmpty,
     "condition must not contain edge-local identifiers")
 
-  require(accPathIds(cond).map(_.objPath).forall(objPath =>
+  require(cond.accPathIds.map(_.objPath).forall(objPath =>
     takenPaths.exists(_.accPath.startsWith(objPath))),
     "condition must only contain access path identifiers for taken paths")
 
@@ -46,14 +46,14 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
 
     val newEdges = heap.edges intersect other.heap.edges
     val newHeap = heap.copy(edges = newEdges)
-    val newCond = glbPreserveIds(cond, other.cond)
+    val newCond = cond.glbPreserveIds(other.cond)
     val newPaths = takenPaths union other.takenPaths
     CondHeapGraph(newHeap, newCond, newPaths)
   }
 
   /** Applies the condition to each edge state. */
   def apply(): CondHeapGraph[S] =
-    copy(heap = heap.mapEdgeStates(glbPreserveIds(_, cond)))
+    copy(heap = heap.mapEdgeStates(_.glbPreserveIds(cond)))
 
   /** Applies a function to both the condition and all edge states. */
   def map(f: S => S): CondHeapGraph[S] =
@@ -135,7 +135,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         val targetVertex = path.target.asInstanceOf[HeapVertex]
 
         // Rename edge local identifier that corresponds to the access path
-        val renameFrom = edgeLocalIds(cond).filter(_.field == field).toList
+        val renameFrom = cond.edgeLocalIds.filter(_.field == field).toList
         assert(renameFrom.size == 1, "there should be exactly one identifier to rename")
         cond = cond.rename(renameFrom, List(ap))
 
@@ -145,7 +145,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
       }
 
       // Remove all edge local identifiers
-      cond = cond.removeVariables(edgeLocalIds(cond))
+      cond = cond.removeVariables(cond.edgeLocalIds)
 
       // Remove all edges that were NOT taken on this access path
       // Never remove edges going out of a summary node.
@@ -156,7 +156,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
       }).flatten.toSet
       edgesToRemove = edgesToRemove.filter(!_.source.isInstanceOf[SummaryHeapVertex])
 
-      cond = Utilities.glbPreserveIds(this.cond, cond)
+      cond = this.cond.glbPreserveIds(cond)
 
       val prunedHeap = heap.removeEdges(edgesToRemove)
       result = CondHeapGraph(prunedHeap, cond, Set(path)) :: result
@@ -296,9 +296,9 @@ case class CondHeapGraphSeq[S <: SemanticDomain[S]]
   def join: CondHeapGraph[S] = {
     val prunedHeaps = prune.condHeaps
     val newVertices = prunedHeaps.map(_.heap.vertices).flatten.toSet
-    val newEdges = prunedHeaps.map(_.heap.mapEdgeStates(removeAccessPathIdentifiers)).map(_.edges).flatten.toSet
+    val newEdges = prunedHeaps.map(_.heap.mapEdgeStates(_.removeAccessPathIds())).map(_.edges).flatten.toSet
     val newHeap = HeapGraph(newVertices, newEdges).joinCommonEdges()
-    val newCond = removeAccessPathIdentifiers(Lattice.bigLub(prunedHeaps.map(_.cond), lattice))
+    val newCond = Lattice.bigLub(prunedHeaps.map(_.cond), lattice).removeAccessPathIds()
     CondHeapGraph(newHeap, newCond).prune
   }
 
