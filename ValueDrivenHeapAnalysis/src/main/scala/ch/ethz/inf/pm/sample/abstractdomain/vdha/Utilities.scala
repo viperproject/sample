@@ -51,13 +51,22 @@ object Utilities {
     def edgeLocalIds: Set[EdgeLocalIdentifier] =
       state.ids.collect({ case id: EdgeLocalIdentifier => id })
 
-    /** Returns all target edge-local identifiers in the state. */
-    def sourceEdgeLocalIds: Set[EdgeLocalIdentifier] =
-      edgeLocalIds.filter(_.isForSource)
+    /** Returns all edge-local identifiers with empty access path in the state.
+      * 
+      * @note the returned identifiers do not necessarily refer to a field
+      *       of the source vertex. On an edge whose source is a local variable
+      *       vertex, an edge-local identifier has an empty access path, but
+      *       refers to a field of the target vertex
+      */
+    def edgeLocalIdsWithEmptyAccPath: Set[EdgeLocalIdentifier] =
+      edgeLocalIds.filter(_.accPath.isEmpty)
 
-    /** Returns all target edge-local identifiers in the state. */
-    def targetEdgeLocalIds: Set[EdgeLocalIdentifier] =
-      edgeLocalIds.filter(_.isForTarget)
+    /** Returns all target edge-local identifiers in the state.
+      *
+      * @see [[edgeLocalIdsWithEmptyAccPath]]
+      */
+    def edgeLocalIdsWithNonEmptyAccPath: Set[EdgeLocalIdentifier] =
+      edgeLocalIds.filterNot(_.accPath.isEmpty)
 
     /** Returns all access path identifiers in th state. */
     def accPathIds: Set[AccessPathIdentifier] =

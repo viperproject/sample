@@ -63,7 +63,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
     def recurse(path: List[Edge[S]], state: S): S = {
       // Only the edge-local identifiers that refer to target are present in
       // the given state (i.e. the once with empty sequence of field accesses)
-      assert(state.edgeLocalIds.forall(_.isForSource))
+      assert(state.edgeLocalIds.forall(_.accPath.isEmpty))
 
       // Base case is when the path is empty. (Termination)
       if (path.isEmpty) {
@@ -82,12 +82,12 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       // identifiers are present in the given state. We need to add them
       // so that the edge-local identifiers of the currently processed edge
       // do not get lost.
-      var newState: S = state.createVariables(edge.state.targetEdgeLocalIds)
+      var newState: S = state.createVariables(edge.state.edgeLocalIdsWithNonEmptyAccPath)
       newState = newState.glb(edge.state)
 
       // Now, we need to rename source-edge local identifiers to the ones
       // that are target of this edge and remove any others.
-      newState = newState.removeVariables(newState.sourceEdgeLocalIds)
+      newState = newState.removeVariables(newState.edgeLocalIdsWithEmptyAccPath)
 
       // Renaming
       val idsToRenameToSource = newState.edgeLocalIds.filter(_.accPath == List(field))
@@ -110,6 +110,6 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
     // variables have an empty sequence of fields. However, we need to remove
     // all other edge-local identifier that might be possibly present.
     val state = edges.head.state
-    recurse(edges.tail, state.removeVariables(state.targetEdgeLocalIds))
+    recurse(edges.tail, state.removeVariables(state.edgeLocalIdsWithNonEmptyAccPath))
   }
 }

@@ -384,7 +384,7 @@ trait ValueDrivenHeapState[
             // This is the case when RHS is null. Hence, we need to create
             // source edge-local identifiers in the right state in order to
             // preserve the ones from LHS.
-            val sourceIdsOfLHS = leftCond.sourceEdgeLocalIds
+            val sourceIdsOfLHS = leftCond.edgeLocalIdsWithEmptyAccPath
             newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS)
           }
           leftCond = leftCond.createVariables(renameMap.values.toSet)
