@@ -6,8 +6,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
-import apron.{Manager, Abstract1, Box}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, SilCompiler, IntType}
+import apron.{Polka, Manager, Abstract1}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, SilCompiler}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.SymbolicPredicateDef.{RefFieldPermDomain, ValFieldPermDomain}
 
@@ -19,6 +19,9 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
   extends PreciseValueDrivenHeapState[
     SemanticAndSymbolicPredicateDomain[S],
     ValueDrivenHeapStateWithSymbolicPredicates[S]] {
+
+  // Shorthand for the self-type
+  type T = ValueDrivenHeapStateWithSymbolicPredicates[S]
 
   import ValueDrivenHeapStateWithSymbolicPredicates._
   import SymbolicPredicateInstsDomain._
@@ -63,26 +66,6 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
 
     state.copy(abstractHeap = newAbstractHeap)
   }
-
-  override def getFieldValue(obj: Expression, field: String, typ: Type) = {
-    val originalResult = super.getFieldValue(obj, field, typ)
-    var result = originalResult
-
-    /* val apObj = obj.asInstanceOf[AccessPathIdentifier]
-    val receiver = AccessPathIdentifier(apObj.path.dropRight(1))(typ.top(), DummyProgramPoint)
-
-    // Experimental:
-    // Make it possible to analyze the list traversal example
-    if (obj.getType.isObject) {
-      val curIdAp = AccessPathIdentifier(receiver.path ++ List("pred-list"))(IntType, DummyProgramPoint)
-      val curNextIdAp = AccessPathIdentifier(apObj.path ++ List("pred-list"))(IntType, DummyProgramPoint)
-      result = result.assignField(curIdAp, "pred-list", Unfolded)
-      result = result.assignField(curNextIdAp, "pred-list", Folded)
-    } */
-
-    // We've lost the expression due to the assignField calls
-    result.setExpression(originalResult.getExpression)
-  }
 }
 
 object ValueDrivenHeapStateWithSymbolicPredicates {
@@ -125,7 +108,8 @@ case class SymbolicPredicateDef(
   extends CartesianProductDomain[
     ValFieldPermDomain,
     RefFieldPermDomain,
-    SymbolicPredicateDef] {
+    SymbolicPredicateDef]
+  with Expression {
 
   def factory(a: ValFieldPermDomain, b: RefFieldPermDomain) =
     SymbolicPredicateDef(a, b)
@@ -137,11 +121,19 @@ case class SymbolicPredicateDef(
   def addValFieldPerm(field: String): SymbolicPredicateDef =
     copy(valFieldPerms = valFieldPerms.add(field))
 
-  def addRefFieldPerm(field: String, symbolicPredicateId: String) = {
+  def addRefFieldPerm(field: String, symbolicPredicateId: Identifier) = {
     // TODO: What should happen if there is already an ID?
     val newSymbolicPredicateIds = refFieldPerms.get(field).add(symbolicPredicateId)
     copy(refFieldPerms = refFieldPerms.add(field, newSymbolicPredicateIds))
   }
+
+  def transform(f: (Expression) => Expression): Expression = ???
+
+  def getIdentifiers = refFieldPerms.map.values.flatMap(_.value).toSet
+
+  def pp = DummyProgramPoint
+
+  def getType = SymbolicPredicateDefType
 }
 
 object SymbolicPredicateDef {
@@ -149,9 +141,9 @@ object SymbolicPredicateDef {
   val ValFieldPermDomain = new ValFieldPermDomain().top()
 
   type RefFieldPermDomain =
-  FunctionalDomain.Default[String, InverseSetDomain.Must[String]]
+  FunctionalDomain.Default[String, InverseSetDomain.Must[Identifier]]
   val RefFieldPermDomain = new RefFieldPermDomain(
-    defaultValue = InverseSetDomain.Must[String]().top()).top()
+    defaultValue = InverseSetDomain.Must[Identifier]().top()).top()
 
   private val nextId = new ThreadLocal[Int]
 
@@ -230,7 +222,9 @@ case class SymbolicPredicateDefsDomain(
 
   def setArgument(variable: Identifier, expr: Expression) = ???
 
-  def assign(variable: Identifier, expr: Expression) = ???
+  def assign(variable: Identifier, expr: Expression) = expr match {
+    case (expr: SymbolicPredicateDef) => add(variable, expr)
+  }
 
   def backwardAssign(oldPreState: SymbolicPredicateDefsDomain, variable: Identifier, expr: Expression) = ???
 
@@ -239,7 +233,7 @@ case class SymbolicPredicateDefsDomain(
 
 case class SymbolicPredicateInstsDomain(
     state: Option[Abstract1] = None,
-    domain: Manager = new Box(),
+    domain: Manager = new Polka(false),
     isPureBottom: Boolean = false,
     env: Set[Identifier] = Set.empty)
   extends ApronInterface[SymbolicPredicateInstsDomain] {
@@ -255,6 +249,6 @@ case class SymbolicPredicateInstsDomain(
 }
 
 object SymbolicPredicateInstsDomain {
-  val Folded = Constant("1", IntType, DummyProgramPoint)
-  val Unfolded = Constant("0", IntType, DummyProgramPoint)
+  val Folded = Constant("1", SymbolicPredicateInstType, DummyProgramPoint)
+  val Unfolded = Constant("0", SymbolicPredicateInstType, DummyProgramPoint)
 }
