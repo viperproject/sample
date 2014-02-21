@@ -33,7 +33,7 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     if (variable.typ.isObject) {
       val refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
-      val id = SymbolicPredicateDef.makeId(Some(variable.getName))
+      val id = SymbolicPredicateDef.makeInstId(SymbolicPredicateDef.makeId(Some(variable.getName)))
       refType.fields += id
     }
 

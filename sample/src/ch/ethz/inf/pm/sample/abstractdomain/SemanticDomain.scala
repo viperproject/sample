@@ -93,7 +93,7 @@ trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
     createVariable(variable, variable.typ)
 
   /** Returns a copy of this state with all given variables created. */
-  def createVariables(variables: Set[Identifier]): T =
+  def createVariables[I <: Identifier](variables: Set[I]): T =
     variables.foldLeft(this)(_.createVariable(_))
 
   /**

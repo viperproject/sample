@@ -43,8 +43,8 @@ object Utilities {
   def glbPreserveIds[S <: SemanticDomain[S]](left: S, right: S): S = {
     val newRightIds = edgeLocalAndAccessPathIds(left) diff right.getIds()
     val newLeftIds = edgeLocalAndAccessPathIds(right) diff left.getIds()
-    val newLeft = left.createVariables(newLeftIds.toSet[Identifier])
-    val newRight = right.createVariables(newRightIds.toSet[Identifier])
+    val newLeft = left.createVariables(newLeftIds)
+    val newRight = right.createVariables(newRightIds)
     newLeft.glb(newRight)
   }
 

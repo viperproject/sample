@@ -392,10 +392,10 @@ trait ValueDrivenHeapState[
             val sourceIdsOfLHS = leftCond.getIds().collect({
               case id: EdgeLocalIdentifier if id.accPath.isEmpty => id
             })
-            newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS.toSet[Identifier])
+            newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS)
           }
-          leftCond = leftCond.createVariables(renameTo.toSet[Identifier])
-          newEdgeState = newEdgeState.createVariables(renameFrom.toSet[Identifier])
+          leftCond = leftCond.createVariables(renameTo.toSet)
+          newEdgeState = newEdgeState.createVariables(renameFrom.toSet)
           newEdgeState = leftCond.glb(newEdgeState)
           if (!newEdgeState.lessEqual(rightCond.bottom())) {
             // add edge that represents the assignment

@@ -82,7 +82,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       // so that the edge-local identifiers of the currently processed edge
       // do not get lost.
       val edgeLocalIdsToAdd = edgeLocalIds(edge.state).filter(!_.accPath.isEmpty)
-      var newState: S = state.createVariables(edgeLocalIdsToAdd.toSet[Identifier])
+      var newState: S = state.createVariables(edgeLocalIdsToAdd)
       newState = newState.glb(edge.state)
 
       // Now, we need to rename source-edge local identifiers to the ones
