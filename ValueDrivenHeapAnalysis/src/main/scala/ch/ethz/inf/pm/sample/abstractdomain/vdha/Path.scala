@@ -1,7 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, AccessPathIdentifier, SemanticDomain}
-import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
 
 /** Represents a path of edges in a heap graph. */
 trait Path[S <: SemanticDomain[S]] {
@@ -46,7 +45,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
 
   /** Returns the access path identifier corresponding to this path. */
   def accPathId: AccessPathIdentifier =
-    AccessPathIdentifier(accPath)(edges.last.target.typ, DummyProgramPoint)
+    AccessPathIdentifier(accPath)(edges.last.target.typ)
 
   /** The condition satisfied by this path. */
   lazy val condition: S = {

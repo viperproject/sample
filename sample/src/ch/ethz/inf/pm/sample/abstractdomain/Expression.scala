@@ -523,7 +523,7 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
 }
 
 case class AccessPathIdentifier(path: List[String])
-    (val typ: Type, val pp: ProgramPoint)
+    (val typ: Type, val pp: ProgramPoint = DummyProgramPoint)
   extends Identifier {
 
   require(!path.isEmpty, "the access path must not be empty")
