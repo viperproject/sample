@@ -3,54 +3,28 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, Identifier}
 
-case class ValueHeapIdentifier(
-    obj: HeapVertex,
-    field: String,
-    typ: Type,
-    pp: ProgramPoint) extends Identifier {
+case class ValueHeapIdentifier
+    (obj: HeapVertex, field: String)
+    (val typ: Type, val pp: ProgramPoint)
+  extends Identifier {
 
-  /**
-   * Returns the name of the identifier. We suppose that if two identifiers
-   * return the same name if and only if they are the same identifier.
-   * @return The name of the identifier
-   */
-  def getName: String = s"${obj.name}.$field"
+  def getName = s"${obj.name}.$field"
 
-  /**
-   * Returns the name of the field that is represented by this identifier
-   * if it is a heap identifier.
-   * @return The name of the field pointed by this identifier
-   */
-  def getField: Option[String] = Some(field)
+  def getField = Some(field)
 
-  /**
-   * Since an abstract identifier can be an abstract node of the heap,
-   * it can represent more than one concrete identifier.
-   * This function tells if a node is a summary node.
-   * @return true iff this identifier represents exactly one variable
-   */
-  def representsSingleVariable(): Boolean = obj.isInstanceOf[DefiniteHeapVertex]
-
-  override def hashCode(): Int = toString.hashCode()
-
-  override def equals(obj: Any): Boolean = obj match {
-    case x: ValueHeapIdentifier =>
-      this.toString.equals(x.toString)
-    case _ => false
-  }
+  def representsSingleVariable() = obj.isInstanceOf[DefiniteHeapVertex]
 }
 
 object ValueHeapIdentifier {
   /** Creates a value heap identifier from a heap vertex and a field identifier. */
   def apply(obj: HeapVertex, field: Identifier): ValueHeapIdentifier =
-    ValueHeapIdentifier(obj, field.getName, field.getType, field.pp)
+    ValueHeapIdentifier(obj, field.getName)(field.getType, field.pp)
 }
 
-case class EdgeLocalIdentifier(
-    accPath: List[String],
-    field: String,
-    typ: Type)(
-    val pp: ProgramPoint) extends Identifier {
+case class EdgeLocalIdentifier
+    (accPath: List[String], field: String, typ: Type)
+    (val pp: ProgramPoint)
+  extends Identifier {
 
   require(!typ.isObject, "EdgeLocalIdentifier should represent value information.")
   require(accPath.size <= 1, "For now, we allow at most single step look-ahead.")
