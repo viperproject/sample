@@ -418,21 +418,27 @@ trait ValueDrivenHeapState[
 
   def throws(t: ExpressionSet): T = ???
 
-  def getVariableValue(id: Assignable): T = id match {
-    case id: VariableIdentifier =>
-      val result = if (id.getType.isObject) materializePath(List(id.name)) else this
-      result.copy(expr = ExpressionSet(id))
-    case _ =>
-      throw new IllegalArgumentException(
-        "variable access must occur via a variable identifier")
+  /** Delegates to `getVariableValue(id: VariableIdentifier)`. */
+  final def getVariableValue(id: Assignable): T = id match {
+    case id: VariableIdentifier => getVariableValue(id)
+    case _ => throw new IllegalArgumentException(
+      "variable access must occur via a variable identifier")
   }
 
-  def getFieldValue(obj: Expression, field: String, typ: Type): T = obj match {
-    case obj: AccessPathIdentifier =>
-      materializePath(obj.objPath).copy(expr = new ExpressionSet(typ).add(obj))
-    case _ =>
-      throw new IllegalArgumentException(
-        "field access must occur via an access path identifier")
+  def getVariableValue(id: VariableIdentifier): T = {
+    val result = if (id.getType.isObject) materializePath(List(id.name)) else this
+    result.copy(expr = ExpressionSet(id))
+  }
+
+  /** Delegates to `getFieldValue(id: AccessPathIdentifier)`. */
+  final def getFieldValue(obj: Expression, field: String, typ: Type): T = obj match {
+    case obj: AccessPathIdentifier => getFieldValue(obj)
+    case _ => throw new IllegalArgumentException(
+      "field access must occur via an access path identifier")
+  }
+
+  def getFieldValue(id: AccessPathIdentifier): T = {
+    materializePath(id.objPath).copy(expr = ExpressionSet(id))
   }
 
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
