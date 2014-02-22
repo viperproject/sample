@@ -43,6 +43,20 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def localVarVertices: Set[LocalVariableVertex] =
     vertices.collect({ case v: LocalVariableVertex => v })
 
+  /** Returns all verties that are possible sources of edges. */
+  def possibleSourceVertices: Set[Vertex] =
+    vertices.filterNot(_ == NullVertex)
+
+  /** Returns all vertices that are possible targets of edges. */
+  def possibleTargetVertices: Set[Vertex] =
+    vertices.filterNot(_.isInstanceOf[LocalVariableVertex])
+
+  /** Returns all vertices that are possible targets of an edge
+    * for a field of a given type.
+    */
+  def possibleTargetVertices(fieldType: Type): Set[Vertex] =
+    possibleTargetVertices.filter(_.typ.lessEqual(fieldType))
+
   /** Returns all edges going out of a given vertex. */
   def outEdges(source: Vertex): Set[Edge[S]] =
     edges.filter(_.source == source)
@@ -113,6 +127,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     copy(vertices = vertices + v)
   }
 
+  /** Creates a heap vertex for the given type and returns the graph. */
   def addHeapVertex(label: String, typ: Type): (HeapGraph[S], HeapVertex) = {
     val newVertex = label match {
       case VertexConstants.SUMMARY =>
@@ -122,6 +137,10 @@ case class HeapGraph[S <: SemanticDomain[S]](
     }
     (copy(vertices = vertices + newVertex), newVertex)
   }
+
+  /** Creates a heap vertex for each given type and returns the graph. */
+  def addHeapVertices(label: String, types: Set[Type]): HeapGraph[S] =
+    types.foldLeft(this)(_.addHeapVertex(label, _)._1)
 
   /**
    * This method removes all given vertices and all edges that have vertices
