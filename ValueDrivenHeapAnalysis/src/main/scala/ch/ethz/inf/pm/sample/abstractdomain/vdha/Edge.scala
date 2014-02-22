@@ -109,11 +109,8 @@ case class Edge[S <: SemanticDomain[S]](
   /** Create an `EdgeLocalIdentifier` in the edge state for each value field
     * of the target vertex.
     */
-  def createTargetEdgeLocalIds(): Edge[S] = {
-    require(target.isInstanceOf[HeapVertex],
-      "target vertex must be a heap vertex")
+  def createTargetEdgeLocalIds(): Edge[S] =
     target.typ.nonObjectFields.foldLeft(this)(_.createTargetEdgeLocalId(_))
-  }
 
   /** Create an `EdgeLocalIdentifier` in the edge state for
     * the given value field of the source vertex.
@@ -143,8 +140,7 @@ case class Edge[S <: SemanticDomain[S]](
     var result = this
     if (source.isInstanceOf[HeapVertex])
       result = result.createSourceEdgeLocalIds()
-    if (target.isInstanceOf[HeapVertex])
-      result = result.createTargetEdgeLocalIds()
+    result = result.createTargetEdgeLocalIds()
     result
   }
 }
