@@ -34,6 +34,10 @@ package object vdha {
 
   /** Add various helper methods to `SemanticDomain` objects. */
   implicit class ExtendedSemanticDomain[S <: SemanticDomain[S]](state: S) {
+    /** Returns all variable identifiers in the state. */
+    def variableIds: Set[VariableIdentifier] =
+      state.ids.collect({ case id: VariableIdentifier => id })
+
     /** Returns all edge-local identifiers in the state. */
     def edgeLocalIds: Set[EdgeLocalIdentifier] =
       state.ids.collect({ case id: EdgeLocalIdentifier => id })
