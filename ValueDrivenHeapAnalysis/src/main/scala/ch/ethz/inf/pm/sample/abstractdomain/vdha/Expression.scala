@@ -21,16 +21,31 @@ object ValueHeapIdentifier {
     ValueHeapIdentifier(obj, field.getName)(field.getType, field.pp)
 }
 
+/** Represents a value field of the object pointed from or to by the edge
+  * which this edge-local identifier belongs to.
+  *
+  * An empty access path means that the edge-local identifier
+  * refers to a value field of the source object of the corresponding edge.
+  *
+  * Analogously, a non-empty access path means that the edge-local identifier
+  * refers to a value field of the target object of the corresponding edge.
+  *
+  * Note that edges going out of a local variable vertex are treated in exactly
+  * the same way. Such edges have the field `None` and so will the edge-local
+  * identifier.
+  */
 case class EdgeLocalIdentifier
-    (accPath: List[String], field: String, typ: Type)
+    (accPath: List[Option[String]], field: String, typ: Type)
     (val pp: ProgramPoint)
   extends Identifier {
 
   require(!typ.isObject, "EdgeLocalIdentifier should represent value information.")
   require(accPath.size <= 1, "For now, we allow at most single step look-ahead.")
 
+  import ValueDrivenHeapStateConstants._
+
   def getName: String = {
-    val fullPath = List(ValueDrivenHeapStateConstants.edgeLocalIdentifier) ++ accPath ++ List(field)
+    val fullPath = List(edgeLocalIdentifier) ++ accPath.flatten ++ List(field)
     fullPath.mkString(".")
   }
 
@@ -38,11 +53,17 @@ case class EdgeLocalIdentifier
 
   /** An edge-local identifier always represents a field of a single object. */
   def representsSingleVariable(): Boolean = true
+
+  /** Whether the edge-local identifier refers to a field of the source. */
+  def isForSource: Boolean = accPath.isEmpty
+
+  /** Whether the edge-local identifier refers to a field of the target. */
+  def isForTarget: Boolean = !accPath.isEmpty
 }
 
 object EdgeLocalIdentifier {
   /** Creates an edge-local identifier from an access path and a field identifier. */
-  def apply(accPath: List[String], field: Identifier): EdgeLocalIdentifier =
+  def apply(accPath: List[Option[String]], field: Identifier): EdgeLocalIdentifier =
     EdgeLocalIdentifier(accPath, field.getName, field.getType)(field.pp)
 
   /** Creates an edge-local identifier with an empty access path from a field identifier. */

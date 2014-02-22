@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.util.Predef._
 
 case class Edge[S <: SemanticDomain[S]](
@@ -85,7 +85,7 @@ case class Edge[S <: SemanticDomain[S]](
     require(target.typ.nonObjectFields.contains(valueField),
        s"target vertex has no value field $valueField")
 
-    val edgeLocalId = EdgeLocalIdentifier(List(field).flatten, valueField)
+    val edgeLocalId = EdgeLocalIdentifier(List(field), valueField)
     var newState = state.createVariable(edgeLocalId)
 
     target match {

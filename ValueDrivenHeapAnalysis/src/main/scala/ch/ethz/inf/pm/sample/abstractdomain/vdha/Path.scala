@@ -51,49 +51,46 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
   def accPathId: AccessPathIdentifier =
     AccessPathIdentifier(accPath)(target.typ)
 
-  /** The condition satisfied by this path. */
+  /** The condition satisfied by this path.
+    *
+    * The method basically takes the greatest lower bound of the states
+    * of all edges along the path.
+    *
+    * The resulting condition contains source edge-local identifiers that
+    * refer to value fields of the the last vertex on the path.
+    */
   lazy val condition: S = {
     /**
      * Inner helper method for computing the condition recursively.
      *
-     * @param path to be processed
-     * @param state starting state where are only the edge-local identifiers
-     *              with empty sequence of field access that represent targets
+     * @param path still to be processed
+     * @param currentState state satisfied by the path processed so far.
+     *                     All of its edge-local identifiers have an empty
+     *                     access path, i.e., refer to value fields of the
+     *                     first vertex on the path still to be processed
      */
-    def recurse(path: List[Edge[S]], state: S): S = {
-      // Only the edge-local identifiers that refer to target are present in
-      // the given state (i.e. the once with empty sequence of field accesses)
-      assert(state.edgeLocalIds.forall(_.accPath.isEmpty))
+    def recurse(path: List[Edge[S]], currentState: S): S = {
+      assert(currentState.edgeLocalIds.forall(_.isForSource),
+        "current state must not contain target edge-local identifier")
 
-      // Base case is when the path is empty. (Termination)
+      // Terminate when the full path has been processed
       if (path.isEmpty) {
-        return state
+        return currentState
       }
 
-      // If the path is non-empty, the head of it must refer to a field
-      // (i.e. the first node must be a HeapVertex).
+      // The next edge to be processed
       val edge = path.head
 
-      // Field should not be None here
-      val field = edge.field.get
-
-      // Originally, the edge local identifiers of the given state with the
-      // empty sequence of fields refer to the target and no other edge-local
-      // identifiers are present in the given state. We need to add them
-      // so that the edge-local identifiers of the currently processed edge
-      // do not get lost.
-      var newState: S = state.createVariables(edge.state.edgeLocalIdsWithNonEmptyAccPath)
+      // The current state does not contain any target edge-local identifiers
+      // of the new edge to be processed. Hence, we add them here so
+      // they don't get lost when taking the greatest lower bound.
+      var newState: S = currentState.createVariables(edge.state.targetEdgeLocalIds)
       newState = newState.glb(edge.state)
 
-      // Now, we need to rename source-edge local identifiers to the ones
+      // Now, we need to rename source edge-local identifiers to the ones
       // that are target of this edge and remove any others.
-      newState = newState.removeVariables(newState.edgeLocalIdsWithEmptyAccPath)
-
-      // Renaming
-      val idsToRenameToSource = newState.edgeLocalIds.filter(_.accPath == List(field))
-
-      // Building lists for renaming
-      val renameMap = idsToRenameToSource.map(id => {
+      newState = newState.removeVariables(newState.sourceEdgeLocalIds)
+      val renameMap = newState.targetEdgeLocalIds(edge.field).map(id => {
         id -> id.copy(accPath = List.empty)(id.pp)
       }).toMap
       newState = newState.rename(renameMap)
@@ -105,11 +102,11 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       recurse(path.tail, newState)
     }
 
-    // The head of the path (edge sequence) is starting from a variable.
-    // Therefore, the edge local variables that represent the target edge-local
-    // variables have an empty sequence of fields. However, we need to remove
-    // all other edge-local identifier that might be possibly present.
+    // We can remove any edge-local ids from the local variable edge.
+    // The first recursion step will rename the target edge-local identifiers
+    // of that edge (with access path `List(None)`) to
+    // source edge-local identifiers (with access path `List()`).
     val state = edges.head.state
-    recurse(edges.tail, state.removeVariables(state.edgeLocalIdsWithNonEmptyAccPath))
+    recurse(edges, state.removeVariables(state.edgeLocalIds))
   }
 }

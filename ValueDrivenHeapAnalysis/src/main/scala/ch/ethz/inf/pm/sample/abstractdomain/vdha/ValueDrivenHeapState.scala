@@ -293,7 +293,7 @@ trait ValueDrivenHeapState[
             for (id <- leftCond.ids.collect({
               case id: ValueHeapIdentifier if id.obj.equals(v.vertex) => id
             })) {
-              repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(leftAccPath.path.last), id)))
+              repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(leftAccPath.path.last)), id)))
             }
             edgesToAdd = edgesToAdd + Edge(lPath.target, leftCond.merge(repl), Some(leftAccPath.path.last), v.vertex)
           }
@@ -338,7 +338,7 @@ trait ValueDrivenHeapState[
             newState = newState.assign(edgeLocId, rightExp)
           }
           if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
-            val path = List(edge.field).flatten
+            val path = List(edge.field)
             val edgeLocId = EdgeLocalIdentifier(path, actualField, rightExp.getType)(rightExp.pp)
             newState = newState.assign(edgeLocId, rightExp)
           }
@@ -376,7 +376,7 @@ trait ValueDrivenHeapState[
         for (rPath <- rightPaths) {
           val rightCond = rPath.condition
           val renameMap = rightCond.edgeLocalIds.map(id => {
-            id -> id.copy(accPath = List(field))(id.pp)
+            id -> id.copy(accPath = List(Some(field)))(id.pp)
           }).toMap
 
           var newEdgeState = rightCond.rename(renameMap)
@@ -384,7 +384,7 @@ trait ValueDrivenHeapState[
             // This is the case when RHS is null. Hence, we need to create
             // source edge-local identifiers in the right state in order to
             // preserve the ones from LHS.
-            val sourceIdsOfLHS = leftCond.edgeLocalIdsWithEmptyAccPath
+            val sourceIdsOfLHS = leftCond.sourceEdgeLocalIds
             newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS)
           }
           leftCond = leftCond.createVariables(renameMap.values.toSet)
@@ -571,7 +571,7 @@ trait ValueDrivenHeapState[
       for (valHeapId <- updatedEdgeState.ids.collect({
         case id: ValueHeapIdentifier if id.obj == vtx => id
       })) {
-        val edgLocId = EdgeLocalIdentifier(List.empty[String], valHeapId.field, valHeapId.getType)(valHeapId.pp)
+        val edgLocId = EdgeLocalIdentifier(List.empty, valHeapId.field, valHeapId.getType)(valHeapId.pp)
         updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
       }
       // Updating EdgeLocalIdentifiers with non-empty path
@@ -579,10 +579,7 @@ trait ValueDrivenHeapState[
         for (valHeapId <- updatedEdgeState.ids.collect({
           case id: ValueHeapIdentifier if id.obj == e.target => id
         })) {
-          val edgLocId = EdgeLocalIdentifier(List(e.field match {
-            case None => throw new Exception("Should not happen")
-            case Some(f) => f
-          }), valHeapId.field, valHeapId.getType)(valHeapId.pp)
+          val edgLocId = EdgeLocalIdentifier(List(e.field), valHeapId.field, valHeapId.getType)(valHeapId.pp)
           updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
         }
       }
