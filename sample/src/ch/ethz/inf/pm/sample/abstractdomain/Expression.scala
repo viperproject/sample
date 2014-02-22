@@ -56,6 +56,11 @@ object ArithmeticOperator extends Enumeration {
 object BooleanOperator extends Enumeration {
   val && = Value("&&")
   val || = Value("||")
+
+  def negate(op: Value): Value = op match {
+    case `&&` => `||`
+    case `||` => `&&`
+  }
 }
 
 
