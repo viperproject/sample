@@ -546,12 +546,15 @@ case class AccessPathIdentifier(path: List[String])
 }
 
 object AccessPathIdentifier {
-  /**
-   * Constructs an access path identifier from a given variable identifier,
-   * i.e., with an access path of length 1.
-   */
+  /** Constructs an access path identifier from a given variable identifier. */
   def apply(id: VariableIdentifier): AccessPathIdentifier =
     AccessPathIdentifier(List(id.name))(id.typ, id.pp)
+
+  /** Constructs an access path identifier from a receiver object access path
+    * and a field identifier.
+    */
+  def apply(objPath: List[String], field: Identifier): AccessPathIdentifier =
+    AccessPathIdentifier(objPath ++ List(field.getName))(field.typ, field.pp)
 }
 
 /** 
