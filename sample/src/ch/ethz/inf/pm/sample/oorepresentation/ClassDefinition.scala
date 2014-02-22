@@ -118,14 +118,6 @@ class MethodDeclaration(
   def initializeArgument[S <: State[S]](state: S): S = {
     SystemParameters.semanticsComputing = false
     var result = state
-    // Create a variable for the current object unless the method is static
-    if (!modifiers.contains(StaticModifier)) {
-      val thisVar = new Variable(programpoint,
-        new VariableIdentifier("this")(ownerType, programpoint))
-      result = thisVar.forwardSemantics[S](result)
-      val variable = result.getExpression
-      result = result.removeExpression().createVariableForArgument(variable, ownerType)
-    }
     // Create a variable for each formal parameter
     for (lv <- arguments) {
       for (variable <- lv) {
@@ -134,6 +126,21 @@ class MethodDeclaration(
         result = result.removeExpression()
         result = result.createVariableForArgument(varExpr, variable.typ)
       }
+    }
+    // If the method is not static, create a variable for the current object
+    // and assume that it is non-null
+    if (!modifiers.contains(StaticModifier)) {
+      val thisVarId = new VariableIdentifier("this")(ownerType, programpoint)
+      val thisVar = new Variable(programpoint, thisVarId)
+      result = thisVar.forwardSemantics[S](result)
+      val variable = result.getExpression
+      result = result.removeExpression()
+        .createVariableForArgument(variable, ownerType)
+        .assume(ExpressionSet(ReferenceComparisonExpression(
+          thisVarId,
+          Constant("null", ownerType, programpoint),
+          ArithmeticOperator.!=,
+          SystemParameters.typ.top())))
     }
     result
   }
