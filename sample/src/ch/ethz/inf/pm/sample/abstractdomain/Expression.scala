@@ -483,7 +483,7 @@ case class ProgramPointScopeIdentifier(pp: ProgramPoint) extends ScopeIdentifier
  */
 case class VariableIdentifier
     (name: String, scope: ScopeIdentifier = EmptyScopeIdentifier)
-    (val typ: Type, val pp: ProgramPoint)
+    (val typ: Type, val pp: ProgramPoint = DummyProgramPoint)
   extends Identifier {
 
   require(typ != null)

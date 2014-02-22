@@ -114,7 +114,7 @@ class UncheckedVariableContext(val name: String, ranges: List[(Any, Any)]) exten
 
 	val top = SystemParameters.getType().top()
 
-	override def identifier: VariableIdentifier = VariableIdentifier(name)(top, null)
+	override def identifier: VariableIdentifier = VariableIdentifier(name)(top)
 
 	override def constant(value: String): Constant = Constant(value, top, null)
 

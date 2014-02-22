@@ -38,10 +38,9 @@ class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with Sho
   val manager = new Polka(true)
   val dom = ApronInterface.Default(None, manager, env = Set.empty)
   val typ = DummyNumericType
-  val pp = DummyProgramPoint
 
-  def makeVarId(name: String) = VariableIdentifier(name)(typ, pp)
-  def makeConst(value: Int) = Constant(value.toString, typ, pp)
+  def makeVarId(name: String) = VariableIdentifier(name)(typ)
+  def makeConst(value: Int) = Constant(value.toString, typ, DummyProgramPoint)
 
   val idx = makeVarId("x")
   val idy = makeVarId("y")
