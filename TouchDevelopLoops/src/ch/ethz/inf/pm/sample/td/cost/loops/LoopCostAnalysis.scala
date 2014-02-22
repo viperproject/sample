@@ -332,7 +332,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
         if (c.constant.equalsIgnoreCase("true")) new BaseCondition(id, new LinearRelation(zero, "=", zero))
         else new BaseCondition(id, new LinearRelation(zero, "=", one))
       }
-      case nbe : NegatedBooleanExpression => getConditionNeg(nbe.thisExpr, id)
+      case nbe : NegatedBooleanExpression => getConditionNeg(nbe.exp, id)
       case bae : BinaryArithmeticExpression => {
         var operator : String = ""
         bae.op match {
@@ -395,7 +395,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
         if (c.constant.equalsIgnoreCase("false")) new BaseCondition(id, new LinearRelation(zero, "=", zero))
         else new BaseCondition(id, new LinearRelation(zero, "=", one))
       }
-      case nbe : NegatedBooleanExpression => getCondition(nbe.thisExpr, id)
+      case nbe : NegatedBooleanExpression => getCondition(nbe.exp, id)
       case bae : BinaryArithmeticExpression => {
         var operator : String = ""
         bae.op match {

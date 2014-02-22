@@ -122,33 +122,21 @@ trait Expression {
    * @return the transformed expression
    */
   def transform(f:(Expression => Expression)):Expression
-
 }
 
 
-/** 
- * Represents the negation of a given expression
- *  
- * @param thisExpr The negated expression
- * @author Pietro Ferrara
- * @since 0.1
- */
-case class NegatedBooleanExpression(thisExpr: Expression) extends Expression {
+/** The negation of an expression. */
+case class NegatedBooleanExpression(exp: Expression) extends Expression {
+  def getType = exp.getType
 
-  def getType = thisExpr.getType
-  def pp = thisExpr.pp
-  def getIdentifiers : Set[Identifier] = thisExpr.getIdentifiers
+  def pp = exp.pp
 
-  override def hashCode() : Int = thisExpr.hashCode();
-  override def equals(o : Any) = o match {
-    case NegatedBooleanExpression(l) => thisExpr.equals(l) 
-    case _ => false
-  }
-  override def toString = "! " + thisExpr.toString
+  def getIdentifiers = exp.getIdentifiers
 
-  override def transform(f:(Expression => Expression)):Expression =
-    f(NegatedBooleanExpression(thisExpr.transform(f)))
+  override def toString = s"! $exp"
 
+  def transform(f: (Expression => Expression)): Expression =
+    f(NegatedBooleanExpression(exp.transform(f)))
 }
 
 /** 
