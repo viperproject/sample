@@ -304,6 +304,41 @@ trait Type extends Lattice[Type] {
   def isBottomExcluding(types: Set[Type]): Boolean
 }
 
+/** A dummy type with no proper hierarchy for testing.
+  *
+  * @todo Move to test source folder. However, test cases in other modules
+  *       should still be able to access it.
+  */
+trait DummyType extends Type {
+  def factory() = this
+  def top() = this
+  def bottom() = this
+  def lub(other: Type) = this
+  def glb(other: Type) = this
+  def widening(other: Type) = this
+  def lessEqual(other: Type) = true
+  def isFloatingPointType = false
+  def isBooleanType = false
+  def isStringType = false
+  def isStatic = false
+  def arrayElementsType = None
+  def isBottomExcluding(types: Set[Type]) = true
+}
+
+/** A dummy object type with no proper hierarchy for testing. */
+trait DummyObjectType extends DummyType {
+  def isObject = true
+  def isNumericalType = false
+}
+
+/** A dummy numerical type with no proper hierarchy for testing. */
+case object DummyNumericalType extends DummyType {
+  def name = "Int"
+  def isObject = false
+  def isNumericalType = true
+  def possibleFields = Set.empty
+}
+
 /**
  * The semantics of the native methods.
  * Since we represent native operators (e.g. arithmetic operators, or dynamic type castings),

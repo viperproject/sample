@@ -3,10 +3,9 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import org.scalatest.matchers.ShouldMatchers
 import apron.Polka
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyNumericalType, DummyProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyNumericalType, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.abstractdomain.EmptyScopeIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
 /** Tests ApronInterfaceTranslator. */
