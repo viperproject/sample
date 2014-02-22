@@ -105,39 +105,6 @@ trait HeapVertex extends Vertex {
   val version: Int
   def name = s"n$version"
 
-  /** Adds an `EdgeLocalIdentifier` for a given value field of
-    * this heap vertex to the given state and returns the resulting state.
-    *
-    * Assumes "eLocId.valueField == thisHeapVertex.valueField" on the state.
-    * Note that this assumption only takes effect on definite heap vertices.
-    *
-    * This method is not defined on `EdgeWithState` because it is independent
-    * of the field and target of an edge. That is, one can call this method
-    * once and then reuse the resulting state to create multiple edges
-    * going out of this heap vertex.
-    */
-  def createEdgeLocalIdInState[S <: SemanticDomain[S]](
-      state: S, valueField: Identifier): S = {
-    require(typ.nonObjectFields.contains(valueField),
-      s"vertex has no value field $valueField")
-
-    val edgeLocalId = EdgeLocalIdentifier(valueField)
-    val valueHeapId = ValueHeapIdentifier(this, valueField)
-
-    require(state.ids.contains(valueHeapId),
-      s"state must already contain value heap identifier $valueHeapId")
-
-    state
-      .createVariable(edgeLocalId)
-      .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
-  }
-
-  /** Adds an `EdgeLocalIdentifier` for each value field of this heap vertex
-    * to the given state and returns the resulting state.
-    */
-  def createEdgeLocalIdsInState[S <: SemanticDomain[S]](state: S): S =
-    typ.nonObjectFields.foldLeft(state)(createEdgeLocalIdInState)
-
   /** Returns the set of all value heap identifiers of this heap vertex. */
   def valueHeapIds[I >: Identifier]: Set[I] =
     typ.nonObjectFields.map(ValueHeapIdentifier(this, _))

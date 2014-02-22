@@ -49,8 +49,7 @@ case class Edge[S <: SemanticDomain[S]](
   }
 
   /** Returns whether this edge points from a vertex to that vertex itself. */
-  def isSelfLoop: Boolean =
-    source == target
+  def isSelfLoop: Boolean = source == target
 
   /** Returns the identifier representing the field (if the field is defined). */
   def fieldId: Option[Identifier] = field match {
@@ -112,35 +111,44 @@ case class Edge[S <: SemanticDomain[S]](
   def createTargetEdgeLocalIds(): Edge[S] =
     target.typ.nonObjectFields.foldLeft(this)(_.createTargetEdgeLocalId(_))
 
-  /** Create an `EdgeLocalIdentifier` in the edge state for
-    * the given value field of the source vertex.
+  /** Creates an `EdgeLocalIdentifier` in the edge state for a given value field
+    * of the source vertex.
+    *
+    * Assumes "eLocId.valueField == source.valueField" on the state.
+    * Note that this assumption only takes effect on definite heap vertices.
     */
   def createSourceEdgeLocalId(valueField: Identifier): Edge[S] = {
-    require(source.isInstanceOf[HeapVertex],
-      "source vertex must be a heap vertex")
     require(source.typ.nonObjectFields.contains(valueField),
       s"source vertex has no value field $valueField")
 
-    copy(state = source.asInstanceOf[HeapVertex]
-      .createEdgeLocalIdInState(state, valueField))
+    source match {
+      case obj: HeapVertex =>
+        val edgeLocalId = EdgeLocalIdentifier(valueField)
+        val valueHeapId = ValueHeapIdentifier(obj, valueField)
+
+        require(state.ids.contains(valueHeapId),
+          s"state must already contain value heap identifier $valueHeapId")
+
+        val newState = state
+          .createVariable(edgeLocalId)
+          .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
+
+        copy(state = newState)
+      case _ => this
+        // Do not create source edge-local ids for local variable vertices
+    }
   }
 
   /** Create an `EdgeLocalIdentifier` in the edge state for each value field
     * of the source vertex.
     */
   def createSourceEdgeLocalIds(): Edge[S] = {
-    require(source.isInstanceOf[HeapVertex],
-      "source vertex must be a heap vertex")
-
-    copy(state = source.asInstanceOf[HeapVertex]
-      .createEdgeLocalIdsInState(state))
+    source.typ.nonObjectFields.foldLeft(this)(_.createSourceEdgeLocalId(_))
   }
 
   def createEdgeLocalIds(): Edge[S] = {
-    var result = this
-    if (source.isInstanceOf[HeapVertex])
-      result = result.createSourceEdgeLocalIds()
-    result = result.createTargetEdgeLocalIds()
-    result
+    this
+      .createSourceEdgeLocalIds()
+      .createTargetEdgeLocalIds()
   }
 }
