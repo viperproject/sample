@@ -3,41 +3,17 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import org.scalatest.{BeforeAndAfter, FunSuite}
 import org.scalatest.matchers.ShouldMatchers
 import apron.Polka
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyNumericalType, DummyProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.EmptyScopeIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
-/**
- * A dummy object that can be used as a numerical type.
- * @todo move it to a more general place where other unit tests can use it
- */
-object DummyNumericType extends Type {
-  def factory(): Type = this
-  def top(): Type = this
-  def bottom(): Type = this
-  def lub(other: Type): Type = this
-  def glb(other: Type): Type = this
-  def widening(other: Type): Type = this
-  def lessEqual(other: Type): Boolean = true
-  def isObject: Boolean = false
-  def isNumericalType: Boolean = true
-  def isFloatingPointType: Boolean = true
-  def isBooleanType: Boolean = false
-  def isStringType: Boolean = false
-  def isStatic: Boolean = false
-  def name: String = "Dummy Numeric Type"
-  def possibleFields: Set[Identifier] = Set.empty
-  def arrayElementsType: Option[Type] = None
-  def isBottomExcluding(types: Set[Type]): Boolean = true
-}
-
 /** Tests ApronInterfaceTranslator. */
 class ApronInterfaceTranslatorTest extends FunSuite with BeforeAndAfter with ShouldMatchers {
   val manager = new Polka(true)
   val dom = ApronInterface.Default(None, manager, env = Set.empty)
-  val typ = DummyNumericType
+  val typ = DummyNumericalType
 
   def makeVarId(name: String) = VariableIdentifier(name)(typ)
   def makeConst(value: Int) = Constant(value.toString, typ, DummyProgramPoint)

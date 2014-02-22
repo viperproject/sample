@@ -275,6 +275,16 @@ trait Type extends Lattice[Type] {
   def nonObjectFields: Set[Identifier] =
     possibleFields.filter(!_.getType.isObject)
 
+  /** Returns all object types reachable via fields, including this type. */
+  def reachableObjectTypes(implicit foundTypes: Set[Type] = Set.empty): Set[Type] = {
+    require(isObject, "can only call on an object type")
+
+    objectFields.map(_.typ).foldLeft(foundTypes + this)((foundTypes, fieldType) => {
+      if (foundTypes.contains(fieldType)) foundTypes // Do not recurse
+      else fieldType.reachableObjectTypes(foundTypes)
+    })
+  } ensuring(_.forall(_.isObject), "must return only object types")
+
   /**
    * If the current type represents an array, it returns the type
    * of the elements contained in the array, None otherwise. 
