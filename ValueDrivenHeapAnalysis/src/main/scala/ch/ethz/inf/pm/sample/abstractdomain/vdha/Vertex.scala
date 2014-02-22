@@ -39,6 +39,17 @@ trait Vertex extends Ordered[Vertex] {
     else
       thisGroup.compareTo(thatGroup)
   }
+
+  /** Returns all fields and corresponding types for which
+    * this vertex needs to have an out-going edge for.
+    */
+  def neededEdgeFieldsAndTypes: Set[(Option[String], Type)]
+
+  /** Returns all fields for which this vertex needs to have
+    * an out-going edge for.
+    */
+  def neededEdgeFields: Set[Option[String]] =
+    neededEdgeFieldsAndTypes.map(_._1)
 }
 
 object Vertex {
@@ -62,7 +73,10 @@ object Vertex {
 
 case class LocalVariableVertex(name: String)(val typ: Type) extends Vertex {
   def label = name
+
   override def toString = name
+
+  def neededEdgeFieldsAndTypes = Set((None, typ))
 }
 
 object LocalVariableVertex {
@@ -81,6 +95,8 @@ object NullVertex extends Vertex {
   var typ = SystemParameters.getType().bottom()
 
   override def toString = name
+
+  def neededEdgeFieldsAndTypes = Set.empty
 }
 
 trait HeapVertex extends Vertex {
@@ -125,6 +141,9 @@ trait HeapVertex extends Vertex {
   /** Returns the set of all value heap identifiers of this heap vertex. */
   def valueHeapIds[I >: Identifier]: Set[I] =
     typ.nonObjectFields.map(ValueHeapIdentifier(this, _))
+
+  def neededEdgeFieldsAndTypes =
+    typ.objectFields.map(f => (Some(f.getName), f.typ))
 }
 
 case class SummaryHeapVertex(version: Int)(val typ: Type) extends HeapVertex {

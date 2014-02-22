@@ -197,27 +197,22 @@ case class HeapGraph[S <: SemanticDomain[S]](
   /** Returns true only if there exist certainly no concretizations
     * of this abstract heap.
     *
+    * That is, it returns true only if there is any vertex without any
+    * out-going edges for one of its objects fields (or no edge at all
+    * in case of local variable vertices).
+    *
     * The complexity of this method is O(V * F + E), where F is the number of
     * maximum number of object fields that a object type may have.
     * The old complexity was O(V * F * E).
     */
   def isBottom: Boolean = {
-    // Check whether there is a local variable vertex without any outgoing edge
-    val connectedLocalVarVertices = edges
-      .filter(_.source.isInstanceOf[LocalVariableVertex]).map(_.source)
-    if (localVarVertices.size > connectedLocalVarVertices.size) return true
-
-    // Check whether there is a heap vertex without any outgoing edge for
-    // at least one of its object fields
-    val persentFieldsPerHeapVertex = edges
-      .filter(_.source.isInstanceOf[HeapVertex])
+    val presentEdgeFieldsPerVertex = edges
       .groupBy(_.source)
-      .mapValues(_.map(_.field))
+      .mapValues(_.map(_.field).toSet)
+      .withDefaultValue(Set.empty)
 
-    heapVertices.exists(heapVertex => {
-      val fields = heapVertex.typ.objectFields.map(_.getName)
-      val presentFields = persentFieldsPerHeapVertex.getOrElse(heapVertex, Set())
-      fields.size > presentFields.size
+    vertices.exists(vertex => {
+      vertex.neededEdgeFields.size > presentEdgeFieldsPerVertex(vertex).size
     })
   }
 
