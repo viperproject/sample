@@ -1,8 +1,25 @@
-package ch.ethz.inf.pm.sample.abstractdomain.vdha
+package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.abstractdomain._
+import scala.annotation.elidable
+import scala.annotation.elidable._
 
-object Utilities {
+package object vdha {
+  /** Wraps [[Predef.require(r)]], making calls to it elidable
+    * with the compiler option '-Xelide-below OFF'.
+    */
+  @elidable(ASSERTION) @inline
+  def require(requirement: Boolean) {
+    Predef.require(requirement)
+  }
+
+  /** Wraps [[Predef.require(r, m)]], making calls to it elidable
+    * with the compiler option '-Xelide-below OFF'.
+    */
+  @elidable(ASSERTION) @inline
+  def require(requirement: Boolean, message: => Any) {
+    Predef.require(requirement, message)
+  }
+
   /**
    * Replaces all non-numerical `VariableIdentifier`s in the given expression
    * with a corresponding `AccessPathIdentifier`.

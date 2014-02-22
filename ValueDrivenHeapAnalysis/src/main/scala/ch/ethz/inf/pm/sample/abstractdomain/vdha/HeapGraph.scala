@@ -2,7 +2,6 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import scala.collection.immutable.{Set, TreeSet}
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import scala.collection.mutable
 

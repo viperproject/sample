@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, AccessPathIdentifier, SemanticDomain}
+import ch.ethz.inf.pm.sample.abstractdomain.{AccessPathIdentifier, SemanticDomain}
 
 /** Represents a path of edges in a heap graph. */
 trait Path[S <: SemanticDomain[S]] {
@@ -29,7 +29,6 @@ case class PartialPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
 case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
   extends Path[S] {
 
-  import Utilities._
 
   require(source.isInstanceOf[LocalVariableVertex],
     "first edge source is not a local variable vertex")

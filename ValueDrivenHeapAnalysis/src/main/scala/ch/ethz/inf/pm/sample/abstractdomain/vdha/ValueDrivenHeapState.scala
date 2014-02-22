@@ -18,8 +18,6 @@ trait ValueDrivenHeapState[
 
   require(!isTop || !isBottom, "cannot be top and bottom at the same time")
 
-  import Utilities._
-
   /** Builds a copy of this value-driven heap state overriding fields
     * at the discretion of the caller.
     */

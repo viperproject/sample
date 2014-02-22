@@ -16,7 +16,6 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     cond: S,
     takenPaths: Set[RootedPath[S]] = Set.empty[RootedPath[S]]) {
 
-  import Utilities._
   import CondHeapGraph._
 
   require(cond.edgeLocalIds.isEmpty,
@@ -249,7 +248,6 @@ object CondHeapGraph {
 case class CondHeapGraphSeq[S <: SemanticDomain[S]]
     (condHeaps: Seq[CondHeapGraph[S]])(implicit lattice: S) {
 
-  import Utilities._
 
   /**
    * Intersects all conditional heap graphs in this and another
