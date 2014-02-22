@@ -6,4 +6,9 @@ object Predef {
       !a || b
     }
   }
+
+  implicit def extendedList[T](l: List[T]) = new {
+    /** Returns whether there are any duplicate items in the given list. */
+    def containsDuplicates = l.distinct.size != l.size
+  }
 }
