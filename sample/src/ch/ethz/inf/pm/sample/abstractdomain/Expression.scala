@@ -38,7 +38,7 @@ object ArithmeticOperator extends Enumeration {
   /**
    * Flips the given arithmetic operator if possible.
    * @param op the operator to flip
-   * @return MatchError if the operator cannot be flipped
+   * @throws MatchError if the operator cannot be flipped
    */
   def flip(op: Value): Value = op match {
     case `+` => ArithmeticOperator.`+` // Make the compiler happy

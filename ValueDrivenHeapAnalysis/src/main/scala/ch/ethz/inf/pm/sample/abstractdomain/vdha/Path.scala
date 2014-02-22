@@ -10,7 +10,7 @@ trait Path[S <: SemanticDomain[S]] {
     "all edges (except the first) must have a heap vertex source")
 
   require(edges.zip(edges.tail).forall(t => t._1.target == t._2.source),
-    "path is not consistent (edge target must equal source of next edge")
+    "path is not consistent (edge target must equal source of next edge)")
 
   val edges: List[Edge[S]]
 
@@ -28,7 +28,6 @@ case class PartialPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
 /** Represents a heap graph path that starts with a local variable vertex. */
 case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
   extends Path[S] {
-
 
   require(source.isInstanceOf[LocalVariableVertex],
     "first edge source is not a local variable vertex")
