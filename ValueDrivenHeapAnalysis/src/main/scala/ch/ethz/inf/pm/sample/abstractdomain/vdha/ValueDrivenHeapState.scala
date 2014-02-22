@@ -192,7 +192,7 @@ trait ValueDrivenHeapState[
         if (left.getType.isBooleanType) {
           result = evalExp(normalRight).apply().mapCondHeaps(condHeap => {
             val isCertainlyFalse = condHeap.assume(normalRight).isBottom
-            val isCertainlyTrue = condHeap.assume(negateExpression(normalRight)).isBottom
+            val isCertainlyTrue = condHeap.assume(NegatedBooleanExpression(normalRight)).isBottom
             Seq(condHeap.map(state => {
               if (isCertainlyFalse) state.assign(variable, Constant("false", left.getType, normalRight.pp))
               else if (isCertainlyTrue) state.assign(variable, Constant("true", left.getType, normalRight.pp))

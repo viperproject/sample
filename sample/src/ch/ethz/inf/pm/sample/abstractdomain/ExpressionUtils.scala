@@ -4,7 +4,7 @@ object ExpSimplifier extends Function[Expression, Expression] {
   import ArithmeticOperator.{`+`, `-`, `*`}
 
   /**
-   * Simplifies the tiven Sample expressions, for example by replacing 'x + 0' with 'x'.
+   * Simplifies the given Sample expressions, for example by replacing 'x + 0' with 'x'.
    *
    * It may change the semantics of the program in the presence of expressions
    * with side-effects and may cause a non-terminating expression to be
@@ -24,7 +24,23 @@ object ExpSimplifier extends Function[Expression, Expression] {
    */
   def apply(exp: Expression): Expression =
     exp.transform({
-      case NegatedBooleanExpression(NegatedBooleanExpression(innerExp)) => innerExp
+      // Push negations inward if possible
+      case e @ NegatedBooleanExpression(negExp) => negExp match {
+        case NegatedBooleanExpression(innerExp) => innerExp
+        case Constant("true", typ, pp) => Constant("false", typ, pp)
+        case Constant("false", typ, pp) => Constant("true", typ, pp)
+        case BinaryArithmeticExpression(l, r, o, t) =>
+          BinaryArithmeticExpression(l, r, ArithmeticOperator.negate(o), t)
+        case ReferenceComparisonExpression(l, r, o, t) =>
+          ReferenceComparisonExpression(l, r, ArithmeticOperator.negate(o), t)
+        case BinaryBooleanExpression(l, r, o, t) =>
+          BinaryBooleanExpression(
+            NegatedBooleanExpression(l),
+            NegatedBooleanExpression(r),
+            BooleanOperator.negate(o),
+            t)
+        case _ => e
+      }
 
       // Binary arithmetic expressions
       case BinaryArithmeticExpression(Constant("0", _, _), right, `+`, typ) => right

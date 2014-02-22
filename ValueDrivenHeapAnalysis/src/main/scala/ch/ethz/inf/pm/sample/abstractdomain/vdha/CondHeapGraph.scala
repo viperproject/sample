@@ -167,7 +167,10 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
   /** Returns a sequence of heap sub-graphs on which the given expression
     * has been assumed.
     */
-  def assume(cond: Expression): CondHeapGraphSeq[S] = {
+  def assume(_cond: Expression): CondHeapGraphSeq[S] = {
+    // Push NegatedBooleanExpressions inward if possible
+    val cond = ExpSimplifier(_cond)
+
     val result: CondHeapGraphSeq[S] = cond match {
       case Constant("false", _, _) => CondHeapGraphSeq(Seq())(lattice)
       case Constant("true", _, _) => this
@@ -175,9 +178,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
            | NegatedBooleanExpression(VariableIdentifier(_, _))
            | BinaryArithmeticExpression(_, _, _, _) =>
         evalExp(cond).apply().map(_.assume(cond))
-      case NegatedBooleanExpression(e) =>
-        assume(negateExpression(e))
-      case BinaryBooleanExpression(l,r,o,t) => {
+      case BinaryBooleanExpression(l, r, o, t) => {
         val result: CondHeapGraphSeq[S] = o match {
           case BooleanOperator.&& =>
             assume(l).assume(r)

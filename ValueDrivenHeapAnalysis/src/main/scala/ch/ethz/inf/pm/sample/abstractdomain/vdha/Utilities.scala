@@ -3,36 +3,6 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain._
 
 object Utilities {
-  val BinaryBoolArithmeticOperators = Set(ArithmeticOperator.>,
-                                    ArithmeticOperator.>=,
-                                    ArithmeticOperator.<,
-                                    ArithmeticOperator.!=,
-                                    ArithmeticOperator.==,
-                                    ArithmeticOperator.<=)
-  val BinaryBoolOperators = Set(BooleanOperator.||, BooleanOperator.&&)
-
-  def negateExpression(exp: Expression): Expression = exp match {
-    // TODO(severinh): Code is similar to ApronInterface.assume. Code sharing may be possible.
-    case v: VariableIdentifier => NegatedBooleanExpression(v)
-    case NegatedBooleanExpression(e) => e
-    case BinaryArithmeticExpression(l, r, o, t) =>
-      new BinaryArithmeticExpression(l, r, ArithmeticOperator.negate(o), t)
-    case BinaryBooleanExpression(l, r, o, t) =>
-      new BinaryBooleanExpression(negateExpression(l), negateExpression(r), negateBoolOperator(o), t)
-    case Constant("true", typ, pp) =>
-      Constant("false", typ, pp)
-    case Constant("false", typ, pp) =>
-      Constant("true", typ, pp)
-    case ReferenceComparisonExpression(l, r, o, t) =>
-      new ReferenceComparisonExpression(l, r, ArithmeticOperator.negate(o), t)
-  }
-
-  private def negateBoolOperator(op: BooleanOperator.Value): BooleanOperator.Value = op match {
-    case BooleanOperator.&& => BooleanOperator.||
-    case BooleanOperator.|| => BooleanOperator.&&
-    case _ => throw new Exception("Invalid boolean operator.")
-  }
-
   /**
    * Replaces all non-numerical `VariableIdentifier`s in the given expression
    * with a corresponding `AccessPathIdentifier`.
