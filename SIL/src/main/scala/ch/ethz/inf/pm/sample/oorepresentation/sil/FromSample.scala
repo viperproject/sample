@@ -25,8 +25,6 @@ object DefaultSampleConverter extends SampleConverter {
       case `&&` => sil.And(go(left), go(right))()
       case `||` => sil.Or(go(left), go(right))()
     }
-    case sample.FalseExpression(pp, typ) => sil.FalseLit()(go(pp))
-    case sample.TrueExpression(pp, typ) => sil.TrueLit()(go(pp))
     case sample.ReferenceComparisonExpression(left, right, op, typ) => op match {
       case `==` => sil.EqCmp(go(left), go(right))()
       case `!=` => sil.NeCmp(go(left), go(right))()

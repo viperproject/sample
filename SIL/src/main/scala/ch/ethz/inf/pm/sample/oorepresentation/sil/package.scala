@@ -17,8 +17,6 @@ package object sil {
 
     val NegatedBooleanExpression = dom.NegatedBooleanExpression
     val BinaryBooleanExpression = dom.BinaryBooleanExpression
-    val FalseExpression = dom.FalseExpression
-    val TrueExpression = dom.TrueExpression
     val ReferenceComparisonExpression = dom.ReferenceComparisonExpression
     val BinaryArithmeticExpression = dom.BinaryArithmeticExpression
     val UnaryArithmeticExpression = dom.UnaryArithmeticExpression

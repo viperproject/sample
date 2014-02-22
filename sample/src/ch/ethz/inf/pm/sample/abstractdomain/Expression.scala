@@ -212,38 +212,6 @@ case class BinaryBooleanExpression(
 
 }
 
-case class FalseExpression(pp: ProgramPoint, returntyp: Type) extends Expression {
-
-  def getType() = returntyp
-  def getIdentifiers() : Set[Identifier] = Set.empty;
-
-  override def hashCode() : Int = 0;
-  override def equals(o : Any) = o match {
-    case FalseExpression(pp, ty) => pp.equals(this.pp)
-    case _ => false
-  }
-  override def toString = "false"
-
-  override def transform(f:(Expression => Expression)):Expression = f(this)
-
-}
-
-case class TrueExpression(pp: ProgramPoint, returntyp: Type) extends Expression {
-
-  def getType = returntyp
-  def getIdentifiers : Set[Identifier] = Set.empty;
-
-  override def hashCode() : Int = 0;
-  override def equals(o : Any) = o match {
-    case TrueExpression(pp, ty) => pp.equals(this.pp)
-    case _ => false
-  }
-  override def toString = "true"
-
-  override def transform(f:(Expression => Expression)):Expression = f(this)
-
-}
-
 /**
  * A comparison between reference, that is, left == right or left != right
  *
