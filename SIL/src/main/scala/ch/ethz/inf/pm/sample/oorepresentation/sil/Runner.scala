@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
-import ch.ethz.inf.pm.sample.{execution, StringCollector, SystemParameters}
+import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
-import ch.ethz.inf.pm.sample.execution.TrackingCFGState
+import ch.ethz.inf.pm.sample.execution.{TrackingForwardInterpreter, TrackingCFGState}
 import apron.Polka
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.MethodDeclaration
@@ -121,7 +121,8 @@ case class Analysis[S <: State[S]](entryStateBuilder: EntryStateBuilder[S]) {
   def analyze(method: MethodDeclaration): AnalysisResult[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
       val entryState = entryStateBuilder.build(method)
-      val cfgState = execution.TrackingForwardInterpreter[S](entryState.top()).forwardExecuteFrom(method.body, entryState)
+      val interpreter = TrackingForwardInterpreter[S](entryState.top())
+      val cfgState = interpreter.forwardExecuteFrom(method.body, entryState)
       AnalysisResult(method, cfgState)
     }
   }
