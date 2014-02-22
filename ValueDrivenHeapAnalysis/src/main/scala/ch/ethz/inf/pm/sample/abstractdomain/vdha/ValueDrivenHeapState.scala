@@ -264,22 +264,36 @@ trait ValueDrivenHeapState[
   private def evalExp(expr: Expression): CondHeapGraphSeq[S] =
     CondHeapGraph[S, T](this).evalExp(expr)
 
-  def assignField(leftExp: Expression, field: String, rightExp: Expression): T = {
-    assert(leftExp.isInstanceOf[AccessPathIdentifier], "The left hand side od the assignment is not an AccessPathIdentifier")
-    val leftAccPath = leftExp.asInstanceOf[AccessPathIdentifier]
-    val leftPaths = abstractHeap.getPathsToBeAssigned(leftAccPath).filter(_.target.isInstanceOf[HeapVertex])
+  /** Assigns an expression to a field and returns the resulting state.
+    *
+    * The value-driven heap analysis does not use the `field` parameter.
+    * Instead, both the receiver and field must be represented by `left` as an
+    * `AccessPathIdentifier`.
+    *
+    * This is a wrapper method so the actual implementation does not need to
+    * perform checks and casts and there is no danger of accidentally using the
+    * (possibly) arbitrary value of `field`.
+    */
+  final def assignField(left: Expression, field: String, right: Expression): T = left match {
+    case left: AccessPathIdentifier => assignField(left, right)
+    case _ => throw new IllegalArgumentException(
+      "LHS must be an AccessPathIdentifier")
+  }
+
+  def assignField(left: AccessPathIdentifier, right: Expression): T = {
+    val leftPaths = abstractHeap.getPathsToBeAssigned(left).filter(_.target.isInstanceOf[HeapVertex])
     if (leftPaths.size == 0)
       return this.bottom()
 
     // TODO: The 'field' parameter is actually an empty string
-    val actualField = leftAccPath.path.last
+    val actualField = left.path.last
 
-    if (rightExp.getType.isObject) {
+    if (right.getType.isObject) {
       var edgesToAdd = Set.empty[Edge[S]]
-      normalizeExpression(rightExp) match {
+      normalizeExpression(right) match {
         case rAP: AccessPathIdentifier => {
           val rightPaths = abstractHeap.paths(rAP.path)
-          edgesToAdd = referencePathAssignmentEdges(leftAccPath.path.last, leftPaths, rightPaths)
+          edgesToAdd = referencePathAssignmentEdges(left.path.last, leftPaths, rightPaths)
         }
         case v: VertexExpression => {
           // We assume that all edges have ValueHeapIdentifiers for the given vertex expression
@@ -293,17 +307,17 @@ trait ValueDrivenHeapState[
             for (id <- leftCond.ids.collect({
               case id: ValueHeapIdentifier if id.obj.equals(v.vertex) => id
             })) {
-              repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(leftAccPath.path.last)), id)))
+              repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(left.path.last)), id)))
             }
-            edgesToAdd = edgesToAdd + Edge(lPath.target, leftCond.merge(repl), Some(leftAccPath.path.last), v.vertex)
+            edgesToAdd = edgesToAdd + Edge(lPath.target, leftCond.merge(repl), Some(left.path.last), v.vertex)
           }
         }
         case c: Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
           val newAH = abstractHeap.addNonHeapVertex(NullVertex)
-          return copy(abstractHeap = newAH).assignField(leftExp, field, new VertexExpression(c.getType, NullVertex)(c.pp))
+          return copy(abstractHeap = newAH).assignField(left, new VertexExpression(c.getType, NullVertex)(c.pp))
         }
-        case _ => throw new Exception("Assigning " + rightExp + " is not allowed (or supported:)). ")
+        case _ => throw new Exception("Assigning " + right + " is not allowed (or supported:)). ")
       }
       // If there is no possible assignment, return bottom
       if (edgesToAdd.isEmpty)
@@ -315,32 +329,32 @@ trait ValueDrivenHeapState[
       if (sources.size == 1 && (sources.head.isInstanceOf[DefiniteHeapVertex] || sources.head.isInstanceOf[LocalVariableVertex])) {
         // Strong update - removing the edges from the target of the path labeled with the assigned filed
         val lastPathVertex: Vertex = sources.head
-        val edgesToRemove = resultingAH.outEdges(lastPathVertex, Some(leftAccPath.path.last))
+        val edgesToRemove = resultingAH.outEdges(lastPathVertex, Some(left.path.last))
         resultingAH = resultingAH.removeEdges(edgesToRemove)
       }
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
       copy(abstractHeap = resultingAH, isTop = false).prune()
     } else {
-      assert(rightExp.getType.isNumericalType, "only numerical values allowed")
+      assert(right.getType.isNumericalType, "only numerical values allowed")
 
-      evalExp(leftExp).intersect(evalExp(rightExp)).apply().mapCondHeaps(condHeap => {
-        val leftTakenPath = condHeap.takenPath(leftAccPath.objPath)
+      evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
+        val leftTakenPath = condHeap.takenPath(left.objPath)
         val vertexToAssign = leftTakenPath.target.asInstanceOf[HeapVertex]
-        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField)(leftExp.getType, leftExp.pp)
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField)(left.getType, left.pp)
 
         val condHeapAssigned = condHeap
-          .map(_.assign(idToAssign, rightExp))
+          .map(_.assign(idToAssign, right))
           .mapEdges(edge => {
           var newState = edge.state
           if (edge.source == vertexToAssign) {
-            val edgeLocId = EdgeLocalIdentifier(List.empty, actualField, rightExp.getType)(rightExp.pp)
-            newState = newState.assign(edgeLocId, rightExp)
+            val edgeLocId = EdgeLocalIdentifier(List.empty, actualField, right.getType)(right.pp)
+            newState = newState.assign(edgeLocId, right)
           }
           if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
             val path = List(edge.field)
-            val edgeLocId = EdgeLocalIdentifier(path, actualField, rightExp.getType)(rightExp.pp)
-            newState = newState.assign(edgeLocId, rightExp)
+            val edgeLocId = EdgeLocalIdentifier(path, actualField, right.getType)(right.pp)
+            newState = newState.assign(edgeLocId, right)
           }
           newState
         })
