@@ -31,6 +31,14 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def heapVertices: Set[HeapVertex] =
     vertices.collect({ case v: HeapVertex => v })
 
+  /** Returns all definite heap vertices in the heap graph. */
+  def definiteHeapVertices: Set[DefiniteHeapVertex] =
+    vertices.collect({ case v: DefiniteHeapVertex => v })
+
+  /** Returns all summary heap vertices in the heap graph. */
+  def summaryHeapVertices: Set[SummaryHeapVertex] =
+    vertices.collect({ case v: SummaryHeapVertex => v })
+
   /** Returns all local variable vertices in the heap graph. */
   def localVarVertices: Set[LocalVariableVertex] =
     vertices.collect({ case v: LocalVariableVertex => v })
