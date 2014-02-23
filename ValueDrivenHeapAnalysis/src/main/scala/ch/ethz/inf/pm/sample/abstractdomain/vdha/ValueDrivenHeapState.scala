@@ -214,9 +214,6 @@ trait ValueDrivenHeapState[
     if (leftPaths.size == 0)
       return this.bottom()
 
-    // TODO: The 'field' parameter is actually an empty string
-    val actualField = left.path.last
-
     if (right.typ.isObject) {
       var edgesToAdd = Set.empty[Edge[S]]
       normalizeExpression(right) match {

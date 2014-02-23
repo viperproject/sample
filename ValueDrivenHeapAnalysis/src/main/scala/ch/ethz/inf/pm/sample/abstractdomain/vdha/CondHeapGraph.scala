@@ -86,7 +86,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    * of corresponding paths taken through the heap.
    *
    * That is, in each returned conditional heap sub-graph, the taken path
-   * is fixed for each `AccessPathIdentifer` in the given expression.
+   * is fixed for each `AccessPathIdentifier` in the given expression.
    *
    * @param expr the expression whose `AccessPathIdentifier`s to consider
    * @return the sequence of conditional heap sub-graphs

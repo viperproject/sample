@@ -9,11 +9,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
     vertices: Set[Vertex] = TreeSet.empty[Vertex],
     edges: Set[Edge[S]] = Set.empty[Edge[S]]) {
 
-  // TODO: Should only check during debugging for the sake of performance
   require(edges.forall(_.vertices.subsetOf(vertices)),
     "graph contains edges with unknown source or target vertices")
-
-  // private var mcsCounter = 0
 
   private def getNewVersionNumber: Int = {
     val usedVersionNumbers = getCurrentVersionNumbers
@@ -43,7 +40,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def localVarVertices: Set[LocalVariableVertex] =
     vertices.collect({ case v: LocalVariableVertex => v })
 
-  /** Returns all verties that are possible sources of edges. */
+  /** Returns all vertices that are possible sources of edges. */
   def possibleSourceVertices: Set[Vertex] =
     vertices.filterNot(_ == NullVertex)
 
