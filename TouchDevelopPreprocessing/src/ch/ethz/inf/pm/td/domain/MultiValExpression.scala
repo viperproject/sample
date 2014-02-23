@@ -13,8 +13,10 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Expression}
 case class MultiValExpression(left : Expression, right:Expression, returnTyp : Type) extends Expression {
 
   def pp = left.pp
+
   def typ = returnTyp
-  def getIdentifiers : Set[Identifier] = left.getIdentifiers ++ right.getIdentifiers
+
+  def ids = left.ids ++ right.ids
 
   override def hashCode() : Int = left.hashCode()+right.hashCode()
   override def equals(o : Any) = o match {

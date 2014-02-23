@@ -314,7 +314,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   def backwardAssign(oldPreState: T, variable: Assignable, expr: Expression): (T, Replacement)
 
   /** Returns all identifiers over whom the `HeapDomain` is defined. */
-  def ids: scala.collection.Set[Identifier]
+  def ids: Set[Identifier]
 
   /**
    * Creates the heap structure for an empty collection
@@ -485,8 +485,9 @@ trait Assignable {
 
 case class CollectionContainsExpression(collection: Expression, key: Expression, value: Expression, returnTyp: Type, pp: ProgramPoint) extends Expression {
 
-  def typ: Type = returnTyp
-  def getIdentifiers: Set[Identifier] = Set.empty[Identifier]
+  def typ = returnTyp
+
+  def ids = Set.empty
 
   override def equals(obj: Any): Boolean = obj match {
     case CollectionContainsExpression(ppX, collectionX, keyX, valueX, returnTypeX) =>
@@ -569,7 +570,7 @@ case class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
 
   def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
 
-  def getIdentifiers : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
+  def ids = this.value.asInstanceOf[Set[Identifier]]
 }
 
 case class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
@@ -595,5 +596,5 @@ case class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
 
   def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
 
-  def getIdentifiers : Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
+  def ids = this.value.asInstanceOf[Set[Identifier]]
 }

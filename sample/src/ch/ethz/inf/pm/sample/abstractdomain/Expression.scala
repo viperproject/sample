@@ -93,15 +93,16 @@ object AbstractOperatorIdentifiers extends Enumeration {
  * @since 0.1
  */
 trait Expression {
+  /** The type of this expression. */
   def typ: Type
 
   /** Point in the program where this expression is located. */
   def pp: ProgramPoint
 
-  def getIdentifiers: Set[Identifier]
+  /** All identifiers that are part of this expression. */
+  def ids: Set[Identifier]
 
   /**
-   *
    * Replace one identifier by another in this expression (and all sub-expressions)
    *
    * @param a The identifier to be replaced
@@ -130,7 +131,7 @@ case class NegatedBooleanExpression(exp: Expression) extends Expression {
 
   def pp = exp.pp
 
-  def getIdentifiers = exp.getIdentifiers
+  def ids = exp.ids
 
   override def toString = s"! $exp"
 
@@ -159,10 +160,10 @@ case class AbstractOperator(
 
   def pp = thisExpr.pp
   def typ = returntyp
-  def getIdentifiers : Set[Identifier] = thisExpr.getIdentifiers++{
+  def ids : Set[Identifier] = thisExpr.ids++{
     var result : Set[Identifier] = Set.empty;
     for(p<-parameters) {
-      result++=p.getIdentifiers
+      result++=p.ids
     }
     result
   }
@@ -197,7 +198,7 @@ case class BinaryBooleanExpression(
 
   def pp = left.pp
   def typ = returntyp
-  def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
+  def ids : Set[Identifier] = left.ids++right.ids
 
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -240,7 +241,7 @@ case class ReferenceComparisonExpression(
 
   def typ = returntyp
 
-  def getIdentifiers = left.getIdentifiers ++ right.getIdentifiers
+  def ids = left.ids ++ right.ids
 
   override def hashCode(): Int = left.hashCode()
 
@@ -274,7 +275,8 @@ case class BinaryArithmeticExpression(
 
   def pp = if(left.pp==null) right.pp else left.pp
   def typ = returntyp
-  def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
+
+  def ids = left.ids ++ right.ids
 
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -319,7 +321,7 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
 
   def pp = left.pp
   def typ = returntyp
-  def getIdentifiers = left.getIdentifiers
+  def ids = left.ids
 
   override def hashCode() : Int = left.hashCode();
   override def equals(o : Any) = o match {
@@ -347,7 +349,7 @@ case class Constant(
     pp: ProgramPoint = DummyProgramPoint)
   extends Expression {
 
-  def getIdentifiers = Set.empty
+  def ids = Set.empty
 
   override def hashCode() : Int = constant.hashCode();
   override def equals(o : Any) = o match {
@@ -364,7 +366,7 @@ case class Constant(
  * An identifier, that could be a variable or a node of the abstract heap.
  */
 trait Identifier extends Expression with Assignable {
-  def getIdentifiers = Set(this)
+  def ids = Set(this)
 
   def transform(f: (Expression => Expression)): Expression = f(this)
 
@@ -459,7 +461,7 @@ trait HeapIdentifier[I <: HeapIdentifier[I]] extends Identifier {}
  * @since 0.1
  */
 case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
-  def getIdentifiers = Set.empty
+  def ids = Set.empty
 
   override def hashCode() : Int = 0;
 
@@ -919,10 +921,11 @@ object NondeterministicOperator extends Enumeration {
  *
  */
 case class BinaryNondeterministicExpression(left : Expression, right : Expression, op : NondeterministicOperator.Value, returnType : Type) extends Expression {
-
   def pp = left.pp
+
   def typ = returnType
-  def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
+
+  def ids = left.ids ++ right.ids
 
   override def hashCode() : Int = left.hashCode()
 

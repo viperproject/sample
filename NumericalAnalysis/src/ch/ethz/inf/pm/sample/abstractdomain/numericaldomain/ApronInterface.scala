@@ -382,7 +382,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         //   (4) Remove all renamed summary nodes
         // This way, we infer every thing we can about the "materialized" value
 
-        val rightSummaryNodes = (someExpr.getIdentifiers filter ( !_.representsSingleVariable() )) - variable
+        val rightSummaryNodes = (someExpr.ids filter ( !_.representsSingleVariable() )) - variable
         if (!rightSummaryNodes.isEmpty) {
 
           val rightSummaryNodesNames = rightSummaryNodes.toList
@@ -891,7 +891,7 @@ trait ApronInterface[T <: ApronInterface[T]]
    */
   private def summaryNodeWrapper(expr: Expression, state: T, someFunc: (Expression, T) => T): T = {
 
-    if (!expr.getIdentifiers.filter( x => !x.representsSingleVariable() ).isEmpty) {
+    if (!expr.ids.filter( x => !x.representsSingleVariable() ).isEmpty) {
 
       // We have a summary node.
 

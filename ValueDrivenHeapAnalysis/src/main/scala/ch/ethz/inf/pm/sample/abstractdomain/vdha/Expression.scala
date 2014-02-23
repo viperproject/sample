@@ -72,8 +72,7 @@ object EdgeLocalIdentifier {
 }
 
 case class VertexExpression(typ: Type, vertex: Vertex)(val pp: ProgramPoint) extends Expression {
-  def getIdentifiers: Set[Identifier] =
-    throw new Exception("getIdentifiers() should never be called!")
+  def ids = throw new Exception("should never be called")
 
   override def toString: String = vertex.name
 

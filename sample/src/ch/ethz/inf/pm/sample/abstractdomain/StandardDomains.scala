@@ -614,7 +614,7 @@ trait RoutingSemanticCartesianProductDomain[
     * in the given expressions.
     */
   private def _1canHandle(exps: Expression*): Boolean =
-    exps.flatMap(_.getIdentifiers).forall(_1canHandle)
+    exps.flatMap(_.ids).forall(_1canHandle)
 
   /** Returns true if the second domain can handle the given identifier. */
   def _2canHandle(id: Identifier): Boolean
@@ -623,7 +623,7 @@ trait RoutingSemanticCartesianProductDomain[
     * in the given expressions.
     */
   private def _2canHandle(exps: Expression*): Boolean =
-    exps.flatMap(_.getIdentifiers).forall(_2canHandle)
+    exps.flatMap(_.ids).forall(_2canHandle)
 
   /**
    * Constructs a new state with `op_1` applied to the state of the first

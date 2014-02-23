@@ -1172,7 +1172,7 @@ case class AbstractState[
 
     // dispatch creation of identifier to heap domain
     val (nonDetId, newHeap, rep) = this._1._2.createNonDeterminismSource(typ, pp, summary)
-    Predef.assert(nonDetId.getIdentifiers.size == 1)
+    Predef.assert(nonDetId.ids.size == 1)
     val heapIdCreatedState = new HeapAndAnotherDomain[N, H, I](this._1._1.merge(rep), newHeap)
 
     // create a corresponding numerical variable

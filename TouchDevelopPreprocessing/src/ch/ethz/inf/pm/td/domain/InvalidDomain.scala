@@ -40,7 +40,7 @@ trait NumericWithInvalidDomain[
  * @param pp Program Point of the invalid value
  */
 case class InvalidExpression(typ: Type, pp: ProgramPoint) extends Expression {
-  def getIdentifiers: Set[Identifier] = Set.empty
+  def ids = Set.empty
   override def toString = "invalid"
   def transform(f: (Expression) => Expression): Expression = f(this)
 }
@@ -51,7 +51,7 @@ case class InvalidExpression(typ: Type, pp: ProgramPoint) extends Expression {
  * @param pp Program Point of the valid value
  */
 case class ValidExpression(typ: Type, pp: ProgramPoint) extends Expression {
-  def getIdentifiers: Set[Identifier] = Set.empty
+  def ids = Set.empty
   override def toString = "valid"
   def transform(f: (Expression) => Expression): Expression = f(this)
 }

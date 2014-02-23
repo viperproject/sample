@@ -37,7 +37,7 @@ case class TupleIdSetDomain[I <: HeapIdentifier[I]](
     return res;
   }
 
-  def getIdentifiers(): Set[Identifier] = this.value.asInstanceOf[Set[Identifier]]
+  def ids = this.value.asInstanceOf[Set[Identifier]]
 
   override def add(el: I): HeapIdSetDomain[I] =
     setFactory(value + el)
