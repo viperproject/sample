@@ -73,8 +73,8 @@ trait VariableContext {
 			val rop = if (upper._2) ArithmeticOperator.<= else ArithmeticOperator.<
 
 			BinaryBooleanExpression(
-				BinaryArithmeticExpression(context.identifier, context.constant(lower._1), lop, null),
-				BinaryArithmeticExpression(context.identifier, context.constant(upper._1), rop, null),
+				BinaryArithmeticExpression(context.identifier, context.constant(lower._1), lop),
+				BinaryArithmeticExpression(context.identifier, context.constant(upper._1), rop),
 				BooleanOperator.&&,
 				null
 			)
@@ -116,7 +116,7 @@ class UncheckedVariableContext(val name: String, ranges: List[(Any, Any)]) exten
 
 	override def identifier: VariableIdentifier = VariableIdentifier(name)(top)
 
-	override def constant(value: String): Constant = Constant(value, top, null)
+	override def constant(value: String): Constant = Constant(value, top)
 
 	override def restrictions: List[Restriction] = {
 		ranges.map(_ match {

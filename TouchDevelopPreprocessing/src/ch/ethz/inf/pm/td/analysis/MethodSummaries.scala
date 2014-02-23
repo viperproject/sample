@@ -141,7 +141,7 @@ object MethodSummaries {
 
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
-        !id.getType.asInstanceOf[TouchType].isSingleton &&
+        !id.typ.asInstanceOf[TouchType].isSingleton &&
         !CFGGenerator.isGlobalReferenceIdent(id.toString)
       case _ => false
     })
@@ -206,7 +206,7 @@ object MethodSummaries {
     var curState = entryState
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
-        id.getType.asInstanceOf[TouchType].isSingleton ||
+        id.typ.asInstanceOf[TouchType].isSingleton ||
           CFGGenerator.isGlobalReferenceIdent(id.toString) ||
           CFGGenerator.isParamIdent(id.toString) ||
           CFGGenerator.isReturnIdent(id.toString)
@@ -231,7 +231,7 @@ object MethodSummaries {
       val tempVars = for ((decl,value) <- inParameters.zip(parameters)) yield {
         val tempVar = VariableIdentifier(CFGGenerator.paramIdent(decl.variable.id.toString), ProgramPointScopeIdentifier(callTarget.programpoint))(decl.typ, callPoint)
         val expr = ExpressionSet(tempVar)
-        curState = curState.createVariable(expr, tempVar.getType, callTarget.programpoint)
+        curState = curState.createVariable(expr, tempVar.typ, callTarget.programpoint)
         curState = curState.assignVariable(expr,value)
         tempVar
       }
@@ -240,7 +240,7 @@ object MethodSummaries {
       if (TouchAnalysisParameters.localizeStateOnMethodCall) {
         curState = curState.pruneVariables({
           case id:VariableIdentifier =>
-            !id.getType.asInstanceOf[TouchType].isSingleton &&
+            !id.typ.asInstanceOf[TouchType].isSingleton &&
             !CFGGenerator.isGlobalReferenceIdent(id.toString) &&
             !CFGGenerator.isParamIdent(id.toString)
           case _ => false
@@ -251,7 +251,7 @@ object MethodSummaries {
       for ((decl,value) <- inParameters.zip(tempVars)) {
         val variable = decl.variable.id
         val expr = ExpressionSet(variable)
-        curState = curState.createVariable(expr, variable.getType, callTarget.programpoint)
+        curState = curState.createVariable(expr, variable.typ, callTarget.programpoint)
         curState = curState.assignVariable(expr, ExpressionSet(value))
       }
 
@@ -269,7 +269,7 @@ object MethodSummaries {
       // Prune local state
       curState = curState.pruneVariables({
         case id:VariableIdentifier =>
-          !id.getType.asInstanceOf[TouchType].isSingleton &&
+          !id.typ.asInstanceOf[TouchType].isSingleton &&
           !CFGGenerator.isGlobalReferenceIdent(id.toString)
         case _ => false
       })

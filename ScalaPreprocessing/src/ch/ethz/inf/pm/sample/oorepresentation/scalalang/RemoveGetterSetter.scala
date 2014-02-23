@@ -38,7 +38,7 @@ object RemoveGetterSetter {
              case Nil =>
                val cleanObj = cleanStatement(obj)
                val t = cleanObj match {
-                 case v: Variable => v.id.getType
+                 case v: Variable => v.id.typ
                  case fa: FieldAccess => fa.typ
                  case mc: MethodCall => mc.returnedType
                  case _ => typ.top()
@@ -47,7 +47,7 @@ object RemoveGetterSetter {
                if (!t.equals(t.top()))
                  for (n <- t.possibleFields) {
                    if (field.equals(n.getName))
-                     return new FieldAccess(pp1, cleanObj, field, n.getType)
+                     return new FieldAccess(pp1, cleanObj, field, n.typ)
                  }
              case _ => 
              	//System.out.println("Look at this:\n"+st.toString);

@@ -30,10 +30,10 @@ case class TupleIdSetDomain[I <: HeapIdentifier[I]](
 
   def this() = this(null)
 
-  override def getType() : Type = {
+  override def typ() : Type = {
     var res=SystemParameters.getType().bottom();
     for(a <- this.value)
-      res=res.glb(a.getType);
+      res=res.glb(a.typ);
     return res;
   }
 
@@ -567,7 +567,7 @@ trait AbstractNonRelationalHeapDomain[
 
   override def assignArrayCell[S <: SemanticDomain[S]](obj : Assignable, index : Expression, expr : Expression, state : S) = {
     var result=this.bottom()
-    val ids = this.getArrayCell(obj, index, state, expr.getType)._1
+    val ids = this.getArrayCell(obj, index, state, expr.typ)._1
     for(id <- ids.value)
       result=result.lub(assign(id, expr, null)._1)
     (result, new Replacement)
@@ -649,7 +649,7 @@ trait AbstractNonRelationalHeapDomain[
       val newAdd=cod.convert(obj)
       if(! NonRelationalHeapDomainSettings.unsoundEntryState)
         for(add <- result.ids)
-          if(add.isInstanceOf[I] && add.getType.lessEqual(typ))
+          if(add.isInstanceOf[I] && add.typ.lessEqual(typ))
             newAdd.add(add.asInstanceOf[I])
       if(x.isInstanceOf[VariableIdentifier]) {
         result = factory(result._1.add(x.asInstanceOf[VariableIdentifier], newAdd),result._2)
@@ -658,14 +658,14 @@ trait AbstractNonRelationalHeapDomain[
       alreadyInitialized=alreadyInitialized+obj
       val c = typ.possibleFields;
       for(field <- c) {
-        val adds = cod.convert(dom.createAddressForArgument(field.getType, x.pp))
+        val adds = cod.convert(dom.createAddressForArgument(field.typ, x.pp))
         //I can ignore newHeap since it's equal to initial as it is not changed by getFieldIdentifier
         //in the same way I ignore rep
-        val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName, field.getType, field.pp)
+        val (fieldAdd, newHeap, rep)=result.getFieldIdentifier(obj, field.getName, field.typ, field.pp)
         for(id : I <- fieldAdd.value) {
           result=factory(result._1,result._2.add(id, adds))
           ids=ids+((id, path ::: (field.getName) :: Nil))
-          val r=initializeObject(id, id, id.getType, result, path ::: (field.getName) :: Nil)
+          val r=initializeObject(id, id, id.typ, result, path ::: (field.getName) :: Nil)
           alreadyInitialized=alreadyInitialized+id
           result=r._1
           ids=r._2++ids;//This order is quite important: in this way we keep the shortest path to arrive to an abstract node!
@@ -697,7 +697,7 @@ trait AbstractNonRelationalHeapDomain[
   override def assignField(variable : Assignable, s : String, expr : Expression) : (H, Replacement) = {
     var result=this.bottom()
     var replacement=new Replacement()
-    val ids = this.getFieldIdentifier(variable, s, expr.getType, variable.pp)._1
+    val ids = this.getFieldIdentifier(variable, s, expr.typ, variable.pp)._1
     for(id <- ids.value) {
       val (assigned, repAssignment) = this.assign(id, expr, null)
       val (res, repLub) = result.lubWithReplacement(assigned)
@@ -712,7 +712,7 @@ trait AbstractNonRelationalHeapDomain[
   override def backwardAssignField(oldPreState: H, variable : Assignable, s : String, expr : Expression) : (H, Replacement) = {
     var result=this.bottom()
     var replacement=new Replacement()
-    val ids = this.getFieldIdentifier(variable, s, expr.getType, variable.pp)._1
+    val ids = this.getFieldIdentifier(variable, s, expr.typ, variable.pp)._1
     for(id <- ids.value) {
       val (assigned, repAssignment) = this.backwardAssign(oldPreState, id, expr)
       val (res, repLub) = result.lubWithReplacement(assigned)

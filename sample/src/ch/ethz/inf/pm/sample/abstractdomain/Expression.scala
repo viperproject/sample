@@ -93,8 +93,7 @@ object AbstractOperatorIdentifiers extends Enumeration {
  * @since 0.1
  */
 trait Expression {
-
-  def getType: Type
+  def typ: Type
 
   /** Point in the program where this expression is located. */
   def pp: ProgramPoint
@@ -127,7 +126,7 @@ trait Expression {
 
 /** The negation of an expression. */
 case class NegatedBooleanExpression(exp: Expression) extends Expression {
-  def getType = exp.getType
+  def typ = exp.typ
 
   def pp = exp.pp
 
@@ -159,7 +158,7 @@ case class AbstractOperator(
       returntyp: Type) extends Expression {
 
   def pp = thisExpr.pp
-  def getType = returntyp
+  def typ = returntyp
   def getIdentifiers : Set[Identifier] = thisExpr.getIdentifiers++{
     var result : Set[Identifier] = Set.empty;
     for(p<-parameters) {
@@ -194,10 +193,10 @@ case class BinaryBooleanExpression(
     left: Expression,
     right: Expression,
     op: BooleanOperator.Value,
-    returntyp: Type) extends Expression {
+    returntyp: Type = SystemParameters.typ.top()) extends Expression {
 
   def pp = left.pp
-  def getType = returntyp
+  def typ = returntyp
   def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
 
   override def hashCode() : Int = left.hashCode();
@@ -228,9 +227,9 @@ case class ReferenceComparisonExpression(
     op: ArithmeticOperator.Value,
     returntyp: Type) extends Expression {
 
-  require(left.getType.isObject,
+  require(left.typ.isObject,
     "cannot perform reference comparisons on primitive values")
-  require(right.getType.isObject,
+  require(right.typ.isObject,
     "cannot perform reference comparisons on primitive values")
 
   // TODO: Maybe introduce a ReferenceOperator enum with just two values
@@ -239,7 +238,7 @@ case class ReferenceComparisonExpression(
 
   def pp = left.pp
 
-  def getType = returntyp
+  def typ = returntyp
 
   def getIdentifiers = left.getIdentifiers ++ right.getIdentifiers
 
@@ -271,10 +270,10 @@ case class BinaryArithmeticExpression(
     left: Expression,
     right: Expression,
     op: ArithmeticOperator.Value,
-    returntyp: Type) extends Expression {
+    returntyp: Type = SystemParameters.typ.top()) extends Expression {
 
   def pp = if(left.pp==null) right.pp else left.pp
-  def getType = returntyp
+  def typ = returntyp
   def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
 
   override def hashCode() : Int = left.hashCode();
@@ -319,7 +318,7 @@ object BinaryArithmeticExpression {
 case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Value, returntyp: Type) extends Expression {
 
   def pp = left.pp
-  def getType = returntyp
+  def typ = returntyp
   def getIdentifiers = left.getIdentifiers
 
   override def hashCode() : Int = left.hashCode();
@@ -342,9 +341,12 @@ case class UnaryArithmeticExpression(left: Expression, op: ArithmeticOperator.Va
  * @author Pietro Ferrara
  * @since 0.1
  */
-case class Constant(constant: String, typ: Type, pp: ProgramPoint) extends Expression {
+case class Constant(
+    constant: String,
+    typ: Type = SystemParameters.typ.top(),
+    pp: ProgramPoint = DummyProgramPoint)
+  extends Expression {
 
-  def getType = typ
   def getIdentifiers = Set.empty
 
   override def hashCode() : Int = constant.hashCode();
@@ -362,16 +364,6 @@ case class Constant(constant: String, typ: Type, pp: ProgramPoint) extends Expre
  * An identifier, that could be a variable or a node of the abstract heap.
  */
 trait Identifier extends Expression with Assignable {
-
-  val typ: Type
-
-  val pp: ProgramPoint
-
-  /** Returns the identifier type (or top if the type is `null`).
-    * @todo null types should not occur in the first place
-    */
-  def getType = if (typ == null && SystemParameters.typ != null) SystemParameters.typ.top() else typ
-
   def getIdentifiers = Set(this)
 
   def transform(f: (Expression => Expression)): Expression = f(this)
@@ -467,9 +459,7 @@ trait HeapIdentifier[I <: HeapIdentifier[I]] extends Identifier {}
  * @since 0.1
  */
 case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
-
   def getIdentifiers = Set.empty
-  def getType = typ
 
   override def hashCode() : Int = 0;
 
@@ -564,8 +554,8 @@ object Normalizer {
     
     case BinaryArithmeticExpression(left, right, op, typ) =>
       // TODO: Because x != null is treated as arithmetic and it crashes with NumberFormatException (because of null)
-      if (left == null || right == null || left.getType == null || right.getType == null ||
-        !left.getType.isNumericalType || !right.getType.isNumericalType)
+      if (left == null || right == null || left.typ == null || right.typ == null ||
+        !left.typ.isNumericalType || !right.typ.isNumericalType)
         return None
 
       val l : Option[(List[(Int, Identifier)], Int)] = arithmeticExpressionToMonomes(left);
@@ -683,7 +673,7 @@ object Normalizer {
             return None;
           }
           case Some((monomes, const)) => {
-            val constExp = new Constant(const.toString, exp.getType, exp.pp);
+            val constExp = new Constant(const.toString, exp.typ, exp.pp);
             monomes.length match {
               case 0 => {
                 return Some(constExp);
@@ -692,9 +682,9 @@ object Normalizer {
               case 1 => {
                 var result : BinaryArithmeticExpression = null;
                 for ((coef, id) <- monomes) {
-                  val coefExp = new Constant(coef.toString, exp.getType, exp.pp);
-                  val coefAndVarExp : BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.getType);
-                  result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.getType);
+                  val coefExp = new Constant(coef.toString, exp.typ, exp.pp);
+                  val coefAndVarExp : BinaryArithmeticExpression = new BinaryArithmeticExpression(coefExp, id, ArithmeticOperator.*, exp.typ);
+                  result = new BinaryArithmeticExpression(coefAndVarExp, constExp, ArithmeticOperator.+, exp.typ);
                 }
                 return Some(result);
               }
@@ -776,7 +766,7 @@ object Normalizer {
    * @return an expression in which every id in exp is substituted with subExp
    */
   def substitute[I <: HeapIdentifier[I]](exp: Expression, id: Identifier, subExp: Expression) : Expression = {
-    if (exp.getType.equals(subExp.getType)) {
+    if (exp.typ.equals(subExp.typ)) {
       throw new Exception("Can not substitute an expression of different type to an expression.");
     }
 
@@ -931,7 +921,7 @@ object NondeterministicOperator extends Enumeration {
 case class BinaryNondeterministicExpression(left : Expression, right : Expression, op : NondeterministicOperator.Value, returnType : Type) extends Expression {
 
   def pp = left.pp
-  def getType = returnType
+  def typ = returnType
   def getIdentifiers : Set[Identifier] = left.getIdentifiers++right.getIdentifiers
 
   override def hashCode() : Int = left.hashCode()

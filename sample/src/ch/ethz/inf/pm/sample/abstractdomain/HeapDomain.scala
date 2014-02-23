@@ -478,14 +478,14 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
 }
 
 trait Assignable {
-  def pp : ProgramPoint
-  def getType : Type
-}
+  def pp: ProgramPoint
 
+  def typ: Type
+}
 
 case class CollectionContainsExpression(collection: Expression, key: Expression, value: Expression, returnTyp: Type, pp: ProgramPoint) extends Expression {
 
-  def getType: Type = returnTyp
+  def typ: Type = returnTyp
   def getIdentifiers: Set[Identifier] = Set.empty[Identifier]
 
   override def equals(obj: Any): Boolean = obj match {
@@ -559,9 +559,9 @@ case class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
 
   def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.pp).add(add)
 
-  override def getType : Type = {
+  override def typ : Type = {
     var res=SystemParameters.getType().bottom()
-    for (a <- this.value) res=res.lub(a.getType)
+    for (a <- this.value) res=res.lub(a.typ)
     res
   }
 
@@ -584,10 +584,10 @@ case class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
 
   def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.pp).add(add)
 
-  override def getType : Type = {
+  override def typ : Type = {
     var res=SystemParameters.getType().top()
     for(a <- this.value)
-      res=res.glb(a.getType)
+      res=res.glb(a.typ)
     res
   }
 

@@ -58,7 +58,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] wi
   def removeExpression(): AccessCollectingState = this.setType(SystemParameters.getType().top())
   def createObject(typ: Type, pp: ProgramPoint, fields : Option[Set[Identifier]] = None): AccessCollectingState = this.setType(typ)
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
-  def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.getType)
+  def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.typ)
 
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp:Option[Type], tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) =
     this.setType(collTyp)

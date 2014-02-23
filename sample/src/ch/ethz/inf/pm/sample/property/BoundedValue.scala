@@ -46,8 +46,8 @@ class BoundedValue(val variable: String, val lower: Int, val upper: Int) extends
 						case VariableIdentifier(v, _) => {
 							if (v == variable) {
 								val expr = BinaryBooleanExpression(
-									BinaryArithmeticExpression(pl, new Constant(lower.toString, null, null), ArithmeticOperator.>=, null),
-									BinaryArithmeticExpression(pl, new Constant(upper.toString, null, null), ArithmeticOperator.<=, null),
+									BinaryArithmeticExpression(pl, new Constant(lower.toString), ArithmeticOperator.>=),
+									BinaryArithmeticExpression(pl, new Constant(upper.toString), ArithmeticOperator.<=),
 									BooleanOperator.&&,
 									null
 								)

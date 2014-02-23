@@ -276,11 +276,11 @@ trait Type extends Lattice[Type] {
 
   /** Returns the possible fields with an object type. */
   def objectFields: Set[Identifier] =
-    possibleFields.filter(_.getType.isObject)
+    possibleFields.filter(_.typ.isObject)
 
   /** Returns the possible fields with a non-object type. */
   def nonObjectFields: Set[Identifier] =
-    possibleFields.filter(!_.getType.isObject)
+    possibleFields.filter(!_.typ.isObject)
 
   /** Returns all object types reachable via fields, including this type. */
   def reachableObjectTypes(implicit foundTypes: Set[Type] = Set.empty): Set[Type] = {

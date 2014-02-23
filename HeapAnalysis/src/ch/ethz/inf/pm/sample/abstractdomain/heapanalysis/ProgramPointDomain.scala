@@ -159,7 +159,7 @@ case class NullProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter: 
 
   override def toString: String = "null"
 
-  override def factory(): ProgramPointHeapIdentifier = new NullProgramPointHeapIdentifier(getType, this.pp)
+  override def factory(): ProgramPointHeapIdentifier = new NullProgramPointHeapIdentifier(typ, this.pp)
 
   override def representsSingleVariable(): Boolean = true
 
@@ -192,15 +192,15 @@ case class SimpleProgramPointHeapIdentifier(
 
   override def toString: String = pp.toString + (if (PPDSettings.printSummary && summary) "Σ" else "")
 
-  override def factory(): ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.getType)
+  override def factory(): ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.typ)
 
   override def representsSingleVariable(): Boolean = !summary
 
-  override def clone(): Object = new SimpleProgramPointHeapIdentifier(pp, this.getType)
+  override def clone(): Object = new SimpleProgramPointHeapIdentifier(pp, this.typ)
 
-  override def toSummaryNode: ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.getType, true)
+  override def toSummaryNode: ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.typ, true)
 
-  override def toNonSummaryNode: ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.getType, false)
+  override def toNonSummaryNode: ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.typ, false)
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
@@ -276,7 +276,7 @@ case class CollectionTupleIdentifier(
     counter: Int = 0)
   extends ProgramPointHeapIdentifier {
 
-  val typ = collectionApprox.getType
+  val typ = collectionApprox.typ
 
   val pp = pps.head
   
@@ -376,13 +376,13 @@ case class ParameterHeapIdentifier(
 
   override def representsSingleVariable(): Boolean = !summary
 
-  override def factory(): ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.getType, this.pp)
+  override def factory(): ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.typ, this.pp)
 
-  override def toString: String = "Parameter of type " + this.getType + (if (PPDSettings.printSummary && summary) "Σ" else "")
+  override def toString: String = "Parameter of type " + this.typ + (if (PPDSettings.printSummary && summary) "Σ" else "")
 
-  override def toSummaryNode: ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.getType, this.pp, true)
+  override def toSummaryNode: ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.typ, this.pp, true)
 
-  override def toNonSummaryNode: ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.getType, this.pp, false)
+  override def toNonSummaryNode: ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.typ, this.pp, false)
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
@@ -407,9 +407,9 @@ case class UnsoundParameterHeapIdentifier(
 
   override def representsSingleVariable(): Boolean = this.n != NonRelationalHeapDomainSettings.maxInitialNodes
 
-  override def factory(): ProgramPointHeapIdentifier = new UnsoundParameterHeapIdentifier(this.getType, this.n, this.pp)
+  override def factory(): ProgramPointHeapIdentifier = new UnsoundParameterHeapIdentifier(this.typ, this.n, this.pp)
 
-  override def toString: String = "Unsound parameter of type " + this.getType + " number " + this.n
+  override def toString: String = "Unsound parameter of type " + this.typ + " number " + this.n
 
   override def toSummaryNode: ProgramPointHeapIdentifier = this
 
@@ -428,15 +428,15 @@ case class StaticProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter
   override def isNormalized(): Boolean = true
 
   override def equals(x: Any): Boolean = x match {
-    case StaticProgramPointHeapIdentifier(t3, _, c) => this.getType.equals(t3) && c == counter
+    case StaticProgramPointHeapIdentifier(t3, _, c) => this.typ.equals(t3) && c == counter
     case _ => false
   }
 
   override def representsSingleVariable(): Boolean = true
 
-  override def factory(): ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(this.getType, this.pp)
+  override def factory(): ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(this.typ, this.pp)
 
-  override def toString: String = "Static " + this.getType + ""
+  override def toString: String = "Static " + this.typ + ""
 
   override def toSummaryNode: ProgramPointHeapIdentifier = this
 
@@ -467,13 +467,13 @@ case class FieldAndProgramPoint(
 
   override def representsSingleVariable(): Boolean = p1.representsSingleVariable()
 
-  override def factory(): ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1, this.field, this.getType)
+  override def factory(): ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1, this.field, this.typ)
 
   override def toString: String = "(" + p1.toString + ", " + field + ")"
 
-  override def toSummaryNode: ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1.toSummaryNode, this.field, this.getType)
+  override def toSummaryNode: ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1.toSummaryNode, this.field, this.typ)
 
-  override def toNonSummaryNode: ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1.toNonSummaryNode, this.field, this.getType)
+  override def toNonSummaryNode: ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1.toNonSummaryNode, this.field, this.typ)
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set(p1)
 

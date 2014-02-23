@@ -22,7 +22,7 @@ class AIndexMember(indexMemberType:TouchType, valueFields:List[(TouchField,Touch
     case "clear fields" =>
       var curState = state
       for ((memberField,valueField) <- valueFields) {
-        curState = AssignField[S](Field[S](this0,memberField),valueField,Invalid(valueField.getType))(curState,pp)
+        curState = AssignField[S](Field[S](this0,memberField),valueField,Invalid(valueField.typ))(curState,pp)
       }
       curState
 

@@ -18,7 +18,7 @@ case class ValueHeapIdentifier
 object ValueHeapIdentifier {
   /** Creates a value heap identifier from a heap vertex and a field identifier. */
   def apply(obj: HeapVertex, field: Identifier): ValueHeapIdentifier =
-    ValueHeapIdentifier(obj, field.getName)(field.getType, field.pp)
+    ValueHeapIdentifier(obj, field.getName)(field.typ, field.pp)
 }
 
 /** Represents a value field of the object pointed from or to by the edge
@@ -64,7 +64,7 @@ case class EdgeLocalIdentifier
 object EdgeLocalIdentifier {
   /** Creates an edge-local identifier from an access path and a field identifier. */
   def apply(accPath: List[Option[String]], field: Identifier): EdgeLocalIdentifier =
-    EdgeLocalIdentifier(accPath, field.getName, field.getType)(field.pp)
+    EdgeLocalIdentifier(accPath, field.getName, field.typ)(field.pp)
 
   /** Creates an edge-local identifier with an empty access path from a field identifier. */
   def apply(field: Identifier): EdgeLocalIdentifier =
@@ -72,8 +72,6 @@ object EdgeLocalIdentifier {
 }
 
 case class VertexExpression(typ: Type, vertex: Vertex)(val pp: ProgramPoint) extends Expression {
-  def getType: Type = typ
-
   def getIdentifiers: Set[Identifier] =
     throw new Exception("getIdentifiers() should never be called!")
 

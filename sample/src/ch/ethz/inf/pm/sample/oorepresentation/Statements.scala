@@ -290,7 +290,7 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
       val rootOfFieldAcc = current.asInstanceOf[Variable]
       accPath = rootOfFieldAcc.getName :: accPath
       // TODO: The below fix is a hack and should not be handled this way
-      val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(obj).possibleFields.filter(f => f.getName.equals(field)).head.getType else typ
+      val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(obj).possibleFields.filter(f => f.getName.equals(field)).head.typ else typ
       val pathExpr = AccessPathIdentifier(accPath :+ field)(finalType, pp)
       val newResult = state.getFieldValue(ExpressionSet(pathExpr), field, finalType)
       newResult
@@ -303,7 +303,7 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
 
   private def getTypeOfStatement(s: Statement): Type = {
     s match {
-      case v: Variable => v.id.getType
+      case v: Variable => v.id.typ
       case fa: FieldAccess =>
         assert(!fa.typ.toString.contains("<none>"), "Typ = " + fa.typ + " - The type uf field access should never be Unit")
         fa.typ

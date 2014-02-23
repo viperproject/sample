@@ -454,7 +454,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def removeCollectionKeyConnection(origCollection: Assignable, keysCollection: Assignable): T = {
     val result = this.factory()
-    val (collectionKeysIds, newHeap,_) = this.d2.getFieldIdentifier(origCollection, "keys", keysCollection.getType, keysCollection.pp)
+    val (collectionKeysIds, newHeap,_) = this.d2.getFieldIdentifier(origCollection, "keys", keysCollection.typ, keysCollection.pp)
     result.d1 = this.d1
     result.d2 = newHeap
     for (collectionKeysId <- collectionKeysIds.value) {
@@ -463,7 +463,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       result.d2 = h
     }
 
-    val (collectionOriginalIds, newHeap2, _) = result.d2.getFieldIdentifier(keysCollection, "orig", origCollection.getType, origCollection.pp)
+    val (collectionOriginalIds, newHeap2, _) = result.d2.getFieldIdentifier(keysCollection, "orig", origCollection.typ, origCollection.pp)
     result.d2 = newHeap2
     for (collectionOriginalId <- collectionOriginalIds.value) {
       result.d1 = result.d1.removeVariable(collectionOriginalId)
@@ -683,7 +683,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   private def increaseCollectionLength(collection: Assignable) = {
     def setCollectionLength(initial: T)(lengthId: Assignable) = {
-      val result = applyToAssignable[T](lengthId, initial, _.assign(_, BinaryArithmeticExpression(lengthId.asInstanceOf[I], Constant("1", lengthId.getType, null), ArithmeticOperator.+, lengthId.getType)))
+      val result = applyToAssignable[T](lengthId, initial, _.assign(_, BinaryArithmeticExpression(lengthId.asInstanceOf[I], Constant("1", lengthId.typ, null), ArithmeticOperator.+, lengthId.typ)))
 
       if (isSummaryCollection(collection)) {
         result.lub(initial)
@@ -697,8 +697,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   private def decreaseCollectionLength(collection: Assignable) = {
     def setCollectionLength(initial: T)(lengthId: Assignable) = {
-      var result = applyToAssignable[T](lengthId, initial, _.assign(_, BinaryArithmeticExpression(lengthId.asInstanceOf[I], Constant("1", lengthId.getType, null), ArithmeticOperator.-, lengthId.getType)))
-      val (res, _) = result.assume(BinaryArithmeticExpression(lengthId.asInstanceOf[I], Constant("0", lengthId.getType, null), ArithmeticOperator.>=, lengthId.getType))
+      var result = applyToAssignable[T](lengthId, initial, _.assign(_, BinaryArithmeticExpression(lengthId.asInstanceOf[I], Constant("1", lengthId.typ, null), ArithmeticOperator.-, lengthId.typ)))
+      val (res, _) = result.assume(BinaryArithmeticExpression(lengthId.asInstanceOf[I], Constant("0", lengthId.typ, null), ArithmeticOperator.>=, lengthId.typ))
       result = res
 
       if(isSummaryCollection(collection)) {
@@ -728,7 +728,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     def setCollectionLength(initial: T, toCollection: Assignable)(a: Assignable) = a match{
       case lengthId: I =>
         def assignLength(state: T, lengthId: I)(variable: Assignable) = {
-          var result = state.createVariable(variable, lengthId.getType)
+          var result = state.createVariable(variable, lengthId.typ)
           result = applyToAssignable[T](variable, result, _.assign(_, lengthId))
 
           if(isSummaryCollection(toCollection)) {
@@ -757,7 +757,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val lengthIds = result.d2.getCollectionLength(collection)
     result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), lengthIds, result.createVariable(_, lengthTyp))
 
-    def setToZero(initialState:N)(a:Assignable) = applyToAssignable[N](a, initialState, _.assign(_, Constant("0", a.getType, null)))
+    def setToZero(initialState:N)(a:Assignable) = applyToAssignable[N](a, initialState, _.assign(_, Constant("0", a.typ, null)))
     result.d1 = HeapIdSetFunctionalLifting.applyToSetHeapId(result.d1.factory(), lengthIds, setToZero(result.d1))
 
     if (result.isSummaryCollection(collection)) {
@@ -785,11 +785,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val valueId = result.d2.getCollectionValueByTuple(tupleId)
 
     if (!result.ids.contains(keyId.asInstanceOf[Identifier]))
-      result = applyToAssignable[T](keyId, result, _.createVariable(_, keyId.getType))
+      result = applyToAssignable[T](keyId, result, _.createVariable(_, keyId.typ))
     result = applyToAssignable[T](keyId, result, _.assign(_, key))
 
     if (!result.ids.contains(valueId.asInstanceOf[Identifier]))
-      result = applyToAssignable[T](valueId, result, _.createVariable(_, valueId.getType))
+      result = applyToAssignable[T](valueId, result, _.createVariable(_, valueId.typ))
     result = applyToAssignable[T](valueId, result, _.assign(_, value))
 
     result

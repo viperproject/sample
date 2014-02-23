@@ -163,15 +163,15 @@ object RichNativeSemantics extends RichExpressionImplicits {
               val a = initials.get(f) match {
                 case None => f.default match {
                   case InvalidInitializer =>
-                    Invalid(f.getType)
+                    Invalid(f.typ)
                   case TopInitializer =>
-                    curState = Top[S](f.getType,createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
+                    curState = Top[S](f.typ,createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression)
                   case TopWithInvalidInitializer =>
-                    curState = TopWithInvalid[S](f.getType,initializeFields = !referenceLoop)(curState,newPP)
+                    curState = TopWithInvalid[S](f.typ,initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression)
                   case NewInitializer =>
-                    curState = New[S](f.getType,createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
+                    curState = New[S](f.typ,createFields = !referenceLoop,initializeFields = !referenceLoop)(curState,newPP)
                     toRichExpression(curState.getExpression)
                   case ExpressionInitializer(e) => e
                 }
@@ -266,10 +266,10 @@ object RichNativeSemantics extends RichExpressionImplicits {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp,f.getName)
               val a = initials.get(f) match {
                 case None => f.topDefault match {
-                  case InvalidInitializer => Invalid(f.getType)
-                  case TopInitializer => curState = Top[S](f.getType,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression)
-                  case TopWithInvalidInitializer => curState = TopWithInvalid[S](f.getType,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression)
-                  case NewInitializer => curState = New[S](f.getType,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression)
+                  case InvalidInitializer => Invalid(f.typ)
+                  case TopInitializer => curState = Top[S](f.typ,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression)
+                  case TopWithInvalidInitializer => curState = TopWithInvalid[S](f.typ,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression)
+                  case NewInitializer => curState = New[S](f.typ,initializeFields = !referenceLoop)(curState,newPP); toRichExpression(curState.getExpression)
                   case ExpressionInitializer(e) => e
                 }
                 case Some(st) => st
@@ -586,7 +586,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def Field[S <: State[S]](obj:RichExpression, field:TouchField)(implicit state:S, pp:ProgramPoint):RichExpression = {
-    state.getFieldValue(obj, field.getName, field.getType).getExpression
+    state.getFieldValue(obj, field.getName, field.typ).getExpression
   }
 
   /*-- Skipping --*/
@@ -639,9 +639,7 @@ class TouchField(
 
   val pp = null
 
-  val typ = null
-
-  override def getType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
+  def typ = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(typName).getTyp
 
   override def getName = name.toString
   override def toString = name.toString
@@ -649,7 +647,7 @@ class TouchField(
   override def hashCode() : Int = name.hashCode() + typName.hashCode()
   override def representsSingleVariable() = !isSummaryNode
   override def equals(o : Any) = (o.isInstanceOf[TouchField] && o.asInstanceOf[TouchField].getName == this.getName
-    && o.asInstanceOf[TouchField].getType == this.getType)
+    && o.asInstanceOf[TouchField].typ == this.typ)
 }
 
 trait Initializer

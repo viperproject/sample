@@ -40,7 +40,7 @@ trait ValueDrivenHeapState[
   }
 
   def createVariable(variable: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
-    if (variable.getType.isObject) {
+    if (variable.typ.isObject) {
       // Initialize references variables to null such that the heap is not
       // treated as bottom, making it possible to analyze programs with more
       // than one local reference variable. This is unsound, e.g., since two
@@ -64,7 +64,7 @@ trait ValueDrivenHeapState[
   }
 
   def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
-    if (variable.getType.isObject) {
+    if (variable.typ.isObject) {
       // The current implementation always creates a new state from scratch
       // and thus does not retain any assumptions made earlier.
 
@@ -118,20 +118,20 @@ trait ValueDrivenHeapState[
     left match {
       case variable: VariableIdentifier => {
         val normalRight = normalizeExpression(right)
-        if (left.getType.isBooleanType) {
+        if (left.typ.isBooleanType) {
           result = evalExp(normalRight).apply().mapCondHeaps(condHeap => {
             val isCertainlyFalse = condHeap.assume(normalRight).isBottom
             val isCertainlyTrue = condHeap.assume(NegatedBooleanExpression(normalRight)).isBottom
             Seq(condHeap.map(state => {
-              if (isCertainlyFalse) state.assign(variable, Constant("false", left.getType, normalRight.pp))
-              else if (isCertainlyTrue) state.assign(variable, Constant("true", left.getType, normalRight.pp))
+              if (isCertainlyFalse) state.assign(variable, Constant("false", left.typ, normalRight.pp))
+              else if (isCertainlyTrue) state.assign(variable, Constant("true", left.typ, normalRight.pp))
               // When neither is certain, fall back to an assignment.
               // The variable will be set to top unless the semantic domain
               // can actually handle the right-hand side.
               else state.assign(variable, right)
             }))
           }).join
-        } else if (left.getType.isNumericalType) {
+        } else if (left.typ.isNumericalType) {
           result = evalExp(right).apply().map(_.assign(variable, right)).join
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)
@@ -141,7 +141,7 @@ trait ValueDrivenHeapState[
             case verExpr: VertexExpression => {
               assert(abstractHeap.vertices.contains(verExpr.vertex),
                 "Assigning a non-existing node")
-              assert(varVertex.typ.equals(verExpr.getType),
+              assert(varVertex.typ.equals(verExpr.typ),
                 "We support only exact type, that is the fields should be the same")
 
               var edge = Edge(varVertex, generalValState, None, verExpr.vertex)
@@ -217,7 +217,7 @@ trait ValueDrivenHeapState[
     // TODO: The 'field' parameter is actually an empty string
     val actualField = left.path.last
 
-    if (right.getType.isObject) {
+    if (right.typ.isObject) {
       var edgesToAdd = Set.empty[Edge[S]]
       normalizeExpression(right) match {
         case rAP: AccessPathIdentifier => {
@@ -244,7 +244,7 @@ trait ValueDrivenHeapState[
         case c: Constant => {
           assert(c.toString.equals("null"), "We expect only null constants.")
           val newAH = abstractHeap.addNonHeapVertex(NullVertex)
-          return copy(abstractHeap = newAH).assignField(left, new VertexExpression(c.getType, NullVertex)(c.pp))
+          return copy(abstractHeap = newAH).assignField(left, new VertexExpression(c.typ, NullVertex)(c.pp))
         }
         case _ => throw new Exception("Assigning " + right + " is not allowed (or supported:)). ")
       }
@@ -328,7 +328,7 @@ trait ValueDrivenHeapState[
   }
 
   def getVariableValue(id: VariableIdentifier): T = {
-    val result = if (id.getType.isObject) materializePath(List(id.name)) else this
+    val result = if (id.typ.isObject) materializePath(List(id.name)) else this
     result.copy(expr = ExpressionSet(id))
   }
 
@@ -488,16 +488,16 @@ trait ValueDrivenHeapState[
       for (valHeapId <- updatedEdgeState.ids.collect({
         case id: ValueHeapIdentifier if id.obj == vtx => id
       })) {
-        val edgLocId = EdgeLocalIdentifier(List.empty, valHeapId.field, valHeapId.getType)(valHeapId.pp)
-        updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
+        val edgLocId = EdgeLocalIdentifier(List.empty, valHeapId.field, valHeapId.typ)(valHeapId.pp)
+        updatedEdgeState = updatedEdgeState.assume(BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==))
       }
       // Updating EdgeLocalIdentifiers with non-empty path
       if (e.target.isInstanceOf[HeapVertex] && !e.source.isInstanceOf[LocalVariableVertex]) {
         for (valHeapId <- updatedEdgeState.ids.collect({
           case id: ValueHeapIdentifier if id.obj == e.target => id
         })) {
-          val edgLocId = EdgeLocalIdentifier(List(e.field), valHeapId.field, valHeapId.getType)(valHeapId.pp)
-          updatedEdgeState = updatedEdgeState.assume(new BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==, null))
+          val edgLocId = EdgeLocalIdentifier(List(e.field), valHeapId.field, valHeapId.typ)(valHeapId.pp)
+          updatedEdgeState = updatedEdgeState.assume(BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==))
         }
       }
       updatedEdgesToAdd += e.copy(state = updatedEdgeState)

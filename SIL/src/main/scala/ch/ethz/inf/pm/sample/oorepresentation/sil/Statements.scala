@@ -41,8 +41,8 @@ trait ContractAwareMethodCall extends MethodCall {
     // TODO: What if there are in-parameters and out-parameters with the same name?
     def createTmpParam(param: VariableDeclaration): VariableIdentifier = {
       val tmpParam = VariableIdentifier(makeTempVariableName(param.variable.id.toString()), ProgramPointScopeIdentifier(callTarget.programpoint))(param.typ, pp)
-      val expr = new ExpressionSet(tmpParam.getType).add(tmpParam)
-      result = result.createVariable(expr, tmpParam.getType, callTarget.programpoint)
+      val expr = new ExpressionSet(tmpParam.typ).add(tmpParam)
+      result = result.createVariable(expr, tmpParam.typ, callTarget.programpoint)
       tmpParam
     }
 
@@ -52,7 +52,7 @@ trait ContractAwareMethodCall extends MethodCall {
 
     // Assign the actual argument expression sets to the temporary in-parameter variables
     for ((tmpInParam, paramExprSet) <- tmpInParams.zip(paramExprSets)) {
-      val expr = new ExpressionSet(tmpInParam.getType).add(tmpInParam)
+      val expr = new ExpressionSet(tmpInParam.typ).add(tmpInParam)
       result = result.assignVariable(expr, paramExprSet)
     }
 

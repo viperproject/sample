@@ -225,11 +225,11 @@ trait ApronInterface[T <: ApronInterface[T]]
     }
   }
   override def backwardAssign(oldPre: T, variable: Identifier, expr: Expression): T = {
-    val varType = expr.getType
+    val varType = expr.typ
 
     val resultState = if (varType.isBooleanType) {
-      val tru = Constant("1",variable.getType,variable.pp)
-      val fal = Constant("0",variable.getType,variable.pp)
+      val tru = Constant("1",variable.typ,variable.pp)
+      val fal = Constant("0",variable.typ,variable.pp)
       val state1 = this.assign(variable, tru)
       val state2 =this.assign(variable, fal)
       return state1.lub(state2)
@@ -303,21 +303,21 @@ trait ApronInterface[T <: ApronInterface[T]]
 
   override def assign(variable: Identifier, expr: Expression): T = {
 
-    if (variable.getType.isBooleanType && !expr.isInstanceOf[Constant]) {
+    if (variable.typ.isBooleanType && !expr.isInstanceOf[Constant]) {
 
       // For state S, boolean variable X and boolean expression E we compute
       //       S.assume(E).assign(X,1) |_| S.assume(!E).assign(X,0)
       // THIS IS NOT PRECISE BUT GIVES AT LEAST SOME SUPPORT FOR BOOLEANS
 
-      val tru = Constant("1",variable.getType,variable.pp)
-      val fal = Constant("0",variable.getType,variable.pp)
+      val tru = Constant("1",variable.typ,variable.pp)
+      val fal = Constant("0",variable.typ,variable.pp)
 
       val state1 = assume(expr).assign(variable,tru)
       val state2 = assume(new NegatedBooleanExpression(expr)).assign(variable,fal)
 
       state1.lub(state2)
 
-    } else if (variable.getType.isNumericalType) {
+    } else if (variable.typ.isNumericalType) {
 
       //if (!ids.contains(variable)) {
       //  println("It is forbidden to use a non-existing identifier on the left side of an assignment! Going to bottom.")
@@ -329,7 +329,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         // (1) Create left side variable if it does not exist
         var newState = someState.instantiateState()
         if (!newState.getEnvironment.hasVar(variable.getName)) {
-          val env = addToEnvironment(newState.getEnvironment, variable.getType, variable.getName)
+          val env = addToEnvironment(newState.getEnvironment, variable.typ, variable.getName)
           newState = newState.changeEnvironmentCopy(domain, env, false)
         }
 
@@ -345,7 +345,7 @@ trait ApronInterface[T <: ApronInterface[T]]
           //}
 
           if (!newEnv.hasVar(id.getName)) {
-            newEnv = addToEnvironment(newEnv, id.getType, id.getName)
+            newEnv = addToEnvironment(newEnv, id.typ, id.getName)
           }
 
         }
@@ -386,7 +386,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         if (!rightSummaryNodes.isEmpty) {
 
           val rightSummaryNodesNames = rightSummaryNodes.toList
-          val newSummaryNodeNames = rightSummaryNodesNames map {x:Identifier => SimpleApronIdentifier(x.getName + "__TEMP",!x.representsSingleVariable,x.getType,x.pp)}
+          val newSummaryNodeNames = rightSummaryNodesNames map {x:Identifier => SimpleApronIdentifier(x.getName + "__TEMP",!x.representsSingleVariable,x.typ,x.pp)}
           val materializedState = factory(Some(assignedState),domain,env = someState.env).rename(rightSummaryNodesNames,newSummaryNodeNames)
           val summaryState = factory(Some(newState),domain, env = someState.env).removeVariable(variable)
 
@@ -410,7 +410,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     // Check if we assume something about non-numerical values - if so, return
     val ids = Normalizer.getIdsForExpression(expr)
     for (id <- ids) {
-      if (!id.getType.isNumericalType) {
+      if (!id.typ.isNumericalType) {
         return this
       }
       if (!ids.contains(id)) {
@@ -427,9 +427,9 @@ trait ApronInterface[T <: ApronInterface[T]]
         // to handle properly (it is transformed to x < 0 || x > 0).
         // Assuming the value to be equal to 1 is handled much better and
         // is consistent with how ApronInterface treats boolean literals.
-        assume(BinaryArithmeticExpression(x, Constant("1", x.getType, x.pp), ArithmeticOperator.==, null))
+        assume(BinaryArithmeticExpression(x, Constant("1", x.typ, x.pp), ArithmeticOperator.==))
       case NegatedBooleanExpression(x: Identifier) =>
-        assume(BinaryArithmeticExpression(x, Constant("0", x.getType, x.pp), ArithmeticOperator.==, null))
+        assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
 
       // And, Or, De-Morgan, Double Negation
       case BinaryBooleanExpression(left, right, op, typ) => op match {
@@ -469,7 +469,7 @@ trait ApronInterface[T <: ApronInterface[T]]
             var tmp = someState2.instantiateState()
             var expEnv = new Environment()
             for (id <- Normalizer.getIdsForExpression(someExpr2)) {
-              expEnv = addToEnvironment(expEnv, id.getType, id.getName)
+              expEnv = addToEnvironment(expEnv, id.typ, id.getName)
             }
             val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
             if (!unionEnv.isIncluded(tmp.getEnvironment)) {
@@ -559,13 +559,13 @@ trait ApronInterface[T <: ApronInterface[T]]
 
         // Create a temporary identifier
         val tempVal = tempVarName + tempVersion
-        val tempValIdent = new VariableIdentifier(tempVal)(from.head.getType, from.head.pp)
+        val tempValIdent = new VariableIdentifier(tempVal)(from.head.typ, from.head.pp)
         tempIdentifiers = tempIdentifiers + tempValIdent
         tempVersion = tempVersion + 1
 
         // If we have a top variable (not in APRON state) on the left side
         if (!(from.map(_.getName) -- startingState.getEnvironment.getVars).isEmpty) {
-          foldedStates = foldedStates + this.createVariable(tempValIdent,from.head.getType).removeVariables(from.map(_.getName).toArray)
+          foldedStates = foldedStates + this.createVariable(tempValIdent,from.head.typ).removeVariables(from.map(_.getName).toArray)
           postProcessMap = postProcessMap + (Some(tempVal) -> toVarsAsString)
         } else {
           val fromVarsAsString: Array[String] = (for (v <- from) yield v.getName).toArray[String]
@@ -837,7 +837,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       case BinaryNondeterministicExpression(left, right, op, returnType) =>
         val (expL, varL) = removeNondeterminism(label + "L", left)
         val (expR, varR) = removeNondeterminism(label + "R", right)
-        val identifier = new VariableIdentifier(label)(expr.getType, expr.pp)
+        val identifier = new VariableIdentifier(label)(expr.typ, expr.pp)
         (identifier, varL ::: varR ::: List((identifier, BinaryNondeterministicExpression(expL, expR, op, returnType))))
       case x: Expression => (x, Nil)
     }
@@ -862,8 +862,8 @@ trait ApronInterface[T <: ApronInterface[T]]
           newState = newStateLeft.lub(newStateRight)
         case NondeterministicOperator.to =>
           newState = newState.
-            assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.getType)).
-            assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=, ndExpr.getType))
+            assume(BinaryArithmeticExpression(id, ndExpr.left, ArithmeticOperator.>=, ndExpr.typ)).
+            assume(BinaryArithmeticExpression(id, ndExpr.right, ArithmeticOperator.<=, ndExpr.typ))
       }
     }
 
@@ -903,7 +903,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         x:Expression => x match {
           case x:Identifier =>
             if (!x.representsSingleVariable()) {
-              val newIdentifier = SimpleApronIdentifier(x.getName + "__TMP" + temporaryCounter, summary = false, x.getType, x.pp)
+              val newIdentifier = SimpleApronIdentifier(x.getName + "__TMP" + temporaryCounter, summary = false, x.typ, x.pp)
               temporaryCounter = temporaryCounter + 1
               expandTemporaryVariables.value(Set(x)) =
                 expandTemporaryVariables.value.get(Set(x)) match {
@@ -1025,7 +1025,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         case ArithmeticOperator.<= => localLeft = right; localRight = left; localOp = ArithmeticOperator.>=
         case ArithmeticOperator.< => localLeft = right; localRight = left; localOp = ArithmeticOperator.>
       }
-      val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-, localLeft.getType))
+      val expr1 = this.toTexpr1Node(new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-, localLeft.typ))
       localOp match {
         case ArithmeticOperator.>= => for (e <- expr1) yield new Tcons1(env, Tcons1.SUPEQ, e)
         case ArithmeticOperator.== => for (e <- expr1) yield new Tcons1(env, Tcons1.EQ, e)
@@ -1038,8 +1038,8 @@ trait ApronInterface[T <: ApronInterface[T]]
             // A > B by A >= B, which can cause massive imprecision. We replace this by A >= B + EPSILON, where
             // EPSILON should be the smallest representable number. (actually, we are generating A - B - EPSILON >= 0)
 
-            val sExpr1 = new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-, localLeft.getType)
-            val sExpr2 = new BinaryArithmeticExpression(sExpr1, Constant(NumericalAnalysisConstants.epsilon.toString, sExpr1.getType, sExpr1.pp), ArithmeticOperator.-, sExpr1.getType)
+            val sExpr1 = new BinaryArithmeticExpression(localLeft, localRight, ArithmeticOperator.-, localLeft.typ)
+            val sExpr2 = new BinaryArithmeticExpression(sExpr1, Constant(NumericalAnalysisConstants.epsilon.toString, sExpr1.typ, sExpr1.pp), ArithmeticOperator.-, sExpr1.typ)
             for (e <- this.toTexpr1Node(sExpr2)) yield {
               new Tcons1(env, Tcons1.SUPEQ, e)
             }
@@ -1053,9 +1053,9 @@ trait ApronInterface[T <: ApronInterface[T]]
       toTcons1(BinaryArithmeticExpression(left, right, ArithmeticOperator.negate(op), typ), env)
     case NegatedBooleanExpression(NegatedBooleanExpression(x)) => toTcons1(x, env)
     case NegatedBooleanExpression(x) =>
-      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.getType, x.pp), ArithmeticOperator.==, x.getType), env)
+      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==, x.typ), env)
     case x: Expression =>
-      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.getType, x.pp), ArithmeticOperator.!=, x.getType), env)
+      toTcons1(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.!=, x.typ), env)
     case _ =>
       // println("Unhandled constraint type in APRON interface (returning top constraint): "+e)
       List(topConstraint(env))
@@ -1092,7 +1092,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     val state1 = this.instantiateState()
     var apronEnv = state1.getEnvironment()
     for (e <- env) {
-      apronEnv = addToEnvironment(apronEnv, e.getType, e.getName)
+      apronEnv = addToEnvironment(apronEnv, e.typ, e.getName)
     }
     val r = state1.changeEnvironmentCopy(domain, apronEnv, false)
     factory(Some(r), domain, isPureBottom, env = env)

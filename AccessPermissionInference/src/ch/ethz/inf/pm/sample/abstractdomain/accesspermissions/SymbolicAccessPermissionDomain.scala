@@ -450,7 +450,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val map:Ma
   
   private def inhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
-	if(! id.getType.toString.equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(new SimpleVal(Settings.permissionType.maxLevel), new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
+	if(! id.typ.toString.equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(new SimpleVal(Settings.permissionType.maxLevel), new Add(ConstraintsInference.convert(p), ConstraintsInference.convert(actual))));
 	if(! Settings.unsoundInhaling && ! id.representsSingleVariable) //In order to be sound, I cannot inhale on heap summary nodes
 		return this;
 	if(actual.equals(this.top()))
@@ -460,7 +460,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val map:Ma
   private def exhale(id : Identifier, p : CountedSymbolicValues) : SymbolicPermissionsDomain[I] = {
 	val actual = this.get(id);
 	//TODO:Is this right?
-	if(! id.getType.toString.equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(ConstraintsInference.convert(actual), ConstraintsInference.convert(p)));
+	if(! id.typ.toString.equals("Chalice") && ! id.isInstanceOf[VariableIdentifier]) ConstraintsInference.addConstraint(new Geq(ConstraintsInference.convert(actual), ConstraintsInference.convert(p)));
 	if(actual.equals(this.top()))
 		return this.add(id, new SymbolicLevelPermission(p));
 	else return this.add(id, actual-p);
@@ -511,7 +511,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val map:Ma
   def removeVariable(variable : Identifier) : SymbolicPermissionsDomain[I] = this.remove(variable);
   
   def assign(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = {
-    if(! variable.getType.toString.equals("Chalice") && ! variable.isInstanceOf[VariableIdentifier])
+    if(! variable.typ.toString.equals("Chalice") && ! variable.isInstanceOf[VariableIdentifier])
     	ConstraintsInference.addConstraint(Settings.permissionType.ensureWriteLevel(ConstraintsInference.convert(this.get(variable))));
     return this
   }
@@ -521,7 +521,7 @@ class SymbolicPermissionsDomain[I <: NonRelationalHeapIdentifier[I]] (val map:Ma
   def setArgument(variable : Identifier, expr : Expression) : SymbolicPermissionsDomain[I] = this
   
   def access(field : Identifier) : SymbolicPermissionsDomain[I] = {
-    if(! field.getType.toString.equals("Chalice") && ! field.isInstanceOf[VariableIdentifier])
+    if(! field.typ.toString.equals("Chalice") && ! field.isInstanceOf[VariableIdentifier])
     	ConstraintsInference.addConstraint(Settings.permissionType.ensureReadLevel(ConstraintsInference.convert(this.get(field))));
     return this
     }

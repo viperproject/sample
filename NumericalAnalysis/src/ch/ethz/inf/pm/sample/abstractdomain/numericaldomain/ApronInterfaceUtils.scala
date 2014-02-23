@@ -38,7 +38,7 @@ class ApronInterfaceTranslator(
 
     // Determine the type of expression. As a simple heuristic, just take the
     // type of the first expression
-    val typ = (leftExps ++ rightExps).head.getType
+    val typ = (leftExps ++ rightExps).head.typ
 
     // If the left sequence of expressions is empty, flip the operator
     var op = translateOp(c.getKind)
@@ -83,8 +83,8 @@ class ApronInterfaceTranslator(
    */
   def translate(t: Linterm1): Expression = {
     val id = resolve(t.getVariable)
-    val coeff = Constant(t.coeff.toString, id.getType, id.pp)
-    BinaryArithmeticExpression(coeff, id, ArithmeticOperator.*, id.getType)
+    val coeff = Constant(t.coeff.toString, id.typ, id.pp)
+    BinaryArithmeticExpression(coeff, id, ArithmeticOperator.*, id.typ)
   }
 
   /** Translates an Apron operator to a Sample operator */

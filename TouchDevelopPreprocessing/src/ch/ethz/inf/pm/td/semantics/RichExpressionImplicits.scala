@@ -18,13 +18,13 @@ trait RichExpressionImplicits {
     toRichExpression(value.head) ndTo toRichExpression(value.last)
 
   implicit def toRichExpression(value:Int) : RichExpression =
-    RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ,null)))
+    RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ)))
 
   implicit def toRichExpression(value:Double) : RichExpression =
-    RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ,null)))
+    RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ)))
 
   implicit def toRichExpression(value:Expression) : RichExpression =
-    RichExpression(new ExpressionSet(value.getType).add(value))
+    RichExpression(new ExpressionSet(value.typ).add(value))
 
   implicit def toExpressionSet(value:RichExpression) : ExpressionSet =
     value.thisExpr

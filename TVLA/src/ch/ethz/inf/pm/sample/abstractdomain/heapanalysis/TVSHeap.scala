@@ -209,8 +209,8 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
     // we represent numerical fields in the heap explicitly. createObject was never invoked for them before,
     // so we create a corresponding object now if the expr is numerical.
-    if (expr.getType.name == "Int" || expr.getType.name == "String") {
-      return createNumericField(obj, field, expr.getType, expr.pp)
+    if (expr.typ.name == "Int" || expr.typ.name == "String") {
+      return createNumericField(obj, field, expr.typ, expr.pp)
     }
 
     val target = obj match {
@@ -279,7 +279,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def assign[S <: SemanticDomain[S]](variable: Assignable, expr: Expression, state: S): (TVSHeap, Replacement) = {
     // only consider assignments which change the heap
     // we consider strings not as objects since they are immutable
-    if (!variable.getType.isObject || variable.getType.name == "String") return (this, new Replacement)
+    if (!variable.typ.isObject || variable.typ.name == "String") return (this, new Replacement)
 
     val tvp = new TVP(this)
     val assignAction = variable match {
@@ -383,7 +383,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     variable match {
       case v: TVSHeapIDSet => (this, new Replacement)
       case v: VariableIdentifier =>
-        if (v.getType.isObject) {
+        if (v.typ.isObject) {
           // we don't care about numerical variables
           val newheap = new TVSHeap(this)
           newheap.structures = this.structures.map(_.addVariable(v.name))

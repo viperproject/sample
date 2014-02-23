@@ -292,11 +292,11 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
       // Remove Env
       curState = curState.pruneVariables({
         case id:VariableIdentifier =>
-          id.getType.asInstanceOf[TouchType].isSingleton &&
-          id.getType.name != "art" &&
-          id.getType.name != "data" &&
-          id.getType.name != "code" &&
-          id.getType.name != "records"
+          id.typ.asInstanceOf[TouchType].isSingleton &&
+          id.typ.name != "art" &&
+          id.typ.name != "data" &&
+          id.typ.name != "code" &&
+          id.typ.name != "records"
         case _ => false
       })
       curState = curState.pruneUnreachableHeap()

@@ -390,15 +390,15 @@ class Bricks (dom:BricksDomain, val map:Map[Identifier, BricksDomain] = Map.empt
    def setToTop(variable : Identifier) : Bricks = this.remove(variable)
 
    def assign(variable : Identifier, expr : Expression) : Bricks =
-     if(variable.getType.isStringType) this.add(variable, this.eval(expr))
+     if(variable.typ.isStringType) this.add(variable, this.eval(expr))
      else this
 
    def assume(expr : Expression) : Bricks = {
-     if(isBottom || !expr.getType.isStringType)return this
+     if(isBottom || !expr.typ.isStringType)return this
      // Check if we assume something about non-numerical values - if so, return
      val ids = Normalizer.getIdsForExpression(expr)
      for (id <- ids) {
-       if (!id.getType.isStringType) {
+       if (!id.typ.isStringType) {
          return this
        }
      }

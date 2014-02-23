@@ -63,7 +63,7 @@ case class Edge[S <: SemanticDomain[S]](
     * If the source is an heap vertex, the result is the field type.
     */
   def edgeType: Type = fieldId match {
-    case Some(fieldId) => fieldId.getType
+    case Some(fieldId) => fieldId.typ
     case None => source.typ
   }
 
@@ -96,7 +96,7 @@ case class Edge[S <: SemanticDomain[S]](
 
         newState = state
           .createVariable(edgeLocalId)
-          .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
+          .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==))
       case _ =>
         // The target vertex may also be a NullVertex, in which case we cannot
         // make the equality assumption anyway
@@ -131,7 +131,7 @@ case class Edge[S <: SemanticDomain[S]](
 
         val newState = state
           .createVariable(edgeLocalId)
-          .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==, null))
+          .assume(BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==))
 
         copy(state = newState)
       case _ => this

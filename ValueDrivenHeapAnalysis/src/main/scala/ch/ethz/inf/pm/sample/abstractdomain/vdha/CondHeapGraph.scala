@@ -94,7 +94,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
   def evalExp(expr: Expression): CondHeapGraphSeq[S] = {
     // Translate non-numeric VariableIdentifiers to AccessPathIdentifiers
     val accessPathIds = expr.getIdentifiers.collect {
-      case v: VariableIdentifier if !v.getType.isNumericalType =>
+      case v: VariableIdentifier if !v.typ.isNumericalType =>
         AccessPathIdentifier(v)
       case apId: AccessPathIdentifier => apId
     }
@@ -121,7 +121,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
   def evalAccessPathId(ap: AccessPathIdentifier): CondHeapGraphSeq[S] = {
     // Get path to the non-null receiver of the field access
     var paths = heap.paths(ap.objPath)
-    if (ap.getType.isNumericalType) {
+    if (ap.typ.isNumericalType) {
       paths = paths.filter(_.target.isInstanceOf[HeapVertex])
     }
 
@@ -129,7 +129,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     for (path <- paths) {
       var cond = path.condition
 
-      if (ap.getType.isNumericalType) {
+      if (ap.typ.isNumericalType) {
         val field = ap.path.last
         val targetVertex = path.target.asInstanceOf[HeapVertex]
 
@@ -139,8 +139,8 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         cond = cond.rename(renameFrom, List(ap))
 
         // AccessPathIdentifier must agree also with the ValueHeapIdentifier
-        val resId = ValueHeapIdentifier(targetVertex, field)(ap.getType, ap.pp)
-        cond = cond.assume(new BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==, null))
+        val resId = ValueHeapIdentifier(targetVertex, field)(ap.typ, ap.pp)
+        cond = cond.assume(BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==))
       }
 
       // Remove all edge local identifiers
@@ -225,7 +225,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     * the actual assignment.
     */
   def assignField(left: AccessPathIdentifier, right: Expression): CondHeapGraphSeq[S] = {
-    require(left.typ.isNumericalType && right.getType.isNumericalType,
+    require(left.typ.isNumericalType && right.typ.isNumericalType,
       "can only assign numerical values")
 
     // TODO: Maybe check that the access path identifiers in `left`
@@ -239,7 +239,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
 
     vertexToAssign match {
       case vertexToAssign: HeapVertex =>
-        val idToAssign = ValueHeapIdentifier(vertexToAssign, field)(left.getType, left.pp)
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, field)(left.typ, left.pp)
         condHeapAssigned = condHeapAssigned.map(_.assign(idToAssign, right))
       case _ =>
     }
@@ -247,12 +247,12 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     condHeapAssigned = condHeapAssigned.mapEdges(edge => {
       var newState = edge.state
       if (edge.source == vertexToAssign) {
-        val edgeLocId = EdgeLocalIdentifier(List.empty, field, right.getType)(right.pp)
+        val edgeLocId = EdgeLocalIdentifier(List.empty, field, right.typ)(right.pp)
         newState = newState.assign(edgeLocId, right)
       }
       if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
         val path = List(edge.field)
-        val edgeLocId = EdgeLocalIdentifier(path, field, right.getType)(right.pp)
+        val edgeLocId = EdgeLocalIdentifier(path, field, right.typ)(right.pp)
         newState = newState.assign(edgeLocId, right)
       }
       newState
