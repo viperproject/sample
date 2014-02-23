@@ -214,6 +214,57 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     result.prune
   }
 
+  /** Assigns a numerical expression to a field and returns the resulting
+    * conditional heap graph(s).
+    *
+    * It does not perform any materialization of conditional heap sub-graphs
+    * by evaluating the LHS and RHS expression. If this is desired,
+    * it should already have happened.
+    *
+    * The motivation of this method is to separate that materialization from
+    * the actual assignment.
+    */
+  def assignField(left: AccessPathIdentifier, right: Expression): CondHeapGraphSeq[S] = {
+    require(left.typ.isNumericalType && right.getType.isNumericalType,
+      "can only assign numerical values")
+
+    // TODO: Maybe check that the access path identifiers in `left`
+    // and `right` are among the taken paths
+
+    val leftTakenPath = takenPath(left.objPath)
+    val vertexToAssign = leftTakenPath.target
+    val field = left.path.last
+
+    var condHeapAssigned = this
+
+    vertexToAssign match {
+      case vertexToAssign: HeapVertex =>
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, field)(left.getType, left.pp)
+        condHeapAssigned = condHeapAssigned.map(_.assign(idToAssign, right))
+      case _ =>
+    }
+
+    condHeapAssigned = condHeapAssigned.mapEdges(edge => {
+      var newState = edge.state
+      if (edge.source == vertexToAssign) {
+        val edgeLocId = EdgeLocalIdentifier(List.empty, field, right.getType)(right.pp)
+        newState = newState.assign(edgeLocId, right)
+      }
+      if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
+        val path = List(edge.field)
+        val edgeLocId = EdgeLocalIdentifier(path, field, right.getType)(right.pp)
+        newState = newState.assign(edgeLocId, right)
+      }
+      newState
+    })
+
+    // Perform a weak update if assigning to a summary heap vertex
+    if (vertexToAssign.isInstanceOf[SummaryHeapVertex])
+      CondHeapGraphSeq(Seq(this, condHeapAssigned))(lattice)
+    else
+      CondHeapGraphSeq(Seq(condHeapAssigned))(lattice)
+  }
+
   def lattice = cond.bottom()
 }
 

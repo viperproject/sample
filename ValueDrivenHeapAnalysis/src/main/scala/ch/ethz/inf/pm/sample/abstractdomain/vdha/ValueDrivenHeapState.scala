@@ -265,33 +265,7 @@ trait ValueDrivenHeapState[
       resultingAH = resultingAH.joinCommonEdges()
       copy(abstractHeap = resultingAH, isTop = false).prune()
     } else {
-      assert(right.getType.isNumericalType, "only numerical values allowed")
-
-      evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
-        val leftTakenPath = condHeap.takenPath(left.objPath)
-        val vertexToAssign = leftTakenPath.target.asInstanceOf[HeapVertex]
-        val idToAssign = ValueHeapIdentifier(vertexToAssign, actualField)(left.getType, left.pp)
-
-        val condHeapAssigned = condHeap
-          .map(_.assign(idToAssign, right))
-          .mapEdges(edge => {
-          var newState = edge.state
-          if (edge.source == vertexToAssign) {
-            val edgeLocId = EdgeLocalIdentifier(List.empty, actualField, right.getType)(right.pp)
-            newState = newState.assign(edgeLocId, right)
-          }
-          if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
-            val path = List(edge.field)
-            val edgeLocId = EdgeLocalIdentifier(path, actualField, right.getType)(right.pp)
-            newState = newState.assign(edgeLocId, right)
-          }
-          newState
-        })
-
-        // Perform a weak update if assigning to a summary heap vertex
-        if (vertexToAssign.isInstanceOf[SummaryHeapVertex]) Seq(condHeap, condHeapAssigned)
-        else Seq(condHeapAssigned)
-      }).join
+      evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(_.assignField(left, right)).join
     }
   }
 
