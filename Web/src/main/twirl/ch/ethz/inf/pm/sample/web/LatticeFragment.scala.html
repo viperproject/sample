@@ -3,21 +3,6 @@
 @import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 
 @state match {
-    case s: vdha.ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[_] => {
-        @CartesianProductDomain(List(
-            s.valueState.valueState,
-            s.valueState.symbolicPredicateState.instances,
-            s.valueState.symbolicPredicateState.definitions,
-            s.edgeAmbiguityState))
-    }
-    case i: vdha.SymbolicPredicateInstsDomain => {
-        @LatticeDescription("Instances")
-        @ApronInterface(i)
-    }
-    case d: vdha.SymbolicPredicateDefsDomain => {
-        @LatticeDescription("Definitions")
-        @FunctionalDomain(d)
-    }
     case g: vdha.EdgeAmbiguityState => {
         @LatticeDescription("Edge Ambiguity")
         @FunctionalDomain(g)
@@ -26,26 +11,6 @@
         @* ApronInterface itself must come after any subclasses of ApronInterface *@
         @LatticeDescription("Values")
         @ApronInterface(a)
-    }
-    case s: vdha.SymbolicPredicateDef => {
-        @if(s.valFieldPerms.isTop && s.refFieldPerms.isTop) {
-            @Top()
-        } else {
-            @if(s.valFieldPerms.isBottom && s.refFieldPerms.isBottom) {
-                @Bottom()
-            } else {
-                <dl class="symbolic-predicate-def">
-                @if(!s.valFieldPerms.isTop) {
-                    <dt class="lattice-description">Vals</dt>
-                    <dd>@s.valFieldPerms.value.mkString(", ")</dd>
-                }
-                @if(!s.refFieldPerms.isTop) {
-                    <dt class="lattice-description">Refs</dt>
-                    <dd>@s.refFieldPerms.map.keys.mkString(", ")</dd>
-                }
-                </dl>
-            }
-        }
     }
     case c: CartesianProductDomain[_, _, _] => {
         @CartesianProductDomain(List(c._1, c._2))

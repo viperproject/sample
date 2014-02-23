@@ -64,9 +64,6 @@ object DefaultAnalysisRunner extends AnalysisRunner(
 object PreciseAnalysisRunner extends AnalysisRunner(
   Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
 
-object SymbolicPredicateAnalysisRunner extends AnalysisRunner(
-  Analysis[ValueDrivenHeapStateWithSymbolicPredicates[S]](SymbolicPredicateEntryStateBuilder)) {}
-
 trait EntryStateBuilder[S <: State[S]] {
   def topState: S
 
@@ -102,16 +99,6 @@ object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   def topState = {
     val generalValState = PreciseValueDrivenHeapState.makeTopEdgeState(topApronInterface)
     PreciseValueDrivenHeapState.Default(topHeapGraph, generalValState, ExpressionSet())
-  }
-}
-
-object SymbolicPredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[ApronInterface.Default],
-  ValueDrivenHeapStateWithSymbolicPredicates[ApronInterface.Default]] {
-
-  def topState = {
-    val generalValState = ValueDrivenHeapStateWithSymbolicPredicates.makeTopEdgeState(topApronInterface)
-    ValueDrivenHeapStateWithSymbolicPredicates(topHeapGraph, generalValState, ExpressionSet())
   }
 }
 
