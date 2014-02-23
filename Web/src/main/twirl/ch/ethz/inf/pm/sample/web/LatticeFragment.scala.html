@@ -31,16 +31,20 @@
         @if(s.valFieldPerms.isTop && s.refFieldPerms.isTop) {
             @Top()
         } else {
-            <dl class="symbolic-predicate-def">
-            @if(!s.valFieldPerms.isTop) {
-                <dt class="lattice-description">Vals</dt>
-                <dd>@s.valFieldPerms.value.mkString(", ")</dd>
+            @if(s.valFieldPerms.isBottom && s.refFieldPerms.isBottom) {
+                @Bottom()
+            } else {
+                <dl class="symbolic-predicate-def">
+                @if(!s.valFieldPerms.isTop) {
+                    <dt class="lattice-description">Vals</dt>
+                    <dd>@s.valFieldPerms.value.mkString(", ")</dd>
+                }
+                @if(!s.refFieldPerms.isTop) {
+                    <dt class="lattice-description">Refs</dt>
+                    <dd>@s.refFieldPerms.map.keys.mkString(", ")</dd>
+                }
+                </dl>
             }
-            @if(!s.refFieldPerms.isTop) {
-                <dt class="lattice-description">Refs</dt>
-                <dd>@s.refFieldPerms.map.keys.mkString(", ")</dd>
-            }
-            </dl>
         }
     }
     case c: CartesianProductDomain[_, _, _] => {
