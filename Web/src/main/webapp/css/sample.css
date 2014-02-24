@@ -120,7 +120,7 @@ body {
     float: none;
 }
 
-// Display symbolic predicate definition as comma-separated list of fields
+/** Symbolic predicate definition as comma-separated list of fields. */
 .symbolic-predicate-def {
     list-style: none;
     margin: 0;
