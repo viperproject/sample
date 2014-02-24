@@ -10,6 +10,10 @@ import util.HeapIdSetFunctionalLifting
  * The intuition is that the heap domain takes care of approximating the heap structure, while the
  * semantic domain has to manage the information of its interest without taking care of field accesses
  * and object creation, but dealing only with identifiers (of variables or of heap nodes).
+ *
+ * TODO:
+ *  Rewrite most methods. Contains lots of (cosmetically cleaned up) legacy code. Especially,
+ *  remove the timing code as it is a separate concern (use adapter to wrap domains?)
  */
 class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](val semantic: N, val  heap: H)
   extends Lattice[HeapAndAnotherDomain[N, H, I]]
@@ -24,11 +28,6 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def _1 = semantic
   def _2 = heap
-
-  def merge(r: Replacement): T = {
-    if (r.isEmpty()) this
-    else sys.error("Merge not yet implemented")
-  }
 
   def getStringOfId(id : Identifier) : String = semantic.getStringOfId(id)
 
@@ -160,11 +159,6 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val newSemanticResult = newSemanticOpt.getOrElse(newSemantic)
     SystemParameters.domainTimer.stop()
     factory(newSemanticResult, newHeap3)
-  }
-
-  def assignArrayCell(variable: Assignable, index: Expression, expr: Expression, typ: Type): T = {
-    // rf: I guess this method is not used any more, so I replaced it with this stub. Remove in State?
-    bottom()
   }
 
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionType: Option[Type], keyCollectionType: Option[Type], pp: ProgramPoint) : (HeapIdSetDomain[I], T, Replacement) = {
