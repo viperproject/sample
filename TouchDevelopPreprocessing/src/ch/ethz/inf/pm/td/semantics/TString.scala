@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -22,7 +22,7 @@ object TString {
   //TODO val field_count = new TouchField("count",TNumber.typName)
 
   val typName = "String"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(/*TODO field_count*/))
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(/*TODO field_count*/))
 
 }
 

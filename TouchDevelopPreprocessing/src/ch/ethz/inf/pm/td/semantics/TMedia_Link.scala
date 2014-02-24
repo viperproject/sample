@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -35,7 +35,7 @@ object TMedia_Link {
   val field_title = new TouchField("title",TString.typName,TopWithInvalidInitializer)
 
   val typName = "Media Link"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_album, field_author, field_date, field_duration, field_kind, field_title))
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_album, field_author, field_date, field_duration, field_kind, field_title))
 
 }
 

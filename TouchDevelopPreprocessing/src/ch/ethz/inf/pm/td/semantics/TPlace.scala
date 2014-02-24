@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -35,7 +35,7 @@ object TPlace {
   val field_source = new TouchField("source",TString.typName)
 
   val typName = "Place"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_category, field_link, field_location,
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_category, field_link, field_location,
     field_name, field_picture_link, field_source))
 
 }

@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -48,7 +48,7 @@ object TMedia_Player {
   val field_volume = new TouchField("volume",TNumber.typName)
 
   val typName = "Media Player"
-  val typ = new TouchType(typName,isSingleton = false,fields = List(field_active_media, field_device,
+  val typ = DefaultTouchType(typName,isSingleton = false,fields = List(field_active_media, field_device,
     field_is_control_supported, field_is_paused, field_is_playing, field_is_stopped, field_is_volume_supported,
     field_name, field_status, field_volume))
 

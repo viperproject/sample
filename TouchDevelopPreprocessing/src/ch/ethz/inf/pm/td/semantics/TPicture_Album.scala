@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -25,7 +25,7 @@ object TPicture_Album {
   val field_pictures = new TouchField("pictures",TPictures.typName)
 
   val typName = "Picture Album"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_albums, field_name, field_pictures))
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_albums, field_name, field_pictures))
 
 }
 

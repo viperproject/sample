@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -30,7 +30,7 @@ object TColor {
 //  val field_brightness = new TouchField("brightness",TNumber.typ,ExpressionInitializer(0 ndTo 1))
 
   val typName = "Color"
-  val typ = new TouchType(typName,isSingleton = false) //List(field_A,field_R,field_B,field_G,field_hue,field_saturation,field_brightness))
+  val typ = DefaultTouchType(typName,isSingleton = false) //List(field_A,field_R,field_B,field_G,field_hue,field_saturation,field_brightness))
 
 }
 

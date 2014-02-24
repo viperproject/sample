@@ -127,7 +127,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
         var curState = typ match {
           case col:TouchCollection =>
             val keyCollectionTyp = getKeyCollectionTyp(col)
-            s.createCollection(col,col.getKeyType,col.getValueType,TNumber.typ,keyCollectionTyp, pp, fields)
+            s.createCollection(col,col.keyType,col.valueType,TNumber.typ,keyCollectionTyp, pp, fields)
           case _ =>
             s.createObject(typ,pp,fields)
         }
@@ -141,7 +141,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
                 // Remains bottom
                 case Some(x) =>
                   //TODO: Can be more precise
-                  curState = Top[S](col.getKeyType)(curState, pp)
+                  curState = Top[S](col.keyType)(curState, pp)
                   curState = CollectionInsert[S](obj, curState.getExpression, x)(curState, pp)
               }
 
@@ -214,7 +214,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
         var curState = typ match {
           case col:TouchCollection =>
             val keyCollectionTyp = getKeyCollectionTyp(col)
-            s.createCollection(col, col.getKeyType, col.getValueType, TNumber.typ, keyCollectionTyp, pp, fields)
+            s.createCollection(col, col.keyType, col.valueType, TNumber.typ, keyCollectionTyp, pp, fields)
           case _ =>
             s.createObject(typ,pp,fields)
         }
@@ -228,12 +228,12 @@ object RichNativeSemantics extends RichExpressionImplicits {
           typ match {
             case col:TouchCollection =>
 
-              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__collkey"+col.keyType)
-              curState = Top[S](col.getKeyType, initializeFields = !referenceLoop1)(curState, newPP1)
+              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp,"__collkey"+col.keyTypeName)
+              curState = Top[S](col.keyType, initializeFields = !referenceLoop1)(curState, newPP1)
               val keyTop = curState.getExpression
 
-              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__collvalue"+col.valueType)
-              curState = Top[S](col.getValueType, initializeFields = !referenceLoop2)(curState, newPP2)
+              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp,"__collvalue"+col.valueTypeName)
+              curState = Top[S](col.valueType, initializeFields = !referenceLoop2)(curState, newPP2)
               val valueTop = curState.getExpression
 
               // If the value of a collection is another collection of the same type (e.g. JSONObject)
@@ -361,13 +361,13 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def KeyCollectionContainsValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    var newState = Top[S](collection.getType().asInstanceOf[TouchCollection].getKeyType)(state, pp)
+    var newState = Top[S](collection.getType().asInstanceOf[TouchCollection].keyType)(state, pp)
     val keyTop = newState.getExpression
     var expression = collection contains (keyTop, value, pp)
 
     val origCollection = newState.getOriginalCollection(collection).getExpression
     if (!origCollection.lessEqual(origCollection.bottom()) && origCollection.getType().isInstanceOf[TouchCollection]){
-      newState = Top[S](origCollection.getType().asInstanceOf[TouchCollection].getValueType)
+      newState = Top[S](origCollection.getType().asInstanceOf[TouchCollection].valueType)
       val valueTop = newState.getExpression
       expression = expression && (origCollection contains (value, valueTop, pp))
     }
@@ -381,18 +381,18 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def CollectionSummary[S <: State[S]](collection:RichExpression)(implicit state:S, pp:ProgramPoint):RichExpression = {
-    val keyTyp = collection.thisExpr._1.asInstanceOf[TouchCollection].getKeyType
+    val keyTyp = collection.thisExpr._1.asInstanceOf[TouchCollection].keyType
     state.getCollectionValueByKey(collection, Valid(keyTyp)).getExpression
   }
 
   def CollectionKeySummary[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    val result = state.getCollectionKeyByKey(collection, Valid(collection.getType().asInstanceOf[TouchCollection].getKeyType))
+    val result = state.getCollectionKeyByKey(collection, Valid(collection.getType().asInstanceOf[TouchCollection].keyType))
     result.getExpression
   }
 
   def CollectionExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     val collectionTyp = collection.getType().asInstanceOf[TouchCollection]
-    val keyTyp = collectionTyp.getKeyType
+    val keyTyp = collectionTyp.keyType
 
     val newCollectionTyp = getKeyCollectionTyp(collectionTyp) match {
       case Some(x) => x

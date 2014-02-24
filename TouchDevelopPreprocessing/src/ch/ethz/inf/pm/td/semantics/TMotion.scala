@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -37,7 +37,7 @@ object TMotion {
   val field_yaw = new TouchField("yaw",TNumber.typName)
 
   val typName = "Motion"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_acceleration, field_gravity, field_pitch, field_roll,
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_acceleration, field_gravity, field_pitch, field_roll,
     field_rotation_speed, field_time, field_yaw),isImmutable = true)
 
 }

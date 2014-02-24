@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -52,7 +52,7 @@ object TWeb_Request {
   val field_handler = new TouchField("handler", TWeb_Response_Action.typName)
 
   val typName = "Web Request"
-  val typ = new TouchType(typName, isSingleton = false, fields = List(field_header_storage, field_method, field_url,
+  val typ = DefaultTouchType(typName, isSingleton = false, fields = List(field_header_storage, field_method, field_url,
     field_content, field_content_as_json, field_content_as_picture, field_content_as_picture_quality,
     field_content_as_xml, field_content_as_form,
     field_credentials_name, field_credentials_password, field_handler))

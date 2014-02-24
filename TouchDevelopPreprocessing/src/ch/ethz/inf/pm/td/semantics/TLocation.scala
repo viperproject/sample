@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -42,7 +42,7 @@ object TLocation {
   val field_vert_accuracy = new TouchField("vert accuracy", TNumber.typName)//, Invalid(TNumber.typ))
 
   val typName = "Location"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_latitude,field_longitude,field_altitude,
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_latitude,field_longitude,field_altitude,
       field_speed, field_hor_accuracy,field_course,field_vert_accuracy))
 
 }

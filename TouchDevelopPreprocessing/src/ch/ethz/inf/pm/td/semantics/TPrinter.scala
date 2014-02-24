@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -34,7 +34,7 @@ object TPrinter {
   val field_is_idle = new TouchField("is idle",TBoolean.typName)
 
   val typName = "Printer"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_device, field_is_idle, field_is_processing,
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_device, field_is_idle, field_is_processing,
     field_is_stopped, field_name, field_state_reason))
 
 }

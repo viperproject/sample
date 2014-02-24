@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -30,7 +30,7 @@ object TSound {
   val field_volume = new TouchField("volume",TNumber.typName,ExpressionInitializer(-1 ndTo 1))
 
   val typName = "Sound"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_duration, field_pan, field_pitch, field_volume))
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_duration, field_pan, field_pitch, field_volume))
 
 }
 

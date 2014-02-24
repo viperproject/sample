@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -41,7 +41,7 @@ object TWeb_Response {
   val field_status_code = new TouchField("status code",TNumber.typName)
 
   val typName = "Web Response"
-  val typ = new TouchType(typName,isSingleton = false, isImmutable = true, fields = List(field_header_storage, field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml, field_request, field_status_code))
+  val typ = DefaultTouchType(typName,isSingleton = false, isImmutable = true, fields = List(field_header_storage, field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml, field_request, field_status_code))
 
 
 }

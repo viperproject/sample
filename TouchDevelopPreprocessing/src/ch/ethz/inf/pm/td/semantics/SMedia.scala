@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
@@ -36,7 +36,7 @@ object SMedia {
   val field_songs = new TouchField("songs",TSongs.typName)
 
   val typName = "Media"
-  val typ = new TouchType(typName, isSingleton = true, fields = List(field_icon_names, field_picture_albums, field_pictures,
+  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_icon_names, field_picture_albums, field_pictures,
     field_playlists, field_saved_pictures, field_song_albums, field_songs))
 
 }

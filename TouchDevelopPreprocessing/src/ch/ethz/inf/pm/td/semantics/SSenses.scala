@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -48,7 +48,7 @@ object SSenses {
   val field_phone_langscape_right = new TouchField("phone landscape right handler", TAction.typName)
 
   val typName = "Senses"
-  val typ = new TouchType(typName,isSingleton = true,
+  val typ = DefaultTouchType(typName,isSingleton = true,
     fields = List(field_front_camera,field_camera,field_has_accelerometer,field_has_compass,field_has_front_camera,
       field_has_gyroscope, field_bluetooth_devices, field_battery_level, field_shake_handler, field_phone_face_up_handler,
       field_phone_face_down_handler, field_phone_portrait, field_phone_landscape_left, field_phone_langscape_right

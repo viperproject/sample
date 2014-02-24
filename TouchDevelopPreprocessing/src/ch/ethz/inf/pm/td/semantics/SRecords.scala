@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -16,9 +16,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SRecords {
 
   val typName = "records"
-  var typ = new TouchType(typName,isSingleton = true)
+  var typ = DefaultTouchType(typName,isSingleton = true)
 
-  def reset() { typ = new TouchType(typName,isSingleton = true) }
+  def reset() { typ = DefaultTouchType(typName,isSingleton = true) }
 
 }
 

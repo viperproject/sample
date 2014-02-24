@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -27,7 +27,7 @@ object SWeb {
   val field_is_connected = new TouchField("is connected",TBoolean.typName)
 
   val typName = "Web"
-  val typ = new TouchType(typName,isSingleton = true, fields = List(field_connection_name,field_connection_type,field_is_connected))
+  val typ = DefaultTouchType(typName,isSingleton = true, fields = List(field_connection_name,field_connection_type,field_is_connected))
 
 }
 

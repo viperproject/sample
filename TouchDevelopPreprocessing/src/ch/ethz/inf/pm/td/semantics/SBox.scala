@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -81,7 +81,7 @@ object SBox {
   val field_tapped_handler = new TouchField("tapped handler", TAction.typName)
 
   val typName = "Box"
-  val typ = new TouchType(typName, isSingleton = true, fields = List(
+  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(
     field_is_init,
     field_vertical_align,
     field_horizontal_align,

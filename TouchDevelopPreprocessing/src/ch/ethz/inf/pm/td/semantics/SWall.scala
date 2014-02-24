@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -56,7 +56,7 @@ object SWall {
   val field_display_search = new TouchField("display search",TBoolean.typName)
 
   val typName = "Wall"
-  val typ = new TouchType(typName,isSingleton = true,fields = List(
+  val typ = DefaultTouchType(typName,isSingleton = true,fields = List(
     field_button_icon_names,
     field_width,
     field_height,

@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -43,7 +43,7 @@ object TOAuth_Response {
   val field_is_error = new TouchField("is error",TBoolean.typName)
 
   val typName = "OAuth Response"
-  val typ = new TouchType(typName,isSingleton = false,fields = List(field_access_token, field_expires_in, field_scope,
+  val typ = DefaultTouchType(typName,isSingleton = false,fields = List(field_access_token, field_expires_in, field_scope,
     field_error, field_error_description, field_error_uri, field_others, field_is_error))
 
 }

@@ -62,7 +62,7 @@ class TSprite_Set extends AMutable_Collection {
         CollectionInvalidateKeys[S](this0)(newState, pp)
         Return[S](result)(newState, pp)
       }, Else={
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_, pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType))(_, pp)
       })
 
     case _ =>

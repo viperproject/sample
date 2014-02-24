@@ -21,7 +21,7 @@ abstract class ALinearCollection extends ACollection {
       val newState = If[S](CollectionIndexInRange[S](this0, index), Then={
         Return[S](CollectionAt[S](this0, index))(_, pp)
       }, Else={
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_, pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType))(_, pp)
       })
       newState
 
@@ -38,7 +38,7 @@ abstract class ALinearCollection extends ACollection {
       If[S](CollectionSize[S](this0) > 0, Then={
         Return[S](CollectionSummary[S](this0))(_, pp)
       }, Else={
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_, pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType))(_, pp)
       })
 
     case _ =>

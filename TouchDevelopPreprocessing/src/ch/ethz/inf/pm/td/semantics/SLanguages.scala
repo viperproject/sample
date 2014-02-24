@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -21,7 +21,7 @@ object SLanguages {
   val field_current_language = new TouchField("current language",TString.typName)
 
   val typName = "Languages"
-  val typ = new TouchType(typName,isSingleton = true, fields = List(field_current_language))
+  val typ = DefaultTouchType(typName,isSingleton = true, fields = List(field_current_language))
 
 }
 

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 /**
@@ -48,7 +48,7 @@ object TTile {
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   val typName = "Tile"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(
     field_back_icon,
     field_back_title,
     field_background,
