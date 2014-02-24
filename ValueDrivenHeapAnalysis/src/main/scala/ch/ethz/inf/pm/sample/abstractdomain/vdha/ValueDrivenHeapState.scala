@@ -155,7 +155,20 @@ trait ValueDrivenHeapState[
               for (rPath <- rightPaths) {
                 val rCond = rPath.condition
                 if (!rCond.lessEqual(rCond.bottom())) {
-                  edgesToAdd = edgesToAdd + Edge(varVertex, rCond, None, rPath.target)
+                  // rCond contains *source* edge-local identifiers that refer
+                  // to fields of the *target* of the new edge. Thus, in order
+                  // to use rCond as the state of the new edge, one needs to
+                  // rename the source edge-local identifiers to target edge-
+                  // local identifiers first.
+
+                  // TODO: This code is very similar to the one in
+                  // referencePathAssignmentEdges.
+                  val renameMap = rCond.edgeLocalIds.map(id => {
+                    id -> id.copy(accPath = List(None))(id.pp)
+                  }).toMap
+
+                  val newEdgeState = rCond.rename(renameMap)
+                  edgesToAdd = edgesToAdd + Edge(varVertex, newEdgeState, None, rPath.target)
                 }
               }
             }
