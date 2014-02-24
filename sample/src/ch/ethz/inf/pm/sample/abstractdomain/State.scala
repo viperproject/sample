@@ -358,7 +358,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
   }
 
   /** Returns the current expression */
-  def expr : ExpressionSet
+  def expr: ExpressionSet
 
   /**
    * Sets the current expression
