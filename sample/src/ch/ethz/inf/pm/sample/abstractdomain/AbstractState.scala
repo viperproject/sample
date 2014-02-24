@@ -85,7 +85,7 @@ object ExpressionFactory {
   }
 
   private def combineListValue(list : List[ExpressionSet]) : Set[List[Expression]] = list match {
-    case Nil => Set.empty+(Nil)
+    case Nil => Set(Nil)
     case x :: xs =>
       val previous : Set[List[Expression]] = combineListValue(xs)
       var result : Set[List[Expression]] = Set.empty
@@ -112,6 +112,7 @@ case class ExpressionSet(initialTyp: Type, s: SetOfExpressions = new SetOfExpres
 
   def factory(a:Type,b:SetOfExpressions) = new ExpressionSet(a,b)
 
+  // TODO: rf: this method is highly suspicious. Why should _1 ever be inconsistent with the computed type?
   def getType() : Type = this._1.glb(this.computeType())
 
   def getSetOfExpressions = this._2.value
@@ -319,13 +320,13 @@ case class AbstractState[
 
       //For each parameter that is set, it computes its semantics and it considers the upper bound
       el match {
-        case variable : Assignable => {
+        case variable : Assignable =>
           for(assigned <- right.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](domain.setArgument(variable, assigned), expr)
             result=result.lub(done)
             result=result.setExpression(ExpressionSet(new UnitExpression(variable.typ.top(), variable.pp)))
           }
-        }
+
         case _ => throw new SymbolicSemanticException("I can assign only variables")
       }
     }
@@ -338,13 +339,13 @@ case class AbstractState[
     for(el <- x.getSetOfExpressions) {
       //For each variable that is potentially removed, it computes its semantics and it considers the upper bound
       el match {
-        case variable : Assignable => {
+        case variable : Assignable =>
           for(previousState <- x.getSetOfExpressions) {
             val done=new AbstractState[N,H,I](domain.removeVariable(variable), ExpressionSet(new UnitExpression(variable.typ.top(), variable.pp)))
             result=result.lub(done)
             result=result.setExpression(ExpressionSet(new UnitExpression(variable.typ.top(), variable.pp)))
           }
-        }
+
         case _ => throw new SymbolicSemanticException("I can remove only variables")
       }
     }
@@ -364,10 +365,10 @@ case class AbstractState[
           var heapAndOther = domain
           for(field <- fields.getOrElse(Set.empty[Identifier])) {
             val (fieldIdSet, _, _) = HeapIdSetFunctionalLifting.applyGetFieldId(objectIds, heapAndOther, heapAndOther._2.getFieldIdentifier(_, field.getName, field.typ, field.pp))
-            heapAndOther = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther, fieldIdSet, heapAndOther.removeVariable(_))
+            heapAndOther = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther, fieldIdSet, heapAndOther.removeVariable)
           }
           // remove variable for created heap object itself
-          heapAndOther = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther, objectIds, heapAndOther.removeVariable(_))
+          heapAndOther = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther, objectIds, heapAndOther.removeVariable)
 
           // remove heap object
           val newHeap = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther._2, objectIds, heapAndOther._2.removeObject(_)._1)
@@ -381,7 +382,7 @@ case class AbstractState[
     result
   }
 
-  def throws(throwed : ExpressionSet) : AbstractState[N,H,I] = this.bottom() //TODO: Support exceptions
+  def throws(throwed : ExpressionSet) : AbstractState[N,H,I] = throw new NotImplementedError
 
   def evalConstant(value : String, typ : Type, pp : ProgramPoint) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
@@ -440,21 +441,21 @@ case class AbstractState[
     var result : AbstractState[N,H,I] = this.bottom()
     for(exprVal <- x.getSetOfExpressions) {
       //For each variable that is forgotten, it computes the semantics and it considers the upper bound
-      if(exprVal.isInstanceOf[Assignable]) {
-        val variable : Assignable = exprVal.asInstanceOf[Assignable]
-        result=result.lub(new AbstractState(domain.setToTop(variable), expr))
-      }
-      else if(exprVal.isInstanceOf[HeapIdSetDomain[I]]) {
-        val variable : HeapIdSetDomain[I] = exprVal.asInstanceOf[HeapIdSetDomain[I]]
-        result=result.lub(new AbstractState(HeapIdSetFunctionalLifting.applyToSetHeapId(domain, variable, domain.setToTop(_)), expr))
+      exprVal match {
+        case variable: Assignable =>
+          result = result.lub(new AbstractState(domain.setToTop(variable), expr))
 
+        case variable: HeapIdSetDomain[I] =>
+          result = result.lub(new AbstractState(HeapIdSetFunctionalLifting.applyToSetHeapId(domain, variable, domain.setToTop(_)), expr))
+
+        case _ =>
+          sys.error("Something assignable expected here")
       }
-      else throw new SymbolicSemanticException("Something assignable expected here")
     }
     result
   }
 
-  def assert(cond : ExpressionSet) : AbstractState[N,H,I] = this //TODO
+  def assert(cond: ExpressionSet): AbstractState[N,H,I] = this
 
   def assume(cond: Expression): AbstractState[N, H, I] = {
     val (dom, replacement) = _1.assume(cond)
@@ -670,7 +671,7 @@ case class AbstractState[
       new AbstractState[N, H, I](newHeapAndSemantic, result._2)
     }
 
-    var result = this.bottom
+    var result = bottom()
     for (collection <- collectionSet.getSetOfExpressions) {
       val newState = collection match {
         case id: Assignable => clearCollection(this)(id)
@@ -1053,7 +1054,7 @@ case class AbstractState[
       }
     }
 
-    return false
+    false
   }
 
   /**
