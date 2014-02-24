@@ -3,23 +3,23 @@
 @import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 
 @state match {
-    case s: vdha.ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[_] => {
+    case s: vdha.PredicateDrivenHeapState.EdgeStateDomain[_] => {
         @CartesianProductDomain(List(
             s.valueState.valueState,
-            s.valueState.symbolicPredicateState.instances,
-            s.valueState.symbolicPredicateState.definitions,
+            s.valueState.predicateState.instances,
+            s.valueState.predicateState.definitions,
             s.edgeAmbiguityState))
     }
-    case i: vdha.SymbolicPredicateInstsDomain => {
+    case i: vdha.PredicateInstancesDomain => {
         @LatticeDescription("Instances")
-        @SymbolicPredicateInstsDomain(i)
+        @PredicateInstancesDomain(i)
     }
-    case d: vdha.SymbolicPredicateDefsDomain => {
+    case d: vdha.PredicateDefinitionsDomain => {
         @LatticeDescription("Definitions")
         @FunctionalDomain(d)
     }
-    case s: vdha.SymbolicPredicateDef => {
-        @SymbolicPredicateDef(s)
+    case s: vdha.PredicateDefinition => {
+        @PredicateDefinition(s)
     }
     case g: vdha.EdgeAmbiguityState => {
         @LatticeDescription("Edge Ambiguity")
@@ -41,7 +41,7 @@
     }
 }
 
-@SymbolicPredicateInstsDomain(i: vdha.SymbolicPredicateInstsDomain) = {
+@PredicateInstancesDomain(i: vdha.PredicateInstancesDomain) = {
     <dl class="functional-domain">
         <dt>Folded</dt>
         <dd>@i.certainlyFoldedIds.mkString(", ")</dd>
@@ -53,11 +53,11 @@
     <div class="clearfix"></div>
 }
 
-@SymbolicPredicateDef(s: vdha.SymbolicPredicateDef) = {
-    @if(s.valFieldPerms.isTop && s.refFieldPerms.isTop) {
+@PredicateDefinition(s: vdha.PredicateDefinition) = {
+    @if(s.isTop) {
         @Top()
     } else {
-        @if(s.valFieldPerms.isBottom || s.refFieldPerms.isBottom) {
+        @if(s.isBottom) {
             @Bottom()
         } else {
             <ul class="symbolic-predicate-def">

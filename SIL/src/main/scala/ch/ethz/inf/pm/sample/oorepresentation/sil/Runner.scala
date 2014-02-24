@@ -3,16 +3,18 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.{StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
-import ch.ethz.inf.pm.sample.execution.{TrackingForwardInterpreter, TrackingCFGState}
+import ch.ethz.inf.pm.sample.execution.TrackingCFGState
 import apron.Polka
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.MethodDeclaration
-import ch.ethz.inf.pm.sample.AnalysisUnitContext
-import semper.sil.ast.Program
 import java.nio.file.Path
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisRunner.S
 import java.io.File
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain
+import ch.ethz.inf.pm.sample.execution.TrackingForwardInterpreter
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
+import ch.ethz.inf.pm.sample.AnalysisUnitContext
+import semper.sil.ast.Program
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 
 case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
   def run(path: Path): List[AnalysisResult[_]] = {
@@ -66,7 +68,7 @@ object PreciseAnalysisRunner extends AnalysisRunner(
   SimpleAnalysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
 
 object InitialSymbolicPredicateAnalysisRunner extends AnalysisRunner(
-  SimpleAnalysis[ValueDrivenHeapStateWithSymbolicPredicates[S]](SymbolicPredicateEntryStateBuilder)) {}
+  SimpleAnalysis[PredicateDrivenHeapState[S]](SymbolicPredicateEntryStateBuilder)) {}
 
 object RefiningSymbolicPredicateAnalysisRunner extends AnalysisRunner(
   RefiningSymbolicPredicateAnalysis[S](SymbolicPredicateEntryStateBuilder)) {}
@@ -110,12 +112,12 @@ object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
 }
 
 object SymbolicPredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[ApronInterface.Default],
-  ValueDrivenHeapStateWithSymbolicPredicates[ApronInterface.Default]] {
+  PredicateDrivenHeapState.EdgeStateDomain[ApronInterface.Default],
+  PredicateDrivenHeapState[ApronInterface.Default]] {
 
   def topState = {
-    val generalValState = ValueDrivenHeapStateWithSymbolicPredicates.makeTopEdgeState(topApronInterface)
-    ValueDrivenHeapStateWithSymbolicPredicates(topHeapGraph, generalValState, ExpressionSet())
+    val generalValState = PredicateDrivenHeapState.makeTopEdgeState(topApronInterface)
+    PredicateDrivenHeapState(topHeapGraph, generalValState, ExpressionSet())
   }
 }
 
@@ -150,14 +152,14 @@ case class SimpleAnalysis[S <: State[S]](
 }
 
 case class RefiningSymbolicPredicateAnalysis[S <: SemanticDomain[S]](
-    entryStateBuilder: EntryStateBuilder[ValueDrivenHeapStateWithSymbolicPredicates[S]])
-  extends Analysis[ValueDrivenHeapStateWithSymbolicPredicates[S]] {
+    entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
+  extends Analysis[PredicateDrivenHeapState[S]] {
 
-  type T = ValueDrivenHeapStateWithSymbolicPredicates[S]
+  type T = PredicateDrivenHeapState[S]
 
   def analyze(method: MethodDeclaration): AnalysisResult[T] = {
     def defs(state: T) =
-      state.generalValState.valueState.symbolicPredicateState.definitions
+      state.generalValState.valueState.predicateState.definitions
 
     // Rather than building the entry state from scratch,
     // adapt the one of the first iteration.
@@ -176,26 +178,25 @@ case class RefiningSymbolicPredicateAnalysis[S <: SemanticDomain[S]](
 
       // TODO: Find a more concise way of altering the state
       val newState = state.copy(valueState = {
-        state.valueState.copy[S](symbolicPredicateState = {
-          state.valueState.symbolicPredicateState.copy(
-            definitions = secondEntryDefs,
+        state.valueState.copy[S](predicateState = {
+          state.valueState.predicateState.copy(
+            definitions = secondEntryDefs.copy(map = secondEntryDefs.map.filterNot(_._2.isBottom)),
             instances = {
-              import SymbolicPredicateDef._
-              import SymbolicPredicateInstsDomain._
+              import PredicateDefinition._
+              import PredicateInstancesDomain._
 
-              var instances = state.valueState.symbolicPredicateState.instances
+              var instances = state.valueState.predicateState.instances
               val foldedInstIds = instances.certainlyFoldedIds
               val nonRecursiveDefIds = secondEntryDefs.nonRecursiveIds
 
               // Auto-unfold every folded, non-recursive predicate instance
-              // and remove the edge alltogether if one of the folded predicate
+              // and remove the edge altogether if one of the folded predicate
               // instances has a false body
               for (foldedInstId <- foldedInstIds) {
                 val predDefId = extractPredInstId(foldedInstId).toPredicateDefId
                 if (nonRecursiveDefIds.contains(predDefId)) {
                   val predDef = secondEntryDefs.get(predDefId)
-                  val isBottomDef = predDef.valFieldPerms.isBottom || predDef.refFieldPerms.isBottom
-                  if (isBottomDef) {
+                  if (predDef.isBottom) {
                     isBottom = true
                   } else {
                     instances = instances.assign(foldedInstId, Unfolded)
