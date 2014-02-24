@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -23,7 +23,7 @@ object SRadio {
   val field_is_playing = new TouchField("is playing",TBoolean.typName, NewInitializer)
 
   val typName = "Radio"
-  val typ = new TouchType(typName,isSingleton = true, fields = List(field_frequency, field_is_playing))
+  val typ = DefaultTouchType(typName,isSingleton = true, fields = List(field_frequency, field_is_playing))
 
 }
 

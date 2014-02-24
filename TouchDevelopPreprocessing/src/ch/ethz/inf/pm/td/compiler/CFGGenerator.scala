@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.td._
 import ch.ethz.inf.pm.td.parser._
 import semantics._
 import util.parsing.input.Position
-import ch.ethz.inf.pm.sample.{oorepresentation, SystemParameters}
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation.Statement
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.td.parser.TableDefinition
@@ -16,7 +16,6 @@ import ch.ethz.inf.pm.td.parser.ExpressionStatement
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
-import ch.ethz.inf.pm.sample.abstractdomain.Identifier
 import ch.ethz.inf.pm.td.parser.MetaStatement
 import ch.ethz.inf.pm.td.parser.Box
 import ch.ethz.inf.pm.td.parser.Parameter
@@ -104,7 +103,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     }
 
     def addRecordsField(field:TouchField) {
-      SRecords.typ = new TouchType(SRecords.typName,isSingleton = true, fields = SRecords.typ.possibleFields.toList ::: List(field))
+      SRecords.typ = DefaultTouchType(SRecords.typName,isSingleton = true, fields = SRecords.typ.possibleFields.toList ::: List(field))
     }
 
     def createFieldMembers(fields:List[Parameter]): List[(TouchField,TouchField)] = {
@@ -119,7 +118,7 @@ class CFGGenerator(compiler: TouchCompiler) {
             (inp+" field",inp)
           }
         val valueField = new TouchField("*value",noFieldTypeName)
-        val fieldType = new TouchType(fieldTypeName,fields=List(valueField))
+        val fieldType = DefaultTouchType(fieldTypeName,fields=List(valueField))
 
         if (noFieldTypeName.equals("Number"))
           addTouchType(new ANumberField(fieldType,valueField))
@@ -138,9 +137,9 @@ class CFGGenerator(compiler: TouchCompiler) {
           typeName match {
             case "object" =>
 
-              val objectTyp = new TouchType(ident,fields = createFieldMembers(fields) map (_._1))
+              val objectTyp = DefaultTouchType(ident,fields = createFieldMembers(fields) map (_._1))
               val collectionTyp = new TouchCollection(ident+" Collection",TNumber.typName,ident)
-              val constructorTyp = new TouchType(ident+" Constructor")
+              val constructorTyp = DefaultTouchType(ident+" Constructor")
 
               addTouchType(new AObject(objectTyp))
               addTouchType(new AObjectCollection(collectionTyp,objectTyp))
@@ -156,7 +155,7 @@ class CFGGenerator(compiler: TouchCompiler) {
               // An auxiliary field that stores a link from the row to the table, to implement row.delete_row
               val tableField = new TouchField("*table",tableTypeName)
 
-              val rowTyp = new TouchType(ident,fields = (createFieldMembers(fields) map (_._1)) ::: List(tableField))
+              val rowTyp = DefaultTouchType(ident,fields = (createFieldMembers(fields) map (_._1)) ::: List(tableField))
               val tableTyp = new TouchCollection(tableTypeName,TNumber.typName,rowTypName)
 
               addTouchType(new ARow(rowTyp,tableField))
@@ -169,7 +168,7 @@ class CFGGenerator(compiler: TouchCompiler) {
               val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typ.ident)}
               val fieldMembers = createFieldMembers(fields)
 
-              val indexMemberType = new TouchType(ident,fields = (fieldMembers map (_._1))  ::: keyMembers)
+              val indexMemberType = DefaultTouchType(ident,fields = (fieldMembers map (_._1))  ::: keyMembers)
               val keyTypes = keyMembers map (_.typ.asInstanceOf[TouchType])
 
               addTouchType(new AIndexMember(indexMemberType,fieldMembers))
@@ -179,7 +178,7 @@ class CFGGenerator(compiler: TouchCompiler) {
                   addTouchType(new AIndex(ty,keyTypes,indexMemberType))
                   ty
                 } else {
-                  val ty = new TouchType(ident+" Index",fields = List(new TouchField("singleton",indexMemberType.name)))
+                  val ty = DefaultTouchType(ident+" Index",fields = List(new TouchField("singleton",indexMemberType.name)))
                   addTouchType(new ASingletonIndex(ty,indexMemberType))
                   ty
                 }
@@ -194,7 +193,7 @@ class CFGGenerator(compiler: TouchCompiler) {
               val fieldMembers = createFieldMembers(fields)
 
               val decoratedType = keyMembers.head.typ.asInstanceOf[TouchType]
-              val decorationType = new TouchType(ident,fields = (fieldMembers map (_._1)) ::: keyMembers)
+              val decorationType = DefaultTouchType(ident,fields = (fieldMembers map (_._1)) ::: keyMembers)
               val decoratorType = new TouchCollection(decoratedType+" Decorator",decoratedType.name,decorationType.name)
 
               addTouchType(new AIndexMember(decorationType,fieldMembers))
@@ -291,7 +290,7 @@ class CFGGenerator(compiler: TouchCompiler) {
   private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
     if (!isLibraryIdent(typeName.ident)) {
       compiler.getSemantics(typeName.ident).getTyp
-    } else new TouchType(typeName.ident,isSingleton)
+    } else DefaultTouchType(typeName.ident,isSingleton)
   }
 
   private def addStatementsToCFG(statements:List[parser.Statement], cfg:ControlFlowGraph, scope:ScopeIdentifier,
@@ -454,11 +453,11 @@ class CFGGenerator(compiler: TouchCompiler) {
 }
 
 
-abstract class Named {
+trait Named {
   def name: String
 
   override def equals(o: Any): Boolean = o match {
-    case x: Named => x.name == name && x.getClass == this.getClass
+    case x: Named => x.name == name
     case _ => false
   }
 
@@ -525,72 +524,6 @@ case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends Prog
   override def toString = pp+"("+path.mkString(",")+")"
   override def description = pp+" at initialization path "+path.mkString(",")
 }
-
-class TouchType(
-    val name: String,
-    val isSingleton: Boolean = false,
-    val isImmutable: Boolean = false,
-    fields: List[Identifier] = List.empty[Identifier])
-  extends Named with Type {
-
-  var isBottom = false
-  var isTop = false
-
-  def factory() = top()
-  def top() = { val res = new TouchType("Top"); res.isTop = true; res }
-  def bottom() = { val res = new TouchType("Bottom"); res.isBottom = true; res }
-
-  def lub(other: oorepresentation.Type): oorepresentation.Type = {
-    if (other == null) return this
-    val other_ = other.asInstanceOf[TouchType]
-    if (isTop || other_.isTop) return top()
-    if (isBottom) return other_
-    if (other_.isBottom) return this
-    if (!equals(other_)) top()
-    else this
-  }
-
-  def glb(other: oorepresentation.Type): oorepresentation.Type = {
-    if (other == null) return this
-    val other_ = other.asInstanceOf[TouchType]
-    if (isBottom || other_.isBottom) return bottom()
-    if (isTop) return other_
-    if (other_.isTop) return this
-    if (!equals(other_)) bottom()
-    else this
-  }
-
-  def widening(other: Type) = lub(other)
-  
-  def lessEqual(other: Type) = other == this || this.isBottom || other == top()
-
-  def isBottomExcluding(types: Set[Type]) = isBottom || types.contains(this)
-
-  def isObject = !isNumericalType && !isStringType
-  def isBooleanType = name == "Boolean"
-  def isNumericalType = (name == "Number") || (name == "Boolean")
-  def isFloatingPointType = name == "Number" || name == "Boolean" // TODO: Booleans should not be floating points
-  def isStringType = name == "String"
-  def isStatic = isSingleton
-  def possibleFields = fields.toSet[Identifier]
-  def possibleTouchFields = fields.toSet[Identifier] map (_.asInstanceOf[TouchField])
-  def arrayElementsType = None
-
-}
-
-case class TouchCollection(
-    override val name: String,
-    keyType: String,
-    valueType: String,
-    fields: List[Identifier] = List.empty[Identifier],
-    immutableCollection: Boolean = false)
-  extends TouchType(name, false, immutableCollection, fields) {
-
-  def getKeyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(keyType).getTyp
-  def getValueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(valueType).getTyp
-
-}
-
 
 /**
  * The resource modifier marks any field of a class that represents a preloaded artwork,

@@ -19,7 +19,7 @@ abstract class AMap extends ACollection {
       val result = If[S](CollectionContainsKey[S](this0, key) equal  True, Then={
         Return[S](CollectionAt[S](this0, key))(_, pp)
       }, Else={
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].getValueType))(_, pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType))(_, pp)
       })
 
       result

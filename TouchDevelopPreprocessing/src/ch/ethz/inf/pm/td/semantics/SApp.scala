@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.td.analysis.{MethodSummaries, TouchAnalysisParameters}
 object SApp {
 
   val typName = "App"
-  val typ = new TouchType(typName, isSingleton = true)
+  val typ = DefaultTouchType(typName, isSingleton = true)
 
 }
 

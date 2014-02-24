@@ -361,8 +361,6 @@ trait ValueDrivenHeapState[
   def assume(cond: Expression): T =
     CondHeapGraph[S, T](this).assume(normalizeExpression(cond)).join
 
-  def getExpression: ExpressionSet = expr
-
   def setExpression(newExpr: ExpressionSet): T =
     copy(expr = newExpr)
 

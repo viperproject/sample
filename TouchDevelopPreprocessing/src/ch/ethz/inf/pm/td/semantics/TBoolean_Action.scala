@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object TBoolean_Action {
 
   val typName = "Boolean Action"
-  val typ = new TouchType(typName, fields = List(AAction.field_handlerName), isImmutable = true)
+  val typ = DefaultTouchType(typName, fields = List(AAction.field_handlerName), isImmutable = true)
 
 }
 

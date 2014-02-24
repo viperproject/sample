@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -26,7 +26,7 @@ object TTimer {
   val field_trigger_handler = new TouchField("trigger handler", TAction.typName)
 
   val typName = "Timer"
-  val typ = new TouchType(typName, fields = List(field_is_active, field_is_interval, field_trigger_handler))
+  val typ = DefaultTouchType(typName, fields = List(field_is_active, field_is_interval, field_trigger_handler))
 
 }
 

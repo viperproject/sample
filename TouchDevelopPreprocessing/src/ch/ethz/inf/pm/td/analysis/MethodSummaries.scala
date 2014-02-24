@@ -214,7 +214,7 @@ object MethodSummaries {
     })
 
     curState = curState.pruneUnreachableHeap()
-    curState = curState.setExpression(curState.getExpression.bottom())
+    curState = curState.setExpression(curState.expr.bottom())
 
     curState
   }
@@ -283,7 +283,7 @@ object MethodSummaries {
           } else {
             curState = TopWithInvalid[S](x.typ.asInstanceOf[TouchType])(curState,x.programpoint)
           }
-          val right = curState.getExpression
+          val right = curState.expr
           val expr = toExpressionSet(x.variable.id)
           curState = curState.createVariable(expr,expr.getType(),x.programpoint)
           curState = curState.assignVariable(expr,right)

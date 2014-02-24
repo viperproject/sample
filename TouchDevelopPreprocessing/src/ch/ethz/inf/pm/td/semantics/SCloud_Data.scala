@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -39,7 +39,7 @@ object SCloud_Data {
   val field_sync_enabled = new TouchField("sync enabled", TBoolean.typName)
 
   val typName = "Cloud Data"
-  val typ = new TouchType(typName, isSingleton = true, fields = List(field_connection_status, field_current_session,
+  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_connection_status, field_current_session,
     field_everyone_session, field_sync_enabled, field_just_me_session, field_last_session, field_participant_number))
 
 }

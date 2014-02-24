@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -41,7 +41,7 @@ object TSong_Album {
   val field_thumbnail = new TouchField("thumbnail",TPicture.typName)
 
   val typName = "Song Album"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_art, field_artist, field_duration,
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_art, field_artist, field_duration,
     field_genre, field_has_art, field_name, field_songs, field_thumbnail))
 
 }

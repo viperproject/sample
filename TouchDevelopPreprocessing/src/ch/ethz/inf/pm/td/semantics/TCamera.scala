@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -26,7 +26,7 @@ object TCamera {
   val field_is_front = new TouchField("is front",TBoolean.typName)
 
   val typName = "Camera"
-  val typ = new TouchType(typName,isSingleton = false,fields = List(field_height, field_is_front, field_width))
+  val typ = DefaultTouchType(typName,isSingleton = false,fields = List(field_height, field_is_front, field_width))
 
 }
 

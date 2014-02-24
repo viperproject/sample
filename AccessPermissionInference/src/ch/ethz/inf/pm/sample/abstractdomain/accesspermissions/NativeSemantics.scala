@@ -82,7 +82,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 							    	    case id : Identifier => result = Annotation.exhalePrecondition(id, x.getType().toString, s, castedState, result);
                         case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.exhalePrecondition(id, x.getType().toString, s, castedState, result);
 							    	  }
-				        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
+				        val d1 = HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 					    val entryvalue =thisExpr.top().asInstanceOf[ExpressionSet]
 					    return new Some(new AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
 					    /*val methodName=s;
@@ -106,7 +106,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 							    	    case id : Identifier => result = Annotation.inhalePostcondition(id, x.getType().toString, s, castedState, result);
                         case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => Annotation.inhalePostcondition(id, x.getType().toString, s, castedState, result);
 							    	  }
-				        val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
+				        val d1 = HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 					    val entryvalue =thisExpr.top().asInstanceOf[ExpressionSet]
 					    return new Some(new AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
 					    /*val methodName=s;
@@ -122,7 +122,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	      } 
 	    case _ => None 
 	  }
-      val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
+      val d1 = HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 	  val entryvalue =thisExpr.top().asInstanceOf[ExpressionSet]
 	  //new SymbolicAbstractValue[AbstractState[PermissionsDomain, ProgramPointHeapDomain, SetProgramPointHeapIdentifier]](None, None)
 	  //We suppose that S = AbstractState[PermissionsDomain, ProgramPointHeapDomain, SetProgramPointHeapIdentifier]
@@ -149,7 +149,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 		    case id : Identifier => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
 		    case id : MaybeHeapIdSetDomain[ProgramPointHeapIdentifier] => result = Annotation.inhalePostcondition(id, className, operator, castedState, result);
 		  }
-    val d1 = new HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
+    val d1 = HeapAndAnotherDomain[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](result, castedState._1._2);
 	  val entryvalue =thisExpr.top()
 	  return new Some(new AbstractState[P, NonRelationalHeapDomain[ProgramPointHeapIdentifier], ProgramPointHeapIdentifier](d1, entryvalue).asInstanceOf[S])
 	    //It applies pre and post conditions if these exist
@@ -236,7 +236,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	private def accessField[S <: State[S]](obj : ExpressionSet, field : Statement, state : S) : ExpressionSet = field match {
 	  case FieldAccess(pp, fieldObj, field, typ) =>
       val newState = state.getFieldValue(accessField(obj, fieldObj, state), field, typ)
-	    newState.getExpression
+	    newState.expr
 	  case v: Variable => obj
 	}
 	

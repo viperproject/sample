@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -20,7 +20,7 @@ object TSprite_Sheet {
   val field_picture = new TouchField("picture", TPicture.typName)
 
   val typName = "Sprite Sheet"
-  val typ = new TouchType(typName, fields = List(field_picture))
+  val typ = DefaultTouchType(typName, fields = List(field_picture))
 
 }
 

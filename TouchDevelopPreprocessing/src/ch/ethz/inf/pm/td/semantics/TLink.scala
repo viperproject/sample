@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -29,7 +29,7 @@ object TLink {
   val field_name = new TouchField("name",TString.typName,InvalidInitializer)
 
   val typName = "Link"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_address, field_kind, field_location, field_name), isImmutable = false)
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_address, field_kind, field_location, field_name), isImmutable = false)
 
 }
 

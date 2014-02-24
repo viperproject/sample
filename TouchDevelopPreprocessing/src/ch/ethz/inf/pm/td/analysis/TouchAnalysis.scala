@@ -138,7 +138,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
             }
           else
             curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
-          val obj = curState.getExpression
+          val obj = curState.expr
           val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
           curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
         }
@@ -163,10 +163,10 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
           //  (3) Global objects that represents read-only artwork that is initialized from some URL.
           if(v.modifiers.contains(ResourceModifier)) {
             curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression
+            curState.expr
           } else if (v.modifiers.contains(ReadOnlyModifier)) {
             curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression
+            curState.expr
           } else {
             toExpressionSet(toRichExpression(v.typ.name match {
               case "String" => Constant("",v.typ,v.programpoint)
@@ -181,14 +181,14 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
           // We analyze one execution in top state.
           if(v.modifiers.contains(ResourceModifier)) {
             curState = RichNativeSemantics.Top[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression
+            curState.expr
           } else if (v.modifiers.contains(ReadOnlyModifier)) {
             curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState,v.programpoint)
-            curState.getExpression
+            curState.expr
           } else {
             curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType])(curState,
               if (TouchAnalysisParameters.fullAliasingInGenericInput) DummyProgramPoint else v.programpoint)
-            curState.getExpression
+            curState.expr
           }
 
         }
@@ -311,7 +311,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
             if(typ.name != "records" && typ.name != "art" && typ.name != "data" && typ.name != "code") {
               val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
               curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
-              val obj = curState.getExpression
+              val obj = curState.expr
               val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
               curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
             }

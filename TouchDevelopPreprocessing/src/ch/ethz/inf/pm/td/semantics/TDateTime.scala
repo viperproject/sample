@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -38,7 +38,7 @@ object TDateTime {
   val field_year = new TouchField("year",TNumber.typName)
 
   val typName = "DateTime"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year))
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year))
 
 }
 

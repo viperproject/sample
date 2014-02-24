@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
@@ -109,7 +109,7 @@ class TBoard extends AMutable_Collection {
     // Create an anchor sprite.
     case "create anchor" =>
       val state1 = New[S](TSprite.typ)
-      val obj = state1.getExpression
+      val obj = state1.expr
       val state2 = super.forwardSemantics[S](this0,"add",List(obj),TNothing.typ)(pp,state1)
       val state3 = state2.setExpression(obj)
       state3
@@ -127,7 +127,7 @@ class TBoard extends AMutable_Collection {
         TSprite.field_width -> width,
         TSprite.field_height -> height
       ))(curState,pp)
-      val obj = curState.getExpression
+      val obj = curState.expr
       curState = super.forwardSemantics[S](this0,"add",List(obj),TNothing.typ)(pp,curState)
       curState = curState.setExpression(obj)
       curState
@@ -152,7 +152,7 @@ class TBoard extends AMutable_Collection {
         TSprite.field_height -> Field[S](picture,TPicture.field_height),
         TSprite.field_picture -> picture
       ))
-      val obj = state1.getExpression
+      val obj = state1.expr
       val state2 = super.forwardSemantics[S](this0,"add",List(obj),TNothing.typ)(pp,state1)
       val state3 = state2.setExpression(obj)
       state3
@@ -164,7 +164,7 @@ class TBoard extends AMutable_Collection {
         TSprite.field_width -> width,
         TSprite.field_height -> height
       ))
-      val obj = state1.getExpression
+      val obj = state1.expr
       val state2 = super.forwardSemantics[S](this0,"add",List(obj),TNothing.typ)(pp,state1)
       val state3 = state2.setExpression(obj)
       state3
@@ -191,7 +191,7 @@ class TBoard extends AMutable_Collection {
         TSprite.field_width -> width,
         TSprite.field_height -> height
       ))
-      val obj = state1.getExpression
+      val obj = state1.expr
       val state2 = super.forwardSemantics[S](this0,"add",List(obj),TNothing.typ)(pp,state1)
       val state3 = state2.setExpression(obj)
       state3

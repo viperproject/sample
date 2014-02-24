@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{State, ExpressionSet}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -17,7 +17,7 @@ object TVector3 {
   val field_z = new TouchField("z", TNumber.typName)
 
   val typName = "Vector3"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_x,field_y,field_z))
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_x,field_y,field_z))
 
 }
 

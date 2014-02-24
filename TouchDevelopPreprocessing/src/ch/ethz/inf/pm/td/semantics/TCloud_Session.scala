@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -31,7 +31,7 @@ object TCloud_Session {
   val field_owner = new TouchField("owner",TUser.typName)
 
   val typName = "Cloud Session"
-  val typ = new TouchType(typName,isImmutable = true,fields = List(field_is_connected,field_id,field_title,field_server_info,field_owner))
+  val typ = DefaultTouchType(typName,isImmutable = true,fields = List(field_is_connected,field_id,field_title,field_server_info,field_owner))
 
 }
 

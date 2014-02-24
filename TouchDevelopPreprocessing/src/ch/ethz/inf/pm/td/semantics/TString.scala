@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -22,7 +22,7 @@ object TString {
   //TODO val field_count = new TouchField("count",TNumber.typName)
 
   val typName = "String"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(/*TODO field_count*/))
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(/*TODO field_count*/))
 
 }
 
@@ -159,7 +159,7 @@ class TString extends AAny {
       // No matter what the arguments are, the resulting set has at least one element!
       var curState = state
       curState = Top[S](TString_Collection.typ)(curState,pp)
-      val obj = curState.getExpression
+      val obj = curState.expr
       curState = Assume(CollectionSize[S](obj) >= 1)(curState,pp)
       Return[S](obj)(curState,pp)
 

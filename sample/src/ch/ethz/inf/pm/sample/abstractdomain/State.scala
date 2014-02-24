@@ -357,12 +357,8 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
     trueBranchResult.lub(falseBranchResult)
   }
 
-  /**
-   * Returns the current expression
-   *
-   * @return The current expression
-   */
-  def getExpression : ExpressionSet
+  /** Returns the current expression */
+  def expr: ExpressionSet
 
   /**
    * Sets the current expression
@@ -799,7 +795,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
       unlessBottom(rightSet, {
         val result = if (rightSet.isTop) {
           val t = getFieldValue(objSet, field, rightSet.getType())
-          t.setVariableToTop(t.getExpression)
+          t.setVariableToTop(t.expr)
         } else {
           Lattice.bigLub(for (
             obj <- objSet.getSetOfExpressions;
@@ -851,7 +847,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
       unlessBottom(rightSet, {
         val result = if (rightSet.isTop) {
           val t = this.getFieldValue(objSet, field, rightSet.getType())
-          t.setVariableToTop(t.getExpression).setExpression(ExpressionFactory.unitExpr)
+          t.setVariableToTop(t.expr).setExpression(ExpressionFactory.unitExpr)
         } else {
           Lattice.bigLub(for (
             obj <- objSet.getSetOfExpressions;
@@ -880,10 +876,10 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
   def assume(cond: Expression): S
 
   def testTrue(): S =
-    assume(getExpression).setUnitExpression()
+    assume(expr).setUnitExpression()
 
   def testFalse(): S =
-    assume(getExpression.not()).setUnitExpression()
+    assume(expr.not()).setUnitExpression()
 
   /** Returns whether this state is bottom.
     * @todo move method to `Lattice`
@@ -953,13 +949,13 @@ object UtilitiesOnStates {
 
   def forwardExecuteStatement[S <: State[S]](state: S, statement: Statement): (ExpressionSet, S) = {
     val finalState = statement.forwardSemantics[S](state)
-    val expr = finalState.getExpression
+    val expr = finalState.expr
     (expr, finalState)
   }
 
   def backwardExecuteStatement[S <: State[S]](state: S, oldPreState: S, statement: Statement): (ExpressionSet, S) = {
     val finalState = statement.backwardSemantics[S](state, oldPreState)
-    val expr = finalState.getExpression
+    val expr = finalState.expr
     (expr, finalState.setExpression(ExpressionFactory.unitExpr))
   }
 
@@ -967,7 +963,7 @@ object UtilitiesOnStates {
     case Nil => (Nil, state)
     case statement :: xs =>
       val state1 : S =statement.forwardSemantics[S](state)
-      val expr=state1.getExpression
+      val expr=state1.expr
       val (otherExpr, finalState)= forwardExecuteListStatements[S](state1, xs)
       (expr :: otherExpr, finalState.removeExpression())
   }
@@ -976,7 +972,7 @@ object UtilitiesOnStates {
     case Nil => Nil
     case statement :: xs =>
       val post = statement.forwardSemantics[S](pre)
-      val expr = post.getExpression
+      val expr = post.expr
       val otherStates = forwardExecuteListStatementsWithIntermediateStates[S](post, xs)
       post :: otherStates
   }

@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -53,7 +53,7 @@ object SPlayer {
   val field_player_state_changed_handler = new TouchField("player state changed", TAction.typName)
 
   val typName = "Player"
-  val typ = new TouchType(typName, isSingleton = true, fields = List(field_active_song, field_is_muted, field_is_paused,
+  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_active_song, field_is_muted, field_is_paused,
     field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume,
     field_volume, field_active_song_changed_handler, field_player_state_changed_handler
   ))

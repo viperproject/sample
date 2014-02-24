@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -20,7 +20,7 @@ object TSpring {
   val field_stiffness = new TouchField("stiffness", TNumber.typName)
 
   val typName = "Spring"
-  val typ = new TouchType(typName, fields = List(field_stiffness))
+  val typ = DefaultTouchType(typName, fields = List(field_stiffness))
 
 }
 

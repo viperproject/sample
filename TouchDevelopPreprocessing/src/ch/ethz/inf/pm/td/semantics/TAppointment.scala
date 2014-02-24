@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -48,7 +48,7 @@ object TAppointment {
   val field_subject = new TouchField("subject",TString.typName, topDefault = TopWithInvalidInitializer)
 
   val typName = "Appointment"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_attendees,field_details,field_end_time,
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_attendees,field_details,field_end_time,
     field_is_all_day_event,field_is_private,field_location,field_organizer,field_source,field_start_time,field_status,field_subject))
 
 }

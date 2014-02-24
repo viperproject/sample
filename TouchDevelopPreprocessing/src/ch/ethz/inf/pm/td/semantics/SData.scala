@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchType}
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, CFGGenerator, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{EmptyScopeIdentifier, VariableIdentifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -13,7 +13,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 object SData {
 
   val typName = "data"
-  val typ = new TouchType(typName,isSingleton = true)
+  val typ = DefaultTouchType(typName,isSingleton = true)
 
 }
 

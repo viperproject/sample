@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 object SPhone {
 
   val typName = "Phone"
-  val typ = new TouchType(typName,isSingleton = true)
+  val typ = DefaultTouchType(typName,isSingleton = true)
 
 }
 
@@ -34,14 +34,14 @@ class SPhone extends AAny {
       val state1 = New[S](TLink.typ,Map(
         TLink.field_kind-> String("address"/*TODO*/)
       ))
-      Return[S](state1.getExpression,Invalid(TLink.typ))(state1,pp)
+      Return[S](state1.expr,Invalid(TLink.typ))(state1,pp)
 
     /** Chooses a phone number from the contact list */
     case "choose phone number" =>
       val state1 = New[S](TLink.typ,Map(
         TLink.field_kind -> String("phone number")
       ))
-      Return[S](state1.getExpression,Invalid(TLink.typ))(state1,pp)
+      Return[S](state1.expr,Invalid(TLink.typ))(state1,pp)
 
     /** Starts a phone call */
     case "dial phone number" =>

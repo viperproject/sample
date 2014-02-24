@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
@@ -24,7 +24,7 @@ object TSprite_Animation {
   val field_stop_handler = new TouchField("stop handler", TAction.typName)
 
   val typName = "Sprite Animation"
-  val typ = new TouchType(typName, fields = List(field_start_handler, field_stop_handler, field_time_scale))
+  val typ = DefaultTouchType(typName, fields = List(field_start_handler, field_stop_handler, field_time_scale))
 
 }
 

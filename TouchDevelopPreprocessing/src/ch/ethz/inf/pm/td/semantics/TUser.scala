@@ -1,7 +1,7 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -36,7 +36,7 @@ object TUser {
   val field_picture = new TouchField("picture",TPicture.typName)
 
   val typName = "User"
-  val typ = new TouchType(typName,isSingleton = false,fields = List(field_about, field_has_picture, field_id,
+  val typ = DefaultTouchType(typName,isSingleton = false,fields = List(field_about, field_has_picture, field_id,
     field_name, field_picture_address, field_picture))
 
 }

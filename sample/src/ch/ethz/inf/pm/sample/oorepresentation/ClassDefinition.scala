@@ -122,7 +122,7 @@ class MethodDeclaration(
     for (lv <- arguments) {
       for (variable <- lv) {
         result = variable.variable.forwardSemantics[S](result)
-        val varExpr = result.getExpression
+        val varExpr = result.expr
         result = result.removeExpression()
         result = result.createVariableForArgument(varExpr, variable.typ)
       }
@@ -133,7 +133,7 @@ class MethodDeclaration(
       val thisVarId = new VariableIdentifier("this")(ownerType, programpoint)
       val thisVar = new Variable(programpoint, thisVarId)
       result = thisVar.forwardSemantics[S](result)
-      val variable = result.getExpression
+      val variable = result.expr
       result = result.removeExpression()
         .createVariableForArgument(variable, ownerType)
         .assume(ExpressionSet(ReferenceComparisonExpression(

@@ -145,10 +145,10 @@ case class Assignment(programpoint: ProgramPoint, left: Statement, right: Statem
       override def backwardSemantics[S <: State[S]](state : S, oldPreState: S) : S = {
         if(state.equals(state.bottom())) return state
         var stateleft : S = left.backwardSemantics[S](state, oldPreState)
-        val exprleft = stateleft.getExpression
+        val exprleft = stateleft.expr
         stateleft=stateleft.removeExpression()
         var stateright : S = right.backwardSemantics[S](stateleft, oldPreState)
-        val exprright = stateright.getExpression
+        val exprright = stateright.expr
         stateright=stateright.removeExpression()
         var result=stateright.setVariableToTop(exprleft)
         val condition=ExpressionFactory.createBinaryExpression(exprleft, exprright, ArithmeticOperator.==, exprleft.getType().top());//TODO type is wrong
@@ -193,12 +193,12 @@ case class VariableDeclaration(
    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     var variableEval: S = variable.forwardSemantics[S](state)
-    val varExpr = variableEval.getExpression
+    val varExpr = variableEval.expr
     variableEval = variableEval.removeExpression()
     val state1 = variableEval createVariable(varExpr, typ, programpoint)
     if (right.isDefined) {
       var rightEval: S = right.get.forwardSemantics[S](state1)
-      val rightExpr = rightEval.getExpression
+      val rightExpr = rightEval.expr
       rightEval = rightEval.removeExpression()
       rightEval assignVariable(varExpr, rightExpr)
     }
@@ -446,7 +446,7 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
     state.createObject(typ, pp, Some(typ.possibleFields))
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
-    val ex = state.createObject(typ, pp, Some(typ.possibleFields)).getExpression
+    val ex = state.createObject(typ, pp, Some(typ.possibleFields)).expr
     state.removeExpression().removeVariable(ex)
   }
 
@@ -504,7 +504,7 @@ case class Throw(programpoint: ProgramPoint, expr: Statement) extends Statement(
    */
   override def forwardSemantics[S <: State[S]](state: S): S = {
     var state1 = expr.forwardSemantics[S](state)
-    val thrownExpr = state1.getExpression
+    val thrownExpr = state1.expr
     state1 = state1.removeExpression()
     state1 throws (thrownExpr)
   }

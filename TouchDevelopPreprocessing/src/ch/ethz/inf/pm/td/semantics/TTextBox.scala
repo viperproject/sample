@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -24,7 +24,7 @@ object TTextBox {
   val field_text = new TouchField("text",TString.typName)
 
   val typName = "TextBox"
-  val typ = new TouchType(typName,isSingleton = false, fields = List(field_background,field_border,field_font_size,field_foreground,
+  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_background,field_border,field_font_size,field_foreground,
     field_icon,field_text))
 
 }

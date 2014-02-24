@@ -54,7 +54,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] wi
   }
 
   def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.getType())
-  def getExpression: ExpressionSet = ExpressionSet(new UnitExpression(myType, null))
+  def expr: ExpressionSet = ExpressionSet(new UnitExpression(myType, null))
   def removeExpression(): AccessCollectingState = this.setType(SystemParameters.getType().top())
   def createObject(typ: Type, pp: ProgramPoint, fields : Option[Set[Identifier]] = None): AccessCollectingState = this.setType(typ)
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)
@@ -66,11 +66,11 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] wi
   def getCollectionValue(valueIds: ExpressionSet) = this
   def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint) = this
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getKeyType)
+    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].keyType)
   def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getValueType)
+    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].valueType)
   def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].getValueType)
+    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].valueType)
   def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp:Type, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint) = this
   def getOriginalCollection(collectionSet: ExpressionSet) = this
   def getKeysCollection(collectionSet: ExpressionSet) = this

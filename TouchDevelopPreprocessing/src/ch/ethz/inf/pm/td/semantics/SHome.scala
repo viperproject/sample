@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -29,7 +29,7 @@ object SHome {
   val field_servers = new TouchField("servers",TMedia_Server_Collection.typName)
 
   val typName = "Home"
-  val typ = new TouchType(typName,isSingleton = true, fields = List(field_players,field_printers,field_servers))
+  val typ = DefaultTouchType(typName,isSingleton = true, fields = List(field_players,field_printers,field_servers))
 
 }
 

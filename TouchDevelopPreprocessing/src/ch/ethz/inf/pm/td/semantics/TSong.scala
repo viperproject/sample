@@ -2,7 +2,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
@@ -44,7 +44,7 @@ object TSong {
   val field_track = new TouchField("track",TNumber.typName)
 
   val typName = "Song"
-  val typ = new TouchType(typName,isSingleton = false, isImmutable = true, fields = List(field_album, field_artist, field_duration, field_genre, field_name, field_play_count, field_protected, field_rating, field_track))
+  val typ = DefaultTouchType(typName,isSingleton = false, isImmutable = true, fields = List(field_album, field_artist, field_duration, field_genre, field_name, field_play_count, field_protected, field_rating, field_track))
 
 }
 

@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -21,7 +21,7 @@ object TMap {
   val field_center = new TouchField("center", TLocation.typName)
 
   val typName = "Map"
-  val typ = new TouchType(typName, isSingleton = false, fields = List(field_zoom, field_center))
+  val typ = DefaultTouchType(typName, isSingleton = false, fields = List(field_zoom, field_center))
 
 }
 
@@ -89,7 +89,7 @@ class TMap extends AAny {
       // PRECISION: We could implement this
       val state1 = AssignField(this0, TMap.field_zoom, 1 ndTo 21)
       val state2 = Top[S](TLocation.typ)(state1, pp)
-      AssignField(this0, TMap.field_center, state2.getExpression)(state2, pp)
+      AssignField(this0, TMap.field_center, state2.expr)(state2, pp)
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

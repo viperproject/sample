@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import RichNativeSemantics._
 
 class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchType) extends ACollection {
@@ -26,7 +26,7 @@ class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchT
       val key = parameters.head
       If[S](CollectionContainsKey[S](this0, key) equal False, Then=(state) => {
         var newState = New[S](indexMemberType)(state,pp)
-        val newIndexMember = newState.getExpression
+        val newIndexMember = newState.expr
         newState = CollectionInsert[S](this0, key, newIndexMember)(newState,pp)
         newState = CollectionIncreaseLength[S](this0)(newState, pp)
         Return[S](CollectionAt[S](this0, key)(newState, pp))(newState, pp)

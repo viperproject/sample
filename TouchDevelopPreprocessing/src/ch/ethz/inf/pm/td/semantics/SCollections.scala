@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 
 /**
  * Specifies the abstract semantics of collections
@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.compiler.TouchType
 object SCollections {
 
   val typName = "Collections"
-  val typ = new TouchType(typName, isSingleton = true)
+  val typ = DefaultTouchType(typName, isSingleton = true)
 
 }
 

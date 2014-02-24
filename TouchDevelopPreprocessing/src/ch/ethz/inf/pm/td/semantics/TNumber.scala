@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.semantics
 
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 object TNumber {
 
   val typName = "Number"
-  val typ = new TouchType(typName,isSingleton = false,isImmutable = true)
+  val typ = DefaultTouchType(typName,isSingleton = false,isImmutable = true)
 
 }
 

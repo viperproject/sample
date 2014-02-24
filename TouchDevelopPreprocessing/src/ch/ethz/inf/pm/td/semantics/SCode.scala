@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import RichNativeSemantics._
 
 /**
@@ -16,7 +16,7 @@ import RichNativeSemantics._
 object SCode {
 
   val typName = "code"
-  val typ = new TouchType(typName, isSingleton = true)
+  val typ = DefaultTouchType(typName, isSingleton = true)
 
 }
 
