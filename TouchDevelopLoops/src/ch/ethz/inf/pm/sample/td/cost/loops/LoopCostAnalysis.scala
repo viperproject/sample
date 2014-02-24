@@ -280,7 +280,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     val node = loop.node
     if (node.size == 1) {
       val state = cfge.statesOfBlock(loop.nodeId).head
-      val expressions = node.head.forwardSemantics(state).getExpression.getSetOfExpressions
+      val expressions = node.head.forwardSemantics(state).expr.getSetOfExpressions
       if (expressions.size == 1) {
         loop.condition = getCondition(expressions.head, "1")
       } else {
@@ -303,7 +303,7 @@ class LoopCostInternal[S <: State[S]](val method: MethodDeclaration, val cfge : 
     val node = conditional.node
     if (node.size == 1) {
       val state = cfge.statesOfBlock(conditional.nodeId).head
-      val expressions = node.head.forwardSemantics(state).getExpression.getSetOfExpressions
+      val expressions = node.head.forwardSemantics(state).expr.getSetOfExpressions
       if (expressions.size == 1) {
         conditional.condition = getCondition(expressions.head, "y1")
         conditional.elseCondition = getConditionNeg(expressions.head, "n1")

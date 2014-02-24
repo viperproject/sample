@@ -66,9 +66,9 @@ trait RefiningBackwardInterpreter[S <: State[S]] extends Interpreter[S] {
           weight match {
             case Some(cond) =>
               if (cond) {
-                successorBlock.head.setExpression(forwardPreStates.last.getExpression).testTrue()
+                successorBlock.head.setExpression(forwardPreStates.last.expr).testTrue()
               } else {
-                successorBlock.head.setExpression(forwardPreStates.last.getExpression).testFalse()
+                successorBlock.head.setExpression(forwardPreStates.last.expr).testFalse()
               }
             case None =>
               successorBlock.head
@@ -90,7 +90,7 @@ trait RefiningBackwardInterpreter[S <: State[S]] extends Interpreter[S] {
       result
     }
 
-    private def safeGlb(pre: S, current: S): S = current.setExpression(pre.getExpression).glb(pre)
+    private def safeGlb(pre: S, current: S): S = current.setExpression(pre.expr).glb(pre)
   }
 }
 

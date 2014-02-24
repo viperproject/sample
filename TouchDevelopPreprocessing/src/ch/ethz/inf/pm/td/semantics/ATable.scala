@@ -15,7 +15,7 @@ class ATable(tableTyp:TouchType,rowTyp:TouchType,rowTableField:TouchField) exten
     case "add row" =>
       // Create row with backlink to this table for removal
       var newState = New[S](rowTyp, initials = Map(rowTableField -> this0))(state, pp)
-      val row = newState.getExpression
+      val row = newState.expr
       newState = CollectionInsert[S](this0, CollectionSize[S](this0)(newState,pp), row)(newState,pp)
       newState = CollectionIncreaseLength[S](this0)(newState, pp)
       Return[S](row)(newState, pp)

@@ -68,7 +68,7 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    * in the leaf states.
    */
   lazy val programPoints: List[ProgramPoint] = {
-    getExpression.getSetOfExpressions.map(_.pp).toList
+    expr.getSetOfExpressions.map(_.pp).toList
   }
 
   /**
@@ -421,9 +421,9 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @return The symbolic abstract value
    */
-  override def getExpression: ExpressionSet = {
+  override def expr: ExpressionSet = {
     var expr = ExpressionSet() // TODO: Maybe I could be more precise
-    for (s <- partitioning.states; e <- s.getExpression.getSetOfExpressions)
+    for (s <- partitioning.states; e <- s.expr.getSetOfExpressions)
       expr = expr.add(e)
     expr
   }

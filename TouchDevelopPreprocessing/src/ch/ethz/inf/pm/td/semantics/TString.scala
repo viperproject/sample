@@ -159,7 +159,7 @@ class TString extends AAny {
       // No matter what the arguments are, the resulting set has at least one element!
       var curState = state
       curState = Top[S](TString_Collection.typ)(curState,pp)
-      val obj = curState.getExpression
+      val obj = curState.expr
       curState = Assume(CollectionSize[S](obj) >= 1)(curState,pp)
       Return[S](obj)(curState,pp)
 

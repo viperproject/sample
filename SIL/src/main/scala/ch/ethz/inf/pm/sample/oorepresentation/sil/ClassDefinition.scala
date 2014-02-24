@@ -41,14 +41,14 @@ class MethodDeclWithOutParams(
     // Create a variable for each formal in-parameter
     for (variable <- arguments(0)) {
       result = variable.variable.forwardSemantics[S](result)
-      val varExpr = result.getExpression
+      val varExpr = result.expr
       result = result.removeExpression()
       result = result.createVariableForArgument(varExpr, variable.typ)
     }
     // Create a variable for each formal out-parameter
     for (variable <- arguments(1)) {
       result = variable.variable.forwardSemantics[S](result)
-      val varExpr = result.getExpression
+      val varExpr = result.expr
       result = result.removeExpression()
       result = result.createVariable(varExpr, variable.typ, programpoint)
     }

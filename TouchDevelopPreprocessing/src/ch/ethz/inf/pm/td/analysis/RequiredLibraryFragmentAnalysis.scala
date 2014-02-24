@@ -54,7 +54,7 @@ class AccessCollectingState(myType:Type) extends State[AccessCollectingState] wi
   }
 
   def setExpression(expr: ExpressionSet): AccessCollectingState = this.setType(expr.getType())
-  def getExpression: ExpressionSet = ExpressionSet(new UnitExpression(myType, null))
+  def expr: ExpressionSet = ExpressionSet(new UnitExpression(myType, null))
   def removeExpression(): AccessCollectingState = this.setType(SystemParameters.getType().top())
   def createObject(typ: Type, pp: ProgramPoint, fields : Option[Set[Identifier]] = None): AccessCollectingState = this.setType(typ)
   def evalConstant(value: String, typ: Type, pp: ProgramPoint): AccessCollectingState = this.setType(typ)

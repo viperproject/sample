@@ -236,7 +236,7 @@ object ChaliceNativeMethodSemantics extends NativeMethodSemantics {
 	private def accessField[S <: State[S]](obj : ExpressionSet, field : Statement, state : S) : ExpressionSet = field match {
 	  case FieldAccess(pp, fieldObj, field, typ) =>
       val newState = state.getFieldValue(accessField(obj, fieldObj, state), field, typ)
-	    newState.getExpression
+	    newState.expr
 	  case v: Variable => obj
 	}
 	

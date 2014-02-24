@@ -190,7 +190,7 @@ class SWall extends AAny {
       val pages = Field[S](this0,SWall.field_pages)
       var curState = state
       curState = New[S](TPage.typ)(curState,pp)
-      val newPage = curState.getExpression
+      val newPage = curState.expr
       curState = CollectionInsert[S](pages,CollectionSize[S](pages), newPage)(curState,pp)
       curState = CollectionIncreaseLength[S](pages)(curState, pp)
       Return[S](newPage)(curState,pp)

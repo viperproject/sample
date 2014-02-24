@@ -80,25 +80,25 @@ class TJson_Builder extends AMap {
         TJson_Builder.field_kind -> String("string"),
         TJson_Builder.field_to_string -> value
       ))
-      CallApi[S](this0,"set at",List(name,curState.getExpression),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
 
     /** Sets the field the the reference to JsonBuilder. */
     case "set builder" =>
       val List(name,value) = parameters // String,Json_Builder
       val curState = Top[S](TJson_Builder.typ)
-      CallApi[S](this0,"set at",List(name,curState.getExpression),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
 
     /** Sets the Picture value as a data uri. */
     case "set picture" =>
       val List(name,pic,quality) = parameters // String,Picture,Number
       val curState = Top[S](TJson_Builder.typ)
-      CallApi[S](this0,"set at",List(name,curState.getExpression),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
 
     /** Sets the Sound value as a data uri. */
     case "set sound" =>
       val List(name,snd) = parameters // String,Sound
       val curState = Top[S](TJson_Builder.typ)
-      CallApi[S](this0,"set at",List(name,curState.getExpression),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
 
     /** Sets the number value. */
     case "set number" =>
@@ -107,7 +107,7 @@ class TJson_Builder extends AMap {
         TJson_Builder.field_kind -> String("number"),
         TJson_Builder.field_to_number -> value
       ))
-      CallApi[S](this0,"set at",List(name,curState.getExpression),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
 
     /** Sets the boolean value. */
     case "set boolean" =>
@@ -116,7 +116,7 @@ class TJson_Builder extends AMap {
         TJson_Builder.field_kind -> String("boolean"),
         TJson_Builder.field_to_boolean -> value
       ))
-      CallApi[S](this0,"set at",List(name,curState.getExpression),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
 
     /** Sets the field value as null. */
     case "set field null" =>
@@ -158,7 +158,7 @@ class TJson_Builder extends AMap {
 
     /** Gets a field value as a string */
     case "string" =>
-      Return[S](Field[S](super.forwardSemantics(this0,"at",parameters,returnedType).getExpression, TJson_Builder.field_to_string))
+      Return[S](Field[S](super.forwardSemantics(this0,"at",parameters,returnedType).expr, TJson_Builder.field_to_string))
 
     /** Gets the field value as a time */
     case "time" =>

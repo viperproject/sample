@@ -40,9 +40,9 @@ class TSprite_Set extends AMutable_Collection {
       val List(old_set,sprite) = parameters // Sprite_Set,Sprite
       var curState = state
       curState = CallApi[S](this0,"add",List(sprite),TNothing.typ)(curState,pp)
-      val resultA = curState.getExpression
+      val resultA = curState.expr
       curState = CallApi[S](old_set,"remove",List(sprite),TBoolean.typ)(curState,pp)
-      val resultB = curState.getExpression
+      val resultB = curState.expr
       Return[S](resultA && resultB)(curState,pp)
 
     case "index of" =>
@@ -56,7 +56,7 @@ class TSprite_Set extends AMutable_Collection {
     /** Remove sprite that was added to set first. */
     case "remove first" =>
       If[S](CollectionSize[S](this0) > 0, Then=(state) => {
-        val result = state.getCollectionValue(CollectionAt[S](this0, toRichExpression(0))(state, pp)).getExpression
+        val result = state.getCollectionValue(CollectionAt[S](this0, toRichExpression(0))(state, pp)).expr
         var newState = CollectionRemove[S](this0,toRichExpression(0))(state, pp)
         newState = CollectionDecreaseLength[S](this0)(newState, pp)
         CollectionInvalidateKeys[S](this0)(newState, pp)

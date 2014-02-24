@@ -71,7 +71,7 @@ trait ContractAwareMethodCall extends MethodCall {
     }
 
     // Assert the method precondition on the in-parameters
-    val preCondExprSet = callTarget.precond.forwardSemantics(result).getExpression.merge(replacement)
+    val preCondExprSet = callTarget.precond.forwardSemantics(result).expr.merge(replacement)
     result = result.setExpression(preCondExprSet)
     if (!result.testFalse().lessEqual(state.bottom())) {
       Reporter.reportError("Possible pre-condition violation", pp)
@@ -80,7 +80,7 @@ trait ContractAwareMethodCall extends MethodCall {
 
     // Assume the method post-condition (could involve old expressions).
     // There is no need to to set the in-parameter variables to top (they cannot be reassigned in SIL).
-    val postCondExprSet = callTarget.postcond.forwardSemantics(result).getExpression.merge(replacement)
+    val postCondExprSet = callTarget.postcond.forwardSemantics(result).expr.merge(replacement)
     result = result.assume(postCondExprSet)
 
     // Remove the temporary in-parameter variables

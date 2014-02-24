@@ -212,16 +212,16 @@ case class AbstractState[
     N <: SemanticDomain[N],
     H <: HeapDomain[H, I],
     I <: HeapIdentifier[I]](
-    state: HeapAndAnotherDomain[N, H, I],
-    initialExpression: ExpressionSet)
+    domain: HeapAndAnotherDomain[N, H, I],
+    expr: ExpressionSet)
   extends CartesianProductDomain[HeapAndAnotherDomain[N, H, I], ExpressionSet, AbstractState[N, H, I]]
   with SimpleState[AbstractState[N, H, I]]
   with SingleLineRepresentation
   with LatticeWithReplacement[AbstractState[N, H, I]] {
 
-  def _1 = state
+  def _1 = domain
 
-  def _2 = initialExpression
+  def _2 = expr
 
   def factory(a:HeapAndAnotherDomain[N, H, I],b:ExpressionSet) = new AbstractState(a,b)
   override def bottom() = new AbstractState(this._1.bottom(), this._2.bottom())
@@ -253,8 +253,6 @@ case class AbstractState[
     this.setExpression(new ExpressionSet(typ).add(createdLocation)).setState(result2)
 
   }
-
-  def getExpression : ExpressionSet = getResult()
 
   def removeExpression() : AbstractState[N,H,I] = {
     if (this.isBottom) return  factory(_1, _2.bottom())
@@ -393,13 +391,13 @@ case class AbstractState[
 
   def getVariableValue(id : Assignable) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
-    val state = new AbstractState(this._1.access(id), this.removeExpression().getExpression)
+    val state = new AbstractState(this._1.access(id), this.removeExpression().expr)
     new AbstractState(state._1, ExpressionSet(id.asInstanceOf[Expression]))
   }
 
   def backwardGetVariableValue(id : Assignable) : AbstractState[N,H,I] = {
     if(this.isBottom) return this
-    val state = new AbstractState(this._1.backwardAccess(id), this.removeExpression().getExpression)
+    val state = new AbstractState(this._1.backwardAccess(id), this.removeExpression().expr)
     new AbstractState(state._1, ExpressionSet(id.asInstanceOf[Expression]))
   }
 
@@ -473,8 +471,6 @@ case class AbstractState[
     if(this.isBottom) return this
     new AbstractState(value, this._2)
   }
-
-  private def getResult() : ExpressionSet = this._2
 
   override def toSingleLineString() : String = {
     if(isBottom) "⊥"
