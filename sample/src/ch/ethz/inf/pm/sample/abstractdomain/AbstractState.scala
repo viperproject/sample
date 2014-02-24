@@ -239,14 +239,14 @@ case class AbstractState[
 
     // It discharges on the heap analysis the creation of the object and its fields
     val (createdLocation, newHeap, rep) = domain._2.createObject(typ, pp)
-    var result = new HeapAndAnotherDomain[N, H, I](domain._1.merge(rep), newHeap)
+    var result = HeapAndAnotherDomain[N, H, I](domain._1.merge(rep), newHeap)
 
     // Create all variables involved representing the object
     result=HeapIdSetFunctionalLifting.applyToSetHeapId(result, createdLocation, result.createVariable(_, typ))
     var result2 = result
     for (field <- fields.orElse(Some(typ.possibleFields)).get) {
       val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2._2.getFieldIdentifier(_, field.getName, field.typ, field.pp))
-      result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, new HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.typ))
+      result2=HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, HeapAndAnotherDomain[N, H, I](result2._1.merge(rep2), state).createVariable(_, field.typ))
     }
 
     this.setExpression(new ExpressionSet(typ).add(createdLocation)).setState(result2)
@@ -371,7 +371,7 @@ case class AbstractState[
 
           // remove heap object
           val newHeap = HeapIdSetFunctionalLifting.applyToSetHeapId(heapAndOther._2, objectIds, heapAndOther._2.removeObject(_)._1)
-          heapAndOther =  new HeapAndAnotherDomain[N, H, I](heapAndOther._1, newHeap)
+          heapAndOther =  HeapAndAnotherDomain[N, H, I](heapAndOther._1, newHeap)
 
           val newState = new AbstractState[N,H,I](heapAndOther, ExpressionFactory.unitExpr)
           result = result.lub(newState)
@@ -415,7 +415,7 @@ case class AbstractState[
       case _ => return bottom()
     }
 
-    val result = new HeapAndAnotherDomain[N, H, I](_1._1.merge(rep), newHeap)
+    val result = HeapAndAnotherDomain[N, H, I](_1._1.merge(rep), newHeap)
     val accessed = if (heapId.isTop) result.top()
       else HeapIdSetFunctionalLifting.applyToSetHeapId(result, heapId, result.access)
     new AbstractState(accessed, new ExpressionSet(typ).add(heapId))
@@ -427,7 +427,7 @@ case class AbstractState[
     for(exprVal <- obj.getSetOfExpressions) {
       if(! exprVal.isInstanceOf[Assignable]) throw new SymbolicSemanticException("Only assignable objects should be here")
       val (heapid, newHeap, rep) = domain._2.getFieldIdentifier(expr.asInstanceOf[Assignable], field, typ, exprVal.pp)
-      val result2=new HeapAndAnotherDomain[N, H, I](domain._1.merge(rep), newHeap)
+      val result2=HeapAndAnotherDomain[N, H, I](domain._1.merge(rep), newHeap)
       val accessed = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, heapid, result2.backwardAccess)
       val state=new AbstractState(accessed, new ExpressionSet(typ).add(heapid))
       result=result.lub(state)
@@ -493,7 +493,7 @@ case class AbstractState[
 
     for (field <- fields.orElse(Some(collTyp.possibleFields)).get) {
       val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, resHeapAndSemantics, resHeapAndSemantics._2.getFieldIdentifier(_, field.getName, field.typ, field.pp))
-      resHeapAndSemantics=HeapIdSetFunctionalLifting.applyToSetHeapId(resHeapAndSemantics, ids, new HeapAndAnotherDomain[N, H, I](resHeapAndSemantics._1.merge(rep2), state).createVariable(_, field.typ))
+      resHeapAndSemantics=HeapIdSetFunctionalLifting.applyToSetHeapId(resHeapAndSemantics, ids, HeapAndAnotherDomain[N, H, I](resHeapAndSemantics._1.merge(rep2), state).createVariable(_, field.typ))
     }
 
     this.factory(resHeapAndSemantics,new ExpressionSet(collTyp).add(createdLocation))
@@ -1020,7 +1020,7 @@ case class AbstractState[
 
     def getCollectionLength(id:Assignable):HeapIdSetDomain[I] = {
       val createdLocation = domain._2.getCollectionLength(id)
-      result = result.lub(new HeapAndAnotherDomain[N, H, I](domain._1, domain._2))
+      result = result.lub(HeapAndAnotherDomain[N, H, I](domain._1, domain._2))
       heapId = heapId match {
         case null => createdLocation
         case _ => heapId.lub(createdLocation)
@@ -1168,7 +1168,7 @@ case class AbstractState[
     // dispatch creation of identifier to heap domain
     val (nonDetId, newHeap, rep) = domain._2.createNonDeterminismSource(typ, pp, summary)
     Predef.assert(nonDetId.ids.size == 1)
-    val heapIdCreatedState = new HeapAndAnotherDomain[N, H, I](domain._1.merge(rep), newHeap)
+    val heapIdCreatedState = HeapAndAnotherDomain[N, H, I](domain._1.merge(rep), newHeap)
 
     // create a corresponding numerical variable
     val varCreatedState = HeapIdSetFunctionalLifting.applyToSetHeapId(heapIdCreatedState, nonDetId, heapIdCreatedState.createVariable(_, typ))

@@ -15,7 +15,12 @@ import util.HeapIdSetFunctionalLifting
  *  Rewrite most methods. Contains lots of (cosmetically cleaned up) legacy code. Especially,
  *  remove the timing code as it is a separate concern (use adapter to wrap domains?)
  */
-class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: HeapIdentifier[I]](val semantic: N, val  heap: H)
+case class HeapAndAnotherDomain[
+    N <: SemanticDomain[N],
+    H <: HeapDomain[H, I],
+    I <: HeapIdentifier[I]](
+    semantic: N,
+    heap: H)
   extends Lattice[HeapAndAnotherDomain[N, H, I]]
   with LatticeWithReplacement[HeapAndAnotherDomain[N,H,I]] {
 
@@ -33,7 +38,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def ids = _1.ids ++ _2.ids
 
-  def factory(semantic: N, heap: H): T = new HeapAndAnotherDomain[N, H, I](semantic, heap)
+  def factory(semantic: N, heap: H): T = HeapAndAnotherDomain[N, H, I](semantic, heap)
 
   def factory(): T = top()
 

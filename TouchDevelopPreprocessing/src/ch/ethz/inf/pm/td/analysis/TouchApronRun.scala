@@ -68,7 +68,7 @@ object TouchApronRun {
       val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
       heapDomain.setParameter("UnsoundEntryState",false)
 
-      val entryDomain = new HeapAndAnotherDomain[SemanticDomainType, SummaryHeapType, HeapId](numerical, heapDomain)
+      val entryDomain = HeapAndAnotherDomain[SemanticDomainType, SummaryHeapType, HeapId](numerical, heapDomain)
       val entryState: AnalysisSummaryHeapStateType = new AbstractState(entryDomain, entryValue)
 
       val analysis = new TouchAnalysisWithApron[ApronInterface.Default,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]]
@@ -82,7 +82,7 @@ object TouchApronRun {
       val heapDomain: MayMustHeapType = new NonRelationalMayAndMustHeapDomain[HeapId](mayHeapDomain, mustHeapDomain)
       heapDomain.setParameter("UnsoundEntryState",false)
 
-      val entryDomain = new HeapAndAnotherDomain[SemanticDomainType, MayMustHeapType, HeapId](numerical, heapDomain)
+      val entryDomain = HeapAndAnotherDomain[SemanticDomainType, MayMustHeapType, HeapId](numerical, heapDomain)
       val entryState: AnalysisStateMustHeapType = new AbstractState(entryDomain, entryValue)
 
       val analysis = new TouchAnalysisWithApron[ApronInterface.Default,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]]
@@ -93,7 +93,7 @@ object TouchApronRun {
       val heapDomain = new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
       heapDomain.setParameter("UnsoundEntryState",false)
 
-      val entryDomain = new HeapAndAnotherDomain[SemanticDomainType, NonRelHeapType, HeapId](numerical, heapDomain)
+      val entryDomain = HeapAndAnotherDomain[SemanticDomainType, NonRelHeapType, HeapId](numerical, heapDomain)
       val entryState: AnalysisStateType = new AbstractState(entryDomain, entryValue)
 
       val analysis = new TouchAnalysisWithApron[ApronInterface.Default,StringKSetDomain,NonrelationalStringDomain[StringKSetDomain]]

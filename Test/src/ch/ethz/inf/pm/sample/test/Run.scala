@@ -164,7 +164,7 @@ object Run {
     SystemParameters.addNativeMethodsSemantics(an.getNativeMethodsSemantics())
     SystemParameters.addNativeMethodsSemantics(heapan.getNativeMethodsSemantics())
     val domain = an.getInitialState()
-    val entrydomain = new HeapAndAnotherDomain[N, H, I](domain, heapan)
+    val entrydomain = HeapAndAnotherDomain[N, H, I](domain, heapan)
     (methods, entrydomain, an, heapan)
   }
 
