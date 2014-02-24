@@ -3,6 +3,24 @@
 @import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 
 @state match {
+    case s: vdha.ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain[_] => {
+        @CartesianProductDomain(List(
+            s.valueState.valueState,
+            s.valueState.symbolicPredicateState.instances,
+            s.valueState.symbolicPredicateState.definitions,
+            s.edgeAmbiguityState))
+    }
+    case i: vdha.SymbolicPredicateInstsDomain => {
+        @LatticeDescription("Instances")
+        @ApronInterface(i)
+    }
+    case d: vdha.SymbolicPredicateDefsDomain => {
+        @LatticeDescription("Definitions")
+        @FunctionalDomain(d)
+    }
+    case s: vdha.SymbolicPredicateDef => {
+        @SymbolicPredicateDef(s)
+    }
     case g: vdha.EdgeAmbiguityState => {
         @LatticeDescription("Edge Ambiguity")
         @FunctionalDomain(g)
@@ -20,6 +38,25 @@
     }
     case f: FunctionalDomain[_, _, _] => {
         @FunctionalDomain(f)
+    }
+}
+
+@SymbolicPredicateDef(s: vdha.SymbolicPredicateDef) = {
+    @if(s.valFieldPerms.isTop && s.refFieldPerms.isTop) {
+        @Top()
+    } else {
+        @if(s.valFieldPerms.isBottom || s.refFieldPerms.isBottom) {
+            @Bottom()
+        } else {
+            <ul class="symbolic-predicate-def">
+                @s.valFieldPerms.value.map { fieldName =>
+                <li>@fieldName</li>
+                }
+                @s.refFieldPerms.map.map { fieldNameAndId =>
+                <li>@fieldNameAndId._1 → @fieldNameAndId._2.value.map(_.getName).mkString(",")</li>
+                }
+            </ul>
+        }
     }
 }
 
