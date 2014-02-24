@@ -67,11 +67,11 @@ object DefaultAnalysisRunner extends AnalysisRunner(
 object PreciseAnalysisRunner extends AnalysisRunner(
   SimpleAnalysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
 
-object InitialSymbolicPredicateAnalysisRunner extends AnalysisRunner(
-  SimpleAnalysis[PredicateDrivenHeapState[S]](SymbolicPredicateEntryStateBuilder)) {}
+object InitialPredicateAnalysisRunner extends AnalysisRunner(
+  SimpleAnalysis[PredicateDrivenHeapState[S]](PredicateEntryStateBuilder)) {}
 
-object RefiningSymbolicPredicateAnalysisRunner extends AnalysisRunner(
-  RefiningSymbolicPredicateAnalysis[S](SymbolicPredicateEntryStateBuilder)) {}
+object RefiningPredicateAnalysisRunner extends AnalysisRunner(
+  RefiningPredicateAnalysis[S](PredicateEntryStateBuilder)) {}
 
 trait EntryStateBuilder[S <: State[S]] {
   def topState: S
@@ -111,7 +111,7 @@ object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   }
 }
 
-object SymbolicPredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
+object PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   PredicateDrivenHeapState.EdgeStateDomain[ApronInterface.Default],
   PredicateDrivenHeapState[ApronInterface.Default]] {
 
@@ -151,7 +151,7 @@ case class SimpleAnalysis[S <: State[S]](
     analyze(method, entryStateBuilder.build(method))
 }
 
-case class RefiningSymbolicPredicateAnalysis[S <: SemanticDomain[S]](
+case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
     entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
   extends Analysis[PredicateDrivenHeapState[S]] {
 

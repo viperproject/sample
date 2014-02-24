@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.web
 
 import org.scalatra._
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{RefiningSymbolicPredicateAnalysisRunner, InitialSymbolicPredicateAnalysisRunner, PreciseAnalysisRunner, AnalysisResult}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{RefiningPredicateAnalysisRunner, InitialPredicateAnalysisRunner, PreciseAnalysisRunner, AnalysisResult}
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
@@ -44,7 +44,7 @@ class App extends ScalatraServlet {
       case Some(testFile) =>
         // TODO: Make it configurable
         // val runner = InitialSymbolicPredicateAnalysisRunner
-        val runner = RefiningSymbolicPredicateAnalysisRunner
+        val runner = RefiningPredicateAnalysisRunner
         resultOption = Some(runner.run(testFile.path).head)
         redirect("/cfg")
       case None =>
