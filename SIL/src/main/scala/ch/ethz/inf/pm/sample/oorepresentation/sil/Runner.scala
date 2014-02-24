@@ -12,6 +12,7 @@ import semper.sil.ast.Program
 import java.nio.file.Path
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisRunner.S
 import java.io.File
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.ValueDrivenHeapStateWithSymbolicPredicates.EdgeStateDomain
 
 case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
   def run(path: Path): List[AnalysisResult[_]] = {
@@ -59,13 +60,16 @@ object AnalysisRunner {
 }
 
 object DefaultAnalysisRunner extends AnalysisRunner(
-  Analysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {}
+  SimpleAnalysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {}
 
 object PreciseAnalysisRunner extends AnalysisRunner(
-  Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
+  SimpleAnalysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
 
-object SymbolicPredicateAnalysisRunner extends AnalysisRunner(
-  Analysis[ValueDrivenHeapStateWithSymbolicPredicates[S]](SymbolicPredicateEntryStateBuilder)) {}
+object InitialSymbolicPredicateAnalysisRunner extends AnalysisRunner(
+  SimpleAnalysis[ValueDrivenHeapStateWithSymbolicPredicates[S]](SymbolicPredicateEntryStateBuilder)) {}
+
+object RefiningSymbolicPredicateAnalysisRunner extends AnalysisRunner(
+  RefiningSymbolicPredicateAnalysis[S](SymbolicPredicateEntryStateBuilder)) {}
 
 trait EntryStateBuilder[S <: State[S]] {
   def topState: S
@@ -117,10 +121,11 @@ object SymbolicPredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuild
 
 case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S])
 
-case class Analysis[S <: State[S]](entryStateBuilder: EntryStateBuilder[S]) {
-  def analyze(method: MethodDeclaration): AnalysisResult[S] = {
+trait Analysis[S <: State[S]] {
+  def analyze(method: MethodDeclaration): AnalysisResult[S]
+
+  protected def analyze(method: MethodDeclaration, entryState: S): AnalysisResult[S] = {
     SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(method)) {
-      val entryState = entryStateBuilder.build(method)
       val interpreter = TrackingForwardInterpreter[S](entryState.top())
       val cfgState = interpreter.forwardExecuteFrom(method.body, entryState)
       AnalysisResult(method, cfgState)
@@ -133,5 +138,85 @@ case class Analysis[S <: State[S]](entryStateBuilder: EntryStateBuilder[S]) {
     val micros = (System.nanoTime - now) / 1000
     println("%d microseconds".format(micros))
     result
+  }
+}
+
+case class SimpleAnalysis[S <: State[S]](
+    entryStateBuilder: EntryStateBuilder[S])
+  extends Analysis[S] {
+
+  def analyze(method: MethodDeclaration): AnalysisResult[S] =
+    analyze(method, entryStateBuilder.build(method))
+}
+
+case class RefiningSymbolicPredicateAnalysis[S <: SemanticDomain[S]](
+    entryStateBuilder: EntryStateBuilder[ValueDrivenHeapStateWithSymbolicPredicates[S]])
+  extends Analysis[ValueDrivenHeapStateWithSymbolicPredicates[S]] {
+
+  type T = ValueDrivenHeapStateWithSymbolicPredicates[S]
+
+  def analyze(method: MethodDeclaration): AnalysisResult[T] = {
+    def defs(state: T) =
+      state.generalValState.valueState.symbolicPredicateState.definitions
+
+    // Rather than building the entry state from scratch,
+    // adapt the one of the first iteration.
+    // A benefit is that we are sure that predicate instance IDs do not change
+    val firstEntryState = entryStateBuilder.build(method)
+    val firstResult = analyze(method, firstEntryState)
+    val firstExitState = firstResult.cfgState.exitState()
+    val firstEntryDefs = defs(firstEntryState)
+    val firstExitDefs = defs(firstExitState)
+    val secondEntryDefs = firstEntryDefs.copy(map = {
+      firstExitDefs.map.filterKeys(firstEntryDefs.map.contains)
+    })
+
+    val secondEntryStateCondHeap = CondHeapGraph[EdgeStateDomain[S], T](firstEntryState).map(state => {
+      var isBottom = false
+
+      // TODO: Find a more concise way of altering the state
+      val newState = state.copy(valueState = {
+        state.valueState.copy[S](symbolicPredicateState = {
+          state.valueState.symbolicPredicateState.copy(
+            definitions = secondEntryDefs,
+            instances = {
+              import SymbolicPredicateDef._
+              import SymbolicPredicateInstsDomain._
+
+              var instances = state.valueState.symbolicPredicateState.instances
+              val foldedInstIds = instances.certainlyFoldedIds
+              val nonRecursiveDefIds = secondEntryDefs.nonRecursiveIds
+
+              // Auto-unfold every folded, non-recursive predicate instance
+              // and remove the edge alltogether if one of the folded predicate
+              // instances has a false body
+              for (foldedInstId <- foldedInstIds) {
+                val predDefId = extractPredInstId(foldedInstId).toPredicateDefId
+                if (nonRecursiveDefIds.contains(predDefId)) {
+                  val predDef = secondEntryDefs.get(predDefId)
+                  val isBottomDef = predDef.valFieldPerms.isBottom || predDef.refFieldPerms.isBottom
+                  if (isBottomDef) {
+                    isBottom = true
+                  } else {
+                    instances = instances.assign(foldedInstId, Unfolded)
+                  }
+                }
+              }
+
+              instances
+            })
+        })
+      })
+
+      if (isBottom) newState.bottom()
+      else newState
+    }).prune
+
+    val secondEntryState = firstEntryState.copy(
+      abstractHeap = secondEntryStateCondHeap.heap,
+      generalValState = secondEntryStateCondHeap.cond)
+
+    val secondResult = analyze(method, secondEntryState)
+    secondResult
   }
 }

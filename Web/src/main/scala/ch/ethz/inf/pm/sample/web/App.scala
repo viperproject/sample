@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.web
 
 import org.scalatra._
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{SymbolicPredicateAnalysisRunner, PreciseAnalysisRunner, AnalysisResult}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{RefiningSymbolicPredicateAnalysisRunner, InitialSymbolicPredicateAnalysisRunner, PreciseAnalysisRunner, AnalysisResult}
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
@@ -43,7 +43,9 @@ class App extends ScalatraServlet {
     fileProvider.testFiles.find(_.toString == testFileString) match {
       case Some(testFile) =>
         // TODO: Make it configurable
-        resultOption = Some(SymbolicPredicateAnalysisRunner.run(testFile.path).head)
+        // val runner = InitialSymbolicPredicateAnalysisRunner
+        val runner = RefiningSymbolicPredicateAnalysisRunner
+        resultOption = Some(runner.run(testFile.path).head)
         redirect("/cfg")
       case None =>
         // TODO: Should probably output an error message

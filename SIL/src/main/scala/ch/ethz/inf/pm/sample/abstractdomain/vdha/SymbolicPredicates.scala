@@ -356,6 +356,13 @@ object SymbolicPredicateDef {
       variableId.copy()(typ = SymbolicPredicateInstType, pp = DummyProgramPoint)
     }
   }
+
+  def extractPredInstId(id: Identifier): VariableIdentifier = id match {
+    case EdgeLocalIdentifier(accPath, field, typ) =>
+      VariableIdentifier(field)(typ)
+    case id @ AccessPathIdentifier(path) =>
+      VariableIdentifier(path.last)(id.typ)
+  }
 }
 
 final case class RefFieldPermDomain(
@@ -452,6 +459,16 @@ case class SymbolicPredicateDefsDomain(
     })
 
     predMap.values.toSeq
+  }
+
+  /** @todo Does not detect mutually recursive predicate definitions. */
+  def nonRecursiveIds: Set[Identifier] = {
+    map.filterNot({
+      case (id, predDef) => {
+        val nestedIds = predDef.refFieldPerms.map.values.map(_.value).flatten.toSet
+        nestedIds.contains(id)
+      }
+    }).keySet
   }
 }
 
