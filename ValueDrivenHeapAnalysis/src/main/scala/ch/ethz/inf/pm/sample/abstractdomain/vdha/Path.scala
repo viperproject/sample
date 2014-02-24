@@ -56,8 +56,12 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
     *
     * The resulting condition contains source edge-local identifiers that
     * refer to value fields of the the last vertex on the path.
+    *
+    * @todo Could turn this method into a lazy value so the condition is never
+    *       computed twice. However, for the moment not caching the condition
+    *       is helpful for debugging
     */
-  lazy val condition: S = {
+  def condition: S = {
     /**
      * Inner helper method for computing the condition recursively.
      *
@@ -68,7 +72,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
      *                     first vertex on the path still to be processed
      */
     def recurse(path: List[Edge[S]], currentState: S): S = {
-      assert(currentState.edgeLocalIds.forall(_.isForSource),
+      assert(currentState.targetEdgeLocalIds.isEmpty,
         "current state must not contain target edge-local identifier")
 
       // Terminate when the full path has been processed
@@ -106,5 +110,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
     // source edge-local identifiers (with access path `List()`).
     val state = edges.head.state
     recurse(edges, state.removeVariables(state.edgeLocalIds))
-  }
+  } ensuring(
+    _.targetEdgeLocalIds.isEmpty,
+    "resulting state must not contain edge-local target identifier")
 }

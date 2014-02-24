@@ -26,6 +26,10 @@ case class Edge[S <: SemanticDomain[S]](
   require(source != NullVertex,
     "edge source must not be a null vertex")
 
+  require(source.isInstanceOf[LocalVariableVertex] implies
+    state.sourceEdgeLocalIds.isEmpty,
+    "local variable edges must not have edge-local source identifiers")
+
   override def toString: String = {
     val stateString = if (state != null) state.toString else "null"
     s"$source --> $target\nState = $stateString\nField = $field"
