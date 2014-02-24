@@ -193,7 +193,7 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
               // and remove the edge altogether if one of the folded predicate
               // instances has a false body
               for (foldedInstId <- foldedInstIds) {
-                val predDefId = extractPredInstId(foldedInstId).toPredicateDefId
+                val predDefId = extractPredInstId(foldedInstId).toPredDefId
                 if (nonRecursiveDefIds.contains(predDefId)) {
                   val predDef = secondEntryDefs.get(predDefId)
                   if (predDef.isBottom) {

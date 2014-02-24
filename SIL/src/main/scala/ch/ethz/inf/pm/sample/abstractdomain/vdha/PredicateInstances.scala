@@ -43,7 +43,6 @@ object PredicateInstancesDomain {
   val Unfolded = Constant("false", PredicateInstanceType, DummyProgramPoint)
 }
 
-
 case object PredicateInstanceType extends AbstractType("PredInstance") {
   override def isBooleanType = true
   def isNumericalType = true

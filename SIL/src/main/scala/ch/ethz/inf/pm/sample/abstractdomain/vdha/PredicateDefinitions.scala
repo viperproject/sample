@@ -169,12 +169,12 @@ object PredicateDefinition {
   }
 
   implicit class ExtendedVariableIdentifier(variableId: VariableIdentifier) {
-    def toPredicateDefId: VariableIdentifier = {
+    def toPredDefId: VariableIdentifier = {
       require(variableId.typ == PredicateInstanceType)
       variableId.copy()(typ = PredicateDefinitionType, pp = DummyProgramPoint)
     }
 
-    def toPredicateInstId: VariableIdentifier = {
+    def toPredInstId: VariableIdentifier = {
       require(variableId.typ == PredicateDefinitionType)
       variableId.copy()(typ = PredicateInstanceType, pp = DummyProgramPoint)
     }

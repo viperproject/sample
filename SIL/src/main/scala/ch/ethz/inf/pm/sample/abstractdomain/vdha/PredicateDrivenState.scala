@@ -50,9 +50,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val edgeVerticesToDefId = newAbstractHeap.localVarVertices.flatMap(localVarVertex => {
         localVarVertex.neededEdgeFieldsAndTypes.flatMap({ case (field, fieldTyp) =>
           newAbstractHeap.possibleTargetVertices(fieldTyp).map(targetVertex => {
-            val predicateDefId = PredicateDefinition.makeId()
-            refType.fields += predicateDefId.toPredicateInstId
-            Set(localVarVertex, targetVertex) -> predicateDefId
+            val predDefId = PredicateDefinition.makeId()
+            refType.fields += predDefId.toPredInstId
+            Set(localVarVertex, targetVertex) -> predDefId
           })
         })
       }).toMap
@@ -70,8 +70,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             var edge = Edge(sourceVertex, newGeneralValState, field, targetVertex).createEdgeLocalIds()
             edgeVerticesToDefId.get(edge.vertices) match {
               case Some(defId) =>
-                val predicateInstId = defId.toPredicateInstId
-                val edgeLocalInstId = EdgeLocalIdentifier(List(field), predicateInstId)
+                val predInstId = defId.toPredInstId
+                val edgeLocalInstId = EdgeLocalIdentifier(List(field), predInstId)
                 edge = edge.copy(state = edge.state.assign(edgeLocalInstId, Folded))
               case None =>
             }
@@ -138,7 +138,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             })
 
             def alreadyHasPermission(predInstId: VariableIdentifier): Boolean = {
-              val predDef = predDefs.get(predInstId.toPredicateDefId)
+              val predDef = predDefs.get(predInstId.toPredDefId)
               if (id.typ.isObject)
                 predDef.refFieldPerms.map.contains(field)
               else
@@ -158,7 +158,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                     Seq(condHeap)
                   case None =>
                     val predInstId = availablePredInstIds.head
-                    val predDefId = predInstId.toPredicateDefId
+                    val predDefId = predInstId.toPredDefId
                     val predDef = predDefs.get(predDefId)
 
                     val newPredicateDef = if (path.target == NullVertex)
@@ -189,7 +189,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   override def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]) = {
     val predicateDefId = PredicateDefinition.makeId()
     val refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
-    refType.fields += predicateDefId.toPredicateInstId
+    refType.fields += predicateDefId.toPredInstId
 
     var result = super.createObject(typ, pp, fields)
     val expr = result.expr.getSetOfExpressions.head
@@ -197,7 +197,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     result = result.createVariable(predicateDefId, PredicateDefinitionType, DummyProgramPoint)
 
-    val predicateInstId = predicateDefId.toPredicateInstId
+    val predicateInstId = predicateDefId.toPredInstId
     val predicateInstValueHeapId = ValueHeapIdentifier(heapVertex, predicateInstId)
 
     val condHeapGraph = CondHeapGraph[EdgeStateDomain[S], T](result).map(
@@ -229,10 +229,8 @@ case class PredicateDomain(
     PredicateDefinitionsDomain,
     PredicateDomain] {
 
-  def factory(
-      instances: PredicateInstancesDomain,
-      definitions: PredicateDefinitionsDomain) =
-    PredicateDomain(instances, definitions)
+  def factory(i: PredicateInstancesDomain, d: PredicateDefinitionsDomain) =
+    PredicateDomain(i, d)
 
   def _1 = instances
 
@@ -250,8 +248,8 @@ case class SemanticAndPredicateDomain[S <: SemanticDomain[S]](
   extends RoutingSemanticCartesianProductDomain[
     S, PredicateDomain, SemanticAndPredicateDomain[S]] {
 
-  def factory(valueState: S, symbolicPredicateState: PredicateDomain) =
-    SemanticAndPredicateDomain(valueState, symbolicPredicateState)
+  def factory(valueState: S, predicateState: PredicateDomain) =
+    SemanticAndPredicateDomain(valueState, predicateState)
 
   def _1 = valueState
 
