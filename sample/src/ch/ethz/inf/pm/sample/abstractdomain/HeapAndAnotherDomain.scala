@@ -36,42 +36,42 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def factory(): T = top()
 
   def createVariableForArgument(variable : Assignable, typ : Type, path : List[String]) = {
-    SystemParameters.heapTimer.start();
+    SystemParameters.heapTimer.start()
     val (newHeap, ids, r) = heap.createVariableForArgument(variable, typ, path)
-    SystemParameters.heapTimer.stop();
+    SystemParameters.heapTimer.stop()
     var newSemantic = semantic
-    newSemantic=applyToAssignable[N](variable, newSemantic, _.createVariableForArgument(_, typ, path)._1);
+    newSemantic=applyToAssignable[N](variable, newSemantic, _.createVariableForArgument(_, typ, path)._1)
     variable match {
       case x : VariableIdentifier =>
         newSemantic=newSemantic.createVariableForArgument(x, typ, path)._1
       case x : HeapIdSetDomain[I] =>
-        var first : Boolean = true;
+        var first : Boolean = true
         for(singleid <- x.value)
           if(first) {
-            first=false;
-            newSemantic=newSemantic.createVariableForArgument(singleid, typ, path)._1;
+            first=false
+            newSemantic=newSemantic.createVariableForArgument(singleid, typ, path)._1
           }
           else
-            newSemantic=x.combinator(newSemantic, newSemantic.createVariableForArgument(singleid, typ, path)._1);
+            newSemantic=x.combinator(newSemantic, newSemantic.createVariableForArgument(singleid, typ, path)._1)
     }
     //We recursively create the entry state for all the entry abstract nodes.
-    SystemParameters.domainTimer.start();
+    SystemParameters.domainTimer.start()
     newSemantic=newSemantic.merge(r)
     for(id <- ids.keys)
       if(!id.equals(variable))
-        newSemantic=newSemantic.createVariableForArgument(id, typ, ids.apply(id))._1;
-    SystemParameters.domainTimer.stop();
+        newSemantic=newSemantic.createVariableForArgument(id, typ, ids.apply(id))._1
+    SystemParameters.domainTimer.stop()
     (factory(newSemantic, newHeap), ids)
   }
 
   def setToTop(variable : Assignable) : T = {
     SystemParameters.heapTimer.start()
     var (newHeap, r) =heap.setToTop(variable)
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
     var newSemantic= semantic.merge(r)
-    newSemantic = applyToAssignable[N](variable, newSemantic, _.setToTop(_));
-    SystemParameters.domainTimer.stop();
+    newSemantic = applyToAssignable[N](variable, newSemantic, _.setToTop(_))
+    SystemParameters.domainTimer.stop()
     factory(newSemantic, newHeap)
   }
 
@@ -102,28 +102,28 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
     case _ =>
       val result : T = this.factory()
-      SystemParameters.heapTimer.start();
+      SystemParameters.heapTimer.start()
       val (newHeap, r) = heap.assign(variable, expr, semantic)
-      val (newHeap2, r1) = newHeap.endOfAssignment();
-      SystemParameters.heapTimer.stop();
-      SystemParameters.domainTimer.start();
+      val (newHeap2, r1) = newHeap.endOfAssignment()
+      SystemParameters.heapTimer.stop()
+      SystemParameters.domainTimer.start()
       var newSemantic = semantic.merge(r).merge(r1)
       newSemantic = applyToAssignable[N](variable, newSemantic, _.assign(_, expr))
-      SystemParameters.domainTimer.stop();
+      SystemParameters.domainTimer.stop()
       factory(newSemantic, newHeap2)
   }
 
   def assignField(variable : Assignable, field : String, expr : Expression, typ : Type, pp : ProgramPoint) : T= {
-    SystemParameters.heapTimer.start();
+    SystemParameters.heapTimer.start()
     val (newHeap, r2) = heap.assignField(variable, field, expr)
     val (id, newHeap2, r1) = newHeap.getFieldIdentifier(variable, field, typ, pp)
-    val (newHeap3, r3) = newHeap2.endOfAssignment();
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
-    val newSemantic = semantic.merge(r2).merge(r1).merge(r3);
-    var newSemanticOpt : Option[N]= None;
+    val (newHeap3, r3) = newHeap2.endOfAssignment()
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
+    val newSemantic = semantic.merge(r2).merge(r1).merge(r3)
+    var newSemanticOpt : Option[N]= None
     if(id.isTop)
-      newSemanticOpt = Some(newSemantic.top());
+      newSemanticOpt = Some(newSemantic.top())
     else
       for(singleheapid <- id.value) {
         if(newSemanticOpt==None)
@@ -132,23 +132,23 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       }
     val newSemanticResult =
       if(newSemanticOpt!=None)
-        newSemanticOpt.get; //throw new SemanticException("You should assign to something")
+        newSemanticOpt.get //throw new SemanticException("You should assign to something")
       else newSemantic
-    SystemParameters.domainTimer.stop();
+    SystemParameters.domainTimer.stop()
     factory(newSemanticResult, newHeap3)
   }
 
   def backwardAssignField(oldPreState: T, variable : Assignable, field : String, expr : Expression, typ : Type, pp : ProgramPoint) : T= {
-    SystemParameters.heapTimer.start();
+    SystemParameters.heapTimer.start()
     val (newHeap, r2) = heap.backwardAssignField(oldPreState.heap, variable, field, expr)
     val (id, newHeap2, r1) = newHeap.getFieldIdentifier(variable, field, typ, pp)
-    val (newHeap3, r3)= newHeap2.endOfAssignment();
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
-    val newSemantic = semantic.merge(r2).merge(r1).merge(r3);
-    var newSemanticOpt : Option[N]= None;
+    val (newHeap3, r3)= newHeap2.endOfAssignment()
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
+    val newSemantic = semantic.merge(r2).merge(r1).merge(r3)
+    var newSemanticOpt : Option[N]= None
     if(id.isTop)
-      newSemanticOpt = Some(newSemantic.top());
+      newSemanticOpt = Some(newSemantic.top())
     else
       for(singleheapid <- id.value) {
         if(newSemanticOpt==None)
@@ -156,7 +156,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
         else newSemanticOpt=Some(id.combinator(newSemanticOpt.get, newSemantic.backwardAssign(oldPreState.semantic, singleheapid, expr)))
       }
     val newSemanticResult = newSemanticOpt.getOrElse(newSemantic)
-    SystemParameters.domainTimer.stop();
+    SystemParameters.domainTimer.stop()
     factory(newSemanticResult, newHeap3)
   }
 
@@ -737,13 +737,13 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
   def setArgument(variable : Assignable, expr : Expression) : T= {
-    SystemParameters.heapTimer.start();
+    SystemParameters.heapTimer.start()
     val (newHeap, r) = heap.setArgument(variable, expr)
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
     var newSemantic = semantic.merge(r)
     newSemantic = applyToAssignable[N](variable, newSemantic, _.setArgument(_, expr))
-    SystemParameters.domainTimer.stop();
+    SystemParameters.domainTimer.stop()
     factory(newSemantic, newHeap)
   }
 
@@ -787,13 +787,13 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       val (result2, rep2) = result.assume(binaryBoolExpr.right)
       (result2, rep1 ++ rep2)
     case _ =>
-      val result : T = this.factory();
-      SystemParameters.heapTimer.start();
+      val result : T = this.factory()
+      SystemParameters.heapTimer.start()
       val (newHeap, r) = heap.assume(expr)
-      SystemParameters.heapTimer.stop();
-      SystemParameters.domainTimer.start();
+      SystemParameters.heapTimer.stop()
+      SystemParameters.domainTimer.start()
       val newSemantic = semantic.merge(r).assume(expr)
-      SystemParameters.domainTimer.stop();
+      SystemParameters.domainTimer.stop()
       (factory(newSemantic, newHeap), r)
   }
 
@@ -815,21 +815,21 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
   def createVariable(variable : Assignable, typ : Type): T = {
-    SystemParameters.heapTimer.start();
+    SystemParameters.heapTimer.start()
     val (newHeap, r) = heap.createVariable(variable, typ)
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
-    val newSemantic = applyToAssignable[N](variable, semantic.merge(r), _.createVariable(_, typ));
-    SystemParameters.domainTimer.stop();
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
+    val newSemantic = applyToAssignable[N](variable, semantic.merge(r), _.createVariable(_, typ))
+    SystemParameters.domainTimer.stop()
     factory(newSemantic, newHeap)
   }
   def removeVariable(variable : Assignable) : T= {
-    SystemParameters.heapTimer.start();
+    SystemParameters.heapTimer.start()
     val (newHeap, r) = heap.removeVariable(variable)
-    SystemParameters.heapTimer.stop();
-    SystemParameters.domainTimer.start();
+    SystemParameters.heapTimer.stop()
+    SystemParameters.domainTimer.start()
     val newSemantic = applyToAssignable[N](variable, semantic.merge(r), _.removeVariable(_))
-    SystemParameters.domainTimer.stop();
+    SystemParameters.domainTimer.stop()
     factory(newSemantic, newHeap)
   }
 
@@ -840,9 +840,9 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
   def backwardAccess(field : Assignable) : T= {
-    SystemParameters.domainTimer.start();
+    SystemParameters.domainTimer.start()
     val newSemantic = applyToAssignable[N](field, semantic, _.backwardAccess(_))
-    SystemParameters.domainTimer.stop();
+    SystemParameters.domainTimer.stop()
     factory(newSemantic, heap)
   }
   def backwardAssign(oldPreState: T, variable : Assignable, expr : Expression): T = {
@@ -901,14 +901,14 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   override def lessEqual(other : T) : Boolean = {
     if (semantic.lessEqual(semantic.bottom())) return true
     if (other.semantic.lessEqual(other.semantic.bottom())) return false
-    SystemParameters.heapTimer.start();
+    SystemParameters.heapTimer.start()
     var b = heap.lessEqual(other.heap)
-    SystemParameters.heapTimer.stop();
-    if(! b) return false;
-    SystemParameters.domainTimer.start();
+    SystemParameters.heapTimer.stop()
+    if(! b) return false
+    SystemParameters.domainTimer.start()
     b = semantic.lessEqual(other.semantic)
-    SystemParameters.domainTimer.stop();
-    return b;
+    SystemParameters.domainTimer.stop()
+    return b
   }
 
   private def applyToAssignable[L <: Lattice[L]](variable : Assignable, state : L, functor : (L, Identifier) => L) : L = {
@@ -917,7 +917,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
         return functor(state, x)
       case x : I =>
         val result : L = functor(state, x)
-        return result;
+        return result
     }
   }
 
