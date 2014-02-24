@@ -25,7 +25,10 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   def _1 = semantic
   def _2 = heap
 
-  def merge(r : Replacement) : T = if(r.isEmpty) return this; else throw new SemanticException("Merge not yet implemented");
+  def merge(r: Replacement): T = {
+    if (r.isEmpty()) this
+    else sys.error("Merge not yet implemented")
+  }
 
   def getStringOfId(id : Identifier) : String = semantic.getStringOfId(id)
 
@@ -66,7 +69,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
 
   def setToTop(variable : Assignable) : T = {
     SystemParameters.heapTimer.start()
-    var (newHeap, r) =heap.setToTop(variable)
+    val (newHeap, r) =heap.setToTop(variable)
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
     var newSemantic= semantic.merge(r)
@@ -101,7 +104,6 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       }
 
     case _ =>
-      val result : T = this.factory()
       SystemParameters.heapTimer.start()
       val (newHeap, r) = heap.assign(variable, expr, semantic)
       val (newHeap2, r1) = newHeap.endOfAssignment()
@@ -275,11 +277,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val mayContainKey = !mayKeys.isBottom
 
     if (mustContainKey) {
-      return BooleanDomain.domTrue
+      BooleanDomain.domTrue
     } else if (!mayContainKey) {
-      return BooleanDomain.domFalse
+      BooleanDomain.domFalse
     } else {
-      return BooleanDomain.domTop
+      BooleanDomain.domTop
     }
   }
 
@@ -291,11 +293,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val mayContainValue = !mayValues.isBottom
 
     if (mustContainValue) {
-      return BooleanDomain.domTrue
+      BooleanDomain.domTrue
     } else if (!mayContainValue) {
-      return BooleanDomain.domFalse
+      BooleanDomain.domFalse
     } else {
-      return BooleanDomain.domTop
+      BooleanDomain.domTop
     }
   }
 
@@ -367,7 +369,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     val (toCollectionIds, newHeap, rep) = heap.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, Some(fromCollectionTyp), None, pp)
     result = factory(semantic.merge(rep), newHeap)
 
-    val toCollectionOverApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), toCollectionIds, heap.getCollectionOverApproximation(_))
+    val toCollectionOverApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), toCollectionIds, heap.getCollectionOverApproximation)
     val overApproxIds = heap.getCollectionOverApproximation(fromCollection)
     for (overApproxId <- overApproxIds.value) {
       val keyIds = heap.getCollectionKeys(overApproxId)
@@ -376,7 +378,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       }
     }
 
-    val toCollectionUnderApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), toCollectionIds, heap.getCollectionUnderApproximation(_))
+    val toCollectionUnderApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), toCollectionIds, heap.getCollectionUnderApproximation)
     val underApproxIds = heap.getCollectionUnderApproximation(fromCollection)
     for (underApproxId <- underApproxIds.value) {
       val keyIds = heap.getCollectionKeys(underApproxId)
@@ -472,7 +474,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
   def isSummaryCollection(collection: Assignable): Boolean = {
-    return heap.isSummaryCollection(collection)
+    heap.isSummaryCollection(collection)
   }
 
   def optimizeSummaryNodes(): (T, Replacement) = {
@@ -481,7 +483,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
    private def getCollectionMustValuesByValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = (new MaybeHeapIdSetDomain[I]()).bottom()
+    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
       val valueIds = heap.getCollectionValues(underApproxId)
@@ -492,11 +494,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       }
     }
 
-    return matchedIds
+    matchedIds
   }
 
   private def getCollectionMayValuesByValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = (new MaybeHeapIdSetDomain[I]()).bottom()
+    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val overApproxIds = heap.getCollectionOverApproximation(collection)
     for (overApproxId <- overApproxIds.value) {
       val valueIds = heap.getCollectionValues(overApproxId)
@@ -507,11 +509,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       }
     }
 
-    return matchedIds
+    matchedIds
   }
 
   private def getCollectionMustValuesWithMayBeValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] ={
-    var matchedIds = (new MaybeHeapIdSetDomain[I]()).bottom()
+    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
       val valueIds = heap.getCollectionValues(underApproxId)
@@ -525,26 +527,8 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     matchedIds
   }
 
-  private def getCollectionMustValuesByKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = (new MaybeHeapIdSetDomain[I]()).bottom()
-
-    val underApproxIds = heap.getCollectionUnderApproximation(collection)
-    for (underApproxId <- underApproxIds.value) {
-      val tupleIds = heap.getCollectionTuples(underApproxId)
-      for (tupleId <- tupleIds.value) {
-        val keyId = heap.getCollectionKeyByTuple(tupleId).asInstanceOf[I]
-        val valueId = heap.getCollectionValueByTuple(tupleId).asInstanceOf[I]
-        if (this.areEqual(keyId, key).equals(BooleanDomain.domTrue)) {
-          matchedIds = matchedIds.add(valueId)
-        }
-      }
-    }
-
-    return matchedIds
-  }
-
   private def getCollectionMayValuesByKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = (new MaybeHeapIdSetDomain[I]()).bottom()
+    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
 
     val overApproxIds = heap.getCollectionOverApproximation(collection)
     for (overApproxId <- overApproxIds.value) {
@@ -558,11 +542,11 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       }
     }
 
-    return matchedIds
+    matchedIds
   }
 
   private def getCollectionMustKeysByKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = (new MaybeHeapIdSetDomain[I]()).bottom()
+    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
       val keyIds = heap.getCollectionKeys(underApproxId)
@@ -577,7 +561,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
   private def getCollectionMayKeysByKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = (new MaybeHeapIdSetDomain[I]()).bottom()
+    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val overApproxIds = heap.getCollectionOverApproximation(collection)
     for (overApproxId <- overApproxIds.value) {
       val keyIds = heap.getCollectionKeys(overApproxId)
@@ -592,7 +576,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   }
 
   private def getCollectionMustKeysWithMayBeKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] ={
-    var matchedIds = (new MaybeHeapIdSetDomain[I]()).bottom()
+    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
       val keyIds = heap.getCollectionKeys(underApproxId)
@@ -787,7 +771,6 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       val (result2, rep2) = result.assume(binaryBoolExpr.right)
       (result2, rep1 ++ rep2)
     case _ =>
-      val result : T = this.factory()
       SystemParameters.heapTimer.start()
       val (newHeap, r) = heap.assume(expr)
       SystemParameters.heapTimer.stop()
@@ -811,7 +794,7 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
       return BooleanDomain.domFalse
     }
 
-    return BooleanDomain.domTop
+    BooleanDomain.domTop
   }
 
   def createVariable(variable : Assignable, typ : Type): T = {
@@ -886,7 +869,6 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
   override def glb(other: T): T = glbWithReplacement(other)._1
 
   override def wideningWithReplacement(other: T): (T, Replacement) = {
-    val result: T = this.factory()
     SystemParameters.heapTimer.start()
     val (newHeap, rep) = heap.wideningWithReplacement(other.heap)
     SystemParameters.heapTimer.stop()
@@ -908,16 +890,13 @@ class HeapAndAnotherDomain[N <: SemanticDomain[N], H <: HeapDomain[H, I], I <: H
     SystemParameters.domainTimer.start()
     b = semantic.lessEqual(other.semantic)
     SystemParameters.domainTimer.stop()
-    return b
+    b
   }
 
   private def applyToAssignable[L <: Lattice[L]](variable : Assignable, state : L, functor : (L, Identifier) => L) : L = {
     variable match {
-      case x : VariableIdentifier =>
-        return functor(state, x)
-      case x : I =>
-        val result : L = functor(state, x)
-        return result
+      case x : VariableIdentifier => functor(state, x)
+      case x :I => functor(state, x): L
     }
   }
 
