@@ -113,74 +113,72 @@ case class ValueDrivenHeapStateWithSymbolicPredicates[S <: SemanticDomain[S]](
 
           assert(path.edges.size == 1, "currently only support paths of length 1")
 
-          val predicateState = path.edges.head.state.valueState.symbolicPredicateState
-          val predicateDefs = predicateState.definitions
-          val predicateInsts = predicateState.instances
+          val predState = path.edges.head.state.valueState.symbolicPredicateState
+          val predDefs = predState.definitions
+          val predInsts = predState.instances
 
-          val availablePredicateInstEdgeLocalIds = predicateInsts.targetEdgeLocalIds
-            .filter(predicateInstEdgeLocalId => {
-            predicateInsts.areEqual(predicateInstEdgeLocalId, Folded) == BooleanDomain.domTrue ||
-              predicateInsts.areEqual(predicateInstEdgeLocalId, Unfolded) == BooleanDomain.domTrue
+          val availPredInstEdgeLocalIds = predInsts.targetEdgeLocalIds
+            .filter(predInstEdgeLocalId => {
+              predInsts.isCertainlyFolded(predInstEdgeLocalId) ||
+              predInsts.isCertainlyUnfolded(predInstEdgeLocalId)
           })
 
-          if (availablePredicateInstEdgeLocalIds.isEmpty) {
+          if (availPredInstEdgeLocalIds.isEmpty) {
             println("there needs to be either a folded or unfolded predicate")
             Seq(condHeap)
           } else {
-            val (foldedPredicateInstEdgeLocalIds, unfoldedPredicateInstEdgeLocalIds) = availablePredicateInstEdgeLocalIds
-              .partition(predicateInstEdgeLocalId =>  {
-              predicateInsts.areEqual(predicateInstEdgeLocalId, Folded) == BooleanDomain.domTrue
+            val (foldedPredInstEdgeLocalIds, unfoldedPredInstEdgeLocalIds) = availPredInstEdgeLocalIds
+              .partition(predInsts.isCertainlyFolded(_))
+
+            val availablePredInstIds = availPredInstEdgeLocalIds.map(predInstEdgeLocalId => {
+              VariableIdentifier(predInstEdgeLocalId.field)(SymbolicPredicateInstType)
             })
 
-            val availablePredicateInstIds = availablePredicateInstEdgeLocalIds.map(predicateInstEdgeLocalId => {
-              VariableIdentifier(predicateInstEdgeLocalId.field)(SymbolicPredicateInstType)
+            val foldedPredInstIds = foldedPredInstEdgeLocalIds.map(predInstEdgeLocalId => {
+              VariableIdentifier(predInstEdgeLocalId.field)(SymbolicPredicateInstType)
             })
 
-            val foldedPredicateInstIds = foldedPredicateInstEdgeLocalIds.map(predicateInstEdgeLocalId => {
-              VariableIdentifier(predicateInstEdgeLocalId.field)(SymbolicPredicateInstType)
+            val unfoldedPredInstIds = unfoldedPredInstEdgeLocalIds.map(predInstEdgeLocalId => {
+              VariableIdentifier(predInstEdgeLocalId.field)(SymbolicPredicateInstType)
             })
 
-            val unfoldedPredicateInstIds = unfoldedPredicateInstEdgeLocalIds.map(predicateInstEdgeLocalId => {
-              VariableIdentifier(predicateInstEdgeLocalId.field)(SymbolicPredicateInstType)
-            })
-
-            def alreadyHasPermission(predicateInstId: VariableIdentifier): Boolean = {
-              val predicateDef = predicateDefs.get(predicateInstId.toPredicateDefId)
+            def alreadyHasPermission(predInstId: VariableIdentifier): Boolean = {
+              val predDef = predDefs.get(predInstId.toPredicateDefId)
               if (id.typ.isObject)
-                predicateDef.refFieldPerms.map.contains(field)
+                predDef.refFieldPerms.map.contains(field)
               else
-                predicateDef.valFieldPerms.value.contains(field)
+                predDef.valFieldPerms.value.contains(field)
             }
 
-            assert(availablePredicateInstIds.count(alreadyHasPermission) <= 1,
+            assert(availablePredInstIds.count(alreadyHasPermission) <= 1,
               "there may at least be one predicate instance with the permission")
 
-            unfoldedPredicateInstIds.find(alreadyHasPermission) match {
+            unfoldedPredInstIds.find(alreadyHasPermission) match {
               case Some(unfoldedPredicateInstId) =>
                 Seq(condHeap) // Nothing to do
               case None =>
-                foldedPredicateInstIds.find(alreadyHasPermission) match {
+                foldedPredInstIds.find(alreadyHasPermission) match {
                   case Some(foldedPredicateInstId) =>
                     assert(assertion = false, "should have unfolded")
                     Seq(condHeap)
                   case None =>
-                    val predicateInstId = availablePredicateInstIds.head
-                    val predicateDefId = predicateInstId.toPredicateDefId
-                    val predicateDef = predicateDefs.get(predicateDefId)
+                    val predInstId = availablePredInstIds.head
+                    val predDefId = predInstId.toPredicateDefId
+                    val predDef = predDefs.get(predDefId)
 
                     val newPredicateDef = if (path.target == NullVertex)
-                      predicateDef.bottom()
+                      predDef.bottom()
                     else if (id.typ.isObject)
                       // TODO: Currently assumes that predicates are always recursive
                       // Instead, should just create fresh predicate def id
-                      predicateDef.addRefFieldPerm(field, predicateDefId)
+                      predDef.addRefFieldPerm(field, predDefId)
                     else
-                      predicateDef.addValFieldPerm(field)
+                      predDef.addValFieldPerm(field)
 
-                    val predicateInstAccPathId = AccessPathIdentifier(id.path.dropRight(1), predicateInstId)
+                    val predInstAccPathId = AccessPathIdentifier(id.path.dropRight(1), predInstId)
                     val condHeapSeq = condHeap
-                      .map(_.assign(predicateDefId, newPredicateDef))
-                      .assignField(predicateInstAccPathId, Unfolded)
+                      .map(_.assign(predDefId, newPredicateDef))
+                      .assignField(predInstAccPathId, Unfolded)
                     condHeapSeq
                 }
             }
@@ -464,6 +462,8 @@ case class SymbolicPredicateInstsDomain(
     env: Set[Identifier] = Set.empty)
   extends ApronInterface[SymbolicPredicateInstsDomain] {
 
+  import SymbolicPredicateInstsDomain._
+
   // TODO: What about this???
   // override def glb(other: SymbolicPredicateInstsDomain) = lub(other)
 
@@ -473,6 +473,18 @@ case class SymbolicPredicateInstsDomain(
       isPureBottom: Boolean = false,
       env: Set[Identifier]) =
     SymbolicPredicateInstsDomain(state, domain, isPureBottom, env)
+
+  def isCertainlyFolded(id: Identifier): Boolean =
+    areEqual(id, Folded) == BooleanDomain.domTrue
+
+  def isCertainlyUnfolded(id: Identifier): Boolean =
+    areEqual(id, Unfolded) == BooleanDomain.domTrue
+
+  def certainlyFoldedIds: Set[Identifier] =
+    env.filter(isCertainlyFolded)
+
+  def certainlyUnfoldedIds: Set[Identifier] =
+    env.filter(isCertainlyUnfolded)
 }
 
 object SymbolicPredicateInstsDomain {
