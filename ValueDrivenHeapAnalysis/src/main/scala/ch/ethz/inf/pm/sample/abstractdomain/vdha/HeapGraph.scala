@@ -263,14 +263,9 @@ case class HeapGraph[S <: SemanticDomain[S]](
     // `prune` is called.
     if (resultingEdgeSet.size == edges.size && resultingVertices.size == vertices.size)
       return (this, Set.empty[Identifier])
-    val verticesToRemove = (vertices -- resultingVertices).filter(_.isInstanceOf[HeapVertex])
-    var idsToRemove = Set.empty[Identifier]
-    for (v <- verticesToRemove) {
-      for (valField <- v.typ.nonObjectFields) {
-        val idToRemove = ValueHeapIdentifier(v.asInstanceOf[HeapVertex], valField)
-        idsToRemove = idsToRemove + idToRemove
-      }
-    }
+    
+    val verticesToRemove = (vertices -- resultingVertices).collect({ case v: HeapVertex => v })
+    val idsToRemove = verticesToRemove.flatMap(_.valueHeapIds)
     val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove)))
     val result = HeapGraph(resultingVertices, finalEdges)
     (result, idsToRemove)
