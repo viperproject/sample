@@ -62,6 +62,12 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def outEdges(source: Vertex, field: Option[String]): Set[Edge[S]] =
     outEdges(source).filter(_.field == field)
 
+  /** Returns a certain edge from one vertex to another. */
+  def edge(source: Vertex, field: Option[String], target: Vertex): Edge[S] = {
+    require(isNormalized, "requires normalized heap")
+    edges.find(e => e.source == source && e.field == field && e.target == target).get
+  } ensuring (edges.contains(_), "heap contains resulting edge")
+
   /** Returns the local variable vertex with the given name. */
   def localVarVertex(name: String): LocalVariableVertex = {
     val results = vertices.collect({
@@ -263,7 +269,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     // `prune` is called.
     if (resultingEdgeSet.size == edges.size && resultingVertices.size == vertices.size)
       return (this, Set.empty[Identifier])
-    
+
     val verticesToRemove = (vertices -- resultingVertices).collect({ case v: HeapVertex => v })
     val idsToRemove = verticesToRemove.flatMap(_.valueHeapIds)
     val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove)))
