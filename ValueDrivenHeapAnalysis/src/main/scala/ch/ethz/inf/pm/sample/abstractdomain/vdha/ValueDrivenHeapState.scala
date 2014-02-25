@@ -496,31 +496,15 @@ trait ValueDrivenHeapState[
               queue.enqueue((e, path.tail))
       }
     }
+
     resultingAH = resultingAH.removeEdges(edgesToRemove.toSet)
     resultingAH = resultingAH.applyReplacement(repl)
+
     // Updating source and target EdgeLocalIdentifiers in the edges to add.
-    val updatedEdgesToAdd = mutable.Set.empty[Edge[S]]
-    for (e <- edgesToAdd) {
-      // Updating EdgeLocalIdentifiers with empty path
-      var updatedEdgeState = e.state.merge(repl)
-      val vtx = if (e.source.isInstanceOf[LocalVariableVertex]) e.target else e.source
-      for (valHeapId <- updatedEdgeState.ids.collect({
-        case id: ValueHeapIdentifier if id.obj == vtx => id
-      })) {
-        val edgLocId = EdgeLocalIdentifier(List.empty, valHeapId.field, valHeapId.typ)(valHeapId.pp)
-        updatedEdgeState = updatedEdgeState.assume(BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==))
-      }
-      // Updating EdgeLocalIdentifiers with non-empty path
-      if (e.target.isInstanceOf[HeapVertex] && !e.source.isInstanceOf[LocalVariableVertex]) {
-        for (valHeapId <- updatedEdgeState.ids.collect({
-          case id: ValueHeapIdentifier if id.obj == e.target => id
-        })) {
-          val edgLocId = EdgeLocalIdentifier(List(e.field), valHeapId.field, valHeapId.typ)(valHeapId.pp)
-          updatedEdgeState = updatedEdgeState.assume(BinaryArithmeticExpression(valHeapId, edgLocId, ArithmeticOperator.==))
-        }
-      }
-      updatedEdgesToAdd += e.copy(state = updatedEdgeState)
-    }
+    val updatedEdgesToAdd = edgesToAdd.map(e => {
+      e.copy(state = e.state.merge(repl)).assumeEdgeLocalIdEqualities()
+    })
+
     resultingAH = resultingAH.addEdges(updatedEdgesToAdd.toSet)
     copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl)).prune()
   }

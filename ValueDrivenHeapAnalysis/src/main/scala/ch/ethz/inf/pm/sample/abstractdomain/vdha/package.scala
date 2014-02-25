@@ -38,6 +38,14 @@ package object vdha {
     def variableIds: Set[VariableIdentifier] =
       state.ids.collect({ case id: VariableIdentifier => id })
 
+    /** Returns all value heap identifiers in the state. */
+    def valueHeapIds: Set[ValueHeapIdentifier] =
+      state.ids.collect({ case id: ValueHeapIdentifier => id })
+
+    /** Returns all value heap identifiers of a certain vertex in the state. */
+    def valueHeapIds(vertex: Vertex): Set[ValueHeapIdentifier] =
+      valueHeapIds.filter(_.obj == vertex)
+
     /** Returns all edge-local identifiers in the state. */
     def edgeLocalIds: Set[EdgeLocalIdentifier] =
       state.ids.collect({ case id: EdgeLocalIdentifier => id })
