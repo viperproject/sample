@@ -183,30 +183,22 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  override def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]) = {
+  override protected def createObject(typ: Type) = {
     val predDefId = PredicateDefinition.makeId()
     val predInstId = predDefId.toPredInstId
 
     refType.fields += predInstId
 
-    val originalResult = super.createObject(typ, pp, fields)
-    var result = originalResult
-
-    val expr = result.expr.getSetOfExpressions.head
-    val heapVertex = expr.asInstanceOf[VertexExpression].vertex.asInstanceOf[HeapVertex]
+    var (result, newVertex) = super.createObject(typ)
 
     result = result.createVariable(predDefId, PredicateDefinitionType, DummyProgramPoint)
-
-    val predicateInstValueHeapId = ValueHeapIdentifier(heapVertex, predInstId)
+    val predicateInstValueHeapId = ValueHeapIdentifier(newVertex, predInstId)
 
     val condHeapGraph = CondHeapGraph[EdgeStateDomain[S], T](result).map(
       _.assume(BinaryArithmeticExpression(predicateInstValueHeapId, Unfolded, ArithmeticOperator.==, BoolType)))
 
-    // Must not prune here
     result = result.copy(abstractHeap = condHeapGraph.heap, generalValState = condHeapGraph.cond)
-    result = result.setExpression(originalResult.expr)
-
-    result
+    (result, newVertex)
   }
 }
 
