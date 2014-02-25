@@ -349,7 +349,7 @@ case class CondHeapGraphSeq[S <: SemanticDomain[S]]
     val newEdges = prunedHeaps.map(_.heap.mapEdgeStates(_.removeAccessPathIds())).map(_.edges).flatten.toSet
     val newHeap = HeapGraph(newVertices, newEdges).joinCommonEdges()
     val newCond = Lattice.bigLub(prunedHeaps.map(_.cond), lattice).removeAccessPathIds()
-    CondHeapGraph(newHeap, newCond).prune
+    CondHeapGraph(newHeap, newCond)
   }
 
   private implicit def CondHeapGraphSeqToCondHeapGraphSeq

@@ -128,12 +128,11 @@ trait ValueDrivenHeapState[
   }
 
   def assignVariable(left: Expression, right: Expression): T = {
-    var result: T = this
-    left match {
+    var result: T = left match {
       case variable: VariableIdentifier => {
         val normalRight = normalizeExpression(right)
         if (left.typ.isBooleanType) {
-          result = evalExp(normalRight).apply().mapCondHeaps(condHeap => {
+          evalExp(normalRight).apply().mapCondHeaps(condHeap => {
             val isCertainlyFalse = condHeap.assume(normalRight).isBottom
             val isCertainlyTrue = condHeap.assume(NegatedBooleanExpression(normalRight)).isBottom
             Seq(condHeap.map(state => {
@@ -146,7 +145,7 @@ trait ValueDrivenHeapState[
             }))
           }).join
         } else if (left.typ.isNumericalType) {
-          result = evalExp(right).apply().map(_.assign(variable, right)).join
+          evalExp(right).apply().map(_.assign(variable, right)).join
         } else {
           val varVertex = abstractHeap.localVarVertex(variable.getName)
           val edgesToRemove = abstractHeap.outEdges(varVertex)
@@ -192,7 +191,7 @@ trait ValueDrivenHeapState[
             case _ => throw new Exception("Not supported (should not happen, let me know if does (Milos)).")
           }
           if (edgesToAdd.isEmpty)
-            result = bottom()
+            bottom()
           else {
             // Remove the old edges before adding the new ones.
             // It's possible that the two sets of edges overlap.
@@ -200,14 +199,14 @@ trait ValueDrivenHeapState[
               .removeEdges(edgesToRemove)
               .addEdges(edgesToAdd)
               .joinCommonEdges()
-            result = copy(abstractHeap = tempAH, isTop = false).prune()
+            copy(abstractHeap = tempAH, isTop = false)
           }
         }
       }
       case _ => throw new Exception("Left-hand side of variable assignment is not a variable.")
     }
     assert(result.abstractHeap.isNormalized, "The abstract heap is not normalized.")
-    result
+    result.prune()
   }
 
   /**
@@ -238,7 +237,7 @@ trait ValueDrivenHeapState[
     if (leftPaths.size == 0)
       return this.bottom()
 
-    if (right.typ.isObject) {
+    val result: T = if (right.typ.isObject) {
       var edgesToAdd = Set.empty[Edge[S]]
       normalizeExpression(right) match {
         case rAP: AccessPathIdentifier => {
@@ -284,10 +283,11 @@ trait ValueDrivenHeapState[
       }
       resultingAH = resultingAH.addEdges(edgesToAdd)
       resultingAH = resultingAH.joinCommonEdges()
-      copy(abstractHeap = resultingAH, isTop = false).prune()
+      copy(abstractHeap = resultingAH, isTop = false)
     } else {
       evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(_.assignField(left, right)).join
     }
+    result.prune()
   }
 
   /**
@@ -370,7 +370,7 @@ trait ValueDrivenHeapState[
   }
 
   def assume(cond: Expression): T =
-    CondHeapGraph[S, T](this).assume(normalizeExpression(cond)).join
+    CondHeapGraph[S, T](this).assume(normalizeExpression(cond)).join.prune()
 
   def setExpression(newExpr: ExpressionSet): T =
     copy(expr = newExpr)
@@ -574,7 +574,7 @@ trait ValueDrivenHeapState[
    * @todo Pruning should happen before the conversion
    */
   implicit def CondHeapGraphToValueDrivenHeapState(condHeap: CondHeapGraph[S]): T =
-    factory(condHeap.heap, condHeap.cond, ExpressionSet()).prune()
+    factory(condHeap.heap, condHeap.cond, ExpressionSet())
 
   /**
    * Prunes the abstract heap and removes all pruned identifiers
