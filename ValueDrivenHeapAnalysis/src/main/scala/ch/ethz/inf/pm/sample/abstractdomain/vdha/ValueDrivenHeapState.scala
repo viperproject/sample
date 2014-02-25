@@ -159,10 +159,7 @@ trait ValueDrivenHeapState[
                 "We support only exact type, that is the fields should be the same")
 
               var edge = Edge(varVertex, generalValState, None, verExpr.vertex)
-              if (edge.target.isInstanceOf[HeapVertex]) {
-                edge = edge.createTargetEdgeLocalIds()
-              }
-              edgesToAdd = edgesToAdd + edge
+              edgesToAdd = edgesToAdd + edge.createEdgeLocalIds()
             }
             case rAP: AccessPathIdentifier => {
               val rightPaths = abstractHeap.paths(rAP.path)
@@ -571,7 +568,7 @@ trait ValueDrivenHeapState[
     // Create the new edges
     val newEdges = typ.objectFields.map(field => {
       Edge(newVertex, newState.generalValState, Some(field.getName), NullVertex)
-    }).map(_.createSourceEdgeLocalIds())
+    }).map(_.createEdgeLocalIds())
 
     newState.copy(
       abstractHeap = newAbstractHeap.addEdges(newEdges),
