@@ -97,8 +97,10 @@ object ExpressionFactory {
 
 }
 
-case class ExpressionSet(initialTyp: Type, s: SetOfExpressions = new SetOfExpressions)
-  extends CartesianProductDomain[Type, SetOfExpressions, ExpressionSet] {
+case class ExpressionSet(
+    initialTyp: Type,
+    s: SetDomain.Default[Expression] = SetDomain.Default())
+  extends CartesianProductDomain[Type, SetDomain.Default[Expression], ExpressionSet] {
 
   def _1 = initialTyp
 
@@ -107,10 +109,10 @@ case class ExpressionSet(initialTyp: Type, s: SetOfExpressions = new SetOfExpres
   override def factory(): ExpressionSet =
     new ExpressionSet(
       if(getType()==null) {if(SystemParameters.typ!=null) SystemParameters.typ.top(); else null} else getType().top(),
-      new SetOfExpressions()
+      SetDomain.Default()
     )
 
-  def factory(a: Type, b: SetOfExpressions) = new ExpressionSet(a, b)
+  def factory(a: Type, b: SetDomain.Default[Expression]) = new ExpressionSet(a, b)
 
   // TODO: rf: this method is highly suspicious. Why should _1 ever be inconsistent with the computed type?
   def getType(): Type = this._1.glb(this.computeType())
@@ -145,7 +147,7 @@ case class ExpressionSet(initialTyp: Type, s: SetOfExpressions = new SetOfExpres
   }
 
   def add(exp: Expression): ExpressionSet = {
-    val v2: SetOfExpressions = this._2.add(exp)
+    val v2 = this._2.add(exp)
     val typ = this._1.glb(exp.typ)
     new ExpressionSet(typ, v2)
   }
@@ -158,7 +160,7 @@ case class ExpressionSet(initialTyp: Type, s: SetOfExpressions = new SetOfExpres
   }
 
   def not(): ExpressionSet = {
-    var result: SetOfExpressions = this._2.factory()
+    var result = this._2.factory()
     for(key <- getSetOfExpressions)
       result=result.add(new NegatedBooleanExpression(key))
     new ExpressionSet(getType(), result)
@@ -178,7 +180,7 @@ case class ExpressionSet(initialTyp: Type, s: SetOfExpressions = new SetOfExpres
         newSet = (for (to <- tos) yield { newSet.map( _.replace(from, to) ) }).flatten.toSet
     }
 
-    new ExpressionSet(getType(), new SetOfExpressions(newSet))
+    new ExpressionSet(getType(), SetDomain.Default[Expression](newSet))
 
   }
 
@@ -194,19 +196,6 @@ object ExpressionSet {
   def apply(): ExpressionSet =
     new ExpressionSet(SystemParameters.typ.top())
 
-}
-
-case class SetOfExpressions(
-    value: Set[Expression] = Set.empty[Expression],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
-  extends SetDomain[Expression, SetOfExpressions] {
-
-  def setFactory(
-      value: Set[Expression] = Set.empty[Expression],
-      isTop: Boolean = false,
-      isBottom: Boolean = false) =
-    SetOfExpressions(value, isTop, isBottom)
 }
 
 case class AbstractState[
