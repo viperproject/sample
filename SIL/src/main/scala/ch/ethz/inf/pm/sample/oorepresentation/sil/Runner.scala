@@ -47,6 +47,7 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
 
     // Experimental
     ValueDrivenHeapProperty.materializeOnlyAcyclic = false
+    PredicateDefinition.resetId()
 
     // Analyze
     compiler.allMethods.map(analysis.analyze)
