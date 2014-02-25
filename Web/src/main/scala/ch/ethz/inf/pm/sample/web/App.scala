@@ -1,11 +1,14 @@
 package ch.ethz.inf.pm.sample.web
 
 import org.scalatra._
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{RefiningPredicateAnalysisRunner, InitialPredicateAnalysisRunner, PreciseAnalysisRunner, AnalysisResult}
+import ch.ethz.inf.pm.sample.oorepresentation.sil._
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
+import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
+import ch.ethz.inf.pm.sample.web.ResourceTestFileProvider
+import scala.Some
 
 /** Web application that lets users analyze programs and explore the result.
   *
@@ -29,12 +32,23 @@ class App extends ScalatraServlet {
   /** Provides all test files that the user can choose to analyze. */
   val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
 
+  /** List of pre-defined analysis runners. */
+  val availableAnalysisRunners = Seq(
+    DefaultAnalysisRunner,
+    PreciseAnalysisRunner,
+    OnePhasePredicateAnalysisRunner,
+    TwoPhasePredicateAnalysisRunner
+  )
+
+  /** The runner using which analyses are performed. */
+  var analysisRunner: AnalysisRunner[_] = TwoPhasePredicateAnalysisRunner
+
   /** The currently active analysis result that the user can inspect. */
   var resultOption: Option[AnalysisResult[_]] = None
 
   /** Renders the list of test files that can be analyzed. */
   get("/") {
-    html.Home(fileProvider.testFiles)
+    html.Home()(this)
   }
 
   /** Analyzes the test file passed as a parameter. */
@@ -42,10 +56,7 @@ class App extends ScalatraServlet {
     val testFileString = params("file")
     fileProvider.testFiles.find(_.toString == testFileString) match {
       case Some(testFile) =>
-        // TODO: Make it configurable
-        // val runner = InitialSymbolicPredicateAnalysisRunner
-        val runner = RefiningPredicateAnalysisRunner
-        resultOption = Some(runner.run(testFile.path).head)
+        resultOption = Some(analysisRunner.run(testFile.path).head)
         redirect("/cfg")
       case None =>
         // TODO: Should probably output an error message
@@ -53,10 +64,17 @@ class App extends ScalatraServlet {
     }
   }
 
+  /** Sets a new analysis runner and purges the current analysis result. */
+  get("/runner") {
+    analysisRunner = availableAnalysisRunners(params("index").toInt)
+    resultOption = None
+    redirect("/")
+  }
+
   /** Renders the CFG of the current result. */
   get("/cfg") {
     resultOption match {
-      case Some(result) => html.CFGState(result)
+      case Some(result) => html.CFGState(result)(this)
       case None => redirect("/")
     }
   }
@@ -66,7 +84,7 @@ class App extends ScalatraServlet {
     resultOption match {
       case Some(result) =>
         val blockIndex = params("block").toInt
-        html.CFGBlockState(result, blockIndex, iter(blockIndex))
+        html.CFGBlockState(result, blockIndex, iter(blockIndex))(this)
       case None => redirect("/")
     }
   }
@@ -77,7 +95,7 @@ class App extends ScalatraServlet {
       case Some(result) =>
         val blockIndex = params("block").toInt
         val stateIndex = params("state").toInt
-        html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))
+        html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))(this)
       case None => redirect("/")
     }
   }

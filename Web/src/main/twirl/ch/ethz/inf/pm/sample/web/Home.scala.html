@@ -1,7 +1,7 @@
-@(testFiles: Seq[ch.ethz.inf.pm.sample.web.TestFile])
-@Base(title = "Sample Abstract Interpreter") {
+@()(app: ch.ethz.inf.pm.sample.web.App)
+@Base(title = "Sample Abstract Interpreter")(app) {
     <div class="row-fluid">
-        @if(testFiles.isEmpty) {
+        @if(app.fileProvider.testFiles.isEmpty) {
             <div class="col-md-12">
                 <div class="alert alert-warning">
                     Could not find any test files available for analysis on the classpath.
@@ -9,7 +9,7 @@
             </div>
         }
 
-        @testFiles.groupBy(_.prefix).map { arg =>
+        @app.fileProvider.testFiles.groupBy(_.prefix).map { arg =>
         <div class="col-md-2">
             <div class="panel panel-default">
                 <div class="panel-heading">@arg._1</div>

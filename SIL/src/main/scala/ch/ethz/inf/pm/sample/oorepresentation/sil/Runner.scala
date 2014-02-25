@@ -16,7 +16,7 @@ import ch.ethz.inf.pm.sample.AnalysisUnitContext
 import semper.sil.ast.Program
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 
-case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
+class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
   def run(path: Path): List[AnalysisResult[_]] = {
     val compiler = new SilCompiler
     compiler.compileFile(path.toAbsolutePath.toString)
@@ -62,16 +62,24 @@ object AnalysisRunner {
 }
 
 object DefaultAnalysisRunner extends AnalysisRunner(
-  SimpleAnalysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {}
+  SimpleAnalysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {
+  override def toString = "Default Analysis"
+}
 
 object PreciseAnalysisRunner extends AnalysisRunner(
-  SimpleAnalysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
+  SimpleAnalysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {
+  override def toString = "Precise Analysis"
+}
 
-object InitialPredicateAnalysisRunner extends AnalysisRunner(
-  SimpleAnalysis[PredicateDrivenHeapState[S]](PredicateEntryStateBuilder)) {}
+object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
+  SimpleAnalysis[PredicateDrivenHeapState[S]](PredicateEntryStateBuilder)) {
+  override def toString = "Analysis with Predicates: One-Phase"
+}
 
-object RefiningPredicateAnalysisRunner extends AnalysisRunner(
-  RefiningPredicateAnalysis[S](PredicateEntryStateBuilder)) {}
+object TwoPhasePredicateAnalysisRunner extends AnalysisRunner(
+  RefiningPredicateAnalysis[S](PredicateEntryStateBuilder)) {
+  override def toString = "Analysis with Predicates: Two-Phase"
+}
 
 trait EntryStateBuilder[S <: State[S]] {
   def topState: S

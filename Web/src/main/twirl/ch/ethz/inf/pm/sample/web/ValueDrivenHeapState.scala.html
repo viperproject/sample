@@ -1,4 +1,4 @@
-@(result: ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_], blockIndex: Int, stateIndex: Int, iter: Int)
+@(result: ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_], blockIndex: Int, stateIndex: Int, iter: Int)(app: ch.ethz.inf.pm.sample.web.App)
 @import ch.ethz.inf.pm.sample.abstractdomain._
 @import ch.ethz.inf.pm.sample.oorepresentation._
 
@@ -14,7 +14,7 @@
     else Html(s"between ${stmtSpan(stmts(stateIndex - 1))} and ${stmtSpan(stmts(stateIndex))}")
 }
 
-@Base(title = "Value-Driven Heap State") {
+@Base(title = "Value-Driven Heap State")(app) {
     <div class="row-fluid">
         <div class="col-md-12">
             <ol class="breadcrumb">

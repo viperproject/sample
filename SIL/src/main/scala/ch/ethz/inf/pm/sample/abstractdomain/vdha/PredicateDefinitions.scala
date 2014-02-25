@@ -2,8 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
-import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, Constants, DefaultSampleConverter, SilCompiler}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, Constants, DefaultSampleConverter}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import semper.sil.{ast => sil}
 
@@ -80,6 +79,8 @@ case class PredicateDefinition(
     PredicateDefinition]
   with Expression {
 
+  import PredicateDrivenHeapState._
+
   require(refFieldPerms.map.values.forall(_.value.size == 1),
     "currently, there should be exactly one pred def id")
 
@@ -119,8 +120,6 @@ case class PredicateDefinition(
     else if (isBottom)
       sil.FalseLit()()
     else {
-      val refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
-
       def toFieldAccessPred(fieldName: String): sil.FieldAccessPredicate = {
         val fieldId = refType.fields.find(_.getName == fieldName).get
         val accPathId = AccessPathIdentifier(List(receiverName), fieldId)

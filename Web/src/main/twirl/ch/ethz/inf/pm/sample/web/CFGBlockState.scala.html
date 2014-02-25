@@ -1,6 +1,6 @@
-@(result: ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_], blockIndex: Int, iter: Int)
+@(result: ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_], blockIndex: Int, iter: Int)(app: ch.ethz.inf.pm.sample.web.App)
 @nodeId(index: Int) = { "node-@index" }
-@Base(title = "Control Flow Graph Block State") {
+@Base(title = "Control Flow Graph Block State")(app) {
     <div class="row-fluid">
         <div class="col-md-12">
             <ol class="breadcrumb">

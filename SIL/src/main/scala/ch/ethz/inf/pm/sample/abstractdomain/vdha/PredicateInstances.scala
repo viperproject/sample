@@ -4,7 +4,8 @@ import apron.{Box, Manager, Abstract1}
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, BooleanDomain, Identifier}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.sil.AbstractType
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{RefType, SilCompiler, AbstractType}
+import ch.ethz.inf.pm.sample.SystemParameters
 
 case class PredicateInstancesDomain(
     state: Option[Abstract1] = None,
