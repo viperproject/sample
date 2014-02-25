@@ -158,7 +158,7 @@ trait ValueDrivenHeapState[
               assert(varVertex.typ.equals(verExpr.typ),
                 "We support only exact type, that is the fields should be the same")
 
-              var edge = Edge(varVertex, generalValState, None, verExpr.vertex)
+              val edge = Edge(varVertex, generalValState, None, verExpr.vertex)
               edgesToAdd = edgesToAdd + edge.createEdgeLocalIds()
             }
             case rAP: AccessPathIdentifier => {
@@ -554,9 +554,12 @@ trait ValueDrivenHeapState[
     }
   }
 
-  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): T = {
-    if (isBottom) return this
-
+  /** Creates a new definite vertex in the heap graph and initializes
+    * its reference fields to null and value fields to top.
+    *
+    * @return the new state (without expression) and the newly added vertex
+    */
+  protected def createObject(typ: Type): (T, DefiniteHeapVertex) = {
     // Create the new heap vertex and ensure that there is a null vertex
     var (newAbstractHeap, newVertex) = abstractHeap.addDefiniteHeapVertex(typ)
     newAbstractHeap = newAbstractHeap.addNonHeapVertex(NullVertex)
@@ -570,9 +573,14 @@ trait ValueDrivenHeapState[
       Edge(newVertex, newState.generalValState, Some(field.getName), NullVertex)
     }).map(_.createEdgeLocalIds())
 
-    newState.copy(
-      abstractHeap = newAbstractHeap.addEdges(newEdges),
-      expr = ExpressionSet(VertexExpression(typ, newVertex)(pp)))
+    newState = newState.copy(abstractHeap = newAbstractHeap.addEdges(newEdges))
+    (newState, newVertex)
+  }
+
+  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): T = {
+    if (isBottom) return this
+    val (newState, newVertex) = createObject(typ)
+    newState.copy(expr = ExpressionSet(VertexExpression(typ, newVertex)(pp)))
   }
 
   /**
