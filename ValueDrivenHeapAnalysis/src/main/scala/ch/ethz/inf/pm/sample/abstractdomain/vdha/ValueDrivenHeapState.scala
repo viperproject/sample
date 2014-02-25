@@ -569,9 +569,7 @@ trait ValueDrivenHeapState[
 
   /**
    * Implicitly converts a conditional heap graph to a state
-   * with an empty expression. It also automatically prunes the state.
-   *
-   * @todo Pruning should happen before the conversion
+   * with an empty expression.
    */
   implicit def CondHeapGraphToValueDrivenHeapState(condHeap: CondHeapGraph[S]): T =
     factory(condHeap.heap, condHeap.cond, ExpressionSet())
