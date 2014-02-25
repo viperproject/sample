@@ -189,12 +189,13 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     refType.fields += predInstId
 
-    var result = super.createObject(typ, pp, fields)
+    val originalResult = super.createObject(typ, pp, fields)
+    var result = originalResult
+
     val expr = result.expr.getSetOfExpressions.head
     val heapVertex = expr.asInstanceOf[VertexExpression].vertex.asInstanceOf[HeapVertex]
 
     result = result.createVariable(predDefId, PredicateDefinitionType, DummyProgramPoint)
-
 
     val predicateInstValueHeapId = ValueHeapIdentifier(heapVertex, predInstId)
 
@@ -203,7 +204,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     // Must not prune here
     result = result.copy(abstractHeap = condHeapGraph.heap, generalValState = condHeapGraph.cond)
-    result = result.setExpression(result.expr)
+    result = result.setExpression(originalResult.expr)
 
     result
   }
