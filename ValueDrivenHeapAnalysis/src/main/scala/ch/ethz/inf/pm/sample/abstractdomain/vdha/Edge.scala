@@ -45,6 +45,14 @@ case class Edge[S <: SemanticDomain[S]](
   /** The set of vertices incident to the edge. */
   def vertices: Set[Vertex] = Set(source, target)
 
+  /** Returns the source or target vertex given a relative access path
+    * as used by edge-local identifiers associated with this edge.
+    */
+  def accPathToVertex(accPath: List[Option[String]]): Vertex = accPath match {
+    case Nil => source
+    case List(f) if f == field => target
+  }
+
   /** Compare lexicographically by source, field and target. */
   override def compare(that: Edge[S]): Int = {
     implicitly[Ordering[(Vertex, Option[String], Vertex)]].compare(
@@ -89,24 +97,8 @@ case class Edge[S <: SemanticDomain[S]](
        s"target vertex has no value field $valueField")
 
     val edgeLocalId = EdgeLocalIdentifier(List(field), valueField)
-    var newState = state.createVariable(edgeLocalId)
-
-    target match {
-      case obj: HeapVertex =>
-        val valueHeapId = ValueHeapIdentifier(obj, valueField)
-
-        require(state.ids.contains(valueHeapId),
-          s"edge state must already contain value heap identifier $valueHeapId")
-
-        newState = state
-          .createVariable(edgeLocalId)
-          .assume(new BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==))
-      case _ =>
-        // The target vertex may also be a NullVertex, in which case we cannot
-        // make the equality assumption anyway
-    }
-
-    copy(state = newState)
+    copy(state = state.createVariable(edgeLocalId))
+      .assumeEdgeLocalIdEquality(edgeLocalId)
   }
 
   /** Create an `EdgeLocalIdentifier` in the edge state for each value field
@@ -128,16 +120,8 @@ case class Edge[S <: SemanticDomain[S]](
     source match {
       case obj: HeapVertex =>
         val edgeLocalId = EdgeLocalIdentifier(valueField)
-        val valueHeapId = ValueHeapIdentifier(obj, valueField)
-
-        require(state.ids.contains(valueHeapId),
-          s"state must already contain value heap identifier $valueHeapId")
-
-        val newState = state
-          .createVariable(edgeLocalId)
-          .assume(BinaryArithmeticExpression(valueHeapId, edgeLocalId, ArithmeticOperator.==))
-
-        copy(state = newState)
+        copy(state = state.createVariable(edgeLocalId))
+          .assumeEdgeLocalIdEquality(edgeLocalId)
       case _ => this
         // Do not create source edge-local ids for local variable vertices
     }
@@ -155,4 +139,28 @@ case class Edge[S <: SemanticDomain[S]](
       .createSourceEdgeLocalIds()
       .createTargetEdgeLocalIds()
   }
+
+  /** Assume that the value of the given `EdgeLocalIdentifier` is the same
+    * as the value of the corresponding `ValueHeapIdentifier`.
+    */
+  def assumeEdgeLocalIdEquality(edgeLocalId: EdgeLocalIdentifier): Edge[S] = {
+    require(state.edgeLocalIds.contains(edgeLocalId),
+      "edge local identifier must be part of the edge state")
+
+    accPathToVertex(edgeLocalId.accPath) match {
+      case vertex: HeapVertex =>
+        val valueHeapId = ValueHeapIdentifier(vertex,
+          edgeLocalId.field)(edgeLocalId.typ, edgeLocalId.pp)
+        copy(state = state.assume(BinaryArithmeticExpression(valueHeapId,
+          edgeLocalId, ArithmeticOperator.==)))
+      case _ => this
+        // Support edge-local identifiers on null edges
+    }
+  }
+
+  /** Assume that the value of each `EdgeLocalIdentifier` in the edge state
+    * is the same as the value of the corresponding `ValueHeapIdentifier`.
+    */
+  def assumeEdgeLocalIdEqualities(): Edge[S] =
+    state.edgeLocalIds.foldLeft(this)(_.assumeEdgeLocalIdEquality(_))
 }
