@@ -73,7 +73,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     results.head
   }
 
-  def createVariablesInAllStates(ids: Set[Identifier]): HeapGraph[S] =
+  def createVariables(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
   def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[RootedPath[S]] =
@@ -132,6 +132,12 @@ case class HeapGraph[S <: SemanticDomain[S]](
       case VertexConstants.DEFINITE =>
         DefiniteHeapVertex(getNewVersionNumber)(typ)
     }
+    (copy(vertices = vertices + newVertex), newVertex)
+  }
+
+  /** Creates a new definite heap vertex and returns the resulting graph. */
+  def addDefiniteHeapVertex(typ: Type): (HeapGraph[S], DefiniteHeapVertex) = {
+    val newVertex = DefiniteHeapVertex(getNewVersionNumber)(typ)
     (copy(vertices = vertices + newVertex), newVertex)
   }
 
