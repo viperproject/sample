@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{RefType, BoolType, SilCompiler}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, SilCompiler}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.VertexConstants._
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
@@ -35,7 +35,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     if (variable.typ.isObject) {
       // Reset ghost fields
-      refType.fields = refType.fields.filter(_.typ != PredicateDefinitionType)
+      refType.fields = refType.fields.filter(_.typ != PredicateInstanceType)
       PredicateDefinition.resetId()
 
       val localVarVertices = abstractHeap.localVarVertices + LocalVariableVertex(variable)
@@ -184,20 +184,24 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   override protected def createObject(typ: Type) = {
+    var (result, newVertex) = super.createObject(typ)
+
     val predDefId = PredicateDefinition.makeId()
     val predInstId = predDefId.toPredInstId
 
     refType.fields += predInstId
 
-    var (result, newVertex) = super.createObject(typ)
+    result = result.createNonObjectVariables(Set(predDefId))
 
-    result = result.createVariable(predDefId, PredicateDefinitionType, DummyProgramPoint)
-    val predicateInstValueHeapId = ValueHeapIdentifier(newVertex, predInstId)
+    val newValueHeapIds = result.abstractHeap.heapVertices.map(ValueHeapIdentifier(_, predInstId))
+    result = result.createNonObjectVariables(newValueHeapIds.toSet)
 
+    val predInstValueHeapId = ValueHeapIdentifier(newVertex, predInstId)
     val condHeapGraph = CondHeapGraph[EdgeStateDomain[S], T](result).map(
-      _.assume(BinaryArithmeticExpression(predicateInstValueHeapId, Unfolded, ArithmeticOperator.==, BoolType)))
+      _.assume(BinaryArithmeticExpression(predInstValueHeapId, Unfolded, ArithmeticOperator.==, BoolType)))
 
     result = result.copy(abstractHeap = condHeapGraph.heap, generalValState = condHeapGraph.cond)
+
     (result, newVertex)
   }
 }
@@ -211,7 +215,7 @@ object PredicateDrivenHeapState {
       SemanticAndPredicateDomain(s, PredicateDomain()).top())
   }
 
-  val refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
+  def refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
 }
 
 case class PredicateDomain(
