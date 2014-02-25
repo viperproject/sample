@@ -25,8 +25,15 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     takenPaths.exists(_.accPath.startsWith(objPath))),
     "condition must only contain access path identifiers for taken paths")
 
-  def takenPath(path: List[String]): RootedPath[S] =
-    takenPaths.find(_.accPath == path).get
+  /** Given an access path (local variable and fields), returns the
+    * corresponding unambiguous path of edges taken in this heap graph.
+    */
+  def takenPath(accPath: List[String]): RootedPath[S] = {
+    require(!accPath.isEmpty, "access path must not be empty")
+    val takenPath = takenPaths.find(_.accPath.startsWith(accPath)).get
+    if (takenPath.edges.size == accPath.size) takenPath
+    else takenPath.copy(edges = takenPath.edges.slice(0, accPath.size))
+  } ensuring (_.accPath == accPath, "resulting edge path matches input path")
 
   /**
    * Intersects this and another heap graph as well as their associated
