@@ -56,12 +56,26 @@ trait ValueDrivenHeapState[
         abstractHeap = newAbstractHeap,
         expr = new ExpressionSet(typ).add(variable))
     } else {
-      copy(
-        abstractHeap = abstractHeap.createVariablesInAllStates(Set(variable)),
-        generalValState = generalValState.createVariable(variable),
-        expr = new ExpressionSet(typ).add(variable))
+      createNonObjectVariables(Set(variable)).copy(expr = ExpressionSet(variable))
     }
   }
+
+  /** Creates non-object variables in both the general value state and also
+    * the state of every edge in the heap graph.
+    *
+    * @param ids Can also be `ValueHeapIdentifier`s. Usually, multiple
+    *            identifiers are added at once, so this method takes a set.
+    * @return the new state, with unmodified expression
+    */
+  protected def createNonObjectVariables(ids: Set[Identifier]): T = {
+    require(ids.forall(!_.typ.isObject), "cannot create object variables")
+    copy(
+      abstractHeap = abstractHeap.createVariables(ids),
+      generalValState = generalValState.createVariables(ids))
+  } ensuring (result =>
+    ids.subsetOf(result.generalValState.ids) &&
+    result.abstractHeap.edges.forall(e => ids.subsetOf(e.state.ids)),
+    "the variable is created in all value states")
 
   def createVariableForArgument(variable: VariableIdentifier, typ: Type): T = {
     if (variable.typ.isObject) {
@@ -544,47 +558,24 @@ trait ValueDrivenHeapState[
   }
 
   def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): T = {
-    if (this.isBottom) return this
+    if (isBottom) return this
 
-    var resIds = Set.empty[Identifier]
-    var (newAbstractHeap, newVertex) = abstractHeap.addHeapVertex(VertexConstants.DEFINITE, typ)
-    assert(newVertex.isInstanceOf[DefiniteHeapVertex], "The newly created object should be definite")
-    val createdObjVertex = newVertex.asInstanceOf[DefiniteHeapVertex]
+    // Create the new heap vertex and ensure that there is a null vertex
+    var (newAbstractHeap, newVertex) = abstractHeap.addDefiniteHeapVertex(typ)
+    newAbstractHeap = newAbstractHeap.addNonHeapVertex(NullVertex)
 
-    //    var edgeLocalIds = Set.empty[Identifier]
-    var resIdsAndEdgeLocalIds = Set.empty[(Identifier, Identifier)]
+    // Create the value heap identifiers in all states
+    var newState = copy(abstractHeap = newAbstractHeap)
+    newState = newState.createNonObjectVariables(newVertex.valueHeapIds)
 
-    for (valField <- typ.nonObjectFields) {
-      // This means that we have a value field and this should be included in all abstract states on edges
-      // This is done via Replacement
-      val resId = ValueHeapIdentifier(newVertex.asInstanceOf[DefiniteHeapVertex], valField)
-      val edgeLocalId = EdgeLocalIdentifier(valField)
-      resIdsAndEdgeLocalIds = resIdsAndEdgeLocalIds + ((resId, edgeLocalId))
-      resIds = resIds + resId
-      //      edgeLocalIds = edgeLocalIds + EdgeLocalIdentifier(List.empty[String], valField.getName)
-    }
-    //    val resAH = newAbstractHeap.createVariablesInAllStates(resIds)
-    newAbstractHeap = newAbstractHeap.createVariablesInAllStates(resIds)
-    var newGeneralState = generalValState
-    for ((id, _) <- resIdsAndEdgeLocalIds)
-      newGeneralState = newGeneralState.createVariable(id)
-    for (objField <- typ.objectFields) {
-      newAbstractHeap = newAbstractHeap.addNonHeapVertex(NullVertex)
-      var edgeState = newGeneralState
-      for ((resId, edgeLocalId) <- resIdsAndEdgeLocalIds) {
-        //        edgeState = edgeState.createVariable(resId, resId.getType())
-        edgeState = edgeState.createVariable(edgeLocalId)
-        edgeState = edgeState.assume(new BinaryArithmeticExpression(resId, edgeLocalId, ArithmeticOperator.==, null))
-      }
-      newAbstractHeap = newAbstractHeap.addEdge(Edge(createdObjVertex, edgeState, Some(objField.getName), NullVertex))
-    }
+    // Create the new edges
+    val newEdges = typ.objectFields.map(field => {
+      Edge(newVertex, newState.generalValState, Some(field.getName), NullVertex)
+    }).map(_.createSourceEdgeLocalIds())
 
-    // Now we need to apply the replacement to all the states, including the general value state.
-
-    copy(
-      abstractHeap = newAbstractHeap,
-      generalValState = newGeneralState,
-      expr = ExpressionSet(VertexExpression(typ, createdObjVertex)(pp)))
+    newState.copy(
+      abstractHeap = newAbstractHeap.addEdges(newEdges),
+      expr = ExpressionSet(VertexExpression(typ, newVertex)(pp)))
   }
 
   /**
