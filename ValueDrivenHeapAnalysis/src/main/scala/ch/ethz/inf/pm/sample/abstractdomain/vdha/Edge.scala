@@ -91,11 +91,12 @@ case class Edge[S <: SemanticDomain[S]](
     *
     * @param valueField the identifier of the value field of the target vertex
     * @return the resulting edge
+    * @note The method used to require that the given value field identifier is
+    *       contained in `target.typ.nonObjectFields`. To allow tracking the
+    *       value of ghost fields that are not in `target.typ.nonObjectFields`,
+    *       the requirement has been dropped.
    */
   def createTargetEdgeLocalId(valueField: Identifier): Edge[S] = {
-    require(target.typ.nonObjectFields.contains(valueField),
-       s"target vertex has no value field $valueField")
-
     val edgeLocalId = EdgeLocalIdentifier(List(field), valueField)
     copy(state = state.createVariable(edgeLocalId))
       .assumeEdgeLocalIdEquality(edgeLocalId)
@@ -112,11 +113,15 @@ case class Edge[S <: SemanticDomain[S]](
     *
     * Assumes "eLocId.valueField == source.valueField" on the state.
     * Note that this assumption only takes effect on definite heap vertices.
+    *
+    * @param valueField the identifier of the value field of the source vertex
+    * @return the resulting edge
+    * @note The method used to require that the given value field identifier is
+    *       contained in `source.typ.nonObjectFields`. To allow tracking the
+    *       value of ghost fields that are not in `source.typ.nonObjectFields`,
+    *       the requirement has been dropped.
     */
   def createSourceEdgeLocalId(valueField: Identifier): Edge[S] = {
-    require(source.typ.nonObjectFields.contains(valueField),
-      s"source vertex has no value field $valueField")
-
     source match {
       case obj: HeapVertex =>
         val edgeLocalId = EdgeLocalIdentifier(valueField)
