@@ -128,7 +128,7 @@ trait ValueDrivenHeapState[
   }
 
   def assignVariable(left: Expression, right: Expression): T = {
-    var result: T = left match {
+    val result: T = left match {
       case variable: VariableIdentifier => {
         val normalRight = normalizeExpression(right)
         if (left.typ.isBooleanType) {
