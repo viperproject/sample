@@ -147,6 +147,9 @@ case class Edge[S <: SemanticDomain[S]](
 
   /** Assume that the value of the given `EdgeLocalIdentifier` is the same
     * as the value of the corresponding `ValueHeapIdentifier`.
+    *
+    * If there is no such `ValueHeapIdentifier` present in the edge state,
+    * the state of the edge remains unchanged.
     */
   def assumeEdgeLocalIdEquality(edgeLocalId: EdgeLocalIdentifier): Edge[S] = {
     require(state.edgeLocalIds.contains(edgeLocalId),
@@ -156,8 +159,10 @@ case class Edge[S <: SemanticDomain[S]](
       case vertex: HeapVertex =>
         val valueHeapId = ValueHeapIdentifier(vertex,
           edgeLocalId.field)(edgeLocalId.typ, edgeLocalId.pp)
-        copy(state = state.assume(BinaryArithmeticExpression(valueHeapId,
-          edgeLocalId, ArithmeticOperator.==)))
+        if (state.ids.contains(valueHeapId))
+          copy(state = state.assume(BinaryArithmeticExpression(valueHeapId,
+            edgeLocalId, ArithmeticOperator.==)))
+        else this
       case _ => this
         // Support edge-local identifiers on null edges
     }
