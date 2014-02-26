@@ -34,56 +34,31 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     if (variable.typ.isObject) {
-      // Reset ghost fields
-      refType.fields = refType.fields.filter(_.typ != PredicateInstanceType)
-      PredicateDefinition.resetId()
+      var result = super.createVariableForArgument(variable, typ)
 
-      val localVarVertices = abstractHeap.localVarVertices + LocalVariableVertex(variable)
-      val objectTypes = localVarVertices.flatMap(_.typ.reachableObjectTypes)
-
-      // Create new abstract heap (no edges yet)
-      val newAbstractHeap = HeapGraph[EdgeStateDomain[S]]()
-        .addNonHeapVertices(Set(NullVertex) ++ localVarVertices)
-        .addHeapVertices(SUMMARY, objectTypes)
-
-      val edgeVerticesToDefId = newAbstractHeap.localVarVertices.flatMap(localVarVertex => {
+      val edgeVerticesToPredDefId = result.abstractHeap.localVarVertices.flatMap(localVarVertex => {
         localVarVertex.neededEdgeFieldsAndTypes.flatMap({ case (field, fieldTyp) =>
-          newAbstractHeap.possibleTargetVertices(fieldTyp).map(targetVertex => {
+          result.abstractHeap.possibleTargetVertices(fieldTyp).map(targetVertex => {
             val predDefId = PredicateDefinition.makeId()
-            refType.fields += predDefId.toPredInstId
             Set(localVarVertex, targetVertex) -> predDefId
           })
         })
       }).toMap
 
-      // Create general value state, retaining old variable identifiers
-      val newGeneralValState = generalValState.top()
-        .createVariables(generalValState.variableIds.filter(_.typ != PredicateDefinitionType))
-        .createVariables(newAbstractHeap.heapVertices.flatMap(_.valueHeapIds))
-        .createVariables(edgeVerticesToDefId.values.toSet)
+      val predDefIds = edgeVerticesToPredDefId.values
+      result = result.createNonObjectVariables(predDefIds.toSet)
 
-      // Create new edges
-      val newEdges = newAbstractHeap.vertices.flatMap(sourceVertex => {
-        sourceVertex.neededEdgeFieldsAndTypes.flatMap({ case (field, fieldTyp) =>
-          newAbstractHeap.possibleTargetVertices(fieldTyp).map(targetVertex => {
-            var edge = Edge(sourceVertex, newGeneralValState, field, targetVertex).createEdgeLocalIds()
-            edgeVerticesToDefId.get(edge.vertices) match {
-              case Some(defId) =>
-                val predInstId = defId.toPredInstId
-                val edgeLocalInstId = EdgeLocalIdentifier(List(field), predInstId)
-                edge = edge.copy(state = edge.state.assign(edgeLocalInstId, Folded))
-              case None =>
-            }
-            edge
-          })
-        })
+      result = CondHeapGraph[EdgeStateDomain[S], T](result).mapEdges(edge => {
+        edgeVerticesToPredDefId.get(edge.vertices) match {
+          case Some(defId) =>
+            val predInstId = defId.toPredInstId
+            val edgeLocalInstId = EdgeLocalIdentifier(List(edge.field), predInstId)
+            edge.state.assign(edgeLocalInstId, Folded)
+          case None => edge.state
+        }
       })
 
-      factory(
-        newAbstractHeap.addEdges(newEdges),
-        newGeneralValState,
-        ExpressionSet(variable),
-        isTop = true)
+      result.setExpression(ExpressionSet(variable))
     } else {
       super.createVariableForArgument(variable, typ)
     }
@@ -150,9 +125,23 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                 Seq(condHeap) // Nothing to do
               case None =>
                 foldedPredInstIds.find(alreadyHasPermission) match {
-                  case Some(foldedPredicateInstId) =>
-                    assert(assertion = false, "should have unfolded")
-                    Seq(condHeap)
+                  case Some(foldedPredInstId) =>
+                    val predDefId = foldedPredInstId.toPredDefId
+                    val predDef = predDefs.get(predDefId)
+                    val predInstAccPathId = AccessPathIdentifier(id.path.dropRight(1), foldedPredInstId)
+
+                    var result = condHeap.evalAccessPathId(id)
+
+                    // Should unfold all nested predicates
+                    if (id.typ.isObject) {
+                      val nestedPredDefId = predDef.refFieldPerms.get(id.path.last).value.head.asInstanceOf[VariableIdentifier]
+                      val nestedPredInstId = nestedPredDefId.toPredInstId
+                      val nestedPredInstAccPathId = AccessPathIdentifier(id.path, nestedPredInstId)
+                      result = result.assignField(nestedPredInstAccPathId, Folded)
+                    }
+
+                    result = result.assignField(predInstAccPathId, Unfolded)
+                    result
                   case None =>
                     val predInstId = availablePredInstIds.head
                     val predDefId = predInstId.toPredDefId
@@ -188,21 +177,46 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     val predDefId = PredicateDefinition.makeId()
     val predInstId = predDefId.toPredInstId
-
-    refType.fields += predInstId
-
-    result = result.createNonObjectVariables(Set(predDefId))
-
-    val newValueHeapIds = result.abstractHeap.heapVertices.map(ValueHeapIdentifier(_, predInstId))
-    result = result.createNonObjectVariables(newValueHeapIds.toSet)
-
     val predInstValueHeapId = ValueHeapIdentifier(newVertex, predInstId)
-    val condHeapGraph = CondHeapGraph[EdgeStateDomain[S], T](result).map(
-      _.assume(BinaryArithmeticExpression(predInstValueHeapId, Unfolded, ArithmeticOperator.==, BoolType)))
 
-    result = result.copy(abstractHeap = condHeapGraph.heap, generalValState = condHeapGraph.cond)
+    result = result.createNonObjectVariables(Set(predDefId, predInstValueHeapId))
+    result = CondHeapGraph[EdgeStateDomain[S], T](result).map(
+      _.assign(predInstValueHeapId, Unfolded))
 
     (result, newVertex)
+  }
+
+  override def assignVariable(left: Expression, right: Expression) = {
+    val result = super.assignVariable(left, right)
+
+    (left, right) match {
+      case (left: VariableIdentifier, right: VertexExpression) =>
+        val source = abstractHeap.localVarVertex(left.getName)
+        val predInstIds = result.predInstHeapIds.map(id => VariableIdentifier(id.field)(PredicateInstanceType))
+        val addedEdge = result.abstractHeap.outEdges(source).head
+        var newEdge = predInstIds.foldLeft(addedEdge)(_.createTargetEdgeLocalId(_))
+        newEdge = newEdge.assumeEdgeLocalIdEqualities()
+        result
+          .copy(abstractHeap = result.abstractHeap.copy(
+            edges = result.abstractHeap.edges - addedEdge + newEdge))
+          .removePredInstHeapIds()
+      case _ =>
+        result.removePredInstHeapIds()
+    }
+  }
+
+  override def assignField(left: AccessPathIdentifier, right: Expression) = {
+    super.assignField(left, right).removePredInstHeapIds()
+  }
+
+  def predInstHeapIds: Set[ValueHeapIdentifier] =
+    generalValState.valueHeapIds.filter(_.typ == PredicateInstanceType)
+
+  def removePredInstHeapIds(): PredicateDrivenHeapState[S] = {
+    copy(
+      generalValState = generalValState.removeVariables(predInstHeapIds),
+      abstractHeap = abstractHeap.mapEdgeStates(_.removeVariables(predInstHeapIds))
+    )
   }
 }
 
