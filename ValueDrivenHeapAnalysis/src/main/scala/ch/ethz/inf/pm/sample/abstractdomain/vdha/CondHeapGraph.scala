@@ -149,7 +149,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         val resId = ValueHeapIdentifier(targetVertex, field)(ap.typ, ap.pp)
 
         // Handle cases where the value heap identifier is absent, for example
-        // because it was not created in order to keep the state size small
+        // because it was not created in order to keep the state size small.
         if (cond.ids.contains(resId)) {
           cond = cond.assume(BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==))
         }
@@ -333,6 +333,10 @@ case class CondHeapGraphSeq[S <: SemanticDomain[S]]
   /** Assumes the given expression on each heap graph. */
   def assume(cond: Expression): CondHeapGraphSeq[S] =
     condHeaps.map(condHeap => condHeap.assume(cond).condHeaps).flatten
+
+  /** Assigns an expression to a field in each heap graph. */
+  def assignField(left: AccessPathIdentifier, right: Expression): CondHeapGraphSeq[S] =
+      condHeaps.map(condHeap => condHeap.assignField(left, right).condHeaps).flatten
 
   /**
    * Maps conditional heap graphs with the given function.
