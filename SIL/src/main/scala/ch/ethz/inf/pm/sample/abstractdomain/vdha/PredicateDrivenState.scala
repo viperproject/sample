@@ -3,8 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, SilCompiler}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.VertexConstants._
+import ch.ethz.inf.pm.sample.oorepresentation.sil.SilCompiler
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
@@ -147,20 +146,24 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                     val predDefId = predInstId.toPredDefId
                     val predDef = predDefs.get(predDefId)
 
+                    var result = CondHeapGraphSeq(Seq(condHeap))(condHeap.lattice)
+
                     val newPredicateDef = if (path.target == NullVertex)
                       predDef.bottom()
-                    else if (id.typ.isObject)
-                    // TODO: Currently assumes that predicates are always recursive
-                    // Instead, should just create fresh predicate def id
-                      predDef.addRefFieldPerm(field, predDefId)
-                    else
+                    else if (id.typ.isObject) {
+                      val nestedPredDefId = PredicateDefinition.makeId()
+                      val nestedPredDef = PredicateDefinition().top()
+                      result = result.map(_.assign(nestedPredDefId, nestedPredDef))
+                      predDef.addRefFieldPerm(field, nestedPredDefId)
+                    } else {
                       predDef.addValFieldPerm(field)
+                    }
 
                     val predInstAccPathId = AccessPathIdentifier(id.path.dropRight(1), predInstId)
-                    val condHeapSeq = condHeap
+                    result = result
                       .map(_.assign(predDefId, newPredicateDef))
                       .assignField(predInstAccPathId, Unfolded)
-                    condHeapSeq
+                    result
                 }
             }
           }
