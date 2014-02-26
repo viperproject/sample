@@ -147,7 +147,12 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
 
         // AccessPathIdentifier must agree also with the ValueHeapIdentifier
         val resId = ValueHeapIdentifier(targetVertex, field)(ap.typ, ap.pp)
-        cond = cond.assume(BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==))
+
+        // Handle cases where the value heap identifier is absent, for example
+        // because it was not created in order to keep the state size small
+        if (cond.ids.contains(resId)) {
+          cond = cond.assume(BinaryArithmeticExpression(resId, ap, ArithmeticOperator.==))
+        }
       }
 
       // Remove all edge local identifiers
