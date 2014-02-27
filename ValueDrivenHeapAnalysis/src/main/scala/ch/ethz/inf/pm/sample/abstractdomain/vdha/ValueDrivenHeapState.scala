@@ -470,8 +470,7 @@ trait ValueDrivenHeapState[
           edgesToAdd += edge.copy(target = definiteVertex)
           for (e <- resultingAH.edges -- edgesToRemove ++ edgesToAdd) {
             // Incoming edges
-            if (e.target == summaryVertex &&
-              (!ValueDrivenHeapProperty.materializeOnlyAcyclic || e.source != e.target)) {
+            if (e.target == summaryVertex) {
               edgesToAdd += e.copy(target = definiteVertex)
             }
             // Outgoing edges
@@ -482,7 +481,7 @@ trait ValueDrivenHeapState[
               edgesToAdd += edgeToAdd
             }
             // Self-loop edges
-            if (e.source == summaryVertex && e.target == summaryVertex && !ValueDrivenHeapProperty.materializeOnlyAcyclic) {
+            if (e.source == summaryVertex && e.target == summaryVertex) {
               val edgeToAdd = e.copy[S](source = definiteVertex, target = definiteVertex)
               if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
                 queue.enqueue((edgeToAdd, path.tail))

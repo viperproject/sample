@@ -42,9 +42,6 @@ case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     SystemParameters.resetNativeMethodsSemantics()
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics())
 
-    // Experimental
-    ValueDrivenHeapProperty.materializeOnlyAcyclic = false
-
     // Analyze
     compiler.allMethods.map(analysis.analyze)
   }
