@@ -40,6 +40,17 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def localVarVertices: Set[LocalVariableVertex] =
     vertices.collect({ case v: LocalVariableVertex => v })
 
+  /** Returns the local variable vertex with the given name. */
+  def localVarVertex(name: String): LocalVariableVertex = {
+    val results = vertices.collect({
+      case v: LocalVariableVertex if v.name == name => v
+    })
+    require(!results.isEmpty, s"no local variable vertex named '$name'")
+    // TODO: Could check consistency when instantiating the heap graph
+    assert(results.size == 1, s"there may only be one vertex named '$name'")
+    results.head
+  }
+
   /** Returns all vertices that are possible sources of edges. */
   def possibleSourceVertices: Set[Vertex] =
     vertices.filterNot(_ == NullVertex)
@@ -62,16 +73,9 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def outEdges(source: Vertex, field: Option[String]): Set[Edge[S]] =
     outEdges(source).filter(_.field == field)
 
-  /** Returns the local variable vertex with the given name. */
-  def localVarVertex(name: String): LocalVariableVertex = {
-    val results = vertices.collect({
-      case v: LocalVariableVertex if v.name == name => v
-    })
-    require(!results.isEmpty, s"no local variable vertex named '$name'")
-    // TODO: Could check consistency when instantiating the heap graph
-    assert(results.size == 1, s"there may only be one vertex named '$name'")
-    results.head
-  }
+  /** Returns all edges going out of local variable vertices. */
+  def localVarEdges: Set[Edge[S]] =
+    edges.filter(_.source.isInstanceOf[LocalVariableVertex])
 
   def createVariables(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
