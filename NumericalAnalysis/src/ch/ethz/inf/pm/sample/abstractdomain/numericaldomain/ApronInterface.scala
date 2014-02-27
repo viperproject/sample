@@ -235,9 +235,11 @@ trait ApronInterface[T <: ApronInterface[T]]
       return state1.lub(state2)
     } else if (varType.isNumericalType) {
       var post = this.instantiateState()
+      var newEnv = env
       var oldApronPre = oldPre.instantiateState()
       if (!post.getEnvironment.equals(oldApronPre.getEnvironment)) {
         val env = unionOfEnvironments(post.getEnvironment, oldApronPre.getEnvironment)
+        newEnv = this.env union oldPre.env
         post = post.changeEnvironmentCopy(domain, env, false)
         oldApronPre = oldApronPre.changeEnvironmentCopy(domain, env, false)
       }
@@ -249,7 +251,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
       // handle multiple tree expressions (due to HeapIdSetDomain expressions)
       val texprs = toTexpr1Intern(expr, post.getEnvironment)
-      val refinedPre =
+      val backwardAssignedState =
         if (texprs.size > 1) {
           var curState = new Abstract1(domain, oldApronPre.getEnvironment, true)
           for (e <- texprs) {
@@ -262,8 +264,18 @@ trait ApronInterface[T <: ApronInterface[T]]
           throw new ApronException("Empty expression set created")
         }
 
-      val result = factory(Some(refinedPre), domain, env = env)
-      result
+      // LHS summary case
+      if (!variable.representsSingleVariable()) {
+        backwardAssignedState.join(domain, post)
+      }
+
+      // RHS summary variables case: Not very precise but sound fallback
+      val rightSummaryNodes = (expr.ids filter ( !_.representsSingleVariable() )) - variable
+      if (!rightSummaryNodes.isEmpty) {
+        return this.setToTop(variable)
+      }
+
+      factory(Some(backwardAssignedState), domain, env = newEnv)
     } else this
     resultState
   }
@@ -420,7 +432,6 @@ trait ApronInterface[T <: ApronInterface[T]]
     }
 
     expr match {
-
       // Boolean variables
       case x: Identifier =>
         // ApronInterface used to assume x != 0 here, which it struggles
@@ -430,6 +441,11 @@ trait ApronInterface[T <: ApronInterface[T]]
         assume(BinaryArithmeticExpression(x, Constant("1", x.typ, x.pp), ArithmeticOperator.==))
       case NegatedBooleanExpression(x: Identifier) =>
         assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
+
+      // Sets of boolean variables
+      case ids: MaybeHeapIdSetDomain[_] =>
+        if (ids.isBottom || ids.isTop) return this
+        Lattice.bigLub(ids.ids map (id => assume(id)))
 
       // And, Or, De-Morgan, Double Negation
       case BinaryBooleanExpression(left, right, op, typ) => op match {
