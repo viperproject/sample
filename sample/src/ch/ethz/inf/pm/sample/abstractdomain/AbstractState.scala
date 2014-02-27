@@ -1175,27 +1175,31 @@ case class AbstractState[
 
   override def widening(other: AbstractState[N, H, I]): AbstractState[N, H, I] = wideningWithReplacement(other)._1
 
-  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): AbstractState[N, H, I] = {
-    if(isBottom) return this
+  def createNonDeterminismSource(wrapperTyp: Type, pp: ProgramPoint, summary: Boolean): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
 
-    // dispatch creation of identifier to heap domain
-    val (nonDetId, newHeap, rep) = domain.heap.createNonDeterminismSource(typ, pp, summary)
-    Predef.assert(nonDetId.ids.size == 1)
-    val heapIdCreatedState = domain.factory(domain.semantic.merge(rep), newHeap)
+    // Allocate non-determinism identifier in heap domain
+    val (nonDetId, newHeap) = domain.heap.createNonDeterminismSource(wrapperTyp, pp, summary)
+    val heapIdCreatedState = domain.factory(domain.semantic, newHeap)
 
-    // create a corresponding numerical variable
-    val varCreatedState = HeapIdSetFunctionalLifting.applyToSetHeapId(heapIdCreatedState, nonDetId, heapIdCreatedState.createVariable(_, typ))
+    // Create a corresponding variable (in all domains)
+    val varCreatedState = heapIdCreatedState.createVariable(nonDetId, wrapperTyp)
 
-    // TODO: fix this, simply return single identifier from createNonDeterminismSource, then we dont have to do this
-    val nonDetIdF = varCreatedState.heap.getNonDeterminismSource(pp, typ)
+    // Ugly assumptions about wrapper type (no access to TouchType here)
+    Predef.assert(wrapperTyp.possibleFields.size == 1)
+    val valueField = wrapperTyp.possibleFields.head
 
+    // Create variables for inner value field
+    val (fieldIds, _, _) = varCreatedState.heap.getFieldIdentifier(nonDetId, valueField.getName, valueField.typ, valueField.pp)
+    val fieldCreatedState = HeapIdSetFunctionalLifting.applyToSetHeapId(varCreatedState,
+      fieldIds, varCreatedState.createVariable(_, valueField.typ))
 
-    factory(varCreatedState, new ExpressionSet(typ).add(nonDetIdF))
+    factory(fieldCreatedState, ExpressionSet(nonDetId))
   }
 
   def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): AbstractState[N, H, I] = {
     val nonDetId = domain.heap.getNonDeterminismSource(pp, typ)
-    val idExpr = new ExpressionSet(nonDetId.typ).add(nonDetId)
+    val idExpr = ExpressionSet(nonDetId)
     setExpression(idExpr)
   }
 }

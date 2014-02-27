@@ -34,6 +34,7 @@ sealed trait ProgramPointHeapIdentifier
 
   override def extractField(h: ProgramPointHeapIdentifier, s: String, t: Type): ProgramPointHeapIdentifier = h match {
     case x: SimpleProgramPointHeapIdentifier => new FieldAndProgramPoint(x, s, t)
+    case x: NonDeterminismSourceHeapId => new FieldAndProgramPoint(x, s, t)
     case x: ParameterHeapIdentifier => new FieldAndProgramPoint(x, s, t)
     case x: StaticProgramPointHeapIdentifier => new FieldAndProgramPoint(x, s, t)
     case x: UnsoundParameterHeapIdentifier => new FieldAndProgramPoint(x, s, t)

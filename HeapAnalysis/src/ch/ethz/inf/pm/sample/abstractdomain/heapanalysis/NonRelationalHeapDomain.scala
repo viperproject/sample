@@ -1164,12 +1164,13 @@ trait AbstractNonRelationalHeapDomain[
   }
 
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint,
-                                 summary: Boolean): (HeapIdSetDomain[I], H, Replacement) = {
+                                 summary: Boolean): (I, H) = {
     val nondetId = dom.createNonDeterminismSource(typ, pp, summary)
-    (cod.convert(nondetId), this.asInstanceOf[H], new Replacement())
+    (nondetId, this)
   }
 
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = {
+    val allIds = ids
     val matchingIds = ids collect { case id@NonDeterminismSourceHeapId(_, idPP, _) if pp == idPP => id }
     if (matchingIds.size != 1) {
       throw new IllegalStateException(s"Non-deterministic source for $pp not found on heap")
@@ -1726,17 +1727,15 @@ case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]
   }
 
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint,
-                                 summary: Boolean): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (ids1, heap1, rep1) = this._1.createNonDeterminismSource(typ, pp, summary)
-    val (ids2, heap2, rep2) = this._2.createNonDeterminismSource(typ, pp, summary)
+                                 summary: Boolean): (I, NonRelationalMayAndMustHeapDomain[I]) = {
+    val (id1, heap1) = this._1.createNonDeterminismSource(typ, pp, summary)
 
-    (ids1.lub(ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
+    (id1, new NonRelationalMayAndMustHeapDomain[I](heap1, _2))
   }
 
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = {
-    val ids1 = this._1.getNonDeterminismSource(pp, typ)
-    //val ids2 = this._2.getNonDeterminismSource(pp, typ)
-   ids1
+    val id1 = this._1.getNonDeterminismSource(pp, typ)
+    id1
   }
 }
 
