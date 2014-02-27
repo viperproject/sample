@@ -3,23 +3,22 @@ package ch.ethz.inf.pm.sample.test
 import semper.sil.testing.{AnnotatedTestInput, AbstractOutput, SystemUnderTest, AnnotationBasedTestSuite}
 import java.nio.file.Path
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{ReportingParams, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchProgramPoint
 
 abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
 
   def systemsUnderTest: Seq[SystemUnderTest] = Seq(TouchAnalysisUnderTest)
 
   case class SampleOutput(message: SampleMessage) extends AbstractOutput {
-    lazy val PPPattern = """PP\(.*:(\d+)\.\d+(_it.*)?\)""".r
-
     def isSameLine(file: Path, lineNr: Int): Boolean = {
-      val pp = message.pp.toString
-      val matchedLine =
-        pp match {
-          case PPPattern(ppline, it) => ppline.toInt
+      val messageLine =
+        message.pp match {
+          case TouchProgramPoint(_, Some(lineColumnPos), customPos) =>
+            lineColumnPos.line
           case _ => sys.error( "SampleError PP does not have expected structure")
         }
-      matchedLine == lineNr
+      messageLine == lineNr
     }
 
     def fullId: String = message.id
@@ -37,5 +36,7 @@ abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
 
   def runOnFile(file: String): Seq[SampleMessage]
 
-  def touchBoostOptions: TouchAnalysisParameters = TouchAnalysisParameters()
+  def touchBoostOptions: TouchAnalysisParameters = {
+    TouchAnalysisParameters(reporting = ReportingParams(silent = true))
+  }
 }
