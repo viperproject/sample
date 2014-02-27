@@ -35,13 +35,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     if (variable.typ.isObject) {
       var result = super.createVariableForArgument(variable, typ)
 
-      val edgeVerticesToPredDefId = result.abstractHeap.localVarVertices.flatMap(localVarVertex => {
-        localVarVertex.neededEdgeFieldsAndTypes.flatMap({ case (field, fieldTyp) =>
-          result.abstractHeap.possibleTargetVertices(fieldTyp).map(targetVertex => {
-            val predDefId = PredicateDefinition.makeId()
-            Set(localVarVertex, targetVertex) -> predDefId
-          })
-        })
+      val edgeVerticesToPredDefId = result.abstractHeap.localVarEdges.map(edge => {
+        val predDefId = PredicateDefinition.makeId()
+        Set(edge.source, edge.target) -> predDefId
       }).toMap
 
       val predDefIds = edgeVerticesToPredDefId.values
@@ -151,8 +147,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                     val newPredicateDef = if (path.target == NullVertex)
                       predDef.bottom()
                     else if (id.typ.isObject) {
-                      val nestedPredDefId = PredicateDefinition.makeId()
-                      val nestedPredDef = PredicateDefinition().top()
+                      // val nestedPredDefId = PredicateDefinition.makeId()
+                      // val nestedPredDef = PredicateDefinition().top()
+                      // TODO: Currently assumes that the predicate is always recursive
+                      val nestedPredDefId = predDefId
+                      val nestedPredDef = predDef
                       result = result.map(_.assign(nestedPredDefId, nestedPredDef))
                       predDef.addRefFieldPerm(field, nestedPredDefId)
                     } else {
