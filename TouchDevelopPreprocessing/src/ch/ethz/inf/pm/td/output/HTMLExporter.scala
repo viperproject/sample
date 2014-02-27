@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
+import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchProgramPoint, TouchCompiler}
 import ch.ethz.inf.pm.td.parser.{Script, IdPositional, PrettyPrinter}
 import ch.ethz.inf.pm.sample.reporting.{SampleError, Reporter}
 
@@ -89,41 +89,32 @@ class HTMLExporter extends ErrorExporter {
       </h2>
       res += "<pre>" +
         PrettyPrinter.applyWithPPPrinter(script)({
-          (curPP: IdPositional, pretty: String) =>
-            curPP.getId match {
-              case None => pretty
-              case Some(pos) =>
-                "<span id='" + pos.toString + "'>" +
+          (curPositional: IdPositional, pretty: String) =>
+            val curPP = CFGGenerator.makekTouchProgramPoint(id, curPositional)
+                "<span id='" + curPP.fullPosString + "'>" +
                   (for (SampleError(errorTypeId, message, pp) <- Reporter.seenErrors) yield {
                     pp match {
-                      case TouchProgramPoint(xScript, xPos) =>
-                        if (xScript.equals(id) && xPos.equals(pos))
-                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString
-                        else ""
+                      case touchPP: TouchProgramPoint if touchPP == curPP =>
+                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
                       case _ => ""
                     }
                   }).mkString("") +
                   (for ((message, pp) <- Reporter.seenBottom) yield {
                     pp match {
-                      case TouchProgramPoint(xScript, xPos) =>
-                        if (xScript.equals(id) && xPos.equals(pos))
-                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString
-                        else ""
+                      case touchPP: TouchProgramPoint if touchPP == curPP =>
+                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
                       case _ => ""
                     }
                   }).mkString("") +
                   (for ((message, pp) <- Reporter.seenImprecision) yield {
                     pp match {
-                      case TouchProgramPoint(xScript, xPos) =>
-                        if (xScript.equals(id) && xPos.equals(pos))
-                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString
-                        else ""
+                      case touchPP: TouchProgramPoint if touchPP == curPP =>
+                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
                       case _ => ""
                     }
                   }).mkString("") +
                   pretty + "</span>"
-            }
-        })+"</pre>"
+        }) + "</pre>"
     }
 
     res += """
