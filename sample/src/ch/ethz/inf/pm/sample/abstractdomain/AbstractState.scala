@@ -190,7 +190,27 @@ case class ExpressionSet(
 object ExpressionSet {
   /** Creates a singleton `ExpressionSet` from a given expression. */
   def apply(exp: Expression): ExpressionSet =
-    new ExpressionSet(exp.typ).add(exp)
+    apply(Seq(exp))
+
+  def apply(exprs: Seq[Expression]): ExpressionSet = {
+    require(!exprs.isEmpty)
+
+    var es = ExpressionSet()
+    for (exp <- exprs) {
+      es = es.add(exp)
+    }
+    es
+  }
+
+  def flatten(exprSets: Seq[ExpressionSet]): ExpressionSet = {
+    require(!exprSets.isEmpty)
+
+    var es = ExpressionSet()
+    for (set <- exprSets) {
+      es = es.add(set)
+    }
+    es
+  }
 
   /** Creates an empty `ExpressionSet` whose type is top. */
   def apply(): ExpressionSet =
