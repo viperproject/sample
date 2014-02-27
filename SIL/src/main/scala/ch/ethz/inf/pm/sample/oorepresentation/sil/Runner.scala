@@ -39,14 +39,11 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     SystemParameters.wideningLimit = 3
     SystemParameters.compiler = compiler
 
-    NullVertex.typ = compiler.refType
-
     // Set up native methods
     SystemParameters.resetNativeMethodsSemantics()
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics())
 
     // Experimental
-    ValueDrivenHeapProperty.materializeOnlyAcyclic = false
     PredicateDefinition.resetId()
 
     // Analyze
