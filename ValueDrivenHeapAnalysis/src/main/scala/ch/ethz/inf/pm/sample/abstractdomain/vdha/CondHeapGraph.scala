@@ -106,7 +106,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
       case apId: AccessPathIdentifier => apId
     }
 
-    // If there are no AccessPathIdentifers, just return this
+    // If there are no AccessPathIdentifiers, just return this
     accessPathIds.foldLeft[CondHeapGraphSeq[S]](this)((condHeaps, apId) => {
       condHeaps.intersect(evalAccessPathId(apId))
     })
