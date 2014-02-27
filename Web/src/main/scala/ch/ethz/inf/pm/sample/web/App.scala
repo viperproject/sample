@@ -41,7 +41,7 @@ class App extends ScalatraServlet {
   )
 
   /** The runner using which analyses are performed. */
-  var analysisRunner: AnalysisRunner[_] = TwoPhasePredicateAnalysisRunner
+  var analysisRunner: AnalysisRunner[_] = OnePhasePredicateAnalysisRunner
 
   /** The currently active analysis result that the user can inspect. */
   var resultOption: Option[AnalysisResult[_]] = None

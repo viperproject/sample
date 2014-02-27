@@ -25,17 +25,20 @@ case class PredicateInstancesDomain(
       env: Set[Identifier]) =
     PredicateInstancesDomain(state, domain, isPureBottom, env)
 
-  def isCertainlyFolded(id: Identifier): Boolean =
+  def isFolded(id: Identifier): Boolean =
     areEqual(id, Folded) == BooleanDomain.domTrue
 
-  def isCertainlyUnfolded(id: Identifier): Boolean =
+  def isUnfolded(id: Identifier): Boolean =
     areEqual(id, Unfolded) == BooleanDomain.domTrue
 
-  def certainlyFoldedIds: Set[Identifier] =
-    env.filter(isCertainlyFolded)
+  def isFoldedOrUnfolded(id: Identifier): Boolean =
+    isFolded(id) || isUnfolded(id)
 
-  def certainlyUnfoldedIds: Set[Identifier] =
-    env.filter(isCertainlyUnfolded)
+  def foldedIds: Set[Identifier] =
+    env.filter(isFolded)
+
+  def unfoldedIds: Set[Identifier] =
+    env.filter(isUnfolded)
 }
 
 object PredicateInstancesDomain {

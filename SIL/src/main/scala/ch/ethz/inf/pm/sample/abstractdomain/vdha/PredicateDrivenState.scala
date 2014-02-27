@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.oorepresentation.sil.SilCompiler
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, SilCompiler}
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
@@ -61,117 +61,111 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   override def getFieldValue(id: AccessPathIdentifier) = {
     val originalResult = super.getFieldValue(id)
+    val receiverPath = id.path.dropRight(1)
+    val field = id.path.last
 
-    if (id.path.size == 1)
-    // No need to make any changes to predicate definitions and instances
-    // when we only access a variable
-      originalResult
-    else {
-      var result: PredicateDrivenHeapState[S] =
-        CondHeapGraph[EdgeStateDomain[S], T](originalResult)
-          .evalExp(AccessPathIdentifier(id.path.dropRight(1))(refType)).mapCondHeaps(condHeap => {
-          val path = condHeap.takenPath(id.path.dropRight(1))
-          val field = id.path.last
+    assert(receiverPath.size == 1, "currently only support obj.field")
 
-          assert(path.edges.size == 1, "currently only support paths of length 1")
+    var result: T = CondHeapGraph[EdgeStateDomain[S], T](originalResult)
+      .evalExp(id).mapCondHeaps(condHeap => {
+        val recvEdge = condHeap.takenPath(id.objPath).edges.head
 
-          val predState = path.edges.head.state.valueState.predicateState
-          val predDefs = predState.definitions
-          val predInsts = predState.instances
+        val recvPredState = recvEdge.state.valueState.predicateState
+        val recvPredDefs = recvPredState.definitions
+        val recvPredInsts = recvPredState.instances
 
-          val availPredInstEdgeLocalIds = predInsts.targetEdgeLocalIds
-            .filter(predInstEdgeLocalId => {
-            predInsts.isCertainlyFolded(predInstEdgeLocalId) ||
-              predInsts.isCertainlyUnfolded(predInstEdgeLocalId)
-          })
+        val foldedPredInstEdgeLocalIds = recvPredInsts.targetEdgeLocalIds.filter(recvPredInsts.isFolded)
+        val unfoldedPredInstEdgeLocalIds = recvPredInsts.targetEdgeLocalIds.filter(recvPredInsts.isUnfolded)
+        val availPredInstEdgeLocalIds = foldedPredInstEdgeLocalIds ++ unfoldedPredInstEdgeLocalIds
 
-          if (availPredInstEdgeLocalIds.isEmpty) {
-            println("there needs to be either a folded or unfolded predicate")
-            Seq(condHeap)
-          } else {
-            val (foldedPredInstEdgeLocalIds, unfoldedPredInstEdgeLocalIds) = availPredInstEdgeLocalIds
-              .partition(predInsts.isCertainlyFolded(_))
+        if (availPredInstEdgeLocalIds.isEmpty) {
+          println("there needs to be either a folded or unfolded predicate")
+          Seq(condHeap)
+        } else {
+          val availPredInstIds = availPredInstEdgeLocalIds.map(edgeLocalIdToPredInstId)
+          val foldedPredInstIds = foldedPredInstEdgeLocalIds.map(edgeLocalIdToPredInstId)
+          val unfoldedPredInstIds = unfoldedPredInstEdgeLocalIds.map(edgeLocalIdToPredInstId)
 
-            val availablePredInstIds = availPredInstEdgeLocalIds.map(predInstEdgeLocalId => {
-              VariableIdentifier(predInstEdgeLocalId.field)(PredicateInstanceType)
-            })
+          /* assert(findPerm(availPredInstIds),
+            "there may at least be one predicate instance with the permission") */
 
-            val foldedPredInstIds = foldedPredInstEdgeLocalIds.map(predInstEdgeLocalId => {
-              VariableIdentifier(predInstEdgeLocalId.field)(PredicateInstanceType)
-            })
-
-            val unfoldedPredInstIds = unfoldedPredInstEdgeLocalIds.map(predInstEdgeLocalId => {
-              VariableIdentifier(predInstEdgeLocalId.field)(PredicateInstanceType)
-            })
-
-            def alreadyHasPermission(predInstId: VariableIdentifier): Boolean = {
-              val predDef = predDefs.get(predInstId.toPredDefId)
+          def findPerm(predInstIds: Set[VariableIdentifier]): Option[VariableIdentifier] = {
+            predInstIds.find(predInstId => {
+              val predDef = recvPredDefs.get(predInstId.toPredDefId)
               if (id.typ.isObject)
                 predDef.refFieldPerms.map.contains(field)
               else
                 predDef.valFieldPerms.value.contains(field)
-            }
+            })
+          }
 
-            assert(availablePredInstIds.count(alreadyHasPermission) <= 1,
-              "there may at least be one predicate instance with the permission")
+          findPerm(unfoldedPredInstIds) match {
+            case Some(unfoldedPredicateInstId) =>
+              Seq(condHeap) // Nothing to do
+            case None => {
+              var result = condHeap
 
-            unfoldedPredInstIds.find(alreadyHasPermission) match {
-              case Some(unfoldedPredicateInstId) =>
-                Seq(condHeap) // Nothing to do
-              case None =>
-                foldedPredInstIds.find(alreadyHasPermission) match {
-                  case Some(foldedPredInstId) =>
-                    val predDefId = foldedPredInstId.toPredDefId
-                    val predDef = predDefs.get(predDefId)
-                    val predInstAccPathId = AccessPathIdentifier(id.path.dropRight(1), foldedPredInstId)
+              val (recvPredInstId, hasPerm) = findPerm(foldedPredInstIds) match {
+                case Some(foldedPredInstId) => (foldedPredInstId, true)
+                case None => (availPredInstIds.head, false)
+              }
+              val recvPredDefId = recvPredInstId.toPredDefId
+              var recvPredDef = recvPredDefs.get(recvPredDefId)
 
-                    var result = condHeap.evalAccessPathId(id)
+              // Unfold
+              result = result.mapEdges(e => {
+                if (e.target == recvEdge.target) {
+                  val edgeLocId = EdgeLocalIdentifier(List(e.field), recvPredInstId)
+                  e.state.assign(edgeLocId, Unfolded)
+                } else e.state
+              })
 
-                    // Should unfold all nested predicates
-                    if (id.typ.isObject) {
-                      val nestedPredDefId = predDef.refFieldPerms.get(id.path.last).value.head.asInstanceOf[VariableIdentifier]
-                      val nestedPredInstId = nestedPredDefId.toPredInstId
-                      val nestedPredInstAccPathId = AccessPathIdentifier(id.path, nestedPredInstId)
-                      result = result.assignField(nestedPredInstAccPathId, Folded)
-                    }
-
-                    result = result.assignField(predInstAccPathId, Unfolded)
-                    result
-                  case None =>
-                    val predInstId = availablePredInstIds.head
-                    val predDefId = predInstId.toPredDefId
-                    val predDef = predDefs.get(predDefId)
-
-                    var result = CondHeapGraphSeq(Seq(condHeap))(condHeap.lattice)
-
-                    val newPredicateDef = if (path.target == NullVertex)
-                      predDef.bottom()
-                    else if (id.typ.isObject) {
-                      // val nestedPredDefId = PredicateDefinition.makeId()
-                      // val nestedPredDef = PredicateDefinition().top()
-                      // TODO: Currently assumes that the predicate is always recursive
-                      val nestedPredDefId = predDefId
-                      val nestedPredDef = predDef
-                      result = result.map(_.assign(nestedPredDefId, nestedPredDef))
-                      predDef.addRefFieldPerm(field, nestedPredDefId)
-                    } else {
-                      predDef.addValFieldPerm(field)
-                    }
-
-                    val predInstAccPathId = AccessPathIdentifier(id.path.dropRight(1), predInstId)
-                    result = result
-                      .map(_.assign(predDefId, newPredicateDef))
-                      .assignField(predInstAccPathId, Unfolded)
-                    result
+              // Add permission if necessary
+              if (!hasPerm) {
+                recvPredDef = if (recvEdge.target == NullVertex)
+                  recvPredDef.bottom()
+                else if (id.typ.isObject) {
+                  // val nestedPredDefId = PredicateDefinition.makeId()
+                  // val nestedPredDef = PredicateDefinition().top()
+                  // TODO: Currently assumes that the predicate is always recursive
+                  val nestedPredDefId = recvPredDefId
+                  val nestedPredDef = recvPredDef
+                  result = result.map(_.assign(nestedPredDefId, nestedPredDef))
+                  recvPredDef.addRefFieldPerm(field, nestedPredDefId)
+                } else {
+                  recvPredDef.addValFieldPerm(field)
                 }
+
+                // Assign the new predicate definition
+                result = result.map(state => {
+                  state.assign(recvPredInstId, recvPredDef)
+                })
+              }
+
+              // Add folded nested predicate instances
+              if (id.typ.isObject) {
+                // TODO: Should add ALL nested predicate instances
+                val nestedPredDefId = recvPredDef.refFieldPerms.get(id.path.last).value.head.asInstanceOf[VariableIdentifier]
+                val nestedPredInstId = nestedPredDefId.toPredInstId
+
+                result = result.mapEdges(e => {
+                  if (e.source == recvEdge.target) {
+                    val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredInstId)
+                    val equality = BinaryArithmeticExpression(edgeLocId, Folded, ArithmeticOperator.==, BoolType)
+                    e.state.createVariable(edgeLocId).assume(equality)
+                  } else e.state
+                })
+              }
+
+              Seq(result)
             }
           }
-        }).join
+        }
+      }).join
 
-      // We've lost the expression due to the assignField calls
-      result = result.setExpression(originalResult.expr)
-      result
-    }
+    // We've lost the expression due to the assignField calls
+    result = result.setExpression(originalResult.expr)
+    result
   }
 
   override protected def createObject(typ: Type) = {
@@ -232,6 +226,12 @@ object PredicateDrivenHeapState {
   }
 
   def refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
+
+  def edgeLocalIdToPredInstId(edgeLocalId: EdgeLocalIdentifier): VariableIdentifier = {
+    require(edgeLocalId.typ == PredicateInstanceType,
+      "edge-local identifier must have a predicate instance type")
+    VariableIdentifier(edgeLocalId.field)(PredicateInstanceType)
+  }
 }
 
 case class PredicateDomain(
