@@ -17,7 +17,7 @@ case class InverseSetCharacters(
 }
 
 class SurelyContainedCharacters
-  (val map:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters], val isBottom:Boolean = false, val isTop:Boolean = false)
+  (val map:Map[Identifier, InverseSetCharacters] = Map.empty[Identifier, InverseSetCharacters], override val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[InverseSetCharacters, SurelyContainedCharacters]
   with SimplifiedSemanticDomain[SurelyContainedCharacters] {
 

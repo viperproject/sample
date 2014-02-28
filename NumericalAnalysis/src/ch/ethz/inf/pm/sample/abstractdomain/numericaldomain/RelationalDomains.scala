@@ -30,7 +30,7 @@ case class UpperBoundRightPart(
 }
 
 class UpperBound(val map:Map[Identifier, UpperBoundRightPart] = Map.empty[Identifier, UpperBoundRightPart],
-                 val isBottom:Boolean = false,
+                 override val isBottom:Boolean = false,
                  val isTop:Boolean = false)
   extends BoxedDomain[UpperBoundRightPart, UpperBound]
   with RelationalNumericalDomain[UpperBound] {

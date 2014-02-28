@@ -15,7 +15,7 @@ trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends Sim
  */
 class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
                                                           val map:Map[Identifier, T] = Map.empty[Identifier, T],
-                                                          val isBottom:Boolean = false,
+                                                          override val isBottom:Boolean = false,
                                                           val isTop:Boolean = false)
   extends BoxedDomain[T,NonrelationalStringDomain[T]]
   with StringDomain[T,NonrelationalStringDomain[T]] {

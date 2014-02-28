@@ -73,7 +73,7 @@ class SuffixDomain extends Lattice[SuffixDomain]
 }
 
 class Suffix
-  (val map: Map[Identifier, SuffixDomain] = Map.empty[Identifier, SuffixDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
+  (val map: Map[Identifier, SuffixDomain] = Map.empty[Identifier, SuffixDomain], override val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[SuffixDomain, Suffix] with SimplifiedSemanticDomain[Suffix]
 {
 

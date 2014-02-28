@@ -9,7 +9,9 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
+trait SemanticDomain[T <: SemanticDomain[T]]
+  extends Lattice[T]
+  with LatticeHelpers[T] { this: T =>
 
   /**
   For each set of identifiers in the domain of f, this method merges these identifiers
