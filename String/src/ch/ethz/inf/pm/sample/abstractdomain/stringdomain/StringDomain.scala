@@ -213,12 +213,5 @@ trait NumericWithStringDomain[
 
   def initialStr: S = _2
 
-  // TODO: linearization order problem.
-  // It is not convenient here: NumericalDomain (resp. SimplifiedSemanticDomain) defines
-  // dummy methods for backward access, but we want to use the ones form the product domain
-  override def backwardAccess(field: Identifier): T = super[SemanticCartesianProductDomain].backwardAccess(field)
-  override def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression): T = super[SemanticCartesianProductDomain].backwardAssign(oldPreState, variable, expr)
-
-
   override def toString = "Numeric:\n"+ToStringUtilities.indent(_1.toString)+"\nString:\n"+ToStringUtilities.indent(_2.toString)
 }

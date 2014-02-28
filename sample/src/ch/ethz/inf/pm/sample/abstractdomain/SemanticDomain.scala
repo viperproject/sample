@@ -223,9 +223,9 @@ trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends Semanti
     return (this.createVariable(variable, typ), result);
   }
   
-  override def access(field : Identifier) : T = this.asInstanceOf[T]
+  override def access(field: Identifier): T = this
 
-  override def backwardAccess(field : Identifier) : T = throw new SymbolicSemanticException("Backward analysis not supported")
+  override def backwardAccess(field: Identifier) : T = throw new SymbolicSemanticException("Backward analysis not supported")
 
   override def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) : T = throw new SymbolicSemanticException("Backward analysis not supported")
 }
