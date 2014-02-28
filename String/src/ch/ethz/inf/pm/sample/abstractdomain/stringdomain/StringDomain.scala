@@ -209,6 +209,8 @@ trait NumericWithStringDomain[
   extends SemanticCartesianProductDomain[N, S, T]
   with NumericalDomain[T] { this: T =>
 
+  override def _2canHandle(id: Identifier) = id.typ.isStringType
+
   def initialNum: N = _1
 
   def initialStr: S = _2
