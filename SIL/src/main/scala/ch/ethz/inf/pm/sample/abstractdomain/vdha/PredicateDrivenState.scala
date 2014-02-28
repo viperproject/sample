@@ -62,13 +62,16 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   override def getFieldValue(id: AccessPathIdentifier) = {
     val originalResult = super.getFieldValue(id)
     val receiverPath = id.path.dropRight(1)
+    val receiverId = AccessPathIdentifier(receiverPath)(refType)
     val field = id.path.last
 
     assert(receiverPath.size == 1, "currently only support obj.field")
 
+
+
     var result: T = CondHeapGraph[EdgeStateDomain[S], T](originalResult)
-      .evalExp(id).mapCondHeaps(condHeap => {
-        val recvEdge = condHeap.takenPath(id.objPath).edges.head
+      .evalExp(receiverId).mapCondHeaps(condHeap => {
+        val recvEdge = condHeap.takenPath(receiverId.path).edges.head
 
         val recvPredState = recvEdge.state.valueState.predicateState
         val recvPredDefs = recvPredState.definitions
@@ -125,11 +128,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                 recvPredDef = if (recvEdge.target == NullVertex)
                   recvPredDef.bottom()
                 else if (id.typ.isObject) {
-                  // val nestedPredDefId = PredicateDefinition.makeId()
-                  // val nestedPredDef = PredicateDefinition().top()
-                  // TODO: Currently assumes that the predicate is always recursive
-                  val nestedPredDefId = recvPredDefId
-                  val nestedPredDef = recvPredDef
+                  val nestedPredDefId = PredicateDefinition.makeId()
+                  val nestedPredDef = PredicateDefinition().top()
+                  result = result.map(_.createVariable(nestedPredDefId))
+                  // Always assume that the predicate instance is recursive
+                  // val nestedPredDefId = recvPredDefId
+                  // val nestedPredDef = recvPredDef
                   result = result.map(_.assign(nestedPredDefId, nestedPredDef))
                   recvPredDef.addRefFieldPerm(field, nestedPredDefId)
                 } else {
@@ -138,7 +142,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
                 // Assign the new predicate definition
                 result = result.map(state => {
-                  state.assign(recvPredInstId, recvPredDef)
+                  state.assign(recvPredDefId, recvPredDef)
                 })
               }
 
