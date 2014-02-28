@@ -807,6 +807,30 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
     })
   }
 
+  /** Sets given variable/ids to top
+    * Implementations can assume this state is non-bottom
+    */
+  def setVariableToTop(varExpr: Expression): S
+
+  def setVariableToTop(varSet: ExpressionSet): S = {
+    unlessBottom(varSet, {
+      val result = Lattice.bigLub(varSet.getSetOfExpressions.map(setVariableToTop))
+      result.removeExpression()
+    })
+  }
+
+  /** Removes the given variable.
+    * Implementations can assume this state is non-bottom
+    */
+  def removeVariable(varExpr: Expression): S
+
+  def removeVariable(varSet: ExpressionSet): S = {
+    unlessBottom(varSet, {
+      val result = Lattice.bigLub(varSet.getSetOfExpressions.map(removeVariable))
+      result.removeExpression()
+    })
+  }
+
   /** Assigns an expression to a field.
     * Implementations can already assume that this state is non-bottom.
     */

@@ -590,8 +590,8 @@ trait ValueDrivenHeapState[
   def before(pp: ProgramPoint): T = this
 
   def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
-  def setVariableToTop(x: ExpressionSet): T = ???
-  def removeVariable(x: ExpressionSet): T = ???
+  def setVariableToTop(x: Expression): T = ???
+  def removeVariable(x: Expression): T = ???
   def throws(t: ExpressionSet): T = ???
   def pruneUnreachableHeap(): T = ???
   def factory(): T = ???
