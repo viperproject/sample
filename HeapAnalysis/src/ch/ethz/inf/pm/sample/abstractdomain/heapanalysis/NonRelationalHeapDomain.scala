@@ -104,7 +104,7 @@ case class TupleIdSetDomain[I <: HeapIdentifier[I]](
 
 class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
                                                    val map:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
-                                                   val isBottom:Boolean = false,
+                                                   override val isBottom:Boolean = false,
                                                    val isTop:Boolean = false)
   extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]]
   with LatticeWithReplacement[HeapEnv[I]] {
@@ -309,7 +309,7 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
 
 class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
                                                        val map:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
-                                                       val isBottom:Boolean = false,
+                                                       override val isBottom:Boolean = false,
                                                        val isTop: Boolean = false)
     extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]]
     with LatticeWithReplacement[VariableEnv[I]] {

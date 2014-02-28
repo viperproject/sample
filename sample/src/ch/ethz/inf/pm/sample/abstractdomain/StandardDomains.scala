@@ -17,7 +17,8 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara, Lucas Brutschy
  */
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
-  extends Lattice[T] { this: T =>
+  extends Lattice[T]
+  with LatticeHelpers[T] { this: T =>
 
   def isBottom: Boolean
 
@@ -81,7 +82,7 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
   }
 
 
-  /**
+ /**
    * Computes the lower bound between two states. It is defined by:
    * this \sqcap other = [k -> this(k) \sqcap other(k) : k \in dom(this) \cap dom(other)]
    * @param other The other operand
@@ -93,6 +94,14 @@ trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
     if (isTop) return other
     if (other.isTop) return this
     lift(other, _ ++ _, _ glb _)
+  }
+
+  override def strictGlb(other: T): T = {
+    if (isBottom) return this
+    if (other.isBottom) return other
+    if (isTop) return other
+    if (other.isTop) return this
+    lift(other, _ intersect _, _ glb _)
   }
 
   /**
@@ -172,7 +181,7 @@ object FunctionalDomain {
   final case class Default[K, V <: Lattice[V]](
       map: Map[K, V] = Map.empty[K, V],
       isTop: Boolean = false,
-      isBottom: Boolean = false,
+      override val isBottom: Boolean = false,
       defaultValue: V)
     extends FunctionalDomain[K, V, Default[K, V]] {
 
@@ -534,6 +543,8 @@ trait CartesianProductDomain[
   def lub(other: T): T = factory(_1.lub(other._1), _2.lub(other._2))
 
   def glb(other: T): T = factory(_1.glb(other._1), _2.glb(other._2))
+
+  override def strictGlb(other: T): T = factory(_1.strictGlb(other._1), _2.strictGlb(other._2))
 
   def widening(other: T): T = factory(_1.widening(other._1), _2.widening(other._2))
 

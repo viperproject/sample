@@ -64,6 +64,14 @@ trait Lattice[T <: Lattice[T]] { this: T =>
    * @return true iff <code>this</code> is less or equal than <code>r</code>
    */
   def lessEqual(r: T): Boolean
+
+
+  /** Glb as implemented in many domains is not "strict" enough in that
+    * it does not remove identifiers uncommon to `this` and `other`. Not pretty,
+    * but we can't just add another operation to the domain implementations since
+    * we won't have access to those and we also want to preserve the old behavior.
+    */
+  def strictGlb(other: T): T = glb(other)
 }
 
 object Lattice {

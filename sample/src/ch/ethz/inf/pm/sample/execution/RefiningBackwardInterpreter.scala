@@ -90,7 +90,7 @@ trait RefiningBackwardInterpreter[S <: State[S]] extends Interpreter[S] {
       result
     }
 
-    private def safeGlb(pre: S, current: S): S = current.setExpression(pre.expr).glb(pre)
+    private def safeGlb(pre: S, current: S): S = current.setExpression(pre.expr).strictGlb(pre)
   }
 }
 
