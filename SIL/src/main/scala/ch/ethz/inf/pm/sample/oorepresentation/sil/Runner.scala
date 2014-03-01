@@ -179,8 +179,9 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
       firstExitDefs.map.filterKeys(firstEntryDefs.map.contains)
     })
 
-    val secondEntryStateCondHeap = CondHeapGraph[EdgeStateDomain[S], T](firstEntryState).map(state => {
+    val secondEntryStateCondHeap = CondHeapGraph[EdgeStateDomain[S], T](firstEntryState).mapEdges(edge => {
       var isBottom = false
+      val state = edge.state
 
       // TODO: Find a more concise way of altering the state
       val newState = state.copy(valueState = {
@@ -192,20 +193,21 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
               import PredicateInstancesDomain._
 
               var instances = state.valueState.predicateState.instances
-              val foldedInstIds = instances.foldedIds
+              val foldedPredInstIds = instances.foldedPredInstIds
               val nonRecursiveDefIds = secondEntryDefs.nonRecursiveIds
 
               // Auto-unfold every folded, non-recursive predicate instance
               // and remove the edge altogether if one of the folded predicate
               // instances has a false body
-              for (foldedInstId <- foldedInstIds) {
-                val predDefId = extractPredInstId(foldedInstId).toPredDefId
+              for (foldedPredInstId <- foldedPredInstIds) {
+                val predDefId = foldedPredInstId.toPredDefId
                 if (nonRecursiveDefIds.contains(predDefId)) {
                   val predDef = secondEntryDefs.get(predDefId)
                   if (predDef.isBottom) {
                     isBottom = true
                   } else {
-                    instances = instances.assign(foldedInstId, Unfolded)
+                    val edgeLocalId = EdgeLocalIdentifier(List(edge.field), foldedPredInstId)
+                    instances = instances.assign(edgeLocalId, Unfolded)
                   }
                 }
               }

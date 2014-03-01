@@ -77,21 +77,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val recvPredDefs = recvPredState.definitions
         val recvPredInsts = recvPredState.instances
 
-        val foldedPredInstEdgeLocalIds = recvPredInsts.targetEdgeLocalIds.filter(recvPredInsts.isFolded)
-        val unfoldedPredInstEdgeLocalIds = recvPredInsts.targetEdgeLocalIds.filter(recvPredInsts.isUnfolded)
-        val availPredInstEdgeLocalIds = foldedPredInstEdgeLocalIds ++ unfoldedPredInstEdgeLocalIds
+        val foldedPredInstIds = recvPredInsts.foldedPredInstIds
+        val unfoldedPredInstIds = recvPredInsts.unfoldedPredInstIds
+        val availPredInstIds = foldedPredInstIds ++ unfoldedPredInstIds
 
-        if (availPredInstEdgeLocalIds.isEmpty) {
+        if (availPredInstIds.isEmpty) {
           println("there needs to be either a folded or unfolded predicate")
           Seq(condHeap)
         } else {
-          val availPredInstIds = availPredInstEdgeLocalIds.map(edgeLocalIdToPredInstId)
-          val foldedPredInstIds = foldedPredInstEdgeLocalIds.map(edgeLocalIdToPredInstId)
-          val unfoldedPredInstIds = unfoldedPredInstEdgeLocalIds.map(edgeLocalIdToPredInstId)
-
-          /* assert(findPerm(availPredInstIds),
-            "there may at least be one predicate instance with the permission") */
-
           def findPerm(predInstIds: Set[VariableIdentifier]): Option[VariableIdentifier] = {
             predInstIds.find(predInstId => {
               val predDef = recvPredDefs.get(predInstId.toPredDefId)
