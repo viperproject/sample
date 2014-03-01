@@ -9,7 +9,7 @@ import semper.sil.{ast => sil}
 case class PredicateDefinitionsDomain(
     map: Map[Identifier, PredicateDefinition] = Map.empty[Identifier, PredicateDefinition],
     isTop: Boolean = false,
-    isBottom: Boolean = false,
+    override val isBottom: Boolean = false,
     defaultValue: PredicateDefinition = PredicateDefinition().top())
   extends BoxedDomain[PredicateDefinition, PredicateDefinitionsDomain]
   with SemanticDomain[PredicateDefinitionsDomain] {
@@ -181,8 +181,7 @@ object PredicateDefinition {
   }
 
   def extractPredInstId(id: Identifier): VariableIdentifier = id match {
-    case EdgeLocalIdentifier(accPath, field, typ) =>
-      VariableIdentifier(field)(typ)
+    case EdgeLocalIdentifier(accPath, field) => field.asInstanceOf[VariableIdentifier]
     case id @ AccessPathIdentifier(path) =>
       VariableIdentifier(path.last)(id.typ)
   }
@@ -201,7 +200,7 @@ final case class ValFieldPermDomain(
 final case class RefFieldPermDomain(
     map: Map[String, InverseSetDomain.Must[Identifier]] = Map.empty[String, InverseSetDomain.Must[Identifier]],
     isTop: Boolean = false,
-    isBottom: Boolean = false,
+    override val isBottom: Boolean = false,
     defaultValue: InverseSetDomain.Must[Identifier] = InverseSetDomain.Must[Identifier]().top())
   extends FunctionalDomain[String, InverseSetDomain.Must[Identifier], RefFieldPermDomain]
   with Lattice.Must[RefFieldPermDomain] {

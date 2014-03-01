@@ -235,7 +235,7 @@ object PredicateDrivenHeapState {
   def edgeLocalIdToPredInstId(edgeLocalId: EdgeLocalIdentifier): VariableIdentifier = {
     require(edgeLocalId.typ == PredicateInstanceType,
       "edge-local identifier must have a predicate instance type")
-    VariableIdentifier(edgeLocalId.field)(PredicateInstanceType)
+    edgeLocalId.field.asInstanceOf[VariableIdentifier]
   }
 }
 
