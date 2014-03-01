@@ -141,7 +141,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         val targetVertex = path.target.asInstanceOf[HeapVertex]
 
         // Rename edge local identifier that corresponds to the access path
-        val renameFrom = cond.edgeLocalIds.filter(_.field == field).toList
+        val renameFrom = cond.edgeLocalIds.filter(_.field.getName == field).toList
         assert(renameFrom.size == 1, "there should be exactly one identifier to rename")
         cond = cond.rename(renameFrom, List(ap))
 
@@ -258,13 +258,16 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
 
     condHeapAssigned = condHeapAssigned.mapEdges(edge => {
       var newState = edge.state
+      // TODO: Hard-coding VariableIdentifier here is a bit risky.
+      // Ideally, the AccessPathIdentifier should supply the proper identifier
+      val fieldId = VariableIdentifier(field)(right.typ, right.pp)
       if (edge.source == vertexToAssign) {
-        val edgeLocId = EdgeLocalIdentifier(List.empty, field, right.typ)(right.pp)
+        val edgeLocId = EdgeLocalIdentifier(List.empty, fieldId)
         newState = newState.assign(edgeLocId, right)
       }
       if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
         val path = List(edge.field)
-        val edgeLocId = EdgeLocalIdentifier(path, field, right.typ)(right.pp)
+        val edgeLocId = EdgeLocalIdentifier(path, fieldId)
         newState = newState.assign(edgeLocId, right)
       }
       newState

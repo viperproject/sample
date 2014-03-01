@@ -174,7 +174,7 @@ trait ValueDrivenHeapState[
                   // TODO: This code is very similar to the one in
                   // referencePathAssignmentEdges.
                   val renameMap = rCond.edgeLocalIds.map(id => {
-                    id -> id.copy(accPath = List(None))(id.pp)
+                    id -> id.copy(accPath = List(None))
                   }).toMap
 
                   val newEdgeState = rCond.rename(renameMap)
@@ -314,7 +314,7 @@ trait ValueDrivenHeapState[
         for (rPath <- rightPaths) {
           val rightCond = rPath.condition
           val renameMap = rightCond.edgeLocalIds.map(id => {
-            id -> id.copy(accPath = List(Some(field)))(id.pp)
+            id -> id.copy(accPath = List(Some(field)))
           }).toMap
 
           var newEdgeState = rightCond.rename(renameMap)
