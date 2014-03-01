@@ -223,7 +223,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     })
   }
 
-  private def minCommonSuperGraphBeforeJoin (other: HeapGraph[S], iso: Map[Vertex, Vertex]):
+  def minCommonSuperGraphBeforeJoin (other: HeapGraph[S], iso: Map[Vertex, Vertex]):
       (HeapGraph[S], Map[Vertex, Vertex]) = {
     var resultingGraph = addNonHeapVertices(other.vertices.filter(!_.isInstanceOf[HeapVertex]))
     var edgesToAdd = other.edges
