@@ -265,12 +265,12 @@ trait ApronInterface[T <: ApronInterface[T]]
         }
 
       // LHS summary case
-      if (!variable.representsSingleVariable()) {
+      if (!variable.representsSingleVariable) {
         backwardAssignedState.join(domain, post)
       }
 
       // RHS summary variables case: Not very precise but sound fallback
-      val rightSummaryNodes = (expr.ids filter ( !_.representsSingleVariable() )) - variable
+      val rightSummaryNodes = (expr.ids filter ( !_.representsSingleVariable )) - variable
       if (!rightSummaryNodes.isEmpty) {
         return this.setToTop(variable)
       }
@@ -382,7 +382,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
         // (4) Handling of summary nodes on the left side
         // If variable is a summary node, perform weak update by computing S[x<-v] |_| S
-        if (!variable.representsSingleVariable()) {
+        if (!variable.representsSingleVariable) {
           assignedState.join(domain,newState)
         }
 
@@ -394,7 +394,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         //   (4) Remove all renamed summary nodes
         // This way, we infer every thing we can about the "materialized" value
 
-        val rightSummaryNodes = (someExpr.ids filter ( !_.representsSingleVariable() )) - variable
+        val rightSummaryNodes = (someExpr.ids filter ( !_.representsSingleVariable )) - variable
         if (!rightSummaryNodes.isEmpty) {
 
           val rightSummaryNodesNames = rightSummaryNodes.toList
@@ -907,7 +907,7 @@ trait ApronInterface[T <: ApronInterface[T]]
    */
   private def summaryNodeWrapper(expr: Expression, state: T, someFunc: (Expression, T) => T): T = {
 
-    if (!expr.ids.filter( x => !x.representsSingleVariable() ).isEmpty) {
+    if (!expr.ids.filter( x => !x.representsSingleVariable ).isEmpty) {
 
       // We have a summary node.
 
@@ -918,7 +918,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       val transformedExpression = expr.transform({
         x:Expression => x match {
           case x:Identifier =>
-            if (!x.representsSingleVariable()) {
+            if (!x.representsSingleVariable) {
               val newIdentifier = SimpleApronIdentifier(x.getName + "__TMP" + temporaryCounter, summary = false, x.typ, x.pp)
               temporaryCounter = temporaryCounter + 1
               expandTemporaryVariables.value(Set(x)) =
@@ -1171,7 +1171,7 @@ case class SimpleApronIdentifier(
   extends HeapIdentifier[SimpleApronIdentifier] {
 
   def getName: String = name
-  def representsSingleVariable(): Boolean = !summary
+  def representsSingleVariable: Boolean = !summary
   def getField: Option[String] = None
   override def toString:String = name
 }

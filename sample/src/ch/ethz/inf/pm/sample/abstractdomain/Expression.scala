@@ -390,7 +390,7 @@ trait Identifier extends Expression with Assignable {
    *
    * @return true iff this identifier represents exactly one variable
    */
-  def representsSingleVariable() : Boolean
+  def representsSingleVariable : Boolean
 
   override def toString = getName
 }
@@ -445,7 +445,7 @@ case class VariableIdentifier
   override def getField = None
 
   // Variables always represent exactly one concrete identifier
-  override def representsSingleVariable() = true
+  override def representsSingleVariable = true
 }
 
 /** 
@@ -485,7 +485,7 @@ case class AccessPathIdentifier(path: List[String])
 
   def getField: Option[String] = ???
 
-  def representsSingleVariable(): Boolean = true
+  def representsSingleVariable: Boolean = true
 
   override def toString: String = getName
 

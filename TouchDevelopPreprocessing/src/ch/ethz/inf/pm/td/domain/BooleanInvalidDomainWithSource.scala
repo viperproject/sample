@@ -72,7 +72,7 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
     val res = eval(expr)
     if (!res.isTop && (res.isBottom || res.value.isEmpty))
       bottom()
-    else if (variable.representsSingleVariable()) this.add(variable, res)
+    else if (variable.representsSingleVariable) this.add(variable, res)
     else this.add(variable, get(variable).lub(res))
   }
 

@@ -12,7 +12,7 @@ case class ValueHeapIdentifier
 
   def getField = Some(field)
 
-  def representsSingleVariable() = obj.isInstanceOf[DefiniteHeapVertex]
+  def representsSingleVariable = obj.isInstanceOf[DefiniteHeapVertex]
 }
 
 object ValueHeapIdentifier {
@@ -54,7 +54,7 @@ case class EdgeLocalIdentifier(accPath: List[Option[String]], field: Identifier)
   def getField = Some(field.getName)
 
   /** An edge-local identifier always represents a field of a single object. */
-  def representsSingleVariable() = true
+  def representsSingleVariable = true
 
   /** Whether the edge-local identifier refers to a field of the source. */
   def isForSource = accPath.isEmpty

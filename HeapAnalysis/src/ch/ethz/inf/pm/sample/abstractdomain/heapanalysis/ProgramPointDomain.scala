@@ -162,7 +162,7 @@ case class NullProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter: 
 
   override def factory(): ProgramPointHeapIdentifier = new NullProgramPointHeapIdentifier(typ, this.pp)
 
-  override def representsSingleVariable(): Boolean = true
+  override def representsSingleVariable: Boolean = true
 
   override def clone(): Object = new NullProgramPointHeapIdentifier(typ, this.pp)
 
@@ -195,7 +195,7 @@ case class SimpleProgramPointHeapIdentifier(
 
   override def factory(): ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.typ)
 
-  override def representsSingleVariable(): Boolean = !summary
+  override def representsSingleVariable: Boolean = !summary
 
   override def clone(): Object = new SimpleProgramPointHeapIdentifier(pp, this.typ)
 
@@ -220,7 +220,7 @@ case class NonDeterminismSourceHeapId(override val typ: Type, override val pp: P
 
   override def factory(): NonDeterminismSourceHeapId = this.copy()
 
-  override def representsSingleVariable(): Boolean = !summary
+  override def representsSingleVariable: Boolean = !summary
 
   override def toSummaryNode: ProgramPointHeapIdentifier = this.copy(summary = true)
 
@@ -259,7 +259,7 @@ case class CollectionIdentifier(
 
   override def toString : String = collTyp.toString + "("+pp.toString+")" + (if (PPDSettings.printSummary && summary) "Σ" else "")
   override def factory() : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
-  override def representsSingleVariable() : Boolean= !summary
+  override def representsSingleVariable : Boolean= !summary
   override def clone() : Object = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
   override def toSummaryNode : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, true)
   override def toNonSummaryNode : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, false)
@@ -304,11 +304,11 @@ case class CollectionTupleIdentifier(
       case FieldAndProgramPoint(_, x, _, _) => x
     }
 
-    "T(" + approxType + "," + this.collectionApprox.pp + ", " + this.pps.mkString(",") + ")" + (if (PPDSettings.printSummary && !representsSingleVariable()) "Σ" else "")
+    "T(" + approxType + "," + this.collectionApprox.pp + ", " + this.pps.mkString(",") + ")" + (if (PPDSettings.printSummary && !representsSingleVariable) "Σ" else "")
   }
 
   override def factory() : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
-  override def representsSingleVariable() : Boolean = !summary
+  override def representsSingleVariable : Boolean = !summary
   override def clone() : Object = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
   override def toSummaryNode : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toSummaryNode, this.keyTyp, this.valueTyp, this.pps, true)
   override def toNonSummaryNode : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toNonSummaryNode, this.keyTyp, this.valueTyp, this.pps, false)
@@ -346,7 +346,7 @@ case class ArrayTopIdentifier(counter: Int = 0) extends ProgramPointHeapIdentifi
 
   override def factory(): ProgramPointHeapIdentifier = new ArrayTopIdentifier()
 
-  override def representsSingleVariable(): Boolean = false
+  override def representsSingleVariable: Boolean = false
 
   override def clone(): Object = new ArrayTopIdentifier()
 
@@ -375,7 +375,7 @@ case class ParameterHeapIdentifier(
     case _ => false
   }
 
-  override def representsSingleVariable(): Boolean = !summary
+  override def representsSingleVariable: Boolean = !summary
 
   override def factory(): ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.typ, this.pp)
 
@@ -406,7 +406,7 @@ case class UnsoundParameterHeapIdentifier(
     case _ => false
   }
 
-  override def representsSingleVariable(): Boolean = this.n != NonRelationalHeapDomainSettings.maxInitialNodes
+  override def representsSingleVariable: Boolean = this.n != NonRelationalHeapDomainSettings.maxInitialNodes
 
   override def factory(): ProgramPointHeapIdentifier = new UnsoundParameterHeapIdentifier(this.typ, this.n, this.pp)
 
@@ -433,7 +433,7 @@ case class StaticProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter
     case _ => false
   }
 
-  override def representsSingleVariable(): Boolean = true
+  override def representsSingleVariable: Boolean = true
 
   override def factory(): ProgramPointHeapIdentifier = new StaticProgramPointHeapIdentifier(this.typ, this.pp)
 
@@ -466,7 +466,7 @@ case class FieldAndProgramPoint(
     case _ => false
   }
 
-  override def representsSingleVariable(): Boolean = p1.representsSingleVariable()
+  override def representsSingleVariable: Boolean = p1.representsSingleVariable
 
   override def factory(): ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1, this.field, this.typ)
 

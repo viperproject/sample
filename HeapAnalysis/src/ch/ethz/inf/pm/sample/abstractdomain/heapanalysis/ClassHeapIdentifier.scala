@@ -38,7 +38,7 @@ class ClassHeapIdentifier(val value: Type, val pp: ProgramPoint)
   override def accessStaticObject(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
   override def createAddress(t : Type, p : ProgramPoint) : ClassHeapIdentifier=new ClassHeapIdentifier(t, p);
   override def createAddressForArgument(t : Type, p : ProgramPoint) : ClassHeapIdentifier=	new ClassHeapIdentifier(t, p);
-  override def representsSingleVariable() : Boolean=false;
+  override def representsSingleVariable : Boolean=false;
   override def getName: String = value.name
   override def clone() : Object =new ClassHeapIdentifier(this.value, this.pp);
   override def equals(a : Any) :  Boolean = a match {

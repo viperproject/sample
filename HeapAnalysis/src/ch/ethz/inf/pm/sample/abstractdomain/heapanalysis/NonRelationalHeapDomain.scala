@@ -180,8 +180,8 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
   }
 
   private def lubReplacementsForSummaries(other: HeapEnv[I]): Replacement = {
-    val leftSummaryNodes = ids collect { case x:I if !x.representsSingleVariable() => x }
-    val rightSummaryNodes = other.ids collect { case x:I if !x.representsSingleVariable() => x }
+    val leftSummaryNodes = ids collect { case x:I if !x.representsSingleVariable => x }
+    val rightSummaryNodes = other.ids collect { case x:I if !x.representsSingleVariable => x }
 
     if (leftSummaryNodes.isEmpty && rightSummaryNodes.isEmpty) return new Replacement()
 
@@ -237,9 +237,9 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
     val commonIdNames = ids.map(_.getName) intersect other.ids.map(_.getName)
 
     val leftNonSummaryNodes = ids.filter(id => commonIdNames.contains(id.getName)) collect
-      { case x:I if x.representsSingleVariable() => x }
+      { case x:I if x.representsSingleVariable => x }
     val rightNonSummaryNodes = other.ids.filter(id => commonIdNames.contains(id.getName)) collect
-      { case x:I if x.representsSingleVariable() => x }
+      { case x:I if x.representsSingleVariable => x }
 
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
     val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
@@ -348,9 +348,9 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
     if (other.isBottom) return (this, new Replacement())
 
     val leftSummaryNodes = ids collect
-      { case x:I if !x.representsSingleVariable() => x }
+      { case x:I if !x.representsSingleVariable => x }
     val rightSummaryNodes = other.ids collect
-      { case x:I if !x.representsSingleVariable() => x }
+      { case x:I if !x.representsSingleVariable => x }
 
     val makeSummaryLeft = rightSummaryNodes -- leftSummaryNodes
     val makeSummaryRight = leftSummaryNodes -- rightSummaryNodes
@@ -391,9 +391,9 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
     val commonIdNames = ids.map(_.getName) intersect other.ids.map(_.getName)
 
     val leftNonSummaryNodes = ids.filter(id => commonIdNames.contains(id.getName)) collect
-      { case x:I if x.representsSingleVariable() => x }
+      { case x:I if x.representsSingleVariable => x }
     val rightNonSummaryNodes = other.ids.filter(id => commonIdNames.contains(id.getName)) collect
-      { case x:I if x.representsSingleVariable() => x }
+      { case x:I if x.representsSingleVariable => x }
 
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
     val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
@@ -769,7 +769,7 @@ trait AbstractNonRelationalHeapDomain[
         // Brutschy: Following my understanding of the weak update implementation, we need the
         //           following distinction between summary nodes and non-summary nodes
         val heapEnv =
-          if (x.representsSingleVariable())
+          if (x.representsSingleVariable)
             this._2.add(x, this.normalize(value))
           else
             this._2.add(x, this.get(x).add(this.normalize(value)))
@@ -816,7 +816,7 @@ trait AbstractNonRelationalHeapDomain[
   override def removeObject(objId: Assignable): (H, Replacement) = objId match {
     case id: I =>
       val d2n =
-        if (id.representsSingleVariable()) {
+        if (id.representsSingleVariable) {
           _2.remove(id)
         } else _2
       (factory(_1, d2n), new Replacement())
@@ -874,7 +874,7 @@ trait AbstractNonRelationalHeapDomain[
 
     def f(a:Assignable): HeapIdSetDomain[I] = a match{
       case collectionId: CollectionIdentifier =>
-        isSummary = isSummary || ! collectionId.representsSingleVariable()
+        isSummary = isSummary || ! collectionId.representsSingleVariable
         new MaybeHeapIdSetDomain[I]()
       case _ => throw new SemanticException("This is not a collection identifier " + a.toString)
     }
@@ -1824,7 +1824,7 @@ case class TopHeapIdentifier(typ: Type, pp: ProgramPoint)
   override def getNullNode(pp : ProgramPoint) = this
   override def getField : Option[String] = None
   override def isNormalized() : Boolean = true
-  override def representsSingleVariable()=false
+  override def representsSingleVariable=false
   override def getName = "#abstractReference#"
   override def equals(o : Any) = o match {
     case x : TopHeapIdentifier => true
