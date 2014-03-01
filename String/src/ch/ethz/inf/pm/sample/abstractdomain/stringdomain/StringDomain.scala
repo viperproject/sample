@@ -15,7 +15,7 @@ trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends Sim
  */
 class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
                                                           val map:Map[Identifier, T] = Map.empty[Identifier, T],
-                                                          val isBottom:Boolean = false,
+                                                          override val isBottom:Boolean = false,
                                                           val isTop:Boolean = false)
   extends BoxedDomain[T,NonrelationalStringDomain[T]]
   with StringDomain[T,NonrelationalStringDomain[T]] {
@@ -52,7 +52,7 @@ class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
     if (variable.typ.isStringType) {
       val res = eval(expr)
       //if (res.isBottom) bottom()
-      if (variable.representsSingleVariable()) this.add(variable, res)
+      if (variable.representsSingleVariable) this.add(variable, res)
       else this.add(variable, get(variable).lub(res))
     } else this
   }
@@ -209,16 +209,11 @@ trait NumericWithStringDomain[
   extends SemanticCartesianProductDomain[N, S, T]
   with NumericalDomain[T] { this: T =>
 
+  override def _2canHandle(id: Identifier) = id.typ.isStringType
+
   def initialNum: N = _1
 
   def initialStr: S = _2
-
-  // TODO: linearization order problem.
-  // It is not convenient here: NumericalDomain (resp. SimplifiedSemanticDomain) defines
-  // dummy methods for backward access, but we want to use the ones form the product domain
-  override def backwardAccess(field: Identifier): T = super[SemanticCartesianProductDomain].backwardAccess(field)
-  override def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression): T = super[SemanticCartesianProductDomain].backwardAssign(oldPreState, variable, expr)
-
 
   override def toString = "Numeric:\n"+ToStringUtilities.indent(_1.toString)+"\nString:\n"+ToStringUtilities.indent(_2.toString)
 }

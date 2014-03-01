@@ -30,10 +30,11 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
 
 class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
                                                                               val map:Map[Identifier, N] = Map.empty[Identifier, N],
-                                                                              val isBottom:Boolean = false,
+                                                                              override val isBottom:Boolean = false,
                                                                               val isTop:Boolean = false)
   extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]
-  with NumericalDomain[BoxedNonRelationalNumericalDomain[N]] {
+  with NumericalDomain[BoxedNonRelationalNumericalDomain[N]]
+  with SimplifiedSemanticDomain[BoxedNonRelationalNumericalDomain[N]] {
 
   def functionalFactory(_value:Map[Identifier, N] = Map.empty[Identifier, N],_isBottom:Boolean = false,_isTop:Boolean = false) : BoxedNonRelationalNumericalDomain[N] =
     new BoxedNonRelationalNumericalDomain[N](dom,_value,_isBottom,_isTop)

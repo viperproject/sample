@@ -157,8 +157,7 @@ case class Edge[S <: SemanticDomain[S]](
 
     accPathToVertex(edgeLocalId.accPath) match {
       case vertex: HeapVertex =>
-        val valueHeapId = ValueHeapIdentifier(vertex,
-          edgeLocalId.field)(edgeLocalId.typ, edgeLocalId.pp)
+        val valueHeapId = ValueHeapIdentifier(vertex, edgeLocalId.field)
         if (state.ids.contains(valueHeapId))
           copy(state = state.assume(BinaryArithmeticExpression(valueHeapId,
             edgeLocalId, ArithmeticOperator.==)))

@@ -50,9 +50,9 @@ class JSONExporter extends ErrorExporter {
 
     val errors = (for (SampleError(id,string,pp) <- Reporter.seenErrors) yield {
       pp match {
-        case TouchProgramPoint(scr,pos) =>
-          if (scriptID == scr) {
-            Some(JError(pos,"",string,Nil,Nil))
+        case tpp: TouchProgramPoint =>
+          if (scriptID == tpp.scriptID) {
+            Some(JError(tpp.fullPosString, "",string,Nil,Nil))
           } else None
         case _ => None
       }

@@ -93,7 +93,7 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       // that are target of this edge and remove any others.
       newState = newState.removeVariables(newState.sourceEdgeLocalIds)
       val renameMap = newState.targetEdgeLocalIds(edge.field).map(id => {
-        id -> id.copy(accPath = List.empty)(id.pp)
+        id -> id.copy(accPath = List.empty)
       }).toMap
       newState = newState.rename(renameMap)
 

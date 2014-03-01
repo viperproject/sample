@@ -9,7 +9,9 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait SemanticDomain[T <: SemanticDomain[T]] extends Lattice[T] { this: T =>
+trait SemanticDomain[T <: SemanticDomain[T]]
+  extends Lattice[T]
+  with LatticeHelpers[T] { this: T =>
 
   /**
   For each set of identifiers in the domain of f, this method merges these identifiers
@@ -223,9 +225,9 @@ trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends Semanti
     return (this.createVariable(variable, typ), result);
   }
   
-  override def access(field : Identifier) : T = this.asInstanceOf[T]
+  override def access(field: Identifier): T = this
 
-  override def backwardAccess(field : Identifier) : T = throw new SymbolicSemanticException("Backward analysis not supported")
+  override def backwardAccess(field: Identifier) : T = throw new SymbolicSemanticException("Backward analysis not supported")
 
   override def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) : T = throw new SymbolicSemanticException("Backward analysis not supported")
 }

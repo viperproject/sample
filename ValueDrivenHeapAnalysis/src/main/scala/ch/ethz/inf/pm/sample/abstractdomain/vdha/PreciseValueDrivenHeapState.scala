@@ -112,7 +112,7 @@ object PreciseValueDrivenHeapState {
 case class EdgeAmbiguityState(
     map: Map[Int, SetDomain.Default[Int]] = Map.empty[Int, SetDomain.Default[Int]],
     isTop: Boolean = true,
-    isBottom: Boolean = false)
+    override val isBottom: Boolean = false)
   extends FunctionalDomain[Int, SetDomain.Default[Int], EdgeAmbiguityState]
   with DummySemanticDomain[EdgeAmbiguityState] {
 

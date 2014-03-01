@@ -190,7 +190,27 @@ case class ExpressionSet(
 object ExpressionSet {
   /** Creates a singleton `ExpressionSet` from a given expression. */
   def apply(exp: Expression): ExpressionSet =
-    new ExpressionSet(exp.typ).add(exp)
+    apply(Seq(exp))
+
+  def apply(exprs: Seq[Expression]): ExpressionSet = {
+    require(!exprs.isEmpty)
+
+    var es = ExpressionSet()
+    for (exp <- exprs) {
+      es = es.add(exp)
+    }
+    es
+  }
+
+  def flatten(exprSets: Seq[ExpressionSet]): ExpressionSet = {
+    require(!exprSets.isEmpty)
+
+    var es = ExpressionSet()
+    for (set <- exprSets) {
+      es = es.add(set)
+    }
+    es
+  }
 
   /** Creates an empty `ExpressionSet` whose type is top. */
   def apply(): ExpressionSet =
@@ -323,25 +343,14 @@ case class AbstractState[
     result
   }
 
-  def removeVariable(x: ExpressionSet): AbstractState[N, H, I] = {
-    if(isBottom) return this
-    var result: AbstractState[N, H, I] = bottom()
-    for(el <- x.getSetOfExpressions) {
-      //For each variable that is potentially removed, it computes its semantics and it considers the upper bound
-      el match {
-        case variable: Assignable =>
-          for(previousState <- x.getSetOfExpressions) {
-            val done=new AbstractState[N, H, I](domain.removeVariable(variable), ExpressionSet(new UnitExpression(variable.typ.top(), variable.pp)))
-            result=result.lub(done)
-            result=result.setExpression(ExpressionSet(new UnitExpression(variable.typ.top(), variable.pp)))
-          }
-
-        case _ => throw new SymbolicSemanticException("I can remove only variables")
-      }
+  def removeVariable(varExpr: Expression): AbstractState[N, H, I] = {
+    varExpr match {
+      case variable: Assignable =>
+        factory(domain.removeVariable(variable), expr)
+      case _ =>
+        sys.error("I can remove only variables")
     }
-    result
   }
-
 
   override def removeObject(oldPreState: AbstractState[N, H, I], x: ExpressionSet, fields: Option[Set[Identifier]]): AbstractState[N, H, I] = {
     if(isBottom) return this
@@ -426,23 +435,16 @@ case class AbstractState[
     result
   }
 
-  def setVariableToTop(x: ExpressionSet): AbstractState[N, H, I] = {
-    if(isBottom) return this
-    var result: AbstractState[N, H, I] = bottom()
-    for(exprVal <- x.getSetOfExpressions) {
-      //For each variable that is forgotten, it computes the semantics and it considers the upper bound
-      exprVal match {
-        case variable: Assignable =>
-          result = result.lub(factory(domain.setToTop(variable), expr))
-
-        case variable: HeapIdSetDomain[I] =>
-          result = result.lub(factory(HeapIdSetFunctionalLifting.applyToSetHeapId(domain, variable, domain.setToTop), expr))
-
-        case _ =>
-          sys.error("Something assignable expected here")
-      }
+  def setVariableToTop(varExpr: Expression): AbstractState[N, H, I] = {
+    varExpr match {
+      case variable: Assignable =>
+        factory(domain.setToTop(variable), expr)
+      case ids: HeapIdSetDomain[I] =>
+        val newInner = HeapIdSetFunctionalLifting.applyToSetHeapId(domain, ids, domain.setToTop)
+        factory(newInner, expr)
+      case _ =>
+        sys.error("Something assignable expected here")
     }
-    result
   }
 
   def assert(cond: ExpressionSet): AbstractState[N, H, I] = this
@@ -1155,27 +1157,31 @@ case class AbstractState[
 
   override def widening(other: AbstractState[N, H, I]): AbstractState[N, H, I] = wideningWithReplacement(other)._1
 
-  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): AbstractState[N, H, I] = {
-    if(isBottom) return this
+  def createNonDeterminismSource(wrapperTyp: Type, pp: ProgramPoint, summary: Boolean): AbstractState[N, H, I] = {
+    if (this.isBottom) return this
 
-    // dispatch creation of identifier to heap domain
-    val (nonDetId, newHeap, rep) = domain.heap.createNonDeterminismSource(typ, pp, summary)
-    Predef.assert(nonDetId.ids.size == 1)
-    val heapIdCreatedState = domain.factory(domain.semantic.merge(rep), newHeap)
+    // Allocate non-determinism identifier in heap domain
+    val (nonDetId, newHeap) = domain.heap.createNonDeterminismSource(wrapperTyp, pp, summary)
+    val heapIdCreatedState = domain.factory(domain.semantic, newHeap)
 
-    // create a corresponding numerical variable
-    val varCreatedState = HeapIdSetFunctionalLifting.applyToSetHeapId(heapIdCreatedState, nonDetId, heapIdCreatedState.createVariable(_, typ))
+    // Create a corresponding variable (in all domains)
+    val varCreatedState = heapIdCreatedState.createVariable(nonDetId, wrapperTyp)
 
-    // TODO: fix this, simply return single identifier from createNonDeterminismSource, then we dont have to do this
-    val nonDetIdF = varCreatedState.heap.getNonDeterminismSource(pp, typ)
+    // Ugly assumptions about wrapper type (no access to TouchType here)
+    Predef.assert(wrapperTyp.possibleFields.size == 1)
+    val valueField = wrapperTyp.possibleFields.head
 
+    // Create variables for inner value field
+    val (fieldIds, _, _) = varCreatedState.heap.getFieldIdentifier(nonDetId, valueField.getName, valueField.typ, valueField.pp)
+    val fieldCreatedState = HeapIdSetFunctionalLifting.applyToSetHeapId(varCreatedState,
+      fieldIds, varCreatedState.createVariable(_, valueField.typ))
 
-    factory(varCreatedState, new ExpressionSet(typ).add(nonDetIdF))
+    factory(fieldCreatedState, ExpressionSet(nonDetId))
   }
 
   def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type): AbstractState[N, H, I] = {
     val nonDetId = domain.heap.getNonDeterminismSource(pp, typ)
-    val idExpr = new ExpressionSet(nonDetId.typ).add(nonDetId)
+    val idExpr = ExpressionSet(nonDetId)
     setExpression(idExpr)
   }
 }

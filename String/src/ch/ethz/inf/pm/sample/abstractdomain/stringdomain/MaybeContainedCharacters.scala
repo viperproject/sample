@@ -17,7 +17,7 @@ case class SetCharacters(
 }
 
 class MaybeContainedCharacters
-  (val map:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters], val isBottom:Boolean = false, val isTop:Boolean = false)
+  (val map:Map[Identifier, SetCharacters] = Map.empty[Identifier, SetCharacters], override val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[SetCharacters, MaybeContainedCharacters]
   with SimplifiedSemanticDomain[MaybeContainedCharacters] {
 

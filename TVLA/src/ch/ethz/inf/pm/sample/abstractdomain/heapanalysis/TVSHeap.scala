@@ -585,7 +585,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def getCollectionLength(collection: Assignable) = throw new NotImplementedException("not implemented yet")
   def getUnreachableHeap = throw new NotImplementedException("not implemented yet")
   def optimizeSummaryNodes = throw new NotImplementedException("not implemented yet")
-  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): (HeapIdSetDomain[NodeName], TVSHeap, Replacement) = ???
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): (NodeName, TVSHeap) = ???
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = ???
 
   // methods required by Analysis trait

@@ -25,7 +25,7 @@ import ch.ethz.inf.pm.td.semantics.TBoolean
  * 
  */
 class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidValueDomain] = Map.empty[Identifier, PositionedInvalidValueDomain],
-                                      val isBottom:Boolean = false,
+                                      override val isBottom:Boolean = false,
                                       val isTop:Boolean = false)
   extends BoxedDomain[PositionedInvalidValueDomain,BooleanInvalidDomainWithSource]
   with InvalidDomain[BooleanInvalidDomainWithSource] {
@@ -72,7 +72,7 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
     val res = eval(expr)
     if (!res.isTop && (res.isBottom || res.value.isEmpty))
       bottom()
-    else if (variable.representsSingleVariable()) this.add(variable, res)
+    else if (variable.representsSingleVariable) this.add(variable, res)
     else this.add(variable, get(variable).lub(res))
   }
 

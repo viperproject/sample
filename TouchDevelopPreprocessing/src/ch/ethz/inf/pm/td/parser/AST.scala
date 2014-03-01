@@ -171,32 +171,26 @@ case class Identifier(ident:String) extends IdPositional {
  */
 trait IdPositional extends Positional {
 
-  var id:Option[String] = None
+  var customIdComponents: List[String] = Nil
 
-  def copyPos(d: IdPositional): this.type = { pos = d.pos; id = d.id; this }
+  def copyPos(d: IdPositional): this.type = { pos = d.pos; customIdComponents = d.customIdComponents; this }
 
-  def setId(newId:String): this.type = { id = Some(newId); this }
+  def setId(newId: String): this.type = { customIdComponents = List(newId); this }
 
-  def appendId(suffix: String): this.type = {
-    id = Some(id.getOrElse("") + suffix)
+  def appendIdComponent(suffix: String): this.type = {
+    customIdComponents = customIdComponents :+ suffix
     this
   }
 
-  def setOptionalId(x:Option[String]) { id = x }
+  def getPositionDescription: String = {
+    val customIds = customIdComponents.mkString("_")
 
-  def getId:Option[String] = id
-
-  def getPositionAsString:String = {
-    id match {
-      case Some(x) => if (pos == NoPosition) x else pos.toString + x
-      case None => pos.toString
-    }
-  }
-
-  def getPositionDescription:String = {
-    id match {
-      case Some(x) => "at node "+id
-      case None => "at line "+pos.line+", column "+pos.column
+    pos match {
+      case NoPosition =>
+        s"at id $customIds"
+      case _ =>
+        val str = s"at line ${pos.line}, column ${pos.column}"
+        if (customIds.isEmpty) str else s"$str, id $customIds"
     }
   }
 

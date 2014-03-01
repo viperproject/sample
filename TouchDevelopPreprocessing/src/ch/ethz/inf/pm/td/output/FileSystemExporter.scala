@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.td.output
 
 import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import java.io.{PrintWriter, FileWriter, File}
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * Exports results into various formats
@@ -56,7 +57,7 @@ object FileSystemExporter {
 
           pw.println(exporter(compiler,pubID))
 
-          println("Exported errors for id "+pubID+" in "+exporter.getExtension+" format to "+file.toString)
+          SystemParameters.progressOutput.put("Exported errors for id "+pubID+" in "+exporter.getExtension+" format to "+file.toString)
 
         } finally {
 

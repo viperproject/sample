@@ -69,7 +69,7 @@ class PrefixDomain extends Lattice[PrefixDomain]
 }
 
 class Prefix
-  (val map:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain], val isBottom:Boolean = false, val isTop:Boolean = false)
+  (val map:Map[Identifier, PrefixDomain] = Map.empty[Identifier, PrefixDomain], override val isBottom:Boolean = false, val isTop:Boolean = false)
   extends BoxedDomain[PrefixDomain, Prefix] with SimplifiedSemanticDomain[Prefix]
 {
 

@@ -253,7 +253,10 @@ case class HeapAndAnotherDomain[
 
   def setCollectionToTop(collection: Assignable): T = {
     val newHeap = heap.setCollectionToTop(collection)
-    factory(semantic, newHeap)
+    val s = factory(semantic, newHeap)
+
+    val lengthIds = heap.getCollectionLength(collection)
+    HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), lengthIds, s.setToTop)
   }
 
   def removeFirstCollectionElementByValue(collection: Assignable, value: Expression): T = {

@@ -41,8 +41,8 @@ object TouchApronRun {
 
     SystemParameters.compiler = new TouchCompiler
     SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
-    SystemParameters.analysisOutput = new StdOutOutput()
-    SystemParameters.progressOutput = new StdOutOutput()
+    SystemParameters.analysisOutput = if (touchParams.reporting.silent) new StringCollector() else new StdOutOutput()
+    SystemParameters.progressOutput = if (touchParams.reporting.silent) new StringCollector() else new StdOutOutput()
 
     SystemParameters.compiler.reset()
     SystemParameters.resetNativeMethodsSemantics()

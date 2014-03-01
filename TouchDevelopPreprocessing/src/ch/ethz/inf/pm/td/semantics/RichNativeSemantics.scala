@@ -645,7 +645,7 @@ class TouchField(
   override def toString = name.toString
   override def getField = Some(name)
   override def hashCode() : Int = name.hashCode() + typName.hashCode()
-  override def representsSingleVariable() = !isSummaryNode
+  override def representsSingleVariable = !isSummaryNode
   override def equals(o : Any) = (o.isInstanceOf[TouchField] && o.asInstanceOf[TouchField].getName == this.getName
     && o.asInstanceOf[TouchField].typ == this.typ)
 }

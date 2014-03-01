@@ -12,7 +12,7 @@ case class ValueHeapIdentifier
 
   def getField = Some(field)
 
-  def representsSingleVariable() = obj.isInstanceOf[DefiniteHeapVertex]
+  def representsSingleVariable = obj.isInstanceOf[DefiniteHeapVertex]
 }
 
 object ValueHeapIdentifier {
@@ -34,9 +34,7 @@ object ValueHeapIdentifier {
   * the same way. Such edges have the field `None` and so will the edge-local
   * identifier.
   */
-case class EdgeLocalIdentifier
-    (accPath: List[Option[String]], field: String, typ: Type)
-    (val pp: ProgramPoint)
+case class EdgeLocalIdentifier(accPath: List[Option[String]], field: Identifier)
   extends Identifier {
 
   require(!typ.isObject, "EdgeLocalIdentifier should represent value information.")
@@ -49,26 +47,26 @@ case class EdgeLocalIdentifier
     fullPath.mkString(".")
   }
 
-  def getField: Option[String] = Some(field)
+  def typ = field.typ
+
+  def pp = field.pp
+
+  def getField = Some(field.getName)
 
   /** An edge-local identifier always represents a field of a single object. */
-  def representsSingleVariable(): Boolean = true
+  def representsSingleVariable = true
 
   /** Whether the edge-local identifier refers to a field of the source. */
-  def isForSource: Boolean = accPath.isEmpty
+  def isForSource = accPath.isEmpty
 
   /** Whether the edge-local identifier refers to a field of the target. */
-  def isForTarget: Boolean = !accPath.isEmpty
+  def isForTarget = !accPath.isEmpty
 }
 
 object EdgeLocalIdentifier {
-  /** Creates an edge-local identifier from an access path and a field identifier. */
-  def apply(accPath: List[Option[String]], field: Identifier): EdgeLocalIdentifier =
-    EdgeLocalIdentifier(accPath, field.getName, field.typ)(field.pp)
-
   /** Creates an edge-local identifier with an empty access path from a field identifier. */
   def apply(field: Identifier): EdgeLocalIdentifier =
-    apply(List.empty, field)
+    EdgeLocalIdentifier(List.empty, field)
 }
 
 case class VertexExpression(typ: Type, vertex: Vertex)(val pp: ProgramPoint) extends Expression {

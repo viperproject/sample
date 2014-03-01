@@ -46,6 +46,8 @@ object TouchAnalysisParameters {
 
   def reportPrematurelyOnInternetAccess = currentParams.reporting.reportPrematurelyOnInternetAccess
 
+  def silent = currentParams.reporting.silent
+
   def enableCollectionMustAnalysis = currentParams.domains.enableCollectionMustAnalysis
 
   def enableCollectionSummaryAnalysis = currentParams.domains.enableCollectionSummaryAnalysis
@@ -206,5 +208,8 @@ case class ReportingParams(reportNoncriticalParameterBoundViolations: Boolean = 
                             * "parameter X ("somevalue",invalid) may be invalid"
                             * This is helpful, but may confuse users and duplicate warnings
                             */
-                           printValuesInWarnings: Boolean = false
-                            )
+                           printValuesInWarnings: Boolean = false,
+
+                           /** If true, suppress as much output as possible  (useful for testing) */
+                           silent: Boolean = false
+                           )

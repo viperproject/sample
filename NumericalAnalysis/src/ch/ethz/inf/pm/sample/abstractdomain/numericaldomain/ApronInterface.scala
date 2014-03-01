@@ -89,7 +89,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     factory(None, domain, isPureBottom = true, env = Set.empty)
   }
 
-  def isBottom: Boolean = {
+  override def isBottom: Boolean = {
     if (isPureBottom) return true
     state match {
       case Some(s) => s.isBottom(domain)
@@ -235,9 +235,11 @@ trait ApronInterface[T <: ApronInterface[T]]
       return state1.lub(state2)
     } else if (varType.isNumericalType) {
       var post = this.instantiateState()
+      var newEnv = env
       var oldApronPre = oldPre.instantiateState()
       if (!post.getEnvironment.equals(oldApronPre.getEnvironment)) {
         val env = unionOfEnvironments(post.getEnvironment, oldApronPre.getEnvironment)
+        newEnv = this.env union oldPre.env
         post = post.changeEnvironmentCopy(domain, env, false)
         oldApronPre = oldApronPre.changeEnvironmentCopy(domain, env, false)
       }
@@ -249,7 +251,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
       // handle multiple tree expressions (due to HeapIdSetDomain expressions)
       val texprs = toTexpr1Intern(expr, post.getEnvironment)
-      val refinedPre =
+      val backwardAssignedState =
         if (texprs.size > 1) {
           var curState = new Abstract1(domain, oldApronPre.getEnvironment, true)
           for (e <- texprs) {
@@ -262,8 +264,18 @@ trait ApronInterface[T <: ApronInterface[T]]
           throw new ApronException("Empty expression set created")
         }
 
-      val result = factory(Some(refinedPre), domain, env = env)
-      result
+      // LHS summary case
+      if (!variable.representsSingleVariable) {
+        backwardAssignedState.join(domain, post)
+      }
+
+      // RHS summary variables case: Not very precise but sound fallback
+      val rightSummaryNodes = (expr.ids filter ( !_.representsSingleVariable )) - variable
+      if (!rightSummaryNodes.isEmpty) {
+        return this.setToTop(variable)
+      }
+
+      factory(Some(backwardAssignedState), domain, env = newEnv)
     } else this
     resultState
   }
@@ -370,7 +382,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
         // (4) Handling of summary nodes on the left side
         // If variable is a summary node, perform weak update by computing S[x<-v] |_| S
-        if (!variable.representsSingleVariable()) {
+        if (!variable.representsSingleVariable) {
           assignedState.join(domain,newState)
         }
 
@@ -382,7 +394,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         //   (4) Remove all renamed summary nodes
         // This way, we infer every thing we can about the "materialized" value
 
-        val rightSummaryNodes = (someExpr.ids filter ( !_.representsSingleVariable() )) - variable
+        val rightSummaryNodes = (someExpr.ids filter ( !_.representsSingleVariable )) - variable
         if (!rightSummaryNodes.isEmpty) {
 
           val rightSummaryNodesNames = rightSummaryNodes.toList
@@ -420,7 +432,6 @@ trait ApronInterface[T <: ApronInterface[T]]
     }
 
     expr match {
-
       // Boolean variables
       case x: Identifier =>
         // ApronInterface used to assume x != 0 here, which it struggles
@@ -430,6 +441,11 @@ trait ApronInterface[T <: ApronInterface[T]]
         assume(BinaryArithmeticExpression(x, Constant("1", x.typ, x.pp), ArithmeticOperator.==))
       case NegatedBooleanExpression(x: Identifier) =>
         assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
+
+      // Sets of boolean variables
+      case ids: MaybeHeapIdSetDomain[_] =>
+        if (ids.isBottom || ids.isTop) return this
+        Lattice.bigLub(ids.ids map (id => assume(id)))
 
       // And, Or, De-Morgan, Double Negation
       case BinaryBooleanExpression(left, right, op, typ) => op match {
@@ -891,7 +907,7 @@ trait ApronInterface[T <: ApronInterface[T]]
    */
   private def summaryNodeWrapper(expr: Expression, state: T, someFunc: (Expression, T) => T): T = {
 
-    if (!expr.ids.filter( x => !x.representsSingleVariable() ).isEmpty) {
+    if (!expr.ids.filter( x => !x.representsSingleVariable ).isEmpty) {
 
       // We have a summary node.
 
@@ -902,7 +918,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       val transformedExpression = expr.transform({
         x:Expression => x match {
           case x:Identifier =>
-            if (!x.representsSingleVariable()) {
+            if (!x.representsSingleVariable) {
               val newIdentifier = SimpleApronIdentifier(x.getName + "__TMP" + temporaryCounter, summary = false, x.typ, x.pp)
               temporaryCounter = temporaryCounter + 1
               expandTemporaryVariables.value(Set(x)) =
@@ -1155,7 +1171,7 @@ case class SimpleApronIdentifier(
   extends HeapIdentifier[SimpleApronIdentifier] {
 
   def getName: String = name
-  def representsSingleVariable(): Boolean = !summary
+  def representsSingleVariable: Boolean = !summary
   def getField: Option[String] = None
   override def toString:String = name
 }

@@ -64,6 +64,14 @@ trait Lattice[T <: Lattice[T]] { this: T =>
    * @return true iff <code>this</code> is less or equal than <code>r</code>
    */
   def lessEqual(r: T): Boolean
+
+
+  /** Glb as implemented in many domains is not "strict" enough in that
+    * it does not remove identifiers uncommon to `this` and `other`. Not pretty,
+    * but we can't just add another operation to the domain implementations since
+    * we won't have access to those and we also want to preserve the old behavior.
+    */
+  def strictGlb(other: T): T = glb(other)
 }
 
 object Lattice {
@@ -804,6 +812,30 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
         }
         result.setUnitExpression()
       })
+    })
+  }
+
+  /** Sets given variable/ids to top
+    * Implementations can assume this state is non-bottom
+    */
+  def setVariableToTop(varExpr: Expression): S
+
+  def setVariableToTop(varSet: ExpressionSet): S = {
+    unlessBottom(varSet, {
+      val result = Lattice.bigLub(varSet.getSetOfExpressions.map(setVariableToTop))
+      result.removeExpression()
+    })
+  }
+
+  /** Removes the given variable.
+    * Implementations can assume this state is non-bottom
+    */
+  def removeVariable(varExpr: Expression): S
+
+  def removeVariable(varSet: ExpressionSet): S = {
+    unlessBottom(varSet, {
+      val result = Lattice.bigLub(varSet.getSetOfExpressions.map(removeVariable))
+      result.removeExpression()
     })
   }
 

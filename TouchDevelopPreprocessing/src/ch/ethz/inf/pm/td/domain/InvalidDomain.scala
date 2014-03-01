@@ -16,7 +16,7 @@ import BooleanDomain._
  * 
  */
 
-trait InvalidDomain[T <: InvalidDomain[T]] extends SimplifiedSemanticDomain[T] { this: T => }
+trait InvalidDomain[T <: InvalidDomain[T]] extends SemanticDomain[T] { this: T => }
 
 
 trait NumericWithInvalidDomain[
@@ -25,6 +25,8 @@ trait NumericWithInvalidDomain[
     T <: NumericWithInvalidDomain[N, I, T]]
   extends SemanticCartesianProductDomain[N, I, T]
   with NumericalDomain[T] { this: T =>
+
+  override def _1canHandle(id: Identifier) = id.typ.isNumericalType
 
   def numericalDomain: N = _1
 

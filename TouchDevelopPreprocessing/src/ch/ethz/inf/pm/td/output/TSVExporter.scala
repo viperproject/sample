@@ -21,21 +21,21 @@ class TSVExporter extends ErrorExporter {
 
     for (SampleError(id,message,pp) <- Reporter.seenErrors) {
       pp match {
-        case TouchProgramPoint(xScript, _) => if (xScript == id) res += "Error\t"+message+"\t"+pp else ""
+        case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Error\t"+message+"\t"+pp else ""
         case _ => ""
       }
     }
 
     for ((message,pp) <- Reporter.seenBottom) {
       pp match {
-        case TouchProgramPoint(xScript, _) => if (xScript == id) res += "Bottom\t"+message+"\t"+pp else ""
+        case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Bottom\t"+message+"\t"+pp else ""
         case _ => ""
       }
     }
 
     for ((message,pp) <- Reporter.seenImprecision) {
       pp match {
-        case TouchProgramPoint(xScript, _) => if (xScript == id) res += "Imprecision\t"+message+"\t"+pp else ""
+        case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Imprecision\t"+message+"\t"+pp else ""
         case _ => ""
       }
     }

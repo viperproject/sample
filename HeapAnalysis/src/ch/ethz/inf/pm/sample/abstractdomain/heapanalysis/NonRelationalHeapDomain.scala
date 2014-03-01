@@ -104,7 +104,7 @@ case class TupleIdSetDomain[I <: HeapIdentifier[I]](
 
 class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
                                                    val map:Map[I, HeapIdSetDomain[I]] = Map.empty[I, HeapIdSetDomain[I]],
-                                                   val isBottom:Boolean = false,
+                                                   override val isBottom:Boolean = false,
                                                    val isTop:Boolean = false)
   extends FunctionalDomain[I, HeapIdSetDomain[I], HeapEnv[I]]
   with LatticeWithReplacement[HeapEnv[I]] {
@@ -180,8 +180,8 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
   }
 
   private def lubReplacementsForSummaries(other: HeapEnv[I]): Replacement = {
-    val leftSummaryNodes = ids collect { case x:I if !x.representsSingleVariable() => x }
-    val rightSummaryNodes = other.ids collect { case x:I if !x.representsSingleVariable() => x }
+    val leftSummaryNodes = ids collect { case x:I if !x.representsSingleVariable => x }
+    val rightSummaryNodes = other.ids collect { case x:I if !x.representsSingleVariable => x }
 
     if (leftSummaryNodes.isEmpty && rightSummaryNodes.isEmpty) return new Replacement()
 
@@ -237,9 +237,9 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
     val commonIdNames = ids.map(_.getName) intersect other.ids.map(_.getName)
 
     val leftNonSummaryNodes = ids.filter(id => commonIdNames.contains(id.getName)) collect
-      { case x:I if x.representsSingleVariable() => x }
+      { case x:I if x.representsSingleVariable => x }
     val rightNonSummaryNodes = other.ids.filter(id => commonIdNames.contains(id.getName)) collect
-      { case x:I if x.representsSingleVariable() => x }
+      { case x:I if x.representsSingleVariable => x }
 
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
     val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
@@ -309,7 +309,7 @@ class HeapEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
 
 class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain[I],
                                                        val map:Map[VariableIdentifier, HeapIdSetDomain[I]] = Map.empty[VariableIdentifier, HeapIdSetDomain[I]],
-                                                       val isBottom:Boolean = false,
+                                                       override val isBottom:Boolean = false,
                                                        val isTop: Boolean = false)
     extends FunctionalDomain[VariableIdentifier, HeapIdSetDomain[I], VariableEnv[I]]
     with LatticeWithReplacement[VariableEnv[I]] {
@@ -348,9 +348,9 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
     if (other.isBottom) return (this, new Replacement())
 
     val leftSummaryNodes = ids collect
-      { case x:I if !x.representsSingleVariable() => x }
+      { case x:I if !x.representsSingleVariable => x }
     val rightSummaryNodes = other.ids collect
-      { case x:I if !x.representsSingleVariable() => x }
+      { case x:I if !x.representsSingleVariable => x }
 
     val makeSummaryLeft = rightSummaryNodes -- leftSummaryNodes
     val makeSummaryRight = leftSummaryNodes -- rightSummaryNodes
@@ -391,9 +391,9 @@ class VariableEnv[I <: NonRelationalHeapIdentifier[I]](val dom : HeapIdSetDomain
     val commonIdNames = ids.map(_.getName) intersect other.ids.map(_.getName)
 
     val leftNonSummaryNodes = ids.filter(id => commonIdNames.contains(id.getName)) collect
-      { case x:I if x.representsSingleVariable() => x }
+      { case x:I if x.representsSingleVariable => x }
     val rightNonSummaryNodes = other.ids.filter(id => commonIdNames.contains(id.getName)) collect
-      { case x:I if x.representsSingleVariable() => x }
+      { case x:I if x.representsSingleVariable => x }
 
     val makeNonSummaryLeft = rightNonSummaryNodes -- leftNonSummaryNodes
     val makeNonSummaryRight = leftNonSummaryNodes -- rightNonSummaryNodes
@@ -769,7 +769,7 @@ trait AbstractNonRelationalHeapDomain[
         // Brutschy: Following my understanding of the weak update implementation, we need the
         //           following distinction between summary nodes and non-summary nodes
         val heapEnv =
-          if (x.representsSingleVariable())
+          if (x.representsSingleVariable)
             this._2.add(x, this.normalize(value))
           else
             this._2.add(x, this.get(x).add(this.normalize(value)))
@@ -816,7 +816,7 @@ trait AbstractNonRelationalHeapDomain[
   override def removeObject(objId: Assignable): (H, Replacement) = objId match {
     case id: I =>
       val d2n =
-        if (id.representsSingleVariable()) {
+        if (id.representsSingleVariable) {
           _2.remove(id)
         } else _2
       (factory(_1, d2n), new Replacement())
@@ -874,7 +874,7 @@ trait AbstractNonRelationalHeapDomain[
 
     def f(a:Assignable): HeapIdSetDomain[I] = a match{
       case collectionId: CollectionIdentifier =>
-        isSummary = isSummary || ! collectionId.representsSingleVariable()
+        isSummary = isSummary || ! collectionId.representsSingleVariable
         new MaybeHeapIdSetDomain[I]()
       case _ => throw new SemanticException("This is not a collection identifier " + a.toString)
     }
@@ -1164,12 +1164,13 @@ trait AbstractNonRelationalHeapDomain[
   }
 
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint,
-                                 summary: Boolean): (HeapIdSetDomain[I], H, Replacement) = {
+                                 summary: Boolean): (I, H) = {
     val nondetId = dom.createNonDeterminismSource(typ, pp, summary)
-    (cod.convert(nondetId), this.asInstanceOf[H], new Replacement())
+    (nondetId, this)
   }
 
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = {
+    val allIds = ids
     val matchingIds = ids collect { case id@NonDeterminismSourceHeapId(_, idPP, _) if pp == idPP => id }
     if (matchingIds.size != 1) {
       throw new IllegalStateException(s"Non-deterministic source for $pp not found on heap")
@@ -1726,17 +1727,15 @@ case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]
   }
 
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint,
-                                 summary: Boolean): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (ids1, heap1, rep1) = this._1.createNonDeterminismSource(typ, pp, summary)
-    val (ids2, heap2, rep2) = this._2.createNonDeterminismSource(typ, pp, summary)
+                                 summary: Boolean): (I, NonRelationalMayAndMustHeapDomain[I]) = {
+    val (id1, heap1) = this._1.createNonDeterminismSource(typ, pp, summary)
 
-    (ids1.lub(ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
+    (id1, new NonRelationalMayAndMustHeapDomain[I](heap1, _2))
   }
 
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = {
-    val ids1 = this._1.getNonDeterminismSource(pp, typ)
-    //val ids2 = this._2.getNonDeterminismSource(pp, typ)
-   ids1
+    val id1 = this._1.getNonDeterminismSource(pp, typ)
+    id1
   }
 }
 
@@ -1825,7 +1824,7 @@ case class TopHeapIdentifier(typ: Type, pp: ProgramPoint)
   override def getNullNode(pp : ProgramPoint) = this
   override def getField : Option[String] = None
   override def isNormalized() : Boolean = true
-  override def representsSingleVariable()=false
+  override def representsSingleVariable=false
   override def getName = "#abstractReference#"
   override def equals(o : Any) = o match {
     case x : TopHeapIdentifier => true

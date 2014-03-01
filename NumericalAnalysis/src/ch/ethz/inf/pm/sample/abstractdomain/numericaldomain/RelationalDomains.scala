@@ -3,7 +3,11 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 
-trait RelationalNumericalDomain[T <: RelationalNumericalDomain[T]] extends NumericalDomain[T] { this: T =>
+trait RelationalNumericalDomain[
+    T <: RelationalNumericalDomain[T]]
+  extends NumericalDomain[T]
+  with SimplifiedSemanticDomain[T] { this: T =>
+
 	override def getStringOfId (id : Identifier) : String ;
 	override def setToTop(variable : Identifier) : T;
 	override def assign (variable : Identifier, expr : Expression) : T;
@@ -26,7 +30,7 @@ case class UpperBoundRightPart(
 }
 
 class UpperBound(val map:Map[Identifier, UpperBoundRightPart] = Map.empty[Identifier, UpperBoundRightPart],
-                 val isBottom:Boolean = false,
+                 override val isBottom:Boolean = false,
                  val isTop:Boolean = false)
   extends BoxedDomain[UpperBoundRightPart, UpperBound]
   with RelationalNumericalDomain[UpperBound] {

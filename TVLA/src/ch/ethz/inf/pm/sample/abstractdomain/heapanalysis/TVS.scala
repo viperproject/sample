@@ -427,7 +427,7 @@ class BinaryPredicate[N](val n: String, val values: Map[(N, N), Kleene]) extends
 trait NodeName extends HeapIdentifier[NodeName] {
   val typ = SystemParameters.typ.top()
   val pp = DummyProgramPoint
-  def representsSingleVariable(): Boolean = false
+  def representsSingleVariable: Boolean = false
   def getField: Option[String] = null
   def getName: String = null
 }
