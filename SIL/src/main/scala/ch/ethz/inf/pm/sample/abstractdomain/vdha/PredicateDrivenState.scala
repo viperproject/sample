@@ -153,7 +153,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                 val nestedPredInstId = nestedPredDefId.toPredInstId
 
                 result = result.mapEdges(e => {
-                  if (e.source == recvEdge.target) {
+                  // No predicate instances on null edges
+                  if (e.source == recvEdge.target && e.target != NullVertex) {
                     val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredInstId)
                     val equality = BinaryArithmeticExpression(edgeLocId, Folded, ArithmeticOperator.==, BoolType)
                     e.state.createVariable(edgeLocId).assume(equality)
