@@ -193,23 +193,82 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         result
           .copy(abstractHeap = result.abstractHeap.copy(
             edges = result.abstractHeap.edges - addedEdge + newEdge))
-          .removePredInstHeapIds()
+          .removeUnwantedPredInstIds()
       case _ =>
-        result.removePredInstHeapIds()
+        result.removeUnwantedPredInstIds()
     }
   }
 
   override def assignField(left: AccessPathIdentifier, right: Expression) = {
-    super.assignField(left, right).removePredInstHeapIds()
+    super.assignField(left, right).removeUnwantedPredInstIds()
+  }
+
+  private def _tryToFoldAllLocalVars(): PredicateDrivenHeapState[S] = {
+    var result = this
+
+    this.abstractHeap.localVarVertices.foreach(localVarVertex => {
+      val localVarAccessPathId = AccessPathIdentifier(List(localVarVertex.name))(localVarVertex.typ)
+      result = CondHeapGraph[EdgeStateDomain[S], T](result).evalExp(localVarAccessPathId).mapCondHeaps(condHeap => {
+        var recvEdge = condHeap.takenPath(localVarAccessPathId.path).edges.head
+        val recvEdgeInsts = recvEdge.state.valueState.predicateState.instances
+        val unfoldedPredInstIds = recvEdgeInsts.unfoldedPredInstIds
+
+        var resultingCondHeap = condHeap
+
+        unfoldedPredInstIds.foreach(unfoldedPredInstId => {
+          val unfoldedPredDef = resultingCondHeap.cond.valueState.predicateState.definitions.get(unfoldedPredInstId.toPredDefId)
+
+          unfoldedPredDef.refFieldPerms.map.foreach({
+            case (field, nestedPredDefId) =>
+              val nestedPredInstId = nestedPredDefId.value.head.asInstanceOf[VariableIdentifier].toPredInstId
+              val edgesThatNeedFoldedPredInst = resultingCondHeap.heap.outEdges(recvEdge.target, Some(field)).filter(_.target != NullVertex)
+              val canFold = edgesThatNeedFoldedPredInst.forall(edge => {
+                edge.state.valueState.predicateState.instances.foldedPredInstIds.contains(nestedPredInstId)
+              })
+
+              if (canFold) {
+                resultingCondHeap = resultingCondHeap.mapEdges(edge => {
+                  if (edgesThatNeedFoldedPredInst.contains(edge)) {
+                    val edgeLocId = EdgeLocalIdentifier(List(edge.field), nestedPredInstId)
+                    edge.state.setToTop(edgeLocId)
+                  } else {
+                    edge.state
+                  }
+                })
+              } else {
+                sys.error("Cannot fold")
+              }
+          })
+
+          resultingCondHeap = resultingCondHeap.mapEdges(edge => {
+            if (edge == recvEdge) {
+              val edgeLocId = EdgeLocalIdentifier(List(recvEdge.field), unfoldedPredInstId)
+              edge.state.assign(edgeLocId, Folded)
+            } else if (edge.source == recvEdge.target) {
+              val edgeLocId = EdgeLocalIdentifier(List.empty, unfoldedPredInstId)
+              edge.state.assign(edgeLocId, Folded)
+            } else {
+              edge.state
+            }
+          })
+        })
+
+        Seq(resultingCondHeap)
+      }).join
+    })
+
+    result
   }
 
   def predInstHeapIds: Set[ValueHeapIdentifier] =
     generalValState.valueHeapIds.filter(_.typ == PredicateInstanceType)
 
-  def removePredInstHeapIds(): PredicateDrivenHeapState[S] = {
+  def removeUnwantedPredInstIds(): PredicateDrivenHeapState[S] = {
     copy(
       generalValState = generalValState.removeVariables(predInstHeapIds),
-      abstractHeap = abstractHeap.mapEdgeStates(_.removeVariables(predInstHeapIds))
+      abstractHeap = abstractHeap.mapEdgeStates(state => {
+        state.removeVariables(predInstHeapIds ++ state.sourceEdgeLocalIds)
+      })
     )
   }
 }
