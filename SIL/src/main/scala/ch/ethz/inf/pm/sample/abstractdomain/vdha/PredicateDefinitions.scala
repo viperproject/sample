@@ -81,8 +81,9 @@ case class PredicateDefinition(
 
   import PredicateDrivenHeapState._
 
-  if (refFieldPerms.map.values.forall(_.value.size != 1))
+  if (refFieldPerms.map.values.exists(_.value.size != 1)) {
     println("there is a predicate definiton with ambiguous nested predicate")
+  }
 
   def factory(a: ValFieldPermDomain, b: RefFieldPermDomain) =
     PredicateDefinition(a, b)
