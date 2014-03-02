@@ -33,6 +33,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     if (variable.typ.isObject) {
+      PredicateDefinition.resetId()
+
       var result = super.createVariableForArgument(variable, typ)
 
       val edgeVerticesToPredDefId = result.abstractHeap.localVarEdges.map(edge => {
