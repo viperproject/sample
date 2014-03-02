@@ -214,10 +214,8 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
       result = result.remove(v)
 
     for (s <- r.keySet()) {
-      var value: V = this.get(s.head).bottom()
-
       // We compute the value that should be assigned to all other ids
-      for (v <- s) value = value.lub(this.get(v))
+      val value = Lattice.bigLub(s.map(this.get))
 
       // We assign the value to all other ids
       for (v <- r.apply(s)) result = result.merge(v, value)
