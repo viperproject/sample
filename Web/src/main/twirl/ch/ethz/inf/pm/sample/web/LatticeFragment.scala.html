@@ -63,7 +63,7 @@
                 <li>@fieldName</li>
                 }
                 @s.refFieldPerms.map.map { fieldNameAndId =>
-                <li>@fieldNameAndId._1 → @fieldNameAndId._2.value.map(_.getName).mkString(",")</li>
+                <li>@fieldNameAndId._1 → @SetDomain(fieldNameAndId._2)</li>
                 }
             </ul>
         }
@@ -100,6 +100,18 @@
                 }
             </dl>
             <div class="clearfix"></div>
+        }
+    }
+}
+
+@SetDomain(s: SetDomain[_, _]) = {
+    @if(s.isBottom) {
+        @Bottom()
+    } else {
+        @if(s.isTop) {
+            @Top()
+        } else {
+            @s.value.mkString(", ")
         }
     }
 }
