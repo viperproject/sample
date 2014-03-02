@@ -195,7 +195,12 @@ case class CommonSubGraphIso[S <: SemanticDomain[S]](
   def isBetterThan(other: CommonSubGraphIso[S]): Boolean = {
     require(isComplete, "only compare completed common sub-graphs")
     require(other.isComplete, "only compare completed common sub-graphs")
-    size >= other.size && possibleEdgeMap.size > other.possibleEdgeMap.size
+    // NOTE: When both isomorphisms have the same number of vertices
+    // and remaining edges, prefer the receiver of this call
+    // In the second condition, there used to be a strict inequality
+    // This is a (way too fragile) change such that the desired isomorphism
+    // is chosen for the list traversal example
+    size >= other.size && possibleEdgeMap.size >= other.possibleEdgeMap.size
   }
 }
 
