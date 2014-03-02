@@ -83,6 +83,9 @@ case class PredicateInstancesDomain(
     })
   }
 
+  def foldedAndUnfoldedPredInstIds: Set[VariableIdentifier] =
+    foldedPredInstIds ++ unfoldedPredInstIds
+
   def createVariable(variable: Identifier, typ: Type) =
     add(variable, defaultValue.top())
 

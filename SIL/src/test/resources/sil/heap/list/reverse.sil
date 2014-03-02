@@ -15,5 +15,6 @@ method reverse(list: Ref)
         oldList := oldList.next
         tmp.next := newList
         newList := tmp
+        tmp := null
     }
 }

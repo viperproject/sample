@@ -154,7 +154,18 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                       // Old code that uses asumme (which is not implemented)
                       // val equality = BinaryArithmeticExpression(edgeLocId, Folded, ArithmeticOperator.==, BoolType)
                       // e.state.createVariable(edgeLocId).assume(equality)
-                      val newState = e.state.assign(edgeLocId, Folded).lub(e.state)
+
+                      // When there is already a folded pred instance on this edge:
+                      // That edge cannot be. We would have the instance twice
+                      // TODO: Should not matter what ID it is. If they overlap in terms of
+                      // permissions, it is impossible
+                      val newState = if (e.state.insts.foldedPredInstIds.contains(nestedPredInstId)) {
+                        println("Impossible edge detected, removing it")
+                        e.state.assign(edgeLocId, Unfolded).lub(e.state) // Hack to set it to bottom
+                      } else {
+                        e.state.assign(edgeLocId, Folded).lub(e.state)
+                      }
+
                       newState
                     } else e.state
                   })
@@ -289,11 +300,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               val canFoldThis = edgesThatNeedFoldedPredInst.forall(edge => {
                 nestedPredInstIds subsetOf edge.state.insts.foldedPredInstIds
               })
+              // The target vertices could have other incoming edges,
+              // so we need to remove the folded instance from them too.
+              val verticesToRemoveFoldedPredInstFrom = edgesThatNeedFoldedPredInst.map(_.target)
               if (!canFoldThis) {
                 canFold = false
               } else {
                 candidateAbstractHeap = candidateAbstractHeap.copy(edges = candidateAbstractHeap.edges.map(edge => {
-                  if (edgesThatNeedFoldedPredInst.contains(edge)) {
+                  if (verticesToRemoveFoldedPredInstFrom.contains(edge.target)) {
                     val newState = nestedPredInstIds.foldLeft(edge.state)((state, nestedPredInstId) => {
                       val edgeLocId = EdgeLocalIdentifier(List(edge.field), nestedPredInstId)
                       val newState = state.setToTop(edgeLocId)
@@ -308,14 +322,31 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           })
 
           candidateAbstractHeap = candidateAbstractHeap.copy(edges = candidateAbstractHeap.edges.map(edge => {
-            if (edge == recvEdge) {
-              val edgeLocId = EdgeLocalIdentifier(List(recvEdge.field), unfoldedPredInstId)
+            // TODO: Could be more precise. Should only assign to edges
+            // that may (must?) exist in any concrete heap where the receiver edge exists.
+            if (edge.target == recvEdge.target) {
+              val edgeLocId = EdgeLocalIdentifier(List(edge.field), unfoldedPredInstId)
               edge.copy(state = edge.state.assign(edgeLocId, Folded))
             } else {
               edge
             }
           }))
         })
+
+        if (canFold) {
+          abstractHeap.localVarVertices.foreach(localVarVertex => {
+            def hasPredInstOnEveryEdge(heap: HeapGraph[EdgeStateDomain[S]]): Boolean = {
+              heap.outEdges(localVarVertex).filter(_.target != NullVertex).forall(!_.state.insts.foldedAndUnfoldedPredInstIds.isEmpty)
+            }
+
+            if (hasPredInstOnEveryEdge(abstractHeap)) {
+              if (!hasPredInstOnEveryEdge(candidateAbstractHeap)) {
+                println("won't fold because otherwise, we would lose all permissions to some local variable")
+                canFold = false
+              }
+            }
+          })
+        }
 
         if (canFold) {
           result = result.copy(abstractHeap = candidateAbstractHeap)
