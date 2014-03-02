@@ -250,61 +250,59 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     var result = this
 
     this.abstractHeap.localVarVertices.foreach(localVarVertex => {
-      val localVarAccessPathId = AccessPathIdentifier(List(localVarVertex.name))(localVarVertex.typ)
-      result = CondHeapGraph[EdgeStateDomain[S], T](result).evalExp(localVarAccessPathId).mapCondHeaps(condHeap => {
-        val recvEdge = condHeap.takenPath(localVarAccessPathId.path).edges.head
+      var candidateAbstractHeap = result.abstractHeap
+      var canFold = true
+
+      // Only fold local variables if it is possible to do so
+      // on all local variable edges
+      result.abstractHeap.outEdges(localVarVertex).foreach(recvEdge => {
         val recvEdgeInsts = recvEdge.state.insts
         val unfoldedPredInstIds = recvEdgeInsts.unfoldedPredInstIds
 
-        var resultingCondHeap = condHeap
-
         unfoldedPredInstIds.foreach(unfoldedPredInstId => {
-          val unfoldedPredDef = resultingCondHeap.cond.defs.get(unfoldedPredInstId.toPredDefId)
+          val unfoldedPredDef = recvEdge.state.defs.get(unfoldedPredInstId.toPredDefId)
 
-          val canFold = unfoldedPredDef.refFieldPerms.map.forall({
+          unfoldedPredDef.refFieldPerms.map.foreach({
             case (field, nestedPredDefId) =>
               val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]].map(_.toPredInstId)
-              val edgesThatNeedFoldedPredInst = resultingCondHeap.heap.outEdges(recvEdge.target, Some(field)).filter(_.target != NullVertex)
-              val canFold = edgesThatNeedFoldedPredInst.forall(edge => {
+              val edgesThatNeedFoldedPredInst = result.abstractHeap.outEdges(recvEdge.target, Some(field)).filter(_.target != NullVertex)
+              val canFoldThis = edgesThatNeedFoldedPredInst.forall(edge => {
                 nestedPredInstIds subsetOf edge.state.insts.foldedPredInstIds
               })
-
-              canFold
-          })
-
-          if (canFold) {
-            unfoldedPredDef.refFieldPerms.map.foreach({
-              case (field, nestedPredDefId) =>
-                val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]].map(_.toPredInstId)
-                val edgesThatNeedFoldedPredInst = resultingCondHeap.heap.outEdges(recvEdge.target, Some(field)).filter(_.target != NullVertex)
-
-                resultingCondHeap = resultingCondHeap.mapEdges(edge => {
+              if (!canFoldThis) {
+                canFold = false
+              } else {
+                candidateAbstractHeap = candidateAbstractHeap.copy(edges = candidateAbstractHeap.edges.map(edge => {
                   if (edgesThatNeedFoldedPredInst.contains(edge)) {
                     val newState = nestedPredInstIds.foldLeft(edge.state)((state, nestedPredInstId) => {
                       val edgeLocId = EdgeLocalIdentifier(List(edge.field), nestedPredInstId)
                       val newState = state.setToTop(edgeLocId)
                       newState
                     })
-                    newState
+                    edge.copy(state = newState)
                   } else {
-                    edge.state
+                    edge
                   }
-                  })
-            })
-
-            resultingCondHeap = resultingCondHeap.mapEdges(edge => {
-              if (edge == recvEdge) {
-                val edgeLocId = EdgeLocalIdentifier(List(recvEdge.field), unfoldedPredInstId)
-                edge.state.assign(edgeLocId, Folded)
-              } else {
-                edge.state
+                }))
               }
-            })
-          }
-        })
+          })
 
-        Seq(resultingCondHeap)
-      }).join
+          candidateAbstractHeap = candidateAbstractHeap.copy(edges = candidateAbstractHeap.edges.map(edge => {
+            if (edge == recvEdge) {
+              val edgeLocId = EdgeLocalIdentifier(List(recvEdge.field), unfoldedPredInstId)
+              edge.copy(state = edge.state.assign(edgeLocId, Folded))
+            } else {
+              edge
+            }
+          }))
+        })
+      })
+
+      if (canFold) {
+        result = result.copy(abstractHeap = candidateAbstractHeap)
+      } else {
+        println("cannot fold")
+      }
     })
 
     result
