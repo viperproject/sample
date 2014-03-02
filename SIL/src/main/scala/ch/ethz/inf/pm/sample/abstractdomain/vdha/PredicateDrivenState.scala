@@ -222,12 +222,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val curRecvPredDef = recvEdge.state.defs.get(recvPredDefId)
           val curNestedRecvPredDefIds = curRecvPredDef.refFieldPerms.get(field).value
 
-          val outEdge = nonNullOutEdges.head // Assume there is only one
+          assert(nonNullOutEdges.size == 1, "assume that there is exactly one outgoing non-null edge")
+
+          val outEdge = nonNullOutEdges.head
           val newNestedRecvPredDefIds = outEdge.state.insts.foldedPredInstIds.map(_.toPredDefId).asInstanceOf[Set[Identifier]]
 
           if (curNestedRecvPredDefIds.isEmpty) {
             resultingCondHeap = resultingCondHeap.map(state => {
-              state.assign(recvPredDefId, curRecvPredDef.addRefFieldPerm(field, Some(newNestedRecvPredDefIds.head)))
+              state.assign(recvPredDefId, curRecvPredDef.setRefFieldPerm(field, newNestedRecvPredDefIds))
             })
           } else {
             val repl = new Replacement()
@@ -345,21 +347,23 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val otherPredDefId = otherPredInstId.toPredDefId
 
           if (predDefId != otherPredDefId) {
-            val predDef = edge.state.defs.get(predDefId)
-            val otherPredDef = otherEdge.state.defs.get(otherPredDefId)
+            val predDef00 = edge.state.defs.get(predDefId)
+            val predDef01 = edge.state.defs.get(otherPredDefId)
+            val predDef10 = otherEdge.state.defs.get(predDefId)
+            val predDef11 = otherEdge.state.defs.get(otherPredDefId)
 
             // Do it in both directions separately
-
-            assert(predDef.refFieldPerms.map.size == 1, "must have permission to exactly one ref field")
-            assert(otherPredDef.refFieldPerms.map.size == 1, "must have permission to exactly one ref field")
-
-            val nestedPredDefId = predDef.refFieldPerms.map.head._2.value
-            val otherNestedPredDefId = otherPredDef.refFieldPerms.map.head._2.value
-
-            if (Set(predDefId) == otherNestedPredDefId) {
+            // TODO: Should probably always keep the predicate with the lower version
+            if (predDef11.refFieldPerms.map.values.exists(_.value.contains(predDefId))) {
               repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(predDefId))
-            } else if (Set(otherPredDefId) == nestedPredDefId) {
+            } else if (predDef00.refFieldPerms.map.values.exists(_.value.contains(otherPredDefId))) {
               repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(otherPredDefId))
+            } else if (predDef01.refFieldPerms.map.values.exists(_.value.contains(predDefId))) {
+              repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(otherPredDefId))
+            } else if (predDef10.refFieldPerms.map.values.exists(_.value.contains(otherPredDefId))) {
+              repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(predDefId))
+            } else {
+              println("Could not merge predicate definitions")
             }
           }
         }
@@ -399,7 +403,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     copy(
       generalValState = generalValState.removeVariables(predInstHeapIds),
       abstractHeap = abstractHeap.mapEdgeStates(state => {
-        state.removeVariables(predInstHeapIds ++ state.sourceEdgeLocalIds)
+        state.removeVariables(predInstHeapIds ++ state.sourceEdgeLocalIds.filter(_.typ == PredicateInstanceType))
       })
     )
   }
