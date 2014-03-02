@@ -144,6 +144,10 @@ case class PredicateDefinition(
     copy(refFieldPerms = refFieldPerms.add(field, newSymbolicPredicateIds))
   }
 
+  def setRefFieldPerm(field: String, nestedPredDefIds: Set[Identifier]) = {
+    copy(refFieldPerms = refFieldPerms.add(field, InverseSetDomain.Must(nestedPredDefIds, isTop = nestedPredDefIds.isEmpty)))
+  }
+
   def transform(f: (Expression) => Expression): Expression = ???
 
   def ids = refFieldPerms.map.values.flatMap(_.value).toSet
