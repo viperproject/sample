@@ -12,7 +12,8 @@ case class PredicateDefinitionsDomain(
     override val isBottom: Boolean = false,
     defaultValue: PredicateDefinition = PredicateDefinition().top())
   extends BoxedDomain[PredicateDefinition, PredicateDefinitionsDomain]
-  with SemanticDomain[PredicateDefinitionsDomain] {
+  with SemanticDomain[PredicateDefinitionsDomain]
+  with Lattice.Must[PredicateDefinitionsDomain] {
 
   def get(key: Identifier): PredicateDefinition = map.getOrElse(key, defaultValue)
 
@@ -45,6 +46,45 @@ case class PredicateDefinitionsDomain(
   def backwardAssign(oldPreState: PredicateDefinitionsDomain, variable: Identifier, expr: Expression) = ???
 
   def backwardAccess(field: Identifier) = ???
+
+  override def merge(r: Replacement): PredicateDefinitionsDomain = {
+    if (r.isEmpty()) return this
+
+    assert(r.value.size == 1, "there must be only one replacement")
+    var (fromSet, toSet) = r.value.head
+
+    fromSet = fromSet.intersect(map.keySet)
+    toSet = toSet.intersect(map.keySet)
+
+    if (fromSet.isEmpty && toSet.isEmpty) {
+      this
+    } else {
+      assert(toSet.size == 1, "can only merge into one predicate definition")
+
+      var result = this
+
+      result = result.copy(map = result.map.mapValues(predDef => {
+        predDef.copy(refFieldPerms = predDef.refFieldPerms.copy(
+          map = predDef.refFieldPerms.map.mapValues(nestedPredDefIds => {
+            var newValue = nestedPredDefIds.value -- fromSet
+            if (newValue.size < nestedPredDefIds.value.size) {
+              newValue = newValue ++ toSet
+            }
+            nestedPredDefIds.copy(value = newValue)
+          })
+        ))
+      }))
+
+      val newDef = Lattice.bigLub(fromSet.map(result.map.apply))
+
+      result = fromSet.foldLeft(result)(_.removeVariable(_))
+      result = result.lub(result.assign(toSet.head, newDef))
+
+      // TODO: Should also replace any other occurrences
+
+      result
+    }
+  }
 
   def toSilPredicates(receiverName: String = "this"): Seq[sil.Predicate] = {
     val predMap = map.keys.map(predDefId => {
@@ -81,7 +121,7 @@ case class PredicateDefinition(
 
   import PredicateDrivenHeapState._
 
-  if (refFieldPerms.map.values.exists(_.value.size != 1)) {
+  if (refFieldPerms.map.values.exists(_.value.size > 1)) {
     println("there is a predicate definiton with ambiguous nested predicate")
   }
 
@@ -95,9 +135,12 @@ case class PredicateDefinition(
   def addValFieldPerm(field: String): PredicateDefinition =
     copy(valFieldPerms = valFieldPerms.add(field))
 
-  def addRefFieldPerm(field: String, symbolicPredicateId: Identifier) = {
+  def addRefFieldPerm(field: String, symbolicPredicateIdOption: Option[Identifier]) = {
     // TODO: What should happen if there is already an ID?
-    val newSymbolicPredicateIds = refFieldPerms.get(field).add(symbolicPredicateId)
+    var  newSymbolicPredicateIds = refFieldPerms.get(field)
+    if (symbolicPredicateIdOption.isDefined) {
+      newSymbolicPredicateIds = newSymbolicPredicateIds.add(symbolicPredicateIdOption.get)
+    }
     copy(refFieldPerms = refFieldPerms.add(field, newSymbolicPredicateIds))
   }
 
