@@ -261,7 +261,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         unfoldedPredInstIds.foreach(unfoldedPredInstId => {
           val unfoldedPredDef = resultingCondHeap.cond.defs.get(unfoldedPredInstId.toPredDefId)
 
-          unfoldedPredDef.refFieldPerms.map.foreach({
+          val canFold = unfoldedPredDef.refFieldPerms.map.forall({
             case (field, nestedPredDefId) =>
               val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]].map(_.toPredInstId)
               val edgesThatNeedFoldedPredInst = resultingCondHeap.heap.outEdges(recvEdge.target, Some(field)).filter(_.target != NullVertex)
@@ -269,7 +269,15 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                 nestedPredInstIds subsetOf edge.state.insts.foldedPredInstIds
               })
 
-              if (canFold) {
+              canFold
+          })
+
+          if (canFold) {
+            unfoldedPredDef.refFieldPerms.map.foreach({
+              case (field, nestedPredDefId) =>
+                val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]].map(_.toPredInstId)
+                val edgesThatNeedFoldedPredInst = resultingCondHeap.heap.outEdges(recvEdge.target, Some(field)).filter(_.target != NullVertex)
+
                 resultingCondHeap = resultingCondHeap.mapEdges(edge => {
                   if (edgesThatNeedFoldedPredInst.contains(edge)) {
                     val newState = nestedPredInstIds.foldLeft(edge.state)((state, nestedPredInstId) => {
@@ -281,20 +289,18 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                   } else {
                     edge.state
                   }
-                })
-              } else {
-                sys.error("Cannot fold")
-              }
-          })
+                  })
+            })
 
-          resultingCondHeap = resultingCondHeap.mapEdges(edge => {
-            if (edge == recvEdge) {
-              val edgeLocId = EdgeLocalIdentifier(List(recvEdge.field), unfoldedPredInstId)
-              edge.state.assign(edgeLocId, Folded)
-            } else {
-              edge.state
-            }
-          })
+            resultingCondHeap = resultingCondHeap.mapEdges(edge => {
+              if (edge == recvEdge) {
+                val edgeLocId = EdgeLocalIdentifier(List(recvEdge.field), unfoldedPredInstId)
+                edge.state.assign(edgeLocId, Folded)
+              } else {
+                edge.state
+              }
+            })
+          }
         })
 
         Seq(resultingCondHeap)
