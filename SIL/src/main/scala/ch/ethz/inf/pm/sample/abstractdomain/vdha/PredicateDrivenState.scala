@@ -263,7 +263,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
           unfoldedPredDef.refFieldPerms.map.foreach({
             case (field, nestedPredDefId) =>
-              val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]]
+              val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]].map(_.toPredInstId)
               val edgesThatNeedFoldedPredInst = resultingCondHeap.heap.outEdges(recvEdge.target, Some(field)).filter(_.target != NullVertex)
               val canFold = edgesThatNeedFoldedPredInst.forall(edge => {
                 nestedPredInstIds subsetOf edge.state.insts.foldedPredInstIds
@@ -272,10 +272,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               if (canFold) {
                 resultingCondHeap = resultingCondHeap.mapEdges(edge => {
                   if (edgesThatNeedFoldedPredInst.contains(edge)) {
-                    nestedPredInstIds.foldLeft(edge.state)((state, nestedPredInstId) => {
+                    val newState = nestedPredInstIds.foldLeft(edge.state)((state, nestedPredInstId) => {
                       val edgeLocId = EdgeLocalIdentifier(List(edge.field), nestedPredInstId)
-                      state.setToTop(edgeLocId)
+                      val newState = state.setToTop(edgeLocId)
+                      newState
                     })
+                    newState
                   } else {
                     edge.state
                   }
@@ -289,10 +291,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             if (edge == recvEdge) {
               val edgeLocId = EdgeLocalIdentifier(List(recvEdge.field), unfoldedPredInstId)
               edge.state.assign(edgeLocId, Folded)
-            } /* else if (edge.source == recvEdge.target) {
-              val edgeLocId = EdgeLocalIdentifier(List.empty, unfoldedPredInstId)
-              edge.state.assign(edgeLocId, Folded)
-            } */ else {
+            } else {
               edge.state
             }
           })
