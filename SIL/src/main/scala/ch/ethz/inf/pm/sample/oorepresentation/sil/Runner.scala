@@ -46,8 +46,8 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     // Experimental
     PredicateDefinition.resetId()
 
-    // Analyze
-    compiler.allMethods.map(analysis.analyze)
+    // Analyze (just the first method)
+    List(analysis.analyze(compiler.allMethods.head))
   }
 
   def main(args: Array[String]) {
