@@ -9,7 +9,6 @@ method copyNullable(this: Ref) returns (other: Ref) {
     }
 }
 
-/*
 method testCopyNullable() {
     var c: Ref
     var res: Ref
@@ -22,4 +21,4 @@ method testCopyNullable() {
 
     res := copyNullable(null)
     assert (res == null)
-} */
+}
