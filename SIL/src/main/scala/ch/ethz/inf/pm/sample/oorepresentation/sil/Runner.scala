@@ -72,6 +72,28 @@ object PreciseAnalysisRunner extends AnalysisRunner(
 object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
   SimpleAnalysis[PredicateDrivenHeapState[S]](PredicateEntryStateBuilder)) {
   override def toString = "Analysis with Predicates: One-Phase"
+
+  override def _run(compiler: SilCompiler) = {
+    val results = super._run(compiler)
+
+    for (result <- results) {
+      val cfgState = result.cfgState
+      val exitState = cfgState.exitState().tryToFoldAllLocalVars()
+      val exitCondHeapGraph = CondHeapGraph[EdgeStateDomain[S], PredicateDrivenHeapState[S]](exitState)
+      val predicateBuilder = DefaultPredicateBuilder(compiler.refType)
+      val extractor = AssertionExtractor[S](exitCondHeapGraph)(predicateBuilder)
+
+      println("Extracted Predicates")
+      val preds = extractor.extractPredicates()
+      preds.foreach(println)
+
+      println("Extracted Assertions")
+      val exps = extractor.extract()
+      exps.foreach(println)
+    }
+
+    results
+  }
 }
 
 object TwoPhasePredicateAnalysisRunner extends AnalysisRunner(

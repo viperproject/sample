@@ -87,20 +87,6 @@ case class PredicateDefinitionsDomain(
     }
   }
 
-  def toSilPredicates(receiverName: String = "this"): Seq[sil.Predicate] = {
-    val predMap = map.keys.map(predDefId => {
-      val formalArg = sil.LocalVarDecl(receiverName, sil.Ref)()
-      predDefId.asInstanceOf[VariableIdentifier] -> sil.Predicate(predDefId.getName, Seq(formalArg), null)()
-    }).toMap
-
-    predMap.foreach({
-      case (predDefId, pred) =>
-        pred.body = map.get(predDefId).get.toSilPredicateBody(receiverName, predMap)
-    })
-
-    predMap.values.toSeq
-  }
-
   /** @todo Does not detect mutually recursive predicate definitions. */
   def nonRecursiveIds: Set[Identifier] = {
     map.filterNot({
@@ -170,44 +156,6 @@ case class PredicateDefinition(
       case (field, nestedPredDefIds) =>
         field + " → " + nestedPredDefIds
     })).mkString(", ")
-  }
-
-  def toSilPredicateBody(receiverName: String = "this", predMap: Map[VariableIdentifier, sil.Predicate]): sil.Exp = {
-    if (isTop)
-      sil.TrueLit()()
-    else if (isBottom)
-      sil.FalseLit()()
-    else {
-      def toFieldAccessPred(fieldName: String): sil.FieldAccessPredicate = {
-        val fieldId = refType.fields.find(_.getName == fieldName).get
-        val accPathId = AccessPathIdentifier(List(receiverName), fieldId)
-        val fieldAccess = DefaultSampleConverter.convert(accPathId).asInstanceOf[sil.FieldAccess]
-        sil.FieldAccessPredicate(fieldAccess, sil.FullPerm()())()
-      }
-
-      val valAccessPreds = valFieldPerms.value.map(toFieldAccessPred)
-
-      val refAccessPreds = refFieldPerms.map.map({
-        case (fieldName, predDefIds) =>
-          val predDefId = predDefIds.value.head.asInstanceOf[VariableIdentifier]
-          val refFieldAccessPred = toFieldAccessPred(fieldName)
-
-          val nonNullnessCond = sil.NeCmp(refFieldAccessPred.loc, sil.NullLit()())()
-
-          val fieldId = refType.fields.find(_.getName == fieldName).get
-          val accPathId = AccessPathIdentifier(List(receiverName), fieldId)
-          val fieldAccess = DefaultSampleConverter.convert(accPathId).asInstanceOf[sil.FieldAccess]
-          val pred = predMap(predDefId)
-          val predAccessPred = sil.PredicateAccessPredicate(sil.PredicateAccess(Seq(fieldAccess), pred)(), sil.FullPerm()())()
-          val condPredAccessPred = sil.Implies(nonNullnessCond, predAccessPred)()
-
-          sil.And(refFieldAccessPred, condPredAccessPred)()
-      })
-
-      val preds = valAccessPreds.toList ++ refAccessPreds.toList
-
-      preds.reduceLeft[sil.Exp](sil.And(_, _)())
-    }
   }
 }
 

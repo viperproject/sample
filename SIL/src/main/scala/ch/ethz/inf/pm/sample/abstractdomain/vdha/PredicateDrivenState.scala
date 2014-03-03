@@ -297,7 +297,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     result
   }
 
-  private def _tryToFoldAllLocalVars(): PredicateDrivenHeapState[S] = {
+  def tryToFoldAllLocalVars(): PredicateDrivenHeapState[S] = {
     var result = this
 
     this.abstractHeap.localVarVertices.foreach(localVarVertex => {
@@ -388,8 +388,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       return this
 
     // Fold as much as possible before joining
-    var thisFolded = _tryToFoldAllLocalVars()
-    var otherFolded = other._tryToFoldAllLocalVars()
+    val thisFolded = tryToFoldAllLocalVars()
+    val otherFolded = other.tryToFoldAllLocalVars()
 
     val iso = thisFolded.abstractHeap.mcs(otherFolded.abstractHeap).vertexMap
     var (resAbstractHeap, renameMap) = thisFolded.abstractHeap.minCommonSuperGraphBeforeJoin(otherFolded.abstractHeap, iso)
@@ -558,8 +558,8 @@ case class PredicateDomain(
     id.typ == PredicateDefinitionType
 
   override def toString =
-    "Instances:\n" + ToStringUtilities.indent(instances.toString) +
-      "\nDefinitions:\n" + ToStringUtilities.indent(definitions.toString)
+    "Instances:\n" + ToStringUtilities.indent(instances.toString) + "\n" +
+    "Definitions:\n" + ToStringUtilities.indent(definitions.toString)
 }
 
 case class SemanticAndPredicateDomain[S <: SemanticDomain[S]](
