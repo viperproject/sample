@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, Constants, DefaultSampleConverter}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import semper.sil.{ast => sil}
+import ch.ethz.inf.pm.sample.ToStringUtilities
 
 case class PredicateDefinitionsDomain(
     map: Map[Identifier, PredicateDefinition] = Map.empty[Identifier, PredicateDefinition],
@@ -122,7 +123,7 @@ case class PredicateDefinition(
   import PredicateDrivenHeapState._
 
   if (refFieldPerms.map.values.exists(_.value.size > 1)) {
-    println("there is a predicate definiton with ambiguous nested predicate")
+    println("there is a predicate definition with ambiguous nested predicate")
   }
 
   def factory(a: ValFieldPermDomain, b: RefFieldPermDomain) =
@@ -148,7 +149,7 @@ case class PredicateDefinition(
     copy(refFieldPerms = refFieldPerms.add(field, InverseSetDomain.Must(nestedPredDefIds, isTop = nestedPredDefIds.isEmpty)))
   }
 
-  def transform(f: (Expression) => Expression): Expression = ???
+  def transform(f: (Expression) => Expression) = this
 
   def ids = refFieldPerms.map.values.flatMap(_.value).toSet
 
@@ -161,6 +162,15 @@ case class PredicateDefinition(
 
   def isBottom: Boolean =
     valFieldPerms.isBottom || refFieldPerms.isBottom
+
+  override def toString = {
+    if (isBottom) "⊥"
+    else if (isTop) "⊤"
+    else (valFieldPerms.value.toList ++ refFieldPerms.map.map({
+      case (field, nestedPredDefIds) =>
+        field + " → " + nestedPredDefIds
+    })).mkString(", ")
+  }
 
   def toSilPredicateBody(receiverName: String = "this", predMap: Map[VariableIdentifier, sil.Predicate]): sil.Exp = {
     if (isTop)

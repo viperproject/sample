@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, SilCompiler}
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
@@ -16,6 +16,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   extends PreciseValueDrivenHeapState[
     SemanticAndPredicateDomain[S],
     PredicateDrivenHeapState[S]] {
+
+  // Experimental flag to "simulate" a second analysis
+  // with constrained initial state
+  private val MakePredicateRecursiveFromBeginning: Boolean = false
+
+  private val MakePredicateRecursiveWhenUnfolding: Boolean = false
 
   // Shorthand for the self-type
   type T = PredicateDrivenHeapState[S]
@@ -44,6 +50,19 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
       val predDefIds = edgeVerticesToPredDefId.values
       result = result.createNonObjectVariables(predDefIds.toSet)
+
+      if (MakePredicateRecursiveFromBeginning) {
+        edgeVerticesToPredDefId.map({
+          case (vertices, predDefId) =>
+            if (!vertices.contains(NullVertex)) {
+              var predDef = PredicateDefinition()
+              refType.objectFields.foreach(field => {
+                predDef = predDef.addRefFieldPerm(field.getName, Some(predDefId))
+              })
+              result = result.assignVariable(predDefId, predDef)
+            }
+        })
+      }
 
       result = CondHeapGraph[EdgeStateDomain[S], T](result).mapEdges(edge => {
         edgeVerticesToPredDefId.get(edge.vertices) match {
@@ -119,13 +138,16 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                   recvPredDef.bottom()
                 else if (id.typ.isObject) {
                   val nestedPredDefIdOption = if (result.heap.outEdges(recvEdge.target, Some(field)).exists(_.target != NullVertex)) {
-                    val nestedPredDefId = PredicateDefinition.makeId()
-                    val nestedPredDef = PredicateDefinition().top()
-                    result = result.map(_.createVariable(nestedPredDefId))
-                    // Always assume that the predicate instance is recursive
-                    // val nestedPredDefId = recvPredDefId
-                    // val nestedPredDef = recvPredDef
-                    result = result.map(_.assign(nestedPredDefId, nestedPredDef))
+                    var nestedPredDefId: VariableIdentifier = null
+                    if (MakePredicateRecursiveWhenUnfolding) {
+                      // Always assume that the predicate instance is recursive
+                      nestedPredDefId = recvPredDefId
+                    } else {
+                      nestedPredDefId = PredicateDefinition.makeId()
+                      val nestedPredDef = PredicateDefinition().top()
+                      result = result.map(_.assign(nestedPredDefId, nestedPredDef))
+                    }
+
                     Some(nestedPredDefId)
                   } else None
                   recvPredDef.addRefFieldPerm(field, nestedPredDefIdOption)
@@ -534,6 +556,10 @@ case class PredicateDomain(
 
   def _2canHandle(id: Identifier) =
     id.typ == PredicateDefinitionType
+
+  override def toString =
+    "Instances:\n" + ToStringUtilities.indent(instances.toString) +
+      "\nDefinitions:\n" + ToStringUtilities.indent(definitions.toString)
 }
 
 case class SemanticAndPredicateDomain[S <: SemanticDomain[S]](
