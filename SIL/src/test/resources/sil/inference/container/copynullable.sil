@@ -12,7 +12,8 @@ method copyNullable(this: Ref) returns (other: Ref) {
     }
 }
 
-method testCopyNullable() {
+/** Tests that `copyNullable` returns all permissions. */
+method testCopyNullablePerms() {
     var this: Ref
     var other: Ref
     this := new()
@@ -20,15 +21,35 @@ method testCopyNullable() {
 
     other := copyNullable(this)
 
-    // Method should give back permissions to both this and other
     assert(acc(this.val, write))
     assert(acc(other.val, write))
+}
+
+method testCopyNullableReturnValue() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copyNullable(this)
 
     //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
     assert(this.val == other.val)
 }
 
-method testCopyNullable2() {
+method testCopyNullableOldValue() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copyNullable(this)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    assert(this.val == 42)
+}
+
+method testCopyNull() {
     var res: Ref
     res := copyNullable(null)
 

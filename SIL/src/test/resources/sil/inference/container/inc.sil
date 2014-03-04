@@ -1,0 +1,48 @@
+var val: Int
+
+/** Returns a new container whose value is one greater than the value
+  * of the given container.
+  */
+method inc(this: Ref) returns (other: Ref) {
+  other := new()
+  other.val := this.val + 1
+}
+
+/** Test that `inc` returns all permissions. */
+method testIncPerms() {
+    var container: Ref
+    var res: Ref
+    container := new()
+    container.val := 5
+
+    res := inc(container)
+
+    assert(acc(container.val, write))
+    assert(acc(res.val, write))
+}
+
+/** Test that `inc` puts the return value in relation to the input value. */
+method testIncReturnValue() {
+    var container: Ref
+    var res: Ref
+    container := new()
+    container.val := 5
+
+    res := inc(container)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    assert(container.val == 5)
+}
+
+/** Test that `inc` guarantees that the input value remains unchanged. */
+method testIncOldValues() {
+    var container: Ref
+    var res: Ref
+    container := new()
+    container.val := 5
+
+    res := inc(container)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    assert(res.val == 6)
+}

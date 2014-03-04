@@ -6,7 +6,8 @@ method copy(this: Ref) returns (other: Ref) {
     other.val := this.val
 }
 
-method testCopy() {
+/** Tests that `copy` returns all permissions. */
+method testCopyPerms() {
     var this: Ref
     var other: Ref
     this := new()
@@ -22,7 +23,31 @@ method testCopy() {
     assert(this.val == other.val)
 }
 
-method testCopy2() {
+method testCopyReturnValue() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copy(this)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    assert(this.val == other.val)
+}
+
+method testCopyOldValue() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copy(this)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    assert(this.val == 42)
+}
+
+method testCopyNull() {
     var other: Ref
 
     //:: ExpectedOutput(call.precondition:assertion.false)
