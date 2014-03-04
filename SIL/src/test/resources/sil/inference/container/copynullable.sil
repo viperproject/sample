@@ -1,5 +1,8 @@
 var val: Int
 
+/** Creates a new container whose value is the same as the given container.
+  * Returns null if and only if the parameter is null.
+  */
 method copyNullable(this: Ref) returns (other: Ref) {
     if (this == null) {
         other := null
@@ -7,4 +10,28 @@ method copyNullable(this: Ref) returns (other: Ref) {
         other := new()
         other.val := this.val
     }
+}
+
+method testCopyNullable() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copyNullable(this)
+
+    // Method should give back permissions to both this and other
+    assert(acc(this.val, write))
+    assert(acc(other.val, write))
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    assert(this.val == other.val)
+}
+
+method testCopyNullable2() {
+    var res: Ref
+    res := copyNullable(null)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    assert(res == null)
 }

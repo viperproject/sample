@@ -17,4 +17,14 @@ method testCopy() {
     // Method should give back permissions to both this and other
     assert(acc(other.val, write))
     assert(acc(this.val, write))
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    assert(this.val == other.val)
+}
+
+method testCopy2() {
+    var other: Ref
+
+    //:: ExpectedOutput(call.precondition:assertion.false)
+    other := copy(null)
 }
