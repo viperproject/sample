@@ -85,11 +85,11 @@ trait PredicateBuilder {
 case class DefaultPredicateBuilder(refType: RefType) extends PredicateBuilder {}
 
 case class AssertionExtractor[S <: SemanticDomain[S]](
-    condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]])(
-    implicit val predicateBuilder: PredicateBuilder,
-    val oldSureEdges: Set[Edge[PredicateDrivenHeapState.EdgeStateDomain[S]]] =
+    condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
+    predicateBuilder: PredicateBuilder,
+    oldSureEdges: Set[Edge[PredicateDrivenHeapState.EdgeStateDomain[S]]] =
       Set.empty[Edge[PredicateDrivenHeapState.EdgeStateDomain[S]]],
-    val onlyRecursivePredicates: Boolean = true) {
+    onlyRecursivePredicates: Boolean = true) {
 
   import PredicateDrivenHeapState._
   import PredicateDefinition._
@@ -115,10 +115,9 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
         condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps.flatMap(condSubHeap => {
           val edge = condSubHeap.takenPath(accPathId.path).edges.head
           val suffCond = suffConds(edge)
-          val subExtractor = copy(condHeapGraph = condSubHeap)(
-            predicateBuilder = predicateBuilder,
-            oldSureEdges = newSureEdges,
-            onlyRecursivePredicates = onlyRecursivePredicates)
+          val subExtractor = copy(
+            condHeapGraph = condSubHeap,
+            oldSureEdges = newSureEdges)
           val rhsAssertions = subExtractor.assertions
 
           if (rhsAssertions.isEmpty) {
