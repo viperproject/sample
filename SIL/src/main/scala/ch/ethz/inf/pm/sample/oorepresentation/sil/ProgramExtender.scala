@@ -24,8 +24,11 @@ case class ProgramExtender[S <: SemanticDomain[S]](compiler: SilCompiler) {
       }
     }))(pos = program.pos, info = program.info)
 
-    // TODO: Should update method call references
-    result
+    // Ensure that all method calls in the program refer to the extended methods
+    result.copy(methods = result.methods.map(_.transform({
+      case mc @ sil.MethodCall(method, _, _) =>
+        mc.copy(method = result.methods.find(_.name == method.name).get)(pos = mc.pos, info = mc.info)
+    })()))(result.pos, result.info)
   }
 
   def extendMethod(method: sil.Method, cfgState: AbstractCFGState[T]): sil.Method = {
