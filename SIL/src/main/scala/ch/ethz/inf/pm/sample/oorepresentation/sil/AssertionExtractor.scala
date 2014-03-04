@@ -12,11 +12,13 @@ trait PredicateBuilder {
 
   def formalArgName: String = "this"
 
+  def formalArgDecl: sil.LocalVarDecl =
+    sil.LocalVarDecl(formalArgName, sil.Ref)()
+
   def build(predDefs: PredicateDefinitionsDomain): Map[Identifier, sil.Predicate] = {
     val predMap = predDefs.map.keys.map(predDefId => {
-      val formalArg = sil.LocalVarDecl(formalArgName, sil.Ref)()
       val predName = buildName(predDefId)
-      predDefId -> sil.Predicate(predName, Seq(formalArg), null)()
+      predDefId -> sil.Predicate(predName, Seq(formalArgDecl), null)()
     }).toMap
 
     predMap.foreach({
@@ -54,9 +56,7 @@ trait PredicateBuilder {
           nestedPredDefIds.value.toSeq  match {
             case nestedPredDefId :: Nil =>
               val nonNullnessCond = sil.NeCmp(refFieldAccessPred.loc, sil.NullLit()())()
-              val fieldId = refType.fields.find(_.getName == fieldName).get
-              val accPathId = AccessPathIdentifier(List(formalArgName), fieldId)
-              val fieldAccess = DefaultSampleConverter.convert(accPathId).asInstanceOf[sil.FieldAccess]
+              val fieldAccess = sil.FieldAccess(formalArgDecl.localVar, sil.Field(fieldName, sil.Ref)())()
 
               val pred = predMap(nestedPredDefId)
               val predAccessPred = sil.PredicateAccessPredicate(
