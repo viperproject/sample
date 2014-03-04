@@ -75,9 +75,9 @@ trait PredicateBuilder {
   }
 
   def buildFieldAccessPred(fieldName: String): sil.FieldAccessPredicate = {
-    val fieldId = refType.fields.find(_.getName == fieldName).get
-    val accPathId = AccessPathIdentifier(List(formalArgName), fieldId)
-    val fieldAccess = DefaultSampleConverter.convert(accPathId).asInstanceOf[sil.FieldAccess]
+    val fieldTyp = refType.fields.find(_.getName == fieldName).get.typ
+    val field = sil.Field(fieldName, DefaultSampleConverter.convert(fieldTyp))()
+    val fieldAccess = sil.FieldAccess(formalArgDecl.localVar, field)()
     sil.FieldAccessPredicate(fieldAccess, sil.FullPerm()())()
   }
 }
