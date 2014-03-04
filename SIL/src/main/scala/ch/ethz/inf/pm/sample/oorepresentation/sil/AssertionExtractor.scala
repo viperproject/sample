@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
 trait PredicateBuilder {
   def refType: RefType
 
-  def formalArgName: String = "this"
+  def formalArgName: String
 
   def formalArgDecl: sil.LocalVarDecl =
     sil.LocalVarDecl(formalArgName, sil.Ref)()
@@ -82,14 +82,16 @@ trait PredicateBuilder {
   }
 }
 
-case class DefaultPredicateBuilder(refType: RefType) extends PredicateBuilder {}
+case class DefaultPredicateBuilder(
+    refType: RefType,
+    formalArgName: String = "this") extends PredicateBuilder {}
 
 case class AssertionExtractor[S <: SemanticDomain[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
     predicateBuilder: PredicateBuilder,
     oldSureEdges: Set[Edge[PredicateDrivenHeapState.EdgeStateDomain[S]]] =
       Set.empty[Edge[PredicateDrivenHeapState.EdgeStateDomain[S]]],
-    onlyRecursivePredicates: Boolean = true) {
+    onlyNonRecursivePredicates: Boolean = true) {
 
   import PredicateDrivenHeapState._
   import PredicateDefinition._
@@ -144,11 +146,23 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
 
     val localVarVertex = edge.source.asInstanceOf[LocalVariableVertex]
     val foldedPredInstIds = edge.state.insts.foldedPredInstIds
-    foldedPredInstIds.map(predInstId => {
-      val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
-      val pred = predicateMap(predInstId.toPredDefId)
-      val predAccess = sil.PredicateAccess(Seq(localVar), pred)()
-      sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())().asInstanceOf[sil.Exp]
+    foldedPredInstIds.flatMap(predInstId => {
+      if (onlyNonRecursivePredicates) {
+        // val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
+        // val pred = predicateMap(predInstId.toPredDefId)
+        // val predAccess = sil.PredicateAccess(Seq(localVar), pred)()
+        // Set(sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())().asInstanceOf[sil.Exp])
+
+        // Exploit PredicateBuilder to directly use the body of the predicate
+        val customPredBuilder = DefaultPredicateBuilder(
+          refType = predicateBuilder.refType,
+          formalArgName = localVarVertex.name)
+        val customPredMap =customPredBuilder.build(edge.state.defs)
+        Set(customPredMap(predInstId.toPredDefId).body)
+      } else {
+        println("currently cannot handle")
+        Set.empty[sil.Exp]
+      }
     })
   }
 
