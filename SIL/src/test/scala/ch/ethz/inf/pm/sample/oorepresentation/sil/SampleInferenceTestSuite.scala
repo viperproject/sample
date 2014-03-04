@@ -6,12 +6,19 @@ import java.nio.file.Path
 import semper.sil.frontend.Frontend
 import semper.silicon.Silicon
 import semper.sil.{ast => sil}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 
 class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
   extends Silicon {
 
   override def verify(program: sil.Program) = {
-    super.verify(program)
+    val runner = OnePhasePredicateAnalysisRunner
+    val results = runner.run(program)
+
+    val programExtender = ProgramExtender[ApronInterface.Default](runner.compiler)
+    val extendedProgram = programExtender.extend(program, results)
+
+    super.verify(extendedProgram)
   }
 }
 

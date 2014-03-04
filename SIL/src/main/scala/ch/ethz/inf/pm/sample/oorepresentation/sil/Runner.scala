@@ -74,48 +74,27 @@ object PreciseAnalysisRunner extends AnalysisRunner(
 }
 
 object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
-  SimpleAnalysis[PredicateDrivenHeapState[S]](PredicateEntryStateBuilder)) {
+    SimpleAnalysis[PredicateDrivenHeapState[S]](PredicateEntryStateBuilder)) {
   override def toString = "Analysis with Predicates: One-Phase"
 
   /** Only analyze the first method. */
   override def methodsToAnalyze(compiler: SilCompiler) =
     List(compiler.allMethods.head)
 
+  // TODO: Temporary hack such that we can access the compiler after
+  // the analysis has terminated
+  var compiler: SilCompiler = null
+
   override def _run(compiler: SilCompiler) = {
+    this.compiler = compiler
+
     val results = super._run(compiler)
 
-    for (result <- results) {
-      val cfgState = result.cfgState
+    val programExtender = ProgramExtender[S](compiler)
+    val extendedProgram = programExtender.extend(compiler.program, results)
 
-      val entryState = cfgState.entryState()
-      val exitState = cfgState.exitState().tryToFoldAllLocalVars()
-
-      // Use same predicate definitions in entry state as in exit state.
-      // TODO: Could just supply predicate definitions separately
-      val entryCondHeapGraph = CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S], PredicateDrivenHeapState[S]](entryState).map(state => {
-        state.copy(valueState =
-          state.valueState.copy(predicateState =
-            state.valueState.predicateState.copy(definitions =
-              state.valueState.predicateState.definitions.lub(exitState.generalValState.valueState.predicateState.definitions)
-            )
-          )
-        )
-      }).join
-      val exitCondHeapGraph = CondHeapGraph[EdgeStateDomain[S], PredicateDrivenHeapState[S]](exitState)
-
-      val predicateBuilder = DefaultPredicateBuilder(compiler.refType)
-      val entryExtractor = AssertionExtractor[S](entryCondHeapGraph, predicateBuilder)
-      val exitExtractor = AssertionExtractor[S](exitCondHeapGraph, predicateBuilder)
-
-      println("Extracted Pre-Condition")
-      entryExtractor.assertions.foreach(println)
-
-      println("Extracted Post-Condition")
-      exitExtractor.assertions.foreach(println)
-
-      println("Extracted Predicates")
-      exitExtractor.predicates.foreach(println)
-    }
+    println("Extended Program")
+    println(extendedProgram)
 
     results
   }
