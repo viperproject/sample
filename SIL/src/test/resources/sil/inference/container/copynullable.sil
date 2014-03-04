@@ -1,0 +1,10 @@
+var val: Int
+
+method copyNullable(this: Ref) returns (other: Ref) {
+    if (this == null) {
+        other := null
+    } else {
+        other := new()
+        other.val := this.val
+    }
+}

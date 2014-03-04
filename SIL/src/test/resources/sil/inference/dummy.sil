@@ -1,0 +1,5 @@
+// Contains a method that will verify without any additional specifications
+
+method id(i: Int) returns (res: Int) {
+    res := i
+}
