@@ -78,16 +78,22 @@ object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
 
     for (result <- results) {
       val cfgState = result.cfgState
+      val entryState = cfgState.entryState()
       val exitState = cfgState.exitState().tryToFoldAllLocalVars()
+      val entryCondHeapGraph = CondHeapGraph[EdgeStateDomain[S], PredicateDrivenHeapState[S]](entryState)
       val exitCondHeapGraph = CondHeapGraph[EdgeStateDomain[S], PredicateDrivenHeapState[S]](exitState)
       val predicateBuilder = DefaultPredicateBuilder(compiler.refType)
-      val extractor = AssertionExtractor[S](exitCondHeapGraph)(predicateBuilder)
+      val entryExtractor = AssertionExtractor[S](entryCondHeapGraph)(predicateBuilder)
+      val exitExtractor = AssertionExtractor[S](exitCondHeapGraph)(predicateBuilder)
+
+      println("Extracted Pre-Condition")
+      entryExtractor.assertions.foreach(println)
+
+      println("Extracted Post-Condition")
+      exitExtractor.assertions.foreach(println)
 
       println("Extracted Predicates")
-      extractor.predicates.foreach(println)
-
-      println("Extracted Assertions")
-      extractor.assertions.foreach(println)
+      exitExtractor.predicates.foreach(println)
     }
 
     results
