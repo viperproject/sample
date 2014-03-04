@@ -1,0 +1,20 @@
+var val: Int
+var next: Ref
+
+/** Returns a list with a single element with the given value. */
+method make1(i: Int)
+    returns (res: Ref)
+{
+    res := new()
+    res.val := i
+    res.next := null
+}
+
+method test() {
+    var res: Ref
+
+    res := make1(10)
+
+    assert(res.next == null)
+    assert(res.val == 10)
+}
