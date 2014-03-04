@@ -6,6 +6,7 @@ import semper.sil.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
+import semper.sil.ast.utility.Transformer
 
 trait PredicateBuilder {
   def refType: RefType
@@ -89,8 +90,6 @@ case class DefaultPredicateBuilder(
 case class AssertionExtractor[S <: SemanticDomain[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
     predicateBuilder: PredicateBuilder,
-    oldSureEdges: Set[Edge[PredicateDrivenHeapState.EdgeStateDomain[S]]] =
-      Set.empty[Edge[PredicateDrivenHeapState.EdgeStateDomain[S]]],
     onlyNonRecursivePredicates: Boolean = true) {
 
   import PredicateDrivenHeapState._
@@ -107,8 +106,6 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
     predicateBuilder.build(condHeapGraph.cond.defs)
 
   lazy val assertions: Set[sil.Exp] = {
-    val sureAssertions = newSureEdges.flatMap(assertionsForSureEdge)
-
     val condAssertions = nextAmbigLocalVarVertex match {
       case Some(ambigLocalVarVertex) =>
         val ambigEdges = heap.outEdges(ambigLocalVarVertex)
@@ -117,9 +114,7 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
         condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps.flatMap(condSubHeap => {
           val edge = condSubHeap.takenPath(accPathId.path).edges.head
           val suffCond = suffConds(edge)
-          val subExtractor = copy(
-            condHeapGraph = condSubHeap,
-            oldSureEdges = newSureEdges)
+          val subExtractor = copy(condHeapGraph = condSubHeap)
           val rhsAssertions = subExtractor.assertions
 
           if (rhsAssertions.isEmpty) {
@@ -129,17 +124,27 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
             Set[sil.Exp](sil.Implies(suffCond, subExp)())
           }
         }).toSet
-      case None => Set.empty
+      case None =>
+        // When there are no more local variable vertices with ambiguous
+        // out-going edges, output the access predicates
+        heap.possibleTargetVertices.flatMap(targetVertex => {
+          val inEdges = heap.localVarEdges.filter(_.target == targetVertex)
+          targetVertex match {
+            case DefiniteHeapVertex(_) =>
+              // For definite vertices, only output permissions for one
+              // of the in-coming edges
+              assertionsForSureEdge(inEdges.head)
+            case _ =>
+              // TODO: Should not unconditionally output permissions for each
+              // of the incoming edges. Check that they are not equal?
+              inEdges.flatMap(assertionsForSureEdge)
+          }
+        })
     }
 
-    sureAssertions ++ condAssertions
+    // Simplify the expressions and remove true literals
+    condAssertions.map(Transformer.simplify).filterNot(_.isInstanceOf[sil.TrueLit])
   }
-
-  private def newSureEdges: Set[Edge[StateType]] =
-    sureEdges -- oldSureEdges
-
-  private def sureEdges: Set[Edge[StateType]] =
-    heap.localVarVertices.map(heap.outEdges).filter(_.size == 1).map(_.head)
 
   private def assertionsForSureEdge(edge: Edge[StateType]): Set[sil.Exp] = {
     require(edge.source.isInstanceOf[LocalVariableVertex])
