@@ -46,9 +46,13 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     // Experimental
     PredicateDefinition.resetId()
 
-    // Analyze (just the first method)
-    List(analysis.analyze(compiler.allMethods.head))
+    // Analyze
+    methodsToAnalyze(compiler).map(analysis.analyze)
   }
+
+  /** Which methods to analyze (by default: all of them). */
+  def methodsToAnalyze(compiler: SilCompiler): List[MethodDeclaration] =
+    compiler.allMethods
 
   def main(args: Array[String]) {
     run(new File(args(0)).toPath)
@@ -72,6 +76,10 @@ object PreciseAnalysisRunner extends AnalysisRunner(
 object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
   SimpleAnalysis[PredicateDrivenHeapState[S]](PredicateEntryStateBuilder)) {
   override def toString = "Analysis with Predicates: One-Phase"
+
+  /** Only analyze the first method. */
+  override def methodsToAnalyze(compiler: SilCompiler) =
+    List(compiler.allMethods.head)
 
   override def _run(compiler: SilCompiler) = {
     val results = super._run(compiler)
@@ -116,6 +124,10 @@ object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
 object TwoPhasePredicateAnalysisRunner extends AnalysisRunner(
   RefiningPredicateAnalysis[S](PredicateEntryStateBuilder)) {
   override def toString = "Analysis with Predicates: Two-Phase"
+
+  /** Only analyze the first method. */
+  override def methodsToAnalyze(compiler: SilCompiler) =
+    List(compiler.allMethods.head)
 }
 
 trait EntryStateBuilder[S <: State[S]] {
