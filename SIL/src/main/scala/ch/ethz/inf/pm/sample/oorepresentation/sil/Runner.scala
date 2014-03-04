@@ -84,12 +84,10 @@ object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
       val extractor = AssertionExtractor[S](exitCondHeapGraph)(predicateBuilder)
 
       println("Extracted Predicates")
-      val preds = extractor.extractPredicates()
-      preds.foreach(println)
+      extractor.predicates.foreach(println)
 
       println("Extracted Assertions")
-      val exps = extractor.extract()
-      exps.foreach(println)
+      extractor.assertions.foreach(println)
     }
 
     results

@@ -87,14 +87,33 @@ case class AssertionExtractor[S <: SemanticDomain[S]]
     (implicit val predicateBuilder: PredicateBuilder) {
 
   import PredicateDrivenHeapState._
+  import PredicateDefinition._
 
   type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
 
-  def extractPredicates(): Iterable[sil.Predicate] = {
-    predicateBuilder.build(condHeapGraph.cond.defs).values
-  }
+  lazy val predicates: Iterable[sil.Predicate] =
+    predicateMap.values
 
-  def extract(): Set[sil.Exp] = {
-    Set.empty
+  lazy val predicateMap: Map[Identifier, sil.Predicate] =
+    predicateBuilder.build(condHeapGraph.cond.defs)
+
+  lazy val assertions: Set[sil.Exp] = {
+    condHeapGraph.heap.localVarVertices.flatMap(localVarVertex => {
+      val outEdges = condHeapGraph.heap.outEdges(localVarVertex)
+      // For the moment, just extract predicate access predicates
+      // for unambiguous out-going local variable edges.
+      if (outEdges.size == 1) {
+        val outEdge = outEdges.head
+        val foldedPredInstIds = outEdge.state.insts.foldedPredInstIds
+        foldedPredInstIds.map(predInstId => {
+          val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
+          val pred = predicateMap(predInstId.toPredDefId)
+          val predAccess = sil.PredicateAccess(Seq(localVar), pred)()
+          sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())().asInstanceOf[sil.Exp]
+        })
+      } else {
+        Set.empty[sil.Exp]
+      }
+    })
   }
 }
