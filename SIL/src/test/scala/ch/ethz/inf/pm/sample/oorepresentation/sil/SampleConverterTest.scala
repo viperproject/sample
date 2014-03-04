@@ -4,7 +4,7 @@ import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
 import semper.sil.{ast => sil}
 
-class DefaultSampleConverterTest extends FunSuite with ShouldMatchers {
+class SampleConverterTest extends FunSuite with ShouldMatchers {
   val pp = sample.DummyProgramPoint
   val intType = sample.IntType
   val refType = sample.RefType()

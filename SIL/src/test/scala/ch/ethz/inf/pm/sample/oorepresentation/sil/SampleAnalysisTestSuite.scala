@@ -12,12 +12,10 @@ import semper.sil.testing.SilSuite
  * Just a dummy front-end such that we gain easy access to the fully parsed
  * and type-checked SIL program.
  */
-class SampleFrontend extends SilFrontend {
-  def createVerifier(fullCmd: String): Verifier =
-    new SampleVerifier()
+class DummySilFrontend extends SilFrontend {
+  def createVerifier(fullCmd: String) = ???
 
-  def configureVerifier(args: Seq[String]): SilFrontendConfig =
-    new SilFrontendConfig(args, "sample")
+  def configureVerifier(args: Seq[String]) = ???
 }
 
 class SampleVerifier() extends Verifier {
@@ -55,11 +53,11 @@ case class SampleAssertFailed(pos: Position) extends AbstractError {
   def readableMessage: String = "the assertion may not hold"
 }
 
-class SampleEndToEndTestSuite extends SilSuite {
+class SampleAnalysisTestSuite extends SilSuite {
   def testDirectories = Seq("sil/issues", "sil/translation")
 
   def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new SampleFrontend()
+    val fe = new DummySilFrontend()
     fe.init(verifier)
     fe.reset(files)
     fe
