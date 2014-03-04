@@ -20,7 +20,7 @@ method testReturnValue() {
 
     other := copyNullable(this)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(this.val == other.val)
 }
 
@@ -32,7 +32,7 @@ method testOldValue() {
 
     other := copyNullable(this)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(this.val == 42)
 }
 
@@ -40,6 +40,6 @@ method testNull() {
     var res: Ref
     res := copyNullable(null)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(res == null)
 }

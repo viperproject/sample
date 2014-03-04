@@ -8,19 +8,35 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 import semper.sil.verifier.Failure
 import semper.sil.testing.SilSuite
 
+class SampleAnalysisTestSuite extends SilSuite {
+  def testDirectories = Seq("sil/issues", "sil/translation")
+
+  def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
+    val fe = new DummySilFrontend()
+    fe.init(verifier)
+    fe.reset(files)
+    fe
+  }
+
+  def verifiers: Seq[Verifier] = Seq(new SampleVerifier())
+
+  override def buildTestInput(file: Path, prefix: String) = {
+    val input = super.buildTestInput(file, prefix)
+    input.copy(annotations = input.annotations.filterByKeyIdPrefix("sample"))
+  }
+}
+
 /**
  * Just a dummy front-end such that we gain easy access to the fully parsed
  * and type-checked SIL program.
  */
-class DummySilFrontend extends SilFrontend {
+final case class DummySilFrontend() extends SilFrontend {
   def createVerifier(fullCmd: String) = ???
 
   def configureVerifier(args: Seq[String]) = ???
 }
 
-class SampleVerifier() extends Verifier {
-  def name: String = "sample"
-
+trait SimpleVerifier extends Verifier {
   def version: String = "0.1"
 
   def buildVersion: String = ""
@@ -32,6 +48,10 @@ class SampleVerifier() extends Verifier {
   def dependencies: Seq[Dependency] = Nil
 
   def parseCommandLine(args: Seq[String]): Unit = {}
+}
+
+class SampleVerifier() extends SimpleVerifier {
+  def name: String = "sample"
 
   def verify(program: Program): VerificationResult = {
     PreciseAnalysisRunner.run(program)
@@ -51,22 +71,4 @@ case class SampleAssertFailed(pos: Position) extends AbstractError {
   def fullId: String = "sample.assert.failed"
 
   def readableMessage: String = "the assertion may not hold"
-}
-
-class SampleAnalysisTestSuite extends SilSuite {
-  def testDirectories = Seq("sil/issues", "sil/translation")
-
-  def frontend(verifier: Verifier, files: Seq[Path]): Frontend = {
-    val fe = new DummySilFrontend()
-    fe.init(verifier)
-    fe.reset(files)
-    fe
-  }
-
-  def verifiers: Seq[Verifier] = Seq(new SampleVerifier())
-
-  override def buildTestInput(file: Path, prefix: String) = {
-    val input = super.buildTestInput(file, prefix)
-    input.copy(annotations = input.annotations.filterByKeyIdPrefix("sample"))
-  }
 }

@@ -14,7 +14,7 @@ method testReturnValue() {
 
     other := copy(this)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(this.val == other.val)
 }
 
@@ -26,7 +26,7 @@ method testOldValue() {
 
     other := copy(this)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(this.val == 42)
 }
 

@@ -17,7 +17,7 @@ method testReturnValue() {
 
     res := inc(container)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(container.val == 5)
 }
 
@@ -30,6 +30,6 @@ method testOldValues() {
 
     res := inc(container)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(res.val == 6)
 }

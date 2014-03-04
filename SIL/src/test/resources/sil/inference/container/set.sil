@@ -12,6 +12,6 @@ method testSet() {
 
     set(c, 43)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /silicon/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(c.val == 43)
 }
