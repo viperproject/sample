@@ -5,19 +5,7 @@ method get(c: Ref) returns (i: Int) {
     i := c.val
 }
 
-/** Tests that `get` returns the permission to the container value. */
-method testGetPerm() {
-    var i: Int
-    var container: Ref
-    container := new()
-    container.val := 42
-
-    i := get(container)
-
-    assert(acc(container.val, write))
-}
-
-method testGetReturnValue() {
+method testReturnValue() {
     var i: Int
     var container: Ref
     container := new()
@@ -29,7 +17,7 @@ method testGetReturnValue() {
     assert (i == 42)
 }
 
-method testGetOldValue() {
+method testOldValue() {
     var i: Int
     var container: Ref
     container := new()

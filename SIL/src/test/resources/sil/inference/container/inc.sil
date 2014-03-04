@@ -8,21 +8,8 @@ method inc(this: Ref) returns (other: Ref) {
   other.val := this.val + 1
 }
 
-/** Test that `inc` returns all permissions. */
-method testIncPerms() {
-    var container: Ref
-    var res: Ref
-    container := new()
-    container.val := 5
-
-    res := inc(container)
-
-    assert(acc(container.val, write))
-    assert(acc(res.val, write))
-}
-
 /** Test that `inc` puts the return value in relation to the input value. */
-method testIncReturnValue() {
+method testReturnValue() {
     var container: Ref
     var res: Ref
     container := new()
@@ -35,7 +22,7 @@ method testIncReturnValue() {
 }
 
 /** Test that `inc` guarantees that the input value remains unchanged. */
-method testIncOldValues() {
+method testOldValues() {
     var container: Ref
     var res: Ref
     container := new()
