@@ -1,0 +1,20 @@
+var val: Int
+
+/** Creates a new container whose value is the same as the given container. */
+method copy(this: Ref) returns (other: Ref) {
+    other := new()
+    other.val := this.val
+}
+
+method testCopy() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copy(this)
+
+    // Method should give back permissions to both this and other
+    assert(acc(other.val, write))
+    assert(acc(this.val, write))
+}
