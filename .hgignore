@@ -13,3 +13,6 @@ Test/test/TouchDevelop/cache
 out/
 
 apron.sbt
+
+# Folder with temporary files created by Silicon
+tmp/
