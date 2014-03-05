@@ -2,10 +2,9 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, Constants, DefaultSampleConverter}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import semper.sil.{ast => sil}
-import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.util.Predef._
 
 case class PredicateDefinitionsDomain(
     map: Map[Identifier, PredicateDefinition] = Map.empty[Identifier, PredicateDefinition],
@@ -106,12 +105,6 @@ case class PredicateDefinition(
     PredicateDefinition]
   with Expression {
 
-  import PredicateDrivenHeapState._
-
-  if (refFieldPerms.map.values.exists(_.value.size > 1)) {
-    println("there is a predicate definition with ambiguous nested predicate")
-  }
-
   def factory(a: ValFieldPermDomain, b: RefFieldPermDomain) =
     PredicateDefinition(a, b)
 
@@ -132,7 +125,7 @@ case class PredicateDefinition(
   }
 
   def setRefFieldPerm(field: String, nestedPredDefIds: Set[Identifier]) = {
-    copy(refFieldPerms = refFieldPerms.add(field, InverseSetDomain.Must(nestedPredDefIds, isTop = nestedPredDefIds.isEmpty)))
+    copy(refFieldPerms = refFieldPerms.add(field, NestedPredDefDomain(nestedPredDefIds, isTop = nestedPredDefIds.isEmpty)))
   }
 
   def transform(f: (Expression) => Expression) = this
@@ -194,26 +187,57 @@ object PredicateDefinition {
 
 final case class ValFieldPermDomain(
     value: Set[String] = Set.empty[String],
-    isTop: Boolean = false,
+    isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends InverseSetDomain[String, ValFieldPermDomain] with Lattice.Must[ValFieldPermDomain] {
+  extends InverseSetDomain[String, ValFieldPermDomain]
+  with Lattice.Must[ValFieldPermDomain] {
 
   def setFactory(value: Set[String], isTop: Boolean, isBottom: Boolean) =
     ValFieldPermDomain(value, isTop, isBottom)
 }
 
 final case class RefFieldPermDomain(
-    map: Map[String, InverseSetDomain.Must[Identifier]] = Map.empty[String, InverseSetDomain.Must[Identifier]],
+    map: Map[String, NestedPredDefDomain] = Map.empty[String, NestedPredDefDomain],
     isTop: Boolean = false,
     override val isBottom: Boolean = false,
-    defaultValue: InverseSetDomain.Must[Identifier] = InverseSetDomain.Must[Identifier]().top())
-  extends FunctionalDomain[String, InverseSetDomain.Must[Identifier], RefFieldPermDomain]
+    defaultValue: NestedPredDefDomain = NestedPredDefDomain().top())
+  extends FunctionalDomain[String, NestedPredDefDomain, RefFieldPermDomain]
   with Lattice.Must[RefFieldPermDomain] {
 
   def get(key: String) = map.getOrElse(key, defaultValue)
 
-  def functionalFactory(value: Map[String, InverseSetDomain.Must[Identifier]], isBottom: Boolean, isTop: Boolean) =
+  def functionalFactory(
+      value: Map[String, NestedPredDefDomain],
+      isBottom: Boolean,
+      isTop: Boolean) =
     RefFieldPermDomain(value, isTop, isBottom, defaultValue)
+}
+
+
+/** Basically an inverse 1-set domain with must semantics. */
+final case class NestedPredDefDomain(
+    value: Set[Identifier] = Set.empty,
+    isTop: Boolean = true,
+    isBottom: Boolean = false)
+  extends InverseSetDomain[Identifier, NestedPredDefDomain]
+  with Lattice.Must[NestedPredDefDomain] {
+
+  require(value.isEmpty implies (isTop || isBottom),
+    "an empty set must only represent top or bottom")
+
+  require(isTop implies value.isEmpty,
+    "top must be represented by an empty set")
+
+  require(isBottom implies value.isEmpty,
+    "top must be represented by an empty set")
+
+  require(!isBottom implies value.size <= 1,
+    "there must be at most one element in the set, unless it is bottom")
+
+  override def setFactory(value: Set[Identifier], isTop: Boolean, isBottom: Boolean) = {
+    if (value.size > 1) bottom()
+    else NestedPredDefDomain(value, isTop, isBottom)
+  }
 }
 
 case object PredicateDefinitionType extends AbstractType("Pred") {
