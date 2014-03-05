@@ -90,11 +90,11 @@ object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
 
     val results = super._run(compiler)
 
-    val programExtender = ProgramExtender[S](compiler)
+    /* val programExtender = ProgramExtender[S](compiler)
     val extendedProgram = programExtender.extend(compiler.program, results)
 
     println("Extended Program")
-    println(extendedProgram)
+    println(extendedProgram) */
 
     results
   }

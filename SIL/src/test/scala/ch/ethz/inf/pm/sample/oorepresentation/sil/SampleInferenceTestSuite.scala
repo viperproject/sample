@@ -28,6 +28,9 @@ class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
     assert(isWellFormed(extendedProgram),
       "the extended program is not well-formed")
 
+    println("Extended Program")
+    println(extendedProgram)
+
     super.verify(extendedProgram)
   }
 
