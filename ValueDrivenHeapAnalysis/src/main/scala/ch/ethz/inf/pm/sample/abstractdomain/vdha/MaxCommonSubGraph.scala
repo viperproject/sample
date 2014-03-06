@@ -61,10 +61,11 @@ object CommonSubGraphIso {
     * McGregor's algorithms</a>.
     */
   def firstMax[S <: SemanticDomain[S]](from: HeapGraph[S], to: HeapGraph[S]):
-      CommonSubGraphIso[S] = {
-    val result = PartialCommonSubGraphIso.sure[S](from, to).findMax()
-    result.toCommonSubGraph
-  }
+      CommonSubGraphIso[S] =
+    PartialCommonSubGraphIso.sure[S](from, to).findMax()
+
+  /** Returns an empty common sub-graph isomorphism. */
+  def empty[S <: SemanticDomain[S]] = CommonSubGraphIso[S](Map.empty, Map.empty)
 }
 
 /**
@@ -94,11 +95,17 @@ case class PartialCommonSubGraphIso[S <: SemanticDomain[S]](
   require((remainingVerticesTo intersect verticesTo).isEmpty,
     "remaining and already mapped vertices must be disjoint")
 
-  def findMax(best: PartialCommonSubGraphIso[S] = PartialCommonSubGraphIso.empty[S]):
-      PartialCommonSubGraphIso[S] = {
+  /** Finds the first max common sub-graph isomorphism based on the ordering
+    * of vertices.
+    *
+    * @param best the best common sub-graph isomorphism found so far
+    * @return the new best common sub-graph isomorphism found so far
+    */
+  def findMax(best: CommonSubGraphIso[S] = CommonSubGraphIso.empty[S]):
+      CommonSubGraphIso[S] = {
     if (isComplete) {
       // We reached the leaf of the search tree
-      if (isBetterThan(best)) this else best
+      if (isBetterThan(best)) this.toCommonSubGraph else best
     } else if (!couldBeBetterThan(best)) {
       // Prune the part of the search tree rooted at this node
       best
@@ -122,7 +129,7 @@ case class PartialCommonSubGraphIso[S <: SemanticDomain[S]](
     }
   }
 
-  /** Convert computation result to a `MaxCommonSubGraphIsomorphism`. */
+  /** Convert computation result to a `CommonSubGraphIso`. */
   def toCommonSubGraph: CommonSubGraphIso[S] = {
     CommonSubGraphIso(vertexMap, possibleEdgeMap.map({
       case (fromEdge, toEdges) =>
@@ -183,26 +190,21 @@ case class PartialCommonSubGraphIso[S <: SemanticDomain[S]](
     * could possibly lead of a complete common sub-graph isomorphism that is
     * better than the other given complete common sub-graph isomorphism.
     */
-  def couldBeBetterThan(other: PartialCommonSubGraphIso[S]): Boolean = {
-    require(other.isComplete, "the common sub-graph to compare to must be complete")
+  def couldBeBetterThan(other: CommonSubGraphIso[S]): Boolean = {
     (size + maxRemainingVertices > other.size) ||
-    (size + maxRemainingVertices >= other.size && possibleEdgeMap.size > other.possibleEdgeMap.size)
+    (size + maxRemainingVertices >= other.size && possibleEdgeMap.size > other.edgeMap.size)
   }
 
   /** Returns whether this complete common sub-graph isomorphism is better
     * than a given other one.
     */
-  def isBetterThan(other: PartialCommonSubGraphIso[S]): Boolean = {
+  def isBetterThan(other: CommonSubGraphIso[S]): Boolean = {
     require(isComplete, "only compare completed common sub-graphs")
-    require(other.isComplete, "only compare completed common sub-graphs")
-    size >= other.size && possibleEdgeMap.size > other.possibleEdgeMap.size
+    size >= other.size && possibleEdgeMap.size > other.edgeMap.size
   }
 }
 
 object PartialCommonSubGraphIso {
-  def empty[S <: SemanticDomain[S]] =
-    PartialCommonSubGraphIso[S](Set.empty, Set.empty, Map.empty, Map.empty)
-
   /**
    * Returns the initial common sub-graph isomorphism with trivial mappings.
    *
