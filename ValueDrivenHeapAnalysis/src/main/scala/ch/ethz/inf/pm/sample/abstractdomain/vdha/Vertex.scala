@@ -14,8 +14,6 @@ object VertexConstants {
 trait Vertex extends Ordered[Vertex] {
   def name: String
 
-  // TODO: It seems odd that local variable vertices and null vertices
-  // also need a label, as it is identical to their name
   def label: String
 
   def typ: Type

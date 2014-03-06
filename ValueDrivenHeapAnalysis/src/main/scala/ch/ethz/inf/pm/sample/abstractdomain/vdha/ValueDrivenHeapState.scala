@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import scala.collection.mutable
 import VertexConstants._
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.LocalVariableVertex
 
 trait ValueDrivenHeapState[
     S <: SemanticDomain[S],
@@ -58,6 +59,19 @@ trait ValueDrivenHeapState[
     } else {
       createNonObjectVariables(Set(variable)).copy(expr = ExpressionSet(variable))
     }
+  }
+
+  def removeVariable(x: Expression): T = x match {
+    case id: VariableIdentifier =>
+      if (id.typ.isObject) {
+        val vertex = LocalVariableVertex(id)
+        // Prune the heap as parts of it may have become unreachable
+        copy(abstractHeap = abstractHeap.removeVertices(Set(vertex))).prune()
+      } else {
+        copy(
+          abstractHeap = abstractHeap.removeVariable(id),
+          generalValState = generalValState.removeVariable(id))
+      }
   }
 
   /** Creates non-object variables in both the general value state and also
@@ -591,7 +605,6 @@ trait ValueDrivenHeapState[
 
   def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
   def setVariableToTop(x: Expression): T = ???
-  def removeVariable(x: Expression): T = ???
   def throws(t: ExpressionSet): T = ???
   def pruneUnreachableHeap(): T = ???
   def factory(): T = ???

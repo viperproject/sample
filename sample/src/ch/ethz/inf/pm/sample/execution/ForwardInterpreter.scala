@@ -83,8 +83,11 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
       result = previousEntry.widening(result)
     } else {
       // Taking the least upper bound with the previous result here may seem
-      // redundant, but when performing must-analyses, doing so may lead to
-      // faster convergence or trigger other changes in the state.
+      // redundant, but some analyses (for example the SIL spec inference) do
+      // depend on it, in order to trigger certain changes to the state.
+      // Also, in the case of must-analyses, taking the least upper bound
+      // here may lead to reaching the fix-point faster.
+
       // The old ControlFlowExecution code also used to perform this operation.
       // TODO: Maybe make this call optional (configurable).
       result = previousEntry.lub(result)
