@@ -80,6 +80,12 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def createVariables(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
+  def removeVariable(id: Identifier): HeapGraph[S] =
+    mapEdgeStates(_.removeVariable(id))
+
+  def removeVariables(ids: Set[Identifier]): HeapGraph[S] =
+    mapEdgeStates(_.removeVariables(ids))
+
   def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[RootedPath[S]] =
     paths(accPathId.path.dropRight(1))
 
