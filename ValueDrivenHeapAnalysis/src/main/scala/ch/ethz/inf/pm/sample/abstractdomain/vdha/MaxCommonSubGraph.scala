@@ -67,6 +67,14 @@ object CommonSubGraphIso {
     result.best
   }
 
+  /** Finds all maximum common sub-graphs of two given heap graphs. */
+  def allMax[S <: SemanticDomain[S]](from: HeapGraph[S], to: HeapGraph[S]):
+      Seq[CommonSubGraphIso[S]] = {
+    val empty = MaxCommonSubGraphIsoResult.All.empty[S]
+    val result = PartialCommonSubGraphIso.sure[S](from, to).findMax(result = empty)
+    result.allBest
+  }
+
   /** Returns an empty common sub-graph isomorphism. */
   def empty[S <: SemanticDomain[S]] = CommonSubGraphIso[S](Map.empty, Map.empty)
 }
@@ -88,10 +96,20 @@ trait MaxCommonSubGraphIsoResult[
     * part of this result.
     */
   def couldContain(candidate: PartialCommonSubGraphIso[S]): Boolean
+
+  /** Returns whether the given common sub-graph isomorphism is better
+    * than a given other one.
+    */
+  def isBetter(
+      candidate: PartialCommonSubGraphIso[S],
+      best: CommonSubGraphIso[S]): Boolean = {
+    require(candidate.isComplete, "only compare completed common sub-graphs")
+    candidate.size >= best.size && candidate.possibleEdgeMap.size > best.edgeMap.size
+  }
 }
 
 object MaxCommonSubGraphIsoResult {
-  /** Implementation that just keeps the first max common sub-graph iso. */
+  /** Just keeps the first maximum common sub-graph isomorphism. */
   case class First[S <: SemanticDomain[S]](best: CommonSubGraphIso[S])
     extends MaxCommonSubGraphIsoResult[S, First[S]] {
 
@@ -99,24 +117,16 @@ object MaxCommonSubGraphIsoResult {
       require(candidate.isComplete,
         "can only add complete common sub-graphs to the result")
 
-      if (isBetter(candidate))
+      if (isBetter(candidate, best))
         First[S](candidate.toCommonSubGraph)
       else
         this
     }
 
-    def couldContain(candidate: PartialCommonSubGraphIso[S]): Boolean = {
+    def couldContain(candidate: PartialCommonSubGraphIso[S]) = {
       (candidate.size + candidate.maxRemainingVertices > best.size) ||
         (candidate.size + candidate.maxRemainingVertices >= best.size &&
           candidate.possibleEdgeMap.size > best.edgeMap.size)
-    }
-
-    /** Returns whether this complete common sub-graph isomorphism is better
-      * than a given other one.
-      */
-    def isBetter(candidate: PartialCommonSubGraphIso[S]): Boolean = {
-      require(candidate.isComplete, "only compare completed common sub-graphs")
-      candidate.size >= best.size && candidate.possibleEdgeMap.size > best.edgeMap.size
     }
   }
 
@@ -125,8 +135,57 @@ object MaxCommonSubGraphIsoResult {
     def empty[S <: SemanticDomain[S]]: First[S] =
       First[S](CommonSubGraphIso.empty[S])
   }
-}
 
+  /** Keeps all maximum common sub-graph isomorphisms.
+    *
+    * @todo share code with `First`
+    */
+  case class All[S <: SemanticDomain[S]](allBest: Seq[CommonSubGraphIso[S]])
+    extends MaxCommonSubGraphIsoResult[S, All[S]] {
+
+    require(allBest.map(_.size).toSet.size == 1,
+      "all common sub-graphs isomorphisms must have the same size")
+
+    require(allBest.map(_.edgeMap.size).toSet.size == 1,
+      "all common sub-graphs isomorphisms must have the same size")
+
+    def add(candidate: PartialCommonSubGraphIso[S]) = {
+      require(candidate.isComplete,
+        "can only add complete common sub-graphs to the result")
+
+      if (isBetter(candidate, allBest.head))
+        All[S](Seq(candidate.toCommonSubGraph))
+      else if (isEqual(candidate, allBest.head))
+        All[S](allBest :+ candidate.toCommonSubGraph)
+      else
+        this
+    }
+
+    def couldContain(candidate: PartialCommonSubGraphIso[S]) = {
+      // Since all isomorphism in the result have the same size, we can just
+      // compare to the first one
+      (candidate.size + candidate.maxRemainingVertices > allBest.head.size) ||
+        (candidate.size + candidate.maxRemainingVertices >= allBest.head.size &&
+          candidate.possibleEdgeMap.size >= allBest.head.edgeMap.size)
+    }
+
+    /** Returns whether the given common sub-graph isomorphism is better
+      * than a given other one.
+      */
+    def isEqual(
+        candidate: PartialCommonSubGraphIso[S],
+        best: CommonSubGraphIso[S]): Boolean = {
+      require(candidate.isComplete, "only compare completed common sub-graphs")
+      candidate.size == best.size && candidate.possibleEdgeMap.size == best.edgeMap.size
+    }
+  }
+
+  object All {
+    /** Returns an empty result. */
+    def empty[S <: SemanticDomain[S]]: All[S] =
+      All[S](Seq(CommonSubGraphIso.empty[S]))
+  }
+}
 
 /**
  * Isomorphism between two heap sub-graphs during the computation.
@@ -155,8 +214,7 @@ case class PartialCommonSubGraphIso[S <: SemanticDomain[S]](
   require((remainingVerticesTo intersect verticesTo).isEmpty,
     "remaining and already mapped vertices must be disjoint")
 
-  /** Finds the first max common sub-graph isomorphism based on the ordering
-    * of vertices.
+  /** Finds the maximum common sub-graph isomorphism.
     *
     * @param result the best result found so far
     * @return the new best result
@@ -184,6 +242,10 @@ case class PartialCommonSubGraphIso[S <: SemanticDomain[S]](
       val thisWithoutTo = copy[S](
         remainingVerticesTo = remainingVerticesTo - to)
       newResult = thisWithoutTo.findMax(newResult)
+
+      // TODO: Should keep looking. It's possible that the first two or more
+      // vertices remain unpaired
+
       newResult
     }
   }
