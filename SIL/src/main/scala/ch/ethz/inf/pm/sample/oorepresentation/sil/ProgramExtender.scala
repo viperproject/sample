@@ -32,8 +32,18 @@ case class ProgramExtender[S <: SemanticDomain[S]](compiler: SilCompiler) {
   }
 
   def extendMethod(method: sil.Method, cfgState: AbstractCFGState[T]): sil.Method = {
-    val entryState = cfgState.entryState()
-    val exitState = cfgState.exitState().tryToFoldAllLocalVars()
+    var entryState = cfgState.entryState()
+    var exitState = cfgState.exitState().tryToFoldAllLocalVars()
+
+    // Remove all return variables from the entry state,
+    // since we cannot refer to them in the precondition
+    val returnVarIds = method.formalReturns.map(DefaultSilConverter.convert).map(_.variable.id)
+    entryState = returnVarIds.foldLeft(entryState)(_.removeVariable(_))
+
+    // Remove all local variables from the exit state,
+    // since we cannot refer to them in the postcondition
+    val localVarIds = method.locals.map(DefaultSilConverter.convert).map(_.variable.id)
+    exitState = localVarIds.foldLeft(exitState)(_.removeVariable(_))
 
     // Use same predicate definitions in entry state as in exit state.
     // TODO: Could just supply predicate definitions separately
@@ -48,6 +58,7 @@ case class ProgramExtender[S <: SemanticDomain[S]](compiler: SilCompiler) {
         })
       )
     }).join
+
     val exitCondHeapGraph = CondHeapGraph[EdgeStateDomain[S], PredicateDrivenHeapState[S]](exitState)
 
     val predicateBuilder = DefaultPredicateBuilder(compiler.refType)

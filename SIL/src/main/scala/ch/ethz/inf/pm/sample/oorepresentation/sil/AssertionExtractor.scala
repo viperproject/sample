@@ -125,28 +125,57 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
           }
         }).toSet
       case None =>
-        // When there are no more local variable vertices with ambiguous
-        // out-going edges, output the access predicates
-        heap.possibleTargetVertices.flatMap(targetVertex => {
-          val inEdges = heap.localVarEdges.filter(_.target == targetVertex)
-          targetVertex match {
-            case DefiniteHeapVertex(_) =>
-              // For definite vertices, only output permissions for one
-              // of the in-coming edges
-              assertionsForSureEdge(inEdges.head)
-            case _ =>
-              // TODO: Should not unconditionally output permissions for each
-              // of the incoming edges. Check that they are not equal?
-              inEdges.flatMap(assertionsForSureEdge)
-          }
-        })
+        val refEqualities = buildReferenceEqualities()
+        val accPreds = buildAccessPredicates()
+        refEqualities ++ accPreds
     }
 
     // Simplify the expressions and remove true literals
     condAssertions.map(Transformer.simplify).filterNot(_.isInstanceOf[sil.TrueLit])
   }
 
-  private def assertionsForSureEdge(edge: Edge[StateType]): Set[sil.Exp] = {
+  private def buildReferenceEqualities(): Set[sil.Exp] = {
+    // Extract equalities and inequalities of reference local variables,
+    // including nullness and non-nullness expressions
+    heap.localVarEdges.flatMap(localVarEdge => {
+      val localVar = sil.LocalVar(localVarEdge.source.name)(sil.Ref)
+      if (localVarEdge.target == NullVertex) {
+        val nullnessExp = sil.EqCmp(localVar, sil.NullLit()())()
+        Set[sil.Exp](nullnessExp)
+      } else {
+        val nonNullnessExp = sil.NeCmp(localVar, sil.NullLit()())()
+        val inEqualityExps: Set[sil.Exp] = heap.localVarEdges.map(otherLocalVarEdge => {
+          val otherLocalVar = sil.LocalVar(otherLocalVarEdge.source.name)(sil.Ref)
+          if (localVarEdge.target == otherLocalVarEdge.target)
+            sil.EqCmp(localVar, otherLocalVar)()
+          else
+            sil.NeCmp(localVar, otherLocalVar)()
+        })
+
+        inEqualityExps ++ Set[sil.Exp](nonNullnessExp)
+      }
+    })
+  }
+
+  private def buildAccessPredicates(): Set[sil.Exp] = {
+    // When there are no more local variable vertices with ambiguous
+    // out-going edges, output the access predicates
+    heap.possibleTargetVertices.flatMap(targetVertex => {
+      val inEdges = heap.localVarEdges.filter(_.target == targetVertex)
+      targetVertex match {
+        case DefiniteHeapVertex(_) =>
+          // For definite vertices, only output permissions for one
+          // of the in-coming edges
+          buildAccessPredicates(inEdges.head)
+        case _ =>
+          // TODO: Should not unconditionally output permissions for each
+          // of the incoming edges. Check that they are not equal?
+          inEdges.flatMap(buildAccessPredicates)
+      }
+    })
+  }
+
+  private def buildAccessPredicates(edge: Edge[StateType]): Set[sil.Exp] = {
     require(edge.source.isInstanceOf[LocalVariableVertex])
 
     val localVarVertex = edge.source.asInstanceOf[LocalVariableVertex]

@@ -40,6 +40,5 @@ method testNull() {
     var res: Ref
     res := copyNullable(null)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(res == null)
 }
