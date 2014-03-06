@@ -81,16 +81,26 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   override def getFieldValue(id: AccessPathIdentifier) = {
-    val originalResult = super.getFieldValue(id)
     val receiverPath = id.path.dropRight(1)
     val receiverId = AccessPathIdentifier(receiverPath)(refType)
     val field = id.path.last
 
     assert(receiverPath.size == 1, "currently only support obj.field")
 
-    var result: T = CondHeapGraph[EdgeStateDomain[S], T](originalResult)
+    // Only materialize the receiver of the field access at this point
+    // It's too early to also materialize the target of the field access.
+    // Unfolding after materializing the receiver may cause some edges
+    // going out of the receiver vertex to be removed, so we don't need
+    // to follow them when materializing the target of the field access.
+    var result = materializePath(receiverId.path)
+
+    result = CondHeapGraph[EdgeStateDomain[S], T](result)
       .evalExp(receiverId).mapCondHeaps(condHeap => {
         val recvEdge = condHeap.takenPath(receiverId.path).edges.head
+
+        assert(!recvEdge.target.isInstanceOf[SummaryHeapVertex],
+          "target of the receiver edge must not be a summary node")
+
         val recvPredDefs = recvEdge.state.defs
 
         val foldedPredInstIds = recvEdge.state.insts.foldedPredInstIds
@@ -200,9 +210,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         }
       }).join
 
-    // We've lost the expression due to the assignField calls
-    result = result.setExpression(originalResult.expr)
-    result
+    // Materialize the target of the field access now
+    result.materializePath(id.objPath).copy(expr = ExpressionSet(id))
   }
 
   override protected def createObject(typ: Type) = {
@@ -391,81 +400,95 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val thisFolded = tryToFoldAllLocalVars()
     val otherFolded = other.tryToFoldAllLocalVars()
 
-    val iso = thisFolded.abstractHeap.mcs(otherFolded.abstractHeap).vertexMap
-    var (resAbstractHeap, renameMap) = thisFolded.abstractHeap.minCommonSuperGraphBeforeJoin(otherFolded.abstractHeap, iso)
+    val allIsos = CommonSubGraphIso.allMax(from = otherFolded.abstractHeap, to = thisFolded.abstractHeap)
 
-    val repl = new Replacement()
+    var bestResultOption: Option[PredicateDrivenHeapState[S]] = None
 
-    resAbstractHeap.weakEdgeEquivalenceSets.map(edges => {
-      if (edges.size == 1) {
-        edges
-      } else {
-        assert(edges.size == 2, "there should not be more than two weakly-equal edges")
-        val edge = edges.head
-        val otherEdge = edges.tail.head
+    for (iso <- allIsos) {
+      var (resAbstractHeap, renameMap) = thisFolded.abstractHeap.minCommonSuperGraphBeforeJoin(otherFolded.abstractHeap, iso.vertexMap)
 
-        val predInstIds = edge.state.insts.foldedPredInstIds
-        val otherPredInstIds = otherEdge.state.insts.foldedPredInstIds
+      val repl = new Replacement()
 
-        assert(predInstIds.size <= 1, "cannot handle more than one folded pred inst id")
-        assert(otherPredInstIds.size <= 1, "cannot handle more than one folded pred inst id")
+      resAbstractHeap.weakEdgeEquivalenceSets.map(edges => {
+        if (edges.size == 1) {
+          edges
+        } else {
+          assert(edges.size == 2, "there should not be more than two weakly-equal edges")
+          val edge = edges.head
+          val otherEdge = edges.tail.head
 
-        if (predInstIds.size == 1 && otherPredInstIds.size == 1) {
-          val predInstId = predInstIds.head
-          val otherPredInstId = otherPredInstIds.head
+          val predInstIds = edge.state.insts.foldedPredInstIds
+          val otherPredInstIds = otherEdge.state.insts.foldedPredInstIds
 
-          val predDefId = predInstId.toPredDefId
-          val otherPredDefId = otherPredInstId.toPredDefId
+          assert(predInstIds.size <= 1, "cannot handle more than one folded pred inst id")
+          assert(otherPredInstIds.size <= 1, "cannot handle more than one folded pred inst id")
 
-          if (predDefId != otherPredDefId) {
-            val predDef00 = edge.state.defs.get(predDefId)
-            val predDef01 = edge.state.defs.get(otherPredDefId)
-            val predDef10 = otherEdge.state.defs.get(predDefId)
-            val predDef11 = otherEdge.state.defs.get(otherPredDefId)
+          if (predInstIds.size == 1 && otherPredInstIds.size == 1) {
+            val predInstId = predInstIds.head
+            val otherPredInstId = otherPredInstIds.head
 
-            // Do it in both directions separately
-            // TODO: Should probably always keep the predicate with the lower version
-            if (predDef11.refFieldPerms.map.values.exists(_.value.contains(predDefId))) {
-              repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(predDefId))
-            } else if (predDef00.refFieldPerms.map.values.exists(_.value.contains(otherPredDefId))) {
-              repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(otherPredDefId))
-            } else if (predDef01.refFieldPerms.map.values.exists(_.value.contains(predDefId))) {
-              repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(otherPredDefId))
-            } else if (predDef10.refFieldPerms.map.values.exists(_.value.contains(otherPredDefId))) {
-              repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(predDefId))
-            } else {
-              println("Could not merge predicate definitions")
+            val predDefId = predInstId.toPredDefId
+            val otherPredDefId = otherPredInstId.toPredDefId
+
+            if (predDefId != otherPredDefId) {
+              val predDef00 = edge.state.defs.get(predDefId)
+              val predDef01 = edge.state.defs.get(otherPredDefId)
+              val predDef10 = otherEdge.state.defs.get(predDefId)
+              val predDef11 = otherEdge.state.defs.get(otherPredDefId)
+
+              // Do it in both directions separately
+              // TODO: Should probably always keep the predicate with the lower version
+              if (predDef11.refFieldPerms.map.values.exists(_.value.contains(predDefId))) {
+                repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(predDefId))
+              } else if (predDef00.refFieldPerms.map.values.exists(_.value.contains(otherPredDefId))) {
+                repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(otherPredDefId))
+              } else if (predDef01.refFieldPerms.map.values.exists(_.value.contains(predDefId))) {
+                repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(otherPredDefId))
+              } else if (predDef10.refFieldPerms.map.values.exists(_.value.contains(otherPredDefId))) {
+                repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(predDefId))
+              } else {
+                println("Could not merge predicate definitions")
+              }
             }
           }
         }
+      })
+
+      if (!repl.value.isEmpty) {
+        resAbstractHeap = resAbstractHeap.copy(edges = resAbstractHeap.edges.map(edge => {
+          var newState = edge.state.merge(repl)
+          val edgeLocalRepl = new Replacement()
+
+          for ((fromSet, toSet) <- repl.value) {
+            val newFromSet = fromSet.asInstanceOf[Set[VariableIdentifier]]map(predDefId => EdgeLocalIdentifier(List(edge.field), predDefId.toPredInstId))
+            val newToSet = toSet.asInstanceOf[Set[VariableIdentifier]]map(predDefId => EdgeLocalIdentifier(List(edge.field), predDefId.toPredInstId))
+
+            edgeLocalRepl.value += (newFromSet.toSet[Identifier] -> newToSet.toSet[Identifier])
+          }
+
+          newState = newState.merge(edgeLocalRepl)
+
+          edge.copy(state = newState)
+        }))
       }
-    })
 
-    if (!repl.value.isEmpty) {
-      resAbstractHeap = resAbstractHeap.copy(edges = resAbstractHeap.edges.map(edge => {
-        var newState = edge.state.merge(repl)
-        val edgeLocalRepl = new Replacement()
+      resAbstractHeap = resAbstractHeap.joinCommonEdges()
 
-        for ((fromSet, toSet) <- repl.value) {
-          val newFromSet = fromSet.asInstanceOf[Set[VariableIdentifier]]map(predDefId => EdgeLocalIdentifier(List(edge.field), predDefId.toPredInstId))
-          val newToSet = toSet.asInstanceOf[Set[VariableIdentifier]]map(predDefId => EdgeLocalIdentifier(List(edge.field), predDefId.toPredInstId))
+      val valueRenameMap = Vertex.vertexMapToValueHeapIdMap(renameMap)
+      val resGeneralState = thisFolded.generalValState.merge(repl).lub(otherFolded.generalValState.merge(repl).rename(valueRenameMap.toMap))
 
-          edgeLocalRepl.value += (newFromSet.toSet[Identifier] -> newToSet.toSet[Identifier])
-        }
+      val result = factory(resAbstractHeap, resGeneralState, ExpressionSet()).prune()
 
-        newState = newState.merge(edgeLocalRepl)
-
-        edge.copy(state = newState)
-      }))
+      bestResultOption = bestResultOption match {
+        case Some(bestResult) =>
+          if (result.abstractHeap.edges.size < bestResult.abstractHeap.edges.size) Some(result)
+          else Some(bestResult)
+        case None =>
+          Some(result)
+      }
     }
 
-    resAbstractHeap = resAbstractHeap.joinCommonEdges()
-
-    val valueRenameMap = Vertex.vertexMapToValueHeapIdMap(renameMap)
-    val resGeneralState = thisFolded.generalValState.merge(repl).lub(otherFolded.generalValState.merge(repl).rename(valueRenameMap.toMap))
-
-    val result = factory(resAbstractHeap, resGeneralState, ExpressionSet()).prune()
-    result
+    bestResultOption.get
   }
 
   override def widening(other: T): T = {
