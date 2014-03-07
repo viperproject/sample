@@ -159,11 +159,13 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * This method removes all given vertices and all edges that have vertices
    * from vs as a source or target from the graph.
    *
-   * @param vs set of vertices to be removed from the graph
+   * @param vertices set of vertices to be removed from the graph
    * @return graph without vertices vs and without edges containing vertices from vs
    */
-  def removeVertices(vs: Set[Vertex]): HeapGraph[S] =
-    HeapGraph(vertices -- vs, edges -- edges.filter(_.vertices.intersect(vs).isEmpty))
+  def removeVertices(vertices: Set[Vertex]): HeapGraph[S] = {
+    val edgesToRemove = edges.filterNot(_.vertices.intersect(vertices).isEmpty)
+    HeapGraph(vertices -- vertices, edges -- edgesToRemove)
+  }
 
   def addEdges(es: Set[Edge[S]]): HeapGraph[S] =
     copy(edges = edges ++ es)
