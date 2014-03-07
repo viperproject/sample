@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
 import semper.sil.ast.utility.Transformer
+import semper.sil.ast.TrueLit
 
 trait PredicateBuilder {
   def refType: RefType
@@ -83,6 +84,35 @@ trait PredicateBuilder {
   }
 }
 
+case class AssertionTree(
+    exps: Set[sil.Exp] = Set.empty,
+    children: Map[sil.Exp, AssertionTree] = Map.empty) {
+
+  def isEmpty: Boolean =
+    exps.isEmpty && children.isEmpty
+
+  def simplify: AssertionTree = {
+    val newExps = exps.map(Transformer.simplify).filterNot(_.isInstanceOf[TrueLit])
+    val newChildren = children.mapValues(_.simplify).filterNot({
+      case (cond, tree) => tree.isEmpty
+    })
+    AssertionTree(newExps, newChildren)
+  }
+
+  def unconditionalExps: Seq[sil.Exp] = exps.toSeq
+
+  def conditionalExps: Seq[sil.Implies] =
+    children.map({ case (cond, tree) => sil.Implies(cond, tree.toExp)() }).toSeq
+
+  def toExp: sil.Exp = {
+    val allExps = exps ++ conditionalExps
+    allExps.foldLeft[sil.Exp](sil.TrueLit()())(sil.And(_, _)())
+  }
+
+  def toExps: Seq[sil.Exp] =
+    unconditionalExps ++ conditionalExps
+}
+
 case class DefaultPredicateBuilder(
     refType: RefType,
     formalArgName: String = "this") extends PredicateBuilder {}
@@ -102,36 +132,31 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
   def predicates: Iterable[sil.Predicate] =
     predicateMap.values
 
-  lazy val predicateMap: Map[Identifier, sil.Predicate] =
+  def predicateMap: Map[Identifier, sil.Predicate] =
     predicateBuilder.build(condHeapGraph.cond.defs)
 
-  lazy val assertions: Set[sil.Exp] = {
-    val condAssertions = nextAmbigLocalVarVertex match {
+  def assertion: sil.Exp = assertionTree.toExp
+
+  def assertionTree: AssertionTree = {
+    nextAmbigLocalVarVertex match {
       case Some(ambigLocalVarVertex) =>
         val ambigEdges = heap.outEdges(ambigLocalVarVertex)
         val suffConds = sufficientConditions(ambigEdges)
         val accPathId = AccessPathIdentifier(List(ambigLocalVarVertex.name))(refType)
-        condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps.flatMap(condSubHeap => {
+        val condHeaps = condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps
+        val children = condHeaps.map(condSubHeap => {
           val edge = condSubHeap.takenPath(accPathId.path).edges.head
           val suffCond = suffConds(edge)
           val subExtractor = copy(condHeapGraph = condSubHeap)
-          val rhsAssertions = subExtractor.assertions
 
-          if (rhsAssertions.isEmpty) {
-            Set.empty[sil.Exp]
-          } else {
-            val subExp = rhsAssertions.reduceLeft[sil.Exp](sil.And(_, _)())
-            Set[sil.Exp](sil.Implies(suffCond, subExp)())
-          }
-        }).toSet
+          suffCond -> subExtractor.assertionTree
+        }).toMap
+        AssertionTree(children = children)
       case None =>
         val refEqualities = buildReferenceEqualities()
         val accPreds = buildAccessPredicates()
-        refEqualities ++ accPreds
+        AssertionTree(exps = refEqualities ++ accPreds)
     }
-
-    // Simplify the expressions and remove true literals
-    condAssertions.map(Transformer.simplify).filterNot(_.isInstanceOf[sil.TrueLit])
   }
 
   private def buildReferenceEqualities(): Set[sil.Exp] = {

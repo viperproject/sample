@@ -66,8 +66,8 @@ case class ProgramExtender[S <: SemanticDomain[S]](compiler: SilCompiler) {
     val exitExtractor = AssertionExtractor[S](exitCondHeapGraph, predicateBuilder)
 
     method.copy(
-      _pres = entryExtractor.assertions.toSeq,
-      _posts = exitExtractor.assertions.toSeq)(
+      _pres = entryExtractor.assertionTree.simplify.toExps,
+      _posts = exitExtractor.assertionTree.simplify.toExps)(
       pos = method.pos,
       info = method.info)
   }
