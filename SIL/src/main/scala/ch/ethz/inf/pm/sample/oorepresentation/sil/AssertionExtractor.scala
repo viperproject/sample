@@ -144,12 +144,17 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
         Set[sil.Exp](nullnessExp)
       } else {
         val nonNullnessExp = sil.NeCmp(localVar, sil.NullLit()())()
-        val inEqualityExps: Set[sil.Exp] = heap.localVarEdges.map(otherLocalVarEdge => {
-          val otherLocalVar = sil.LocalVar(otherLocalVarEdge.source.name)(sil.Ref)
-          if (localVarEdge.target == otherLocalVarEdge.target)
-            sil.EqCmp(localVar, otherLocalVar)()
-          else
-            sil.NeCmp(localVar, otherLocalVar)()
+        val inEqualityExps: Set[sil.Exp] = heap.localVarEdges.flatMap(otherLocalVarEdge => {
+          // Do not generate useless equalities such as `r == r`
+          if (localVarEdge != otherLocalVarEdge) {
+            val otherLocalVar = sil.LocalVar(otherLocalVarEdge.source.name)(sil.Ref)
+            if (localVarEdge.target == otherLocalVarEdge.target)
+              Set[sil.Exp](sil.EqCmp(localVar, otherLocalVar)())
+            else
+              Set[sil.Exp](sil.NeCmp(localVar, otherLocalVar)())
+          } else {
+            Set.empty[sil.Exp]
+          }
         })
 
         inEqualityExps ++ Set[sil.Exp](nonNullnessExp)
