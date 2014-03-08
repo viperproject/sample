@@ -231,7 +231,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val source = abstractHeap.localVarVertex(left.getName)
         val addedEdge = result.abstractHeap.outEdges(source).head
 
-        val predValHeapIds = addedEdge.state.valueHeapIds(addedEdge.target).filter(_.typ == PredType)
+        val predValHeapIds = addedEdge.state.predHeapIds(addedEdge.target)
         val repl = new Replacement()
 
         predValHeapIds.foreach(predValHeapId => {
@@ -512,14 +512,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     factory(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
   }
 
-  def predValueHeapIds: Set[ValueHeapIdentifier] =
-    generalValState.valueHeapIds.filter(_.typ == PredType)
-
   def removeUnwantedPredIds(): PredicateDrivenHeapState[S] = {
     copy(
-      generalValState = generalValState.removeVariables(predValueHeapIds),
+      generalValState = generalValState.removeVariables(generalValState.predHeapIds),
       abstractHeap = abstractHeap.mapEdgeStates(state => {
-        state.removeVariables(predValueHeapIds ++ state.sourceEdgeLocalIds.filter(_.typ == PredType))
+        state.removeVariables(generalValState.predHeapIds ++ state.sourceEdgeLocalIds.filter(_.typ == PredType))
       })
     )
   }
@@ -543,6 +540,12 @@ object PredicateDrivenHeapState {
   }
 
   implicit class ExtendedEdgeStateDomain[S <: SemanticDomain[S]](state: EdgeStateDomain[S]) {
+    def predHeapIds: Set[ValueHeapIdentifier] =
+      state.valueHeapIds.filter(_.typ == PredType)
+
+    def predHeapIds(vertex: Vertex): Set[ValueHeapIdentifier] =
+      state.valueHeapIds(vertex).filter(_.typ == PredType)
+
     def predInsts: PredicateInstancesDomain =
       state.valueState.predicateState.instances
 
