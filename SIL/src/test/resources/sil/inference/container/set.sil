@@ -11,7 +11,5 @@ method testSet() {
     c.val := 42
 
     set(c, 43)
-
-    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(c.val == 43)
 }

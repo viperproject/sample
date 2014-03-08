@@ -20,5 +20,7 @@ method test() {
     res := id(this)
 
     assert(this == res)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(this.val == 42)
 }

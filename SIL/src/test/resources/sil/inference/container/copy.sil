@@ -14,7 +14,6 @@ method testReturnValue() {
 
     other := copy(this)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert(this.val == other.val)
 }
 

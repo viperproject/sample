@@ -9,7 +9,5 @@ method make(i: Int) returns (c: Ref) {
 method testMake() {
     var c: Ref
     c := make(42)
-
-    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
     assert (c.val == 42)
 }
