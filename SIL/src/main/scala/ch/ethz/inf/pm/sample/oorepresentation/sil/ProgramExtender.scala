@@ -58,8 +58,8 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     }).join
 
     val predicateBuilder = DefaultPredicateBuilder()
-    val entryExtractor = AssertionExtractor[S](entryCondHeapGraph, predicateBuilder)
-    val exitExtractor = AssertionExtractor[S](exitState.toCondHeapGraph, predicateBuilder)
+    val entryExtractor = AssertionExtractor[S](entryCondHeapGraph)
+    val exitExtractor = AssertionExtractor[S](exitState.toCondHeapGraph)
 
     method.transform()(post = {
       case m: sil.Method =>
@@ -81,7 +81,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
 
         val cfgPosition = cfgPositions.head
         val state = cfgState.postStateAt(cfgPosition)
-        val extractor = AssertionExtractor[S](state.toCondHeapGraph, predicateBuilder)
+        val extractor = AssertionExtractor[S](state.toCondHeapGraph)
 
         w.copy(invs = w.invs ++ extractor.assertionTree.simplify.toExps)(w.pos, w.info)
     })
