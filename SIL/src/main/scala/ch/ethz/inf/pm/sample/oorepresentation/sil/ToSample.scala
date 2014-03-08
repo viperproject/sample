@@ -87,7 +87,10 @@ object DefaultSilConverter extends SilConverter {
     )
   }
 
-  def convert(m: sil.Method): sample.MethodDeclaration =
+  def convert(m: sil.Method): sample.MethodDeclaration = {
+    require(!m.body.existsDefined({ case g: sil.Goto => true }),
+      "methods must not contain goto statements")
+
     new MethodDeclWithOutParams(
       programpoint = go(m.pos),
       ownerType = refType,
@@ -112,6 +115,7 @@ object DefaultSilConverter extends SilConverter {
       precond = makeConjunction(m.pres),
       postcond = makeConjunction(m.posts),
       classDef = classDef)
+  }
 
   def convert(f: sil.Field): sample.FieldDeclaration =
     new sample.FieldDeclaration(go(f.pos), modifiers = Nil,
@@ -262,6 +266,7 @@ object DefaultSilConverter extends SilConverter {
         case b: sil.StatementBlock =>
           b.stmt.children.map(go).toList
         case lb: sil.LoopBlock =>
+
           /* val invariant = semper.simplon.utils.BigAnd(lb.invs)
           val assertMethodCall = go(sil.Assert(invariant)())
           val coolPP = sample.ProgramPointsForLoopBlocks(lb)
@@ -284,10 +289,18 @@ object DefaultSilConverter extends SilConverter {
           cfg.addEdge(index, convertCfg(b.els), Some(false))
         case b: sil.LoopBlock =>
           cfg.addEdge(index, convertCfg(b.body), Some(true))
-          // The unconditional back edge from the body block to the condition block
-          // is implicit in SIL's CFG. Make it explicit for Sample.
-          // TODO: Is this correct? What if b.body has successors?
-          cfg.addEdge(convertCfg(b.body), index, None)
+          // In the SIL CFG, there are no explicit edges from blocks at
+          // the end of the loop back to the containing loop block.
+          // For Sample, we need to add them explicitly.
+          // Thus, find all terminal blocks reachable from the loop body block
+          // and add a back-edge.
+          val terminalBodyBlocks = sil.utility.ControlFlowGraph
+            .collectBlocks(b.body).filter(_.isInstanceOf[sil.TerminalBlock])
+
+          for (terminalBlock <- terminalBodyBlocks) {
+            cfg.addEdge(convertCfg(terminalBlock), index, None)
+          }
+
           cfg.addEdge(index, convertCfg(b.succ), Some(false))
         case _ =>
           // TODO: Should handle FreshReadPermBlock
