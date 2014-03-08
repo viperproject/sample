@@ -1,0 +1,14 @@
+/** Computes the number 2 with a loop that requires an invariant. */
+method getTwo() returns (i: Int) {
+    i := 0
+    while (i < 2) {
+        i := i + 1
+    }
+}
+
+method testGetTwo() {
+    var res: Int
+
+    res := getTwo()
+    assert (res == 2)
+}
