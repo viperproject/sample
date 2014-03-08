@@ -7,7 +7,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
 import semper.sil.ast.utility.Transformer
-import semper.sil.ast.TrueLit
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
 
 trait PredicateBuilder {
@@ -104,7 +103,7 @@ case class AssertionTree(
   def simplify: AssertionTree = {
     val newExps = exps
       .map(Transformer.simplify)
-      .filterNot(_.isInstanceOf[TrueLit])
+      .filterNot(_.isInstanceOf[sil.TrueLit])
 
     val newChildren = children
       .map({  case (cond, child) => cond -> child.remove(cond).simplify })
@@ -115,11 +114,15 @@ case class AssertionTree(
 
   def unconditionalExps: Seq[sil.Exp] = exps.toSeq
 
-  def conditionalExps: Seq[sil.Implies] =
-    children.map({ case (cond, tree) => sil.Implies(cond, tree.toExp)() }).toSeq
+  def conditionalExps: Seq[sil.Exp] =
+    children.map({
+      case (sil.TrueLit(), tree) => tree.toExp
+      case (cond, tree) =>
+        sil.Implies(cond, tree.toExp)()
+    }).toSeq
 
   def toExp: sil.Exp = {
-    val allExps = exps ++ conditionalExps
+    val allExps = exps.toList ++ conditionalExps.toList
     if (allExps.isEmpty) sil.TrueLit()()
     else allExps.reduceLeft[sil.Exp](sil.And(_, _)())
   }
@@ -167,19 +170,36 @@ case class AssertionExtractor[S <: ApronInterface[S]](
         val valAssertions = buildValueAssertions()
         val refEqualities = buildReferenceEqualities()
         val accPreds = buildAccessPredicates()
-        AssertionTree(exps = valAssertions ++ refEqualities ++ accPreds)
+        AssertionTree(exps = accPreds, Map(sil.TrueLit()() ->
+          AssertionTree(valAssertions ++ refEqualities)
+        ))
     }
   }
 
-  /** Extract numerical local variable assertions. */
+  /** Extract numerical value assertions. */
   private def buildValueAssertions(): Set[sil.Exp] = {
-    val cond = condHeapGraph.cond.valueState.valueState
+    var cond = condHeapGraph.cond.valueState.valueState
+
+    // Rename value heap identifiers to access path identifiers,
+    // e.g. n0.val --> this.val
+    heap.localVarEdges.groupBy(_.target).foreach({
+      case (target: DefiniteHeapVertex, localVarEdges) =>
+        val localVarNames = localVarEdges.map(_.source.name)
+        for (valueHeapId: ValueHeapIdentifier <- target.valueHeapIds) {
+          val field = valueHeapId.field
+          val accPathIds = localVarNames.map(localVarName =>
+            AccessPathIdentifier(List(localVarName), field))
+          val replacement = new Replacement()
+          replacement.value += Set[Identifier](valueHeapId) -> accPathIds.toSet
+          cond = cond.merge(replacement)
+        }
+      case (target: SummaryHeapVertex, localVarEdges) =>
+        cond = cond.removeVariables(target.valueHeapIds)
+      case _ =>
+    })
 
     // Only keep variable identifiers in the state
-    val filteredCond = cond
-      .removeVariables(cond.valueHeapIds)
-      .removeVariables(cond.accPathIds)
-    val sampleExps = ApronInterfaceTranslator.translate(filteredCond)
+    val sampleExps = ApronInterfaceTranslator.translate(cond)
     val exps = sampleExps.map(DefaultSampleConverter.convert)
     exps
   }

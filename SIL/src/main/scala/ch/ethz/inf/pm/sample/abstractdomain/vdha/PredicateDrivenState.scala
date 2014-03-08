@@ -240,7 +240,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val repl = new Replacement()
 
         predInstValHeapIds.foreach(predInstValHeapId => {
-          val predInstId = VariableIdentifier(predInstValHeapId.field)(PredicateInstanceType)
+          val predInstId = predInstValHeapId.field
           val predInstEdgeLocalId = EdgeLocalIdentifier(List(addedEdge.field), predInstId)
           repl.value += (Set[Identifier](predInstValHeapId) -> Set[Identifier](predInstEdgeLocalId))
         })
