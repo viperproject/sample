@@ -588,7 +588,7 @@ trait ValueDrivenHeapState[
     factory(condHeap.heap, condHeap.cond, ExpressionSet())
 
   /** Convertes the state to a conditional heap graph. */
-  protected def toCondHeapGraph: CondHeapGraph[S] =
+  def toCondHeapGraph: CondHeapGraph[S] =
     CondHeapGraph[S, T](this)
 
   /**

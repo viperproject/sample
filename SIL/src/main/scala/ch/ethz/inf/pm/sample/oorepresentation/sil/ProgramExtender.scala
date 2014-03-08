@@ -2,10 +2,9 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import semper.sil.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.{CondHeapGraph, PredicateDrivenHeapState}
-import ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState._
 import ch.ethz.inf.pm.sample.execution.AbstractCFGState
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
+import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
 
 case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
@@ -58,16 +57,33 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
       )
     }).join
 
-    val exitCondHeapGraph = CondHeapGraph[EdgeStateDomain[S], PredicateDrivenHeapState[S]](exitState)
-
     val predicateBuilder = DefaultPredicateBuilder()
     val entryExtractor = AssertionExtractor[S](entryCondHeapGraph, predicateBuilder)
-    val exitExtractor = AssertionExtractor[S](exitCondHeapGraph, predicateBuilder)
+    val exitExtractor = AssertionExtractor[S](exitState.toCondHeapGraph, predicateBuilder)
 
-    method.copy(
-      _pres = entryExtractor.assertionTree.simplify.toExps,
-      _posts = exitExtractor.assertionTree.simplify.toExps)(
-      pos = method.pos,
-      info = method.info)
+    method.transform()(post = {
+      case m: sil.Method =>
+        m.copy(
+          _pres = entryExtractor.assertionTree.simplify.toExps,
+          _posts = exitExtractor.assertionTree.simplify.toExps)(m.pos, m.info)
+      case w: sil.While =>
+        val pp = DefaultSilConverter.convert(w.cond.pos)
+        val cfgPositions = cfgState.cfg.nodes.zipWithIndex.flatMap({
+          case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({
+            case (stmt, stmtIdx) =>
+              if (stmt.getPC() == pp) Some(CFGPosition(blockIdx, stmtIdx))
+              else None
+          })
+        })
+
+        assert (cfgPositions.size == 1,
+          "there must be exactly one statement for the while condition")
+
+        val cfgPosition = cfgPositions.head
+        val state = cfgState.postStateAt(cfgPosition)
+        val extractor = AssertionExtractor[S](state.toCondHeapGraph, predicateBuilder)
+
+        w.copy(invs = w.invs ++ extractor.assertionTree.simplify.toExps)(w.pos, w.info)
+    })
   }
 }
