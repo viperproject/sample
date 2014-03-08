@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.AbstractType
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, AbstractType}
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
@@ -116,11 +116,6 @@ case class PredicateInstancesDomain(
 }
 
 object PredicateInstancesDomain {
-  val Folded = Constant("true", PredicateInstanceType, DummyProgramPoint)
-  val Unfolded = Constant("false", PredicateInstanceType, DummyProgramPoint)
-}
-
-case object PredicateInstanceType extends AbstractType("PredInstance") {
-  override def isBooleanType = true
-  def isNumericalType = true
+  val Folded = Constant("true", PredType)
+  val Unfolded = Constant("false", PredType)
 }

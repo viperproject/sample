@@ -252,7 +252,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
     val localVarVertex = edge.source.asInstanceOf[LocalVariableVertex]
     val foldedPredInstIds = edge.state.predInsts.foldedIds
-    foldedPredInstIds.flatMap(predInstId => {
+    foldedPredInstIds.flatMap(predId => {
       if (onlyNonRecursivePredicates) {
         // val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
         // val pred = predicateMap(predInstId.toPredDefId)
@@ -263,7 +263,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
         val customPredBuilder = DefaultPredicateBuilder(
           formalArgName = localVarVertex.name)
         val customPredMap = customPredBuilder.build(edge.state.predDefs)
-        Set(customPredMap(predInstId.toPredDefId).body)
+        Set(customPredMap(predId).body)
       } else {
         println("currently cannot handle")
         Set.empty[sil.Exp]

@@ -201,24 +201,21 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
           state.valueState.predicateState.copy(
             definitions = secondEntryDefs.copy(map = secondEntryDefs.map.filterNot(_._2.isBottom)),
             instances = {
-              import PredicateDefinition._
               import PredicateInstancesDomain._
 
               var instances = state.valueState.predicateState.instances
-              val foldedPredInstIds = instances.foldedIds
               val nonRecursiveDefIds = secondEntryDefs.nonRecursiveIds
 
               // Auto-unfold every folded, non-recursive predicate instance
               // and remove the edge altogether if one of the folded predicate
               // instances has a false body
-              for (foldedPredInstId <- foldedPredInstIds) {
-                val predDefId = foldedPredInstId.toPredDefId
-                if (nonRecursiveDefIds.contains(predDefId)) {
-                  val predDef = secondEntryDefs.get(predDefId)
+              for (foldedId <- instances.foldedIds) {
+                if (nonRecursiveDefIds.contains(foldedId)) {
+                  val predDef = secondEntryDefs.get(foldedId)
                   if (predDef.isBottom) {
                     isBottom = true
                   } else {
-                    val edgeLocalId = EdgeLocalIdentifier(List(edge.field), foldedPredInstId)
+                    val edgeLocalId = EdgeLocalIdentifier(List(edge.field), foldedId)
                     instances = instances.assign(edgeLocalId, Unfolded)
                   }
                 }

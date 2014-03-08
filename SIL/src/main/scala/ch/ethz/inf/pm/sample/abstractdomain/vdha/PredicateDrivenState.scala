@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.SilCompiler
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, SilCompiler}
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
@@ -28,7 +28,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   import PredicateDrivenHeapState._
   import PredicateInstancesDomain._
-  import PredicateDefinition._
 
   def factory(
       abstractHeap: HeapGraph[EdgeStateDomain[S]],
@@ -43,16 +42,16 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
       var result = super.createVariableForArgument(variable, typ)
 
-      val edgeVerticesToPredDefId = result.abstractHeap.localVarEdges.map(edge => {
-        val predDefId = PredicateDefinition.makeId()
-        Set(edge.source, edge.target) -> predDefId
+      val edgeVerticesToPredId = result.abstractHeap.localVarEdges.map(edge => {
+        val predId = PredicateDefinition.makeId()
+        Set(edge.source, edge.target) -> predId
       }).toMap
 
-      val predDefIds = edgeVerticesToPredDefId.values
+      val predDefIds = edgeVerticesToPredId.values
       result = result.createNonObjectVariables(predDefIds.toSet)
 
       if (MakePredicateRecursiveFromBeginning) {
-        edgeVerticesToPredDefId.map({
+        edgeVerticesToPredId.map({
           case (vertices, predDefId) =>
             if (!vertices.contains(NullVertex)) {
               var predDef = PredicateDefinition()
@@ -65,11 +64,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       }
 
       result = CondHeapGraph[EdgeStateDomain[S], T](result).mapEdges(edge => {
-        edgeVerticesToPredDefId.get(edge.vertices) match {
-          case Some(defId) =>
-            val predInstId = defId.toPredInstId
-            val edgeLocalInstId = EdgeLocalIdentifier(List(edge.field), predInstId)
-            edge.state.assign(edgeLocalInstId, Folded)
+        edgeVerticesToPredId.get(edge.vertices) match {
+          case Some(predId) =>
+            val edgeLocalPredId = EdgeLocalIdentifier(List(edge.field), predId)
+            edge.state.assign(edgeLocalPredId, Folded)
           case None => edge.state
         }
       })
@@ -103,17 +101,17 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
         val recvPredDefs = recvEdge.state.predDefs
 
-        val foldedPredInstIds = recvEdge.state.predInsts.foldedIds
-        val unfoldedPredInstIds = recvEdge.state.predInsts.unfoldedIds
-        val availPredInstIds = foldedPredInstIds ++ unfoldedPredInstIds
+        val foldedIds = recvEdge.state.predInsts.foldedIds
+        val unfoldedIds = recvEdge.state.predInsts.unfoldedIds
+        val foldedAndUnfoldedIds = foldedIds ++ unfoldedIds
 
-        if (availPredInstIds.isEmpty) {
+        if (foldedAndUnfoldedIds.isEmpty) {
           println("there needs to be either a folded or unfolded predicate")
           Seq(condHeap)
         } else {
-          def findPerm(predInstIds: Set[VariableIdentifier]): Option[VariableIdentifier] = {
-            predInstIds.find(predInstId => {
-              val predDef = recvPredDefs.get(predInstId.toPredDefId)
+          def findPerm(predIds: Set[VariableIdentifier]): Option[VariableIdentifier] = {
+            predIds.find(predId => {
+              val predDef = recvPredDefs.get(predId)
               if (id.typ.isObject)
                 predDef.refFieldPerms.map.contains(field)
               else
@@ -121,23 +119,22 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             })
           }
 
-          findPerm(unfoldedPredInstIds) match {
-            case Some(unfoldedPredicateInstId) =>
+          findPerm(unfoldedIds) match {
+            case Some(unfoldedPredId) =>
               Seq(condHeap) // Nothing to do
             case None => {
               var result = condHeap
 
-              val (recvPredInstId, hasPerm) = findPerm(foldedPredInstIds) match {
-                case Some(foldedPredInstId) => (foldedPredInstId, true)
-                case None => (availPredInstIds.head, false)
+              val (recvPredId, hasPerm) = findPerm(foldedIds) match {
+                case Some(foldedId) => (foldedId, true)
+                case None => (foldedAndUnfoldedIds.head, false)
               }
-              val recvPredDefId = recvPredInstId.toPredDefId
-              var recvPredDef = recvPredDefs.get(recvPredDefId)
+              var recvPredDef = recvPredDefs.get(recvPredId)
 
               // Unfold
               result = result.mapEdges(e => {
                 if (e.target == recvEdge.target) {
-                  val edgeLocId = EdgeLocalIdentifier(List(e.field), recvPredInstId)
+                  val edgeLocId = EdgeLocalIdentifier(List(e.field), recvPredId)
                   e.state.assign(edgeLocId, Unfolded)
                 } else e.state
               })
@@ -147,42 +144,41 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                 recvPredDef = if (recvEdge.target == NullVertex)
                   recvPredDef.bottom()
                 else if (id.typ.isObject) {
-                  val nestedPredDefIdOption = if (result.heap.outEdges(recvEdge.target, Some(field.name)).exists(_.target != NullVertex)) {
-                    var nestedPredDefId: VariableIdentifier = null
+                  val nestedPredIdOption = if (result.heap.outEdges(recvEdge.target, Some(field.name)).exists(_.target != NullVertex)) {
+                    var nestedPredId: VariableIdentifier = null
                     if (MakePredicateRecursiveWhenUnfolding) {
                       // Always assume that the predicate instance is recursive
-                      nestedPredDefId = recvPredDefId
+                      nestedPredId = recvPredId
                     } else {
-                      nestedPredDefId = PredicateDefinition.makeId()
+                      nestedPredId = PredicateDefinition.makeId()
                       val nestedPredDef = PredicateDefinition().top()
-                      result = result.map(_.assign(nestedPredDefId, nestedPredDef))
+                      result = result.map(_.assign(nestedPredId, nestedPredDef))
                     }
 
-                    Some(nestedPredDefId)
+                    Some(nestedPredId)
                   } else None
-                  recvPredDef.addRefFieldPerm(field, nestedPredDefIdOption)
+                  recvPredDef.addRefFieldPerm(field, nestedPredIdOption)
                 } else {
                   recvPredDef.addValFieldPerm(field)
                 }
 
                 // Assign the new predicate definition
                 result = result.map(state => {
-                  state.assign(recvPredDefId, recvPredDef)
+                  state.assign(recvPredId, recvPredDef)
                 })
               }
 
               // Add folded nested predicate instances
               if (id.typ.isObject) {
                 // TODO: Should add ALL nested predicate instances
-                val nestedPredDefIds = recvPredDef.refFieldPerms.get(field).value.asInstanceOf[Set[VariableIdentifier]]
-                if (!nestedPredDefIds.isEmpty) {
-                  val nestedPredDefId = nestedPredDefIds.head
-                  val nestedPredInstId = nestedPredDefId.toPredInstId
+                val nestedPredIds = recvPredDef.refFieldPerms.get(field).value.asInstanceOf[Set[VariableIdentifier]]
+                if (!nestedPredIds.isEmpty) {
+                  val nestedPredId = nestedPredIds.head
 
                   result = result.mapEdges(e => {
                     // No predicate instances on null edges
                     if (e.source == recvEdge.target && e.target != NullVertex) {
-                      val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredInstId)
+                      val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredId)
                       // Old code that uses asumme (which is not implemented)
                       // val equality = BinaryArithmeticExpression(edgeLocId, Folded, ArithmeticOperator.==, BoolType)
                       // e.state.createVariable(edgeLocId).assume(equality)
@@ -191,7 +187,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                       // That edge cannot be. We would have the instance twice
                       // TODO: Should not matter what ID it is. If they overlap in terms of
                       // permissions, it is impossible
-                      val newState = if (e.state.predInsts.foldedIds.contains(nestedPredInstId)) {
+                      val newState = if (e.state.predInsts.foldedIds.contains(nestedPredId)) {
                         println("Impossible edge detected, removing it")
                         e.state.assign(edgeLocId, Unfolded).lub(e.state) // Hack to set it to bottom
                       } else {
@@ -217,13 +213,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   override protected def createObject(typ: Type) = {
     var (result, newVertex) = super.createObject(typ)
 
-    val predDefId = PredicateDefinition.makeId()
-    val predInstId = predDefId.toPredInstId
-    val predInstValueHeapId = ValueHeapIdentifier(newVertex, predInstId)
+    val predId = PredicateDefinition.makeId()
+    val predValueHeapId = ValueHeapIdentifier(newVertex, predId)
 
-    result = result.createNonObjectVariables(Set(predDefId, predInstValueHeapId))
+    result = result.createNonObjectVariables(Set(predId, predValueHeapId))
     result = CondHeapGraph[EdgeStateDomain[S], T](result).map(
-      _.assign(predInstValueHeapId, Unfolded))
+      _.assign(predValueHeapId, Unfolded))
 
     (result, newVertex)
   }
@@ -236,13 +231,13 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val source = abstractHeap.localVarVertex(left.getName)
         val addedEdge = result.abstractHeap.outEdges(source).head
 
-        val predInstValHeapIds = addedEdge.state.valueHeapIds(addedEdge.target).filter(_.typ == PredicateInstanceType)
+        val predValHeapIds = addedEdge.state.valueHeapIds(addedEdge.target).filter(_.typ == PredType)
         val repl = new Replacement()
 
-        predInstValHeapIds.foreach(predInstValHeapId => {
-          val predInstId = predInstValHeapId.field
-          val predInstEdgeLocalId = EdgeLocalIdentifier(List(addedEdge.field), predInstId)
-          repl.value += (Set[Identifier](predInstValHeapId) -> Set[Identifier](predInstEdgeLocalId))
+        predValHeapIds.foreach(predValHeapId => {
+          val predId = predValHeapId.field
+          val predEdgeLocalId = EdgeLocalIdentifier(List(addedEdge.field), predId)
+          repl.value += (Set[Identifier](predValHeapId) -> Set[Identifier](predEdgeLocalId))
         })
 
         val newEdge = addedEdge.copy(state = addedEdge.state.merge(repl))
@@ -253,14 +248,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         result
           .copy(abstractHeap = result.abstractHeap.copy(
             edges = result.abstractHeap.edges - addedEdge + newEdge))
-          .removeUnwantedPredInstIds()
+          .removeUnwantedPredIds()
       case _ =>
-        result.removeUnwantedPredInstIds()
+        result.removeUnwantedPredIds()
     }
   }
 
   override def assignField(left: AccessPathIdentifier, right: Expression) = {
-    var result = super.assignField(left, right).removeUnwantedPredInstIds()
+    var result = super.assignField(left, right).removeUnwantedPredIds()
 
     if (left.typ.isObject) {
       val receiverPath = left.path.dropRight(1)
@@ -276,23 +271,23 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         if (nonNullOutEdges.isEmpty) {
           println("nothing to do, we only assigned null to the field")
         } else {
-          val recvPredDefId = recvEdge.state.predInsts.unfoldedIds.head.toPredDefId
-          val curRecvPredDef = recvEdge.state.predDefs.get(recvPredDefId)
-          val curNestedRecvPredDefIds = curRecvPredDef.refFieldPerms.get(field).value
+          val recvPredId = recvEdge.state.predInsts.unfoldedIds.head
+          val curRecvPredDef = recvEdge.state.predDefs.get(recvPredId)
+          val curNestedRecvPredIds = curRecvPredDef.refFieldPerms.get(field).value
 
           assert(nonNullOutEdges.size == 1, "assume that there is exactly one outgoing non-null edge")
 
           val outEdge = nonNullOutEdges.head
-          val newNestedRecvPredDefIds = outEdge.state.predInsts.foldedIds.map(_.toPredDefId).asInstanceOf[Set[Identifier]]
+          val newNestedRecvPredIds = outEdge.state.predInsts.foldedIds.asInstanceOf[Set[Identifier]]
 
-          if (curNestedRecvPredDefIds.isEmpty) {
+          if (curNestedRecvPredIds.isEmpty) {
             resultingCondHeap = resultingCondHeap.map(state => {
-              state.assign(recvPredDefId, curRecvPredDef.setRefFieldPerm(field, newNestedRecvPredDefIds))
+              state.assign(recvPredId, curRecvPredDef.setRefFieldPerm(field, newNestedRecvPredIds))
             })
           } else {
             val repl = new Replacement()
 
-            repl.value += (curNestedRecvPredDefIds -> newNestedRecvPredDefIds)
+            repl.value += (curNestedRecvPredIds -> newNestedRecvPredIds)
 
             resultingCondHeap = resultingCondHeap.map(state => {
               state.merge(repl)
@@ -312,24 +307,24 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     this.abstractHeap.localVarVertices.foreach(localVarVertex => {
       // Only fold local variables if it is possible to do so
       // on all local variable edges
-      var candidateUnfoldedPredInstIds = result.abstractHeap.outEdges(localVarVertex).head.state.predInsts.unfoldedIds
+      var candidateUnfoldedPredIds = result.abstractHeap.outEdges(localVarVertex).head.state.predInsts.unfoldedIds
       result.abstractHeap.outEdges(localVarVertex).tail.filter(_.target != NullVertex).foreach(edge => {
-        candidateUnfoldedPredInstIds = candidateUnfoldedPredInstIds.intersect(edge.state.predInsts.unfoldedIds)
+        candidateUnfoldedPredIds = candidateUnfoldedPredIds.intersect(edge.state.predInsts.unfoldedIds)
       })
 
-      candidateUnfoldedPredInstIds.foreach(unfoldedPredInstId => {
+      candidateUnfoldedPredIds.foreach(unfoldedPredId => {
         var candidateAbstractHeap = result.abstractHeap
         var canFold = true
 
         result.abstractHeap.outEdges(localVarVertex).foreach(recvEdge => {
-          val unfoldedPredDef = recvEdge.state.predDefs.get(unfoldedPredInstId.toPredDefId)
+          val unfoldedPredDef = recvEdge.state.predDefs.get(unfoldedPredId)
 
           unfoldedPredDef.refFieldPerms.map.foreach({
-            case (field, nestedPredDefId) =>
-              val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]].map(_.toPredInstId)
+            case (field, nestedPredId) =>
+              val nestedPredIds = nestedPredId.value.asInstanceOf[Set[VariableIdentifier]]
               val edgesThatNeedFoldedPredInst = result.abstractHeap.outEdges(recvEdge.target, Some(field.getName)).filter(_.target != NullVertex)
               val canFoldThis = edgesThatNeedFoldedPredInst.forall(edge => {
-                nestedPredInstIds subsetOf edge.state.predInsts.foldedIds
+                nestedPredIds subsetOf edge.state.predInsts.foldedIds
               })
               // The target vertices could have other incoming edges,
               // so we need to remove the folded instance from them too.
@@ -339,7 +334,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               } else {
                 candidateAbstractHeap = candidateAbstractHeap.copy(edges = candidateAbstractHeap.edges.map(edge => {
                   if (verticesToRemoveFoldedPredInstFrom.contains(edge.target)) {
-                    val newState = nestedPredInstIds.foldLeft(edge.state)((state, nestedPredInstId) => {
+                    val newState = nestedPredIds.foldLeft(edge.state)((state, nestedPredInstId) => {
                       val edgeLocId = EdgeLocalIdentifier(List(edge.field), nestedPredInstId)
                       val newState = state.setToTop(edgeLocId)
                       newState
@@ -356,7 +351,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             // TODO: Could be more precise. Should only assign to edges
             // that may (must?) exist in any concrete heap where the receiver edge exists.
             if (edge.target == recvEdge.target) {
-              val edgeLocId = EdgeLocalIdentifier(List(edge.field), unfoldedPredInstId)
+              val edgeLocId = EdgeLocalIdentifier(List(edge.field), unfoldedPredId)
               edge.copy(state = edge.state.assign(edgeLocId, Folded))
             } else {
               edge
@@ -424,28 +419,25 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           assert(otherPredInstIds.size <= 1, "cannot handle more than one folded pred inst id")
 
           if (predInstIds.size == 1 && otherPredInstIds.size == 1) {
-            val predInstId = predInstIds.head
-            val otherPredInstId = otherPredInstIds.head
+            val predId = predInstIds.head
+            val otherPredId = otherPredInstIds.head
 
-            val predDefId = predInstId.toPredDefId
-            val otherPredDefId = otherPredInstId.toPredDefId
-
-            if (predDefId != otherPredDefId) {
-              val predDef00 = edge.state.predDefs.get(predDefId)
-              val predDef01 = edge.state.predDefs.get(otherPredDefId)
-              val predDef10 = otherEdge.state.predDefs.get(predDefId)
-              val predDef11 = otherEdge.state.predDefs.get(otherPredDefId)
+            if (predId != otherPredId) {
+              val predDef00 = edge.state.predDefs.get(predId)
+              val predDef01 = edge.state.predDefs.get(otherPredId)
+              val predDef10 = otherEdge.state.predDefs.get(predId)
+              val predDef11 = otherEdge.state.predDefs.get(otherPredId)
 
               // Do it in both directions separately
               // TODO: Should probably always keep the predicate with the lower version
-              if (predDef11.refFieldPerms.map.values.exists(_.value.contains(predDefId))) {
-                repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(predDefId))
-              } else if (predDef00.refFieldPerms.map.values.exists(_.value.contains(otherPredDefId))) {
-                repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(otherPredDefId))
-              } else if (predDef01.refFieldPerms.map.values.exists(_.value.contains(predDefId))) {
-                repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(otherPredDefId))
-              } else if (predDef10.refFieldPerms.map.values.exists(_.value.contains(otherPredDefId))) {
-                repl.value += (Set[Identifier](predDefId, otherPredDefId) -> Set(predDefId))
+              if (predDef11.refFieldPerms.map.values.exists(_.value.contains(predId))) {
+                repl.value += (Set[Identifier](predId, otherPredId) -> Set(predId))
+              } else if (predDef00.refFieldPerms.map.values.exists(_.value.contains(otherPredId))) {
+                repl.value += (Set[Identifier](predId, otherPredId) -> Set(otherPredId))
+              } else if (predDef01.refFieldPerms.map.values.exists(_.value.contains(predId))) {
+                repl.value += (Set[Identifier](predId, otherPredId) -> Set(otherPredId))
+              } else if (predDef10.refFieldPerms.map.values.exists(_.value.contains(otherPredId))) {
+                repl.value += (Set[Identifier](predId, otherPredId) -> Set(predId))
               } else {
                 println("Could not merge predicate definitions")
               }
@@ -460,8 +452,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val edgeLocalRepl = new Replacement()
 
           for ((fromSet, toSet) <- repl.value) {
-            val newFromSet = fromSet.asInstanceOf[Set[VariableIdentifier]]map(predDefId => EdgeLocalIdentifier(List(edge.field), predDefId.toPredInstId))
-            val newToSet = toSet.asInstanceOf[Set[VariableIdentifier]]map(predDefId => EdgeLocalIdentifier(List(edge.field), predDefId.toPredInstId))
+            val newFromSet = fromSet.asInstanceOf[Set[VariableIdentifier]]map(predId => EdgeLocalIdentifier(List(edge.field), predId))
+            val newToSet = toSet.asInstanceOf[Set[VariableIdentifier]]map(predId => EdgeLocalIdentifier(List(edge.field), predId))
 
             edgeLocalRepl.value += (newFromSet.toSet[Identifier] -> newToSet.toSet[Identifier])
           }
@@ -501,7 +493,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           // predicate instance IDs may differ in the two graphs.
           // The reason is that in our custom implementation of 'lub'
           // may merge predicate instance IDs
-          edgeSet.size == 1 && edgeSet.head.state.ids.filterNot(_.typ == PredicateInstanceType) == rEdge.state.ids.filterNot(_.typ == PredicateInstanceType)
+          edgeSet.size == 1 && edgeSet.head.state.ids.filterNot(_.typ == PredType) == rEdge.state.ids.filterNot(_.typ == PredType)
         }
       }
       areGraphsIdentical
@@ -520,14 +512,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     factory(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
   }
 
-  def predInstHeapIds: Set[ValueHeapIdentifier] =
-    generalValState.valueHeapIds.filter(_.typ == PredicateInstanceType)
+  def predValueHeapIds: Set[ValueHeapIdentifier] =
+    generalValState.valueHeapIds.filter(_.typ == PredType)
 
-  def removeUnwantedPredInstIds(): PredicateDrivenHeapState[S] = {
+  def removeUnwantedPredIds(): PredicateDrivenHeapState[S] = {
     copy(
-      generalValState = generalValState.removeVariables(predInstHeapIds),
+      generalValState = generalValState.removeVariables(predValueHeapIds),
       abstractHeap = abstractHeap.mapEdgeStates(state => {
-        state.removeVariables(predInstHeapIds ++ state.sourceEdgeLocalIds.filter(_.typ == PredicateInstanceType))
+        state.removeVariables(predValueHeapIds ++ state.sourceEdgeLocalIds.filter(_.typ == PredType))
       })
     )
   }
@@ -544,8 +536,8 @@ object PredicateDrivenHeapState {
 
   def refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
 
-  def edgeLocalIdToPredInstId(edgeLocalId: EdgeLocalIdentifier): VariableIdentifier = {
-    require(edgeLocalId.typ == PredicateInstanceType,
+  def edgeLocalIdToPredId(edgeLocalId: EdgeLocalIdentifier): VariableIdentifier = {
+    require(edgeLocalId.typ == PredType,
       "edge-local identifier must have a predicate instance type")
     edgeLocalId.field.asInstanceOf[VariableIdentifier]
   }
@@ -573,12 +565,12 @@ case class PredicateDomain(
   def _1 = instances
 
   def _1canHandle(id: Identifier) =
-    id.typ == PredicateInstanceType
+    !id.isInstanceOf[VariableIdentifier]
 
   def _2 = definitions
 
   def _2canHandle(id: Identifier) =
-    id.typ == PredicateDefinitionType
+    id.isInstanceOf[VariableIdentifier]
 
   override def toString =
     "Instances:\n" + ToStringUtilities.indent(instances.toString) + "\n" +
@@ -601,5 +593,5 @@ case class SemanticAndPredicateDomain[S <: SemanticDomain[S]](
   def _2 = predicateState
 
   def _2canHandle(id: Identifier) =
-    id.typ == PredicateDefinitionType || id.typ == PredicateInstanceType
+    id.typ == PredType
 }

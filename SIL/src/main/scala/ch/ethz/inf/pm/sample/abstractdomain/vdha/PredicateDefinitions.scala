@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{AbstractType, Constants}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 
@@ -134,7 +134,7 @@ case class PredicateDefinition(
 
   def pp = DummyProgramPoint
 
-  def typ = PredicateDefinitionType
+  def typ = PredType
 
   def isTop: Boolean =
     valFieldPerms.isTop && refFieldPerms.isTop
@@ -163,25 +163,7 @@ object PredicateDefinition {
     val id = nextId.get
     nextId.set(id + 1)
     id.toString
-    VariableIdentifier(Constants.GhostSymbolPrefix + "p" + id)(PredicateDefinitionType)
-  }
-
-  implicit class ExtendedVariableIdentifier(variableId: VariableIdentifier) {
-    def toPredDefId: VariableIdentifier = {
-      require(variableId.typ == PredicateInstanceType)
-      variableId.copy()(typ = PredicateDefinitionType, pp = DummyProgramPoint)
-    }
-
-    def toPredInstId: VariableIdentifier = {
-      require(variableId.typ == PredicateDefinitionType)
-      variableId.copy()(typ = PredicateInstanceType, pp = DummyProgramPoint)
-    }
-  }
-
-  def extractPredInstId(id: Identifier): VariableIdentifier = id match {
-    case EdgeLocalIdentifier(accPath, field) => field.asInstanceOf[VariableIdentifier]
-    case id @ AccessPathIdentifier(path) =>
-      VariableIdentifier(path.last)(id.typ)
+    VariableIdentifier(Constants.GhostSymbolPrefix + "p" + id)(PredType)
   }
 }
 
@@ -238,8 +220,4 @@ final case class NestedPredDefDomain(
     if (value.size > 1) bottom()
     else NestedPredDefDomain(value, isTop, isBottom)
   }
-}
-
-case object PredicateDefinitionType extends AbstractType("Pred") {
-  def isNumericalType = true
 }

@@ -71,6 +71,11 @@ case object IntType extends AbstractType("Int") {
   def isNumericalType = true
 }
 
+case object PredType extends AbstractType("Pred") {
+  // Do not create vertices and edges in abstract heap graphs
+  def isNumericalType = true
+}
+
 case class RefType(var fields: Set[Identifier] = Set.empty) extends AbstractType("Ref") {
   override def possibleFields = fields
 
