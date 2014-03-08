@@ -228,7 +228,7 @@ trait ValueDrivenHeapState[
    * evaluates the given expression.
    */
   private def evalExp(expr: Expression): CondHeapGraphSeq[S] =
-    CondHeapGraph[S, T](this).evalExp(expr)
+    toCondHeapGraph.evalExp(expr)
 
   /** Assigns an expression to a field and returns the resulting state.
     *
@@ -384,7 +384,7 @@ trait ValueDrivenHeapState[
   }
 
   def assume(cond: Expression): T =
-    CondHeapGraph[S, T](this).assume(normalizeExpression(cond)).join.prune()
+    toCondHeapGraph.assume(normalizeExpression(cond)).join.prune()
 
   def setExpression(newExpr: ExpressionSet): T =
     copy(expr = newExpr)
@@ -584,8 +584,12 @@ trait ValueDrivenHeapState[
    * Implicitly converts a conditional heap graph to a state
    * with an empty expression.
    */
-  implicit def CondHeapGraphToValueDrivenHeapState(condHeap: CondHeapGraph[S]): T =
+  private implicit def CondHeapGraphToValueDrivenHeapState(condHeap: CondHeapGraph[S]): T =
     factory(condHeap.heap, condHeap.cond, ExpressionSet())
+
+  /** Convertes the state to a conditional heap graph. */
+  private def toCondHeapGraph: CondHeapGraph[S] =
+    CondHeapGraph[S, T](this)
 
   /**
    * Prunes the abstract heap and removes all pruned identifiers
