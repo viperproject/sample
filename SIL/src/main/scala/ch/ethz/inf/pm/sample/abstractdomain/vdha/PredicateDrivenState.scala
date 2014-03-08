@@ -17,12 +17,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     SemanticAndPredicateDomain[S],
     PredicateDrivenHeapState[S]] {
 
-  // Experimental flag to "simulate" a second analysis
-  // with constrained initial state
-  private val MakePredicateRecursiveFromBeginning: Boolean = false
-
-  private val MakePredicateRecursiveWhenUnfolding: Boolean = false
-
   // Shorthand for the self-type
   type T = PredicateDrivenHeapState[S]
 
@@ -49,19 +43,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
       val predDefIds = edgeVerticesToPredId.values
       result = result.createNonObjectVariables(predDefIds.toSet)
-
-      if (MakePredicateRecursiveFromBeginning) {
-        edgeVerticesToPredId.map({
-          case (vertices, predDefId) =>
-            if (!vertices.contains(NullVertex)) {
-              var predDef = PredicateDefinition()
-              refType.objectFields.foreach(field => {
-                predDef = predDef.addRefFieldPerm(field, Some(predDefId))
-              })
-              result = result.assignVariable(predDefId, predDef)
-            }
-        })
-      }
 
       result = result.toCondHeapGraph.mapEdges(edge => {
         edgeVerticesToPredId.get(edge.vertices) match {
@@ -145,14 +126,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                 else if (id.typ.isObject) {
                   val nestedPredIdOption = if (result.heap.outEdges(recvEdge.target, Some(field.name)).exists(_.target != NullVertex)) {
                     var nestedPredId: VariableIdentifier = null
-                    if (MakePredicateRecursiveWhenUnfolding) {
-                      // Always assume that the predicate instance is recursive
-                      nestedPredId = recvPredId
-                    } else {
-                      nestedPredId = PredicateDefinition.makeId()
-                      val nestedPredDef = PredicateDefinition().top()
-                      result = result.map(_.assign(nestedPredId, nestedPredDef))
-                    }
+                    nestedPredId = PredicateDefinition.makeId()
+                    val nestedPredDef = PredicateDefinition().top()
+                    result = result.map(_.assign(nestedPredId, nestedPredDef))
 
                     Some(nestedPredId)
                   } else None

@@ -1,8 +1,8 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, AbstractType}
+import ch.ethz.inf.pm.sample.oorepresentation.Type
+import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
@@ -103,15 +103,10 @@ case class PredicateInstancesDomain(
   def removeVariable(variable: Identifier) = remove(variable)
 
   def assume(expr: Expression) = ???
-
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
-
   def setArgument(variable: Identifier, expr: Expression) = ???
-
   def backwardAssign(oldPreState: PredicateInstancesDomain, variable: Identifier, expr: Expression) = ???
-
   def backwardAccess(field: Identifier) = ???
-
   def access(field: Identifier) = ???
 }
 
