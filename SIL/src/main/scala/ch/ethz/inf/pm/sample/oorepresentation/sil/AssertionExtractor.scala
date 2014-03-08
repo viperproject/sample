@@ -133,7 +133,6 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     onlyNonRecursivePredicates: Boolean = true) {
 
   import PredicateDrivenHeapState._
-  import PredicateDefinition._
 
   type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
 

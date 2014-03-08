@@ -508,12 +508,6 @@ object PredicateDrivenHeapState {
 
   def refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
 
-  def edgeLocalIdToPredId(edgeLocalId: EdgeLocalIdentifier): VariableIdentifier = {
-    require(edgeLocalId.typ == PredType,
-      "edge-local identifier must have a predicate instance type")
-    edgeLocalId.field.asInstanceOf[VariableIdentifier]
-  }
-
   implicit class ExtendedEdgeStateDomain[S <: SemanticDomain[S]](state: EdgeStateDomain[S]) {
     def predHeapIds: Set[ValueHeapIdentifier] =
       state.valueHeapIds.filter(_.typ == PredType)
