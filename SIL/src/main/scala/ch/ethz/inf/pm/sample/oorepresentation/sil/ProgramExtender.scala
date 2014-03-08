@@ -7,8 +7,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState._
 import ch.ethz.inf.pm.sample.execution.AbstractCFGState
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 
-// TODO: It's odd to pass the compiler as a constructor argument,
-// as it is program-specific
 case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
   type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
