@@ -54,7 +54,6 @@ object DefaultSilConverter extends SilConverter {
       fields = Nil,
       methods = Nil,
       pack = sample.PackageIdentifier,
-      // TODO: Class invariant should maybe also be a statement
       inv = sample.Constant("true", sample.BoolType, go(p.pos)))
 
     // Only translate the methods and fields once we have the ClassDefinition
