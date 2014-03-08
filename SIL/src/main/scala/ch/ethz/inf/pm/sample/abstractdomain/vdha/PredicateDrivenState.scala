@@ -210,7 +210,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   override protected def createObject(typ: Type) = {
-    var (result, newVertex) = super.createObject(typ)
+    val (result, newVertex) = super.createObject(typ)
 
     val predId = PredicateDefinition.makeId()
     val predValueHeapId = ValueHeapIdentifier(newVertex, predId)
