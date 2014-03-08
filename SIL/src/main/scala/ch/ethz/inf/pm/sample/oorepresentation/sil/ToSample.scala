@@ -266,17 +266,11 @@ object DefaultSilConverter extends SilConverter {
         case b: sil.StatementBlock =>
           b.stmt.children.map(go).toList
         case lb: sil.LoopBlock =>
-
-          /* val invariant = semper.simplon.utils.BigAnd(lb.invs)
-          val assertMethodCall = go(sil.Assert(invariant)())
-          val coolPP = sample.ProgramPointsForLoopBlocks(lb)
-          val assertMethodCallWithPos = assertMethodCall match {
-            case sample.MethodCall(pp, m, pt, p, rt) =>
-              sample.MethodCall(coolPP, m, pt, p, rt)
-          }
-          // TODO: Cannot access pos?
-          assertMethodCallWithPos :: go(lb.cond) :: Nil */
-          go(lb.cond) :: Nil
+          // Generate an assertion for each loop invariant
+          val assertMethodCalls = lb.invs.toList.map(inv => {
+            go(sil.Assert(inv)(inv.pos))
+          })
+          assertMethodCalls :+ go(lb.cond)
         case b: sil.FreshReadPermBlock =>
           sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
       }
