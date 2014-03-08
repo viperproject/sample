@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
 import semper.sil.ast.utility.Transformer
 import semper.sil.ast.TrueLit
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
 
 trait PredicateBuilder {
   def refType: RefType
@@ -127,7 +128,7 @@ case class AssertionTree(
     unconditionalExps ++ conditionalExps
 }
 
-case class AssertionExtractor[S <: SemanticDomain[S]](
+case class AssertionExtractor[S <: ApronInterface[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
     predicateBuilder: PredicateBuilder,
     onlyNonRecursivePredicates: Boolean = true) {
@@ -163,16 +164,31 @@ case class AssertionExtractor[S <: SemanticDomain[S]](
         }).toMap
         AssertionTree(children = children)
       case None =>
+        val valAssertions = buildValueAssertions()
         val refEqualities = buildReferenceEqualities()
         val accPreds = buildAccessPredicates()
-        AssertionTree(exps = refEqualities ++ accPreds)
+        AssertionTree(exps = valAssertions ++ refEqualities ++ accPreds)
     }
   }
 
+  /** Extract numerical local variable assertions. */
+  private def buildValueAssertions(): Set[sil.Exp] = {
+    val cond = condHeapGraph.cond.valueState.valueState
+
+    // Only keep variable identifiers in the state
+    val filteredCond = cond
+      .removeVariables(cond.valueHeapIds)
+      .removeVariables(cond.accPathIds)
+    val sampleExps = ApronInterfaceTranslator.translate(filteredCond)
+    val exps = sampleExps.map(DefaultSampleConverter.convert)
+    exps
+  }
+
+  /** Extract equalities and inequalities of reference local variables,
+    * including nullness and non-nullness expressions.
+    */
   private def buildReferenceEqualities(): Set[sil.Exp] = {
-    // Extract equalities and inequalities of reference local variables,
-    // including nullness and non-nullness expressions
-    heap.localVarEdges.flatMap(localVarEdge => {
+      heap.localVarEdges.flatMap(localVarEdge => {
       val localVar = sil.LocalVar(localVarEdge.source.name)(sil.Ref)
       if (localVarEdge.target == NullVertex) {
         val nullnessExp = sil.EqCmp(localVar, sil.NullLit()())()

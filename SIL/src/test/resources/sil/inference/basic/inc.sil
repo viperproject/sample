@@ -1,0 +1,11 @@
+/** Adds 1 to the given parameter and returns the result. */
+method inc(i: Int) returns (res: Int) {
+    res := i + 1
+}
+
+method testInc() {
+    var res: Int
+
+    res := inc(1)
+    assert (res == 2)
+}
