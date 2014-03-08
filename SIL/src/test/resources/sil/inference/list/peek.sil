@@ -15,7 +15,7 @@ method test(list: Ref) requires acc(valid(list), write) {
     res := peek(list)
 
     //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
-    assert(res == list.val)
+    assert(res == list.next)
 
     fold acc(valid(list), write)
 }
