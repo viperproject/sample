@@ -225,42 +225,37 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   override def assignVariable(left: Expression, right: Expression) = {
     val result = super.assignVariable(left, right)
-
-    (left, right) match {
+    val newResult = (left, right) match {
       case (left: VariableIdentifier, right: VertexExpression) =>
         val source = abstractHeap.localVarVertex(left.getName)
         val localVarEdges = result.abstractHeap.outEdges(source)
 
         assert(localVarEdges.size == 1,
           "there must be exactly one local variable edge")
-        
-        val addedEdge = localVarEdges.head
 
+        val addedEdge = localVarEdges.head
         val predValHeapIds = addedEdge.state.predHeapIds(addedEdge.target)
         val repl = new Replacement()
 
         predValHeapIds.foreach(predValHeapId => {
-          val predId = predValHeapId.field
-          val predEdgeLocalId = EdgeLocalIdentifier(List(addedEdge.field), predId)
+          val predEdgeLocalId = EdgeLocalIdentifier(List(addedEdge.field), predValHeapId.field)
           repl.value += (Set[Identifier](predValHeapId) -> Set[Identifier](predEdgeLocalId))
         })
 
         val newEdge = addedEdge.copy(state = addedEdge.state.merge(repl))
 
-        // Old code. The above does not use assume
-        // var newEdge = predInstIds.foldLeft(addedEdge)(_.createTargetEdgeLocalId(_))
-        // newEdge = newEdge.assumeEdgeLocalIdEqualities()
         result
           .copy(abstractHeap = result.abstractHeap.copy(
             edges = result.abstractHeap.edges - addedEdge + newEdge))
-          .removeUnwantedPredIds()
       case _ =>
-        result.removeUnwantedPredIds()
+        result
     }
+
+    newResult.prunePredIds()
   }
 
   override def assignField(left: AccessPathIdentifier, right: Expression) = {
-    var result = super.assignField(left, right).removeUnwantedPredIds()
+    var result = super.assignField(left, right).prunePredIds()
 
     if (left.typ.isObject) {
       val receiverPath = left.path.dropRight(1)
@@ -517,7 +512,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     factory(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
   }
 
-  def removeUnwantedPredIds(): PredicateDrivenHeapState[S] = {
+  def prunePredIds(): PredicateDrivenHeapState[S] = {
     copy(
       generalValState = generalValState.removeVariables(generalValState.predHeapIds),
       abstractHeap = abstractHeap.mapEdgeStates(state => {
