@@ -134,7 +134,7 @@ case class AssertionTree(
 
 case class AssertionExtractor[S <: ApronInterface[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
-    onlyNonRecursivePredicates: Boolean = true) {
+    hideShallowPredicates: Boolean = true) {
 
   import PredicateDrivenHeapState._
 
@@ -142,8 +142,16 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
   def heap: HeapGraph[StateType] = condHeapGraph.heap
 
-  def predicates: Iterable[sil.Predicate] =
-    predicateMap.values
+  def predicates: Seq[sil.Predicate] = {
+    if (hideShallowPredicates)
+      // Hide all shallow predicates
+      predicateMap.filterKeys(id => {
+        val predDef = condHeapGraph.cond.predDefs.get(id)
+        !predDef.isShallow
+      }).values.toSeq
+    else
+      predicateMap.values.toSeq
+  }
 
   def predicateMap: Map[Identifier, sil.Predicate] =
     DefaultPredicateBuilder().build(condHeapGraph.cond.predDefs)
@@ -256,7 +264,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     val localVarVertex = edge.source.asInstanceOf[LocalVariableVertex]
     val foldedPredInstIds = edge.state.predInsts.foldedIds
     foldedPredInstIds.flatMap(predId => {
-      if (onlyNonRecursivePredicates) {
+      if (hideShallowPredicates) {
         // val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
         // val pred = predicateMap(predInstId.toPredDefId)
         // val predAccess = sil.PredicateAccess(Seq(localVar), pred)()

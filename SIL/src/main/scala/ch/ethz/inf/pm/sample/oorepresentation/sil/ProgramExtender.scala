@@ -10,26 +10,31 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
   type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
 
-  def extend(program: sil.Program, results: List[AnalysisResult[T]]): sil.Program = {
+  def extend(p: sil.Program, results: List[AnalysisResult[T]]): sil.Program = {
     val methodNameToCfgState = results.map(result =>
       result.method.name.toString -> result.cfgState).toMap
 
     // Only extend methods for which there is an analysis result
-    val result = program.copy(methods = program.methods.map(method => {
-        methodNameToCfgState.get(method.name) match {
-        case Some(cfgState) => extendMethod(method, cfgState)
-        case None => method
+    var (newMethods, newPredicates) = p.methods.map(m => {
+      methodNameToCfgState.get(m.name) match {
+        case Some(cfgState) => extendMethod(m, cfgState)
+        case None => (m, Seq())
       }
-    }))(pos = program.pos, info = program.info)
+    }).unzip
 
     // Ensure that all method calls in the program refer to the extended methods
-    result.copy(methods = result.methods.map(_.transform({
-      case mc @ sil.MethodCall(method, _, _) =>
-        mc.copy(method = result.methods.find(_.name == method.name).get)(pos = mc.pos, info = mc.info)
-    })()))(result.pos, result.info)
+    newMethods = newMethods.map(_.transform({
+      case mc @ sil.MethodCall(m, _, _) =>
+        mc.copy(method = newMethods.find(_.name == m.name).get)(mc.pos, mc.info)
+    })())
+
+    // Now build the new program
+    p.copy(
+      methods = newMethods,
+      predicates = p.predicates ++ newPredicates.flatten)(p.pos, p.info)
   }
 
-  def extendMethod(method: sil.Method, cfgState: AbstractCFGState[T]): sil.Method = {
+  def extendMethod(method: sil.Method, cfgState: AbstractCFGState[T]): (sil.Method, Seq[sil.Predicate]) = {
     var entryState = cfgState.entryState()
     var exitState = cfgState.exitState().tryToFoldAllLocalVars()
 
@@ -57,11 +62,10 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
       )
     }).join
 
-    val predicateBuilder = DefaultPredicateBuilder()
     val entryExtractor = AssertionExtractor[S](entryCondHeapGraph)
     val exitExtractor = AssertionExtractor[S](exitState.toCondHeapGraph)
 
-    method.transform()(post = {
+    val newMethod = method.transform()(post = {
       case m: sil.Method =>
         m.copy(
           _pres = entryExtractor.assertionTree.simplify.toExps,
@@ -85,5 +89,9 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
 
         w.copy(invs = w.invs ++ extractor.assertionTree.simplify.toExps)(w.pos, w.info)
     })
+
+    val predicates = exitExtractor.predicates
+
+    (newMethod, predicates)
   }
 }

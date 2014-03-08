@@ -142,6 +142,10 @@ case class PredicateDefinition(
   def isBottom: Boolean =
     valFieldPerms.isBottom || refFieldPerms.isBottom
 
+  /** Returns true if there are no nested predicate instances */
+  def isShallow: Boolean =
+    refFieldPerms.map.values.forall(_.value.isEmpty)
+
   override def toString = {
     if (isBottom) "⊥"
     else if (isTop) "⊤"
