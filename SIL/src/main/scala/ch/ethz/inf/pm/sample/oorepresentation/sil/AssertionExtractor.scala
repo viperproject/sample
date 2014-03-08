@@ -143,7 +143,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     predicateMap.values
 
   def predicateMap: Map[Identifier, sil.Predicate] =
-    predicateBuilder.build(condHeapGraph.cond.defs)
+    predicateBuilder.build(condHeapGraph.cond.predDefs)
 
   def assertion: sil.Exp = assertionTree.toExp
 
@@ -251,7 +251,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     require(edge.source.isInstanceOf[LocalVariableVertex])
 
     val localVarVertex = edge.source.asInstanceOf[LocalVariableVertex]
-    val foldedPredInstIds = edge.state.insts.foldedPredInstIds
+    val foldedPredInstIds = edge.state.predInsts.foldedIds
     foldedPredInstIds.flatMap(predInstId => {
       if (onlyNonRecursivePredicates) {
         // val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
@@ -262,7 +262,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
         // Exploit PredicateBuilder to directly use the body of the predicate
         val customPredBuilder = DefaultPredicateBuilder(
           formalArgName = localVarVertex.name)
-        val customPredMap = customPredBuilder.build(edge.state.defs)
+        val customPredMap = customPredBuilder.build(edge.state.predDefs)
         Set(customPredMap(predInstId.toPredDefId).body)
       } else {
         println("currently cannot handle")

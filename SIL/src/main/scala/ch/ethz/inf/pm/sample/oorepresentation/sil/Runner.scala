@@ -205,7 +205,7 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
               import PredicateInstancesDomain._
 
               var instances = state.valueState.predicateState.instances
-              val foldedPredInstIds = instances.foldedPredInstIds
+              val foldedPredInstIds = instances.foldedIds
               val nonRecursiveDefIds = secondEntryDefs.nonRecursiveIds
 
               // Auto-unfold every folded, non-recursive predicate instance

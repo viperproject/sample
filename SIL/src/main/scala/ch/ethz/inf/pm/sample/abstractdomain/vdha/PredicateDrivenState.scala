@@ -101,10 +101,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         assert(!recvEdge.target.isInstanceOf[SummaryHeapVertex],
           "target of the receiver edge must not be a summary node")
 
-        val recvPredDefs = recvEdge.state.defs
+        val recvPredDefs = recvEdge.state.predDefs
 
-        val foldedPredInstIds = recvEdge.state.insts.foldedPredInstIds
-        val unfoldedPredInstIds = recvEdge.state.insts.unfoldedPredInstIds
+        val foldedPredInstIds = recvEdge.state.predInsts.foldedIds
+        val unfoldedPredInstIds = recvEdge.state.predInsts.unfoldedIds
         val availPredInstIds = foldedPredInstIds ++ unfoldedPredInstIds
 
         if (availPredInstIds.isEmpty) {
@@ -191,7 +191,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                       // That edge cannot be. We would have the instance twice
                       // TODO: Should not matter what ID it is. If they overlap in terms of
                       // permissions, it is impossible
-                      val newState = if (e.state.insts.foldedPredInstIds.contains(nestedPredInstId)) {
+                      val newState = if (e.state.predInsts.foldedIds.contains(nestedPredInstId)) {
                         println("Impossible edge detected, removing it")
                         e.state.assign(edgeLocId, Unfolded).lub(e.state) // Hack to set it to bottom
                       } else {
@@ -276,14 +276,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         if (nonNullOutEdges.isEmpty) {
           println("nothing to do, we only assigned null to the field")
         } else {
-          val recvPredDefId = recvEdge.state.insts.unfoldedPredInstIds.head.toPredDefId
-          val curRecvPredDef = recvEdge.state.defs.get(recvPredDefId)
+          val recvPredDefId = recvEdge.state.predInsts.unfoldedIds.head.toPredDefId
+          val curRecvPredDef = recvEdge.state.predDefs.get(recvPredDefId)
           val curNestedRecvPredDefIds = curRecvPredDef.refFieldPerms.get(field).value
 
           assert(nonNullOutEdges.size == 1, "assume that there is exactly one outgoing non-null edge")
 
           val outEdge = nonNullOutEdges.head
-          val newNestedRecvPredDefIds = outEdge.state.insts.foldedPredInstIds.map(_.toPredDefId).asInstanceOf[Set[Identifier]]
+          val newNestedRecvPredDefIds = outEdge.state.predInsts.foldedIds.map(_.toPredDefId).asInstanceOf[Set[Identifier]]
 
           if (curNestedRecvPredDefIds.isEmpty) {
             resultingCondHeap = resultingCondHeap.map(state => {
@@ -312,9 +312,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     this.abstractHeap.localVarVertices.foreach(localVarVertex => {
       // Only fold local variables if it is possible to do so
       // on all local variable edges
-      var candidateUnfoldedPredInstIds = result.abstractHeap.outEdges(localVarVertex).head.state.insts.unfoldedPredInstIds
+      var candidateUnfoldedPredInstIds = result.abstractHeap.outEdges(localVarVertex).head.state.predInsts.unfoldedIds
       result.abstractHeap.outEdges(localVarVertex).tail.filter(_.target != NullVertex).foreach(edge => {
-        candidateUnfoldedPredInstIds = candidateUnfoldedPredInstIds.intersect(edge.state.insts.unfoldedPredInstIds)
+        candidateUnfoldedPredInstIds = candidateUnfoldedPredInstIds.intersect(edge.state.predInsts.unfoldedIds)
       })
 
       candidateUnfoldedPredInstIds.foreach(unfoldedPredInstId => {
@@ -322,14 +322,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         var canFold = true
 
         result.abstractHeap.outEdges(localVarVertex).foreach(recvEdge => {
-          val unfoldedPredDef = recvEdge.state.defs.get(unfoldedPredInstId.toPredDefId)
+          val unfoldedPredDef = recvEdge.state.predDefs.get(unfoldedPredInstId.toPredDefId)
 
           unfoldedPredDef.refFieldPerms.map.foreach({
             case (field, nestedPredDefId) =>
               val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]].map(_.toPredInstId)
               val edgesThatNeedFoldedPredInst = result.abstractHeap.outEdges(recvEdge.target, Some(field.getName)).filter(_.target != NullVertex)
               val canFoldThis = edgesThatNeedFoldedPredInst.forall(edge => {
-                nestedPredInstIds subsetOf edge.state.insts.foldedPredInstIds
+                nestedPredInstIds subsetOf edge.state.predInsts.foldedIds
               })
               // The target vertices could have other incoming edges,
               // so we need to remove the folded instance from them too.
@@ -367,7 +367,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         if (canFold) {
           abstractHeap.localVarVertices.foreach(localVarVertex => {
             def hasPredInstOnEveryEdge(heap: HeapGraph[EdgeStateDomain[S]]): Boolean = {
-              heap.outEdges(localVarVertex).filter(_.target != NullVertex).forall(!_.state.insts.foldedAndUnfoldedPredInstIds.isEmpty)
+              heap.outEdges(localVarVertex).filter(_.target != NullVertex).forall(!_.state.predInsts.foldedAndUnfolded.isEmpty)
             }
 
             if (hasPredInstOnEveryEdge(abstractHeap)) {
@@ -417,8 +417,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val edge = edges.head
           val otherEdge = edges.tail.head
 
-          val predInstIds = edge.state.insts.foldedPredInstIds
-          val otherPredInstIds = otherEdge.state.insts.foldedPredInstIds
+          val predInstIds = edge.state.predInsts.foldedIds
+          val otherPredInstIds = otherEdge.state.predInsts.foldedIds
 
           assert(predInstIds.size <= 1, "cannot handle more than one folded pred inst id")
           assert(otherPredInstIds.size <= 1, "cannot handle more than one folded pred inst id")
@@ -431,10 +431,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             val otherPredDefId = otherPredInstId.toPredDefId
 
             if (predDefId != otherPredDefId) {
-              val predDef00 = edge.state.defs.get(predDefId)
-              val predDef01 = edge.state.defs.get(otherPredDefId)
-              val predDef10 = otherEdge.state.defs.get(predDefId)
-              val predDef11 = otherEdge.state.defs.get(otherPredDefId)
+              val predDef00 = edge.state.predDefs.get(predDefId)
+              val predDef01 = edge.state.predDefs.get(otherPredDefId)
+              val predDef10 = otherEdge.state.predDefs.get(predDefId)
+              val predDef11 = otherEdge.state.predDefs.get(otherPredDefId)
 
               // Do it in both directions separately
               // TODO: Should probably always keep the predicate with the lower version
@@ -551,10 +551,10 @@ object PredicateDrivenHeapState {
   }
 
   implicit class ExtendedEdgeStateDomain[S <: SemanticDomain[S]](state: EdgeStateDomain[S]) {
-    def insts: PredicateInstancesDomain =
+    def predInsts: PredicateInstancesDomain =
       state.valueState.predicateState.instances
 
-    def defs: PredicateDefinitionsDomain =
+    def predDefs: PredicateDefinitionsDomain =
       state.valueState.predicateState.definitions
   }
 }

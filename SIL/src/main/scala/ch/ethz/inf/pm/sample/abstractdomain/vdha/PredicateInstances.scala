@@ -1,6 +1,5 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
-import apron.Abstract1
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AbstractType
@@ -67,7 +66,7 @@ case class PredicateInstancesDomain(
   private def isUnfolded(id: Identifier): Boolean =
     get(id).value.contains(false)
 
-  def foldedPredInstIds: Set[VariableIdentifier] = {
+  def foldedIds: Set[VariableIdentifier] = {
     map.keySet.collect({
       // Only consider target edge-local identifiers
       case id @ EdgeLocalIdentifier(field :: Nil, predInstId)
@@ -75,7 +74,7 @@ case class PredicateInstancesDomain(
     })
   }
 
-  def unfoldedPredInstIds: Set[VariableIdentifier] = {
+  def unfoldedIds: Set[VariableIdentifier] = {
     map.keySet.collect({
       // Only consider target edge-local identifiers
       case id @ EdgeLocalIdentifier(field :: Nil, predInstId)
@@ -83,8 +82,8 @@ case class PredicateInstancesDomain(
     })
   }
 
-  def foldedAndUnfoldedPredInstIds: Set[VariableIdentifier] =
-    foldedPredInstIds ++ unfoldedPredInstIds
+  def foldedAndUnfolded: Set[VariableIdentifier] =
+    foldedIds ++ unfoldedIds
 
   def createVariable(variable: Identifier, typ: Type) =
     add(variable, defaultValue.top())
