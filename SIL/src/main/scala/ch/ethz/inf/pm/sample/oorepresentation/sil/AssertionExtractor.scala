@@ -10,8 +10,6 @@ import semper.sil.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
 
 trait PredicateBuilder {
-  def refType: RefType
-
   def formalArgName: String
 
   def formalArgDecl: sil.LocalVarDecl =
@@ -49,8 +47,8 @@ trait PredicateBuilder {
       val valAccessPreds = predDef.valFieldPerms.value.map(buildFieldAccessPred)
 
       val refAccessPreds = predDef.refFieldPerms.map.map({
-        case (fieldName, nestedPredDefIds) =>
-          val refFieldAccessPred = buildFieldAccessPred(fieldName)
+        case (field, nestedPredDefIds) =>
+          val refFieldAccessPred = buildFieldAccessPred(field)
 
           assert(!nestedPredDefIds.isBottom,
             "set of nested predicate definitions must not be bottom")
@@ -58,7 +56,7 @@ trait PredicateBuilder {
           nestedPredDefIds.value.toSeq  match {
             case nestedPredDefId :: Nil =>
               val nonNullnessCond = sil.NeCmp(refFieldAccessPred.loc, sil.NullLit()())()
-              val fieldAccess = sil.FieldAccess(formalArgDecl.localVar, sil.Field(fieldName, sil.Ref)())()
+              val fieldAccess = sil.FieldAccess(formalArgDecl.localVar, sil.Field(field.getName, sil.Ref)())()
 
               val pred = predMap(nestedPredDefId)
               val predAccessPred = sil.PredicateAccessPredicate(
@@ -76,16 +74,14 @@ trait PredicateBuilder {
     }
   }
 
-  def buildFieldAccessPred(fieldName: String): sil.FieldAccessPredicate = {
-    val fieldTyp = refType.fields.find(_.getName == fieldName).get.typ
-    val field = sil.Field(fieldName, DefaultSampleConverter.convert(fieldTyp))()
+  def buildFieldAccessPred(fieldId: Identifier): sil.FieldAccessPredicate = {
+    val field = sil.Field(fieldId.getName, DefaultSampleConverter.convert(fieldId.typ))()
     val fieldAccess = sil.FieldAccess(formalArgDecl.localVar, field)()
     sil.FieldAccessPredicate(fieldAccess, sil.FullPerm()())()
   }
 }
 
 case class DefaultPredicateBuilder(
-    refType: RefType,
     formalArgName: String = "this") extends PredicateBuilder {}
 
 case class AssertionTree(
@@ -265,9 +261,8 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
         // Exploit PredicateBuilder to directly use the body of the predicate
         val customPredBuilder = DefaultPredicateBuilder(
-          refType = predicateBuilder.refType,
           formalArgName = localVarVertex.name)
-        val customPredMap =customPredBuilder.build(edge.state.defs)
+        val customPredMap = customPredBuilder.build(edge.state.defs)
         Set(customPredMap(predInstId.toPredDefId).body)
       } else {
         println("currently cannot handle")

@@ -22,7 +22,7 @@ class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
     val runner = OnePhasePredicateAnalysisRunner
     val results = runner.run(program)
 
-    val programExtender = ProgramExtender[ApronInterface.Default](runner.compiler)
+    val programExtender = ProgramExtender[ApronInterface.Default]()
     val extendedProgram = programExtender.extend(program, results)
 
     assert(isWellFormed(extendedProgram),

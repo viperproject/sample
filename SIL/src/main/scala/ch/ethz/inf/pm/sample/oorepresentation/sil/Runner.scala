@@ -80,24 +80,6 @@ object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
   /** Only analyze the first method. */
   override def methodsToAnalyze(compiler: SilCompiler) =
     List(compiler.allMethods.head)
-
-  // TODO: Temporary hack such that we can access the compiler after
-  // the analysis has terminated
-  var compiler: SilCompiler = null
-
-  override def _run(compiler: SilCompiler) = {
-    this.compiler = compiler
-
-    val results = super._run(compiler)
-
-    /* val programExtender = ProgramExtender[S](compiler)
-    val extendedProgram = programExtender.extend(compiler.program, results)
-
-    println("Extended Program")
-    println(extendedProgram) */
-
-    results
-  }
 }
 
 object TwoPhasePredicateAnalysisRunner extends AnalysisRunner(

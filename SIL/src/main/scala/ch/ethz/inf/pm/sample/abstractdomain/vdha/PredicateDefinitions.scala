@@ -112,10 +112,10 @@ case class PredicateDefinition(
 
   def _2 = refFieldPerms
 
-  def addValFieldPerm(field: String): PredicateDefinition =
+  def addValFieldPerm(field: Identifier): PredicateDefinition =
     copy(valFieldPerms = valFieldPerms.add(field))
 
-  def addRefFieldPerm(field: String, symbolicPredicateIdOption: Option[Identifier]) = {
+  def addRefFieldPerm(field: Identifier, symbolicPredicateIdOption: Option[Identifier]) = {
     // TODO: What should happen if there is already an ID?
     var  newSymbolicPredicateIds = refFieldPerms.get(field)
     if (symbolicPredicateIdOption.isDefined) {
@@ -124,7 +124,7 @@ case class PredicateDefinition(
     copy(refFieldPerms = refFieldPerms.add(field, newSymbolicPredicateIds))
   }
 
-  def setRefFieldPerm(field: String, nestedPredDefIds: Set[Identifier]) = {
+  def setRefFieldPerm(field: Identifier, nestedPredDefIds: Set[Identifier]) = {
     copy(refFieldPerms = refFieldPerms.add(field, NestedPredDefDomain(nestedPredDefIds, isTop = nestedPredDefIds.isEmpty)))
   }
 
@@ -186,28 +186,28 @@ object PredicateDefinition {
 }
 
 final case class ValFieldPermDomain(
-    value: Set[String] = Set.empty[String],
+    value: Set[Identifier] = Set.empty[Identifier],
     isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends InverseSetDomain[String, ValFieldPermDomain]
+  extends InverseSetDomain[Identifier, ValFieldPermDomain]
   with Lattice.Must[ValFieldPermDomain] {
 
-  def setFactory(value: Set[String], isTop: Boolean, isBottom: Boolean) =
+  def setFactory(value: Set[Identifier], isTop: Boolean, isBottom: Boolean) =
     ValFieldPermDomain(value, isTop, isBottom)
 }
 
 final case class RefFieldPermDomain(
-    map: Map[String, NestedPredDefDomain] = Map.empty[String, NestedPredDefDomain],
+    map: Map[Identifier, NestedPredDefDomain] = Map.empty[Identifier, NestedPredDefDomain],
     isTop: Boolean = false,
     override val isBottom: Boolean = false,
     defaultValue: NestedPredDefDomain = NestedPredDefDomain().top())
-  extends FunctionalDomain[String, NestedPredDefDomain, RefFieldPermDomain]
+  extends FunctionalDomain[Identifier, NestedPredDefDomain, RefFieldPermDomain]
   with Lattice.Must[RefFieldPermDomain] {
 
-  def get(key: String) = map.getOrElse(key, defaultValue)
+  def get(key: Identifier) = map.getOrElse(key, defaultValue)
 
   def functionalFactory(
-      value: Map[String, NestedPredDefDomain],
+      value: Map[Identifier, NestedPredDefDomain],
       isBottom: Boolean,
       isTop: Boolean) =
     RefFieldPermDomain(value, isTop, isBottom, defaultValue)

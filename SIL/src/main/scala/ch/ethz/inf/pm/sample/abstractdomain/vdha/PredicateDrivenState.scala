@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, SilCompiler}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.SilCompiler
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
@@ -57,7 +57,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             if (!vertices.contains(NullVertex)) {
               var predDef = PredicateDefinition()
               refType.objectFields.foreach(field => {
-                predDef = predDef.addRefFieldPerm(field.getName, Some(predDefId))
+                predDef = predDef.addRefFieldPerm(field, Some(predDefId))
               })
               result = result.assignVariable(predDefId, predDef)
             }
@@ -83,7 +83,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   override def getFieldValue(id: AccessPathIdentifier) = {
     val receiverPath = id.path.dropRight(1)
     val receiverId = AccessPathIdentifier(receiverPath)(refType)
-    val field = id.path.last
+    val field = VariableIdentifier(id.path.last)(id.typ)
 
     assert(receiverPath.size == 1, "currently only support obj.field")
 
@@ -147,7 +147,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
                 recvPredDef = if (recvEdge.target == NullVertex)
                   recvPredDef.bottom()
                 else if (id.typ.isObject) {
-                  val nestedPredDefIdOption = if (result.heap.outEdges(recvEdge.target, Some(field)).exists(_.target != NullVertex)) {
+                  val nestedPredDefIdOption = if (result.heap.outEdges(recvEdge.target, Some(field.name)).exists(_.target != NullVertex)) {
                     var nestedPredDefId: VariableIdentifier = null
                     if (MakePredicateRecursiveWhenUnfolding) {
                       // Always assume that the predicate instance is recursive
@@ -174,7 +174,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               // Add folded nested predicate instances
               if (id.typ.isObject) {
                 // TODO: Should add ALL nested predicate instances
-                val nestedPredDefIds = recvPredDef.refFieldPerms.get(id.path.last).value.asInstanceOf[Set[VariableIdentifier]]
+                val nestedPredDefIds = recvPredDef.refFieldPerms.get(field).value.asInstanceOf[Set[VariableIdentifier]]
                 if (!nestedPredDefIds.isEmpty) {
                   val nestedPredDefId = nestedPredDefIds.head
                   val nestedPredInstId = nestedPredDefId.toPredInstId
@@ -265,12 +265,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     if (left.typ.isObject) {
       val receiverPath = left.path.dropRight(1)
       val receiverId = AccessPathIdentifier(receiverPath)(refType)
-      val field = left.path.last
+      val field = VariableIdentifier(left.path.last)(left.typ)
 
       result = CondHeapGraph[EdgeStateDomain[S], T](result).evalExp(receiverId).mapCondHeaps(condHeap => {
         val recvEdge = condHeap.takenPath(receiverId.path).edges.head
         val recvVertex = recvEdge.target
-        val nonNullOutEdges = condHeap.heap.outEdges(recvVertex, Some(field)).filter(_.target != NullVertex)
+        val nonNullOutEdges = condHeap.heap.outEdges(recvVertex, Some(field.name)).filter(_.target != NullVertex)
         var resultingCondHeap = condHeap
 
         if (nonNullOutEdges.isEmpty) {
@@ -327,7 +327,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           unfoldedPredDef.refFieldPerms.map.foreach({
             case (field, nestedPredDefId) =>
               val nestedPredInstIds = nestedPredDefId.value.asInstanceOf[Set[VariableIdentifier]].map(_.toPredInstId)
-              val edgesThatNeedFoldedPredInst = result.abstractHeap.outEdges(recvEdge.target, Some(field)).filter(_.target != NullVertex)
+              val edgesThatNeedFoldedPredInst = result.abstractHeap.outEdges(recvEdge.target, Some(field.getName)).filter(_.target != NullVertex)
               val canFoldThis = edgesThatNeedFoldedPredInst.forall(edge => {
                 nestedPredInstIds subsetOf edge.state.insts.foldedPredInstIds
               })

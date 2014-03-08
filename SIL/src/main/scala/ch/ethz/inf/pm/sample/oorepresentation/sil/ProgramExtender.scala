@@ -9,7 +9,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 
 // TODO: It's odd to pass the compiler as a constructor argument,
 // as it is program-specific
-case class ProgramExtender[S <: ApronInterface[S]](compiler: SilCompiler) {
+case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
   type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
 
@@ -62,7 +62,7 @@ case class ProgramExtender[S <: ApronInterface[S]](compiler: SilCompiler) {
 
     val exitCondHeapGraph = CondHeapGraph[EdgeStateDomain[S], PredicateDrivenHeapState[S]](exitState)
 
-    val predicateBuilder = DefaultPredicateBuilder(compiler.refType)
+    val predicateBuilder = DefaultPredicateBuilder()
     val entryExtractor = AssertionExtractor[S](entryCondHeapGraph, predicateBuilder)
     val exitExtractor = AssertionExtractor[S](exitCondHeapGraph, predicateBuilder)
 
