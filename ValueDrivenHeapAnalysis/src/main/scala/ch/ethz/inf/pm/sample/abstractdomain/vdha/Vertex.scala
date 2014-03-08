@@ -102,7 +102,7 @@ trait HeapVertex extends Vertex {
   def name = s"n$version"
 
   /** Returns the set of all value heap identifiers of this heap vertex. */
-  def valueHeapIds[I >: Identifier]: Set[I] =
+  def valueHeapIds[I >: ValueHeapIdentifier]: Set[I] =
     typ.nonObjectFields.map(ValueHeapIdentifier(this, _))
 
   def neededEdgeFieldsAndTypes =

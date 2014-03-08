@@ -280,7 +280,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     val idsToRemove = verticesToRemove.flatMap(_.valueHeapIds)
     val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove)))
     val result = HeapGraph(resultingVertices, finalEdges)
-    (result, idsToRemove)
+    (result, idsToRemove.toSet)
   }
 
   /**
