@@ -91,11 +91,20 @@ case class AssertionTree(
   def isEmpty: Boolean =
     exps.isEmpty && children.isEmpty
 
+  /** Removes an expression from this node and all children nodes. */
+  def remove(exp: sil.Exp): AssertionTree = {
+    copy(exps - exp, children.mapValues(_.remove(exp)))
+  }
+
   def simplify: AssertionTree = {
-    val newExps = exps.map(Transformer.simplify).filterNot(_.isInstanceOf[TrueLit])
-    val newChildren = children.mapValues(_.simplify).filterNot({
-      case (cond, tree) => tree.isEmpty
-    })
+    val newExps = exps
+      .map(Transformer.simplify)
+      .filterNot(_.isInstanceOf[TrueLit])
+
+    val newChildren = children
+      .map({  case (cond, child) => cond -> child.remove(cond).simplify })
+      .filterNot({ case (cond, child) => child.isEmpty })
+
     AssertionTree(newExps, newChildren)
   }
 
@@ -106,7 +115,8 @@ case class AssertionTree(
 
   def toExp: sil.Exp = {
     val allExps = exps ++ conditionalExps
-    allExps.foldLeft[sil.Exp](sil.TrueLit()())(sil.And(_, _)())
+    if (allExps.isEmpty) sil.TrueLit()()
+    else allExps.reduceLeft[sil.Exp](sil.And(_, _)())
   }
 
   def toExps: Seq[sil.Exp] =
