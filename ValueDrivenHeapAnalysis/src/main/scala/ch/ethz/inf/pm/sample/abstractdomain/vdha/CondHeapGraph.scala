@@ -245,7 +245,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     val leftTakenPath = takenPath(left.objPath)
     val vertexToAssign = leftTakenPath.target
     val field = left.path.last
-    
+
     // TODO: Hard-coding VariableIdentifier here is a bit risky.
     // Ideally, the AccessPathIdentifier should supply the proper identifier
     val fieldId = VariableIdentifier(field)(right.typ, right.pp)
