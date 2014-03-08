@@ -229,7 +229,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     (left, right) match {
       case (left: VariableIdentifier, right: VertexExpression) =>
         val source = abstractHeap.localVarVertex(left.getName)
-        val addedEdge = result.abstractHeap.outEdges(source).head
+        val localVarEdges = result.abstractHeap.outEdges(source)
+
+        assert(localVarEdges.size == 1,
+          "there must be exactly one local variable edge")
+        
+        val addedEdge = localVarEdges.head
 
         val predValHeapIds = addedEdge.state.predHeapIds(addedEdge.target)
         val repl = new Replacement()
