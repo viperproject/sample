@@ -63,7 +63,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         })
       }
 
-      result = CondHeapGraph[EdgeStateDomain[S], T](result).mapEdges(edge => {
+      result = result.toCondHeapGraph.mapEdges(edge => {
         edgeVerticesToPredId.get(edge.vertices) match {
           case Some(predId) =>
             val edgeLocalPredId = EdgeLocalIdentifier(List(edge.field), predId)
@@ -92,8 +92,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     // to follow them when materializing the target of the field access.
     var result = materializePath(receiverId.path)
 
-    result = CondHeapGraph[EdgeStateDomain[S], T](result)
-      .evalExp(receiverId).mapCondHeaps(condHeap => {
+    result = result.toCondHeapGraph.evalExp(receiverId).mapCondHeaps(condHeap => {
         val recvEdge = condHeap.takenPath(receiverId.path).edges.head
 
         assert(!recvEdge.target.isInstanceOf[SummaryHeapVertex],
@@ -216,11 +215,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val predId = PredicateDefinition.makeId()
     val predValueHeapId = ValueHeapIdentifier(newVertex, predId)
 
-    result = result.createNonObjectVariables(Set(predId, predValueHeapId))
-    result = CondHeapGraph[EdgeStateDomain[S], T](result).map(
-      _.assign(predValueHeapId, Unfolded))
+    val newResult = result
+      .createNonObjectVariables(Set(predId, predValueHeapId))
+      .toCondHeapGraph.map(_.assign(predValueHeapId, Unfolded))
 
-    (result, newVertex)
+    (newResult, newVertex)
   }
 
   override def assignVariable(left: Expression, right: Expression) = {
@@ -262,7 +261,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val receiverId = AccessPathIdentifier(receiverPath)(refType)
       val field = VariableIdentifier(left.path.last)(left.typ)
 
-      result = CondHeapGraph[EdgeStateDomain[S], T](result).evalExp(receiverId).mapCondHeaps(condHeap => {
+      result = result.toCondHeapGraph.evalExp(receiverId).mapCondHeaps(condHeap => {
         val recvEdge = condHeap.takenPath(receiverId.path).edges.head
         val recvVertex = recvEdge.target
         val nonNullOutEdges = condHeap.heap.outEdges(recvVertex, Some(field.name)).filter(_.target != NullVertex)
