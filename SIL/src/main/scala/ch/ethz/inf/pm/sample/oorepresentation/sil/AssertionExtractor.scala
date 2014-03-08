@@ -10,15 +10,20 @@ import semper.sil.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
 
 trait PredicateBuilder {
+  import DefaultSampleConverter._
+
+  /** Name of the predicate definition parameter. */
   def formalArgName: String
 
+  /** Declaration of the predicate definition parameter. */
   def formalArgDecl: sil.LocalVarDecl =
     sil.LocalVarDecl(formalArgName, sil.Ref)()
 
   def build(predDefs: PredicateDefinitionsDomain): Map[Identifier, sil.Predicate] = {
-    val predMap = predDefs.map.keys.map(predDefId => {
-      val predName = buildName(predDefId)
-      predDefId -> sil.Predicate(predName, Seq(formalArgDecl), null)()
+    // Build a predicate with an empty body for every ID
+    val predMap = predDefs.map.keys.map(predId => {
+      val predName = buildName(predId)
+      predId -> sil.Predicate(predName, Seq(formalArgDecl), null)()
     }).toMap
 
     predMap.foreach({
@@ -30,10 +35,8 @@ trait PredicateBuilder {
     predMap
   }
 
-  protected def buildName(predDefId: Identifier): String = {
-    val name = predDefId.getName
-    val nameWithoutPrefix = name.replace(Constants.GhostSymbolPrefix, "")
-    nameWithoutPrefix
+  protected def buildName(predId: Identifier): String = {
+    predId.getName.replace(Constants.GhostSymbolPrefix, "")
   }
 
   protected def buildBody(
@@ -53,14 +56,13 @@ trait PredicateBuilder {
           assert(!nestedPredDefIds.isBottom,
             "set of nested predicate definitions must not be bottom")
 
-          nestedPredDefIds.value.toSeq  match {
+          nestedPredDefIds.value.toSeq match {
             case nestedPredDefId :: Nil =>
               val nonNullnessCond = sil.NeCmp(refFieldAccessPred.loc, sil.NullLit()())()
-              val fieldAccess = sil.FieldAccess(formalArgDecl.localVar, sil.Field(field.getName, sil.Ref)())()
-
               val pred = predMap(nestedPredDefId)
               val predAccessPred = sil.PredicateAccessPredicate(
-                sil.PredicateAccess(Seq(fieldAccess), pred)(), sil.FullPerm()())()
+                sil.PredicateAccess(Seq(buildFieldAccess(field)), pred)(), sil.FullPerm()())()
+
               val condPredAccessPred = sil.Implies(nonNullnessCond, predAccessPred)()
 
               sil.And(refFieldAccessPred, condPredAccessPred)()
@@ -75,14 +77,17 @@ trait PredicateBuilder {
   }
 
   def buildFieldAccessPred(fieldId: Identifier): sil.FieldAccessPredicate = {
-    val field = sil.Field(fieldId.getName, DefaultSampleConverter.convert(fieldId.typ))()
-    val fieldAccess = sil.FieldAccess(formalArgDecl.localVar, field)()
-    sil.FieldAccessPredicate(fieldAccess, sil.FullPerm()())()
+    sil.FieldAccessPredicate(buildFieldAccess(fieldId), sil.FullPerm()())()
+  }
+
+  def buildFieldAccess(fieldId: Identifier): sil.FieldAccess = {
+    val field = sil.Field(fieldId.getName, convert(fieldId.typ))()
+    sil.FieldAccess(formalArgDecl.localVar, field)()
   }
 }
 
-case class DefaultPredicateBuilder(
-    formalArgName: String = "this") extends PredicateBuilder {}
+case class DefaultPredicateBuilder(formalArgName: String = "this")
+  extends PredicateBuilder {}
 
 case class AssertionTree(
     exps: Set[sil.Exp] = Set.empty,
@@ -129,7 +134,6 @@ case class AssertionTree(
 
 case class AssertionExtractor[S <: ApronInterface[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
-    predicateBuilder: PredicateBuilder,
     onlyNonRecursivePredicates: Boolean = true) {
 
   import PredicateDrivenHeapState._
@@ -142,7 +146,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     predicateMap.values
 
   def predicateMap: Map[Identifier, sil.Predicate] =
-    predicateBuilder.build(condHeapGraph.cond.predDefs)
+    DefaultPredicateBuilder().build(condHeapGraph.cond.predDefs)
 
   def assertion: sil.Exp = assertionTree.toExp
 
