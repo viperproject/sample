@@ -84,6 +84,10 @@ trait PredicateBuilder {
   }
 }
 
+case class DefaultPredicateBuilder(
+    refType: RefType,
+    formalArgName: String = "this") extends PredicateBuilder {}
+
 case class AssertionTree(
     exps: Set[sil.Exp] = Set.empty,
     children: Map[sil.Exp, AssertionTree] = Map.empty) {
@@ -122,10 +126,6 @@ case class AssertionTree(
   def toExps: Seq[sil.Exp] =
     unconditionalExps ++ conditionalExps
 }
-
-case class DefaultPredicateBuilder(
-    refType: RefType,
-    formalArgName: String = "this") extends PredicateBuilder {}
 
 case class AssertionExtractor[S <: SemanticDomain[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
