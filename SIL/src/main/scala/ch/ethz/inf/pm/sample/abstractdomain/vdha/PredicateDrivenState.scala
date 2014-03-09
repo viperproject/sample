@@ -30,6 +30,13 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       isTop: Boolean) =
     PredicateDrivenHeapState(abstractHeap, generalValState, expr, isTop)
 
+  def mapEdges(f: Edge[EdgeStateDomain[S]] => EdgeStateDomain[S]): T =
+    copy(
+      abstractHeap = abstractHeap.copy(
+        edges = abstractHeap.edges.map(e => { e.copy(state = f(e)) })
+      )
+    )
+
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     if (variable.typ.isObject) {
       PredicateDefinition.resetId()
@@ -59,9 +66,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
-  override def getFieldValue(id: AccessPathIdentifier) = {
+  override def getFieldValue(id: AccessPathIdentifier): T = {
     val receiverPath = id.path.dropRight(1)
-    val receiverId = AccessPathIdentifier(receiverPath)(refType)
     val field = VariableIdentifier(id.path.last)(id.typ)
 
     assert(receiverPath.size == 1, "currently only support obj.field")
@@ -71,115 +77,114 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     // Unfolding after materializing the receiver may cause some edges
     // going out of the receiver vertex to be removed, so we don't need
     // to follow them when materializing the target of the field access.
-    var result = materializePath(receiverId.path)
+    var result = materializePath(receiverPath)
 
-    result = result.toCondHeapGraph.evalExp(receiverId).mapCondHeaps(condHeap => {
-        val recvEdge = condHeap.takenPath(receiverId.path).edges.head
+    val localVarName = receiverPath.head
+    val localVarVertex = result.abstractHeap.localVarVertex(localVarName)
+    val recvEdges = result.abstractHeap.outEdges(localVarVertex)
 
-        assert(!recvEdge.target.isInstanceOf[SummaryHeapVertex],
-          "target of the receiver edge must not be a summary node")
+    val nonNullRecvEdges = recvEdges.filterNot(_.target == NullVertex)
+    val nonNullRecvVertices = recvEdges.map(_.target)
 
-        val recvPredDefs = recvEdge.state.predDefs
+    assert(nonNullRecvEdges.forall(!_.target.isInstanceOf[SummaryHeapVertex]),
+      "edge target must not be summary heap vertex, is materialization on?")
 
-        val foldedIds = recvEdge.state.predInsts.foldedIds
-        val unfoldedIds = recvEdge.state.predInsts.unfoldedIds
-        val foldedAndUnfoldedIds = foldedIds ++ unfoldedIds
+    val recvState = Lattice.bigLub(nonNullRecvEdges.map(_.state))
 
-        if (foldedAndUnfoldedIds.isEmpty) {
-          println("there needs to be either a folded or unfolded predicate")
-          Seq(condHeap)
+    val predDefs = recvState.predDefs
+
+    val foldedIds = recvState.predInsts.foldedIds
+    val foldedIdsWithPerm = foldedIds.filter(predDefs.get(_).hasPerm(field))
+    val unfoldedIds = recvState.predInsts.unfoldedIds
+    val unfoldedIdsWithPerm = unfoldedIds.filter(predDefs.get(_).hasPerm(field))
+    val foldedAndUnfoldedIds = foldedIds ++ unfoldedIds
+
+    if (foldedAndUnfoldedIds.isEmpty) {
+      println("there is neither a folded or unfolded predicate instance")
+      return bottom()
+    }
+
+    if (unfoldedIdsWithPerm.isEmpty) {
+      val (recvPredId, hasPerm) = foldedIdsWithPerm.toList match {
+        case foldedId :: Nil => (foldedId, true)
+        case Nil => (foldedAndUnfoldedIds.head, false)
+        case _ => sys.error("there can only be one folded predicate with permission")
+      }
+
+      var recvPredDef = predDefs.get(recvPredId)
+
+      // Unfold
+      result = result.mapEdges(e => {
+        if (nonNullRecvVertices.contains(e.target)) {
+          val edgeLocalId = EdgeLocalIdentifier(List(e.field), recvPredId)
+          e.state.assign(edgeLocalId, Unfolded)
+        } else e.state
+      })
+
+      // Add permission if necessary
+      if (!hasPerm) {
+        if (id.typ.isObject) {
+          val fieldEdges = nonNullRecvVertices.flatMap(
+            result.abstractHeap.outEdges(_, Some(field.name)))
+
+          val nestedPredIdOption = if (fieldEdges.exists(_.target != NullVertex)) {
+            val nestedPredId = PredicateDefinition.makeId()
+            val nestedPredDef = PredicateDefinition().top()
+            result = result.assignVariable(nestedPredId, nestedPredDef)
+
+            Some(nestedPredId)
+          } else None
+          recvPredDef = recvPredDef.addRefFieldPerm(field, nestedPredIdOption)
         } else {
-          def findPerm(predIds: Set[VariableIdentifier]): Option[VariableIdentifier] = {
-            predIds.find(predId => {
-              val predDef = recvPredDefs.get(predId)
-              if (id.typ.isObject)
-                predDef.refFieldPerms.map.contains(field)
-              else
-                predDef.valFieldPerms.value.contains(field)
-            })
-          }
-
-          findPerm(unfoldedIds) match {
-            case Some(unfoldedPredId) =>
-              Seq(condHeap) // Nothing to do
-            case None => {
-              var result = condHeap
-
-              val (recvPredId, hasPerm) = findPerm(foldedIds) match {
-                case Some(foldedId) => (foldedId, true)
-                case None => (foldedAndUnfoldedIds.head, false)
-              }
-              var recvPredDef = recvPredDefs.get(recvPredId)
-
-              // Unfold
-              result = result.mapEdges(e => {
-                if (e.target == recvEdge.target) {
-                  val edgeLocId = EdgeLocalIdentifier(List(e.field), recvPredId)
-                  e.state.assign(edgeLocId, Unfolded)
-                } else e.state
-              })
-
-              // Add permission if necessary
-              if (!hasPerm) {
-                recvPredDef = if (recvEdge.target == NullVertex)
-                  recvPredDef.bottom()
-                else if (id.typ.isObject) {
-                  val nestedPredIdOption = if (result.heap.outEdges(recvEdge.target, Some(field.name)).exists(_.target != NullVertex)) {
-                    var nestedPredId: VariableIdentifier = null
-                    nestedPredId = PredicateDefinition.makeId()
-                    val nestedPredDef = PredicateDefinition().top()
-                    result = result.map(_.assign(nestedPredId, nestedPredDef))
-
-                    Some(nestedPredId)
-                  } else None
-                  recvPredDef.addRefFieldPerm(field, nestedPredIdOption)
-                } else {
-                  recvPredDef.addValFieldPerm(field)
-                }
-
-                // Assign the new predicate definition
-                result = result.map(state => {
-                  state.assign(recvPredId, recvPredDef)
-                })
-              }
-
-              // Add folded nested predicate instances
-              if (id.typ.isObject) {
-                // TODO: Should add ALL nested predicate instances
-                val nestedPredIds = recvPredDef.refFieldPerms.get(field).value.asInstanceOf[Set[VariableIdentifier]]
-                if (!nestedPredIds.isEmpty) {
-                  val nestedPredId = nestedPredIds.head
-
-                  result = result.mapEdges(e => {
-                    // No predicate instances on null edges
-                    if (e.source == recvEdge.target && e.target != NullVertex) {
-                      val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredId)
-                      // Old code that uses asumme (which is not implemented)
-                      // val equality = BinaryArithmeticExpression(edgeLocId, Folded, ArithmeticOperator.==, BoolType)
-                      // e.state.createVariable(edgeLocId).assume(equality)
-
-                      // When there is already a folded pred instance on this edge:
-                      // That edge cannot be. We would have the instance twice
-                      // TODO: Should not matter what ID it is. If they overlap in terms of
-                      // permissions, it is impossible
-                      val newState = if (e.state.predInsts.foldedIds.contains(nestedPredId)) {
-                        println("Impossible edge detected, removing it")
-                        e.state.assign(edgeLocId, Unfolded).lub(e.state) // Hack to set it to bottom
-                      } else {
-                        e.state.assign(edgeLocId, Folded).lub(e.state)
-                      }
-
-                      newState
-                    } else e.state
-                  })
-                }
-              }
-
-              Seq(result)
-            }
-          }
+          recvPredDef = recvPredDef.addValFieldPerm(field)
         }
-      }).join
+
+        // Assign the new predicate definition
+        result = result.assignVariable(recvPredId, recvPredDef)
+      }
+
+      // Add folded nested predicate instances
+      if (id.typ.isObject) {
+        // TODO: Should add ALL nested predicate instances
+        val nestedPredIds = recvPredDef.refFieldPerms.get(field).value
+
+        if (!nestedPredIds.isEmpty) {
+          val nestedPredId = nestedPredIds.head.asInstanceOf[VariableIdentifier]
+
+          result = result.mapEdges(e => {
+            // No predicate instances on null edges
+            if (nonNullRecvVertices.contains(e.source) && e.target != NullVertex) {
+              val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredId)
+              // When there is already a folded predicated instance on this edge:
+              // That edge cannot be. We would have the instance twice
+              // TODO: Should not matter what ID it is. If they overlap in terms of
+              // permissions, it is impossible
+              val newState = if (e.state.predInsts.foldedIds.contains(nestedPredId)) {
+                println("Impossible edge detected, removing it")
+                // Hack to set it to bottom
+                e.state.assign(edgeLocId, Unfolded).lub(e.state)
+              } else {
+                e.state.assign(edgeLocId, Folded).lub(e.state)
+              }
+
+              newState
+            } else e.state
+          })
+        }
+      }
+      Seq(result)
+    }
+
+    recvEdges.filter(_.target == NullVertex).toList match {
+      case nullRecvEdge :: Nil =>
+        for (foldedPredId <- nullRecvEdge.state.predInsts.foldedIds) {
+          val bottom = PredicateDefinition().bottom()
+          result = result.assignVariable(foldedPredId, bottom)
+        }
+      case Nil =>
+    }
+
+    result = result.prune()
 
     // Materialize the target of the field access now
     result.materializePath(id.objPath).copy(expr = ExpressionSet(id))

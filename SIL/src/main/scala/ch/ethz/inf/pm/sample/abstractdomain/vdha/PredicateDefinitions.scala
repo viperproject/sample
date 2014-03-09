@@ -146,6 +146,11 @@ case class PredicateDefinition(
   def isShallow: Boolean =
     refFieldPerms.map.values.forall(_.value.isEmpty)
 
+  /** Returns whether this definition contains permission to the given field. */
+  def hasPerm(field: Identifier): Boolean =
+    if (field.typ.isObject) refFieldPerms.map.contains(field)
+    else valFieldPerms.value.contains(field)
+
   override def toString = {
     if (isBottom) "⊥"
     else if (isTop) "⊤"
