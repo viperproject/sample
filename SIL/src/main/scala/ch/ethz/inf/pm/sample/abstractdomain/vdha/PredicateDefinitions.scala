@@ -85,15 +85,6 @@ case class PredicateDefinitionsDomain(
       result
     }
   }
-
-  /** @todo Does not detect mutually recursive predicate definitions. */
-  def nonRecursiveIds: Set[Identifier] = {
-    map.filterNot({
-      case (id, predDef) =>
-        val nestedIds = predDef.refFieldPerms.map.values.map(_.value).flatten.toSet
-        nestedIds.contains(id)
-    }).keySet
-  }
 }
 
 case class PredicateDefinition(
