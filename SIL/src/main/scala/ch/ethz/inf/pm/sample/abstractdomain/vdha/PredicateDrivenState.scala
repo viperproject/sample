@@ -84,7 +84,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val recvEdges = result.abstractHeap.outEdges(localVarVertex)
 
     val nonNullRecvEdges = recvEdges.filterNot(_.target == NullVertex)
-    val nonNullRecvVertices = recvEdges.map(_.target)
+    val nonNullRecvVertices = nonNullRecvEdges.map(_.target)
 
     assert(nonNullRecvEdges.forall(!_.target.isInstanceOf[SummaryHeapVertex]),
       "edge target must not be summary heap vertex, is materialization on?")
