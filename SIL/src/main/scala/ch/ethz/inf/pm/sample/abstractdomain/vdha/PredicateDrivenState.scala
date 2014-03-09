@@ -89,13 +89,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     assert(nonNullRecvEdges.forall(!_.target.isInstanceOf[SummaryHeapVertex]),
       "edge target must not be summary heap vertex, is materialization on?")
 
-    val recvState = Lattice.bigLub(nonNullRecvEdges.map(_.state))
+    val predDefs = generalValState.predDefs
 
-    val predDefs = recvState.predDefs
+    // Only find folded and unfolded IDs that exist on ALL edges
+    // TODO: It would be nice to use a lattice operation here
+    val foldedIds = nonNullRecvEdges.map(_.state.predInsts.foldedIds).reduceLeft(_ intersect _)
+    val unfoldedIds = nonNullRecvEdges.map(_.state.predInsts.unfoldedIds).reduceLeft(_ intersect _)
 
-    val foldedIds = recvState.predInsts.foldedIds
     val foldedIdsWithPerm = foldedIds.filter(predDefs.get(_).hasPerm(field))
-    val unfoldedIds = recvState.predInsts.unfoldedIds
     val unfoldedIdsWithPerm = unfoldedIds.filter(predDefs.get(_).hasPerm(field))
     val foldedAndUnfoldedIds = foldedIds ++ unfoldedIds
 
