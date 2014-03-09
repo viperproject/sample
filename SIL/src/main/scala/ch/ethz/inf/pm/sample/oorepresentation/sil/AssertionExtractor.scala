@@ -56,7 +56,7 @@ trait PredicateBuilder {
           assert(!nestedPredDefIds.isBottom,
             "set of nested predicate definitions must not be bottom")
 
-          nestedPredDefIds.value.toSeq match {
+          nestedPredDefIds.value.toList match {
             case nestedPredDefId :: Nil =>
               val nonNullnessCond = sil.NeCmp(refFieldAccessPred.loc, sil.NullLit()())()
               val pred = predMap(nestedPredDefId)
@@ -245,7 +245,8 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     // out-going edges, output the access predicates
     heap.possibleTargetVertices.flatMap(targetVertex => {
       val inEdges = heap.localVarEdges.filter(_.target == targetVertex)
-      targetVertex match {
+      if (inEdges.isEmpty) Set.empty[sil.Exp]
+      else targetVertex match {
         case DefiniteHeapVertex(_) =>
           // For definite vertices, only output permissions for one
           // of the in-coming edges

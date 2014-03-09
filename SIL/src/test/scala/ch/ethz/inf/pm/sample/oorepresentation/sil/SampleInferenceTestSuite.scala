@@ -25,11 +25,11 @@ class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
     val programExtender = ProgramExtender[ApronInterface.Default]()
     val extendedProgram = programExtender.extend(program, results)
 
-    assert(isWellFormed(extendedProgram),
-      "the extended program is not well-formed")
-
     println("Extended Program")
     println(extendedProgram)
+
+    assert(isWellFormed(extendedProgram),
+      "the extended program is not well-formed")
 
     super.verify(extendedProgram)
   }
