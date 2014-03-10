@@ -6,55 +6,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.BoolType
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 
-final case class PredicateInstanceState(name: String) extends Expression {
-  def transform(f: (Expression) => Expression) = this
-  def ids = Set.empty
-  def pp = DummyProgramPoint
-  def typ = BoolType
-}
-
-object PredicateInstanceState {
-  val Folded = PredicateInstanceState("folded")
-  val Unfolded = PredicateInstanceState("unfolded")
-}
-
-case class PredicateInstanceDomain(
-    value: Set[PredicateInstanceState] = Set.empty,
-    isTop: Boolean = true,
-    isBottom: Boolean = false)
-  extends InverseSetDomain[PredicateInstanceState, PredicateInstanceDomain]
-  with Lattice.Must[PredicateInstanceDomain] {
-
-  import PredicateInstanceState.{Folded, Unfolded}
-
-  require(value.isEmpty implies (isTop && !isBottom))
-  require(value.size == 1 implies (!isTop && !isBottom))
-  require(value.size == 2 implies (!isTop && isBottom))
-
-  def setFactory(
-      value: Set[PredicateInstanceState],
-      isTop: Boolean,
-      isBottom: Boolean) = {
-    var newValue = value
-    var newIsTop = isTop
-    var newIsBottom = isBottom
-
-    if (value.isEmpty && isBottom) {
-      newValue = Set(Folded, Unfolded)
-    } else if (!isBottom && !isTop) {
-      newIsTop = value.size == 0
-      newIsBottom = value.size == 2
-    }
-
-    PredicateInstanceDomain(value = newValue, isTop = newIsTop, isBottom = newIsBottom)
-  }
-
-  override def toString = {
-    // Do not put curly braces around the set
-    if (isTop || isBottom) super.toString
-    else value.mkString(", ")
-  }
-}
 
 case class PredicateInstancesDomain(
     map: Map[Identifier, PredicateInstanceDomain] = Map.empty,
@@ -123,4 +74,54 @@ case class PredicateInstancesDomain(
   def backwardAssign(oldPreState: PredicateInstancesDomain, variable: Identifier, expr: Expression) = ???
   def backwardAccess(field: Identifier) = ???
   def access(field: Identifier) = ???
+}
+
+case class PredicateInstanceDomain(
+    value: Set[PredicateInstanceState] = Set.empty,
+    isTop: Boolean = true,
+    isBottom: Boolean = false)
+  extends InverseSetDomain[PredicateInstanceState, PredicateInstanceDomain]
+  with Lattice.Must[PredicateInstanceDomain] {
+
+  import PredicateInstanceState.{Folded, Unfolded}
+
+  require(value.isEmpty implies (isTop && !isBottom))
+  require(value.size == 1 implies (!isTop && !isBottom))
+  require(value.size == 2 implies (!isTop && isBottom))
+
+  def setFactory(
+      value: Set[PredicateInstanceState],
+      isTop: Boolean,
+      isBottom: Boolean) = {
+    var newValue = value
+    var newIsTop = isTop
+    var newIsBottom = isBottom
+
+    if (value.isEmpty && isBottom) {
+      newValue = Set(Folded, Unfolded)
+    } else if (!isBottom && !isTop) {
+      newIsTop = value.size == 0
+      newIsBottom = value.size == 2
+    }
+
+    PredicateInstanceDomain(value = newValue, isTop = newIsTop, isBottom = newIsBottom)
+  }
+
+  override def toString = {
+    // Do not put curly braces around the set
+    if (isTop || isBottom) super.toString
+    else value.mkString(", ")
+  }
+}
+
+final case class PredicateInstanceState(name: String) extends Expression {
+  def transform(f: (Expression) => Expression) = this
+  def ids = Set.empty
+  def pp = DummyProgramPoint
+  def typ = BoolType
+}
+
+object PredicateInstanceState {
+  val Folded = PredicateInstanceState("folded")
+  val Unfolded = PredicateInstanceState("unfolded")
 }
