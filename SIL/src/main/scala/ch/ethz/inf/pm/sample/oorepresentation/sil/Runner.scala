@@ -175,6 +175,8 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
 
   type T = PredicateDrivenHeapState[S]
 
+  import PredicateInstanceState.Unfolded
+
   def analyze(method: MethodDeclaration): AnalysisResult[T] = {
     def defs(state: T) =
       state.generalValState.valueState.predicateState.definitions

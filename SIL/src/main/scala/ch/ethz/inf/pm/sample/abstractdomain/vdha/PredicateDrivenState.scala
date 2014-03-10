@@ -20,8 +20,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   // Shorthand for the self-type
   type T = PredicateDrivenHeapState[S]
 
+  import PredicateInstanceState.{Folded, Unfolded}
   import PredicateDrivenHeapState._
-  import PredicateInstancesDomain._
 
   def factory(
       abstractHeap: HeapGraph[EdgeStateDomain[S]],

@@ -1,30 +1,46 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.BoolType
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 
+final case class PredicateInstanceState(name: String) extends Expression {
+  def transform(f: (Expression) => Expression) = this
+  def ids = Set.empty
+  def pp = DummyProgramPoint
+  def typ = BoolType
+}
+
+object PredicateInstanceState {
+  val Folded = PredicateInstanceState("folded")
+  val Unfolded = PredicateInstanceState("unfolded")
+}
+
 case class PredicateInstanceDomain(
-    value: Set[Boolean] = Set.empty,
+    value: Set[PredicateInstanceState] = Set.empty,
     isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends InverseSetDomain[Boolean, PredicateInstanceDomain]
+  extends InverseSetDomain[PredicateInstanceState, PredicateInstanceDomain]
   with Lattice.Must[PredicateInstanceDomain] {
+
+  import PredicateInstanceState.{Folded, Unfolded}
 
   require(value.isEmpty implies (isTop && !isBottom))
   require(value.size == 1 implies (!isTop && !isBottom))
   require(value.size == 2 implies (!isTop && isBottom))
 
-  def setFactory(value: Set[Boolean], isTop: Boolean, isBottom: Boolean) = {
+  def setFactory(
+      value: Set[PredicateInstanceState],
+      isTop: Boolean,
+      isBottom: Boolean) = {
     var newValue = value
     var newIsTop = isTop
     var newIsBottom = isBottom
 
     if (value.isEmpty && isBottom) {
-      newValue = Set(true, false)
+      newValue = Set(Folded, Unfolded)
     } else if (!isBottom && !isTop) {
       newIsTop = value.size == 0
       newIsBottom = value.size == 2
@@ -34,8 +50,9 @@ case class PredicateInstanceDomain(
   }
 
   override def toString = {
+    // Do not put curly braces around the set
     if (isTop || isBottom) super.toString
-    else value.map(Map(true -> "folded", false -> "unfolded")).mkString(", ")
+    else value.mkString(", ")
   }
 }
 
@@ -46,6 +63,8 @@ case class PredicateInstancesDomain(
     defaultValue: PredicateInstanceDomain = PredicateInstanceDomain())
   extends BoxedDomain[PredicateInstanceDomain, PredicateInstancesDomain]
   with SemanticDomain[PredicateInstancesDomain] {
+
+  import PredicateInstanceState.{Folded, Unfolded}
 
   def get(key: Identifier) = map.getOrElse(key, defaultValue)
 
@@ -61,10 +80,10 @@ case class PredicateInstancesDomain(
   }
 
   private def isFolded(id: Identifier): Boolean =
-    get(id).value.contains(true)
+    get(id).value.contains(Folded)
 
   private def isUnfolded(id: Identifier): Boolean =
-    get(id).value.contains(false)
+    get(id).value.contains(Unfolded)
 
   def foldedIds: Set[VariableIdentifier] = {
     map.keySet.collect({
@@ -92,12 +111,8 @@ case class PredicateInstancesDomain(
     add(variable, defaultValue.top())
 
   def assign(variable: Identifier, expr: Expression) = expr match {
-    case (expr: Constant) => add(variable, defaultValue.setFactory(Set(constantToBool(expr))))
-  }
-
-  private def constantToBool(c: Constant): Boolean = c match {
-    case Constant("true", _, _) => true
-    case Constant("false", _, _) => false
+    case (expr: PredicateInstanceState) => add(variable,
+      defaultValue.setFactory(Set(expr), isTop = false))
   }
 
   def removeVariable(variable: Identifier) = remove(variable)
@@ -108,9 +123,4 @@ case class PredicateInstancesDomain(
   def backwardAssign(oldPreState: PredicateInstancesDomain, variable: Identifier, expr: Expression) = ???
   def backwardAccess(field: Identifier) = ???
   def access(field: Identifier) = ???
-}
-
-object PredicateInstancesDomain {
-  val Folded = Constant("true", PredType)
-  val Unfolded = Constant("false", PredType)
 }
