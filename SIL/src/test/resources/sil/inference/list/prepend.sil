@@ -1,0 +1,22 @@
+var val: Int
+var next: Ref
+
+/** Prepends a new element with a given value to the given list. */
+method prepend(this: Ref, val: Int) returns (newList: Ref) {
+    newList := new()
+    newList.val := val
+    newList.next := this
+}
+
+method testNull() {
+    var list: Ref
+    var newList: Ref
+    list := null
+
+    newList := prepend(list, 42)
+
+    assert acc(newList.val, write)
+    assert acc(newList.next, write)
+    assert newList.next == null
+    assert newList.val == 42
+}
