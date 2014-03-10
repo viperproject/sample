@@ -128,16 +128,16 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val fieldEdges = nonNullRecvVertices.flatMap(
             result.abstractHeap.outEdges(_, Some(field.name)))
 
-          val nestedPredIdOption = if (fieldEdges.exists(_.target != NullVertex)) {
+          if (fieldEdges.exists(_.target != NullVertex)) {
             val nestedPredId = PredicateDefinition.makeId()
             val nestedPredDef = PredicateDefinition().top()
             result = result.assignVariable(nestedPredId, nestedPredDef)
-
-            Some(nestedPredId)
-          } else None
-          recvPredDef = recvPredDef.addRefFieldPerm(field, nestedPredIdOption)
+            recvPredDef = recvPredDef.add(field, NestedPredDefDomain(Set(nestedPredId), isTop = false))
+          } else {
+            recvPredDef = recvPredDef.addPerm(field)
+          }
         } else {
-          recvPredDef = recvPredDef.addValFieldPerm(field)
+          recvPredDef = recvPredDef.addPerm(field)
         }
 
         // Assign the new predicate definition
@@ -147,7 +147,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       // Add folded nested predicate instances
       if (id.typ.isObject) {
         // TODO: Should add ALL nested predicate instances
-        val nestedPredIds = recvPredDef.refFieldPerms.get(field).value
+        val nestedPredIds = recvPredDef.get(field).value
 
         if (!nestedPredIds.isEmpty) {
           val nestedPredId = nestedPredIds.head.asInstanceOf[VariableIdentifier]
@@ -254,7 +254,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         } else {
           val recvPredId = recvEdge.state.predInsts.unfoldedIds.head
           val curRecvPredDef = recvEdge.state.predDefs.get(recvPredId)
-          val curNestedRecvPredIds = curRecvPredDef.refFieldPerms.get(field).value
+          val curNestedRecvPredIds = curRecvPredDef.get(field).value
 
           assert(nonNullOutEdges.size == 1, "assume that there is exactly one outgoing non-null edge")
 
@@ -263,7 +263,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
           if (curNestedRecvPredIds.isEmpty) {
             resultingCondHeap = resultingCondHeap.map(state => {
-              state.assign(recvPredId, curRecvPredDef.setRefFieldPerm(field, newNestedRecvPredIds))
+              state.assign(recvPredId, curRecvPredDef.add(field, NestedPredDefDomain().setFactory(newNestedRecvPredIds, isTop = newNestedRecvPredIds.isEmpty)))
             })
           } else {
             val repl = new Replacement()
@@ -300,7 +300,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         result.abstractHeap.outEdges(localVarVertex).foreach(recvEdge => {
           val unfoldedPredDef = recvEdge.state.predDefs.get(unfoldedPredId)
 
-          unfoldedPredDef.refFieldPerms.map.foreach({
+          unfoldedPredDef.map.foreach({
             case (field, nestedPredId) =>
               val nestedPredIds = nestedPredId.value.asInstanceOf[Set[VariableIdentifier]]
               val edgesThatNeedFoldedPredInst = result.abstractHeap.outEdges(recvEdge.target, Some(field.getName)).filter(_.target != NullVertex)
@@ -411,13 +411,13 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
               // Do it in both directions separately
               // TODO: Should probably always keep the predicate with the lower version
-              if (predDef11.refFieldPerms.map.values.exists(_.value.contains(predId))) {
+              if (predDef11.map.values.exists(_.value.contains(predId))) {
                 repl.value += (Set[Identifier](predId, otherPredId) -> Set(predId))
-              } else if (predDef00.refFieldPerms.map.values.exists(_.value.contains(otherPredId))) {
+              } else if (predDef00.map.values.exists(_.value.contains(otherPredId))) {
                 repl.value += (Set[Identifier](predId, otherPredId) -> Set(otherPredId))
-              } else if (predDef01.refFieldPerms.map.values.exists(_.value.contains(predId))) {
+              } else if (predDef01.map.values.exists(_.value.contains(predId))) {
                 repl.value += (Set[Identifier](predId, otherPredId) -> Set(otherPredId))
-              } else if (predDef10.refFieldPerms.map.values.exists(_.value.contains(otherPredId))) {
+              } else if (predDef10.map.values.exists(_.value.contains(otherPredId))) {
                 repl.value += (Set[Identifier](predId, otherPredId) -> Set(predId))
               } else {
                 println("Could not merge predicate definitions")

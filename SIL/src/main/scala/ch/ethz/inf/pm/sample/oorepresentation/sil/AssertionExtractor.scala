@@ -47,32 +47,29 @@ trait PredicateBuilder {
     else if (predDef.isBottom)
       sil.FalseLit()()
     else {
-      val valAccessPreds = predDef.valFieldPerms.value.map(buildFieldAccessPred)
-
-      val refAccessPreds = predDef.refFieldPerms.map.map({
+      val accessPreds = predDef.map.map({
         case (field, nestedPredDefIds) =>
-          val refFieldAccessPred = buildFieldAccessPred(field)
+          val fieldAccessPred = buildFieldAccessPred(field)
 
           assert(!nestedPredDefIds.isBottom,
             "set of nested predicate definitions must not be bottom")
 
           nestedPredDefIds.value.toList match {
             case nestedPredDefId :: Nil =>
-              val nonNullnessCond = sil.NeCmp(refFieldAccessPred.loc, sil.NullLit()())()
+              val nonNullnessCond = sil.NeCmp(fieldAccessPred.loc, sil.NullLit()())()
               val pred = predMap(nestedPredDefId)
               val predAccessPred = sil.PredicateAccessPredicate(
                 sil.PredicateAccess(Seq(buildFieldAccess(field)), pred)(), sil.FullPerm()())()
 
               val condPredAccessPred = sil.Implies(nonNullnessCond, predAccessPred)()
 
-              sil.And(refFieldAccessPred, condPredAccessPred)()
+              sil.And(fieldAccessPred, condPredAccessPred)()
             case Nil =>
-              refFieldAccessPred
+              fieldAccessPred
           }
       })
 
-      val preds = valAccessPreds.toList ++ refAccessPreds.toList
-      preds.reduceLeft[sil.Exp](sil.And(_, _)())
+      accessPreds.reduceLeft[sil.Exp](sil.And(_, _)())
     }
   }
 

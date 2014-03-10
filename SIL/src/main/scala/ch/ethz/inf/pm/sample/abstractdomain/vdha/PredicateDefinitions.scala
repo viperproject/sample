@@ -31,21 +31,11 @@ case class PredicateDefinitionsDomain(
   def setToTop(variable: Identifier) =
     add(variable, defaultValue.top())
 
-  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
-
-  def access(field: Identifier) = ???
-
   def assume(expr: Expression) = this
-
-  def setArgument(variable: Identifier, expr: Expression) = ???
 
   def assign(variable: Identifier, expr: Expression) = expr match {
     case (expr: PredicateDefinition) => add(variable, expr)
   }
-
-  def backwardAssign(oldPreState: PredicateDefinitionsDomain, variable: Identifier, expr: Expression) = ???
-
-  def backwardAccess(field: Identifier) = ???
 
   override def merge(r: Replacement): PredicateDefinitionsDomain = {
     if (r.isEmpty()) return this
@@ -64,15 +54,15 @@ case class PredicateDefinitionsDomain(
       var result = this
 
       result = result.copy(map = result.map.mapValues(predDef => {
-        predDef.copy(refFieldPerms = predDef.refFieldPerms.copy(
-          map = predDef.refFieldPerms.map.mapValues(nestedPredDefIds => {
+        predDef.copy(
+          map = predDef.map.mapValues(nestedPredDefIds => {
             var newValue = nestedPredDefIds.value -- fromSet
             if (newValue.size < nestedPredDefIds.value.size) {
               newValue = newValue ++ toSet
             }
             nestedPredDefIds.copy(value = newValue)
           })
-        ))
+        )
       }))
 
       val newDef = Lattice.bigLub(fromSet.map(result.map.apply))
@@ -85,70 +75,57 @@ case class PredicateDefinitionsDomain(
       result
     }
   }
+
+  def setArgument(variable: Identifier, expr: Expression) = ???
+  def backwardAssign(oldPreState: PredicateDefinitionsDomain, variable: Identifier, expr: Expression) = ???
+  def backwardAccess(field: Identifier) = ???
+  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
+  def access(field: Identifier) = ???
 }
 
-case class PredicateDefinition(
-    valFieldPerms: ValFieldPermDomain = ValFieldPermDomain().top(),
-    refFieldPerms: RefFieldPermDomain = RefFieldPermDomain().top())
-  extends CartesianProductDomain[
-    ValFieldPermDomain,
-    RefFieldPermDomain,
-    PredicateDefinition]
+final case class PredicateDefinition(
+    map: Map[Identifier, NestedPredDefDomain] = Map.empty[Identifier, NestedPredDefDomain],
+    isTop: Boolean = false,
+    override val isBottom: Boolean = false,
+    defaultValue: NestedPredDefDomain = NestedPredDefDomain().top())
+  extends FunctionalDomain[Identifier, NestedPredDefDomain, PredicateDefinition]
+  with Lattice.Must[PredicateDefinition]
   with Expression {
 
-  def factory(a: ValFieldPermDomain, b: RefFieldPermDomain) =
-    PredicateDefinition(a, b)
+  def get(key: Identifier) = map.getOrElse(key, defaultValue)
 
-  def _1 = valFieldPerms
+  def addPerm(field: Identifier): PredicateDefinition =
+    add(field, NestedPredDefDomain().top())
 
-  def _2 = refFieldPerms
-
-  def addValFieldPerm(field: Identifier): PredicateDefinition =
-    copy(valFieldPerms = valFieldPerms.add(field))
-
-  def addRefFieldPerm(field: Identifier, symbolicPredicateIdOption: Option[Identifier]) = {
-    // TODO: What should happen if there is already an ID?
-    var  newSymbolicPredicateIds = refFieldPerms.get(field)
-    if (symbolicPredicateIdOption.isDefined) {
-      newSymbolicPredicateIds = newSymbolicPredicateIds.add(symbolicPredicateIdOption.get)
-    }
-    copy(refFieldPerms = refFieldPerms.add(field, newSymbolicPredicateIds))
-  }
-
-  def setRefFieldPerm(field: Identifier, nestedPredDefIds: Set[Identifier]) = {
-    copy(refFieldPerms = refFieldPerms.add(field, NestedPredDefDomain(nestedPredDefIds, isTop = nestedPredDefIds.isEmpty)))
-  }
+  def functionalFactory(
+      value: Map[Identifier, NestedPredDefDomain],
+      isBottom: Boolean,
+      isTop: Boolean) =
+    PredicateDefinition(value, isTop, isBottom, defaultValue)
 
   def transform(f: (Expression) => Expression) = this
 
-  def ids = refFieldPerms.map.values.flatMap(_.value).toSet
+  def ids = map.values.flatMap(_.value).toSet
 
   def pp = DummyProgramPoint
 
   def typ = PredType
 
-  def isTop: Boolean =
-    valFieldPerms.isTop && refFieldPerms.isTop
-
-  def isBottom: Boolean =
-    valFieldPerms.isBottom || refFieldPerms.isBottom
-
   /** Returns true if there are no nested predicate instances */
   def isShallow: Boolean =
-    refFieldPerms.map.values.forall(_.value.isEmpty)
+    map.values.forall(_.value.isEmpty)
 
   /** Returns whether this definition contains permission to the given field. */
   def hasPerm(field: Identifier): Boolean =
-    if (field.typ.isObject) refFieldPerms.map.contains(field)
-    else valFieldPerms.value.contains(field)
+    map.contains(field)
 
   override def toString = {
     if (isBottom) "⊥"
     else if (isTop) "⊤"
-    else (valFieldPerms.value.toList ++ refFieldPerms.map.map({
+    else map.map({
       case (field, nestedPredDefIds) =>
         field + " → " + nestedPredDefIds
-    })).mkString(", ")
+    }).mkString(", ")
   }
 }
 
@@ -166,35 +143,6 @@ object PredicateDefinition {
     VariableIdentifier(Constants.GhostSymbolPrefix + "p" + id)(PredType)
   }
 }
-
-final case class ValFieldPermDomain(
-    value: Set[Identifier] = Set.empty[Identifier],
-    isTop: Boolean = true,
-    isBottom: Boolean = false)
-  extends InverseSetDomain[Identifier, ValFieldPermDomain]
-  with Lattice.Must[ValFieldPermDomain] {
-
-  def setFactory(value: Set[Identifier], isTop: Boolean, isBottom: Boolean) =
-    ValFieldPermDomain(value, isTop, isBottom)
-}
-
-final case class RefFieldPermDomain(
-    map: Map[Identifier, NestedPredDefDomain] = Map.empty[Identifier, NestedPredDefDomain],
-    isTop: Boolean = false,
-    override val isBottom: Boolean = false,
-    defaultValue: NestedPredDefDomain = NestedPredDefDomain().top())
-  extends FunctionalDomain[Identifier, NestedPredDefDomain, RefFieldPermDomain]
-  with Lattice.Must[RefFieldPermDomain] {
-
-  def get(key: Identifier) = map.getOrElse(key, defaultValue)
-
-  def functionalFactory(
-      value: Map[Identifier, NestedPredDefDomain],
-      isBottom: Boolean,
-      isTop: Boolean) =
-    RefFieldPermDomain(value, isTop, isBottom, defaultValue)
-}
-
 
 /** Basically an inverse 1-set domain with must semantics. */
 final case class NestedPredDefDomain(

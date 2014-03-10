@@ -44,9 +44,9 @@
 @PredicateInstancesDomain(i: vdha.PredicateInstancesDomain) = {
     <dl class="functional-domain">
         <dt>Folded</dt>
-        <dd>@i.foldedPredInstIds.mkString(", ")</dd>
+        <dd>@i.foldedIds.mkString(", ")</dd>
         <dt>Unfolded</dt>
-        <dd>@i.unfoldedPredInstIds.mkString(", ")</dd>
+        <dd>@i.unfoldedIds.mkString(", ")</dd>
     </dl>
     <div class="clearfix"></div>
 }
@@ -59,10 +59,7 @@
             @Bottom()
         } else {
             <ul class="symbolic-predicate-def">
-                @s.valFieldPerms.value.map { fieldName =>
-                <li>@fieldName</li>
-                }
-                @s.refFieldPerms.map.map { fieldNameAndId =>
+                @s.map.map { fieldNameAndId =>
                 <li>@fieldNameAndId._1 → @SetDomain(fieldNameAndId._2)</li>
                 }
             </ul>
