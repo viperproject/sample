@@ -69,18 +69,24 @@ object Vertex {
   }
 }
 
-case class LocalVariableVertex(name: String)(val typ: Type) extends Vertex {
-  def label = name
+case class LocalVariableVertex(variable: VariableIdentifier) extends Vertex {
+  def name = variable.name
 
-  override def toString = name
+  def label = variable.name
+
+  def typ = variable.typ
+
+  override def toString = variable.name
 
   def neededEdgeFieldsAndTypes = Set((None, typ))
 }
 
 object LocalVariableVertex {
-  /** Creates a new local variable vertex from a local variable. */
-  def apply(localVar: VariableIdentifier): LocalVariableVertex =
-    LocalVariableVertex(localVar.name)(localVar.typ)
+  /** Creates a local variable vertex from a name and type.
+    * This constructor is meant to help write more concise testing code.
+    */
+  def apply(name: String)(typ: Type): LocalVariableVertex =
+    LocalVariableVertex(VariableIdentifier(name)(typ))
 }
 
 object NullVertex extends Vertex {
