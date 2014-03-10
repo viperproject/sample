@@ -6,7 +6,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.BoolType
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 
-
 case class PredicateInstancesDomain(
     map: Map[Identifier, PredicateInstanceDomain] = Map.empty,
     isTop: Boolean = true,
@@ -18,6 +17,8 @@ case class PredicateInstancesDomain(
   import PredicateInstanceState.{Folded, Unfolded}
 
   def get(key: Identifier) = map.getOrElse(key, defaultValue)
+
+  override def glb(other: PredicateInstancesDomain) = lub(other)
 
   def functionalFactory(
       map: Map[Identifier, PredicateInstanceDomain],
@@ -55,8 +56,9 @@ case class PredicateInstancesDomain(
   def foldedAndUnfolded: Set[VariableIdentifier] =
     foldedIds ++ unfoldedIds
 
-  def createVariable(variable: Identifier, typ: Type) =
+  def createVariable(variable: Identifier, typ: Type) = {
     add(variable, defaultValue.top())
+  }
 
   def setToTop(variable: Identifier) =
     add(variable, defaultValue.top())
@@ -64,6 +66,33 @@ case class PredicateInstancesDomain(
   def assign(variable: Identifier, expr: Expression) = expr match {
     case (expr: PredicateInstanceState) => add(variable,
       defaultValue.setFactory(Set(expr), isTop = false))
+  }
+
+  override def merge(r: Replacement): PredicateInstancesDomain = {
+    if (r.isEmpty()) return this
+    var result = this
+    val removedVariables = r.keySet().flatten
+
+    // We remove the variables from the result state
+    for (v <- removedVariables)
+      result = result.remove(v)
+
+    for (s <- r.keySet()) {
+      val toSet = r.apply(s)
+      assert(toSet.size == 1)
+
+      val to = toSet.head
+
+      // Do not use Lattice.bigLub here.
+      // When we have the replacement {p0, p1} -> {p0}
+      // and the current state is {p0 -> folded, p1 -> unfolded}
+      // then the result should be {p0 -> bottom}, not {p0 -> top}.
+      val newStates = s.map(this.get).flatMap(_.value)
+
+      result = result.add(to, PredicateInstanceDomain().setFactory(newStates))
+    }
+
+    result
   }
 
   def removeVariable(variable: Identifier) = remove(variable)
@@ -80,14 +109,15 @@ case class PredicateInstanceDomain(
     value: Set[PredicateInstanceState] = Set.empty,
     isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends InverseSetDomain[PredicateInstanceState, PredicateInstanceDomain]
-  with Lattice.Must[PredicateInstanceDomain] {
+  extends InverseSetDomain[PredicateInstanceState, PredicateInstanceDomain] {
 
   import PredicateInstanceState.{Folded, Unfolded}
 
   require(value.isEmpty implies (isTop && !isBottom))
   require(value.size == 1 implies (!isTop && !isBottom))
   require(value.size == 2 implies (!isTop && isBottom))
+
+  override def glb(other: PredicateInstanceDomain) = lub(other)
 
   def setFactory(
       value: Set[PredicateInstanceState],

@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, SilCompiler}
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 
 case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     abstractHeap: HeapGraph[EdgeStateDomain[S]],
@@ -39,6 +40,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     if (variable.typ.isObject) {
+      // TODO: Get rid of this ugly hack
+      vdha.glbPreservingIdsStrategy = CustomGlbPreservingIdsStrategy
+
       PredicateDefinition.resetId()
 
       var result = super.createVariableForArgument(variable, typ)
@@ -92,10 +96,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val predDefs = generalValState.predDefs
 
     // Only find folded and unfolded IDs that exist on ALL edges
-    // TODO: It would be nice to use a lattice operation here
-    val foldedIds = nonNullRecvEdges.map(_.state.predInsts.foldedIds).reduceLeft(_ intersect _)
-    val unfoldedIds = nonNullRecvEdges.map(_.state.predInsts.unfoldedIds).reduceLeft(_ intersect _)
-
+    val recvState = Lattice.bigLub(nonNullRecvEdges.map(_.state))
+    val foldedIds = recvState.predInsts.foldedIds
+    val unfoldedIds = recvState.predInsts.unfoldedIds
     val foldedIdsWithPerm = foldedIds.filter(predDefs.get(_).hasPerm(field))
     val unfoldedIdsWithPerm = unfoldedIds.filter(predDefs.get(_).hasPerm(field))
     val foldedAndUnfoldedIds = foldedIds ++ unfoldedIds
@@ -162,10 +165,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               // permissions, it is impossible
               val newState = if (e.state.predInsts.foldedIds.contains(nestedPredId)) {
                 println("Impossible edge detected, removing it")
-                // Hack to set it to bottom
-                e.state.assign(edgeLocId, Unfolded).lub(e.state)
+                // TODO: Hack to set it to bottom
+                e.state.transformPredInsts(insts => {
+                  insts.add(edgeLocId, insts.get(edgeLocId).add(Unfolded))
+                })
               } else {
-                e.state.assign(edgeLocId, Folded).lub(e.state)
+                e.state.transformPredInsts(insts => {
+                  insts.add(edgeLocId, insts.get(edgeLocId).add(Folded))
+                })
               }
 
               newState
@@ -433,10 +440,18 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val edgeLocalRepl = new Replacement()
 
           for ((fromSet, toSet) <- repl.value) {
-            val newFromSet = fromSet.asInstanceOf[Set[VariableIdentifier]]map(predId => EdgeLocalIdentifier(List(edge.field), predId))
-            val newToSet = toSet.asInstanceOf[Set[VariableIdentifier]]map(predId => EdgeLocalIdentifier(List(edge.field), predId))
+            var newFromSet: Set[Identifier] = fromSet.asInstanceOf[Set[VariableIdentifier]]map(predId => EdgeLocalIdentifier(List(edge.field), predId))
+            val newToSet: Set[Identifier] = toSet.asInstanceOf[Set[VariableIdentifier]]map(predId => EdgeLocalIdentifier(List(edge.field), predId))
 
-            edgeLocalRepl.value += (newFromSet.toSet[Identifier] -> newToSet.toSet[Identifier])
+            // When we merge a predicate definition for which we have neither a
+            // folded nor unfolded label on the edge, it should not cause the the
+            // target predicate instance to be top
+            // TODO: It should not be necessary to do so
+            newFromSet = newFromSet.toSet[Identifier] intersect edge.state.ids
+
+            if (!newFromSet.isEmpty) {
+              edgeLocalRepl.value += (newFromSet -> newToSet)
+            }
           }
 
           newState = newState.merge(edgeLocalRepl)
@@ -526,6 +541,22 @@ object PredicateDrivenHeapState {
 
     def predDefs: PredicateDefinitionsDomain =
       state.valueState.predicateState.definitions
+
+    def transformPredState(f: PredicateDomain => PredicateDomain): EdgeStateDomain[S] = {
+      state.copy(
+        valueState = state.valueState.copy(
+          predicateState = f(state.valueState.predicateState)))
+    }
+
+    def transformPredInsts(f: PredicateInstancesDomain => PredicateInstancesDomain): EdgeStateDomain[S] =
+      transformPredState(predState => {
+        predState.copy(instances = f(predState.instances))
+      })
+
+    def transformPredDefs(f: PredicateDefinitionsDomain => PredicateDefinitionsDomain): EdgeStateDomain[S] =
+      transformPredState(predState => {
+        predState.copy(definitions = f(predState.definitions))
+      })
   }
 }
 
@@ -572,4 +603,40 @@ case class SemanticAndPredicateDomain[S <: SemanticDomain[S]](
 
   def _2canHandle(id: Identifier) =
     id.typ == PredType
+}
+
+/** When applying a condition without edge-local predicate instance
+  * state labels to an edge, the predicate instance states would be set to
+  * bottom, because the calls to createVariables initialize predicate states to top.
+  * Thus, set them to bottom here so we don't lose permissions.
+  */
+object CustomGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
+  import PredicateDrivenHeapState._
+
+  def apply[S <: SemanticDomain[S]](left: S, right: S): S = {
+    val newRightIds = left.edgeLocalAndAccessPathIds diff right.ids
+    val newLeftIds = right.edgeLocalAndAccessPathIds diff left.ids
+
+    var newLeft = left.createVariables(newLeftIds)
+    var newRight = right.createVariables(newRightIds)
+
+    // TODO: Very ugly casting
+    def setNewPredInstIdsToBottom[I <: SemanticDomain[I]](
+        state: EdgeStateDomain[I],
+        newIds: Set[Identifier]): EdgeStateDomain[I] = {
+      val newPredInstIds = newIds
+        .collect({ case id: EdgeLocalIdentifier => id })
+        .filter(_.typ == PredType)
+      state.transformPredInsts(insts => {
+        newPredInstIds.foldLeft(insts)(_.add(_, PredicateInstanceDomain().bottom()))
+      })
+    }
+
+    newLeft = setNewPredInstIdsToBottom(
+      newLeft.asInstanceOf[EdgeStateDomain[ApronInterface.Default]], newLeftIds).asInstanceOf[S]
+    newRight = setNewPredInstIdsToBottom(
+      newRight.asInstanceOf[EdgeStateDomain[ApronInterface.Default]], newRightIds).asInstanceOf[S]
+
+    newLeft.glb(newRight)
+  }
 }
