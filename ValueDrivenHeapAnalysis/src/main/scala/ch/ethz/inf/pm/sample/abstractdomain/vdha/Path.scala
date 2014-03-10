@@ -84,10 +84,9 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
       val edge = path.head
 
       // The current state does not contain any target edge-local identifiers
-      // of the new edge to be processed. Hence, we add them here so
+      // of the new edge to be processed. Hence, we add them so
       // they don't get lost when taking the greatest lower bound.
-      var newState: S = currentState.createVariables(edge.state.targetEdgeLocalIds)
-      newState = newState.glb(edge.state)
+      var newState: S = currentState.glbPreserveIds(edge.state)
 
       // Now, we need to rename source edge-local identifiers to the ones
       // that are target of this edge and remove any others.
