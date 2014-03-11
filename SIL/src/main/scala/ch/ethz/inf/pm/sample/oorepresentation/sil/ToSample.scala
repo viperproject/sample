@@ -254,48 +254,48 @@ object DefaultSilConverter extends SilConverter {
   def convert(pred: Predicate): Option[(sample.Identifier, sample.PredicateDefinition)] = {
     if (pred.formalArgs.map(_.typ) == Seq(sil.Ref)) {
       // Only support SIL predicates with a single reference parameter
-      val formalArg = pred.formalArgs.head.localVar
-      val nullLit = sil.NullLit()()
-
-      val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
-
-      var isSupported = true
-      val fieldsWithPerm = pred.body.reduceTree[Map[sample.Identifier, sample.NestedPredDefDomain]]({
-        case (sil.And, res) =>
-          res.flatMap(map => { map }).toMap
-        case (sil.FieldAccessPredicate(sil.FieldAccess(rcv, field), sil.FullPerm), res)
-          if formalArg == rcv =>
-          // Found a field access predicate for a field of the formal argument
-          Map(makeVariableIdentifier(field) -> sample.NestedPredDefDomain())
-        case (sil.Implies(
-          sil.NeCmp(leftCmp_, rightCmp_),
-          sil.PredicateAccessPredicate(sil.PredicateAccess(args, nestedPred), sil.FullPerm))) =>
-
-          // The null literal could be on both sides of the inequality: Sort
-          val (leftCmp, rightCmp) =
-            if (leftCmp_ == nullLit) (rightCmp_, leftCmp_)
-            else (leftCmp_, rightCmp_)
-
-          (leftCmp, rightCmp) match {
-            case (fa @ sil.FieldAccess(rcv, field), sil.NullLit)
-              if formalArg == rcv && args == Seq(fa) && nestedPred == pred =>
-                Map(makeVariableIdentifier(field) -> sample.NestedPredDefDomain().add(samplePredId))
-            case _ =>
-              isSupported = false
-              Map.empty
-          }
-        case _ =>
-          // If the predicate contains anything else, give up
-          isSupported = false
-          Map.empty
-      })
-
-      if (isSupported) {
-        val samplePredDef = sample.PredicateDefinition(fieldsWithPerm)
-        Some(samplePredId -> samplePredDef)
-      } else None
+      return None
     }
-    else None
+
+    val formalArg = pred.formalArgs.head.localVar
+    val nullLit = sil.NullLit()()
+    val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
+
+    val fieldsWithPerm = pred.body.reduceTree[Map[sample.Identifier, sample.NestedPredDefDomain]]({
+      case (sil.And(_, _), res) =>
+        // Combine the field permission maps from both conjuncts
+        res.flatMap(map => { map }).toMap
+      case (sil.FieldAccessPredicate(sil.FieldAccess(rcv, field), sil.FullPerm()), res)
+        if formalArg == rcv =>
+        // Found a field access predicate for a field of the formal argument
+        Map(makeVariableIdentifier(field) -> sample.NestedPredDefDomain())
+      case (sil.Implies(
+        sil.NeCmp(leftCmp_, rightCmp_),
+        sil.PredicateAccessPredicate(sil.PredicateAccess(args, nestedPred), sil.FullPerm())), res) =>
+
+        // The null literal could be on both sides of the inequality: Sort
+        val (leftCmp, rightCmp) =
+          if (leftCmp_ == nullLit) (rightCmp_, leftCmp_)
+          else (leftCmp_, rightCmp_)
+
+        (leftCmp, rightCmp) match {
+          case (fa @ sil.FieldAccess(rcv, field), sil.NullLit())
+            if formalArg == rcv && args == Seq(fa) && nestedPred == pred =>
+              // Found a recursive predicate access predicate for a field
+              // of the formal argument
+              Map(makeVariableIdentifier(field) -> sample.NestedPredDefDomain().add(samplePredId))
+          case _ =>
+            // The conditional predicate access predicate does not have
+            // a supported shape, give up
+            return None
+        }
+      case _ =>
+        // Give up if the predicate contains anything else
+        return None
+    })
+
+    val samplePredDef = sample.PredicateDefinition(fieldsWithPerm)
+    Some(samplePredId -> samplePredDef)
   }
 
   /**
