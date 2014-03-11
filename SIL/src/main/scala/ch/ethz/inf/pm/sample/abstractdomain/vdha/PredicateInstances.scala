@@ -149,6 +149,8 @@ final case class PredicateInstanceState(name: String) extends Expression {
   def ids = Set.empty
   def pp = DummyProgramPoint
   def typ = BoolType
+
+  override def toString = name
 }
 
 object PredicateInstanceState {
