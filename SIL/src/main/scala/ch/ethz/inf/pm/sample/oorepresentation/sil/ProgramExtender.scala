@@ -1,10 +1,17 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import semper.sil.{ast => sil}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.{UnfoldGhostOp, GhostOpHook, CondHeapGraph, PredicateDrivenHeapState}
+import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.execution.AbstractCFGState
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
+import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
+import ch.ethz.inf.pm.sample.oorepresentation.sil.WrappedProgramPoint
+import scala.Some
+import ch.ethz.inf.pm.sample.oorepresentation.sil.PredicateRegistryBuilder
+import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
+import ch.ethz.inf.pm.sample.oorepresentation.sil.AssertionExtractor
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOp
 
 case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
@@ -77,6 +84,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     // Assumes that there is a bijection between SIL positions and
     // Sample CFG statements
     var unfoldMap: Map[sil.Position, Seq[UnfoldGhostOp]] = Map.empty
+    var foldMap: Map[sil.Position, Seq[FoldGhostOp]] = Map.empty
 
     for ((block, blockIdx) <- cfgState.cfg.nodes.zipWithIndex) {
       for ((stmt, stmtIdx) <- block.zipWithIndex) {
@@ -92,6 +100,28 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
         }
 
         unfoldMap += pos -> hook.unfolds
+      }
+
+      if (!block.isEmpty) {
+        // TODO: Can currently only detect folds at the end of
+        // non-empty blocks, but that is fine, right?
+        val lastStmt = block.last
+        val lastStmtIdx = block.size - 1
+        val cfgPosition = CFGPosition(blockIdx, lastStmtIdx)
+        val postState = cfgState.postStateAt(cfgPosition)
+        val hook = new CollectingGhostOpHook
+        val postStateWithHook = postState.setGhostOpHook(hook)
+
+        // TODO: Currently does not work because predicates
+        // may be renamed when heaps are joined. The fold statement
+        // should use the new name of the predicate after the merge
+        postStateWithHook.tryToFoldAllLocalVars()
+
+        val pos = lastStmt.getPC() match {
+          case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
+        }
+
+        foldMap += pos -> hook.folds
       }
     }
 
@@ -122,7 +152,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
         w.copy(invs = w.invs ++ extractor.assertionTree.simplify.toExps)(w.pos, w.info)
       case s: sil.Stmt =>
         // Add unfold statements in front of this statement if necessary
-        unfoldMap.get(s.pos) match {
+        val newS = unfoldMap.get(s.pos) match {
           case Some(sampleUnfolds) =>
             val unfoldStmts = sampleUnfolds.flatMap(unfold => {
               predRegistry.predAccessPred(unfold.variable, unfold.predicateId) match {
@@ -135,6 +165,21 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
             sil.Seqn(unfoldStmts :+ s)(s.pos)
           case None => s
         }
+
+        // Add fold statement after this statement if necessary
+        foldMap.get(newS.pos) match {
+          case Some(sampleFold) =>
+            val foldStmts = sampleFold.flatMap(fold => {
+              predRegistry.predAccessPred(fold.variable, fold.predicateId) match {
+                case Some(predAccessPred) =>
+                  Some(sil.Fold(predAccessPred)(newS.pos))
+                case None => None
+              }
+            })
+
+            sil.Seqn(newS +: foldStmts)(newS.pos)
+          case None => newS
+        }
     })
 
     val existingPredNames = program.predicates.map(_.name).toSet
@@ -146,10 +191,16 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
 
 class CollectingGhostOpHook extends GhostOpHook {
   private[this] var _unfolds: Seq[UnfoldGhostOp] = Seq.empty
+  private[this] var _folds: Seq[FoldGhostOp] = Seq.empty
 
   def unfolds = _unfolds
+  def folds = _folds
 
   def onUnfold(unfold: UnfoldGhostOp) = {
     _unfolds = _unfolds :+ unfold
+  }
+
+  def onFold(fold: FoldGhostOp) = {
+    _folds = _folds :+ fold
   }
 }

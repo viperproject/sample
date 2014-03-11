@@ -377,6 +377,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
         if (canFold) {
           result = result.copy(abstractHeap = candidateAbstractHeap)
+
+          // Let subscribers know about the fold operation
+          val fold = FoldGhostOp(localVarVertex.variable, unfoldedPredId)
+          ghostOpHook.onFold(fold)
         } else {
           println("cannot fold")
         }
@@ -669,11 +673,13 @@ object CustomGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
   */
 trait GhostOpHook {
   def onUnfold(unfold: UnfoldGhostOp)
+  def onFold(fold: FoldGhostOp)
 }
 
 /** Does nothing when a ghost operation is performed. */
 object DummyGhostOpHook extends GhostOpHook {
   def onUnfold(unfold: UnfoldGhostOp) = {}
+  def onFold(fold: FoldGhostOp) = {}
 }
 
 /** Represents a ghost operation performed by the `PredicateDrivenHeapState` */
@@ -682,6 +688,13 @@ trait GhostOp {
 
 /** Represents an unfold performed by the `PredicateDrivenHeapState` */
 final case class UnfoldGhostOp(
+    variable: Identifier,
+    predicateId: Identifier)
+  extends GhostOp {
+}
+
+/** Represents a fold performed by the `PredicateDrivenHeapState` */
+final case class FoldGhostOp(
     variable: Identifier,
     predicateId: Identifier)
   extends GhostOp {
