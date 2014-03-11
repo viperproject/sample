@@ -45,6 +45,9 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
 
     // Experimental
     PredicateDefinition.resetId()
+    
+    // TODO: Get rid of this ugly hack
+    vdha.glbPreservingIdsStrategy = CustomGlbPreservingIdsStrategy
 
     // Analyze
     methodsToAnalyze(compiler).map(analysis.analyze)

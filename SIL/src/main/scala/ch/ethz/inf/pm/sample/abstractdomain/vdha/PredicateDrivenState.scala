@@ -47,9 +47,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     if (variable.typ.isObject) {
-      // TODO: Get rid of this ugly hack
-      vdha.glbPreservingIdsStrategy = CustomGlbPreservingIdsStrategy
-
       PredicateDefinition.resetId()
 
       var result = super.createVariableForArgument(variable, typ)
