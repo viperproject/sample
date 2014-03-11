@@ -251,6 +251,9 @@ object DefaultSilConverter extends SilConverter {
          sil.ExplicitSet(_) => ???
   }
 
+  /** Translates a SIL predicate to a Sample predicate.
+    * @todo also support non-recursive nested predicate instances
+    */
   def convert(pred: Predicate): Option[(sample.Identifier, sample.PredicateDefinition)] = {
     if (pred.formalArgs.map(_.typ) == Seq(sil.Ref)) {
       // Only support SIL predicates with a single reference parameter
@@ -261,14 +264,14 @@ object DefaultSilConverter extends SilConverter {
     val nullLit = sil.NullLit()()
     val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
 
-    val fieldsWithPerm = pred.body.reduceTree[Map[sample.Identifier, sample.NestedPredDefDomain]]({
+    val fieldsWithPerm = pred.body.reduceTree[Map[sample.Identifier, Set[sample.Identifier]]]({
       case (sil.And(_, _), res) =>
         // Combine the field permission maps from both conjuncts
         res.flatMap(map => { map }).toMap
       case (sil.FieldAccessPredicate(sil.FieldAccess(rcv, field), sil.FullPerm()), res)
         if formalArg == rcv =>
         // Found a field access predicate for a field of the formal argument
-        Map(makeVariableIdentifier(field) -> sample.NestedPredDefDomain())
+        Map(makeVariableIdentifier(field) -> Set.empty)
       case (sil.Implies(
         sil.NeCmp(leftCmp_, rightCmp_),
         sil.PredicateAccessPredicate(sil.PredicateAccess(args, nestedPred), sil.FullPerm())), res) =>
@@ -283,7 +286,7 @@ object DefaultSilConverter extends SilConverter {
             if formalArg == rcv && args == Seq(fa) && nestedPred == pred =>
               // Found a recursive predicate access predicate for a field
               // of the formal argument
-              Map(makeVariableIdentifier(field) -> sample.NestedPredDefDomain().add(samplePredId))
+              Map(makeVariableIdentifier(field) -> Set(samplePredId))
           case _ =>
             // The conditional predicate access predicate does not have
             // a supported shape, give up
@@ -294,7 +297,9 @@ object DefaultSilConverter extends SilConverter {
         return None
     })
 
-    val samplePredDef = sample.PredicateDefinition(fieldsWithPerm)
+    val samplePredDef = sample.PredicateDefinition().functionalFactory(
+      fieldsWithPerm.mapValues(predIds =>
+        sample.NestedPredDefDomain().setFactory(predIds)))
     Some(samplePredId -> samplePredDef)
   }
 
