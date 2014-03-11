@@ -37,6 +37,21 @@ case class PredicateDefinitionsDomain(
     case (expr: PredicateDefinition) => add(variable, expr)
   }
 
+  /** Finds a predicate that is structurally equal to the given predicate,
+    * which consists of an identifier as well as its body.
+    *
+    * @todo support nested predicate instances that are not directly recursive
+    */
+  def findEqual(needleId: Identifier, needleDef: PredicateDefinition): Option[Identifier] = {
+    for ((predId, predDef) <- map) {
+      val renamedPredDef = predDef.rename(predId, needleId)
+      if (renamedPredDef == needleDef) {
+        return Some(predId)
+      }
+    }
+    None
+  }
+
   override def merge(r: Replacement): PredicateDefinitionsDomain = {
     if (r.isEmpty()) return this
 
@@ -118,6 +133,19 @@ final case class PredicateDefinition(
   /** Returns whether this definition contains permission to the given field. */
   def hasPerm(field: Identifier): Boolean =
     map.contains(field)
+
+  /** Replaces all occurrences of a given predicate ID
+    * with a given other predicate ID.
+    */
+  def rename(from: Identifier, to: Identifier): PredicateDefinition = {
+    copy(map = map.mapValues(nestedPredIds => {
+      if (nestedPredIds.value.contains(from)) {
+        nestedPredIds.remove(from).add(to)
+      } else {
+        nestedPredIds
+      }
+    }))
+  }
 
   override def toString = {
     if (isBottom) "⊥"

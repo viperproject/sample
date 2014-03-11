@@ -10,6 +10,8 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
   type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
 
+  import PredicateDrivenHeapState._
+
   def extend(p: sil.Program, results: List[AnalysisResult[T]]): sil.Program = {
     val methodNameToCfgState = results.map(result =>
       result.method.name.toString -> result.cfgState).toMap
@@ -17,7 +19,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     // Only extend methods for which there is an analysis result
     var (newMethods, newPredicates) = p.methods.map(m => {
       methodNameToCfgState.get(m.name) match {
-        case Some(cfgState) => extendMethod(m, cfgState)
+        case Some(cfgState) => extendMethod(p, m, cfgState)
         case None => (m, Seq())
       }
     }).unzip
@@ -34,7 +36,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
       predicates = p.predicates ++ newPredicates.flatten)(p.pos, p.info)
   }
 
-  def extendMethod(method: sil.Method, cfgState: AbstractCFGState[T]): (sil.Method, Seq[sil.Predicate]) = {
+  def extendMethod(program: sil.Program, method: sil.Method, cfgState: AbstractCFGState[T]): (sil.Method, Seq[sil.Predicate]) = {
     var entryState = cfgState.entryState()
     var exitState = cfgState.exitState().tryToFoldAllLocalVars()
 
@@ -62,8 +64,13 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
       )
     }).join
 
-    val entryExtractor = AssertionExtractor[S](entryCondHeapGraph)
-    val exitExtractor = AssertionExtractor[S](exitState.toCondHeapGraph)
+    val predRegistry = PredicateRegistryBuilder().build(
+      extractedPreds = exitState.generalValState.predDefs,
+      existingSilPreds = program.predicates
+    )
+
+    val entryExtractor = AssertionExtractor[S](entryCondHeapGraph, predRegistry)
+    val exitExtractor = AssertionExtractor[S](exitState.toCondHeapGraph, predRegistry)
 
     // Detect unfold operations by hooking into the forward interpretation
     // of every statement in the CFG
@@ -110,7 +117,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
 
         val cfgPosition = cfgPositions.head
         val state = cfgState.postStateAt(cfgPosition)
-        val extractor = AssertionExtractor[S](state.toCondHeapGraph)
+        val extractor = AssertionExtractor[S](state.toCondHeapGraph, predRegistry)
 
         w.copy(invs = w.invs ++ extractor.assertionTree.simplify.toExps)(w.pos, w.info)
       case s: sil.Stmt =>
@@ -118,10 +125,10 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
         unfoldMap.get(s.pos) match {
           case Some(sampleUnfolds) =>
             val unfoldStmts = sampleUnfolds.flatMap(sampleUnfold => {
-              val samplePred = exitExtractor.samplePredDefs.get(sampleUnfold.predicateId)
+              val samplePred = exitState.generalValState.predDefs.get(sampleUnfold.predicateId)
 
               if (!samplePred.isShallow) {
-                val pred = exitExtractor.predicateRegistry(sampleUnfold.predicateId)
+                val pred = exitExtractor.predRegistry(sampleUnfold.predicateId)
                 val localVar = DefaultSampleConverter.convert(sampleUnfold.variable)
                 val predAccessPred = sil.PredicateAccessPredicate(
                   sil.PredicateAccess(Seq(localVar), pred)(s.pos), sil.FullPerm()(s.pos))(s.pos)
@@ -136,9 +143,13 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
         }
     })
 
-    val predicates = exitExtractor.predicates
+    val existingPredNames = program.predicates.map(_.name).toSet
+    val newPredicates = predRegistry.map.flatMap({
+      case (predId, pred) if !existingPredNames.contains(pred.name) => Some(pred)
+      case _ => None
+    })
 
-    (newMethod, predicates)
+    (newMethod, newPredicates.toSeq)
   }
 }
 
