@@ -113,17 +113,16 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     }
 
     if (unfoldedIdsWithPerm.isEmpty) {
-      val (recvPredId, hasPerm) = foldedIdsWithPerm.toList match {
-        case foldedId :: Nil => (foldedId, true)
-        case Nil => (foldedAndUnfoldedIds.head, false)
+      val (recvPredId, wasFolded, hasPerm) = foldedIdsWithPerm.toList match {
+        case foldedId :: Nil => (foldedId, true, true)
+        case Nil => {
+          if (!unfoldedIds.isEmpty) (unfoldedIds.head, false, false)
+          else (foldedIds.head, true, false)
+        }
         case _ => sys.error("there can only be one folded predicate with permission")
       }
 
       var recvPredDef = predDefs.get(recvPredId)
-
-      // Let subscribers of ghost operations know about the unfold
-      val unfold = UnfoldGhostOp(localVarVertex.variable, recvPredId)
-      ghostOpHook.onUnfold(unfold)
 
       // Unfold
       result = result.mapEdges(e => {
@@ -132,6 +131,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           e.state.assign(edgeLocalId, Unfolded)
         } else e.state
       })
+
+      if (wasFolded) {
+        // Let subscribers of ghost operations know about the unfold
+        val unfold = UnfoldGhostOp(localVarVertex.variable, recvPredId)
+        ghostOpHook.onUnfold(unfold)
+      }
 
       // Add permission if necessary
       if (!hasPerm) {
@@ -622,30 +627,40 @@ object CustomGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
   import PredicateDrivenHeapState._
 
   def apply[S <: SemanticDomain[S]](left: S, right: S): S = {
-    val newRightIds = left.edgeLocalAndAccessPathIds diff right.ids
-    val newLeftIds = right.edgeLocalAndAccessPathIds diff left.ids
+    // Create all non-predicate instance variables that are missing
+    val newRightIds = (left.edgeLocalAndAccessPathIds diff right.ids).filterNot(_.typ == PredType)
+    val newLeftIds = (right.edgeLocalAndAccessPathIds diff left.ids).filterNot(_.typ == PredType)
+
+    // Problem: Just creating all missing predicate instance variables
+    // and setting them to bottom does not work, because the resulting
+    // predicate instances domain as a whole will be bottom as a result.
 
     var newLeft = left.createVariables(newLeftIds)
     var newRight = right.createVariables(newRightIds)
 
-    // TODO: Very ugly casting
-    def setNewPredInstIdsToBottom[I <: SemanticDomain[I]](
+    // Temporarily set the default value of instance types to bottom
+    // so we don't lose permission when applying a condition to an edge
+    def setDefaultValue[I <: SemanticDomain[I]](
         state: EdgeStateDomain[I],
-        newIds: Set[Identifier]): EdgeStateDomain[I] = {
-      val newPredInstIds = newIds
-        .collect({ case id: EdgeLocalIdentifier => id })
-        .filter(_.typ == PredType)
+        defaultValue: PredicateInstanceDomain): EdgeStateDomain[I] = {
       state.transformPredInsts(insts => {
-        newPredInstIds.foldLeft(insts)(_.add(_, PredicateInstanceDomain().bottom()))
+        // Also call functionalFactory so it ensures that isTop is not true anymore
+        insts.copy(defaultValue = defaultValue).functionalFactory(insts.map, insts.isBottom, insts.isTop)
       })
     }
 
-    newLeft = setNewPredInstIdsToBottom(
-      newLeft.asInstanceOf[EdgeStateDomain[ApronInterface.Default]], newLeftIds).asInstanceOf[S]
-    newRight = setNewPredInstIdsToBottom(
-      newRight.asInstanceOf[EdgeStateDomain[ApronInterface.Default]], newRightIds).asInstanceOf[S]
+    newLeft = setDefaultValue(newLeft.asInstanceOf[EdgeStateDomain[ApronInterface.Default]],
+      PredicateInstanceDomain().bottom()).asInstanceOf[S]
+    newRight = setDefaultValue(newRight.asInstanceOf[EdgeStateDomain[ApronInterface.Default]],
+      PredicateInstanceDomain().bottom()).asInstanceOf[S]
 
-    newLeft.glb(newRight)
+    val result = newLeft.glb(newRight)
+
+    // Det the default value back to top.
+    val newResult = setDefaultValue(result.asInstanceOf[EdgeStateDomain[ApronInterface.Default]],
+      PredicateInstanceDomain().top()).asInstanceOf[S]
+
+    newResult
   }
 }
 

@@ -24,11 +24,20 @@ case class PredicateInstancesDomain(
       map: Map[Identifier, PredicateInstanceDomain],
       isBottom: Boolean,
       isTop: Boolean) = {
+    var newIsTop = isTop
     var newIsBottom = isBottom
     if (map.exists(_._2 == defaultValue.bottom())) {
       newIsBottom = true
     }
-    PredicateInstancesDomain(map, isBottom = newIsBottom, isTop = isTop)
+    // Problem: For GLB-preserving joins, we set the default value
+    // of the partners temporarily to bottom to prevent losing permission
+    // However, isTop may still be true, in which case glb(...) would take
+    // a shortcut that would cause us to lose the permission.
+    // TODO: This is extremly fragile and complicated
+    if (defaultValue.isBottom) {
+      newIsTop = false
+    }
+    PredicateInstancesDomain(map, isBottom = newIsBottom, isTop = newIsTop, defaultValue = defaultValue)
   }
 
   private def isFolded(id: Identifier): Boolean =
