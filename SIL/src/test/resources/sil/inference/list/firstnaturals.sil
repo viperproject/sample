@@ -1,16 +1,17 @@
 var val: Int
 var next: Ref
 
+/** Returns a linked list of the first n natural numbers. */
 method firstNaturals(n: Int)
     returns (first: Ref)
-    requires (n >= 0)
+    requires (n > 0)
 {
     var p: Ref
     var i: Int
     first := null
     p := null
     i := n
-    while (i >= 0) {
+    while (i > 0) {
         p := new()
         p.val := i
         p.next := first
@@ -18,4 +19,19 @@ method firstNaturals(n: Int)
         p := null
         i := i - 1
     }
+}
+
+/** Calls the method `firstNaturals` and asserts that its postcondition
+  * is strong enough.
+  */
+method test() {
+    var list: Ref
+    list := firstNaturals(6)
+
+    assert acc(valid(list), write)
+}
+
+/** Predicate that the specification inference should detect and reuse. */
+predicate valid(this: Ref) {
+  acc(this.next, write) && ((this.next != null) ==> acc(valid(this.next), write))
 }
