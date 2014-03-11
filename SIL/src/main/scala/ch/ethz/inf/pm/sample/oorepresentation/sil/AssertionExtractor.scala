@@ -150,8 +150,10 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       predicateMap.values.toSeq
   }
 
+  def samplePredDefs = condHeapGraph.cond.predDefs
+
   def predicateMap: Map[Identifier, sil.Predicate] =
-    DefaultPredicateBuilder().build(condHeapGraph.cond.predDefs)
+    DefaultPredicateBuilder().build(samplePredDefs)
 
   def assertion: sil.Exp = assertionTree.toExp
 
@@ -160,16 +162,28 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       case Some(ambigLocalVarVertex) =>
         val ambigEdges = heap.outEdges(ambigLocalVarVertex)
         val suffConds = sufficientConditions(ambigEdges)
-        val accPathId = AccessPathIdentifier(List(ambigLocalVarVertex.name))(refType)
-        val condHeaps = condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps
-        val children = condHeaps.map(condSubHeap => {
-          val edge = condSubHeap.takenPath(accPathId.path).edges.head
-          val suffCond = suffConds(edge)
-          val subExtractor = copy(condHeapGraph = condSubHeap)
 
-          suffCond -> subExtractor.assertionTree
-        }).toMap
-        AssertionTree(children = children)
+        if (suffConds.isEmpty) {
+          // It was not possible to find a sufficient condition
+          // Remove the variable so we don't accidentally talk about
+          // it in the extracted assertion
+          // TODO: Find a less drastic way
+          val prunedCondHeap = condHeapGraph.copy(heap = heap.removeVertices(Set(ambigLocalVarVertex)))
+          // TODO: Should also remove the corresponding value heap identifier
+          val subExtractor = copy(condHeapGraph = prunedCondHeap)
+          subExtractor.assertionTree
+        } else {
+          val accPathId = AccessPathIdentifier(List(ambigLocalVarVertex.name))(refType)
+          val condHeaps = condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps
+          val children = condHeaps.map(condSubHeap => {
+            val edge = condSubHeap.takenPath(accPathId.path).edges.head
+            val suffCond = suffConds(edge)
+            val subExtractor = copy(condHeapGraph = condSubHeap)
+
+            suffCond -> subExtractor.assertionTree
+          }).toMap
+          AssertionTree(children = children)
+        }
       case None =>
         val valAssertions = buildValueAssertions()
         val refEqualities = buildReferenceEqualities()
@@ -184,25 +198,43 @@ case class AssertionExtractor[S <: ApronInterface[S]](
   private def buildValueAssertions(): Set[sil.Exp] = {
     var cond = condHeapGraph.cond.valueState.valueState
 
-    // Rename value heap identifiers to access path identifiers,
-    // e.g. n0.val --> this.val
-    heap.localVarEdges.groupBy(_.target).foreach({
-      case (target: DefiniteHeapVertex, localVarEdges) =>
-        val localVarNames = localVarEdges.map(_.source.name)
-        for (valueHeapId: ValueHeapIdentifier <- target.valueHeapIds) {
-          val field = valueHeapId.field
-          val accPathIds = localVarNames.map(localVarName =>
-            AccessPathIdentifier(List(localVarName), field))
-          val replacement = new Replacement()
-          replacement.value += Set[Identifier](valueHeapId) -> accPathIds.toSet
-          cond = cond.merge(replacement)
-        }
-      case (target: SummaryHeapVertex, localVarEdges) =>
-        cond = cond.removeVariables(target.valueHeapIds)
-      case _ =>
-    })
+    require(heap.localVarEdges.groupBy(_.source).forall(_._2.size == 1),
+      "at this point, we assume that each local variable has a single out-going edge")
 
-    // Only keep variable identifiers in the state
+    // We extract the value assertions only from the general value state.
+    // At this point, the states of all local variable edges should
+    // be applied to the general value state anyway.
+
+    // We only extract value field assertions for cases where we have a
+    // folded, shallow predicate definition on the edge of the local variable
+    // In such cases, introduce an alias such as 'this.val' for a value
+    // heap identifier such as 'n0.val'.
+
+    val repl = new Replacement()
+    for (edge <- heap.localVarEdges.filter(_.target.isInstanceOf[HeapVertex])) {
+      val target = edge.target.asInstanceOf[HeapVertex]
+      val localVarName = edge.source.name
+
+      for (predId <- edge.state.predInsts.foldedIds) {
+        val predDef = edge.state.predDefs.get(predId)
+
+        if (hideShallowPredicates && predDef.isShallow) {
+          val fieldsWithPerm = predDef.map.keySet
+
+          for (field <- fieldsWithPerm) {
+            val valHeapId = ValueHeapIdentifier(target, field)
+            val accPathId = AccessPathIdentifier(List(localVarName), field)
+            repl.value += Set[Identifier](valHeapId) -> Set[Identifier](accPathId)
+          }
+        }
+      }
+    }
+
+    cond = cond.merge(repl)
+
+    // Now remove all value heap ids
+    cond = cond.removeVariables(cond.valueHeapIds)
+
     val sampleExps = ApronInterfaceTranslator.translate(cond)
     val exps = sampleExps.map(DefaultSampleConverter.convert)
     exps
@@ -261,21 +293,21 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
     val localVarVertex = edge.source.asInstanceOf[LocalVariableVertex]
     val foldedPredInstIds = edge.state.predInsts.foldedIds
-    foldedPredInstIds.flatMap(predId => {
-      if (hideShallowPredicates) {
-        // val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
-        // val pred = predicateMap(predInstId.toPredDefId)
-        // val predAccess = sil.PredicateAccess(Seq(localVar), pred)()
-        // Set(sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())().asInstanceOf[sil.Exp])
 
-        // Exploit PredicateBuilder to directly use the body of the predicate
+    foldedPredInstIds.flatMap(predId => {
+      val predDef = edge.state.predDefs.get(predId)
+
+      if (hideShallowPredicates && predDef.isShallow) {
+        // Directly output the body of the shallow predicate
         val customPredBuilder = DefaultPredicateBuilder(
           formalArgName = localVarVertex.name)
         val customPredMap = customPredBuilder.build(edge.state.predDefs)
         Set(customPredMap(predId).body)
       } else {
-        println("currently cannot handle")
-        Set.empty[sil.Exp]
+        val pred = predicateMap(predId)
+        val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
+        val predAccess = sil.PredicateAccess(Seq(localVar), pred)()
+        Set[sil.Exp](sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())())
       }
     })
   }
@@ -291,10 +323,16 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       "the edges do not have the same source vertex")
     require(ambigEdges.map(_.target).toSet.size == ambigEdges.size,
       "the edge targets are not unique")
-    require(ambigEdges.size == 2,
-      "at the moment, only two ambiguous edges are supported")
-    require(ambigEdges.exists(_.target == NullVertex),
-      "at the moment, one of the targets needs to be null")
+
+    if (ambigEdges.size != 2) {
+      println("at the moment, only two ambiguous edges are supported")
+      return Map.empty
+    }
+
+    if (ambigEdges.forall(_.target != NullVertex)) {
+      println("at the moment, one of the targets needs to be null")
+      return Map.empty
+    }
 
     // TODO: Refactor
     var List(e1, e2) = ambigEdges.toList

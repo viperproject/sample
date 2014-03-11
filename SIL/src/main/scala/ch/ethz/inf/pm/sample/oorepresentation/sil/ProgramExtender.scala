@@ -1,10 +1,11 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import semper.sil.{ast => sil}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.{CondHeapGraph, PredicateDrivenHeapState}
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.{UnfoldGhostOp, GhostOpHook, CondHeapGraph, PredicateDrivenHeapState}
 import ch.ethz.inf.pm.sample.execution.AbstractCFGState
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
+import ch.ethz.inf.pm.sample.abstractdomain.Identifier
 
 case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
@@ -65,6 +66,29 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     val entryExtractor = AssertionExtractor[S](entryCondHeapGraph)
     val exitExtractor = AssertionExtractor[S](exitState.toCondHeapGraph)
 
+    // Detect unfold operations by hooking into the forward interpretation
+    // of every statement in the CFG
+    // Assumes that there is a bijection between SIL positions and
+    // Sample CFG statements
+    var unfoldMap: Map[sil.Position, Seq[UnfoldGhostOp]] = Map.empty
+
+    for ((block, blockIdx) <- cfgState.cfg.nodes.zipWithIndex) {
+      for ((stmt, stmtIdx) <- block.zipWithIndex) {
+        val cfgPosition = CFGPosition(blockIdx, stmtIdx)
+        val preState = cfgState.preStateAt(cfgPosition)
+        val hook = new CollectingGhostOpHook
+        val preStateWithHook = preState.setGhostOpHook(hook)
+
+        stmt.forwardSemantics(preStateWithHook)
+
+        val pos = stmt.getPC() match {
+          case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
+        }
+
+        unfoldMap += pos -> hook.unfolds
+      }
+    }
+
     val newMethod = method.transform()(post = {
       case m: sil.Method =>
         m.copy(
@@ -72,6 +96,8 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
           _posts = exitExtractor.assertionTree.simplify.toExps)(m.pos, m.info)
       case w: sil.While =>
         val pp = DefaultSilConverter.convert(w.cond.pos)
+        // Find the loop guard block in the CFG so we can extract
+        // a loop invariant from it
         val cfgPositions = cfgState.cfg.nodes.zipWithIndex.flatMap({
           case (stmts, blockIdx) => stmts.zipWithIndex.flatMap({
             case (stmt, stmtIdx) =>
@@ -88,10 +114,41 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
         val extractor = AssertionExtractor[S](state.toCondHeapGraph)
 
         w.copy(invs = w.invs ++ extractor.assertionTree.simplify.toExps)(w.pos, w.info)
+      case s: sil.Stmt =>
+        // Add unfold statements in front of this statement if necessary
+        unfoldMap.get(s.pos) match {
+          case Some(sampleUnfolds) =>
+            val unfoldStmts = sampleUnfolds.flatMap(sampleUnfold => {
+              val samplePred = exitExtractor.samplePredDefs.get(sampleUnfold.predicateId)
+
+              if (!samplePred.isShallow) {
+                val pred = exitExtractor.predicateMap(sampleUnfold.predicateId)
+                val localVar = DefaultSampleConverter.convert(sampleUnfold.variable)
+                val predAccessPred = sil.PredicateAccessPredicate(
+                  sil.PredicateAccess(Seq(localVar), pred)(s.pos), sil.FullPerm()(s.pos))(s.pos)
+                Some(sil.Unfold(predAccessPred)(s.pos))
+              } else {
+                None
+              }
+            })
+
+            sil.Seqn(unfoldStmts :+ s)(s.pos)
+          case None => s
+        }
     })
 
     val predicates = exitExtractor.predicates
 
     (newMethod, predicates)
+  }
+}
+
+class CollectingGhostOpHook extends GhostOpHook {
+  private[this] var _unfolds: Seq[UnfoldGhostOp] = Seq.empty
+
+  def unfolds = _unfolds
+
+  def onUnfold(unfold: UnfoldGhostOp) = {
+    _unfolds = _unfolds :+ unfold
   }
 }
