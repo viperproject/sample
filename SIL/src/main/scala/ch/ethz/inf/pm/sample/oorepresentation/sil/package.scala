@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation
 
 import ch.ethz.inf.pm.sample.{oorepresentation => rep, abstractdomain => dom}
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
 
 package object sil {
 
@@ -14,6 +15,7 @@ package object sil {
   object sample {
     // Abstract domain
     type Expression = dom.Expression
+    type Identifier = dom.Identifier
 
     val NegatedBooleanExpression = dom.NegatedBooleanExpression
     val BinaryBooleanExpression = dom.BinaryBooleanExpression
@@ -67,6 +69,15 @@ package object sil {
     val PackageIdentifier = rep.DummyPackageIdentifier
     val ClassIdentifier = rep.DummyClassIdentifier
     val MethodIdentifier = rep.DummyMethodIdentifier
+
+    // Simplon-specific abstract domains
+    type PredicateDefinitionsDomain = dom.vdha.PredicateDefinitionsDomain
+    type PredicateDefinition = dom.vdha.PredicateDefinition
+    type NestedPredDefDomain = dom.vdha.NestedPredDefDomain
+
+    val PredicateDefinitionsDomain = dom.vdha.PredicateDefinitionsDomain
+    val PredicateDefinition = dom.vdha.PredicateDefinition
+    val NestedPredDefDomain = dom.vdha.NestedPredDefDomain
   }
 
 }

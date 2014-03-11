@@ -5,34 +5,40 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import semper.sil.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
 import semper.sil.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
 
-trait PredicateBuilder {
+case class PredicateRegistry(map: Map[sample.Identifier, sil.Predicate]) {
+  def apply(predId: sample.Identifier): sil.Predicate =
+    map.apply(predId)
+}
+
+/** Builds a `PredicateRegistry`.
+  *
+  * @param formalArgName argument name of generated predicates
+  */
+case class PredicateRegistryBuilder(formalArgName: String = "this") {
   import DefaultSampleConverter._
 
-  /** Name of the predicate definition parameter. */
-  def formalArgName: String
+  def build(
+      extractedPreds: sample.PredicateDefinitionsDomain,
+      existingPreds: Seq[sil.Predicate] = Seq.empty): PredicateRegistry = {
 
-  /** Declaration of the predicate definition parameter. */
-  def formalArgDecl: sil.LocalVarDecl =
-    sil.LocalVarDecl(formalArgName, sil.Ref)()
+    // TODO: Currently ignores existing predicates
 
-  def build(predDefs: PredicateDefinitionsDomain): Map[Identifier, sil.Predicate] = {
     // Build a predicate with an empty body for every ID
-    val predMap = predDefs.map.keys.map(predId => {
+    val predMap = extractedPreds.map.keys.map(predId => {
       val predName = buildName(predId)
       predId -> sil.Predicate(predName, Seq(formalArgDecl), null)()
     }).toMap
 
     predMap.foreach({
       case (predDefId, silPred) =>
-        val predDef = predDefs.map(predDefId)
+        val predDef = extractedPreds.map(predDefId)
         silPred.body = buildBody(predDef, predMap)
     })
 
-    predMap
+    PredicateRegistry(predMap)
   }
 
   protected def buildName(predId: Identifier): String = {
@@ -73,18 +79,19 @@ trait PredicateBuilder {
     }
   }
 
-  def buildFieldAccessPred(fieldId: Identifier): sil.FieldAccessPredicate = {
+  protected def buildFieldAccessPred(fieldId: Identifier): sil.FieldAccessPredicate = {
     sil.FieldAccessPredicate(buildFieldAccess(fieldId), sil.FullPerm()())()
   }
 
-  def buildFieldAccess(fieldId: Identifier): sil.FieldAccess = {
+  protected def buildFieldAccess(fieldId: Identifier): sil.FieldAccess = {
     val field = sil.Field(fieldId.getName, convert(fieldId.typ))()
     sil.FieldAccess(formalArgDecl.localVar, field)()
   }
-}
 
-case class DefaultPredicateBuilder(formalArgName: String = "this")
-  extends PredicateBuilder {}
+  /** Declaration of the predicate definition parameter. */
+  protected def formalArgDecl: sil.LocalVarDecl =
+    sil.LocalVarDecl(formalArgName, sil.Ref)()
+}
 
 case class AssertionTree(
     exps: Set[sil.Exp] = Set.empty,
@@ -142,18 +149,18 @@ case class AssertionExtractor[S <: ApronInterface[S]](
   def predicates: Seq[sil.Predicate] = {
     if (hideShallowPredicates)
       // Hide all shallow predicates
-      predicateMap.filterKeys(id => {
+      predicateRegistry.map.filterKeys(id => {
         val predDef = condHeapGraph.cond.predDefs.get(id)
         !predDef.isShallow
       }).values.toSeq
     else
-      predicateMap.values.toSeq
+      predicateRegistry.map.values.toSeq
   }
 
   def samplePredDefs = condHeapGraph.cond.predDefs
 
-  def predicateMap: Map[Identifier, sil.Predicate] =
-    DefaultPredicateBuilder().build(samplePredDefs)
+  def predicateRegistry: PredicateRegistry =
+    PredicateRegistryBuilder().build(samplePredDefs)
 
   def assertion: sil.Exp = assertionTree.toExp
 
@@ -299,12 +306,12 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
       if (hideShallowPredicates && predDef.isShallow) {
         // Directly output the body of the shallow predicate
-        val customPredBuilder = DefaultPredicateBuilder(
+        val customPredProvider = PredicateRegistryBuilder(
           formalArgName = localVarVertex.name)
-        val customPredMap = customPredBuilder.build(edge.state.predDefs)
+        val customPredMap = customPredProvider.build(edge.state.predDefs)
         Set(customPredMap(predId).body)
       } else {
-        val pred = predicateMap(predId)
+        val pred = predicateRegistry(predId)
         val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
         val predAccess = sil.PredicateAccess(Seq(localVar), pred)()
         Set[sil.Exp](sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())())

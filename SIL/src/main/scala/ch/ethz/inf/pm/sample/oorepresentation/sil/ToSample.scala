@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import scala.collection.mutable
 import semper.sil.{ast => sil}
 import scala.Some
+import semper.sil.ast.Predicate
 
 trait SilConverter {
   /** Translates a whole SIL program to a list of Sample ClassDefinitions. */
@@ -31,6 +32,9 @@ trait SilConverter {
 
   /** Translates a SIL expression to a Sample expression. */
   def convert(exp: sil.Exp): sample.Statement
+
+  /** Translates a SIL predicate to a Sample predicate. */
+  def convert(pred: sil.Predicate): Option[(sample.Identifier, sample.PredicateDefinition)]
 }
 
 object DefaultSilConverter extends SilConverter {
@@ -247,6 +251,53 @@ object DefaultSilConverter extends SilConverter {
          sil.ExplicitSet(_) => ???
   }
 
+  def convert(pred: Predicate): Option[(sample.Identifier, sample.PredicateDefinition)] = {
+    if (pred.formalArgs.map(_.typ) == Seq(sil.Ref)) {
+      // Only support SIL predicates with a single reference parameter
+      val formalArg = pred.formalArgs.head.localVar
+      val nullLit = sil.NullLit()()
+
+      val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
+
+      var isSupported = true
+      val fieldsWithPerm = pred.body.reduceTree[Map[sample.Identifier, sample.NestedPredDefDomain]]({
+        case (sil.And, res) =>
+          res.flatMap(map => { map }).toMap
+        case (sil.FieldAccessPredicate(sil.FieldAccess(rcv, field), sil.FullPerm), res)
+          if formalArg == rcv =>
+          // Found a field access predicate for a field of the formal argument
+          Map(makeVariableIdentifier(field) -> sample.NestedPredDefDomain())
+        case (sil.Implies(
+          sil.NeCmp(leftCmp_, rightCmp_),
+          sil.PredicateAccessPredicate(sil.PredicateAccess(args, nestedPred), sil.FullPerm))) =>
+
+          // The null literal could be on both sides of the inequality: Sort
+          val (leftCmp, rightCmp) =
+            if (leftCmp_ == nullLit) (rightCmp_, leftCmp_)
+            else (leftCmp_, rightCmp_)
+
+          (leftCmp, rightCmp) match {
+            case (fa @ sil.FieldAccess(rcv, field), sil.NullLit)
+              if formalArg == rcv && args == Seq(fa) && nestedPred == pred =>
+                Map(makeVariableIdentifier(field) -> sample.NestedPredDefDomain().add(samplePredId))
+            case _ =>
+              isSupported = false
+              Map.empty
+          }
+        case _ =>
+          // If the predicate contains anything else, give up
+          isSupported = false
+          Map.empty
+      })
+
+      if (isSupported) {
+        val samplePredDef = sample.PredicateDefinition(fieldsWithPerm)
+        Some(samplePredId -> samplePredDef)
+      } else None
+    }
+    else None
+  }
+
   /**
    * Translates a SIL CFG block, adds it to the given Sample CFG and recurses to its successors.
    * @param b the SIL block
@@ -360,4 +411,6 @@ object DefaultSilConverter extends SilConverter {
   private def go(s: sil.Stmt) = convert(s)
 
   private def go(e: sil.Exp) = convert(e)
+
+  private def go(p: sil.Predicate) = convert(p)
 }

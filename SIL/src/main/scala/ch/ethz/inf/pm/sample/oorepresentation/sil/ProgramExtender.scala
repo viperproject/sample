@@ -5,7 +5,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.{UnfoldGhostOp, GhostOpHook, Co
 import ch.ethz.inf.pm.sample.execution.AbstractCFGState
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
-import ch.ethz.inf.pm.sample.abstractdomain.Identifier
 
 case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
@@ -122,7 +121,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
               val samplePred = exitExtractor.samplePredDefs.get(sampleUnfold.predicateId)
 
               if (!samplePred.isShallow) {
-                val pred = exitExtractor.predicateMap(sampleUnfold.predicateId)
+                val pred = exitExtractor.predicateRegistry(sampleUnfold.predicateId)
                 val localVar = DefaultSampleConverter.convert(sampleUnfold.variable)
                 val predAccessPred = sil.PredicateAccessPredicate(
                   sil.PredicateAccess(Seq(localVar), pred)(s.pos), sil.FullPerm()(s.pos))(s.pos)
