@@ -313,8 +313,9 @@ object DefaultSilConverter extends SilConverter {
     })
 
     val samplePredDef = sample.PredicateDefinition().functionalFactory(
-      fieldsWithPerm.mapValues(predIds =>
-        sample.NestedPredDefDomain().setFactory(predIds)))
+      fieldsWithPerm.mapValues(predIds => {
+        predIds.foldLeft(sample.NestedPredDefDomain())(_.add(_))
+      }))
     Some(samplePredId -> samplePredDef)
   }
 
