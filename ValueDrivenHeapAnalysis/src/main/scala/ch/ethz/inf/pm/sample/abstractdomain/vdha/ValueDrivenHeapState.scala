@@ -322,7 +322,7 @@ trait ValueDrivenHeapState[
       rightPaths: Set[RootedPath[S]]): Set[Edge[S]] = {
     var edgesToAdd = Set.empty[Edge[S]]
     for (lPath <- leftPaths) {
-      var leftCond = lPath.condition
+      val leftCond = lPath.condition
       if (!leftCond.lessEqual(leftCond.bottom())) {
         // The condition of the left path is not bottom. (i.e. can be possibly assigned)
         for (rPath <- rightPaths) {
@@ -339,9 +339,12 @@ trait ValueDrivenHeapState[
             val sourceIdsOfLHS = leftCond.sourceEdgeLocalIds
             newEdgeState = newEdgeState.createVariables(sourceIdsOfLHS)
           }
-          leftCond = leftCond.createVariables(renameMap.values.toSet)
-          newEdgeState = newEdgeState.createVariables(renameMap.keySet)
-          newEdgeState = leftCond.glb(newEdgeState)
+          newEdgeState = leftCond.glbPreserveIds(newEdgeState)
+          // The following code was used instead of glbPreserveIds in the past:
+          // TODO: I am not a entirely sure the semantics is still the same
+          // leftCond = leftCond.createVariables(renameMap.values.toSet)
+          // newEdgeState = newEdgeState.createVariables(renameMap.keySet)
+          // newEdgeState = leftCond.glb(newEdgeState)
           if (!newEdgeState.lessEqual(rightCond.bottom())) {
             // add edge that represents the assignment
             edgesToAdd = edgesToAdd + Edge(lPath.target, newEdgeState, Some(field), rPath.target)
