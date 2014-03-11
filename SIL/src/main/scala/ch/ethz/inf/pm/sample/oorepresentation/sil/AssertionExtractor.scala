@@ -7,17 +7,67 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import semper.sil.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
+import semper.sil.ast.{PredicateAccessPredicate, Predicate, Exp}
 
-case class PredicateRegistry(map: Map[sample.Identifier, sil.Predicate]) {
-  def apply(predId: sample.Identifier): sil.Predicate =
-    map.apply(predId)
+trait PredicateRegistry {
+  def accessPredicates(variableId: sample.Identifier, predId: sample.Identifier): sil.Exp
+
+  def predAccessPred(variableId: sample.Identifier, predId: sample.Identifier): Option[sil.PredicateAccessPredicate]
+
+  def predicates: Seq[sil.Predicate]
+
+  def hideShallowPredicates: Boolean
+}
+
+case class DefaultPredicateRegistry(
+    map: Map[sample.Identifier, (sample.PredicateDefinition, sil.Predicate)],
+    hideShallowPredicates: Boolean = true)
+  extends PredicateRegistry {
+
+  def accessPredicates(variableId: sample.Identifier, predId: sample.Identifier): sil.Exp = {
+    val (samplePred, silPred) = map(predId)
+    val localVar = DefaultSampleConverter.convert(variableId)
+
+    if (samplePred.isShallow && hideShallowPredicates) {
+      val formalPredArg = silPred.formalArgs.head.localVar
+      silPred.body.transform()(post = {
+        case rcv: sil.LocalVar if formalPredArg == rcv => localVar
+      })
+    } else {
+      val predAccess = sil.PredicateAccess(Seq(localVar), silPred)()
+      sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())()
+    }
+  }
+
+  def predAccessPred(variableId: sample.Identifier, predId: sample.Identifier): Option[sil.PredicateAccessPredicate] = {
+    val (samplePred, silPred) = map(predId)
+    val localVar = DefaultSampleConverter.convert(variableId)
+
+    if (samplePred.isShallow && hideShallowPredicates) {
+      None
+    } else {
+      val predAccess = sil.PredicateAccess(Seq(localVar), silPred)()
+      Some(sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())())
+    }
+  }
+
+  def predicates: Seq[Predicate] = {
+    if (hideShallowPredicates)
+      map.values.collect({
+        case (samplePred, silPred) if !samplePred.isShallow => silPred
+      }).toSeq
+    else
+      map.values.map(_._2).toSeq
+  }
 }
 
 /** Builds a `PredicateRegistry`.
   *
   * @param formalArgName argument name of generated predicates
   */
-case class PredicateRegistryBuilder(formalArgName: String = "this") {
+case class PredicateRegistryBuilder(
+    formalArgName: String = "this",
+    hideShallowPredicates: Boolean = true) {
   def build(
       extractedPreds: sample.PredicateDefinitionsDomain,
       existingSilPreds: Seq[sil.Predicate] = Seq.empty): PredicateRegistry = {
@@ -27,26 +77,26 @@ case class PredicateRegistryBuilder(formalArgName: String = "this") {
       existingPreds = existingPreds.add(predId, predDef)
     }
 
-    val predMap: Map[sample.Identifier, sil.Predicate] = extractedPreds.map.map({
+    val predMap: Map[sample.Identifier, (sample.PredicateDefinition, sil.Predicate)] = extractedPreds.map.map({
       case (predId, predDef) =>
         existingPreds.findEqual(predId, predDef) match {
           case Some(existingPredId) =>
-            predId -> existingSilPreds.find(_.name == existingPredId.getName).get
+            predId -> (predDef, existingSilPreds.find(_.name == existingPredId.getName).get)
           case None =>
             val predName = buildName(predId)
-            predId -> sil.Predicate(predName, Seq(formalArgDecl), null)()
+            predId -> (predDef, sil.Predicate(predName, Seq(formalArgDecl), null)())
         }
     })
 
     predMap.foreach({
-      case (predDefId, silPred) =>
+      case (predDefId, (samplePred, silPred)) =>
         val predDef = extractedPreds.map(predDefId)
         if (silPred.body == null) {
           silPred.body = buildBody(predDef, predMap)
         }
     })
 
-    PredicateRegistry(predMap)
+    DefaultPredicateRegistry(predMap, hideShallowPredicates)
   }
 
   protected def buildName(predId: Identifier): String = {
@@ -55,7 +105,7 @@ case class PredicateRegistryBuilder(formalArgName: String = "this") {
 
   protected def buildBody(
       predDef: PredicateDefinition,
-      predMap: Map[Identifier, sil.Predicate]): sil.Exp = {
+      predMap: Map[sample.Identifier, (sample.PredicateDefinition, sil.Predicate)]): sil.Exp = {
     if (predDef.isTop)
       sil.TrueLit()()
     else if (predDef.isBottom)
@@ -71,7 +121,7 @@ case class PredicateRegistryBuilder(formalArgName: String = "this") {
           nestedPredDefIds.value.toList match {
             case nestedPredDefId :: Nil =>
               val nonNullnessCond = sil.NeCmp(fieldAccessPred.loc, sil.NullLit()())()
-              val pred = predMap(nestedPredDefId)
+              val pred = predMap(nestedPredDefId)._2
               val predAccessPred = sil.PredicateAccessPredicate(
                 sil.PredicateAccess(Seq(buildFieldAccess(field)), pred)(), sil.FullPerm()())()
 
@@ -146,25 +196,13 @@ case class AssertionTree(
 
 case class AssertionExtractor[S <: ApronInterface[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
-    predRegistry: PredicateRegistry,
-    hideShallowPredicates: Boolean = true) {
+    predRegistry: PredicateRegistry) {
 
   import PredicateDrivenHeapState._
 
   type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
 
   def heap: HeapGraph[StateType] = condHeapGraph.heap
-
-  def predicates: Seq[sil.Predicate] = {
-    if (hideShallowPredicates)
-      // Hide all shallow predicates
-      predRegistry.map.filterKeys(id => {
-        val predDef = condHeapGraph.cond.predDefs.get(id)
-        !predDef.isShallow
-      }).values.toSeq
-    else
-      predRegistry.map.values.toSeq
-  }
 
   def assertion: sil.Exp = assertionTree.toExp
 
@@ -229,7 +267,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       for (predId <- edge.state.predInsts.foldedIds) {
         val predDef = edge.state.predDefs.get(predId)
 
-        if (hideShallowPredicates && predDef.isShallow) {
+        if (predRegistry.hideShallowPredicates && predDef.isShallow) {
           val fieldsWithPerm = predDef.map.keySet
 
           for (field <- fieldsWithPerm) {
@@ -306,20 +344,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     val foldedPredInstIds = edge.state.predInsts.foldedIds
 
     foldedPredInstIds.flatMap(predId => {
-      val predDef = edge.state.predDefs.get(predId)
-
-      if (hideShallowPredicates && predDef.isShallow) {
-        // Directly output the body of the shallow predicate
-        val customPredProvider = PredicateRegistryBuilder(
-          formalArgName = localVarVertex.name)
-        val customPredMap = customPredProvider.build(edge.state.predDefs)
-        Set(customPredMap(predId).body)
-      } else {
-        val pred = predRegistry(predId)
-        val localVar = sil.LocalVar(localVarVertex.name)(sil.Ref)
-        val predAccess = sil.PredicateAccess(Seq(localVar), pred)()
-        Set[sil.Exp](sil.PredicateAccessPredicate(predAccess, sil.FullPerm()())())
-      }
+      Set(predRegistry.accessPredicates(localVarVertex.variable, predId))
     })
   }
 

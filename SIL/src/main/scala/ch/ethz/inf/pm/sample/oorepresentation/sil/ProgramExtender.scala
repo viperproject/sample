@@ -124,17 +124,11 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
         // Add unfold statements in front of this statement if necessary
         unfoldMap.get(s.pos) match {
           case Some(sampleUnfolds) =>
-            val unfoldStmts = sampleUnfolds.flatMap(sampleUnfold => {
-              val samplePred = exitState.generalValState.predDefs.get(sampleUnfold.predicateId)
-
-              if (!samplePred.isShallow) {
-                val pred = exitExtractor.predRegistry(sampleUnfold.predicateId)
-                val localVar = DefaultSampleConverter.convert(sampleUnfold.variable)
-                val predAccessPred = sil.PredicateAccessPredicate(
-                  sil.PredicateAccess(Seq(localVar), pred)(s.pos), sil.FullPerm()(s.pos))(s.pos)
-                Some(sil.Unfold(predAccessPred)(s.pos))
-              } else {
-                None
+            val unfoldStmts = sampleUnfolds.flatMap(unfold => {
+              predRegistry.predAccessPred(unfold.variable, unfold.predicateId) match {
+                case Some(predAccessPred) =>
+                  Some(sil.Unfold(predAccessPred)(s.pos))
+                case None => None
               }
             })
 
@@ -144,10 +138,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     })
 
     val existingPredNames = program.predicates.map(_.name).toSet
-    val newPredicates = predRegistry.map.flatMap({
-      case (predId, pred) if !existingPredNames.contains(pred.name) => Some(pred)
-      case _ => None
-    })
+    val newPredicates = predRegistry.predicates.filter(p => !existingPredNames.contains(p.name))
 
     (newMethod, newPredicates.toSeq)
   }

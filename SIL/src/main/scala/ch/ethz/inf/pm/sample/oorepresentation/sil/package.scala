@@ -16,6 +16,7 @@ package object sil {
     // Abstract domain
     type Expression = dom.Expression
     type Identifier = dom.Identifier
+    type VariableIdentifier = dom.VariableIdentifier
 
     val NegatedBooleanExpression = dom.NegatedBooleanExpression
     val BinaryBooleanExpression = dom.BinaryBooleanExpression
