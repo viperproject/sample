@@ -687,15 +687,11 @@ trait GhostOp {
 }
 
 /** Represents an unfold performed by the `PredicateDrivenHeapState` */
-final case class UnfoldGhostOp(
-    variable: Identifier,
-    predicateId: Identifier)
+final case class UnfoldGhostOp(variable: Identifier, predicateId: Identifier)
   extends GhostOp {
 }
 
 /** Represents a fold performed by the `PredicateDrivenHeapState` */
-final case class FoldGhostOp(
-    variable: Identifier,
-    predicateId: Identifier)
+final case class FoldGhostOp(variable: Identifier, predicateId: Identifier)
   extends GhostOp {
 }

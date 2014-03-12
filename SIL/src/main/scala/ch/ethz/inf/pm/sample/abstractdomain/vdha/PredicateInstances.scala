@@ -33,7 +33,7 @@ case class PredicateInstancesDomain(
     // of the partners temporarily to bottom to prevent losing permission
     // However, isTop may still be true, in which case glb(...) would take
     // a shortcut that would cause us to lose the permission.
-    // TODO: This is extremly fragile and complicated
+    // TODO: This is extremely fragile and complicated
     if (defaultValue.isBottom) {
       newIsTop = false
     }
@@ -73,8 +73,8 @@ case class PredicateInstancesDomain(
     add(variable, defaultValue.top())
 
   def assign(variable: Identifier, expr: Expression) = expr match {
-    case (expr: PredicateInstanceState) => add(variable,
-      defaultValue.setFactory(Set(expr), isTop = false))
+    case (expr: PredicateInstanceState) =>
+      add(variable, defaultValue.add(expr))
   }
 
   override def merge(r: Replacement): PredicateInstancesDomain = {
