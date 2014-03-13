@@ -25,10 +25,10 @@ case class DefaultPredicateRegistry(
   extends PredicateRegistry {
 
   def accessPredicates(variableId: sample.Identifier, predId: sample.Identifier): sil.Exp = {
-    val (samplePred, silPred) = map(predId)
+    val (samplePredBody, silPred) = map(predId)
     val localVar = DefaultSampleConverter.convert(variableId)
 
-    if (samplePred.isShallow && hideShallowPredicates) {
+    if (samplePredBody.isShallow && hideShallowPredicates) {
       val formalPredArg = silPred.formalArgs.head.localVar
       silPred.body.transform()(post = {
         case rcv: sil.LocalVar if formalPredArg == rcv => localVar
@@ -40,10 +40,10 @@ case class DefaultPredicateRegistry(
   }
 
   def predAccessPred(variableId: sample.Identifier, predId: sample.Identifier): Option[sil.PredicateAccessPredicate] = {
-    val (samplePred, silPred) = map(predId)
+    val (samplePredBody, silPred) = map(predId)
     val localVar = DefaultSampleConverter.convert(variableId)
 
-    if (samplePred.isShallow && hideShallowPredicates) {
+    if (samplePredBody.isShallow && hideShallowPredicates) {
       None
     } else {
       val predAccess = sil.PredicateAccess(Seq(localVar), silPred)()
@@ -52,12 +52,12 @@ case class DefaultPredicateRegistry(
   }
 
   def predicates: Seq[Predicate] = {
-    if (hideShallowPredicates)
-      map.values.collect({
-        case (samplePred, silPred) if !samplePred.isShallow => silPred
-      }).toSeq
-    else
-      map.values.map(_._2).toSeq
+    // Output all predicates, even the ones with a shallow body
+    // The problem is that other predicates may have a nested predicate
+    // with a shallow body
+    // TODO: Should check if a shallow predicate is used inside of some
+    // other predicate
+    map.values.map(_._2).toSeq
   }
 }
 
