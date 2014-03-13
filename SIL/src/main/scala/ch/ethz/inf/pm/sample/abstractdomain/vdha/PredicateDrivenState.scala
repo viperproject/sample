@@ -343,7 +343,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         false
       } else true
     })
-    
+
     filteredEdges
   }
 

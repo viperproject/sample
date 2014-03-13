@@ -127,9 +127,13 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
 
     val newMethod = method.transform()(post = {
       case m: sil.Method =>
+        // TODO: At the moment, the existing preconditions are ignored.
+        // Some of them will be inferred from the initial state anyway.
+        // We would need to ensure that we do not output duplicate access
+        // predicates.
         m.copy(
-          _pres = m.pres ++ entryExtractor.assertionTree.simplify.toExps,
-          _posts = m.posts ++ exitExtractor.assertionTree.simplify.toExps)(m.pos, m.info)
+          _pres = entryExtractor.assertionTree.simplify.toExps,
+          _posts = exitExtractor.assertionTree.simplify.toExps)(m.pos, m.info)
       case w: sil.While =>
         val pp = DefaultSilConverter.convert(w.cond.pos)
         // Find the loop guard block in the CFG so we can extract
