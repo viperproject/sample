@@ -60,6 +60,7 @@ case class PredicatesDomain(
 
   /** Returns the set of set of fields that the predicate with the given ID
     * directly (not mutually) recurses over.
+
     */
   def recursionFields(predId: Identifier): Set[Identifier] = {
     get(predId).map.flatMap({
@@ -131,21 +132,21 @@ object PredicatesDomain {
 }
 
 final case class PredicateBody(
-    map: Map[Identifier, NestedPredDefDomain] = Map.empty[Identifier, NestedPredDefDomain],
+    map: Map[Identifier, NestedPredicatesDomain] = Map.empty[Identifier, NestedPredicatesDomain],
     isTop: Boolean = false,
     override val isBottom: Boolean = false,
-    defaultValue: NestedPredDefDomain = NestedPredDefDomain().top())
-  extends FunctionalDomain[Identifier, NestedPredDefDomain, PredicateBody]
+    defaultValue: NestedPredicatesDomain = NestedPredicatesDomain().top())
+  extends FunctionalDomain[Identifier, NestedPredicatesDomain, PredicateBody]
   with Lattice.Must[PredicateBody]
   with Expression {
 
   def get(key: Identifier) = map.getOrElse(key, defaultValue)
 
   def addPerm(field: Identifier): PredicateBody =
-    add(field, NestedPredDefDomain().top())
+    add(field, NestedPredicatesDomain().top())
 
   def functionalFactory(
-      value: Map[Identifier, NestedPredDefDomain],
+      value: Map[Identifier, NestedPredicatesDomain],
       isBottom: Boolean,
       isTop: Boolean) =
     PredicateBody(value, isTop, isBottom, defaultValue)
@@ -193,12 +194,12 @@ final case class PredicateBody(
 }
 
 /** Basically an inverse 1-set domain with must semantics. */
-final case class NestedPredDefDomain(
+final case class NestedPredicatesDomain(
     value: Set[Identifier] = Set.empty,
     isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends InverseSetDomain[Identifier, NestedPredDefDomain]
-  with Lattice.Must[NestedPredDefDomain] {
+  extends InverseSetDomain[Identifier, NestedPredicatesDomain]
+  with Lattice.Must[NestedPredicatesDomain] {
 
   require(value.isEmpty implies (isTop || isBottom),
     "an empty set must only represent top or bottom")
@@ -214,6 +215,6 @@ final case class NestedPredDefDomain(
 
   override def setFactory(value: Set[Identifier], isTop: Boolean, isBottom: Boolean) = {
     if (value.size > 1) bottom()
-    else NestedPredDefDomain(value, isTop, isBottom)
+    else NestedPredicatesDomain(value, isTop, isBottom)
   }
 }

@@ -142,7 +142,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             val nestedPredId = PredicatesDomain.makeId()
             val nestedPredBody = PredicateBody().top()
             result = result.assignVariable(nestedPredId, nestedPredBody)
-            recvPredBody = recvPredBody.add(field, NestedPredDefDomain(Set(nestedPredId), isTop = false))
+            recvPredBody = recvPredBody.add(field, NestedPredicatesDomain(Set(nestedPredId), isTop = false))
           } else {
             recvPredBody = recvPredBody.addPerm(field)
           }
@@ -292,7 +292,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
           if (curNestedRecvPredIds.isEmpty) {
             resultingCondHeap = resultingCondHeap.map(state => {
-              state.assign(recvPredId, curRecvPredBody.add(field, NestedPredDefDomain().setFactory(newNestedRecvPredIds, isTop = newNestedRecvPredIds.isEmpty)))
+              state.assign(recvPredId, curRecvPredBody.add(field, NestedPredicatesDomain().setFactory(newNestedRecvPredIds, isTop = newNestedRecvPredIds.isEmpty)))
             })
           } else {
             val repl = new Replacement()

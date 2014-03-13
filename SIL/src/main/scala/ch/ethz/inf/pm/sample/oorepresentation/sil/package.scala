@@ -74,11 +74,11 @@ package object sil {
     // Simplon-specific abstract domains
     type PredicatesDomain = dom.vdha.PredicatesDomain
     type PredicateBody = dom.vdha.PredicateBody
-    type NestedPredDefDomain = dom.vdha.NestedPredDefDomain
+    type NestedPredicatesDomain = dom.vdha.NestedPredicatesDomain
 
     val PredicatesDomain = dom.vdha.PredicatesDomain
     val PredicateBody = dom.vdha.PredicateBody
-    val NestedPredDefDomain = dom.vdha.NestedPredDefDomain
+    val NestedPredicatesDomain = dom.vdha.NestedPredicatesDomain
   }
 
 }
