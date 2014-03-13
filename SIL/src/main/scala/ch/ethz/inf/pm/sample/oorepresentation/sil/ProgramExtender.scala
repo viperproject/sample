@@ -128,8 +128,8 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     val newMethod = method.transform()(post = {
       case m: sil.Method =>
         m.copy(
-          _pres = entryExtractor.assertionTree.simplify.toExps,
-          _posts = exitExtractor.assertionTree.simplify.toExps)(m.pos, m.info)
+          _pres = m.pres ++ entryExtractor.assertionTree.simplify.toExps,
+          _posts = m.posts ++ exitExtractor.assertionTree.simplify.toExps)(m.pos, m.info)
       case w: sil.While =>
         val pp = DefaultSilConverter.convert(w.cond.pos)
         // Find the loop guard block in the CFG so we can extract
@@ -157,7 +157,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
             val unfoldStmts = sampleUnfolds.flatMap(unfold => {
               predRegistry.predAccessPred(unfold.variable, unfold.predicateId) match {
                 case Some(predAccessPred) =>
-                  Some(sil.Unfold(predAccessPred)(s.pos))
+                  Some(sil.Unfold(predAccessPred)(s.pos, InferredInfo))
                 case None => None
               }
             })
@@ -172,7 +172,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
             val foldStmts = sampleFold.flatMap(fold => {
               predRegistry.predAccessPred(fold.variable, fold.predicateId) match {
                 case Some(predAccessPred) =>
-                  Some(sil.Fold(predAccessPred)(newS.pos))
+                  Some(sil.Fold(predAccessPred)(newS.pos, InferredInfo))
                 case None => None
               }
             })
@@ -188,6 +188,9 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     (newMethod, newPredicates.toSeq)
   }
 }
+
+/** Info associated with newly inferred specification expressions. */
+object InferredInfo extends sil.SimpleInfo(Seq("Inferred"))
 
 class CollectingGhostOpHook extends GhostOpHook {
   private[this] var _unfolds: Seq[UnfoldGhostOp] = Seq.empty
