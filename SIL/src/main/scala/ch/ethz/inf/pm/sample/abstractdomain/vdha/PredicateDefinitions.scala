@@ -15,6 +15,9 @@ case class PredicatesDomain(
   with SemanticDomain[PredicatesDomain]
   with Lattice.Must[PredicatesDomain] {
 
+  require(map.values.forall(_.nestedPredIds.subsetOf(map.keySet)),
+    "all nested predicate IDs must be known and have a body themselves")
+
   def get(key: Identifier): PredicateBody = map.getOrElse(key, defaultValue)
 
   def functionalFactory(
