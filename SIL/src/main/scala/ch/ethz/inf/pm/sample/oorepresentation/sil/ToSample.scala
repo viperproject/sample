@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import scala.collection.mutable
 import semper.sil.{ast => sil}
 import scala.Some
-import semper.sil.ast.Predicate
 
 trait SilConverter {
   /** Converts a whole SIL program to a list of Sample class definition. */
@@ -257,7 +256,7 @@ object DefaultSilConverter extends SilConverter {
          sil.ExplicitSet(_) => ???
   }
 
-  def convert(preds: Seq[Predicate]): sample.PredicateDefinitionsDomain = {
+  def convert(preds: Seq[sil.Predicate]): sample.PredicateDefinitionsDomain = {
     val predIdToBodyMap: Map[sample.Identifier, sample.PredicateDefinition] =
       preds.map(convert).flatten.toMap
 
@@ -302,7 +301,7 @@ object DefaultSilConverter extends SilConverter {
     * If the given predicate has a shape that our domain of predicates does not
     * support, the method returns `None`.
     */
-  private def convert(pred: Predicate): Option[(sample.Identifier, sample.PredicateDefinition)] = {
+  private def convert(pred: sil.Predicate): Option[(sample.Identifier, sample.PredicateDefinition)] = {
     if (pred.formalArgs.map(_.typ) != Seq(sil.Ref)) {
       // Only support SIL predicates with a single reference parameter
       return None
