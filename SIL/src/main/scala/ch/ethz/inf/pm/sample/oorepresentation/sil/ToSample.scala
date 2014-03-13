@@ -6,35 +6,41 @@ import scala.Some
 import semper.sil.ast.Predicate
 
 trait SilConverter {
-  /** Translates a whole SIL program to a list of Sample ClassDefinitions. */
+  /** Converts a whole SIL program to a list of Sample class definition. */
   def convert(program: sil.Program): List[sample.ClassDefinition]
 
-  /** Translates a SIL function to a Sample MethodDeclaration. */
+  /** Converts a SIL function to a Sample method declaration. */
   def convert(function: sil.Function): sample.MethodDeclaration
 
-  /** Translates a SIL method to a Sample MethodDeclaration. */
+  /** Converts a SIL method to a Sample method declaration. */
   def convert(method: sil.Method): sample.MethodDeclaration
 
-  /** Translates a SIL field to a Sample FieldDeclaration. */
+  /** Converts a SIL field to a Sample field declaration. */
   def convert(field: sil.Field): sample.FieldDeclaration
 
-  /** Translates a SIL local variable to a Sample VariableDeclaration. */
+  /** Converts a SIL local variable to a Sample variable declaration. */
   def convert(localVarDecl: sil.LocalVarDecl): sample.VariableDeclaration
 
-  /** Translates a SIL node position to a Sample ProgramPoint. */
+  /** Converts a SIL node position to a Sample ProgramPoint. */
   def convert(pos: sil.Position): sample.ProgramPoint
 
-  /** Translates a SIL type to a Sample type. */
+  /** Converts a SIL type to a Sample type. */
   def convert(typ: sil.Type): sample.Type
 
-  /** Translates a SIL statement to a Sample statement. */
+  /** Converts a SIL statement to a Sample statement. */
   def convert(stmt: sil.Stmt): sample.Statement
 
-  /** Translates a SIL expression to a Sample expression. */
+  /** Converts a SIL expression to a Sample expression. */
   def convert(exp: sil.Exp): sample.Statement
 
-  /** Translates a SIL predicate to a Sample predicate. */
-  def convert(pred: sil.Predicate): Option[(sample.Identifier, sample.PredicateDefinition)]
+  /** Converts a sequence of SIL predicate to Sample predicates.
+    *
+    * The method only converts a SIL predicate if its shape is supported
+    * by Samples predicate domain and if all of its nested predicate
+    * could be converted as well. This is the reason why the method
+    * takes a sequence of SIL predicates.
+    */
+  def convert(preds: Seq[sil.Predicate]): sample.PredicateDefinitionsDomain
 }
 
 object DefaultSilConverter extends SilConverter {
@@ -251,10 +257,52 @@ object DefaultSilConverter extends SilConverter {
          sil.ExplicitSet(_) => ???
   }
 
-  /** Translates a SIL predicate to a Sample predicate.
-    * @todo also support non-recursive nested predicate instances
+  def convert(preds: Seq[Predicate]): sample.PredicateDefinitionsDomain = {
+    val predIdToBodyMap: Map[sample.Identifier, sample.PredicateDefinition] =
+      preds.map(convert).flatten.toMap
+
+    /** Returns the set of all predicate IDs recursively nested
+      * in the predicate with the given ID.
+      */
+    def deeplyNestedPredIds(
+        predId: sample.Identifier,
+        foundSoFar: Set[sample.Identifier] = Set.empty):
+      Set[sample.Identifier] = {
+
+      if (foundSoFar.contains(predId)) {
+        foundSoFar // Terminate when reaching an already handled predicate ID
+      } else {
+        // Get nested predicate IDs, if any
+        val nestedPredIds = predIdToBodyMap.get(predId) match {
+          case Some(predBody) => predBody.nestedPredIds
+          case None => Set.empty
+        }
+
+        // Recurse to all nested predicate IDs
+        nestedPredIds.foldLeft(foundSoFar + predId)({
+          case (newFoundSoFar, nestedPredId) =>
+            deeplyNestedPredIds(nestedPredId, newFoundSoFar)
+        })
+      }
+    }
+
+    // Filter out any predicates that could not be converted completely
+    var result = sample.PredicateDefinitionsDomain().top()
+    for ((predId, predBody) <- predIdToBodyMap) {
+      if (deeplyNestedPredIds(predId).subsetOf(predIdToBodyMap.keySet)) {
+        result = result.add(predId, predBody)
+      }
+    }
+
+    result
+  }
+
+  /** Converts a single SIL predicate to a Sample predicate, if possible.
+    *
+    * If the given predicate has a shape that our domain of predicates does not
+    * support, the method returns `None`.
     */
-  def convert(pred: Predicate): Option[(sample.Identifier, sample.PredicateDefinition)] = {
+  private def convert(pred: Predicate): Option[(sample.Identifier, sample.PredicateDefinition)] = {
     if (pred.formalArgs.map(_.typ) != Seq(sil.Ref)) {
       // Only support SIL predicates with a single reference parameter
       return None
@@ -262,7 +310,6 @@ object DefaultSilConverter extends SilConverter {
 
     val formalArg = pred.formalArgs.head.localVar
     val nullLit = sil.NullLit()()
-    val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
 
     var fieldsWithPerm = Map.empty[sample.Identifier, Set[sample.Identifier]]
 
@@ -290,10 +337,11 @@ object DefaultSilConverter extends SilConverter {
 
         (leftCmp, rightCmp) match {
           case (fa @ sil.FieldAccess(rcv, field), sil.NullLit())
-            if formalArg == rcv && args == Seq(fa) && nestedPred == pred =>
-              // Found a recursive predicate access predicate for a field
+            if formalArg == rcv && args == Seq(fa) =>
+              // Found a nested predicate access predicate for a field
               // of the formal argument
-              fieldsWithPerm += makeVariableIdentifier(field) -> Set(samplePredId)
+              val nestedPredId = sample.VariableIdentifier(nestedPred.name)(PredType)
+              fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
           case _ =>
             // The conditional predicate access predicate does not have
             // a supported shape, give up
@@ -312,6 +360,7 @@ object DefaultSilConverter extends SilConverter {
         return None
     })
 
+    val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
     val samplePredDef = sample.PredicateDefinition().functionalFactory(
       fieldsWithPerm.mapValues(predIds => {
         predIds.foldLeft(sample.NestedPredDefDomain())(_.add(_))
@@ -320,7 +369,7 @@ object DefaultSilConverter extends SilConverter {
   }
 
   /**
-   * Translates a SIL CFG block, adds it to the given Sample CFG and recurses to its successors.
+   * Converts a SIL CFG block, adds it to the given Sample CFG and recurses to its successors.
    * @param b the SIL block
    * @param cfg the Sample CFG to extend
    * @param indices maps already translated SIL blocks to Sample CFG node indices
@@ -377,13 +426,13 @@ object DefaultSilConverter extends SilConverter {
   }
 
   /**
-   * Translates a conjunction of boolean SIL expressions to a Statement.
+   * Converts a conjunction of boolean SIL expressions to a Statement.
    * @param conj sequence of boolean SIL expressions
    * @return true if the list of SIL expressions is empty
    */
   private def makeConjunction(conj: Seq[sil.Exp]): sample.Statement = go(conj match {
     case Nil => sil.TrueLit()()
-    case _ => conj.reduceRight((x, y) => new sil.And(x, y)(x.pos))
+    case _ => conj.reduceRight((x, y) => sil.And(x, y)(x.pos))
   })
 
   /**

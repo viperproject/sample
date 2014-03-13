@@ -72,10 +72,7 @@ case class PredicateRegistryBuilder(
       extractedPreds: sample.PredicateDefinitionsDomain,
       existingSilPreds: Seq[sil.Predicate] = Seq.empty): PredicateRegistry = {
 
-    var existingPreds = sample.PredicateDefinitionsDomain()
-    for ((predId, predDef) <- existingSilPreds.map(DefaultSilConverter.convert).flatten) {
-      existingPreds = existingPreds.add(predId, predDef)
-    }
+    val existingPreds = DefaultSilConverter.convert(existingSilPreds)
 
     val predMap: Map[sample.Identifier, (sample.PredicateDefinition, sil.Predicate)] = extractedPreds.map.map({
       case (predId, predDef) =>

@@ -147,6 +147,10 @@ final case class PredicateDefinition(
     }))
   }
 
+  /** Returns a set of all directly nested predicate IDs. */
+  def nestedPredIds: Set[Identifier] =
+    map.values.flatMap(_.value).toSet
+
   override def toString = {
     if (isBottom) "⊥"
     else if (isTop) "⊤"
