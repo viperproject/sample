@@ -240,7 +240,7 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
           // the analysis was aborted to the entry state
           initialState = initialState.map(_.transformPreds(_ lub preds))
 
-          logger.info(s"Restarting analysis of method $method.")
+          logger.info(s"Restarting analysis of method ${method.name}.")
       }
     }
 
