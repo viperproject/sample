@@ -483,28 +483,35 @@ trait ValueDrivenHeapState[
           /**
            * Adding edges
            */
+          // Collect edges to add for this particular definite vertex first,
+          // then add them to the rest
+          val edgesToAddHere = mutable.Set.empty[Edge[S]]
+
           // Edge that represents the processed edge
-          edgesToAdd += edge.copy(target = definiteVertex)
-          for (e <- resultingAH.edges -- edgesToRemove ++ edgesToAdd) {
+          edgesToAddHere += edge.copy(target = definiteVertex)
+
+          for (e <- resultingAH.edges -- edgesToRemove) {
             // Incoming edges
             if (e.target == summaryVertex) {
-              edgesToAdd += e.copy(target = definiteVertex)
+              edgesToAddHere += e.copy(target = definiteVertex)
             }
             // Outgoing edges
             if (e.source == summaryVertex) {
               val edgeToAdd = e.copy[S](source = definiteVertex)
               if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
                 queue.enqueue((edgeToAdd, path.tail))
-              edgesToAdd += edgeToAdd
+              edgesToAddHere += edgeToAdd
             }
             // Self-loop edges
             if (e.source == summaryVertex && e.target == summaryVertex) {
               val edgeToAdd = e.copy[S](source = definiteVertex, target = definiteVertex)
               if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
                 queue.enqueue((edgeToAdd, path.tail))
-              edgesToAdd += edgeToAdd
+              edgesToAddHere += edgeToAdd
             }
           }
+
+          edgesToAdd ++= edgesToAddHere
         case _ =>
           // Nothing to materialize for this edge
           if (!path.isEmpty)
