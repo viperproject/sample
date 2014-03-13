@@ -260,7 +260,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     if (left.typ.isObject) {
       val receiverPath = left.path.dropRight(1)
-      val receiverId = AccessPathIdentifier(receiverPath)(refType)
+      val receiverId = AccessPathIdentifier(receiverPath)(left.typ)
       val field = VariableIdentifier(left.path.last)(left.typ)
 
       result = result.toCondHeapGraph.evalExp(receiverId).mapCondHeaps(condHeap => {
@@ -543,8 +543,6 @@ object PredicateDrivenHeapState {
     PreciseValueDrivenHeapState.makeTopEdgeState(
       SemanticAndPredicateDomain(s, PredicateDomain()).top())
   }
-
-  def refType = SystemParameters.compiler.asInstanceOf[SilCompiler].refType
 
   implicit class ExtendedEdgeStateDomain[S <: SemanticDomain[S]](state: EdgeStateDomain[S]) {
     def predHeapIds: Set[ValueHeapIdentifier] =

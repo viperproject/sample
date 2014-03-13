@@ -219,7 +219,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
           val subExtractor = copy(condHeapGraph = prunedCondHeap)
           subExtractor.assertionTree
         } else {
-          val accPathId = AccessPathIdentifier(List(ambigLocalVarVertex.name))(refType)
+          val accPathId = AccessPathIdentifier(ambigLocalVarVertex.variable)
           val condHeaps = condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps
           val children = condHeaps.map(condSubHeap => {
             val edge = condSubHeap.takenPath(accPathId.path).edges.head
