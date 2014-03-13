@@ -308,52 +308,33 @@ object DefaultSilConverter extends SilConverter {
       return None
     }
 
-    val formalArg = pred.formalArgs.head.localVar
-    val nullLit = sil.NullLit()()
+    val formalArgVar = pred.formalArgs.head.localVar
 
+    // Reorder null-ness check expressions such that the null literals always
+    // appear on the right side. Makes it easier to pattern-match later.
+    val normalizedBody = pred.body.transform()(post = {
+      case n @ sil.NeCmp(left @ sil.NullLit(), right) =>
+        n.copy(right, left)(n.pos, n.info)
+    })
+
+    // Maps each field with write permission to a set of predicate IDs
     var fieldsWithPerm = Map.empty[sample.Identifier, Set[sample.Identifier]]
 
-    // TODO: It might be better to use a custom recursive function
-    // instead of than visitOpt.
-    pred.body.visitOpt({
-      case sil.And(_, _) =>
-        // Found a conjunction. Proceed with the recursion
-        true
+    // Predicate must be a conjunction of constituents we support, that is,
+    // field access predicates, and conditional predicate access predicates
+    flattenConjunction(normalizedBody).foreach({
       case sil.FieldAccessPredicate(sil.FieldAccess(rcv, field), sil.FullPerm())
-        if formalArg == rcv =>
+        if formalArgVar == rcv =>
         // Found a field access predicate for a field of the formal argument
         fieldsWithPerm += makeVariableIdentifier(field) -> Set.empty
-
-        // Do not recurse further. This subtree has been handled completely.
-        false
       case implies @ sil.Implies(
-        sil.NeCmp(leftCmp_, rightCmp_),
-        sil.PredicateAccessPredicate(sil.PredicateAccess(args, nestedPred), sil.FullPerm())) =>
-
-        // The null literal could be on both sides of the inequality: Sort
-        val (leftCmp, rightCmp) =
-          if (leftCmp_ == nullLit) (rightCmp_, leftCmp_)
-          else (leftCmp_, rightCmp_)
-
-        (leftCmp, rightCmp) match {
-          case (fa @ sil.FieldAccess(rcv, field), sil.NullLit())
-            if formalArg == rcv && args == Seq(fa) =>
-              // Found a nested predicate access predicate for a field
-              // of the formal argument
-              val nestedPredId = sample.VariableIdentifier(nestedPred.name)(PredType)
-              fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
-          case _ =>
-            // The conditional predicate access predicate does not have
-            // a supported shape, give up
-            println(s"cannot handle constituent $implies of predicate ${pred.name}")
-            return None
-        }
-
-        // Do not recurse further. This subtree has been handled completely.
-        false
-      case t: sil.Type =>
-        // visitOp also visits the type of expressions. Ignore it.
-        false
+      sil.NeCmp(fa @ sil.FieldAccess(rcv, field), sil.NullLit()),
+      sil.PredicateAccessPredicate(sil.PredicateAccess(args, nestedPred), sil.FullPerm()))
+        if formalArgVar == rcv && args == Seq(fa) =>
+        // Found a nested predicate access predicate for a field
+        // of the formal argument
+        val nestedPredId = sample.VariableIdentifier(nestedPred.name)(PredType)
+        fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
       case n =>
         // Give up if the predicate contains anything else
         println(s"cannot handle constituent $n of predicate ${pred.name}")
@@ -423,6 +404,19 @@ object DefaultSilConverter extends SilConverter {
       }
       index
     }
+  }
+
+  /** Flattens a SIL conjunction into a sequence of expressions.
+    *
+    * For example, given the expression And(And(a, b), c), the result is
+    * Seq(a, b, c). If the root of expression is not a conjunction,
+    * the method just returns the expression itself.
+    */
+  private def flattenConjunction(exp: sil.Exp): Seq[sil.Exp] = exp match {
+    case sil.And(left, right) =>
+      flattenConjunction(left) ++ flattenConjunction(right)
+    case _ =>
+      Seq(exp)
   }
 
   /**
