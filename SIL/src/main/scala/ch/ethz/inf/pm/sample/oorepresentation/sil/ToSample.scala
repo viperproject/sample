@@ -343,7 +343,7 @@ object DefaultSilConverter extends SilConverter {
     val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
     val samplePredBody = sample.PredicateBody().functionalFactory(
       fieldsWithPerm.mapValues(predIds => {
-        predIds.foldLeft(sample.NestedPredDefDomain())(_.add(_))
+        predIds.foldLeft(sample.NestedPredicatesDomain())(_.add(_))
       }))
     Some(samplePredId -> samplePredBody)
   }
