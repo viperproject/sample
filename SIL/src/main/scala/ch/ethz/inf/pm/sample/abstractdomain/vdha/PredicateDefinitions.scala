@@ -58,6 +58,17 @@ case class PredicatesDomain(
     None
   }
 
+  /** Returns the set of set of fields that the predicate with the given ID
+    * directly (not mutually) recurses over.
+    */
+  def recursionFields(predId: Identifier): Set[Identifier] = {
+    get(predId).map.flatMap({
+      case (field, nestedPredIds) =>
+        if (nestedPredIds.value.contains(predId)) Some(field)
+        else None
+    }).toSet
+  }
+
   override def merge(r: Replacement): PredicatesDomain = {
     if (r.isEmpty()) return this
 

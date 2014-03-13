@@ -470,7 +470,7 @@ trait ValueDrivenHeapState[
         case summaryVertex: SummaryHeapVertex =>
           edgesToRemove += edge
           // Creating a vertex that is a materialization of the summary vertex
-          val (tempAH, definiteVertex) = resultingAH.addHeapVertex(VertexConstants.DEFINITE, summaryVertex.typ)
+          val (tempAH, definiteVertex) = resultingAH.addDefiniteHeapVertex(summaryVertex.typ)
           resultingAH = tempAH
           // Add the information about the corresponding identifiers to replacement
           for (valField <- definiteVertex.typ.nonObjectFields) {
@@ -511,7 +511,7 @@ trait ValueDrivenHeapState[
             }
           }
 
-          edgesToAdd ++= edgesToAddHere
+          edgesToAdd ++= filterEdgesToMaterialize(edge, edgesToAddHere.toSet, definiteVertex, summaryVertex)
         case _ =>
           // Nothing to materialize for this edge
           if (!path.isEmpty)
@@ -530,6 +530,27 @@ trait ValueDrivenHeapState[
 
     resultingAH = resultingAH.addEdges(updatedEdgesToAdd.toSet)
     copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl)).prune()
+  }
+
+  /** Filter the edges of a new materialized node.
+    * This method only represents a hook for the predicate analysis.
+    *
+    * @param accessEdge the new edge into the definite node materialized
+    *                   from the one into the summary node lying on the
+    *                   access path
+    * @param edges all new edges into and out of the new definite node
+    * @param newDefiniteVertex the new definite node being materialized
+    * @param summaryVertex the summary node being materialized from
+    * @return the filtered set of edges
+    *
+    * @todo find a cleaner solution
+    */
+  protected def filterEdgesToMaterialize(
+    accessEdge: Edge[S],
+    edges: Set[Edge[S]],
+    newDefiniteVertex: DefiniteHeapVertex,
+    summaryVertex: SummaryHeapVertex): Set[Edge[S]] = {
+    edges // Do not filter anything by default
   }
 
   def lessEqual(r: T): Boolean = {
