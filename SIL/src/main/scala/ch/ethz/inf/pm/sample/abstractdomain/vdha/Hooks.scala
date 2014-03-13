@@ -41,7 +41,6 @@ case class CollectingGhostOpHook[S <: SemanticDomain[S]]() extends GhostOpHook[S
   }
 }
 
-
 /** Represents a ghost operation performed by the `PredicateDrivenHeapState` */
 trait GhostOp[S <: SemanticDomain[S]] {
   def postState: PredicateDrivenHeapState[S]
@@ -68,4 +67,7 @@ final case class PredMergeGhostOp[S <: SemanticDomain[S]](
     postState: PredicateDrivenHeapState[S],
     repl: Replacement)
   extends GhostOp[S] {
+
+  require(!repl.value.isEmpty,
+    "predicate ID replacement must not be empty")
 }

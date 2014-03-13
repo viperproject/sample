@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.execution.TrackingForwardInterpreter
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import ch.ethz.inf.pm.sample.AnalysisUnitContext
 import semper.sil.{ast => sil}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState._
 
 class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
   def run(path: Path): List[AnalysisResult[_]] = {
@@ -76,18 +76,18 @@ object PreciseAnalysisRunner extends AnalysisRunner(
   override def toString = "Precise Analysis"
 }
 
-object OnePhasePredicateAnalysisRunner extends AnalysisRunner(
+object SimplePredicateAnalysisRunner extends AnalysisRunner(
     SimpleAnalysis[PredicateDrivenHeapState[S]](PredicateEntryStateBuilder)) {
-  override def toString = "Analysis with Predicates: One-Phase"
+  override def toString = "Analysis with Predicates: Simple"
 
   /** Only analyze the first method. */
   override def methodsToAnalyze(compiler: SilCompiler) =
     List(compiler.allMethods.head)
 }
 
-object TwoPhasePredicateAnalysisRunner extends AnalysisRunner(
+object RefiningPredicateAnalysisRunner extends AnalysisRunner(
   RefiningPredicateAnalysis[S](PredicateEntryStateBuilder)) {
-  override def toString = "Analysis with Predicates: Two-Phase"
+  override def toString = "Analysis with Predicates: Refining"
 
   /** Only analyze the first method. */
   override def methodsToAnalyze(compiler: SilCompiler) =
@@ -213,68 +213,58 @@ case class SimpleAnalysis[S <: State[S]](
     analyze(method, entryStateBuilder.build(method))
 }
 
+/** Restarts the analysis whenever the predicates are made stronger. */
 case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
     entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
   extends Analysis[PredicateDrivenHeapState[S]] {
 
   type T = PredicateDrivenHeapState[S]
 
-  import PredicateInstanceState.Unfolded
-
   def analyze(method: MethodDeclaration): AnalysisResult[T] = {
-    def preds(state: T) =
-      state.generalValState.valueState.predicateState.predicates
+    val hook = AnalysisRestartGhostOpHook[S]()
 
-    // Rather than building the entry state from scratch,
-    // adapt the one of the first iteration.
-    // A benefit is that we are sure that predicate instance IDs do not change
-    val firstEntryState = entryStateBuilder.build(method)
-    val firstResult = analyze(method, firstEntryState)
-    val firstExitState = firstResult.cfgState.exitState()
-    val firstEntryDefs = preds(firstEntryState)
-    val firstExitDefs = preds(firstExitState)
-    val secondEntryDefs = firstEntryDefs.copy(map = {
-      firstExitDefs.map.filterKeys(firstEntryDefs.map.contains)
-    })
+    var entryState = entryStateBuilder.build(method)
+    entryState = entryState.setGhostOpHook(hook)
 
-    val secondEntryStateCondHeap = CondHeapGraph[EdgeStateDomain[S], T](firstEntryState).mapEdges(edge => {
-      var isBottom = false
-      val state = edge.state
+    var resultOption: Option[AnalysisResult[T]] = None
 
-      // TODO: Find a more concise way of altering the state
-      val newState = state.copy(valueState = {
-        state.valueState.copy[S](predicateState = {
-          state.valueState.predicateState.copy(
-            predicates = secondEntryDefs.copy(map = secondEntryDefs.map.filterNot(_._2.isBottom)),
-            instances = {
-              var instances = state.valueState.predicateState.instances
+    while (resultOption.isEmpty) {
+      try {
+        resultOption = Some(analyze(method, entryState))
+      } catch {
+        case AnalysisRestartException(preds) =>
+          // Apply the predicates that were present in the stated when
+          // the analysis was aborted to the entry state
+          entryState = entryState.map(_.transformPreds(_ lub preds))
+      }
+    }
 
-              // Remove the edge altogether if one of the folded predicate
-              // instances has a false body
-              for (foldedId <- instances.foldedIds) {
-                val predDef = secondEntryDefs.get(foldedId)
-                if (predDef.isBottom) {
-                  isBottom = true
-                } else {
-                  val edgeLocalId = EdgeLocalIdentifier(List(edge.field), foldedId)
-                  instances = instances.assign(edgeLocalId, Unfolded)
-                }
-              }
-
-              instances
-            })
-        })
-      })
-
-      if (isBottom) newState.bottom()
-      else newState
-    }).prune
-
-    val secondEntryState = firstEntryState.copy(
-      abstractHeap = secondEntryStateCondHeap.heap,
-      generalValState = secondEntryStateCondHeap.cond)
-
-    val secondResult = analyze(method, secondEntryState)
-    secondResult
+    resultOption.get
   }
+}
+
+/** Exception that is thrown so that the analysis is restarted with a more
+  * constrained initial state.
+  *
+  * @param preds the predicates that were present when the analysis was aborted
+  */
+case class AnalysisRestartException(preds: PredicatesDomain) extends Exception {
+  override def toString = "Restart of analysis with refined initial state"
+}
+
+/** Hook that aborts the analysis when a predicate merge happens during the
+  * analysis inside of the `PredicateDrivenHeapState`.
+  * @tparam S type of the semantic domain
+  */
+case class AnalysisRestartGhostOpHook[S <: SemanticDomain[S]]()
+  extends GhostOpHook[S] {
+
+  def handlePredMerge(merge: PredMergeGhostOp[S]) = {
+    val preds = merge.postState.generalValState.preds
+    throw new AnalysisRestartException(preds)
+  }
+
+  def handleFold(fold: FoldGhostOp[S]) = {}
+
+  def handleUnfold(unfold: UnfoldGhostOp[S]) = {}
 }

@@ -38,6 +38,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   def setGhostOpHook(ghostOpHook: GhostOpHook[S]): T =
     PredicateDrivenHeapState(abstractHeap, generalValState, expr, isTop, ghostOpHook)
 
+  def map(f: EdgeStateDomain[S] => EdgeStateDomain[S]): T =
+    mapEdges(edge => f(edge.state)).copy(generalValState = f(generalValState))
+
   def mapEdges(f: Edge[EdgeStateDomain[S]] => EdgeStateDomain[S]): T =
     copy(
       abstractHeap = abstractHeap.copy(
@@ -529,10 +532,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
       val result = factory(resAbstractHeap, resGeneralState, ExpressionSet()).prune()
 
-      // Inform subscribers about the predicate merge
-      // TODO: We may not have actually chosen this result!
-      val predMerge = PredMergeGhostOp(result, repl)
-      ghostOpHook.handlePredMerge(predMerge)
+      if (!repl.value.isEmpty) {
+        // Inform subscribers about the predicate merge
+        // TODO: We may not have actually chosen this result!
+        val predMerge = PredMergeGhostOp(result, repl)
+        ghostOpHook.handlePredMerge(predMerge)
+      }
 
       bestResultOption = bestResultOption match {
         case Some(bestResult) =>
