@@ -177,6 +177,7 @@ object PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
             }
           case None =>
         }
+      case _ => // Ignore precondition
     })
 
     initialState
