@@ -255,13 +255,15 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     newResult.prunePredIds()
   }
 
-  override def assignField(left: AccessPathIdentifier, right: Expression) = {
+  override def assignField(left: AccessPathIdentifier, right: Expression): T = {
     var result = super.assignField(left, right).prunePredIds()
 
     if (left.typ.isObject) {
       val receiverPath = left.path.dropRight(1)
       val receiverId = AccessPathIdentifier(receiverPath)(left.typ)
       val field = VariableIdentifier(left.path.last)(left.typ)
+
+      assert(receiverPath.size == 1, "currently only support obj.field")
 
       result = result.toCondHeapGraph.evalExp(receiverId).mapCondHeaps(condHeap => {
         val recvEdge = condHeap.takenPath(receiverId.path).edges.head
@@ -276,10 +278,18 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val curRecvPredBody = recvEdge.state.preds.get(recvPredId)
           val curNestedRecvPredIds = curRecvPredBody.get(field).value
 
-          assert(nonNullOutEdges.size == 1, "assume that there is exactly one outgoing non-null edge")
+          if (nonNullOutEdges.size != 1) {
+            println("assume that there is exactly one outgoing non-null edge")
+            return result
+          }
 
           val outEdge = nonNullOutEdges.head
           val newNestedRecvPredIds = outEdge.state.predInsts.foldedIds.asInstanceOf[Set[Identifier]]
+
+          if (newNestedRecvPredIds.isEmpty) {
+            println("Expected there to be at least one new nested receiver predicate ID")
+            return result
+          }
 
           if (curNestedRecvPredIds.isEmpty) {
             resultingCondHeap = resultingCondHeap.map(state => {
