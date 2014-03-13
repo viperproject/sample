@@ -44,7 +44,7 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics())
 
     // Experimental
-    PredicateBody.resetId()
+    PredicatesDomain.resetId()
     
     // TODO: Get rid of this ugly hack
     vdha.glbPreservingIdsStrategy = CustomGlbPreservingIdsStrategy

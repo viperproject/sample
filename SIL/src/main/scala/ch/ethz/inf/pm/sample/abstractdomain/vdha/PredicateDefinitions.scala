@@ -98,6 +98,21 @@ case class PredicatesDomain(
   def access(field: Identifier) = ???
 }
 
+object PredicatesDomain {
+  private val nextId = new ThreadLocal[Int]
+
+  def resetId() = {
+    nextId.set(0)
+  }
+
+  def makeId(): VariableIdentifier = {
+    val id = nextId.get
+    nextId.set(id + 1)
+    id.toString
+    VariableIdentifier(Constants.GhostSymbolPrefix + "p" + id)(PredType)
+  }
+}
+
 final case class PredicateBody(
     map: Map[Identifier, NestedPredDefDomain] = Map.empty[Identifier, NestedPredDefDomain],
     isTop: Boolean = false,
@@ -157,21 +172,6 @@ final case class PredicateBody(
     else map.map({
       case (field, nestedPredIds) =>  field + " → " + nestedPredIds
     }).mkString(", ")
-  }
-}
-
-object PredicateBody {
-  private val nextId = new ThreadLocal[Int]
-
-  def resetId() = {
-    nextId.set(0)
-  }
-
-  def makeId(): VariableIdentifier = {
-    val id = nextId.get
-    nextId.set(id + 1)
-    id.toString
-    VariableIdentifier(Constants.GhostSymbolPrefix + "p" + id)(PredType)
   }
 }
 
