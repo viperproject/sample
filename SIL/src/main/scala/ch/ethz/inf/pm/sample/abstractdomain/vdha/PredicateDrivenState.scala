@@ -2,20 +2,19 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import ch.ethz.inf.pm.sample.{ToStringUtilities, SystemParameters}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, SilCompiler}
+import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PreciseValueDrivenHeapState
 
 case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     abstractHeap: HeapGraph[EdgeStateDomain[S]],
     generalValState: EdgeStateDomain[S],
     expr: ExpressionSet,
     isTop: Boolean = false,
-    ghostOpHook: GhostOpHook = DummyGhostOpHook)
+    ghostOpHook: GhostOpHook[S] = DummyGhostOpHook[S]())
   extends PreciseValueDrivenHeapState[
     SemanticAndPredicateDomain[S],
     PredicateDrivenHeapState[S]] {
@@ -36,7 +35,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   /** Sets a ghost operation hook.
     * Unfortunately, extending the copy method is not possible.
     */
-  def setGhostOpHook(ghostOpHook: GhostOpHook): T =
+  def setGhostOpHook(ghostOpHook: GhostOpHook[S]): T =
     PredicateDrivenHeapState(abstractHeap, generalValState, expr, isTop, ghostOpHook)
 
   def mapEdges(f: Edge[EdgeStateDomain[S]] => EdgeStateDomain[S]): T =
@@ -135,8 +134,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
       if (wasFolded) {
         // Let subscribers of ghost operations know about the unfold
-        val unfold = UnfoldGhostOp(localVarVertex.variable, recvPredId)
-        ghostOpHook.onUnfold(unfold)
+        val unfold = UnfoldGhostOp[S](this, localVarVertex.variable, recvPredId)
+        ghostOpHook.handleUnfold(unfold)
       }
 
       // Add permission if necessary
@@ -424,8 +423,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           result = result.copy(abstractHeap = candidateAbstractHeap)
 
           // Let subscribers know about the fold operation
-          val fold = FoldGhostOp(localVarVertex.variable, unfoldedPredId)
-          ghostOpHook.onFold(fold)
+          val fold = FoldGhostOp[S](this, localVarVertex.variable, unfoldedPredId)
+          ghostOpHook.handleFold(fold)
         } else {
           println("cannot fold")
         }
@@ -709,32 +708,4 @@ object CustomGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
 
     newResult
   }
-}
-
-/** Interface using which `PredicateDrivenHeapState` can let interested
-  * parties know when ghost operations take place.
-  */
-trait GhostOpHook {
-  def onUnfold(unfold: UnfoldGhostOp)
-  def onFold(fold: FoldGhostOp)
-}
-
-/** Does nothing when a ghost operation is performed. */
-object DummyGhostOpHook extends GhostOpHook {
-  def onUnfold(unfold: UnfoldGhostOp) = {}
-  def onFold(fold: FoldGhostOp) = {}
-}
-
-/** Represents a ghost operation performed by the `PredicateDrivenHeapState` */
-trait GhostOp {
-}
-
-/** Represents an unfold performed by the `PredicateDrivenHeapState` */
-final case class UnfoldGhostOp(variable: Identifier, predicateId: Identifier)
-  extends GhostOp {
-}
-
-/** Represents a fold performed by the `PredicateDrivenHeapState` */
-final case class FoldGhostOp(variable: Identifier, predicateId: Identifier)
-  extends GhostOp {
 }

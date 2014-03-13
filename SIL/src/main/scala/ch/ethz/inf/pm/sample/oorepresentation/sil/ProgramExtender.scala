@@ -12,6 +12,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.PredicateRegistryBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AssertionExtractor
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOp
+import ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain
 
 case class ProgramExtender[S <: ApronInterface[S]]() {
   type T = PredicateDrivenHeapState[S]
@@ -83,14 +84,14 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     // of every statement in the CFG
     // Assumes that there is a bijection between SIL positions and
     // Sample CFG statements
-    var unfoldMap: Map[sil.Position, Seq[UnfoldGhostOp]] = Map.empty
-    var foldMap: Map[sil.Position, Seq[FoldGhostOp]] = Map.empty
+    var unfoldMap: Map[sil.Position, Seq[UnfoldGhostOp[S]]] = Map.empty
+    var foldMap: Map[sil.Position, Seq[FoldGhostOp[S]]] = Map.empty
 
     for ((block, blockIdx) <- cfgState.cfg.nodes.zipWithIndex) {
       for ((stmt, stmtIdx) <- block.zipWithIndex) {
         val cfgPosition = CFGPosition(blockIdx, stmtIdx)
         val preState = cfgState.preStateAt(cfgPosition)
-        val hook = new CollectingGhostOpHook
+        val hook = new CollectingGhostOpHook[S]
         val preStateWithHook = preState.setGhostOpHook(hook)
 
         stmt.forwardSemantics(preStateWithHook)
@@ -109,7 +110,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
         val lastStmtIdx = block.size - 1
         val cfgPosition = CFGPosition(blockIdx, lastStmtIdx)
         val postState = cfgState.postStateAt(cfgPosition)
-        val hook = new CollectingGhostOpHook
+        val hook = CollectingGhostOpHook[S]()
         val postStateWithHook = postState.setGhostOpHook(hook)
 
         // TODO: Currently does not work because predicates
@@ -195,19 +196,3 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
 
 /** Info associated with newly inferred specification expressions. */
 object InferredInfo extends sil.SimpleInfo(Seq("Inferred"))
-
-class CollectingGhostOpHook extends GhostOpHook {
-  private[this] var _unfolds: Seq[UnfoldGhostOp] = Seq.empty
-  private[this] var _folds: Seq[FoldGhostOp] = Seq.empty
-
-  def unfolds = _unfolds
-  def folds = _folds
-
-  def onUnfold(unfold: UnfoldGhostOp) = {
-    _unfolds = _unfolds :+ unfold
-  }
-
-  def onFold(fold: FoldGhostOp) = {
-    _folds = _folds :+ fold
-  }
-}
