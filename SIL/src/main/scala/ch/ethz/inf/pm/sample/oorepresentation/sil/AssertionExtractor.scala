@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import semper.sil.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
 import semper.sil.ast.{PredicateAccessPredicate, Predicate, Exp}
+import com.weiglewilczek.slf4s.Logging
 
 trait PredicateRegistry {
   def accessPredicates(variableId: sample.Identifier, predId: sample.Identifier): sil.Exp
@@ -193,7 +194,8 @@ case class AssertionTree(
 
 case class AssertionExtractor[S <: ApronInterface[S]](
     condHeapGraph: CondHeapGraph[PredicateDrivenHeapState.EdgeStateDomain[S]],
-    predRegistry: PredicateRegistry) {
+    predRegistry: PredicateRegistry)
+  extends Logging {
 
   import PredicateDrivenHeapState._
 
@@ -358,12 +360,13 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       "the edge targets are not unique")
 
     if (ambigEdges.size != 2) {
-      println("at the moment, only two ambiguous edges are supported")
+      logger.warn("Cannot find sufficient conditions " +
+        "for more than two ambiguous out-going edges")
       return Map.empty
     }
 
     if (ambigEdges.forall(_.target != NullVertex)) {
-      println("at the moment, one of the targets needs to be null")
+      logger.warn("Cannot find sufficient conditions other than nullness")
       return Map.empty
     }
 

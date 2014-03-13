@@ -15,6 +15,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import ch.ethz.inf.pm.sample.AnalysisUnitContext
 import semper.sil.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState._
+import com.weiglewilczek.slf4s.Logging
 
 class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
   def run(path: Path): List[AnalysisResult[_]] = {
@@ -186,7 +187,7 @@ object PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
 
 case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S])
 
-trait Analysis[S <: State[S]] {
+trait Analysis[S <: State[S]] extends Logging {
   def analyze(method: MethodDeclaration): AnalysisResult[S]
 
   protected def analyze(method: MethodDeclaration, entryState: S): AnalysisResult[S] = {
@@ -201,7 +202,7 @@ trait Analysis[S <: State[S]] {
     val now = System.nanoTime
     val result = a
     val micros = (System.nanoTime - now) / 1000
-    println("%d microseconds".format(micros))
+    logger.debug("%d microseconds".format(micros))
     result
   }
 }
@@ -217,7 +218,7 @@ case class SimpleAnalysis[S <: State[S]](
 /** Restarts the analysis whenever the predicates are made stronger. */
 case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
     entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
-  extends Analysis[PredicateDrivenHeapState[S]] {
+  extends Analysis[PredicateDrivenHeapState[S]] with Logging {
 
   type T = PredicateDrivenHeapState[S]
 
@@ -238,6 +239,8 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
           // Apply the predicates that were present in the stated when
           // the analysis was aborted to the entry state
           initialState = initialState.map(_.transformPreds(_ lub preds))
+
+          logger.info(s"Restarting analysis of method $method.")
       }
     }
 

@@ -3,6 +3,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import scala.collection.mutable
 import semper.sil.{ast => sil}
 import scala.Some
+import com.weiglewilczek.slf4s.Logging
 
 trait SilConverter {
   /** Converts a whole SIL program to a list of Sample class definition. */
@@ -42,7 +43,7 @@ trait SilConverter {
   def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain
 }
 
-object DefaultSilConverter extends SilConverter {
+object DefaultSilConverter extends SilConverter with Logging {
   var refType: sample.RefType = sample.RefType()
   var classDef: sample.ClassDefinition = null
 
@@ -336,7 +337,7 @@ object DefaultSilConverter extends SilConverter {
         fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
       case n =>
         // Give up if the predicate contains anything else
-        println(s"cannot handle constituent $n of predicate ${pred.name}")
+        logger.warn(s"Cannot handle constituent $n of predicate ${pred.name}")
         return None
     })
 

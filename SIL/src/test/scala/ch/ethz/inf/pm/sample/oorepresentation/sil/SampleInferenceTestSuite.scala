@@ -8,6 +8,7 @@ import semper.sil.ast.Program
 import scala.reflect.io.File
 import java.nio.file._
 import semper.silicon.Silicon
+import com.weiglewilczek.slf4s.Logging
 
 class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
   extends Silicon {
@@ -25,8 +26,7 @@ class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
     val programExtender = ProgramExtender[ApronInterface.Default]()
     val extendedProgram = programExtender.extend(program, results)
 
-    println("Extended Program")
-    println(extendedProgram)
+    logger.info(s"Extended Program:\n $extendedProgram")
 
     assert(isWellFormed(extendedProgram),
       "the extended program is not well-formed")

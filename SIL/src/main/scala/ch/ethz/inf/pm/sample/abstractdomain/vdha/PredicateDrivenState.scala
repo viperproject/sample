@@ -8,6 +8,7 @@ import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
+import com.weiglewilczek.slf4s.Logging
 
 case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     abstractHeap: HeapGraph[EdgeStateDomain[S]],
@@ -17,7 +18,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     ghostOpHook: GhostOpHook[S] = DummyGhostOpHook[S]())
   extends PreciseValueDrivenHeapState[
     SemanticAndPredicateDomain[S],
-    PredicateDrivenHeapState[S]] {
+    PredicateDrivenHeapState[S]]
+  with Logging {
 
   // Shorthand for the self-type
   type T = PredicateDrivenHeapState[S]
@@ -111,7 +113,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val foldedAndUnfoldedIds = foldedIds ++ unfoldedIds
 
     if (foldedAndUnfoldedIds.isEmpty) {
-      println("there is neither a folded or unfolded predicate instance")
+      logger.warn(s"Encountered field access $id without any folded or " +
+        "unfolded predicate instance candidate on the receiver edges")
       return bottom()
     }
 
@@ -122,7 +125,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           if (!unfoldedIds.isEmpty) (unfoldedIds.head, false, false)
           else (foldedIds.head, true, false)
         }
-        case _ => sys.error("there can only be one folded predicate with permission")
+        case _ =>
+          logger.error(s"Multiple folded predicate instances " +
+            s"$foldedIdsWithPerm contain full permission to field $field")
+          sys.exit(-1)
       }
 
       var recvPredBody = preds.get(recvPredId)
@@ -174,7 +180,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               // TODO: Should not matter what ID it is. If they overlap in terms of
               // permissions, it is impossible
               val newState = if (e.state.predInsts.foldedIds.contains(nestedPredId)) {
-                println("Impossible edge detected, removing it")
+                logger.debug("Removing impossible edge")
                 // TODO: Hack to set it to bottom
                 e.state.transformPredInsts(insts => {
                   insts.add(edgeLocId, insts.get(edgeLocId).add(Unfolded))
@@ -273,15 +279,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val nonNullOutEdges = condHeap.heap.outEdges(recvVertex, Some(field.name)).filter(_.target != NullVertex)
         var resultingCondHeap = condHeap
 
-        if (nonNullOutEdges.isEmpty) {
-          println("nothing to do, we only assigned null to the field")
-        } else {
+        // Only need to do something if we assign something other than null
+        if (!nonNullOutEdges.isEmpty) {
           val recvPredId = recvEdge.state.predInsts.unfoldedIds.head
           val curRecvPredBody = recvEdge.state.preds.get(recvPredId)
           val curNestedRecvPredIds = curRecvPredBody.get(field).value
 
           if (nonNullOutEdges.size != 1) {
-            println("assume that there is exactly one outgoing non-null edge")
+            logger.warn(s"There is more than one non-null edge for field $field")
             return result
           }
 
@@ -289,7 +294,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           val newNestedRecvPredIds = outEdge.state.predInsts.foldedIds.asInstanceOf[Set[Identifier]]
 
           if (newNestedRecvPredIds.isEmpty) {
-            println("Expected there to be at least one new nested receiver predicate ID")
+            logger.warn("Expected at least one new nested receiver predicate ID")
             return result
           }
 
@@ -333,19 +338,20 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val recursionFieldNames = foldedIds.flatMap(
       accessEdge.state.preds.recursionFields(_).map(_.getName))
 
-    val filteredEdges = edges.filter(edge => {
+    val filteredEdges = edges.filterNot(edge => {
       val isRecursionField = edge.field match {
         case Some(name) => recursionFieldNames.contains(name)
         case None => false
       }
       val isSelfLoop = edge.target == defVertex && edge.source == defVertex
       val isBackEdge = edge.source == sumVertex
-      if (isRecursionField && (isSelfLoop || isBackEdge)) {
-        println(s"Preventing materialization of self-loop or back-edge " +
-          s"of recursion field ${edge.field.get}")
-        false
-      } else true
+      isRecursionField && (isSelfLoop || isBackEdge)
     })
+
+    if (filteredEdges.size < edges.size) {
+      logger.info(s"Prevented materialization of self-loops or back-edges " +
+        s"for recursion fields $recursionFieldNames")
+    }
 
     filteredEdges
   }
@@ -379,6 +385,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               // so we need to remove the folded instance from them too.
               val verticesToRemoveFoldedPredInstFrom = edgesThatNeedFoldedPredInst.map(_.target)
               if (!canFoldThis) {
+                logger.info(s"Not folding $unfoldedPredId($localVarVertex) " +
+                  "because of nested folded predicate instances are missing")
                 canFold = false
               } else {
                 candidateAbstractHeap = candidateAbstractHeap.copy(edges = candidateAbstractHeap.edges.map(edge => {
@@ -416,7 +424,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
             if (hasPredInstOnEveryEdge(abstractHeap)) {
               if (!hasPredInstOnEveryEdge(candidateAbstractHeap)) {
-                println("won't fold because otherwise, we would lose all permissions to some local variable")
+                logger.info(s"Not folding $unfoldedPredId($localVarVertex) " +
+                  "to avoid loss of permissions for some local variable")
                 canFold = false
               }
             }
@@ -429,8 +438,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           // Let subscribers know about the fold operation
           val fold = FoldGhostOp[S](result, localVarVertex.variable, unfoldedPredId)
           ghostOpHook.handleFold(fold)
-        } else {
-          println("cannot fold")
         }
       })
     })
@@ -492,7 +499,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               } else if (predBody10.map.values.exists(_.value.contains(otherPredId))) {
                 repl.value += (Set[Identifier](predId, otherPredId) -> Set(predId))
               } else {
-                println("Could not merge predicate IDs")
+                logger.warn("Could ont merge predicate IDs")
               }
             }
           }
