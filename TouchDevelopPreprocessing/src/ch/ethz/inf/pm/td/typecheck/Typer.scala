@@ -38,26 +38,27 @@ object Typer {
         st.addGlobalData(name, kind)
       case TableDefinition(ident, typeName, keys, fields) =>
         val fieldMembers = for (field <- fields) yield {
-          val inp = field.typeName.toString
-          val (fieldType, noFieldType) =
-            if(inp.matches(""" field$""")) {
-              val (part1,check) = inp.splitAt(inp.size-7)
-              if (check != " field") throw TouchException("Expected field here")
-              (part1+" field",part1)
-            } else {
-              (inp+" field",inp)
-            }
-          if (noFieldType == "Number") st.addUserType(fieldType, GenericTypes.gNumberField(fieldType))
-          else st.addUserType(fieldType, GenericTypes.gField(fieldType, noFieldType))
-          Member(field.ident, fieldType)
+          Member(field.ident, field.typeName)
+          //          val inp = field.typeName.toString
+          //          val (fieldType, noFieldType) =
+          //            if(inp.matches(""" field$""")) {
+          //              val (part1,check) = inp.splitAt(inp.size-7)
+          //              if (check != " field") throw TouchException("Expected field here")
+          //              (part1+" field",part1)
+          //            } else {
+          //              (inp+" field",inp)
+          //            }
+          //          if (noFieldType == "Number") st.addUserType(fieldType, GenericTypes.gNumberField(fieldType))
+          //          else st.addUserType(fieldType, GenericTypes.gField(fieldType, noFieldType))
+          //          Member(field.ident, fieldType)
         }
 
         typeName match {
           case "object" =>
             st.addUserType(ident, GenericTypes.gObject(ident, fieldMembers))
-            st.addUserType(ident +" Collection", GenericTypes.gMutableCollection(ident+" Collection", ident))
+            st.addUserType(ident + " Collection", GenericTypes.gMutableCollection(ident + " Collection", ident))
             st.addUserType(ident + " Constructor", List(Member("create", ident),
-              Member("create collection", ident+" Collection")))
+              Member("create collection", ident + " Collection")))
             st.addUserSingleton("records", List(Member(ident, ident + " Constructor")))
           case "table" =>
             st.addUserType(ident, GenericTypes.gRow(ident, fieldMembers))
@@ -139,26 +140,27 @@ object Typer {
     }
   }
 
-  def inParametersToActionType(params:List[Parameter]):TypeName = {
+  def inParametersToActionType(params: List[Parameter]): TypeName = {
     TypeName(params match {
       case Nil => "Action"
-      case List(Parameter(_,TypeName("Boolean"))) => "Boolean Action"
-      case List(Parameter(_,TypeName("Number"))) => "Number Action"
-      case List(Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number"))) => "Position Action"
-      case List(Parameter(_,TypeName("String"))) => "Text Action"
-      case List(Parameter(_,TypeName("Sprite"))) => "Sprite Action"
-      case List(Parameter(_,TypeName("Sprite Set"))) => "Sprite Set Action"
-      case List(Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number")),Parameter(_,TypeName("Number"))) => "Vector Action"
-      case List(Parameter(_,TypeName("Web Response"))) => "Web Response Action"
-      case List(Parameter(_,TypeName("Message Collection"))) => "Message Collection Action"
-      case _ => println("Unknown action type, falling back to Action"); "Action"
+      case List(Parameter(_, TypeName("Boolean"))) => "Boolean Action"
+      case List(Parameter(_, TypeName("Number"))) => "Number Action"
+      case List(Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number"))) => "Position Action"
+      case List(Parameter(_, TypeName("String"))) => "Text Action"
+      case List(Parameter(_, TypeName("Sprite"))) => "Sprite Action"
+      case List(Parameter(_, TypeName("Sprite Set"))) => "Sprite Set Action"
+      case List(Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number"))) => "Vector Action"
+      case List(Parameter(_, TypeName("Web Response"))) => "Web Response Action"
+      case List(Parameter(_, TypeName("Message Collection"))) => "Message Collection Action"
+      case _ => println("Unknown action type, falling back to Action: " + params); "Action"
     })
   }
 
   def processExpression(scope: Scope, st: SymbolTable, expr: Expression): TypeName = {
 
     def is(typ: TypeName): TypeName = {
-      expr.typeName = typ; typ
+      expr.typeName = typ;
+      typ
     }
 
     def handleAssignments(variables: Expression, types: List[TypeName]): Int = {
@@ -181,12 +183,19 @@ object Typer {
               st(scope) = st(scope) + (ident -> typ)
           }
           types.length - 1
-        case Access(subject@SingletonReference("data",_), Identifier(ident), Nil) =>
-          processExpression(scope,st,subject)
+        case Access(subject@SingletonReference("data", _), Identifier(ident), Nil) =>
+          processExpression(scope, st, subject)
           variables.typeName = typ
           val expType = st.resolveData(ident, variables.pos)
           if (expType != typ)
             throw TouchException("Assignment to wrong type. Expected: " + expType + ", Found: " + types.head, variables.pos)
+          types.length - 1
+        // New kind of field assignment for record types?!
+        case Access(subject, _, args) =>
+          // TODO: Actually check the type
+          for (arg <- args) yield processExpression(scope, st, arg)
+          processExpression(scope, st, subject)
+          variables.typeName = typ
           types.length - 1
       }
 
@@ -235,7 +244,7 @@ object Typer {
         // Interestingly, contract is a local variable, not a singleton.
         if (ident == "contract") is(TypeName("Contract"))
         else is(st.resolveLocal(scope, ident, l.pos))
-      case SingletonReference(singleton,typ) =>
+      case SingletonReference(singleton, typ) =>
         if (CFGGenerator.isLibraryIdent(typ)) {
           is(TypeName("♻"))
         } else {
@@ -251,17 +260,18 @@ object Typer {
   def processMultiValExpression(scope: Scope, st: SymbolTable, expr: Expression): List[TypeName] = {
 
     def is(typ: TypeName): TypeName = {
-      expr.typeName = typ; typ
+      expr.typeName = typ;
+      typ
     }
 
     val types = expr match {
       case Access(_, Identifier(","), List(left, right)) =>
         processMultiValExpression(scope, st, left) ::: processMultiValExpression(scope, st, right)
-      case Access(subject@SingletonReference("code",_), action, args) =>
+      case Access(subject@SingletonReference("code", _), action, args) =>
         processExpression(scope, st, subject)
         val types = for (arg <- args) yield processExpression(scope, st, arg)
         st.resolveCode(action.ident, types, expr.pos)
-      case Access(a@Access(SingletonReference("♻",_), lib, Nil), action, args) =>
+      case Access(a@Access(SingletonReference("♻", _), lib, Nil), action, args) =>
         processExpression(scope, st, a)
         val types = for (arg <- args) yield processExpression(scope, st, arg)
         st.resolveLib(lib.ident, action.ident, types, expr.pos)

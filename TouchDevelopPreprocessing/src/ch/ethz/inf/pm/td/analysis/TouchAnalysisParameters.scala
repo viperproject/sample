@@ -65,13 +65,13 @@ object TouchAnalysisParameters {
  * Parameters for the TouchBoost Analysis
  *
  * They are kept in case classes for several reasons:
- *  1) Individual settings are immutable and type-safe like vals in an object.
- *  2) Concise construction: Change a few options, keep all other parameters.
- *      Example: TouchAnalysisParameters(reporting = ReportingParams(reportNumericalErrors = true)) to enable checking
- *               for numerical errors.
+ * 1) Individual settings are immutable and type-safe like vals in an object.
+ * 2) Concise construction: Change a few options, keep all other parameters.
+ * Example: TouchAnalysisParameters(reporting = ReportingParams(reportNumericalErrors = true)) to enable checking
+ * for numerical errors.
  *
- *  Individual parameters are naturally grouped for better overview, and because case classes only support
- *  up to 22 arguments :)
+ * Individual parameters are naturally grouped for better overview, and because case classes only support
+ * up to 22 arguments :)
  */
 case class TouchAnalysisParameters(
                                     execution: ExecutionModelParams = ExecutionModelParams(),
@@ -86,7 +86,7 @@ case class TouchAnalysisParameters(
                                     // Fields that are always TOP
                                     topFields: Set[String] = Set("x", "y", "z", "z index", "speed x", "speed y",
                                       "speed z", "width", "height", "acceleration x", "acceleration y", "angle",
-                                      "angular speed", "leaderboard score")
+                                      "angular speed", "leaderboard score", "opacity")
                                     )
 
 case class ExecutionModelParams(
@@ -212,4 +212,4 @@ case class ReportingParams(reportNoncriticalParameterBoundViolations: Boolean = 
 
                            /** If true, suppress as much output as possible  (useful for testing) */
                            silent: Boolean = false
-                           )
+                            )

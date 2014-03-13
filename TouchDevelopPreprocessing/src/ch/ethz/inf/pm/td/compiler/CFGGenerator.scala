@@ -36,19 +36,31 @@ import ch.ethz.inf.pm.td.typecheck.Typer
  */
 
 object CFGGenerator {
-  def handlerIdent(ident:String) = "__handler_"+ident
-  def isHandlerIdent(ident:String) = ident.startsWith("__handler_")
-  def globalReferenceIdent(ident:String) = "__data_"+ident
-  def isGlobalReferenceIdent(ident:String) = ident.startsWith("__data_")
-  def paramIdent(ident:String) = "__param_"+ident
-  def isParamIdent(ident:String) = ident.startsWith("__param_")
-  def libraryIdent(ident:String) = "♻"+ident
-  def isLibraryIdent(ident:String) = ident.startsWith("♻") && ident.length() > 1
-  def getLibraryName(ident:String) = ident.substring(1)
-  def returnIdent(ident:String) = "__returned_"+ident
-  def isReturnIdent(ident:String) = ident.startsWith("__returned_")
-  def isNonDetIdent(ident:String) = ident.startsWith("__nondet")
-  def isStmtTempIdent(ident:String) = ident.startsWith("__temp")
+  def handlerIdent(ident: String) = "__handler_" + ident
+
+  def isHandlerIdent(ident: String) = ident.startsWith("__handler_")
+
+  def globalReferenceIdent(ident: String) = "__data_" + ident
+
+  def isGlobalReferenceIdent(ident: String) = ident.startsWith("__data_")
+
+  def paramIdent(ident: String) = "__param_" + ident
+
+  def isParamIdent(ident: String) = ident.startsWith("__param_")
+
+  def libraryIdent(ident: String) = "♻" + ident
+
+  def isLibraryIdent(ident: String) = ident.startsWith("♻") && ident.length() > 1
+
+  def getLibraryName(ident: String) = ident.substring(1)
+
+  def returnIdent(ident: String) = "__returned_" + ident
+
+  def isReturnIdent(ident: String) = ident.startsWith("__returned_")
+
+  def isNonDetIdent(ident: String) = ident.startsWith("__nondet")
+
+  def isStmtTempIdent(ident: String) = ident.startsWith("__temp")
 
   def makekTouchProgramPoint(pubID: String, element: IdPositional) = {
     val pos = element.pos match {
@@ -62,33 +74,34 @@ object CFGGenerator {
 
 
 class CFGGenerator(compiler: TouchCompiler) {
+
   import CFGGenerator._
 
-  private var curPubID:String = ""
-  private var curScriptName:String = ""
+  private var curPubID: String = ""
+  private var curScriptName: String = ""
 
-  def process(script:parser.Script, pubID:String, libDef:Option[LibraryDefinition] = None):ClassDefinition = {
+  def process(script: parser.Script, pubID: String, libDef: Option[LibraryDefinition] = None): ClassDefinition = {
     //detectUnsupportedScripts(script)
     curPubID = pubID
     libDef match {
-      case Some(LibraryDefinition(name,_,_,_)) => curScriptName = libraryIdent(name)
+      case Some(LibraryDefinition(name, _, _, _)) => curScriptName = libraryIdent(name)
       case None => curScriptName = libraryIdent(pubID)
     }
-    val programPoint : ProgramPoint = makekTouchProgramPoint(curPubID, script)
-    val typ : Type = typeNameToType(TypeName(curScriptName), true)
+    val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, script)
+    val typ: Type = typeNameToType(TypeName(curScriptName), true)
     SystemParameters.typ = typ
 
     findTypes(script)
 
-    val modifiers : List[Modifier] = Nil
-    val name : ClassIdentifier = TouchClassIdentifier(curScriptName,typ)
-    val parametricTypes : List[Type] = Nil
-    val extend : List[ClassIdentifier] = Nil
-    val pack : PackageIdentifier = TouchPackageIdentifier()
-    val inv : Expression = null
+    val modifiers: List[Modifier] = Nil
+    val name: ClassIdentifier = TouchClassIdentifier(curScriptName, typ)
+    val parametricTypes: List[Type] = Nil
+    val extend: List[ClassIdentifier] = Nil
+    val pack: PackageIdentifier = TouchPackageIdentifier()
+    val inv: Expression = null
     val classDef = new ClassDefinition(programPoint, typ, modifiers, name, parametricTypes, extend, null, null, pack, inv)
-    val fields : List[FieldDeclaration] = findFields(script, classDef)
-    val methods : List[MethodDeclaration] = findMethods(script,typ, classDef)
+    val fields: List[FieldDeclaration] = findFields(script, classDef)
+    val methods: List[MethodDeclaration] = findMethods(script, typ, classDef)
     classDef.fields = fields
     classDef.methods = methods
     classDef
@@ -101,112 +114,117 @@ class CFGGenerator(compiler: TouchCompiler) {
    *
    * @param script The script that is searched for type declarations
    */
-  private def findTypes(script:parser.Script) {
+  private def findTypes(script: parser.Script) {
 
-    def addTouchType(semantics:AAny) {
+    def addTouchType(semantics: AAny) {
       compiler.userTypes += semantics.getTypeName -> semantics
     }
 
-    def addRecordsField(field:TouchField) {
-      SRecords.typ = DefaultTouchType(SRecords.typName,isSingleton = true, fields = SRecords.typ.possibleFields.toList ::: List(field))
+    def addRecordsField(field: TouchField) {
+      SRecords.typ = DefaultTouchType(SRecords.typName, isSingleton = true, fields = SRecords.typ.possibleFields.toList ::: List(field))
     }
 
-    def createFieldMembers(fields:List[Parameter]): List[(TouchField,TouchField)] = {
+    //    def createFieldMembers(fields:List[Parameter]): List[(TouchField,TouchField)] = {
+    //      for (field <- fields) yield {
+    //        val inp = field.typeName.toString
+    //        val (fieldTypeName, noFieldTypeName) =
+    //          if(inp.matches(""" field$""")) {
+    //            val (part1,check) = inp.splitAt(inp.size-7)
+    //            if (check != " field") throw TouchException("Expected field here")
+    //            (part1+" field",part1)
+    //          } else {
+    //            (inp+" field",inp)
+    //          }
+    //        val valueField = new TouchField("*value",noFieldTypeName)
+    //        val fieldType = DefaultTouchType(fieldTypeName,fields=List(valueField))
+    //
+    //        if (noFieldTypeName.equals("Number"))
+    //          addTouchType(new ANumberField(fieldType,valueField))
+    //        else
+    //          addTouchType(new AField(fieldType,valueField))
+    //
+    //        (new TouchField(field.ident,fieldTypeName,NewInitializer),valueField)
+    //      }
+    //    }
+
+    def toTouchField(fields: List[Parameter]): List[TouchField] = {
       for (field <- fields) yield {
-        val inp = field.typeName.toString
-        val (fieldTypeName, noFieldTypeName) =
-          if(inp.matches(""" field$""")) {
-            val (part1,check) = inp.splitAt(inp.size-7)
-            if (check != " field") throw TouchException("Expected field here")
-            (part1+" field",part1)
-          } else {
-            (inp+" field",inp)
-          }
-        val valueField = new TouchField("*value",noFieldTypeName)
-        val fieldType = DefaultTouchType(fieldTypeName,fields=List(valueField))
-
-        if (noFieldTypeName.equals("Number"))
-          addTouchType(new ANumberField(fieldType,valueField))
-        else
-          addTouchType(new AField(fieldType,valueField))
-
-        (new TouchField(field.ident,fieldTypeName,NewInitializer),valueField)
+        new TouchField(field.ident, field.typeName.ident)
       }
     }
 
     for (dec <- script.declarations) {
       dec match {
-        case thing@TableDefinition(ident,typeName,keys,fields) =>
+        case thing@TableDefinition(ident, typeName, keys, fields) =>
 
 
           typeName match {
             case "object" =>
 
-              val objectTyp = DefaultTouchType(ident,fields = createFieldMembers(fields) map (_._1))
-              val collectionTyp = new TouchCollection(ident+" Collection",TNumber.typName,ident)
-              val constructorTyp = DefaultTouchType(ident+" Constructor")
+              val objectTyp = DefaultTouchType(ident, fields = toTouchField(fields))
+              val collectionTyp = new TouchCollection(ident + " Collection", TNumber.typName, ident)
+              val constructorTyp = DefaultTouchType(ident + " Constructor")
 
               addTouchType(new AObject(objectTyp))
-              addTouchType(new AObjectCollection(collectionTyp,objectTyp))
-              addTouchType(new AObjectConstructor(constructorTyp,objectTyp,collectionTyp))
+              addTouchType(new AObjectCollection(collectionTyp, objectTyp))
+              addTouchType(new AObjectConstructor(constructorTyp, objectTyp, collectionTyp))
 
-              addRecordsField(new TouchField(ident,constructorTyp.name))
+              addRecordsField(new TouchField(ident, constructorTyp.name))
 
             case "table" =>
 
               val rowTypName = ident
-              val tableTypeName = ident+" Table"
+              val tableTypeName = ident + " Table"
 
               // An auxiliary field that stores a link from the row to the table, to implement row.delete_row
-              val tableField = new TouchField("*table",tableTypeName)
+              val tableField = new TouchField("*table", tableTypeName)
 
-              val rowTyp = DefaultTouchType(ident,fields = (createFieldMembers(fields) map (_._1)) ::: List(tableField))
-              val tableTyp = new TouchCollection(tableTypeName,TNumber.typName,rowTypName)
+              val rowTyp = DefaultTouchType(ident, fields = toTouchField(fields) ::: List(tableField))
+              val tableTyp = new TouchCollection(tableTypeName, TNumber.typName, rowTypName)
 
-              addTouchType(new ARow(rowTyp,tableField))
-              addTouchType(new ATable(tableTyp,rowTyp,tableField))
+              addTouchType(new ARow(rowTyp, tableField))
+              addTouchType(new ATable(tableTyp, rowTyp, tableField))
 
-              addRecordsField(new TouchField(ident+" table",tableTyp.name))
+              addRecordsField(new TouchField(ident + " table", tableTyp.name))
 
             case "index" =>
 
-              val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typ.ident)}
-              val fieldMembers = createFieldMembers(fields)
+              val keyMembers = toTouchField(keys)
+              val fieldMembers = toTouchField(fields)
+              val indexMemberType = DefaultTouchType(ident, fields = keyMembers ::: fieldMembers)
+              val keyTypes = keyMembers map (_.typ)
 
-              val indexMemberType = DefaultTouchType(ident,fields = (fieldMembers map (_._1))  ::: keyMembers)
-              val keyTypes = keyMembers map (_.typ.asInstanceOf[TouchType])
-
-              addTouchType(new AIndexMember(indexMemberType,fieldMembers))
+              addTouchType(new AIndexMember(indexMemberType, fieldMembers))
               val indexType =
                 if (keyTypes.size > 0) {
-                  val ty = new TouchCollection(ident+" Index",TNumber.typName,indexMemberType.name)
-                  addTouchType(new AIndex(ty,keyTypes,indexMemberType))
+                  val ty = new TouchCollection(ident + " Index", TNumber.typName, indexMemberType.name)
+                  addTouchType(new AIndex(ty, keyTypes, indexMemberType))
                   ty
                 } else {
-                  val ty = DefaultTouchType(ident+" Index",fields = List(new TouchField("singleton",indexMemberType.name)))
-                  addTouchType(new ASingletonIndex(ty,indexMemberType))
+                  val ty = DefaultTouchType(ident + " Index", fields = List(new TouchField("singleton", indexMemberType.name)))
+                  addTouchType(new ASingletonIndex(ty, indexMemberType))
                   ty
                 }
 
-              addRecordsField(new TouchField(ident+" index",indexType.name))
+              addRecordsField(new TouchField(ident + " index", indexType.name))
 
             case "decorator" =>
 
-              if (keys.size != 1) throw TouchException("Decorators must have exactly one entry "+thing.getPositionDescription)
+              if (keys.size != 1) throw TouchException("Decorators must have exactly one entry " + thing.getPositionDescription)
 
-              val keyMembers = keys map {case Parameter(x,typ) => new TouchField(x,typ.ident)}
-              val fieldMembers = createFieldMembers(fields)
+              val keyMembers = toTouchField(keys)
+              val fieldMembers = toTouchField(fields)
 
-              val decoratedType = keyMembers.head.typ.asInstanceOf[TouchType]
-              val decorationType = DefaultTouchType(ident,fields = (fieldMembers map (_._1)) ::: keyMembers)
-              val decoratorType = new TouchCollection(decoratedType+" Decorator",decoratedType.name,decorationType.name)
+              val decoratedType = keyMembers.head.typ
+              val decorationType = DefaultTouchType(ident, fields = fieldMembers ::: keyMembers)
+              val decoratorType = new TouchCollection(decoratedType + " Decorator", decoratedType.name, decorationType.name)
 
-              addTouchType(new AIndexMember(decorationType,fieldMembers))
-              addTouchType(new AIndex(decoratorType,List(decoratedType),decorationType))
+              addTouchType(new AIndexMember(decorationType, fieldMembers))
+              addTouchType(new AIndex(decoratorType, List(decoratedType), decorationType))
 
-              addRecordsField(new TouchField(decoratedType+" decorator",decoratorType.name))
+              addRecordsField(new TouchField(decoratedType + " decorator", decoratorType.name))
 
-            case _ => throw TouchException("Table type "+typeName+" not supported "+thing.getPositionDescription)
+            case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 
           }
 
@@ -215,112 +233,115 @@ class CFGGenerator(compiler: TouchCompiler) {
     }
   }
 
-  private def findFields(script:parser.Script, currentClassDef: ClassDefinition):List[FieldDeclaration] = {
+  private def findFields(script: parser.Script, currentClassDef: ClassDefinition): List[FieldDeclaration] = {
     (for (dec <- script.declarations) yield {
       dec match {
-        case v@parser.VariableDefinition(variable,flags) =>
-          val programPoint : ProgramPoint = makekTouchProgramPoint(curPubID, v)
-          val modifiers : List[Modifier] = (flags flatMap {
-            case ("is_resource","true") => Some(ResourceModifier)
-            case ("readonly","true") => Some(ReadOnlyModifier)
+        case v@parser.VariableDefinition(variable, flags) =>
+          val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, v)
+          val modifiers: List[Modifier] = (flags flatMap {
+            case ("is_resource", "true") => Some(ResourceModifier)
+            case ("readonly", "true") => Some(ReadOnlyModifier)
             case _ => None
           }).toList
           val name: Variable = parameterToVariable(variable)
-          val typ : Type = typeNameToType(variable.typeName)
+          val typ: Type = typeNameToType(variable.typeName)
           Some(new FieldDeclaration(programPoint, modifiers, name, typ))
         case _ => None
       }
     }).flatten
   }
 
-  private def findMethods(script:parser.Script,ownerType:Type, currentClassDef: ClassDefinition):List[MethodDeclaration] = {
+  private def findMethods(script: parser.Script, ownerType: Type, currentClassDef: ClassDefinition): List[MethodDeclaration] = {
     (for (dec <- script.declarations) yield {
       dec match {
-        case act@parser.ActionDefinition(ident,in,out,body,isEvent,isPriv) =>
-          val programPoint : ProgramPoint = makekTouchProgramPoint(curPubID, act)
-          val scope : ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
-          val modifiers : List[Modifier] = Nil
-          val isPrivate = isPriv || ((body find {case MetaStatement("private",_) => true; case _ => false}) != None)
-          val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=isEvent,isPrivate=isPrivate)
-          val parametricType : List[Type] = Nil
-          val arguments : List[List[VariableDeclaration]] =
-            List(in map (parameterToVariableDeclaration(_,scope)), out map (parameterToVariableDeclaration(_,scope)))
-          val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
-          val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,handlers) = addStatementsToCFG(body,newBody,scope, currentClassDef)
-          val preCond : Statement = null
-          val postCond : Statement = null
-          handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,
-            returnType,newBody,preCond,postCond, currentClassDef))
-        case act@parser.PageDefinition(ident,in,out,initBody,displayBody,isPriv) =>
-          val programPoint : ProgramPoint = makekTouchProgramPoint(curPubID, act)
-          val scope : ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
-          val modifiers : List[Modifier] = Nil
-          val name : MethodIdentifier = TouchMethodIdentifier(ident,isEvent=false,isPrivate=isPriv)
-          val parametricType : List[Type] = Nil
-          val arguments : List[List[VariableDeclaration]] =
-            List(in map (parameterToVariableDeclaration(_,scope)), out map (parameterToVariableDeclaration(_,scope)))
-          val returnType : Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
-          val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,handlers) = addStatementsToCFG(initBody ::: displayBody,newBody,scope, currentClassDef)
-          val preCond : Statement = null
-          val postCond : Statement = null
-          handlers ::: List(new MethodDeclaration(programPoint,ownerType,modifiers,name,parametricType,arguments,
-            returnType,newBody,preCond,postCond, currentClassDef))
+        case act@parser.ActionDefinition(ident, in, out, body, isEvent, isPriv) =>
+          val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, act)
+          val scope: ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
+          val modifiers: List[Modifier] = Nil
+          val isPrivate = isPriv || ((body find {
+            case MetaStatement("private", _) => true;
+            case _ => false
+          }) != None)
+          val name: MethodIdentifier = TouchMethodIdentifier(ident, isEvent = isEvent, isPrivate = isPrivate)
+          val parametricType: List[Type] = Nil
+          val arguments: List[List[VariableDeclaration]] =
+            List(in map (parameterToVariableDeclaration(_, scope)), out map (parameterToVariableDeclaration(_, scope)))
+          val returnType: Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
+        val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
+          val (_, _, handlers) = addStatementsToCFG(body, newBody, scope, currentClassDef)
+          val preCond: Statement = null
+          val postCond: Statement = null
+          handlers ::: List(new MethodDeclaration(programPoint, ownerType, modifiers, name, parametricType, arguments,
+            returnType, newBody, preCond, postCond, currentClassDef))
+        case act@parser.PageDefinition(ident, in, out, initBody, displayBody, isPriv) =>
+          val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, act)
+          val scope: ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
+          val modifiers: List[Modifier] = Nil
+          val name: MethodIdentifier = TouchMethodIdentifier(ident, isEvent = false, isPrivate = isPriv)
+          val parametricType: List[Type] = Nil
+          val arguments: List[List[VariableDeclaration]] =
+            List(in map (parameterToVariableDeclaration(_, scope)), out map (parameterToVariableDeclaration(_, scope)))
+          val returnType: Type = null // WE DO NOT USE RETURN TYPES IN TOUCHDEVELOP. SECOND ELEMENT OF PARAM REPR. OUT PARAMS
+        val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
+          val (_, _, handlers) = addStatementsToCFG(initBody ::: displayBody, newBody, scope, currentClassDef)
+          val preCond: Statement = null
+          val postCond: Statement = null
+          handlers ::: List(new MethodDeclaration(programPoint, ownerType, modifiers, name, parametricType, arguments,
+            returnType, newBody, preCond, postCond, currentClassDef))
         case _ => Nil
       }
     }).flatten
   }
 
   private def parameterToVariableDeclaration(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): VariableDeclaration = {
-    val programPoint : ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
-    val variable : Variable = parameterToVariable(parameter,scope)
-    val typ : Type = typeNameToType(parameter.typeName)
+    val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
+    val variable: Variable = parameterToVariable(parameter, scope)
+    val typ: Type = typeNameToType(parameter.typeName)
     VariableDeclaration(programPoint, variable, typ)
   }
 
   private def parameterToVariable(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): Variable = {
-    val programPoint : ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
-    val id : VariableIdentifier = parameterToVariableIdentifier(parameter,scope)
-    Variable(programPoint,id)
+    val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
+    val id: VariableIdentifier = parameterToVariableIdentifier(parameter, scope)
+    Variable(programPoint, id)
   }
 
   private def parameterToVariableIdentifier(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): VariableIdentifier = {
-    val name : String = parameter.ident
-    val typ : Type = typeNameToType(parameter.typeName)
-    val programPoint : ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
+    val name: String = parameter.ident
+    val typ: Type = typeNameToType(parameter.typeName)
+    val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
     VariableIdentifier(name, scope)(typ, programPoint)
   }
 
-  private def typeNameToType(typeName:parser.TypeName, isSingleton:Boolean = false):TouchType = {
+  private def typeNameToType(typeName: parser.TypeName, isSingleton: Boolean = false): TouchType = {
     if (!isLibraryIdent(typeName.ident)) {
       compiler.getSemantics(typeName.ident).getTyp
-    } else DefaultTouchType(typeName.ident,isSingleton)
+    } else DefaultTouchType(typeName.ident, isSingleton)
   }
 
-  private def addStatementsToCFG(statements:List[parser.Statement], cfg:ControlFlowGraph, scope:ScopeIdentifier,
-                                  currentClassDef: ClassDefinition):(Int,Int,List[MethodDeclaration]) = {
+  private def addStatementsToCFG(statements: List[parser.Statement], cfg: ControlFlowGraph, scope: ScopeIdentifier,
+                                 currentClassDef: ClassDefinition): (Int, Int, List[MethodDeclaration]) = {
 
     val firstNode = cfg.addNode(Nil)
-    var newStatements:List[Statement] = Nil
-    var newHandlers:List[MethodDeclaration] = Nil
+    var newStatements: List[Statement] = Nil
+    var newHandlers: List[MethodDeclaration] = Nil
     var curNode = firstNode
 
     for (statement <- statements) statement match {
 
-      case parser.MetaStatement(_,_) =>
+      case parser.MetaStatement(_, _) =>
         Unit
 
       case parser.Skip() =>
         Unit
 
-      case parser.If(condition,thenBody,elseBody) =>
+      case parser.If(condition, thenBody, elseBody) =>
 
         val nextNode = cfg.addNode(Nil)
-        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
+        val (condStart, condEnd, handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
 
-        val (thenStart,thenEnd,handlersThen) = addStatementsToCFG(thenBody, cfg, scope, currentClassDef)
-        val (elseStart,elseEnd,handlersElse) = addStatementsToCFG(elseBody, cfg, scope, currentClassDef)
+        val (thenStart, thenEnd, handlersThen) = addStatementsToCFG(thenBody, cfg, scope, currentClassDef)
+        val (elseStart, elseEnd, handlersElse) = addStatementsToCFG(elseBody, cfg, scope, currentClassDef)
 
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, thenStart, Some(true))
@@ -328,111 +349,111 @@ class CFGGenerator(compiler: TouchCompiler) {
         cfg.addEdge(thenEnd, nextNode, None)
         cfg.addEdge(elseEnd, nextNode, None)
 
-        cfg.setNode(curNode,newStatements)
+        cfg.setNode(curNode, newStatements)
         newStatements = Nil
         newHandlers = newHandlers ::: handlersCond ::: handlersThen ::: handlersElse
         curNode = nextNode
 
-      case parser.While(condition,body) =>
+      case parser.While(condition, body) =>
 
         val nextNode = cfg.addNode(Nil)
-        val (condStart,condEnd,handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
-        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body, cfg, scope, currentClassDef)
+        val (condStart, condEnd, handlersCond) = addStatementsToCFG(List(ExpressionStatement(condition)), cfg, scope, currentClassDef)
+        val (bodyStart, bodyEnd, handlersBody) = addStatementsToCFG(body, cfg, scope, currentClassDef)
 
         cfg.addEdge(curNode, condStart, None)
         cfg.addEdge(condEnd, bodyStart, Some(true))
         cfg.addEdge(condEnd, nextNode, Some(false))
         cfg.addEdge(bodyEnd, condStart, None)
 
-        cfg.setNode(curNode,newStatements)
+        cfg.setNode(curNode, newStatements)
         newStatements = Nil
         newHandlers = newHandlers ::: handlersCond ::: handlersBody
         curNode = nextNode
 
       case parser.ExpressionStatement(expr) =>
 
-        newStatements = newStatements ::: expressionToStatement(expr,scope) :: Nil
+        newStatements = newStatements ::: expressionToStatement(expr, scope) :: Nil
 
       case b@Box(body) =>
 
         // TODO: what else?
         val nextNode = cfg.addNode(Nil)
-        val (bodyStart,bodyEnd,handlersBody) = addStatementsToCFG(body,cfg, scope, currentClassDef)
+        val (bodyStart, bodyEnd, handlersBody) = addStatementsToCFG(body, cfg, scope, currentClassDef)
 
         cfg.addEdge(curNode, bodyStart, None)
         cfg.addEdge(bodyEnd, nextNode, None)
 
-        cfg.setNode(curNode,newStatements)
+        cfg.setNode(curNode, newStatements)
         newStatements = Nil
         newHandlers = newHandlers ::: handlersBody
         curNode = nextNode
 
-      case w@WhereStatement(expr,handlerDefs:List[InlineAction]) =>
+      case w@WhereStatement(expr, handlerDefs: List[InlineAction]) =>
 
         val handlerSet =
-          for (InlineAction(handlerName,inParameters,_,_) <- handlerDefs) yield {
-            ( handlerName, handlerIdent(handlerName+makekTouchProgramPoint(curPubID, w)), Typer.inParametersToActionType(inParameters) )
+          for (InlineAction(handlerName, inParameters, _, _) <- handlerDefs) yield {
+            (handlerName, handlerIdent(handlerName + makekTouchProgramPoint(curPubID, w)), Typer.inParametersToActionType(inParameters))
           }
 
-        val handlers = (for (InlineAction(handlerName,inParameters,outParameters,body) <- handlerDefs) yield {
-          val handlerMethodName = handlerIdent(handlerName+makekTouchProgramPoint(curPubID, w))
-          val programPoint : ProgramPoint = makekTouchProgramPoint(curPubID, w)
-          val modifiers : List[Modifier] = Nil
-          val name : MethodIdentifier = TouchMethodIdentifier(handlerMethodName,isEvent = true,isPrivate = true)
-          val parametricType : List[Type] = Nil
-          val arguments : List[List[VariableDeclaration]] =
-            List(inParameters map (parameterToVariableDeclaration(_,scope)), outParameters map (parameterToVariableDeclaration(_,scope)))
-          val returnType : Type = null
-          val newBody : ControlFlowGraph = new ControlFlowGraph(programPoint)
-          val (_,_,subHandlers) = addStatementsToCFG(body,newBody,scope, currentClassDef)
-          val preCond : Statement = null
-          val postCond : Statement = null
-          subHandlers ::: List(new MethodDeclaration(programPoint,currentClassDef.typ,modifiers,name,parametricType,
-            arguments,returnType,newBody,preCond,postCond, currentClassDef))
+        val handlers = (for (InlineAction(handlerName, inParameters, outParameters, body) <- handlerDefs) yield {
+          val handlerMethodName = handlerIdent(handlerName + makekTouchProgramPoint(curPubID, w))
+          val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, w)
+          val modifiers: List[Modifier] = Nil
+          val name: MethodIdentifier = TouchMethodIdentifier(handlerMethodName, isEvent = true, isPrivate = true)
+          val parametricType: List[Type] = Nil
+          val arguments: List[List[VariableDeclaration]] =
+            List(inParameters map (parameterToVariableDeclaration(_, scope)), outParameters map (parameterToVariableDeclaration(_, scope)))
+          val returnType: Type = null
+          val newBody: ControlFlowGraph = new ControlFlowGraph(programPoint)
+          val (_, _, subHandlers) = addStatementsToCFG(body, newBody, scope, currentClassDef)
+          val preCond: Statement = null
+          val postCond: Statement = null
+          subHandlers ::: List(new MethodDeclaration(programPoint, currentClassDef.typ, modifiers, name, parametricType,
+            arguments, returnType, newBody, preCond, postCond, currentClassDef))
         }).flatten
 
-        def ty (typ:String,expr:parser.Expression):parser.Expression = {
+        def ty(typ: String, expr: parser.Expression): parser.Expression = {
           expr.typeName = TypeName(typ)
           expr
         }
 
         // Create a statement that creates the handler object and assigns the handler variable
         val handlerCreationStatements = handlerSet map {
-          case (variableName:String, actionName:String, handlerType:TypeName) =>
+          case (variableName: String, actionName: String, handlerType: TypeName) =>
             expressionToStatement(
-              ty("Nothing",parser.Access(
-                ty(handlerType.toString,parser.LocalReference(variableName)),
+              ty("Nothing", parser.Access(
+                ty(handlerType.toString, parser.LocalReference(variableName)),
                 Identifier(":="),
                 List(
-                 ty(handlerType.toString,parser.Access(
-                   ty("Helpers",parser.SingletonReference("helpers","Helpers")),
-                   Identifier("create "+handlerType.ident.toLowerCase+" "+actionName),
-                   Nil
-                 ))
+                  ty(handlerType.toString, parser.Access(
+                    ty("Helpers", parser.SingletonReference("helpers", "Helpers")),
+                    Identifier("create " + handlerType.ident.toLowerCase + " " + actionName),
+                    Nil
+                  ))
                 )
               )),
               scope
             )
         }
 
-        newStatements = newStatements ::: handlerCreationStatements ::: List(expressionToStatement(expr,scope))
+        newStatements = newStatements ::: handlerCreationStatements ::: List(expressionToStatement(expr, scope))
         newHandlers = newHandlers ::: handlers
 
       case _ =>
-        throw TouchException("Invalid statement",statement.pos)
+        throw TouchException("Invalid statement", statement.pos)
 
     }
 
-    cfg.setNode(curNode,newStatements)
-    (firstNode,curNode,newHandlers)
+    cfg.setNode(curNode, newStatements)
+    (firstNode, curNode, newHandlers)
 
   }
 
-  private def expressionToStatement(expr:parser.Expression, scope:ScopeIdentifier):Statement = {
+  private def expressionToStatement(expr: parser.Expression, scope: ScopeIdentifier): Statement = {
 
     val pc = makekTouchProgramPoint(curPubID, expr)
-    if (expr == parser.SingletonReference("skip","Nothing")) return EmptyStatement(pc)
-    if (expr == parser.SingletonReference("skip","Skip")) return EmptyStatement(pc)
+    if (expr == parser.SingletonReference("skip", "Nothing")) return EmptyStatement(pc)
+    if (expr == parser.SingletonReference("skip", "Skip")) return EmptyStatement(pc)
 
     val typ = typeNameToType(expr.typeName)
 
@@ -441,14 +462,14 @@ class CFGGenerator(compiler: TouchCompiler) {
       case parser.LocalReference(ident) =>
         Variable(pc, VariableIdentifier(ident, scope)(typ, pc))
 
-      case parser.Access(subject,property,args) =>
+      case parser.Access(subject, property, args) =>
         val field = FieldAccess(makekTouchProgramPoint(curPubID, property), expressionToStatement(subject, scope), property.ident, typeNameToType(subject.typeName))
-        MethodCall(makekTouchProgramPoint(curPubID, property),field,Nil,args map (expressionToStatement(_,scope)),typ)
+        MethodCall(makekTouchProgramPoint(curPubID, property), field, Nil, args map (expressionToStatement(_, scope)), typ)
 
-      case parser.Literal(t,value) =>
+      case parser.Literal(t, value) =>
         if (t.ident == "Number" || t.ident == "Boolean" || t.ident == "String" || t.ident == "Handler") {
-          ConstantStatement(pc,value,typ)
-        } else throw new TouchException("Literals with type "+t.ident+" do not exist")
+          ConstantStatement(pc, value, typ)
+        } else throw new TouchException("Literals with type " + t.ident + " do not exist")
 
       case parser.SingletonReference(singleton, typ) =>
         Variable(pc, VariableIdentifier(singleton)(typeNameToType(expr.typeName, isSingleton = true), pc))
@@ -471,18 +492,18 @@ trait Named {
   override def toString = name
 }
 
-case class TouchException(msg:String,pos:Position = null) extends Exception {
-  override def toString:String = msg + " (Position: " + pos + ")"
+case class TouchException(msg: String, pos: Position = null) extends Exception {
+  override def toString: String = msg + " (Position: " + pos + ")"
 }
 
-case class UnsupportedLanguageFeatureException(msg:String) extends Exception {
-  override def toString:String = msg
+case class UnsupportedLanguageFeatureException(msg: String) extends Exception {
+  override def toString: String = msg
 }
 
 case class TouchPackageIdentifier() extends PackageIdentifier
 
-case class TouchMethodIdentifier(ident:String,isEvent:Boolean,isPrivate:Boolean) extends MethodIdentifier {
-  override def toString:String = ident
+case class TouchMethodIdentifier(ident: String, isEvent: Boolean, isPrivate: Boolean) extends MethodIdentifier {
+  override def toString: String = ident
 }
 
 case class TouchClassIdentifier(name: String, typ: Type) extends Named with ClassIdentifier {
@@ -490,9 +511,9 @@ case class TouchClassIdentifier(name: String, typ: Type) extends Named with Clas
 }
 
 case class TouchProgramPoint(
-    scriptID: String, 
-    lineColumnPosition: Option[Position],
-    customPositionElements: List[String]) 
+                              scriptID: String,
+                              lineColumnPosition: Option[Position],
+                              customPositionElements: List[String])
   extends ProgramPoint {
 
   def fullPosString: String = {
@@ -507,15 +528,17 @@ case class TouchProgramPoint(
     val fullPos = fullPosString
     s"PP($scriptID:$fullPos)"
   }
+
   override def description = {
     val fullPos = fullPosString
     s"in script $scriptID at node $fullPos"
   }
 }
 
-case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
-  override def toString = "Init("+name+")"
-  override def description = "at initialization of singleton "+name
+case class TouchSingletonProgramPoint(name: String) extends ProgramPoint {
+  override def toString = "Init(" + name + ")"
+
+  override def description = "at initialization of singleton " + name
 }
 
 /**
@@ -533,19 +556,20 @@ case class TouchSingletonProgramPoint(name:String) extends ProgramPoint {
  *
  */
 object DeepeningProgramPoint {
-  def apply(pp:ProgramPoint,name:String):(DeepeningProgramPoint,Boolean) = {
+  def apply(pp: ProgramPoint, name: String): (DeepeningProgramPoint, Boolean) = {
     pp match {
-      case DeepeningProgramPoint(realPP,path) =>
-        if (path.contains(name)) (DeepeningProgramPoint(realPP,path.takeWhile(!_.equals(name)) ::: (name :: Nil)),true)
-        else (DeepeningProgramPoint(realPP,path ::: (name :: Nil)),false)
-      case _ => (DeepeningProgramPoint(pp,name :: Nil),false)
+      case DeepeningProgramPoint(realPP, path) =>
+        if (path.contains(name)) (DeepeningProgramPoint(realPP, path.takeWhile(!_.equals(name)) ::: (name :: Nil)), true)
+        else (DeepeningProgramPoint(realPP, path ::: (name :: Nil)), false)
+      case _ => (DeepeningProgramPoint(pp, name :: Nil), false)
     }
   }
 }
 
-case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends ProgramPoint {
-  override def toString = pp+"("+path.mkString(",")+")"
-  override def description = pp+" at initialization path "+path.mkString(",")
+case class DeepeningProgramPoint(pp: ProgramPoint, path: List[String]) extends ProgramPoint {
+  override def toString = pp + "(" + path.mkString(",") + ")"
+
+  override def description = pp + " at initialization path " + path.mkString(",")
 }
 
 /**
@@ -553,4 +577,5 @@ case class DeepeningProgramPoint(pp:ProgramPoint,path:List[String]) extends Prog
  * mostly images loaded from URLs.
  */
 case object ResourceModifier extends Modifier
+
 case object ReadOnlyModifier extends Modifier

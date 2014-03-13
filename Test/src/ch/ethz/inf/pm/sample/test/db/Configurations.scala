@@ -28,17 +28,9 @@ object Iterators {
   val rootScripts = new ScriptQuery with ErrorFilter with RootFilter with LibraryFilter
   val veryRecentScripts = {
     val x = new ScriptQuery with ErrorFilter with RootFilter with NewService
-    x.setLimit(20)
+    x.setLimit(1000)
     x
   }
-
-  val scriptsIn2013 = {
-    val x = new ScriptQuery with ErrorFilter with RootFilter with NewService with DateFilter
-    x.setLimit(20)
-    x.setDate("01/01/2013")
-    x
-  }
-
-  val iterators = List(allScripts, topScripts, newScripts, veryRecentScripts, rootScripts, scriptsIn2013).toArray[IteratorOverPrograms]
+  val iterators = List(allScripts, topScripts, newScripts, veryRecentScripts, rootScripts).toArray[IteratorOverPrograms]
 
 }

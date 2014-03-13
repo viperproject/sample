@@ -24,6 +24,7 @@ class SInvalid extends AAny {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S): S = method match {
 
+    case "action" => Return(Invalid(TAction.typ))
     case "appointment" => Return(Invalid(TAppointment.typ)) // Creates an invalid Appointment instance
     case "appointment collection" => Return(Invalid(TAppointment_Collection.typ)) // Creates an invalid Appointment Collection instance
     case "bluetooth device" => Return(Invalid(TBluetooth_Device.typ)) // Creates an invalid Bluetooth Device instance
