@@ -44,12 +44,12 @@ case class CollectingGhostOpHook[S <: SemanticDomain[S]]() extends GhostOpHook[S
 
 /** Represents a ghost operation performed by the `PredicateDrivenHeapState` */
 trait GhostOp[S <: SemanticDomain[S]] {
-  def state: PredicateDrivenHeapState[S]
+  def postState: PredicateDrivenHeapState[S]
 }
 
 /** Represents an unfold performed by the `PredicateDrivenHeapState` */
 final case class UnfoldGhostOp[S <: SemanticDomain[S]](
-    state: PredicateDrivenHeapState[S],
+    postState: PredicateDrivenHeapState[S],
     variable: Identifier,
     predicateId: Identifier)
   extends GhostOp[S] {
@@ -57,7 +57,7 @@ final case class UnfoldGhostOp[S <: SemanticDomain[S]](
 
 /** Represents a fold performed by the `PredicateDrivenHeapState` */
 final case class FoldGhostOp[S <: SemanticDomain[S]](
-    state: PredicateDrivenHeapState[S],
+    postState: PredicateDrivenHeapState[S],
     variable: Identifier,
     predicateId: Identifier)
   extends GhostOp[S] {
@@ -65,7 +65,7 @@ final case class FoldGhostOp[S <: SemanticDomain[S]](
 
 /** Represents a merge of predicates by the `PredicateDrivenHeapState`. */
 final case class PredMergeGhostOp[S <: SemanticDomain[S]](
-    state: PredicateDrivenHeapState[S],
+    postState: PredicateDrivenHeapState[S],
     repl: Replacement)
   extends GhostOp[S] {
 }

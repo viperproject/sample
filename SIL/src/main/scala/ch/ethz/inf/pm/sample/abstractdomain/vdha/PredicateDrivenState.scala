@@ -132,12 +132,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         } else e.state
       })
 
-      if (wasFolded) {
-        // Let subscribers of ghost operations know about the unfold
-        val unfold = UnfoldGhostOp[S](this, localVarVertex.variable, recvPredId)
-        ghostOpHook.handleUnfold(unfold)
-      }
-
       // Add permission if necessary
       if (!hasPerm) {
         if (id.typ.isObject) {
@@ -193,7 +187,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           })
         }
       }
-      Seq(result)
+
+      if (wasFolded) {
+        // Let subscribers of ghost operations know about the unfold
+        val unfold = UnfoldGhostOp[S](result, localVarVertex.variable, recvPredId)
+        ghostOpHook.handleUnfold(unfold)
+      }
     }
 
     recvEdges.filter(_.target == NullVertex).toList match {
@@ -303,6 +302,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             resultingCondHeap = resultingCondHeap.map(state => {
               state.merge(repl)
             })
+
+            // TODO: Also fire predicate merge event
           }
         }
         Seq(resultingCondHeap)
@@ -423,7 +424,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           result = result.copy(abstractHeap = candidateAbstractHeap)
 
           // Let subscribers know about the fold operation
-          val fold = FoldGhostOp[S](this, localVarVertex.variable, unfoldedPredId)
+          val fold = FoldGhostOp[S](result, localVarVertex.variable, unfoldedPredId)
           ghostOpHook.handleFold(fold)
         } else {
           println("cannot fold")
@@ -527,6 +528,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val resGeneralState = thisFolded.generalValState.merge(repl).lub(otherFolded.generalValState.merge(repl).rename(valueRenameMap.toMap))
 
       val result = factory(resAbstractHeap, resGeneralState, ExpressionSet()).prune()
+
+      // Inform subscribers about the predicate merge
+      // TODO: We may not have actually chosen this result!
+      val predMerge = PredMergeGhostOp(result, repl)
+      ghostOpHook.handlePredMerge(predMerge)
 
       bestResultOption = bestResultOption match {
         case Some(bestResult) =>
