@@ -20,7 +20,7 @@ trait PredicateRegistry {
 }
 
 case class DefaultPredicateRegistry(
-    map: Map[sample.Identifier, (sample.PredicateDefinition, sil.Predicate)],
+    map: Map[sample.Identifier, (sample.PredicateBody, sil.Predicate)],
     hideShallowPredicates: Boolean = true)
   extends PredicateRegistry {
 
@@ -69,27 +69,27 @@ case class PredicateRegistryBuilder(
     formalArgName: String = "this",
     hideShallowPredicates: Boolean = true) {
   def build(
-      extractedPreds: sample.PredicateDefinitionsDomain,
+      extractedPreds: sample.PredicatesDomain,
       existingSilPreds: Seq[sil.Predicate] = Seq.empty): PredicateRegistry = {
 
     val existingPreds = DefaultSilConverter.convert(existingSilPreds)
 
-    val predMap: Map[sample.Identifier, (sample.PredicateDefinition, sil.Predicate)] = extractedPreds.map.map({
-      case (predId, predDef) =>
-        existingPreds.findEqual(predId, predDef) match {
+    val predMap: Map[sample.Identifier, (sample.PredicateBody, sil.Predicate)] = extractedPreds.map.map({
+      case (predId, predBody) =>
+        existingPreds.findEqual(predId, predBody) match {
           case Some(existingPredId) =>
-            predId -> (predDef, existingSilPreds.find(_.name == existingPredId.getName).get)
+            predId -> (predBody, existingSilPreds.find(_.name == existingPredId.getName).get)
           case None =>
             val predName = buildName(predId)
-            predId -> (predDef, sil.Predicate(predName, Seq(formalArgDecl), null)())
+            predId -> (predBody, sil.Predicate(predName, Seq(formalArgDecl), null)())
         }
     })
 
     predMap.foreach({
-      case (predDefId, (samplePred, silPred)) =>
-        val predDef = extractedPreds.map(predDefId)
+      case (predId, (samplePred, silPred)) =>
+        val predBody = extractedPreds.map(predId)
         if (silPred.body == null) {
-          silPred.body = buildBody(predDef, predMap)
+          silPred.body = buildBody(predBody, predMap)
         }
     })
 
@@ -101,24 +101,24 @@ case class PredicateRegistryBuilder(
   }
 
   protected def buildBody(
-      predDef: PredicateDefinition,
-      predMap: Map[sample.Identifier, (sample.PredicateDefinition, sil.Predicate)]): sil.Exp = {
-    if (predDef.isTop)
+      body: PredicateBody,
+      predMap: Map[sample.Identifier, (sample.PredicateBody, sil.Predicate)]): sil.Exp = {
+    if (body.isTop)
       sil.TrueLit()()
-    else if (predDef.isBottom)
+    else if (body.isBottom)
       sil.FalseLit()()
     else {
-      val accessPreds = predDef.map.map({
-        case (field, nestedPredDefIds) =>
+      val accessPreds = body.map.map({
+        case (field, nestedPredIds) =>
           val fieldAccessPred = buildFieldAccessPred(field)
 
-          assert(!nestedPredDefIds.isBottom,
+          assert(!nestedPredIds.isBottom,
             "set of nested predicate definitions must not be bottom")
 
-          nestedPredDefIds.value.toList match {
-            case nestedPredDefId :: Nil =>
+          nestedPredIds.value.toList match {
+            case nestedPredId :: Nil =>
               val nonNullnessCond = sil.NeCmp(fieldAccessPred.loc, sil.NullLit()())()
-              val pred = predMap(nestedPredDefId)._2
+              val pred = predMap(nestedPredId)._2
               val predAccessPred = sil.PredicateAccessPredicate(
                 sil.PredicateAccess(Seq(buildFieldAccess(field)), pred)(), sil.FullPerm()())()
 
@@ -143,7 +143,7 @@ case class PredicateRegistryBuilder(
     sil.FieldAccess(formalArgDecl.localVar, field)()
   }
 
-  /** Declaration of the predicate definition parameter. */
+  /** Declaration of the predicate body parameter. */
   protected def formalArgDecl: sil.LocalVarDecl =
     sil.LocalVarDecl(formalArgName, sil.Ref)()
 }
@@ -262,10 +262,10 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       val localVarName = edge.source.name
 
       for (predId <- edge.state.predInsts.foldedIds) {
-        val predDef = edge.state.predDefs.get(predId)
+        val predBody = edge.state.preds.get(predId)
 
-        if (predRegistry.hideShallowPredicates && predDef.isShallow) {
-          val fieldsWithPerm = predDef.map.keySet
+        if (predRegistry.hideShallowPredicates && predBody.isShallow) {
+          val fieldsWithPerm = predBody.map.keySet
 
           for (field <- fieldsWithPerm) {
             val valHeapId = ValueHeapIdentifier(target, field)

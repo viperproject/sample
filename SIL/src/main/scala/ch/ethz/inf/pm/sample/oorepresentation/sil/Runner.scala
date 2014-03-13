@@ -44,7 +44,7 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics())
 
     // Experimental
-    PredicateDefinition.resetId()
+    PredicateBody.resetId()
     
     // TODO: Get rid of this ugly hack
     vdha.glbPreservingIdsStrategy = CustomGlbPreservingIdsStrategy
@@ -182,7 +182,7 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
 
   def analyze(method: MethodDeclaration): AnalysisResult[T] = {
     def defs(state: T) =
-      state.generalValState.valueState.predicateState.definitions
+      state.generalValState.valueState.predicateState.predicates
 
     // Rather than building the entry state from scratch,
     // adapt the one of the first iteration.
@@ -204,7 +204,7 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
       val newState = state.copy(valueState = {
         state.valueState.copy[S](predicateState = {
           state.valueState.predicateState.copy(
-            definitions = secondEntryDefs.copy(map = secondEntryDefs.map.filterNot(_._2.isBottom)),
+            predicates = secondEntryDefs.copy(map = secondEntryDefs.map.filterNot(_._2.isBottom)),
             instances = {
               import PredicateInstancesDomain._
 

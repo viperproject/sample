@@ -39,7 +39,7 @@ trait SilConverter {
     * could be converted as well. This is the reason why the method
     * takes a sequence of SIL predicates.
     */
-  def convert(preds: Seq[sil.Predicate]): sample.PredicateDefinitionsDomain
+  def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain
 }
 
 object DefaultSilConverter extends SilConverter {
@@ -256,8 +256,8 @@ object DefaultSilConverter extends SilConverter {
          sil.ExplicitSet(_) => ???
   }
 
-  def convert(preds: Seq[sil.Predicate]): sample.PredicateDefinitionsDomain = {
-    val predIdToBodyMap: Map[sample.Identifier, sample.PredicateDefinition] =
+  def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain = {
+    val predIdToBodyMap: Map[sample.Identifier, sample.PredicateBody] =
       preds.map(convert).flatten.toMap
 
     /** Returns the set of all predicate IDs recursively nested
@@ -286,7 +286,7 @@ object DefaultSilConverter extends SilConverter {
     }
 
     // Filter out any predicates that could not be converted completely
-    var result = sample.PredicateDefinitionsDomain().top()
+    var result = sample.PredicatesDomain().top()
     for ((predId, predBody) <- predIdToBodyMap) {
       if (deeplyNestedPredIds(predId).subsetOf(predIdToBodyMap.keySet)) {
         result = result.add(predId, predBody)
@@ -301,7 +301,7 @@ object DefaultSilConverter extends SilConverter {
     * If the given predicate has a shape that our domain of predicates does not
     * support, the method returns `None`.
     */
-  private def convert(pred: sil.Predicate): Option[(sample.Identifier, sample.PredicateDefinition)] = {
+  private def convert(pred: sil.Predicate): Option[(sample.Identifier, sample.PredicateBody)] = {
     if (pred.formalArgs.map(_.typ) != Seq(sil.Ref)) {
       // Only support SIL predicates with a single reference parameter
       return None
@@ -341,11 +341,11 @@ object DefaultSilConverter extends SilConverter {
     })
 
     val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
-    val samplePredDef = sample.PredicateDefinition().functionalFactory(
+    val samplePredBody = sample.PredicateBody().functionalFactory(
       fieldsWithPerm.mapValues(predIds => {
         predIds.foldLeft(sample.NestedPredDefDomain())(_.add(_))
       }))
-    Some(samplePredId -> samplePredDef)
+    Some(samplePredId -> samplePredBody)
   }
 
   /**

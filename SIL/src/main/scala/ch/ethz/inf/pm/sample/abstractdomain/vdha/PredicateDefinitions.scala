@@ -6,22 +6,22 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 
-case class PredicateDefinitionsDomain(
-    map: Map[Identifier, PredicateDefinition] = Map.empty[Identifier, PredicateDefinition],
+case class PredicatesDomain(
+    map: Map[Identifier, PredicateBody] = Map.empty[Identifier, PredicateBody],
     isTop: Boolean = false,
     override val isBottom: Boolean = false,
-    defaultValue: PredicateDefinition = PredicateDefinition().top())
-  extends BoxedDomain[PredicateDefinition, PredicateDefinitionsDomain]
-  with SemanticDomain[PredicateDefinitionsDomain]
-  with Lattice.Must[PredicateDefinitionsDomain] {
+    defaultValue: PredicateBody = PredicateBody().top())
+  extends BoxedDomain[PredicateBody, PredicatesDomain]
+  with SemanticDomain[PredicatesDomain]
+  with Lattice.Must[PredicatesDomain] {
 
-  def get(key: Identifier): PredicateDefinition = map.getOrElse(key, defaultValue)
+  def get(key: Identifier): PredicateBody = map.getOrElse(key, defaultValue)
 
   def functionalFactory(
-      value: Map[Identifier, PredicateDefinition],
+      value: Map[Identifier, PredicateBody],
       isBottom: Boolean,
       isTop: Boolean) =
-    PredicateDefinitionsDomain(value, isTop, isBottom, defaultValue)
+    PredicatesDomain(value, isTop, isBottom, defaultValue)
 
   def removeVariable(variable: Identifier) = remove(variable)
 
@@ -34,7 +34,7 @@ case class PredicateDefinitionsDomain(
   def assume(expr: Expression) = this
 
   def assign(variable: Identifier, expr: Expression) = expr match {
-    case (expr: PredicateDefinition) => add(variable, expr)
+    case (expr: PredicateBody) => add(variable, expr)
   }
 
   /** Finds a predicate that is structurally equal to the given predicate,
@@ -42,17 +42,17 @@ case class PredicateDefinitionsDomain(
     *
     * @todo support nested predicate instances that are not directly recursive
     */
-  def findEqual(needleId: Identifier, needleDef: PredicateDefinition): Option[Identifier] = {
-    for ((predId, predDef) <- map) {
-      val renamedPredDef = predDef.rename(predId, needleId)
-      if (renamedPredDef == needleDef) {
-        return Some(predId)
+  def findEqual(needleId: Identifier, needleBody: PredicateBody): Option[Identifier] = {
+    for ((id, body) <- map) {
+      val renamedBody = body.rename(id, needleId)
+      if (renamedBody == needleBody) {
+        return Some(id)
       }
     }
     None
   }
 
-  override def merge(r: Replacement): PredicateDefinitionsDomain = {
+  override def merge(r: Replacement): PredicatesDomain = {
     if (r.isEmpty()) return this
 
     assert(r.value.size == 1, "there must be only one replacement")
@@ -68,22 +68,22 @@ case class PredicateDefinitionsDomain(
 
       var result = this
 
-      result = result.copy(map = result.map.mapValues(predDef => {
-        predDef.copy(
-          map = predDef.map.mapValues(nestedPredDefIds => {
-            var newValue = nestedPredDefIds.value -- fromSet
-            if (newValue.size < nestedPredDefIds.value.size) {
+      result = result.copy(map = result.map.mapValues(predBody => {
+        predBody.copy(
+          map = predBody.map.mapValues(nestedPredIds => {
+            var newValue = nestedPredIds.value -- fromSet
+            if (newValue.size < nestedPredIds.value.size) {
               newValue = newValue ++ toSet
             }
-            nestedPredDefIds.copy(value = newValue)
+            nestedPredIds.copy(value = newValue)
           })
         )
       }))
 
-      val newDef = Lattice.bigLub(fromSet.map(result.map.apply))
+      val newBody = Lattice.bigLub(fromSet.map(result.map.apply))
 
       result = fromSet.foldLeft(result)(_.removeVariable(_))
-      result = result.lub(result.assign(toSet.head, newDef))
+      result = result.lub(result.assign(toSet.head, newBody))
 
       // TODO: Should also replace any other occurrences
 
@@ -92,31 +92,31 @@ case class PredicateDefinitionsDomain(
   }
 
   def setArgument(variable: Identifier, expr: Expression) = ???
-  def backwardAssign(oldPreState: PredicateDefinitionsDomain, variable: Identifier, expr: Expression) = ???
+  def backwardAssign(oldPreState: PredicatesDomain, variable: Identifier, expr: Expression) = ???
   def backwardAccess(field: Identifier) = ???
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
   def access(field: Identifier) = ???
 }
 
-final case class PredicateDefinition(
+final case class PredicateBody(
     map: Map[Identifier, NestedPredDefDomain] = Map.empty[Identifier, NestedPredDefDomain],
     isTop: Boolean = false,
     override val isBottom: Boolean = false,
     defaultValue: NestedPredDefDomain = NestedPredDefDomain().top())
-  extends FunctionalDomain[Identifier, NestedPredDefDomain, PredicateDefinition]
-  with Lattice.Must[PredicateDefinition]
+  extends FunctionalDomain[Identifier, NestedPredDefDomain, PredicateBody]
+  with Lattice.Must[PredicateBody]
   with Expression {
 
   def get(key: Identifier) = map.getOrElse(key, defaultValue)
 
-  def addPerm(field: Identifier): PredicateDefinition =
+  def addPerm(field: Identifier): PredicateBody =
     add(field, NestedPredDefDomain().top())
 
   def functionalFactory(
       value: Map[Identifier, NestedPredDefDomain],
       isBottom: Boolean,
       isTop: Boolean) =
-    PredicateDefinition(value, isTop, isBottom, defaultValue)
+    PredicateBody(value, isTop, isBottom, defaultValue)
 
   def transform(f: (Expression) => Expression) = this
 
@@ -137,7 +137,7 @@ final case class PredicateDefinition(
   /** Replaces all occurrences of a given predicate ID
     * with a given other predicate ID.
     */
-  def rename(from: Identifier, to: Identifier): PredicateDefinition = {
+  def rename(from: Identifier, to: Identifier): PredicateBody = {
     copy(map = map.mapValues(nestedPredIds => {
       if (nestedPredIds.value.contains(from)) {
         nestedPredIds.remove(from).add(to)
@@ -155,13 +155,12 @@ final case class PredicateDefinition(
     if (isBottom) "⊥"
     else if (isTop) "⊤"
     else map.map({
-      case (field, nestedPredDefIds) =>
-        field + " → " + nestedPredDefIds
+      case (field, nestedPredIds) =>  field + " → " + nestedPredIds
     }).mkString(", ")
   }
 }
 
-object PredicateDefinition {
+object PredicateBody {
   private val nextId = new ThreadLocal[Int]
 
   def resetId() = {

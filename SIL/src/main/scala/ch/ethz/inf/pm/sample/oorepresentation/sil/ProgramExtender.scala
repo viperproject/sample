@@ -63,16 +63,16 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
       state.copy(valueState =
         state.valueState.copy(predicateState = {
           val predState = state.valueState.predicateState
-          predState.copy(definitions =
-            predState.definitions.lub(
-              exitState.generalValState.valueState.predicateState.definitions)
+          predState.copy(predicates =
+            predState.predicates.lub(
+              exitState.generalValState.valueState.predicateState.predicates)
           )
         })
       )
     }).join
 
     val predRegistry = PredicateRegistryBuilder().build(
-      extractedPreds = exitState.generalValState.predDefs,
+      extractedPreds = exitState.generalValState.preds,
       existingSilPreds = program.predicates
     )
 
