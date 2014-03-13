@@ -13,7 +13,7 @@ import java.io.File
 import ch.ethz.inf.pm.sample.execution.TrackingForwardInterpreter
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import ch.ethz.inf.pm.sample.AnalysisUnitContext
-import semper.sil.ast.Program
+import semper.sil.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 
 class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
@@ -23,7 +23,7 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     _run(compiler)
   }
 
-  def run(program: Program): List[AnalysisResult[S]] = {
+  def run(program: sil.Program): List[AnalysisResult[S]] = {
     val compiler = new SilCompiler
     compiler.compileProgram(program)
     _run(compiler)
@@ -115,7 +115,7 @@ trait ValueDrivenHeapEntryStateBuilder[
 
 object DefaultEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
   ApronInterface.Default,
-  ValueDrivenHeapState.Default[ApronInterface.Default]] {
+  ValueDrivenHeapState.Default[S]] {
 
   def topState = {
     ValueDrivenHeapState.Default[ApronInterface.Default](topHeapGraph, topApronInterface, ExpressionSet())
@@ -123,8 +123,8 @@ object DefaultEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
 }
 
 object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  PreciseValueDrivenHeapState.EdgeStateDomain[ApronInterface.Default],
-  PreciseValueDrivenHeapState.Default[ApronInterface.Default]] {
+  PreciseValueDrivenHeapState.EdgeStateDomain[S],
+  PreciseValueDrivenHeapState.Default[S]] {
 
   def topState = {
     val generalValState = PreciseValueDrivenHeapState.makeTopEdgeState(topApronInterface)
@@ -133,12 +133,53 @@ object PreciseEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
 }
 
 object PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
-  PredicateDrivenHeapState.EdgeStateDomain[ApronInterface.Default],
-  PredicateDrivenHeapState[ApronInterface.Default]] {
+  PredicateDrivenHeapState.EdgeStateDomain[S],
+  PredicateDrivenHeapState[S]] {
 
   def topState = {
     val generalValState = PredicateDrivenHeapState.makeTopEdgeState(topApronInterface)
     PredicateDrivenHeapState(topHeapGraph, generalValState, ExpressionSet())
+  }
+
+  override def build(method: MethodDeclaration) = {
+    // Very naive support for existing predicate access predicates
+    // in the method condition.
+    // Mostly experimental.
+
+    val program = SystemParameters.compiler.asInstanceOf[SilCompiler].program
+    val silMethod = program.methods.find(_.name == method.name.toString).get
+
+    import PredicateDrivenHeapState._
+
+    var initialState = method.initializeArgument(topState)
+
+    silMethod.pres.foreach({
+      case sil.PredicateAccessPredicate(sil.PredicateAccess(args, pred), sil.FullPerm()) =>
+        val paramLocalVars = silMethod.formalArgs.map(_.localVar)
+        paramLocalVars.find(p => Seq(p) == args) match {
+          case Some(paramLocalVar) =>
+            val existingPreds = DefaultSilConverter.convert(Seq(pred))
+            if (!existingPreds.map.isEmpty) {
+              val heap = initialState.abstractHeap
+              // Here we can assume that there is a single non-null edge
+              // for the parameter variable vertex with a single folded
+              // predicate instance that we can merge the existing
+              // definition into.
+              val freshPredId = heap.outEdges(heap.localVarVertex(paramLocalVar.name))
+                .filter(_.target != NullVertex).head.state.predInsts.foldedIds.head
+              val repl = new Replacement()
+              repl.value += Set(freshPredId, existingPreds.map.keySet.head) -> Set(freshPredId)
+              val condHeap = initialState.toCondHeapGraph.map(state => {
+                state.transformPreds(_ lub existingPreds).merge(repl)
+              })
+
+              initialState = initialState.factory(condHeap.heap, condHeap.cond, ExpressionSet())
+            }
+          case None =>
+        }
+    })
+
+    initialState
   }
 }
 
@@ -181,7 +222,7 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
   import PredicateInstanceState.Unfolded
 
   def analyze(method: MethodDeclaration): AnalysisResult[T] = {
-    def defs(state: T) =
+    def preds(state: T) =
       state.generalValState.valueState.predicateState.predicates
 
     // Rather than building the entry state from scratch,
@@ -190,8 +231,8 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
     val firstEntryState = entryStateBuilder.build(method)
     val firstResult = analyze(method, firstEntryState)
     val firstExitState = firstResult.cfgState.exitState()
-    val firstEntryDefs = defs(firstEntryState)
-    val firstExitDefs = defs(firstExitState)
+    val firstEntryDefs = preds(firstEntryState)
+    val firstExitDefs = preds(firstExitState)
     val secondEntryDefs = firstEntryDefs.copy(map = {
       firstExitDefs.map.filterKeys(firstEntryDefs.map.contains)
     })
@@ -206,8 +247,6 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
           state.valueState.predicateState.copy(
             predicates = secondEntryDefs.copy(map = secondEntryDefs.map.filterNot(_._2.isBottom)),
             instances = {
-              import PredicateInstancesDomain._
-
               var instances = state.valueState.predicateState.instances
 
               // Remove the edge altogether if one of the folded predicate
