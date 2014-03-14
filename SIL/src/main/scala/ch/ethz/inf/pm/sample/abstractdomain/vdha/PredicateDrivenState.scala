@@ -5,10 +5,25 @@ import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
 import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import com.weiglewilczek.slf4s.Logging
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredMergeGhostOpEvent
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstanceDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.SummaryHeapVertex
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateBody
+import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.VertexExpression
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.ValueHeapIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.NestedPredicatesDomain
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.SemanticAndPredicateDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstancesDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.FoldGhostOpEvent
 
 case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     abstractHeap: HeapGraph[EdgeStateDomain[S]],
@@ -105,32 +120,48 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       localVarVertex: LocalVariableVertex,
       predInstState: PredicateInstanceState): Set[Identifier] = {
     val recvEdges = abstractHeap.outEdges(localVarVertex)
-    val nonNullRecvEdges = recvEdges.filterNot(_.target == NullVertex)
+    certainIds(recvEdges, predInstState)
+  }
 
-    if (nonNullRecvEdges.isEmpty) Set.empty
+  /** Returns the IDs of predicates for which an instance label of the
+    * given type appears on all given, non-null edges.
+    */
+  def certainIds(
+      edges: Set[Edge[EdgeStateDomain[S]]],
+       predInstState: PredicateInstanceState): Set[Identifier] = {
+    val nonNullEdges = edges.filterNot(_.target == NullVertex)
+    if (nonNullEdges.isEmpty) Set.empty
     else {
-      val recvState = Lattice.bigLub(nonNullRecvEdges.map(_.state))
-      recvState.predInsts.ids(predInstState)
+      val state = Lattice.bigLub(nonNullEdges.map(_.state))
+      state.predInsts.ids(predInstState)
     }
   }
 
-  override def getFieldValue(id: AccessPathIdentifier): T = {
-    val receiverPath = id.path.dropRight(1)
-    val field = VariableIdentifier(id.path.last)(id.typ)
+  /** Translates a field access path identifier into the corresponding
+    * local variable vertex and the field identifier.
+    */
+  def splitAccessPathIdentifier(id: AccessPathIdentifier):
+      (LocalVariableVertex, VariableIdentifier) = {
+    require(id.path.size == 2, "currently only support obj.field")
 
-    assert(receiverPath.size == 1, "currently only support obj.field")
+    val localVarName = id.path.head
+    val field = VariableIdentifier(id.path.last)(id.typ)
+    val localVarVertex = abstractHeap.localVarVertex(localVarName)
+
+    (localVarVertex, field)
+  }
+
+  override def getFieldValue(id: AccessPathIdentifier): T = {
+    val (localVarVertex, field) = splitAccessPathIdentifier(id)
 
     // Only materialize the receiver of the field access at this point
     // It's too early to also materialize the target of the field access.
     // Unfolding after materializing the receiver may cause some edges
     // going out of the receiver vertex to be removed, so we don't need
     // to follow them when materializing the target of the field access.
-    var result = materializePath(receiverPath)
+    var result = materializePath(List(localVarVertex.name))
 
-    val localVarName = receiverPath.head
-    val localVarVertex = result.abstractHeap.localVarVertex(localVarName)
     val recvEdges = result.abstractHeap.outEdges(localVarVertex)
-
     val nonNullRecvEdges = recvEdges.filterNot(_.target == NullVertex)
     val nonNullRecvVertices = nonNullRecvEdges.map(_.target)
 
@@ -294,7 +325,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       assert(receiverPath.size == 1, "currently only support obj.field")
 
       result = result.toCondHeapGraph.evalExp(receiverId).mapCondHeaps(condHeap => {
-        val recvEdge = condHeap.takenPath(receiverId.path).edges.head
+        val recvEdge = condHeap.takenPath(receiverPath).edges.head
         val recvVertex = recvEdge.target
         val nonNullOutEdges = condHeap.heap.outEdges(recvVertex, Some(field.name)).filter(_.target != NullVertex)
         var resultingCondHeap = condHeap
