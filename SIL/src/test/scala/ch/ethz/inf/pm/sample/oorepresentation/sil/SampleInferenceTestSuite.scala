@@ -18,13 +18,7 @@ class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
   // annotations etc. and refer to issues in the Sample issue tracker.
   override val name: String = "sample"
 
-  /** Extend the given program with inferred specifications and verify it.
-    *
-    * @note `Silicon` sets the level of its logger to `OFF` by default
-    *       unless the user passes the `logLevel` command line argument.
-    *       For inference testing, we're not interested in Silicon log
-    *       messages anyway, so this is fine.
-    */
+  /** Extend the given program with inferred specifications and verify it. */
   override def verify(program: sil.Program) = {
     val runner = RefiningPredicateAnalysisRunner
     val results = runner.run(program)
@@ -35,7 +29,20 @@ class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
     assert(isWellFormed(extendedProgram),
       "the extended program is not well-formed")
 
-    super.verify(extendedProgram)
+    // Silicon sets the log level for logger of the current package to "OFF"
+    // unless specified otherwise using a command line argument.
+    // Since we're not interested in Silicon log messages anyway, that's okay.
+    // However, the original log level should be restored again later.
+    // TODO: Find a more elegant solution.
+    val result = super.verify(extendedProgram)
+    setLogLevel("INFO")
+
+    result
+  }
+
+  private def setLogLevel(level: String) {
+    val log4jlogger = org.apache.log4j.Logger.getLogger(this.getClass.getPackage.getName)
+    log4jlogger.setLevel(org.apache.log4j.Level.toLevel(level))
   }
 
   /** Returns whether the given program can be parsed and type-checked.
