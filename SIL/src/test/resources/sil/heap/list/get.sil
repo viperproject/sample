@@ -1,6 +1,7 @@
 var val: Int
 var next: Ref
 
+/** Returns the value of the i-th element in the list. */
 method get(this: Ref, n: Int) returns (res: Int) {
     var cur: Ref
     var i: Int
@@ -11,4 +12,11 @@ method get(this: Ref, n: Int) returns (res: Int) {
         i := i - 1
     }
     res := cur.val
+}
+
+/** Predicate that the specification inference should detect and reuse. */
+predicate valid(this: Ref) {
+    acc(this.val, write) &&
+    acc(this.next, write) &&
+    ((this.next != null) ==> acc(valid(this.next), write))
 }
