@@ -1,8 +1,14 @@
 var val: Int
 var next: Ref
 
+/** Partitions a list into two lists where one of the list contains
+  * all list elements whose value is smaller than the given key,
+  * while the other list contains all list elements whose value
+  * is greater than or equal to the given key.
+  */
 method partition(this: Ref, key: Int)
     returns (smaller: Ref, greaterOrEqual: Ref)
+    requires acc(valid(this), write)
 {
     var cur: Ref
     var next: Ref
@@ -22,4 +28,10 @@ method partition(this: Ref, key: Int)
         cur := next
         next := null
     }
+}
+
+/** Predicate that the specification inference should detect and reuse. */
+predicate valid(this: Ref) {
+  acc(this.val, write) && acc(this.next, write) &&
+  ((this.next != null) ==> acc(valid(this.next), write))
 }
