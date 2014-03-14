@@ -123,7 +123,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         // TODO: Currently does not work because predicates
         // may be renamed when heaps are joined. The fold statement
         // should use the new name of the predicate after the merge
-        postState.tryToFoldAllLocalVars()
+        postStateWithCollector.tryToFoldAllLocalVars()
 
         val pos = lastStmt.getPC() match {
           case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
