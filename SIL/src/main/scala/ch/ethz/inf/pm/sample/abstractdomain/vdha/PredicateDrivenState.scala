@@ -435,7 +435,12 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         if (canFold) {
           abstractHeap.localVarVertices.foreach(localVarVertex => {
             def hasPredInstOnEveryEdge(heap: HeapGraph[EdgeStateDomain[S]]): Boolean = {
-              heap.outEdges(localVarVertex).filter(_.target != NullVertex).forall(!_.state.predInsts.foldedAndUnfoldedIds.isEmpty)
+              val nonNullLocalVarEdges = heap.outEdges(localVarVertex).filter(_.target != NullVertex)
+              if (nonNullLocalVarEdges.isEmpty) true
+              else {
+                val state = Lattice.bigLub(nonNullLocalVarEdges.map(_.state))
+                !state.predInsts.foldedAndUnfoldedIds.isEmpty
+              }
             }
 
             if (hasPredInstOnEveryEdge(abstractHeap)) {
