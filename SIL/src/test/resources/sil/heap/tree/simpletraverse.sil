@@ -1,0 +1,28 @@
+var left: Ref
+var right: Ref
+var val: Int
+
+/** Traverses a tree by always recursing to the left or right child,
+  * depending on a boolean flag passed as a parameter.
+  */
+method traverse(tree: Ref, goLeft: Bool)
+    requires acc(valid(tree), write)
+{
+    var node: Ref
+    node := tree
+
+    while (node != null) {
+        if (goLeft) {
+            node := node.right
+        } else {
+            node := node.left
+        }
+    }
+}
+
+/** Predicate that the specification inference should detect and reuse. */
+predicate valid(tree: Ref) {
+  acc(tree.left, write) && acc(tree.right, write) &&
+  ((tree.left != null) ==> acc(valid(tree.left), write)) &&
+  ((tree.right != null) ==> acc(valid(tree.right), write))
+}
