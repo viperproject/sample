@@ -162,13 +162,22 @@ case class AssertionTree(
   }
 
   def simplify: AssertionTree = {
-    val newExps = exps
+    var newExps = exps
+    var newChildren = children
+
+    newExps = newExps
       .map(Transformer.simplify)
       .filterNot(_.isInstanceOf[sil.TrueLit])
 
-    val newChildren = children
-      .map({  case (cond, child) => cond -> child.remove(cond).simplify })
+    newChildren = newChildren
+      .map({ case (cond, child) => cond -> child.remove(cond).simplify })
       .filterNot({ case (cond, child) => child.isEmpty })
+
+    // Pull up expressions that occur unconditionally in all children
+    val commonExps = newChildren.values.map(_.exps).foldLeft(Set.empty[sil.Exp])(_ intersect _)
+    newExps = newExps ++ commonExps
+    newChildren = newChildren.mapValues(child =>
+      child.copy(exps = child.exps -- commonExps))
 
     AssertionTree(newExps, newChildren)
   }
@@ -301,12 +310,17 @@ case class AssertionExtractor[S <: ApronInterface[S]](
         val nonNullnessExp = sil.NeCmp(localVar, sil.NullLit()())()
         val inEqualityExps: Set[sil.Exp] = heap.localVarEdges.flatMap(otherLocalVarEdge => {
           // Do not generate useless equalities such as `r == r`
+
           if (localVarEdge != otherLocalVarEdge) {
             val otherLocalVar = sil.LocalVar(otherLocalVarEdge.source.name)(sil.Ref)
             if (localVarEdge.target == otherLocalVarEdge.target)
               Set[sil.Exp](sil.EqCmp(localVar, otherLocalVar)())
-            else
-              Set[sil.Exp](sil.NeCmp(localVar, otherLocalVar)())
+            else {
+              // For the moment, do not extract reference *inequalities*.
+              // Silicon may fail to show that they hold.
+              // Set[sil.Exp](sil.NeCmp(localVar, otherLocalVar)())
+              Set.empty[sil.Exp]
+            }
           } else {
             Set.empty[sil.Exp]
           }
