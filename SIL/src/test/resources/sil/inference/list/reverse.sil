@@ -4,9 +4,7 @@ var next: Ref
 /** Reverses a linked list in place and returns the first element
   * of the reversed list.
   */
-method reverse(list: Ref)
-    returns (newList: Ref)
-    requires acc(valid(list), write)
+method reverse(list: Ref) returns (newList: Ref)
 {
     var oldList: Ref
     var tmp: Ref
@@ -26,9 +24,13 @@ method reverse(list: Ref)
 method test(list: Ref)
     returns (res: Ref)
     requires acc(valid(list), write)
-    ensures acc(valid(res), write)
 {
     res := reverse(list)
+
+    // The resulting list is null if and only if the the given list is null
+    // This fact should be part of the inferred postcondition.
+    // As a result, we could make the following assertion stronger
+    assert (res != null) ==> acc(valid(res), write)
 }
 
 /** Predicate that the specification inference should detect and reuse. */
