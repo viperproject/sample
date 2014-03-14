@@ -13,8 +13,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AssertionExtractor
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
 import ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain
+import com.weiglewilczek.slf4s.Logging
 
-case class ProgramExtender[S <: ApronInterface[S]]() {
+case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
   type T = PredicateDrivenHeapState[S]
   type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
 
@@ -39,9 +40,13 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     })())
 
     // Now build the new program
-    p.copy(
+    val result = p.copy(
       methods = newMethods,
       predicates = p.predicates ++ newPredicates.flatten)(p.pos, p.info)
+
+    logger.info(s"Extended Program:\n $result")
+
+    result
   }
 
   def extendMethod(program: sil.Program, method: sil.Method, cfgState: AbstractCFGState[T]): (sil.Method, Seq[sil.Predicate]) = {

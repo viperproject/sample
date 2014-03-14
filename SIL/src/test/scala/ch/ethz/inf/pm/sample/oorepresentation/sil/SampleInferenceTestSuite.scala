@@ -18,15 +18,19 @@ class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
   // annotations etc. and refer to issues in the Sample issue tracker.
   override val name: String = "sample"
 
-  /** Extend the given program with inferred specifications and verify it. */
+  /** Extend the given program with inferred specifications and verify it.
+    *
+    * @note `Silicon` sets the level of its logger to `OFF` by default
+    *       unless the user passes the `logLevel` command line argument.
+    *       For inference testing, we're not interested in Silicon log
+    *       messages anyway, so this is fine.
+    */
   override def verify(program: sil.Program) = {
     val runner = RefiningPredicateAnalysisRunner
     val results = runner.run(program)
 
     val programExtender = ProgramExtender[ApronInterface.Default]()
     val extendedProgram = programExtender.extend(program, results)
-
-    logger.info(s"Extended Program:\n $extendedProgram")
 
     assert(isWellFormed(extendedProgram),
       "the extended program is not well-formed")
