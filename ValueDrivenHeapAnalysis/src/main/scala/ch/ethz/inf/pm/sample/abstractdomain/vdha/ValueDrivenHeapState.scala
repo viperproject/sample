@@ -511,7 +511,7 @@ trait ValueDrivenHeapState[
             }
           }
 
-          edgesToAdd ++= filterEdgesToMaterialize(edge, edgesToAddHere.toSet, definiteVertex, summaryVertex)
+          edgesToAdd ++= edgesToAddHere.toSet
         case _ =>
           // Nothing to materialize for this edge
           if (!path.isEmpty)
@@ -530,27 +530,6 @@ trait ValueDrivenHeapState[
 
     resultingAH = resultingAH.addEdges(updatedEdgesToAdd.toSet)
     copy(abstractHeap = resultingAH, generalValState = generalValState.merge(repl)).prune()
-  }
-
-  /** Filter the edges of a new materialized node.
-    * This method only represents a hook for the predicate analysis.
-    *
-    * @param accessEdge the new edge into the definite node materialized
-    *                   from the one into the summary node lying on the
-    *                   access path
-    * @param edges all new edges into and out of the new definite node
-    * @param newDefiniteVertex the new definite node being materialized
-    * @param summaryVertex the summary node being materialized from
-    * @return the filtered set of edges
-    *
-    * @todo find a cleaner solution
-    */
-  protected def filterEdgesToMaterialize(
-    accessEdge: Edge[S],
-    edges: Set[Edge[S]],
-    newDefiniteVertex: DefiniteHeapVertex,
-    summaryVertex: SummaryHeapVertex): Set[Edge[S]] = {
-    edges // Do not filter anything by default
   }
 
   def lessEqual(r: T): Boolean = {

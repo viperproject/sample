@@ -337,41 +337,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     result
   }
 
-  /** Given that we hold a recursive predicate instance on the access edge
-    * when materializing, prevent materialization of self-loops and back-edges
-    * over these fields of recursion.
-    *
-    * That is, we do not allow other parts of the heap refer to the
-    * materialized node via these fields of recursion.
-    */
-  override def filterEdgesToMaterialize(
-    accessEdge: Edge[EdgeStateDomain[S]],
-    edges: Set[Edge[EdgeStateDomain[S]]],
-    defVertex: DefiniteHeapVertex,
-    sumVertex: SummaryHeapVertex) = {
-
-    val foldedIds = accessEdge.state.predInsts.foldedIds
-    val recursionFieldNames = foldedIds.flatMap(
-      accessEdge.state.preds.recursionFields(_).map(_.getName))
-
-    val filteredEdges = edges.filterNot(edge => {
-      val isRecursionField = edge.field match {
-        case Some(name) => recursionFieldNames.contains(name)
-        case None => false
-      }
-      val isSelfLoop = edge.target == defVertex && edge.source == defVertex
-      val isBackEdge = edge.source == sumVertex
-      isRecursionField && (isSelfLoop || isBackEdge)
-    })
-
-    if (filteredEdges.size < edges.size) {
-      logger.info(s"Prevented materialization of self-loops or back-edges " +
-        s"for recursion fields $recursionFieldNames")
-    }
-
-    filteredEdges
-  }
-
   def tryToFoldAllLocalVars(): PredicateDrivenHeapState[S] = {
     var result = this
 
