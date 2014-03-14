@@ -392,7 +392,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
           unfoldedPredBody.map.foreach({
             case (field, nestedPredId) =>
-              val nestedPredIds = nestedPredId.value.asInstanceOf[Set[VariableIdentifier]]
+              val nestedPredIds = nestedPredId.value
               val edgesThatNeedFoldedPredInst = result.abstractHeap.outEdges(recvEdge.target, Some(field.getName)).filter(_.target != NullVertex)
               val canFoldThis = edgesThatNeedFoldedPredInst.forall(edge => {
                 nestedPredIds subsetOf edge.state.predInsts.foldedIds
@@ -435,7 +435,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         if (canFold) {
           abstractHeap.localVarVertices.foreach(localVarVertex => {
             def hasPredInstOnEveryEdge(heap: HeapGraph[EdgeStateDomain[S]]): Boolean = {
-              heap.outEdges(localVarVertex).filter(_.target != NullVertex).forall(!_.state.predInsts.foldedAndUnfolded.isEmpty)
+              heap.outEdges(localVarVertex).filter(_.target != NullVertex).forall(!_.state.predInsts.foldedAndUnfoldedIds.isEmpty)
             }
 
             if (hasPredInstOnEveryEdge(abstractHeap)) {
