@@ -14,12 +14,15 @@ method test(list: Ref) requires acc(valid(list), write) {
 
     res := peek(list)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
-    assert(res == list.next)
+    assert(res == list.val)
 
     fold acc(valid(list), write)
 }
 
+/** Specification inference will not detect and use this predicate for the
+  * precondition since no recursion takes place in the method.
+  * It will only require permission to the value of the first list element.
+  */
 predicate valid(this: Ref) {
     acc(this.val, write) &&
     acc(this.next, write) &&
