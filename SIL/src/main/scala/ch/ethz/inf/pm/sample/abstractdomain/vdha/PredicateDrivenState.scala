@@ -95,6 +95,25 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
+  /** Returns the IDs of predicates for which an instance label of the
+    * given type appears on all out-going, non-null edges of a
+    * given local variable vertex.
+    *
+    * If there are no such edges, the result is an empty set.
+    */
+  def certainIds(
+      localVarVertex: LocalVariableVertex,
+      predInstState: PredicateInstanceState): Set[Identifier] = {
+    val recvEdges = abstractHeap.outEdges(localVarVertex)
+    val nonNullRecvEdges = recvEdges.filterNot(_.target == NullVertex)
+
+    if (nonNullRecvEdges.isEmpty) Set.empty
+    else {
+      val recvState = Lattice.bigLub(nonNullRecvEdges.map(_.state))
+      recvState.predInsts.ids(predInstState)
+    }
+  }
+
   override def getFieldValue(id: AccessPathIdentifier): T = {
     val receiverPath = id.path.dropRight(1)
     val field = VariableIdentifier(id.path.last)(id.typ)
@@ -119,11 +138,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       "edge target must not be summary heap vertex, is materialization on?")
 
     val preds = generalValState.preds
+    val foldedIds = certainIds(localVarVertex, Folded)
+    val unfoldedIds = certainIds(localVarVertex, Unfolded)
 
-    // Only find folded and unfolded IDs that exist on ALL edges
-    val recvState = Lattice.bigLub(nonNullRecvEdges.map(_.state))
-    val foldedIds = recvState.predInsts.foldedIds
-    val unfoldedIds = recvState.predInsts.unfoldedIds
     val foldedIdsWithPerm = foldedIds.filter(preds.get(_).hasPerm(field))
     val unfoldedIdsWithPerm = unfoldedIds.filter(preds.get(_).hasPerm(field))
     val foldedAndUnfoldedIds = foldedIds ++ unfoldedIds
@@ -327,15 +344,13 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   def tryToFoldAllLocalVars(): PredicateDrivenHeapState[S] = {
     var result = this
 
-    this.abstractHeap.localVarVertices.foreach(localVarVertex => {
+    abstractHeap.localVarVertices.foreach(localVarVertex => {
       // Only fold local variables if it is possible to do so
       // on all local variable edges
-      var candidateUnfoldedPredIds = result.abstractHeap.outEdges(localVarVertex).head.state.predInsts.unfoldedIds
-      result.abstractHeap.outEdges(localVarVertex).tail.filter(_.target != NullVertex).foreach(edge => {
-        candidateUnfoldedPredIds = candidateUnfoldedPredIds.intersect(edge.state.predInsts.unfoldedIds)
-      })
 
-      candidateUnfoldedPredIds.foreach(unfoldedPredId => {
+      val unfoldedPredIds = result.certainIds(localVarVertex, Unfolded)
+
+      unfoldedPredIds.foreach(unfoldedPredId => {
         var candidateAbstractHeap = result.abstractHeap
         var canFold = true
 
