@@ -257,7 +257,7 @@ case class AnalysisRestartException(preds: PredicatesDomain) extends Exception {
   override def toString = "Restart of analysis with refined initial state"
 }
 
-/** Hook that aborts the analysis when a predicate merge happens during the
+/** Subscriber that aborts the analysis when a predicate merge happens during the
   * analysis inside of the `PredicateDrivenHeapState`.
   * @tparam S type of the semantic domain
   */
