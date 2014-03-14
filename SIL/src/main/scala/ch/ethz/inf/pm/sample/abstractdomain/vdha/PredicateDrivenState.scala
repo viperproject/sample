@@ -8,6 +8,9 @@ import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import com.weiglewilczek.slf4s.Logging
+import ch.ethz.inf.pm.sample.abstractdomain.vdha._
+import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredMergeGhostOpEvent
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstanceDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
@@ -82,32 +85,35 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     )
 
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
-    if (variable.typ.isObject) {
-      PredicatesDomain.resetId()
+    val result = super.createVariableForArgument(variable, typ)
 
-      var result = super.createVariableForArgument(variable, typ)
+    if (variable.typ.isObject)
+      result.assumePredicatesForArguments().setExpression(result.expr)
+    else
+      result
+  }
 
-      val edgeVerticesToPredId = result.abstractHeap.localVarEdges.map(edge => {
-        val predId = PredicatesDomain.makeId()
-        Set(edge.source, edge.target) -> predId
-      }).toMap
+  def assumePredicatesForArguments(): T = {
+    PredicatesDomain.resetId()
 
-      val predIds = edgeVerticesToPredId.values
-      result = result.createNonObjectVariables(predIds.toSet)
+    // Create a fresh predicate for each parameter edge
+    val edgeVerticesToPredId = abstractHeap.localVarEdges.map(edge => {
+      val predId = PredicatesDomain.makeId()
+      Set(edge.source, edge.target) -> predId
+    }).toMap
 
-      result = result.toCondHeapGraph.mapEdges(edge => {
-        edgeVerticesToPredId.get(edge.vertices) match {
-          case Some(predId) =>
-            val edgeLocalPredId = EdgeLocalIdentifier(List(edge.field), predId)
-            edge.state.assign(edgeLocalPredId, Folded)
-          case None => edge.state
-        }
-      })
+    val predIds = edgeVerticesToPredId.values
 
-      result.setExpression(ExpressionSet(variable))
-    } else {
-      super.createVariableForArgument(variable, typ)
-    }
+    // First create definitions for the given IDs in all edge states,
+    // then put Folded labels on the individual edges
+    createNonObjectVariables(predIds.toSet).mapEdges(edge => {
+      edgeVerticesToPredId.get(edge.vertices) match {
+        case Some(predId) =>
+          val edgeLocalPredId = EdgeLocalIdentifier(List(edge.field), predId)
+          edge.state.assign(edgeLocalPredId, Folded)
+        case None => edge.state
+      }
+    })
   }
 
   /** Returns the IDs of predicates for which an instance label of the
