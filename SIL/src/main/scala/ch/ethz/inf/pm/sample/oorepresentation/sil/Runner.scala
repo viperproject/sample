@@ -229,11 +229,11 @@ case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
     while (resultOption.isEmpty) {
       // Set up the hook
       val initialPreds = initialState.generalValState.preds
-      val hook = AnalysisRestartGhostOpHook[S](initialPreds)
-      initialState = initialState.setGhostOpHook(hook)
+      val restartSubscriber = AnalysisRestartSubscriber[S](initialPreds)
+      val initialStateWithSubscriber = initialState.subscribe(restartSubscriber)
 
       try {
-        resultOption = Some(analyze(method, initialState))
+        resultOption = Some(analyze(method, initialStateWithSubscriber))
       } catch {
         case AnalysisRestartException(preds) =>
           // Apply the predicates that were present in the stated when
@@ -261,21 +261,19 @@ case class AnalysisRestartException(preds: PredicatesDomain) extends Exception {
   * analysis inside of the `PredicateDrivenHeapState`.
   * @tparam S type of the semantic domain
   */
-case class AnalysisRestartGhostOpHook[S <: SemanticDomain[S]](
+case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](
     initialPreds: PredicatesDomain)
-  extends GhostOpHook[S] {
+  extends GhostOpSubscriber[S] {
 
-  def handlePredMerge(merge: PredMergeGhostOp[S]) = {
-    // Only abort the analysis if the merge affects the predicate IDs
-    // in the original state
-    val affectedPredIds = merge.repl.value.flatMap(r => r._1 union r._2).toSet
-    if (!affectedPredIds.intersect(initialPreds.ids).isEmpty) {
-      val preds = merge.postState.generalValState.preds
-      throw new AnalysisRestartException(preds)
-    }
+  def notify(state: PredicateDrivenHeapState[S], event: GhostOpEvent) = event match {
+    case event: PredMergeGhostOpEvent =>
+      // Only abort the analysis if the merge affects the predicate IDs
+      // in the original state
+      val affectedPredIds = event.repl.value.flatMap(r => r._1 union r._2).toSet
+      if (!affectedPredIds.intersect(initialPreds.ids).isEmpty) {
+        val preds = state.generalValState.preds
+        throw new AnalysisRestartException(preds)
+      }
+    case _ =>
   }
-
-  def handleFold(fold: FoldGhostOp[S]) = {}
-
-  def handleUnfold(unfold: UnfoldGhostOp[S]) = {}
 }

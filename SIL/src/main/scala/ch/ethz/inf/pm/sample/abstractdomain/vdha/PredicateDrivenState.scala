@@ -15,7 +15,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     generalValState: EdgeStateDomain[S],
     expr: ExpressionSet,
     isTop: Boolean = false,
-    ghostOpHook: GhostOpHook[S] = DummyGhostOpHook[S]())
+    // The subscribers is immutable like the rest of the state.
+    // Subscribing results in a new state while the old state is unchanged.
+    ghostOpSubscribers: Seq[GhostOpSubscriber[S]] = Seq.empty)
   extends PreciseValueDrivenHeapState[
     SemanticAndPredicateDomain[S],
     PredicateDrivenHeapState[S]]
@@ -27,18 +29,32 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   import PredicateInstanceState.{Folded, Unfolded}
   import PredicateDrivenHeapState._
 
+  /** Copies the state and adds a new ghost operation subscriber
+    * to the new state.
+    */
+  def subscribe(sub: GhostOpSubscriber[S]): T = {
+    PredicateDrivenHeapState(
+      abstractHeap,
+      generalValState,
+      expr,
+      isTop,
+      ghostOpSubscribers :+ sub)
+  }
+
+  /** Publishes a ghost operation event to all subscribers. */
+  def publish(event: GhostOpEvent) {
+    ghostOpSubscribers.foreach(_.notify(this, event))
+  }
+
   def factory(
       abstractHeap: HeapGraph[EdgeStateDomain[S]],
       generalValState: EdgeStateDomain[S],
       expr: ExpressionSet,
       isTop: Boolean) =
-    PredicateDrivenHeapState(abstractHeap, generalValState, expr, isTop, ghostOpHook)
-
-  /** Sets a ghost operation hook.
-    * Unfortunately, extending the copy method is not possible.
-    */
-  def setGhostOpHook(ghostOpHook: GhostOpHook[S]): T =
-    PredicateDrivenHeapState(abstractHeap, generalValState, expr, isTop, ghostOpHook)
+    // TODO: Just copying the ghost operation subscribers here is not elegant
+    // There is a danger of losing subscribers when joining heaps
+    // Ideally, one would use a set domain of subscribers.
+    PredicateDrivenHeapState(abstractHeap, generalValState, expr, isTop, ghostOpSubscribers)
 
   def map(f: EdgeStateDomain[S] => EdgeStateDomain[S]): T =
     mapEdges(edge => f(edge.state)).copy(generalValState = f(generalValState))
@@ -199,8 +215,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
       if (wasFolded) {
         // Let subscribers of ghost operations know about the unfold
-        val unfold = UnfoldGhostOp[S](result, localVarVertex.variable, recvPredId)
-        ghostOpHook.handleUnfold(unfold)
+        result.publish(UnfoldGhostOpEvent(
+          localVarVertex.variable, recvPredId))
       }
     }
 
@@ -436,8 +452,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           result = result.copy(abstractHeap = candidateAbstractHeap)
 
           // Let subscribers know about the fold operation
-          val fold = FoldGhostOp[S](result, localVarVertex.variable, unfoldedPredId)
-          ghostOpHook.handleFold(fold)
+          result.publish(FoldGhostOpEvent(
+            localVarVertex.variable, unfoldedPredId))
         }
       })
     })
@@ -542,8 +558,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       if (!repl.value.isEmpty) {
         // Inform subscribers about the predicate merge
         // TODO: We may not have actually chosen this result!
-        val predMerge = PredMergeGhostOp(result, repl)
-        ghostOpHook.handlePredMerge(predMerge)
+        result.publish(PredMergeGhostOpEvent(repl))
       }
 
       bestResultOption = bestResultOption match {

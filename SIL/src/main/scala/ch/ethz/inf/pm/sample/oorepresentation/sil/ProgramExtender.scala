@@ -11,7 +11,7 @@ import scala.Some
 import ch.ethz.inf.pm.sample.oorepresentation.sil.PredicateRegistryBuilder
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AssertionExtractor
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOp
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
 import ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain
 
 case class ProgramExtender[S <: ApronInterface[S]]() {
@@ -84,23 +84,25 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
     // of every statement in the CFG
     // Assumes that there is a bijection between SIL positions and
     // Sample CFG statements
-    var unfoldMap: Map[sil.Position, Seq[UnfoldGhostOp[S]]] = Map.empty
-    var foldMap: Map[sil.Position, Seq[FoldGhostOp[S]]] = Map.empty
+    var unfoldMap: Map[sil.Position, Seq[UnfoldGhostOpEvent]] = Map.empty
+    var foldMap: Map[sil.Position, Seq[FoldGhostOpEvent]] = Map.empty
 
     for ((block, blockIdx) <- cfgState.cfg.nodes.zipWithIndex) {
       for ((stmt, stmtIdx) <- block.zipWithIndex) {
         val cfgPosition = CFGPosition(blockIdx, stmtIdx)
         val preState = cfgState.preStateAt(cfgPosition)
-        val hook = new CollectingGhostOpHook[S]
-        val preStateWithHook = preState.setGhostOpHook(hook)
+        val collector = CollectingGhostOpSubscriber[S]()
+        val preStateWithCollector = preState.subscribe(collector)
 
-        stmt.forwardSemantics(preStateWithHook)
+        stmt.forwardSemantics(preStateWithCollector)
 
         val pos = stmt.getPC() match {
           case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
         }
 
-        unfoldMap += pos -> hook.unfolds
+        unfoldMap += pos -> collector.ghostOps.collect({
+          case e: UnfoldGhostOpEvent => e
+        })
       }
 
       if (!block.isEmpty) {
@@ -110,19 +112,21 @@ case class ProgramExtender[S <: ApronInterface[S]]() {
         val lastStmtIdx = block.size - 1
         val cfgPosition = CFGPosition(blockIdx, lastStmtIdx)
         val postState = cfgState.postStateAt(cfgPosition)
-        val hook = CollectingGhostOpHook[S]()
-        val postStateWithHook = postState.setGhostOpHook(hook)
+        val collector = CollectingGhostOpSubscriber[S]()
+        val postStateWithCollector = postState.subscribe(collector)
 
         // TODO: Currently does not work because predicates
         // may be renamed when heaps are joined. The fold statement
         // should use the new name of the predicate after the merge
-        postStateWithHook.tryToFoldAllLocalVars()
+        postState.tryToFoldAllLocalVars()
 
         val pos = lastStmt.getPC() match {
           case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
         }
 
-        foldMap += pos -> hook.folds
+        foldMap += pos -> collector.ghostOps.collect({
+         case e: FoldGhostOpEvent => e
+        })
       }
     }
 
