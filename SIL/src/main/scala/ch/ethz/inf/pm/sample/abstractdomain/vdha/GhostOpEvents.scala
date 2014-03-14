@@ -7,6 +7,7 @@ trait GhostOpSubscriber[S <: SemanticDomain[S]] {
   def notify(state: PredicateDrivenHeapState[S], event: GhostOpEvent)
 }
 
+/** Subscriber that collects all ghost operation events. */
 case class CollectingGhostOpSubscriber[S <: SemanticDomain[S]]() extends GhostOpSubscriber[S] {
   private[this] var _ghostOps: Seq[GhostOpEvent] = Seq.empty
 
