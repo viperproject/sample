@@ -191,22 +191,9 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             // No predicate instances on null edges
             if (nonNullRecvVertices.contains(e.source) && e.target != NullVertex) {
               val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredId)
-              // When there is already a folded predicated instance on this edge:
-              // That edge cannot be. We would have the instance twice
-              // TODO: Should not matter what ID it is. If they overlap in terms of
-              // permissions, it is impossible
-              val newState = if (e.state.predInsts.foldedIds.contains(nestedPredId)) {
-                logger.debug("Removing impossible edge")
-                // TODO: Hack to set it to bottom
-                e.state.transformPredInsts(insts => {
-                  insts.add(edgeLocId, insts.get(edgeLocId).add(Unfolded))
-                })
-              } else {
-                e.state.transformPredInsts(insts => {
+              val newState = e.state.transformPredInsts(insts => {
                   insts.add(edgeLocId, insts.get(edgeLocId).add(Folded))
                 })
-              }
-
               newState
             } else e.state
           })
