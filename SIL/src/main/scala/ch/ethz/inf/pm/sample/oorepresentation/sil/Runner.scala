@@ -48,12 +48,9 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     PredicatesDomain.resetId()
 
     // Analyze
-    val oldGlbPreservingIdStrategy = vdha.glbPreservingIdsStrategy
-    vdha.glbPreservingIdsStrategy = analysis.glbPreservingIdStrategy
-    val results = methodsToAnalyze(compiler).map(analysis.analyze)
-    vdha.glbPreservingIdsStrategy = oldGlbPreservingIdStrategy
-
-    results
+    vdha.withGlbPreservingIdsStrategy(analysis.glbPreservingIdStrategy, () => {
+      methodsToAnalyze(compiler).map(analysis.analyze)
+    })
   }
 
   /** Which methods to analyze (by default: all of them). */

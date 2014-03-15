@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import semper.sil.{ast => sil}
+import ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.execution.AbstractCFGState
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
@@ -22,31 +23,33 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
   import PredicateDrivenHeapState._
 
   def extend(p: sil.Program, results: List[AnalysisResult[T]]): sil.Program = {
-    val methodNameToCfgState = results.map(result =>
-      result.method.name.toString -> result.cfgState).toMap
+    vdha.withGlbPreservingIdsStrategy(CustomGlbPreservingIdsStrategy, () => {
+      val methodNameToCfgState = results.map(result =>
+        result.method.name.toString -> result.cfgState).toMap
 
-    // Only extend methods for which there is an analysis result
-    var (newMethods, newPredicates) = p.methods.map(m => {
-      methodNameToCfgState.get(m.name) match {
-        case Some(cfgState) => extendMethod(p, m, cfgState)
-        case None => (m, Seq())
-      }
-    }).unzip
+      // Only extend methods for which there is an analysis result
+      var (newMethods, newPredicates) = p.methods.map(m => {
+        methodNameToCfgState.get(m.name) match {
+          case Some(cfgState) => extendMethod(p, m, cfgState)
+          case None => (m, Seq())
+        }
+      }).unzip
 
-    // Ensure that all method calls in the program refer to the extended methods
-    newMethods = newMethods.map(_.transform({
-      case mc @ sil.MethodCall(m, _, _) =>
-        mc.copy(method = newMethods.find(_.name == m.name).get)(mc.pos, mc.info)
-    })())
+      // Ensure that all method calls in the program refer to the extended methods
+      newMethods = newMethods.map(_.transform({
+        case mc @ sil.MethodCall(m, _, _) =>
+          mc.copy(method = newMethods.find(_.name == m.name).get)(mc.pos, mc.info)
+      })())
 
-    // Now build the new program
-    val result = p.copy(
-      methods = newMethods,
-      predicates = p.predicates ++ newPredicates.flatten)(p.pos, p.info)
+      // Now build the new program
+      val result = p.copy(
+        methods = newMethods,
+        predicates = p.predicates ++ newPredicates.flatten)(p.pos, p.info)
 
-    logger.info(s"Extended Program:\n $result")
+      logger.info(s"Extended Program:\n $result")
 
-    result
+      result
+    })
   }
 
   def extendMethod(program: sil.Program, method: sil.Method, cfgState: AbstractCFGState[T]): (sil.Method, Seq[sil.Predicate]) = {

@@ -25,6 +25,14 @@ package object vdha {
   var glbPreservingIdsStrategy: GlbPreservingIdsStrategy =
     DefaultGlbPreservingIdsStrategy
 
+  def withGlbPreservingIdsStrategy[A](strategy: GlbPreservingIdsStrategy, f: () => A): A = {
+    val oldStrategy = glbPreservingIdsStrategy
+    glbPreservingIdsStrategy = strategy
+    val result = f()
+    glbPreservingIdsStrategy = oldStrategy
+    result
+  }
+
   /** Wraps [[Predef.require(r)]], making calls to it elidable
     * with the compiler option '-Xelide-below OFF'.
     */
