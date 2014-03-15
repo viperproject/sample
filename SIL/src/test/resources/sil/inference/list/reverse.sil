@@ -1,5 +1,3 @@
-//:: IgnoreFile(/sample/issue/999/)
-
 var val: Int
 var next: Ref
 

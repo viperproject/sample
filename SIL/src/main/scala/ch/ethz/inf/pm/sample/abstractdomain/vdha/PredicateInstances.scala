@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, BoolType}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{Constants, PredType}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 
@@ -15,6 +15,15 @@ case class PredicateInstancesDomain(
   with SemanticDomain[PredicateInstancesDomain] {
 
   import PredicateInstanceState.{Folded, Unfolded}
+
+  require(map.keySet.forall(canHandle), "cannot handle all ids")
+
+  def canHandle(id: Identifier): Boolean = id match {
+    case EdgeLocalIdentifier(_, predInstId: PredicateInstanceIdentifier) => true
+    case ValueHeapIdentifier(_, predInstId: PredicateInstanceIdentifier) => true
+    case AccessPathIdentifier(path) if path.last.isInstanceOf[PredicateInstanceIdentifier] => true
+    case _ => false
+  }
 
   def get(key: Identifier) = map.getOrElse(key, defaultValue)
 
@@ -40,24 +49,33 @@ case class PredicateInstancesDomain(
     PredicateInstancesDomain(map, isBottom = newIsBottom, isTop = newIsTop, defaultValue = defaultValue)
   }
 
-  /** Returns the IDs of all predicates for which we have an instance
+  /** Returns the IDs of all predicates instance for which we have an instance
     * in the given state.
     */
-  def ids(instState: PredicateInstanceState): Set[PredicateIdentifier] =
+  def instIds(instState: PredicateInstanceState): Set[PredicateInstanceIdentifier] =
     map.keySet.collect({
       // Only consider target edge-local identifiers
       case id @ EdgeLocalIdentifier(field :: Nil, predId)
-        if get(id).value.contains(instState) => predId.asInstanceOf[PredicateIdentifier]
+        if get(id).value.contains(instState) => predId.asInstanceOf[PredicateInstanceIdentifier]
     })
 
-  /** The predicate IDs of all folded predicate instances. */
-  def foldedIds: Set[PredicateIdentifier] = ids(Folded)
+  /** The predicate instance IDs of all folded predicate instances. */
+  def foldedInstIds: Set[PredicateInstanceIdentifier] = instIds(Folded)
 
-  /** The predicate IDs of all unfolded predicate instances. */
-  def unfoldedIds: Set[PredicateIdentifier] = ids(Unfolded)
+  /** The predicate instance IDs of all unfolded predicate instances. */
+  def unfoldedInstIds: Set[PredicateInstanceIdentifier] = instIds(Unfolded)
 
-  /** The predicate IDs of all folded and unfolded predicate instances. */
-  def foldedAndUnfoldedIds: Set[PredicateIdentifier] = foldedIds ++ unfoldedIds
+  /** The predicate instance IDs of all folded and unfolded predicate instances. */
+  def foldedAndUnfoldedInstIds: Set[PredicateInstanceIdentifier] = foldedInstIds ++ unfoldedInstIds
+
+  def ids(instState: PredicateInstanceState): Set[PredicateIdentifier] =
+    instIds(instState).map(_.predId)
+
+  def foldedIds: Set[PredicateIdentifier] = foldedInstIds.map(_.predId)
+
+  def unfoldedIds: Set[PredicateIdentifier] = unfoldedInstIds.map(_.predId)
+
+  def foldedAndUnfoldedIds: Set[PredicateIdentifier] = foldedAndUnfoldedInstIds.map(_.predId)
 
   def createVariable(variable: Identifier, typ: Type) = {
     add(variable, defaultValue.top())
@@ -149,6 +167,30 @@ case class PredicateInstanceDomain(
     if (isTop || isBottom) super.toString
     else value.mkString(", ")
   }
+}
+
+class PredicateInstanceIdentifier(
+    val predId: PredicateIdentifier,
+    val version: Int)
+  extends VariableIdentifier(name = s"$predId#$version")(PredType) {
+
+}
+
+object PredicateInstanceIdentifier {
+  private val nextVersion = new ThreadLocal[Int]
+
+  def resetVersion() = {
+    nextVersion.set(0)
+  }
+
+  def makeVersion(): Int = {
+    val version = nextVersion.get
+    nextVersion.set(version + 1)
+    version
+  }
+
+  def make(predId: PredicateIdentifier): PredicateInstanceIdentifier =
+    new PredicateInstanceIdentifier(predId, makeVersion())
 }
 
 final case class PredicateInstanceState(name: String) extends Expression {

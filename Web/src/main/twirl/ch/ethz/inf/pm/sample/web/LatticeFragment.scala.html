@@ -7,19 +7,19 @@
         @CartesianProductDomain(List(
             s.valueState.valueState,
             s.valueState.predicateState.instances,
-            s.valueState.predicateState.definitions,
+            s.valueState.predicateState.predicates,
             s.edgeAmbiguityState))
     }
     case i: vdha.PredicateInstancesDomain => {
         @LatticeDescription("Instances")
         @PredicateInstancesDomain(i)
     }
-    case d: vdha.PredicateDefinitionsDomain => {
-        @LatticeDescription("Definitions")
+    case d: vdha.PredicatesDomain => {
+        @LatticeDescription("Predicates")
         @FunctionalDomain(d)
     }
-    case s: vdha.PredicateDefinition => {
-        @PredicateDefinition(s)
+    case s: vdha.PredicateBody => {
+        @PredicateBody(s)
     }
     case g: vdha.EdgeAmbiguityState => {
         @LatticeDescription("Edge Ambiguity")
@@ -44,14 +44,14 @@
 @PredicateInstancesDomain(i: vdha.PredicateInstancesDomain) = {
     <dl class="functional-domain">
         <dt>Folded</dt>
-        <dd>@i.foldedIds.mkString(", ")</dd>
+        <dd>@i.foldedInstIds.mkString(", ")</dd>
         <dt>Unfolded</dt>
-        <dd>@i.unfoldedIds.mkString(", ")</dd>
+        <dd>@i.unfoldedInstIds.mkString(", ")</dd>
     </dl>
     <div class="clearfix"></div>
 }
 
-@PredicateDefinition(s: vdha.PredicateDefinition) = {
+@PredicateBody(s: vdha.PredicateBody) = {
     @if(s.isTop) {
         @Top()
     } else {
