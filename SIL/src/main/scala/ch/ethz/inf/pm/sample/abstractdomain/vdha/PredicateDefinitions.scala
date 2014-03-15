@@ -187,6 +187,16 @@ final case class PredicateBody(
   def nestedPredIds: Set[Identifier] =
     map.values.flatMap(_.value).toSet
 
+  /** Returns a map of fields to their directly nested predicate IDs. */
+  def nestedPredIdMap: Map[Identifier, Identifier] =
+    map.flatMap({
+      case (field, nestedPredIds) =>
+        require(!nestedPredIds.isBottom,
+          "nested predicate IDs must not be bottom")
+        if (nestedPredIds.value.isEmpty) None
+        else Some(field -> nestedPredIds.value.head)
+    })
+
   override def toString = {
     if (isBottom) "⊥"
     else if (isTop) "⊤"
