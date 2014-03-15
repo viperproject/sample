@@ -35,7 +35,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     isTop: Boolean = false,
     // The subscribers is immutable like the rest of the state.
     // Subscribing results in a new state while the old state is unchanged.
-    ghostOpSubscribers: Seq[GhostOpSubscriber[S]] = Seq.empty)
+    // A ghost operation collector is added by default.
+    ghostOpSubscribers: Seq[GhostOpSubscriber[S]] = Seq(GhostOpCollector[S]()))
   extends PreciseValueDrivenHeapState[
     SemanticAndPredicateDomain[S],
     PredicateDrivenHeapState[S]]

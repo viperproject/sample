@@ -8,7 +8,7 @@ trait GhostOpSubscriber[S <: SemanticDomain[S]] {
 }
 
 /** Subscriber that collects all ghost operation events. */
-case class CollectingGhostOpSubscriber[S <: SemanticDomain[S]]() extends GhostOpSubscriber[S] {
+case class GhostOpCollector[S <: SemanticDomain[S]]() extends GhostOpSubscriber[S] {
   private[this] var _ghostOps: Seq[GhostOpEvent] = Seq.empty
 
   def ghostOps = _ghostOps

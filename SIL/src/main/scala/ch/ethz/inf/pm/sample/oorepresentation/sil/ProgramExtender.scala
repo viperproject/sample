@@ -85,7 +85,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
       for ((stmt, stmtIdx) <- block.zipWithIndex) {
         val cfgPosition = CFGPosition(blockIdx, stmtIdx)
         val preState = cfgState.preStateAt(cfgPosition)
-        val collector = CollectingGhostOpSubscriber[S]()
+        val collector = GhostOpCollector[S]()
         val preStateWithCollector = preState.subscribe(collector)
 
         stmt.forwardSemantics(preStateWithCollector)
@@ -101,7 +101,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         val lastStmtIdx = block.size - 1
         val cfgPosition = CFGPosition(blockIdx, lastStmtIdx)
         val postState = cfgState.postStateAt(cfgPosition)
-        val collector = CollectingGhostOpSubscriber[S]()
+        val collector = GhostOpCollector[S]()
         val postStateWithCollector = postState.subscribe(collector)
 
         // TODO: Currently does not work because predicates
@@ -113,6 +113,23 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         foldMap += pos -> collector.foldGhostOps
       }
     }
+
+    // Build a map of predicate aliases from the merge have taken place
+    // during the analysis
+    val predMergeOps = exitState.ghostOpSubscribers
+      .collectFirst({ case c: GhostOpCollector[S] => c }).get.predMergeGhostOps
+
+    val predIdAliases = predMergeOps.flatMap(predMergeOp => {
+      assert(predMergeOp.repl.value.size == 1,
+        "there must be exactly one predicate merge")
+
+      val (fromSet, toSet) = predMergeOp.repl.value.head
+
+      assert(toSet.size == 1,
+        "there must be exactly one target predicate ID")
+
+      (fromSet -- toSet).map(_ -> toSet.head)
+    }).toMap
 
     val newMethod = method.transform()(post = {
       case m: sil.Method =>
@@ -163,7 +180,13 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         foldMap.get(newS.pos) match {
           case Some(sampleFold) =>
             val foldStmts = sampleFold.flatMap(fold => {
-              predRegistry.predAccessPred(fold.variable, fold.predicateId) match {
+              // folded.predicateId may only have existed temporarily
+              // and then merged into an older predicate ID. Resolve possible
+              // aliasing here
+              // TODO: Refactor
+              val predId = predIdAliases.getOrElse(fold.predicateId, fold.predicateId)
+
+              predRegistry.predAccessPred(fold.variable, predId) match {
                 case Some(predAccessPred) =>
                   Some(sil.Fold(predAccessPred)(newS.pos, InferredInfo))
                 case None => None
