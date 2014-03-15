@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.BoolType
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, BoolType}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 
@@ -67,6 +67,10 @@ case class PredicateInstancesDomain(
     add(variable, defaultValue.top())
 
   def assign(variable: Identifier, expr: Expression) = expr match {
+    // Hack to make it possible to set the variable to top
+    // using an assignment
+    case PredicateInstanceState.Top =>
+      add(variable, get(variable).top())
     case (expr: PredicateInstanceState) =>
       add(variable, defaultValue.add(expr))
   }
@@ -151,7 +155,7 @@ final case class PredicateInstanceState(name: String) extends Expression {
   def transform(f: (Expression) => Expression) = this
   def ids = Set.empty
   def pp = DummyProgramPoint
-  def typ = BoolType
+  def typ = PredType
 
   override def toString = name
 }
@@ -159,4 +163,8 @@ final case class PredicateInstanceState(name: String) extends Expression {
 object PredicateInstanceState {
   val Folded = PredicateInstanceState("folded")
   val Unfolded = PredicateInstanceState("unfolded")
+
+  // Dummy element that makes it possible to use assignField
+  // to set a ghost variable to top
+  val Top = PredicateInstanceState("top")
 }
