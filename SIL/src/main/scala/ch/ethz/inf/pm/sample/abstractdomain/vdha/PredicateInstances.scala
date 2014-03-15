@@ -43,21 +43,21 @@ case class PredicateInstancesDomain(
   /** Returns the IDs of all predicates for which we have an instance
     * in the given state.
     */
-  def ids(instState: PredicateInstanceState): Set[Identifier] =
+  def ids(instState: PredicateInstanceState): Set[PredicateIdentifier] =
     map.keySet.collect({
       // Only consider target edge-local identifiers
       case id @ EdgeLocalIdentifier(field :: Nil, predId)
-        if get(id).value.contains(instState) => predId
+        if get(id).value.contains(instState) => predId.asInstanceOf[PredicateIdentifier]
     })
 
   /** The predicate IDs of all folded predicate instances. */
-  def foldedIds: Set[Identifier] = ids(Folded)
+  def foldedIds: Set[PredicateIdentifier] = ids(Folded)
 
   /** The predicate IDs of all unfolded predicate instances. */
-  def unfoldedIds: Set[Identifier] = ids(Unfolded)
+  def unfoldedIds: Set[PredicateIdentifier] = ids(Unfolded)
 
   /** The predicate IDs of all folded and unfolded predicate instances. */
-  def foldedAndUnfoldedIds: Set[Identifier] = foldedIds ++ unfoldedIds
+  def foldedAndUnfoldedIds: Set[PredicateIdentifier] = foldedIds ++ unfoldedIds
 
   def createVariable(variable: Identifier, typ: Type) = {
     add(variable, defaultValue.top())

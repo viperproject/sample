@@ -95,11 +95,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   def assumePredicatesForArguments(): T = {
-    PredicatesDomain.resetId()
+    PredicateIdentifier.reset()
 
     // Create a fresh predicate for each parameter edge
     val edgeVerticesToPredId = abstractHeap.localVarEdges.map(edge => {
-      val predId = PredicatesDomain.makeId()
+      val predId = PredicateIdentifier.make()
       Set(edge.source, edge.target) -> predId
     }).toMap
 
@@ -125,7 +125,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     */
   def certainIds(
       localVarVertex: LocalVariableVertex,
-      predInstState: PredicateInstanceState): Set[Identifier] = {
+      predInstState: PredicateInstanceState): Set[PredicateIdentifier] = {
     val recvEdges = abstractHeap.outEdges(localVarVertex)
     certainIds(recvEdges, predInstState)
   }
@@ -135,7 +135,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     */
   def certainIds(
       edges: Set[Edge[EdgeStateDomain[S]]],
-       predInstState: PredicateInstanceState): Set[Identifier] = {
+       predInstState: PredicateInstanceState): Set[PredicateIdentifier] = {
     val nonNullEdges = edges.filterNot(_.target == NullVertex)
     if (nonNullEdges.isEmpty) Set.empty
     else {
@@ -219,7 +219,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             result.abstractHeap.outEdges(_, Some(field.getName)))
 
           if (fieldEdges.exists(_.target != NullVertex)) {
-            val nestedPredId = PredicatesDomain.makeId()
+            val nestedPredId = PredicateIdentifier.make()
             val nestedPredBody = PredicateBody().top()
             result = result.assignVariable(nestedPredId, nestedPredBody)
             recvPredBody = recvPredBody.add(field, NestedPredicatesDomain(Set(nestedPredId), isTop = false))
@@ -280,7 +280,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   override protected def createObject(typ: Type) = {
     val (result, newVertex) = super.createObject(typ)
 
-    val predId = PredicatesDomain.makeId()
+    val predId = PredicateIdentifier.make()
     val predValueHeapId = ValueHeapIdentifier(newVertex, predId)
 
     val newResult = result
@@ -293,7 +293,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   override def assignVariable(left: Expression, right: Expression) = {
     val result = super.assignVariable(left, right)
     val newResult = (left, right) match {
-      case (left: VariableIdentifier, right: VertexExpression) =>
+      case (left: Identifier, right: VertexExpression) =>
         val source = abstractHeap.localVarVertex(left.getName)
         val localVarEdges = result.abstractHeap.outEdges(source)
 

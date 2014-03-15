@@ -45,7 +45,7 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
     SystemParameters.addNativeMethodsSemantics(compiler.getNativeMethodsSemantics())
 
     // Experimental
-    PredicatesDomain.resetId()
+    PredicateIdentifier.reset()
 
     // Analyze
     vdha.withGlbPreservingIdsStrategy(analysis.glbPreservingIdStrategy, () => {
@@ -168,7 +168,7 @@ object PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
               val freshPredId = heap.outEdges(heap.localVarVertex(paramLocalVar.name))
                 .filter(_.target != NullVertex).head.state.predInsts.foldedIds.head
               val repl = new Replacement()
-              repl.value += Set(freshPredId, existingPreds.map.keySet.head) -> Set(freshPredId)
+              repl.value += Set[Identifier](freshPredId, existingPreds.map.keySet.head) -> Set[Identifier](freshPredId)
               val condHeap = initialState.toCondHeapGraph.map(state => {
                 state.transformPreds(_ lub existingPreds).merge(repl)
               })

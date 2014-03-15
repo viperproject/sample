@@ -34,14 +34,14 @@ trait GhostOpEvent {
 /** Represents an unfold performed by the `PredicateDrivenHeapState` */
 final case class UnfoldGhostOpEvent(
     variable: Identifier,
-    predicateId: Identifier)
+    predicateId: PredicateIdentifier)
   extends GhostOpEvent {
 }
 
 /** Represents a fold performed by the `PredicateDrivenHeapState` */
 final case class FoldGhostOpEvent(
     variable: Identifier,
-    predicateId: Identifier)
+    predicateId: PredicateIdentifier)
   extends GhostOpEvent {
 }
 

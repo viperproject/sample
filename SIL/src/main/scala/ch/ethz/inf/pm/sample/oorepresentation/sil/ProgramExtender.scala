@@ -119,7 +119,8 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
     val predMergeOps = exitState.ghostOpSubscribers
       .collectFirst({ case c: GhostOpCollector[S] => c }).get.predMergeGhostOps
 
-    val predIdAliases = predMergeOps.flatMap(predMergeOp => {
+    val predIdAliases: Map[PredicateIdentifier, PredicateIdentifier] =
+      predMergeOps.flatMap(predMergeOp => {
       assert(predMergeOp.repl.value.size == 1,
         "there must be exactly one predicate merge")
 
@@ -128,7 +129,8 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
       assert(toSet.size == 1,
         "there must be exactly one target predicate ID")
 
-      (fromSet -- toSet).map(_ -> toSet.head)
+      // TODO: Should make replacement generic
+      (fromSet -- toSet).map(_.asInstanceOf[PredicateIdentifier] -> toSet.head.asInstanceOf[PredicateIdentifier])
     }).toMap
 
     val newMethod = method.transform()(post = {

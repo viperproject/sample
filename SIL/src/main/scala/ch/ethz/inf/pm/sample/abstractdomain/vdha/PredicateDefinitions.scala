@@ -1,17 +1,18 @@
 package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, DummyProgramPoint}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 
 case class PredicatesDomain(
-    map: Map[Identifier, PredicateBody] = Map.empty[Identifier, PredicateBody],
+    map: Map[PredicateIdentifier, PredicateBody] =
+      Map.empty[PredicateIdentifier, PredicateBody],
     isTop: Boolean = false,
     override val isBottom: Boolean = false,
     defaultValue: PredicateBody = PredicateBody().top())
-  extends BoxedDomain[PredicateBody, PredicatesDomain]
+  extends FunctionalDomain[PredicateIdentifier, PredicateBody, PredicatesDomain]
   with SemanticDomain[PredicatesDomain]
   with Lattice.Must[PredicatesDomain] {
 
@@ -21,34 +22,21 @@ case class PredicatesDomain(
   // require(map.values.forall(_.nestedPredIds.subsetOf(map.keySet)),
   //   "all nested predicate IDs must be known and have a body themselves")
 
-  def get(key: Identifier): PredicateBody = map.getOrElse(key, defaultValue)
+  def get(key: PredicateIdentifier): PredicateBody =
+    map.getOrElse(key, defaultValue)
 
   def functionalFactory(
-      value: Map[Identifier, PredicateBody],
+      value: Map[PredicateIdentifier, PredicateBody],
       isBottom: Boolean,
       isTop: Boolean) =
     PredicatesDomain(value, isTop, isBottom, defaultValue)
-
-  def removeVariable(variable: Identifier) = remove(variable)
-
-  def createVariable(variable: Identifier, typ: Type) =
-    add(variable, defaultValue.top())
-
-  def setToTop(variable: Identifier) =
-    add(variable, defaultValue.top())
-
-  def assume(expr: Expression) = this
-
-  def assign(variable: Identifier, expr: Expression) = expr match {
-    case (expr: PredicateBody) => add(variable, expr)
-  }
 
   /** Finds a predicate that is structurally equal to the given predicate,
     * which consists of an identifier as well as its body.
     *
     * @todo support nested predicate instances that are not directly recursive
     */
-  def findEqual(needleId: Identifier, needleBody: PredicateBody): Option[Identifier] = {
+  def findEqual(needleId: PredicateIdentifier, needleBody: PredicateBody): Option[Identifier] = {
     for ((id, body) <- map) {
       val renamedBody = body.rename(id, needleId)
       if (renamedBody == needleBody) {
@@ -60,9 +48,8 @@ case class PredicatesDomain(
 
   /** Returns the set of set of fields that the predicate with the given ID
     * directly (not mutually) recurses over.
-
     */
-  def recursionFields(predId: Identifier): Set[Identifier] = {
+  def recursionFields(predId: PredicateIdentifier): Set[Identifier] = {
     get(predId).map.flatMap({
       case (field, nestedPredIds) =>
         if (nestedPredIds.value.contains(predId)) Some(field)
@@ -74,7 +61,10 @@ case class PredicatesDomain(
     if (r.isEmpty()) return this
 
     assert(r.value.size == 1, "there must be only one replacement")
+
+    // TODO: Ideally, Replacement would be generic
     var (fromSet, toSet) = r.value.head
+      .asInstanceOf[(Set[PredicateIdentifier], Set[PredicateIdentifier])]
 
     fromSet = fromSet.intersect(map.keySet)
     toSet = toSet.intersect(map.keySet)
@@ -109,6 +99,36 @@ case class PredicatesDomain(
     }
   }
 
+  // SemanticDomain has no type parameter for the type of identifiers
+  // stored inside of it. Thus, the following methods perform type casts.
+  def ids = map.keySet.toSet
+
+  def removeVariable(id: Identifier) = id match {
+    case id: PredicateIdentifier => remove(id)
+  }
+
+  def createVariable(id: Identifier, typ: Type) = id match {
+    case id: PredicateIdentifier => add(id, defaultValue.top())
+  }
+
+  def createVariableForArgument(id: Identifier, typ: Type) = id match {
+    case id: PredicateIdentifier => add(id, defaultValue.top())
+  }
+
+  def setToTop(id: Identifier) = id match {
+    case id: PredicateIdentifier => add(id, defaultValue.top())
+  }
+
+  def assume(expr: Expression) = this
+
+  def assign(id: Identifier, expr: Expression) = (id, expr) match {
+    case (id: PredicateIdentifier, expr: PredicateBody) => add(id, expr)
+  }
+
+  def getStringOfId(id: Identifier) = id match {
+    case id: PredicateIdentifier => get(id).toString
+  }
+
   def setArgument(variable: Identifier, expr: Expression) = ???
   def backwardAssign(oldPreState: PredicatesDomain, variable: Identifier, expr: Expression) = ???
   def backwardAccess(field: Identifier) = ???
@@ -116,18 +136,25 @@ case class PredicatesDomain(
   def access(field: Identifier) = ???
 }
 
-object PredicatesDomain {
+/** @todo It should not be necessary for `PredicateIdentifier`
+  * to extend `VariableIdentifier`.
+  */
+class PredicateIdentifier(override val name: String)
+  extends VariableIdentifier(name)(PredType) {
+}
+
+object PredicateIdentifier {
   private val nextId = new ThreadLocal[Int]
 
-  def resetId() = {
+  def reset() = {
     nextId.set(0)
   }
 
-  def makeId(): VariableIdentifier = {
+  def make(): PredicateIdentifier = {
     val id = nextId.get
     nextId.set(id + 1)
-    id.toString
-    VariableIdentifier(Constants.GhostSymbolPrefix + "p" + id)(PredType)
+    val name = Constants.GhostSymbolPrefix + "p" + id
+    new PredicateIdentifier(name)
   }
 }
 
@@ -145,7 +172,7 @@ final case class PredicateBody(
   def addPerm(field: Identifier): PredicateBody =
     add(field, NestedPredicatesDomain().top())
 
-  def addPerm(field: Identifier, nestedPredId: Identifier): PredicateBody =
+  def addPerm(field: Identifier, nestedPredId: PredicateIdentifier): PredicateBody =
     add(field, get(field).add(nestedPredId))
 
   def functionalFactory(
@@ -173,7 +200,7 @@ final case class PredicateBody(
   /** Replaces all occurrences of a given predicate ID
     * with a given other predicate ID.
     */
-  def rename(from: Identifier, to: Identifier): PredicateBody = {
+  def rename(from: PredicateIdentifier, to: PredicateIdentifier): PredicateBody = {
     copy(map = map.mapValues(nestedPredIds => {
       if (nestedPredIds.value.contains(from)) {
         nestedPredIds.remove(from).add(to)
@@ -184,11 +211,11 @@ final case class PredicateBody(
   }
 
   /** Returns a set of all directly nested predicate IDs. */
-  def nestedPredIds: Set[Identifier] =
+  def nestedPredIds: Set[PredicateIdentifier] =
     map.values.flatMap(_.value).toSet
 
   /** Returns a map of fields to their directly nested predicate IDs. */
-  def nestedPredIdMap: Map[Identifier, Identifier] =
+  def nestedPredIdMap: Map[Identifier, PredicateIdentifier] =
     map.flatMap({
       case (field, nestedPredIds) =>
         require(!nestedPredIds.isBottom,
@@ -208,10 +235,10 @@ final case class PredicateBody(
 
 /** Basically an inverse 1-set domain with must semantics. */
 final case class NestedPredicatesDomain(
-    value: Set[Identifier] = Set.empty,
+    value: Set[PredicateIdentifier] = Set.empty,
     isTop: Boolean = true,
     isBottom: Boolean = false)
-  extends InverseSetDomain[Identifier, NestedPredicatesDomain]
+  extends InverseSetDomain[PredicateIdentifier, NestedPredicatesDomain]
   with Lattice.Must[NestedPredicatesDomain] {
 
   require(value.isEmpty implies (isTop || isBottom),
@@ -226,7 +253,10 @@ final case class NestedPredicatesDomain(
   require(!isBottom implies value.size <= 1,
     "there must be at most one element in the set, unless it is bottom")
 
-  override def setFactory(value: Set[Identifier], isTop: Boolean, isBottom: Boolean) = {
+  override def setFactory(
+      value: Set[PredicateIdentifier],
+      isTop: Boolean,
+      isBottom: Boolean) = {
     if (value.size > 1) bottom()
     else NestedPredicatesDomain(value, isTop, isBottom)
   }

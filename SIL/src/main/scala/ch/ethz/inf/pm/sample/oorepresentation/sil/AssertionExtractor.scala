@@ -11,9 +11,13 @@ import semper.sil.ast.{PredicateAccessPredicate, Predicate, Exp}
 import com.weiglewilczek.slf4s.Logging
 
 trait PredicateRegistry {
-  def accessPredicates(variableId: sample.Identifier, predId: sample.Identifier): sil.Exp
+  def accessPredicates(
+      variableId: sample.Identifier,
+      predId: sample.PredicateIdentifier): sil.Exp
 
-  def predAccessPred(variableId: sample.Identifier, predId: sample.Identifier): Option[sil.PredicateAccessPredicate]
+  def predAccessPred(
+      variableId: sample.Identifier,
+      predId: sample.PredicateIdentifier): Option[sil.PredicateAccessPredicate]
 
   def predicates: Seq[sil.Predicate]
 
@@ -21,11 +25,13 @@ trait PredicateRegistry {
 }
 
 case class DefaultPredicateRegistry(
-    map: Map[sample.Identifier, (sample.PredicateBody, sil.Predicate)],
+    map: Map[sample.PredicateIdentifier, (sample.PredicateBody, sil.Predicate)],
     hideShallowPredicates: Boolean = true)
   extends PredicateRegistry {
 
-  def accessPredicates(variableId: sample.Identifier, predId: sample.Identifier): sil.Exp = {
+  def accessPredicates(
+      variableId: sample.Identifier,
+      predId: sample.PredicateIdentifier): sil.Exp = {
     val (samplePredBody, silPred) = map(predId)
     val localVar = DefaultSampleConverter.convert(variableId)
 
@@ -40,7 +46,9 @@ case class DefaultPredicateRegistry(
     }
   }
 
-  def predAccessPred(variableId: sample.Identifier, predId: sample.Identifier): Option[sil.PredicateAccessPredicate] = {
+  def predAccessPred(
+      variableId: sample.Identifier,
+      predId: sample.PredicateIdentifier): Option[sil.PredicateAccessPredicate] = {
     val (samplePredBody, silPred) = map(predId)
     val localVar = DefaultSampleConverter.convert(variableId)
 
@@ -75,7 +83,7 @@ case class PredicateRegistryBuilder(
 
     val existingPreds = DefaultSilConverter.convert(existingSilPreds)
 
-    val predMap: Map[sample.Identifier, (sample.PredicateBody, sil.Predicate)] = extractedPreds.map.map({
+    val predMap: Map[sample.PredicateIdentifier, (sample.PredicateBody, sil.Predicate)] = extractedPreds.map.map({
       case (predId, predBody) =>
         existingPreds.findEqual(predId, predBody) match {
           case Some(existingPredId) =>
@@ -103,7 +111,7 @@ case class PredicateRegistryBuilder(
 
   protected def buildBody(
       body: PredicateBody,
-      predMap: Map[sample.Identifier, (sample.PredicateBody, sil.Predicate)]): sil.Exp = {
+      predMap: Map[sample.PredicateIdentifier, (sample.PredicateBody, sil.Predicate)]): sil.Exp = {
     if (body.isTop)
       sil.TrueLit()()
     else if (body.isBottom)

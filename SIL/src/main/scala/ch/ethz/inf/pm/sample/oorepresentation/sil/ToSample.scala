@@ -258,16 +258,16 @@ object DefaultSilConverter extends SilConverter with Logging {
   }
 
   def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain = {
-    val predIdToBodyMap: Map[sample.Identifier, sample.PredicateBody] =
+    val predIdToBodyMap: Map[sample.PredicateIdentifier, sample.PredicateBody] =
       preds.map(convert).flatten.toMap
 
     /** Returns the set of all predicate IDs recursively nested
       * in the predicate with the given ID.
       */
     def deeplyNestedPredIds(
-        predId: sample.Identifier,
-        foundSoFar: Set[sample.Identifier] = Set.empty):
-      Set[sample.Identifier] = {
+        predId: sample.PredicateIdentifier,
+        foundSoFar: Set[sample.PredicateIdentifier] = Set.empty):
+      Set[sample.PredicateIdentifier] = {
 
       if (foundSoFar.contains(predId)) {
         foundSoFar // Terminate when reaching an already handled predicate ID
@@ -302,7 +302,7 @@ object DefaultSilConverter extends SilConverter with Logging {
     * If the given predicate has a shape that our domain of predicates does not
     * support, the method returns `None`.
     */
-  private def convert(pred: sil.Predicate): Option[(sample.Identifier, sample.PredicateBody)] = {
+  private def convert(pred: sil.Predicate): Option[(sample.PredicateIdentifier, sample.PredicateBody)] = {
     if (pred.formalArgs.map(_.typ) != Seq(sil.Ref)) {
       // Only support SIL predicates with a single reference parameter
       return None
@@ -318,7 +318,7 @@ object DefaultSilConverter extends SilConverter with Logging {
     })
 
     // Maps each field with write permission to a set of predicate IDs
-    var fieldsWithPerm = Map.empty[sample.Identifier, Set[sample.Identifier]]
+    var fieldsWithPerm = Map.empty[sample.Identifier, Set[sample.PredicateIdentifier]]
 
     // Predicate must be a conjunction of constituents we support, that is,
     // field access predicates, and conditional predicate access predicates
@@ -333,7 +333,7 @@ object DefaultSilConverter extends SilConverter with Logging {
         if formalArgVar == rcv && args == Seq(fa) =>
         // Found a nested predicate access predicate for a field
         // of the formal argument
-        val nestedPredId = sample.VariableIdentifier(nestedPred.name)(PredType)
+        val nestedPredId = new sample.PredicateIdentifier(nestedPred.name)
         fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
       case n =>
         // Give up if the predicate contains anything else
@@ -341,7 +341,7 @@ object DefaultSilConverter extends SilConverter with Logging {
         return None
     })
 
-    val samplePredId = sample.VariableIdentifier(pred.name)(PredType)
+    val samplePredId = new sample.PredicateIdentifier(pred.name)
     val samplePredBody = sample.PredicateBody().functionalFactory(
       fieldsWithPerm.mapValues(predIds => {
         predIds.foldLeft(sample.NestedPredicatesDomain())(_.add(_))

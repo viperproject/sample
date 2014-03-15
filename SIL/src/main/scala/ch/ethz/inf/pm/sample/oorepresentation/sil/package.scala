@@ -75,10 +75,12 @@ package object sil {
     type PredicatesDomain = dom.vdha.PredicatesDomain
     type PredicateBody = dom.vdha.PredicateBody
     type NestedPredicatesDomain = dom.vdha.NestedPredicatesDomain
+    type PredicateIdentifier = dom.vdha.PredicateIdentifier
 
     val PredicatesDomain = dom.vdha.PredicatesDomain
     val PredicateBody = dom.vdha.PredicateBody
     val NestedPredicatesDomain = dom.vdha.NestedPredicatesDomain
+    val PredicateIdentifier = dom.vdha.PredicateIdentifier
   }
 
 }
