@@ -87,7 +87,7 @@ object DefaultSampleConverter extends SampleConverter {
 
   def convert(pp: sample.ProgramPoint): sil.Position = pp match {
     case sample.DummyProgramPoint => sil.NoPosition
-    case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[SourcePosition] // TODO: Avoid cast
+    case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[SourcePosition]
   }
 
   def convert(typ: sample.Type): sil.Type = typ match {

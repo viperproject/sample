@@ -90,10 +90,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
 
         stmt.forwardSemantics(preStateWithCollector)
 
-        val pos = stmt.getPC() match {
-          case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
-        }
-
+        val pos = DefaultSampleConverter.convert(stmt.getPC())
         unfoldMap += pos -> collector.unfoldGhostOps
       }
 
@@ -112,10 +109,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         // should use the new name of the predicate after the merge
         postStateWithCollector.tryToFoldAllLocalVars()
 
-        val pos = lastStmt.getPC() match {
-          case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
-        }
-
+        val pos = DefaultSampleConverter.convert(lastStmt.getPC())
         foldMap += pos -> collector.foldGhostOps
       }
     }
