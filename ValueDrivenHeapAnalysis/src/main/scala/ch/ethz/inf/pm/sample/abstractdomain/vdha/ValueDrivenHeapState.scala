@@ -175,7 +175,7 @@ trait ValueDrivenHeapState[
               edgesToAdd = edgesToAdd + edge.createEdgeLocalIds()
             }
             case rAP: AccessPathIdentifier => {
-              val rightPaths = abstractHeap.paths(rAP.path)
+              val rightPaths = abstractHeap.paths(rAP.stringPath)
               for (rPath <- rightPaths) {
                 val rCond = rPath.condition
                 if (!rCond.lessEqual(rCond.bottom())) {
@@ -255,8 +255,8 @@ trait ValueDrivenHeapState[
       var edgesToAdd = Set.empty[Edge[S]]
       normalizeExpression(right) match {
         case rAP: AccessPathIdentifier => {
-          val rightPaths = abstractHeap.paths(rAP.path)
-          edgesToAdd = referencePathAssignmentEdges(left.path.last, leftPaths, rightPaths)
+          val rightPaths = abstractHeap.paths(rAP.stringPath)
+          edgesToAdd = referencePathAssignmentEdges(left.path.last.getName, leftPaths, rightPaths)
         }
         case v: VertexExpression => {
           // We assume that all edges have ValueHeapIdentifiers for the given vertex expression
@@ -270,9 +270,9 @@ trait ValueDrivenHeapState[
             for (id <- leftCond.ids.collect({
               case id: ValueHeapIdentifier if id.obj.equals(v.vertex) => id
             })) {
-              repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(left.path.last)), id)))
+              repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(left.path.last.getName)), id)))
             }
-            edgesToAdd = edgesToAdd + Edge(lPath.target, leftCond.merge(repl), Some(left.path.last), v.vertex)
+            edgesToAdd = edgesToAdd + Edge(lPath.target, leftCond.merge(repl), Some(left.path.last.getName), v.vertex)
           }
         }
         case c: Constant => {
@@ -292,7 +292,7 @@ trait ValueDrivenHeapState[
       if (sources.size == 1 && (sources.head.isInstanceOf[DefiniteHeapVertex] || sources.head.isInstanceOf[LocalVariableVertex])) {
         // Strong update - removing the edges from the target of the path labeled with the assigned filed
         val lastPathVertex: Vertex = sources.head
-        val edgesToRemove = resultingAH.outEdges(lastPathVertex, Some(left.path.last))
+        val edgesToRemove = resultingAH.outEdges(lastPathVertex, Some(left.path.last.getName))
         resultingAH = resultingAH.removeEdges(edgesToRemove)
       }
       resultingAH = resultingAH.addEdges(edgesToAdd)

@@ -87,7 +87,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     mapEdgeStates(_.removeVariables(ids))
 
   def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[RootedPath[S]] =
-    paths(accPathId.path.dropRight(1))
+    paths(accPathId.stringPath.dropRight(1))
 
   /**
    * Returns the possible set of paths in the heap graph (lists of edges)

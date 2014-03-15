@@ -144,7 +144,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         val targetVertex = path.target.asInstanceOf[HeapVertex]
 
         // Rename edge local identifier that corresponds to the access path
-        val edgeLocalId = cond.edgeLocalIds.find(_.field.getName == field).get
+        val edgeLocalId = cond.edgeLocalIds.find(_.field == field).get
         cond = cond.rename(Map(edgeLocalId -> ap))
 
         // AccessPathIdentifier must agree also with the ValueHeapIdentifier
@@ -207,7 +207,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
           def targetVertex(exp: Expression): Vertex = exp match {
             case (Constant("null", _, _)) => NullVertex
-            case AccessPathIdentifier(path) => condHeap.takenPath(path).target
+            case AccessPathIdentifier(path) => condHeap.takenPath(path.map(_.getName)).target
           }
 
           val leftTarget = targetVertex(left)
@@ -249,15 +249,11 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     val vertexToAssign = leftTakenPath.target
     val field = left.path.last
 
-    // TODO: Hard-coding VariableIdentifier here is a bit risky.
-    // Ideally, the AccessPathIdentifier should supply the proper identifier
-    val fieldId = VariableIdentifier(field)(right.typ, right.pp)
-
     var condHeapAssigned = this
 
     vertexToAssign match {
       case vertexToAssign: HeapVertex =>
-        val idToAssign = ValueHeapIdentifier(vertexToAssign, fieldId)
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, field)
         condHeapAssigned = condHeapAssigned.map(_.assign(idToAssign, right))
       case _ =>
     }
@@ -265,12 +261,12 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     condHeapAssigned = condHeapAssigned.mapEdges(edge => {
       var newState = edge.state
       if (edge.source == vertexToAssign) {
-        val edgeLocId = EdgeLocalIdentifier(List.empty, fieldId)
+        val edgeLocId = EdgeLocalIdentifier(List.empty, field)
         newState = newState.assign(edgeLocId, right)
       }
       if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
         val path = List(edge.field)
-        val edgeLocId = EdgeLocalIdentifier(path, fieldId)
+        val edgeLocId = EdgeLocalIdentifier(path, field)
         newState = newState.assign(edgeLocId, right)
       }
       newState

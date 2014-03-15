@@ -148,11 +148,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     * local variable vertex and the field identifier.
     */
   def splitAccessPathIdentifier(id: AccessPathIdentifier):
-      (LocalVariableVertex, VariableIdentifier) = {
+      (LocalVariableVertex, Identifier) = {
     require(id.path.size == 2, "currently only support obj.field")
 
-    val localVarName = id.path.head
-    val field = VariableIdentifier(id.path.last)(id.typ)
+    val localVarName = id.path.head.getName
+    val field = id.path.last
     val localVarVertex = abstractHeap.localVarVertex(localVarName)
 
     (localVarVertex, field)
@@ -216,7 +216,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       if (!hasPerm) {
         if (id.typ.isObject) {
           val fieldEdges = nonNullRecvVertices.flatMap(
-            result.abstractHeap.outEdges(_, Some(field.name)))
+            result.abstractHeap.outEdges(_, Some(field.getName)))
 
           if (fieldEdges.exists(_.target != NullVertex)) {
             val nestedPredId = PredicatesDomain.makeId()
@@ -328,7 +328,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val (localVarVertex, field) = splitAccessPathIdentifier(left)
       val unfoldedRecvIds = certainIds(localVarVertex, Unfolded)
 
-      val paths = result.abstractHeap.paths(left.path).filter(_.target != NullVertex)
+      val paths = result.abstractHeap.paths(left.stringPath).filter(_.target != NullVertex)
       val fieldEdges = paths.map(_.edges.last)
       val newNestedIds = certainIds(fieldEdges, Folded)
 
@@ -362,7 +362,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     * Leaves null edges untouched.
     */
   def setPredicateInstanceState(
-      path: List[String],
+      path: List[Identifier],
       predId: Identifier,
       state: PredicateInstanceState): T = {
     val accessPathId = AccessPathIdentifier(path, predId)
@@ -390,11 +390,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val unfoldedPredBody = result.generalValState.preds.get(unfoldedPredId)
 
         candidateResult = candidateResult.setPredicateInstanceState(
-          List(localVarVertex.name), unfoldedPredId, Folded)
+          List(localVarVertex.variable), unfoldedPredId, Folded)
 
         for ((field, nestedPredId) <- unfoldedPredBody.nestedPredIdMap) {
-          val path = List(localVarVertex.name, field.getName)
-          val paths = result.abstractHeap.paths(path).filter(_.target != NullVertex)
+          val path = List(localVarVertex.variable, field)
+          val paths = result.abstractHeap.paths(path.map(_.getName)).filter(_.target != NullVertex)
           val fieldEdges = paths.map(_.edges.last)
           val presentFoldedIds = certainIds(fieldEdges, Folded)
 

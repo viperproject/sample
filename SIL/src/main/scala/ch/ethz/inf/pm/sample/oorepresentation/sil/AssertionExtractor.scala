@@ -233,7 +233,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
           val accPathId = AccessPathIdentifier(ambigLocalVarVertex.variable)
           val condHeaps = condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps
           val children = condHeaps.map(condSubHeap => {
-            val edge = condSubHeap.takenPath(accPathId.path).edges.head
+            val edge = condSubHeap.takenPath(accPathId.stringPath).edges.head
             val suffCond = suffConds(edge)
             val subExtractor = copy(condHeapGraph = condSubHeap)
 
@@ -270,7 +270,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     val repl = new Replacement()
     for (edge <- heap.localVarEdges.filter(_.target.isInstanceOf[HeapVertex])) {
       val target = edge.target.asInstanceOf[HeapVertex]
-      val localVarName = edge.source.name
+      val localVarVertex = edge.source.asInstanceOf[LocalVariableVertex]
 
       for (predId <- edge.state.predInsts.foldedIds) {
         val predBody = edge.state.preds.get(predId)
@@ -280,7 +280,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
           for (field <- fieldsWithPerm) {
             val valHeapId = ValueHeapIdentifier(target, field)
-            val accPathId = AccessPathIdentifier(List(localVarName), field)
+            val accPathId = AccessPathIdentifier(List(localVarVertex.variable), field)
             repl.value += Set[Identifier](valHeapId) -> Set[Identifier](accPathId)
           }
         }
