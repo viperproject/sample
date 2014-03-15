@@ -63,26 +63,12 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
     val localVarIds = method.locals.map(DefaultSilConverter.convert).map(_.variable.id)
     exitState = localVarIds.foldLeft(exitState)(_.removeVariable(_))
 
-    // Use same predicate definitions in entry state as in exit state.
-    // TODO: Could just supply predicate definitions separately
-    val entryCondHeapGraph = CondHeapGraph[StateType, T](entryState).map(state => {
-      state.copy(valueState =
-        state.valueState.copy(predicateState = {
-          val predState = state.valueState.predicateState
-          predState.copy(predicates =
-            predState.predicates.lub(
-              exitState.generalValState.valueState.predicateState.predicates)
-          )
-        })
-      )
-    }).join
-
     val predRegistry = PredicateRegistryBuilder().build(
       extractedPreds = exitState.generalValState.preds,
       existingSilPreds = program.predicates
     )
 
-    val entryExtractor = AssertionExtractor[S](entryCondHeapGraph, predRegistry)
+    val entryExtractor = AssertionExtractor[S](entryState.toCondHeapGraph, predRegistry)
     val exitExtractor = AssertionExtractor[S](exitState.toCondHeapGraph, predRegistry)
 
     // Detect unfold operations by hooking into the forward interpretation
