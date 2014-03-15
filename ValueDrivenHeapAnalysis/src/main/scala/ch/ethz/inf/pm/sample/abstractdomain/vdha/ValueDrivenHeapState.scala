@@ -227,8 +227,8 @@ trait ValueDrivenHeapState[
    * Convenience method that converts the state to a `CondHeapGraph` and
    * evaluates the given expression.
    */
-  private def evalExp(expr: Expression): CondHeapGraphSeq[S] =
-    toCondHeapGraph.evalExp(expr)
+  protected def evalExp(expr: Expression, allowNullReceivers: Boolean = false): CondHeapGraphSeq[S] =
+    toCondHeapGraph.evalExp(expr, allowNullReceivers)
 
   /** Assigns an expression to a field and returns the resulting state.
     *

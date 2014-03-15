@@ -357,6 +357,22 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     result
   }
 
+  /** Sets the state of a predicate instance for a given access path.
+    * Leaves null edges untouched.
+    */
+  def setPredicateInstanceState(
+      path: List[String],
+      predId: Identifier,
+      state: PredicateInstanceState): T = {
+    val accessPathId = AccessPathIdentifier(path, predId)
+    // TODO: Do we need to apply the path condition?
+    evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
+      val takenPath = condHeap.takenPath(accessPathId.objPath)
+      if (takenPath.target == NullVertex) Seq(condHeap)
+      else condHeap.assignField(accessPathId, state)
+    }).join
+  }
+
   def tryToFoldAllLocalVars(): PredicateDrivenHeapState[S] = {
     var result = this
 
@@ -372,8 +388,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
         val unfoldedPredBody = result.generalValState.preds.get(unfoldedPredId)
 
-        val predAccpathId = AccessPathIdentifier(List(localVarVertex.name), unfoldedPredId)
-        candidateResult = candidateResult.assignField(predAccpathId, Folded)
+        candidateResult = candidateResult.setPredicateInstanceState(
+          List(localVarVertex.name), unfoldedPredId, Folded)
 
         for ((field, nestedPredId) <- unfoldedPredBody.nestedPredIdMap) {
           val path = List(localVarVertex.name, field.getName)
@@ -386,8 +402,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           }
 
           // TODO: Could maybe also use setToTop
-          val nestedPredAccPathId = AccessPathIdentifier(path, nestedPredId)
-          candidateResult = candidateResult.assignField(nestedPredAccPathId, Top)
+          candidateResult = candidateResult.setPredicateInstanceState(path, nestedPredId, Top)
         }
 
         if (canFold) {
@@ -422,7 +437,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       })
     })
 
-    result
+    result.prunePredIds()
   }
 
   override def lub(other: PredicateDrivenHeapState[S]): PredicateDrivenHeapState[S] = {
@@ -527,8 +542,15 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
       bestResultOption = bestResultOption match {
         case Some(bestResult) =>
-          if (result.abstractHeap.edges.size < bestResult.abstractHeap.edges.size) Some(result)
+          // There used to be a comparison of the number of edges here
+          val bestCount = bestResult.abstractHeap.localVarVertices.count(!bestResult.certainIds(_, Folded).isEmpty)
+          val count = result.abstractHeap.localVarVertices.count(!result.certainIds(_, Folded).isEmpty)
+
+          if (bestCount < count) Some(result)
           else Some(bestResult)
+
+          // Old:
+          // if (result.abstractHeap.edges.size < bestResult.abstractHeap.edges.size) Some(result)
         case None =>
           Some(result)
       }

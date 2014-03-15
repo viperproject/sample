@@ -98,7 +98,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    * @param expr the expression whose `AccessPathIdentifier`s to consider
    * @return the sequence of conditional heap sub-graphs
    */
-  def evalExp(expr: Expression): CondHeapGraphSeq[S] = {
+  def evalExp(expr: Expression, allowNullReceivers: Boolean = false): CondHeapGraphSeq[S] = {
     // Translate non-numeric VariableIdentifiers to AccessPathIdentifiers
     val accessPathIds = expr.ids.collect {
       case v: VariableIdentifier if !v.typ.isNumericalType =>
@@ -108,7 +108,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
 
     // If there are no AccessPathIdentifiers, just return this
     accessPathIds.foldLeft[CondHeapGraphSeq[S]](this)((condHeaps, apId) => {
-      condHeaps.intersect(evalAccessPathId(apId))
+      condHeaps.intersect(evalAccessPathId(apId, allowNullReceivers))
     })
   }
 
@@ -125,10 +125,13 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    * @param ap the access path identifier to consider heap graph paths for
    * @return a conditional heap sub-graph for every path that could be taken
    */
-  def evalAccessPathId(ap: AccessPathIdentifier): CondHeapGraphSeq[S] = {
+  def evalAccessPathId(
+      ap: AccessPathIdentifier,
+      allowNullReceivers: Boolean = false): CondHeapGraphSeq[S] = {
+
     // Get path to the non-null receiver of the field access
     var paths = heap.paths(ap.objPath)
-    if (ap.typ.isNumericalType) {
+    if (ap.typ.isNumericalType && !allowNullReceivers) {
       paths = paths.filter(_.target.isInstanceOf[HeapVertex])
     }
 
@@ -136,7 +139,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     for (path <- paths) {
       var cond = path.condition
 
-      if (ap.typ.isNumericalType) {
+      if (ap.typ.isNumericalType && !allowNullReceivers) {
         val field = ap.path.last
         val targetVertex = path.target.asInstanceOf[HeapVertex]
 
