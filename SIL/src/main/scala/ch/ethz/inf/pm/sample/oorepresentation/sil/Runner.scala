@@ -46,12 +46,14 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
 
     // Experimental
     PredicatesDomain.resetId()
-    
-    // TODO: Get rid of this ugly hack
-    vdha.glbPreservingIdsStrategy = CustomGlbPreservingIdsStrategy
 
     // Analyze
-    methodsToAnalyze(compiler).map(analysis.analyze)
+    val oldGlbPreservingIdStrategy = vdha.glbPreservingIdsStrategy
+    vdha.glbPreservingIdsStrategy = analysis.glbPreservingIdStrategy
+    val results = methodsToAnalyze(compiler).map(analysis.analyze)
+    vdha.glbPreservingIdsStrategy = oldGlbPreservingIdStrategy
+
+    results
   }
 
   /** Which methods to analyze (by default: all of them). */
@@ -188,6 +190,9 @@ object PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
 case class AnalysisResult[S <: State[S]](method: MethodDeclaration, cfgState: TrackingCFGState[S])
 
 trait Analysis[S <: State[S]] extends Logging {
+  def glbPreservingIdStrategy: GlbPreservingIdsStrategy =
+    DefaultGlbPreservingIdsStrategy
+
   def analyze(method: MethodDeclaration): AnalysisResult[S]
 
   protected def analyze(method: MethodDeclaration, entryState: S): AnalysisResult[S] = {
@@ -215,10 +220,15 @@ case class SimpleAnalysis[S <: State[S]](
     analyze(method, entryStateBuilder.build(method))
 }
 
+trait PredicateAnalysis[S <: SemanticDomain[S]]
+  extends Analysis[PredicateDrivenHeapState[S]] {
+  override def glbPreservingIdStrategy = CustomGlbPreservingIdsStrategy
+}
+
 /** Restarts the analysis whenever the predicates are made stronger. */
 case class RefiningPredicateAnalysis[S <: SemanticDomain[S]](
     entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
-  extends Analysis[PredicateDrivenHeapState[S]] with Logging {
+  extends PredicateAnalysis[S] with Logging {
 
   type T = PredicateDrivenHeapState[S]
 
