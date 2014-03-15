@@ -324,55 +324,34 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     var result = super.assignField(left, right).prunePredIds()
 
     if (left.typ.isObject) {
-      val receiverPath = left.path.dropRight(1)
-      val receiverId = AccessPathIdentifier(receiverPath)(left.typ)
-      val field = VariableIdentifier(left.path.last)(left.typ)
+      val (localVarVertex, field) = splitAccessPathIdentifier(left)
+      val unfoldedRecvIds = certainIds(localVarVertex, Unfolded)
 
-      assert(receiverPath.size == 1, "currently only support obj.field")
+      val paths = result.abstractHeap.paths(left.path).filter(_.target != NullVertex)
+      val fieldEdges = paths.map(_.edges.last)
+      val newNestedIds = certainIds(fieldEdges, Folded)
 
-      result = result.toCondHeapGraph.evalExp(receiverId).mapCondHeaps(condHeap => {
-        val recvEdge = condHeap.takenPath(receiverPath).edges.head
-        val recvVertex = recvEdge.target
-        val nonNullOutEdges = condHeap.heap.outEdges(recvVertex, Some(field.name)).filter(_.target != NullVertex)
-        var resultingCondHeap = condHeap
+      if (!unfoldedRecvIds.isEmpty && !newNestedIds.isEmpty) {
+        assert(unfoldedRecvIds.size == 1,
+          "there must be at most one unfolded ID")
+        assert(newNestedIds.size == 1,
+          "there must be at most one new nested ID")
 
-        // Only need to do something if we assign something other than null
-        if (!nonNullOutEdges.isEmpty) {
-          val recvPredId = recvEdge.state.predInsts.unfoldedIds.head
-          val curRecvPredBody = recvEdge.state.preds.get(recvPredId)
-          val curNestedRecvPredIds = curRecvPredBody.get(field).value
+        val recvId = unfoldedRecvIds.head
+        val nestedId = newNestedIds.head
 
-          if (nonNullOutEdges.size != 1) {
-            logger.warn(s"There is more than one non-null edge for field $field")
-            return result
-          }
+        result = result.map(state => {
+          state.transformPreds(preds => {
+            preds.add(recvId, preds.get(recvId).addPerm(field, nestedId))
+          })
+        })
 
-          val outEdge = nonNullOutEdges.head
-          val newNestedRecvPredIds = outEdge.state.predInsts.foldedIds.asInstanceOf[Set[Identifier]]
-
-          if (newNestedRecvPredIds.isEmpty) {
-            logger.warn("Expected at least one new nested receiver predicate ID")
-            return result
-          }
-
-          if (curNestedRecvPredIds.isEmpty) {
-            resultingCondHeap = resultingCondHeap.map(state => {
-              state.assign(recvPredId, curRecvPredBody.add(field, NestedPredicatesDomain().setFactory(newNestedRecvPredIds, isTop = newNestedRecvPredIds.isEmpty)))
-            })
-          } else {
-            val repl = new Replacement()
-
-            repl.value += (curNestedRecvPredIds -> newNestedRecvPredIds)
-
-            resultingCondHeap = resultingCondHeap.map(state => {
-              state.merge(repl)
-            })
-
-            // TODO: Also fire predicate merge event
-          }
-        }
-        Seq(resultingCondHeap)
-      }).join
+        // TODO: There used to be a merge here in case that there is already
+        // a nested predicate ID for the given field
+        // val repl = new Replacement()
+        // repl.value += (curNestedRecvPredIds -> newNestedRecvPredIds)
+        // resultingCondHeap = resultingCondHeap.map(state => { state.merge(repl) })
+      }
     }
 
     result

@@ -145,6 +145,9 @@ final case class PredicateBody(
   def addPerm(field: Identifier): PredicateBody =
     add(field, NestedPredicatesDomain().top())
 
+  def addPerm(field: Identifier, nestedPredId: Identifier): PredicateBody =
+    add(field, get(field).add(nestedPredId))
+
   def functionalFactory(
       value: Map[Identifier, NestedPredicatesDomain],
       isBottom: Boolean,
