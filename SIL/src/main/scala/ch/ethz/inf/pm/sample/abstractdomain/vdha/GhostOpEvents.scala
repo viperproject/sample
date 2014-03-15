@@ -13,6 +13,15 @@ case class CollectingGhostOpSubscriber[S <: SemanticDomain[S]]() extends GhostOp
 
   def ghostOps = _ghostOps
 
+  /** Returns all collected unfold ghost operations. */
+  def unfoldGhostOps = ghostOps.collect({ case e: UnfoldGhostOpEvent => e })
+
+  /** Returns all collected fold ghost operations. */
+  def foldGhostOps = ghostOps.collect({ case e: FoldGhostOpEvent => e })
+
+  /** Returns all collected predicate merge ghost operations. */
+  def predMergeGhostOps = ghostOps.collect({ case e: PredMergeGhostOpEvent => e })
+
   override def notify(state: PredicateDrivenHeapState[S], event: GhostOpEvent) = {
     _ghostOps = _ghostOps :+ event
   }

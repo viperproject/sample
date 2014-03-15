@@ -94,9 +94,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
           case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
         }
 
-        unfoldMap += pos -> collector.ghostOps.collect({
-          case e: UnfoldGhostOpEvent => e
-        })
+        unfoldMap += pos -> collector.unfoldGhostOps
       }
 
       if (!block.isEmpty) {
@@ -118,9 +116,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
           case WrappedProgramPoint(p) => p.asInstanceOf[sil.Position]
         }
 
-        foldMap += pos -> collector.ghostOps.collect({
-         case e: FoldGhostOpEvent => e
-        })
+        foldMap += pos -> collector.foldGhostOps
       }
     }
 
