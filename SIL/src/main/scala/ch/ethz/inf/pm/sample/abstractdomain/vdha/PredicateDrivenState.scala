@@ -357,12 +357,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             preds.add(recvInstId.predId, preds.get(recvInstId.predId).addPerm(field, nestedInstId.predId))
           })
         })
-
-        // TODO: There used to be a merge here in case that there is already
-        // a nested predicate ID for the given field
-        // val repl = new Replacement()
-        // repl.value += (curNestedRecvPredIds -> newNestedRecvPredIds)
-        // resultingCondHeap = resultingCondHeap.map(state => { state.merge(repl) })
       }
     }
 
