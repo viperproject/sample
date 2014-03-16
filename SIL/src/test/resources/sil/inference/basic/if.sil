@@ -1,0 +1,12 @@
+var val1: Int
+var val2: Int
+
+method test(this: Ref, b1: Bool, b2: Bool) {
+    if (b1) {
+        this.val1 := 5
+    }
+
+    if (b2) {
+        this.val2 := 10
+    }
+}
