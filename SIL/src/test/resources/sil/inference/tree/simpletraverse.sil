@@ -20,6 +20,11 @@ method traverse(tree: Ref, goLeft: Bool)
     }
 }
 
+/** Tests that the inferred precondition of traverse is not too strong. */
+method test(tree: Ref) requires acc(valid(tree), write) {
+    traverse(tree, true)
+}
+
 /** Predicate that the specification inference should detect and reuse. */
 predicate valid(tree: Ref) {
   acc(tree.left, write) && acc(tree.right, write) &&
