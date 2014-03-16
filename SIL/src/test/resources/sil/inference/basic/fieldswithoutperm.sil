@@ -1,7 +1,5 @@
-//:: IgnoreFile(/sample/issue/999/)
-
 // Test that the inferred precondition only includes permissions
-// to accessed fields
+// to fields that are actually accessed
 
 var ref: Ref
 var otherRef: Ref
@@ -21,4 +19,7 @@ method test(this: Ref)
 {
     // The method does not have access to other fields
     accessFields(this)
+
+    assert acc(this.ref, write)
+    assert acc(this.val, write)
 }
