@@ -20,7 +20,7 @@ object DefaultSampleConverter extends SampleConverter {
   import sample.ArithmeticOperator._
 
   def convert(e: sample.Expression): sil.Exp = e match {
-    case sample.NegatedBooleanExpression(inner) => sil.Neg(go(inner))()
+    case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
     case sample.BinaryBooleanExpression(left, right, op, typ) => op match {
       case `&&` => sil.And(go(left), go(right))()
       case `||` => sil.Or(go(left), go(right))()
