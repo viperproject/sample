@@ -77,10 +77,16 @@ case class DefaultPredicateRegistry(
 case class PredicateRegistryBuilder(
     formalArgName: String = "this",
     hideShallowPredicates: Boolean = true) {
+
   def build(
       extractedPreds: sample.PredicatesDomain,
       existingSilPreds: Seq[sil.Predicate] = Seq.empty): PredicateRegistry = {
+    buildImpl(extractedPreds.removeNestedTopPredicates(), existingSilPreds)
+  }
 
+  private def buildImpl(
+      extractedPreds: sample.PredicatesDomain,
+      existingSilPreds: Seq[sil.Predicate] = Seq.empty): PredicateRegistry = {
     val existingPreds = DefaultSilConverter.convert(existingSilPreds)
 
     val predMap: Map[sample.PredicateIdentifier, (sample.PredicateBody, sil.Predicate)] = extractedPreds.map.map({

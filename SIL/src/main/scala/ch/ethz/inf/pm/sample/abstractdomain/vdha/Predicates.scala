@@ -46,6 +46,18 @@ case class PredicatesDomain(
     None
   }
 
+  /** Removes all nested predicates whose body is (top) true. */
+  def removeNestedTopPredicates(): PredicatesDomain = {
+    // Find all top predicates
+    val topPredIds = map.collect({
+      case (predId, predBody) if predBody.isTop => predId
+    }).toSet
+
+    functionalFactory(value = map.mapValues(predBody => {
+      predBody.copy(map = predBody.map.mapValues(_.remove(topPredIds)))
+    }))
+  }
+
   /** Returns the set of set of fields that the predicate with the given ID
     * directly (not mutually) recurses over.
     */
@@ -260,4 +272,8 @@ final case class NestedPredicatesDomain(
     if (value.size > 1) bottom()
     else NestedPredicatesDomain(value, isTop, isBottom)
   }
+
+  /** Removes all given predicate identifiers from the set. */
+  def remove(predIds: Set[PredicateIdentifier]): NestedPredicatesDomain =
+    predIds.foldLeft(this)(_.remove(_))
 }
