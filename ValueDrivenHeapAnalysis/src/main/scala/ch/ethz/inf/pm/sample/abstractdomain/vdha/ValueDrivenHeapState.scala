@@ -36,6 +36,14 @@ trait ValueDrivenHeapState[
       expr: ExpressionSet,
       isTop: Boolean = false): T
 
+  /** Applies a function to both the general value state and all edge states. */
+  def map(f: S => S): T =
+    toCondHeapGraph.map(f)
+
+  /** Uses a function to compute the new state of each edge in the heap graph. */
+  def mapEdges(f: S => S): T =
+    toCondHeapGraph.mapEdges(f)
+
   override def isBottom = {
     abstractHeap.isBottom || generalValState.lessEqual(generalValState.bottom())
   }
