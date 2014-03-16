@@ -210,12 +210,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       var recvPredBody = preds.get(recvPredInstId.predId)
 
       // Unfold
-      result = result.mapEdges(e => {
-        if (nonNullRecvVertices.contains(e.target)) {
-          val edgeLocalId = EdgeLocalIdentifier(List(e.field), recvPredInstId)
-          e.state.assign(edgeLocalId, Unfolded)
-        } else e.state
-      })
+      result = result.setPredicateInstanceState(
+        List(localVarVertex.variable), recvPredInstId, Unfolded)
 
       // Add permission if necessary
       if (!hasPerm) {
