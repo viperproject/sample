@@ -95,16 +95,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     // Ideally, one would use a set domain of subscribers.
     PredicateDrivenHeapState(abstractHeap, generalValState, expr, isTop, ghostOpSubscribers)
 
-  def map(f: EdgeStateDomain[S] => EdgeStateDomain[S]): T =
-    mapEdges(edge => f(edge.state)).copy(generalValState = f(generalValState))
-
-  def mapEdges(f: Edge[EdgeStateDomain[S]] => EdgeStateDomain[S]): T =
-    copy(
-      abstractHeap = abstractHeap.copy(
-        edges = abstractHeap.edges.map(e => { e.copy(state = f(e)) })
-      )
-    )
-
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     val result = super.createVariableForArgument(variable, typ)
 
