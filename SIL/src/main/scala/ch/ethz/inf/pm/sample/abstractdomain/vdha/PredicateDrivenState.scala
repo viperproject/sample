@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.ToStringUtilities
-import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
+import ch.ethz.inf.pm.sample.oorepresentation.sil.{BoolType, PredType}
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState.EdgeStateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
@@ -249,7 +249,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               val nestedPredInstId = new PredicateInstanceIdentifier(nestedPredId, recvPredInstId.version)
               val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredInstId)
               val newState = e.state.transformPredInsts(insts => {
-                  insts.add(edgeLocId, insts.get(edgeLocId).add(Folded))
+                  insts.assume(BinaryArithmeticExpression(edgeLocId, Folded, ArithmeticOperator.==, BoolType))
                 })
               newState
             } else e.state

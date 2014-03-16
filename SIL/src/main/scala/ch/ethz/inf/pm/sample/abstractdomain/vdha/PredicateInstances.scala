@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{Constants, PredType}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
+import com.weiglewilczek.slf4s.Logging
 
 case class PredicateInstancesDomain(
     map: Map[Identifier, PredicateInstanceDomain] = Map.empty,
@@ -12,7 +13,8 @@ case class PredicateInstancesDomain(
     override val isBottom: Boolean = false,
     defaultValue: PredicateInstanceDomain = PredicateInstanceDomain())
   extends BoxedDomain[PredicateInstanceDomain, PredicateInstancesDomain]
-  with SemanticDomain[PredicateInstancesDomain] {
+  with SemanticDomain[PredicateInstancesDomain]
+  with Logging {
 
   import PredicateInstanceState.{Folded, Unfolded}
 
@@ -122,7 +124,15 @@ case class PredicateInstancesDomain(
 
   def removeVariable(variable: Identifier) = remove(variable)
 
-  def assume(expr: Expression) = this
+  def assume(expr: Expression) = expr match {
+    case BinaryArithmeticExpression(id: Identifier,
+      state: PredicateInstanceState, ArithmeticOperator.==, _) =>
+      add(id, get(id).add(state))
+    case _ =>
+      logger.warn(s"Assuming expression $expr in predicate instances domain " +
+        "is not supported")
+      this
+  }
 
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
   def setArgument(variable: Identifier, expr: Expression) = ???
