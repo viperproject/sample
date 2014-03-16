@@ -374,7 +374,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     */
   def assignPredicateInstanceState(
       path: List[Identifier],
-      predId: Identifier,
+      predId: PredicateInstanceIdentifier,
       state: PredicateInstanceState): T = {
     val accessPathId = AccessPathIdentifier(path, predId)
     evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
@@ -386,7 +386,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   def assumePredicateInstanceState(
       path: List[Identifier],
-      predId: Identifier,
+      predId: PredicateInstanceIdentifier,
       state: PredicateInstanceState): T = {
     val accessPathId = AccessPathIdentifier(path, predId)
     evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
