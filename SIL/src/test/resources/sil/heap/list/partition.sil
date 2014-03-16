@@ -15,6 +15,7 @@ method partition(this: Ref, key: Int)
     smaller := null
     greaterOrEqual := null
     cur := this
+    next := null
     while (cur != null) {
         next := cur.next
         if (cur.val < key) {
