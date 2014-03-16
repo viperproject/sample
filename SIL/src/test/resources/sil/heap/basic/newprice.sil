@@ -1,0 +1,23 @@
+var price: Int
+var discount: Int
+
+method newPrice(product: Ref, customer: Ref)
+    returns (res: Int)
+    requires (product != customer)
+{
+	res := product.price * customer.discount \ 100
+}
+
+method test() {
+    var product: Ref
+    var customer: Ref
+    var res: Int
+
+    product.price := 10
+    customer.discount := 50
+
+    res := newPrice(product, customer)
+
+    assert acc(product.price, write)
+    assert acc(customer.discount, write)
+}
