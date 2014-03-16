@@ -165,6 +165,45 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     }
   }
 
+  /** Sets the state of a predicate instance for a given access path.
+    * Leaves null edges untouched.
+    */
+  def assignPredicateInstanceState(
+      path: List[Identifier],
+      predId: PredicateInstanceIdentifier,
+      state: PredicateInstanceState): T = {
+    val accessPathId = AccessPathIdentifier(path, predId)
+    evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
+      val takenPath = condHeap.takenPath(accessPathId.objPath)
+      if (takenPath.target == NullVertex) Seq(condHeap)
+      else condHeap.assignField(accessPathId, state)
+    }).join
+  }
+
+  def assumePredicateInstanceState(
+      path: List[Identifier],
+      predId: PredicateInstanceIdentifier,
+      state: PredicateInstanceState): T = {
+    val accessPathId = AccessPathIdentifier(path, predId)
+    evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
+      val takenPath = condHeap.takenPath(accessPathId.objPath)
+      if (takenPath.target == NullVertex) Seq(condHeap)
+      else {
+        val takenEdge = takenPath.edges.last
+        val vertexToUpdate = takenPath.target
+        Seq(condHeap.mapEdges(edge => {
+          var newState = edge.state
+          if (takenEdge == edge || (edge.target == vertexToUpdate && vertexToUpdate.isInstanceOf[DefiniteHeapVertex])) {
+            val edgeLocId = EdgeLocalIdentifier(List(edge.field), predId)
+            val expr = BinaryArithmeticExpression(edgeLocId, state, ArithmeticOperator.==, BoolType)
+            newState = newState.assume(expr)
+          }
+          newState
+        }))
+      }
+    }).join
+  }
+
   /** Translates a field access path identifier into the corresponding
     * local variable vertex and the field identifier.
     */
@@ -360,45 +399,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     }
 
     result
-  }
-
-  /** Sets the state of a predicate instance for a given access path.
-    * Leaves null edges untouched.
-    */
-  def assignPredicateInstanceState(
-      path: List[Identifier],
-      predId: PredicateInstanceIdentifier,
-      state: PredicateInstanceState): T = {
-    val accessPathId = AccessPathIdentifier(path, predId)
-    evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
-      val takenPath = condHeap.takenPath(accessPathId.objPath)
-      if (takenPath.target == NullVertex) Seq(condHeap)
-      else condHeap.assignField(accessPathId, state)
-    }).join
-  }
-
-  def assumePredicateInstanceState(
-      path: List[Identifier],
-      predId: PredicateInstanceIdentifier,
-      state: PredicateInstanceState): T = {
-    val accessPathId = AccessPathIdentifier(path, predId)
-    evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
-      val takenPath = condHeap.takenPath(accessPathId.objPath)
-      if (takenPath.target == NullVertex) Seq(condHeap)
-      else {
-        val takenEdge = takenPath.edges.last
-        val vertexToUpdate = takenPath.target
-        Seq(condHeap.mapEdges(edge => {
-          var newState = edge.state
-          if (takenEdge == edge || (edge.target == vertexToUpdate && vertexToUpdate.isInstanceOf[DefiniteHeapVertex])) {
-            val edgeLocId = EdgeLocalIdentifier(List(edge.field), predId)
-            val expr = BinaryArithmeticExpression(edgeLocId, state, ArithmeticOperator.==, BoolType)
-            newState = newState.assume(expr)
-          }
-          newState
-        }))
-      }
-    }).join
   }
 
   def tryToFoldAllLocalVars(): PredicateDrivenHeapState[S] = {
