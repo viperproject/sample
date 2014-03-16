@@ -10,14 +10,30 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import com.weiglewilczek.slf4s.Logging
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.GhostOpCollector
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.NestedPredicatesDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstancesDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.FoldGhostOpEvent
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicatesDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredMergeGhostOpEvent
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstanceDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.SummaryHeapVertex
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateBody
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.VertexExpression
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.ValueHeapIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.SemanticAndPredicateDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.GhostOpCollector
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.NestedPredicatesDomain
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDomain
+import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstancesDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.FoldGhostOpEvent
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicatesDomain
@@ -210,7 +226,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       var recvPredBody = preds.get(recvPredInstId.predId)
 
       // Unfold
-      result = result.setPredicateInstanceState(
+      result = result.assignPredicateInstanceState(
         List(localVarVertex.variable), recvPredInstId, Unfolded)
 
       // Add permission if necessary
@@ -242,18 +258,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
         if (!nestedPredIds.isEmpty) {
           val nestedPredId = nestedPredIds.head
+          val nestedPredInstId = new PredicateInstanceIdentifier(nestedPredId, recvPredInstId.version)
 
-          result = result.mapEdges(e => {
-            // No predicate instances on null edges
-            if (nonNullRecvVertices.contains(e.source) && e.target != NullVertex) {
-              val nestedPredInstId = new PredicateInstanceIdentifier(nestedPredId, recvPredInstId.version)
-              val edgeLocId = EdgeLocalIdentifier(List(e.field), nestedPredInstId)
-              val newState = e.state.transformPredInsts(insts => {
-                  insts.assume(BinaryArithmeticExpression(edgeLocId, Folded, ArithmeticOperator.==, BoolType))
-                })
-              newState
-            } else e.state
-          })
+          result = result.assumePredicateInstanceState(
+            List(localVarVertex.variable, field), nestedPredInstId, Folded)
         }
       }
 
@@ -364,16 +372,39 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   /** Sets the state of a predicate instance for a given access path.
     * Leaves null edges untouched.
     */
-  def setPredicateInstanceState(
+  def assignPredicateInstanceState(
       path: List[Identifier],
       predId: Identifier,
       state: PredicateInstanceState): T = {
     val accessPathId = AccessPathIdentifier(path, predId)
-    // TODO: Do we need to apply the path condition?
     evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
       val takenPath = condHeap.takenPath(accessPathId.objPath)
       if (takenPath.target == NullVertex) Seq(condHeap)
       else condHeap.assignField(accessPathId, state)
+    }).join
+  }
+
+  def assumePredicateInstanceState(
+      path: List[Identifier],
+      predId: Identifier,
+      state: PredicateInstanceState): T = {
+    val accessPathId = AccessPathIdentifier(path, predId)
+    evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
+      val takenPath = condHeap.takenPath(accessPathId.objPath)
+      if (takenPath.target == NullVertex) Seq(condHeap)
+      else {
+        val takenEdge = takenPath.edges.last
+        val vertexToUpdate = takenPath.target
+        Seq(condHeap.mapEdges(edge => {
+          var newState = edge.state
+          if (takenEdge == edge || (edge.target == vertexToUpdate && vertexToUpdate.isInstanceOf[DefiniteHeapVertex])) {
+            val edgeLocId = EdgeLocalIdentifier(List(edge.field), predId)
+            val expr = BinaryArithmeticExpression(edgeLocId, state, ArithmeticOperator.==, BoolType)
+            newState = newState.assume(expr)
+          }
+          newState
+        }))
+      }
     }).join
   }
 
@@ -401,7 +432,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val unfoldedPredBody = result.generalValState.preds.get(unfoldedPredInstId.predId)
 
         val newFoldedPredInstId = PredicateInstanceIdentifier.make(unfoldedPredInstId.predId) // Create fresh version
-        candidateResult = candidateResult.setPredicateInstanceState(
+        candidateResult = candidateResult.assignPredicateInstanceState(
           List(localVarVertex.variable), newFoldedPredInstId, Folded)
 
         for ((field, nestedPredId) <- unfoldedPredBody.nestedPredIdMap) {
@@ -417,7 +448,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
               case Some(presentFoldedInstId) =>
                 // TODO: Could maybe also use setToTop
                 // val nestedPredInstId = PredicateInstanceIdentifier()
-                candidateResult = candidateResult.setPredicateInstanceState(path, presentFoldedInstId, Top)
+                candidateResult = candidateResult.assignPredicateInstanceState(path, presentFoldedInstId, Top)
               case None => canFold = false
             }
           }
