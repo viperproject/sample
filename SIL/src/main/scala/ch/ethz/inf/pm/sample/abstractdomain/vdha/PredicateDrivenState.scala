@@ -319,49 +319,26 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     result.materializePath(id.objPath).copy(expr = ExpressionSet(id))
   }
 
-  override protected def createObject(typ: Type) = {
-    val (result, newVertex) = super.createObject(typ)
-
-    val predId = PredicateIdentifier.make()
-    val predInstId = PredicateInstanceIdentifier.make(predId)
-    val predInstValueHeapId = ValueHeapIdentifier(newVertex, predInstId)
-
-    val newResult = result
-      .createNonObjectVariables(Set(predId, predInstValueHeapId))
-      .toCondHeapGraph.map(_.assign(predInstValueHeapId, Unfolded))
-
-    (newResult, newVertex)
-  }
-
   override def assignVariable(left: Expression, right: Expression) = {
     val result = super.assignVariable(left, right)
-    val newResult = (left, right) match {
-      case (left: Identifier, right: VertexExpression) =>
-        val source = abstractHeap.localVarVertex(left.getName)
-        val localVarEdges = result.abstractHeap.outEdges(source)
 
-        assert(localVarEdges.size == 1,
-          "there must be exactly one local variable edge")
+    (left, right) match {
+      case (left: Identifier, VertexExpression(_, vertex: DefiniteHeapVertex)) =>
+        // A vertex expression for a definite heap vertex only occurs
+        // as the right-hand side of a variable assignment if that vertex
+        // was just allocated
 
-        val addedEdge = localVarEdges.head
-        val predValHeapIds = addedEdge.state.predHeapIds(addedEdge.target)
-        val repl = new Replacement()
-
-        predValHeapIds.foreach(predValHeapId => {
-          val predEdgeLocalId = EdgeLocalIdentifier(List(addedEdge.field), predValHeapId.field)
-          repl.value += (Set[Identifier](predValHeapId) -> Set[Identifier](predEdgeLocalId))
-        })
-
-        val newEdge = addedEdge.copy(state = addedEdge.state.merge(repl))
+        // In this case, create a fresh predicate and a fresh unfolded instance
+        // of that predicate for the newly allocated object
+        val predId = PredicateIdentifier.make()
+        val predInstId = PredicateInstanceIdentifier.make(predId)
 
         result
-          .copy(abstractHeap = result.abstractHeap.copy(
-            edges = result.abstractHeap.edges - addedEdge + newEdge))
+          .createNonObjectVariables(Set(predId))
+          .assignPredicateInstanceState(List(left), predInstId, Unfolded)
       case _ =>
         result
     }
-
-    newResult.prunePredIds()
   }
 
   override def assignField(left: AccessPathIdentifier, right: Expression): T = {
