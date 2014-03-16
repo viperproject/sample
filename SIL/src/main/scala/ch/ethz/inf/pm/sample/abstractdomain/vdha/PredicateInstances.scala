@@ -122,7 +122,8 @@ case class PredicateInstancesDomain(
 
   def removeVariable(variable: Identifier) = remove(variable)
 
-  def assume(expr: Expression) = ???
+  def assume(expr: Expression) = this
+
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
   def setArgument(variable: Identifier, expr: Expression) = ???
   def backwardAssign(oldPreState: PredicateInstancesDomain, variable: Identifier, expr: Expression) = ???
