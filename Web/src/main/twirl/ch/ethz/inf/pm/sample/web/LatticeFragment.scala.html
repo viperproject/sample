@@ -75,7 +75,7 @@
             @Top()
         } else {
             <ul class="list-unstyled apron-interface">
-                @ApronInterfaceTranslator.translate(a).map(ExpPrettyPrinter).toList.sorted.map { line =>
+                @ApronInterfaceTranslator()(a).translateAll().map(ExpPrettyPrinter).toList.sorted.map { line =>
                 <li>@line</li>
                 }
             </ul>

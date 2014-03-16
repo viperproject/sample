@@ -42,6 +42,23 @@ object ExpSimplifier extends Function[Expression, Expression] {
         case _ => e
       }
 
+      // Boolean expressions
+      case b @ BinaryArithmeticExpression(left, right, op, typ)
+        if left.typ.isBooleanType && right.typ.isBooleanType &&
+          (op == ArithmeticOperator.== || op == ArithmeticOperator.!=) =>
+        (left, right, op) match {
+          case (_, Constant("1", _, _), ArithmeticOperator.==) => left
+          case (Constant("1", _, _), _, ArithmeticOperator.==) => right
+          case (_, Constant("0", _, _), ArithmeticOperator.==) => NegatedBooleanExpression(left)
+          case (Constant("0", _, _), _, ArithmeticOperator.==) => NegatedBooleanExpression(right)
+
+          case (_, Constant("1", _, _), ArithmeticOperator.!=) => NegatedBooleanExpression(left)
+          case (Constant("1", _, _), _, ArithmeticOperator.!=) => NegatedBooleanExpression(right)
+          case (_, Constant("0", _, _), ArithmeticOperator.!=) => left
+          case (Constant("0", _, _), _, ArithmeticOperator.!=) => right
+          case _ => b
+        }
+
       // Binary arithmetic expressions
       case BinaryArithmeticExpression(Constant("0", _, _), right, `+`, typ) => right
       case BinaryArithmeticExpression(left, Constant("0", _, _), `+`, typ) => left

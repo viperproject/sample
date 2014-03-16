@@ -346,6 +346,15 @@ case object DummyNumericalType extends DummyType {
   def possibleFields = Set.empty
 }
 
+/** A dummy boolean type with no proper hierarchy for testing. */
+case object DummyBooleanType extends DummyType {
+  def name = "Bool"
+  def isObject = false
+  def isNumericalType = true
+  override def isBooleanType = true
+  def possibleFields = Set.empty
+}
+
 /**
  * The semantics of the native methods.
  * Since we represent native operators (e.g. arithmetic operators, or dynamic type castings),
