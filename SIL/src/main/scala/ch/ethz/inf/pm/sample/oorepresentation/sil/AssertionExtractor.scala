@@ -306,7 +306,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     // Now remove all value heap ids
     cond = cond.removeVariables(cond.valueHeapIds)
 
-    val sampleExps = ApronInterfaceTranslator.translate(cond)
+    val sampleExps = ApronInterfaceTranslator()(cond).translateAll()
     val exps = sampleExps.map(DefaultSampleConverter.convert)
     exps
   }
