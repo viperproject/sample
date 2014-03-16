@@ -22,4 +22,17 @@ class InverseSetDomainTest extends FunSuite with ShouldMatchers {
     assert(!one.lessEqual(oneTwo))
     assert(oneTwo.lessEqual(one))
   }
+
+  test("add") {
+    assert(top.add(1) == one)
+    assert(one.add(2) == oneTwo)
+    assert(bottom.add(1) == bottom)
+  }
+
+  test("remove") {
+    assert(one.remove(1) == top)
+    assert(oneTwo.remove(1) == two)
+    assert(bottom.remove(1) == bottom)
+    assert(top.remove(1) == top)
+  }
 }
