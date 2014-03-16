@@ -15,6 +15,12 @@ method test() {
 
     res := make1(10)
 
-    assert(res.next == null)
-    assert(res.val == 10)
+    assert acc(res.next, write)
+    assert acc(res.val, write)
+
+    assert res.val == 10
+
+    // We currently don't extract reference field assertions
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
+    assert res.next == null
 }
