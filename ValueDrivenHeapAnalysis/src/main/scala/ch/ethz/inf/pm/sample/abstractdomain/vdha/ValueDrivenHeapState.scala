@@ -41,7 +41,7 @@ trait ValueDrivenHeapState[
     toCondHeapGraph.map(f)
 
   /** Uses a function to compute the new state of each edge in the heap graph. */
-  def mapEdges(f: S => S): T =
+  def mapEdges(f: Edge[S] => S): T =
     toCondHeapGraph.mapEdges(f)
 
   override def isBottom = {
