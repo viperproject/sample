@@ -100,7 +100,7 @@ case class PredicatesDomain(
         )
       }))
 
-      val newBody = Lattice.bigLub(fromSet.map(result.map.apply))
+      val newBody = Lattice.bigLub(fromSet.map(result.get))
 
       result = fromSet.foldLeft(result)(_.removeVariable(_))
       result = result.lub(result.assign(toSet.head, newBody))
