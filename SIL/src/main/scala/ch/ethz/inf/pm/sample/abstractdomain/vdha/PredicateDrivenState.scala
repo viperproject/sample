@@ -251,18 +251,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         result = result.assignVariable(recvPredInstId.predId, recvPredBody)
       }
 
-      // Add folded nested predicate instances
-      if (id.typ.isObject) {
-        // TODO: Should add ALL nested predicate instances
-        val nestedPredIds = recvPredBody.get(field).value
-
-        if (!nestedPredIds.isEmpty) {
-          val nestedPredId = nestedPredIds.head
-          val nestedPredInstId = new PredicateInstanceIdentifier(nestedPredId, recvPredInstId.version)
-
-          result = result.assumePredicateInstanceState(
-            List(localVarVertex.variable, field), nestedPredInstId, Folded)
-        }
+      // Add assume that we have a folded instance of each nested predicate
+      for ((f, nestedPredId) <- recvPredBody.nestedPredIdMap) {
+        val instId = new PredicateInstanceIdentifier(nestedPredId, recvPredInstId.version)
+        result = result.assumePredicateInstanceState(
+          List(localVarVertex.variable, f), instId, Folded)
       }
 
       if (wasFolded) {
