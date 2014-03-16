@@ -264,9 +264,8 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         val edgeLocId = EdgeLocalIdentifier(List.empty, field)
         newState = newState.assign(edgeLocId, right)
       }
-      if (edge.target == vertexToAssign && !edge.source.isInstanceOf[SummaryHeapVertex]) {
-        val path = List(edge.field)
-        val edgeLocId = EdgeLocalIdentifier(path, field)
+      if (edge.target == vertexToAssign) {
+        val edgeLocId = EdgeLocalIdentifier(List(edge.field), field)
         newState = newState.assign(edgeLocId, right)
       }
       newState
