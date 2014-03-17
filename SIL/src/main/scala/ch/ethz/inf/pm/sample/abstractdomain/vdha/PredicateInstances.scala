@@ -129,7 +129,7 @@ case class PredicateInstancesDomain(
       state: PredicateInstanceState, ArithmeticOperator.==, _) =>
       add(id, get(id).add(state))
     case _ =>
-      logger.warn(s"Assuming expression $expr in predicate instances domain " +
+      logger.debug(s"Assuming expression $expr in predicate instances domain " +
         "is not supported")
       this
   }

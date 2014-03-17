@@ -129,7 +129,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       path: List[Identifier],
       predId: PredicateInstanceIdentifier,
       state: PredicateInstanceState): T = {
+    logger.debug(s"Assigning $state to $predId(${path.mkString(".")})")
+
     val accessPathId = AccessPathIdentifier(path, predId)
+
     evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
       val takenPath = condHeap.takenPath(accessPathId.objPath)
       if (takenPath.target == NullVertex) Seq(condHeap)
@@ -141,6 +144,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       path: List[Identifier],
       predId: PredicateInstanceIdentifier,
       state: PredicateInstanceState): T = {
+    logger.debug(s"Assuming $state for $predId(${path.mkString(".")})")
+
     val accessPathId = AccessPathIdentifier(path, predId)
     evalExp(accessPathId, allowNullReceivers = true).mapCondHeaps(condHeap => {
       val takenPath = condHeap.takenPath(accessPathId.objPath)
@@ -254,6 +259,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       }
 
       var recvPredBody = preds.get(recvPredInstId.predId)
+
+      logger.info(s"Unfolding $recvPredInstId($localVarVertex)")
 
       // Unfold
       result = result.assignPredicateInstanceState(
@@ -410,10 +417,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         }
 
         if (canFold) {
-          abstractHeap.localVarVertices.foreach(localVarVertex => {
+          abstractHeap.localVarVertices.foreach(innerLocalVarVertex => {
             def hasPredInstOnEveryEdge(state: PredicateDrivenHeapState[S]): Boolean = {
               val heap = state.abstractHeap
-              val nonNullLocalVarEdges = heap.outEdges(localVarVertex).filter(_.target != NullVertex)
+              val nonNullLocalVarEdges = heap.outEdges(innerLocalVarVertex).filter(_.target != NullVertex)
               if (nonNullLocalVarEdges.isEmpty) true
               else {
                 val state = Lattice.bigLub(nonNullLocalVarEdges.map(_.state))
@@ -424,7 +431,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
             if (hasPredInstOnEveryEdge(this)) {
               if (!hasPredInstOnEveryEdge(candidateResult)) {
                 logger.info(s"Not folding $unfoldedPredInstId($localVarVertex) " +
-                  "to avoid loss of permissions for some local variable")
+                  s"to avoid loss of permissions for $innerLocalVarVertex")
                 canFold = false
               }
             }
@@ -432,6 +439,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         }
 
         if (canFold) {
+          logger.info(s"Folding $unfoldedPredInstId($localVarVertex)")
+
           result = candidateResult
 
           // Let subscribers know about the fold operation
@@ -467,6 +476,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         } else {
           repl.value += (Set[Identifier](thisFoldedId, otherFoldedId) -> Set[Identifier](thisFoldedId))
         }
+
+        logger.info(s"For $localVarVertex, merge predicate IDs $repl")
       }
     }
     repl
@@ -495,6 +506,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           } else {
             repl.value += (Set[Identifier](thisFoldedInstId, otherFoldedInstId) -> Set[Identifier](thisFoldedInstId))
           }
+
+          logger.info(s"For $localVarVertex, merge predicate instance IDs $repl")
         }
       }
     }
