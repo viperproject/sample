@@ -46,6 +46,7 @@ class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
 
     // Experimental
     PredicateIdentifier.reset()
+    PredicateInstanceIdentifier.resetVersion()
 
     // Analyze
     vdha.withGlbPreservingIdsStrategy(analysis.glbPreservingIdStrategy, () => {
