@@ -97,7 +97,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
   /** Returns the IDs of predicates for which an instance label of the
     * given type appears on all out-going, non-null edges of a
-    * given local variable vertex.
+    * given local variable vertex, with the same version number.
     *
     * If there are no such edges, the result is an empty set.
     */
@@ -109,7 +109,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   /** Returns the IDs of predicates for which an instance label of the
-    * given type appears on all given, non-null edges.
+    * given type appears on all given, non-null edges, with the same version number.
     */
   def certainInstIds(
       edges: Set[Edge[EdgeStateDomain[S]]],
@@ -119,6 +119,32 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     else {
       val state = Lattice.bigLub(nonNullEdges.map(_.state))
       state.predInsts.instIds(predInstState)
+    }
+  }
+
+  /** Returns the IDs of all predicates for which an instance
+    * with any version number appears on every non-null edges of the
+    * given local variable vertex.
+    */
+  def certainIds(
+      localVarVertex: LocalVariableVertex,
+      instState: PredicateInstanceState): Set[PredicateIdentifier] = {
+    val recvEdges = abstractHeap.outEdges(localVarVertex)
+    certainIds(recvEdges, instState)
+  }
+
+  /** Returns the IDs of all predicates for which an instance
+    * with any version number appears on every given edges whose
+    * target is not the null vertex.
+    */
+  def certainIds(
+      edges: Set[Edge[EdgeStateDomain[S]]],
+      instState: PredicateInstanceState): Set[PredicateIdentifier] = {
+    val nonNullEdges = edges.filterNot(_.target == NullVertex)
+    if (nonNullEdges.isEmpty) Set.empty
+    else {
+      val predIdsPerEdge = nonNullEdges.map(_.state.predInsts.ids(instState))
+      predIdsPerEdge.reduceLeft(_ intersect _)
     }
   }
 
@@ -138,6 +164,22 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       if (takenPath.target == NullVertex) Seq(condHeap)
       else condHeap.assignField(accessPathId, state)
     }).join
+  }
+
+  def removePredicateInstanceState(
+      path: List[Identifier],
+      predId: PredicateIdentifier,
+      state: PredicateInstanceState): T = {
+    logger.debug(s"Assuming $state for $predId(${path.mkString(".")})")
+
+    val verticesToUpdate = abstractHeap.paths(path.map(_.getName)).map(_.target)
+    mapEdges(edge => {
+      if (verticesToUpdate.contains(edge.target)) {
+        val instIds = edge.state.predInsts.instIds(state).filter(_.predId == predId)
+        val edgeLocInstIds = instIds.map(EdgeLocalIdentifier(List(edge.field), _))
+        edge.state.removeVariables(edgeLocInstIds)
+      } else edge.state
+    })
   }
 
   def assumePredicateInstanceState(
@@ -370,86 +412,95 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     result
   }
 
-  def tryToFoldAllLocalVars(): PredicateDrivenHeapState[S] = {
+  def tryToFoldLocalVar(localVarVertex: LocalVariableVertex, predId: PredicateIdentifier): T = {
+    require(certainIds(localVarVertex, Unfolded).contains(predId),
+      s"can only fold if there is an unfolded instance of $predId " +
+      s"on every non-null edges going out of $localVarVertex")
+
+    if (abstractHeap.outEdges(localVarVertex).count(_.target != NullVertex) > 1) {
+      logger.info(s"Not folding $predId($localVarVertex) " +
+        "since there are multiple non-null receiver edges")
+      return this
+    }
+
     var result = this
+    val predBody = generalValState.preds.get(predId)
 
-    abstractHeap.localVarVertices.foreach(localVarVertex => {
-      // Only fold local variables if it is possible to do so
-      // on all local variable edges
-      var unfoldedPredInstIds = result.certainInstIds(localVarVertex, Unfolded)
+    // Create predicate instance identifier with fresh version
+    val newPredInstId = PredicateInstanceIdentifier.make(predId)
 
-      val foldedPredIds = result.certainInstIds(localVarVertex, Folded).map(_.predId)
-      unfoldedPredInstIds = unfoldedPredInstIds.filterNot(id => foldedPredIds.contains(id.predId))
+    result = result.assignPredicateInstanceState(
+      List(localVarVertex.variable), newPredInstId, Folded)
 
-      unfoldedPredInstIds.foreach(unfoldedPredInstId => {
-        var candidateResult = result
-        var canFold = true
+    for ((field, nestedPredId) <- predBody.nestedPredIdMap) {
+      val path = List(localVarVertex.variable, field)
+      val paths = result.abstractHeap.paths(path.map(_.getName)).filter(_.target != NullVertex)
+      val fieldEdges = paths.map(_.edges.last)
 
-        if (result.abstractHeap.outEdges(localVarVertex).count(_.target != NullVertex) > 1) {
-          logger.info(s"Not folding $unfoldedPredInstId($localVarVertex) " +
-            "since there are multiple non-null receiver edges")
-          canFold = false
+      // No need for any folded labels if there are only null edges
+      if (!fieldEdges.isEmpty) {
+        val presentFoldedIds = certainIds(fieldEdges, Folded)
+
+        if (presentFoldedIds.contains(nestedPredId)) {
+          result = result.removePredicateInstanceState(path, nestedPredId, Folded)
+        } else {
+          logger.info(s"Not folding $predId($localVarVertex) " +
+            s"since nested predicate instance $nestedPredId may be missing")
+          return this
         }
+      }
+    }
 
-        val unfoldedPredBody = result.generalValState.preds.get(unfoldedPredInstId.predId)
-
-        val newFoldedPredInstId = PredicateInstanceIdentifier.make(unfoldedPredInstId.predId) // Create fresh version
-        candidateResult = candidateResult.assignPredicateInstanceState(
-          List(localVarVertex.variable), newFoldedPredInstId, Folded)
-
-        for ((field, nestedPredId) <- unfoldedPredBody.nestedPredIdMap) {
-          val path = List(localVarVertex.variable, field)
-          val paths = result.abstractHeap.paths(path.map(_.getName)).filter(_.target != NullVertex)
-          val fieldEdges = paths.map(_.edges.last)
-
-          // No need for any folded labels if there are only null edges
-          if (!fieldEdges.isEmpty) {
-            val presentFoldedInstIds = certainInstIds(fieldEdges, Folded)
-
-            presentFoldedInstIds.find(_.predId == nestedPredId) match {
-              case Some(presentFoldedInstId) =>
-                // TODO: Could maybe also use setToTop
-                // val nestedPredInstId = PredicateInstanceIdentifier()
-                candidateResult = candidateResult.assignPredicateInstanceState(path, presentFoldedInstId, Top)
-              case None => canFold = false
-            }
-          }
+    abstractHeap.localVarVertices.foreach(innerLocalVarVertex => {
+      def hasPredInstOnEveryEdge(state: PredicateDrivenHeapState[S]): Boolean = {
+        val heap = state.abstractHeap
+        val nonNullLocalVarEdges = heap.outEdges(innerLocalVarVertex).filter(_.target != NullVertex)
+        if (nonNullLocalVarEdges.isEmpty) true
+        else {
+          val state = Lattice.bigLub(nonNullLocalVarEdges.map(_.state))
+          !state.predInsts.foldedAndUnfoldedIds.isEmpty
         }
+      }
 
-        if (canFold) {
-          abstractHeap.localVarVertices.foreach(innerLocalVarVertex => {
-            def hasPredInstOnEveryEdge(state: PredicateDrivenHeapState[S]): Boolean = {
-              val heap = state.abstractHeap
-              val nonNullLocalVarEdges = heap.outEdges(innerLocalVarVertex).filter(_.target != NullVertex)
-              if (nonNullLocalVarEdges.isEmpty) true
-              else {
-                val state = Lattice.bigLub(nonNullLocalVarEdges.map(_.state))
-                !state.predInsts.foldedAndUnfoldedIds.isEmpty
-              }
-            }
-
-            if (hasPredInstOnEveryEdge(this)) {
-              if (!hasPredInstOnEveryEdge(candidateResult)) {
-                logger.info(s"Not folding $unfoldedPredInstId($localVarVertex) " +
-                  s"to avoid loss of permissions for $innerLocalVarVertex")
-                canFold = false
-              }
-            }
-          })
+      if (hasPredInstOnEveryEdge(this)) {
+        if (!hasPredInstOnEveryEdge(result)) {
+          logger.info(s"Not folding $predId($localVarVertex) " +
+            s"to avoid loss of permissions for $innerLocalVarVertex")
+          return this
         }
-
-        if (canFold) {
-          logger.info(s"Folding $unfoldedPredInstId($localVarVertex)")
-
-          result = candidateResult
-
-          // Let subscribers know about the fold operation
-          result.publish(FoldGhostOpEvent(
-            localVarVertex.variable, unfoldedPredInstId.predId))
-        }
-      })
+      }
     })
 
+    result = result.prunePredIds()
+
+    logger.info(s"Folding $predId($localVarVertex)")
+
+    // Let subscribers know about the fold operation
+    result.publish(FoldGhostOpEvent(localVarVertex.variable, predId))
+
+    result
+  }
+
+  def tryToFoldLocalVar(localVarVertex: LocalVariableVertex): T = {
+    // Only fold local variables if it is possible to do so
+    // on all local variable edges
+    val unfoldedPredIds = certainIds(localVarVertex, Unfolded)
+    val foldedPredIds = certainIds(localVarVertex, Folded)
+
+    var result = this
+
+    for (candidateUnfoldedPredId <- unfoldedPredIds -- foldedPredIds) {
+      result = result.tryToFoldLocalVar(localVarVertex, candidateUnfoldedPredId)
+    }
+    result
+  }
+
+  def tryToFoldAllLocalVars(): T = {
+    var result = prunePredIds()
+
+    for (localVarVertex <- abstractHeap.localVarVertices) {
+      result = result.tryToFoldLocalVar(localVarVertex)
+    }
     result.prunePredIds()
   }
 
