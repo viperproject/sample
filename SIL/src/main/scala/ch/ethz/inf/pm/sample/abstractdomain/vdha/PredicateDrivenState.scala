@@ -65,7 +65,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   // Shorthand for the self-type
   type T = PredicateDrivenHeapState[S]
 
-  import PredicateInstanceState.{Folded, Unfolded, Top}
+  import PredicateInstanceState.{Folded, Unfolded}
   import PredicateDrivenHeapState._
 
   /** Copies the state and adds a new ghost operation subscriber
