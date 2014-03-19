@@ -113,7 +113,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     */
   def certainInstIds(
       edges: Set[Edge[EdgeStateDomain[S]]],
-       predInstState: PredicateInstanceState): Set[PredicateInstanceIdentifier] = {
+      predInstState: PredicateInstanceState): Set[PredicateInstanceIdentifier] = {
     val nonNullEdges = edges.filterNot(_.target == NullVertex)
     if (nonNullEdges.isEmpty) Set.empty
     else {
@@ -540,30 +540,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     })
   }
 
-  def applyPredicateInstMerge(repl: Replacement): T = {
-    mapEdges(edge => {
-      val edgeLocalRepl = new Replacement()
-
-      for ((fromSet, toSet) <- repl.value) {
-        val filteredFromSet = edge.state.predInsts.foldedInstIds.filter(instId => fromSet.contains(instId))
-
-        // When we merge a predicate ID for which we have neither a
-        // folded nor unfolded label on the edge, it should not cause the the
-        // target predicate instance to be top
-        // TODO: It should not be necessary to do so
-        // newFromSet = newFromSet.toSet[Identifier] intersect edge.state.ids
-        if (!filteredFromSet.isEmpty) {
-
-          val fromEdgeLocalSet = filteredFromSet.map(EdgeLocalIdentifier(List(edge.field), _))
-          val toEdgeLocalSet = toSet.map(EdgeLocalIdentifier(List(edge.field), _))
-
-          edgeLocalRepl.value += (fromEdgeLocalSet.toSet[Identifier] -> toEdgeLocalSet.toSet[Identifier])
-        }
-      }
-      edge.state.merge(edgeLocalRepl)
-    })
-  }
-
   override def lub(other: PredicateDrivenHeapState[S]): PredicateDrivenHeapState[S] = {
     if (isBottom || other.isTop)
       return other
@@ -581,18 +557,56 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       otherFolded = otherFolded.applyPredicateMerge(predIdRepl)
     }
 
-    val predInstIdRepl = thisFolded.findPredicateInstIdMerges(otherFolded)
+    val iso = thisFolded.abstractHeap.mcs(otherFolded.abstractHeap).vertexMap
+    var (resultAH, renameMap) = thisFolded.abstractHeap.minCommonSuperGraphBeforeJoin(otherFolded.abstractHeap, iso)
 
-    if (!predInstIdRepl.isEmpty) {
-      thisFolded = thisFolded.applyPredicateInstMerge(predInstIdRepl)
-      otherFolded = otherFolded.applyPredicateInstMerge(predInstIdRepl)
-    }
+    val newEdges = resultAH.weakEdgeEquivalenceSets.flatMap(edges => {
+      if (edges.size == 1) {
+        edges
+      } else {
+        assert(edges.size == 2, "there should not be more than two weakly-equal edges")
+        var edge = edges.head
+        var otherEdge = edges.tail.head
 
-    val (resAH, renameMap) = thisFolded.abstractHeap.lub(otherFolded.abstractHeap)
+        val instIds = edge.state.predInsts.foldedInstIds
+        val otherInstIds = otherEdge.state.predInsts.foldedInstIds
+
+        assert(instIds.size <= 1, "cannot handle more than one folded pred inst id")
+        assert(otherInstIds.size <= 1, "cannot handle more than one folded pred inst id")
+
+        if (instIds.size == 1 && otherInstIds.size == 1) {
+          val instId = instIds.head
+          val otherInstId = otherInstIds.head
+
+          if (instId != otherInstId && instId.predId == otherInstId.predId) {
+            val edgeLocalInstId = EdgeLocalIdentifier(List(edge.field), instId)
+            val otherEdgeLocalInstId = EdgeLocalIdentifier(List(otherEdge.field), otherInstId)
+            val repl = new Replacement()
+
+            if (instId.version > otherInstId.version) {
+              repl.value += (Set[Identifier](otherEdgeLocalInstId) -> Set[Identifier](edgeLocalInstId))
+              otherEdge = otherEdge.copy(state = otherEdge.state.merge(repl))
+            } else {
+              repl.value += (Set[Identifier](edgeLocalInstId) -> Set[Identifier](otherEdgeLocalInstId))
+              edge = edge.copy(state = edge.state.merge(repl))
+            }
+
+            logger.info(s"Merging predicate instance IDs $repl for ${edge.source}")
+
+            Set(edge, otherEdge)
+          } else edges
+        } else edges
+      }
+    })
+
+    resultAH = resultAH.copy(edges = newEdges)
+
+    resultAH = resultAH.joinCommonEdges()
+
     val valueRenameMap = Vertex.vertexMapToValueHeapIdMap(renameMap)
     val resGeneralState = thisFolded.generalValState.lub(otherFolded.generalValState.rename(valueRenameMap.toMap))
 
-    val result = factory(resAH, resGeneralState, ExpressionSet())
+    val result = factory(resultAH, resGeneralState, ExpressionSet())
 
     if (!predIdRepl.isEmpty) {
       result.publish(PredMergeGhostOpEvent(predIdRepl))
@@ -601,33 +615,100 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     result
   }
 
-  override def widening(other: T): T = {
-    def areGraphsIdentical(l: HeapGraph[EdgeStateDomain[S]], r: HeapGraph[EdgeStateDomain[S]]): Boolean = {
-      var areGraphsIdentical = true
-      for (rEdge <- r.edges) {
-        areGraphsIdentical = areGraphsIdentical && {
-          val edgeSet = l.edges.filter(lEdge => lEdge.source.equals(rEdge.source) && lEdge.target.equals(rEdge.target))
-          // NOTE: The only change in this overridden method is that the sets
-          // predicate instance IDs may differ in the two graphs.
-          // The reason is that in our custom implementation of 'lub'
-          // may merge predicate instance IDs
-          edgeSet.size == 1 && edgeSet.head.state.ids.filterNot(_.typ == PredType) == rEdge.state.ids.filterNot(_.typ == PredType)
-        }
-      }
-      areGraphsIdentical
-    }
+  /* override protected def hasGraphIdenticalTo(other: PredicateDrivenHeapState[S]): Boolean = {
+    if (abstractHeap.vertices != other.abstractHeap.vertices) return false
 
-    val (mergedLeft, replacementLeft, mergeMapLeft) = abstractHeap.mergePointedNodes()
-    val (mergedRight, replacementRight, mergeMapRight) = other.abstractHeap.mergePointedNodes()
-    val rightGenValState = other.generalValState.merge(replacementRight)
-    var newRight = factory(mergedRight, rightGenValState, ExpressionSet())
-    val newLeft = factory(mergedLeft, generalValState.merge(replacementLeft), ExpressionSet())
-    newRight = newLeft.lub(newRight)
-    if (!mergedLeft.vertices.equals(newRight.abstractHeap.vertices) || !areGraphsIdentical(mergedLeft, mergedRight)) {
-      return newRight
+    for (otherEdge <- other.abstractHeap.edges) {
+      val edgeSet = abstractHeap.edges.filter(edge =>
+        edge.source == otherEdge.source && edge.target == otherEdge.target)
+
+      if (!(edgeSet.size == 1 && edgeSet.head.state.ids.filterNot(_.typ == PredType) == otherEdge.state.ids.filterNot(_.typ == PredType)))
+        return false
     }
-    val newGeneralValState = newLeft.generalValState.widening(newRight.generalValState.merge(replacementRight))
-    factory(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
+    true
+  } */
+
+  def findPredInstIdIsomorphism(other: T, predId: PredicateIdentifier):
+    Map[PredicateInstanceIdentifier, PredicateInstanceIdentifier] = {
+    var result = Map.empty[PredicateInstanceIdentifier, PredicateInstanceIdentifier]
+    for (edge <- abstractHeap.edges) {
+      val otherEdge = other.abstractHeap.edges.find(e => e.weakEquals(edge)).get
+      val insts = edge.state.predInsts
+      val otherInsts = otherEdge.state.predInsts
+
+      val folded = insts.foldedInstIds
+      val unfolded = insts.unfoldedInstIds
+
+      val otherFolded = otherInsts.foldedInstIds
+      val otherUnfolded = otherInsts.unfoldedInstIds
+
+      assert (folded.size <= 1 && unfolded.size <= 1)
+      assert (folded.size == otherFolded.size && unfolded.size == otherUnfolded.size)
+
+      if (!folded.isEmpty) {
+        // TODO: Must be consistent
+        result += otherFolded.head -> folded.head
+      }
+
+      if (!unfolded.isEmpty) {
+        result += otherUnfolded.head -> unfolded.head
+      }
+    }
+    result
+  }
+
+  def findPredInstIdIsomorphism(other: T): Map[PredicateInstanceIdentifier, PredicateInstanceIdentifier] = {
+    if (generalValState.preds.ids == other.generalValState.preds.ids) {
+      generalValState.preds.map.keySet.map(findPredInstIdIsomorphism(other, _)).flatten.toMap
+    } else {
+      sys.error("cannot find predicate instance ID isomorphism " +
+        "if the predicate IDs do not match")
+    }
+  }
+
+  def applyPredInstIdIsomorphism(iso: Map[PredicateInstanceIdentifier, PredicateInstanceIdentifier]): T = {
+    mapEdges(edge => {
+      val foldedAndUnfoldedPredInstIds = edge.state.predInsts.foldedAndUnfoldedInstIds
+      val filteredIso = iso.filterKeys(foldedAndUnfoldedPredInstIds.contains)
+      val repl = new Replacement()
+      for ((from, to) <- filteredIso) {
+        val fromEdgeLocId = EdgeLocalIdentifier(List(edge.field), from)
+        val toEdgeLocId = EdgeLocalIdentifier(List(edge.field), to)
+        repl.value += (Set[Identifier](fromEdgeLocId) -> Set[Identifier](toEdgeLocId))
+      }
+      edge.state.merge(repl)
+    })
+  }
+
+  def pruneTopPredInstStates(): T = {
+    mapEdges(edge => {
+      edge.state.transformPredInsts(insts => {
+        insts.copy(map = insts.map.filterNot(_._2.isTop))
+      })
+    })
+  }
+
+  override def widening(right: T): T = {
+    // Consistent naming
+    val left = this
+
+    val mergedLeft = left.mergePointedNodes().pruneTopPredInstStates()
+    val mergedRight = right.mergePointedNodes().pruneTopPredInstStates()
+
+    val joined = mergedLeft.lub(mergedRight)
+
+    val predInstIso = mergedLeft.findPredInstIdIsomorphism(joined)
+    val joinedWithIsoApplied = joined.applyPredInstIdIsomorphism(predInstIso)
+    // val joinedWithIsoApplied = joined
+
+    if (mergedLeft.hasGraphIdenticalTo(joinedWithIsoApplied)) {
+      val newAbstractHeap = mergedLeft.abstractHeap.wideningAfterMerge(joinedWithIsoApplied.abstractHeap)
+      val newGeneralValState = mergedLeft.generalValState.widening(joinedWithIsoApplied.generalValState)
+      factory(newAbstractHeap, newGeneralValState, ExpressionSet())
+    } else {
+      // Widening is not possible yet
+      joined
+    }
   }
 
   def prunePredIds(): PredicateDrivenHeapState[S] = {
