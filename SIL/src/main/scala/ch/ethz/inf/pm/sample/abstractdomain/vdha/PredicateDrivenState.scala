@@ -628,6 +628,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     true
   } */
 
+  /** @todo this is only an experimental, incorrect implementation. */
   def findPredInstIdIsomorphism(other: T, predId: PredicateIdentifier):
     Map[PredicateInstanceIdentifier, PredicateInstanceIdentifier] = {
     var result = Map.empty[PredicateInstanceIdentifier, PredicateInstanceIdentifier]
@@ -642,15 +643,15 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val otherFolded = otherInsts.foldedInstIds
       val otherUnfolded = otherInsts.unfoldedInstIds
 
-      assert (folded.size <= 1 && unfolded.size <= 1)
-      assert (folded.size == otherFolded.size && unfolded.size == otherUnfolded.size)
+      // assert (folded.size <= 1 && unfolded.size <= 1)
+      // assert (folded.size == otherFolded.size && unfolded.size == otherUnfolded.size)
 
-      if (!folded.isEmpty) {
+      if (!folded.isEmpty && !otherFolded.isEmpty) {
         // TODO: Must be consistent
         result += otherFolded.head -> folded.head
       }
 
-      if (!unfolded.isEmpty) {
+      if (!unfolded.isEmpty && !otherUnfolded.isEmpty) {
         result += otherUnfolded.head -> unfolded.head
       }
     }
