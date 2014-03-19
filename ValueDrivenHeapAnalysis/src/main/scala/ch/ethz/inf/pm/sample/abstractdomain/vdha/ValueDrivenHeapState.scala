@@ -436,29 +436,54 @@ trait ValueDrivenHeapState[
     factory(resultingAH, newGeneralValState, ExpressionSet())
   }
 
-  def widening(other: T): T = {
-    def areGraphsIdentical(l: HeapGraph[S], r: HeapGraph[S]): Boolean = {
-      var areGraphsIdentical = true
-      for (rEdge <- r.edges) {
-        areGraphsIdentical = areGraphsIdentical && {
-          val edgeSet = l.edges.filter(lEdge => lEdge.source.equals(rEdge.source) && lEdge.target.equals(rEdge.target))
-          edgeSet.size == 1 && edgeSet.head.state.ids == rEdge.state.ids
-        }
-      }
-      areGraphsIdentical
-    }
+  def widening(right: T): T = {
+    // Consistent naming
+    val left = this
 
-    val (mergedLeft, replacementLeft, mergeMapLeft) = abstractHeap.mergePointedNodes()
-    val (mergedRight, replacementRight, mergeMapRight) = other.abstractHeap.mergePointedNodes()
-    val rightGenValState = other.generalValState.merge(replacementRight)
-    var newRight = factory(mergedRight, rightGenValState, ExpressionSet())
-    val newLeft = factory(mergedLeft, generalValState.merge(replacementLeft), ExpressionSet())
-    newRight = newLeft.lub(newRight)
-    if (!mergedLeft.vertices.equals(newRight.abstractHeap.vertices) || !areGraphsIdentical(mergedLeft, mergedRight)) {
-      return newRight
+    val mergedLeft = left.mergePointedNodes()
+    val mergedRight = right.mergePointedNodes()
+
+    val joined = mergedLeft.lub(mergedRight)
+
+    if (mergedLeft.hasGraphIdenticalTo(joined)) {
+      val newAbstractHeap = mergedLeft.abstractHeap.wideningAfterMerge(joined.abstractHeap)
+      val newGeneralValState = mergedLeft.generalValState.widening(joined.generalValState)
+      factory(newAbstractHeap, newGeneralValState, ExpressionSet())
+    } else {
+      // Widening is not possible yet
+      joined
     }
-    val newGeneralValState = newLeft.generalValState.widening(newRight.generalValState.merge(replacementRight))
-    factory(mergedLeft.wideningAfterMerge(newRight.abstractHeap), newGeneralValState, ExpressionSet())
+  }
+
+  /** Merges nodes in the heap graph and applies the resulting replacement
+    * to the general value state.
+    *
+    * Helper method for `widening`.
+    */
+  protected def mergePointedNodes(): T = {
+    val (merged, replacement) = abstractHeap.mergePointedNodes()
+    factory(merged, generalValState.merge(replacement), ExpressionSet())
+  }
+
+  /** Checks whether this state is ready for widening with another given state.
+    *
+    * Th heap graph in this state and that of the other state must have the same
+    * vertices vertices and the set of identifiers on all of their edges must
+    * agree.
+    *
+    * Disclaimer: The above is not a very precise description.
+    */
+  protected def hasGraphIdenticalTo(other: T): Boolean = {
+    if (abstractHeap.vertices != other.abstractHeap.vertices) return false
+
+    for (otherEdge <- other.abstractHeap.edges) {
+      val edgeSet = abstractHeap.edges.filter(edge =>
+        edge.source == otherEdge.source && edge.target == otherEdge.target)
+
+      if (!(edgeSet.size == 1 && edgeSet.head.state.ids == otherEdge.state.ids))
+        return false
+    }
+    true
   }
 
   protected def materializePath(pathToMaterialize: List[String]): T = {
