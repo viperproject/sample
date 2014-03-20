@@ -18,11 +18,8 @@ case class PredicatesDomain(
   with Lattice.Must[PredicatesDomain]
   with Logging {
 
-  // The following class invariant is commented out because it may be violated
-  // during the merge operation.
-  // TODO: Either rewrite the merge operation or remove the comment
-  // require(map.values.forall(_.nestedPredIds.subsetOf(map.keySet)),
-  //   "all nested predicate IDs must be known and have a body themselves")
+  require(map.values.forall(_.nestedPredIds.subsetOf(map.keySet)),
+    "all nested predicate IDs must be known and have a body themselves")
 
   def get(key: PredicateIdentifier): PredicateBody =
     map.getOrElse(key, defaultValue)
