@@ -168,13 +168,14 @@ object PredicateEntryStateBuilder extends ValueDrivenHeapEntryStateBuilder[
               // definition into.
               val freshPredId = heap.outEdges(heap.localVarVertex(paramLocalVar.name))
                 .filter(_.target != NullVertex).head.state.predInsts.foldedIds.head
-              val repl = new Replacement()
-              repl.value += Set[Identifier](freshPredId, existingPreds.map.keySet.head) -> Set[Identifier](freshPredId)
+
+              val predIdMerge = PredicateIdentifierMerge(Set(freshPredId, existingPreds.map.keySet.head))
               val condHeap = initialState.toCondHeapGraph.map(state => {
-                state.transformPreds(_ lub existingPreds).merge(repl)
+                state.transformPreds(_.lub(existingPreds))
               })
 
               initialState = initialState.factory(condHeap.heap, condHeap.cond, ExpressionSet())
+              initialState = initialState.mergePredicates(predIdMerge)
             }
           case None =>
         }

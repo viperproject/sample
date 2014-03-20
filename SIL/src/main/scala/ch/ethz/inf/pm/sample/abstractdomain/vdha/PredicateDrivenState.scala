@@ -522,11 +522,11 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   def mergePredicates(predIdMerge: PredicateIdentifierMerge): T = {
     if (predIdMerge.predIds.size == 1) return this // Nothing to do
 
-    val repl = predIdMerge.toReplacement
-    logger.info(s"Merging predicate IDs $repl")
+    logger.info(s"Merging predicate IDs ${predIdMerge.predIds}")
 
-    var result = map(_.merge(repl)).mapEdges(edge => {
+    var result = map(_.transformPreds(_.merge(predIdMerge))).mapEdges(edge => {
       val edgeLocalRepl = new Replacement()
+      val repl = predIdMerge.toReplacement
 
       for ((fromSet, toSet) <- repl.value) {
         val fromInstSet = edge.state.predInsts.foldedInstIds.filter(instId => fromSet.contains(instId.predId))

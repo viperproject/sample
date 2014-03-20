@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, DummyProgramP
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
+import com.weiglewilczek.slf4s.Logging
 
 case class PredicatesDomain(
     map: Map[PredicateIdentifier, PredicateBody] =
@@ -14,7 +15,8 @@ case class PredicatesDomain(
     defaultValue: PredicateBody = PredicateBody().top())
   extends FunctionalDomain[PredicateIdentifier, PredicateBody, PredicatesDomain]
   with SemanticDomain[PredicatesDomain]
-  with Lattice.Must[PredicatesDomain] {
+  with Lattice.Must[PredicatesDomain]
+  with Logging {
 
   // The following class invariant is commented out because it may be violated
   // during the merge operation.
@@ -69,46 +71,22 @@ case class PredicatesDomain(
     }).toSet
   }
 
-  override def merge(r: Replacement): PredicatesDomain = {
-    if (r.isEmpty()) return this
+  def merge(predIdMerge: PredicateIdentifierMerge): PredicatesDomain = {
+    // Nothing to do when there is only one predicate ID in the set
+    // of IDs to be merged
+    if (predIdMerge.predIds.size == 1) return this
 
-    assert(r.value.size == 1, "there must be only one replacement")
+    // Nothing to do when none of the predicate identifiers to be merged occur.
+    // TODO: Investigate why this situation can occur for firstnaturals.sil.
+    if (ids.intersect(predIdMerge.predIds.toSet).isEmpty) return this
 
-    // TODO: Ideally, Replacement would be generic
-    var (fromSet, toSet) = r.value.head
-      .asInstanceOf[(Set[PredicateIdentifier], Set[PredicateIdentifier])]
+    var newMap = map.mapValues(_.merge(predIdMerge))
+    val newTargetPredBody = Lattice.bigLub(newMap.filterKeys(predIdMerge.predIds.contains).values)
 
-    fromSet = fromSet.intersect(map.keySet)
-    toSet = toSet.intersect(map.keySet)
+    newMap = newMap.filterKeys(!predIdMerge.predIds.contains(_)) + (predIdMerge.target -> newTargetPredBody)
+    val result = copy(map = newMap)
 
-    if (fromSet.isEmpty && toSet.isEmpty) {
-      this
-    } else {
-      assert(toSet.size == 1, "can only merge into one predicate definition")
-
-      var result = this
-
-      result = result.copy(map = result.map.mapValues(predBody => {
-        predBody.copy(
-          map = predBody.map.mapValues(nestedPredIds => {
-            var newValue = nestedPredIds.value -- fromSet
-            if (newValue.size < nestedPredIds.value.size) {
-              newValue = newValue ++ toSet
-            }
-            nestedPredIds.copy(value = newValue)
-          })
-        )
-      }))
-
-      val newBody = Lattice.bigLub(fromSet.map(result.get))
-
-      result = fromSet.foldLeft(result)(_.removeVariable(_))
-      result = result.lub(result.assign(toSet.head, newBody))
-
-      // TODO: Should also replace any other occurrences
-
-      result
-    }
+    result
   }
 
   // SemanticDomain has no type parameter for the type of identifiers
@@ -156,6 +134,13 @@ case class PredicatesDomain(
   def backwardAccess(field: Identifier) = ???
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
   def access(field: Identifier) = ???
+
+  def merge(r: Replacement): PredicatesDomain = {
+    if (!r.isEmpty())
+      logger.warn(s"Replacement $r ignored. " +
+        "Use custom merge(PredicateIdentifierMerge) instead.")
+    this
+  }
 }
 
 /** @todo It should not be necessary for `PredicateIdentifier`
@@ -232,6 +217,10 @@ final case class PredicateBody(
     }))
   }
 
+  def merge(predIdMerge: PredicateIdentifierMerge): PredicateBody = {
+    copy(map = map.mapValues(_.merge(predIdMerge)))
+  }
+
   /** Returns a set of all directly nested predicate IDs. */
   def nestedPredIds: Set[PredicateIdentifier] =
     map.values.flatMap(_.value).toSet
@@ -291,6 +280,11 @@ final case class NestedPredicatesDomain(
       isBottom: Boolean) =
     NestedPredicatesDomain(value, isTop, isBottom)
 
+  def merge(predIdMerge: PredicateIdentifierMerge): NestedPredicatesDomain = {
+    if (value.intersect(predIdMerge.predIds).isEmpty) this
+    else copy(value = value -- predIdMerge.predIds + predIdMerge.target)
+  }
+
   /** Removes all given predicate identifiers from the set. */
   def remove(predIds: Set[PredicateIdentifier]): NestedPredicatesDomain =
     predIds.foldLeft(this)(_.remove(_))
@@ -307,7 +301,7 @@ final case class NestedPredicatesDomain(
   *
   * All predicates in the set will be merged into the oldest one in the set,
   * according to the total order defined on predicate identifiers.
-  * 
+  *
   * This class is used instead of `Replacement`. The latter is very cumbersome
   * to work with, is not generic, etc.
   *
