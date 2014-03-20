@@ -141,6 +141,16 @@ case class PredicatesDomain(
     case id: PredicateIdentifier => get(id).toString
   }
 
+  /** If there is a predicate with a field with more than one nested
+    * predicate ID, returns the IDs so they can be merged, None otherwise.
+    *
+    * If there are multiple such fields, only return the set for
+    * one of the fields. The idea is to do one merge at a time
+    * and then check if there is still something to be merged.
+    */
+  def requiredIdMergeOption: Option[Set[PredicateIdentifier]] =
+    map.values.map(_.requiredIdMergeOption).flatten.headOption
+
   def setArgument(variable: Identifier, expr: Expression) = ???
   def backwardAssign(oldPreState: PredicatesDomain, variable: Identifier, expr: Expression) = ???
   def backwardAccess(field: Identifier) = ???
@@ -243,6 +253,16 @@ final case class PredicateBody(
       case (field, nestedPredIds) =>  field + " → " + nestedPredIds
     }).mkString(", ")
   }
+
+  /** If there is a field with more than one nested predicate ID,
+    * returns them so they can be merged, None otherwise.
+    *
+    * If there are multiple such fields, only return the set for
+    * one of the fields. The idea is to do one merge at a time
+    * and then check if there is still something to be merged.
+    */
+  def requiredIdMergeOption: Option[Set[PredicateIdentifier]] =
+    map.values.map(_.requiredIdMergeOption).flatten.headOption
 }
 
 /** Basically an inverse 1-set domain with must semantics. */
@@ -253,6 +273,9 @@ final case class NestedPredicatesDomain(
   extends InverseSetDomain[PredicateIdentifier, NestedPredicatesDomain]
   with Lattice.Must[NestedPredicatesDomain] {
 
+  // For object fields, the set should never be empty.
+  // There should always be a nested predicate ID.
+
   require(value.isEmpty implies (isTop || isBottom),
     "an empty set must only represent top or bottom")
 
@@ -260,20 +283,22 @@ final case class NestedPredicatesDomain(
     "top must be represented by an empty set")
 
   require(isBottom implies value.isEmpty,
-    "top must be represented by an empty set")
-
-  require(!isBottom implies value.size <= 1,
-    "there must be at most one element in the set, unless it is bottom")
+    "bottom must be represented by an empty set")
 
   override def setFactory(
       value: Set[PredicateIdentifier],
       isTop: Boolean,
-      isBottom: Boolean) = {
-    if (value.size > 1) bottom()
-    else NestedPredicatesDomain(value, isTop, isBottom)
-  }
+      isBottom: Boolean) =
+    NestedPredicatesDomain(value, isTop, isBottom)
 
   /** Removes all given predicate identifiers from the set. */
   def remove(predIds: Set[PredicateIdentifier]): NestedPredicatesDomain =
     predIds.foldLeft(this)(_.remove(_))
+
+  /** If there is more than one nested predicate ID,
+    * returns them so they can be merged, None otherwise.
+    */
+  def requiredIdMergeOption: Option[Set[PredicateIdentifier]] =
+    if (value.size > 1) Some(value)
+    else None
 }

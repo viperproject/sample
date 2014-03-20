@@ -311,17 +311,10 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       // Add permission if necessary
       if (!hasPerm) {
         if (id.typ.isObject) {
-          val fieldEdges = nonNullRecvVertices.flatMap(
-            result.abstractHeap.outEdges(_, Some(field.getName)))
-
-          if (fieldEdges.exists(_.target != NullVertex)) {
-            val nestedPredId = PredicateIdentifier.make()
-            val nestedPredBody = PredicateBody().top()
-            result = result.assignVariable(nestedPredId, nestedPredBody)
-            recvPredBody = recvPredBody.add(field, NestedPredicatesDomain(Set(nestedPredId), isTop = false))
-          } else {
-            recvPredBody = recvPredBody.addPerm(field)
-          }
+          val nestedPredId = PredicateIdentifier.make()
+          val nestedPredBody = PredicateBody().top()
+          result = result.assignVariable(nestedPredId, nestedPredBody)
+          recvPredBody = recvPredBody.add(field, NestedPredicatesDomain(Set(nestedPredId), isTop = false))
         } else {
           recvPredBody = recvPredBody.addPerm(field)
         }
@@ -386,26 +379,28 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     if (left.typ.isObject) {
       val (localVarVertex, field) = splitAccessPathIdentifier(left)
-      val unfoldedRecvInstIds = certainInstIds(localVarVertex, Unfolded)
+      val unfoldedIds = certainIds(localVarVertex, Unfolded)
+      val unfoldedIdsWithPerm = unfoldedIds.filter(id => generalValState.preds.get(id).hasPerm(field))
 
-      val paths = result.abstractHeap.paths(left.stringPath).filter(_.target != NullVertex)
-      val fieldEdges = paths.map(_.edges.last)
-      val newNestedInstIds = certainInstIds(fieldEdges, Folded)
+      if (!unfoldedIdsWithPerm.isEmpty) {
+        assert(unfoldedIdsWithPerm.size == 1,
+          s"there must be at most one unfolded predicate instance " +
+          s"for $localVarVertex with permission to field $field")
 
-      if (!unfoldedRecvInstIds.isEmpty && !newNestedInstIds.isEmpty) {
-        assert(unfoldedRecvInstIds.size == 1,
-          "there must be at most one unfolded ID")
-        assert(newNestedInstIds.size == 1,
-          "there must be at most one new nested ID")
+        val unfoldedId = unfoldedIdsWithPerm.head
+        val unfoldedPredBody = generalValState.preds.get(unfoldedId)
+        val existingNestedId = unfoldedPredBody.get(field).value.head
 
-        val recvInstId = unfoldedRecvInstIds.head
-        val nestedInstId = newNestedInstIds.head
+        val paths = result.abstractHeap.paths(left.stringPath).filter(_.target != NullVertex)
+        val fieldEdges = paths.map(_.edges.last)
+        val newNestedIds = certainIds(fieldEdges, Folded)
 
-        result = result.map(state => {
-          state.transformPreds(preds => {
-            preds.add(recvInstId.predId, preds.get(recvInstId.predId).addPerm(field, nestedInstId.predId))
-          })
-        })
+        if (!newNestedIds.isEmpty) {
+          result = result.mergePredicates(Set(existingNestedId) ++ newNestedIds)
+        }
+      } else {
+        logger.warn(s"Assigning field $left without any " +
+          "predicate instance with permission")
       }
     }
 
@@ -534,39 +529,21 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     repl
   }
 
-  def findPredicateInstIdMerges(other: T): Replacement = {
+  def mergePredicates(predIds: Set[PredicateIdentifier]): T = {
+    require(predIds.isEmpty,
+      "the set of predicate identifiers to merge must not be empty")
+
+    if (predIds.size == 1) return this // Nothing to do
+
     val repl = new Replacement()
-    for (localVarVertex <- abstractHeap.localVarVertices) {
-      val thisFoldedInstIds = certainInstIds(localVarVertex, Folded)
-      val otherFoldedInstIds = other.certainInstIds(localVarVertex, Folded)
 
-      if (!thisFoldedInstIds.isEmpty &&
-        !otherFoldedInstIds.isEmpty &&
-        thisFoldedInstIds.intersect(otherFoldedInstIds).isEmpty) {
-        assert(thisFoldedInstIds.size == 1,
-          "cannot handle more than one folded predicate instance")
-        assert(otherFoldedInstIds.size == 1,
-          "cannot handle more than one folded predicate instance")
+    // Merge into the "oldest" predicate ID
+    val to = predIds.minBy(_.name) // TODO: Should sort the number of the predicate ID
+    repl.value += (predIds.toSet[Identifier] -> Set[Identifier](to))
 
-        val thisFoldedInstId = thisFoldedInstIds.head
-        val otherFoldedInstId = otherFoldedInstIds.head
+    logger.info(s"Merging predicate IDs $repl")
 
-        if (thisFoldedInstId.predId == otherFoldedInstId.predId) {
-          if (thisFoldedInstId.version <= otherFoldedInstId.version) {
-            repl.value += (Set[Identifier](thisFoldedInstId, otherFoldedInstId) -> Set[Identifier](otherFoldedInstId))
-          } else {
-            repl.value += (Set[Identifier](thisFoldedInstId, otherFoldedInstId) -> Set[Identifier](thisFoldedInstId))
-          }
-
-          logger.info(s"For $localVarVertex, merge predicate instance IDs $repl")
-        }
-      }
-    }
-    repl
-  }
-
-  def applyPredicateMerge(repl: Replacement): T = {
-    map(_.merge(repl)).mapEdges(edge => {
+    var result = map(_.merge(repl)).mapEdges(edge => {
       val edgeLocalRepl = new Replacement()
 
       for ((fromSet, toSet) <- repl.value) {
@@ -589,6 +566,15 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       }
       edge.state.merge(edgeLocalRepl)
     })
+
+    // Recursively perform a merge for all nested predicate IDs
+    result.generalValState.preds.requiredIdMergeOption match {
+      case Some(requiredIdMerge) =>
+        result = result.mergePredicates(requiredIdMerge)
+      case None =>
+    }
+
+    result
   }
 
   override def lub(other: PredicateDrivenHeapState[S]): PredicateDrivenHeapState[S] = {
@@ -604,8 +590,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val predIdRepl = thisFolded.findPredicateIdMerges(otherFolded)
 
     if (!predIdRepl.isEmpty) {
-      thisFolded = thisFolded.applyPredicateMerge(predIdRepl)
-      otherFolded = otherFolded.applyPredicateMerge(predIdRepl)
+      thisFolded = thisFolded.mergePredicates(predIdRepl)
+      otherFolded = otherFolded.mergePredicates(predIdRepl)
     }
 
     val iso = thisFolded.abstractHeap.mcs(otherFolded.abstractHeap).vertexMap
