@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstancesDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.FoldGhostOpEvent
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicatesDomain
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredMergeGhostOpEvent
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateIdentifierMergeEvent
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstanceDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.SummaryHeapVertex
@@ -37,7 +37,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstancesDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.FoldGhostOpEvent
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicatesDomain
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredMergeGhostOpEvent
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateIdentifierMergeEvent
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstanceDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.SummaryHeapVertex
@@ -396,7 +396,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         val newNestedIds = certainIds(fieldEdges, Folded)
 
         if (!newNestedIds.isEmpty) {
-          result = result.mergePredicates(Set(existingNestedId) ++ newNestedIds)
+          val merge = PredicateIdentifierMerge(Set(existingNestedId) ++ newNestedIds)
+          result = result.mergePredicates(merge)
         }
       } else {
         logger.warn(s"Assigning field $left without any " +
@@ -499,48 +500,29 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     result.prunePredIds()
   }
 
-  def findPredicateIdMerges(other: T): Replacement = {
-    val repl = new Replacement()
-    for (localVarVertex <- abstractHeap.localVarVertices) {
-      val thisFoldedIds = certainInstIds(localVarVertex, Folded).map(_.predId)
-      val otherFoldedIds = other.certainInstIds(localVarVertex, Folded).map(_.predId)
+  def findPredicateIdMerge(other: T, localVarVertex: LocalVariableVertex): Option[PredicateIdentifierMerge] = {
+    val thisFoldedIds = certainInstIds(localVarVertex, Folded).map(_.predId)
+    val otherFoldedIds = other.certainInstIds(localVarVertex, Folded).map(_.predId)
 
-      if (!thisFoldedIds.isEmpty &&
-        !otherFoldedIds.isEmpty &&
-        thisFoldedIds.intersect(otherFoldedIds).isEmpty) {
-        assert(thisFoldedIds.size == 1,
-          "cannot handle more than one folded predicate instance")
-        assert(otherFoldedIds.size == 1,
-          "cannot handle more than one folded predicate instance")
+    if (!thisFoldedIds.isEmpty &&
+      !otherFoldedIds.isEmpty &&
+      thisFoldedIds.intersect(otherFoldedIds).isEmpty) {
+      assert(thisFoldedIds.size == 1,
+        "cannot handle more than one folded predicate instance")
+      assert(otherFoldedIds.size == 1,
+        "cannot handle more than one folded predicate instance")
 
-        val thisFoldedId = thisFoldedIds.head
-        val otherFoldedId = otherFoldedIds.head
+      val thisFoldedId = thisFoldedIds.head
+      val otherFoldedId = otherFoldedIds.head
 
-        // TODO: Should compare predicate integer ID
-        if (thisFoldedId.getName >= otherFoldedId.getName) {
-          repl.value += (Set[Identifier](thisFoldedId, otherFoldedId) -> Set[Identifier](otherFoldedId))
-        } else {
-          repl.value += (Set[Identifier](thisFoldedId, otherFoldedId) -> Set[Identifier](thisFoldedId))
-        }
-
-        logger.info(s"For $localVarVertex, merge predicate IDs $repl")
-      }
-    }
-    repl
+      Some(PredicateIdentifierMerge(Set(thisFoldedId, otherFoldedId)))
+    } else None
   }
 
-  def mergePredicates(predIds: Set[PredicateIdentifier]): T = {
-    require(predIds.isEmpty,
-      "the set of predicate identifiers to merge must not be empty")
+  def mergePredicates(predIdMerge: PredicateIdentifierMerge): T = {
+    if (predIdMerge.predIds.size == 1) return this // Nothing to do
 
-    if (predIds.size == 1) return this // Nothing to do
-
-    val repl = new Replacement()
-
-    // Merge into the "oldest" predicate ID
-    val to = predIds.minBy(_.name) // TODO: Should sort the number of the predicate ID
-    repl.value += (predIds.toSet[Identifier] -> Set[Identifier](to))
-
+    val repl = predIdMerge.toReplacement
     logger.info(s"Merging predicate IDs $repl")
 
     var result = map(_.merge(repl)).mapEdges(edge => {
@@ -587,12 +569,16 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     var thisFolded = tryToFoldAllLocalVars()
     var otherFolded = other.tryToFoldAllLocalVars()
 
-    val predIdRepl = thisFolded.findPredicateIdMerges(otherFolded)
+    thisFolded.abstractHeap.localVarVertices.foreach(localVarVertex => {
+      thisFolded.findPredicateIdMerge(otherFolded, localVarVertex) match {
+        case Some(predIdMerge) =>
+          thisFolded = thisFolded.mergePredicates(predIdMerge)
+          otherFolded = otherFolded.mergePredicates(predIdMerge)
 
-    if (!predIdRepl.isEmpty) {
-      thisFolded = thisFolded.mergePredicates(predIdRepl)
-      otherFolded = otherFolded.mergePredicates(predIdRepl)
-    }
+          thisFolded.publish(PredicateIdentifierMergeEvent(predIdMerge))
+        case None =>
+      }
+    })
 
     val iso = thisFolded.abstractHeap.mcs(otherFolded.abstractHeap).vertexMap
     var (resultAH, renameMap) = thisFolded.abstractHeap.minCommonSuperGraphBeforeJoin(otherFolded.abstractHeap, iso)
@@ -644,10 +630,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     val resGeneralState = thisFolded.generalValState.lub(otherFolded.generalValState.rename(valueRenameMap.toMap))
 
     val result = factory(resultAH, resGeneralState, ExpressionSet())
-
-    if (!predIdRepl.isEmpty) {
-      result.publish(PredMergeGhostOpEvent(predIdRepl))
-    }
 
     result
   }

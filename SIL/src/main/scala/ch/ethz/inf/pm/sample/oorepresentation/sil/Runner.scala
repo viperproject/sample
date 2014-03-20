@@ -274,11 +274,10 @@ case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](
   extends GhostOpSubscriber[S] {
 
   def notify(state: PredicateDrivenHeapState[S], event: GhostOpEvent) = event match {
-    case event: PredMergeGhostOpEvent =>
+    case event: PredicateIdentifierMergeEvent =>
       // Only abort the analysis if the merge affects the predicate IDs
       // in the original state
-      val affectedPredIds = event.repl.value.flatMap(r => r._1 union r._2).toSet
-      if (!affectedPredIds.intersect(initialPreds.ids).isEmpty) {
+      if (!initialPreds.ids.intersect(event.predIdMerge.predIds.toSet).isEmpty) {
         val preds = state.generalValState.preds
         throw new AnalysisRestartException(preds)
       }

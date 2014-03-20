@@ -20,7 +20,7 @@ case class GhostOpCollector[S <: SemanticDomain[S]]() extends GhostOpSubscriber[
   def foldGhostOps = ghostOps.collect({ case e: FoldGhostOpEvent => e })
 
   /** Returns all collected predicate merge ghost operations. */
-  def predMergeGhostOps = ghostOps.collect({ case e: PredMergeGhostOpEvent => e })
+  def predIdMergeGhostOps = ghostOps.collect({ case e: PredicateIdentifierMergeEvent => e })
 
   override def notify(state: PredicateDrivenHeapState[S], event: GhostOpEvent) = {
     _ghostOps = _ghostOps :+ event
@@ -45,10 +45,7 @@ final case class FoldGhostOpEvent(
   extends GhostOpEvent {
 }
 
-/** Represents a merge of predicates by the `PredicateDrivenHeapState`. */
-final case class PredMergeGhostOpEvent(repl: Replacement)
+/** Represents a merge of predicate IDs by the `PredicateDrivenHeapState`. */
+final case class PredicateIdentifierMergeEvent(predIdMerge: PredicateIdentifierMerge)
   extends GhostOpEvent {
-
-  require(!repl.value.isEmpty,
-    "predicate ID replacement must not be empty")
 }

@@ -148,7 +148,7 @@ case class PredicatesDomain(
     * one of the fields. The idea is to do one merge at a time
     * and then check if there is still something to be merged.
     */
-  def requiredIdMergeOption: Option[Set[PredicateIdentifier]] =
+  def requiredIdMergeOption: Option[PredicateIdentifierMerge] =
     map.values.map(_.requiredIdMergeOption).flatten.headOption
 
   def setArgument(variable: Identifier, expr: Expression) = ???
@@ -261,7 +261,7 @@ final case class PredicateBody(
     * one of the fields. The idea is to do one merge at a time
     * and then check if there is still something to be merged.
     */
-  def requiredIdMergeOption: Option[Set[PredicateIdentifier]] =
+  def requiredIdMergeOption: Option[PredicateIdentifierMerge] =
     map.values.map(_.requiredIdMergeOption).flatten.headOption
 }
 
@@ -298,7 +298,36 @@ final case class NestedPredicatesDomain(
   /** If there is more than one nested predicate ID,
     * returns them so they can be merged, None otherwise.
     */
-  def requiredIdMergeOption: Option[Set[PredicateIdentifier]] =
-    if (value.size > 1) Some(value)
+  def requiredIdMergeOption: Option[PredicateIdentifierMerge] =
+    if (value.size > 1) Some(PredicateIdentifierMerge(value))
     else None
+}
+
+/** Represents a merge of a set of predicates.
+  *
+  * All predicates in the set will be merged into the oldest one in the set,
+  * according to the total order defined on predicate identifiers.
+  * 
+  * This class is used instead of `Replacement`. The latter is very cumbersome
+  * to work with, is not generic, etc.
+  *
+  * @param predIds the predicate identifiers to merge
+  */
+case class PredicateIdentifierMerge(predIds: Set[PredicateIdentifier]) {
+  require(!predIds.isEmpty,
+    "the set of predicate identifiers to merge must not be empty")
+
+  /** Translates the merge to a `Replacement` that can be passed
+    * to a `SemanticDomain`.
+    */
+  def toReplacement: Replacement = {
+    val repl = new Replacement()
+    repl.value += (predIds.toSet[Identifier] -> Set[Identifier](target))
+    repl
+  }
+
+  /** Predicate ID that the predicate IDs will be merged into. */
+  def target: PredicateIdentifier = {
+    predIds.minBy(_.name) // TODO: Should sort the number of the predicate ID
+  }
 }
