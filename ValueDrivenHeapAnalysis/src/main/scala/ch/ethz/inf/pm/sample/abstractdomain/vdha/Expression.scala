@@ -3,22 +3,18 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, Identifier}
 
-case class ValueHeapIdentifier
-    (obj: HeapVertex, field: String)
-    (val typ: Type, val pp: ProgramPoint)
+case class ValueHeapIdentifier(obj: HeapVertex, field: Identifier)
   extends Identifier {
+
+  def pp = field.pp
+
+  def typ = field.typ
 
   def getName = s"${obj.name}.$field"
 
-  def getField = Some(field)
+  def getField = Some(field.getName)
 
   def representsSingleVariable = obj.isInstanceOf[DefiniteHeapVertex]
-}
-
-object ValueHeapIdentifier {
-  /** Creates a value heap identifier from a heap vertex and a field identifier. */
-  def apply(obj: HeapVertex, field: Identifier): ValueHeapIdentifier =
-    ValueHeapIdentifier(obj, field.getName)(field.typ, field.pp)
 }
 
 /** Represents a value field of the object pointed from or to by the edge

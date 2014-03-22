@@ -14,8 +14,6 @@ object VertexConstants {
 trait Vertex extends Ordered[Vertex] {
   def name: String
 
-  // TODO: It seems odd that local variable vertices and null vertices
-  // also need a label, as it is identical to their name
   def label: String
 
   def typ: Type
@@ -71,18 +69,24 @@ object Vertex {
   }
 }
 
-case class LocalVariableVertex(name: String)(val typ: Type) extends Vertex {
-  def label = name
+case class LocalVariableVertex(variable: VariableIdentifier) extends Vertex {
+  def name = variable.name
 
-  override def toString = name
+  def label = variable.name
+
+  def typ = variable.typ
+
+  override def toString = variable.name
 
   def neededEdgeFieldsAndTypes = Set((None, typ))
 }
 
 object LocalVariableVertex {
-  /** Creates a new local variable vertex from a local variable. */
-  def apply(localVar: VariableIdentifier): LocalVariableVertex =
-    LocalVariableVertex(localVar.name)(localVar.typ)
+  /** Creates a local variable vertex from a name and type.
+    * This constructor is meant to help write more concise testing code.
+    */
+  def apply(name: String)(typ: Type): LocalVariableVertex =
+    LocalVariableVertex(VariableIdentifier(name)(typ))
 }
 
 object NullVertex extends Vertex {
@@ -104,7 +108,7 @@ trait HeapVertex extends Vertex {
   def name = s"n$version"
 
   /** Returns the set of all value heap identifiers of this heap vertex. */
-  def valueHeapIds[I >: Identifier]: Set[I] =
+  def valueHeapIds[I >: ValueHeapIdentifier]: Set[I] =
     typ.nonObjectFields.map(ValueHeapIdentifier(this, _))
 
   def neededEdgeFieldsAndTypes =

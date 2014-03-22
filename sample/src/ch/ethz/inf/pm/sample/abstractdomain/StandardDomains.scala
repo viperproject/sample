@@ -214,10 +214,8 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
       result = result.remove(v)
 
     for (s <- r.keySet()) {
-      var value: V = this.get(s.head).bottom()
-
       // We compute the value that should be assigned to all other ids
-      for (v <- s) value = value.lub(this.get(v))
+      val value = Lattice.bigLub(s.map(this.get))
 
       // We assign the value to all other ids
       for (v <- r.apply(s)) result = result.merge(v, value)
@@ -458,8 +456,19 @@ object KSetDomain {
  */
 trait InverseSetDomain[V, T <: SetDomain[V, T]] extends SetDomain[V, T] { this: T =>
 
+  // TODO: There are other methods that need overriding
+  // SetDomain and InverseSetDomain are in desperate need of a refactoring
+
   override def add(el: V): T = {
-    setFactory(value + el)
+    if (this.isBottom) return this.bottom()
+    setFactory(value + el, isTop = false, isBottom = isBottom)
+  }
+
+  override def remove(v: V): T = {
+    if (this.isTop) return this.top()
+    if (this.isBottom) return this.bottom()
+    val newSet = this.value.-(v)
+    setFactory(newSet, isTop = newSet.isEmpty)
   }
 
   override def lub(other: T): T = {

@@ -80,6 +80,12 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def createVariables(ids: Set[Identifier]): HeapGraph[S] =
     mapEdgeStates(_.createVariables(ids))
 
+  def removeVariable(id: Identifier): HeapGraph[S] =
+    mapEdgeStates(_.removeVariable(id))
+
+  def removeVariables(ids: Set[Identifier]): HeapGraph[S] =
+    mapEdgeStates(_.removeVariables(ids))
+
   def getPathsToBeAssigned(accPathId: AccessPathIdentifier): Set[RootedPath[S]] =
     paths(accPathId.path.dropRight(1))
 
@@ -153,11 +159,13 @@ case class HeapGraph[S <: SemanticDomain[S]](
    * This method removes all given vertices and all edges that have vertices
    * from vs as a source or target from the graph.
    *
-   * @param vs set of vertices to be removed from the graph
+   * @param verticesToRemove set of vertices to be removed from the graph
    * @return graph without vertices vs and without edges containing vertices from vs
    */
-  def removeVertices(vs: Set[Vertex]): HeapGraph[S] =
-    HeapGraph(vertices -- vs, edges -- edges.filter(_.vertices.intersect(vs).isEmpty))
+  def removeVertices(verticesToRemove: Set[Vertex]): HeapGraph[S] = {
+    val edgesToRemove = edges.filterNot(_.vertices.intersect(verticesToRemove).isEmpty)
+    HeapGraph(vertices -- verticesToRemove, edges -- edgesToRemove)
+  }
 
   def addEdges(es: Set[Edge[S]]): HeapGraph[S] =
     copy(edges = edges ++ es)
@@ -168,8 +176,8 @@ case class HeapGraph[S <: SemanticDomain[S]](
   def removeEdges(es: Set[Edge[S]]): HeapGraph[S] =
     copy(edges = edges -- es)
 
-  def mcs(other: HeapGraph[S]): MaxCommonSubGraphIso[S] =
-    MaxCommonSubGraphIso.compute(from = other, to = this)
+  def mcs(other: HeapGraph[S]): CommonSubGraphIso[S] =
+    CommonSubGraphIso.firstMax(from = other, to = this)
 
   /**
    * @param other
@@ -272,7 +280,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     val idsToRemove = verticesToRemove.flatMap(_.valueHeapIds)
     val finalEdges = resultingEdgeSet.map(e => e.copy(state = e.state.removeVariables(idsToRemove)))
     val result = HeapGraph(resultingVertices, finalEdges)
-    (result, idsToRemove)
+    (result, idsToRemove.toSet)
   }
 
   /**
@@ -358,7 +366,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     partitions.toMap
   }
 
-  def mergePointedNodes(): (HeapGraph[S], Replacement, Map[Vertex, Vertex]) = {
+  def mergePointedNodes(): (HeapGraph[S], Replacement) = {
     val partitions = partition()
     val mergeMap = mutable.Map.empty[Vertex, Vertex]
     for (v <- vertices.filter(!_.isInstanceOf[HeapVertex]))
@@ -390,7 +398,7 @@ case class HeapGraph[S <: SemanticDomain[S]](
     val newEdges = mutable.Set.empty[Edge[S]]
     for (e <- edges)
       newEdges += Edge(mergeMap.apply(e.source), e.state.merge(repl), e.field, mergeMap.apply(e.target))
-    (HeapGraph(newVertices, newEdges.toSet[Edge[S]]).joinCommonEdges(), repl, mergeMap.toMap)
+    (HeapGraph(newVertices, newEdges.toSet[Edge[S]]).joinCommonEdges(), repl)
   }
 
   def wideningAfterMerge(other: HeapGraph[S]): HeapGraph[S] = {
