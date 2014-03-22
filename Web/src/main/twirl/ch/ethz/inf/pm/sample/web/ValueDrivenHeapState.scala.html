@@ -18,8 +18,9 @@
     <div class="row-fluid">
         <div class="col-md-12">
             <ol class="breadcrumb">
-                <li><a href="/cfg">CFG for <span class="code">@result.method.name</span></a></li>
-                <li><a href="/cfg/@blockIndex?iter=@iter">Block @blockIndex</a></li>
+                <li><a href="../../../">All Methods</a></li>
+                <li><a href="../../"><span class="code">@result.method.name</span></a></li>
+                <li><a href="../?iter=@iter">Block @blockIndex</a></li>
                 <li class="active">State @stateDesc()</li>
             </ol>
         </div>
@@ -38,13 +39,13 @@
                 @if(stateIndex == 0) {
                 <li class="disabled"><a href="#">Previous Statement</a></li>
                 } else {
-                <li><a href="/cfg/@blockIndex/@(stateIndex - 1)?iter=@iter">Previous Statement</a></li>
+                <li><a href="../../@blockIndex/@(stateIndex - 1)/?iter=@iter">Previous Statement</a></li>
                 }
 
                 @if(stateIndex == result.cfgState.trackedStatesOfBlock(blockIndex)(iter).size - 1) {
                 <li class="disabled"><a href="#">Next Statement</a></li>
                 } else {
-                <li><a href="/cfg/@blockIndex/@(stateIndex + 1)?iter=@iter">Next Statement</a></li>
+                <li><a href="../../@blockIndex/@(stateIndex + 1)/?iter=@iter">Next Statement</a></li>
                 }
             </ul>
         </div>

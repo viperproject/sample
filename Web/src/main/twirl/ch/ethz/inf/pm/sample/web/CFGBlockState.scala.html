@@ -4,7 +4,8 @@
     <div class="row-fluid">
         <div class="col-md-12">
             <ol class="breadcrumb">
-                <li><a href="/cfg">CFG for <span class="code">@result.method.name</span></a></li>
+                <li><a href="../../">All Methods</a></li>
+                <li><a href="../"><span class="code">@result.method.name</span></a></li>
                 <li class="active">Block @blockIndex</li>
             </ol>
         </div>
@@ -24,7 +25,7 @@
             <div class="well graph-well">
                 <div class="graph control-flow-graph-block" id="graph">
                     @states.zipWithIndex.map { stateAndIndex =>
-                    <a href="/cfg/@blockIndex/@stateAndIndex._2?iter=@iter">
+                    <a href="../@blockIndex/@stateAndIndex._2/?iter=@iter">
                         <div class="node" id=@nodeId(stateAndIndex._2)>
                             @stateAndIndex._1
                         </div>

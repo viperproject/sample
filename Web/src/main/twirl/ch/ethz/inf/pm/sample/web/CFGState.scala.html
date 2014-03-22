@@ -4,7 +4,8 @@
     <div class="row-fluid">
         <div class="col-md-12">
             <ol class="breadcrumb">
-                <li class="active">CFG for <span class="code">@result.method.name</span></li>
+                <li><a href="../">All Methods</a></li>
+                <li class="active"><span class="code">@result.method.name</span></li>
             </ol>
         </div>
     </div>
@@ -15,7 +16,7 @@
             <div class="well graph-well">
                 <div class="graph control-flow-graph" id="graph">
                 @cfg.nodes.zipWithIndex.map { nodeAndIndex =>
-                    <a href="/cfg/@nodeAndIndex._2">
+                    <a href="@nodeAndIndex._2/">
                         <div class="node" id=@nodeId(nodeAndIndex._2)>
                         @if(nodeAndIndex._1.isEmpty) {
                             <i>empty</i>
