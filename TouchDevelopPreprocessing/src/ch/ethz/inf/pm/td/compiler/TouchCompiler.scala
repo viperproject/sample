@@ -11,6 +11,7 @@ import scala.Some
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.td.parser.Script
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{VariablePacker, DummyPacker}
 
 /**
  *
@@ -41,6 +42,12 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var globalData : Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields : Set[String] = Set.empty
   var userTypes : Map[String,AAny] = Map.empty
+
+  /**
+   * In TouchAnalysisWithPacking, this is used to pack the variables. The compiler should assign it while compiling
+   * the classes by running a syntactic analysis
+   */
+  var variablePacker: VariablePacker = DummyPacker()
 
   var isInLibraryMode = false
 
@@ -101,6 +108,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     for (c <- parsedScripts) {
       globalData ++= c.fields
     }
+
+    variablePacker = SimpleLoopVariablePacker.make(parsedScripts)
 
     parsedScripts
 
@@ -231,6 +240,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     parsedTouchScripts = Map.empty
     userTypes = Map.empty
     isInLibraryMode = false
+    variablePacker = DummyPacker()
     SRecords.reset()
   }
 

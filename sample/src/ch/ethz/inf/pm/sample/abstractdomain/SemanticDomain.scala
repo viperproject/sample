@@ -11,58 +11,59 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  */
 trait SemanticDomain[T <: SemanticDomain[T]]
   extends Lattice[T]
-  with LatticeHelpers[T] { this: T =>
+  with LatticeHelpers[T] {
+  this: T =>
 
   /**
-  For each set of identifiers in the domain of f, this method merges these identifiers
-   into the given one.
-
-   @param f The identifiers to merge
-  @return the state after the merge
-    */
-  def merge(f: Replacement): T;
-
-  /**
-  This method returns representing the value of the given identifier
-  
-   @param id the identifier
-  @return the string representing its state
-    */
-  def getStringOfId(id: Identifier): String;
+   * For each set of identifiers in the domain of f, this method merges these identifiers
+   * into the given one.
+   *
+   * @param f The identifiers to merge
+   * @return the state after the merge
+   */
+  def merge(f: Replacement): T
 
   /**
-  This method sets to top a given variable
-  
-   @param variable the variable to be set to top
-  @return the state after this action
-    */
-  def setToTop(variable: Identifier): T;
+   * This method returns representing the value of the given identifier
+   *
+   * @param id the identifier
+   * @return the string representing its state
+   */
+  def getStringOfId(id: Identifier): String
 
   /**
-  This method assigns a given variable to the given expression
-  
-   @param variable the variable to be assigned
-  @param expr the expression to be assigned
-  @return the state after this action
-    */
-  def assign(variable: Identifier, expr: Expression): T;
+   * This method sets to top a given variable
+   *
+   * @param variable the variable to be set to top
+   * @return the state after this action
+   */
+  def setToTop(variable: Identifier): T
 
   /**
-  This method set an argument to the given expression
-  
-   @param variable the argument to set
-  @param expr the expression to set
-  @return the state after this action
-    */
-  def setArgument(variable: Identifier, expr: Expression): T;
+   * This method assigns a given variable to the given expression
+   *
+   * @param variable the variable to be assigned
+   * @param expr the expression to be assigned
+   * @return the state after this action
+   */
+  def assign(variable: Identifier, expr: Expression): T
 
   /**
-  This method assumes that a given expression holds
-  
-   @param expr the expression to be assumed
-  @return the state after this action
-    */
-  def assume(expr: Expression): T;
+   * This method set an argument to the given expression
+   *
+   * @param variable the argument to set
+   * @param expr the expression to set@return the state after this action
+   *
+   */
+  def setArgument(variable: Identifier, expr: Expression): T
+
+  /**
+   * This method assumes that a given expression hold
+   *
+   * @param expr the expression to be assumed
+   * @return the state after this action
+   */
+  def assume(expr: Expression): T
 
   def areEqual(left: Expression, right: Expression): BooleanDomain = {
     val equalsExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.==, null)
@@ -78,7 +79,7 @@ trait SemanticDomain[T <: SemanticDomain[T]]
       return BooleanDomain.domFalse
     }
 
-    return BooleanDomain.domTop
+    BooleanDomain.domTop
   }
 
   /**
@@ -90,11 +91,15 @@ trait SemanticDomain[T <: SemanticDomain[T]]
    */
   def createVariable(variable: Identifier, typ: Type): T
 
-  /** Creates a variable whose type is the type of the given identifier. */
+  /**
+   * Creates a variable whose type is the type of the given identifier.
+   */
   def createVariable(variable: Identifier): T =
     createVariable(variable, variable.typ)
 
-  /** Returns a copy of this state with all given variables created. */
+  /**
+   * Returns a copy of this state with all given variables created.
+   */
   def createVariables[I <: Identifier](variables: Set[I]): T =
     variables.foldLeft(this)(_.createVariable(_))
 
@@ -107,14 +112,14 @@ trait SemanticDomain[T <: SemanticDomain[T]]
      to access them (this is useful for the heap domain that has to create abstract references to approximate 
      the initial heap structure)
     */
-  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]);
+  def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]])
 
   /**
    * This method removed a variable.
-   * @param variable the variable to be removed
+   * @param id the variable to be removed
    * @return the state after this action
    */
-  def removeVariable(variable: Identifier): T
+  def removeVariable(id: Identifier): T
 
   /**
    * Removes a set of variables from the state.
@@ -125,29 +130,29 @@ trait SemanticDomain[T <: SemanticDomain[T]]
     variables.foldLeft(this)(_.removeVariable(_))
 
   /**
-  This method represents the semantics when accessing an identifier
-  
-   @param field the accessed id
-  @return the state after this action
-    */
-  def access(field: Identifier): T;
-
-  /**
-  This method represents the backward semantics when accessing an identifier
-  
-   @param field the accessed id
-  @return the state before this action
-    */
-  def backwardAccess(field: Identifier): T;
-
-  /**
-  This method provides the backward semantics of assignment
-  
-   @param variable
-   @param expr 
-   @return the state before variable=expr
+   * This method represents the semantics when accessing an identifier
+   *
+   * @param id the accessed id
+   * @return the state after this action
    */
-  def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) : T
+  def access(id: Identifier): T
+
+  /**
+   * This method represents the backward semantics when accessing an identifier
+   *
+   * @param id the accessed id
+   * @return the state before this action
+   */
+  def backwardAccess(id: Identifier): T
+
+  /**
+   * This method provides the backward semantics of assignment
+   *
+   * @param id the assigned id
+   * @param expr the right hand side
+   * @return the state before variable = expr
+   */
+  def backwardAssign(oldPreState: T, id: Identifier, expr: Expression): T
 
   /** Returns all identifiers over whom the `SemanticDomain` is defined. */
   def ids: Set[Identifier]
@@ -180,7 +185,8 @@ trait SemanticDomain[T <: SemanticDomain[T]]
   * of a `SemanticDomain` and some other `Lattice`.
   * @tparam T the self-type of the lattice
   */
-trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T] { this: T =>
+trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T] {
+  this: T =>
   def ids = Set.empty
 
   def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression) = this
@@ -216,20 +222,21 @@ trait DummySemanticDomain[T <: DummySemanticDomain[T]] extends SemanticDomain[T]
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends SemanticDomain[T] { this: T =>
-  override def setArgument(variable: Identifier, expr: Expression): T = this.assign(variable, expr);
+trait SimplifiedSemanticDomain[T <: SimplifiedSemanticDomain[T]] extends SemanticDomain[T] {
+  this: T =>
+  override def setArgument(variable: Identifier, expr: Expression): T = this.assign(variable, expr)
 
   override def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]): (T, Map[Identifier, List[String]]) = {
-    var result = Map.empty[Identifier, List[String]];
-    result = result + ((variable, path ::: variable.toString :: Nil));
-    return (this.createVariable(variable, typ), result);
+    var result = Map.empty[Identifier, List[String]]
+    result = result + ((variable, path ::: variable.toString :: Nil))
+    (this.createVariable(variable, typ), result)
   }
-  
+
   override def access(field: Identifier): T = this
 
-  override def backwardAccess(field: Identifier) : T = throw new SymbolicSemanticException("Backward analysis not supported")
+  override def backwardAccess(field: Identifier): T = throw new SymbolicSemanticException("Backward analysis not supported")
 
-  override def backwardAssign(oldPreState: T, variable : Identifier, expr : Expression) : T = throw new SymbolicSemanticException("Backward analysis not supported")
+  override def backwardAssign(oldPreState: T, variable: Identifier, expr: Expression): T = throw new SymbolicSemanticException("Backward analysis not supported")
 }
 
 

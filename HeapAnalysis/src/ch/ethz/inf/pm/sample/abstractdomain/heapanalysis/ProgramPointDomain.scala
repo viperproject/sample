@@ -28,6 +28,7 @@ object ParameterIds {
 sealed trait ProgramPointHeapIdentifier
   extends NonRelationalHeapIdentifier[ProgramPointHeapIdentifier] {
 
+  def pp: ProgramPoint
   def counter: Int
 
   override def getLabel() = "Program point"

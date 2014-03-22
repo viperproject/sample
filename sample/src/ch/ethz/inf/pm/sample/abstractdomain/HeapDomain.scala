@@ -1,4 +1,5 @@
 package ch.ethz.inf.pm.sample.abstractdomain
+
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.util.UndirectedGraph
@@ -21,7 +22,7 @@ import ch.ethz.inf.pm.sample.util.UndirectedGraph
  * The flags are:
  *
  * isPureRenaming == A set of replacements of form {a}->{b} which can be executed
- *                   sequentially (i.e. union of all left side disjoint to union of all right sides)
+ * sequentially (i.e. union of all left side disjoint to union of all right sides)
  *
  * isPureExpanding == A set of replacements of form {a}->{a,b} which can be executed sequentially
  *
@@ -31,10 +32,10 @@ import ch.ethz.inf.pm.sample.util.UndirectedGraph
  * @version 0.1
  */
 
-class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]] = new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]](),
-                   val isPureRenaming:Boolean = false,
-                   val isPureExpanding:Boolean = false,
-                   val isPureRemoving:Boolean = false) {
+class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]] = new scala.collection.mutable.HashMap[Set[Identifier], Set[Identifier]](),
+                  val isPureRenaming: Boolean = false,
+                  val isPureExpanding: Boolean = false,
+                  val isPureRemoving: Boolean = false) {
 
   /**
    * Compute lub of replacements. Note that this was developed with the interval domain in mind
@@ -49,33 +50,39 @@ class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier],
     val g = UndirectedGraph.build(entries, adjacent _)
     val lubEntries =
       for (component <- g.getComponents) yield {
-        component reduceLeft {(l:Entry, r:Entry) => (l._1 union r._1, l._2 union r._2) }
+        component reduceLeft {
+          (l: Entry, r: Entry) => (l._1 union r._1, l._2 union r._2)
+        }
       }
 
     new Replacement(scala.collection.mutable.HashMap(lubEntries: _*))
   }
 
   def glb(other: Replacement): Replacement = new Replacement(
-    value.retain( {
+    value.retain({
       case (a, b) => other.value.keySet.contains(a) && other.value.apply(a).equals(b);
     }
     )
   )
 
-  def isEmpty() = value.isEmpty;
+  def isEmpty() = value.isEmpty
 
-  def keySet() = value.keySet;
+  def keySet() = value.keySet
 
-  def apply(k : Set[Identifier]) = value.apply(k);
+  def ids = value flatMap {
+    x => x._1 ++ x._2
+  }
 
-  def ++ (other:Replacement) =
+  def apply(k: Set[Identifier]) = value.apply(k)
+
+  def ++(other: Replacement) =
     new Replacement(value ++ other.value,
       isPureRenaming = isPureRenaming && other.isPureRenaming,
       isPureExpanding = isPureExpanding && other.isPureExpanding,
       isPureRemoving = isPureRemoving && other.isPureRemoving
     )
 
-  def >> (other:Replacement): Replacement = {
+  def >>(other: Replacement): Replacement = {
     if (this.value.isEmpty) return other
     if (other.value.isEmpty) return this
 
@@ -115,7 +122,7 @@ class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier],
    * Prett-print replacement in the notation described above
    */
   override def toString = {
-    val lines = for ((k,v) <- value) yield k.mkString("{",",","}") + "->" + v.mkString("{",",","}")
+    val lines = for ((k, v) <- value) yield k.mkString("{", ",", "}") + "->" + v.mkString("{", ",", "}")
     lines.mkString(", ")
   }
 }
@@ -132,7 +139,8 @@ class Replacement( val value : scala.collection.mutable.HashMap[Set[Identifier],
 trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   extends Analysis
   with Lattice[T]
-  with LatticeWithReplacement[T] { this: T =>
+  with LatticeWithReplacement[T] {
+  this: T =>
 
   /**
    * Gets the Heap Identifiers to which the provided Variable points to
@@ -209,7 +217,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @return the identifier of accessed cell, the state of the heap after that (since we could create new
    *         abstract ids when accessing the array in order to be more precise), and the eventual replacements (e.g.,
    *         if the heap analyzed has summarize or splitted some cells)
-    */
+   */
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S, typ: Type): (HeapIdSetDomain[I], T, Replacement)
 
   /**
@@ -242,7 +250,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    */
   def assignField(obj: Assignable, field: String, expr: Expression): (T, Replacement)
 
-  def backwardAssignField(oldPreState: T, obj : Assignable, field : String, expr : Expression) : (T, Replacement) = ???
+  def backwardAssignField(oldPreState: T, obj: Assignable, field: String, expr: Expression): (T, Replacement) = ???
 
 
   /**
@@ -279,7 +287,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @param variable the variable to be created
    * @param typ its type
    * @return the state after this action
-    */
+   */
   def createVariable(variable: Assignable, typ: Type): (T, Replacement)
 
   /**
@@ -301,7 +309,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   def removeVariable(variable: Assignable): (T, Replacement)
 
 
-  def removeObject(obj : Assignable) : (T, Replacement) = ???
+  def removeObject(obj: Assignable): (T, Replacement) = ???
 
   /**
    * This method provides the backward semantics of assignment on the post state (this)
@@ -325,7 +333,7 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * @param lengthTyp  The type of the collection's length
    * @param pp The program point at which the collection is created
    * @return The Heapidentifier of the newly created collection and the heap with the newly created collection
-    */
+   */
   def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
@@ -507,26 +515,30 @@ trait HeapIdSetDomain[I <: HeapIdentifier[I]]
   extends SetDomain[I, HeapIdSetDomain[I]]
   with Expression {
 
-  override def equals(x : Any) : Boolean = x match {
-    case x : I => if(value.size==1) return x.equals(value.head); else return false;
+  override def equals(x: Any): Boolean = x match {
+    case x: I => if (value.size == 1) return x.equals(value.head); else return false;
     case _ => return super.equals(x);
   }
 
-  def convert(add : I) : HeapIdSetDomain[I]
+  def convert(add: I): HeapIdSetDomain[I]
 
-  def merge(rep:Replacement) : HeapIdSetDomain[I] = {
+  def merge(rep: Replacement): HeapIdSetDomain[I] = {
 
     if (this.isBottom || this.isTop || this.value.isEmpty) return this
 
     var result = this.value
-    for ((froms,tos) <- rep.value) {
+    for ((froms, tos) <- rep.value) {
 
-      val fromsI = froms collect { case x:I => x }
-      val tosI = tos collect { case x:I => x }
+      val fromsI = froms collect {
+        case x: I => x
+      }
+      val tosI = tos collect {
+        case x: I => x
+      }
 
       if (!this.value.intersect(fromsI).isEmpty) {
-         result = result -- fromsI
-         result = result ++ tosI
+        result = result -- fromsI
+        result = result ++ tosI
       }
 
     }
@@ -534,39 +546,40 @@ trait HeapIdSetDomain[I <: HeapIdentifier[I]]
     setFactory(result)
   }
 
-  override def transform(f:(Expression => Expression)):Expression =
-    this.setFactory(this.value.map( x => f(x).asInstanceOf[I] ))
+  override def transform(f: (Expression => Expression)): Expression =
+    this.setFactory(this.value.map(x => f(x).asInstanceOf[I]))
 
   def lubWithReplacement[S <: SemanticDomain[S]](other: HeapIdSetDomain[I], state: S): (HeapIdSetDomain[I], Replacement) =
     (super.lub(other), new Replacement)
 
   // Used to know if it's definite - glb - or maybe - lub.
-  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S
-  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1 : H, h2 : H, s1 : S, s2 : S) : (H, Replacement)
+  def combinator[S <: Lattice[S]](s1: S, s2: S): S
+
+  def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement)
 
 }
 
 case class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
-    pp: ProgramPoint,
-    value: Set[I] = Set.empty[I],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
+                                                         pp: ProgramPoint,
+                                                         value: Set[I] = Set.empty[I],
+                                                         isTop: Boolean = false,
+                                                         isBottom: Boolean = false)
   extends HeapIdSetDomain[I] {
 
   def this() = this(null)
 
-  def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
+  def setFactory(_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
     new MaybeHeapIdSetDomain[I](pp, _value, _isTop, _isBottom)
 
-  def convert(add : I) : HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.pp).add(add)
+  def convert(add: I): HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.pp).add(add)
 
-  override def typ : Type = {
-    var res=SystemParameters.getType().bottom()
-    for (a <- this.value) res=res.lub(a.typ)
+  override def typ: Type = {
+    var res = SystemParameters.getType().bottom()
+    for (a <- this.value) res = res.lub(a.typ)
     res
   }
 
-  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.lub(s2)
+  def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.lub(s2)
 
   def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
 
@@ -574,25 +587,25 @@ case class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
 }
 
 case class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
-    pp: ProgramPoint,
-    value: Set[I] = Set.empty[I],
-    isTop: Boolean = false,
-    isBottom: Boolean = false)
+                                                            pp: ProgramPoint,
+                                                            value: Set[I] = Set.empty[I],
+                                                            isTop: Boolean = false,
+                                                            isBottom: Boolean = false)
   extends HeapIdSetDomain[I] {
 
-  def setFactory (_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
-    new DefiniteHeapIdSetDomain[I](pp,_value,_isTop,_isBottom)
+  def setFactory(_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
+    new DefiniteHeapIdSetDomain[I](pp, _value, _isTop, _isBottom)
 
-  def convert(add : I) : HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.pp).add(add)
+  def convert(add: I): HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.pp).add(add)
 
-  override def typ : Type = {
-    var res=SystemParameters.getType().top()
-    for(a <- this.value)
-      res=res.glb(a.typ)
+  override def typ: Type = {
+    var res = SystemParameters.getType().top()
+    for (a <- this.value)
+      res = res.glb(a.typ)
     res
   }
 
-  def combinator[S <: Lattice[S]](s1 : S, s2 : S) : S = s1.glb(s2)
+  def combinator[S <: Lattice[S]](s1: S, s2: S): S = s1.glb(s2)
 
   def heapCombinator[H <: LatticeWithReplacement[H], S <: SemanticDomain[S]](h1: H, h2: H, s1: S, s2: S): (H, Replacement) = h1.lubWithReplacement(h2)
 
