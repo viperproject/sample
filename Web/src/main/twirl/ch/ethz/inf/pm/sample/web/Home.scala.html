@@ -17,7 +17,7 @@
                     <td>@arg._1</td>
                     <td>
                         @arg._2.map { testFile =>
-                        <a class="btn btn-default btn-xs" href="analyze?file=@testFile">
+                        <a class="btn btn-default btn-xs" href="analyze/?file=@testFile">
                             @testFile.path.getFileName
                         </a>
                         }

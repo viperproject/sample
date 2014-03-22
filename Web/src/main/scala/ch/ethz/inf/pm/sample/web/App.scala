@@ -23,14 +23,13 @@ import org.eclipse.jetty.server.Server
   * @todo add support for other compilers than SIL, especially Scala
   * @todo add support for `DefaultCFGState`
   * @todo add support for states other than `ValueDrivenHeapState`
-  * @todo add support for more than one method per test file
   */
 class App extends ScalatraServlet {
   /** Provides all test files that the user can choose to analyze. */
   val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
 
-  /** The currently active analysis result that the user can inspect. */
-  var resultOption: Option[AnalysisResult[_]] = None
+  /** The currently active analysis results that the user can inspect. */
+  var resultsOption: Option[List[AnalysisResult[_]]] = None
 
   /** Renders the list of test files that can be analyzed. */
   get("/") {
@@ -38,21 +37,36 @@ class App extends ScalatraServlet {
   }
 
   /** Analyzes the test file passed as a parameter. */
-  get("/analyze") {
+  get("/analyze/") {
     val testFileString = params("file")
     fileProvider.testFiles.find(_.toString == testFileString) match {
       case Some(testFile) =>
         // TODO: Make it configurable
-        resultOption = Some(PreciseAnalysisRunner.run(testFile.path).head)
-        redirect("/cfg")
+        val results = PreciseAnalysisRunner.run(testFile.path)
+        resultsOption = Some(results)
+
+        // If there is only a single result, redirect to it
+        // Otherwise, let the user choose
+        if (results.size == 1)
+          redirect("/results/0/")
+        else
+          redirect("/results/?")
       case None =>
         // TODO: Should probably output an error message
         redirect("/")
     }
   }
 
+  /** Renders the list of analysis results that the user can inspect. */
+  get("/results/") {
+    resultsOption match {
+      case Some(result) => html.AnalysisResults(resultsOption.get)
+      case None => redirect("/")
+    }
+  }
+
   /** Renders the CFG of the current result. */
-  get("/cfg") {
+  get("/results/:result/") {
     resultOption match {
       case Some(result) => html.CFGState(result)
       case None => redirect("/")
@@ -60,7 +74,7 @@ class App extends ScalatraServlet {
   }
 
   /** Renders a single CFG block of the current result. */
-  get("/cfg/:block") {
+  get("/results/:result/:block/") {
     resultOption match {
       case Some(result) =>
         val blockIndex = params("block").toInt
@@ -70,13 +84,24 @@ class App extends ScalatraServlet {
   }
 
   /** Renders a single state in some CFG block of the current result. */
-  get("/cfg/:block/:state") {
+  get("/results/:result/:block/:state/") {
     resultOption match {
       case Some(result) =>
         val blockIndex = params("block").toInt
         val stateIndex = params("state").toInt
         html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))
       case None => redirect("/")
+    }
+  }
+
+  /** Returns the `AnalysisResult` to display according to the URL parameter. */
+  private def resultOption: Option[AnalysisResult[_]] = {
+    resultsOption match {
+      case Some(results) =>
+        val resultIndex = params("result").toInt
+        Some(results(resultIndex))
+      case None =>
+        None
     }
   }
 

@@ -1,0 +1,19 @@
+@(results: List[ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_]])
+
+@Base(title = "Analysis Results") {
+    <div class="row-fluid">
+        <div class="col-md-12">
+            <ol class="breadcrumb">
+                <li class="active">All Methods</li>
+            </ol>
+        </div>
+    </div>
+
+    <div class="row-fluid">
+        <div class="col-md-12">
+            @for(resultIndex <- 0 to results.size - 1) {
+            <a class="btn btn-lg btn-primary" href="/results/@resultIndex/">@results(resultIndex).method.name</a>
+            }
+        </div>
+    </div>
+}
