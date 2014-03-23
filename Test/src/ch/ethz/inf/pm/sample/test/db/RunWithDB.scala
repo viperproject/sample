@@ -64,7 +64,7 @@ object RunWithDB {
           stmt.executeUpdate(sql)
         }
         catch {
-          case e:SQLException => println("Database error:\n" + e.getMessage); e.printStackTrace()
+          case e: SQLException => println("Database error:\n" + e.getMessage); e.printStackTrace()
         }
       }
     }
@@ -131,7 +131,7 @@ object RunWithDB {
     var flag = true
     while (flag) {
       println(message)
-      val input = readLine
+      val input = readLine()
       var value = 0 - 1
       try {
         value = input.toInt
@@ -146,164 +146,161 @@ object RunWithDB {
 
   //display and manage a menu for a given test run
   private def testRunMenu(idTestRun: Int): Unit =
-    menu(getTestRunMenu(idTestRun),
-      _ match {
-        case 1 => println(getStatistics(idTestRun)); true
-        case 2 =>
+    menu(getTestRunMenu(idTestRun), {
+      case 1 => println(getStatistics(idTestRun)); true
+      case 2 =>
 
-          var out = new PrintWriter(OutputDirectory + "RuntimeErrors.tsv")
-          out.println(getRuntimeErrors(idTestRun))
-          out.close()
-          println("Runtime errors written in " + OutputDirectory + "RuntimeErrors.tsv")
+        var out = new PrintWriter(OutputDirectory + "RuntimeErrors.tsv")
+        out.println(getRuntimeErrors(idTestRun))
+        out.close()
+        println("Runtime errors written in " + OutputDirectory + "RuntimeErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "CompilationErrors.tsv")
-          out.println(getErrors("BrokenCompilations", idTestRun))
-          out.close()
-          println("Compilation errors written in " + OutputDirectory + "CompilationErrors.tsv")
+        out = new PrintWriter(OutputDirectory + "CompilationErrors.tsv")
+        out.println(getErrors("BrokenCompilations", idTestRun))
+        out.close()
+        println("Compilation errors written in " + OutputDirectory + "CompilationErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "AnalysisErrors.tsv")
-          out.println(getErrors("BrokenAnalyses", idTestRun))
-          out.close()
-          println("Analysis errors written in " + OutputDirectory + "AnalysisErrors.tsv")
+        out = new PrintWriter(OutputDirectory + "AnalysisErrors.tsv")
+        out.println(getErrors("BrokenAnalyses", idTestRun))
+        out.close()
+        println("Analysis errors written in " + OutputDirectory + "AnalysisErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "Statistics.tsv")
-          out.println(getStatistics(idTestRun))
-          out.close()
-          println("Statistics written in " + OutputDirectory + "Statistics.tsv")
+        out = new PrintWriter(OutputDirectory + "Statistics.tsv")
+        out.println(getStatistics(idTestRun))
+        out.close()
+        println("Statistics written in " + OutputDirectory + "Statistics.tsv")
 
-          out = new PrintWriter(OutputDirectory + "Warning.tsv")
-          out.println(getOutput("WARNING:", idTestRun))
-          out.close()
-          println("Warnings written in " + OutputDirectory + "Warning.tsv")
+        out = new PrintWriter(OutputDirectory + "Warning.tsv")
+        out.println(getOutput("WARNING:", idTestRun))
+        out.close()
+        println("Warnings written in " + OutputDirectory + "Warning.tsv")
 
-          out = new PrintWriter(OutputDirectory + "Validated.tsv")
-          out.println(getOutput("VALIDATED:", idTestRun))
-          out.close()
-          println("Validated properties written in " + OutputDirectory + "Validated.tsv")
+        out = new PrintWriter(OutputDirectory + "Validated.tsv")
+        out.println(getOutput("VALIDATED:", idTestRun))
+        out.close()
+        println("Validated properties written in " + OutputDirectory + "Validated.tsv")
 
-          out = new PrintWriter(OutputDirectory + "Alloutputs.tsv")
-          out.println(getOutput("", idTestRun))
-          out.close()
-          println("All outputs written in " + OutputDirectory + "Alloutputs.tsv")
+        out = new PrintWriter(OutputDirectory + "Alloutputs.tsv")
+        out.println(getOutput("", idTestRun))
+        out.close()
+        println("All outputs written in " + OutputDirectory + "Alloutputs.tsv")
 
-          println("Press a key to go to the test run menu")
-          readLine()
+        println("Press a key to go to the test run menu")
+        readLine()
 
-          true
+        true
 
-        case 3 =>
-          val previousTestRun = getExistingTestRun("compare", 10)
+      case 3 =>
+        val previousTestRun = getExistingTestRun("compare", 10)
 
-          var out = new PrintWriter(OutputDirectory + "DifferentCompilationErrors.tsv")
-          out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"))
-          out.close()
-          println("Different compilation errors written in " + OutputDirectory + "DifferentCompilationErrors.tsv")
+        var out = new PrintWriter(OutputDirectory + "DifferentCompilationErrors.tsv")
+        out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"))
+        out.close()
+        println("Different compilation errors written in " + OutputDirectory + "DifferentCompilationErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "DifferentAnalysisErrors.tsv")
-          out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"))
-          out.close()
-          println("Different analysis errors written in " + OutputDirectory + "DifferentAnalysisErrors.tsv")
+        out = new PrintWriter(OutputDirectory + "DifferentAnalysisErrors.tsv")
+        out.println(getDifferentErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"))
+        out.close()
+        println("Different analysis errors written in " + OutputDirectory + "DifferentAnalysisErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "DifferentOutputs.tsv")
-          out.println(getDifferentOutputs(idTestRun, previousTestRun))
-          out.close()
-          println("Different outputs written in " + OutputDirectory + "DifferentOutputs.tsv")
+        out = new PrintWriter(OutputDirectory + "DifferentOutputs.tsv")
+        out.println(getDifferentOutputs(idTestRun, previousTestRun))
+        out.close()
+        println("Different outputs written in " + OutputDirectory + "DifferentOutputs.tsv")
 
-          out = new PrintWriter(OutputDirectory + "DifferentValidatedWarningOutputs.tsv")
-          out.println(getDifferentValidatedWarningOutputs(idTestRun, previousTestRun))
-          out.close()
-          println("Different validated/warning outputs written in " + OutputDirectory + "DifferentValidatedWarningOutputs.tsv")
+        out = new PrintWriter(OutputDirectory + "DifferentValidatedWarningOutputs.tsv")
+        out.println(getDifferentValidatedWarningOutputs(idTestRun, previousTestRun))
+        out.close()
+        println("Different validated/warning outputs written in " + OutputDirectory + "DifferentValidatedWarningOutputs.tsv")
 
-          out = new PrintWriter(OutputDirectory + "NewCompilationErrors.tsv")
-          out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"))
-          out.close()
-          println("New compilation errors written in " + OutputDirectory + "NewCompilationErrors.tsv")
+        out = new PrintWriter(OutputDirectory + "NewCompilationErrors.tsv")
+        out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenCompilations"))
+        out.close()
+        println("New compilation errors written in " + OutputDirectory + "NewCompilationErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "NewAnalysisErrors.tsv")
-          out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"))
-          out.close()
-          println("New analysis errors written in " + OutputDirectory + "NewAnalysisErrors.tsv")
+        out = new PrintWriter(OutputDirectory + "NewAnalysisErrors.tsv")
+        out.println(getNewErrorMessages(idTestRun, previousTestRun, "BrokenAnalyses"))
+        out.close()
+        println("New analysis errors written in " + OutputDirectory + "NewAnalysisErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "NewOutputs.tsv")
-          out.println(getNewOutputs(idTestRun, previousTestRun))
-          out.close()
-          println("New outputs written in " + OutputDirectory + "NewOutputs.tsv")
+        out = new PrintWriter(OutputDirectory + "NewOutputs.tsv")
+        out.println(getNewOutputs(idTestRun, previousTestRun))
+        out.close()
+        println("New outputs written in " + OutputDirectory + "NewOutputs.tsv")
 
-          out = new PrintWriter(OutputDirectory + "RemovedCompilationErrors.tsv")
-          out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenCompilations"))
-          out.close()
-          println("Removed compilation errors written in " + OutputDirectory + "RemovedCompilationErrors.tsv")
+        out = new PrintWriter(OutputDirectory + "RemovedCompilationErrors.tsv")
+        out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenCompilations"))
+        out.close()
+        println("Removed compilation errors written in " + OutputDirectory + "RemovedCompilationErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "RemovedAnalysisErrors.tsv")
-          out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenAnalyses"))
-          out.close()
-          println("Removed analysis errors written in " + OutputDirectory + "RemovedAnalysisErrors.tsv")
+        out = new PrintWriter(OutputDirectory + "RemovedAnalysisErrors.tsv")
+        out.println(getNewErrorMessages(previousTestRun, idTestRun, "BrokenAnalyses"))
+        out.close()
+        println("Removed analysis errors written in " + OutputDirectory + "RemovedAnalysisErrors.tsv")
 
-          out = new PrintWriter(OutputDirectory + "RemovedOutputs.tsv")
-          out.println(getNewOutputs(previousTestRun, idTestRun))
-          out.close()
-          println("Removed outputs written in " + OutputDirectory + "RemovedOutputs.tsv")
+        out = new PrintWriter(OutputDirectory + "RemovedOutputs.tsv")
+        out.println(getNewOutputs(previousTestRun, idTestRun))
+        out.close()
+        println("Removed outputs written in " + OutputDirectory + "RemovedOutputs.tsv")
 
-          println("Press a key to go to the test run menu")
-          readLine()
+        println("Press a key to go to the test run menu")
+        readLine()
 
-          true
-        case 4 =>
-          println("Timeout? (sec)")
-          val input = readLine()
-          var timeout = -1
-          while (timeout <= 0) {
-            try {
-              timeout = input.toInt
-            }
-            catch {
-              case _ => println("Wrong value"); readLine()
-            }
+        true
+      case 4 =>
+        println("Timeout? (sec)")
+        val input = readLine()
+        var timeout = -1
+        while (timeout <= 0) {
+          try {
+            timeout = input.toInt
           }
-          val cmds = new Array[String](3)
-          cmds.update(0, "/bin/bash")
-          cmds.update(1, "-c")
-          cmds.update(2, SampleHome + "Test/runTestRun.sh " + idTestRun.toString + " " + timeout + " -sh " + SampleHome + " -oh " + OutputDirectory)
-          val p = Runtime.getRuntime.exec(cmds)
-          val output = new BufferedReader(new InputStreamReader(p.getInputStream))
-          println(output.readLine)
-          var s: String = ""
-          while ( {
-            s = output.readLine
-            s
-          } != null)
-            println(s)
-          true
+          catch {
+            case _ => println("Wrong value"); readLine()
+          }
+        }
+        val cmds = new Array[String](3)
+        cmds.update(0, "/bin/bash")
+        cmds.update(1, "-c")
+        cmds.update(2, SampleHome + "Test/runTestRun.sh " + idTestRun.toString + " " + timeout + " -sh " + SampleHome + " -oh " + OutputDirectory)
+        val p = Runtime.getRuntime.exec(cmds)
+        val output = new BufferedReader(new InputStreamReader(p.getInputStream))
+        println(output.readLine)
+        var s: String = ""
+        while ( {
+          s = output.readLine
+          s
+        } != null)
+          println(s)
+        true
 
-        case 5 =>
-          menu(getPopulateMenu(idTestRun),
-            _ match {
-              case 1 => fromTable2ToBeAnalyzed(idTestRun, "RuntimeErrors", "TRUE"); true
-              case 2 => fromTable2ToBeAnalyzed(idTestRun, "BrokenAnalyses", "TRUE"); true
-              case 3 => fromTable2ToBeAnalyzed(idTestRun, "BrokenAnalyses", "Error='java.lang.ThreadDeath'"); true
-              case 4 => fromTable2ToBeAnalyzed(idTestRun, "BrokenCompilations", "TRUE"); true
-              case 9 => false
-              case 0 => println("See you!"); sys.exit(0); false
-            }
-          )
-          true
-        case 9 =>
-          false
-        case 0 => println("See you!"); sys.exit(0); false
-      }
+      case 5 =>
+        menu(getPopulateMenu(idTestRun), {
+          case 1 => fromTable2ToBeAnalyzed(idTestRun, "RuntimeErrors", "TRUE"); true
+          case 2 => fromTable2ToBeAnalyzed(idTestRun, "BrokenAnalyses", "TRUE"); true
+          case 3 => fromTable2ToBeAnalyzed(idTestRun, "BrokenAnalyses", "Error='java.lang.ThreadDeath'"); true
+          case 4 => fromTable2ToBeAnalyzed(idTestRun, "BrokenCompilations", "TRUE"); true
+          case 9 => false
+          case 0 => println("See you!"); sys.exit(0); false
+        }
+        )
+        true
+      case 9 =>
+        false
+      case 0 => println("See you!"); sys.exit(0); false
+    }
     )
 
 
   //display and manage the main menu
   private def mainMenu(): Unit =
-    menu(getInitialMenu,
-      _ match {
-        case 1 => testRunMenu(createTestRun()); true
-        case 2 => testRunMenu(copyTestRun()); true
-        case 3 => testRunMenu(getExistingTestRun("select", 10)); true
-        case 4 => deleteTestRun(); true
-        case 0 => println("See you!"); sys.exit(0); false
-      }
+    menu(getInitialMenu, {
+      case 1 => testRunMenu(createTestRun()); true
+      case 2 => testRunMenu(copyTestRun()); true
+      case 3 => testRunMenu(getExistingTestRun("select", 10)); true
+      case 4 => deleteTestRun(); true
+      case 0 => println("See you!"); sys.exit(0); false
+    }
     )
 
 
@@ -415,11 +412,11 @@ object RunWithDB {
     var config: Configuration = null
     var custom = false
     println("Existing configurations:\n" + Configurations.configs.map(c => c.label).mkString("\n"))
-    while (config == null && custom == false) {
+    while (config == null && !custom) {
       println("Name of the configuration or custom for custom configuration:")
       val input: String = readLine()
       if (input != "custom") {
-        name2Object[Configuration](input, Configurations.configs.toArray,c => c.label) match {
+        name2Object[Configuration](input, Configurations.configs.toArray, c => c.label) match {
           case Some(c) => config = c
           case None => println("Unknown configuration, please try again")
         }
@@ -448,7 +445,7 @@ object RunWithDB {
       for ((a, b) <- config.heapParameters)
         recordParameter("TestRunHeapAnalysisParameters", a, b, id)
 
-      populateToBeAnalyzed(iterator, name2Object[Compiler](config.compiler,InstalledPlugins.compilers, p => p.getLabel()).get, id)
+      populateToBeAnalyzed(iterator, name2Object[Compiler](config.compiler, InstalledPlugins.compilers, p => p.getLabel()).get, id)
 
       return id
     }
@@ -459,7 +456,7 @@ object RunWithDB {
       println("Name of the compiler:")
       val input: String = readLine()
       name2Object[Compiler](input, InstalledPlugins.compilers, p => p.getLabel()) match {
-        case Some(c) => compiler = c
+        case Some(cs) => compiler = cs
         case None => println("Unknown compiler, please try again")
       }
     }
@@ -564,15 +561,6 @@ object RunWithDB {
     val rs: ResultSet = stmt.getGeneratedKeys
     rs.next()
     val id = rs.getInt(1)
-    /*try {
-      populateToBeAnalyzed(name2Object[IteratorOverPrograms](iterator, InstalledPlugins.iterators, p => p.getLabel).get,
-        name2Object[Compiler](compiler, InstalledPlugins.compilers, p => p.getLabel).get,
-        id)
-    }
-    catch {
-      case e =>
-        println("Something wrong happened: " + e.getMessage)
-    }*/
     id
   }
 
@@ -593,7 +581,7 @@ object RunWithDB {
       }
       catch {
         case e: Throwable =>
-          println(e);
+          println(e)
           e.printStackTrace()
           println("Program " + program + " not added.\n" + e.getMessage)
       }
@@ -840,10 +828,10 @@ object RunWithDB {
     if (rs.next()) rs.getInt("ProgramId")
     else {
       stmt.executeUpdate("INSERT INTO Programs(Name, LOC) VALUES ('" + path + "', " +
-        compiler.getSourceCode("td://"+path).count(_ match {
+        compiler.getSourceCode("td://" + path).count {
           case '\n' => true
           case _ => false
-        })
+        }
         + ")", Statement.RETURN_GENERATED_KEYS)
       val rs: ResultSet = stmt.getGeneratedKeys
       rs.next()
@@ -874,7 +862,6 @@ object RunWithDB {
       stmt2.executeUpdate("DELETE FROM ToBeAnalyzed WHERE Program=" + programId + " AND TestRun=" + idTestRun)
       stmt2.executeUpdate("INSERT INTO RuntimeErrors(Program, TestRun) VALUES (" + programId + ", " + idTestRun + ")")
 
-
       this.synchronized {
         val t = new AnalysisThread(rows.getString("Name"), programId, idTestRun, state._2, state._3, state._1, state._4, stmt)
         val initialTime = System.currentTimeMillis()
@@ -886,7 +873,6 @@ object RunWithDB {
           System.out.println("Trying to stop a thread")
           this.wait(1000)
         }
-        stmt2.executeUpdate("DELETE FROM RuntimeErrors WHERE Program=" + programId + " AND TestRun=" + idTestRun)
       }
 
       //analyzeOneProgram(rows.getString("Name"), programId, idTestRun, state._2, state._3, state._1, state._4)

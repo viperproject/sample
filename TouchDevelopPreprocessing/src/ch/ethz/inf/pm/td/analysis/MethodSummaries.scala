@@ -214,6 +214,7 @@ object MethodSummaries {
     })
 
     curState = curState.pruneUnreachableHeap()
+
     curState = curState.setExpression(curState.expr.bottom())
 
     curState
@@ -337,7 +338,6 @@ object MethodSummaries {
       case _ => false
     })
     curState = curState.pruneUnreachableHeap()
-
     curState
 
   }

@@ -12,29 +12,30 @@ import util.HeapIdSetFunctionalLifting
  * and object creation, but dealing only with identifiers (of variables or of heap nodes).
  *
  * TODO:
- *  Rewrite most methods. Contains lots of (cosmetically cleaned up) legacy code. Especially,
- *  remove the timing code as it is a separate concern (use adapter to wrap domains?)
+ * Rewrite most methods. Contains lots of (cosmetically cleaned up) legacy code. Especially,
+ * remove the timing code as it is a separate concern (use adapter to wrap domains?)
  */
 case class HeapAndAnotherDomain[
-    N <: SemanticDomain[N],
-    H <: HeapDomain[H, I],
-    I <: HeapIdentifier[I]](
-    semantic: N,
-    heap: H)
+N <: SemanticDomain[N],
+H <: HeapDomain[H, I],
+I <: HeapIdentifier[I]](
+                         semantic: N,
+                         heap: H)
   extends Lattice[HeapAndAnotherDomain[N, H, I]]
-  with LatticeWithReplacement[HeapAndAnotherDomain[N,H,I]] {
+  with LatticeWithReplacement[HeapAndAnotherDomain[N, H, I]] {
 
   type T = HeapAndAnotherDomain[N, H, I]
 
-  override def toString : String = "Heap state:\n" +
+  override def toString: String = "Heap state:\n" +
     ToStringUtilities.indent(heap.toString) +
     "\nSemantic state:\n" +
     ToStringUtilities.indent(semantic.toString)
 
   def _1 = semantic
+
   def _2 = heap
 
-  def getStringOfId(id : Identifier) : String = semantic.getStringOfId(id)
+  def getStringOfId(id: Identifier): String = semantic.getStringOfId(id)
 
   def ids = _1.ids ++ _2.ids
 
@@ -42,47 +43,47 @@ case class HeapAndAnotherDomain[
 
   def factory(): T = top()
 
-  def createVariableForArgument(variable : Assignable, typ : Type, path : List[String]) = {
+  def createVariableForArgument(variable: Assignable, typ: Type, path: List[String]) = {
     SystemParameters.heapTimer.start()
     val (newHeap, ids, r) = heap.createVariableForArgument(variable, typ, path)
     SystemParameters.heapTimer.stop()
     var newSemantic = semantic
-    newSemantic=applyToAssignable[N](variable, newSemantic, _.createVariableForArgument(_, typ, path)._1)
+    newSemantic = applyToAssignable[N](variable, newSemantic, _.createVariableForArgument(_, typ, path)._1)
     variable match {
-      case x : VariableIdentifier =>
-        newSemantic=newSemantic.createVariableForArgument(x, typ, path)._1
-      case x : HeapIdSetDomain[I] =>
-        var first : Boolean = true
-        for(singleid <- x.value)
-          if(first) {
-            first=false
-            newSemantic=newSemantic.createVariableForArgument(singleid, typ, path)._1
+      case x: VariableIdentifier =>
+        newSemantic = newSemantic.createVariableForArgument(x, typ, path)._1
+      case x: HeapIdSetDomain[I] =>
+        var first: Boolean = true
+        for (singleid <- x.value)
+          if (first) {
+            first = false
+            newSemantic = newSemantic.createVariableForArgument(singleid, typ, path)._1
           }
           else
-            newSemantic=x.combinator(newSemantic, newSemantic.createVariableForArgument(singleid, typ, path)._1)
+            newSemantic = x.combinator(newSemantic, newSemantic.createVariableForArgument(singleid, typ, path)._1)
     }
     //We recursively create the entry state for all the entry abstract nodes.
     SystemParameters.domainTimer.start()
-    newSemantic=newSemantic.merge(r)
-    for(id <- ids.keys)
-      if(!id.equals(variable))
-        newSemantic=newSemantic.createVariableForArgument(id, typ, ids.apply(id))._1
+    newSemantic = newSemantic.merge(r)
+    for (id <- ids.keys)
+      if (!id.equals(variable))
+        newSemantic = newSemantic.createVariableForArgument(id, typ, ids.apply(id))._1
     SystemParameters.domainTimer.stop()
     (factory(newSemantic, newHeap), ids)
   }
 
-  def setToTop(variable : Assignable) : T = {
+  def setToTop(variable: Assignable): T = {
     SystemParameters.heapTimer.start()
-    val (newHeap, r) =heap.setToTop(variable)
+    val (newHeap, r) = heap.setToTop(variable)
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
-    var newSemantic= semantic.merge(r)
+    var newSemantic = semantic.merge(r)
     newSemantic = applyToAssignable[N](variable, newSemantic, _.setToTop(_))
     SystemParameters.domainTimer.stop()
     factory(newSemantic, newHeap)
   }
 
-  def assign(variable : Assignable, expr : Expression) : T = expr match {
+  def assign(variable: Assignable, expr: Expression): T = expr match {
     case CollectionContainsExpression(collection, key, value, returnTyp, pp) =>
 
       def assignContains(initialState: T, value: Expression, returnTyp: Type, pp: ProgramPoint)(collection: Assignable) = {
@@ -103,7 +104,7 @@ case class HeapAndAnotherDomain[
 
       collection match {
         case id: I => assignContains(this, value, returnTyp, pp)(id)
-        case id: VariableIdentifier =>  assignContains(this, value, returnTyp, pp)(id)
+        case id: VariableIdentifier => assignContains(this, value, returnTyp, pp)(id)
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, assignContains(this, value, returnTyp, pp))
       }
 
@@ -119,7 +120,7 @@ case class HeapAndAnotherDomain[
       factory(newSemantic, newHeap2)
   }
 
-  def assignField(variable : Assignable, field : String, expr : Expression, typ : Type, pp : ProgramPoint) : T= {
+  def assignField(variable: Assignable, field: String, expr: Expression, typ: Type, pp: ProgramPoint): T = {
     SystemParameters.heapTimer.start()
     val (newHeap, r2) = heap.assignField(variable, field, expr)
     val (id, newHeap2, r1) = newHeap.getFieldIdentifier(variable, field, typ, pp)
@@ -127,55 +128,55 @@ case class HeapAndAnotherDomain[
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
     val newSemantic = semantic.merge(r2).merge(r1).merge(r3)
-    var newSemanticOpt : Option[N]= None
-    if(id.isTop)
+    var newSemanticOpt: Option[N] = None
+    if (id.isTop)
       newSemanticOpt = Some(newSemantic.top())
     else
-      for(singleheapid <- id.value) {
-        if(newSemanticOpt==None)
-          newSemanticOpt=Some(newSemantic.assign(singleheapid, expr))
-        else newSemanticOpt=Some(id.combinator(newSemanticOpt.get, newSemantic.assign(singleheapid, expr)))
+      for (singleheapid <- id.value) {
+        if (newSemanticOpt == None)
+          newSemanticOpt = Some(newSemantic.assign(singleheapid, expr))
+        else newSemanticOpt = Some(id.combinator(newSemanticOpt.get, newSemantic.assign(singleheapid, expr)))
       }
     val newSemanticResult =
-      if(newSemanticOpt!=None)
+      if (newSemanticOpt != None)
         newSemanticOpt.get //throw new SemanticException("You should assign to something")
       else newSemantic
     SystemParameters.domainTimer.stop()
     factory(newSemanticResult, newHeap3)
   }
 
-  def backwardAssignField(oldPreState: T, variable : Assignable, field : String, expr : Expression, typ : Type, pp : ProgramPoint) : T= {
+  def backwardAssignField(oldPreState: T, variable: Assignable, field: String, expr: Expression, typ: Type, pp: ProgramPoint): T = {
     SystemParameters.heapTimer.start()
     val (newHeap, r2) = heap.backwardAssignField(oldPreState.heap, variable, field, expr)
     val (id, newHeap2, r1) = newHeap.getFieldIdentifier(variable, field, typ, pp)
-    val (newHeap3, r3)= newHeap2.endOfAssignment()
+    val (newHeap3, r3) = newHeap2.endOfAssignment()
     SystemParameters.heapTimer.stop()
     SystemParameters.domainTimer.start()
     val newSemantic = semantic.merge(r2).merge(r1).merge(r3)
-    var newSemanticOpt : Option[N]= None
-    if(id.isTop)
+    var newSemanticOpt: Option[N] = None
+    if (id.isTop)
       newSemanticOpt = Some(newSemantic.top())
     else
-      for(singleheapid <- id.value) {
-        if(newSemanticOpt==None)
-          newSemanticOpt=Some(newSemantic.backwardAssign(oldPreState.semantic, singleheapid, expr))
-        else newSemanticOpt=Some(id.combinator(newSemanticOpt.get, newSemantic.backwardAssign(oldPreState.semantic, singleheapid, expr)))
+      for (singleheapid <- id.value) {
+        if (newSemanticOpt == None)
+          newSemanticOpt = Some(newSemantic.backwardAssign(oldPreState.semantic, singleheapid, expr))
+        else newSemanticOpt = Some(id.combinator(newSemanticOpt.get, newSemantic.backwardAssign(oldPreState.semantic, singleheapid, expr)))
       }
     val newSemanticResult = newSemanticOpt.getOrElse(newSemantic)
     SystemParameters.domainTimer.stop()
     factory(newSemanticResult, newHeap3)
   }
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionType: Option[Type], keyCollectionType: Option[Type], pp: ProgramPoint) : (HeapIdSetDomain[I], T, Replacement) = {
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionType: Option[Type], keyCollectionType: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement) = {
 
     val (collectionIds, newHeap, rep) = heap.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionType, keyCollectionType, pp)
     var result = factory(semantic.merge(rep), newHeap)
 
-    def setCollectionLength(initial: T, lengthTyp: Type)(collection:Assignable) = {
+    def setCollectionLength(initial: T, lengthTyp: Type)(collection: Assignable) = {
       var result = initial
       val collectionLength = result.heap.getCollectionLength(collection)
 
-      def createVariable(state: T, lengthTyp:Type)(variable: Assignable) = {
+      def createVariable(state: T, lengthTyp: Type)(variable: Assignable) = {
         applyToAssignable[T](variable, state, _.createVariable(_, lengthTyp))
       }
 
@@ -190,7 +191,7 @@ case class HeapAndAnotherDomain[
   }
 
   def getCollectionValue(valueId: Assignable) = valueId match {
-    case id:I => (this, heap.get(id))
+    case id: I => (this, heap.get(id))
     case _ => throw new SemanticException("This is not a collection tuple value identifier")
   }
 
@@ -225,7 +226,7 @@ case class HeapAndAnotherDomain[
   def removeCollectionElementByKey(collection: Assignable, key: Expression): T = {
     def removeKey(initialState: T, key: Expression, id: I) = {
       val (idNotEqualsKey, _) = initialState.assume(NegatedBooleanExpression(BinaryArithmeticExpression(id, key, ArithmeticOperator.==, null)))
-      if (idNotEqualsKey.lessEqual(idNotEqualsKey.bottom())){
+      if (idNotEqualsKey.lessEqual(idNotEqualsKey.bottom())) {
         initialState.removeCollectionElementByTuple(initialState.heap.getCollectionTupleByKey(id))
       } else {
         idNotEqualsKey
@@ -287,7 +288,7 @@ case class HeapAndAnotherDomain[
     }
   }
 
-  def collectionContainsValue(collection: Assignable, value: Expression) : BooleanDomain = {
+  def collectionContainsValue(collection: Assignable, value: Expression): BooleanDomain = {
     val mustValues = getCollectionMustValuesByValue(collection, value)
     val mustContainValue = !mustValues.isBottom
 
@@ -307,14 +308,14 @@ case class HeapAndAnotherDomain[
     val mayKeys = this.getCollectionMayKeysByKey(collection, key)
     //val mustKeys = this.getCollectionMustKeysByKey(collection, key)
 
-    (this, mayKeys)//.lub(mayKeys, mustKeys))
+    (this, mayKeys) //.lub(mayKeys, mustKeys))
   }
 
   def getCollectionValueByKey(collection: Assignable, key: Expression): (T, HeapIdSetDomain[I]) = {
     val mayValues = this.getCollectionMayValuesByKey(collection, key)
     //val mustValues = this.getCollectionMustValuesByKey(collection, key)
 
-    (this, mayValues)//.lub(mayValues, mustValues))
+    (this, mayValues) //.lub(mayValues, mustValues))
   }
 
   def getCollectionValueByValue(collection: Assignable, value: Expression): (T, HeapIdSetDomain[I]) = {
@@ -323,8 +324,8 @@ case class HeapAndAnotherDomain[
     (this, mayValues.lub(mustValues))
   }
 
-  def clearCollection(collection:Assignable) : T = {
-    def clearSingleCollection(initial:T)(collectionId: Assignable) = {
+  def clearCollection(collection: Assignable): T = {
+    def clearSingleCollection(initial: T)(collectionId: Assignable) = {
       var result: T = initial
 
       val overApproxIds = result.heap.getCollectionOverApproximation(collectionId)
@@ -333,7 +334,7 @@ case class HeapAndAnotherDomain[
       // If the collection is a summary collection it would be unsound to clear the over-approximation
       // since only one of the represented collections is cleared.
       val approxIds = if (this.isSummaryCollection(collection)) underApproxIds
-                      else overApproxIds.lub(underApproxIds)
+      else overApproxIds.lub(underApproxIds)
 
       for (approxId <- approxIds.value) {
         val tupleIds = result.heap.getCollectionTuples(approxId)
@@ -359,9 +360,9 @@ case class HeapAndAnotherDomain[
     }
   }
 
-  def extractCollectionKeys(fromCollection: Assignable, newKeyValue: Expression, fromCollectionTyp: Type, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): (T, HeapIdSetDomain[I], Replacement) = {
+  def extractCollectionKeys(fromCollection: Assignable, newKeyValue: Expression, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): (T, HeapIdSetDomain[I], Replacement) = {
     var resultRep = new Replacement()
-    def insertKeyAsValue(keyId:I, key: Expression, result: T)(collectionApprox: Assignable) = {
+    def insertKeyAsValue(keyId: I, key: Expression, result: T)(collectionApprox: Assignable) = {
       val (res, rep) = result.insertCollectionElementToApprox(collectionApprox, key, keyId, keyId.pp)
       resultRep = resultRep ++ rep
       res
@@ -404,7 +405,7 @@ case class HeapAndAnotherDomain[
 
   def removeCollectionKeyConnection(origCollection: Assignable, keysCollection: Assignable): T = {
     var result = this.factory()
-    val (collectionKeysIds, newHeap,_) = heap.getFieldIdentifier(origCollection, "keys", keysCollection.typ, keysCollection.pp)
+    val (collectionKeysIds, newHeap, _) = heap.getFieldIdentifier(origCollection, "keys", keysCollection.typ, keysCollection.pp)
     result = factory(semantic, newHeap)
     for (collectionKeysId <- collectionKeysIds.value) {
       val newSemantic = result.semantic.removeVariable(collectionKeysId)
@@ -422,12 +423,12 @@ case class HeapAndAnotherDomain[
     result
   }
 
-  def copyCollection(fromCollection: Assignable, toCollection: Assignable) : (T, Replacement) = {
+  def copyCollection(fromCollection: Assignable, toCollection: Assignable): (T, Replacement) = {
     var result = this
 
     var resultRep = new Replacement()
 
-    def insertToApprox(result: T, key:Expression, value:Expression, pp:ProgramPoint)(approx: Assignable): T = {
+    def insertToApprox(result: T, key: Expression, value: Expression, pp: ProgramPoint)(approx: Assignable): T = {
       val (res, rep) = result.insertCollectionElementToApprox(approx, key, value, pp)
       resultRep = resultRep ++ rep
       res
@@ -459,7 +460,7 @@ case class HeapAndAnotherDomain[
     (result, resultRep)
   }
 
-  def assignAllCollectionKeys(collection: Assignable, value: Expression) : T = {
+  def assignAllCollectionKeys(collection: Assignable, value: Expression): T = {
     var result = this
 
     val overApproxIds = result.heap.getCollectionOverApproximation(collection)
@@ -467,7 +468,7 @@ case class HeapAndAnotherDomain[
     val approxIds = overApproxIds.value ++ underApproxIds.value
     for (approxId <- approxIds) {
       val keyIds = result.heap.getCollectionKeys(approxId)
-      if (! keyIds.isBottom) {
+      if (!keyIds.isBottom) {
         result = factory(assignSemanticValue(keyIds, value, result.semantic), result.heap)
       }
     }
@@ -479,12 +480,7 @@ case class HeapAndAnotherDomain[
     heap.isSummaryCollection(collection)
   }
 
-  def optimizeSummaryNodes(): (T, Replacement) = {
-    val (newHeap,rep) = heap.optimizeSummaryNodes
-    (factory(semantic.merge(rep), newHeap), rep)
-  }
-
-   private def getCollectionMustValuesByValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
+  private def getCollectionMustValuesByValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
     var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
@@ -514,7 +510,7 @@ case class HeapAndAnotherDomain[
     matchedIds
   }
 
-  private def getCollectionMustValuesWithMayBeValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] ={
+  private def getCollectionMustValuesWithMayBeValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
     var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
@@ -577,7 +573,7 @@ case class HeapAndAnotherDomain[
     matchedIds
   }
 
-  private def getCollectionMustKeysWithMayBeKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] ={
+  private def getCollectionMustKeysWithMayBeKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
     var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
@@ -628,7 +624,7 @@ case class HeapAndAnotherDomain[
       val (res, _) = result.assume(BinaryArithmeticExpression(lengthId.asInstanceOf[I], Constant("0", lengthId.typ, null), ArithmeticOperator.>=, lengthId.typ))
       result = res
 
-      if(isSummaryCollection(collection)) {
+      if (isSummaryCollection(collection)) {
         result.lub(initial)
       } else {
         result
@@ -651,13 +647,13 @@ case class HeapAndAnotherDomain[
   }
 
   private def setCollectionLengthFromCollection(initial: T, fromCollection: Assignable)(toCollection: Assignable) = {
-    def setCollectionLength(initial: T, toCollection: Assignable)(a: Assignable) = a match{
+    def setCollectionLength(initial: T, toCollection: Assignable)(a: Assignable) = a match {
       case lengthId: I =>
         def assignLength(state: T, lengthId: I)(variable: Assignable) = {
           var result = state.createVariable(variable, lengthId.typ)
           result = applyToAssignable[T](variable, result, _.assign(_, lengthId))
 
-          if(isSummaryCollection(toCollection)) {
+          if (isSummaryCollection(toCollection)) {
             result.lub(state)
           } else {
             result
@@ -677,13 +673,13 @@ case class HeapAndAnotherDomain[
     HeapIdSetFunctionalLifting.applyToSetHeapId(initial.factory(), lengthIds, setCollectionLength(result, toCollection))
   }
 
-  private def setCollectionLengthToZero(initial: T, lengthTyp:Type)(collection: Assignable) : T = {
+  private def setCollectionLengthToZero(initial: T, lengthTyp: Type)(collection: Assignable): T = {
     var result = initial
 
     val lengthIds = result.heap.getCollectionLength(collection)
     result = HeapIdSetFunctionalLifting.applyToSetHeapId(result.factory(), lengthIds, result.createVariable(_, lengthTyp))
 
-    def setToZero(initialState:N)(a:Assignable) = applyToAssignable[N](a, initialState, _.assign(_, Constant("0", a.typ, null)))
+    def setToZero(initialState: N)(a: Assignable) = applyToAssignable[N](a, initialState, _.assign(_, Constant("0", a.typ, null)))
     val newSemantic = HeapIdSetFunctionalLifting.applyToSetHeapId(result.semantic.factory(), lengthIds, setToZero(result.semantic))
     result = factory(newSemantic, result.heap)
 
@@ -694,19 +690,19 @@ case class HeapAndAnotherDomain[
     }
   }
 
-  private def assignSemanticValue(ids: HeapIdSetDomain[I], value: Expression, initial: N) : N = {
+  private def assignSemanticValue(ids: HeapIdSetDomain[I], value: Expression, initial: N): N = {
     def assignValueTo(initialState: N, value: Expression)(a: Assignable) = {
       applyToAssignable[N](a, initialState, _.assign(_, value))
     }
 
-    if(ids.isTop){
+    if (ids.isTop) {
       initial.top()
     } else {
       HeapIdSetFunctionalLifting.applyToSetHeapId(initial.factory(), ids, assignValueTo(initial, value))
     }
   }
 
-  private def assignToCollectionTuple(tupleId: Assignable, key: Expression, value: Expression, initial:HeapAndAnotherDomain[N,H,I]) = {
+  private def assignToCollectionTuple(tupleId: Assignable, key: Expression, value: Expression, initial: HeapAndAnotherDomain[N, H, I]) = {
     var result = initial
     val keyId = result.heap.getCollectionKeyByTuple(tupleId)
     val valueId = result.heap.getCollectionValueByTuple(tupleId)
@@ -722,7 +718,7 @@ case class HeapAndAnotherDomain[
     result
   }
 
-  def setArgument(variable : Assignable, expr : Expression) : T= {
+  def setArgument(variable: Assignable, expr: Expression): T = {
     SystemParameters.heapTimer.start()
     val (newHeap, r) = heap.setArgument(variable, expr)
     SystemParameters.heapTimer.stop()
@@ -733,10 +729,10 @@ case class HeapAndAnotherDomain[
     factory(newSemantic, newHeap)
   }
 
-  def assume(expr : Expression) : (T, Replacement) = expr match {
+  def assume(expr: Expression): (T, Replacement) = expr match {
     case CollectionContainsExpression(collection, key, value, returnTyp, pp) =>
       var resultRep = new Replacement()
-      def insertCollectionElement(initialState:T , key: Expression, value: Expression, pp: ProgramPoint)(collection: Assignable): T = {
+      def insertCollectionElement(initialState: T, key: Expression, value: Expression, pp: ProgramPoint)(collection: Assignable): T = {
         if (initialState.collectionContainsKey(collection, key).equals(BooleanDomain.domFalse)) return initialState.bottom()
         if (initialState.collectionContainsValue(collection, value).equals(BooleanDomain.domFalse)) return initialState.bottom()
 
@@ -748,7 +744,7 @@ case class HeapAndAnotherDomain[
       val result = collection match {
         case id: I => insertCollectionElement(this, key, value, pp)(id)
         case id: VariableIdentifier => insertCollectionElement(this, key, value, pp)(id)
-        case set: HeapIdSetDomain[I] =>  HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, insertCollectionElement(this, key, value, pp))
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, insertCollectionElement(this, key, value, pp))
       }
 
       (result, resultRep)
@@ -767,7 +763,7 @@ case class HeapAndAnotherDomain[
         case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this.factory(), set, removeCollectionElement(this, key, value))
       }
       (result, new Replacement)
-    case BinaryBooleanExpression(_, _, BooleanOperator.&&,  _) =>
+    case BinaryBooleanExpression(_, _, BooleanOperator.&&, _) =>
       val binaryBoolExpr = expr.asInstanceOf[BinaryBooleanExpression]
       val (result, rep1) = this.assume(binaryBoolExpr.left)
       val (result2, rep2) = result.assume(binaryBoolExpr.right)
@@ -782,7 +778,7 @@ case class HeapAndAnotherDomain[
       (factory(newSemantic, newHeap), r)
   }
 
-  def areEqual(left: Expression, right: Expression) : BooleanDomain = {
+  def areEqual(left: Expression, right: Expression): BooleanDomain = {
     val equalsExpression = BinaryArithmeticExpression(left, right, ArithmeticOperator.==, null)
 
     val (leftEqualsRight, _) = this.assume(equalsExpression)
@@ -799,7 +795,7 @@ case class HeapAndAnotherDomain[
     BooleanDomain.domTop
   }
 
-  def createVariable(variable : Assignable, typ : Type): T = {
+  def createVariable(variable: Assignable, typ: Type): T = {
     SystemParameters.heapTimer.start()
     val (newHeap, r) = heap.createVariable(variable, typ)
     SystemParameters.heapTimer.stop()
@@ -808,7 +804,8 @@ case class HeapAndAnotherDomain[
     SystemParameters.domainTimer.stop()
     factory(newSemantic, newHeap)
   }
-  def removeVariable(variable : Assignable) : T= {
+
+  def removeVariable(variable: Assignable): T = {
     SystemParameters.heapTimer.start()
     val (newHeap, r) = heap.removeVariable(variable)
     SystemParameters.heapTimer.stop()
@@ -824,13 +821,14 @@ case class HeapAndAnotherDomain[
     factory(newSemantic, heap)
   }
 
-  def backwardAccess(field : Assignable) : T= {
+  def backwardAccess(field: Assignable): T = {
     SystemParameters.domainTimer.start()
     val newSemantic = applyToAssignable[N](field, semantic, _.backwardAccess(_))
     SystemParameters.domainTimer.stop()
     factory(newSemantic, heap)
   }
-  def backwardAssign(oldPreState: T, variable : Assignable, expr : Expression): T = {
+
+  def backwardAssign(oldPreState: T, variable: Assignable, expr: Expression): T = {
     SystemParameters.heapTimer.start()
     val (newHeap, r) = heap.backwardAssign(oldPreState.heap, variable, expr)
     val (newHeap2, _) = oldPreState.heap.glbWithReplacement(newHeap)
@@ -882,23 +880,23 @@ case class HeapAndAnotherDomain[
 
   override def widening(other: T): T = wideningWithReplacement(other)._1
 
-  override def lessEqual(other : T) : Boolean = {
+  override def lessEqual(other: T): Boolean = {
     if (semantic.lessEqual(semantic.bottom())) return true
     if (other.semantic.lessEqual(other.semantic.bottom())) return false
     SystemParameters.heapTimer.start()
     var b = heap.lessEqual(other.heap)
     SystemParameters.heapTimer.stop()
-    if(! b) return false
+    if (!b) return false
     SystemParameters.domainTimer.start()
     b = semantic.lessEqual(other.semantic)
     SystemParameters.domainTimer.stop()
     b
   }
 
-  private def applyToAssignable[L <: Lattice[L]](variable : Assignable, state : L, functor : (L, Identifier) => L) : L = {
+  private def applyToAssignable[L <: Lattice[L]](variable: Assignable, state: L, functor: (L, Identifier) => L): L = {
     variable match {
-      case x : VariableIdentifier => functor(state, x)
-      case x :I => functor(state, x): L
+      case x: VariableIdentifier => functor(state, x)
+      case x: I => functor(state, x): L
     }
   }
 

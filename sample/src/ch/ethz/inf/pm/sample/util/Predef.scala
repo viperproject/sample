@@ -28,4 +28,23 @@ object Predef {
     }
   }
 
+  def mergePartitionings[X](part1: Map[X, Set[X]], part2: Map[X, Set[X]]): Map[X, Set[X]] = {
+
+    def setForAll(part: Map[X, Set[X]], xs: Set[X]): Map[X, Set[X]] = {
+      part ++ (for (x <- xs) yield {
+        x -> xs
+      })
+    }
+
+    var newPartitioning: Map[X, Set[X]] = Map.empty
+    var toCover = part1.keySet ++ part2.keySet
+    while (!toCover.isEmpty) {
+      val cur = toCover.head
+      newPartitioning = setForAll(newPartitioning, part1.getOrElse(cur, Set.empty) ++ part2.getOrElse(cur, Set.empty) ++ newPartitioning.getOrElse(cur, Set.empty))
+      toCover = toCover -- newPartitioning.keySet
+    }
+
+    newPartitioning
+  }
+
 }

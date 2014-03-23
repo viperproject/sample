@@ -4,7 +4,7 @@ import semper.sil.testing.{AnnotatedTestInput, AbstractOutput, SystemUnderTest, 
 import java.nio.file.Path
 import ch.ethz.inf.pm.sample.reporting.SampleMessage
 import ch.ethz.inf.pm.td.analysis.{ReportingParams, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.compiler.TouchProgramPoint
+import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, SpaceSavingProgramPoint}
 
 abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
 
@@ -14,9 +14,12 @@ abstract class TouchBoostTestSuite extends AnnotationBasedTestSuite {
     def isSameLine(file: Path, lineNr: Int): Boolean = {
       val messageLine =
         message.pp match {
-          case TouchProgramPoint(_, Some(lineColumnPos), customPos) =>
-            lineColumnPos.line
-          case _ => sys.error( "SampleError PP does not have expected structure")
+          case x: SpaceSavingProgramPoint =>
+            TouchProgramPointRegistry.reg(x.id).lineColumnPosition match {
+              case Some(lineColumnPos) => lineColumnPos.line
+              case None => sys.error("SampleError PP does not have expected structure")
+            }
+          case _ => sys.error("SampleError PP does not have expected structure")
         }
       messageLine == lineNr
     }

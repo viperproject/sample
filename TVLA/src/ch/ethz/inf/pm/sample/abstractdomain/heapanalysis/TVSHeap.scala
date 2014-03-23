@@ -90,7 +90,6 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
     41 * (41 * (41 + variables.hashCode) + tempVariables.hashCode) + structures.hashCode()
 
 
-
   //================================================================================
   // Heap Operations
   //================================================================================
@@ -162,7 +161,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    */
   private def extractHeapId(tempvar: String, typ: Type): TVSHeapIDSet = {
     val ids: Set[NodeName] = structures.flatMap(_.programVariables(tempvar).value)
-    new TVSHeapIDSet(tempvar,ids)
+    new TVSHeapIDSet(tempvar, ids)
   }
 
   /**
@@ -457,10 +456,10 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
    * There seems to be no support in TVLA for this notion.
    */
   override def glbWithReplacement(other: TVSHeap): (TVSHeap, Replacement) = {
-    if (isBottom || other.isBottom)  (bottom(), new Replacement)
-    else if (isTop)  (other, new Replacement)
-    else if (other.isTop)  (this, new Replacement)
-    else if (this == other)  (this, new Replacement())
+    if (isBottom || other.isBottom) (bottom(), new Replacement)
+    else if (isTop) (other, new Replacement)
+    else if (other.isTop) (this, new Replacement)
+    else if (this == other) (this, new Replacement())
     else throw new Exception("Cannot compute glb on heaps")
   }
 
@@ -552,52 +551,89 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
 
   // not implemented
   def get(key: VariableIdentifier) = throw new NotImplementedException("not implemented yet")
+
   def get(key: NodeName) = throw new NotImplementedException("not implemented yet")
+
   def backwardAssign(oldPreState: TVSHeap, variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
+
   def backwardAccess(field: Assignable) = throw new NotImplementedException("not implemented yet")
+
   override def setArgument(variable: Assignable, expr: Expression) = throw new NotImplementedException("not implemented yet")
+
   def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S) = throw new NotImplementedException("not implemented yet")
-  def createArray[S <: SemanticDomain[S]](length: Expression, typ: Type, pp: ProgramPoint, state : S) = throw new NotImplementedException("not implemented yet")
+
+  def createArray[S <: SemanticDomain[S]](length: Expression, typ: Type, pp: ProgramPoint, state: S) = throw new NotImplementedException("not implemented yet")
+
   def getArrayLength(arrayIdentifier: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
                                            typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
-  def createEmptyCollection(collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp:ProgramPoint) = throw new NotImplementedException("not implemented yet")
+
+  def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
+
   def getSummaryCollectionIfExists(collection: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def insertCollectionTopElement(collection: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
+
   def insertCollectionElement(collection: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
+
   def insertCollectionElementToApprox(collectionApprox: Assignable, pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
-  def getCollectionKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state:S) = throw new NotImplementedException("not implemented yet")
-  def getCollectionValueByKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state:S) = throw new NotImplementedException("not implemented yet")
+
+  def getCollectionKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state: S) = throw new NotImplementedException("not implemented yet")
+
+  def getCollectionValueByKey[S <: SemanticDomain[S]](collection: Assignable, key: Expression, state: S) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionValueByValue[S <: SemanticDomain[S]](collection: Assignable, value: Expression, state: S) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionKeyByTuple(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionValueByTuple(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionTupleByKey(keyId: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionTupleByValue(valueId: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def isSummaryCollection(collectionId: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getOriginalCollection(collection: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getKeysCollection(collection: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionTuples(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionOverApproximation(collection: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionUnderApproximation(collection: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionKeys(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionValues(collectionApprox: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def removeCollectionElement(collectionTuple: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getCollectionLength(collection: Assignable) = throw new NotImplementedException("not implemented yet")
+
   def getUnreachableHeap = throw new NotImplementedException("not implemented yet")
-  def optimizeSummaryNodes = throw new NotImplementedException("not implemented yet")
+
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): (NodeName, TVSHeap) = ???
+
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier = ???
 
   // methods required by Analysis trait
   override def reset() {}
+
   override def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
+
   override def setParameter(label: String, value: Any) {}
+
   override def parameters(): List[(String, Any)] = Nil
+
   def setToTop(variable: Assignable) = (this, new Replacement)
+
   override def getProperties(): List[Property] = Nil
+
   override def getLabel(): String = "TVS heap domain"
 }
-
 
 
 /**
@@ -606,8 +642,8 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
  * nodes in the TVS again.
  *
  */
-class TVSHeapIDSet(val pointedBy: String,_value: Set[NodeName] = Set.empty[NodeName], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends DefiniteHeapIdSetDomain[NodeName](null,_value,_isTop,_isBottom)
+class TVSHeapIDSet(val pointedBy: String, _value: Set[NodeName] = Set.empty[NodeName], _isTop: Boolean = false, _isBottom: Boolean = false)
+  extends DefiniteHeapIdSetDomain[NodeName](null, _value, _isTop, _isBottom)
 
 /**
  * Used to make a distinction between temporaries and normal variables

@@ -4,7 +4,8 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property.{DivisionByZero, SingleStatementProperty, Property}
 import ch.ethz.inf.pm.sample.abstractdomain._
 
-trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends Lattice[N] { this: N =>
+trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends Lattice[N] {
+  this: N =>
   def evalConstant(value: Int): N
 
   def sum(leftExpr: N, rightExpr: N): N
@@ -26,18 +27,26 @@ trait NonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]] extends
   def valueGreater(value: N): N
 
   def intersect(value: N): Boolean
+
+  /**
+   * Encodes non-relational information as a constraint
+   * @param id the identifier this domain restricts
+   * @return a constraint, for example 1<id<5 for the interval (1,5), None in case of top or bottom
+   */
+  def asConstraint(id: Identifier): Option[Expression] = ???
+
 }
 
 class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](dom: N,
-                                                                              val map:Map[Identifier, N] = Map.empty[Identifier, N],
-                                                                              override val isBottom:Boolean = false,
-                                                                              val isTop:Boolean = false)
+                                                                              val map: Map[Identifier, N] = Map.empty[Identifier, N],
+                                                                              override val isBottom: Boolean = false,
+                                                                              val isTop: Boolean = false)
   extends BoxedDomain[N, BoxedNonRelationalNumericalDomain[N]]
   with NumericalDomain[BoxedNonRelationalNumericalDomain[N]]
   with SimplifiedSemanticDomain[BoxedNonRelationalNumericalDomain[N]] {
 
-  def functionalFactory(_value:Map[Identifier, N] = Map.empty[Identifier, N],_isBottom:Boolean = false,_isTop:Boolean = false) : BoxedNonRelationalNumericalDomain[N] =
-    new BoxedNonRelationalNumericalDomain[N](dom,_value,_isBottom,_isTop)
+  def functionalFactory(_value: Map[Identifier, N] = Map.empty[Identifier, N], _isBottom: Boolean = false, _isTop: Boolean = false): BoxedNonRelationalNumericalDomain[N] =
+    new BoxedNonRelationalNumericalDomain[N](dom, _value, _isBottom, _isTop)
 
   def get(key: Identifier): N = map.get(key) match {
     case None => dom.bottom()
@@ -88,7 +97,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.*, typ) => return dom.multiply(eval(left), eval(right))
     case BinaryArithmeticExpression(left, right, ArithmeticOperator./, typ) => return dom.divide(eval(left), eval(right))
     case BinaryArithmeticExpression(left, right, ArithmeticOperator.-, typ) => return dom.subtract(eval(left), eval(right))
-    case BinaryNondeterministicExpression(left, right, NondeterministicOperator.to, typ) => return dom.nondet(eval(left),eval(right))
+    case BinaryNondeterministicExpression(left, right, NondeterministicOperator.to, typ) => return dom.nondet(eval(left), eval(right))
     case BinaryNondeterministicExpression(left, right, NondeterministicOperator.or, typ) => dom.top() //TODO: implement it!!!
     case BinaryArithmeticExpression(left, right, op, typ) => dom.top() //TODO: implement it!!!
     case Constant(constant, typ, pp) => try {
@@ -112,16 +121,16 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
 
     expr match {
 
-      case BinaryBooleanExpression(left,right,op,_) => op match {
+      case BinaryBooleanExpression(left, right, op, _) => op match {
         case BooleanOperator.&& => assume(left).assume(right)
         case BooleanOperator.|| => assume(left).lub(assume(right))
       }
 
       // Boolean variables
       case x: Identifier =>
-        this.add(x,dom.evalConstant(1))
-      case NegatedBooleanExpression(x:Identifier) =>
-        this.add(x,dom.evalConstant(0))
+        this.add(x, dom.evalConstant(1))
+      case NegatedBooleanExpression(x: Identifier) =>
+        this.add(x, dom.evalConstant(0))
 
       case _ => Normalizer.conditionalExpressionToMonomes(expr) match {
         case None =>
@@ -130,11 +139,11 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
               val l: N = this.eval(left)
               val r: N = this.eval(right)
               op match {
-                case ArithmeticOperator.== => if(!l.intersect(r)) return this.bottom()
-                case ArithmeticOperator.<= => if(!l.intersect(l.valueLEQ(r))) return this.bottom()
-                case ArithmeticOperator.>= => if(!l.intersect(l.valueGEQ(r))) return this.bottom()
-                case ArithmeticOperator.> =>  if(!l.intersect(l.valueGreater(r))) return this.bottom()
-                case ArithmeticOperator.< =>  if(!l.intersect(l.valueLess(r))) return this.bottom()
+                case ArithmeticOperator.== => if (!l.intersect(r)) return this.bottom()
+                case ArithmeticOperator.<= => if (!l.intersect(l.valueLEQ(r))) return this.bottom()
+                case ArithmeticOperator.>= => if (!l.intersect(l.valueGEQ(r))) return this.bottom()
+                case ArithmeticOperator.> => if (!l.intersect(l.valueGreater(r))) return this.bottom()
+                case ArithmeticOperator.< => if (!l.intersect(l.valueLess(r))) return this.bottom()
                 case _ => return this
               }
             case _ => return this
@@ -144,7 +153,7 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
           var stateResult: BoxedNonRelationalNumericalDomain[N] = this
 
           // Check if it is trivially false, e.g. -1 >= 0
-          if(monomes.isEmpty && constant < 0)
+          if (monomes.isEmpty && constant < 0)
             return stateResult.bottom()
 
           for (monome <- monomes) {
@@ -178,6 +187,16 @@ class BoxedNonRelationalNumericalDomain[N <: NonRelationalNumericalDomain[N]](do
       }
     }
 
+  /** Returns all the knowledge we have on the given identifiers as an expression */
+  override def getConstraints(ids: Set[Identifier]): Set[Expression] = {
+    (for (id <- ids) yield {
+      map.get(id) match {
+        case Some(nonrel) => nonrel.asConstraint(id)
+        case None => None
+      }
+    }).flatten
+  }
+
 }
 
 
@@ -210,7 +229,7 @@ class Top extends NonRelationalNumericalDomain[Top] {
 
   def divide(leftExpr: Top, rightExpr: Top): Top = this
 
-  def nondet(leftExpr:Top, rightExpr: Top) : Top = this
+  def nondet(leftExpr: Top, rightExpr: Top): Top = this
 
   def valueGEQ(value: Top): Top = this
 
@@ -318,7 +337,7 @@ class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sig
     return new Sign(SignValues.-)
   }
 
-  def nondet(leftExpr: Sign, rightExpr:Sign): Sign = {
+  def nondet(leftExpr: Sign, rightExpr: Sign): Sign = {
     if (leftExpr.value == rightExpr.value) return new Sign(leftExpr.value)
     return new Sign(SignValues.T)
   }
@@ -356,6 +375,17 @@ class Sign(val value: SignValues.Value) extends NonRelationalNumericalDomain[Sig
 }
 
 class Interval(val left: Int, val right: Int) extends NonRelationalNumericalDomain[Interval] {
+
+  override def asConstraint(id: Identifier): Option[Expression] = {
+    if (this.isBottom()) return None
+    if (left == Integer.MIN_VALUE && right == Integer.MAX_VALUE) return None
+
+    val lowerBound = BinaryArithmeticExpression(Constant(left.toString, id.typ), id, ArithmeticOperator.<=)
+    val upperBound = BinaryArithmeticExpression(id, Constant(right.toString, id.typ), ArithmeticOperator.<=)
+    if (right == Integer.MAX_VALUE) return Some(lowerBound)
+    if (left == Integer.MIN_VALUE) return Some(upperBound)
+    Some(BinaryBooleanExpression(lowerBound, upperBound, BooleanOperator.&&))
+  }
 
 
   def intersect(value: Interval): Boolean = {

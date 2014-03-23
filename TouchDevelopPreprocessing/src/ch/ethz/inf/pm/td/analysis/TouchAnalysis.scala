@@ -33,8 +33,8 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
   //extends SemanticAnalysis[TouchStringsAnd[InvalidAnd[D],V,S]] {
   extends SemanticAnalysis[StringsAnd[InvalidAnd[D],V,S]] {
 
-  protected val STRING_DOMAIN = "StringDomain"
-  protected val NUMERICAL_DOMAIN = "Domain"
+  val STRING_DOMAIN = "StringDomain"
+  val NUMERICAL_DOMAIN = "Domain"
 
   var domain: String = ""
 

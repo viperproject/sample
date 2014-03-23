@@ -10,7 +10,8 @@ import ch.ethz.inf.pm.sample.SystemParameters
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait Lattice[T <: Lattice[T]] { this: T =>
+trait Lattice[T <: Lattice[T]] {
+  this: T =>
   /**
    * Returns a new instance of the lattice
    *
@@ -104,12 +105,12 @@ object Lattice {
     var iteration = 1
     var prev = s
     var cur = prev.lub(f(prev))
-    while(!cur.lessEqual(prev)) {
+    while (!cur.lessEqual(prev)) {
       prev = cur
       iteration += 1
-      if(iteration > wideningLimit) {
+      if (iteration > wideningLimit) {
         if (iteration > wideningLimit + 10)
-          // TODO: Not very helpful. Remove?
+        // TODO: Not very helpful. Remove?
           System.err.println("Looks like we are not terminating here!")
         cur = prev.widening(f(prev))
       }
@@ -124,12 +125,15 @@ object Lattice {
     *
     * @tparam T the self-type of the lattice
     */
-  trait Must[T <: Must[T]] extends Lattice[T] { this: T =>
+  trait Must[T <: Must[T]] extends Lattice[T] {
+    this: T =>
     override def lub(other: T) = glb(other)
   }
+
 }
 
-trait LatticeHelpers[T <: Lattice[T]] extends Lattice[T] { self: T =>
+trait LatticeHelpers[T <: Lattice[T]] extends Lattice[T] {
+  self: T =>
   def isBottom: Boolean = lessEqual(bottom())
 }
 
@@ -146,7 +150,8 @@ trait LatticeHelpers[T <: Lattice[T]] extends Lattice[T] { self: T =>
  * @author Pietro Ferrara
  * @since 0.1
  */
-trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =>
+trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] {
+  this: S =>
 
   /**
    * Signals that we are going to analyze the statement at program point pp
@@ -156,7 +161,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param pp The point of the program that is going to be analyzed
    * @return The abstract state eventually modified
    */
-  def before(pp : ProgramPoint) : S
+  def before(pp: ProgramPoint): S
 
   /**
    * Creates an object
@@ -167,7 +172,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    *               the set of initialized fields)
    * @return The abstract state after the creation of the object
    */
-  def createObject(typ : Type, pp : ProgramPoint, fields : Option[Set[Identifier]] = None) : S
+  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]] = None): S
 
   /**
    * Undoes the effect of object creation. Intended to be the backward version
@@ -179,7 +184,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param fields the fields that were created
    * @return state without the object
    */
-  def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]) : S
+  def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]): S
 
   /**
    * Creates a variable
@@ -189,7 +194,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param pp The program point that creates the variable
    * @return The abstract state after the creation of the variable
    */
-  def createVariable(x : ExpressionSet, typ : Type, pp : ProgramPoint) : S
+  def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): S
 
   /**
    * Creates a variable for an argument
@@ -198,7 +203,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param typ The static type of the argument
    * @return The abstract state after the creation of the argument
    */
-  def createVariableForArgument(x : ExpressionSet, typ : Type) : S
+  def createVariableForArgument(x: ExpressionSet, typ: Type): S
 
   /**
    * Assigns an expression to a variable
@@ -207,7 +212,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param right The assigned expression
    * @return The abstract state after the assignment
    */
-  def assignVariable(x : ExpressionSet, right : ExpressionSet) : S
+  def assignVariable(x: ExpressionSet, right: ExpressionSet): S
 
   /**
    * Assigns an expression to a field of an object.
@@ -236,8 +241,8 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param x The assigned argument
    * @param right The expression to be assigned
    * @return The abstract state after the assignment
-    */
-  def setArgument(x : ExpressionSet, right : ExpressionSet) : S
+   */
+  def setArgument(x: ExpressionSet, right: ExpressionSet): S
 
   /**
    * Forgets the value of a variable
@@ -245,7 +250,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param x The variable to be forgotten
    * @return The abstract state obtained after forgetting the variable
    */
-  def setVariableToTop(x : ExpressionSet) : S
+  def setVariableToTop(x: ExpressionSet): S
 
   /**
    * Removes a variable
@@ -253,7 +258,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param x The variable to be removed
    * @return The abstract state obtained after removing the variable
    */
-  def removeVariable(x : ExpressionSet) : S
+  def removeVariable(x: ExpressionSet): S
 
   /**
    * Throws an exception
@@ -261,7 +266,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param t The thrown exception
    * @return The abstract state after the thrown
    */
-  def throws(t : ExpressionSet) : S
+  def throws(t: ExpressionSet): S
 
   /**
    * Gets the value of a variable
@@ -269,7 +274,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param id The variable to access
    * @return The abstract state obtained after accessing the variable, that is, the state that contains as expression the symbolic representation of the value of the given variable
    */
-  def getVariableValue(id : Assignable) : S
+  def getVariableValue(id: Assignable): S
 
   /**
    * Accesses a field of an object.
@@ -289,7 +294,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param id The accessed variable
    * @return The abstract state obtained BEFORE accessing the variable
    */
-  def backwardGetVariableValue(id : Assignable) : S
+  def backwardGetVariableValue(id: Assignable): S
 
   /**
    * Performs the backward semantics of a field access.
@@ -319,7 +324,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param pp The program point that contains the constant
    * @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
    */
-  def evalConstant(value : String, typ : Type, pp : ProgramPoint) : S
+  def evalConstant(value: String, typ: Type, pp: ProgramPoint): S
 
   /**
    * Assumes that a boolean expression holds
@@ -327,21 +332,21 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param cond The assumed expression
    * @return The abstract state after assuming that the expression holds
    */
-  def assume(cond : ExpressionSet) : S
+  def assume(cond: ExpressionSet): S
 
   /**
    * Assumes that the current expression holds
    *
    * @return The abstract state after assuming that the expression holds
    */
-  def testTrue() : S
+  def testTrue(): S
 
   /**
    * Assumes that the current expression does not hold
    *
    * @return The abstract state after assuming that the expression does not hold
    */
-  def testFalse() : S
+  def testFalse(): S
 
   /**
    * Applies state transformations conditionally
@@ -374,14 +379,14 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param expr The current expression
    * @return The abstract state after changing the current expression with the given one
    */
-  def setExpression(expr : ExpressionSet) : S
+  def setExpression(expr: ExpressionSet): S
 
   /**
    * Removes the current expression
    *
    * @return The abstract state after removing the current expression
    */
-  def removeExpression() : S
+  def removeExpression(): S
 
   /**
    * Creates an empty collection.
@@ -392,8 +397,8 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param lengthTyp The type of the collection length
    * @param tpp  The program point at which the collection is created
    */
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp:Option[Type],
-                       tpp: ProgramPoint, fields : Option[Set[Identifier]] = None) : S
+  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type],
+                       tpp: ProgramPoint, fields: Option[Set[Identifier]] = None): S
 
   /**
    * Returns for each collection in the collectionSet either the collection identifier or if a summary collection for
@@ -402,7 +407,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param collectionSet the collection set
    * @return The state with either the summary collection identifier or the collection identifier in the expression
    */
-  def getSummaryCollectionIfExists(collectionSet: ExpressionSet) : S
+  def getSummaryCollectionIfExists(collectionSet: ExpressionSet): S
 
   /**
    * Gets the values that are stored at the Collection Tuple Value Identifiers.
@@ -421,7 +426,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param pp the program point
    * @return
    */
-  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint) : S
+  def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint): S
 
   /**
    * Gets the Identifier of all the keys of the collection that match the given key expresssion.
@@ -453,9 +458,9 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * Gets the HeapIdentifier of all the values of the collection that match the given value expresssion.
    * A value expression (value) matches a HeapIdentifier if the Heapidentifier represents a value of the collection
    * and has value v assigned such that
-   * 
+   *
    * lub(v, value) != bottom
-   * 
+   *
    * @param collectionSet  The collection expressions
    * @param valueSet The value expressions
    * @return The state that has the mapped HeapIdentifiers as expression
@@ -465,15 +470,15 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
   /**
    * Creates a new collection that contains all keys of the provided collection (fromCollection)
    * as values.
-   * 
+   *
    * @param fromCollectionSet The collection from which the keys shall be extracted
    * @param collTyp  The collection type of the newly created collection
    * @param keyTyp  The key type of the newly created collection
    * @param valueTyp The value type of the newly created collection
    * @param lengthTyp  The length type of the newly created collection@param pp
    * @return The state that contains the newly created collection and has it's CollectionHeapIdentifier as expression
-    */
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet,fromCollectionTyp:Type, collTyp:Type, keyTyp:Type, valueTyp:Type, lengthTyp:Type, pp:ProgramPoint): S
+   */
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): S
 
   /**
    * From a keys collection, get the map
@@ -570,14 +575,14 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    * @param collectionSet The collection to be cleared
    * @return The state with the cleared collection
    */
-  def clearCollection(collectionSet: ExpressionSet) : S
+  def clearCollection(collectionSet: ExpressionSet): S
 
   /**
    * Returns the identifier representing the length of the given collection.
    * @param collectionSet The collection from which we want to access the length
    * @return A state that contains as expression the symbolic representation of the length of the given collection
    */
-  def getCollectionLength(collectionSet: ExpressionSet) : S
+  def getCollectionLength(collectionSet: ExpressionSet): S
 
   /**
    * Indicates whether any collection in the ExpressionSet represents multiple collections.
@@ -590,7 +595,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
   /**
    * Removes all variables satisfying filter
    */
-  def pruneVariables(filter:Identifier => Boolean) : S
+  def pruneVariables(filter: Identifier => Boolean): S
 
   /**
    * Undoes the effect of `pruneVariables`.
@@ -608,7 +613,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
   /**
    * Performs abstract garbage collection
    */
-  def pruneUnreachableHeap() : S
+  def pruneUnreachableHeap(): S
 
   /**
    * Undoes the effect of pruning the unreachable heap ids. That is,
@@ -621,20 +626,13 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
    */
   def undoPruneUnreachableHeap(preState: S): S
 
-
- /**
-   * Detects summary nodes that are only reachable via a single access path and converts
-   * them to non-summary nodes
-   */
-  def optimizeSummaryNodes() : S
-
   /**
    * May try to explain an error
    *
    * @param expr An error-expression that should be infeasible but exposes an error
    * @return If a cause of the error is found, it returns an explanation and the program point of the cause
    */
-  def explainError(expr:ExpressionSet):Set[(String,ProgramPoint)] = Set.empty
+  def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] = Set.empty
 
   /**
    * Marks the given program point as a source of non-determinism and an internal
@@ -661,7 +659,8 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] { this: S =
 /** State whose collection-related methods throw a `NotImplementedError`.
   * Useful to avoid code clutter in states not supporting collections.
   */
-trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S] { this: S =>
+trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S] {
+  this: S =>
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint) = ???
 
   def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet) = ???
@@ -746,7 +745,8 @@ trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S
   *
   * @tparam S the self-type of the state
   */
-trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
+trait SimpleState[S <: SimpleState[S]] extends State[S] {
+  this: S =>
   def createVariable(x: ExpressionSet, typ: Type, pp: ProgramPoint): S = {
     require(x.getSetOfExpressions.forall(_.isInstanceOf[VariableIdentifier]),
       "can only create variable from variable identifiers")
@@ -808,7 +808,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
           Lattice.bigLub(for (
             obj <- objSet.getSetOfExpressions;
             right <- rightSet.getSetOfExpressions)
-            yield assignField(obj, field, right))
+          yield assignField(obj, field, right))
         }
         result.setUnitExpression()
       })
@@ -884,7 +884,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
           Lattice.bigLub(for (
             obj <- objSet.getSetOfExpressions;
             right <- rightSet.getSetOfExpressions)
-            yield backwardAssignField(oldPreState, obj, field, right))
+          yield backwardAssignField(oldPreState, obj, field, right))
         }
         result.setUnitExpression()
       })
@@ -895,7 +895,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] { this: S =>
 
   def assume(condSet: ExpressionSet): S = {
     // Return this, not bottom, when set of conditions is empty
-    if (isBottom || condSet.isBottom) this
+    if (isBottom || condSet.isBottom || condSet.isTop) this
     else {
       val result = Lattice.bigLub(condSet.getSetOfExpressions.map(assume))
       result.setUnitExpression()
@@ -991,12 +991,12 @@ object UtilitiesOnStates {
     (expr, finalState.setExpression(ExpressionFactory.unitExpr))
   }
 
-  def forwardExecuteListStatements[S <: State[S]](state : S, statements : List[Statement]) : (List[ExpressionSet], S)= statements match {
+  def forwardExecuteListStatements[S <: State[S]](state: S, statements: List[Statement]): (List[ExpressionSet], S) = statements match {
     case Nil => (Nil, state)
     case statement :: xs =>
-      val state1 : S =statement.forwardSemantics[S](state)
-      val expr=state1.expr
-      val (otherExpr, finalState)= forwardExecuteListStatements[S](state1, xs)
+      val state1: S = statement.forwardSemantics[S](state)
+      val expr = state1.expr
+      val (otherExpr, finalState) = forwardExecuteListStatements[S](state1, xs)
       (expr :: otherExpr, finalState.removeExpression())
   }
 

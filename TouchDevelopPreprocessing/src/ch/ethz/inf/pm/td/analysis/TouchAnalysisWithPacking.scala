@@ -3,7 +3,6 @@ package ch.ethz.inf.pm.td.analysis
 import apron._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.td.domain.InvalidAnd
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain._
 import ch.ethz.inf.pm.td.domain.StringsAnd
 import ch.ethz.inf.pm.td.domain.InvalidAnd
@@ -35,18 +34,22 @@ class TouchAnalysisWithPacking[D <: NumericalDomain[D], V <: StringValueDomain[V
       case "ApronPolka" =>
         val man = new Polka(false)
         ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
+      case "ApronPolkaStrict" =>
+        val man = new Polka(true)
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
       case "ApronLinearEqualities" =>
         val man = new PolkaEq()
         ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
     }
     val cheapNum = new BoxedNonRelationalNumericalDomain(new numericaldomain.Interval(0, 0))
-    val packingDomain = VariablePackingDomain(compiler.variablePacker, cheapNum, relationalNumericalDomain, Map.empty)
+    val packingDomain = VariablePackingDomain(cheapNum, relationalNumericalDomain, PackStorage.make(relationalNumericalDomain))
 
     val invalidAndSubDomain = new InvalidAnd(packingDomain)
     stringDomain match {
       case "Bricks" => new StringsAnd[InvalidAnd[VariablePackingDomain[BoxedNonRelationalNumericalDomain[numericaldomain.Interval], D]], V, S](invalidAndSubDomain, new Bricks().asInstanceOf[S])
       case _ => new StringsAnd[InvalidAnd[VariablePackingDomain[BoxedNonRelationalNumericalDomain[numericaldomain.Interval], D]], V, S](invalidAndSubDomain)
     }
+
   }
 
 }

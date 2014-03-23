@@ -13,22 +13,23 @@ import ch.ethz.inf.pm.sample.abstractdomain._
  */
 object ReachabilityAnalysis {
 
-  def getUnreachableLocations[I <: NonRelationalHeapIdentifier[I]](env:VariableEnv[I],store:HeapEnv[I]): Set[I] = {
-    store.ids -- getReachableLocations(env,store)
+  def getUnreachableLocations[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], store: HeapEnv[I]): Set[I] = {
+    val storeIds = store.ids
+    val res = storeIds -- getReachableLocations(env, store, storeIds)
+    res
   }
 
-  def getReachableLocations[I <: NonRelationalHeapIdentifier[I]](env:VariableEnv[I],store:HeapEnv[I]): Set[I] = {
+  def getReachableLocations[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], store: HeapEnv[I], storeIds: Set[I]): Set[I] = {
     if (env.isBottom) return Set.empty[I]
     if (store.isBottom) return Set.empty[I]
 
     val dom = new MaybeHeapIdSetDomain[I]()
-
     var reachable = env.map.values.foldLeft(dom.asInstanceOf[HeapIdSetDomain[I]])(_.lub(_)).value
     var toVisit = reachable
     while (!toVisit.isEmpty) {
       val cur = toVisit.head
       val reachableViaReferences = store.get(cur).value
-      val reachableViaFieldAccessEtc = store.ids.filter( _.getReachableFromIds.contains(cur) )
+      val reachableViaFieldAccessEtc = storeIds.filter(_.getReachableFromIds.contains(cur))
       val newSuccessors = reachableViaReferences ++ reachableViaFieldAccessEtc -- reachable
       reachable = reachable ++ newSuccessors
       toVisit = toVisit.tail ++ newSuccessors
@@ -37,65 +38,67 @@ object ReachabilityAnalysis {
     reachable
   }
 
-  def reach[I <: NonRelationalHeapIdentifier[I]](to : I, env : VariableEnv[I], store : HeapEnv[I]) : (List[String], Boolean)= {
+  def reach[I <: NonRelationalHeapIdentifier[I]](to: I, env: VariableEnv[I], store: HeapEnv[I]): (List[String], Boolean) = {
     @Deprecated
-    var result : List[String] = Nil
-	  var b : Boolean = false
-	  for(id <- env.ids) {
-	 	  if(id.isInstanceOf[VariableIdentifier]) {
-         reachable(id, to, env, store) match {
-           case (l, true) =>
-             if(result.size ==0 || l.size < result.size) {
-               result=l
-               b=true
-             }
-           case _ =>
-         }
-       }
-	  }
-	  (result, b)
+    var result: List[String] = Nil
+    var b: Boolean = false
+    for (id <- env.ids) {
+      if (id.isInstanceOf[VariableIdentifier]) {
+        reachable(id, to, env, store) match {
+          case (l, true) =>
+            if (result.size == 0 || l.size < result.size) {
+              result = l
+              b = true
+            }
+          case _ =>
+        }
+      }
+    }
+    (result, b)
   }
 
   /** most likely broken */
   @Deprecated
-  def reachable[I <: NonRelationalHeapIdentifier[I]](from : Identifier, to : I, env : VariableEnv[I], store : HeapEnv[I]) : (List[String], Boolean)= {
-    if(from.equals(to)) return (Nil, false)
-	  reachable1(from, to, env, store)
+  def reachable[I <: NonRelationalHeapIdentifier[I]](from: Identifier, to: I, env: VariableEnv[I], store: HeapEnv[I]): (List[String], Boolean) = {
+    if (from.equals(to)) return (Nil, false)
+    reachable1(from, to, env, store)
   }
 
   /** most likely broken */
   @Deprecated
-  private def reachable1[I <: NonRelationalHeapIdentifier[I]](from : Identifier, to : I, env : VariableEnv[I], store : HeapEnv[I]) : (List[String], Boolean)= {
-    val considered=scala.collection.mutable.Set.empty[I]
+  private def reachable1[I <: NonRelationalHeapIdentifier[I]](from: Identifier, to: I, env: VariableEnv[I], store: HeapEnv[I]): (List[String], Boolean) = {
+    val considered = scala.collection.mutable.Set.empty[I]
     from match {
-      case x : VariableIdentifier => //It can be only as first step, so we removed the t.toString, it will be replaced by "this"
-        for(hi <- env.get(x).value) {
+      case x: VariableIdentifier => //It can be only as first step, so we removed the t.toString, it will be replaced by "this"
+        for (hi <- env.get(x).value) {
           reachable(hi, to, env, store) match {
-            case (path, true) => return (/*x.toString::*/path, true)
+            case (path, true) => return ( /*x.toString::*/ path, true)
             case _ =>
           }
-          for(field <- from.typ.possibleFields)
+          for (field <- from.typ.possibleFields)
             reachable(new FieldAndProgramPoint(hi.asInstanceOf[ProgramPointHeapIdentifier], field.getName, field.typ), to, env, store) match {
-              case (path, true) => return (/*x.toString::*/field.getName::path, true)
+              case (path, true) => return ( /*x.toString::*/ field.getName :: path, true)
               case _ =>
             }
         }
         (Nil, false)
 
-      case x : I =>
-        if(considered.contains(x)) {return (Nil, false);}
-        if(x.equals(to)) return (Nil, true)
-        val res=store.get(x).value
-        if(res.contains(to)) return (Nil, true)
+      case x: I =>
+        if (considered.contains(x)) {
+          return (Nil, false);
+        }
+        if (x.equals(to)) return (Nil, true)
+        val res = store.get(x).value
+        if (res.contains(to)) return (Nil, true)
         //for(resSingle <- res) 
-        if(x.isNormalized())
+        if (x.isNormalized())
           ReachabilityAnalysis.isAccessibleThroughField(x, to, env, store) match {
             case Some(s) =>
               return (s :: Nil, true)
             case None =>
           }
-        considered+=x
-        for(hi <- res) {
+        considered += x
+        for (hi <- res) {
           reachable(hi, to, env, store) match {
             case (path, true) => return (path, true)
             case _ =>
@@ -107,12 +110,12 @@ object ReachabilityAnalysis {
 
   /** most likely broken */
   @Deprecated
-  private def isAccessibleThroughField[I <: NonRelationalHeapIdentifier[I]](from : Identifier, to : I, env : VariableEnv[I], store : HeapEnv[I]) : Option[String] = {
-    for(field <- from.typ.possibleFields) {
-      if(from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field.getName, field.typ).equals(to)) return Some(field.getName);
+  private def isAccessibleThroughField[I <: NonRelationalHeapIdentifier[I]](from: Identifier, to: I, env: VariableEnv[I], store: HeapEnv[I]): Option[String] = {
+    for (field <- from.typ.possibleFields) {
+      if (from.isInstanceOf[I] && from.asInstanceOf[I].extractField(from.asInstanceOf[I], field.getName, field.typ).equals(to)) return Some(field.getName);
     }
     None
   }
-  
-	
+
+
 }

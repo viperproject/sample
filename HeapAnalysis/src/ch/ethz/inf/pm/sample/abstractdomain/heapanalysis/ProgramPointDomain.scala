@@ -29,6 +29,7 @@ sealed trait ProgramPointHeapIdentifier
   extends NonRelationalHeapIdentifier[ProgramPointHeapIdentifier] {
 
   def pp: ProgramPoint
+
   def counter: Int
 
   override def getLabel() = "Program point"
@@ -67,36 +68,36 @@ sealed trait ProgramPointHeapIdentifier
 
   override def getArrayLength(array: Assignable) = new ArrayTopIdentifier()
 
-  override def createCollection(collTyp: Type, keyTyp:Type, valueTyp:Type, lengthTyp: Type, origCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp:ProgramPoint) =
+  override def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, origCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) =
     new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, origCollectionTyp, keyCollectionTyp)
 
   override def getCollectionOverApproximation(collection: Assignable) = collection match {
-    case x:CollectionIdentifier => extractField(x, "may", x.collTyp)
+    case x: CollectionIdentifier => extractField(x, "may", x.collTyp)
     case _ => throw new SemanticException("This is not a collection: " + collection.toString)
   }
 
   override def getCollectionUnderApproximation(collection: Assignable) = collection match {
-    case x:CollectionIdentifier => extractField(x, "must", x.collTyp)
+    case x: CollectionIdentifier => extractField(x, "must", x.collTyp)
     case _ => throw new SemanticException("This is not a collection: " + collection.toString)
   }
 
-  override def getCollectionSummaryApproximation(collection:Assignable) = collection match {
-    case x:CollectionIdentifier => extractField(x, "summary", x.collTyp)
+  override def getCollectionSummaryApproximation(collection: Assignable) = collection match {
+    case x: CollectionIdentifier => extractField(x, "summary", x.collTyp)
     case _ => throw new SemanticException("This is not a collection: " + collection.toString)
   }
 
-  def createCollectionSummaryTuple(collectionApprox:Assignable, keyTyp:Type, valueTyp:Type) = {
+  def createCollectionSummaryTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type) = {
     val pps = Set[ProgramPoint](collectionApprox.pp)
     createCollectionTuple(collectionApprox, keyTyp, valueTyp, pps)
   }
 
-  override def createCollectionTuple(collectionApprox:Assignable, keyTyp: Type, valueTyp: Type, pp:ProgramPoint) = {
+  override def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type, pp: ProgramPoint) = {
     val pps = Set[ProgramPoint](pp)
     createCollectionTuple(collectionApprox, keyTyp, valueTyp, pps)
   }
 
-  override def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp:Type, pps: Set[ProgramPoint]) = collectionApprox match {
-    case x:ProgramPointHeapIdentifier => new CollectionTupleIdentifier(x, keyTyp, valueTyp, pps)
+  override def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type, pps: Set[ProgramPoint]) = collectionApprox match {
+    case x: ProgramPointHeapIdentifier => new CollectionTupleIdentifier(x, keyTyp, valueTyp, pps)
     case _ => throw new SemanticException("This is not a collection approximation node: " + collectionApprox.toString)
   }
 
@@ -128,13 +129,13 @@ sealed trait ProgramPointHeapIdentifier
     case _ => throw new SemanticException("This is not a collection value: " + collectionValue.toString)
   }
 
-  override def getCollectionKey(collectionTuple:Assignable) = collectionTuple match {
-    case x:CollectionTupleIdentifier => extractField(x, "key", x.keyTyp)
+  override def getCollectionKey(collectionTuple: Assignable) = collectionTuple match {
+    case x: CollectionTupleIdentifier => extractField(x, "key", x.keyTyp)
     case _ => throw new SemanticException("This is not a program point identifier: " + collectionTuple.toString)
   }
 
-  override def getCollectionValue(collectionTuple:Assignable) = collectionTuple match {
-    case x:CollectionTupleIdentifier => extractField(x, "value", x.valueTyp)
+  override def getCollectionValue(collectionTuple: Assignable) = collectionTuple match {
+    case x: CollectionTupleIdentifier => extractField(x, "value", x.valueTyp)
     case _ => throw new SemanticException("This is not a collection tuple: " + collectionTuple.toString)
   }
 
@@ -143,6 +144,7 @@ sealed trait ProgramPointHeapIdentifier
   }
 
   override def hasMultipleAccessPaths = false
+
   override def getCounter = counter
 
 }
@@ -173,14 +175,14 @@ case class NullProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter: 
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
-  override def setCounter(c:Int) = new NullProgramPointHeapIdentifier(typ, pp, c)
+  override def setCounter(c: Int) = new NullProgramPointHeapIdentifier(typ, pp, c)
 }
 
 case class SimpleProgramPointHeapIdentifier(
-    pp: ProgramPoint,
-    typ: Type,
-    summary: Boolean = false,
-    counter: Int = 0)
+                                             pp: ProgramPoint,
+                                             typ: Type,
+                                             summary: Boolean = false,
+                                             counter: Int = 0)
   extends ProgramPointHeapIdentifier {
 
   def getField: Option[String] = None
@@ -206,7 +208,7 @@ case class SimpleProgramPointHeapIdentifier(
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
-  override def setCounter(c:Int) = new SimpleProgramPointHeapIdentifier(pp, typ, summary, c)
+  override def setCounter(c: Int) = new SimpleProgramPointHeapIdentifier(pp, typ, summary, c)
 }
 
 case class NonDeterminismSourceHeapId(override val typ: Type, override val pp: ProgramPoint, summary: Boolean = false) extends ProgramPointHeapIdentifier {
@@ -217,7 +219,8 @@ case class NonDeterminismSourceHeapId(override val typ: Type, override val pp: P
       (pp == otherPP) && (summary == otherSummary)
     case _ => false
   }
-  override def toString: String = "__nondet_"+ pp.toString + (if (PPDSettings.printSummary && summary) "Σ" else "")
+
+  override def toString: String = "__nondet_" + pp.toString + (if (PPDSettings.printSummary && summary) "Σ" else "")
 
   override def factory(): NonDeterminismSourceHeapId = this.copy()
 
@@ -230,62 +233,74 @@ case class NonDeterminismSourceHeapId(override val typ: Type, override val pp: P
   override def hasMultipleAccessPaths: Boolean = true
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
-  override def setCounter(c:Int) = this
+
+  override def setCounter(c: Int) = this
+
   def getField(): Option[String] = None
+
   override def isNormalized(): Boolean = true
 }
 
 
 case class CollectionIdentifier(
-    pp: ProgramPoint,
-    collTyp: Type,
-    keyTyp: Type,
-    valueTyp: Type,
-    lengthTyp: Type,
-    originalCollectionTyp: Option[Type],
-    keyCollectionTyp: Option[Type],
-    summary: Boolean = false,
-    counter: Int = 0)
+                                 pp: ProgramPoint,
+                                 collTyp: Type,
+                                 keyTyp: Type,
+                                 valueTyp: Type,
+                                 lengthTyp: Type,
+                                 originalCollectionTyp: Option[Type],
+                                 keyCollectionTyp: Option[Type],
+                                 summary: Boolean = false,
+                                 counter: Int = 0)
   extends ProgramPointHeapIdentifier {
 
   val typ = collTyp
-  
-  def getField : Option[String] = None
-  override def isNormalized() : Boolean = true
-  override def equals(x : Any) : Boolean = x match {
+
+  def getField: Option[String] = None
+
+  override def isNormalized(): Boolean = true
+
+  override def equals(x: Any): Boolean = x match {
     case CollectionIdentifier(ppX, collTypX, keyTypX, valueTypX, lengthTypX, origCollTypX, keyCollTypX, summaryX, c) => pp == ppX && collTyp == collTypX && counter == c &&
       keyTyp == keyTypX && valueTyp == valueTypX && lengthTyp == lengthTypX && origCollTypX == originalCollectionTyp && keyCollTypX == keyCollectionTyp && summary == summaryX
     case _ => false
   }
 
-  override def toString : String = collTyp.toString + "("+pp.toString+")" + (if (PPDSettings.printSummary && summary) "Σ" else "")
-  override def factory() : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
-  override def representsSingleVariable : Boolean= !summary
-  override def clone() : Object = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
-  override def toSummaryNode : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, true)
-  override def toNonSummaryNode : ProgramPointHeapIdentifier = new CollectionIdentifier(pp,collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, false)
+  override def toString: String = collTyp.toString + "(" + pp.toString + ")" + (if (PPDSettings.printSummary && summary) "Σ" else "")
+
+  override def factory(): ProgramPointHeapIdentifier = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
+
+  override def representsSingleVariable: Boolean = !summary
+
+  override def clone(): Object = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp)
+
+  override def toSummaryNode: ProgramPointHeapIdentifier = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, true)
+
+  override def toNonSummaryNode: ProgramPointHeapIdentifier = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, false)
+
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
-  override def setCounter(c:Int) = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, summary, c)
+  override def setCounter(c: Int) = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, summary, c)
 }
 
 case class CollectionTupleIdentifier(
-    collectionApprox: ProgramPointHeapIdentifier,
-    keyTyp: Type,
-    valueTyp: Type,
-    pps: Set[ProgramPoint],
-    summary: Boolean = false,
-    counter: Int = 0)
+                                      collectionApprox: ProgramPointHeapIdentifier,
+                                      keyTyp: Type,
+                                      valueTyp: Type,
+                                      pps: Set[ProgramPoint],
+                                      summary: Boolean = false,
+                                      counter: Int = 0)
   extends ProgramPointHeapIdentifier {
 
   val typ = collectionApprox.typ
 
   val pp = pps.head
-  
-  def getField : Option[String] = None
-  override def isNormalized() : Boolean = false
 
-  override def equals(x : Any) : Boolean = x match {
+  def getField: Option[String] = None
+
+  override def isNormalized(): Boolean = false
+
+  override def equals(x: Any): Boolean = x match {
     case CollectionTupleIdentifier(collectionApproxX, keyTypX, valueTypX, ppsX, summaryX, c) =>
       if (!this.collectionApprox.equals(collectionApproxX)) return false
       if (c != counter) return false
@@ -294,13 +309,13 @@ case class CollectionTupleIdentifier(
       if (pps.size != ppsX.size) return false
       if (this.summary != summaryX) return false
       for (pp <- pps) {
-        if(!ppsX.contains(pp)) return false
+        if (!ppsX.contains(pp)) return false
       }
       true
     case _ => false
   }
 
-  override def toString : String = {
+  override def toString: String = {
     val approxType = this.collectionApprox match {
       case FieldAndProgramPoint(_, x, _, _) => x
     }
@@ -308,16 +323,22 @@ case class CollectionTupleIdentifier(
     "T(" + approxType + "," + this.collectionApprox.pp + ", " + this.pps.mkString(",") + ")" + (if (PPDSettings.printSummary && !representsSingleVariable) "Σ" else "")
   }
 
-  override def factory() : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
-  override def representsSingleVariable : Boolean = !summary
-  override def clone() : Object = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
-  override def toSummaryNode : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toSummaryNode, this.keyTyp, this.valueTyp, this.pps, true)
-  override def toNonSummaryNode : ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toNonSummaryNode, this.keyTyp, this.valueTyp, this.pps, false)
+  override def factory(): ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
+
+  override def representsSingleVariable: Boolean = !summary
+
+  override def clone(): Object = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary)
+
+  override def toSummaryNode: ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toSummaryNode, this.keyTyp, this.valueTyp, this.pps, true)
+
+  override def toNonSummaryNode: ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toNonSummaryNode, this.keyTyp, this.valueTyp, this.pps, false)
+
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set(collectionApprox)
-  def contains(other:CollectionTupleIdentifier): Boolean = {
+
+  def contains(other: CollectionTupleIdentifier): Boolean = {
     if (this.pps.size <= other.pps.size) return false
     var contains = true
-    for(pp <- other.pps) {
+    for (pp <- other.pps) {
       contains &= this.pps.contains(pp)
     }
     contains
@@ -326,7 +347,7 @@ case class CollectionTupleIdentifier(
   // TODO: This can be more precise; If the key is not a summary node, then this could return false.
   override def hasMultipleAccessPaths = true
 
-  override def setCounter(c:Int) =  new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary, c)
+  override def setCounter(c: Int) = new CollectionTupleIdentifier(this.collectionApprox, this.keyTyp, this.valueTyp, this.pps, this.summary, c)
 }
 
 case class ArrayTopIdentifier(counter: Int = 0) extends ProgramPointHeapIdentifier {
@@ -357,14 +378,14 @@ case class ArrayTopIdentifier(counter: Int = 0) extends ProgramPointHeapIdentifi
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
-  override def setCounter(c:Int) =  new ArrayTopIdentifier(c)
+  override def setCounter(c: Int) = new ArrayTopIdentifier(c)
 }
 
 case class ParameterHeapIdentifier(
-    typ: Type,
-    pp: ProgramPoint,
-    summary: Boolean = false,
-    counter: Int = 0)
+                                    typ: Type,
+                                    pp: ProgramPoint,
+                                    summary: Boolean = false,
+                                    counter: Int = 0)
   extends ProgramPointHeapIdentifier {
 
   def getField: Option[String] = None
@@ -388,14 +409,14 @@ case class ParameterHeapIdentifier(
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
-  override def setCounter(c:Int) =  new ParameterHeapIdentifier(typ,pp,summary,c)
+  override def setCounter(c: Int) = new ParameterHeapIdentifier(typ, pp, summary, c)
 }
 
 case class UnsoundParameterHeapIdentifier(
-    typ: Type,
-    n: Int,
-    pp: ProgramPoint,
-    counter: Int = 0)
+                                           typ: Type,
+                                           n: Int,
+                                           pp: ProgramPoint,
+                                           counter: Int = 0)
   extends ProgramPointHeapIdentifier {
 
   def getField: Option[String] = None
@@ -419,7 +440,7 @@ case class UnsoundParameterHeapIdentifier(
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
-  override def setCounter(c:Int) =  new UnsoundParameterHeapIdentifier(typ,n,pp,c)
+  override def setCounter(c: Int) = new UnsoundParameterHeapIdentifier(typ, n, pp, c)
 }
 
 case class StaticProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter: Int = 0)
@@ -446,14 +467,14 @@ case class StaticProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
 
-  override def setCounter(c:Int) =  new StaticProgramPointHeapIdentifier(typ,pp,c)
+  override def setCounter(c: Int) = new StaticProgramPointHeapIdentifier(typ, pp, c)
 }
 
 case class FieldAndProgramPoint(
-    p1: ProgramPointHeapIdentifier,
-    field: String,
-    typ: Type,
-    counter: Int = 0)
+                                 p1: ProgramPointHeapIdentifier,
+                                 field: String,
+                                 typ: Type,
+                                 counter: Int = 0)
   extends ProgramPointHeapIdentifier {
 
   val pp = p1.pp
@@ -479,5 +500,5 @@ case class FieldAndProgramPoint(
 
   override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set(p1)
 
-  override def setCounter(c:Int) =  new FieldAndProgramPoint(p1,field,typ,c)
+  override def setCounter(c: Int) = new FieldAndProgramPoint(p1, field, typ, c)
 }

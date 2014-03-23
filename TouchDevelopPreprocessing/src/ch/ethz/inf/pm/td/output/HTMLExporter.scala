@@ -1,12 +1,15 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchProgramPoint, TouchCompiler}
-import ch.ethz.inf.pm.td.parser.{Script, IdPositional, PrettyPrinter}
-import ch.ethz.inf.pm.sample.reporting.{SampleError, Reporter}
+import ch.ethz.inf.pm.td.compiler._
+import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter}
+import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.reporting.SampleError
+import ch.ethz.inf.pm.td.parser.Script
+import ch.ethz.inf.pm.td.compiler.SpaceSavingProgramPoint
 
 /**
  * Exports to HTML
- * 
+ *
  * @author Lucas Brutschy
  */
 class HTMLExporter extends ErrorExporter {
@@ -90,30 +93,34 @@ class HTMLExporter extends ErrorExporter {
       res += "<pre>" +
         PrettyPrinter.applyWithPPPrinter(script)({
           (curPositional: IdPositional, pretty: String) =>
-            val curPP = CFGGenerator.makekTouchProgramPoint(id, curPositional)
-                "<span id='" + curPP.fullPosString + "'>" +
-                  (for (SampleError(errorTypeId, message, pp) <- Reporter.seenErrors) yield {
-                    pp match {
-                      case touchPP: TouchProgramPoint if touchPP == curPP =>
-                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
-                      case _ => ""
-                    }
-                  }).mkString("") +
-                  (for ((message, pp) <- Reporter.seenBottom) yield {
-                    pp match {
-                      case touchPP: TouchProgramPoint if touchPP == curPP =>
-                            <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
-                      case _ => ""
-                    }
-                  }).mkString("") +
-                  (for ((message, pp) <- Reporter.seenImprecision) yield {
-                    pp match {
-                      case touchPP: TouchProgramPoint if touchPP == curPP =>
-                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
-                      case _ => ""
-                    }
-                  }).mkString("") +
-                  pretty + "</span>"
+
+            (for (SampleError(errorTypeId, message, pp) <- Reporter.seenErrors) yield {
+              pp match {
+                case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
+                  "<span id='" + TouchProgramPointRegistry.reg(touchPP.id).fullPosString + "'>" +
+                      <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString() +
+                    pretty + "</span>"
+                case _ => ""
+              }
+            }).mkString("") +
+              (for ((message, pp) <- Reporter.seenBottom) yield {
+                pp match {
+                  case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
+                    "<span id='" + TouchProgramPointRegistry.reg(touchPP.id).fullPosString + "'>" +
+                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString() +
+                      pretty + "</span>"
+                  case _ => ""
+                }
+              }).mkString("") +
+              (for ((message, pp) <- Reporter.seenImprecision) yield {
+                pp match {
+                  case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
+                    "<span id='" + TouchProgramPointRegistry.reg(touchPP.id).fullPosString + "'>" +
+                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString() +
+                      pretty + "</span>"
+                  case _ => ""
+                }
+              }).mkString("")
         }) + "</pre>"
     }
 

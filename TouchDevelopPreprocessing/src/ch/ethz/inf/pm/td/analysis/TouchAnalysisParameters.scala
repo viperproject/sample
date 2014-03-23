@@ -177,6 +177,11 @@ case class DomainParams(enableCollectionMustAnalysis: Boolean = false,
                         stringRepresentationBound: Int = 3,
 
                         /**
+                         * Use a variable packing domain
+                         */
+                        useVariablePackingDomain: Boolean = true,
+
+                        /**
                          * The numerical domain to be used.
                          *
                          * IMPORTANT: This parameter is ONLY respected when using

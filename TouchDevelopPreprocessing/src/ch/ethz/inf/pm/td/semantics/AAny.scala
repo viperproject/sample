@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
@@ -35,11 +35,6 @@ abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
 
         if (state.lessEqual(state.bottom())) {
           return Some(state.bottom())
-        }
-
-        // TODO: This belongs somewhere else I guess
-        if (TouchAnalysisParameters.prematureAbortion) {
-          Exit[S](state,pp)
         }
 
         var curState = state
@@ -116,7 +111,11 @@ abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
     case ":=" =>
       val List(right) = parameters
       val res = Assign[S](this0,right)
-      res.optimizeSummaryNodes()
+      // Dirty old PhD students hacking dirty
+      if (TouchAnalysisParameters.prematureAbortion && this0.toString.contains("__data_")) {
+        Exit[S](res, pp)
+      }
+      res
 
     case "," =>
       val List(right) = parameters // Unknown,Unknown

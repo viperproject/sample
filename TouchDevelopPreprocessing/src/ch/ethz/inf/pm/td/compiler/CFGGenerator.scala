@@ -26,6 +26,8 @@ import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.sample.abstractdomain.Expression
 import ch.ethz.inf.pm.td.typecheck.Typer
+import scala.collection.mutable
+
 
 /**
  *
@@ -62,13 +64,13 @@ object CFGGenerator {
 
   def isStmtTempIdent(ident: String) = ident.startsWith("__temp")
 
-  def makekTouchProgramPoint(pubID: String, element: IdPositional) = {
+  def makeTouchProgramPoint(pubID: String, element: IdPositional) = {
     val pos = element.pos match {
       case NoPosition => None
       case p => Some(p)
     }
 
-    TouchProgramPoint(pubID, pos, element.customIdComponents)
+    TouchProgramPointRegistry.make(pubID, pos, element.customIdComponents)
   }
 }
 
@@ -87,7 +89,7 @@ class CFGGenerator(compiler: TouchCompiler) {
       case Some(LibraryDefinition(name, _, _, _)) => curScriptName = libraryIdent(name)
       case None => curScriptName = libraryIdent(pubID)
     }
-    val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, script)
+    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, script)
     val typ: Type = typeNameToType(TypeName(curScriptName), true)
     SystemParameters.typ = typ
 
@@ -237,7 +239,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     (for (dec <- script.declarations) yield {
       dec match {
         case v@parser.VariableDefinition(variable, flags) =>
-          val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, v)
+          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, v)
           val modifiers: List[Modifier] = (flags flatMap {
             case ("is_resource", "true") => Some(ResourceModifier)
             case ("readonly", "true") => Some(ReadOnlyModifier)
@@ -255,7 +257,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     (for (dec <- script.declarations) yield {
       dec match {
         case act@parser.ActionDefinition(ident, in, out, body, isEvent, isPriv) =>
-          val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, act)
+          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, act)
           val scope: ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
           val modifiers: List[Modifier] = Nil
           val isPrivate = isPriv || ((body find {
@@ -274,7 +276,7 @@ class CFGGenerator(compiler: TouchCompiler) {
           handlers ::: List(new MethodDeclaration(programPoint, ownerType, modifiers, name, parametricType, arguments,
             returnType, newBody, preCond, postCond, currentClassDef))
         case act@parser.PageDefinition(ident, in, out, initBody, displayBody, isPriv) =>
-          val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, act)
+          val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, act)
           val scope: ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
           val modifiers: List[Modifier] = Nil
           val name: MethodIdentifier = TouchMethodIdentifier(ident, isEvent = false, isPrivate = isPriv)
@@ -294,14 +296,14 @@ class CFGGenerator(compiler: TouchCompiler) {
   }
 
   private def parameterToVariableDeclaration(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): VariableDeclaration = {
-    val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
+    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, parameter)
     val variable: Variable = parameterToVariable(parameter, scope)
     val typ: Type = typeNameToType(parameter.typeName)
     VariableDeclaration(programPoint, variable, typ)
   }
 
   private def parameterToVariable(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): Variable = {
-    val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
+    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, parameter)
     val id: VariableIdentifier = parameterToVariableIdentifier(parameter, scope)
     Variable(programPoint, id)
   }
@@ -309,7 +311,7 @@ class CFGGenerator(compiler: TouchCompiler) {
   private def parameterToVariableIdentifier(parameter: parser.Parameter, scope: ScopeIdentifier = EmptyScopeIdentifier): VariableIdentifier = {
     val name: String = parameter.ident
     val typ: Type = typeNameToType(parameter.typeName)
-    val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, parameter)
+    val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, parameter)
     VariableIdentifier(name, scope)(typ, programPoint)
   }
 
@@ -390,14 +392,16 @@ class CFGGenerator(compiler: TouchCompiler) {
 
       case w@WhereStatement(expr, handlerDefs: List[InlineAction]) =>
 
+        val wPP = makeTouchProgramPoint(curPubID, w)
+
         val handlerSet =
           for (InlineAction(handlerName, inParameters, _, _) <- handlerDefs) yield {
-            (handlerName, handlerIdent(handlerName + makekTouchProgramPoint(curPubID, w)), Typer.inParametersToActionType(inParameters))
+            (handlerName, handlerIdent(handlerName + wPP), Typer.inParametersToActionType(inParameters))
           }
 
         val handlers = (for (InlineAction(handlerName, inParameters, outParameters, body) <- handlerDefs) yield {
-          val handlerMethodName = handlerIdent(handlerName + makekTouchProgramPoint(curPubID, w))
-          val programPoint: ProgramPoint = makekTouchProgramPoint(curPubID, w)
+          val handlerMethodName = handlerIdent(handlerName + wPP)
+          val programPoint: ProgramPoint = wPP
           val modifiers: List[Modifier] = Nil
           val name: MethodIdentifier = TouchMethodIdentifier(handlerMethodName, isEvent = true, isPrivate = true)
           val parametricType: List[Type] = Nil
@@ -451,7 +455,7 @@ class CFGGenerator(compiler: TouchCompiler) {
 
   private def expressionToStatement(expr: parser.Expression, scope: ScopeIdentifier): Statement = {
 
-    val pc = makekTouchProgramPoint(curPubID, expr)
+    val pc = makeTouchProgramPoint(curPubID, expr)
     if (expr == parser.SingletonReference("skip", "Nothing")) return EmptyStatement(pc)
     if (expr == parser.SingletonReference("skip", "Skip")) return EmptyStatement(pc)
 
@@ -463,8 +467,8 @@ class CFGGenerator(compiler: TouchCompiler) {
         Variable(pc, VariableIdentifier(ident, scope)(typ, pc))
 
       case parser.Access(subject, property, args) =>
-        val field = FieldAccess(makekTouchProgramPoint(curPubID, property), expressionToStatement(subject, scope), property.ident, typeNameToType(subject.typeName))
-        MethodCall(makekTouchProgramPoint(curPubID, property), field, Nil, args map (expressionToStatement(_, scope)), typ)
+        val field = FieldAccess(makeTouchProgramPoint(curPubID, property), expressionToStatement(subject, scope), property.ident, typeNameToType(subject.typeName))
+        MethodCall(makeTouchProgramPoint(curPubID, property), field, Nil, args map (expressionToStatement(_, scope)), typ)
 
       case parser.Literal(t, value) =>
         if (t.ident == "Number" || t.ident == "Boolean" || t.ident == "String" || t.ident == "Handler") {
@@ -508,6 +512,37 @@ case class TouchMethodIdentifier(ident: String, isEvent: Boolean, isPrivate: Boo
 
 case class TouchClassIdentifier(name: String, typ: Type) extends Named with ClassIdentifier {
   def getThisType() = typ
+}
+
+/** Used to speed up the analysis */
+object TouchProgramPointRegistry {
+
+  def matches(point: SpaceSavingProgramPoint, s: String, positional: IdPositional): Boolean = {
+    val pp = reg(point.id)
+    return pp.scriptID == s && Some(positional.pos) == pp.lineColumnPosition
+  }
+
+  val reg = mutable.ArrayBuffer.empty[TouchProgramPoint]
+
+  def make(scriptID: String,
+           lineColumnPosition: Option[Position],
+           customPositionElements: List[String]): SpaceSavingProgramPoint = {
+    reg += new TouchProgramPoint(scriptID, lineColumnPosition, customPositionElements)
+    SpaceSavingProgramPoint(reg.length - 1)
+  }
+
+}
+
+case class SpaceSavingProgramPoint(id: Int) extends ProgramPoint {
+
+  /**
+   * Gets a description of the program point, for example
+   * "in file somefile.scala at line 1, column 2"
+   */
+  override def description: String = TouchProgramPointRegistry.reg.apply(id).description
+
+  override def toString: String = "pp" + id.toString
+
 }
 
 case class TouchProgramPoint(

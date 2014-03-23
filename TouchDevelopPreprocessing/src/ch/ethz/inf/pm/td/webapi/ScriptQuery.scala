@@ -138,7 +138,8 @@ class ScriptQuery extends IteratorOverPrograms {
     scripts match {
       case head :: tail => scripts = tail; count += 1; head
       case Nil => if (hasMore) {
-        prepareMore(); get()
+        prepareMore();
+        get()
       } else throw new NoMoreScriptsException
     }
   }
@@ -196,7 +197,7 @@ trait HiddenFilter extends ScriptQuery {
 trait LibraryFilter extends ScriptQuery {
   override def filter(s: ScriptRecord) = super.filter(s) && !s.islibrary
 
-  override def label = super.label + ",no-errors"
+  override def label = super.label + ",no-libs"
 }
 
 trait RootFilter extends ScriptQuery {

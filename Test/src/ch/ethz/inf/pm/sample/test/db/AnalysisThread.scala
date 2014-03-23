@@ -23,7 +23,7 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
     System.gc()
     System.runFinalization()
 
-    println("Program: " + pubID + " - " + new Date().toString)
+    println("Program: " + pubID + " - " + new Date().toString + "// Efficient version")
     semanticAnalysis.reset()
     heapDomain.reset()
     SystemParameters.setCompiler(compiler)
@@ -33,12 +33,13 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
     SystemParameters.resetNativeMethodsSemantics()
     val classes = try {
       SystemParameters.compilerTimer.start()
-      SystemParameters.compiler.compileFile("td://"+pubID)
+      SystemParameters.compiler.compileFile("td://" + pubID)
     }
     catch {
       case e: Throwable => println("Compiler's error: " + e.toString)
         stmt.executeUpdate("INSERT INTO BrokenCompilations(TestRun, Program, Error) VALUES(" + idTestRun + ", " + idProgram + ", '" + e.toString.replace("'", "''") + "')")
-        SystemParameters.compilerTimer.stop();
+        stmt.executeUpdate("DELETE FROM RuntimeErrors WHERE Program=" + idProgram + " AND TestRun=" + idTestRun)
+        SystemParameters.compilerTimer.stop()
         return
     }
 
@@ -49,9 +50,9 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
 
     val domain: T = semanticAnalysis.getInitialState()
-    val entrydomain: HeapAndAnotherDomain[T, H, I] = HeapAndAnotherDomain[T, H, I](domain, heapDomain)
-    val entryvalue = ExpressionSet()
-    val entryState = new AbstractState[T, H, I](entrydomain, entryvalue)
+    val entryDomain: HeapAndAnotherDomain[T, H, I] = HeapAndAnotherDomain[T, H, I](domain, heapDomain)
+    val entryValue = ExpressionSet()
+    val entryState = new AbstractState[T, H, I](entryDomain, entryValue)
     var methods = List.empty[String]
     for (c <- classes)
       for (m <- c.methods)
@@ -61,10 +62,10 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
       val outputs = output.outputs
 
 
-      val warnings = outputs.count(_ match {
+      val warnings = outputs.count {
         case x: WarningProgramPoint => true
         case _ => false
-      })
+      }
       val computed = outputs.size - warnings
 
       System.out.println("Warnings:" + warnings)
@@ -72,6 +73,7 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
       val compilerTime: Double = SystemParameters.compilerTimer.totalTime.toDouble / 1000
       val analysisTime: Double = (SystemParameters.domainTimer.totalTime + SystemParameters.heapTimer.totalTime).toDouble / 1000
       val propertyTime: Double = SystemParameters.propertyTimer.totalTime.toDouble / 1000
+      System.out.println("AnalysisTime:" + analysisTime)
 
       val sql = "INSERT INTO Analyses(Program, TestRun, CompilerTime, AnalysisTime, PropertyTime, Warnings, Validated) " +
         "VALUES (" + idProgram + ", " + idTestRun + ", " + compilerTime + ", " + analysisTime + ", " + propertyTime + ", " + warnings + ", " + computed + ")"
@@ -88,18 +90,18 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
           case x: ValidatedProgramPoint => "VALIDATED:"
           case _ => -1
         }
-        val sql = "INSERT INTO Output(TestRun, Program, ProgramPoint, Message) " +
-          "VALUES (" + idTestRun + ", " + idProgram + ", '" + programpoint.toString.replace("'", "''") + "', '" + msg + res.getMessage().replace("'", "''") + "')"
-        stmt.executeUpdate(sql)
+        stmt.executeUpdate("INSERT INTO Output(TestRun, Program, ProgramPoint, Message) " +
+          "VALUES (" + idTestRun + ", " + idProgram + ", '" + programpoint.toString.replace("'", "''") + "', '" + msg + res.getMessage().replace("'", "''") + "')")
+        stmt.executeUpdate("DELETE FROM RuntimeErrors WHERE Program=" + idProgram + " AND TestRun=" + idTestRun)
       }
     }
     catch {
       case e: Throwable =>
         println("Error when running the analysis: " + e.toString)
-        val sql = "INSERT INTO BrokenAnalyses(TestRun, Program, Error) " +
-          "VALUES (" + idTestRun + ", " + idProgram + ", '" + e.toString.replace("'", "''") + "')"
         try {
-          stmt.executeUpdate(sql)
+          stmt.executeUpdate("INSERT INTO BrokenAnalyses(TestRun, Program, Error) " +
+            "VALUES (" + idTestRun + ", " + idProgram + ", '" + e.toString.replace("'", "''") + "')")
+          stmt.executeUpdate("DELETE FROM RuntimeErrors WHERE Program=" + idProgram + " AND TestRun=" + idTestRun)
         } catch {
           case _: Throwable => println("Program " + idProgram + " already in the broken analyses of test run " + idTestRun)
         }

@@ -475,11 +475,6 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    */
   def getUnreachableHeap: Set[I]
 
-  /**
-   * Converts summary nodes to regular nodes whenever possible and sound
-   */
-  def optimizeSummaryNodes: (T, Replacement)
-
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): (I, T)
 
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier

@@ -25,14 +25,14 @@ object SystemParameters {
   var isValueDrivenHeapAnalysis = false
 
   /**
-   The number of iterations after whom widening is applied
-  */
-  var wideningLimit : Int = 3
+  The number of iterations after whom widening is applied
+    */
+  var wideningLimit: Int = 3
 
   /**
-   The semantics of methods defined by hand
-  */
-  var nativeMethodsSemantics : List[NativeMethodSemantics] = Nil
+  The semantics of methods defined by hand
+    */
+  var nativeMethodsSemantics: List[NativeMethodSemantics] = Nil
 
 
   val analysisUnitImpl: DynamicVariable[AnalysisUnitContext] = new DynamicVariable(null)
@@ -42,70 +42,74 @@ object SystemParameters {
   def withAnalysisUnitContext[R](context: AnalysisUnitContext)(f: => R): R = {
     analysisUnitImpl.withValue(context)(f)
   }
+
   //TODO:Remove it
-  var semanticsComputing : Boolean = false;
+  var semanticsComputing: Boolean = false;
 
   /**
    * Ir true Sample supposes that if we invoke numerical methods like + on an object of any type we are
    * performing arithmetical operations
    */
-  var ignoreTypeForNumericalMethods : Boolean = false;
+  var ignoreTypeForNumericalMethods: Boolean = false;
 
   /**
-   The output for the window that shows the progresses of the analysis
-  */
-  var progressOutput : ScreenOutput = null;
+  The output for the window that shows the progresses of the analysis
+    */
+  var progressOutput: ScreenOutput = null;
   /**
-   The output for the window that shows the results of the analysis
-  */
-  var analysisOutput : ScreenOutput = null;
+  The output for the window that shows the results of the analysis
+    */
+  var analysisOutput: ScreenOutput = null;
   /**
-   The timer that collects the amount of time spent by the heap abstraction
-  */
-  val heapTimer : Timer = new Timer;
+  The timer that collects the amount of time spent by the heap abstraction
+    */
+  val heapTimer: Timer = new Timer;
   /**
-   The timer that collects the amount of time spent by the semantic analysis
-  */
-  val domainTimer : Timer = new Timer;
+  The timer that collects the amount of time spent by the semantic analysis
+    */
+  val domainTimer: Timer = new Timer;
   /**
   The timer that collects the amount of time spent by the property checker
     */
-  val propertyTimer : Timer = new Timer;
+  val propertyTimer: Timer = new Timer;
   /**
   The timer that collects the amount of time spent by the compiler
     */
-  val compilerTimer : Timer = new Timer;
+  val compilerTimer: Timer = new Timer;
   /**
-   An instance of the current type system
-  */
-  var typ : Type = null;
+  An instance of the current type system
+    */
+  var typ: Type = null;
   /**
-   The compiler used to compile the given files
-  */
-  var compiler : Compiler = null;
+  The compiler used to compile the given files
+    */
+  var compiler: Compiler = null;
   /**
-   The checked property
-  */
-  var property : Property = null;
+  The checked property
+    */
+  var property: Property = null;
 
   def getType() = typ;
 
-  def addNativeMethodsSemantics(l : List[NativeMethodSemantics]) = {
-    for(s1 <- l) {
+  def addNativeMethodsSemantics(l: List[NativeMethodSemantics]) = {
+    for (s1 <- l) {
       var already = false;
-      for(s2 <- nativeMethodsSemantics)
-        if(s1==s2) already=true;
-      if(! already)
-       nativeMethodsSemantics=nativeMethodsSemantics:::s1::Nil
+      for (s2 <- nativeMethodsSemantics)
+        if (s1 == s2) already = true;
+      if (!already)
+        nativeMethodsSemantics = nativeMethodsSemantics ::: s1 :: Nil
     }
   }
 
-  def resetNativeMethodsSemantics() : Unit =  nativeMethodsSemantics=Nil
+  def resetNativeMethodsSemantics(): Unit = nativeMethodsSemantics = Nil
 
-  def setProperty(p : Property) = property=p;
-  def setCompiler(c : Compiler) = compiler=c;
-  def setProgressOutput(p : ScreenOutput) = progressOutput=p;
-  def setAnalysisOutput(p : ScreenOutput) = analysisOutput=p;
+  def setProperty(p: Property) = property = p;
+
+  def setCompiler(c: Compiler) = compiler = c;
+
+  def setProgressOutput(p: ScreenOutput) = progressOutput = p;
+
+  def setAnalysisOutput(p: ScreenOutput) = analysisOutput = p;
 
   def resetOutput(): Unit = {
     Reporter.enableAllOutputs()
@@ -113,31 +117,49 @@ object SystemParameters {
     if (analysisOutput != null) analysisOutput.reset()
     Reporter.reset()
   }
-  
+
 }
 
 abstract class ScreenOutput {
 
-  def appendString(s : String)
-  def getString : String
+  def appendString(s: String)
+
+  def getString: String
 
   private var indent = 0
 
-  def begin(s :String) { put("{ "+s); Timer.start; indent += 1 }
+  def begin(s: String) {
+    put("{ " + s);
+    Timer.start;
+    indent += 1
+  }
+
   //def put(s:String) { appendString("  "*indent + s.replaceAll("[\n\r]+","\n  "*indent)) }
-  def put(s:String) { appendString("  "*indent + s) }
-  def end(s:String) { indent -= 1; put("} "+s+" (time: "+Timer.stop+")") }
-  def end() { end("") }
-  def reset() { indent = 0 }
+  def put(s: String) {
+    appendString("  " * indent + s)
+  }
+
+  def end(s: String) {
+    indent -= 1;
+    put("} " + s + " (time: " + Timer.stop + ")")
+  }
+
+  def end() {
+    end("")
+  }
+
+  def reset() {
+    indent = 0
+  }
 
 }
 
 class StringCollector extends ScreenOutput {
 
-  var s : String = ""
+  var s: String = ""
 
   override def appendString(s: String) {
-    this.s=this.s+"\n" + s
+    this.s = this.s + "\n" + s
   }
 
   override def getString: String = {
@@ -158,7 +180,7 @@ class StdOutOutput extends ScreenOutput {
 
 }
 
-class CombinedOutput (a:ScreenOutput,b:ScreenOutput) extends ScreenOutput {
+class CombinedOutput(a: ScreenOutput, b: ScreenOutput) extends ScreenOutput {
 
   def getString: String = {
     a.getString + b.getString
@@ -172,15 +194,16 @@ class CombinedOutput (a:ScreenOutput,b:ScreenOutput) extends ScreenOutput {
 }
 
 class Timer {
-	var lastValue : Option[Long] = None
-	var totalTime : Long = 0;
-  	
- 	def start() = lastValue=Some(System.currentTimeMillis())
-  
- 	def stop() = lastValue match {
- 	  case Some(l) => totalTime=totalTime+(System.currentTimeMillis()-l)
- 	  case None => System.out.println("Timer not started before!");
-    }
- 	
- 	def reset() = totalTime=0; lastValue=None;
+  var lastValue: Option[Long] = None
+  var totalTime: Long = 0;
+
+  def start() = lastValue = Some(System.currentTimeMillis())
+
+  def stop() = lastValue match {
+    case Some(l) => totalTime = totalTime + (System.currentTimeMillis() - l)
+    case None => System.out.println("Timer not started before!");
+  }
+
+  def reset() = totalTime = 0;
+  lastValue = None;
 }
