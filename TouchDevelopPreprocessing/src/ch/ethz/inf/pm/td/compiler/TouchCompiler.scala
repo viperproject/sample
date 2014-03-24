@@ -238,5 +238,5 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     SystemParameters.typ = DefaultTouchType("__TMP__").top()
   }
 
-
+  override def allMethods: List[MethodDeclaration] = ???
 }

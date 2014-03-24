@@ -19,6 +19,8 @@ trait Compiler {
   */
 	def compileFile(path : String) : List[ClassDefinition];
 
+  def allMethods: List[MethodDeclaration]
+
   /**
    Returns all possible candidates for a specific method name
     */
