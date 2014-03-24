@@ -1,11 +1,18 @@
 package ch.ethz.inf.pm.sample.web
 
 import org.scalatra._
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{PreciseAnalysisRunner, AnalysisResult}
+import ch.ethz.inf.pm.sample.oorepresentation.sil._
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
+import ch.ethz.inf.pm.sample.web.ResourceTestFileProvider
+import scala.Some
+import ch.ethz.inf.pm.sample.web.ResourceTestFileProvider
+import scala.Some
+import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
+import ch.ethz.inf.pm.sample.web.ResourceTestFileProvider
+import scala.Some
 
 /** Web application that lets users analyze programs and explore the result.
   *
@@ -28,12 +35,21 @@ class App extends ScalatraServlet {
   /** Provides all test files that the user can choose to analyze. */
   val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
 
+  /** List of pre-defined analysis runners. */
+  val availableAnalysisRunners = Seq(
+    DefaultAnalysisRunner,
+    PreciseAnalysisRunner
+  )
+
+  /** The runner using which analyses are performed. */
+  var analysisRunner: AnalysisRunner[_] = DefaultAnalysisRunner
+
   /** The currently active analysis results that the user can inspect. */
   var resultsOption: Option[List[AnalysisResult[_]]] = None
 
   /** Renders the list of test files that can be analyzed. */
   get("/") {
-    html.Home(fileProvider.testFiles)
+    html.Home()(this)
   }
 
   /** Analyzes the test file passed as a parameter. */
@@ -41,14 +57,13 @@ class App extends ScalatraServlet {
     val testFileString = params("file")
     fileProvider.testFiles.find(_.toString == testFileString) match {
       case Some(testFile) =>
-        // TODO: Make it configurable
-        val results = PreciseAnalysisRunner.run(testFile.path)
+        val results = analysisRunner.run(testFile.path)
         resultsOption = Some(results)
 
         // If there is only a single result, redirect to it
         // Otherwise, let the user choose
         if (results.size == 1)
-          redirect("/results/0/")
+          redirect("/results/0/?")
         else
           redirect("/results/?")
       case None =>
@@ -57,10 +72,17 @@ class App extends ScalatraServlet {
     }
   }
 
+  /** Sets a new analysis runner and purges the current analysis result. */
+  get("/runner/") {
+    analysisRunner = availableAnalysisRunners(params("index").toInt)
+    resultsOption = None
+    redirect("/")
+  }
+
   /** Renders the list of analysis results that the user can inspect. */
   get("/results/") {
     resultsOption match {
-      case Some(result) => html.AnalysisResults(resultsOption.get)
+      case Some(result) => html.AnalysisResults()(this)
       case None => redirect("/")
     }
   }
@@ -68,7 +90,7 @@ class App extends ScalatraServlet {
   /** Renders the CFG of the current result. */
   get("/results/:result/") {
     resultOption match {
-      case Some(result) => html.CFGState(result)
+      case Some(result) => html.CFGState(result)(this)
       case None => redirect("/")
     }
   }
@@ -78,7 +100,7 @@ class App extends ScalatraServlet {
     resultOption match {
       case Some(result) =>
         val blockIndex = params("block").toInt
-        html.CFGBlockState(result, blockIndex, iter(blockIndex))
+        html.CFGBlockState(result, blockIndex, iter(blockIndex))(this)
       case None => redirect("/")
     }
   }
@@ -89,7 +111,7 @@ class App extends ScalatraServlet {
       case Some(result) =>
         val blockIndex = params("block").toInt
         val stateIndex = params("state").toInt
-        html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))
+        html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))(this)
       case None => redirect("/")
     }
   }

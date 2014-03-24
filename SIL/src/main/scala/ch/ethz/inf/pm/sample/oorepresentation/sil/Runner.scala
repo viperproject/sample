@@ -54,10 +54,14 @@ object AnalysisRunner {
 }
 
 object DefaultAnalysisRunner extends AnalysisRunner(
-  Analysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {}
+  Analysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {
+  override def toString = "Default Analysis"
+}
 
 object PreciseAnalysisRunner extends AnalysisRunner(
-  Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
+  Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {
+  override def toString = "Precise Analysis"
+}
 
 trait EntryStateBuilder[S <: State[S]] {
   def topState: S

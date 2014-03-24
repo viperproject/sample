@@ -1,6 +1,6 @@
-@(results: List[ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_]])
+@()(app: ch.ethz.inf.pm.sample.web.App)
 
-@Base(title = "Analysis Results") {
+@Base(title = "Analysis Results")(app) {
     <div class="row-fluid">
         <div class="col-md-12">
             <ol class="breadcrumb">
@@ -11,8 +11,8 @@
 
     <div class="row-fluid">
         <div class="col-md-12">
-            @for(resultIndex <- 0 to results.size - 1) {
-            <a class="btn btn-lg btn-primary" href="/results/@resultIndex/">@results(resultIndex).method.name</a>
+            @for(resultIndex <- 0 to app.resultsOption.get.size - 1) {
+            <a class="btn btn-lg btn-primary" href="/results/@resultIndex/">@app.resultsOption.get(resultIndex).method.name</a>
             }
         </div>
     </div>
