@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisRunner.S
 import java.io.File
 
 case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
-  def run(path: Path): List[AnalysisResult[_]] = {
+  def run(path: Path): List[AnalysisResult[S]] = {
     val compiler = new SilCompiler
     compiler.compileFile(path.toAbsolutePath.toString)
     _run(compiler)
