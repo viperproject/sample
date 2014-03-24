@@ -245,7 +245,6 @@ class PackageDefinition(programpoint: ProgramPoint, name: PackageIdentifier, cla
  * @version 0.1
  */
 trait Type extends Lattice[Type] {
-  require(isFloatingPointType implies isNumericalType)
 
   /** Returns `true` iff the current type is not a primitive type. */
   def isObject: Boolean
