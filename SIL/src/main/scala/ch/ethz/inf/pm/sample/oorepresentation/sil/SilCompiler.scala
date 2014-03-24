@@ -42,6 +42,8 @@ class SilCompiler extends Compiler {
     classes.get
   }
 
+  def allMethods: List[MethodDeclaration] = classes.get.map(_.methods).flatten
+
   def allMethodNames(): List[String] =
     for (clazz <- classes.get; method <- clazz.methods) yield method.name.toString
 
