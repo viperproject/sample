@@ -8,7 +8,6 @@ import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
 import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.State
 
 /** Web application that lets users analyze programs and explore the result.
   *
