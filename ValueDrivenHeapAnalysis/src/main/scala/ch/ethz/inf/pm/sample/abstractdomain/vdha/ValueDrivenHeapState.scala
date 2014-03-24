@@ -477,8 +477,7 @@ trait ValueDrivenHeapState[
     if (abstractHeap.vertices != other.abstractHeap.vertices) return false
 
     for (otherEdge <- other.abstractHeap.edges) {
-      val edgeSet = abstractHeap.edges.filter(edge =>
-        edge.source == otherEdge.source && edge.target == otherEdge.target)
+      val edgeSet = abstractHeap.edges.filter(_.weakEquals(otherEdge))
 
       if (!(edgeSet.size == 1 && edgeSet.head.state.ids == otherEdge.state.ids))
         return false

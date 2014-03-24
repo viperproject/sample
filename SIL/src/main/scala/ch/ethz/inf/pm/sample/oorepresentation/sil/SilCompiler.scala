@@ -36,13 +36,13 @@ class SilCompiler extends Compiler {
   }
 
   def compileProgram(p: sil.Program): List[ClassDefinition] = {
+    SystemParameters.typ = TopType
     program = p
     classes = Some(DefaultSilConverter.convert(p))
     classes.get
   }
 
-  def allMethods: List[MethodDeclaration] =
-    for (clazz <- classes.get; method <- clazz.methods) yield method
+  def allMethods: List[MethodDeclaration] = classes.get.map(_.methods).flatten
 
   def allMethodNames(): List[String] =
     for (clazz <- classes.get; method <- clazz.methods) yield method.name.toString

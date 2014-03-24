@@ -6,9 +6,8 @@ import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
-import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
-import ch.ethz.inf.pm.sample.web.ResourceTestFileProvider
 import scala.Some
+import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner}
 
 /** Web application that lets users analyze programs and explore the result.
   *
@@ -20,27 +19,20 @@ import scala.Some
   * in that blocks at any point in the iteration. It also offers convenient
   * navigation between all of these views.
   *
-  * Currently, it only supports the SIL compiler and `ValueDrivenHeapState`s,
-  * but it could be extended quite easily.
-  *
-  * @todo add support for other compilers than SIL, especially Scala
   * @todo add support for `DefaultCFGState`
   * @todo add support for states other than `ValueDrivenHeapState`
   */
-class App extends ScalatraServlet {
+abstract class App extends ScalatraServlet {
   /** Provides all test files that the user can choose to analyze. */
-  val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
+  def fileProvider: TestFileProvider
 
   /** List of pre-defined analysis runners. */
-  val availableAnalysisRunners = Seq(
-    DefaultAnalysisRunner,
-    PreciseAnalysisRunner,
-    SimplePredicateAnalysisRunner,
-    RefiningPredicateAnalysisRunner
-  )
+  def availableAnalysisRunners: Seq[AnalysisRunner[_]]
 
-  /** The runner using which analyses are performed. */
-  var analysisRunner: AnalysisRunner[_] = RefiningPredicateAnalysisRunner
+  /** The currently active runner using which analyses are performed.
+    * Can be changed from the web interface and defaults to the first one.
+    */
+  var analysisRunnerOption: Option[AnalysisRunner[_]] = None
 
   /** The currently active analysis results that the user can inspect. */
   var resultsOption: Option[List[AnalysisResult[_]]] = None
@@ -72,7 +64,8 @@ class App extends ScalatraServlet {
 
   /** Sets a new analysis runner and purges the current analysis result. */
   get("/runner/") {
-    analysisRunner = availableAnalysisRunners(params("index").toInt)
+    val analysisRunner = availableAnalysisRunners(params("index").toInt)
+    analysisRunnerOption = Some[AnalysisRunner[_]](analysisRunner)
     resultsOption = None
     redirect("/")
   }
@@ -109,10 +102,13 @@ class App extends ScalatraServlet {
       case Some(result) =>
         val blockIndex = params("block").toInt
         val stateIndex = params("state").toInt
-        html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))(this)
+        html.State(result, blockIndex, stateIndex, iter(blockIndex))(this)
       case None => redirect("/")
     }
   }
+
+  def analysisRunner: AnalysisRunner[_] =
+    analysisRunnerOption.getOrElse(availableAnalysisRunners.head)
 
   /** Returns the `AnalysisResult` to display according to the URL parameter. */
   private def resultOption: Option[AnalysisResult[_]] = {
@@ -127,7 +123,7 @@ class App extends ScalatraServlet {
 
   /** Returns at which iteration to display the states of a CFG block.
     *
-    * When no 'iter' parameter is present, just display the fixpoint state,
+    * When no 'iter' parameter is present, just display the fixed point state,
     * that is, the state in the last iteration.
     */
   private def iter(blockIndex: Int): Int =
@@ -135,6 +131,16 @@ class App extends ScalatraServlet {
     else resultOption.get.cfgState.trackedStatesOfBlock(blockIndex).size - 1
 }
 
+/** Web app that detects SIL test programs and lets the user analyze them. */
+class SilApp extends App {
+  val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
+
+  val availableAnalysisRunners = Seq(
+    DefaultAnalysisRunner,
+    PreciseAnalysisRunner,
+    PredicateAnalysisRunner
+  )
+}
 
 /** Launches the web server.
   *
@@ -154,6 +160,7 @@ object App {
     server.join()
   }
 
-  def main(args: Array[String]) =
+  def main(args: Array[String]) {
     launch()
+  }
 }

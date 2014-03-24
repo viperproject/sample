@@ -53,6 +53,11 @@ body {
     transition: background-color 0.25s ease-in;
 }
 
+.control-flow-graph .node {
+    /** Reduce space between statements in the CFG */
+    line-height: 2em;
+}
+
 .control-flow-graph .node ul {
     margin: 0;
     text-align: left;

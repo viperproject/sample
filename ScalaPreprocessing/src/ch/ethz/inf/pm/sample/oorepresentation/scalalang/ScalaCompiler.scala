@@ -95,6 +95,9 @@ class ScalaCompiler extends Compiler {
     return None;
   }
 
+  override def allMethods: List[MethodDeclaration] =
+    for (clazz <- parsedclasses; method <- clazz.methods) yield method
+
   def reset() {
     parsedclasses = Nil
   }

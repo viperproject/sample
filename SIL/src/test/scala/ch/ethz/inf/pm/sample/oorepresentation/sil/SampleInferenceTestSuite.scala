@@ -20,7 +20,7 @@ class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
 
   /** Extend the given program with inferred specifications and verify it. */
   override def verify(program: sil.Program) = {
-    val runner = RefiningPredicateAnalysisRunner
+    val runner = PredicateAnalysisRunner
     val results = runner.run(program)
 
     val programExtender = ProgramExtender[ApronInterface.Default]()

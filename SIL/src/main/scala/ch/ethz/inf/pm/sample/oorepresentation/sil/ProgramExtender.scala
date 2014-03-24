@@ -3,14 +3,13 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import semper.sil.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
-import ch.ethz.inf.pm.sample.execution.AbstractCFGState
+import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AbstractCFGState}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
 import ch.ethz.inf.pm.sample.oorepresentation.sil.WrappedProgramPoint
 import scala.Some
 import ch.ethz.inf.pm.sample.oorepresentation.sil.PredicateRegistryBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
 import ch.ethz.inf.pm.sample.oorepresentation.sil.AssertionExtractor
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
 import ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain
