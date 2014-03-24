@@ -6,8 +6,8 @@ import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
-import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
 import scala.Some
+import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner}
 
 /** Web application that lets users analyze programs and explore the result.
   *
