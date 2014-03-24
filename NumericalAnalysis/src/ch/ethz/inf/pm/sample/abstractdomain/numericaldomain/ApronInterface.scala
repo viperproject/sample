@@ -6,15 +6,20 @@ import ch.ethz.inf.pm.sample.property._
 
 import apron._
 import scala.Some
+import ch.ethz.inf.pm.sample.SystemParameters
+import ApronTools._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.SimpleApronIdentifier
+import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.SimpleApronIdentifier
+import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
 import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
+import ch.ethz.inf.pm.sample.abstractdomain.MaybeHeapIdSetDomain
 import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
-import ch.ethz.inf.pm.sample.SystemParameters
-import ApronTools._
 
 object ApronInterface {
   /** Simple implementation of `ApronInterface`. Cannot be extended. */
@@ -140,6 +145,12 @@ trait ApronInterface[T <: ApronInterface[T]]
     factory(state, domain, env = env + variable)
   }
 
+  override def createVariables[I <: Identifier](variables: Set[I]): T =
+    if (variables.isEmpty)
+      this
+    else
+      factory(state, domain, env = env ++ variables)
+
   /**
    * Removes a variable from the domain (the domains environment)
    */
@@ -158,6 +169,12 @@ trait ApronInterface[T <: ApronInterface[T]]
     }
   }
 
+  // TODO: can be implemented more efficiently, not using the privat method as it does unncessary checks.
+  override def removeVariables[I <: Identifier](variables: Set[I]): T = {
+    removeVariables(variables.map(_.getName).toArray[String])
+  }
+
+
   /**
    * Removes several variables at once
    */
@@ -168,7 +185,8 @@ trait ApronInterface[T <: ApronInterface[T]]
       case None =>
         factory(state, domain, env = env.filter({ x:Identifier => !varSet.contains(x.getName) }))
       case Some(st) =>
-        val apronEnv = st.getEnvironment.remove(variables.filter({ x:String => st.getEnvironment.hasVar(x) }))
+        val stEnvironment = st.getEnvironment
+        val apronEnv = stEnvironment.remove(variables.filter(stEnvironment.hasVar(_)))
         if (!apronEnv.equals(st.getEnvironment)) {
           factory(Some(st.changeEnvironmentCopy(domain, apronEnv, false)), domain, env = env.filter({ x:Identifier => !varSet.contains(x.getName) }))
         } else {
@@ -526,7 +544,16 @@ trait ApronInterface[T <: ApronInterface[T]]
       return this.removeVariables(r.value.map(_._1.map(_.getName).toArray).toArray.flatten)
     }
 
-    // 4th trivial case: A simple expand
+    // 4th trivial case: A set of simple renames
+    lazy val isRenames = r.value.foldLeft(true)((acc,m) => acc && m._1.size == 1 && m._2.size == 1)
+    if (r.isPureRenaming || isRenames) {
+      val unzipped = r.value.unzip
+      val leftSide = unzipped._1.map { x:Set[Identifier] => x.head}.toList
+      val rightSide = unzipped._2.map { x:Set[Identifier] => x.head}.toList
+      return this.rename(leftSide, rightSide)
+    }
+
+    // 5th trivial case: A simple expand
     if (r.isPureExpanding || (r.value.size == 1 && r.value.head._1.size == 1 && r.value.head._2.contains(r.value.head._1.head))) {
       var cur = this.expand(r.value.head._1.head,r.value.head._2 - r.value.head._1.head)
       for ((from,to) <- r.value.tail) {
@@ -536,19 +563,7 @@ trait ApronInterface[T <: ApronInterface[T]]
       return cur
     }
 
-    // 5th trivial case: A set of simple renames
-    var isRenames = true
-    for ((from,to) <- r.value) {
-      if (from.size != 1 || to.size != 1) {
-        isRenames = false
-      }
-    }
-    if (isRenames) {
-      val unzipped = r.value.unzip
-      val leftSide = unzipped._1.map { x:Set[Identifier] => x.head}.toList
-      val rightSide = unzipped._2.map { x:Set[Identifier] => x.head}.toList
-      return this.rename(leftSide, rightSide)
-    }
+
 
     // Filter out everything that is converting to a summary node -- we can handle this
     val simpleConversions = r.value.filter ( { p:((Set[Identifier],Set[Identifier])) =>
