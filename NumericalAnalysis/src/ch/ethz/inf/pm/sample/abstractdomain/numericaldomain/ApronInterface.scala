@@ -791,8 +791,8 @@ trait ApronInterface[T <: ApronInterface[T]]
     if (isTop) return "⊤ (pure)"
     val constraints = this.state.get.toLincons(domain).toList.filter(constraintContains(_, id.getName))
     if(constraints.isEmpty) return "⊤"
-    val translator = ApronInterfaceTranslator(this)
-    val exps = constraints map translator.translate map ExpPrettyPrinter
+    val translator = ApronInterfaceTranslator()(this)
+    val exps = constraints.map(translator.translate).flatten.map(ExpPrettyPrinter)
     exps.sorted.mkString("\n")
   }
 
@@ -800,7 +800,7 @@ trait ApronInterface[T <: ApronInterface[T]]
     if (isBottom) return "⊥"
     if (isTop) return "Environment: "+env+"\n"+"⊤"
 
-    val exps = ApronInterfaceTranslator.translate(this) map ExpPrettyPrinter
+    val exps = ApronInterfaceTranslator()(this).translateAll() map ExpPrettyPrinter
     if(exps.isEmpty) return "⊤"
     "Environment: "+env+"\n"+ exps.toList.sorted.mkString("\n")
   }

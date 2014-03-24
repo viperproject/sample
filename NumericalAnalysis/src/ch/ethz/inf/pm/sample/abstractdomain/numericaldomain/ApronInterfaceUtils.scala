@@ -2,28 +2,45 @@ package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
 import apron.{Coeff, DoubleScalar, Linterm1, Lincons1}
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.DummyProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.{ArithmeticOperator => AOp}
+import ch.ethz.inf.pm.sample.oorepresentation.{Type, DummyProgramPoint}
 import scala.Some
+import ch.ethz.inf.pm.sample.SystemParameters
 
 /**
  * Translates Apron constraints to Sample expressions.
  *
- * @param env the set of identifiers that Apron constraint are built from
+ * @param apronInterface the Apron interface to translate
  * @param resultTransformer the function applied to the resulting expressions,
  *                          DefaultExpSimplifier by default.
- * @todo the returned expressions should have a boolean type,
- *       which the translator currently does not have access to
+ * @param boolType boolean type used to generate boolean expressions
  */
-class ApronInterfaceTranslator(
-    val env: Set[Identifier],
-    val resultTransformer: (Expression => Expression) = ExpSimplifier) {
+case class ApronInterfaceTranslator(
+    resultTransformer: (Expression => Expression) = ExpSimplifier,
+    boolType: Type = SystemParameters.typ.top())
+    (val apronInterface: ApronInterface[_]) {
+
+  /**
+   * Translates all Apron constraints in the ApronInterface to a sequence
+   * of Expressions.
+   *
+   * @return the equivalent expressions
+   */
+  def translateAll(): Set[Expression] = {
+    apronInterface.state match {
+      case Some(state) =>
+        val linearConstraints = state.toLincons(apronInterface.domain)
+        linearConstraints.map(translate).flatten.toSet
+      case None => Set.empty
+    }
+  }
 
   /**
    * Translates a single linear Apron constraint to a Sample expression.
    * @param c the Apron constraint to translate
    * @return the constraint expressed as a Sample expression
    */
-  def translate(c: Lincons1): Expression = {
+  def translate(c: Lincons1): Option[Expression] = {
     // Separate terms with positive and negative coefficients, such that we can
     // build a linear inequality whose terms only have positive coefficients.
     val nonZeroLinterms = c.getLinterms.filter(!_.getCoefficient.isZero)
@@ -68,12 +85,15 @@ class ApronInterfaceTranslator(
 
     val zero = Constant("0", typ, DummyProgramPoint)
     val result = BinaryArithmeticExpression(
-      left = BinaryArithmeticExpression(leftExps, ArithmeticOperator.+, typ, zero),
-      right = BinaryArithmeticExpression(rightExps, ArithmeticOperator.+, typ, zero),
+      left = BinaryArithmeticExpression(leftExps, AOp.`+`, typ, zero),
+      right = BinaryArithmeticExpression(rightExps, AOp.`+`, typ, zero),
       op = op,
-      returntyp = typ) // TODO: Use boolean type here
+      returntyp = boolType)
 
-    resultTransformer(result)
+    if (typ.isBooleanType && (result.op != AOp.`==` && result.op != AOp.`!=`))
+      None // Do not return boolean inequalities for the moment
+    else
+      Some(resultTransformer(result))
   }
 
   /**
@@ -112,32 +132,9 @@ class ApronInterfaceTranslator(
     case None => sys.error(s"unknown variable $variable")
   }
 
-  private val idMap = env.groupBy(_.getName).map { case (k,v) => {
+  private val idMap = apronInterface.env.groupBy(_.getName).map { case (k,v) => {
       if (v.size > 1) sys.error(s"non-unique identifier name $k")
       else (k, v.toList(0))
     }
   }
-}
-
-object ApronInterfaceTranslator {
-  /**
-   * Translates all Apron constraints in an ApronInterface to a sequence
-   * of Expressions.
-   *
-   * @param a the interface to the Apron state
-   * @return the equivalent expressions
-   */
-  def translate(a: ApronInterface[_]): Set[Expression] =
-    if (a.state.isDefined) {
-      val translator = this(a)
-      val linearConstraints = a.state.get.toLincons(a.domain)
-      linearConstraints.map(translator.translate).toSet
-    } else Set.empty
-
-  /**
-   * Build an ApronInterfaceTranslator that can translate individual
-   * Apron constraints in a given ApronInterface.
-   */
-  def apply(a: ApronInterface[_]): ApronInterfaceTranslator =
-    new ApronInterfaceTranslator(a.env)
 }

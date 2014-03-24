@@ -1,11 +1,13 @@
 package ch.ethz.inf.pm.sample.web
 
 import org.scalatra._
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{PreciseAnalysisRunner, AnalysisResult}
+import ch.ethz.inf.pm.sample.oorepresentation.sil._
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
+import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult
+import scala.Some
 
 /** Web application that lets users analyze programs and explore the result.
   *
@@ -17,72 +19,111 @@ import org.eclipse.jetty.server.Server
   * in that blocks at any point in the iteration. It also offers convenient
   * navigation between all of these views.
   *
-  * Currently, it only supports the SIL compiler and `ValueDrivenHeapState`s,
-  * but it could be extended quite easily.
-  *
-  * @todo add support for other compilers than SIL, especially Scala
   * @todo add support for `DefaultCFGState`
   * @todo add support for states other than `ValueDrivenHeapState`
-  * @todo add support for more than one method per test file
   */
-class App extends ScalatraServlet {
+abstract class App extends ScalatraServlet {
   /** Provides all test files that the user can choose to analyze. */
-  val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
+  def fileProvider: TestFileProvider
 
-  /** The currently active analysis result that the user can inspect. */
-  var resultOption: Option[AnalysisResult[_]] = None
+  /** List of pre-defined analysis runners. */
+  def availableAnalysisRunners: Seq[AnalysisRunner[_]]
+
+  /** The currently active runner using which analyses are performed.
+    * Can be changed from the web interface and defaults to the first one.
+    */
+  var analysisRunnerOption: Option[AnalysisRunner[_]] = None
+
+  /** The currently active analysis results that the user can inspect. */
+  var resultsOption: Option[List[AnalysisResult[_]]] = None
 
   /** Renders the list of test files that can be analyzed. */
   get("/") {
-    html.Home(fileProvider.testFiles)
+    html.Home()(this)
   }
 
   /** Analyzes the test file passed as a parameter. */
-  get("/analyze") {
+  get("/analyze/") {
     val testFileString = params("file")
     fileProvider.testFiles.find(_.toString == testFileString) match {
       case Some(testFile) =>
-        // TODO: Make it configurable
-        resultOption = Some(PreciseAnalysisRunner.run(testFile.path).head)
-        redirect("/cfg")
+        val results = analysisRunner.run(testFile.path)
+        resultsOption = Some(results)
+
+        // If there is only a single result, redirect to it
+        // Otherwise, let the user choose
+        if (results.size == 1)
+          redirect("/results/0/?")
+        else
+          redirect("/results/?")
       case None =>
         // TODO: Should probably output an error message
         redirect("/")
     }
   }
 
+  /** Sets a new analysis runner and purges the current analysis result. */
+  get("/runner/") {
+    val analysisRunner = availableAnalysisRunners(params("index").toInt)
+    analysisRunnerOption = Some[AnalysisRunner[_]](analysisRunner)
+    resultsOption = None
+    redirect("/")
+  }
+
+  /** Renders the list of analysis results that the user can inspect. */
+  get("/results/") {
+    resultsOption match {
+      case Some(result) => html.AnalysisResults()(this)
+      case None => redirect("/")
+    }
+  }
+
   /** Renders the CFG of the current result. */
-  get("/cfg") {
+  get("/results/:result/") {
     resultOption match {
-      case Some(result) => html.CFGState(result)
+      case Some(result) => html.CFGState(result)(this)
       case None => redirect("/")
     }
   }
 
   /** Renders a single CFG block of the current result. */
-  get("/cfg/:block") {
+  get("/results/:result/:block/") {
     resultOption match {
       case Some(result) =>
         val blockIndex = params("block").toInt
-        html.CFGBlockState(result, blockIndex, iter(blockIndex))
+        html.CFGBlockState(result, blockIndex, iter(blockIndex))(this)
       case None => redirect("/")
     }
   }
 
   /** Renders a single state in some CFG block of the current result. */
-  get("/cfg/:block/:state") {
+  get("/results/:result/:block/:state/") {
     resultOption match {
       case Some(result) =>
         val blockIndex = params("block").toInt
         val stateIndex = params("state").toInt
-        html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))
+        html.State(result, blockIndex, stateIndex, iter(blockIndex))(this)
       case None => redirect("/")
+    }
+  }
+
+  private def analysisRunner: AnalysisRunner[_] =
+    analysisRunnerOption.getOrElse(availableAnalysisRunners.head)
+
+  /** Returns the `AnalysisResult` to display according to the URL parameter. */
+  private def resultOption: Option[AnalysisResult[_]] = {
+    resultsOption match {
+      case Some(results) =>
+        val resultIndex = params("result").toInt
+        Some(results(resultIndex))
+      case None =>
+        None
     }
   }
 
   /** Returns at which iteration to display the states of a CFG block.
     *
-    * When no 'iter' parameter is present, just display the fixpoint state,
+    * When no 'iter' parameter is present, just display the fixed point state,
     * that is, the state in the last iteration.
     */
   private def iter(blockIndex: Int): Int =
@@ -90,6 +131,15 @@ class App extends ScalatraServlet {
     else resultOption.get.cfgState.trackedStatesOfBlock(blockIndex).size - 1
 }
 
+/** Web app that detects SIL test programs and lets the user analyze them. */
+class SilApp extends App {
+  val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
+
+  val availableAnalysisRunners = Seq(
+    DefaultAnalysisRunner,
+    PreciseAnalysisRunner
+  )
+}
 
 /** Launches the web server.
   *
@@ -109,6 +159,7 @@ object App {
     server.join()
   }
 
-  def main(args: Array[String]) =
+  def main(args: Array[String]) {
     launch()
+  }
 }

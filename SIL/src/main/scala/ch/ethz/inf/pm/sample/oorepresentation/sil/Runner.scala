@@ -14,7 +14,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisRunner.S
 import java.io.File
 
 case class AnalysisRunner[S <: State[S]](analysis: Analysis[S]) {
-  def run(path: Path): List[AnalysisResult[_]] = {
+  def run(path: Path): List[AnalysisResult[S]] = {
     val compiler = new SilCompiler
     compiler.compileFile(path.toAbsolutePath.toString)
     _run(compiler)
@@ -54,10 +54,14 @@ object AnalysisRunner {
 }
 
 object DefaultAnalysisRunner extends AnalysisRunner(
-  Analysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {}
+  Analysis[ValueDrivenHeapState.Default[S]](DefaultEntryStateBuilder)) {
+  override def toString = "Default Analysis"
+}
 
 object PreciseAnalysisRunner extends AnalysisRunner(
-  Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {}
+  Analysis[PreciseValueDrivenHeapState.Default[S]](PreciseEntryStateBuilder)) {
+  override def toString = "Precise Analysis"
+}
 
 trait EntryStateBuilder[S <: State[S]] {
   def topState: S
