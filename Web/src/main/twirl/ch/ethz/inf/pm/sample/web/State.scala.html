@@ -51,13 +51,10 @@
         </div>
     </div>
     @defining(result.cfgState.trackedStatesOfBlock(blockIndex)(iter)(stateIndex)) { state =>
-        @HeapGraphFragment(state.asInstanceOf[vdha.ValueDrivenHeapState[_, _]].abstractHeap) {
-            <div class="panel panel-info" id="general-state">
-                <div class="panel-heading">General Value State</div>
-                <div class="panel-body">
-                    @LatticeFragment(state.asInstanceOf[vdha.ValueDrivenHeapState[_, _]].generalValState.asInstanceOf[Lattice[_]])
-                </div>
-            </div>
+        @state match {
+            case state: vdha.ValueDrivenHeapState[_, _] => {
+                ValueDrivenHeapStateFragment(state)
+            }
         }
     }
 }

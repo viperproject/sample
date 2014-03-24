@@ -102,7 +102,7 @@ abstract class App extends ScalatraServlet {
       case Some(result) =>
         val blockIndex = params("block").toInt
         val stateIndex = params("state").toInt
-        html.ValueDrivenHeapState(result, blockIndex, stateIndex, iter(blockIndex))(this)
+        html.State(result, blockIndex, stateIndex, iter(blockIndex))(this)
       case None => redirect("/")
     }
   }

@@ -1,0 +1,12 @@
+@(state: ch.ethz.inf.pm.sample.abstractdomain.vdha.ValueDrivenHeapState[_, _])
+@import ch.ethz.inf.pm.sample.abstractdomain._
+@import ch.ethz.inf.pm.sample.oorepresentation._
+
+@HeapGraphFragment(state.abstractHeap) {
+    <div class="panel panel-info" id="general-state">
+        <div class="panel-heading">General Value State</div>
+        <div class="panel-body">
+            @LatticeFragment(state.generalValState.asInstanceOf[Lattice[_]])
+        </div>
+    </div>
+}
