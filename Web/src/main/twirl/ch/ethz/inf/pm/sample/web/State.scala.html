@@ -53,7 +53,7 @@
     @defining(result.cfgState.trackedStatesOfBlock(blockIndex)(iter)(stateIndex)) { state =>
         @state match {
             case state: vdha.ValueDrivenHeapState[_, _] => {
-                ValueDrivenHeapStateFragment(state)
+                @ValueDrivenHeapStateFragment(state)
             }
         }
     }
