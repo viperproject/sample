@@ -23,7 +23,7 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
     System.gc()
     System.runFinalization()
 
-    println("Program: " + pubID + " - " + new Date().toString + "// Efficient version")
+    println("Program: " + pubID + " - " + new Date().toString)
     semanticAnalysis.reset()
     heapDomain.reset()
     SystemParameters.setCompiler(compiler)
@@ -78,6 +78,7 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
       val sql = "INSERT INTO Analyses(Program, TestRun, CompilerTime, AnalysisTime, PropertyTime, Warnings, Validated) " +
         "VALUES (" + idProgram + ", " + idTestRun + ", " + compilerTime + ", " + analysisTime + ", " + propertyTime + ", " + warnings + ", " + computed + ")"
       stmt.executeUpdate(sql)
+      stmt.executeUpdate("DELETE FROM RuntimeErrors WHERE Program=" + idProgram + " AND TestRun=" + idTestRun)
 
       for (res <- outputs) {
         val programpoint = res match {
@@ -92,7 +93,6 @@ class AnalysisThread[T <: SemanticDomain[T], N <: SemanticAnalysis[T], H <: Heap
         }
         stmt.executeUpdate("INSERT INTO Output(TestRun, Program, ProgramPoint, Message) " +
           "VALUES (" + idTestRun + ", " + idProgram + ", '" + programpoint.toString.replace("'", "''") + "', '" + msg + res.getMessage().replace("'", "''") + "')")
-        stmt.executeUpdate("DELETE FROM RuntimeErrors WHERE Program=" + idProgram + " AND TestRun=" + idTestRun)
       }
     }
     catch {

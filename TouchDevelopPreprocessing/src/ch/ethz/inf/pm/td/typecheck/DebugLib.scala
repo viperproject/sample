@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.td.typecheck
 
+import ch.ethz.inf.pm.td.typecheck.GenericTypes._
+
 /**
  *
  * What we add for debugging / implementation convenience
@@ -15,5 +17,18 @@ trait DebugLib extends AbstractSymbolTable {
   addType("Unknown", List(
     Member("∥",List("Unknown"),"String")
   ))
+
+  // A collection of appointments
+  addType("Action Collection", gMutableCollection("Action Collection", "Action"))
+
+  // A collection of appointments
+  addType("Sound Collection", gMutableCollection("Sound Collection", "Sound"))
+
+  // A collection of appointments
+  addType("Picture Collection", gMutableCollection("Picture Collection", "Picture"))
+
+  // A collection of appointments
+  addType("Bluetooth Device Collection", gMutableCollection("Bluetooth Device Collection", "Bluetooth Device"))
+
 
 }

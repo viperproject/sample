@@ -173,7 +173,7 @@ case class NullProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter: 
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = this
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = None
 
   override def setCounter(c: Int) = new NullProgramPointHeapIdentifier(typ, pp, c)
 }
@@ -206,7 +206,7 @@ case class SimpleProgramPointHeapIdentifier(
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new SimpleProgramPointHeapIdentifier(this.pp, this.typ, false)
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = None
 
   override def setCounter(c: Int) = new SimpleProgramPointHeapIdentifier(pp, typ, summary, c)
 }
@@ -232,7 +232,7 @@ case class NonDeterminismSourceHeapId(override val typ: Type, override val pp: P
 
   override def hasMultipleAccessPaths: Boolean = true
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = None
 
   override def setCounter(c: Int) = this
 
@@ -278,7 +278,7 @@ case class CollectionIdentifier(
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, false)
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = None
 
   override def setCounter(c: Int) = new CollectionIdentifier(pp, collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, summary, c)
 }
@@ -333,7 +333,7 @@ case class CollectionTupleIdentifier(
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new CollectionTupleIdentifier(this.collectionApprox.toNonSummaryNode, this.keyTyp, this.valueTyp, this.pps, false)
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set(collectionApprox)
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = Some(collectionApprox)
 
   def contains(other: CollectionTupleIdentifier): Boolean = {
     if (this.pps.size <= other.pps.size) return false
@@ -376,7 +376,7 @@ case class ArrayTopIdentifier(counter: Int = 0) extends ProgramPointHeapIdentifi
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = this
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = None
 
   override def setCounter(c: Int) = new ArrayTopIdentifier(c)
 }
@@ -407,7 +407,7 @@ case class ParameterHeapIdentifier(
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new ParameterHeapIdentifier(this.typ, this.pp, false)
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = None
 
   override def setCounter(c: Int) = new ParameterHeapIdentifier(typ, pp, summary, c)
 }
@@ -438,7 +438,7 @@ case class UnsoundParameterHeapIdentifier(
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = this
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = None
 
   override def setCounter(c: Int) = new UnsoundParameterHeapIdentifier(typ, n, pp, c)
 }
@@ -465,7 +465,7 @@ case class StaticProgramPointHeapIdentifier(typ: Type, pp: ProgramPoint, counter
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = this
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set.empty
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = None
 
   override def setCounter(c: Int) = new StaticProgramPointHeapIdentifier(typ, pp, c)
 }
@@ -498,7 +498,7 @@ case class FieldAndProgramPoint(
 
   override def toNonSummaryNode: ProgramPointHeapIdentifier = new FieldAndProgramPoint(this.p1.toNonSummaryNode, this.field, this.typ)
 
-  override def getReachableFromIds: Set[ProgramPointHeapIdentifier] = Set(p1)
+  override def getReachableFromId: Option[ProgramPointHeapIdentifier] = Some(p1)
 
   override def setCounter(c: Int) = new FieldAndProgramPoint(p1, field, typ, c)
 }

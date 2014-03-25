@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.typecheck
 
 import ch.ethz.inf.pm.td.parser._
 import scala.collection._
-import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchException}
 import util.parsing.input.Position
 
 /**
@@ -39,6 +39,11 @@ abstract class AbstractSymbolTable {
     val typeName = TypeName(name)
     types(typeName) = if (types.contains(typeName)) types(typeName) else immutable.Map.empty[String,Member]
     for (mem <- members) types(typeName) = types(typeName) + (mem.name -> mem)
+
+    // HACK: Add refernence type as an alias
+    val refTypeName = TypeName("Ref " + name)
+    types(refTypeName) = if (types.contains(refTypeName)) types(refTypeName) else immutable.Map.empty[String, Member]
+    for (mem <- members) types(refTypeName) = types(refTypeName) + (mem.name -> mem)
   }
 
   def addSingletonMember (a1:String,a2:String,a3:Member) {
@@ -49,15 +54,16 @@ abstract class AbstractSymbolTable {
     types(a1) = types(a1) + (a2 -> a3)
   }
 
-  def resolveAccess(typ:TypeName, symbol:String, args:List[TypeName]=Nil):TypeName = {
+  def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {
     try {
-      types(typ)(symbol).retType
+      List(types(typ)(symbol).retType)
     } catch {
       case e:NoSuchElementException =>
         try {
-          types(TypeName("Unknown"))(symbol).retType
+          List(types(TypeName("Unknown"))(symbol).retType)
         } catch {
-          case e:NoSuchElementException => throw new TouchException("API method not found: "+typ+"."+symbol+" with arguments "+args)
+          case e: NoSuchElementException =>
+            throw new TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
         }
     }
   }
@@ -117,26 +123,53 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
     scopes(s) = st
   }
 
+  def resolveUsertypeAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil): Option[List[TypeName]] = {
 
-
-  def resolveUsertypeAccess(typ:TypeName, symbol:String, args:List[TypeName]=Nil):Option[TypeName] = {
-
-    usertypes.get(typ) match {
-      case Some(x) =>
-        x.get(symbol) match {
-          case Some(y) => Some(y.retType)
-          case None => None
-        }
-      case None => None
+    // Standard function of records
+    try {
+      return Some(List(usertypes(typ)(symbol).retType))
+    } catch {
+      case e: NoSuchElementException => ()
     }
 
+    // library function of type lib->f(record,...) can be run as record->f(...)
+    for ((_, lib) <- libs) {
+      try {
+        return Some(lib(symbol)(typ :: args))
+      } catch {
+        case e: NoSuchElementException => ()
+      }
+    }
+
+    // local function of type code->f(record,...) can be run as record->f(...)
+    try {
+      return Some(code(symbol)(typ :: args))
+    } catch {
+      case e: NoSuchElementException => ()
+    }
+
+    return None
   }
 
-  override def resolveAccess(typ:TypeName, symbol:String, args:List[TypeName]=Nil):TypeName = {
-    resolveUsertypeAccess(typ,symbol,args) match {
-      case Some(x) => x
-      case None => super.resolveAccess(typ,symbol,args)
+  override def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {
+
+    typ match {
+      case TypeName("code") => resolveCode(symbol, args, pos)
+      case TypeName("♻") => List(TypeName(CFGGenerator.libraryIdent(symbol)))
+      case TypeName("data") => List(resolveData(symbol, pos))
+      case TypeName("art") => List(resolveData(symbol, pos))
+      case _ =>
+        if (CFGGenerator.isLibraryIdent(typ.ident)) {
+          val lib = CFGGenerator.getLibraryName(typ.ident)
+          resolveLib(lib, symbol, args, pos)
+        } else {
+          resolveUsertypeAccess(typ, symbol, args) match {
+            case Some(x) => x
+            case None => super.resolveAccess(typ, symbol, args, pos)
+          }
+        }
     }
+
   }
 
   def resolveData(symbol:String, pos:Position):TypeName = {

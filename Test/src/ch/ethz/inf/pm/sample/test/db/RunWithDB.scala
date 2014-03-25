@@ -850,38 +850,43 @@ object RunWithDB {
     }
   }
 
+  def acquireTask(idTestRun: Int): Option[(Int, String)] = {
+    val stmt = c.createStatement()
+    val rows = stmt.executeQuery("SELECT p.Name, p.ProgramId FROM ToBeAnalyzed tb, Programs p WHERE tb.Program=p.ProgramId AND TestRun=" + idTestRun + " LIMIT 20")
+    if (rows.next()) {
+      val programId = rows.getInt("ProgramId")
+      val name = rows.getString("Name")
+      rows.close()
+      stmt.executeUpdate("DELETE FROM ToBeAnalyzed WHERE Program=" + programId + " AND TestRun=" + idTestRun)
+      stmt.executeUpdate("INSERT INTO RuntimeErrors(Program, TestRun) VALUES (" + programId + ", " + idTestRun + ")")
+      Some((programId, name))
+    } else {
+      None
+    }
+  }
 
   def runAnalyses(idTestRun: Int, timeout: Int) = {
     val state = getParametersTestRun(idTestRun)
-    val stmt = c.createStatement()
+    var a = 0
+    var task = acquireTask(idTestRun)
     val stmt2 = c.createStatement()
-    val sql = "SELECT p.Name, p.ProgramId FROM ToBeAnalyzed tb, Programs p WHERE tb.Program=p.ProgramId AND TestRun=" + idTestRun
-    val rows = stmt.executeQuery(sql)
-    while (rows.next()) {
-      val programId = rows.getInt("ProgramId")
-      stmt2.executeUpdate("DELETE FROM ToBeAnalyzed WHERE Program=" + programId + " AND TestRun=" + idTestRun)
-      stmt2.executeUpdate("INSERT INTO RuntimeErrors(Program, TestRun) VALUES (" + programId + ", " + idTestRun + ")")
-
+    while (task.isDefined) {
+      a += 1
       this.synchronized {
-        val t = new AnalysisThread(rows.getString("Name"), programId, idTestRun, state._2, state._3, state._1, state._4, stmt)
+        val t = new AnalysisThread(task.get._2, task.get._1, idTestRun, state._2, state._3, state._1, state._4, stmt2)
         val initialTime = System.currentTimeMillis()
         t.start()
         while (t.isAlive && System.currentTimeMillis() - initialTime < timeout)
           this.wait(1000)
         while (t.isAlive) {
-          for (i <- 0 to 100) t.stop()
           System.out.println("Trying to stop a thread")
+          for (i <- 0 to 100) t.stop()
           this.wait(1000)
         }
       }
-
-      //analyzeOneProgram(rows.getString("Name"), programId, idTestRun, state._2, state._3, state._1, state._4)
-      //stmt2.executeUpdate("DELETE FROM RuntimeErrors WHERE Program="+programId+" AND TestRun="+idTestRun)
-
-
+      task = acquireTask(idTestRun)
+      println(a)
     }
-
-    rows.close()
   }
 
   //return all the parameters (compiler, analyses, and property) of the current test run

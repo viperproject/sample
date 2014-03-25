@@ -94,33 +94,33 @@ class HTMLExporter extends ErrorExporter {
         PrettyPrinter.applyWithPPPrinter(script)({
           (curPositional: IdPositional, pretty: String) =>
 
-            (for (SampleError(errorTypeId, message, pp) <- Reporter.seenErrors) yield {
-              pp match {
-                case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                  "<span id='" + TouchProgramPointRegistry.reg(touchPP.id).fullPosString + "'>" +
-                      <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString() +
-                    pretty + "</span>"
-                case _ => ""
-              }
-            }).mkString("") +
+            val spanId = TouchProgramPointRegistry.get(id, curPositional) match {
+              case Some(x) => x.fullPosString;
+              case None => ""
+            }
+            "<span id='" + spanId + "'>" +
+              (for (SampleError(errorTypeId, message, pp) <- Reporter.seenErrors) yield {
+                pp match {
+                  case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
+                      <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
+                  case _ => ""
+                }
+              }).mkString("") +
               (for ((message, pp) <- Reporter.seenBottom) yield {
                 pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                    "<span id='" + TouchProgramPointRegistry.reg(touchPP.id).fullPosString + "'>" +
-                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString() +
-                      pretty + "</span>"
+                      <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
                   case _ => ""
                 }
               }).mkString("") +
               (for ((message, pp) <- Reporter.seenImprecision) yield {
                 pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                    "<span id='" + TouchProgramPointRegistry.reg(touchPP.id).fullPosString + "'>" +
-                        <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString() +
-                      pretty + "</span>"
+                      <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
                   case _ => ""
                 }
-              }).mkString("")
+              }).mkString("") +
+              pretty + "</span>"
         }) + "</pre>"
     }
 

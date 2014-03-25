@@ -517,9 +517,22 @@ case class TouchClassIdentifier(name: String, typ: Type) extends Named with Clas
 /** Used to speed up the analysis */
 object TouchProgramPointRegistry {
 
+  /** inefficient, knowingly so */
+  def get(s: String, positional: IdPositional): Option[TouchProgramPoint] = {
+    for (i <- 0 to reg.length - 1) {
+      if (matches(SpaceSavingProgramPoint(i), s, positional)) {
+        return Some(reg(i))
+      }
+    }
+    None
+  }
+
+
   def matches(point: SpaceSavingProgramPoint, s: String, positional: IdPositional): Boolean = {
     val pp = reg(point.id)
-    return pp.scriptID == s && Some(positional.pos) == pp.lineColumnPosition
+    return pp.scriptID == s &&
+      ((positional.pos == NoPosition && pp.lineColumnPosition == None) || Some(positional.pos) == pp.lineColumnPosition) &&
+      (positional.customIdComponents == pp.customPositionElements)
   }
 
   val reg = mutable.ArrayBuffer.empty[TouchProgramPoint]

@@ -214,31 +214,10 @@ object Typer {
           case _ =>
             val types = for (arg <- args) yield processExpression(scope, st, arg)
             val subtype = processExpression(scope, st, subject)
-            subtype match {
-              case TypeName("code") =>
-                val retTypes = st.resolveCode(property.ident, types, subject.pos)
-                if (retTypes.length > 1)
-                  throw TouchException("Multiple return values " + retTypes + " in non-assignment expression", expr.pos)
-                else if (retTypes.length < 1) is(TypeName("Nothing"))
-                else is(retTypes.head)
-              case TypeName("♻") =>
-                is(TypeName(CFGGenerator.libraryIdent(property.ident)))
-              case TypeName("data") =>
-                is(st.resolveData(property.ident, subject.pos))
-              case TypeName("art") =>
-                is(st.resolveData(property.ident, subject.pos))
-              case _ =>
-                if (CFGGenerator.isLibraryIdent(subtype.ident)) {
-                  val lib = CFGGenerator.getLibraryName(subtype.ident)
-                  val retTypes = st.resolveLib(lib, property.ident, types, subject.pos)
-                  if (retTypes.length > 1)
-                    throw TouchException("Multiple return values " + retTypes + " in non-assignment expression", expr.pos)
-                  else if (retTypes.length < 1) is(TypeName("Nothing"))
-                  else is(retTypes.head)
-                } else {
-                  is(st.resolveAccess(subtype, property.ident, types))
-                }
-            }
+            val retTypes = st.resolveAccess(subtype, property.ident, types, subject.pos)
+            if (retTypes.length > 1) throw TouchException("Multiple return values " + retTypes + " in non-assignment expression", expr.pos)
+            else if (retTypes.length < 1) is(TypeName("Nothing"))
+            else is(retTypes.head)
         }
       case l@LocalReference(ident) =>
         // Interestingly, contract is a local variable, not a singleton.

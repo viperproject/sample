@@ -1,6 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
 import ch.ethz.inf.pm.sample.abstractdomain._
+import scala.collection.mutable
 
 /**
  * Implements reachability analysis of abstract heap locations in the non-relational heap domains of sample
@@ -19,20 +20,38 @@ object ReachabilityAnalysis {
     res
   }
 
-  def getReachableLocations[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], store: HeapEnv[I], storeIds: Set[I]): Set[I] = {
-    if (env.isBottom) return Set.empty[I]
-    if (store.isBottom) return Set.empty[I]
+  def getReachableLocations[I <: NonRelationalHeapIdentifier[I]](env: VariableEnv[I], store: HeapEnv[I], storeIds: Set[I]): mutable.HashSet[I] = {
+    if (env.isBottom) return mutable.HashSet.empty[I]
+    if (store.isBottom) return mutable.HashSet.empty[I]
 
-    val dom = new MaybeHeapIdSetDomain[I]()
-    var reachable = env.map.values.foldLeft(dom.asInstanceOf[HeapIdSetDomain[I]])(_.lub(_)).value
-    var toVisit = reachable
+    val toVisit = mutable.ListBuffer.empty[I]
+    val reachable = mutable.HashSet.empty[I]
+
+    val reachableViaFieldAccessEtc = store.getReachableMap
+
+    for (set <- env.map.values) {
+      toVisit ++= set.value
+      reachable ++= set.value
+    }
+
     while (!toVisit.isEmpty) {
-      val cur = toVisit.head
-      val reachableViaReferences = store.get(cur).value
-      val reachableViaFieldAccessEtc = storeIds.filter(_.getReachableFromIds.contains(cur))
-      val newSuccessors = reachableViaReferences ++ reachableViaFieldAccessEtc -- reachable
-      reachable = reachable ++ newSuccessors
-      toVisit = toVisit.tail ++ newSuccessors
+      val cur = toVisit.remove(0)
+      for (reach <- store.get(cur).value) {
+        if (!reachable.contains(reach)) {
+          reachable += reach
+          toVisit += reach
+        }
+      }
+      reachableViaFieldAccessEtc.get(cur) match {
+        case Some(xs) =>
+          for (x <- xs) {
+            if (!reachable.contains(x)) {
+              reachable += x
+              toVisit += x
+            }
+          }
+        case None => ()
+      }
     }
 
     reachable

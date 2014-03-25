@@ -85,8 +85,8 @@ case class TouchAnalysisParameters(
                                     libraryFieldPruning: Boolean = true,
                                     // Fields that are always TOP
                                     topFields: Set[String] = Set("x", "y", "z", "z index", "speed x", "speed y",
-                                      "speed z", "width", "height", "acceleration x", "acceleration y", "angle",
-                                      "angular speed", "leaderboard score", "opacity")
+                                      "speed z", "width", "height", "acceleration x", "acceleration y", "angle", "radius",
+                                      "angular speed", "leaderboard score", "opacity", "duration", "font size", "text", "item", "speed")
                                     )
 
 case class ExecutionModelParams(
@@ -168,7 +168,7 @@ case class ExecutionModelParams(
 
                                  )
 
-case class DomainParams(enableCollectionMustAnalysis: Boolean = false,
+case class DomainParams(enableCollectionMustAnalysis: Boolean = true,
                         enableCollectionSummaryAnalysis: Boolean = false,
 
                         /**

@@ -184,6 +184,8 @@ trait StdLib extends AbstractSymbolTable {
     Member("on touch down", List("Position Action"), "Event Binding") /* set the handler that is invoked when the board is touched */ ,
     Member("on touch up", List("Position Action"), "Event Binding") /* set the handler that is invoked when the board touch is released */ ,
     Member("evolve", "Nothing") /* Update positions of sprites on board. */ ,
+    Member("equals", List("Board"), "Boolean") /* Checks if the board is the same instance as the other board. */ ,
+    Member("background scene", "Board Background Scene") /* Gets the background scene */ ,
     Member("set background", List("Color"), "Nothing") /* Sets the background color */ ,
     Member("set background camera", List("Camera"), "Nothing") /* Sets the background camera */ ,
     Member("set background picture", List("Picture"), "Nothing") /* Sets the background picture */ ,
@@ -218,6 +220,38 @@ trait StdLib extends AbstractSymbolTable {
     Member("set color", List("Color"), "Nothing") /* Sets the obstacle color */ ,
     Member("set thickness", List("Number"), "Nothing") /* Sets the obstacle thickness */ ,
     Member("delete", "Nothing") /* Delete the obstacle */
+  ))
+
+  // A scene contains layers of parralax backgrounds.
+  addType("Board Background Scene", List(
+    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
+    Member("view x", "Number") /* Gets the view horizontal offset */ ,
+    Member("set view x", List("Number"), "Nothing") /* Sets the view horizontal offset */ ,
+    Member("view y", "Number") /* Gets the view vertical offset */ ,
+    Member("set view y", List("Number"), "Nothing") /* Sets the view vertical offset */ ,
+    Member("create layer", List("Number", "Picture"), "Board Background Layer") /* Creates a new layer on the scene. The distance determines the order of rendering and how fast the layer moves */ ,
+    Member("count", "Nothing") /* Gets the number of layers in the scene */ ,
+    Member("at index", List("Number"), "Board Background Layer") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
+    Member("copy", "Board Background Scene") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
+    Member("at", List("Number"), "Board Background Layer") /* Gets the layer at the given index */ ,
+    Member("clear", "Nothing") /* Removes all layers from scene and resets the viewport */ ,
+    Member("post to wall", "Nothing") /* Displays the sprite sheet. */
+  ))
+
+  // A background scene layer
+  addType("Board Background Layer", List(
+    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
+    Member("picture", "Nothing") /* Gets the picture associated to the layer. */ ,
+    Member("distance", "Nothing") /* Gets the layer distance */ ,
+    Member("set distance", List("Number"), "Nothing") /* Sets the layer distance */ ,
+    Member("align x", "Nothing") /* Gets a value indicating how the picture aligns horizontally. The default is `left`. */ ,
+    Member("set align x", List("String"), "Nothing") /* Sets a value indicating how the picture aligns horizontally. The default is `left`. */ ,
+    Member("align y", "Nothing") /* Gets a value indicating how the picture aligns vertically. The default is `top`. */ ,
+    Member("set align y", List("String"), "Nothing") /* Sets a value indicating how the picture aligns vertically. The default is `top`. */ ,
+    Member("repeat x", "Nothing") /* Gets a value indicating if the background repeats horizontally */ ,
+    Member("set repeat x", List("Boolean"), "Nothing") /* Sets a value indicating if the background repeats horizontally */ ,
+    Member("repeat y", "Nothing") /* Gets a value indicating if the background repeats horizontally */ ,
+    Member("set repeat y", List("Boolean"), "Nothing") /* Sets a value indicating if the background repeats horizontally */
   ))
 
   // true or false
@@ -1453,7 +1487,7 @@ trait StdLib extends AbstractSymbolTable {
     Member("take camera picture", "Picture") /* Takes a picture and returns it. This picture does not contain the gps location. */ ,
     Member("record microphone", "Sound") /* Records audio using the microphone */ ,
     Member("is device stable", "Boolean") /* Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */ ,
-    Member("has accelerometer", "Boolean") /* [**obsolete**] Test if the senses→acceleration quick is invalid instead */ ,
+    Member("has accelerometer", "Boolean") /* Indicates if an accelerometer is available. */ ,
     Member("acceleration stable", "Vector3") /* Gets filtered and temporally averaged accelerometer data using an arithmetic mean of the last 25 'optimally filtered' samples, so over 500ms at 50Hz on each axis, to virtually eliminate most sensor noise. This provides a very stable reading but it has also a very high latency and cannot be used for rapidly reacting UI. */ ,
     Member("acceleration smooth", "Vector3") /* Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */ ,
     Member("acceleration quick", "Vector3") /* Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */ ,
@@ -1470,7 +1504,9 @@ trait StdLib extends AbstractSymbolTable {
     Member("has gyroscope", "Boolean") /* Indicates if the gyroscope is available on the device */ ,
     Member("rotation speed", "Vector3") /* Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */ ,
     Member("battery level", "Number") /* Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */ ,
-    Member("bluetooth devices", "Bluetooth Device Collection") /* Get the list of Bluetooth widgets paired with your device. */
+    Member("bluetooth devices", "Bluetooth Device Collection") /* Get the list of Bluetooth widgets paired with your device. */ ,
+    Member("is key pressed", List("String"), "Boolean") /* Indicates if the specified key is pressed. */ ,
+    Member("on key pressed", List("String", "Action"), "Event Binding") /* Attaches an event that triggers while the key is pressed. This event repeats while the key is down. */
   ))
 
   // Emails, sms, contacts, calendar, ...
@@ -1896,6 +1932,7 @@ trait StdLib extends AbstractSymbolTable {
     Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
     Member("equals", List("User"), "Boolean") /* Gets a value idincating if the user is the same as the other. */ ,
     Member("id", "String") /* Gets a unique identifier for the user. */ ,
+    Member("preload", "Nothing") /* Download user-data if needed */ ,
     Member("name", "String") /* Gets the name of the user */ ,
     Member("about", "String") /* Gets the about-me text of the user */ ,
     Member("has picture", "Boolean") /* Indicates if the user has a picture */ ,

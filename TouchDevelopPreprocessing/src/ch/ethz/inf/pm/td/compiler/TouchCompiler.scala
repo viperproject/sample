@@ -21,6 +21,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
  */
 class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
+
   var main: ClassDefinition = null
   var mainID: String = null
   var parsedNames: List[String] = Nil
@@ -114,10 +115,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     val rewrittenScript = LoopRewriter(script)
     Typer.processScript(rewrittenScript)
 
-    val newCFG = cfgGenerator.process(rewrittenScript, pubID, libDef)
-
     // update fields
-    parsedScripts = parsedScripts ::: List(newCFG)
     libDef match {
       case Some(LibraryDefinition(name, _, _, _)) => parsedNames = parsedNames ::: List(name)
       case None => parsedNames = parsedNames ::: List(pubID)
@@ -127,10 +125,14 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     // recursive for libs
     val libDefs = discoverRequiredLibraries(rewrittenScript)
     // FIXME: This should actually be checking for parsed names not parsed ids, right?
-    for (lib <- libDefs; if (!parsedNames.contains(lib.name) && !lib.pubID.isEmpty)) {
+    for (lib <- libDefs; if !parsedNames.contains(lib.name) && !lib.pubID.isEmpty) {
       val (libScript, libPubID) = retrieveScript("td://" + lib.pubID)
       compileScriptRecursive(libScript, libPubID, Some(lib))
     }
+
+    val newCFG = cfgGenerator.process(rewrittenScript, pubID, libDef)
+    parsedScripts = parsedScripts ::: List(newCFG)
+
 
     isInLibraryMode = script.isLibrary
 
@@ -189,6 +191,20 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       case l@LibraryDefinition(_, _, _, _) => l :: libs
       case _ => libs
     })
+  }
+
+  def getMethod(name: String, parameters: List[Type]): Option[MethodDeclaration] = {
+    for (clazz <- parsedScripts; method <- clazz.methods) yield {
+      if (method.name.toString.equals(name) && method.arguments.apply(0).size == parameters.size) {
+        var ok: Boolean = true
+        for (i <- 0 to method.arguments(0).size - 1) {
+          if (!parameters(i).lessEqual(method.arguments(0)(i).typ))
+            ok = false
+        }
+        if (ok) return Some(method)
+      }
+    }
+    return None
   }
 
   def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
