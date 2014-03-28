@@ -39,7 +39,9 @@ object ArithmeticAndBooleanNativeMethodSemantics extends ForwardNativeMethodSema
   }
 }
 
-
+/** Provides the semantics of the custom 'assert', 'assume' and 'cond' methods.
+  * The latter is used to support conditional expressions.
+  */
 object RichNativeMethodSemantics extends ForwardNativeMethodSemantics {
   def applyForwardNativeSemantics[S <: State[S]](
       thisExpr: ExpressionSet,
