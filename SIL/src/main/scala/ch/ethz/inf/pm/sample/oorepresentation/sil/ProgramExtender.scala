@@ -1,32 +1,32 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import semper.sil.{ast => sil}
-import ch.ethz.inf.pm.sample.abstractdomain.vdha
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, vdha}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AbstractCFGState}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
-import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
-import ch.ethz.inf.pm.sample.oorepresentation.sil.WrappedProgramPoint
 import scala.Some
-import ch.ethz.inf.pm.sample.oorepresentation.sil.PredicateRegistryBuilder
-import ch.ethz.inf.pm.sample.oorepresentation.sil.AssertionExtractor
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
-import ch.ethz.inf.pm.sample.abstractdomain.SemanticDomain
 import com.weiglewilczek.slf4s.Logging
 
 case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
   type T = PredicateDrivenHeapState[S]
-  type StateType = PredicateDrivenHeapState.EdgeStateDomain[S]
 
   import PredicateDrivenHeapState._
 
+  /** Extends the given SIL program with specifications extracted from the
+    * results of the analysis of that program.
+    *
+    * @param p the program to extend
+    * @param results the analysis results to use
+    * @return the extended program
+    */
   def extend(p: sil.Program, results: List[AnalysisResult[T]]): sil.Program = {
     vdha.withGlbPreservingIdsStrategy(CustomGlbPreservingIdsStrategy, () => {
+      // Only extend methods for which there is an analysis result
       val methodNameToCfgState = results.map(result =>
         result.method.name.toString -> result.cfgState).toMap
-
-      // Only extend methods for which there is an analysis result
       var (newMethods, newPredicates) = p.methods.map(m => {
         methodNameToCfgState.get(m.name) match {
           case Some(cfgState) => extendMethod(p, m, cfgState)
@@ -34,7 +34,8 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         }
       }).unzip
 
-      // Ensure that all method calls in the program refer to the extended methods
+      // Ensure that all method calls in the program refer to
+      // the extended methods
       newMethods = newMethods.map(_.transform({
         case mc @ sil.MethodCall(m, _, _) =>
           mc.copy(method = newMethods.find(_.name == m.name).get)(mc.pos, mc.info)
@@ -51,7 +52,22 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
     })
   }
 
-  def extendMethod(program: sil.Program, method: sil.Method, cfgState: AbstractCFGState[T]): (sil.Method, Seq[sil.Predicate]) = {
+  /** Extends a single method in a SIL program with specifications
+    * extracted from the given CFG state.
+    *
+    * @param program the program that the method is a part of
+    *                (to get access to the existing predicates)
+    * @param method the method to extend
+    * @param cfgState the CFG state for that method
+    * @return the extended method and new predicates to be added to the program
+    */
+  def extendMethod(
+      program: sil.Program,
+      method: sil.Method,
+      cfgState: AbstractCFGState[T]): (sil.Method, Seq[sil.Predicate]) = {
+    require(program.methods.contains(method),
+      "method does not belong to the given program")
+
     var entryState = cfgState.entryState()
     var exitState = cfgState.exitState().tryToFoldAllLocalVars()
 
@@ -75,9 +91,10 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
 
     // Detect unfold operations by hooking into the forward interpretation
     // of every statement in the CFG
-    // Assumes that there is a bijection between SIL positions and
-    // Sample CFG statements
     var unfoldMap: Map[sil.Position, Seq[UnfoldGhostOpEvent]] = Map.empty
+
+    // Detect fold operations at the end of basic blocks by trying to
+    // fold eagerly
     var foldMap: Map[sil.Position, Seq[FoldGhostOpEvent]] = Map.empty
 
     for ((block, blockIdx) <- cfgState.cfg.nodes.zipWithIndex) {
@@ -94,8 +111,6 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
       }
 
       if (!block.isEmpty) {
-        // TODO: Can currently only detect folds at the end of
-        // non-empty blocks, but that is fine, right?
         val lastStmt = block.last
         val lastStmtIdx = block.size - 1
         val cfgPosition = CFGPosition(blockIdx, lastStmtIdx)
@@ -103,9 +118,6 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         val collector = GhostOpCollector[S]()
         val postStateWithCollector = postState.subscribe(collector)
 
-        // TODO: Currently does not work because predicates
-        // may be renamed when heaps are joined. The fold statement
-        // should use the new name of the predicate after the merge
         postStateWithCollector.tryToFoldAllLocalVars()
 
         val pos = DefaultSampleConverter.convert(lastStmt.getPC())
@@ -173,10 +185,6 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         foldMap.get(newS.pos) match {
           case Some(sampleFold) =>
             val foldStmts = sampleFold.flatMap(fold => {
-              // folded.predicateId may only have existed temporarily
-              // and then merged into an older predicate ID. Resolve possible
-              // aliasing here
-              // TODO: Refactor
               val predId = predIdAliases.getOrElse(fold.predicateId, fold.predicateId)
 
               predRegistry.predAccessPred(fold.variable, predId) match {
@@ -192,7 +200,8 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
     })
 
     val existingPredNames = program.predicates.map(_.name).toSet
-    val newPredicates = predRegistry.predicates.filter(p => !existingPredNames.contains(p.name))
+    val newPredicates = predRegistry.predicates.filter(p =>
+      !existingPredNames.contains(p.name))
 
     (newMethod, newPredicates.toSeq)
   }
