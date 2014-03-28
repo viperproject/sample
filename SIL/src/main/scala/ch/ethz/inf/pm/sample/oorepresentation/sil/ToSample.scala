@@ -228,22 +228,20 @@ object DefaultSilConverter extends SilConverter with Logging {
         returnType = go(e.typ))
     case sil.Result() =>
       makeVariable(e.pos, e.typ, Constants.ResultVariableName)
+    case sil.Unfolding(acc, inner) =>
+      go(inner)
 
     // Stubs
     case sil.AccessPredicate(loc, perm) =>
-      go(sil.TrueLit()()) // May not be what we want
+      go(sil.TrueLit()()) // Ignore
     case sil.QuantifiedExp(vars, inner) =>
-      go(sil.TrueLit()()) // May not be what we want
-    case sil.Unfolding(acc, inner) =>
-      go(inner)
+      go(sil.TrueLit()()) // Ignore
     case sil.InhaleExhaleExp(in, ex) =>
-      go(sil.TrueLit()()) // May not be what we want
+      go(sil.TrueLit()()) // Ignore
+
     case p: sil.PermExp => ???
-    case sil.Old(exp) =>
-      // TODO: Is only sound for local variables
-      go(exp)
+    case sil.Old(exp) => ???
     case e: sil.SeqExp => ???
-    case sil.PredicateAccess(args, pred) => ???
     case sil.AnySetCardinality(_) |
          sil.AnySetContains(_, _) |
          sil.AnySetIntersection(_, _) |
