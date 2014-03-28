@@ -33,7 +33,7 @@ trait SilConverter {
   /** Converts a SIL expression to a Sample expression. */
   def convert(exp: sil.Exp): sample.Statement
 
-  /** Converts a sequence of SIL predicate to Sample predicates.
+  /** Converts a sequence of SIL predicates to Sample predicates.
     *
     * The method only converts a SIL predicate if its shape is supported
     * by Samples predicate domain and if all of its nested predicate
@@ -174,13 +174,12 @@ object DefaultSilConverter extends SilConverter with Logging {
     case sil.FieldAssign(lhs, rhs) =>
       sample.Assignment(go(s.pos), go(lhs), go(rhs))
     case sil.MethodCall(method, args, targets) =>
-      new sample.ContractAwareMethodCall(
+      sample.MethodCall(
         pp = go(s.pos),
-        // Methods are static, so there is no receiver
         method = makeVariable(s.pos, sil.Ref, method.name),
         parametricTypes = Nil,
         parameters = args.map(go).toList,
-        targets = targets.map(makeVariable).toList)
+        returnedType = sample.TopType)
 
     // Stubs
     case sil.Exhale(e) =>
@@ -212,7 +211,7 @@ object DefaultSilConverter extends SilConverter with Logging {
       }, go(l.typ))
     case v: sil.LocalVar => makeVariable(v)
     case sil.FuncLikeApp(func, args) =>
-      new sample.ContractAwareFunctionCall(
+      sample.MethodCall(
         pp = go(e.pos),
         // Functions are static, so there is no receiver
         method = makeVariable(e.pos, sil.Ref, func.name),

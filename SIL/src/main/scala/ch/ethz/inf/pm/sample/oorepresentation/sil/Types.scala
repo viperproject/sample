@@ -3,9 +3,13 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import ch.ethz.inf.pm.sample.abstractdomain.Identifier
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 
+/** Abstract base class for all types in the SIL type hierarchy. */
 abstract class AbstractType(val name: String) extends Type {
   override def toString: String = name
 
+  /** Apron does not consider this flag.
+    * It represents all numerical values as floating-point values.
+    */
   def isFloatingPointType: Boolean = false
 
   def isBooleanType: Boolean = this == BoolType
@@ -16,12 +20,10 @@ abstract class AbstractType(val name: String) extends Type {
 
   def isStatic: Boolean = false
 
-  // TODO: For top
   def arrayElementsType: Option[Type] = None
 
   def isBottomExcluding(types: Set[Type]): Boolean = false
 
-  // TODO: Should we return true for top and bottom?
   def possibleFields = Set.empty
 
   def factory() = top()

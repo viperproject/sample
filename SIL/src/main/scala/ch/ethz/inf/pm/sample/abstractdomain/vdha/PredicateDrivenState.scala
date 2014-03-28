@@ -222,7 +222,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     (localVarVertex, field)
   }
 
-
   override def createVariableForArgument(variable: VariableIdentifier, typ: Type) = {
     val result = super.createVariableForArgument(variable, typ)
 

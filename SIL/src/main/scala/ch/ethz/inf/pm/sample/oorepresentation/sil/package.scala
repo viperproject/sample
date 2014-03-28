@@ -57,8 +57,6 @@ package object sil {
 
     // Simplon-specific types and values
     type RefType = rep.sil.RefType
-    type ContractAwareFunctionCall = SilFunctionCall
-    type ContractAwareMethodCall = SilMethodCall
 
     val BoolType = rep.sil.BoolType
     val BottomType = rep.sil.BottomType
