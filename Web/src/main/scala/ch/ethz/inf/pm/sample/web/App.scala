@@ -136,9 +136,9 @@ class SilApp extends App {
   val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
 
   val availableAnalysisRunners = Seq(
+    PredicateAnalysisRunner,
     DefaultAnalysisRunner,
-    PreciseAnalysisRunner,
-    PredicateAnalysisRunner
+    PreciseAnalysisRunner
   )
 }
 
