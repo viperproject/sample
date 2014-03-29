@@ -6,17 +6,17 @@ method firstNaturals(n: Int)
     returns (first: Ref)
     requires (n > 0)
 {
-    var p: Ref
+    var tmp: Ref
     var i: Int
     first := null
-    p := null
+    tmp := null
     i := n
     while (i > 0) {
-        p := new()
-        p.val := i
-        p.next := first
-        first := p
-        p := null
+        tmp := first
+        first := new()
+        first.val := i
+        first.next := tmp
+        tmp := null
         i := i - 1
     }
 }
