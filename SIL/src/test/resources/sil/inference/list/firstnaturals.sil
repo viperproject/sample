@@ -11,6 +11,7 @@ method firstNaturals(n: Int)
     first := null
     tmp := null
     i := n
+
     while (i > 0) {
         tmp := first
         first := new()
