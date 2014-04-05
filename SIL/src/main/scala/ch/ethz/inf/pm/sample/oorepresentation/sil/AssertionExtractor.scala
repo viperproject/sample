@@ -435,3 +435,4 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
     Map(e1 -> nullnessCond, e2 -> nonNullnessCond)
   }
+}
