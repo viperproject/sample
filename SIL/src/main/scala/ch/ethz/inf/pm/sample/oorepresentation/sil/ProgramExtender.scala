@@ -166,8 +166,18 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
 
         w.copy(invs = w.invs ++ extractor.assertionTree.simplify.toExps)(w.pos, w.info)
       case s: sil.Stmt =>
+        // When there is a field access in the condition of an if statement,
+        // then the ghost operation is associated with the position of the
+        // condition rather than the statement. Thus, if the current statement
+        // is an if statement, use the position of the condition to check
+        // whether there are any ghost operations.
+        val ghostOpPos = s match {
+          case sil.If(cond, _, _) => cond.pos
+          case _ => s.pos
+        }
+
         // Add unfold statements in front of this statement if necessary
-        val newS = unfoldMap.get(s.pos) match {
+        val newS = unfoldMap.get(ghostOpPos) match {
           case Some(sampleUnfolds) =>
             val unfoldStmts = sampleUnfolds.flatMap(unfold => {
               predRegistry.predAccessPred(unfold.variable, unfold.predicateId) match {
@@ -182,7 +192,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         }
 
         // Add fold statement after this statement if necessary
-        foldMap.get(newS.pos) match {
+        foldMap.get(ghostOpPos) match {
           case Some(sampleFold) =>
             val foldStmts = sampleFold.flatMap(fold => {
               val predId = predIdAliases.getOrElse(fold.predicateId, fold.predicateId)
