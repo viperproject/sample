@@ -163,12 +163,30 @@ case class PredicateRegistryBuilder(
     sil.LocalVarDecl(formalArgName, sil.Ref)()
 }
 
+/** Represents a tree of SIL assertions.
+  * Each node contains a set of unconditional assertions,
+  * and each of the children is conditional on some condition.
+  *
+  * This intermediate representation with sets is easier to transform
+  * (e.g. simplify) than a SIL AST node.
+  *
+  * The union of the children's conditions must imply true.
+  * That is, two children conditions (x == null) and (x != null)
+  * are fine, but (a < 0) and (a > 5) are not.
+  * This restriction makes it possible to pull up expressions
+  * that occur in all of the children.
+  *
+  * @param exps the unconditional expressions
+  * @param children the conditional children.
+  *                 The disjunction of the condition should be true.
+  */
 case class AssertionTree(
     exps: Set[sil.Exp] = Set.empty,
     children: Map[sil.Exp, AssertionTree] = Map.empty) {
 
+  /** Returns true if this tree does not contain any assertions. */
   def isEmpty: Boolean =
-    exps.isEmpty && children.isEmpty
+    exps.isEmpty && children.values.forall(_.isEmpty)
 
   /** Removes an expression from this node and all children nodes. */
   def remove(exp: sil.Exp): AssertionTree = {
@@ -183,15 +201,17 @@ case class AssertionTree(
       .map(Transformer.simplify)
       .filterNot(_.isInstanceOf[sil.TrueLit])
 
-    newChildren = newChildren
-      .map({ case (cond, child) => cond -> child.remove(cond).simplify })
-      .filterNot({ case (cond, child) => child.isEmpty })
+    newChildren = newChildren.map({
+      case (cond, child) => cond -> child.remove(cond).simplify
+    })
 
-    // Pull up expressions that occur unconditionally in all children
-    val commonExps = newChildren.values.map(_.exps).foldLeft(Set.empty[sil.Exp])(_ intersect _)
-    newExps = newExps ++ commonExps
-    newChildren = newChildren.mapValues(child =>
-      child.copy(exps = child.exps -- commonExps))
+    if (!newChildren.isEmpty) {
+      // Pull up expressions that occur unconditionally in all children
+      val commonExps = newChildren.values.map(_.exps).reduceLeft(_ intersect _)
+      newExps = newExps ++ commonExps
+      newChildren = newChildren.mapValues(child =>
+        child.copy(exps = child.exps -- commonExps))
+    }
 
     AssertionTree(newExps, newChildren)
   }
@@ -199,9 +219,9 @@ case class AssertionTree(
   def unconditionalExps: Seq[sil.Exp] = exps.toSeq
 
   def conditionalExps: Seq[sil.Exp] =
-    children.map({
+    children.collect({
       case (sil.TrueLit(), tree) => tree.toExp
-      case (cond, tree) =>
+      case (cond, tree) if !tree.isEmpty =>
         sil.Implies(cond, tree.toExp)()
     }).toSeq
 
@@ -415,4 +435,3 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
     Map(e1 -> nullnessCond, e2 -> nonNullnessCond)
   }
-}
