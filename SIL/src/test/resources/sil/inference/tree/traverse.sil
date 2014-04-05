@@ -2,31 +2,31 @@ var left: Ref
 var right: Ref
 var val: Int
 
-/** Traverses a tree by always recursing to the left or right child,
-  * depending on a boolean flag passed as a parameter.
+/** Traverses a binary tree by recursing to the left or right child,
+  * depending on the value at the current node.
   */
-method traverse(tree: Ref, goLeft: Bool)
+method traverse(tree: Ref, key: Int)
 {
     var node: Ref
     node := tree
 
     while (node != null) {
-        if (goLeft) {
-            node := node.right
-        } else {
+        if (key < node.val) {
             node := node.left
+        } else {
+            node := node.right
         }
     }
 }
 
 /** Tests that the inferred precondition of traverse is not too strong. */
 method test(tree: Ref) requires acc(valid(tree), write) {
-    traverse(tree, true)
+    traverse(tree, 1)
 }
 
 /** Predicate that the specification inference should detect and reuse. */
 predicate valid(tree: Ref) {
-  acc(tree.left, write) && acc(tree.right, write) &&
+  acc(tree.val, write) && acc(tree.left, write) && acc(tree.right, write) &&
   ((tree.left != null) ==> acc(valid(tree.left), write)) &&
   ((tree.right != null) ==> acc(valid(tree.right), write))
 }
