@@ -6,7 +6,6 @@ var val: Int
   * depending on a boolean flag passed as a parameter.
   */
 method traverse(tree: Ref, goLeft: Bool)
-    requires acc(valid(tree), write)
 {
     var node: Ref
     node := tree
