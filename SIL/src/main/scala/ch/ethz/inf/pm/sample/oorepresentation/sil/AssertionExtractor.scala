@@ -206,7 +206,9 @@ case class AssertionTree(
     }).toSeq
 
   def toExp: sil.Exp = {
-    val allExps = exps.toList ++ conditionalExps.toList
+    // Put access predicates first to frame other logical expressions
+    val (accPreds, otherExps) = exps.partition(_.isInstanceOf[sil.AccessPredicate])
+    val allExps = accPreds.toList ++ otherExps.toList ++ conditionalExps.toList
     if (allExps.isEmpty) sil.TrueLit()()
     else allExps.reduceLeft[sil.Exp](sil.And(_, _)())
   }
@@ -256,12 +258,10 @@ case class AssertionExtractor[S <: ApronInterface[S]](
           AssertionTree(children = children)
         }
       case None =>
+        val accPreds = buildAccessPredicates()
         val valAssertions = buildValueAssertions()
         val refEqualities = buildReferenceEqualities()
-        val accPreds = buildAccessPredicates()
-        AssertionTree(exps = accPreds, Map(sil.TrueLit()() ->
-          AssertionTree(valAssertions ++ refEqualities)
-        ))
+        AssertionTree(accPreds ++ valAssertions ++ refEqualities)
     }
   }
 
