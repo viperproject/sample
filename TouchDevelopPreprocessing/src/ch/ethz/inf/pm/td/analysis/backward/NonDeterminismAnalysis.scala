@@ -13,7 +13,7 @@ object NonDeterminismAnalysis {
 
   /**
    * Performs a data flow analysis to collect accesses of non-deterministim souces
-   * and whether they are single accesses or potentially several (summaries!)
+   * and determines whether they are single accesses or potentially multiple (summaries!)
    */
   def findNonDetSources(classes: List[ClassDefinition], compiler: TouchCompiler): Set[NonDetSource] = {
     SystemParameters.resetOutput()
