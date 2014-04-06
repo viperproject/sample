@@ -21,6 +21,6 @@ method test() {
     assert res.val == 10
 
     // We currently don't extract reference field assertions
-    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/37/)
     assert res.next == null
 }

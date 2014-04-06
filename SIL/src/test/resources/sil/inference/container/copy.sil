@@ -25,7 +25,7 @@ method testOldValue() {
 
     other := copy(this)
 
-    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/999/)
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/38/)
     assert(this.val == 42)
 }
 
