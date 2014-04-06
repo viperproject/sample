@@ -9,13 +9,20 @@ import semper.sil.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
 import com.weiglewilczek.slf4s.Logging
 
-/** Registry of all inferred predicates during the analysis of a method.
+/** Registry that maps predicate identifiers from the analysis
+  * to actual SIL predicates.
   *
   * The registry lets the `AssertionExtractor` know
   * what access predicates to extract given predicate identifiers
   * from the analysis.
   */
 trait PredicateRegistry {
+  /** The access predicate(s) to add to the assertion given
+    * for a local variable and a folded predicate instance from the analysis.
+    * Depending on what the value of `hideShallowPredicates` is,
+    * the result will either be a predicate instance or one or more
+    * field access predicates.
+    */
   def accessPredicates(
       variableId: sample.Identifier,
       predId: sample.PredicateIdentifier): sil.Exp
@@ -75,11 +82,12 @@ case class DefaultPredicateRegistry(
   }
 
   def predicates: Seq[sil.Predicate] = {
+    // Note that shallow predicates may still occur as nested instances
+    // Do not remove them in such cases.
     val nestedPredIds = predBodies.flatMap(_.nestedPredIds)
     map.collect({
       case (predId, (predBody, silPred))
         // Never add empty predicates to the program
-        // And
         if !predBody.isTop && !(hideShallowPredicates &&
           predBody.isShallow && nestedPredIds.contains(predId)) => silPred
     }).toSeq
@@ -270,7 +278,12 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
   def assertion: sil.Exp = assertionTree.toExp
 
+  /** Recursively builds an assertion tree from the abstract heap,
+    * by splitting the abstract heap.
+    */
   def assertionTree: AssertionTree = {
+    // Check if there is still a local variable vertex
+    // with ambiguous edges
     nextAmbigLocalVarVertex match {
       case Some(ambigLocalVarVertex) =>
         val ambigEdges = heap.outEdges(ambigLocalVarVertex)
@@ -286,6 +299,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
           val subExtractor = copy(condHeapGraph = prunedCondHeap)
           subExtractor.assertionTree
         } else {
+          // Split the abstract heap
           val accPathId = AccessPathIdentifier(ambigLocalVarVertex.variable)
           val condHeaps = condHeapGraph.evalAccessPathId(accPathId).apply().prune.condHeaps
           val children = condHeaps.map(condSubHeap => {

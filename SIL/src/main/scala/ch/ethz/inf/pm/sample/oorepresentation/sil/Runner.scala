@@ -116,7 +116,7 @@ object ReusingPredicateEntryStateBuilder extends PredicateEntryStateBuilder {
 }
 
 /** Analysis that infers predicates for SIL methods.
-  * Restarts whenever the predicates are merged.
+  * Restarts whenever predicated that specify parameters are merged.
   */
 case class PredicateAnalysis[S <: SemanticDomain[S]](
     entryStateBuilder: EntryStateBuilder[PredicateDrivenHeapState[S]])
