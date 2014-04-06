@@ -1,0 +1,16 @@
+**Getting Started**
+
+Refer to the wiki for information on how to compile Sample and generate
+the IntelliJ project:
+
+  https://bitbucket.org/semperproject/sample/wiki/Home
+
+
+**Test Suites**
+
+- SampleAnalysisTestSuite: Used to test for regressions
+  in the heap analysis and the translation from SIL to Simple.
+  This test suite does not perform specification inference.
+
+- SampleInferenceTestSuite: Performs specification inference
+  and verifies the resulting programs with Silicon.
