@@ -6,6 +6,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.interpreter._
 
 /**
  * User: lucas
@@ -207,13 +208,12 @@ class SMath extends AAny {
 
     case "rand" =>
       val List(upperBound) = parameters
-      Return[S](toRichExpression(0) ndTo (upperBound - 1))
+      NonDetReturn[S](TNumber.typ, toRichExpression(0) ndTo (upperBound - 1))(state, pp)
 
     /** Returns a random integral number x bounded between limit and 0, not including limit unless it is 0 */
     case "random" =>
       val List(upperBound) = parameters
-      val res = Return[S](toRichExpression(0) ndTo (upperBound - 1))
-      res
+      NonDetReturn[S](TNumber.typ, toRichExpression(0) ndTo (upperBound - 1))(state, pp)
 
     /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
     case "rand norm" =>
@@ -292,5 +292,24 @@ class SMath extends AAny {
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = {
+    val state = interpreter.state
+    method match {
+      case "random" | "rand" =>
+        val List(NumberV(upperBound)) = params
+        interpreter
+          .nonDetInputAt(pp)
+          .getOrElse(NumberV(state.random.nextInt(upperBound.toInt)))
+
+      case "sqrt" => params match {
+        case List(NumberV(n)) =>
+          interpreter.assertE(n >= 0)(pp)
+          NumberV(Math.sqrt(n))
+      }
+
+    }
   }
 }

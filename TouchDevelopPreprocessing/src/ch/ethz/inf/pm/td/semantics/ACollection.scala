@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.analysis.interpreter.{NumberV, RefV, ConcreteInterpreter, TouchValue}
 
 /**
  * Represents a collection (this class contains common read operations. Extend AMutable_Collections to get write ops)
@@ -32,6 +33,32 @@ abstract class ACollection extends AAny {
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
+
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue =  method match {
+    case "copy" =>
+      val state = interpreter.state
+      this0 match {
+        case collRef: RefV =>
+          val collObj = state.getCollection(collRef)
+          state.createCollection(collObj.typ, collObj.entries, collObj.fields)
+      }
+
+    case "count" =>
+      val state = interpreter.state
+      this0 match {
+        case collRef: RefV =>
+          val collObj = state.getCollection(collRef)
+          NumberV(collObj.entries.size)
+      }
+
+    case _ =>
+      super.concreteSemantics(this0, method, params, interpreter, pp)
 
   }
 }

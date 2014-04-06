@@ -1,10 +1,12 @@
 package ch.ethz.inf.pm.sample
 
 import ch.ethz.inf.pm.sample.property._
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.Timer
 import scala.util.DynamicVariable
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.backwardanalysis.BackwardAnalysisContext
 
 /**
  * <code>SystemParameters</code> contains all the parameters of Sample
@@ -27,7 +29,7 @@ object SystemParameters {
   /**
    The number of iterations after whom widening is applied
   */
-  var wideningLimit : Int = 3
+  var wideningLimit : Int = 5
 
   /**
    The semantics of methods defined by hand
@@ -42,6 +44,15 @@ object SystemParameters {
   def withAnalysisUnitContext[R](context: AnalysisUnitContext)(f: => R): R = {
     analysisUnitImpl.withValue(context)(f)
   }
+
+  val backwardContextImpl: DynamicVariable[BackwardAnalysisContext[_]] = new DynamicVariable(null)
+
+  def backwardContext[S <: State[S]]: BackwardAnalysisContext[S] = backwardContextImpl.value.asInstanceOf[BackwardAnalysisContext[S]]
+
+  def withBackwardContext[R](context: BackwardAnalysisContext[_])(f: => R): R = {
+    backwardContextImpl.withValue(context)(f)
+  }
+
   //TODO:Remove it
   var semanticsComputing : Boolean = false;
 

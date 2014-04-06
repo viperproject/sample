@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, Type, ProgramPoi
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.semantics.TNumber
 import ch.ethz.inf.pm.td.analysis.{MethodSummaries}
+import ch.ethz.inf.pm.td.analysis.backward.CollectingState
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
 /**
@@ -12,10 +13,6 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
  * Date: 3/1/13
  * Time: 2:19 PM
  */
-
-trait CollectingState
-
-
 object RequiredLibraryFragmentAnalysis {
 
   var spottedFields = Set.empty[String]

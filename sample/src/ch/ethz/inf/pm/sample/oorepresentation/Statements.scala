@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.backwardanalysis.{NativeMethodOp, StatementOp, ExecutionHistoryState}
 
 /**
  * This class represents a point of the program. It is specific 
@@ -408,8 +409,29 @@ case class MethodCall(
   }
 
   private def backwardAnalyzeMethodCallOnObject[S <: State[S]](obj: Statement, calledMethod: String, postState: S, oldPreState: S, programpoint: ProgramPoint): S = {
-    // to be included when ExecutionHistoryState is committed
-	???
+    // NOTE: Must also be executed when postState is bottom. Otherwise we won't
+    //       enter called actions (code->foobar()) where a non-bottom state is set.
+
+    // forward evaluation
+    var hs = ExecutionHistoryState(oldPreState)
+
+    // eval call target
+    hs = hs.applySemanticOp(StatementOp[S](obj))
+    val callTargetExpr = hs.expr
+
+    // eval arguments
+    val paramExprs =
+      for (ps <- parameters) yield {
+        hs = hs.applySemanticOp(StatementOp[S](ps))
+        hs.expr
+      }
+    // eval native method call
+    hs = hs.applySemanticOp(NativeMethodOp[S](callTargetExpr, calledMethod, paramExprs, parametricTypes, returnedType, pp))
+
+    val forwardResultExpr = hs.expr
+    var backwardResult = hs.executeHistoryBackward(postState)
+    backwardResult = backwardResult.removeExpression()
+    backwardResult
   }
 
   override def toString: String =

@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td.parser
 
-import util.parsing.combinator._
+import _root_.scala.util.parsing.combinator._
 import org.apache.commons.lang3.StringEscapeUtils
 import ch.ethz.inf.pm.td.compiler.TouchException
 
@@ -150,7 +150,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
   )
 
   lazy val forStmt: PackratParser[Statement] = positioned (
-    "for" ~ "0" ~ "≤" ~ ident ~ "<" ~ expression ~ "do" ~ block ^^ {case _~_~_~i~_~e~_~b => For(i,e,b)}
+    "for" ~ "0" ~ ("≤" | "<=") ~ ident ~ "<" ~ expression ~ "do" ~ block ^^ {case _~_~_~i~_~e~_~b => For(i,e,b)}
   )
 
   lazy val foreachStmt: PackratParser[Statement] = positioned (

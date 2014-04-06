@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.interpreter.{InvalidV, RefV, ConcreteInterpreter, TouchValue}
 
 /**
  * Represents a map collection in TouchDevelop
@@ -60,5 +61,19 @@ abstract class AMap extends ACollection {
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+    case "at" =>
+      (this0, params) match {
+        case (collRef: RefV, List(key)) =>
+          val state = interpreter.state
+          val collValue = state.getCollection(collRef)
+          collValue.entries.getOrElse(key, InvalidV(collValue.typ.valueType))
+      }
   }
 }

@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.typecheck
 import ch.ethz.inf.pm.td.parser._
 import scala.collection._
 import ch.ethz.inf.pm.td.compiler.TouchException
-import util.parsing.input.Position
+import _root_.scala.util.parsing.input.Position
 
 /**
  *

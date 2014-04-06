@@ -58,6 +58,18 @@ object TouchAnalysisParameters {
 
   def topFields = currentParams.topFields
 
+  def enableBackwardAnalysis = currentParams.backward.enableBackwardAnalysis
+
+  def unroll = currentParams.backward.unroll
+
+  def backwardInterprocAnalysis = currentParams.backward.backwardInterprocAnalysis
+
+  def rewriteChainCalls = currentParams.backward.rewriteChainCalls
+
+  def printPotentialCounterExample = currentParams.backward.printPotentialCounterExample
+
+  def printDefiniteCounterExample = currentParams.backward.printDefiniteCounterExample
+
 
 }
 
@@ -77,6 +89,7 @@ case class TouchAnalysisParameters(
                                     execution: ExecutionModelParams = ExecutionModelParams(),
                                     domains: DomainParams = DomainParams(),
                                     reporting: ReportingParams = ReportingParams(),
+									backward: BackwardParams = BackwardParams(),
 
                                     /**
                                      * If this is enabled, only relevant fields (i.e. that are read in the program) of
@@ -85,7 +98,7 @@ case class TouchAnalysisParameters(
                                     libraryFieldPruning: Boolean = true,
                                     // Fields that are always TOP
                                     topFields: Set[String] = Set("x", "y", "z", "z index", "speed x", "speed y",
-                                      "speed z", "width", "height", "acceleration x", "acceleration y", "angle",
+                                      "speed z", "acceleration x", "acceleration y", "angle",
                                       "angular speed", "leaderboard score")
                                     )
 
@@ -118,7 +131,7 @@ case class ExecutionModelParams(
                                   *
                                   * EXPERIMENTAL
                                   */
-                                 singleExecution: Boolean = false,
+                                 singleExecution: Boolean = true,
 
                                  fullAliasingInGenericInput: Boolean = false,
 
@@ -193,6 +206,33 @@ object NumericDomainChoice extends Enumeration {
   val StrictPolyhedra = Value
 }
 
+case class BackwardParams(
+  /** Enables the error investigation */
+  enableBackwardAnalysis: Boolean = false,
+
+  /** Perform loop unrolling to improve precision (non-determinism) */
+  unroll: Boolean = true,
+
+  /**
+   * Rewrite certain calls like foo->bar->bla into a sequence of assignments
+   * and method calls. Prevents some precision problems, creates others...
+   */
+  rewriteChainCalls: Boolean = false,
+
+  /**
+   * Enables some additional backward interprocedural analysis functionality,
+   * Such as false alarm detection going "all the way back" to program start from an event
+   * by computing fixed points (see thesis report for details)
+   */
+  backwardInterprocAnalysis: Boolean = false,
+
+  /** Print the test inputs for the concrete interpreter (only if reporting not silent, see below!) */
+  printPotentialCounterExample: Boolean = false,
+
+  /** Print a found counterexample (only if reporting not silent, see below!) */
+  printDefiniteCounterExample: Boolean = true
+)
+
 case class ReportingParams(reportNoncriticalParameterBoundViolations: Boolean = false,
                            reportDummyImplementations: Boolean = false,
                            reportNumericalErrors: Boolean = false,
@@ -210,6 +250,6 @@ case class ReportingParams(reportNoncriticalParameterBoundViolations: Boolean = 
                             */
                            printValuesInWarnings: Boolean = false,
 
-                           /** If true, suppress as much output as possible  (useful for testing) */
+                           /** If true, suppress as much output as possible  (useful for automated tests) */
                            silent: Boolean = false
                            )

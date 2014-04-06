@@ -6,6 +6,10 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.interpreter._
+import ch.ethz.inf.pm.td.analysis.interpreter.StringV
+import scala.Some
+import ch.ethz.inf.pm.td.compiler.DefaultTouchType
 
 /**
  * Specifies the abstract semantics of web
@@ -64,10 +68,12 @@ class SWeb extends AAny {
     /** Downloads the content of an internet page (http get) */
     case "download" =>
       val List(url) = parameters // String
-      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
-        Error[S](Field[S](this0,SWeb.field_is_connected).not,"download",
+      val notConnectedExpr = Field[S](this0, SWeb.field_is_connected).not
+      if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess) {
+        Error[S](notConnectedExpr, "download",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TString.typ)
+      }
+      NonDetReturn[S](TString.typ)
 
     /** Downloads a web service response as a JSON data structure (http get) */
     case "download json" =>
@@ -297,6 +303,63 @@ class SWeb extends AAny {
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+
+    case "url encode" =>
+      import java.net.URLEncoder
+      val List(url: StringV) = params
+      StringV(URLEncoder.encode(url.v, "UTF-8"))
+
+    case "url decode" =>
+      import java.net.URLDecoder
+      val List(url: StringV) = params
+      StringV(URLDecoder.decode(url.v, "UTF-8"))
+
+    case "download" =>
+      (this0, params) match {
+        case (thisRef: RefV, List(url: StringV)) =>
+        val state = interpreter.state
+        val BooleanV(connected) = state.getField(thisRef, SWeb.field_is_connected)
+        if (connected) {
+          // We are free to return whatever we want :)
+          StringV("")
+        } else {
+          InvalidV(TString.typ)
+        }
+      }
+
+    case "to json" =>
+      import scala.util.parsing.json._
+
+      val List(StringV(jsonStr)) = params
+      val parsed = JSON.parseFull(jsonStr)
+      parsed match {
+        case Some(vals: Map[String, Any]) =>
+          val entries =
+            for ((key, v) <- vals) yield {
+              val tv = v match {
+                case s: String => StringV(s)
+                case d: Double => NumberV(d)
+                case b: Boolean => BooleanV(b)
+                case _ => InvalidV(TJson_Object.typ)
+              }
+              StringV(key) -> tv
+            }
+          interpreter.state.createCollection(TJson_Object.typ, entries.toMap)
+        case None =>
+          InvalidV(TJson_Object.typ)
+      }
+
+
+
+    case _ =>
+      super.concreteSemantics(this0, method, params, interpreter, pp)
   }
 }
       

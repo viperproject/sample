@@ -679,17 +679,20 @@ trait AbstractNonRelationalHeapDomain[
   override def setArgument(variable : Assignable, expr : Expression) = this.assign(variable, expr, null)
 
   override def backwardAssign(oldPreState: H, variable : Assignable, expr : Expression): (H, Replacement) = {
-//    if(!variable.getType.isObject)
-//      return (this.asInstanceOf[H], new Replacement)
 
     variable match {
       case x : VariableIdentifier =>
-        val h = factory(_1.add(x, this._1.get(x).top()), _2)
+        val assumedEqState =
+          expr match {
+            case id: Identifier =>
+              assume(BinaryArithmeticExpression(x, id, ArithmeticOperator.==))._1
+            case _ =>
+              this
+          }
+        val h = factory(assumedEqState._1.add(x, assumedEqState._1.get(x).top()), assumedEqState._2)
         (h, new Replacement)
       case x : I =>
-        val value=this.eval(expr)
-        // TODO: consider summary nodes
-        val h = factory(_1, this._2.add(x, this.normalize(value)))
+        val h = factory(_1, _2.add(x, _2.get(x).top()))
         (h, new Replacement)
     }
   }
@@ -722,30 +725,6 @@ trait AbstractNonRelationalHeapDomain[
 
     (result, replacement)
   }
-
-  /*
-
-    variable match {
-
-
-
-
-
-      case x : HeapIdSetDomain[I] =>
-        if(x.isTop)
-          return (this.top(), new Replacement)
-        var result=this._2
-        val value=this.eval(expr)
-        //TODO:Distinguish between definite and maybe
-        for(addr <- x.value/*this.normalize(x).value*/)
-          result=result.add(addr, value.lub(this.normalize(value), this._2.get(addr)))
-        return (new NonRelationalHeapDomain(this._1, result, cod, dom), new Replacement);
-
-    }
-  }
-
-   */
-
 
   override def assign[S <: SemanticDomain[S]](variable : Assignable, expr : Expression, state : S) : (H, Replacement) = {
 
@@ -1091,8 +1070,23 @@ trait AbstractNonRelationalHeapDomain[
     }
   }
 
-  override def assume(expr : Expression) =
-    (this.asInstanceOf[H], new Replacement) //TODO: for now there is nothing about the heap structure
+  override def assume(expr : Expression) = {
+    /*
+     * For now, only support the simple assumption where we make sure that two variables
+     * may only point to the same identifiers, e.g. if
+     *    a -> {o1, o2}, b -> {o2, o3}
+     * the assumption "a == b" yields a -> {o2}, b -> {o2}
+     */
+    expr match {
+      case BinaryArithmeticExpression(idLeft: VariableIdentifier, idRight: VariableIdentifier, ArithmeticOperator.==, typ) =>
+        val newPointsTo = _1.get(idLeft) glb _1.get(idRight)
+        val updatedEnv = _1.add(idLeft, newPointsTo).add(idRight, newPointsTo)
+        val newHeap = factory(updatedEnv, _2)
+        (newHeap, new Replacement)
+      case _ =>
+        (this.asInstanceOf[H], new Replacement)
+    }
+  }
 
   def evalFieldAccess[S <: State[S]](expr : Assignable, field : String, typ : Type) : HeapIdSetDomain[I] = expr match {
     case obj : VariableIdentifier => return extractField(this.get(obj), field, typ)

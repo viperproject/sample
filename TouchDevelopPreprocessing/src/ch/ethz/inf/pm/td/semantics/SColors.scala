@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.interpreter._
 
 /**
  * Specifies the abstract semantics of colors
@@ -336,4 +337,10 @@ class SColors extends AAny {
 
   }
 
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = {
+    val state = interpreter.state
+    // TODO: this is completely wrong
+    state.createObject(TColor.typ)
+  }
 }

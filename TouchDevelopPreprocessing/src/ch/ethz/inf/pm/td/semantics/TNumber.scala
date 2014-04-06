@@ -4,7 +4,8 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis._
+import ch.ethz.inf.pm.td.analysis.interpreter._
 
 /**
  * Specifies the abstract semantics of Number
@@ -57,4 +58,72 @@ class TNumber extends AAny {
 
   }
 
+  override def backwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S, preState: S): S = method match {
+    case "≥" => Return(this0 >= parameters.head)(state, pp)
+    case "≤" => Return(this0 <= parameters.head)(state, pp)
+    case "=" => Return(this0 equal parameters.head)(state, pp)
+    case "≠" => Return(this0 unequal parameters.head)(state, pp)
+    case ">" => Return(this0 > parameters.head)(state, pp)
+    case "<" => Return(this0 < parameters.head)(state, pp)
+    case "+" => Return(this0 + parameters.head)(state, pp)
+    case "*" => Return(this0 * parameters.head)(state, pp)
+    case "-" => Return(this0 - parameters.head)(state, pp)
+    case "/" => Return(this0 / parameters.head)(state, pp)
+
+    case _ =>
+      super.backwardSemantics(this0,method,parameters,returnedType)(pp, state, preState)
+  }
+
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = {
+
+    method match {
+        case "≥" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            BooleanV(a >= b)
+        }
+        case "≤" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            BooleanV(a <= b)
+        }
+        case "=" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            BooleanV(a == b)
+        }
+        case "≠" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            BooleanV(a != b)
+        }
+        case ">" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            BooleanV(a > b)
+        }
+        case "<" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            BooleanV(a < b)
+        }
+        case "+" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            NumberV(a + b)
+        }
+        case "*" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            NumberV(a * b)
+        }
+        case "-" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            NumberV(a - b)
+        }
+        case "/" => (this0, params) match {
+          case (NumberV(a), List(NumberV(b))) =>
+            if (b == 0.0)  {
+              interpreter.failWithError(pp, InterpreterErrorType.DivByZero)
+            }
+            NumberV(a / b)
+        }
+
+
+        case _ => super.concreteSemantics(this0, method, params, interpreter, pp)
+      }
+  }
 }

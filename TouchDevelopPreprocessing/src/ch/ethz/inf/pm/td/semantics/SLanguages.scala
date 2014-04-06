@@ -6,6 +6,10 @@ import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.interpreter._
+import ch.ethz.inf.pm.td.analysis.interpreter.BooleanV
+import ch.ethz.inf.pm.td.compiler.DefaultTouchType
+import ch.ethz.inf.pm.td.analysis.interpreter.StringV
 
 /**
  * Specifies the abstract semantics of languages
@@ -20,8 +24,11 @@ object SLanguages {
   /** Gets the current language code, to be used in the 'translate' method. */
   val field_current_language = new TouchField("current language",TString.typName)
 
+  val field_has_speech_engine = new TouchField("has speech engine", TBoolean.typName)
+
+
   val typName = "Languages"
-  val typ = DefaultTouchType(typName,isSingleton = true, fields = List(field_current_language))
+  val typ = DefaultTouchType(typName,isSingleton = true, fields = List(field_current_language, field_has_speech_engine))
 
 }
 
@@ -59,12 +66,33 @@ class SLanguages extends AAny {
     /** Speaks the text immediately using the text-to-speech engine on the device. */
     case "speak text" =>
       val List(voice_language,voice_gender,text) = parameters // String,String,String
-      TopWithInvalid[S](TSound.typ)
+
+      // rf: Not sure when exactly Invalid can be returned. I assume it depends on whether
+      // a speech engine is available (phone/web platform) so I introduced an
+      // additional capability field.
+      val res = If[S](Field[S](this0, SLanguages.field_has_speech_engine),
+        Then = { s:S =>
+          ReturnTemp[S](Top[S](TSound.typ)(s,pp), pp)
+        }, Else = { s:S =>
+          ReturnTemp[S](Invalid(TSound.typ))(s,pp)
+        }
+      )
+      res
 
     /** This api was renamed. Use `speak_text` instead. */
     case "speak" =>
       val List(lang,text) = parameters // String,String
-      TopWithInvalid[S](TSound.typ)
+    // rf: Not sure when exactly Invalid can be returned. I assume it depends on whether
+    // a speech engine is available (phone/web platform) so I introduced an
+    // additional capability field.
+    val res = If[S](Field[S](this0, SLanguages.field_has_speech_engine),
+        Then = { s:S =>
+          ReturnTemp[S](Top[S](TSound.typ)(s,pp), pp)
+        }, Else = { s:S =>
+          ReturnTemp[S](Invalid(TSound.typ))(s,pp)
+        }
+      )
+      res
 
     /** Converts a sound to a text using Project Hawaii from Microsoft Research. */
     case "speech to text" =>
@@ -85,6 +113,25 @@ class SLanguages extends AAny {
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+
+    case "speak" =>
+      (this0, params) match {
+        case (thisRef: RefV, List(language: StringV, text: StringV)) =>
+          val state = interpreter.state
+          val BooleanV(hasSpeech) = state.getField(thisRef, SLanguages.field_has_speech_engine)
+          if (hasSpeech) {
+            state.createObject(TSound.typ)
+          } else {
+            InvalidV(TSound.typ)
+          }
+      }
   }
 }
       

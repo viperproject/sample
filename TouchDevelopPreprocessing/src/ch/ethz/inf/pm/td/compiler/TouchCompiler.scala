@@ -5,12 +5,14 @@ import io.Source
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.typecheck.Typer
 import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptQuery}
-import ch.ethz.inf.pm.td.transform.LoopRewriter
+import ch.ethz.inf.pm.td.transform.{ChainedCallRewriter, CleanupInserter, LoopUnroller, LoopRewriter}
 import ch.ethz.inf.pm.td.semantics._
 import scala.Some
 import ch.ethz.inf.pm.td.parser.LibraryDefinition
 import ch.ethz.inf.pm.td.parser.Script
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
 /**
  *
@@ -19,6 +21,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
  * Time: 3:50 PM
  *
  */
+
 class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   var main : ClassDefinition = null
@@ -106,12 +109,35 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   }
 
+  def isEvent(mdecl: MethodDeclaration): Boolean = events.contains(mdecl)
+
+  def isPublicAction(mdecl: MethodDeclaration): Boolean = publicMethods.contains(mdecl)
+
+  def isTopLevel(mdecl: MethodDeclaration): Boolean = isPublicAction(mdecl) || isEvent(mdecl)
+
+
+  def allMethods: Set[MethodDeclaration] = publicMethods ++ events ++ privateMethods
+
   def compileScriptRecursive(script:Script, pubID:String, libDef:Option[LibraryDefinition] = None): ClassDefinition = {
 
-    val rewrittenScript = LoopRewriter(script)
+    var rewrittenScript = LoopRewriter(script)
+
+    if (TouchAnalysisParameters.enableBackwardAnalysis) {
+      if (TouchAnalysisParameters.unroll) {
+        rewrittenScript = LoopUnroller.unroll(rewrittenScript, 1)
+      }
+
+      rewrittenScript = CleanupInserter.insertCleanupStatements(rewrittenScript)
+
+      if (TouchAnalysisParameters.rewriteChainCalls) {
+        rewrittenScript = ChainedCallRewriter.rewriteScript(rewrittenScript)
+      }
+    }
+
     Typer.processScript(rewrittenScript)
 
     val newCFG =  cfgGenerator.process(rewrittenScript,pubID,libDef)
+
 
     // update fields
     parsedScripts = parsedScripts ::: List(newCFG)
@@ -132,6 +158,21 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     isInLibraryMode = script.isLibrary
 
     newCFG
+  }
+
+  def resolveGlobalData(name: String): VariableIdentifier = {
+    val matchingFieldDecl = globalData.find(_.variable.getName == name).get
+    VariableIdentifier(CFGGenerator.globalReferenceIdent(name))(matchingFieldDecl.typ,
+      matchingFieldDecl.programpoint)
+  }
+
+  def singletonVars: Set[VariableIdentifier] = {
+    val singletonTypes = TypeList.types.values.map(_.getTyp).filter(_.isSingleton)
+    (for (typ <- singletonTypes) yield {
+      val name = typ.name.toLowerCase
+      val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
+      VariableIdentifier(name)(typ, singletonProgramPoint)
+    }).toSet
   }
 
   def getSourceCode(path : String):String = {
@@ -184,6 +225,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     })
   }
 
+  def mainAction: MethodDeclaration = publicMethods.find(md => md.name.toString == "main").head
+
   def getMethod(name: String, classType: Type, parameters: List[Type]): Option[(MethodDeclaration, Type)] = {
     getMethodWithClassDefinition(name,classType,parameters) match {
       case Some(mdecl) => Some((mdecl,mdecl.ownerType))
@@ -218,6 +261,12 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   def getMethods(name:String): List[(ClassDefinition, MethodDeclaration)] =
     for (mdecl <- publicMethods.toList if mdecl.name.toString == name)
     yield (mdecl.classDef, mdecl)
+
+  def allMethodWithName(name:String): List[MethodDeclaration] = {
+    allMethods
+      .toList
+      .filter(_.name.toString == name)
+  }
 
   def reset() {
     main = null

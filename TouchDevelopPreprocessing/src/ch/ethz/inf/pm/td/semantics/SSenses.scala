@@ -1,9 +1,12 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.interpreter._
+import ch.ethz.inf.pm.td.analysis.interpreter.RefV
+import ch.ethz.inf.pm.td.analysis.interpreter.NumberV
 
 /**
  * Specifies the abstract semantics of senses
@@ -22,19 +25,19 @@ object SSenses {
   val field_front_camera = new TouchField("front camera",TCamera.typName,topDefault = TopWithInvalidInitializer)
 
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
-  val field_has_accelerometer = new TouchField("has accelerometer",TBoolean.typName)
+  val field_has_accelerometer = new TouchField("has accelerometer",TBoolean.typName, default = TopInitializer)
 
   /** DEPRECATED. Test if the senses→heading is invalid instead */
-  val field_has_compass = new TouchField("has compass",TBoolean.typName)
+  val field_has_compass = new TouchField("has compass",TBoolean.typName, default = TopInitializer)
 
   /** DEPRECATED. Test if the senses→front camera is invalid instead */
-  val field_has_front_camera = new TouchField("has front camera",TBoolean.typName)
+  val field_has_front_camera = new TouchField("has front camera",TBoolean.typName, default = TopInitializer)
 
   /** Indicates if the gyroscope is available on the device */
-  val field_has_gyroscope = new TouchField("has gyroscope",TBoolean.typName)
+  val field_has_gyroscope = new TouchField("has gyroscope",TBoolean.typName, default = TopInitializer)
 
   /** Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */
-  val field_battery_level = new TouchField("battery level",TNumber.typName)
+  val field_battery_level = new TouchField("battery level",TNumber.typName, default = TopWithInvalidInitializer, topDefault = TopWithInvalidInitializer)
 
   /** Get the list of Bluetooth widgets paired with your device. */
   val field_bluetooth_devices = new TouchField("bluetooth devices", GCollection.typName(TBluetooth_Device.typName))
@@ -65,11 +68,11 @@ class SSenses extends AAny {
 
     /** Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */
     case "acceleration quick" =>
-      val res = If[S](Field[S](this0,SSenses.field_has_accelerometer),
+      val res = If[S](Field[S](this0, SSenses.field_has_accelerometer),
         Then = { s:S =>
-          Top[S](TVector3.typ)(s,pp)
+          ReturnTemp[S](Top[S](TVector3.typ)(s,pp), pp)
         }, Else = { s:S =>
-          Return[S](Invalid(TVector3.typ))(s,pp)
+          ReturnTemp[S](Invalid(TVector3.typ))(s,pp)
         }
       )
       res
@@ -96,12 +99,12 @@ class SSenses extends AAny {
 
     /** Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */
     case "current location" =>
-       TopWithInvalid[S](TLocation.typ)
+      NonDetReturn[S](TLocation.typ)
 
     /** Gets the current phone location with the most accuracy. This includes using services that might charge money,
       * or consuming higher levels of battery power or connection bandwidth. */
      case "current location accurate" =>
-       TopWithInvalid[S](TLocation.typ)
+       NonDetReturn[S](TLocation.typ)
 
     /** DEPRECATED. Test if the senses→motion is invalid instead. */
     case "has motion" =>
@@ -133,9 +136,9 @@ class SSenses extends AAny {
         && Field[S](this0,SSenses.field_has_compass)
         && Field[S](this0,SSenses.field_has_gyroscope),
         Then = { s:S =>
-          Top[S](TMotion.typ)(s,pp)
+          ReturnTemp[S](Top[S](TMotion.typ)(s,pp), pp)
         }, Else = { s:S =>
-          Return[S](Invalid(TMotion.typ))(s,pp)
+          ReturnTemp[S](Invalid(TMotion.typ))(s,pp)
         }
       )
 
@@ -179,9 +182,9 @@ class SSenses extends AAny {
     /** Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */
     case "orientation" =>
       If[S](Field[S](this0,SSenses.field_has_gyroscope),Then = { s:S =>
-        Top[S](TVector3.typ)(s,pp)
+        ReturnTemp[S](Top[S](TVector3.typ)(s,pp), pp)
       }, Else = { s:S =>
-        TopWithInvalid[S](TVector3.typ)(s,pp)
+        ReturnTemp[S](TopWithInvalid[S](TVector3.typ)(s,pp), pp)
       })
 
     /** Records audio using the microphone */
@@ -200,12 +203,12 @@ class SSenses extends AAny {
     case "take camera picture" =>
       If[S](Field[S](this0,SSenses.field_camera) equal Invalid(TCamera.typ),
         Then = {
-          Return[S](Invalid(TPicture.typ))(_,pp)
+          ReturnTemp[S](Invalid(TPicture.typ))(_,pp)
         },
-        Else = {
-          Top[S](TPicture.typ,Map(
+        Else = { s =>
+          ReturnTemp[S](Top[S](TPicture.typ,Map(
             TPicture.field_location -> Invalid(TLocation.typ)
-          ))(_,pp)
+          ))(s ,pp), pp)
         }
       )
 
@@ -215,4 +218,45 @@ class SSenses extends AAny {
 
   }
 
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+    case "orientation" =>
+      val state = interpreter.state
+      this0 match {
+        case sensesRef: RefV =>
+          val hasGyroscope = state.getField(sensesRef, SSenses.field_has_gyroscope.getName).asInstanceOf[BooleanV].v
+          if (hasGyroscope) {
+            // Let's produce some bogus vector
+            state.createObject(TVector3.typ, Map("x" -> NumberV(0), "y" -> NumberV(0), "z" -> NumberV(0)))
+          } else {
+            InvalidV(TVector3.typ)
+          }
+      }
+
+    case "current location" =>
+      interpreter.nonDetInputAt(pp).getOrElse(InvalidV(TLocation.typ))
+
+    case "acceleration quick" =>
+      val state = interpreter.state
+      this0 match {
+        case sensesRef: RefV =>
+          val hasGyroscope = state.getField(sensesRef, SSenses.field_has_accelerometer.getName).asInstanceOf[BooleanV].v
+          if (hasGyroscope) {
+            // Always 0, this may happen!
+            state.createObject(TVector3.typ, Map("x" -> NumberV(0), "y" -> NumberV(0), "z" -> NumberV(0)))
+          } else {
+            InvalidV(TVector3.typ)
+          }
+      }
+
+    case "take camera picture" =>
+      // Too bad, our interpreter never as a camera
+      InvalidV(TCamera.typ)
+
+
+    case _ => super.concreteSemantics(this0, method, params, interpreter, pp)
+  }
 }

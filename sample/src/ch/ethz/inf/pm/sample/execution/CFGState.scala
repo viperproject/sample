@@ -19,6 +19,8 @@ trait CFGState[S <: State[S]] {
 
   def stateFactory: S
 
+  def entryState(): S
+
   def exitState(): S
 
   def statesOfBlock(idx: Int): List[S]

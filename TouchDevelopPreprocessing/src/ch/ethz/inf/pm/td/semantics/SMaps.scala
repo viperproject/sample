@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.interpreter.{InvalidV, ConcreteInterpreter, TouchValue}
 
 /**
  * User: lucas
@@ -40,7 +41,8 @@ class SMaps extends AAny {
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
         Error[S](Field[S](Singleton(SWeb.typ),SWeb.field_is_connected).not(),"directions",
           "Check if the device is connected to the internet before using the connection")
-      TopWithInvalid[S](TLocation_Collection.typ)
+      // may return invalid
+      NonDetReturn[S](TLocation_Collection.typ)
 
     /** Shows the directions in the Bing map application. If search term is provided, location is ignored.
         Provide search term or location for start and end. */
@@ -62,6 +64,25 @@ class SMaps extends AAny {
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
+
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+
+    case "directions" =>
+      val List(fromLocation, toLocation, _) = params
+      interpreter
+        .nonDetInputAt(pp)
+        .getOrElse(InvalidV(TLocation_Collection.typ))
+
+    case "create map" =>
+      interpreter.state.createObject(TMap.typ)
+
+    case _ => super.concreteSemantics(this0, method, params, interpreter, pp)
 
   }
 }

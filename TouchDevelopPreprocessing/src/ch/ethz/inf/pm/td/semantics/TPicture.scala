@@ -5,7 +5,8 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis._
+import ch.ethz.inf.pm.td.analysis.interpreter._
 
 /**
  * Specifies the abstract semantics of Picture
@@ -185,11 +186,10 @@ class TPicture extends AAny {
     case "draw text" =>
       val List(left, top, text, font, angle, color) = parameters // Number,Number,String,Number,Number,Color
       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
-        CheckInRangeInclusive[S](left, 0, Field[S](this0, TPicture.field_width), "draw text", "left")
-        CheckInRangeInclusive[S](top, 0, Field[S](this0, TPicture.field_height), "draw text", "top")
-        CheckInRangeInclusive[S](angle, 0, 360, "draw text", "angle")
-      }
-      Skip
+        val s1 = CheckInRangeInclusive[S](left,0,Field[S](this0,TPicture.field_width),"draw text","left")
+        val s2 = CheckInRangeInclusive[S](top,0,Field[S](this0,TPicture.field_height),"draw text","top")(s1, pp)
+        CheckInRangeInclusive[S](angle,0,360,"draw text","angle")(s2, pp)
+      } else Skip
 
     /** Fills a ellipse with a given color */
     case "fill ellipse" =>
@@ -265,25 +265,23 @@ class TPicture extends AAny {
 
       // UNDOCUMENTED: Values <= 0 say "choose according to ratio". Both parameters <= 0: Resize to 300:150... We detect an error
 
-      val state1 = If[S](width <= 0, Then = {
-        s: S =>
+      val state1 = If[S](width<=0,Then = { s =>
         // new_w = new_h * (old_w / old_h)
-          AssignField[S](this0, TPicture.field_width, height * Field[S](this0, TPicture.field_width) / Field[S](this0, TPicture.field_height))(s, pp)
-      }, Else = {
-        s: S =>
-          AssignField[S](this0, TPicture.field_width, width)(s, pp)
+        AssignField[S](this0,TPicture.field_width, height * Field[S](this0,TPicture.field_width) / Field[S](this0,TPicture.field_height))(s,pp)
+      }, Else = { s: S =>
+        AssignField[S](this0,TPicture.field_width, width)(s,pp)
       })
 
-      val state2 = If[S](height <= 0, Then = {
-        s: S =>
+      val state2 = If[S](height<=0,Then = { s: S =>
         // new_h = new_w * (old_h / old_w)
-          AssignField[S](this0, TPicture.field_height, width * Field[S](this0, TPicture.field_height) / Field[S](this0, TPicture.field_width))(s, pp)
-      }, Else = {
-        s: S =>
-          AssignField[S](this0, TPicture.field_height, height)(s, pp)
-      })(state1, pp)
+        AssignField[S](this0,TPicture.field_height, width * Field[S](this0,TPicture.field_height) / Field[S](this0,TPicture.field_width))(s,pp)
+      }, Else = { s: S =>
+        AssignField[S](this0,TPicture.field_height, height)(s,pp)
+      })(state1,pp)
 
-      state2
+      val newwidth = Field[S](this0, TPicture.field_width)(state2, pp)
+      val newheight = Field[S](this0, TPicture.field_height)(state2, pp)
+      Assume[S](newwidth > 0 && newheight > 0)(state2, pp)
 
     /** Saves the picture to the 'saved pictures' album. Returns the file name. */
     case "save to library" =>
@@ -293,8 +291,10 @@ class TPicture extends AAny {
     case "set pixel" =>
       val List(x, y, color) = parameters // Number,Number,Color
       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
-        CheckInRangeInclusive[S](x, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "set pixel", "x")
-        CheckInRangeInclusive[S](y, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "set pixel", "y")
+        CheckLowerBound[S](x, 0, "set pixel", "x")
+        CheckStrictUpperBound[S](x, Field[S](this0,TPicture.field_width), "set pixel", "x")
+        CheckLowerBound[S](y, 0, "set pixel", "y")
+        CheckStrictUpperBound[S](y, Field[S](this0,TPicture.field_height), "set pixel", "y")
       }
       Skip
 
@@ -325,5 +325,78 @@ class TPicture extends AAny {
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = {
+    val state = interpreter.state
+
+    method match {
+      case "set pixel" =>
+        (this0, params) match {
+          case (pic@RefV(typ, id), List(NumberV(x), NumberV(y), _)) =>
+          if (x < 0) interpreter.failWithError(pp, InterpreterErrorType.AssertFailure, Some("Negative x coordinate"))
+          if (y < 0) interpreter.failWithError(pp, InterpreterErrorType.AssertFailure, Some("Negative y coordinate"))
+          val NumberV(width) = state.getField(pic, "width")
+          val NumberV(height) = state.getField(pic, "height")
+          if (x >= width) interpreter.failWithError(pp, InterpreterErrorType.AssertFailure, Some("Drawing out of width bound"))
+          if (y >= height) interpreter.failWithError(pp, InterpreterErrorType.AssertFailure, Some("Drawing out of width bound"))
+          UnitV
+        }
+      case "draw text" =>
+        (this0, params) match {
+          case (pic: RefV, List(NumberV(x), NumberV(y), StringV(text), NumberV(fontsize), NumberV(dir), color: RefV)) =>
+            if (x < 0) interpreter.failWithError(pp, InterpreterErrorType.AssertFailure, Some("Negative x coordinate"))
+            if (y < 0) interpreter.failWithError(pp, InterpreterErrorType.AssertFailure, Some("Negative y coordinate"))
+            val NumberV(width) = state.getField(pic, "width")
+            val NumberV(height) = state.getField(pic, "height")
+            if (x >= width) interpreter.failWithError(pp, InterpreterErrorType.AssertFailure, Some("Drawing out of width bound"))
+            if (y >= height) interpreter.failWithError(pp, InterpreterErrorType.AssertFailure, Some("Drawing out of height bound"))
+            UnitV
+        }
+      case "fill rect" =>
+        (this0, params) match {
+          case (pic: RefV, List(NumberV(left), NumberV(top), NumberV(width), NumberV(height), NumberV(angle), color: RefV)) =>
+            val NumberV(picwidth) = state.getField(pic, TPicture.field_width.getName)
+            val NumberV(picheight) = state.getField(pic, TPicture.field_height.getName)
+
+            interpreter.assertE(0 <= left && left <= picwidth)(pp)
+            interpreter.assertE(0 <= top && top <= picheight)(pp)
+            interpreter.assertE(0 <= left + width && left + width <= picwidth)(pp)
+            interpreter.assertE(0 <= top + height && top + height  <= picheight)(pp)
+            interpreter.assertE(0 <= angle && angle <= 360)(pp)
+
+            UnitV
+        }
+      case "is panorama" =>
+        this0 match {
+          case pic: RefV =>
+            val NumberV(picwidth) = state.getField(pic, TPicture.field_width.getName)
+            val NumberV(picheight) = state.getField(pic, TPicture.field_height.getName)
+            BooleanV(picwidth > picheight)
+        }
+
+      case "resize" =>
+        (this0, params) match {
+          case (pic@RefV(typ, id), List(NumberV(x), NumberV(y))) =>
+            interpreter.assertE(x >= 0 || y >= 0)(pp)
+            val NumberV(oldx) = state.getField(pic, "width")
+            val NumberV(oldy) = state.getField(pic, "height")
+            val (newx, newy) =
+              if (x < 0) {
+                (y * (oldx / oldy), y)
+              } else if (y < 0) {
+                (x, x * (y / x))
+              } else (x,y)
+            state.setField(pic, "width", NumberV(newx))
+            state.setField(pic, "height", NumberV(newy))
+            UnitV
+        }
+
+      case "post to wall" => UnitV
+
+      case _ => super.concreteSemantics(this0, method, params, interpreter, pp)
+
+    }
   }
 }

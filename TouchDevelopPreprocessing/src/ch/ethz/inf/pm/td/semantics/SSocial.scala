@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.interpreter.{InvalidV, ConcreteInterpreter, TouchValue}
 
 /**
  * Specifies the abstract semantics of social
@@ -30,11 +31,11 @@ class SSocial extends AAny {
         
     /** Chooses a contact from the contact list */
     case "choose contact" =>
-      TopWithInvalid[S](TContact.typ) // Invalid value validated in Windows Phone version!
+      NonDetReturn[S](TContact.typ) // Invalid value validated in Windows Phone version!
 
     /** Chooses an email from the contact list */
     case "choose email" =>
-      TopWithInvalid[S](TLink.typ) // Invalid value validated in Windows Phone version!
+      NonDetReturn[S](TLink.typ) // Invalid value validated in Windows Phone version!
 
     /** Retrieves the list of contacts */
     case "contacts" =>
@@ -123,6 +124,19 @@ class SSocial extends AAny {
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
+
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+    case "choose contact" =>
+      interpreter.nonDetInputAt(pp).getOrElse(InvalidV(TContact.typ))
+
+    case _ =>
+      super.concreteSemantics(this0, method, params, interpreter, pp)
 
   }
 }

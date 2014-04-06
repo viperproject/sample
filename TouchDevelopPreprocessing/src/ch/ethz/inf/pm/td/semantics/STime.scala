@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.interpreter.{NumberV, ConcreteInterpreter, TouchValue}
 
 /**
  * Specifies the abstract semantics of time
@@ -103,6 +104,26 @@ class STime extends AAny {
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)
+
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+
+    case "today" =>
+      import com.github.nscala_time.time.Imports._
+
+      val state = interpreter.state
+      val now = DateTime.now
+
+      state.createObjectWithTouchFields(TDateTime.typ, Map(
+        TDateTime.field_day -> NumberV(now.getDayOfMonth),
+        TDateTime.field_month -> NumberV(now.getMonthOfYear),
+        TDateTime.field_year -> NumberV(now.getYear)
+      ))
 
   }
 }

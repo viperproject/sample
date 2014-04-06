@@ -201,9 +201,10 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
       sets invidivdual entry glb(a,b)(id) = Bottom, not the whole functional domain.
      */
     val funcMap = r.map
-    // safer check but should not be necessary anymore (and less general):
-    //  funcMap.exists({case (id, validity) => validity.isBottom && !this.get(id).isBottom && !other.get(id).isBottom})
-    if (funcMap.values.exists(_.isBottom)) {
+    // More reasonable check, but unfortunately doesn't work since
+    // collection tuple IDs often become bottom (why?!):
+    // funcMap.values.exists(_.isBottom))
+    if (funcMap.exists({case (id, validity) => validity.isBottom && !this.get(id).isBottom && !other.get(id).isBottom})) {
       r.bottom()
     } else r
   }

@@ -47,7 +47,7 @@ object CFGGenerator {
   def getLibraryName(ident:String) = ident.substring(1)
   def returnIdent(ident:String) = "__returned_"+ident
   def isReturnIdent(ident:String) = ident.startsWith("__returned_")
-  def isNonDetIdent(ident:String) = ident.startsWith("__nondet")
+  def isNonDetIdent(ident:String) = ident.startsWith("__nondet") || ident.startsWith("__data_nd_")
   def isStmtTempIdent(ident:String) = ident.startsWith("__temp")
 
   def makekTouchProgramPoint(pubID: String, element: IdPositional) = {

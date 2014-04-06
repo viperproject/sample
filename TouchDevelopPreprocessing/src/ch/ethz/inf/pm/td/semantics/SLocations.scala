@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.analysis.interpreter.{ConcreteInterpreter, TouchValue}
 
 /**
  * User: lucas
@@ -51,6 +52,22 @@ class SLocations extends AAny {
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
+
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = method match {
+    case "create location" =>
+      val state = interpreter.state
+      val List(latitude, longitude) = params
+      state.createObjectWithTouchFields(TLocation.typ, Map(
+        TLocation.field_latitude -> latitude,
+        TLocation.field_longitude -> longitude
+      ))
+
+    case _ => super.concreteSemantics(this0, method, params, interpreter, pp)
 
   }
 }

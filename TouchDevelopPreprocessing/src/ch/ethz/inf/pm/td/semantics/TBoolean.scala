@@ -4,6 +4,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.interpreter._
 
 /**
  * User: lucas
@@ -20,6 +21,29 @@ object TBoolean {
 class TBoolean extends AAny {
 
   def getTyp = TBoolean.typ
+
+  override def backwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S, oldPreState: S): S = method match {
+    /** Builds conjunction */
+    case "and" =>
+      val List(right) = parameters // Boolean
+      Return(this0 && right)(state, pp)
+
+    /** Indicates that the two values are equal */
+    case "equals" =>
+      val List(right) = parameters // Boolean
+      Return[S]((this0 && right)||(this0.not() && right.not()))(state, pp)
+
+    /** Negates the boolean expression */
+    case "not" =>
+      Return(this0.not())(state, pp)
+
+    /** Builds disjunction */
+    case "or" =>
+      val List(right) = parameters // Boolean
+      Return(this0 || right)(state, pp)
+
+    case _ => super.backwardSemantics(this0, method, parameters, returnedType)(pp, state, oldPreState)
+  }
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet],
                                                returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
@@ -83,6 +107,34 @@ class TBoolean extends AAny {
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = {
+
+    method match {
+      case "and" => (this0, params) match {
+        case (BooleanV(a), List(BooleanV(b))) =>
+          BooleanV(a && b)
+      }
+      case "or" => (this0, params) match {
+        case (BooleanV(a), List(BooleanV(b))) =>
+          BooleanV(a || b)
+      }
+      case "not" => this0 match {
+        case BooleanV(a) =>
+          BooleanV(!a)
+      }
+      case "equals" => (this0, params) match {
+        case (BooleanV(a), List(BooleanV(b))) =>
+          BooleanV(a == b)
+      }
+      case "to string" => this0 match {
+        case BooleanV(a) => StringV(if (a) "true" else "false")
+      }
+
+      case _ => super.concreteSemantics(this0, method, params, interpreter, pp)
+    }
   }
 
 }

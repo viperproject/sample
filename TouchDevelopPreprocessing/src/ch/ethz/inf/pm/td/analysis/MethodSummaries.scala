@@ -3,18 +3,33 @@ package ch.ethz.inf.pm.td.analysis
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.TUnknown
+import ch.ethz.inf.pm.sample.execution._
+import ch.ethz.inf.pm.td.domain.MultiValExpression
 import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
 import scala.Some
+import ch.ethz.inf.pm.sample.AnalysisUnitContext
+import ch.ethz.inf.pm.sample.execution.DefaultCFGStateFactory
 import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.ProgramPointScopeIdentifier
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.td.domain.MultiValExpression
-import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
-import ch.ethz.inf.pm.sample.execution.CFGState
+import ch.ethz.inf.pm.sample.backwardanalysis.{DefaultRefiningBackwardInterpreter, InCFGInitialState}
 
+/** Summarizes abstract semantics of an analyzed method */
 case class MethodSummary[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration,
-                                        cfgState: CFGState[S])
+                                        cfgState: DefaultCFGState[S])
+
+/** Used to keep track of the current CFG location during forward interpretation */
+case class ForwardInterpreterEventHandler[S <: State[S]]() extends InterpreterEventHandler[S] {
+  var currentPos: Option[CFGPosition] = None
+
+  override def beforeCFGStatement(stmt: Statement, cfgPos: CFGPosition, preState: S): S = {
+    currentPos = Some(cfgPos)
+    preState
+  }
+}
 
 /**
  * Stores summaries of methods. This is not thread-safe.
@@ -31,6 +46,10 @@ object MethodSummaries {
    */
   private var entriesOnStack:Map[ProgramPoint,_] = Map.empty
 
+  val forwardInterpreterEventHandler = ForwardInterpreterEventHandler()
+
+  def currentForwardPos: Option[CFGPosition] = forwardInterpreterEventHandler.currentPos
+
   /**
    * Stores the entry state of a closure method
    */
@@ -40,6 +59,23 @@ object MethodSummaries {
    * Stores exit states at positions which end the script prematurely
    */
   private var abnormalExits:Option[State[_]] = None
+
+  /**
+   * Stores the summaries with refined backward states
+   */
+  private var backwardSummaries: Map[ProgramPoint, MethodSummary[_]] = Map.empty
+
+  /**
+   * Store exit states of methods currently on the stack (detection
+   * of recursive calls, backward version)
+   */
+  private var exitsOnStack:Map[ProgramPoint,_] = Map.empty
+
+  /** Casting helper for summaries. Remove once MethodSummaries is not a singleton  anymore... */
+  def summaryFor[S <: State[S]](pp: ProgramPoint): MethodSummary[S] = summaries(pp).asInstanceOf[MethodSummary[S]]
+
+  /** Casting helper for backward summaries. Remove once MethodSummaries is not a singleton  anymore... */
+  def backwardSummaryFor[S <: State[S]](pp: ProgramPoint): MethodSummary[S] = backwardSummaries(pp).asInstanceOf[MethodSummary[S]]
 
   /**
    *
@@ -107,7 +143,7 @@ object MethodSummaries {
             executeMethod(enteredState, prev)
           case None =>
             val factoryState = enteredState.factory()
-            val cfgState = new ControlFlowGraphExecution(callTarget.body, factoryState)
+            val cfgState = DefaultCFGStateFactory(factoryState).allBottom(callTarget.body)
             val prevSummary = new MethodSummary(identifyingPP, callTarget, cfgState)
             executeMethod(enteredState, prevSummary)
         }
@@ -142,7 +178,7 @@ object MethodSummaries {
     curState = curState.pruneVariables({
       case id:VariableIdentifier =>
         !id.typ.asInstanceOf[TouchType].isSingleton &&
-        !CFGGenerator.isGlobalReferenceIdent(id.toString)
+          !CFGGenerator.isGlobalReferenceIdent(id.toString)
       case _ => false
     })
     curState = curState.pruneUnreachableHeap()
@@ -184,22 +220,52 @@ object MethodSummaries {
 
   }
 
+  def resetBackward[S <: State[S]]() {
+    backwardSummaries = Map.empty
+    exitsOnStack = Map.empty[ProgramPoint,S]
+  }
+
+
   def reset[S <: State[S]]() {
     summaries = Map.empty[ProgramPoint,MethodSummary[S]]
     entriesOnStack = Map.empty[ProgramPoint,S]
     closureEntries = Map.empty
     abnormalExits = None
+    resetBackward()
   }
 
   def getSummaries[S <: State[S]] = summaries.asInstanceOf[Map[ProgramPoint,MethodSummary[S]]]
 
   def executeMethod[S <: State[S]](entryState:S, currentSummary: MethodSummary[S]): MethodSummary[S] = {
     val methodDecl = currentSummary.method
-    val newState =
+    val newState: DefaultCFGState[S] =
       SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(methodDecl)) {
-        currentSummary.cfgState.asInstanceOf[ControlFlowGraphExecution[S]].forwardSemantics(entryState)
+        val forwardInterpreter = new DefaultForwardInterpreter(entryState.factory(), forwardInterpreterEventHandler.asInstanceOf[ForwardInterpreterEventHandler[S]])
+        forwardInterpreter.forwardExecuteWithCFGState(methodDecl.body, currentSummary.cfgState, entryState)
       }
     currentSummary.copy(cfgState = newState)
+  }
+
+  def executeMethodBackward[S <: State[S]](exitState: S, currentBackwardSummary: MethodSummary[S],
+                                          forwardSummary: MethodSummary[S]): MethodSummary[S] = {
+    val methodToExecute = currentBackwardSummary.method
+
+    val newCfgState: DefaultCFGState[S] =
+      SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(methodToExecute)) {
+        val interpreter = new DefaultRefiningBackwardInterpreter[S](exitState.factory())
+        val backwardContext = SystemParameters.backwardContext
+        backwardContext.currentError match {
+          case Some(err) if err.method == methodToExecute =>
+            val inCFGErrorState = InCFGInitialState[S](err.errorState, err.cfgPosition)
+            interpreter.executeWithInCFGError(methodToExecute.body, forwardSummary.cfgState,
+              refinedBackwardStates = currentBackwardSummary.cfgState, exitState, inCFGErrorState)
+          case _ =>
+            interpreter.executeFromExit(methodToExecute.body, forwardSummary.cfgState,
+              refinedBackwardStates = currentBackwardSummary.cfgState, exitState)
+        }
+      }
+
+    currentBackwardSummary.copy(cfgState = newCfgState)
   }
 
   private def pruneGlobalState[S <: State[S]](entryState:S):S = {
@@ -303,6 +369,15 @@ object MethodSummaries {
 
   }
 
+  private def exitFunctionLocalVarFilter(callTarget: MethodDeclaration): Identifier => Boolean = {
+    case id:VariableIdentifier =>
+      // Belongs to scope of call target
+      id.scope == ProgramPointScopeIdentifier(callTarget.programpoint) &&
+        // Is not a return value
+        !CFGGenerator.isReturnIdent(id.toString)
+    case _ => false
+  }
+
   private def exitFunction[S <: State[S]](callPoint: ProgramPoint, callTarget: MethodDeclaration, entryState: S,
                                           parameters: List[ExpressionSet]): S = {
 
@@ -321,25 +396,172 @@ object MethodSummaries {
     def buildMultiVal(tempVars:List[VariableIdentifier]): Expression = tempVars match {
       case x :: Nil => x
       case x :: xs => MultiValExpression(x,buildMultiVal(xs),TUnknown.typ.top())
-      case Nil => UnitExpression(TNothing.typ,callPoint)
     }
 
-    val z = buildMultiVal(tempVars)
-    curState = curState.setExpression(ExpressionSet(z))
+    val returnExpr = if (tempVars.isEmpty) ExpressionFactory.unitExpr else ExpressionSet(buildMultiVal(tempVars))
+    curState = curState.setExpression(returnExpr)
 
     // Prune local state (except return values)
-    curState = curState.pruneVariables({
-      case id:VariableIdentifier =>
-        // Belongs to scope of call target
-        id.scope == ProgramPointScopeIdentifier(callTarget.programpoint) &&
-        // Is not a return value
-        !CFGGenerator.isReturnIdent(id.toString)
-      case _ => false
-    })
+    curState = curState.pruneVariables(exitFunctionLocalVarFilter(callTarget))
     curState = curState.pruneUnreachableHeap()
 
     curState
 
+  }
+
+  /**
+   * Does backward analysis on called method, uses summaries when possible
+   * and generalize them if deemed necessary.
+   *
+   * This is fairly symmetric to the forward collect operation.
+   */
+  def backwardCollect[S <: State[S]](callPoint: ProgramPoint, callTarget: MethodDeclaration, postState: S,
+                                     parameters: List[ExpressionSet]): S = {
+    val identifyingPP =
+      if(TouchAnalysisParameters.contextSensitiveInterproceduralAnalysis) callPoint
+      else callTarget.programpoint
+
+    summaries.get(identifyingPP) match {
+      case Some(forwardSummary: MethodSummary[S]) =>
+
+        var beforeExitState = backwardExitFunction(callPoint, callTarget,
+          forwardSummary.cfgState.exitState(), postState)
+
+        val result = exitsOnStack.get(identifyingPP) match {
+          case Some(oldExitState) =>
+            // Recursive call
+
+            val newExitState = oldExitState.asInstanceOf[S].widening(beforeExitState)
+            exitsOnStack += ((identifyingPP,newExitState))
+
+            backwardSummaries.get(identifyingPP) match {
+              case Some(s) =>
+
+                // Get the result of the previous recursion depth and join it with the local state
+                val summary = s.asInstanceOf[MethodSummary[S]]
+                val enteredState = summary.cfgState.entryState()
+                val forwardAfterEntered = forwardSummary.cfgState.entryState()
+                val beforeEnteredState = backwardEnterFunction(callPoint, callTarget, forwardAfterEntered, enteredState, parameters)
+                val localState = pruneGlobalState(postState)
+                beforeEnteredState lub localState
+
+              case None =>
+                postState.bottom()
+            }
+
+          case None =>
+            // Top-level call
+
+            exitsOnStack += ((identifyingPP, beforeExitState))
+
+            var currentBackwardSummary: MethodSummary[S] =
+              backwardSummaries.get(identifyingPP) match {
+                case Some(backwardSummary: MethodSummary[S]) =>
+                  executeMethodBackward[S](beforeExitState, backwardSummary, forwardSummary)
+
+                case None =>
+                  val factoryState = postState.factory()
+                  val cfgState = DefaultCFGStateFactory(factoryState).allBottom(callTarget.body)
+                  val backwardSummary = new MethodSummary(identifyingPP, callTarget, cfgState)
+                  executeMethodBackward[S](beforeExitState, backwardSummary, forwardSummary)
+              }
+
+            backwardSummaries += ((identifyingPP, currentBackwardSummary))
+
+            while (!exitsOnStack.get(identifyingPP).get.asInstanceOf[S].removeExpression().lessEqual(beforeExitState.removeExpression())) {
+              beforeExitState = exitsOnStack.get(identifyingPP).get.asInstanceOf[S]
+              currentBackwardSummary =  executeMethodBackward[S](beforeExitState, currentBackwardSummary, forwardSummary)
+              backwardSummaries += ((identifyingPP, currentBackwardSummary))
+            }
+
+            val backwardAfterEntryState = currentBackwardSummary.cfgState.entryState()
+            val forwardBeforeEntry = forwardSummary.cfgState.entryState()
+            val backwardBeforeEntry = backwardEnterFunction(callPoint, callTarget, forwardBeforeEntry, backwardAfterEntryState, parameters)
+            val localState = pruneGlobalState(postState)
+            exitsOnStack = exitsOnStack - identifyingPP
+            localState.lub(backwardBeforeEntry)
+
+        }
+        result
+
+      case _ => sys.error("Cannot execute method backward without forward summary")
+
+    }
+  }
+
+  /** Backward semantics for enterFunction */
+  def backwardEnterFunction[S <: State[S]](callPoint: ProgramPoint, callTarget: MethodDeclaration,
+                                           forwardBeforeEntry: S, backwardPostState: S, actualInParams: List[ExpressionSet]): S = {
+    var curState = backwardPostState
+
+    val formalInParams = callTarget.arguments(0)
+    val outParameters = callTarget.arguments(1)
+
+    
+    if (actualInParams.length == formalInParams.length) {
+      for ((decl, value)  <- formalInParams zip actualInParams) {
+        val variable = decl.variable.id
+        // TODO:
+        // This should ideally be a backward assignment, but that sometimes
+        // yields bottom for recursive methods (potential unsoundness or bug?)
+        //curState = curState.backwardAssignVariable(curState.top(), ExpressionSet(variable), value)
+        curState = curState.setVariableToTop(ExpressionSet(variable))
+        curState = curState.removeVariable(ExpressionSet(variable))
+      }
+    } else {
+      for (decl <- formalInParams) {
+        val variable = decl.variable.id
+        curState = curState.removeVariable(ExpressionSet(variable))
+      }
+    }
+
+
+    for (decl <- outParameters) {
+      val variable = decl.variable.id
+      curState = curState.backwardAssignVariable(forwardBeforeEntry, ExpressionSet(variable), Invalid(variable.typ)(decl.programpoint))
+    }
+
+    curState
+  }
+
+  /** Backward semantics for exitFunction */
+  def backwardExitFunction[S <: State[S]](callPoint:ProgramPoint, callTarget: MethodDeclaration,
+                                          forwardBeforeExit: S, methodPostState: S): S = {
+    val exitVarFilter = exitFunctionLocalVarFilter(callTarget)
+
+    val prunedVarState = forwardBeforeExit.pruneVariables(exitVarFilter)
+    val recreatedUnreachables = methodPostState.undoPruneUnreachableHeap(prunedVarState)
+    val recreatedLocalVars = recreatedUnreachables.undoPruneVariables(forwardBeforeExit, exitVarFilter)
+    var curState = recreatedLocalVars.removeExpression()
+
+    // Backward assign out variables and remove "temporary" return ids
+    val outParameters = callTarget.arguments(1)
+    for (outParam <- outParameters) {
+      val tempVar = VariableIdentifier(CFGGenerator.returnIdent(outParam.variable.getName),
+        ProgramPointScopeIdentifier(callTarget.programpoint))(outParam.typ,callPoint)
+      val tempVarExpr = ExpressionSet(tempVar)
+      curState = curState.backwardAssignVariable(forwardBeforeExit, tempVarExpr, ExpressionSet(outParam.variable.id))
+      //curState = curState.removeVariable(ExpressionSet(tempVar))
+    }
+
+    curState.setExpression(forwardBeforeExit.expr).glb(forwardBeforeExit)
+  }
+
+
+  /**
+   * Takes a basic program point (for source of non-determinism)
+   * and enhances it with calling context information, i.e. all the call points
+   * of methods on the stack. Purpose is similar to DeepeningProgramPoint
+   * for fields, but it depends on calling context.
+   *
+   * note: highly experimental feature turned off by default
+   */
+  def nonDetPP(pp: ProgramPoint): ProgramPoint = {
+    if (TouchAnalysisParameters.contextSensitiveInterproceduralAnalysis) {
+      val context = SystemParameters.backwardContext
+      val entryPPs = (if(context.runningBackward) exitsOnStack else entriesOnStack).keys.map(_.toString).toList.sorted
+      DeepeningProgramPoint(pp, entryPPs)
+    } else pp
   }
 
 }

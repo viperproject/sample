@@ -5,6 +5,8 @@ import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import RichNativeSemantics._
+import scala.Some
+import ch.ethz.inf.pm.td.analysis.interpreter._
 
 /**
  * Specifies the abstract semantics of Wall
@@ -95,17 +97,19 @@ class SWall extends AAny {
     /** Prompts the user with ok and cancel buttons */
     case "ask boolean" =>
       val List(text,caption) = parameters // String,String
-      Top[S](TBoolean.typ)
+      val s2 = Top[S](TBoolean.typ)(state, pp)
+      NonDetReturn[S](TBoolean.typ, s2.expr)(s2, pp)
 
     /** Prompts the user to input a number */
     case "ask number" =>
       val List(text) = parameters // String
-      Top[S](TNumber.typ)
+      val s2 = Top[S](TNumber.typ)(state, pp)
+      NonDetReturn[S](TNumber.typ, s2.expr)(s2, pp)
 
     /** Prompts the user to input a string */
     case "ask string" =>
-      val List(text) = parameters // String
-      Top[S](TString.typ)
+      val s2 = Top[S](TString.typ)(state, pp)
+      NonDetReturn[S](TString.typ, s2.expr)(s2, pp)
 
     /** Clears the background color, picture and camera */
     case "clear background" =>
@@ -153,8 +157,8 @@ class SWall extends AAny {
     /** Prompts the user to pick a string from a list. Returns the selected index. */
     case "pick string" =>
       val List(text,caption,values) = parameters // String,String,String_Collection
-      If(CollectionSize[S](values) > 0, Then = { s:S => Return[S](0 ndTo (CollectionSize[S](values) - 1))(s,pp)},
-        Else = { s:S => Error[S](True,"pick string","User may have to select string from empty string collection")})
+      If(CollectionSize[S](values) > 0, Then = { s: S => Return[S](0 ndTo (CollectionSize[S](values) - 1))(s,pp)},
+        Else = { s: S => Error[S](True,"pick string","User may have to select string from empty string collection")})
 
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */
     case "pick time" =>
@@ -165,7 +169,7 @@ class SWall extends AAny {
     case "pop page with transition" =>
       val List(style) = parameters // String
       val pages = Field[S](this0,SWall.field_pages)
-      If[S](CollectionSize[S](pages) > 0, Then = { s:S =>
+      If[S](CollectionSize[S](pages) > 0, Then = { s: S =>
         Return[S](True)(CollectionRemoveFirst[S](pages,CollectionAt[S](pages,CollectionSize[S](pages)-1))(s,pp),pp)
       }, Else = {
         Return[S](False)(_,pp)
@@ -174,7 +178,7 @@ class SWall extends AAny {
     /** Pops the current page and restores the previous wall page. Returns false if already on the default page. */
     case "pop page" =>
       val pages = Field[S](this0,SWall.field_pages)
-      If[S](CollectionSize[S](pages) > 0, Then = { s:S =>
+      If[S](CollectionSize[S](pages) > 0, Then = { s: S =>
         Return[S](True)(CollectionRemoveFirst[S](pages,CollectionAt[S](pages,CollectionSize[S](pages)-1))(s,pp),pp)
       }, Else = {
         Return[S](False)(_,pp)
@@ -206,6 +210,41 @@ class SWall extends AAny {
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = {
+    val state = interpreter.state
+
+    method match {
+      case "ask number" =>
+        interpreter
+          .nonDetInputAt(pp)
+          .getOrElse(NumberV(state.random.nextInt()))
+
+      case "ask boolean" =>
+        interpreter
+          .nonDetInputAt(pp)
+          .getOrElse(BooleanV(state.random.nextBoolean()))
+
+      case "ask string" =>
+        interpreter
+          .nonDetInputAt(pp)
+          .getOrElse(StringV(""))
+
+      case "prompt" => UnitV
+
+      case "clear" => UnitV
+
+      case "create text box" =>
+        params match {
+          case List(text: StringV, fontSize: NumberV) =>
+            state.createObjectWithTouchFields(TTextBox.typ, Map(
+              TTextBox.field_text -> text,
+              TTextBox.field_font_size -> fontSize))
+        }
+
+    }
   }
 }
       

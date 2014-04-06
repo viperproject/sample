@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.analysis
 
 
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.compiler.{TouchException, TouchCompiler}
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
@@ -13,6 +13,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDom
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.SimpleProgramPointHeapIdentifier
 import ch.ethz.inf.pm.td.domain._
+import net.liftweb.json.MappingException
 
 object TouchApronRun {
 
@@ -112,14 +113,14 @@ object TouchApronRun {
     apronState
   }
 
-  def extractVariableEnv[S <: State[S]](s: S): VariableEnv[HeapId] = {
+  def extractBasicHeap[S <: State[S]](s: S): NonRelationalHeapDomain[HeapId] = {
     val state = s.asInstanceOf[AnalysisBasicStateType]
     if (TouchAnalysisParameters.enableCollectionMustAnalysis) {
-      val heapState = state._1._2.asInstanceOf[MayMustHeapType]
-      heapState._1._1
+      val heapState = state._1._2.asInstanceOf[MayMustHeapType]._1
+      heapState
     } else {
-      val heapState = state._1._2.asInstanceOf[AbstractNonRelationalHeapDomain[HeapId, _]]
-      heapState._1
+      val heapState = state._1._2.asInstanceOf[NonRelationalHeapDomain[HeapId]]
+      heapState
     }
   }
 
@@ -132,7 +133,17 @@ object TouchApronRun {
     invalidDomain.map
   }
 
-
+  def runAll(files: List[String]): Unit =  {
+    files foreach {f =>
+      try {
+        println("Trying " + f)
+        runSingle(f)
+      } catch {
+        case e:TouchException => println(e.msg + " (Position: " + e.pos + ")"); e.printStackTrace()
+        case m: MappingException =>
+      }
+    }
+  }
 
   def main(files: Array[String]) {
 
@@ -141,7 +152,6 @@ object TouchApronRun {
       sys.exit()
     }
 
-    files foreach (f => runSingle(f))
+    runAll(files.toList)
   }
-
 }

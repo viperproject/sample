@@ -5,6 +5,7 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.interpreter.{ConcreteInterpreter, TouchValue}
 
 /**
  * Specifies the abstract semantics of Json Object
@@ -100,6 +101,18 @@ class TJson_Object extends AMap {
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+    case "field" =>
+      super.concreteSemantics(this0, "at", params, interpreter, pp)
+
+    case _ =>
+      super.concreteSemantics(this0, method, params, interpreter, pp)
   }
 }
       

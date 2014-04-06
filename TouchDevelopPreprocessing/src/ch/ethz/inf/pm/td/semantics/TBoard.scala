@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 import ch.ethz.inf.pm.td.compiler.TouchCollection
+import ch.ethz.inf.pm.td.analysis.interpreter.{NumberV, ConcreteInterpreter, TouchValue}
 
 /**
  * @author Lucas Brutschy
@@ -162,7 +163,8 @@ class TBoard extends AMutable_Collection {
       val List(width,height) = parameters
       val state1 = New[S](TSprite.typ,Map(
         TSprite.field_width -> width,
-        TSprite.field_height -> height
+        TSprite.field_height -> height,
+        TSprite.field_board -> this0
       ))
       val obj = state1.expr
       val state2 = super.forwardSemantics[S](this0,"add",List(obj),TNothing.typ)(pp,state1)
@@ -293,4 +295,27 @@ class TBoard extends AMutable_Collection {
 
   }
 
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+    case "create rectangle" =>
+      params match {
+        case List(width: NumberV, height: NumberV) =>
+          val state = interpreter.state
+          val fields = Map(
+              TSprite.field_x.getName -> NumberV(0),
+              TSprite.field_y.getName -> NumberV(0),
+              TSprite.field_width.getName -> width,
+              TSprite.field_height.getName -> height,
+              TSprite.field_board.getName -> this0
+          )
+          state.createObject(TSprite.typ, fields)
+      }
+
+    case _ =>
+      super.concreteSemantics(this0, method, params, interpreter, pp)
+
+  }
 }

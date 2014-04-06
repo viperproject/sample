@@ -5,6 +5,9 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.interpreter._
+import java.util.regex.Pattern
+import ch.ethz.inf.pm.td.analysis.interpreter.StringV
 
 /**
  * Specifies the abstract semantics of String
@@ -242,6 +245,43 @@ class TString extends AAny {
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue], interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = method match {
+    case "split" =>
+      (this0, params) match {
+        case (str: StringV, List(div: StringV)) =>
+          val parts = str.v.split(Pattern.quote(div.v)).toList
+          val m = for ((s, idx) <- parts.zipWithIndex) yield NumberV(idx) -> StringV(s)
+          interpreter.state.createCollection(TString_Collection.typ, m.toMap)
+      }
+
+    case "equals" =>
+      (this0, params) match {
+        case (str: StringV, List(otherStr: StringV)) =>
+          BooleanV(str.v == otherStr.v)
+      }
+
+    case "count" =>
+      this0 match {
+        case str: StringV =>
+          NumberV(str.v.length)
+      }
+
+    case "starts with" =>
+      (this0, params) match {
+        case (StringV(thisStr), List(StringV(prefix))) =>
+          BooleanV(thisStr.startsWith(prefix))
+      }
+
+    case "∥" =>
+      (this0, params) match {
+        case (StringV(thisStr), List(StringV(otherStr))) =>
+          StringV(thisStr + otherStr)
+      }
+
+    case _ =>
+      super.concreteSemantics(this0, method, params, interpreter, pp)
   }
 }
       

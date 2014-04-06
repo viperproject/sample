@@ -4,6 +4,11 @@ import RichNativeSemantics._
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.interpreter._
+import ch.ethz.inf.pm.td.semantics.ExpressionInitializer
+import ch.ethz.inf.pm.td.analysis.interpreter.RefV
+import ch.ethz.inf.pm.td.analysis.interpreter.NumberV
 
 /**
  * User: lucas
@@ -58,6 +63,9 @@ object TSprite {
   val field_clip_width = new TouchField("clip width", TNumber.typName)
   val field_clip_height = new TouchField("clip height", TNumber.typName)
 
+  /** Gets the board associated with this sprite */
+  val field_board = new TouchField("board", TBoard.typName, default = InvalidInitializer, topDefault = InvalidInitializer)
+
   /** Gets the scaling applied when rendering the sprite. This scaling does not influence the bounding box. */
   val field_scale = new TouchField("scale", TNumber.typName)
 
@@ -102,7 +110,8 @@ object TSprite {
     field_tap_handler,
     field_touch_down_handler,
     field_touch_up_handler,
-    field_every_frame_handler
+    field_every_frame_handler,
+    field_board
   ))
 
 }
@@ -223,6 +232,18 @@ class TSprite extends AAny {
     /** Sets the position in pixels */
     case "set pos" =>
       val List(x, y) = parameters // Number,Number
+
+      if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
+        CheckLowerBound[S](x, 0, "set pos", "x")
+        CheckLowerBound[S](y, 0, "set pos", "y")
+
+        val boardExpr = Field[S](this0, TSprite.field_board)
+        CheckStrictUpperBound[S](x, Field[S](boardExpr,
+          TBoard.field_width), "set pos", "x")
+        CheckStrictUpperBound[S](y, Field[S](boardExpr,
+          TBoard.field_height), "set pos", "y")
+      }
+
     val curState = AssignField[S](this0, TSprite.field_x, x)
       AssignField[S](this0, TSprite.field_y, y)(curState, pp)
 
@@ -248,5 +269,26 @@ class TSprite extends AAny {
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)
 
+  }
+
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue], interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = method match {
+    case "set pos" =>
+      (this0, params) match {
+        case (sref: RefV, List(x: NumberV, y: NumberV)) =>
+          val state = interpreter.state
+
+          val board = state.getField(sref, TSprite.field_board.getName).asInstanceOf[RefV]
+          val NumberV(width) = state.getField(board, TBoard.field_width.getName)
+          val NumberV(height) = state.getField(board, TBoard.field_height.getName)
+
+          interpreter.assertE(x.v >= 0)(pp)
+          interpreter.assertE(y.v >= 0)(pp)
+          interpreter.assertE(x.v < width)(pp)
+          interpreter.assertE(y.v < height)(pp)
+
+          state.setField(sref, TSprite.field_x.getName, x)
+          state.setField(sref, TSprite.field_y.getName, y)
+          UnitV
+      }
   }
 }

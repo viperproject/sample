@@ -4,6 +4,9 @@ import ch.ethz.inf.pm.sample.abstractdomain.{SemanticException, ExpressionSet, S
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.interpreter._
+import ch.ethz.inf.pm.td.analysis.interpreter.RefV
+import ch.ethz.inf.pm.td.analysis.interpreter.NumberV
 
 /**
  * A mutable collection with integer indices
@@ -113,5 +116,34 @@ abstract class AMutable_Collection extends ALinearCollection {
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
+  }
+
+  override def concreteSemantics(this0: TouchValue,
+                                 method: String,
+                                 params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter,
+                                 pp: ProgramPoint): TouchValue = method match {
+    case "add" =>
+      (this0, params) match {
+        case (collRef: RefV, List(newElem)) =>
+          val state = interpreter.state
+          val collObj = state.getCollection(collRef)
+          val oldEntries = collObj.entries
+          val size = oldEntries.size
+          val newEntries = collObj.entries + (NumberV(size) -> newElem)
+          state.updateCollectionEntries(collRef, newEntries)
+          UnitV
+      }
+
+    case "contains" =>
+      (this0, params) match {
+        case (collRef: RefV, List(elem: TouchValue)) =>
+          val state = interpreter.state
+          val collObj = state.getCollection(collRef)
+          val entryValues = collObj.entries.values.toList
+          BooleanV(entryValues.contains(elem))
+      }
+
+    case _ => super.concreteSemantics(this0, method, params, interpreter, pp)
   }
 }

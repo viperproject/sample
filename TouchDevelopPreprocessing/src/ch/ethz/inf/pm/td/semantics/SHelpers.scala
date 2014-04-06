@@ -6,6 +6,7 @@ import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.MethodSummaries
+import ch.ethz.inf.pm.td.analysis.interpreter.{UnitV, ConcreteInterpreter, TouchValue}
 
 /**
  * This implements helper functions that I use for the analysis
@@ -56,9 +57,24 @@ class SHelpers extends AAny {
           super.forwardSemantics(this0,method,parameters,returnedType)
       }
 
+    case "cleanup" =>
+      val r = CleanupTemporaries[S]
+      UnitResult(r, pp)
+
+
+
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 
+
+  }
+
+  override def concreteSemantics(this0: TouchValue, method: String, params: List[TouchValue],
+                                 interpreter: ConcreteInterpreter, pp: ProgramPoint): TouchValue = {
+    method match {
+      case "cleanup" => UnitV
+      case _ => super.concreteSemantics(this0, method, params, interpreter, pp)
+    }
 
   }
 }

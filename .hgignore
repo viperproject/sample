@@ -7,6 +7,7 @@ target
 # Ephemeral test output
 *.test_last
 Test/test/TouchDevelop/cache
+Test/test/TouchDevelop/backw
 
 .idea
 .idea_modules

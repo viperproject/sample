@@ -7,20 +7,20 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain._
-import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.td.output.FileSystemExporter
+import ch.ethz.inf.pm.td.domain.{InvalidExpression, StringsAnd, InvalidAnd}
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{StringValueDomain, Bricks, StringDomain}
-import ch.ethz.inf.pm.sample.property.WarningProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import scala.Some
-import ch.ethz.inf.pm.td.domain.InvalidExpression
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
+import RichNativeSemantics._
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
+import scala.Some
 import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
+import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.td.output.FileSystemExporter
+import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
+import ch.ethz.inf.pm.td.analysis.backward.{NonDeterminismAnalysis, AbstractErrorInvestigator}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.sample.execution.CFGState
+import ch.ethz.inf.pm.sample.backwardanalysis.BackwardAnalysisContext
 
 /**
  * 
@@ -110,16 +110,29 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
     MethodSummaries.reset[S]()
     SystemParameters.progressOutput.begin(" ANALYZING "+compiler.main.name)
 
+    SystemParameters.withBackwardContext(new BackwardAnalysisContext[S]) {
+
     // We discover all fields from the API that are used in this set of classes. We will not instantiate anything else
     //SystemParameters.progressOutput.begin("Library fragment analysis")
     if(TouchAnalysisParameters.libraryFieldPruning) {
       compiler.relevantLibraryFields = RequiredLibraryFragmentAnalysis(compiler.parsedScripts)
-      compiler.relevantLibraryFields = compiler.relevantLibraryFields ++ Set("data","art","records","code")
+      compiler.relevantLibraryFields = compiler.relevantLibraryFields ++ Set("data","art","records","code", "NonDetWrapper.value", "Web.is_connected")
         SystemParameters.resetOutput()
       MethodSummaries.reset[S]()
     }
-    //SystemParameters.progressOutput.end()
 
+    if(TouchAnalysisParameters.enableBackwardAnalysis) {
+      // Find method calls that make use of non-determinism (basically performing a dataflow analysis)
+      val backwardContext = SystemParameters.backwardContext
+      val oldWideningLimit = SystemParameters.wideningLimit
+      // We need a higher widening limit temporarily.
+      // But this is ok, since the domains of this analysis are very cheap.
+      SystemParameters.wideningLimit = 100
+      backwardContext.nonDeterminismSources = NonDeterminismAnalysis.findNonDetSources(List(compiler.main), compiler)
+      SystemParameters.resetOutput
+      SystemParameters.wideningLimit = oldWideningLimit
+      MethodSummaries.reset[S]()
+    }
 
     // Initialize the fields of singletons (the environment)
     var curState = entryState
@@ -139,11 +152,17 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
           else
             curState = RichNativeSemantics.Top[S](typ)(curState,singletonProgramPoint)
           val obj = curState.expr
+          // TODO: use TouchCompiler.singletonVars in this loop
           val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
           curState = RichNativeSemantics.Assign[S](variable,obj)(curState,singletonProgramPoint)
         }
       }
     }
+
+    if (TouchAnalysisParameters.enableBackwardAnalysis) {
+      curState = createNonDetIds(curState)
+    }
+
 
     // Set global state to invalid
     for (v <- compiler.globalData) {
@@ -204,6 +223,13 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
       analyzeExecution(compiler,methods)(curState)
 
     val summaries = MethodSummaries.getSummaries[S]
+
+    if (TouchAnalysisParameters.enableBackwardAnalysis) {
+      val backwardContext = SystemParameters.backwardContext[S]
+      val errorInvestigator = new AbstractErrorInvestigator(backwardContext, curState.top(), compiler)
+      errorInvestigator.investigateAll()
+    }
+
     // Check properties on the results
     val mustCheck = (s: MethodSummary[S]) => s.method.classDef == compiler.main || !TouchAnalysisParameters.reportOnlyAlarmsInMainScript
     val results = for (s@MethodSummary(_, mdecl, cfgState) <- summaries.values.toList if mustCheck(s))
@@ -216,10 +242,23 @@ class TouchAnalysis[D <: NumericalDomain[D], V<:StringValueDomain[V], S<:StringD
       SystemParameters.propertyTimer.stop()
     }
 
+
+
     FileSystemExporter(compiler)
 
     SystemParameters.progressOutput.end()
     results
+    }
+  }
+
+  /** Creates identifiers in the initial state for all sources of non-determinism */
+  private def createNonDetIds[S <: State[S]](state: S): S = {
+    var curState = state
+    val backwardContext = SystemParameters.backwardContext
+    for (nondet <- backwardContext.nonDeterminismSources) {
+      curState = NonDetCreate[S](nondet)(curState)
+    }
+    curState
   }
 
   private def analyzeExecution[S <: State[S]](compiler:TouchCompiler,methods:List[String])(initialState:S):S = {

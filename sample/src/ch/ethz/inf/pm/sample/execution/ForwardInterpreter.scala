@@ -3,14 +3,20 @@ package ch.ethz.inf.pm.sample.execution
 import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.SystemParameters
 import scala.collection.mutable.ListBuffer
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, CFGPosition, ControlFlowGraph}
+import ch.ethz.inf.pm.sample.oorepresentation.{Statement, CFGPosition, ControlFlowGraph}
 
-object ForwardInterpreter {
-  var currentLocation: Option[CFGPosition] = None
+trait InterpreterEventHandler[S <: State[S]] {
+  def beforeCFGStatement(stmt: Statement, cfgPos: CFGPosition, preState: S): S = preState
+
+  def afterCFGStatement(stmt: Statement, cfgPos: CFGPosition, postState: S): S = postState
+
+  def widenedEntry(blockIdx: Int, iterationCount: Int, widenedState: S): S = widenedState
 }
 
 trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
   val startBlockId: Int = 0
+
+  def eventHandler: InterpreterEventHandler[S]
 
   /**
    * Perform forward abstract interpretation of cfg from  initial state.
@@ -92,12 +98,12 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
     val blockStmts = cfgState.cfg.getBasicBlockStatements(currentBlockId)
     var previousState = resultingStates.head
     for ((stmt, stmtIdx) <- blockStmts.zipWithIndex)  {
-      ForwardInterpreter.currentLocation = Some(CFGPosition(currentBlockId, stmtIdx))
-      // Need to call this to make trace partitioning possible
-      val tempState = previousState.before(ProgramPointUtils.identifyingPP(stmt))
-      val transformedState = stmt.forwardSemantics(tempState)
-      previousState = transformedState
-      resultingStates append transformedState
+      val pos = CFGPosition(currentBlockId, stmtIdx)
+      val beforeState = eventHandler.beforeCFGStatement(stmt, pos, previousState)
+      val transformedState = stmt.forwardSemantics(beforeState)
+      val afterState = eventHandler.afterCFGStatement(stmt, pos, transformedState)
+      previousState = afterState
+      resultingStates append afterState
     }
 
     cfgState.setStatesOfBlock(currentBlockId, resultingStates.toList)
@@ -105,7 +111,10 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
 }
 
 /** Forward interpreter that operates on `DefaultCFGState`s. */
-case class DefaultForwardInterpreter[S <: State[S]](stateFactory: S) extends ForwardInterpreter[S] {
+case class DefaultForwardInterpreter[S <: State[S]](
+    stateFactory: S,
+    eventHandler: InterpreterEventHandler[S])
+  extends ForwardInterpreter[S] {
   type C = DefaultCFGState[S]
   val cfgStateFactory = DefaultCFGStateFactory[S](stateFactory)
 }
@@ -114,4 +123,7 @@ case class DefaultForwardInterpreter[S <: State[S]](stateFactory: S) extends For
 case class TrackingForwardInterpreter[S <: State[S]](stateFactory: S) extends ForwardInterpreter[S] {
   type C = TrackingCFGState[S]
   val cfgStateFactory = TrackingCFGStateFactory[S](stateFactory)
+  val eventHandler = NopInterpreterEventHandler[S]()
 }
+
+case class NopInterpreterEventHandler[S <: State[S]]() extends InterpreterEventHandler[S]
