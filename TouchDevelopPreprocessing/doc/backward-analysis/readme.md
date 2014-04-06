@@ -13,9 +13,14 @@ analysis. It is set to true in the committed version.
 
 Test suites
 -----------
+All tests can be run on the command line with "sbt test". For general
+instructions see "Getting Started with Sample" on the wiki. Also note that the
+old Swing GUI was never used for the backward analysis. It probably does not
+even run.
+
 There are 3 automated test suites that were used to run the backward analysis
 on  example scripts. Different options were set since not all of the
-functionality is appropriate for all scripts.  
+functionality is appropriate for all scripts:
 
 1. `BackwardLocalTest`: Analyzes scripts in "backward_tests/local". The
    analysis uses the Polyhedra domain and reports numerical errors (bound
@@ -39,7 +44,7 @@ functionality is appropriate for all scripts.
 
 2. `BackwardLocalNonNumericTest`: Analyzes scripts in
    "backward_tests/local_nonnumeric". This comprehends the "PLDI random" test
-   scripts. We turned the reporting of numerical errors off and use the
+   scripts. I turned the reporting of numerical errors off and use the
    standard Octagon domain, so that the forward analysis alarms  are comparable
    to the ones in the manual PLDI evaluation.
 
