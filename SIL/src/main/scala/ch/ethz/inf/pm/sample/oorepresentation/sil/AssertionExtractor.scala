@@ -7,20 +7,34 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
 import semper.sil.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
-import semper.sil.ast.{PredicateAccessPredicate, Predicate, Exp}
 import com.weiglewilczek.slf4s.Logging
 
+/** Registry of all inferred predicates during the analysis of a method.
+  *
+  * The registry lets the `AssertionExtractor` know
+  * what access predicates to extract given predicate identifiers
+  * from the analysis.
+  */
 trait PredicateRegistry {
   def accessPredicates(
       variableId: sample.Identifier,
       predId: sample.PredicateIdentifier): sil.Exp
 
+  /** Returns the predicate access predicate for the given local variable
+    * and the given predicate.
+    * If the identified predicate is shallow and `hideShallowPredicates`
+    * is true, then the method returns `None`.
+    */
   def predAccessPred(
       variableId: sample.Identifier,
       predId: sample.PredicateIdentifier): Option[sil.PredicateAccessPredicate]
 
+  /** The predicates that should be added to the resulting program. */
   def predicates: Seq[sil.Predicate]
 
+  /** Whether to inline the bodies of predicates that do not contain
+    * nested predicate instances.
+    */
   def hideShallowPredicates: Boolean
 }
 
@@ -60,14 +74,20 @@ case class DefaultPredicateRegistry(
     }
   }
 
-  def predicates: Seq[Predicate] = {
-    // Output all predicates, even the ones with a shallow body
-    // The problem is that other predicates may have a nested predicate
-    // with a shallow body
-    // TODO: Should check if a shallow predicate is used inside of some
-    // other predicate
-    map.values.map(_._2).toSeq
+  def predicates: Seq[sil.Predicate] = {
+    val nestedPredIds = predBodies.flatMap(_.nestedPredIds)
+    map.collect({
+      case (predId, (predBody, silPred))
+        // Never add empty predicates to the program
+        // And
+        if !predBody.isTop && !(hideShallowPredicates &&
+          predBody.isShallow && nestedPredIds.contains(predId)) => silPred
+    }).toSeq
   }
+
+  /** Convenience method that returns all predicate bodies. */
+  private def predBodies: Seq[PredicateBody] =
+    map.values.map(_._1).toSeq
 }
 
 /** Builds a `PredicateRegistry`.
@@ -89,7 +109,7 @@ case class PredicateRegistryBuilder(
       existingSilPreds: Seq[sil.Predicate] = Seq.empty): PredicateRegistry = {
     val existingPreds = DefaultSilConverter.convert(existingSilPreds)
 
-    val predMap: Map[sample.PredicateIdentifier, (sample.PredicateBody, sil.Predicate)] = extractedPreds.map.map({
+    val predMap: Map[sample.PredicateIdentifier, (sample.PredicateBody, sil.Predicate)] = extractedPreds.map.collect({
       case (predId, predBody) =>
         existingPreds.findEqual(predId, predBody) match {
           case Some(existingPredId) =>
