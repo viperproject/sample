@@ -633,20 +633,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     result
   }
 
-  /* override protected def hasGraphIdenticalTo(other: PredicateDrivenHeapState[S]): Boolean = {
-    if (abstractHeap.vertices != other.abstractHeap.vertices) return false
-
-    for (otherEdge <- other.abstractHeap.edges) {
-      val edgeSet = abstractHeap.edges.filter(edge =>
-        edge.source == otherEdge.source && edge.target == otherEdge.target)
-
-      if (!(edgeSet.size == 1 && edgeSet.head.state.ids.filterNot(_.typ == PredType) == otherEdge.state.ids.filterNot(_.typ == PredType)))
-        return false
-    }
-    true
-  } */
-
-  /** @todo this is only an experimental, incorrect implementation. */
+  /** @todo this is only an experimental implementation
+    * for simple cases such as `firstNaturals`. */
   def findPredInstIdIsomorphism(other: T, predId: PredicateIdentifier):
     Map[PredicateInstanceIdentifier, PredicateInstanceIdentifier] = {
     var result = Map.empty[PredicateInstanceIdentifier, PredicateInstanceIdentifier]
@@ -661,11 +649,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       val otherFolded = otherInsts.foldedInstIds
       val otherUnfolded = otherInsts.unfoldedInstIds
 
-      // assert (folded.size <= 1 && unfolded.size <= 1)
-      // assert (folded.size == otherFolded.size && unfolded.size == otherUnfolded.size)
-
       if (!folded.isEmpty && !otherFolded.isEmpty) {
-        // TODO: Must be consistent
         result += otherFolded.head -> folded.head
       }
 
