@@ -5,26 +5,23 @@
 var next: Ref
 var val: Int
 
-/** Returns true if the given `needle` reference occurs as an element
-  * of the given linked list. */
-method contains(list: Ref, needle: Ref) returns (res: Bool)
+/** Returns true if the given value `key` occurs in the given linked list. */
+method find(list: Ref, key: Int) returns (cur: Ref)
 {
-    var cur: Ref
     cur := list
-    while (cur != null && cur != needle) {
+    while (cur != null && cur.val != key) {
         cur := cur.next
     }
-    res := (cur != null)
 }
 
-/** Tests that the inferred precondition of `contains` is not too strong. */
+/** Tests that the inferred precondition of `containsVal` is not too strong. */
 method test(list: Ref) requires acc(valid(list), write) {
-    var res: Bool
-    res := contains(list, list) // Would always return true
+    var res: Ref
+    res := find(list, 1) // Would always return true
 }
 
 /** Predicate that the specification extraction should detect and reuse. */
 predicate valid(this: Ref) {
-  acc(this.next, write) &&
+  acc(this.val, write) && acc(this.next, write) &&
   ((this.next != null) ==> acc(valid(this.next), write))
 }
