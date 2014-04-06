@@ -19,6 +19,7 @@ method testNull() {
     assert acc(newList.val, write)
     assert acc(newList.next, write)
 
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/38/)
     assert newList.val == 42
 
     // We currently don't extract reference field assertions
