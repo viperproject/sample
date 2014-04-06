@@ -1,3 +1,5 @@
+//:: IgnoreFile(/sample/issue/41/)
+
 var val: Int
 var next: Ref
 
@@ -24,7 +26,7 @@ method partition(this: Ref, key: Int)
         // at the end of the branches and then unfold it again
         // Problem: The version number of the instance will then be different
         cur := cur.next
-        
+
         if (curVal < key) {
             tmp := new()
             tmp.val := curVal
@@ -51,8 +53,8 @@ method test(list: Ref)
 
     smaller, greaterOrEqual := partition(list, 0)
 
-    // assert (smaller != null) ==> acc(valid(smaller), write)
-    // assert (greaterOrEqual != null) ==> acc(valid(greaterOrEqual), write)
+    assert (smaller != null) ==> acc(valid(smaller), write)
+    assert (greaterOrEqual != null) ==> acc(valid(greaterOrEqual), write)
 }
 
 /** Predicate that the specification extraction should detect and reuse. */
