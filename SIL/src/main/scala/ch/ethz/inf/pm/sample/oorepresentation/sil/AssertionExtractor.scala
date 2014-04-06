@@ -88,7 +88,7 @@ case class DefaultPredicateRegistry(
     map.collect({
       case (predId, (predBody, silPred))
         // Never add empty predicates to the program
-        if !predBody.isTop && !(hideShallowPredicates &&
+        if !predBody.isTop && !predBody.isBottom && !(hideShallowPredicates &&
           predBody.isShallow && nestedPredIds.contains(predId)) => silPred
     }).toSeq
   }
