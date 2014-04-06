@@ -453,7 +453,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
         if (nonNullLocalVarEdges.isEmpty) true
         else {
           val state = Lattice.bigLub(nonNullLocalVarEdges.map(_.state))
-          !state.predInsts.foldedAndUnfoldedIds.isEmpty
+          !state.predInsts.foldedIds.isEmpty
         }
       }
 
