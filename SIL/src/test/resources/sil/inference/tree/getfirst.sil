@@ -19,7 +19,7 @@ method test(tree: Ref) requires acc(valid(tree), write) {
     res := getFirst(tree)
 }
 
-/** Predicate that the specification inference should detect and reuse.
+/** Predicate that the specification extraction should detect and reuse.
   * The getFirst method never accesses the 'right' field, so no permissions
   * are inferred for it.
   */

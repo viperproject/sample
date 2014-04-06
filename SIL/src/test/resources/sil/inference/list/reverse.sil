@@ -33,7 +33,7 @@ method test(list: Ref)
     assert (res != null) ==> acc(valid(res), write)
 }
 
-/** Predicate that the specification inference should detect and reuse. */
+/** Predicate that the specification extraction should detect and reuse. */
 predicate valid(this: Ref) {
   acc(this.next, write) && ((this.next != null) ==> acc(valid(this.next), write))
 }

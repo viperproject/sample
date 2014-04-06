@@ -19,7 +19,7 @@ method test(list: Ref) requires acc(valid(list), write) {
     fold acc(valid(list), write)
 }
 
-/** Specification inference will not detect and use this predicate for the
+/** Specification extraction will not detect and use this predicate for the
   * precondition since no recursion takes place in the method.
   * It will only require permission to the value of the first list element.
   */
