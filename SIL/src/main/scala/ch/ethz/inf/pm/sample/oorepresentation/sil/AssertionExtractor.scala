@@ -335,8 +335,9 @@ case class AssertionExtractor[S <: ApronInterface[S]](
     * including nullness and non-nullness expressions.
     */
   private def buildReferenceEqualities(): Set[sil.Exp] = {
-      heap.localVarEdges.flatMap(localVarEdge => {
+    heap.localVarEdges.flatMap(localVarEdge => {
       val localVar = sil.LocalVar(localVarEdge.source.name)(sil.Ref)
+
       if (localVarEdge.target == NullVertex) {
         val nullnessExp = sil.EqCmp(localVar, sil.NullLit()())()
         Set[sil.Exp](nullnessExp)
@@ -347,7 +348,10 @@ case class AssertionExtractor[S <: ApronInterface[S]](
 
           if (localVarEdge != otherLocalVarEdge) {
             val otherLocalVar = sil.LocalVar(otherLocalVarEdge.source.name)(sil.Ref)
-            if (localVarEdge.target == otherLocalVarEdge.target)
+            // Do not extract a reference equality if the target is a summary
+            // vertex
+            if (localVarEdge.target == otherLocalVarEdge.target &&
+              !localVarEdge.target.isInstanceOf[SummaryHeapVertex])
               Set[sil.Exp](sil.EqCmp(localVar, otherLocalVar)())
             else {
               // For the moment, do not extract reference *inequalities*.
