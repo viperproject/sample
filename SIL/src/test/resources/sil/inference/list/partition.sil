@@ -11,26 +11,33 @@ method partition(this: Ref, key: Int)
 {
     var cur: Ref
     var tmp: Ref
+    var curVal: Int
     smaller := null
     greaterOrEqual := null
     cur := this
     tmp := null
 
     while (cur != null) {
-      if (cur.val < key) {
-        tmp := new()
-        tmp.val := cur.val
-        tmp.next := smaller
-        smaller := tmp
-        tmp := null
-      } else {
-        tmp := new()
-        tmp.val := cur.val
-        tmp.next := greaterOrEqual
-        greaterOrEqual := tmp
-        tmp := null
-      }
-      cur := cur.next
+        curVal := cur.val
+        // If the assignment to cur comes after the conditional
+        // the analysis will fold the predicate instance specifying `cur`
+        // at the end of the branches and then unfold it again
+        // Problem: The version number of the instance will then be different
+        cur := cur.next
+        
+        if (curVal < key) {
+            tmp := new()
+            tmp.val := curVal
+            tmp.next := smaller
+            smaller := tmp
+            tmp := null
+        } else {
+            tmp := new()
+            tmp.val := curVal
+            tmp.next := greaterOrEqual
+            greaterOrEqual := tmp
+            tmp := null
+        }
     }
 }
 
