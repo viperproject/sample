@@ -15,6 +15,7 @@ method testNull() {
 
     newList := prepend(list, 42)
 
+    //:: UnexpectedOutput(assert.failed:insufficient.permission, /sample/issue/39/)
     assert acc(newList.val, write)
     assert acc(newList.next, write)
 
