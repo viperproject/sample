@@ -1,0 +1,53 @@
+var val: Int
+var next: Ref
+
+/** Partitions a list into two lists where one of the list contains
+  * all list elements whose value is smaller than the given key,
+  * while the other list contains all list elements whose value
+  * is greater than or equal to the given key.
+  */
+method partition(this: Ref, key: Int)
+    returns (smaller: Ref, greaterOrEqual: Ref)
+    requires acc(valid(this), write)
+{
+    var cur: Ref
+    var next: Ref
+    smaller := null
+    greaterOrEqual := null
+    cur := this
+    next := null
+    while (cur != null) {
+        next := cur.next
+        if (cur.val < key) {
+            cur.next := smaller
+            smaller := cur
+        } else {
+            cur.next := greaterOrEqual
+            greaterOrEqual := cur
+        }
+
+        cur := next
+        next := null
+    }
+}
+
+/** Tests that the inferred precondition of `partition` is not too strong
+  * and the postcondition is not too weak. */
+method test(list: Ref)
+    requires acc(valid(list), write)
+{
+    var smaller: Ref
+    var greaterOrEqual: Ref
+
+    smaller, greaterOrEqual := partition(list, 0)
+
+    //:: UnexpectedOutput(assert.failed:insufficient.permission, /sample/issue/40/)
+    assert (smaller != null) ==> acc(valid(smaller), write)
+    assert (greaterOrEqual != null) ==> acc(valid(greaterOrEqual), write)
+}
+
+/** Predicate that the specification extraction should detect and reuse. */
+predicate valid(this: Ref) {
+  acc(this.val, write) && acc(this.next, write) &&
+  ((this.next != null) ==> acc(valid(this.next), write))
+}
