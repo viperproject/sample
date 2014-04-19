@@ -144,7 +144,9 @@ case class PredicateDefinitionsDomain(
   }
 }
 
-/** @todo It should not be necessary for `PredicateIdentifier`
+/** Identifies a predicate definition in the analysis.
+  *
+  * @todo It should not be necessary for `PredicateIdentifier`
   * to extend `VariableIdentifier`.
   */
 class PredicateIdentifier(override val name: String)

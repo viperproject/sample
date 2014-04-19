@@ -10,6 +10,13 @@ import com.weiglewilczek.slf4s.Logging
 import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
+/** Extends the states of edges with information on predicate definitions
+  * and instances and defines the semantics of field accesses,
+  * object allocation, joins etc. with respect to this additional information.
+  *
+  * @todo find a better name for the class
+  * @todo the code is quite experimental
+  */
 case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     abstractHeap: HeapGraph[EdgeStateDomain[S]],
     generalValState: EdgeStateDomain[S],
@@ -132,13 +139,14 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
       path: List[Identifier],
       predId: PredicateIdentifier,
       state: PredicateInstanceState): T = {
-    logger.debug(s"Assuming $state for $predId(${path.mkString(".")})")
+    logger.debug(s"Removing $state from $predId(${path.mkString(".")})")
 
     val verticesToUpdate = abstractHeap.paths(path.map(_.getName)).map(_.target)
     mapEdges(edge => {
       if (verticesToUpdate.contains(edge.target)) {
         val instIds = edge.state.predInsts.instIds(state).filter(_.predId == predId)
         val edgeLocInstIds = instIds.map(EdgeLocalIdentifier(List(edge.field), _))
+        // TODO: Should set to top instead of removing the identifiers
         edge.state.removeVariables(edgeLocInstIds)
       } else edge.state
     })
@@ -229,7 +237,6 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     val recvEdges = result.abstractHeap.outEdges(localVarVertex)
     val nonNullRecvEdges = recvEdges.filterNot(_.target == NullVertex)
-    val nonNullRecvVertices = nonNullRecvEdges.map(_.target)
 
     assert(nonNullRecvEdges.forall(!_.target.isInstanceOf[SummaryHeapVertex]),
       "edge target must not be summary heap vertex, is materialization on?")

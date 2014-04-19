@@ -137,6 +137,9 @@ case class PredicateInstancesDomain(
   def access(field: Identifier) = ???
 }
 
+/** Inverse set domain with empty set as top element and
+  * {`Folded`, `Unfolded`} as bottom element.
+  */
 case class PredicateInstanceDomain(
     value: Set[PredicateInstanceState] = Set.empty,
     isTop: Boolean = true,
@@ -159,6 +162,8 @@ case class PredicateInstanceDomain(
     var newIsTop = isTop
     var newIsBottom = isBottom
 
+    // InverseSetDomain does not properly set the `isTop` and `isBottom`
+    // fields
     if (value.isEmpty && isBottom) {
       newValue = Set(Folded, Unfolded)
     } else if (!isBottom && !isTop) {
@@ -176,6 +181,12 @@ case class PredicateInstanceDomain(
   }
 }
 
+/** Ghost field identifier that combines a predicate definition identifier
+  * with a predicate instance version number.
+  *
+  * In edge states (concretely in `PredicateInstancesDomain`), such identifiers
+  * will be wrapped in `EdgeLocalIdentifier`s.
+  */
 class PredicateInstanceIdentifier(
     val predId: PredicateIdentifier,
     val version: Int)
@@ -196,6 +207,7 @@ object PredicateInstanceIdentifier {
     version
   }
 
+  /** Make a predicate instance identifier with a fresh version number. */
   def make(predId: PredicateIdentifier): PredicateInstanceIdentifier =
     new PredicateInstanceIdentifier(predId, makeVersion())
 }
