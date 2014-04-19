@@ -8,9 +8,24 @@ the IntelliJ project:
 
 **Test Suites**
 
+You can run all test suites in Sample on the command line using 'sbt test'.
+Alternative, you can run the following end-to-end test suites using IntelliJ.
+
 - SampleAnalysisTestSuite: Used to test for regressions
   in the heap analysis and the translation from SIL to Simple.
   This test suite does not perform specification inference.
 
+  This test suites considers the SIL programs in
+  src/test/resources/sil/issues and src/test/resources/sil/translation.
+
 - SampleInferenceTestSuite: Performs specification inference
   and verifies the resulting programs with Silicon.
+  This test suites considers the SIL programs in
+  src/test/resources/sil/inference.
+
+IntelliJ does not consider the path to the Apron library specified for SBT.
+In the IntelliJ run configuration for the test suites, it is necessary
+to explicitly add a VM option such as -Djava.library.path=/usr/local/lib
+
+The output of the specification inference test suite contains the
+extended programs.
