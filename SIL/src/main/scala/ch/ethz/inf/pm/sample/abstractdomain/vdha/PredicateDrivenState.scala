@@ -842,10 +842,20 @@ case class SemanticAndPredicateDomain[S <: SemanticDomain[S]](
     id.typ == PredType
 }
 
-/** When applying a condition without edge-local predicate instance
-  * state labels to an edge, the predicate instance states would be set to
-  * bottom, because the calls to createVariables initialize predicate states to top.
-  * Thus, set them to bottom here so we don't lose permissions.
+/** Overrides the behavior of `glbPreservingIds` such that the predicate
+  * instance state of an edge is not set to top when applying a condition
+  * without predicate instance state.
+  *
+  * The problem is that `DefaultGlbPreservingIdsStrategy` calls
+  * `createVariable` for all edge-local predicate instance identifiers
+  * that do not exist in the condition to be applied. These identifiers
+  * are initialized to top. Then, when taking the meet with the
+  * edge state, the resulting predicate instance state would always be top
+  * (because of the must semantics of the predicate instance domain).
+  * To combat this, this class temporarily sets the default value of
+  * predicate instance identifiers to bottom in the states to meet.
+  *
+  * @todo get rid of this ugly hack
   */
 object CustomGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
   import PredicateDrivenHeapState._

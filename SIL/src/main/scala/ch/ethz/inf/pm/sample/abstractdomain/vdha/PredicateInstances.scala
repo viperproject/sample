@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.vdha
 
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
-import ch.ethz.inf.pm.sample.oorepresentation.sil.{Constants, PredType}
+import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 import com.weiglewilczek.slf4s.Logging
@@ -40,7 +40,7 @@ case class PredicateInstancesDomain(
     if (map.exists(_._2 == defaultValue.bottom())) {
       newIsBottom = true
     }
-    // Problem: For GLB-preserving joins, we set the default value
+    // Problem: In `CustomGlbPreservingIdsStrategy`, we set the default value
     // of the partners temporarily to bottom to prevent losing permission
     // However, isTop may still be true, in which case glb(...) would take
     // a shortcut that would cause us to lose the permission.

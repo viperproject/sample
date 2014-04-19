@@ -4,10 +4,6 @@ import scala.annotation.elidable
 import scala.annotation.elidable._
 
 package object vdha {
-  // Ugly hack to make it possible to replace the behavior of
-  // ExtendedSemanticDomain.glbPreservingIds.
-  // See GlbPreservingIdsStrategy for an explanation why this is necessary
-  // TODO: Find a more elegant solution
   trait GlbPreservingIdsStrategy {
     def apply[S <: SemanticDomain[S]](left: S, right: S): S
   }
@@ -22,6 +18,10 @@ package object vdha {
     }
   }
 
+  // Ugly hack to make it possible to replace the behavior of
+  // ExtendedSemanticDomain.glbPreservingIds.
+  // See CustomGlbPreservingIdsStrategy for more details.
+  // TODO: Find a more elegant solution. Most importantly, avoid global state.
   var glbPreservingIdsStrategy: GlbPreservingIdsStrategy =
     DefaultGlbPreservingIdsStrategy
 
