@@ -1,19 +1,18 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import semper.sil.testing.SilSuite
-import semper.sil.verifier.{VerificationResult, Success, Verifier}
+import semper.sil.verifier.{Success, Verifier}
 import semper.sil.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import semper.sil.ast.Program
 import scala.reflect.io.File
 import java.nio.file._
 import semper.silicon.Silicon
-import com.weiglewilczek.slf4s.Logging
 
 class SiliconWithInference(private var debugInfo: Seq[(String, Any)] = Nil)
   extends Silicon {
 
-  // For verification errors, the specification inference is to blame
+  // For verification errors, the specification inference is to blame.
   // Override the verifier name such that one can use `UnexpectedError`
   // annotations etc. and refer to issues in the Sample issue tracker.
   override val name: String = "sample"
