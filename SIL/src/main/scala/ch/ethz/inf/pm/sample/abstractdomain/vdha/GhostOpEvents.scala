@@ -27,18 +27,18 @@ case class GhostOpCollector[S <: SemanticDomain[S]]() extends GhostOpSubscriber[
   }
 }
 
-/** Represents a ghost operation performed by the `PredicateDrivenHeapState` */
+/** Represents a ghost operation performed by the `PredicateDrivenHeapState`. */
 trait GhostOpEvent {
 }
 
-/** Represents an unfold performed by the `PredicateDrivenHeapState` */
+/** Represents an unfold performed by the `PredicateDrivenHeapState`. */
 final case class UnfoldGhostOpEvent(
     variable: Identifier,
     predicateId: PredicateIdentifier)
   extends GhostOpEvent {
 }
 
-/** Represents a fold performed by the `PredicateDrivenHeapState` */
+/** Represents a fold performed by the `PredicateDrivenHeapState`. */
 final case class FoldGhostOpEvent(
     variable: Identifier,
     predicateId: PredicateIdentifier)

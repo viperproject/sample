@@ -7,15 +7,15 @@
         @CartesianProductDomain(List(
             s.valueState.valueState,
             s.valueState.predicateState.instances,
-            s.valueState.predicateState.predicates,
+            s.valueState.predicateState.definitions,
             s.edgeAmbiguityState))
     }
     case i: vdha.PredicateInstancesDomain => {
         @LatticeDescription("Instances")
         @PredicateInstancesDomain(i)
     }
-    case d: vdha.PredicatesDomain => {
-        @LatticeDescription("Predicates")
+    case d: vdha.PredicateDefinitionsDomain => {
+        @LatticeDescription("Definitions")
         @FunctionalDomain(d)
     }
     case s: vdha.PredicateBody => {

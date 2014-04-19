@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.NestedPredicatesDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstancesDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.FoldGhostOpEvent
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicatesDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateIdentifierMergeEvent
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstanceDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
@@ -36,7 +36,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDomain
 import ch.ethz.inf.pm.sample.abstractdomain.Constant
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstancesDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.FoldGhostOpEvent
-import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicatesDomain
+import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDefinitionsDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateIdentifierMergeEvent
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateInstanceDomain
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
@@ -53,7 +53,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     generalValState: EdgeStateDomain[S],
     expr: ExpressionSet,
     isTop: Boolean = false,
-    // The subscribers is immutable like the rest of the state.
+    // The subscribers are immutable like the rest of the state.
     // Subscribing results in a new state while the old state is unchanged.
     // A ghost operation collector is added by default.
     ghostOpSubscribers: Seq[GhostOpSubscriber[S]] = Seq(GhostOpCollector[S]()))
@@ -272,7 +272,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     assert(nonNullRecvEdges.forall(!_.target.isInstanceOf[SummaryHeapVertex]),
       "edge target must not be summary heap vertex, is materialization on?")
 
-    val preds = generalValState.preds
+    val preds = generalValState.predDefs
     val foldedInstIds = certainInstIds(localVarVertex, Folded)
     val unfoldedInstIds = certainInstIds(localVarVertex, Unfolded)
 
@@ -379,7 +379,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     if (left.typ.isObject) {
       val (localVarVertex, field) = splitAccessPathIdentifier(left)
       val unfoldedIds = certainIds(localVarVertex, Unfolded)
-      val unfoldedIdsWithPerm = unfoldedIds.filter(id => generalValState.preds.get(id).hasPerm(field))
+      val unfoldedIdsWithPerm = unfoldedIds.filter(id => generalValState.predDefs.get(id).hasPerm(field))
 
       if (!unfoldedIdsWithPerm.isEmpty) {
         assert(unfoldedIdsWithPerm.size == 1,
@@ -387,7 +387,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
           s"for $localVarVertex with permission to field $field")
 
         val unfoldedId = unfoldedIdsWithPerm.head
-        val unfoldedPredBody = generalValState.preds.get(unfoldedId)
+        val unfoldedPredBody = generalValState.predDefs.get(unfoldedId)
         val existingNestedId = unfoldedPredBody.get(field).value.head
 
         val paths = result.abstractHeap.paths(left.stringPath).filter(_.target != NullVertex)
@@ -419,7 +419,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     }
 
     var result = this
-    val predBody = generalValState.preds.get(predId)
+    val predBody = generalValState.predDefs.get(predId)
 
     // Create predicate instance identifier with fresh version
     val newPredInstId = PredicateInstanceIdentifier.make(predId)
@@ -523,7 +523,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 
     logger.info(s"Merging predicate IDs ${predIdMerge.predIds}")
 
-    var result = map(_.transformPreds(_.merge(predIdMerge))).mapEdges(edge => {
+    var result = map(_.transformPredDefs(_.merge(predIdMerge))).mapEdges(edge => {
       val edgeLocalRepl = new Replacement()
       val repl = predIdMerge.toReplacement
 
@@ -549,7 +549,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
     })
 
     // Recursively perform a merge for all nested predicate IDs
-    result.generalValState.preds.requiredIdMergeOption match {
+    result.generalValState.predDefs.requiredIdMergeOption match {
       case Some(requiredIdMerge) =>
         result = result.mergePredicates(requiredIdMerge)
       case None =>
@@ -661,8 +661,8 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
   }
 
   def findPredInstIdIsomorphism(other: T): Map[PredicateInstanceIdentifier, PredicateInstanceIdentifier] = {
-    if (generalValState.preds.ids == other.generalValState.preds.ids) {
-      generalValState.preds.map.keySet.map(findPredInstIdIsomorphism(other, _)).flatten.toMap
+    if (generalValState.predDefs.ids == other.generalValState.predDefs.ids) {
+      generalValState.predDefs.map.keySet.map(findPredInstIdIsomorphism(other, _)).flatten.toMap
     } else {
       sys.error("cannot find predicate instance ID isomorphism " +
         "if the predicate IDs do not match")
@@ -725,6 +725,7 @@ case class PredicateDrivenHeapState[S <: SemanticDomain[S]](
 }
 
 object PredicateDrivenHeapState {
+  // Shorthand for the type of states on the edges of abstract heaps.
   type EdgeStateDomain[S <: SemanticDomain[S]] =
   PreciseValueDrivenHeapState.EdgeStateDomain[SemanticAndPredicateDomain[S]]
 
@@ -733,6 +734,13 @@ object PredicateDrivenHeapState {
       SemanticAndPredicateDomain(s, PredicateDomain()).top())
   }
 
+  /** Implicit methods for edge states that make it more convenient to access
+    * and transform the predicate definitions and instances states
+    * in an edge state.
+    *
+    * For example, it is possible to get the predicates of an `edge` using
+    * `edge.state.preds` instead of `edge.state.valueState.predicateState.definitions`.
+    */
   implicit class ExtendedEdgeStateDomain[S <: SemanticDomain[S]](state: EdgeStateDomain[S]) {
     def predHeapIds: Set[ValueHeapIdentifier] =
       state.valueHeapIds.filter(_.typ == PredType)
@@ -740,39 +748,59 @@ object PredicateDrivenHeapState {
     def predHeapIds(vertex: Vertex): Set[ValueHeapIdentifier] =
       state.valueHeapIds(vertex).filter(_.typ == PredType)
 
+    /** Returns the predicate instances state in this edge state. */
     def predInsts: PredicateInstancesDomain =
       state.valueState.predicateState.instances
 
-    def preds: PredicatesDomain =
-      state.valueState.predicateState.predicates
+    /** Returns the predicate definitions state in this edge state. */
+    def predDefs: PredicateDefinitionsDomain =
+      state.valueState.predicateState.definitions
 
+    /** Applies a transformation to the predicate state
+      * in this edge state and returns the resulting edge state.
+      * @param f the function to apply
+      * @return the transformed edge state.
+      */
     def transformPredState(f: PredicateDomain => PredicateDomain): EdgeStateDomain[S] = {
       state.copy(
         valueState = state.valueState.copy(
           predicateState = f(state.valueState.predicateState)))
     }
 
+    /** Applies a transformation to the predicate instances state
+      * in this edge state and returns the resulting edge state.
+      * @param f the function to apply
+      * @return the transformed edge state.
+      */
     def transformPredInsts(f: PredicateInstancesDomain => PredicateInstancesDomain): EdgeStateDomain[S] =
       transformPredState(predState => {
         predState.copy(instances = f(predState.instances))
       })
 
-    def transformPreds(f: PredicatesDomain => PredicatesDomain): EdgeStateDomain[S] =
+    /** Applies a transformation to the predicate definitions state
+      * in this edge state and returns the resulting edge state.
+      * @param f the function to apply
+      * @return the transformed edge state.
+      */
+    def transformPredDefs(f: PredicateDefinitionsDomain => PredicateDefinitionsDomain): EdgeStateDomain[S] =
       transformPredState(predState => {
-        predState.copy(predicates = f(predState.predicates))
+        predState.copy(definitions = f(predState.definitions))
       })
   }
 }
 
+/** Cartesian product domain combining the predicate definitions
+  * and predicate instances state.
+  */
 case class PredicateDomain(
     instances: PredicateInstancesDomain = PredicateInstancesDomain(),
-    predicates: PredicatesDomain = PredicatesDomain())
+    definitions: PredicateDefinitionsDomain = PredicateDefinitionsDomain())
   extends RoutingSemanticCartesianProductDomain[
     PredicateInstancesDomain,
-    PredicatesDomain,
+    PredicateDefinitionsDomain,
     PredicateDomain] {
 
-  def factory(i: PredicateInstancesDomain, d: PredicatesDomain) =
+  def factory(i: PredicateInstancesDomain, d: PredicateDefinitionsDomain) =
     PredicateDomain(i, d)
 
   def _1 = instances
@@ -780,16 +808,21 @@ case class PredicateDomain(
   def _1canHandle(id: Identifier) =
     !_2canHandle(id)
 
-  def _2 = predicates
+  def _2 = definitions
 
   def _2canHandle(id: Identifier) =
     id.isInstanceOf[PredicateIdentifier]
 
   override def toString =
     "Instances:\n" + ToStringUtilities.indent(instances.toString) + "\n" +
-    "Predicates:\n" + ToStringUtilities.indent(predicates.toString)
+    "Definitions:\n" + ToStringUtilities.indent(definitions.toString)
 }
 
+/** Cartesian product domain that combines an arbitrary `SemanticDomain`
+  * with a `PredicateDomain`.
+  * It routes all method calls involving predicate identifiers to the
+  * predicate domain and all other calls to the other domain.
+  */
 case class SemanticAndPredicateDomain[S <: SemanticDomain[S]](
     valueState: S, predicateState: PredicateDomain)
   extends RoutingSemanticCartesianProductDomain[

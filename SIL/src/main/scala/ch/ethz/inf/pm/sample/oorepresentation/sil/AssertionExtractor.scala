@@ -341,7 +341,7 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       val localVarVertex = edge.source.asInstanceOf[LocalVariableVertex]
 
       for (predId <- edge.state.predInsts.foldedIds) {
-        val predBody = edge.state.preds.get(predId)
+        val predBody = edge.state.predDefs.get(predId)
 
         if (predRegistry.hideShallowPredicates && predBody.isShallow) {
           val fieldsWithPerm = predBody.map.keySet

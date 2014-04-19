@@ -7,20 +7,24 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
 import com.weiglewilczek.slf4s.Logging
 
-case class PredicatesDomain(
+/** Domain that represents (candidate) predicate definitions.
+  * Concretely, it maps predicate identifiers to predicate bodies.
+  */
+case class PredicateDefinitionsDomain(
     map: Map[PredicateIdentifier, PredicateBody] =
       Map.empty[PredicateIdentifier, PredicateBody],
     isTop: Boolean = false,
     override val isBottom: Boolean = false,
     defaultValue: PredicateBody = PredicateBody().top())
-  extends FunctionalDomain[PredicateIdentifier, PredicateBody, PredicatesDomain]
-  with SemanticDomain[PredicatesDomain]
-  with Lattice.Must[PredicatesDomain]
+  extends FunctionalDomain[PredicateIdentifier, PredicateBody, PredicateDefinitionsDomain]
+  with SemanticDomain[PredicateDefinitionsDomain]
+  with Lattice.Must[PredicateDefinitionsDomain]
   with Logging {
 
   require(map.values.forall(_.nestedPredIds.subsetOf(map.keySet)),
     "all nested predicate IDs must be known and have a body themselves")
 
+  /** Returns the predicate body associated with a predicate identifier. */
   def get(key: PredicateIdentifier): PredicateBody =
     map.getOrElse(key, defaultValue)
 
@@ -28,7 +32,7 @@ case class PredicatesDomain(
       value: Map[PredicateIdentifier, PredicateBody],
       isBottom: Boolean,
       isTop: Boolean) =
-    PredicatesDomain(value, isTop, isBottom, defaultValue)
+    PredicateDefinitionsDomain(value, isTop, isBottom, defaultValue)
 
   /** Finds a predicate that is structurally equal to the given predicate,
     * which consists of an identifier as well as its body.
@@ -46,7 +50,7 @@ case class PredicatesDomain(
   }
 
   /** Removes all nested predicates whose body is (top) true. */
-  def removeNestedTopPredicates(): PredicatesDomain = {
+  def removeNestedTopPredicates(): PredicateDefinitionsDomain = {
     // Find all top predicates
     val topPredIds = map.collect({
       case (predId, predBody) if predBody.isTop => predId
@@ -68,7 +72,7 @@ case class PredicatesDomain(
     }).toSet
   }
 
-  def merge(predIdMerge: PredicateIdentifierMerge): PredicatesDomain = {
+  def merge(predIdMerge: PredicateIdentifierMerge): PredicateDefinitionsDomain = {
     // Nothing to do when there is only one predicate ID in the set
     // of IDs to be merged
     if (predIdMerge.predIds.size == 1) return this
@@ -127,12 +131,12 @@ case class PredicatesDomain(
     map.values.map(_.requiredIdMergeOption).flatten.headOption
 
   def setArgument(variable: Identifier, expr: Expression) = ???
-  def backwardAssign(oldPreState: PredicatesDomain, variable: Identifier, expr: Expression) = ???
+  def backwardAssign(oldPreState: PredicateDefinitionsDomain, variable: Identifier, expr: Expression) = ???
   def backwardAccess(field: Identifier) = ???
   def createVariableForArgument(variable: Identifier, typ: Type, path: List[String]) = ???
   def access(field: Identifier) = ???
 
-  def merge(r: Replacement): PredicatesDomain = {
+  def merge(r: Replacement): PredicateDefinitionsDomain = {
     if (!r.isEmpty())
       logger.warn(s"Replacement $r ignored. " +
         "Use custom merge(PredicateIdentifierMerge) instead.")
@@ -154,6 +158,7 @@ object PredicateIdentifier {
     nextId.set(0)
   }
 
+  /** Returns a fresh `PredicateIdentifier`. */
   def make(): PredicateIdentifier = {
     val id = nextId.get
     nextId.set(id + 1)
@@ -262,6 +267,7 @@ final case class NestedPredicatesDomain(
   // For object fields, the set should never be empty.
   // There should always be a nested predicate ID.
 
+  // The following sanity checks should be part of `InverseSetDomain`.
   require(value.isEmpty implies (isTop || isBottom),
     "an empty set must only represent top or bottom")
 

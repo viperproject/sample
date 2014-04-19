@@ -100,7 +100,7 @@ object ReusingPredicateEntryStateBuilder extends PredicateEntryStateBuilder {
 
               val predIdMerge = PredicateIdentifierMerge(Set(freshPredId, existingPreds.map.keySet.head))
               val condHeap = initialState.toCondHeapGraph.map(state => {
-                state.transformPreds(_.lub(existingPreds))
+                state.transformPredDefs(_.lub(existingPreds))
               })
 
               initialState = initialState.factory(condHeap.heap, condHeap.cond, ExpressionSet())
@@ -134,7 +134,7 @@ case class PredicateAnalysis[S <: SemanticDomain[S]](
 
       while (resultOption.isEmpty) {
         // Set up the subscriber that triggers the restart
-        val initialPreds = initialState.generalValState.preds
+        val initialPreds = initialState.generalValState.predDefs
         val restartSubscriber = AnalysisRestartSubscriber[S](initialPreds)
         val initialStateWithSubscriber = initialState.subscribe(restartSubscriber)
 
@@ -144,7 +144,7 @@ case class PredicateAnalysis[S <: SemanticDomain[S]](
           case AnalysisRestartException(preds) =>
             // Apply the predicates that were present in the stated when
             // the analysis was aborted to the entry state
-            initialState = initialState.map(_.transformPreds(_ lub preds))
+            initialState = initialState.map(_.transformPredDefs(_ lub preds))
 
             logger.info(s"Restarting analysis of method ${method.name}.")
         }
@@ -160,7 +160,7 @@ case class PredicateAnalysis[S <: SemanticDomain[S]](
   *
   * @param preds the predicates that were present when the analysis was aborted
   */
-case class AnalysisRestartException(preds: PredicatesDomain) extends Exception {
+case class AnalysisRestartException(preds: PredicateDefinitionsDomain) extends Exception {
   override def toString = "Restart of analysis with refined initial state"
 }
 
@@ -169,7 +169,7 @@ case class AnalysisRestartException(preds: PredicatesDomain) extends Exception {
   * @tparam S type of the semantic domain
   */
 case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](
-    initialPreds: PredicatesDomain)
+    initialPreds: PredicateDefinitionsDomain)
   extends GhostOpSubscriber[S] {
 
   def notify(state: PredicateDrivenHeapState[S], event: GhostOpEvent) = event match {
@@ -177,7 +177,7 @@ case class AnalysisRestartSubscriber[S <: SemanticDomain[S]](
       // Only abort the analysis if the merge affects the predicate IDs
       // in the original state
       if (!initialPreds.ids.intersect(event.predIdMerge.predIds.toSet).isEmpty) {
-        val preds = state.generalValState.preds
+        val preds = state.generalValState.predDefs
         throw new AnalysisRestartException(preds)
       }
     case _ =>

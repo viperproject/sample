@@ -82,7 +82,7 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
     exitState = localVarIds.foldLeft(exitState)(_.removeVariable(_))
 
     val predRegistry = PredicateRegistryBuilder().build(
-      extractedPreds = exitState.generalValState.preds,
+      extractedPreds = exitState.generalValState.predDefs,
       existingSilPreds = program.predicates
     )
 
