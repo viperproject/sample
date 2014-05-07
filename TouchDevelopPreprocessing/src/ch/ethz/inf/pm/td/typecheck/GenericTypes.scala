@@ -52,7 +52,8 @@ object GenericTypes {
   )
 
   def gRow(thisName: String, fields: List[Member]): List[Member] = gAny(thisName) ::: fields ::: List(
-    Member("delete row", List(), "Nothing")
+    Member("delete row", List(), "Nothing"),
+    Member("confirmed", List(), "Boolean")
   )
 
   def gObject(thisName: String, fields: List[Member]): List[Member] = gAny(thisName) ::: fields ::: List(
@@ -62,7 +63,8 @@ object GenericTypes {
   def gTable(thisName: String, typ: String): List[Member] = gCollection(thisName, typ) ::: List(
     Member("add row", List(), typ),
     Member("row at", List("Number"), typ),
-    Member("clear", List(), "Nothing")
+    Member("clear", List(), "Nothing"),
+    Member("invalid row", List(), typ)
   )
 
   def gMutableCollection(thisName: String, typ: String): List[Member] = gCollection(thisName, typ) ::: List(

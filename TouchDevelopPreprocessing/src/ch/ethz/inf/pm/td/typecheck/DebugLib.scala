@@ -19,6 +19,9 @@ trait DebugLib extends AbstractSymbolTable {
   ))
 
   // A collection of appointments
+  addType("User Collection", gMutableCollection("User Collection", "User"))
+
+  // A collection of appointments
   addType("Action Collection", gMutableCollection("Action Collection", "Action"))
 
   // A collection of appointments

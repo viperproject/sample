@@ -152,6 +152,7 @@ object Typer {
       case List(Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number"))) => "Vector Action"
       case List(Parameter(_, TypeName("Web Response"))) => "Web Response Action"
       case List(Parameter(_, TypeName("Message Collection"))) => "Message Collection Action"
+      case List(Parameter(_, TypeName(s))) => s + " action"
       case _ => println("Unknown action type, falling back to Action: " + params); "Action"
     })
   }

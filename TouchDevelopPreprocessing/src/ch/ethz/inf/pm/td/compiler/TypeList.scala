@@ -10,9 +10,9 @@ import ch.ethz.inf.pm.td.semantics._
  *
  */
 
-object TypeList  {
+object TypeList {
 
-  var types : Map[String,AAny] = Map(
+  var types: Map[String, AAny] = Map(
     SData.typName -> new SData(),
     SCode.typName -> new SCode(),
     SArt.typName -> new SArt(),
@@ -39,6 +39,8 @@ object TypeList  {
     TBluetooth_Device.typName -> new TBluetooth_Device(),
     TBoard.typName -> new TBoard(),
     TObstacle.typName -> new TObstacle(),
+    TBoard_Background_Scene.typName -> new TBoard_Background_Scene(),
+    TBoard_Background_Layer.typName -> new TBoard_Background_Layer(),
     TBoolean.typName -> new TBoolean(),
     SBox.typName -> new SBox(),
     TBuffer.typName -> new TBuffer(),

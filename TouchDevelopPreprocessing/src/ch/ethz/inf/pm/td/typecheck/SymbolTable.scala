@@ -41,7 +41,7 @@ abstract class AbstractSymbolTable {
     for (mem <- members) types(typeName) = types(typeName) + (mem.name -> mem)
 
     // HACK: Add refernence type as an alias
-    val refTypeName = TypeName("Ref " + name)
+    val refTypeName = TypeName(name + " Ref")
     types(refTypeName) = if (types.contains(refTypeName)) types(refTypeName) else immutable.Map.empty[String, Member]
     for (mem <- members) types(refTypeName) = types(refTypeName) + (mem.name -> mem)
   }

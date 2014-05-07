@@ -49,9 +49,8 @@ class TJson_Builder extends AMap {
 
 
     /** Add a reference to JsonBuilder to the array. */
-    // case "add builder" =>
-    //   val List(value) = parameters // Json_Builder
-    //   Skip
+    //    case "add builder" =>
+    //       this.forwardSemantics[S](this0,"add",parameters)
 
     /** Adds a null value to the array. */
     // case "add null" =>
