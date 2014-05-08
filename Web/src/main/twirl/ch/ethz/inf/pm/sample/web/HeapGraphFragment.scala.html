@@ -2,24 +2,24 @@
 @import ch.ethz.inf.pm.sample.abstractdomain._
 
 @nodeId(vertex: vdha.Vertex) = @{
-    s"node-${vertex.name}"
+s"node-${vertex.name}"
 }
 
 @edgeId(edge: vdha.Edge[_]) = @{
-    val field = edge.field.getOrElse("")
-    s"edge-${edge.source.name}-$field-${edge.target.name}"
+val field = edge.field.getOrElse("")
+s"edge-${edge.source.name}-$field-${edge.target.name}"
 }
 
 @nodeCssClassNames(vertex: vdha.Vertex) = @{
-    vertex match {
-        case v: vdha.LocalVariableVertex => "local-var-node"
-        case vdha.NullVertex => "null-node"
-        case v: vdha.SummaryHeapVertex => "heap-node summary-heap-node"
-        case v: vdha.DefiniteHeapVertex => "heap-node definite-heap-node"
-    }
+vertex match {
+case v: vdha.LocalVariableVertex => "local-var-node"
+case vdha.NullVertex => "null-node"
+case v: vdha.SummaryHeapVertex => "heap-node summary-heap-node"
+case v: vdha.DefiniteHeapVertex => "heap-node definite-heap-node"
+}
 }
 <div class="row-fluid">
-    <div class="col-md-9">
+    <div class="col-sm-9">
         <div class="well graph-well">
             <div class="graph control-flow-graph-block" id="graph">
                 @heapGraph.vertices.toList.sorted.map { vertex =>
@@ -29,7 +29,7 @@
         </div>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-sm-3">
         @additionalPanels
 
         <div class="panel panel-info" id="edge-state-panel">
@@ -73,4 +73,5 @@
         // Makes debugging easier
         window.view = view;
     });
+
 </script>

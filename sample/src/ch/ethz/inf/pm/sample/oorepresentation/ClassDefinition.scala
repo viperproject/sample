@@ -3,10 +3,6 @@ package ch.ethz.inf.pm.sample.oorepresentation
 
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.util.Predef._
-import ch.ethz.inf.pm.sample.oorepresentation.MethodIdentifier
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import ch.ethz.inf.pm.sample.oorepresentation.Variable
 import ch.ethz.inf.pm.sample.AnalysisUnitContext
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
@@ -137,10 +133,10 @@ class MethodDeclaration(
       result = result.removeExpression()
         .createVariableForArgument(variable, ownerType)
         .assume(ExpressionSet(ReferenceComparisonExpression(
-          thisVarId,
-          Constant("null", ownerType, programpoint),
-          ArithmeticOperator.!=,
-          SystemParameters.typ.top())))
+        thisVarId,
+        Constant("null", ownerType, programpoint),
+        ArithmeticOperator.!=,
+        SystemParameters.typ.top())))
     }
     result
   }
@@ -245,7 +241,6 @@ class PackageDefinition(programpoint: ProgramPoint, name: PackageIdentifier, cla
  * @version 0.1
  */
 trait Type extends Lattice[Type] {
-  require(isFloatingPointType implies isNumericalType)
 
   /** Returns `true` iff the current type is not a primitive type. */
   def isObject: Boolean
@@ -318,40 +313,60 @@ trait Type extends Lattice[Type] {
   */
 trait DummyType extends Type {
   def factory() = this
+
   def top() = this
+
   def bottom() = this
+
   def lub(other: Type) = this
+
   def glb(other: Type) = this
+
   def widening(other: Type) = this
+
   def lessEqual(other: Type) = true
+
   def isFloatingPointType = false
+
   def isBooleanType = false
+
   def isStringType = false
+
   def isStatic = false
+
   def arrayElementsType = None
+
   def isBottomExcluding(types: Set[Type]) = true
 }
 
 /** A dummy object type with no proper hierarchy for testing. */
 trait DummyObjectType extends DummyType {
   def isObject = true
+
   def isNumericalType = false
 }
 
 /** A dummy numerical type with no proper hierarchy for testing. */
 case object DummyNumericalType extends DummyType {
   def name = "Int"
+
   def isObject = false
+
   def isNumericalType = true
+
   def possibleFields = Set.empty
 }
 
 /** A dummy boolean type with no proper hierarchy for testing. */
 case object DummyBooleanType extends DummyType {
   def name = "Bool"
+
   def isObject = false
+
   def isNumericalType = true
+
   override def isBooleanType = true
+
   def possibleFields = Set.empty
 }
 
@@ -391,25 +406,25 @@ trait NativeMethodSemantics {
    * @return the abstract state obtained after the backward evaluation of the native method call, None if the semantics of the method call is not defined
    */
   def applyBackwardNativeSemantics[S <: State[S]](
-      thisExpr: ExpressionSet,
-      operator: String,
-      parameters: List[ExpressionSet],
-      typeparameters: List[Type],
-      returnedtype: Type,
-      programpoint: ProgramPoint,
-      state: S,
-      oldPreState: S): Option[S]
+                                                   thisExpr: ExpressionSet,
+                                                   operator: String,
+                                                   parameters: List[ExpressionSet],
+                                                   typeparameters: List[Type],
+                                                   returnedtype: Type,
+                                                   programpoint: ProgramPoint,
+                                                   state: S,
+                                                   oldPreState: S): Option[S]
 }
 
 /** Native method semantics without backward semantics. */
 trait ForwardNativeMethodSemantics extends NativeMethodSemantics {
   def applyBackwardNativeSemantics[S <: State[S]](
-      thisExpr: ExpressionSet,
-      operator: String,
-      parameters: List[ExpressionSet],
-      typeParameters: List[Type],
-      returnType: Type,
-      programPoint: ProgramPoint,
-      state: S,
-   	  oldPreState: S): Option[S] = None
+                                                   thisExpr: ExpressionSet,
+                                                   operator: String,
+                                                   parameters: List[ExpressionSet],
+                                                   typeParameters: List[Type],
+                                                   returnType: Type,
+                                                   programPoint: ProgramPoint,
+                                                   state: S,
+                                                   oldPreState: S): Option[S] = None
 }

@@ -172,7 +172,7 @@ trait SemanticDomain[T <: SemanticDomain[T]]
   }
 
   def rename[I <: Identifier, J <: Identifier](map: Map[I, J]): T = {
-    val replacement = new Replacement()
+    val replacement = new Replacement(isPureRenaming = true)
     for ((from, to) <- map)
       replacement.value += (Set[Identifier](from) -> Set[Identifier](to))
     merge(replacement)

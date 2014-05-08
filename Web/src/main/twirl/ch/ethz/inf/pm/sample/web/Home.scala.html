@@ -1,27 +1,31 @@
-@(testFiles: Seq[ch.ethz.inf.pm.sample.web.TestFile])
-@Base(title = "Sample Abstract Interpreter") {
-    <div class="row-fluid">
-        @if(testFiles.isEmpty) {
-            <div class="col-md-12">
-                <div class="alert alert-warning">
-                    Could not find any test files available for analysis on the classpath.
-                </div>
-            </div>
-        }
-
-        @testFiles.groupBy(_.prefix).map { arg =>
-        <div class="col-md-2">
-            <div class="panel panel-default">
-                <div class="panel-heading">@arg._1</div>
-                <div class="panel-body">
-                    <ul class="list-unstyled">
-                    @arg._2.map { testFile =>
-                        <li><a href="analyze?file=@testFile">@testFile.path.getFileName</a></li>
-                    }
-                    </ul>
-                </div>
-            </div>
+@()(app: ch.ethz.inf.pm.sample.web.App)
+@Base(title = "Sample Abstract Interpreter")(app) {
+<div class="row-fluid">
+    <div class="col-sm-12">
+        @if(app.fileProvider.testFiles.isEmpty) {
+        <div class="alert alert-warning">
+            Could not find any test files available for analysis on the classpath.
         </div>
+        } else {
+        <table class="table table-striped">
+            <tr>
+                <th>Directory</th>
+                <th>Files</th>
+            </tr>
+            @app.fileProvider.testFiles.groupBy(_.prefix).map { arg =>
+            <tr>
+                <td>@arg._1</td>
+                <td>
+                    @arg._2.map { testFile =>
+                    <a class="btn btn-default btn-xs" href="analyze/?file=@testFile">
+                        @testFile.path.getFileName
+                    </a>
+                    }
+                </td>
+            </tr>
+            }
+        </table>
         }
     </div>
+</div>
 }

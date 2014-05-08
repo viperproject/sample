@@ -1,40 +1,41 @@
-@(result: ch.ethz.inf.pm.sample.oorepresentation.sil.AnalysisResult[_])
+@(result: ch.ethz.inf.pm.sample.execution.AnalysisResult[_])(app: ch.ethz.inf.pm.sample.web.App)
 @nodeId(index: Int) = { "node-@index" }
-@Base(title = "Control Flow Graph State") {
-    <div class="row-fluid">
-        <div class="col-md-12">
-            <ol class="breadcrumb">
-                <li class="active">CFG for <span class="code">@result.method.name</span></li>
-            </ol>
-        </div>
+@Base(title = "Control Flow Graph State")(app) {
+<div class="row-fluid">
+    <div class="col-sm-12">
+        <ol class="breadcrumb">
+            <li><a href="../">All Methods</a></li>
+            <li class="active"><span class="code">@result.method.name</span></li>
+        </ol>
     </div>
+</div>
 
-    @defining(result.cfgState.cfg) { cfg =>
-    <div class="row-fluid">
-        <div class="col-md-12">
-            <div class="well graph-well">
-                <div class="graph control-flow-graph" id="graph">
+@defining(result.cfgState.cfg) { cfg =>
+<div class="row-fluid">
+    <div class="col-sm-12">
+        <div class="well graph-well">
+            <div class="graph control-flow-graph" id="graph">
                 @cfg.nodes.zipWithIndex.map { nodeAndIndex =>
-                    <a href="/cfg/@nodeAndIndex._2">
-                        <div class="node" id=@nodeId(nodeAndIndex._2)>
+                <a href="@nodeAndIndex._2/">
+                    <div class="node" id=@nodeId(nodeAndIndex._2)>
                         @if(nodeAndIndex._1.isEmpty) {
-                            <i>empty</i>
+                        <i>empty</i>
                         } else {
-                            <ul class="list-unstyled">
-                                @nodeAndIndex._1.map { stmt =>
-                                <li>@stmt</li>
-                                }
-                            </ul>
+                        <ul class="list-unstyled">
+                            @nodeAndIndex._1.map { stmt =>
+                            <li>@stmt</li>
+                            }
+                        </ul>
                         }
-                        </div>
-                    </a>
+                    </div>
+                </a>
                 }
-                </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script type="text/javascript">
+<script type="text/javascript">
         jsPlumb.ready(function() {
             var view = new GraphView();
             view.rankDir = "TB";
@@ -47,6 +48,7 @@
 
             view.display();
         });
-    </script>
-    }
+
+</script>
+}
 }

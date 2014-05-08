@@ -1,5 +1,5 @@
-@(heapGraph: ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph[_])
-@Base(title = "Heap Graph") {
-    @HeapGraphFragment(heapGraph) {
-    }
+@(heapGraph: ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph[_])(app: ch.ethz.inf.pm.sample.web.App)
+@Base(title = "Heap Graph")(app) {
+@HeapGraphFragment(heapGraph) {
+}
 }
