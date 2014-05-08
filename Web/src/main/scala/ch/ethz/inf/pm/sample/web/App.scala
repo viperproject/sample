@@ -107,7 +107,7 @@ abstract class App extends ScalatraServlet {
     }
   }
 
-  private def analysisRunner: AnalysisRunner[_] =
+  def analysisRunner: AnalysisRunner[_] =
     analysisRunnerOption.getOrElse(availableAnalysisRunners.head)
 
   /** Returns the `AnalysisResult` to display according to the URL parameter. */
