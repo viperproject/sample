@@ -1,4 +1,3 @@
-
 import ch.ethz.inf.pm.td.analysis.TestRunner
 
 val toAnalyze =
@@ -55,10 +54,11 @@ val toAnalyze =
     |aayr
   """.stripMargin.split("[\n,]").map(_.trim)
 
-def analyzer(id:String) {
-  TestRunner.runIdWithApron(id)
+def analyzer(id: String) {
+  if (!id.isEmpty)
+    TestRunner.runIdWithApron(id)
 }
 
-for(a <- toAnalyze) {
+for (a <- toAnalyze) {
   analyzer(a)
 }
