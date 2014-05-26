@@ -496,34 +496,40 @@ case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
 
 }
 
-case class AccessPathIdentifier(path: List[String])
-                               (val typ: Type, val pp: ProgramPoint = DummyProgramPoint)
+case class AccessPathIdentifier(path: List[Identifier])
   extends Identifier {
 
   require(!path.isEmpty, "the access path must not be empty")
 
-  def getName: String = path.mkString(".")
+  def getName = stringPath.mkString(".")
 
-  def getField: Option[String] = ???
+  def getField = ???
+
+  def typ = path.last.typ
+
+  def pp = path.last.pp
 
   def representsSingleVariable: Boolean = true
 
-  override def toString: String = getName
+  override def toString = getName
+
+  def stringPath: List[String] =
+    path.map(_.getName)
 
   def objPath: List[String] =
-    if (typ.isObject) path else path.dropRight(1)
+    if (typ.isObject) stringPath else stringPath.dropRight(1)
 }
 
 object AccessPathIdentifier {
   /** Constructs an access path identifier from a given variable identifier. */
   def apply(id: VariableIdentifier): AccessPathIdentifier =
-    AccessPathIdentifier(List(id.name))(id.typ, id.pp)
+    AccessPathIdentifier(List[Identifier](id))
 
   /** Constructs an access path identifier from a receiver object access path
     * and a field identifier.
     */
-  def apply(objPath: List[String], field: Identifier): AccessPathIdentifier =
-    AccessPathIdentifier(objPath ++ List(field.getName))(field.typ, field.pp)
+  def apply(objPath: List[Identifier], field: Identifier): AccessPathIdentifier =
+    AccessPathIdentifier(objPath ++ List(field))
 }
 
 /**
