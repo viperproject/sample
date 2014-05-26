@@ -1,0 +1,64 @@
+//:: IgnoreFile(/sample/issue/41/)
+
+var val: Int
+var next: Ref
+
+/** Partitions a list into two lists where one of the list contains
+  * all list elements whose value is smaller than the given key,
+  * while the other list contains all list elements whose value
+  * is greater than or equal to the given key.
+  */
+method partition(this: Ref, key: Int)
+    returns (smaller: Ref, greaterOrEqual: Ref)
+{
+    var cur: Ref
+    var tmp: Ref
+    var curVal: Int
+    smaller := null
+    greaterOrEqual := null
+    cur := this
+    tmp := null
+
+    while (cur != null) {
+        curVal := cur.val
+        // If the assignment to cur comes after the conditional
+        // the analysis will fold the predicate instance specifying `cur`
+        // at the end of the branches and then unfold it again
+        // Problem: The version number of the instance will then be different
+        cur := cur.next
+
+        if (curVal < key) {
+            tmp := new()
+            tmp.val := curVal
+            tmp.next := smaller
+            smaller := tmp
+            tmp := null
+        } else {
+            tmp := new()
+            tmp.val := curVal
+            tmp.next := greaterOrEqual
+            greaterOrEqual := tmp
+            tmp := null
+        }
+    }
+}
+
+/** Tests that the inferred precondition of `partition` is not too strong
+  * and the postcondition is not too weak. */
+method test(list: Ref)
+    requires acc(valid(list), write)
+{
+    var smaller: Ref
+    var greaterOrEqual: Ref
+
+    smaller, greaterOrEqual := partition(list, 0)
+
+    assert (smaller != null) ==> acc(valid(smaller), write)
+    assert (greaterOrEqual != null) ==> acc(valid(greaterOrEqual), write)
+}
+
+/** Predicate that the specification extraction should detect and reuse. */
+predicate valid(this: Ref) {
+  acc(this.val, write) && acc(this.next, write) &&
+  ((this.next != null) ==> acc(valid(this.next), write))
+}

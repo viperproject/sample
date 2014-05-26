@@ -4,6 +4,8 @@ import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.SystemParameters
 import scala.collection.mutable.ListBuffer
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPointUtils, CFGPosition, ControlFlowGraph}
+import scala.collection.immutable.Queue
+import scala.collection.mutable
 
 object ForwardInterpreter {
   var currentLocation: Option[CFGPosition] = None
@@ -39,12 +41,14 @@ trait ForwardInterpreter[S <: State[S]] extends Interpreter[S] {
 
 
   def forwardExecuteWithCFGState(cfg: ControlFlowGraph, initialState: S)(implicit cfgState: C): C = {
-    var blocksToProcessIds = Set(startBlockId)
+    // Model the blocks to process as a queue
+    var blocksToProcessIds = mutable.LinkedHashSet(startBlockId)
     var iterationCountAtBlock = Map.empty[Int, Int]
 
     while (!blocksToProcessIds.isEmpty) {
-      val currentBlockId = blocksToProcessIds.min
-      blocksToProcessIds = blocksToProcessIds - currentBlockId
+      val currentBlockId = blocksToProcessIds.head
+      blocksToProcessIds.remove(currentBlockId)
+
       val itNumber = iterationCountAtBlock.getOrElse(currentBlockId, 0)
       val entry = if (currentBlockId == 0) initialState else computeEntryState(currentBlockId, itNumber)
       val blockStates = cfgState.statesOfBlock(currentBlockId)

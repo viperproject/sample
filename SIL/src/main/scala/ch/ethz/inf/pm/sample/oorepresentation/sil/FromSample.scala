@@ -20,7 +20,7 @@ object DefaultSampleConverter extends SampleConverter {
   import sample.ArithmeticOperator._
 
   def convert(e: sample.Expression): sil.Exp = e match {
-    case sample.NegatedBooleanExpression(inner) => sil.Neg(go(inner))()
+    case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
     case sample.BinaryBooleanExpression(left, right, op, typ) => op match {
       case `&&` => sil.And(go(left), go(right))()
       case `||` => sil.Or(go(left), go(right))()
@@ -69,25 +69,16 @@ object DefaultSampleConverter extends SampleConverter {
           sil.LocalVar(name)(go(id.typ), go(id.pp))
       }
     case id @ sample.AccessPathIdentifier(path) =>
-      // All proper prefixes of the access path are references
-      val types = (0 until path.size - 1).map(id => sil.Ref) ++ List(go(id.typ))
-      // Augment the access path with corresponding types
-      val typedPath = path zip types
+      val localVar = go(path.head)
 
-      // The first element in the access path is a local variable
-      val (localVarName, localVarType) = typedPath.head
-      val localVar = sil.LocalVar(localVarName)(localVarType)
-
-      // The rest are field accesses
-      typedPath.tail.foldLeft[sil.Exp](localVar)((exp, field) => {
-        val (fieldName, fieldType) = field
-        sil.FieldAccess(exp, sil.Field(fieldName, fieldType)())()
+      path.tail.foldLeft[sil.Exp](localVar)((exp, field) => {
+        sil.FieldAccess(exp, sil.Field(field.getName, go(field.typ))())()
       })
   }
 
   def convert(pp: sample.ProgramPoint): sil.Position = pp match {
     case sample.DummyProgramPoint => sil.NoPosition
-    case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[SourcePosition] // TODO: Avoid cast
+    case sample.WrappedProgramPoint(pos) => pos.asInstanceOf[SourcePosition]
   }
 
   def convert(typ: sample.Type): sil.Type = typ match {

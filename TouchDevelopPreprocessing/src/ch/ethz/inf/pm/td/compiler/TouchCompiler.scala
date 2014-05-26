@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.oorepresentation._
-import io.Source
+import scala.io.Source
 import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.typecheck.Typer
 import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptQuery}

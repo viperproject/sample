@@ -3,37 +3,47 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 import scala.collection.mutable
 import semper.sil.{ast => sil}
 import scala.Some
+import com.weiglewilczek.slf4s.Logging
 
 trait SilConverter {
-  /** Translates a whole SIL program to a list of Sample ClassDefinitions. */
+  /** Converts a whole SIL program to a list of Sample class definition. */
   def convert(program: sil.Program): List[sample.ClassDefinition]
 
-  /** Translates a SIL function to a Sample MethodDeclaration. */
+  /** Converts a SIL function to a Sample method declaration. */
   def convert(function: sil.Function): sample.MethodDeclaration
 
-  /** Translates a SIL method to a Sample MethodDeclaration. */
+  /** Converts a SIL method to a Sample method declaration. */
   def convert(method: sil.Method): sample.MethodDeclaration
 
-  /** Translates a SIL field to a Sample FieldDeclaration. */
+  /** Converts a SIL field to a Sample field declaration. */
   def convert(field: sil.Field): sample.FieldDeclaration
 
-  /** Translates a SIL local variable to a Sample VariableDeclaration. */
+  /** Converts a SIL local variable to a Sample variable declaration. */
   def convert(localVarDecl: sil.LocalVarDecl): sample.VariableDeclaration
 
-  /** Translates a SIL node position to a Sample ProgramPoint. */
+  /** Converts a SIL node position to a Sample ProgramPoint. */
   def convert(pos: sil.Position): sample.ProgramPoint
 
-  /** Translates a SIL type to a Sample type. */
+  /** Converts a SIL type to a Sample type. */
   def convert(typ: sil.Type): sample.Type
 
-  /** Translates a SIL statement to a Sample statement. */
+  /** Converts a SIL statement to a Sample statement. */
   def convert(stmt: sil.Stmt): sample.Statement
 
-  /** Translates a SIL expression to a Sample expression. */
+  /** Converts a SIL expression to a Sample expression. */
   def convert(exp: sil.Exp): sample.Statement
+
+  /** Converts a sequence of SIL predicates to Sample predicates.
+    *
+    * The method only converts a SIL predicate if its shape is supported
+    * by Samples predicate domain and if all of its nested predicate
+    * could be converted as well. This is the reason why the method
+    * takes a sequence of SIL predicates.
+    */
+  def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain
 }
 
-object DefaultSilConverter extends SilConverter {
+object DefaultSilConverter extends SilConverter with Logging {
   var refType: sample.RefType = sample.RefType()
   var classDef: sample.ClassDefinition = null
 
@@ -54,7 +64,6 @@ object DefaultSilConverter extends SilConverter {
       fields = Nil,
       methods = Nil,
       pack = sample.PackageIdentifier,
-      // TODO: Class invariant should maybe also be a statement
       inv = sample.Constant("true", sample.BoolType, go(p.pos)))
 
     // Only translate the methods and fields once we have the ClassDefinition
@@ -87,7 +96,10 @@ object DefaultSilConverter extends SilConverter {
     )
   }
 
-  def convert(m: sil.Method): sample.MethodDeclaration =
+  def convert(m: sil.Method): sample.MethodDeclaration = {
+    require(!m.body.existsDefined({ case g: sil.Goto => true }),
+      "methods must not contain goto statements")
+
     new MethodDeclWithOutParams(
       programpoint = go(m.pos),
       ownerType = refType,
@@ -112,6 +124,7 @@ object DefaultSilConverter extends SilConverter {
       precond = makeConjunction(m.pres),
       postcond = makeConjunction(m.posts),
       classDef = classDef)
+  }
 
   def convert(f: sil.Field): sample.FieldDeclaration =
     new sample.FieldDeclaration(go(f.pos), modifiers = Nil,
@@ -161,13 +174,12 @@ object DefaultSilConverter extends SilConverter {
     case sil.FieldAssign(lhs, rhs) =>
       sample.Assignment(go(s.pos), go(lhs), go(rhs))
     case sil.MethodCall(method, args, targets) =>
-      new sample.ContractAwareMethodCall(
+      sample.MethodCall(
         pp = go(s.pos),
-        // Methods are static, so there is no receiver
         method = makeVariable(s.pos, sil.Ref, method.name),
         parametricTypes = Nil,
         parameters = args.map(go).toList,
-        targets = targets.map(makeVariable).toList)
+        returnedType = sample.TopType)
 
     // Stubs
     case sil.Exhale(e) =>
@@ -199,7 +211,7 @@ object DefaultSilConverter extends SilConverter {
       }, go(l.typ))
     case v: sil.LocalVar => makeVariable(v)
     case sil.FuncLikeApp(func, args) =>
-      new sample.ContractAwareFunctionCall(
+      sample.MethodCall(
         pp = go(e.pos),
         // Functions are static, so there is no receiver
         method = makeVariable(e.pos, sil.Ref, func.name),
@@ -216,22 +228,20 @@ object DefaultSilConverter extends SilConverter {
         returnType = go(e.typ))
     case sil.Result() =>
       makeVariable(e.pos, e.typ, Constants.ResultVariableName)
+    case sil.Unfolding(acc, inner) =>
+      go(inner)
 
     // Stubs
     case sil.AccessPredicate(loc, perm) =>
-      go(sil.TrueLit()()) // May not be what we want
+      go(sil.TrueLit()()) // Ignore
     case sil.QuantifiedExp(vars, inner) =>
-      go(sil.TrueLit()()) // May not be what we want
-    case sil.Unfolding(acc, inner) =>
-      go(inner)
+      go(sil.TrueLit()()) // Ignore
     case sil.InhaleExhaleExp(in, ex) =>
-      go(sil.TrueLit()()) // May not be what we want
+      go(sil.TrueLit()()) // Ignore
+
     case p: sil.PermExp => ???
-    case sil.Old(exp) =>
-      // TODO: Is only sound for local variables
-      go(exp)
+    case sil.Old(exp) => ???
     case e: sil.SeqExp => ???
-    case sil.PredicateAccess(args, pred) => ???
     case sil.AnySetCardinality(_) |
          sil.AnySetContains(_, _) |
          sil.AnySetIntersection(_, _) |
@@ -244,8 +254,100 @@ object DefaultSilConverter extends SilConverter {
          sil.ExplicitSet(_) => ???
   }
 
+  def convert(preds: Seq[sil.Predicate]): sample.PredicatesDomain = {
+    val predIdToBodyMap: Map[sample.PredicateIdentifier, sample.PredicateBody] =
+      preds.map(convert).flatten.toMap
+
+    /** Returns the set of all predicate IDs recursively nested
+      * in the predicate with the given ID.
+      */
+    def deeplyNestedPredIds(
+        predId: sample.PredicateIdentifier,
+        foundSoFar: Set[sample.PredicateIdentifier] = Set.empty):
+      Set[sample.PredicateIdentifier] = {
+
+      if (foundSoFar.contains(predId)) {
+        foundSoFar // Terminate when reaching an already handled predicate ID
+      } else {
+        // Get nested predicate IDs, if any
+        val nestedPredIds = predIdToBodyMap.get(predId) match {
+          case Some(predBody) => predBody.nestedPredIds
+          case None => Set.empty
+        }
+
+        // Recurse to all nested predicate IDs
+        nestedPredIds.foldLeft(foundSoFar + predId)({
+          case (newFoundSoFar, nestedPredId) =>
+            deeplyNestedPredIds(nestedPredId, newFoundSoFar)
+        })
+      }
+    }
+
+    // Filter out any predicates that could not be converted completely
+    var result = sample.PredicatesDomain().top()
+    for ((predId, predBody) <- predIdToBodyMap) {
+      if (deeplyNestedPredIds(predId).subsetOf(predIdToBodyMap.keySet)) {
+        result = result.add(predId, predBody)
+      }
+    }
+
+    result
+  }
+
+  /** Converts a single SIL predicate to a Sample predicate, if possible.
+    *
+    * If the given predicate has a shape that our domain of predicates does not
+    * support, the method returns `None`.
+    */
+  private def convert(pred: sil.Predicate): Option[(sample.PredicateIdentifier, sample.PredicateBody)] = {
+    if (pred.formalArgs.map(_.typ) != Seq(sil.Ref)) {
+      // Only support SIL predicates with a single reference parameter
+      return None
+    }
+
+    val formalArgVar = pred.formalArgs.head.localVar
+
+    // Reorder null-ness check expressions such that the null literals always
+    // appear on the right side. Makes it easier to pattern-match later.
+    val normalizedBody = pred.body.transform()(post = {
+      case n @ sil.NeCmp(left @ sil.NullLit(), right) =>
+        n.copy(right, left)(n.pos, n.info)
+    })
+
+    // Maps each field with write permission to a set of predicate IDs
+    var fieldsWithPerm = Map.empty[sample.Identifier, Set[sample.PredicateIdentifier]]
+
+    // Predicate must be a conjunction of constituents we support, that is,
+    // field access predicates, and conditional predicate access predicates
+    flattenConjunction(normalizedBody).foreach({
+      case sil.FieldAccessPredicate(sil.FieldAccess(rcv, field), sil.FullPerm())
+        if formalArgVar == rcv =>
+        // Found a field access predicate for a field of the formal argument
+        fieldsWithPerm += makeVariableIdentifier(field) -> Set.empty
+      case implies @ sil.Implies(
+      sil.NeCmp(fa @ sil.FieldAccess(rcv, field), sil.NullLit()),
+      sil.PredicateAccessPredicate(sil.PredicateAccess(args, nestedPred), sil.FullPerm()))
+        if formalArgVar == rcv && args == Seq(fa) =>
+        // Found a nested predicate access predicate for a field
+        // of the formal argument
+        val nestedPredId = new sample.PredicateIdentifier(nestedPred.name)
+        fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
+      case n =>
+        // Give up if the predicate contains anything else
+        logger.warn(s"Cannot handle constituent $n of predicate ${pred.name}")
+        return None
+    })
+
+    val samplePredId = new sample.PredicateIdentifier(pred.name)
+    val samplePredBody = sample.PredicateBody().functionalFactory(
+      fieldsWithPerm.mapValues(predIds => {
+        predIds.foldLeft(sample.NestedPredicatesDomain())(_.add(_))
+      }))
+    Some(samplePredId -> samplePredBody)
+  }
+
   /**
-   * Translates a SIL CFG block, adds it to the given Sample CFG and recurses to its successors.
+   * Converts a SIL CFG block, adds it to the given Sample CFG and recurses to its successors.
    * @param b the SIL block
    * @param cfg the Sample CFG to extend
    * @param indices maps already translated SIL blocks to Sample CFG node indices
@@ -262,16 +364,11 @@ object DefaultSilConverter extends SilConverter {
         case b: sil.StatementBlock =>
           b.stmt.children.map(go).toList
         case lb: sil.LoopBlock =>
-          /* val invariant = semper.simplon.utils.BigAnd(lb.invs)
-          val assertMethodCall = go(sil.Assert(invariant)())
-          val coolPP = sample.ProgramPointsForLoopBlocks(lb)
-          val assertMethodCallWithPos = assertMethodCall match {
-            case sample.MethodCall(pp, m, pt, p, rt) =>
-              sample.MethodCall(coolPP, m, pt, p, rt)
-          }
-          // TODO: Cannot access pos?
-          assertMethodCallWithPos :: go(lb.cond) :: Nil */
-          go(lb.cond) :: Nil
+          // Generate an assertion for each loop invariant
+          val assertMethodCalls = lb.invs.toList.map(inv => {
+            go(sil.Assert(inv)(inv.pos))
+          })
+          assertMethodCalls :+ go(lb.cond)
         case b: sil.FreshReadPermBlock =>
           sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
       }
@@ -284,10 +381,18 @@ object DefaultSilConverter extends SilConverter {
           cfg.addEdge(index, convertCfg(b.els), Some(false))
         case b: sil.LoopBlock =>
           cfg.addEdge(index, convertCfg(b.body), Some(true))
-          // The unconditional back edge from the body block to the condition block
-          // is implicit in SIL's CFG. Make it explicit for Sample.
-          // TODO: Is this correct? What if b.body has successors?
-          cfg.addEdge(convertCfg(b.body), index, None)
+          // In the SIL CFG, there are no explicit edges from blocks at
+          // the end of the loop back to the containing loop block.
+          // For Sample, we need to add them explicitly.
+          // Thus, find all terminal blocks reachable from the loop body block
+          // and add a back-edge.
+          val terminalBodyBlocks = sil.utility.ControlFlowGraph
+            .collectBlocks(b.body).filter(_.isInstanceOf[sil.TerminalBlock])
+
+          for (terminalBlock <- terminalBodyBlocks) {
+            cfg.addEdge(convertCfg(terminalBlock), index, None)
+          }
+
           cfg.addEdge(index, convertCfg(b.succ), Some(false))
         case _ =>
           // TODO: Should handle FreshReadPermBlock
@@ -298,14 +403,27 @@ object DefaultSilConverter extends SilConverter {
     }
   }
 
+  /** Flattens a SIL conjunction into a sequence of expressions.
+    *
+    * For example, given the expression And(And(a, b), c), the result is
+    * Seq(a, b, c). If the root of expression is not a conjunction,
+    * the method just returns the expression itself.
+    */
+  private def flattenConjunction(exp: sil.Exp): Seq[sil.Exp] = exp match {
+    case sil.And(left, right) =>
+      flattenConjunction(left) ++ flattenConjunction(right)
+    case _ =>
+      Seq(exp)
+  }
+
   /**
-   * Translates a conjunction of boolean SIL expressions to a Statement.
+   * Converts a conjunction of boolean SIL expressions to a Statement.
    * @param conj sequence of boolean SIL expressions
    * @return true if the list of SIL expressions is empty
    */
   private def makeConjunction(conj: Seq[sil.Exp]): sample.Statement = go(conj match {
     case Nil => sil.TrueLit()()
-    case _ => conj.reduceRight((x, y) => new sil.And(x, y)(x.pos))
+    case _ => conj.reduceRight((x, y) => sil.And(x, y)(x.pos))
   })
 
   /**
@@ -354,4 +472,6 @@ object DefaultSilConverter extends SilConverter {
   private def go(s: sil.Stmt) = convert(s)
 
   private def go(e: sil.Exp) = convert(e)
+
+  private def go(p: sil.Predicate) = convert(p)
 }

@@ -1,0 +1,28 @@
+var val: Int
+var left: Ref
+var right: Ref
+
+/** Returns the value of the leftmost child. */
+method getFirst(tree: Ref) returns (first: Int) {
+    var cur: Ref
+    cur := tree
+
+    while (cur != null) {
+        first := cur.val
+        cur := cur.left
+    }
+}
+
+/** Tests that the inferred precondition of traverse is not too strong. */
+method test(tree: Ref) requires acc(valid(tree), write) {
+    var res: Int
+    res := getFirst(tree)
+}
+
+/** Predicate that the specification extraction should detect and reuse.
+  * The getFirst method never accesses the 'right' field, so no permissions
+  * are inferred for it.
+  */
+predicate valid(this: Ref) {
+  acc(this.val, write) && acc(this.left, write) && ((this.left != null) ==> acc(valid(this.left), write))
+}

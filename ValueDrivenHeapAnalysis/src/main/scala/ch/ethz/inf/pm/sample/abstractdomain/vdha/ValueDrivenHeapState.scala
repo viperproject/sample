@@ -183,7 +183,7 @@ trait ValueDrivenHeapState[
               edgesToAdd = edgesToAdd + edge.createEdgeLocalIds()
             }
             case rAP: AccessPathIdentifier => {
-              val rightPaths = abstractHeap.paths(rAP.path)
+              val rightPaths = abstractHeap.paths(rAP.stringPath)
               for (rPath <- rightPaths) {
                 val rCond = rPath.condition
                 if (!rCond.lessEqual(rCond.bottom())) {
@@ -235,8 +235,8 @@ trait ValueDrivenHeapState[
    * Convenience method that converts the state to a `CondHeapGraph` and
    * evaluates the given expression.
    */
-  private def evalExp(expr: Expression): CondHeapGraphSeq[S] =
-    toCondHeapGraph.evalExp(expr)
+  protected def evalExp(expr: Expression, allowNullReceivers: Boolean = false): CondHeapGraphSeq[S] =
+    toCondHeapGraph.evalExp(expr, allowNullReceivers)
 
   /** Assigns an expression to a field and returns the resulting state.
     *
@@ -263,8 +263,8 @@ trait ValueDrivenHeapState[
       var edgesToAdd = Set.empty[Edge[S]]
       normalizeExpression(right) match {
         case rAP: AccessPathIdentifier => {
-          val rightPaths = abstractHeap.paths(rAP.path)
-          edgesToAdd = referencePathAssignmentEdges(left.path.last, leftPaths, rightPaths)
+          val rightPaths = abstractHeap.paths(rAP.stringPath)
+          edgesToAdd = referencePathAssignmentEdges(left.path.last.getName, leftPaths, rightPaths)
         }
         case v: VertexExpression => {
           // We assume that all edges have ValueHeapIdentifiers for the given vertex expression
@@ -278,9 +278,9 @@ trait ValueDrivenHeapState[
             for (id <- leftCond.ids.collect({
               case id: ValueHeapIdentifier if id.obj.equals(v.vertex) => id
             })) {
-              repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(left.path.last)), id)))
+              repl.value.update(Set(id), Set(id, EdgeLocalIdentifier(List(Some(left.path.last.getName)), id)))
             }
-            edgesToAdd = edgesToAdd + Edge(lPath.target, leftCond.merge(repl), Some(left.path.last), v.vertex)
+            edgesToAdd = edgesToAdd + Edge(lPath.target, leftCond.merge(repl), Some(left.path.last.getName), v.vertex)
           }
         }
         case c: Constant => {
@@ -300,7 +300,7 @@ trait ValueDrivenHeapState[
       if (sources.size == 1 && (sources.head.isInstanceOf[DefiniteHeapVertex] || sources.head.isInstanceOf[LocalVariableVertex])) {
         // Strong update - removing the edges from the target of the path labeled with the assigned filed
         val lastPathVertex: Vertex = sources.head
-        val edgesToRemove = resultingAH.outEdges(lastPathVertex, Some(left.path.last))
+        val edgesToRemove = resultingAH.outEdges(lastPathVertex, Some(left.path.last.getName))
         resultingAH = resultingAH.removeEdges(edgesToRemove)
       }
       resultingAH = resultingAH.addEdges(edgesToAdd)
@@ -477,8 +477,7 @@ trait ValueDrivenHeapState[
     if (abstractHeap.vertices != other.abstractHeap.vertices) return false
 
     for (otherEdge <- other.abstractHeap.edges) {
-      val edgeSet = abstractHeap.edges.filter(edge =>
-        edge.source == otherEdge.source && edge.target == otherEdge.target)
+      val edgeSet = abstractHeap.edges.filter(_.weakEquals(otherEdge))
 
       if (!(edgeSet.size == 1 && edgeSet.head.state.ids == otherEdge.state.ids))
         return false
@@ -503,7 +502,7 @@ trait ValueDrivenHeapState[
         case summaryVertex: SummaryHeapVertex =>
           edgesToRemove += edge
           // Creating a vertex that is a materialization of the summary vertex
-          val (tempAH, definiteVertex) = resultingAH.addHeapVertex(VertexConstants.DEFINITE, summaryVertex.typ)
+          val (tempAH, definiteVertex) = resultingAH.addDefiniteHeapVertex(summaryVertex.typ)
           resultingAH = tempAH
           // Add the information about the corresponding identifiers to replacement
           for (valField <- definiteVertex.typ.nonObjectFields) {
@@ -516,28 +515,35 @@ trait ValueDrivenHeapState[
           /**
            * Adding edges
            */
+          // Collect edges to add for this particular definite vertex first,
+          // then add them to the rest
+          val edgesToAddHere = mutable.Set.empty[Edge[S]]
+
           // Edge that represents the processed edge
-          edgesToAdd += edge.copy(target = definiteVertex)
-          for (e <- resultingAH.edges -- edgesToRemove ++ edgesToAdd) {
+          edgesToAddHere += edge.copy(target = definiteVertex)
+
+          for (e <- resultingAH.edges -- edgesToRemove) {
             // Incoming edges
             if (e.target == summaryVertex) {
-              edgesToAdd += e.copy(target = definiteVertex)
+              edgesToAddHere += e.copy(target = definiteVertex)
             }
             // Outgoing edges
             if (e.source == summaryVertex) {
               val edgeToAdd = e.copy[S](source = definiteVertex)
               if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
                 queue.enqueue((edgeToAdd, path.tail))
-              edgesToAdd += edgeToAdd
+              edgesToAddHere += edgeToAdd
             }
             // Self-loop edges
             if (e.source == summaryVertex && e.target == summaryVertex) {
               val edgeToAdd = e.copy[S](source = definiteVertex, target = definiteVertex)
               if (!path.isEmpty && edgeToAdd.field.equals(Some(path.head)))
                 queue.enqueue((edgeToAdd, path.tail))
-              edgesToAdd += edgeToAdd
+              edgesToAddHere += edgeToAdd
             }
           }
+
+          edgesToAdd ++= edgesToAddHere.toSet
         case _ =>
           // Nothing to materialize for this edge
           if (!path.isEmpty)
@@ -623,8 +629,8 @@ trait ValueDrivenHeapState[
   protected implicit def CondHeapGraphToValueDrivenHeapState(condHeap: CondHeapGraph[S]): T =
     factory(condHeap.heap, condHeap.cond, ExpressionSet())
 
-  /** Converts the state to a conditional heap graph. */
-  protected def toCondHeapGraph: CondHeapGraph[S] =
+  /** Convertes the state to a conditional heap graph. */
+  def toCondHeapGraph: CondHeapGraph[S] =
     CondHeapGraph[S, T](this)
 
   /**

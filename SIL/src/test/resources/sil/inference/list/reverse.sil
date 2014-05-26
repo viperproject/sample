@@ -1,0 +1,39 @@
+var val: Int
+var next: Ref
+
+/** Reverses a linked list in place and returns the first element
+  * of the reversed list.
+  */
+method reverse(list: Ref) returns (newList: Ref)
+{
+    var oldList: Ref
+    var tmp: Ref
+    oldList := list
+    newList := null
+    tmp := null
+    while (oldList != null) {
+        tmp := oldList
+        oldList := oldList.next
+        tmp.next := newList
+        newList := tmp
+        tmp := null
+    }
+}
+
+/** Tests that the inferred precondition of traverse is not too strong. */
+method test(list: Ref)
+    returns (res: Ref)
+    requires acc(valid(list), write)
+{
+    res := reverse(list)
+
+    // The resulting list is null if and only if the the given list is null
+    // This fact should be part of the inferred postcondition.
+    // As a result, we could make the following assertion stronger
+    assert (res != null) ==> acc(valid(res), write)
+}
+
+/** Predicate that the specification extraction should detect and reuse. */
+predicate valid(this: Ref) {
+  acc(this.next, write) && ((this.next != null) ==> acc(valid(this.next), write))
+}

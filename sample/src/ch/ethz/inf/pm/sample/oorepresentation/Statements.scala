@@ -280,18 +280,19 @@ case class FieldAccess(pp: ProgramPoint, obj: Statement, field: String, typ: Typ
     if (SystemParameters.isValueDrivenHeapAnalysis) {
       // I need a List of ExpressionSet
       var current: Statement = obj
-      var accPath: List[String] = Nil
+      var accPath: List[VariableIdentifier] = Nil
       while (current.isInstanceOf[FieldAccess]) {
         val fieldAccSt = current.asInstanceOf[FieldAccess]
-        accPath = fieldAccSt.field :: accPath
+        accPath = VariableIdentifier(fieldAccSt.field)(fieldAccSt.typ, fieldAccSt.pp) :: accPath
         current = fieldAccSt.obj
       }
       assert(current.isInstanceOf[Variable], "The root of FieldAccess should be a variable.")
       val rootOfFieldAcc = current.asInstanceOf[Variable]
-      accPath = rootOfFieldAcc.getName :: accPath
+      accPath = rootOfFieldAcc.id :: accPath
       // TODO: The below fix is a hack and should not be handled this way
       val finalType = if (typ.toString.contains("<none>")) getTypeOfStatement(obj).possibleFields.filter(f => f.getName.equals(field)).head.typ else typ
-      val pathExpr = AccessPathIdentifier(accPath :+ field)(finalType, pp)
+      val fieldId = VariableIdentifier(field)(finalType, pp)
+      val pathExpr = AccessPathIdentifier(accPath :+ fieldId)
       val newResult = state.getFieldValue(ExpressionSet(pathExpr), field, finalType)
       newResult
     } else {

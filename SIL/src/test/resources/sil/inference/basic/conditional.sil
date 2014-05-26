@@ -1,0 +1,25 @@
+var val1: Int
+var val2: Int
+
+/** Assigns values to one of the fields of the given object
+  * depending on the given flag.
+  */
+method assignConditional(this: Ref, b: Bool) {
+    if (b) {
+        this.val1 := 5
+    } else {
+        this.val2 := 10
+    }
+}
+
+method test() {
+    var r: Ref
+    r := new()
+    r.val1 := 0
+    r.val2 := 0
+
+    assignConditional(r, true)
+
+    assert acc(r.val1, write)
+    assert acc(r.val2, write)
+}
