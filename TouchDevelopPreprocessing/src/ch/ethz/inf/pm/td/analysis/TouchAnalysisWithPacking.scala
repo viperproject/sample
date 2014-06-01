@@ -29,7 +29,7 @@ class TouchAnalysisWithPacking[D <: NumericalDomain[D], V <: StringValueDomain[V
 
     val relationalNumericalDomain = domain match {
       case "ApronOctagons" =>
-        val man = new Octagon()
+        val man = new OptOctagon()
         ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
       case "ApronPolka" =>
         val man = new Polka(false)

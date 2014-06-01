@@ -53,7 +53,7 @@ object TouchApronRun {
     val numericalDomainChoice = touchParams.domains.numericalDomain
     val domain =
       numericalDomainChoice match {
-        case NumericDomainChoice.Octagons => new Octagon()
+        case NumericDomainChoice.Octagons => new OptOctagon()
         case NumericDomainChoice.Polyhedra => new Polka(false)
         case NumericDomainChoice.StrictPolyhedra => new Polka(true)
       }

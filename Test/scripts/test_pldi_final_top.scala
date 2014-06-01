@@ -15,7 +15,8 @@ val toAnalyze =
   """.stripMargin.split("[\n,]").map(_.trim)
 
 def analyzer(id:String) {
-  TestRunner.runIdWithApron(id)
+  if (!id.isEmpty)
+    TestRunner.runIdWithApron(id)
 }
 
 for(a <- toAnalyze) {

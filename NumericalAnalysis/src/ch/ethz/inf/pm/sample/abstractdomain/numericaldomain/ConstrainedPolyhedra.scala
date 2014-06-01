@@ -162,7 +162,7 @@ class ConstrainedPolyhedraAnalysis extends SemanticAnalysis[ConstrainedPolyhedra
 	case "Domain" => value match {
 		case "Interval" => domain = new Box()
 		case "PPL" => domain = new Polka(false)
-		case "Octagons" => domain = new Octagon()
+		case "Octagons" => domain = new OptOctagon()
 		case "Polka" => domain = new Polka(false)
 		}
 	}

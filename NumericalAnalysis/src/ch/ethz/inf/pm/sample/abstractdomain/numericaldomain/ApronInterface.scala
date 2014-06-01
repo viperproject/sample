@@ -1151,7 +1151,7 @@ class ApronAnalysis extends SemanticAnalysis[ApronInterface.Default] {
       case "Domain" => value match {
         case "Interval" => domain = new Box()
         case "PPL" => domain = new Polka(false) //new PplPoly(false); FIXIT: Change back to PPL
-        case "Octagons" => domain = new Octagon()
+        case "Octagons" => domain = new OptOctagon()
         case "Polka" => domain = new Polka(false)
         case "Linear equalities" => domain = new PolkaEq()
       }
