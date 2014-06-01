@@ -208,6 +208,28 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
     } else r
   }
 
+  /**
+   * May try to explain an error
+   *
+   * @param expr An error-expression that should be infeasible but exposes an error
+   * @return If a cause of the error is found, it returns an explanation and the program point of the cause
+   */
+  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = {
+    val res : Set[(String, ProgramPoint)] = expr match {
+      case BinaryArithmeticExpression(a:Identifier, InvalidExpression(_,_), ArithmeticOperator.==, _) =>
+
+        val left = eval(a)
+        left.value flatMap {
+          case Invalid(pp) => Some("(caused by: "+pp+")", pp)
+          case _ => None
+        }
+
+      case _ => Set.empty
+    }
+
+    res
+  }
+
 }
 
 

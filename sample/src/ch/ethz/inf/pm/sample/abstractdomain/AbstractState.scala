@@ -454,8 +454,6 @@ I <: HeapIdentifier[I]](
     }
   }
 
-  def assert(cond: ExpressionSet): AbstractState[N, H, I] = this
-
   def assume(cond: Expression): AbstractState[N, H, I] = {
     val (dom, replacement) = domain.assume(cond)
     factory(dom, expr.merge(replacement))
@@ -480,6 +478,8 @@ I <: HeapIdentifier[I]](
     if (isBottom) "⊥"
     else domain.toString + "\nExpression: " + expr.toString
   }
+
+  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr)
 
   def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]] = None): AbstractState[N, H, I] = {
 

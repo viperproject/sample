@@ -51,7 +51,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
         val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
         if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
           || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.typ.toString)) {
-            Reporter.reportError(message+" "+state.explainError(expr).map{x => x._1+" "+x._2.toString}.mkString(";"),pp)
+            Reporter.reportError(message+" "+state.explainError(expr).map{x => x._1}.mkString(";"),pp)
         }
         val ret = state.assume(expr.not())
         if (ret.lessEqual(ret.bottom())) return ret.bottom()

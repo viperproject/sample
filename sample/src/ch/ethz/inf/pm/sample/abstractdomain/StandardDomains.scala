@@ -756,6 +756,9 @@ T <: RoutingSemanticCartesianProductDomain[T1, T2, T]]
     else
       ""
   }
+
+  override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr) ++ _2.explainError(expr)
+
 }
 
 /**

@@ -930,6 +930,11 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     setExpression(ExpressionSet(unitExp))
   }
 
+  override def explainError(expr: ExpressionSet): Set[(String, ProgramPoint)] =
+    expr.getSetOfExpressions.map( this.explainError ).flatten
+
+  def explainError(expr:Expression) : Set[(String, ProgramPoint)] = Set.empty
+
   private def unpackSingle(set: ExpressionSet): Expression = {
     require(set.getSetOfExpressions.size == 1,
       "ExpressionSet must contain exactly one Expression")

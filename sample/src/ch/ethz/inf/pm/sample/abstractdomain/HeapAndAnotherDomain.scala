@@ -24,6 +24,7 @@ I <: HeapIdentifier[I]](
   extends Lattice[HeapAndAnotherDomain[N, H, I]]
   with LatticeWithReplacement[HeapAndAnotherDomain[N, H, I]] {
 
+
   type T = HeapAndAnotherDomain[N, H, I]
 
   override def toString: String = "Heap state:\n" +
@@ -479,6 +480,8 @@ I <: HeapIdentifier[I]](
   def isSummaryCollection(collection: Assignable): Boolean = {
     heap.isSummaryCollection(collection)
   }
+
+  def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr) ++ _2.explainError(expr)
 
   private def getCollectionMustValuesByValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
     var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()

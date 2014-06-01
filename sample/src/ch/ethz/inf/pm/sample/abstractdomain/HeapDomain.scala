@@ -478,6 +478,15 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
   def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean): (I, T)
 
   def getNonDeterminismSource(pp: ProgramPoint, typ: Type): Identifier
+
+  /**
+   * May try to explain an error
+   *
+   * @param expr An error-expression that should be infeasible but exposes an error
+   * @return If a cause of the error is found, it returns an explanation and the program point of the cause
+   */
+  def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty // NOT SUPPORTED BY HEAPDOMAINS YET
+
 }
 
 trait Assignable {

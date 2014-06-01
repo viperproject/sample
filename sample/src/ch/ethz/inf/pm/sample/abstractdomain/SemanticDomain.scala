@@ -177,6 +177,15 @@ trait SemanticDomain[T <: SemanticDomain[T]]
       replacement.value += (Set[Identifier](from) -> Set[Identifier](to))
     merge(replacement)
   }
+
+  /**
+   * May try to explain an error
+   *
+   * @param expr An error-expression that should be infeasible but exposes an error
+   * @return If a cause of the error is found, it returns an explanation and the program point of the cause
+   */
+  def explainError(expr: Expression): Set[(String, ProgramPoint)] = Set.empty
+
 }
 
 /** Semantic domain whose methods do not change the state in any way.
