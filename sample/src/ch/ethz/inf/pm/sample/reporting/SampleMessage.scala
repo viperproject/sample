@@ -8,7 +8,7 @@ trait SampleMessage {
   def pp: ProgramPoint
 }
 
-case class SampleError(id: String, message: String, pp: ProgramPoint) extends SampleMessage
+case class SampleError(id: String, message: String, pp: ProgramPoint, causes:Set[(String,ProgramPoint)]) extends SampleMessage
 
 case class SampleInfo(id: String, message: String, pp: ProgramPoint) extends SampleMessage
 

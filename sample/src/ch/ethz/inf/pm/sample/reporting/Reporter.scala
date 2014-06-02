@@ -43,13 +43,13 @@ object Reporter {
 
   def reportError(err: SampleError) {
     if (!hasError(err) && enableOutputOfAlarms) {
-      SystemParameters.progressOutput.put("ALARM: "+err.message+" at "+err.pp.toString)
+      SystemParameters.progressOutput.put("ALARM: "+err.message+" at "+err.pp.toString+" "+err.causes.map{x => x._1}.mkString(";"))
       seenErrors += err
     }
   }
 
-  def reportError(message:String,pp:ProgramPoint, id: String = "assert.failed") {
-    val err = SampleError(id, message, pp)
+  def reportError(message:String,pp:ProgramPoint, causes: Set[(String,ProgramPoint)] = Set.empty, id: String = "assert.failed") {
+    val err = SampleError(id, message, pp, causes)
     reportError(err)
   }
 

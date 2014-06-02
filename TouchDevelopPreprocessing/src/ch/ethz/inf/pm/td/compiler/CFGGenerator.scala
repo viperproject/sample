@@ -554,6 +554,8 @@ case class SpaceSavingProgramPoint(id: Int) extends ProgramPoint {
    */
   override def description: String = TouchProgramPointRegistry.reg.apply(id).description
 
+  def fullPosString: String = TouchProgramPointRegistry.reg.apply(id).fullPosString
+
   override def toString: String = "pp" + id.toString
 
 }

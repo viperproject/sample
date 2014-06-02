@@ -78,10 +78,21 @@ class HTMLExporter extends ErrorExporter {
         |		color:#fff;
         |		font-size:12px Arial;
         |	}
+        |	.hoverError {
+        |		background-color:yellow;
+        |	}
+        |	.hoverCause {
+        |		background-color:#4fd5d6;
+        |	}
         |	.masterTooltip {
         |		color:red;
+        |		display:inline-block;
+        |		width:16px;
+        |		height:16px;
+        |		background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAABvUlEQVR4nI2SwW4TMRCGPyfetCkJTRaIWopEqxRo4IDU0/Yd+gS9wL08D8+yb2ApN04gUUAqUrRw6CZNK7Rrr4fDptlGSQQjjSz7n/n8yx5YE0kcRtlwT7LhniRxGK2r0+uEbtg06sU5IHS/fjSAWlVXW3e790LQ2SfoHOALYZ2LlYBWq2Hqrz7M9/Wjc1qthvkvQBKHkXOeoL2DUmcodYZu71IUfqWLJYDWNdN8/R5xN9Whm7I5eIfW9SUXC4DydiFotsFeV4KdEjQf4lyx5GIB4HJvOoNTJJ9APq6EfIzYCd3BKc56sxKQxGFkrSdoaMhTxKbzIslTyFP0RoDNF99iDpimmXly+AaxKZJfIVkFIE+RWYb9Y67TzCwAkjiMrPNsbG1CloIdl3nfQVbmg1YN5yoXGuDX6Nbs7vfAjpF5m8J+PgYR5B4MFN2dHr9/JgZQOonDaHQ5pfOogdgpCimHVhTB24vyEz7173oBeNzTjH6ULvTlt4l5frgN7gZQCIKardX33MJMYXb+9NkWl98nRheFgDgoirnFu+Z8uF2+QfGnggmIAvGWwnn0wcvOycWXq5Vz/q/oH4UnfwFlZuAVdLyXBQAAAABJRU5ErkJggg==');
         |	}
         |	</style>
+        |
         |</head>
         |<body id="" class="">
       """.stripMargin
@@ -98,25 +109,29 @@ class HTMLExporter extends ErrorExporter {
               case Some(x) => x.fullPosString;
               case None => ""
             }
+            val onmouseover = "$('#" + spanId + "').addClass('hoverError');"
+            val onmouseout  = "$('#" + spanId + "').removeClass('hoverError');"
             "<span id='" + spanId + "'>" +
-              (for (SampleError(errorTypeId, message, pp) <- Reporter.seenErrors) yield {
+              (for (SampleError(errorTypeId, message, pp, causes) <- Reporter.seenErrors) yield {
                 pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                      <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
+                    val onmouseover2 = onmouseover + (for (c <- causes) yield {"$('#" + c._2.asInstanceOf[SpaceSavingProgramPoint].fullPosString + "').addClass('hoverCause');"}).mkString(";")
+                    val onmouseout2  = onmouseout + (for (c <- causes) yield {"$('#" + c._2.asInstanceOf[SpaceSavingProgramPoint].fullPosString + "').removeClass('hoverCause');"}).mkString(";")
+                    <div title={message} class="masterTooltip" onmouseover={onmouseover2} onmouseout={onmouseout2}></div>.toString()
                   case _ => ""
                 }
               }).mkString("") +
               (for ((message, pp) <- Reporter.seenBottom) yield {
                 pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                      <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
+                      <div title={message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
                   case _ => ""
                 }
               }).mkString("") +
               (for ((message, pp) <- Reporter.seenImprecision) yield {
                 pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                      <img src="http://i.imgur.com/vTVqlzB.png" title={message} class="masterTooltip"/>.toString()
+                      <div title={message} class="masterTooltip" onmouseover={onmouseover} onmouseout={onmouseout}></div>.toString()
                   case _ => ""
                 }
               }).mkString("") +

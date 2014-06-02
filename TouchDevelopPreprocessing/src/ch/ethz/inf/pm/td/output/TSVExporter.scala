@@ -19,7 +19,7 @@ class TSVExporter extends ErrorExporter {
 
     var res = ""
 
-    for (SampleError(id,message,pp) <- Reporter.seenErrors) {
+    for (SampleError(id,message,pp,causes) <- Reporter.seenErrors) {
       pp match {
         case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Error\t"+message+"\t"+pp else ""
         case _ => ""

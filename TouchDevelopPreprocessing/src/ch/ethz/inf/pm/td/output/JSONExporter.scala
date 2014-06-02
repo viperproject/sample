@@ -48,7 +48,7 @@ class JSONExporter extends ErrorExporter {
 
   def makeResult(scriptID:String):JResult = {
 
-    val errors = (for (SampleError(id,string,pp) <- Reporter.seenErrors) yield {
+    val errors = (for (SampleError(id,string,pp,causes) <- Reporter.seenErrors) yield {
       pp match {
         case tpp: TouchProgramPoint =>
           if (scriptID == tpp.scriptID) {

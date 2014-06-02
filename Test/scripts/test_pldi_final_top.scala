@@ -2,16 +2,16 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
 
 val toAnalyze =
-  """ajkc
-    |dvvx
+  """kblp
     |htmh
-    |kblp
     |kmjn
     |mpuj
     |qwzu
     |wbxsa
     |ybcy
     |zids
+    |ajkc
+    |dvvx
   """.stripMargin.split("[\n,]").map(_.trim)
 
 def analyzer(id:String) {
