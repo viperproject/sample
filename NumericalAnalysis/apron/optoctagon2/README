@@ -1,0 +1,14 @@
+Compile Options:
+
+	For Sparse Algorithms: use option -DSPARSE for IS_SPARSE in Makefile
+	
+	For Dense Algorithms: leave IS_SPARSE empty in Makefile
+	
+	for Intel's AVX Intrinsics: specify -DVECTOR for DFLAGS and "-m64", "-march=native" for AFLAGS in Makefile, no vectorization works only with sparse algorithms
+	
+
+To Compile type: 
+	make
+this will generate "liboptoct.so". By default it will use dense algorithms, to use sparse algorithms specify  DPSARSE in DFLAGS option in "Makefile".
+
+
