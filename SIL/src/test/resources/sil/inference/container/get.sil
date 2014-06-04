@@ -1,0 +1,30 @@
+var val: Int
+
+/** Returns the value stored in the given container. */
+method get(c: Ref) returns (i: Int) {
+    i := c.val
+}
+
+method testReturnValue() {
+    var i: Int
+    var container: Ref
+    container := new()
+    container.val := 42
+
+    i := get(container)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/38/)
+    assert (i == 42)
+}
+
+method testOldValue() {
+    var i: Int
+    var container: Ref
+    container := new()
+    container.val := 42
+
+    i := get(container)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/38/)
+    assert (container.val == 42)
+}

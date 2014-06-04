@@ -1,0 +1,43 @@
+var val: Int
+
+/** Creates a new container whose value is the same as the given container.
+  * Returns null if and only if the parameter is null.
+  */
+method copyNullable(this: Ref) returns (other: Ref) {
+    if (this == null) {
+        other := null
+    } else {
+        other := new()
+        other.val := this.val
+    }
+}
+
+method testReturnValue() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copyNullable(this)
+
+    assert(this.val == other.val)
+}
+
+method testOldValue() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copyNullable(this)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/38/)
+    assert(this.val == 42)
+}
+
+method testNull() {
+    var res: Ref
+    res := copyNullable(null)
+
+    assert(res == null)
+}

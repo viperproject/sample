@@ -1,0 +1,15 @@
+var val: Int
+
+/** Sets the value of a container. */
+method set(c: Ref, i: Int) {
+    c.val := i
+}
+
+method testSet() {
+    var c: Ref
+    c := new()
+    c.val := 42
+
+    set(c, 43)
+    assert(c.val == 43)
+}

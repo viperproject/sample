@@ -1,0 +1,26 @@
+var val: Int
+var next: Ref
+
+/** Prepends a new element with a given value to the given list. */
+method prepend(this: Ref, val: Int) returns (newList: Ref) {
+    newList := new()
+    newList.val := val
+    newList.next := this
+}
+
+method testNull() {
+    var list: Ref
+    var newList: Ref
+    list := null
+
+    newList := prepend(list, 42)
+
+    //:: UnexpectedOutput(assert.failed:insufficient.permission, /sample/issue/39/)
+    assert acc(newList.val, write)
+    assert acc(newList.next, write)
+
+    assert newList.val == 42
+
+    // We currently don't extract reference field assertions
+    assert newList.next == null
+}

@@ -1,0 +1,24 @@
+var val: Int
+var next: Ref
+
+/** Traverses a given linked list and sets the value of each element to zero. */
+method setToZero(list: Ref)
+{
+    var cur: Ref
+    cur := list
+    while (cur != null) {
+        cur.val := 0
+        cur := cur.next
+    }
+}
+
+/** Tests that the inferred precondition of `setToZero` is not too strong. */
+method test(list: Ref) requires acc(valid(list), write) {
+    setToZero(list)
+}
+
+/** Predicate that the specification extraction should detect and reuse. */
+predicate valid(this: Ref) {
+  acc(this.val, write) && acc(this.next, write) &&
+  ((this.next != null) ==> acc(valid(this.next), write))
+}

@@ -1,0 +1,13 @@
+var val: Int
+
+/** Creates a new container with the given value. */
+method make(i: Int) returns (c: Ref) {
+    c := new()
+    c.val := i
+}
+
+method testMake() {
+    var c: Ref
+    c := make(42)
+    assert (c.val == 42)
+}

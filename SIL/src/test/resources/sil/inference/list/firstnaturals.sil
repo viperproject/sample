@@ -1,0 +1,39 @@
+var val: Int
+var next: Ref
+
+/** Returns a linked list of the first n natural numbers. */
+method firstNaturals(n: Int)
+    returns (first: Ref)
+    requires (n > 0)
+{
+    var tmp: Ref
+    var i: Int
+    first := null
+    tmp := null
+    i := n
+
+    while (i > 0) {
+        tmp := first
+        first := new()
+        first.val := i
+        first.next := tmp
+        tmp := null
+        i := i - 1
+    }
+}
+
+/** Calls the method `firstNaturals` and asserts that its postcondition
+  * is strong enough.
+  */
+method test() {
+    var list: Ref
+    list := firstNaturals(6)
+
+    assert acc(valid(list), write)
+}
+
+/** Predicate that the specification extraction should detect and reuse. */
+predicate valid(this: Ref) {
+  acc(this.next, write) && acc(this.val, write) &&
+  ((this.next != null) ==> acc(valid(this.next), write))
+}

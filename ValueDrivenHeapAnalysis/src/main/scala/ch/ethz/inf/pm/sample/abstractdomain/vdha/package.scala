@@ -4,6 +4,35 @@ import scala.annotation.elidable
 import scala.annotation.elidable._
 
 package object vdha {
+  trait GlbPreservingIdsStrategy {
+    def apply[S <: SemanticDomain[S]](left: S, right: S): S
+  }
+
+  object DefaultGlbPreservingIdsStrategy extends GlbPreservingIdsStrategy {
+    def apply[S <: SemanticDomain[S]](left: S, right: S): S = {
+      val newRightIds = left.edgeLocalAndAccessPathIds diff right.ids
+      val newLeftIds = right.edgeLocalAndAccessPathIds diff left.ids
+      val newLeft = left.createVariables(newLeftIds)
+      val newRight = right.createVariables(newRightIds)
+      newLeft.glb(newRight)
+    }
+  }
+
+  // Ugly hack to make it possible to replace the behavior of
+  // ExtendedSemanticDomain.glbPreservingIds.
+  // See CustomGlbPreservingIdsStrategy for more details.
+  // TODO: Find a more elegant solution. Most importantly, avoid global state.
+  var glbPreservingIdsStrategy: GlbPreservingIdsStrategy =
+    DefaultGlbPreservingIdsStrategy
+
+  def withGlbPreservingIdsStrategy[A](strategy: GlbPreservingIdsStrategy, f: () => A): A = {
+    val oldStrategy = glbPreservingIdsStrategy
+    glbPreservingIdsStrategy = strategy
+    val result = f()
+    glbPreservingIdsStrategy = oldStrategy
+    result
+  }
+
   /** Wraps [[Predef.require(r)]], making calls to it elidable
     * with the compiler option '-Xelide-below OFF'.
     */
@@ -74,13 +103,8 @@ package object vdha {
     /** Returns the GLB of this and another state, but takes the union
       * of their identifiers.
       */
-    def glbPreserveIds(right: S): S = {
-      val newRightIds = state.edgeLocalAndAccessPathIds diff right.ids
-      val newLeftIds = right.edgeLocalAndAccessPathIds diff state.ids
-      val newLeft = state.createVariables(newLeftIds)
-      val newRight = right.createVariables(newRightIds)
-      newLeft.glb(newRight)
-    }
+    def glbPreserveIds(other: S): S =
+      glbPreservingIdsStrategy.apply(state, other)
 
     /** Removes all access path identifiers from the state. */
     def removeAccessPathIds(): S =

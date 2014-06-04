@@ -1,0 +1,35 @@
+// Test that loop invariants are translated into assertions
+// in loop guard blocks
+
+method invariantViolatedUponEntry() {
+	var i: Int
+	i := 5
+	while (i <= 10)
+		//:: ExpectedOutput(sample.assert.failed)
+		invariant (6 <= i)
+	{
+		i := i + 1
+	}
+}
+
+method invariantViolatedUponExit() {
+	var i: Int
+	i := 5
+	while (i <= 10)
+		//:: ExpectedOutput(sample.assert.failed)
+		invariant (i <= 10)
+	{
+		i := i + 1
+	}
+}
+
+method invariantNotPreserved() {
+	var i: Int
+	i := -10
+	while (i <= 10)
+		//:: ExpectedOutput(sample.assert.failed)
+		invariant (i != 0)
+	{
+		i := i + 1
+	}
+}

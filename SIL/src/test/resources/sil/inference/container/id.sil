@@ -1,0 +1,26 @@
+var val: Int
+
+/** Just accesses the value of the given container and returns the container.
+  * The inferred post-condition must only give permission to one heap location.
+  */
+method id(this: Ref) returns (res: Ref) {
+    // Access the value so we need permission it
+    var i: Int
+    i := this.val
+
+    res := this
+}
+
+method test() {
+    var this: Ref
+    var res: Ref
+    this := new()
+    this.val := 42
+
+    res := id(this)
+
+    assert(this == res)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/38/)
+    assert(this.val == 42)
+}

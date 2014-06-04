@@ -1,0 +1,30 @@
+var val: Int
+var next: Ref
+
+/** Returns the value of the first list element. */
+method peek(list: Ref) returns (res: Int) {
+    res := list.val
+}
+
+method test(list: Ref) requires acc(valid(list), write) {
+    var res: Int
+
+    // Unfold so the `peek` method gets permission to the first list element
+    unfold acc(valid(list), write)
+
+    res := peek(list)
+
+    assert(res == list.val)
+
+    fold acc(valid(list), write)
+}
+
+/** Specification extraction will not detect and use this predicate for the
+  * precondition since no recursion takes place in the method.
+  * It will only require permission to the value of the first list element.
+  */
+predicate valid(this: Ref) {
+    acc(this.val, write) &&
+    acc(this.next, write) &&
+    ((this.next != null) ==> acc(valid(this.next), write))
+}

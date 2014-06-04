@@ -45,10 +45,6 @@ case class RootedPath[S <: SemanticDomain[S]](edges: List[Edge[S]])
   def accPath: List[String] =
     localVarVertex.name :: edges.tail.map(_.field.get)
 
-  /** Returns the access path identifier corresponding to this path. */
-  def accPathId: AccessPathIdentifier =
-    AccessPathIdentifier(accPath)(target.typ)
-
   /** The condition satisfied by this path.
     *
     * The method basically takes the greatest lower bound of the states

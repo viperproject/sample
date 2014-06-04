@@ -1,0 +1,37 @@
+var val: Int
+
+/** Creates a new container whose value is the same as the given container. */
+method copy(this: Ref) returns (other: Ref) {
+    other := new()
+    other.val := this.val
+}
+
+method testReturnValue() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copy(this)
+
+    assert(this.val == other.val)
+}
+
+method testOldValue() {
+    var this: Ref
+    var other: Ref
+    this := new()
+    this.val := 42
+
+    other := copy(this)
+
+    //:: UnexpectedOutput(assert.failed:assertion.false, /sample/issue/38/)
+    assert(this.val == 42)
+}
+
+method testNull() {
+    var other: Ref
+
+    //:: ExpectedOutput(call.precondition:assertion.false)
+    other := copy(null)
+}

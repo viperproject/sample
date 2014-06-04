@@ -1,0 +1,25 @@
+// Test that the inferred precondition only includes permissions
+// to fields that are actually accessed
+
+var ref: Ref
+var otherRef: Ref
+
+var val: Int
+var otherVal: Int
+
+/** Method that accesses the fields 'ref' and 'val' of its parameter. */
+method accessFields(this: Ref) {
+    this.ref := null
+    this.val := 0
+}
+
+method test(this: Ref)
+    requires acc(this.ref, write)
+    requires acc(this.val, write)
+{
+    // The method does not have access to other fields
+    accessFields(this)
+
+    assert acc(this.ref, write)
+    assert acc(this.val, write)
+}

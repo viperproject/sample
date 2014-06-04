@@ -3,6 +3,24 @@
 @import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 
 @state match {
+    case s: vdha.PredicateDrivenHeapState.EdgeStateDomain[_] => {
+        @CartesianProductDomain(List(
+            s.valueState.valueState,
+            s.valueState.predicateState.instances,
+            s.valueState.predicateState.definitions,
+            s.edgeAmbiguityState))
+    }
+    case i: vdha.PredicateInstancesDomain => {
+        @LatticeDescription("Instances")
+        @PredicateInstancesDomain(i)
+    }
+    case d: vdha.PredicateDefinitionsDomain => {
+        @LatticeDescription("Definitions")
+        @FunctionalDomain(d)
+    }
+    case s: vdha.PredicateBody => {
+        @PredicateBody(s)
+    }
     case g: vdha.EdgeAmbiguityState => {
         @LatticeDescription("Edge Ambiguity")
         @FunctionalDomain(g)
@@ -20,6 +38,32 @@
     }
     case f: FunctionalDomain[_, _, _] => {
         @FunctionalDomain(f)
+    }
+}
+
+@PredicateInstancesDomain(i: vdha.PredicateInstancesDomain) = {
+    <dl class="functional-domain">
+        <dt>Folded</dt>
+        <dd>@i.foldedInstIds.mkString(", ")</dd>
+        <dt>Unfolded</dt>
+        <dd>@i.unfoldedInstIds.mkString(", ")</dd>
+    </dl>
+    <div class="clearfix"></div>
+}
+
+@PredicateBody(s: vdha.PredicateBody) = {
+    @if(s.isTop) {
+        @Top()
+    } else {
+        @if(s.isBottom) {
+            @Bottom()
+        } else {
+            <ul class="symbolic-predicate-def">
+                @s.map.map { fieldNameAndId =>
+                <li>@fieldNameAndId._1 → @SetDomain(fieldNameAndId._2)</li>
+                }
+            </ul>
+        }
     }
 }
 
@@ -57,6 +101,18 @@
     }
 }
 
+@SetDomain(s: SetDomain[_, _]) = {
+    @if(s.isBottom) {
+        @Bottom()
+    } else {
+        @if(s.isTop) {
+            @Top()
+        } else {
+            @s.value.mkString(", ")
+        }
+    }
+}
+
 @CartesianProductDomain(lattices: List[Lattice[_]]) = {
     <ul class="list-unstyled cartesian-product-domain">
         @lattices.map { lattice =>
@@ -68,11 +124,11 @@
 }
 
 @Top() = {
-   <div class="lattice-top">⊤</div>
+    <span class="lattice-top">⊤</span>
 }
 
 @Bottom() = {
-    <div class="lattice-bottom">⊥</div>
+    <span class="lattice-bottom">⊥</span>
 }
 
 @LatticeDescription(s: String) = {

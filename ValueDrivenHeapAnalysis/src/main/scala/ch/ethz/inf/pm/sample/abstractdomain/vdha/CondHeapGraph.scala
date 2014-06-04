@@ -98,7 +98,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    * @param expr the expression whose `AccessPathIdentifier`s to consider
    * @return the sequence of conditional heap sub-graphs
    */
-  def evalExp(expr: Expression): CondHeapGraphSeq[S] = {
+  def evalExp(expr: Expression, allowNullReceivers: Boolean = false): CondHeapGraphSeq[S] = {
     // Translate non-numeric VariableIdentifiers to AccessPathIdentifiers
     val accessPathIds = expr.ids.collect {
       case v: VariableIdentifier if !v.typ.isNumericalType =>
@@ -108,7 +108,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
 
     // If there are no AccessPathIdentifiers, just return this
     accessPathIds.foldLeft[CondHeapGraphSeq[S]](this)((condHeaps, apId) => {
-      condHeaps.intersect(evalAccessPathId(apId))
+      condHeaps.intersect(evalAccessPathId(apId, allowNullReceivers))
     })
   }
 
@@ -125,10 +125,13 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
    * @param ap the access path identifier to consider heap graph paths for
    * @return a conditional heap sub-graph for every path that could be taken
    */
-  def evalAccessPathId(ap: AccessPathIdentifier): CondHeapGraphSeq[S] = {
+  def evalAccessPathId(
+      ap: AccessPathIdentifier,
+      allowNullReceivers: Boolean = false): CondHeapGraphSeq[S] = {
+
     // Get path to the non-null receiver of the field access
     var paths = heap.paths(ap.objPath)
-    if (ap.typ.isNumericalType) {
+    if (ap.typ.isNumericalType && !allowNullReceivers) {
       paths = paths.filter(_.target.isInstanceOf[HeapVertex])
     }
 
@@ -136,12 +139,12 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     for (path <- paths) {
       var cond = path.condition
 
-      if (ap.typ.isNumericalType) {
+      if (ap.typ.isNumericalType && !allowNullReceivers) {
         val field = ap.path.last
         val targetVertex = path.target.asInstanceOf[HeapVertex]
 
         // Rename edge local identifier that corresponds to the access path
-        val edgeLocalId = cond.edgeLocalIds.find(_.field.getName == field).get
+        val edgeLocalId = cond.edgeLocalIds.find(_.field == field).get
         cond = cond.rename(Map(edgeLocalId -> ap))
 
         // AccessPathIdentifier must agree also with the ValueHeapIdentifier
@@ -204,7 +207,7 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
           def targetVertex(exp: Expression): Vertex = exp match {
             case (Constant("null", _, _)) => NullVertex
-            case AccessPathIdentifier(path) => condHeap.takenPath(path).target
+            case AccessPathIdentifier(path) => condHeap.takenPath(path.map(_.getName)).target
           }
 
           val leftTarget = targetVertex(left)
@@ -246,15 +249,11 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     val vertexToAssign = leftTakenPath.target
     val field = left.path.last
 
-    // TODO: Hard-coding VariableIdentifier here is a bit risky.
-    // Ideally, the AccessPathIdentifier should supply the proper identifier
-    val fieldId = VariableIdentifier(field)(right.typ, right.pp)
-
     var condHeapAssigned = this
 
     vertexToAssign match {
       case vertexToAssign: HeapVertex =>
-        val idToAssign = ValueHeapIdentifier(vertexToAssign, fieldId)
+        val idToAssign = ValueHeapIdentifier(vertexToAssign, field)
         condHeapAssigned = condHeapAssigned.map(_.assign(idToAssign, right))
       case _ =>
     }
@@ -262,11 +261,11 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
     condHeapAssigned = condHeapAssigned.mapEdges(edge => {
       var newState = edge.state
       if (edge.source == vertexToAssign) {
-        val edgeLocId = EdgeLocalIdentifier(List.empty, fieldId)
+        val edgeLocId = EdgeLocalIdentifier(List.empty, field)
         newState = newState.assign(edgeLocId, right)
       }
       if (edge.target == vertexToAssign) {
-        val edgeLocId = EdgeLocalIdentifier(List(edge.field), fieldId)
+        val edgeLocId = EdgeLocalIdentifier(List(edge.field), field)
         newState = newState.assign(edgeLocId, right)
       }
       newState
