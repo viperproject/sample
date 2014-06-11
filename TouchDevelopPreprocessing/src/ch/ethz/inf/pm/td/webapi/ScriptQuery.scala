@@ -6,6 +6,8 @@ import ch.ethz.inf.pm.td.compiler.TouchException
 import java.text.SimpleDateFormat
 
 /**
+ * Record storing information about a script, as defined by the TouchDevelop API
+ *
  * DO NOT MODIFY THE NAMES OF THE FIELD OF THIS CLASS,
  * AS IT IS CONSTRUCTED BY DESERIALIZATION OF A JSON OBJECT
  */
