@@ -1,10 +1,9 @@
 package ch.ethz.inf.pm.td.webapi
 
-import net.liftweb.json.{TypeHints, DefaultFormats}
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.parse
-import ch.ethz.inf.pm.td.parser._
 import ch.ethz.inf.pm.td.compiler.TouchException
+import ch.ethz.inf.pm.td.parser._
+import net.liftweb.json.JsonAST.JObject
+import net.liftweb.json.{DefaultFormats, TypeHints, parse}
 
 /**
  *
@@ -183,12 +182,15 @@ object WebASTImporter {
     val JUserType = """\{"o":"(.*)"\}""".r
     val JLibraryType = """\{"l":"(.*)","o":"(.*)"\}""".r
     val JGenericTypeInstance = """\{"g":"(.*)","a":\["(.*)"\]\}""".r
+    val JUngenericTypeInstance = """\{"g":"(.*)","a":\[\]\}""".r
     val JGenericUserTypeInstance = """\{"g":"(.*)","a":\[\{"o":"(.*)"\}\]\}""".r
 
 
     typeString match {
       case JLibraryType(l, o) =>
         TypeName(o)
+      case JUngenericTypeInstance(g) =>
+        TypeName(g)
       case JGenericTypeInstance(g, a) =>
         TypeName(a + " " + g)
       case JGenericUserTypeInstance(g, a) =>
