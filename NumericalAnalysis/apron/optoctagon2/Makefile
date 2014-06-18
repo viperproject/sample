@@ -1,7 +1,7 @@
 include ../Makefile.config
 
 
-AFLAGS := -D_GNU_SOURCE -pthread -fno-tree-vectorize -m64 -march=native
+AFLAGS := -D_GNU_SOURCE -pthread -fno-tree-vectorize -m64 -march=native #corei7-avx
 
 IS_SPARSE = -DSPARSE
 

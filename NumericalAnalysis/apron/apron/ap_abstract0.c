@@ -570,7 +570,7 @@ void ap_abstract0_free(ap_manager_t* man, ap_abstract0_t* a)
     fprintf(stderr,"ap_abstract0_c: ap_abstract0_free: the abstract value has probably already been deallocated !\n");
     abort();
   }
-  if (ap_abstract0_checkman1(AP_FUNID_FREE,man,a)){
+  if (man!=NULL && ap_abstract0_checkman1(AP_FUNID_FREE,man,a)){
     void (*ptr)(ap_manager_t*,ap_abstract0_t*) = man->funptr[AP_FUNID_FREE];
     ptr(man,a->value);
   }
