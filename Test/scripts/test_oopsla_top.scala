@@ -14,11 +14,11 @@ val toAnalyze =
     |dvvx
   """.stripMargin.split("[\n,]").map(_.trim)
 
-def analyzer(id:String) {
+def analyzer(id: String) {
   if (!id.isEmpty)
     TestRunner.runIdWithApron(id)
 }
 
-for(a <- toAnalyze) {
+for (a <- toAnalyze) {
   analyzer(a)
 }
