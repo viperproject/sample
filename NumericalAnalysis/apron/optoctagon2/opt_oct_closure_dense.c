@@ -11,7 +11,8 @@ double strong_closure_calc_perf_dense(double cycles, int dim){
   return  (n*n*n)/cycles;
 }
 
-bool strengthning_int_dense(double * result, double *temp, int n){
+bool strengthning_int_dense(opt_oct_mat_t * oo, double *temp, int n){
+        double *result = oo->mat;
 	for(int i = 0; i < n; i++){
 		//int ind1 = matpos2(i^1, i);
 		int ind1 = i + ((((i^1) + 1)*((i^1) + 1))/2);
@@ -50,7 +51,8 @@ bool strengthning_int_dense(double * result, double *temp, int n){
 	return false;
 }
 
-bool strengthning_dense(double * result, double *temp, int n){
+bool strengthning_dense(opt_oct_mat_t * oo, double *temp, int n){
+	double *result = oo->mat;
 	for(int i = 0; i < n; i++){
 		//int ind1 = matpos2(i^1,i);
 		int ind1 = i + ((((i^1) + 1)*((i^1) + 1))/2);
@@ -91,8 +93,8 @@ bool strengthning_dense(double * result, double *temp, int n){
 	return false;
 }
 
-bool strong_closure_dense(double *result, double *temp1, double *temp2, int dim, bool is_int){
-    
+bool strong_closure_dense(opt_oct_mat_t *oo, double *temp1, double *temp2, int dim, bool is_int){
+    double *result = oo->mat;
     int size = 4 * dim * dim;
     int n = 2*dim; 
     double count = 0;
@@ -326,11 +328,12 @@ bool strong_closure_dense(double *result, double *temp1, double *temp2, int dim,
 	}
 	
     }
+    oo->nni = 2*dim*(dim+1);
     if(is_int){
-	return strengthning_int_dense(result,temp1,n);
+	return strengthning_int_dense(oo,temp1,n);
     }
     else{
-    	return strengthning_dense(result,temp1,n);
+    	return strengthning_dense(oo,temp1,n);
     }
 }
 

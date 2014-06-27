@@ -1,32 +1,15 @@
 package ch.ethz.inf.pm.td.compiler
 
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.td._
-import ch.ethz.inf.pm.td.parser._
-import semantics._
-import scala.util.parsing.input.{NoPosition, Position}
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.oorepresentation.Statement
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.td.parser.TableDefinition
-import ch.ethz.inf.pm.td.parser.WhereStatement
-import ch.ethz.inf.pm.td.parser.InlineAction
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import ch.ethz.inf.pm.td.parser.ExpressionStatement
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.oorepresentation.MethodCall
-import ch.ethz.inf.pm.td.parser.LibraryDefinition
-import ch.ethz.inf.pm.td.parser.MetaStatement
-import ch.ethz.inf.pm.td.parser.Box
-import ch.ethz.inf.pm.td.parser.Parameter
-import ch.ethz.inf.pm.sample.oorepresentation.Variable
-import ch.ethz.inf.pm.sample.oorepresentation.ConstantStatement
-import ch.ethz.inf.pm.sample.oorepresentation.EmptyStatement
-import ch.ethz.inf.pm.sample.oorepresentation.FieldAccess
-import ch.ethz.inf.pm.td.parser.TypeName
-import ch.ethz.inf.pm.sample.abstractdomain.Expression
+import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
+import ch.ethz.inf.pm.td._
+import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, Parameter, TableDefinition, TypeName, WhereStatement, _}
+import ch.ethz.inf.pm.td.semantics._
 import ch.ethz.inf.pm.td.typecheck.Typer
+
 import scala.collection.mutable
+import scala.util.parsing.input.{NoPosition, Position}
 
 
 /**
@@ -77,7 +60,7 @@ object CFGGenerator {
 
 class CFGGenerator(compiler: TouchCompiler) {
 
-  import CFGGenerator._
+  import ch.ethz.inf.pm.td.compiler.CFGGenerator._
 
   private var curPubID: String = ""
   private var curScriptName: String = ""
@@ -527,7 +510,6 @@ object TouchProgramPointRegistry {
     None
   }
 
-
   def matches(point: SpaceSavingProgramPoint, s: String, positional: IdPositional): Boolean = {
     val pp = reg(point.id)
     return pp.scriptID == s &&
@@ -556,7 +538,7 @@ case class SpaceSavingProgramPoint(id: Int) extends ProgramPoint {
 
   def fullPosString: String = TouchProgramPointRegistry.reg.apply(id).fullPosString
 
-  override def toString: String = "pp" + id.toString
+  override def toString: String = TouchProgramPointRegistry.reg(id).fullPosString
 
 }
 

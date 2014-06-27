@@ -1,38 +1,34 @@
 package ch.ethz.inf.pm.sample.userinterfaces
 
-import scala.collection.immutable._
-import ch.ethz.inf.pm.sample._
-import com.mxgraph.view._
-import com.mxgraph.swing._
-import com.mxgraph.model._
-import oorepresentation._
-import abstractdomain._
-import abstractdomain.heapanalysis._
-
-import javax.swing._
 import java.awt.event._
-import tracepartitioning._
-import java.awt.{GridLayout, Dimension}
-import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
-import scala.Some
-import ch.ethz.inf.pm.sample.tracepartitioning.Node
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.FieldAndProgramPoint
-import ch.ethz.inf.pm.sample.tracepartitioning.Leaf
+import java.awt.{Dimension, GridLayout}
+import javax.swing._
+
+import ch.ethz.inf.pm.sample._
+import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.{FieldAndProgramPoint, _}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.execution.CFGState
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.tracepartitioning.{Leaf, Node, _}
+import com.mxgraph.layout.hierarchical.mxHierarchicalLayout
+import com.mxgraph.model._
+import com.mxgraph.swing._
+import com.mxgraph.view._
+
+import scala.collection.immutable._
 
 private class Show extends JFrame {
   def this(g: JComponent, exitonclose: Boolean, height: Int, width: Int) = {
     this()
-    g.setPreferredSize(new Dimension((g.getPreferredSize.getWidth * 1.1).toInt, (g.getPreferredSize.getHeight * 1.1).toInt));
-    val scrollBar: JScrollPane = new JScrollPane(g, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS);
-    this.add(scrollBar);
-    if (exitonclose) this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    if (height <= 0 || width <= 0) this.setSize(1800, 1000);
-    else this.setSize(width + 100, height + 100);
-    this.setVisible(true);
-    this.validate();
+    g.setPreferredSize(new Dimension((g.getPreferredSize.getWidth * 1.1).toInt, (g.getPreferredSize.getHeight * 1.1).toInt))
+    val scrollBar: JScrollPane = new JScrollPane(g, ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS, ScrollPaneConstants.HORIZONTAL_SCROLLBAR_ALWAYS)
+    this.add(scrollBar)
+    if (exitonclose) this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+    if (height <= 0 || width <= 0) this.setSize(1800, 1000)
+    else this.setSize(width + 100, height + 100)
+    this.setVisible(true)
+    this.validate()
   }
 
   def this(g: mxGraph, exitonclose: Boolean, height: Int, width: Int) = {
@@ -41,12 +37,12 @@ private class Show extends JFrame {
 }
 
 object ShowGraph {
-  private val ygap: Int = 20;
-  private val leftspace: Int = 40;
-  private val singleLine: Int = 19;
-  private val emptySpace: Int = 20;
-  private val spaceSingleCharacter: Int = 8;
-  var exitOnClose: Boolean = false;
+  private val ygap: Int = 20
+  private val leftspace: Int = 40
+  private val singleLine: Int = 19
+  private val emptySpace: Int = 20
+  private val spaceSingleCharacter: Int = 8
+  var exitOnClose: Boolean = false
 
   def Show[S <: State[S]](a: Any): Unit = a match {
     case results: List[(Type, MethodDeclaration, CFGState[S])] => new ShowControlFlowGraphExecutions(results, exitOnClose)
@@ -55,22 +51,22 @@ object ShowGraph {
     case _ => System.out.println("I do not know how to visualize this!")
   }
 
-  def ShowControlFlowGraph(graph: ControlFlowGraph): Unit = new Show(ShowGraph.ControlFlowGraphJGraph(graph), false, -1, -1);
+  def ShowControlFlowGraph(graph: ControlFlowGraph): Unit = new Show(ShowGraph.ControlFlowGraphJGraph(graph), false, -1, -1)
 
   private def defaultGraphSettings(): mxGraph = {
-    val model: mxGraphModel = new mxGraphModel();
-    val graph: mxGraph = new mxGraph(model);
-    graph.setAllowDanglingEdges(false);
+    val model: mxGraphModel = new mxGraphModel()
+    val graph: mxGraph = new mxGraph(model)
+    graph.setAllowDanglingEdges(false)
     graph.setCellsEditable(false)
     graph
   }
 
   private def createVertex(node: Any, index: Int, x: Double, y: Double, graph: mxGraph, dashed: Boolean, shape: String): (Object, Double) = {
-    var label: String = null;
+    var label: String = null
     //Workaround: if I check node.isInstanceOf[List[SingleLineRepresentation] it returns always true because of type erasure
     if (node.isInstanceOf[List[Any]]) {
       if (node.asInstanceOf[List[Any]].length > 0 && node.asInstanceOf[List[Any]].apply(0).isInstanceOf[SingleLineRepresentation])
-        label = ToStringUtilities.listToNewLineRepresentationSingleLine(node.asInstanceOf[List[SingleLineRepresentation]]);
+        label = ToStringUtilities.listToNewLineRepresentationSingleLine(node.asInstanceOf[List[SingleLineRepresentation]])
       else label = ToStringUtilities.listToNewLineRepresentation(node.asInstanceOf[List[Any]])
     }
     else
@@ -82,8 +78,8 @@ object ShowGraph {
     val w: Double = maxLineLength(label) * spaceSingleCharacter
     val h: Double = singleLine * countLines(label)
     val cell: Object = if (dashed)
-      graph.insertVertex(graph.getDefaultParent(), index.toString, label, x, y, w, h, "ROUNDED;shape=" + shape + ";strikeColor=white;fillColor=black;fontColor=white");
-    else graph.insertVertex(graph.getDefaultParent(), index.toString, label, x, y, w, h, "ROUNDED;shape=" + shape + ";strikeColor=black;fillColor=white;fontFamily=Monospaced");
+      graph.insertVertex(graph.getDefaultParent(), index.toString, label, x, y, w, h, "ROUNDED;shape=" + shape + ";strikeColor=white;fillColor=black;fontColor=white")
+    else graph.insertVertex(graph.getDefaultParent(), index.toString, label, x, y, w, h, "ROUNDED;shape=" + shape + ";strikeColor=black;fillColor=white;fontFamily=Monospaced")
     (cell, h)
   }
 
@@ -96,11 +92,11 @@ object ShowGraph {
   private def createEdge(from: Int, to: Int, label: Any, vertixes: List[Object], graph: mxGraph): Unit = {
     var l: String = null
     if (label.isInstanceOf[SingleLineRepresentation])
-      l = label.asInstanceOf[SingleLineRepresentation].toSingleLineString;
+      l = label.asInstanceOf[SingleLineRepresentation].toSingleLineString
     else l = label.toString
     if (from < to)
-      graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", l, vertixes.apply(from), vertixes.apply(to), "edgeStyle=elbowEdgeStyle");
-    else graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", l, vertixes.apply(from), vertixes.apply(to), "edgeStyle=entityRelationEdgeStyle");
+      graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", l, vertixes.apply(from), vertixes.apply(to), "edgeStyle=elbowEdgeStyle")
+    else graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", l, vertixes.apply(from), vertixes.apply(to), "edgeStyle=entityRelationEdgeStyle")
   }
 
   private class ShowControlFlowGraphExecutions[S <: State[S]] {
@@ -137,24 +133,24 @@ object ShowGraph {
   private class ShowCFGBlock[S <: State[S]] {
     def this(st: List[Statement], s: List[S]) = {
       this()
-      val (graph, vertixes): (mxGraph, List[Object]) = ShowGraph.listToJGraph(s, st);
-      val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
+      val (graph, vertixes): (mxGraph, List[Object]) = ShowGraph.listToJGraph(s, st)
+      val graphComponent: mxGraphComponent = new mxGraphComponent(graph)
       graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
 
         override def mouseReleased(e: MouseEvent) {
-          val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
+          val cell: Object = graphComponent.getCellAt(e.getX(), e.getY())
           if (cell != null) {
-            val castedcell = cell.asInstanceOf[mxCell];
-            var i: Int = 0;
+            val castedcell = cell.asInstanceOf[mxCell]
+            var i: Int = 0
             while (i < vertixes.length) {
               if (cell == vertixes.apply(i))
                 ShowGraph.stateToGraph(s.apply(i))
-              i = i + 1;
+              i = i + 1
             }
           }
         }
-      });
-      new Show(graphComponent, false, -1, -1);
+      })
+      new Show(graphComponent, false, -1, -1)
     }
   }
 
@@ -162,46 +158,46 @@ object ShowGraph {
     def this(state: AbstractState[N, H, I]) = {
       this()
 
-      val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.nonRelationalHeapStateToGraph[I, N, H](state.getHeapDomain, state.getSemanticDomain);
-      val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
+      val (graph, idToVertix): (mxGraph, Map[Identifier, Object]) = ShowGraph.nonRelationalHeapStateToGraph[I, N, H](state.getHeapDomain, state.getSemanticDomain)
+      val graphComponent: mxGraphComponent = new mxGraphComponent(graph)
       graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
 
         override def mouseReleased(e: MouseEvent) {
-          val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
+          val cell: Object = graphComponent.getCellAt(e.getX(), e.getY())
           if (cell != null) {
-            val castedcell = cell.asInstanceOf[mxCell];
-            var i: Int = 0;
-            val vertixes = idToVertix.values;
+            val castedcell = cell.asInstanceOf[mxCell]
+            var i: Int = 0
+            val vertixes = idToVertix.values
             for (vertix <- vertixes) {
               if (cell == vertix) {
                 val ids = idToVertix.keySet
                 for (id <- ids)
                   if (idToVertix.apply(id) == cell) {
-                    val label = state.getStringOfId(id);
+                    val label = state.getStringOfId(id)
                     new Show(new JLabel("<HTML>" + label.replace(">", "&gt;").replace("<", "&lt;").replace("\n", "<BR>") + "<HTML>"), false, singleLine * countLines(label), maxLineLength(label) * spaceSingleCharacter)
                   }
               }
-              i = i + 1;
+              i = i + 1
             }
 
           }
         }
-      });
-      new Show(graphComponent, false, -1, -1);
+      })
+      new Show(graphComponent, false, -1, -1)
     }
   }
 
   private class ShowValueDrivenHeapState[N <: SemanticDomain[N]](state: ValueDrivenHeapState.Default[N]) {
     val (graph, idToVertix, idToEdges): (mxGraph, Map[Vertex, Object], Map[Edge[N], Object]) = valueDrivenHeapStateToGraph[N](state)
-    val graphComponent: mxGraphComponent = new mxGraphComponent(graph);
+    val graphComponent: mxGraphComponent = new mxGraphComponent(graph)
     graphComponent.getGraphControl().addMouseListener(new MouseAdapter() {
 
       override def mouseReleased(e: MouseEvent) {
-        val cell: Object = graphComponent.getCellAt(e.getX(), e.getY());
+        val cell: Object = graphComponent.getCellAt(e.getX(), e.getY())
         if (cell != null) {
-          val castedcell = cell.asInstanceOf[mxCell];
-          var i: Int = 0;
-          val vertixes = idToVertix.values;
+          val castedcell = cell.asInstanceOf[mxCell]
+          var i: Int = 0
+          val vertixes = idToVertix.values
           //          for (vertix <- vertixes) {
           //            if (cell == vertix) {
           //              val ids = idToVertix.keySet
@@ -226,80 +222,80 @@ object ShowGraph {
           }
         }
       }
-    });
-    new Show(graphComponent, false, -1, -1);
+    })
+    new Show(graphComponent, false, -1, -1)
   }
 
   private def ControlFlowGraphExecutiontoJGraph[S <: State[S]](wgraph: CFGState[S]): (mxGraph, List[Object]) = {
-    val graph: mxGraph = defaultGraphSettings();
-    var vertixes: List[Object] = Nil;
-    var yposition: Double = ygap;
+    val graph: mxGraph = defaultGraphSettings()
+    var vertixes: List[Object] = Nil
+    var yposition: Double = ygap
     var xposition: Int = leftspace
     try {
-      var index: Int = 0;
+      var index: Int = 0
       for (node <- wgraph.cfg.nodes) {
         val (vertix, h) = createVertex(node, index, xposition, yposition + ygap, graph, false, "rectangle")
         vertixes = vertixes ::: vertix :: Nil
-        yposition = yposition + ygap + h;
-        index = index + 1;
+        yposition = yposition + ygap + h
+        index = index + 1
       }
       for (edge <- wgraph.cfg.edges)
         createEdge(edge._1, edge._2, ToStringUtilities.optionToString(edge._3), vertixes, graph)
       new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
     }
     finally {
-      graph.getModel().endUpdate();
+      graph.getModel().endUpdate()
     }
     (graph, vertixes)
   }
 
 
   private def ControlFlowGraphJGraph[S <: State[S]](cfg: ControlFlowGraph): mxGraph = {
-    val graph: mxGraph = defaultGraphSettings();
-    var vertixes: List[Object] = Nil;
-    var yposition: Double = ygap;
+    val graph: mxGraph = defaultGraphSettings()
+    var vertixes: List[Object] = Nil
+    var yposition: Double = ygap
     var xposition: Int = leftspace
     try {
-      var index: Int = 0;
+      var index: Int = 0
       for (node <- cfg.nodes) {
         val (vertix, h) = createVertex(node, index, xposition, yposition + ygap, graph, false, "rectangle")
         vertixes = vertixes ::: vertix :: Nil
-        yposition = yposition + ygap + h;
-        index = index + 1;
+        yposition = yposition + ygap + h
+        index = index + 1
       }
       for (edge <- cfg.edges)
         createEdge(edge._1, edge._2, ToStringUtilities.optionToString(edge._3), vertixes, graph)
       new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
     }
     finally {
-      graph.getModel().endUpdate();
+      graph.getModel().endUpdate()
     }
     graph
   }
 
   private def listToJGraph(list: List[Any], listEdgesLabel: List[Any]): (mxGraph, List[Object]) = {
-    val graph: mxGraph = defaultGraphSettings();
-    var vertixes: List[Object] = Nil;
-    var yposition: Double = ygap;
+    val graph: mxGraph = defaultGraphSettings()
+    var vertixes: List[Object] = Nil
+    var yposition: Double = ygap
     try {
-      var index: Int = 0;
+      var index: Int = 0
       for (node <- list) {
         val (vertix, h) = createVertex(toSimplifiedString(node), index, leftspace, yposition + ygap, graph, false, "rectangle")
         vertixes = vertixes ::: vertix :: Nil
         if (index > 0) {
-          var l: Any = listEdgesLabel.apply(index - 1);
+          var l: Any = listEdgesLabel.apply(index - 1)
           if (l.isInstanceOf[SingleLineRepresentation])
-            l = l.asInstanceOf[SingleLineRepresentation].toSingleLineString;
-          else l = l.toString;
-          graph.insertEdge(graph.getDefaultParent(), index.toString, l.toString, vertixes.apply(index - 1), vertixes.apply(index), "edgeStyle=elbowEdgeStyle");
+            l = l.asInstanceOf[SingleLineRepresentation].toSingleLineString
+          else l = l.toString
+          graph.insertEdge(graph.getDefaultParent(), index.toString, l.toString, vertixes.apply(index - 1), vertixes.apply(index), "edgeStyle=elbowEdgeStyle")
         }
-        yposition = yposition + ygap * 2 + h;
-        index = index + 1;
+        yposition = yposition + ygap * 2 + h
+        index = index + 1
       }
       new mxHierarchicalLayout(graph).execute(graph.getDefaultParent())
     }
     finally {
-      graph.getModel().endUpdate();
+      graph.getModel().endUpdate()
     }
     (graph, vertixes)
   }
@@ -310,15 +306,15 @@ object ShowGraph {
   }
 
   private def maxLineLength(s: String): Int = {
-    var max: Int = 0;
-    var str: String = s;
+    var max: Int = 0
+    var str: String = s
     while (str.indexOf('\n') != -1) {
       if (str.indexOf('\n') > max)
-        max = str.indexOf('\n');
+        max = str.indexOf('\n')
       str = str.substring(str.indexOf('\n') + 1)
     }
     if (str.length > max)
-      max = str.length;
+      max = str.length
     max
   }
 
@@ -364,7 +360,7 @@ object ShowGraph {
             val from = idToVertix.apply(v)
             for (add <- res.value) {
               val to = idToVertix.apply(add)
-              graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle");
+              graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle")
             }
 
           case _ =>
@@ -372,7 +368,7 @@ object ShowGraph {
             val from = idToVertix.apply(id)
             for (add <- res.value) {
               val to = idToVertix.apply(add)
-              graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle");
+              graph.insertEdge(graph.getDefaultParent(), "(" + from + "," + to + ")", "", from, to, "edgeStyle=elbowEdgeStyle")
             }
 
         }
@@ -529,7 +525,7 @@ object ShowGraph {
   private def stateToString[S <: State[S]](state: S): JComponent = {
     var s: String = ""
     if (state.isInstanceOf[SingleLineRepresentation])
-      s = state.asInstanceOf[SingleLineRepresentation].toSingleLineString;
+      s = state.asInstanceOf[SingleLineRepresentation].toSingleLineString
     else s = state.toString
     new JLabel(s)
   }

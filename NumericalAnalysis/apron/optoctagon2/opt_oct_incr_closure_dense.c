@@ -11,7 +11,8 @@ double incremental_closure_calc_perf_dense(double cycles, int dim){
 }
 
 
-int incremental_closure_opt_dense(double *m, double *temp1, double *temp2,int dim, int v, bool is_int){
+bool incremental_closure_opt_dense(opt_oct_mat_t *oo, double *temp1, double *temp2,int dim, int v, bool is_int){
+	double *m = oo->mat;
 	int n = 2*dim;
 	int ii = 2*v + 1;
 	int j;
@@ -328,12 +329,12 @@ int incremental_closure_opt_dense(double *m, double *temp1, double *temp2,int di
 			}
 		}
 
-		
+	oo->nni = 2*dim*(dim+1);	
 	if(is_int){
-		return strengthning_int_dense(m, temp1, n);
+		return strengthning_int_dense(oo, temp1, n);
 	}
 	else{
-        	return strengthning_dense(m, temp1, n);
+        	return strengthning_dense(oo, temp1, n);
 	}
 }
 

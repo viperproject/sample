@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchProgramPoint}
-import net.liftweb.json.{DefaultFormats, Serialization}
+import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleError}
+import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchCompiler, TouchProgramPointRegistry}
 import ch.ethz.inf.pm.td.webapi.{JNode, WebAstTypeHints}
-import ch.ethz.inf.pm.sample.reporting.{SampleError, Reporter}
+import net.liftweb.json.{DefaultFormats, Serialization}
 
 case class JResult (
     scriptID:String, // A public ID or a private ID (guid)
@@ -50,7 +50,8 @@ class JSONExporter extends ErrorExporter {
 
     val errors = (for (SampleError(id,string,pp,causes) <- Reporter.seenErrors) yield {
       pp match {
-        case tpp: TouchProgramPoint =>
+        case touchPP: SpaceSavingProgramPoint =>
+          val tpp = TouchProgramPointRegistry.reg(touchPP.id)
           if (scriptID == tpp.scriptID) {
             Some(JError(tpp.fullPosString, "",string,Nil,Nil))
           } else None

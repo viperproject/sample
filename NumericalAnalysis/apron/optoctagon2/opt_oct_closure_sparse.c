@@ -68,8 +68,10 @@ int get_index_sparse(int n, int i, int j){
 	}
 }
 
-bool strengthning_int_sparse(double * result, int * ind1, double *temp, int n){
+bool strengthning_int_sparse(opt_oct_mat_t * oo, int * ind1, double *temp, int n){
+	double *result = oo->mat;
 	int s = 0;
+	int count = oo->nni;
 	for(unsigned i = 0; i < n; i++){
 		int ind = i + ((((i^1) + 1)*((i^1) + 1))/2);
 		temp[i] = ceil(result[ind]/2);
@@ -88,9 +90,16 @@ bool strengthning_int_sparse(double * result, int * ind1, double *temp, int n){
 			double t2 = temp[j1];
 			int ind = j1 + ((((i1^1) + 1)*((i1^1) + 1))/2);
 			//result[n*(i1^1) + j1] = min(result[n*(i1^1) + j1], t1 + t2);
-			result[ind] = min(result[ind], t1 + t2);
+			if(result[ind]!=INFINITY){
+				result[ind] = min(result[ind], t1 + t2);
+			}
+			else{
+				result[ind] = t1 + t2;
+				count++;
+			}
 		}	
 	}
+	oo->nni =count;
 	for(unsigned i = 0; i < n; i++){
 		int ind = i + (((i+1)*(i+1))/2);
 		if(result[ind] < 0){
@@ -103,8 +112,10 @@ bool strengthning_int_sparse(double * result, int * ind1, double *temp, int n){
 	return false;
 }
 
-bool strengthning_sparse(double * result, int * ind1, double *temp, int n){
+bool strengthning_sparse(opt_oct_mat_t * oo, int * ind1, double *temp, int n){
+	double *result = oo->mat;
 	int s = 0;
+	int count = oo->nni;
 	for(unsigned i = 0; i < n; i++){
 	        int ind = i + ((((i^1) + 1)*((i^1) + 1))/2);
 		//temp[i] = result[n*(i^1) + i];
@@ -126,9 +137,16 @@ bool strengthning_sparse(double * result, int * ind1, double *temp, int n){
 			double t2 = temp[j1];
 			int ind = j1 + ((((i1^1) + 1)*((i1^1) + 1))/2);
 			//result[n*(i1^1) + j1] = min(result[n*(i1^1) + j1], (t1 + t2)/2);
-			result[ind] = min(result[ind], (t1 + t2)/2);
+			if(result[ind]!=INFINITY){
+				result[ind] = min(result[ind], (t1 + t2)/2);
+			}
+			else{
+				result[ind] = (t1+t2)/2;
+				count++;
+			}
 		}	
 	}
+	oo->nni = count;
 	for(unsigned i = 0; i < n; i++){
 		int ind = i + (((i+1)*(i+1))/2);
 		if(result[ind] < 0){
@@ -167,8 +185,8 @@ void print_index_sparse(int *m, int n){
 	printf("\n");
 }
 
-bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *index1, int *index2, int dim, bool is_int){
-    
+bool strong_closure_sparse(opt_oct_mat_t *oo, double *temp1, double *temp2, int *index1, int *index2, int dim, bool is_int){
+    double *result = oo->mat;
     int size = 4 * dim * dim;
     int n = 2*dim; 
     int m = 2*dim + 1;
@@ -176,7 +194,7 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
         temp1[i] = 0;
         temp2[i] = 0;
     }
-
+    int count = oo->nni;
     for(int k = 0; k < dim; k++){
 	//Compute index at start of iteration
         compute_index_sparse(result, index1, index2, k, dim);
@@ -205,6 +223,7 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 				index2[n + s4 + 2] = i2;
 				//index1[m*i2]++;
 				s4++;
+				count++;
 			}
 			//temp2[i2] = result[ind2];
 		}
@@ -215,7 +234,6 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 		//temp2[i] = result[n*i + ((2*k)^1)];
 		temp2[i] = result[ind];
 	}
-	
 	
 
 	if(result[pos2] != INFINITY){
@@ -236,6 +254,7 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 				index2[s3 + 1] = i1;
 				//index1[m*i1]++;
 				s3++;
+				count++;
 			}
 			temp1[i1] = result[ind1];
 		}
@@ -264,8 +283,9 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 				index1[n + s2 + 2] = j1;
 				//index2[m*j1 + index2[m*j1] + 1] = ((2*k)^1);
 				s2++;
+				count++;
 				//index2[m*j1]++;
-			}
+			} 
 		}
 		index1[n + 1] = s2;
 	}
@@ -287,6 +307,7 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 				index1[s1 + 1] = j1;
 				//index2[m*j1 + index2[m*j1] + 1] = (2*k);
 				s1++;
+				count++;
 				//index2[m*j1]++;
 			}
 		}
@@ -322,7 +343,13 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 			//double op3 = min(op1, op2);
 			int ind3 = j1 + ((((i1^1) + 1)*((i1^1) + 1))/2);
 			//result[n*(i1^1) + j1] = min(result[n*(i1^1) + j1],op1 );
-			result[ind3] = min(result[ind3],op1 );
+			if(result[ind3]!=INFINITY){
+				result[ind3] = min(result[ind3],op1 );
+			}
+			else{
+				result[ind3] = op1;
+				count++;
+			}
 		}
 		//for(int j = 0; j < index2[m*2*k]; j++){
 		for(int j = 0;j < ind3_k; j++){
@@ -333,7 +360,13 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 			double op1 = t1 + temp1[j1];
 			int ind3 = (j1^1) + ((((i1^1) + 1)*((i1^1) + 1))/2);
 			//result[n*(i1^1) + (j1^1)] = min(result[n*(i1^1) + (j1^1)],op1 );
-			result[ind3] = min(result[ind3],op1 );
+			if(result[ind3]!=INFINITY){
+				result[ind3] = min(result[ind3],op1 );
+			}
+			else{
+				result[ind3] = op1;
+				count++;
+			}
 		}
 		//}
 	}
@@ -358,7 +391,13 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 		    double op2 = t2 + result[ind2];
 		    int ind3 = j1 + ((((i1^1) + 1)*((i1^1) + 1))/2);
                     //result[n*(i1^1) + j1] = min(result[n*(i1^1) + j1],op2 );
-		    result[ind3] = min(result[ind3],op2 );
+		    if(result[ind3] !=INFINITY){
+		    	result[ind3] = min(result[ind3],op2 );
+		    }
+		    else{
+			result[ind3] = op2;
+			count++;
+		    }
                 }
                 //for(int j = 0; j < index2[m*((2*k)^1)]; j++){
 		  for(int j = 0; j < ind4_k; j++){
@@ -369,7 +408,13 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
                     double op2 = t2 + temp2[j1];
 		    int ind3 = (j1^1) + ((((i1^1) + 1)*((i1^1) + 1))/2);
                     //result[n*(i1^1) + (j1^1)] = min(result[n*(i1^1) + (j1^1)],op2 );
-		    result[ind3] = min(result[ind3],op2 );
+		    if(result[ind3]!=INFINITY){
+		    	result[ind3] = min(result[ind3],op2 );
+		    }
+		    else{
+			result[ind3] = op2;
+			count++;
+		    }
                 }
             //}
         }
@@ -394,7 +439,13 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 		    double op1 = t1 + result[ind2];
 		    int ind3 = j1 + (((i1 + 1)*(i1 + 1))/2);
                     //result[n*i1 + j1] = min(result[n*i1 + j1],op1 );
-		    result[ind3] = min(result[ind3],op1 );
+		    if(result[ind3]!=INFINITY){
+		    	result[ind3] = min(result[ind3],op1 );
+		    }
+		    else{
+			result[ind3] = op1;
+			count++;
+		    }
                 }
                 
          	for(int j = 0; j < ind3_k ; j++){
@@ -406,7 +457,13 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
                     double op1 = t1 + temp1[j1];
                     //double op1 = t1 + result[n*(j1) + 2*k];
              	    int ind3 = (j1^1) + (((i1 + 1)*(i1 + 1))/2);
-		    result[ind3] = min(result[ind3],op1 );
+		    if(result[ind3]!=INFINITY){
+		    	result[ind3] = min(result[ind3],op1 );
+		    }
+		    else{
+			result[ind3] = op1;
+			count++;
+		    }
                 }
         }
         
@@ -429,7 +486,13 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 		    double op2 = t2 + result[ind2];
 		    int ind3 = j1 + (((i1 + 1)*(i1 + 1))/2);
                     //result[n*i1 + j1] = min(result[n*i1 + j1],op2 );
-		    result[ind3] = min(result[ind3],op2 );
+		    if(result[ind3]!=INFINITY){
+		    	result[ind3] = min(result[ind3],op2 );
+		    }
+		    else{
+			result[ind3] = op2;
+			count++;
+		    }
                 }
                
                 
@@ -441,17 +504,23 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
                     double op2 = t2 + temp2[j1];
 		    int ind3 = (j1^1) + (((i1 + 1)*(i1 + 1))/2);
                     //result[n*i1 + (j1^1)] = min(result[n*i1 + (j1^1)],op2 );
-		    result[ind3] = min(result[ind3],op2 );
+		    if(result[ind3]!=INFINITY){
+		    	result[ind3] = min(result[ind3],op2 );
+		    }
+		    else{
+			result[ind3] = op2;
+			count++;
+		    }
                 }
         }
 
     }
-   
+     oo->nni = count;
     if(is_int){
-	return strengthning_int_sparse(result,index1,temp1,n);
+	return strengthning_int_sparse(oo,index1,temp1,n);
     }
     else{
-    	return strengthning_sparse(result,index1,temp1,n);
+    	return strengthning_sparse(oo,index1,temp1,n);
     }
 }
 
@@ -459,7 +528,7 @@ bool strong_closure_sparse(double *result, double *temp1, double *temp2, int *in
 void print_sparse(double *m, int dim){
    int size = 2*dim*(dim + 1);
     for (int i = 0; i < size; ++i){
-            printf("%.15f \t", m[i]);
+            printf("%g ", m[i]);
     }
     printf("\n\n");
 }

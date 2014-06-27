@@ -6,7 +6,7 @@ double sat_lincons_time = 0;
 
 bool opt_oct_is_bottom(ap_manager_t* man, opt_oct_t* o)
 {
-  double *m = o->m? o->m : o->closed;
+  opt_oct_mat_t *m = o->m? o->m : o->closed;
   if(m!=NULL){
   	//print_opt_hmat(m, o->dim);
   	fflush(stdout);
@@ -34,7 +34,7 @@ bool opt_oct_is_top(ap_manager_t* man, opt_oct_t* o)
 {
   opt_oct_internal_t* pr = opt_oct_init_from_manager(man,AP_FUNID_IS_TOP,0);
   int i,j;
-  double* m = o->m ? o->m : o->closed;
+  opt_oct_mat_t* m = o->m ? o->m : o->closed;
   if (!m) return false;
   return is_top_avx_half_double(m,o->dim);
 }
@@ -62,9 +62,9 @@ bool opt_oct_is_leq(ap_manager_t* man, opt_oct_t* o1, opt_oct_t* o2)
     else { flag_algo; return false; }
   }
   else {
-    double *m1 = o1->closed ? o1->closed : o1->m;
-    double *m2 = o2->closed ? o2->closed : o2->m;
-    return is_lequal_avx_half_double(m1, m2, o1->dim);
+    opt_oct_mat_t *oo1 = o1->closed ? o1->closed : o1->m;
+    opt_oct_mat_t *oo2 = o2->closed ? o2->closed : o2->m;
+    return is_lequal_avx_half_double(oo1, oo2, o1->dim);
   }
 }
 
@@ -102,9 +102,9 @@ bool opt_oct_is_eq(ap_manager_t* man, opt_oct_t* o1, opt_oct_t* o2)
     else { flag_algo; return false; }
   }
   else {
-    double *m1 = o1->closed ? o1->closed : o1->m;
-    double *m2 = o2->closed ? o2->closed : o2->m;
-    return is_equal_avx_half_double(m1,m2,o1->dim);
+    opt_oct_mat_t *oo1 = o1->closed ? o1->closed : o1->m;
+    opt_oct_mat_t *oo2 = o2->closed ? o2->closed : o2->m;
+    return is_equal_avx_half_double(oo1,oo2,o1->dim);
   }
 }
 
@@ -124,7 +124,8 @@ ap_interval_t** opt_oct_to_box(ap_manager_t* man, opt_oct_t* o)
   }
   else {
     /* put variable bounds */
-    double* m = o->closed ? o->closed : o->m;
+    opt_oct_mat_t* oo = o->closed ? o->closed : o->m;
+    double *m = oo->mat;
     for (i=0;i<o->dim;i++){
       opt_interval_of_bounds(pr,in[i],
 			 m[opt_matpos(2*i,2*i+1)],m[opt_matpos(2*i+1,2*i)],true);
@@ -150,7 +151,8 @@ ap_lincons0_array_t opt_oct_to_lincons_array(ap_manager_t* man, opt_oct_t* o)
   }
   else {
     /* put non-oo constraint bounds only */
-    double* m = o->closed ? o->closed : o->m;
+    opt_oct_mat_t* oo = o->closed ? o->closed : o->m;
+    double *m = oo->mat;
     int i,j,n=0;
     int size = 2*(o->dim)*(o->dim + 1);
     ar = ap_lincons0_array_make(size);
@@ -186,7 +188,8 @@ bool opt_oct_sat_lincons(ap_manager_t* man, opt_oct_t* o,
     return true;
   }
   else {
-    double * b = o->closed ? o->closed : o->m;
+    opt_oct_mat_t * oo = o->closed ? o->closed : o->m;
+    double *b = oo->mat;   
     size_t i, ui, uj;
     ap_constyp_t c = lincons->constyp;
     opt_uexpr u;

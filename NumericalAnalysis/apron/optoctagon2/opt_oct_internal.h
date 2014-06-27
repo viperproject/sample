@@ -15,13 +15,20 @@ extern "C" {
 #endif
 
 
-#if defined(SPARSE)
-#define sparse_flag 1
+#if defined(THRESHOLD)
+#define sparse_threshold THRESHOLD
 
 #else
-#define sparse_flag 0
+#define sparse_threshold 0.5
 
 #endif
+//#if defined(SPARSE)
+//#define sparse_flag 1
+
+//#else
+//#define sparse_flag 0
+
+//#endif
 
 
 #if defined(VECTOR)
@@ -68,9 +75,14 @@ typedef struct opt_oct_internal_t{
   ap_manager_t* man;
 }opt_oct_internal_t;
 
+typedef struct opt_oct_mat_t{
+	double *mat;
+	int nni;
+}opt_oct_mat_t;
+
 typedef struct opt_oct_t{
-	double *m;
-	double *closed;
+	opt_oct_mat_t *m;
+	opt_oct_mat_t *closed;
 	int intdim;
 	int dim;
 }opt_oct_t;
@@ -334,7 +346,7 @@ int opt_oct_size(ap_manager_t* man, opt_oct_t* o);
 opt_oct_t * opt_oct_alloc_top(opt_oct_internal_t *pr, int dim, int intdim);
 void opt_oct_free_internal(opt_oct_internal_t *pr, opt_oct_t *o);
 opt_oct_t * opt_oct_copy_internal(opt_oct_internal_t *pr, opt_oct_t *o);
-opt_oct_t* opt_oct_set_mat(opt_oct_internal_t* pr, opt_oct_t* o, double* m, double* closed, bool destructive);
+opt_oct_t* opt_oct_set_mat(opt_oct_internal_t* pr, opt_oct_t* o, opt_oct_mat_t* m, opt_oct_mat_t* closed, bool destructive);
 opt_oct_t* opt_oct_copy(ap_manager_t* man, opt_oct_t* o);
 void opt_oct_free(ap_manager_t* man, opt_oct_t* a);
 opt_oct_t* opt_oct_bottom(ap_manager_t* man, int intdim, int realdim);

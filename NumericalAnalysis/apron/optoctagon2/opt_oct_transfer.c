@@ -14,19 +14,19 @@ opt_oct_t* opt_oct_meet_lincons_array(ap_manager_t* man,
   else {
     bool exact, respect_closure;
     int i;
-    double * m = o->closed ? o->closed : o->m;
+    opt_oct_mat_t * oo = o->closed ? o->closed : o->m;
     /* can / should we try to respect closure */
-    respect_closure = (m==o->closed) && (pr->funopt->algorithm>=0);
+    respect_closure = (oo==o->closed) && (pr->funopt->algorithm>=0);
     int size = 2*(o->dim)*(o->dim + 1);
-    if (!destructive) m = opt_hmat_copy(m,size);
+    if (!destructive) oo = opt_hmat_copy(oo,size);
 
     /* go */
-    bool res = opt_hmat_add_lincons(pr,m,o->intdim,o->dim,array,&exact,&respect_closure);
+    bool res = opt_hmat_add_lincons(pr,oo,o->intdim,o->dim,array,&exact,&respect_closure);
     if (res) {
       /* empty */
       if (!destructive) {
-	opt_hmat_free(m);
-	m = NULL;
+	opt_hmat_free(oo);
+	oo = NULL;
       }
       return opt_oct_set_mat(pr,o,NULL,NULL,destructive);
     }
@@ -34,8 +34,8 @@ opt_oct_t* opt_oct_meet_lincons_array(ap_manager_t* man,
       /* exact if octagonal constraints & no conversion error */
       if (num_incomplete || !exact) flag_incomplete;
       else if (pr->conv) flag_conv;
-      if (respect_closure) return opt_oct_set_mat(pr,o,NULL,m,destructive);
-      else return opt_oct_set_mat(pr,o,m,NULL,destructive);
+      if (respect_closure) return opt_oct_set_mat(pr,o,NULL,oo,destructive);
+      else return opt_oct_set_mat(pr,o,oo,NULL,destructive);
     }
   }
 }

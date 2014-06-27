@@ -6,13 +6,18 @@ double incremental_closure_calc_perf_sparse(double cycles, int dim){
 }
 
 
-int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int dim, int v, bool is_int){
+int incremental_closure_opt_sparse(opt_oct_mat_t *oo, double *temp1, double *temp2, int dim, int v, bool is_int){
+	double *m = oo->mat;
 	int n = 2*dim;
 	int ii = 2*v + 1;
 	int j;
 	int *index1, *index2;
-	//posix_memalign((void **)&index1, 32, 2*(2*dim + 1)*sizeof(int));
-	//posix_memalign((void **)&index2, 32, 2*(2*dim + 1)*sizeof(int));
+	int count = oo->nni;
+	int size = 2*dim*(dim+1);
+	double sparsity = 1- ((double)(oo->nni)/size);
+  	//fprintf(stdout,"Input sparsity is\t%d\t%g\n",oo->nni,sparsity);
+  	//fflush(stdout);
+	
 	index1 = (int *)calloc(2*(2*dim + 1),sizeof(int));
 	index2 = (int *)calloc(2*(2*dim + 1),sizeof(int));
 	for(unsigned k = 0; k < n; k=k + 2){
@@ -73,7 +78,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 					//double jk = m[ind_jk];
 					//m[n*i + j] = min(m[n*i + j], ik + kj);
 					int ind_ij = j + (((i + 1)*(i + 1))/2);
+					//if(m[ind_ij]!=INFINITY){
 					m[ind_ij] = min(m[ind_ij], ik + kj);
+					//}
+					//else{
+					//m[ind_ij] = ik + kj;
+						//count++;
+					//}
 					//m[n*j + i] = min(m[n*j + i], jk + ki);
 				}
 			}
@@ -86,7 +97,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 					//double jk = m[n*j + k];
 					int ind_ij = j + (((i + 1)*(i + 1))/2);
 					//m[n*i + j] = min(m[n*i + j], ik + kj);
+					//if(m[ind_ij]!=INFINITY){
 					m[ind_ij] = min(m[ind_ij], ik + kj);
+					//}
+					//else{
+					//	m[ind_ij] = ik + kj;
+						//count++;
+					//}
 					//m[n*j + i] = min(m[n*j + i], jk + ki);
 				}
 			}
@@ -96,7 +113,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 					int ind_jk = (j^1) + ((((k^1) + 1)*((k^1) + 1))/2);
 					double jk = m[ind_jk];
 					int ind_ji = i + (((j + 1)*(j + 1))/2);
+					//if(m[ind_ji]!=INFINITY){
 					m[ind_ji] = min(m[ind_ji], jk + ki);
+					//}
+					//else{
+					//	m[ind_ji] = jk + ki;
+						//count++;
+					//}
 				}
 			}
 
@@ -105,7 +128,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 					int ind_jk = k + (((j + 1)*(j + 1))/2);
 					double jk = m[ind_jk];
 					int ind_ji = i + (((j + 1)*(j + 1))/2);
+					//if(m[ind_ji] != INFINITY){
 					m[ind_ji] = min(m[ind_ji], jk + ki);
+					//}
+					//else{
+					//	m[ind_ji] = jk + ki;
+						//count++;
+					//}
 				}
 			}
 
@@ -155,9 +184,21 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 			}
 			
 		}
+		//if(m[v1v2]!=INFINITY){
 		m[v1v2] = min(m[v1v2],m[opt_matpos2(v1,k)] + m[opt_matpos2(k,v2)]);
+		//}
+		//else{
+			//m[v1v2] =  m[opt_matpos2(v1,k)] + m[opt_matpos2(k,v2)];
+			//count++;
+		//}
 		m[v1v2] = min(m[v1v2],m[opt_matpos2(v1,kk)] + m[opt_matpos2(kk,v2)]);
+		//if(m[v2v1] != INFINITY){
 		m[v2v1] = min(m[v2v1],m[opt_matpos2(v2,k)] + m[opt_matpos2(k,v1)]);
+		//}
+		//else{
+		//	m[v2v1] = m[opt_matpos2(v2,k)] + m[opt_matpos2(k,v1)];
+			//count++;
+		//}
 		m[v2v1] = min(m[v2v1],m[opt_matpos2(v2,kk)] + m[opt_matpos2(kk,v1)]);
 		
 	}
@@ -170,20 +211,29 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 	//int pos2 = opt_matpos2((2*k)^1, 2*k);
 	int pos2 = v1 + vvi;
 	//variable v in pivot position
-	for(int i = v1 + 2; i < n;i++){
-		int ind1 = v2 + (((i+1)*(i+1))/2);
-		int ind2 = v1 + (((i+1)*(i+1))/2);
-		if(m[pos1]!= INFINITY)
+	//if(m[pos1]!= INFINITY){
+		for(int i = v1 + 2; i < n;i++){
+			int ind1 = v2 + (((i+1)*(i+1))/2);
+			int ind2 = v1 + (((i+1)*(i+1))/2);
 			m[ind1] = min(m[ind1], m[ind2] + m[pos1] );
-		temp2[i] = m[ind1];
-	}
-	for(int i = v1 + 2; i < n; i++){
-		int ind1 = v2 + (((i+1)*(i+1))/2);
-		int ind2 = v1 + (((i+1)*(i+1))/2);
-		if(m[pos2]!=INFINITY)
+			temp2[i] = m[ind1];
+			if(temp2[i]!=INFINITY){
+				count++;
+			}
+		}
+	//}
+
+	//if(m[pos2]!=INFINITY){
+		for(int i = v1 + 2; i < n; i++){
+			int ind1 = v2 + (((i+1)*(i+1))/2);
+			int ind2 = v1 + (((i+1)*(i+1))/2);
 			m[ind2] = min(m[ind2], m[ind1] + m[pos2] );
-		temp1[i] = m[ind2];
-	}
+			temp1[i] = m[ind2];
+			if(temp1[i]!=INFINITY){
+				count++;
+			}
+		}
+	//}
 
 	if(m[pos2]!=INFINITY){
 		for(int j = 0; j < v1; j++){
@@ -193,6 +243,9 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 			int ind4 = j + vi;
 			//result[n*((2*k)^1) + j] = min(result[n*((2*k)^1) + j], result[n*((2*k)^1) + 2*k] + result[n*(2*k) + j]);
 			m[ind3] = min(m[ind3], m[pos2] + m[ind4]);
+			if(m[ind3]!=INFINITY){
+				count++;
+			}
 		}
 	}
 
@@ -204,6 +257,9 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 			int ind4 = j + vi;
 			//result[n*2*k + j] = min(result[n*2*k + j], result[n*2*k + ((2*k)^1)] + result[n*((2*k)^1) + j]);
 			m[ind4] = min(m[ind4], m[pos1] + m[ind3]);
+			if(m[ind4]!=INFINITY){
+				count++;
+			}
 		}
 	}
 
@@ -238,7 +294,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 			//double op3 = min(op1, op2);
 			int ind3 = j1 + ((((i1^1) + 1)*((i1^1) + 1))/2);
 			//result[n*(i1^1) + j1] = min(result[n*(i1^1) + j1],op1 );
-			m[ind3] = min(m[ind3],op1 );
+			if(m[ind3]!=INFINITY){
+				m[ind3] = min(m[ind3],op1 );
+			}
+			else{
+				m[ind3] = op1;
+				count++;
+			}
 		}
 		//for(int j = 0; j < index2[m*2*k]; j++){
 		for(int j = 0;j < ind3_k; j++){
@@ -251,7 +313,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 			//double op3 = min(op1, op2);
 			int ind3 = (j1^1) + ((((i1^1) + 1)*((i1^1) + 1))/2);
 			//result[n*(i1^1) + (j1^1)] = min(result[n*(i1^1) + (j1^1)],op1 );
-			m[ind3] = min(m[ind3],op1 );
+			if(m[ind3] != INFINITY){
+				m[ind3] = min(m[ind3],op1 );
+			}
+			else{
+				m[ind3] = op1;
+				count++;
+			}
 		}
 		//}
 	}
@@ -276,7 +344,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 		    double op2 = t2 + m[ind2];
 		    int ind3 = j1 + ((((i1^1) + 1)*((i1^1) + 1))/2);
                     //result[n*(i1^1) + j1] = min(result[n*(i1^1) + j1],op2 );
-		    m[ind3] = min(m[ind3],op2 );
+		    if(m[ind3]!=INFINITY){
+		    	m[ind3] = min(m[ind3],op2 );
+		    }
+		    else{
+			m[ind3] = op2;
+			count++;
+		    }
                 }
                 //for(int j = 0; j < index2[m*((2*k)^1)]; j++){
 		  for(int j = 0; j < ind4_k; j++){
@@ -287,7 +361,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
                     double op2 = t2 + temp2[j1];
 		    int ind3 = (j1^1) + ((((i1^1) + 1)*((i1^1) + 1))/2);
                     //result[n*(i1^1) + (j1^1)] = min(result[n*(i1^1) + (j1^1)],op2 );
-		    m[ind3] = min(m[ind3],op2 );
+		    if(m[ind3]!=INFINITY){
+		    	m[ind3] = min(m[ind3],op2 );
+		    }
+		    else{
+			m[ind3] = op2;
+			count++;
+		    }
                 }
             //}
         }
@@ -314,7 +394,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
 		    double op1 = t1 + m[ind2];
 		    int ind3 = j1 + (((i1 + 1)*(i1 + 1))/2);
                     //result[n*i1 + j1] = min(result[n*i1 + j1],op1 );
-		    m[ind3] = min(m[ind3],op1 );
+		    if(m[ind3]!=INFINITY){
+		    	m[ind3] = min(m[ind3],op1 );
+		    }
+		    else{
+			m[ind3] = op1;
+			count++;
+		    }
                 }
                 
          	for(int j = 0; j < ind3_k ; j++){
@@ -328,7 +414,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
                     //double op1 = t1 + result[n*(j1) + 2*k];
              	    int ind3 = (j1^1) + (((i1 + 1)*(i1 + 1))/2);
                     //result[n*i1 + (j1^1)] = min(result[n*i1 + (j1^1)],op1 );
-		    m[ind3] = min(m[ind3],op1 );
+		    if(m[ind3]!=INFINITY){
+		    	m[ind3] = min(m[ind3],op1 );
+		    }
+		    else{
+			m[ind3] = op1;
+			count++;
+		    }
                 }
             //}
         }
@@ -354,7 +446,13 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
                     //double op3 = min(op1, op2);
 		    int ind3 = j1 + (((i1 + 1)*(i1 + 1))/2);
                     //result[n*i1 + j1] = min(result[n*i1 + j1],op2 );
-		    m[ind3] = min(m[ind3],op2 );
+		    if(m[ind3]!=INFINITY){
+		    	m[ind3] = min(m[ind3],op2 );
+		    }
+		    else{
+			m[ind3] = op2;
+			count++;
+		    }
                 }
                
                 
@@ -367,23 +465,32 @@ int incremental_closure_opt_sparse(double *m, double *temp1, double *temp2, int 
                     //double op3 = min(op1, op2);
 		    int ind3 = (j1^1) + (((i1 + 1)*(i1 + 1))/2);
                     //result[n*i1 + (j1^1)] = min(result[n*i1 + (j1^1)],op2 );
-		    m[ind3] = min(m[ind3],op2 );
+		    if(m[ind3]!=INFINITY){
+		    	m[ind3] = min(m[ind3],op2 );
+		    }
+		    else{
+			m[ind3] = op2;
+			count++;
+		    }
                 }
            // }
         }
 
   	//incr_closure_time += cycles;
 	bool res;
-  	//fprintf(stdout,"Incr_Closure Time is\t%g\n",incr_closure_time);	
+  	//fprintf(stdout,"Incr_Closure Time is\t%g\n",incr_closure_time);
+	oo->nni = count;	
 	if(is_int){
 		
-		res = strengthning_int_sparse(m, index1,temp1, n);
+		res = strengthning_int_sparse(oo, index1,temp1, n);
 		
 	}
 	else{
-        	res = strengthning_sparse(m, index1, temp1, n);
+        	res = strengthning_sparse(oo, index1, temp1, n);
 	}
 	free(index2);
 	free(index1);
+	sparsity = 1- ((double)(oo->nni)/size);
+  	
 	return res;
 }

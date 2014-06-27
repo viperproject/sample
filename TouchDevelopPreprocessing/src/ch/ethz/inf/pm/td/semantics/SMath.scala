@@ -1,11 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 /**
  * User: lucas
@@ -24,7 +24,7 @@ class SMath extends AAny {
 
   def getTyp = SMath.typ
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S): S = method match {
 
     /** Returns the negative infinity */
     case "∞₋" =>
@@ -56,7 +56,7 @@ class SMath extends AAny {
 
     /** Returns the angle whose tangent is the quotient of two specified numbers */
     case "atan2" =>
-      val List(y,x) = parameters // Number,Number
+      val List(y, x) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
     /** Returns the smallest integral value greater than or equal to the specified number */
@@ -97,8 +97,8 @@ class SMath extends AAny {
 
     /** Creates a 3D vector */
     case "create vector3" =>
-      val List(x,y,z) = parameters // Number,Number,Number
-      New[S](TVector3.typ,Map(
+      val List(x, y, z) = parameters // Number,Number,Number
+      New[S](TVector3.typ, Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -129,7 +129,7 @@ class SMath extends AAny {
 
     /** Returns the remainder resulting from the division of a specified number by another specified number */
     case "ieee remainder" =>
-      val List(x,y) = parameters // Number,Number
+      val List(x, y) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
     /** Indicates whether number evaluates to negative or positive infinity */
@@ -154,7 +154,7 @@ class SMath extends AAny {
 
     /** Returns the logarithm of a specified number in a specified base */
     case "log" =>
-      val List(x,base) = parameters // Number,Number
+      val List(x, base) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
     /** Returns the base 10 logarithm of a specified number */
@@ -169,17 +169,17 @@ class SMath extends AAny {
 
     /** Returns the larger of two numbers */
     case "max" =>
-      val List(x,y) = parameters // Number,Number
+      val List(x, y) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
     /** Returns the smaller of two numbers */
     case "min" =>
-      val List(x,y) = parameters // Number,Number
+      val List(x, y) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
     /** Returns the modulus resulting from the division of one number by another number */
     case "mod" =>
-      val List(x,y) = parameters // Number,Number
+      val List(x, y) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
     /** Clamps `value` between 0 and 1. */
@@ -197,13 +197,13 @@ class SMath extends AAny {
 
     /** Returns a specified number raised to the specified power */
     case "pow" =>
-      val List(x,y) = parameters // Number,Number
+      val List(x, y) = parameters // Number,Number
       Top[S](TNumber.typ) // TODO
 
     /** Converts rad into degrees */
     case "rad to deg" =>
       val List(radians) = parameters // Number
-      Return[S]((radians / math.Pi)*180)
+      Return[S]((radians / math.Pi) * 180)
 
     case "rand" =>
       val List(upperBound) = parameters
@@ -212,31 +212,34 @@ class SMath extends AAny {
     /** Returns a random integral number x bounded between limit and 0, not including limit unless it is 0 */
     case "random" =>
       val List(upperBound) = parameters
-      val res = Return[S](toRichExpression(0) ndTo (upperBound - 1))
-      res
+      If[S](upperBound equal 0, { s: S =>
+        Return[S](toRichExpression(0))(s, pp)
+      }, { s: S =>
+        Return[S](toRichExpression(0) ndTo (upperBound - 1))(s, pp)
+      })
 
     /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
     case "rand norm" =>
-      Return[S](toRichExpression(0) ndTo toRichExpression(1-NumericalAnalysisConstants.epsilon))
+      Return[S](toRichExpression(0) ndTo toRichExpression(1 - NumericalAnalysisConstants.epsilon))
 
     /** Returns a random floating-point number x: 0 â‰¤ x < 1 */
     case "random normalized" =>
-      Return[S](toRichExpression(0) ndTo toRichExpression(1-NumericalAnalysisConstants.epsilon))
+      Return[S](toRichExpression(0) ndTo toRichExpression(1 - NumericalAnalysisConstants.epsilon))
 
     /** Returns a random integral number between `min` and `max` included. */
     case "random range" =>
-      val List(min,max) = parameters // Number,Number
+      val List(min, max) = parameters // Number,Number
       Return[S](min ndTo max)
 
     /** Rounds a number to the nearest integral value */
     case "round" =>
       val List(x) = parameters // Number
-      Return[S](x-0.5 ndTo x+0.5)
+      Return[S](x - 0.5 ndTo x + 0.5)
 
     /** Rounds a number to a specified number of fractional digits. */
     case "round with precision" =>
-      val List(x,digits) = parameters // Number,Number
-      Return[S](x-0.5 ndTo x+0.5)
+      val List(x, digits) = parameters // Number,Number
+      Return[S](x - 0.5 ndTo x + 0.5)
 
     /** Returns a value indicating the sign of a number */
     case "sign" =>
@@ -258,7 +261,7 @@ class SMath extends AAny {
       val List(x) = parameters // Number
       if (TouchAnalysisParameters.reportNumericalErrors)
         Error[S](x < 0, "sqrt", "Might compute the square root of a negative number")
-      Return[S]((0 ndTo x),(x ndTo 1)) // PRECISION: This is very rough
+      Return[S]((0 ndTo x), (x ndTo 1)) // PRECISION: This is very rough
 
     /** Returns the tangent of the specified angle (in radians) */
     case "tan" =>
@@ -280,8 +283,8 @@ class SMath extends AAny {
 
     /** Creates a matrix of zeros of a given size */
     case "create matrix" =>
-      val List(rows,columns) = parameters // Number,Number
-      New[S](TMatrix.typ,Map(
+      val List(rows, columns) = parameters // Number,Number
+      New[S](TMatrix.typ, Map(
         TMatrix.field_column_count -> columns,
         TMatrix.field_row_count -> rows
       ),
@@ -290,7 +293,7 @@ class SMath extends AAny {
       )
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
+      super.forwardSemantics(this0, method, parameters, returnedType)
 
   }
 }

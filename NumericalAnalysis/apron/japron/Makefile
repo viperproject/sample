@@ -151,10 +151,6 @@ install:
 	$(INSTALLd) $(LIBDIR); \
 	for i in $(SOINST); do \
 		$(INSTALL) $$i $(LIBDIR); \
-	done; \
-	$(INSTALLd) $(JAVA_PREFIX); \
-	for i in $(JAVAINST); do \
-		$(INSTALL) $$i $(JAVA_PREFIX); \
 	done
 
 uninstall:

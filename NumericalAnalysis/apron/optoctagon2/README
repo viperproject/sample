@@ -1,14 +1,11 @@
 Compile Options:
-
-	For Sparse Algorithms: use option -DSPARSE for IS_SPARSE in Makefile
 	
-	For Dense Algorithms: leave IS_SPARSE empty in Makefile
+	for Intel's AVX Intrinsics: specify -DVECTOR for IS_VECTOR and "-m64", "-march=native" for AFLAGS in Makefile
 	
-	for Intel's AVX Intrinsics: specify -DVECTOR for DFLAGS and "-m64", "-march=native" for AFLAGS in Makefile, no vectorization works only with sparse algorithms
+	For Sparsity Threshold : specify -DTHRESHOLD=value for example -DTHRESHOLD=0.9 in DFLAGS. The Threshold lies between 0 and 1 and controls switching between dense and sparse algorithms for 					 closure and incremental closure. The analysis will switch from sparse to dense as soon as sparsity exceeds the threshold. A larger value of threshold favors dense 					 whereas smaller favors sparse algorithms.
 	
-
 To Compile type: 
 	make
-this will generate "liboptoct.so". By default it will use dense algorithms, to use sparse algorithms specify  DPSARSE in DFLAGS option in "Makefile".
+this will generate "liboptoct.so". Default sparsity threshold is 0.5 and uses no vectorization.
 
 

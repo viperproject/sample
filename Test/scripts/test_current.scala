@@ -1,17 +1,16 @@
 import ch.ethz.inf.pm.td.analysis.TestRunner
 
 
-
 val toAnalyze =
-  """aagya
+  """udch
   """.stripMargin.split("[\n,]").map(_.trim).toSet
 
-def analyzer(id:String) {
-  if(!id.isEmpty)
+def analyzer(id: String) {
+  if (!id.isEmpty)
     TestRunner.runIdWithApron(id)
 }
 
-for(a <- toAnalyze) {
+for (a <- toAnalyze) {
   analyzer(a)
 }
 

@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.td.compiler.{TouchProgramPoint, TouchCompiler}
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleError}
+import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, TouchCompiler, TouchProgramPoint, TouchProgramPointRegistry}
 
 class TSVExporter extends ErrorExporter {
 
@@ -19,8 +19,11 @@ class TSVExporter extends ErrorExporter {
 
     var res = ""
 
-    for (SampleError(id,message,pp,causes) <- Reporter.seenErrors) {
+    for (SampleError(_, message, pp, causes) <- Reporter.seenErrors) {
       pp match {
+        case touchPP: SpaceSavingProgramPoint =>
+          val tpp = TouchProgramPointRegistry.reg(touchPP.id)
+          if (id == tpp.scriptID) "Error\t" + message + "\t" + pp else ""
         case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Error\t"+message+"\t"+pp else ""
         case _ => ""
       }
@@ -28,6 +31,9 @@ class TSVExporter extends ErrorExporter {
 
     for ((message,pp) <- Reporter.seenBottom) {
       pp match {
+        case touchPP: SpaceSavingProgramPoint =>
+          val tpp = TouchProgramPointRegistry.reg(touchPP.id)
+          if (id == tpp.scriptID) "Error\t" + message + "\t" + pp else ""
         case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Bottom\t"+message+"\t"+pp else ""
         case _ => ""
       }
@@ -35,6 +41,9 @@ class TSVExporter extends ErrorExporter {
 
     for ((message,pp) <- Reporter.seenImprecision) {
       pp match {
+        case touchPP: SpaceSavingProgramPoint =>
+          val tpp = TouchProgramPointRegistry.reg(touchPP.id)
+          if (id == tpp.scriptID) "Error\t" + message + "\t" + pp else ""
         case tpp: TouchProgramPoint => if (tpp.scriptID == id) res += "Imprecision\t"+message+"\t"+pp else ""
         case _ => ""
       }

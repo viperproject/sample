@@ -4,12 +4,12 @@
 #include "opt_oct_hmat.h"
 
 
-void opt_hmat_free(double *m){
-
-	free(m);
+void opt_hmat_free(opt_oct_mat_t *oo){
+        free(oo->mat);
+	free(oo);
 }
 
-double * opt_hmat_alloc_top(int dim){
+opt_oct_mat_t * opt_hmat_alloc_top(int dim){
 	double *m;
 	int size = 2*dim*(dim + 1);
 	//posix_memalign((void **)&m,32,size*sizeof(double));
@@ -36,13 +36,19 @@ double * opt_hmat_alloc_top(int dim){
 		int ind = i + (((i + 1)*(i + 1))/2);	
 		m[ind] = 0.0;
 	}
-	return m;
+	opt_oct_mat_t * oo = (opt_oct_mat_t *)malloc(sizeof(opt_oct_mat_t));
+	oo->mat = m;
+	oo->nni = 2*dim;
+	
+	return oo;
 }
 
-double *opt_hmat_copy(double * src, int size){
-	if(!src){
+opt_oct_mat_t *opt_hmat_copy(opt_oct_mat_t * src_mat, int size){
+	if(!src_mat){
 		return NULL;
 	}
+	
+	double *src = src_mat->mat;
 	double *dest;
 	//posix_memalign((void **)&dest,32,size*sizeof(double));
 	dest = (double *)calloc(size, sizeof(double));
@@ -62,13 +68,18 @@ double *opt_hmat_copy(double * src, int size){
 		dest[i] = src[i];
 	}
 	//memcpy(dest,src,size*sizeof(double));
-	return dest;
+	opt_oct_mat_t * dst_mat = (opt_oct_mat_t *)malloc(sizeof(opt_oct_mat_t));
+	dst_mat->mat = dest;
+	dst_mat->nni = src_mat->nni;
+	return dst_mat;
 }
 
 void opt_hmat_set_array(double *dest, double *src, int size){
+	//double *src = src_mat->mat;
 	if(!src){
 		return;
 	}
+	//double *dest = dest_mat->mat;
 	#if defined(VECTOR)
 		for(int i = 0; i < size/8; i++){
 			__m256d t1 = _mm256_loadu_pd(src + i*8);
@@ -83,10 +94,10 @@ void opt_hmat_set_array(double *dest, double *src, int size){
 	for(int i = (size/8)*8; i <size; i++){
 		dest[i] = src[i];
 	}
-	
+	//dest_mat->nni += src_mat->nni;
 }
 
-bool opt_hmat_strong_closure(double *m, int dim){
+bool opt_hmat_strong_closure(opt_oct_mat_t *oo, int dim){
 	double *temp1, *temp2;
 	int *ind1, *ind2;
 	temp1 = (double *)calloc(2*dim, sizeof(double));
@@ -94,30 +105,45 @@ bool opt_hmat_strong_closure(double *m, int dim){
 	bool flag = is_int_flag ? true : false;
         //
 	bool res;
-	#if defined(SPARSE)
-		//posix_memalign((void **)&ind1, 32, 2*(2*dim + 1)*sizeof(int));
+	double size = 2*dim*(dim+1);
+	double sparsity = 1- ((double)(oo->nni/size));
+       // fprintf(stdout,"Input sparsity is\t%d\t%d\t%g\n",oo->nni,dim,sparsity);
+	//print_opt_hmat(oo->mat,dim);
+	fflush(stdout);
+	if(sparsity >= sparse_threshold){
+		//posix_memalign((void **)&ind1, 32, 2*(2*dim + 1)*sizeof(int));double sparsity = 1- ((double)(oo->nni/size));
 		//posix_memalign((void **)&ind2, 32, 2*(2*dim + 1)*sizeof(int));
 		ind1 = (int *)calloc(2*(2*dim + 1), sizeof(int));
 		ind2 = (int *)calloc(2*(2*dim + 1), sizeof(int));
-		res = strong_closure_sparse(m,temp1,temp2,ind1, ind2,dim, flag);
+		res = strong_closure_sparse(oo,temp1,temp2,ind1, ind2,dim, flag);
 		free(ind1);
 		ind1 = NULL;
 		free(ind2);
 		ind2 = NULL;
 	//}#if defined(SPARSE)
-	#else
-        	res = strong_closure_dense(m,temp1,temp2,dim, flag);
-	#endif
+	}
+	else{
+		#if defined(VECTOR)
+			res = strong_closure_dense(oo,temp1,temp2,dim, flag);
+		#else
+        		res = strong_closure_dense_scalar(oo,temp1,temp2,dim, flag);
+		#endif
+	}
         free(temp1);
 	temp1 = NULL;
 	free(temp2);
         temp2 = NULL;
+	sparsity = 1- ((double)(oo->nni/size));
+        //fprintf(stdout,"Output sparsity is\t%d\t%g\n",oo->nni,sparsity);
+	//print_opt_hmat(oo->mat,dim);
+	fflush(stdout);
 	return res;
 	//return strong_closure_sparse(m,temp1,temp2,ind1,ind2,dim, flag);
 
 }
 
-bool is_top_avx_half_double(double *m, int dim){
+bool is_top_avx_half_double(opt_oct_mat_t *oo, int dim){
+	double *m = oo->mat;
 	int size = 2*dim*(dim + 1);
 	int n = 2*dim;
 	bool flag = true;
@@ -164,7 +190,9 @@ bool is_top_avx_half_double(double *m, int dim){
 }
 
 
-bool is_equal_avx_half_double(double *m1, double *m2, int dim){
+bool is_equal_avx_half_double(opt_oct_mat_t *oo1, opt_oct_mat_t *oo2, int dim){
+	double *m1= oo1->mat;
+	double *m2 = oo2->mat;
 	int size = 2*dim*(dim + 1);
 	#if defined(VECTOR)
 		__m256i one = _mm256_set1_epi64x(1);
@@ -193,7 +221,9 @@ bool is_equal_avx_half_double(double *m1, double *m2, int dim){
 	return true;
 }
 
-bool is_lequal_avx_half_double(double *m1, double *m2, int dim){
+bool is_lequal_avx_half_double(opt_oct_mat_t *oo1, opt_oct_mat_t *oo2, int dim){
+	double *m1 = oo1->mat;
+	double *m2 = oo2->mat;
 	int size = 2*dim*(dim + 1);
 	#if defined(VECTOR)
 		__m256i one = _mm256_set1_epi64x(1);
@@ -222,7 +252,10 @@ bool is_lequal_avx_half_double(double *m1, double *m2, int dim){
 	return true;
 }
 
-void meet_avx_half(double *m, double *m1, double *m2, int dim){
+void meet_avx_half(opt_oct_mat_t *oo, opt_oct_mat_t *oo1, opt_oct_mat_t *oo2, int dim){
+	double *m = oo->mat;
+	double *m1 = oo1->mat;
+	double *m2 = oo2->mat;
 	int size = 2*dim*(dim + 1);
 	#if defined(VECTOR)
 		for(int i = 0; i < size/4; i++){
@@ -230,19 +263,57 @@ void meet_avx_half(double *m, double *m1, double *m2, int dim){
 			__m256d t2 = _mm256_loadu_pd(m2 + i*4);
 			__m256d t3 = _mm256_min_pd(t1,t2);
 			_mm256_storeu_pd(m + i*4,t3);	
+			//count = count+4;
 		}
 	#else
 		for(int i = 0; i < (size/4)*4;i++){
-			m[i] = min(m1[i],m2[i]);
+			/*if(m1[i]== INFINITY){
+				if(m2[i]==INFINITY){
+					m[i] = INFINITY;
+				}
+				else{
+					m[i] = m2[i];
+					count++;
+				}
+			}
+			else if(m2[i]==INFINITY){
+				m[i] = m1[i];
+				count++;
+			}
+			else{*/
+				m[i] = min(m1[i],m2[i]);
+				//count++;
+			//}
 		}
 	#endif
 	for(int i = (size/4)*4; i < size; i++){
-		m[i] = min(m1[i],m2[i]);
+		/*if(m1[i]== INFINITY){
+			if(m2[i]==INFINITY){
+				m[i] = INFINITY;
+			}
+			else{
+				m[i] = m2[i];
+				count++;
+			}
+		}
+		else if(m2[i]==INFINITY){
+			m[i] = m1[i];
+			count++;
+		}
+		else{*/
+			m[i] = min(m1[i],m2[i]);
+			//count++;
+		//}
 	}
-        
+	int max_nni = 2*dim*(dim+1);
+	oo->nni = oo1->nni + oo2->nni - 2*dim;
+        oo->nni = min(max_nni,oo->nni);
+	oo->nni = max(2*dim,oo->nni);
 }
 
-void forget_array_avx_half(double *m, ap_dim_t *arr,int dim, int arr_dim, bool project){
+void forget_array_avx_half(opt_oct_mat_t *oo, ap_dim_t *arr,int dim, int arr_dim, bool project){
+	double *m = oo->mat;
+	//int count = oo->nni;
 	for(int i = 0; i < arr_dim; i++){
 		ap_dim_t d = 2*arr[i];
 		int d1 = (((d + 1)*(d + 1))/2);
@@ -252,36 +323,47 @@ void forget_array_avx_half(double *m, ap_dim_t *arr,int dim, int arr_dim, bool p
 			for(int j = 0; j < d/4; j++){
 				_mm256_storeu_pd(m + d1 + j*4,infty);
 				_mm256_storeu_pd(m + d2 + j*4,infty);
+				//count = count-8;
 			}
 		#else
 			for(int j = 0; j < (d/4)*4;j++){
 				m[d1 + j] = INFINITY;
 				m[d2 + j] = INFINITY;
+				//count = count - 2;
 			}
 		#endif
 		for(int j = (d/4)*4; j < d; j++){
 			m[d1 + j] = INFINITY;
 			m[d2 + j] = INFINITY;
+			//count=count-2;
 		}
 		for(int j = d + 2; j < 2*dim; j++){
 			int ind1 = d + (((j + 1)*(j + 1))/2);
 			int ind2 = (d + 1) + (((j + 1)*(j + 1))/2);
 			m[ind1] = INFINITY;
 			m[ind2] = INFINITY;
+			//count=count-2;;
 		}
 		if(project){
 			m[d1 + d2] = 0;
 			m[d2 + d1] = 0;
+			//count = count+2;
+			oo->nni = oo->nni + 2;
 		}
 		else{
 			m[d1 + (d + 1)] = INFINITY;
 			m[d + d2] = INFINITY;
+			//count = count - 2;
 		}
 	}
+	
 }
 
-void join_avx_half(double *m, double *m1, double *m2, int dim){
-	
+void join_avx_half(opt_oct_mat_t *oo, opt_oct_mat_t *oo1, opt_oct_mat_t *oo2, int dim){
+	double *m = oo->mat;
+	double *m1 = oo1->mat;
+	double *m2 = oo2->mat;
+	//int count = 0;
 	int size = 2*dim*(dim + 1);
 	#if defined(VECTOR)
 		for(int i = 0; i < size/4; i++){
@@ -289,26 +371,42 @@ void join_avx_half(double *m, double *m1, double *m2, int dim){
 			__m256d t2 = _mm256_loadu_pd(m2 + i*4);
 			__m256d t3 = _mm256_max_pd(t1,t2);
 			_mm256_storeu_pd(m + i*4,t3);
+			//count = count+4;
 		}
 	#else
 		for(int i = 0; i < (size/4)*4;i++){
-			m[i] = max(m1[i],m2[i]);
+			/*if(m1[i]==INFINITY || m2[i]==INFINITY){
+				m[i] = INFINITY;
+			}
+			else{*/
+				m[i] = max(m1[i],m2[i]);
+				//count++;
+			//}
 		}
 	#endif
 	for(int i = (size/4)*4; i <size; i++){
-		m[i] = max(m1[i],m2[i]);
+		/*if(m1[i]==INFINITY || m2[i]==INFINITY){
+			m[i] = INFINITY;
+		}
+		else{*/
+			m[i] = max(m1[i],m2[i]);
+			//count++;
+		//}
 	}
-	
+	oo->nni = min(oo1->nni,oo2->nni);
 }
 
-void opt_hmat_addrem_dimensions(double * dst, double* src,
+void opt_hmat_addrem_dimensions(opt_oct_mat_t * dst_mat, opt_oct_mat_t* src_mat,
 			    ap_dim_t* pos, int nb_pos,
 			    int mult, int dim, bool add)
 {
+  
   int i,j,new_j,org_j;
   new_j = org_j = pos[0]*2;
+  	//fflush(stdout);
+  double * dst = dst_mat->mat;
+  double * src = src_mat->mat;
   opt_hmat_set_array(dst,src,org_j*(org_j/2 + 1));
-  
   for (j=0;j<nb_pos;j++) {
     /* skip lines */
     if (add) new_j += 2*mult; else org_j += 2*mult;
@@ -339,20 +437,40 @@ void opt_hmat_addrem_dimensions(double * dst, double* src,
 	
 	/* copy remaining elems */
 	opt_hmat_set_array(new_c+new_i,org_c+org_i,size_org_line-org_i);
-	
+  	//fflush(stdout);
 	/* next line */
 	org_c += size_org_line;
 	new_c += size_new_line;
       }
     }
   }
+  if(add){
+	/****
+		Exact number of non infinities for add 
+	****/
+	int new_dim = dim + nb_pos;
+	int max_nni = 2*new_dim*(new_dim +1);
+	dst_mat->nni = min(max_nni,src_mat->nni + 2*nb_pos);
+  }
+  else{
+	/**** 
+	Approximation of number of non infinities for remove 
+	****/
+	int new_dim = dim - nb_pos;
+	int new_size = 2*new_dim*(new_dim+1);
+	dst_mat->nni = min(src_mat->nni - 2*nb_pos,new_size);
+	dst_mat->nni = max(2*new_dim,dst_mat->nni);
+  }
+  //double sparsity = 1 - ((double)(src_mat->nni)/size);
 }
 
 
-void opt_hmat_permute(double* dst, double* src,
+void opt_hmat_permute(opt_oct_mat_t* dest_mat, opt_oct_mat_t* src_mat,
 		  int dst_dim, int src_dim,
 		  ap_dim_t* permutation)
 {
+  double *dst = dest_mat->mat;
+  double *src = src_mat->mat;
   int i,j;
   for (i=0;i<src_dim;i++) {
     int new_ii = 2*permutation[i];
@@ -380,7 +498,7 @@ void opt_hmat_permute(double* dst, double* src,
 	}
 	
       /*dst[opt_matpos2(new_ii,new_jj)] = src[0];
-      dst[opt_matpos2(new_ii,new_jj+1)] = src[1];
+      dst[opt_matpos2(new_ii,new_jj+1)] = src[1];oo->nni = 2*dim*(dim+1);
       dst[opt_matpos2(new_ii+1,new_jj)] = src[2*(i+1)];
       dst[opt_matpos2(new_ii+1,new_jj+1)] = src[2*(i+1)+1];*/
 	dst[ind1] = src[0];
@@ -390,10 +508,15 @@ void opt_hmat_permute(double* dst, double* src,
     }
     src+=2*(i+1);
   }
+  dest_mat->nni = src_mat->nni;
 }
 
-void widening_half(double *m, double *m1, double *m2, int size){
-	
+void widening_half(opt_oct_mat_t *oo, opt_oct_mat_t *oo1, opt_oct_mat_t *oo2, int size){
+	double *m = oo->mat;
+	double *m1 = oo1->mat;
+	double *m2 = oo2->mat;
+	int count = 0;
+	//fprintf(stdout,"Forget\t%d\n",oo->nni);
 	for(int i = 0; i < size; i++){
 		if(m1[i] >=m2[i]){
 			m[i] = m1[i];
@@ -401,7 +524,12 @@ void widening_half(double *m, double *m1, double *m2, int size){
 		else{
 			m[i] = INFINITY;
 		}
+		if(m[i]!=INFINITY){
+			count++;
+		}
 	}
+	oo->nni = count;
+	//fprintf(stdout,"Forget\t%d\n",oo->nni);
 }
 
 opt_uexpr opt_oct_uexpr_of_linexpr(opt_oct_internal_t* pr, double* dst,
@@ -473,14 +601,16 @@ opt_uexpr opt_oct_uexpr_of_linexpr(opt_oct_internal_t* pr, double* dst,
 
 
 
-bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim,
+bool opt_hmat_add_lincons(opt_oct_internal_t* pr, opt_oct_mat_t* oo, int intdim, int dim,
 		      ap_lincons0_array_t* ar, bool* exact,
 		      bool* respect_closure)
 {
+  double *m = oo->mat;
   int i, j, k, ui, uj;
   int var_pending = 0; /* delay incremental closure as long as possible */
   int closure_pending = 0;
   *exact = 1;
+   int max_nni = 2*dim*(dim+1);
   bool flag = is_int_flag ? 1 : 0;
   double *temp1, *temp2;
   int *ind1, *ind2;
@@ -488,13 +618,20 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
   //posix_memalign((void **)&temp2, 32, 2*dim*sizeof(double));
   temp1 = (double *)calloc(2*dim, sizeof(double));
   temp2 = (double *)calloc(2*dim, sizeof(double));
-  int (*incr_closure)(double *,...); 
-  #if defined(SPARSE)
+  int (*incr_closure)(double *,...);
+  double size = 2*dim*(dim+1);
+  double sparsity = 1- ((double)(oo->nni)/size);
+  if(sparsity >=sparse_threshold){
 	incr_closure = &incremental_closure_opt_sparse;
+  }
+  else{ 
+  	#if defined(VECTOR)
+		incr_closure = &incremental_closure_opt_dense;
   //}
-  #else
-	incr_closure = &incremental_closure_opt_dense;
-  #endif
+  	#else
+		incr_closure = &incremental_closure_opt_dense_scalar;
+  	#endif
+  }
   for (i=0;i<ar->size;i++) {
    ap_constyp_t c = ar->p[i].constyp;
     opt_uexpr u;
@@ -529,7 +666,7 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
       pr->tmp[1] = pr->tmp[1] - 1;
     }
     
-
+    int count;
     switch (u.type) {
 
     case OPT_EMPTY:
@@ -549,11 +686,12 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
       break;
 
     case OPT_UNARY:
-
+	
       /* can we delay incremental closure further? */
       if (*respect_closure && closure_pending && var_pending!=u.i) {
-	if (incr_closure(m,temp1,temp2,dim,var_pending, is_int_flag)) return true;
+	if (incr_closure(oo,temp1,temp2,dim,var_pending, is_int_flag)) return true;
       }
+      count = oo->nni;
       closure_pending = 1;
       var_pending = u.i;
 
@@ -561,35 +699,61 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
       pr->tmp[0] = 2*pr->tmp[0];
       pr->tmp[1] = 2*pr->tmp[1];
       //int ind = (ui^1) + (((ui + 1)*(ui + 1))/2);
-      m[opt_matpos(ui,ui^1)] = min(m[opt_matpos(ui,ui^1)], pr->tmp[1]);
+      if(m[opt_matpos(ui,ui^1)]==INFINITY){
+      	m[opt_matpos(ui,ui^1)] = pr->tmp[1];
+      }
+      else{
+	m[opt_matpos(ui,ui^1)] = min(m[opt_matpos(ui,ui^1)], pr->tmp[1]);
+	count++;
+      }
       /*  c_i X_i + [-a,b] >= 0 <=> -c_i X_i <= b */
       if (c==AP_CONS_EQ) {
-	m[opt_matpos(ui^1,ui)] = min(m[opt_matpos(ui^1,ui)], pr->tmp[0]);
+	if(m[opt_matpos(ui^1,ui)]==INFINITY){
+		m[opt_matpos(ui^1,ui)] = pr->tmp[0];
+	}
+        else{
+		m[opt_matpos(ui^1,ui)] = min(m[opt_matpos(ui^1,ui)], pr->tmp[0]);
+		count++;
+	}
       }
       /*  c_i X_i + [-a,b] <= 0 <=>  c_i X_i <= a */
       if (c==AP_CONS_SUP) *exact = 0; /* not exact for strict constraints */
+      oo->nni = min(max_nni,count);	
       break;
 
     case OPT_BINARY:
-
+      
       /* can we delay incremental closure further? */
       if (*respect_closure && closure_pending &&
 	  var_pending!=u.i && var_pending!=u.j) {
 	//printf("APRON Before applying OPT_BINARY\n");
-	if (incr_closure(m,temp1,temp2,dim,var_pending, is_int_flag)) return true;
+	if (incr_closure(oo,temp1,temp2,dim,var_pending, is_int_flag)) return true;
       }
       closure_pending = 1;
       var_pending = (var_pending==u.j) ? u.j : u.i;
-
+      count = oo->nni;	
       if ( u.coef_i==1) ui = 2*u.i; else ui = 2*u.i+1;
       if ( u.coef_j==1) uj = 2*u.j; else uj = 2*u.j+1;
-      m[opt_matpos2(uj,ui^1)] = min(m[opt_matpos2(uj,ui^1)], pr->tmp[1]);
+      if(m[opt_matpos2(uj,ui^1)]==INFINITY){
+		m[opt_matpos2(uj,ui^1)]=pr->tmp[1];
+      }
+      else{
+      	m[opt_matpos2(uj,ui^1)] = min(m[opt_matpos2(uj,ui^1)], pr->tmp[1]);
+	count++;
+      }
       /*  c_i X_i + c_j X_j + [-a,b] >= 0 <=> -c_i X_i - c_j X_j <= b */
       if (c==AP_CONS_EQ){
-	m[opt_matpos2(uj^1,ui)] = min(m[opt_matpos2(uj^1,ui)], pr->tmp[0]); 
+	if(m[opt_matpos2(uj^1,ui)]== INFINITY){
+		m[opt_matpos2(uj^1,ui)] = pr->tmp[0];
+	}
+        else{
+		m[opt_matpos2(uj^1,ui)] = min(m[opt_matpos2(uj^1,ui)], pr->tmp[0]); 
+		count++;
+	}
       }
       /*  c_i X_i + c_j X_j + [-a,b] <= 0 <=>  c_i X_i + c_j X_j <= a */
       if (c==AP_CONS_SUP) *exact = 0; /* not exact for strict constraints */
+      oo->nni = min(max_nni,count);
       break;
 
     case OPT_OTHER:
@@ -605,7 +769,7 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 
 	*respect_closure = false; /* do not respect closure */
 
-
+	count = oo->nni;
 	/* compute 2 * upper bound, ignoring components leading to +oo */
 	cb = 2*pr->tmp[0];
 	Cb = 2*pr->tmp[1];
@@ -689,6 +853,7 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 	  /* no infinite bound: derive quadratic number of bounds */
 	  //////fprintf(stdout,"Quadratic\n");
           //////fflush(stdout);
+	  
 	  for (j=0;j<dim;j++) {
 	    if ((pr->tmp[2*j+2] <= -1) &&
 		(m[opt_matpos(2*j+1,2*j)] != INFINITY)) {
@@ -703,24 +868,37 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 	      uj = 2*j;
 	    }
 	    else continue;
+	    
 	    for (k=j+1;k<dim;k++) {
 	      if ((pr->tmp[2*k+2]<=-1) &&
 		  (m[opt_matpos(2*k+1,2*k)] != INFINITY)) {
 		/* (+/-)x -y <= max(expr) - max((+/-)x) - max y */
 		tmpb = tmpa - m[opt_matpos(2*k + 1, 2*k)];
 		tmpb = tmpb/2;
-		m[opt_matpos(2*k,uj)] = min(m[opt_matpos(2*k,uj)], tmpb);
+		if(m[opt_matpos(2*k,uj)] ==INFINITY){
+			m[opt_matpos(2*k,uj)] = tmpb;
+			count++;
+		}
+		else{
+			m[opt_matpos(2*k,uj)] = min(m[opt_matpos(2*k,uj)], tmpb);
+		}
 	      }
 	      else if ((pr->tmp[2*k+3] <=-1) &&
 		       (m[opt_matpos(2*k,2*k+1)] !=  INFINITY)) {
 		/* (+/-)x +y <= max(expr) - max((+/-)x) - max (-y) */
 		tmpb = tmpa - m[opt_matpos(2*k, 2*k + 1)];
 		tmpb = tmpb/2;
-		m[opt_matpos(2*k + 1,uj)] = min(m[opt_matpos(2*k + 1,uj)],tmpb);
-		
+		if(m[opt_matpos(2*k + 1,uj)]==INFINITY){
+			m[opt_matpos(2*k + 1,uj)] = tmpb;
+			count++;
+		}
+		else{
+			m[opt_matpos(2*k + 1,uj)] = min(m[opt_matpos(2*k + 1,uj)],tmpb);
+		}
 	      }
 	    }
 	  }
+	  oo->nni = min(max_nni,count);
 	}
 
 	else if (Cinf==1) {
@@ -739,16 +917,29 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 	      /* (+/-)x -y <= max(expr) - max((+/-)x) - max y */
 	      tmpb = Cb - m[opt_matpos(2*k + 1, 2*k)];
 	      tmpb = tmpb/2;
-	      m[opt_matpos2(2*k,uj)] = min(m[opt_matpos2(2*k,uj)], tmpb);
+	      if(m[opt_matpos2(2*k,uj)] == INFINITY){
+		 m[opt_matpos2(2*k,uj)] = tmpb;
+		 count++;
+	      }
+	      else{
+	      	m[opt_matpos2(2*k,uj)] = min(m[opt_matpos2(2*k,uj)], tmpb);
+	      }
 	    }
 	    else if ((pr->tmp[2*k+3] <=-1) &&
 		     (m[opt_matpos(2*k,2*k+1)] != INFINITY)) {
 	      /* (+/-)x +y <= max(expr) - max((+/-)x) - max (-y) */
 	      tmpb = Cb - m[opt_matpos(2*k, 2*k + 1)];
 	      tmpb = tmpb/2;
-	      m[opt_matpos2(2*k + 1,uj)] = min(m[opt_matpos2(2*k + 1,uj)], tmpb);
+	      if(m[opt_matpos2(2*k + 1,uj)]==INFINITY){
+		m[opt_matpos2(2*k + 1,uj)] = tmpb;
+		count++;
+	      }
+	      else{
+	      	m[opt_matpos2(2*k + 1,uj)] = min(m[opt_matpos2(2*k + 1,uj)], tmpb);
+	      }
 	    }
 	  }
+          oo->nni = min(max_nni,count);
 	}
 
 	else if (Cinf==2) {
@@ -766,7 +957,14 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 		   (pr->tmp[2*Cj2+2] == -1)) uj = 2*Cj2+1;
 	  else goto Cbrk;
 	  tmpa = Cb/2;
-	  m[opt_matpos2(uj^1,ui)] = min(m[opt_matpos2(uj^1,ui)],tmpa);
+	  if(m[opt_matpos2(uj^1,ui)]==INFINITY){
+		m[opt_matpos2(uj^1,ui)] = tmpa;
+		count++;
+	  }
+	  else{
+	  	m[opt_matpos2(uj^1,ui)] = min(m[opt_matpos2(uj^1,ui)],tmpa);
+	  }
+	  oo->nni = min(max_nni,count);
 	}
 	
 	/* if more than two infinite bounds: do nothing */
@@ -776,6 +974,7 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
       	  //print_opt_hmat(m,dim);
           //////fflush(stdout);
 	/* lower bound */
+	count = oo->nni;
 	if (c==AP_CONS_EQ) {
 		//////fprintf(stdout,"Equality\n");
           	//////fflush(stdout);
@@ -798,16 +997,29 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 		  (m[opt_matpos(2*k+1,2*k)] != INFINITY)) {
 		tmpb = tmpa - m[opt_matpos(2*k + 1, 2*k)];
 		tmpb = tmpb/2;
-		m[opt_matpos(2*k, uj)] = min(m[opt_matpos(2*k,uj)], tmpb);
+		if(m[opt_matpos(2*k, uj)]==INFINITY){
+			m[opt_matpos(2*k, uj)] = tmpb;
+			count++;
+		}
+		else{
+			m[opt_matpos(2*k, uj)] = min(m[opt_matpos(2*k,uj)], tmpb);
+		}
 	      }
 	      else if ((pr->tmp[2*k+2] <=-1) &&
 		       (m[opt_matpos(2*k,2*k+1)] != INFINITY)) {
 		tmpb = tmpa - m[opt_matpos(2*k, 2*k + 1)];
 		tmpb = tmpb/2;
-		m[opt_matpos(2*k + 1, uj)] = min(m[opt_matpos(2*k + 1, uj)], tmpb);
+		if(m[opt_matpos(2*k + 1, uj)]==INFINITY){
+			m[opt_matpos(2*k + 1, uj)] = tmpb;
+			count++;
+		}
+		else{
+			m[opt_matpos(2*k + 1, uj)] = min(m[opt_matpos(2*k + 1, uj)], tmpb);
+		}
 	      }
 	    }
 	  }
+	  oo->nni = min(max_nni,count);
 	}
 	else if (cinf==1) {
 	  if ((pr->tmp[2*cj1+2] ==-1) &&
@@ -821,15 +1033,28 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 		(m[opt_matpos(2*k+1,2*k)] != INFINITY)) {
 	      tmpb = cb - m[opt_matpos(2*k + 1, 2*k)];
 	      tmpb = tmpb/2;
-	      m[opt_matpos2(2*k,uj)] = min(m[opt_matpos2(2*k,uj)], tmpb);
+	      if(m[opt_matpos2(2*k,uj)]==INFINITY){
+		 m[opt_matpos2(2*k,uj)] = tmpb;
+		 count++;
+	      }
+              else{	
+	      	m[opt_matpos2(2*k,uj)] = min(m[opt_matpos2(2*k,uj)], tmpb);
+	      }
 	    }
 	    else if ((pr->tmp[2*k+2] <= -1) &&
 		     (m[opt_matpos(2*k,2*k+1)] != INFINITY)) {
 	      tmpb = cb - m[opt_matpos(2*k, 2*k + 1)];
 	      tmpb = tmpb/2;
-	      m[opt_matpos2(2*k + 1,uj)] = min(m[opt_matpos2(2*k + 1,uj)], tmpb);
+	      if(m[opt_matpos2(2*k + 1,uj)]==INFINITY){
+		 m[opt_matpos2(2*k + 1,uj)] = tmpb;
+		 count++;
+	      }
+	      else{
+	      	m[opt_matpos2(2*k + 1,uj)] = min(m[opt_matpos2(2*k + 1,uj)], tmpb);
+	      }
 	    }
 	  }
+	   oo->nni = min(max_nni,count);
 	}
 	else if (cinf==2) {
 	  if ((pr->tmp[2*cj1+2]==-1) &&
@@ -843,8 +1068,15 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 		   (pr->tmp[2*cj2+3] == -1)) uj = 2*cj2+1;
 	  else goto cbrk;
 	  tmpa = cb/2;
-	  m[opt_matpos2(uj^1,ui)] = min(m[opt_matpos2(uj^1,ui)], tmpa);
+          if(m[opt_matpos2(uj^1,ui)]==INFINITY){
+		m[opt_matpos2(uj^1,ui)] = tmpa;
+		count++;
+	  }
+	  else{
+	  	m[opt_matpos2(uj^1,ui)] = min(m[opt_matpos2(uj^1,ui)], tmpa);
+	  }
 	}
+	 oo->nni = min(max_nni,count);
 	}
 
       cbrk:
@@ -858,8 +1090,7 @@ bool opt_hmat_add_lincons(opt_oct_internal_t* pr, double* m, int intdim, int dim
 
   /* apply pending incremental closure now */
   if (*respect_closure && closure_pending)
-    if (incr_closure(m,temp1,temp2,dim,var_pending,is_int_flag)) return true;
-
+    if (incr_closure(oo,temp1,temp2,dim,var_pending,is_int_flag)) return true;
   return false;
 }
 

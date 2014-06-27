@@ -60,7 +60,7 @@ opt_oct_t * opt_oct_copy_internal(opt_oct_internal_t *pr, opt_oct_t *o){
 	Basic Functions
 ***/
 
-opt_oct_t* opt_oct_set_mat(opt_oct_internal_t* pr, opt_oct_t* o, double* m, double* closed,
+opt_oct_t* opt_oct_set_mat(opt_oct_internal_t* pr, opt_oct_t* o, opt_oct_mat_t* m, opt_oct_mat_t* closed,
 		   bool destructive)
 {
   opt_oct_t* r;
@@ -280,8 +280,8 @@ Manager specific
 ***/
 
 void opt_oct_internal_free(opt_oct_internal_t *pr){
-	opt_hmat_free(pr->tmp);
-	opt_hmat_free(pr->tmp2);
+	free(pr->tmp);
+	free(pr->tmp2);
 	pr->tmp = NULL;
 	pr->tmp2 = NULL;
 	free(pr);

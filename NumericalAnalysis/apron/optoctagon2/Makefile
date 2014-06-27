@@ -1,11 +1,11 @@
 include ../Makefile.config
 
 
-AFLAGS := -D_GNU_SOURCE -pthread -fno-tree-vectorize -m64 -march=native #corei7-avx
+AFLAGS := -D_GNU_SOURCE -pthread -fno-tree-vectorize -m64 -march=native
 
-IS_SPARSE = -DSPARSE
+IS_VECTOR = -DVECTOR
 
-DFLAGS := -g -DNUM_DOUBLE $(AFLAGS) $(IS_SPARSE) #-DVECTOR
+DFLAGS := -g -DNUM_DOUBLE $(AFLAGS) $(IS_VECTOR) -DTHRESHOLD=0.05
 
 
 
@@ -17,15 +17,17 @@ LIBDIR = $(PREFIX)/lib
 INCLDIR = $(PREFIX)/include
 #SOBJS = $(LIBDIR)/liboptoct.so 
 
-ifeq ($(IS_SPARSE),)
-CLOSURE_OBJS = opt_oct_closure_dense.o opt_oct_incr_closure_dense.o
-CLOSURE_C = opt_oct_closure_dense.c opt_oct_incr_closure_dense.c
-CLOSUREH = opt_oct_closure_dense.h opt_oct_incr_closure_dense.h 
+ifeq ($(IS_VECTOR),)
+CLOSURE_OBJS = opt_oct_closure_sparse.o  opt_oct_incr_closure_sparse.o opt_oct_closure_dense_scalar.o opt_oct_incr_closure_dense_scalar.o
+CLOSURE_C = opt_oct_closure_sparse.c  opt_oct_incr_closure_sparse.c opt_oct_closure_dense_scalar.c opt_oct_incr_closure_dense_scalar.c
+CLOSUREH = opt_oct_closure_sparse.h  opt_oct_incr_closure_sparse.h opt_oct_closure_dense_scalar.h opt_oct_incr_closure_dense_scalar.h 
 else
-CLOSURE_OBJS = opt_oct_closure_sparse.o  opt_oct_incr_closure_sparse.o
-CLOSURE_C = opt_oct_closure_sparse.c  opt_oct_incr_closure_sparse.c
-CLOSUREH =  opt_oct_closure_sparse.h  opt_oct_incr_closure_sparse.h
+CLOSURE_OBJS = opt_oct_closure_sparse.o  opt_oct_incr_closure_sparse.o opt_oct_closure_dense.o opt_oct_incr_closure_dense.o
+CLOSURE_C = opt_oct_closure_sparse.c  opt_oct_incr_closure_sparse.c opt_oct_closure_dense.c opt_oct_incr_closure_dense.c
+CLOSUREH =  opt_oct_closure_sparse.h  opt_oct_incr_closure_sparse.h opt_oct_closure_dense.h opt_oct_incr_closure_dense.h 
 endif
+
+
 
 OBJS = $(CLOSURE_OBJS) opt_oct_nary.o opt_oct_resize.o opt_oct_predicate.o opt_oct_representation.o opt_oct_transfer.o opt_oct_hmat.o
 
@@ -54,12 +56,20 @@ all : liboptoct.so
 perf : perf.c liboptoct.so
 	$(CC) -Wno-write-strings -pthread $(CFLAGS) $(DFLAGS) $(INCLUDES) -o perf perf.c $(LIBS) -loptoct
 
-#ifneq ($(IS_SPARSE),)
+
 opt_oct_closure_sparse.o : opt_oct_closure_sparse.h opt_oct_closure_sparse.c
 	$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) -o opt_oct_closure_sparse.o opt_oct_closure_sparse.c $(LIBS)
 
 opt_oct_incr_closure_sparse.o : opt_oct_incr_closure_sparse.h opt_oct_incr_closure_sparse.c opt_oct_closure_sparse.o
 	$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) -o opt_oct_incr_closure_sparse.o opt_oct_incr_closure_sparse.c $(LIBS) opt_oct_closure_sparse.o
+
+#ifneq ($(IS_VECTOR),)
+opt_oct_closure_dense_scalar.o : opt_oct_closure_dense_scalar.h opt_oct_closure_dense_scalar.c
+	$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) -o opt_oct_closure_dense_scalar.o opt_oct_closure_dense_scalar.c $(LIBS)
+
+opt_oct_incr_closure_dense_scalar.o : opt_oct_incr_closure_dense_scalar.h opt_oct_incr_closure_dense_scalar.c opt_oct_closure_dense_scalar.o
+	$(CC) -c $(CFLAGS) $(DFLAGS) $(INCLUDES) -o opt_oct_incr_closure_dense_scalar.o opt_oct_incr_closure_dense_scalar.c $(LIBS) opt_oct_closure_dense_scalar.o
+
 
 #else
 opt_oct_closure_dense.o : opt_oct_closure_dense.h opt_oct_closure_dense.c

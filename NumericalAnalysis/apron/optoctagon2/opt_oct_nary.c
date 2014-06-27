@@ -8,7 +8,7 @@ opt_oct_t* opt_oct_meet(ap_manager_t* man, bool destructive, opt_oct_t* o1, opt_
 {
   
   opt_oct_internal_t* pr = opt_oct_init_from_manager(man,AP_FUNID_MEET,0);
-  double* m;
+  opt_oct_mat_t* oo;
   /***** TODO: handle arg_assert
   ****/
    if((o1->dim != o2->dim) || (o1->intdim != o2->intdim))return NULL;
@@ -18,18 +18,18 @@ opt_oct_t* opt_oct_meet(ap_manager_t* man, bool destructive, opt_oct_t* o1, opt_
     return opt_oct_set_mat(pr,o1,NULL,NULL,destructive);
   else {
     int size = 2*(o1->dim)*(o1->dim + 1);
-    double * m1 = o1->closed ? o1->closed : o1->m;
-    double * m2 = o2->closed ? o2->closed : o2->m;
-    m = destructive ? m1 : (double *)calloc(size,sizeof(double));
+    opt_oct_mat_t * oo1 = o1->closed ? o1->closed : o1->m;
+    opt_oct_mat_t * oo2 = o2->closed ? o2->closed : o2->m;
+    oo = destructive ? oo1 : opt_hmat_alloc(size);
    /* if(destructive){
 	m = m1;
     }
     else{
 	posix_memalign((void **)&m,32,size*sizeof(double));
     }*/
-    meet_avx_half(m,m1,m2,o1->dim);
+    meet_avx_half(oo,oo1,oo2,o1->dim);
     /* optimal, but not closed */
-    return opt_oct_set_mat(pr,o1,m,NULL,destructive);
+    return opt_oct_set_mat(pr,o1,oo,NULL,destructive);
   }
 }
 
@@ -65,10 +65,10 @@ opt_oct_t* opt_oct_join(ap_manager_t* man, bool destructive, opt_oct_t* o1, opt_
   }
  else {
    /* not empty */
-   double* m1 = o1->closed ? o1->closed : o1->m;
-   double* m2 = o2->closed ? o2->closed : o2->m;
+   opt_oct_mat_t* oo1 = o1->closed ? o1->closed : o1->m;
+   opt_oct_mat_t* oo2 = o2->closed ? o2->closed : o2->m;
    
-   double* m = destructive ? m1 : (double *)calloc(size,sizeof(double));
+   opt_oct_mat_t * oo = destructive ? oo1 : opt_hmat_alloc(size);
    /*double *m;
    if(destructive){
 	m = m1;
@@ -78,16 +78,16 @@ opt_oct_t* opt_oct_join(ap_manager_t* man, bool destructive, opt_oct_t* o1, opt_
    }*/
    size_t i;
    man->result.flag_exact = false;
-   join_avx_half(m,m1,m2,o1->dim);
+   join_avx_half(oo,oo1,oo2,o1->dim);
    if (o1->closed && o2->closed) {
      /* result is closed and optimal on Q */
      if (num_incomplete || o1->intdim) flag_incomplete;
-     return opt_oct_set_mat(pr,o1,NULL,m,destructive);
+     return opt_oct_set_mat(pr,o1,NULL,oo,destructive);
    }
    else {
      /* not optimal, not closed */
      flag_algo;
-     return opt_oct_set_mat(pr,o1,m,NULL,destructive); 
+     return opt_oct_set_mat(pr,o1,oo,NULL,destructive); 
    }
  }
 }
@@ -119,22 +119,22 @@ opt_oct_t* opt_oct_widening(ap_manager_t* man, opt_oct_t* o1, opt_oct_t* o2)
   }
   else {
     /* work on the origial left matrix, not the closed cache! */
-    double * m1 = o1->m ? o1->m : o1->closed;
-    double * m2 = o2->closed ? o2->closed : o2->m;
+    opt_oct_mat_t * oo1 = o1->m ? o1->m : o1->closed;
+    opt_oct_mat_t * oo2 = o2->closed ? o2->closed : o2->m;
     size_t i;
     r = opt_oct_alloc_internal(pr,o1->dim,o1->intdim);
     int size = 2*(r->dim)*(r->dim + 1);
-    r->m = (double *)calloc(size,sizeof(double));
+    r->m = opt_hmat_alloc(size);
     //posix_memalign((void **)&(r->m),32,size*sizeof(double));
     if (algo==opt_oct_pre_widening || algo==-opt_oct_pre_widening) {
       /* degenerate hull: NOT A PROPER WIDENING, use with care */
      /* for (i=0;i<opt_matsize(r->dim);i++)
 	bound_max(r->m[i],m1[i],m2[i]);*/
-	join_avx_half(r->m,m1,m2,size);
+	join_avx_half(r->m,oo1,oo2,size);
     }
     else {
       /* standard widening */
-        widening_half(r->m,m1,m2,size);
+        widening_half(r->m,oo1,oo2,size);
     }
   }
   return r;
