@@ -17,8 +17,7 @@ import ch.ethz.inf.pm.sample.oorepresentation._
  * @author Pietro Ferrara, Lucas Brutschy
  */
 trait FunctionalDomain[K, V <: Lattice[V], T <: FunctionalDomain[K, V, T]]
-  extends Lattice[T]
-  with LatticeHelpers[T] {
+  extends Lattice[T] {
   this: T =>
 
   def isBottom: Boolean
@@ -389,7 +388,7 @@ object SetDomain {
 }
 
 /**
- * A set domain which is bounded by a given K.
+ * A set domain whose cardinality is bounded by a given K.
  *
  * @tparam V the values stored
  * @tparam T the type itself

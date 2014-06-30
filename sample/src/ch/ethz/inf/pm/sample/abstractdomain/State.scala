@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation._
 
 /**
  * The representation of a <a href="http://en.wikipedia.org/wiki/Lattice_%28order%29">lattice</a> structure
@@ -585,14 +585,6 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] {
   def getCollectionLength(collectionSet: ExpressionSet): S
 
   /**
-   * Indicates whether any collection in the ExpressionSet represents multiple collections.
-   *
-   * @param collectionSet The collection set
-   * @return True if any collection is a summary node, false otherwise.
-   */
-  def isSummaryCollection(collectionSet: ExpressionSet): Boolean
-
-  /**
    * Removes all variables satisfying filter
    */
   def pruneVariables(filter: Identifier => Boolean): S
@@ -678,8 +670,6 @@ trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = ???
 
   def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = ???
-
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = ???
 
   def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) = ???
 

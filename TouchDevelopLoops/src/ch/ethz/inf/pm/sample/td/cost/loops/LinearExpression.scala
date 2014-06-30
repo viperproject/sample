@@ -1,8 +1,9 @@
 package ch.ethz.inf.pm.sample.td.cost.loops
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import collection.mutable
 import apron.Lincons1
+import ch.ethz.inf.pm.sample.abstractdomain._
+
+import scala.collection.mutable
 
 
 /*
@@ -11,12 +12,12 @@ import apron.Lincons1
 object LinearExpressionFactory {
 
   var constant = new Rational(0)
-  var coefficients : mutable.HashMap[PubsVariable, Rational] = mutable.HashMap.empty     // key, value
+  var coefficients: mutable.HashMap[PubsVariable, Rational] = mutable.HashMap.empty // key, value
 
-  def fromLincon (l: Lincons1, vars: Array[String], iVar: String) : LinearExpression = {
+  def fromLincon(l: Lincons1, vars: Array[String], iVar: String): LinearExpression = {
     constant = new Rational(0)
     coefficients = mutable.HashMap.empty
-    if (l.getKind == Lincons1.EQ)  {
+    if (l.getKind == Lincons1.EQ) {
       val iCoeff = getCoeff(l, iVar).toInt
       if (iCoeff == 0) null
       else {
@@ -33,10 +34,10 @@ object LinearExpressionFactory {
     } else null
   }
 
-  def fromLincon (l: Lincons1, vars: Array[String]) : LinearExpression = {
+  def fromLincon(l: Lincons1, vars: Array[String]): LinearExpression = {
     constant = new Rational(0)
     coefficients = mutable.HashMap.empty
-    if (l.isLinear)  {
+    if (l.isLinear) {
       // find the constant
       val cst = getCst(l).toInt
       constant = new Rational(cst)
@@ -50,27 +51,27 @@ object LinearExpressionFactory {
     } else null
   }
 
-  def fromConstant (c: Int) : LinearExpression = {
+  def fromConstant(c: Int): LinearExpression = {
     constant = new Rational(c)
     coefficients = mutable.HashMap.empty
     new LinearExpression(constant, coefficients)
   }
 
-  def fromVariable (v: PubsVariable) : LinearExpression = {
+  def fromVariable(v: PubsVariable): LinearExpression = {
     constant = new Rational(0)
     coefficients = mutable.HashMap.empty
     coefficients.put(v, new Rational(1))
     new LinearExpression(constant, coefficients)
   }
 
-  def fromExpression (e: Expression) : LinearExpression = {
+  def fromExpression(e: Expression): LinearExpression = {
     constant = new Rational(0)
     coefficients = mutable.HashMap.empty
     val result = fromExpression(e, false)
     if (result) new LinearExpression(constant, coefficients) else null
   }
 
-  def fromExpression (e: Expression, negated: Boolean) : Boolean = {
+  def fromExpression(e: Expression, negated: Boolean): Boolean = {
     e match {
       case bae: BinaryArithmeticExpression => {
         if (bae.op == ArithmeticOperator.+) {
@@ -99,9 +100,11 @@ object LinearExpressionFactory {
           constant = if (negated) new Rational(-Integer.parseInt(c.constant)) else new Rational(Integer.parseInt(c.constant))
           true
         }
-        catch { case nfe : NumberFormatException => false }
+        catch {
+          case nfe: NumberFormatException => false
+        }
       }
-      case m: MaybeHeapIdSetDomain[Any] => {
+      case m: MayHeapSetDomain[Any] => {
         coefficients.put(new PubsVariable(m.toString, false), if (negated) new Rational(-1) else new Rational(1))
         true
       }
@@ -134,13 +137,15 @@ object LinearExpressionFactory {
 /*
     A linear expression as it is used by the loop cost analysis.
  */
-class LinearExpression(val constant : Rational, val coefficients : mutable.HashMap[PubsVariable, Rational]) {
+class LinearExpression(val constant: Rational, val coefficients: mutable.HashMap[PubsVariable, Rational]) {
 
-  def variables = { coefficients.keySet }
+  def variables = {
+    coefficients.keySet
+  }
 
   // does this LinearExpression have the form   a*v + b   where a >= 1 and b >= 0
   // we already know that all variables in 'others' increase
-  def isIncUpdate (v: String, others: Set[String]) : Boolean = {
+  def isIncUpdate(v: String, others: Set[String]): Boolean = {
     var result = true
     for ((key, value) <- coefficients if !key.isConstant) {
       if (key.name != v && !value.isZero() && !others.contains(key.name)) result = false
@@ -152,7 +157,7 @@ class LinearExpression(val constant : Rational, val coefficients : mutable.HashM
 
   // does this LinearExpression have the form   a*v + b   where 0 > a >= 1 and b <= 0
   // we already know that all variables in 'others' decrease
-  def isDecUpdate (v: String, others: Set[String]) : Boolean = {
+  def isDecUpdate(v: String, others: Set[String]): Boolean = {
     var result = true
     for ((key, value) <- coefficients if !key.isConstant) {
       if (key.name != v && !value.isZero() && !others.contains(key.name)) result = false
@@ -163,7 +168,7 @@ class LinearExpression(val constant : Rational, val coefficients : mutable.HashM
   }
 
   // does this LinearExpression have the form v
-  def isConstUpdate (v: String) : Boolean = {
+  def isConstUpdate(v: String): Boolean = {
     var result = true
     for ((key, value) <- coefficients) {
       if (value != 0) result = false
@@ -178,28 +183,28 @@ class LinearExpression(val constant : Rational, val coefficients : mutable.HashM
     result
   }
 
-  def multiple(n: Int) : LinearExpression = {
+  def multiple(n: Int): LinearExpression = {
     val newConstant = constant.times(n)
-    val newCoefficients : mutable.HashMap[PubsVariable, Rational] = mutable.HashMap.empty
+    val newCoefficients: mutable.HashMap[PubsVariable, Rational] = mutable.HashMap.empty
     for ((key, value) <- coefficients) newCoefficients.put(key, value.times(n))
     new LinearExpression(newConstant, newCoefficients)
   }
 
-  private def lcm(a: Int, b: Int) : Int = a*b/gcd(a,b)
+  private def lcm(a: Int, b: Int): Int = a * b / gcd(a, b)
 
-  private def gcd(a: Int, b: Int) : Int = {
-    if (b==0) a
-    else gcd(b, a%b)
+  private def gcd(a: Int, b: Int): Int = {
+    if (b == 0) a
+    else gcd(b, a % b)
   }
 
-  override def toString : String = {
+  override def toString: String = {
     var temp = ""
     for ((key, value) <- coefficients) temp = temp + ("(" + value + "*" + key + ") + ")
     temp + "(" + constant + ")"
   }
 
   // for all variables for which we know a concrete value (i.e.  i = 0), insert it
-  def toStringWithValues : String = {
+  def toStringWithValues: String = {
     var temp = ""
     for ((key, value) <- coefficients) {
       if (key.initialValue != null) temp = temp + ("(" + value + "*" + key.initialValue + ") + ")

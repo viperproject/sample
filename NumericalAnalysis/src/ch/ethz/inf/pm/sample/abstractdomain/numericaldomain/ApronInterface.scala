@@ -1,21 +1,11 @@
 package ch.ethz.inf.pm.sample.abstractdomain.numericaldomain
 
-import ch.ethz.inf.pm.sample.abstractdomain._
+import apron._
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.{BinaryBooleanExpression, BinaryNondeterministicExpression, Constant, MayHeapSetDomain, NegatedBooleanExpression, ReferenceComparisonExpression, UnaryArithmeticExpression, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronTools._
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
-
-import apron._
-import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
-import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
-import ch.ethz.inf.pm.sample.abstractdomain.ReferenceComparisonExpression
-import ch.ethz.inf.pm.sample.abstractdomain.UnaryArithmeticExpression
-import ch.ethz.inf.pm.sample.abstractdomain.MaybeHeapIdSetDomain
-import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
-import ch.ethz.inf.pm.sample.SystemParameters
-import ApronTools._
 
 object ApronInterface {
 
@@ -455,7 +445,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         assume(BinaryArithmeticExpression(x, Constant("0", x.typ, x.pp), ArithmeticOperator.==))
 
       // Sets of boolean variables
-      case ids: MaybeHeapIdSetDomain[_] =>
+      case ids: MayHeapSetDomain[_] =>
         if (ids.isBottom || ids.isTop) return this
         Lattice.bigLub(ids.ids map (id => assume(id)))
 

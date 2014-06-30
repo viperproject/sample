@@ -1,16 +1,14 @@
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import apron._
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.property.SingleStatementProperty
-
-import apron._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{PackStorage, BoxedNonRelationalNumericalDomain, VariablePackingDomain, ApronInterface}
+import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.{SimpleProgramPointHeapIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, BoxedNonRelationalNumericalDomain, PackStorage, VariablePackingDomain}
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
+import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.SimpleProgramPointHeapIdentifier
+import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.domain._
 
 object TouchPackingRun {
@@ -68,7 +66,7 @@ object TouchPackingRun {
     if (TouchAnalysisParameters.enableCollectionSummaryAnalysis) {
       type HeapAndOtherType = HeapAndAnotherDomain[SemanticDomainType, SummaryHeapType, HeapId]
 
-      val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
+      val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](new MayHeapSetDomain(), heapID)
       heapDomain.setParameter("UnsoundEntryState", false)
 
       val entryDomain = HeapAndAnotherDomain[SemanticDomainType, SummaryHeapType, HeapId](numerical, heapDomain)
@@ -81,7 +79,7 @@ object TouchPackingRun {
       type HeapAndOtherType = HeapAndAnotherDomain[SemanticDomainType, MayMustHeapType, HeapId]
 
       val mustHeapDomain = new NonRelationalMustHeapDomain[HeapId](new TupleIdSetDomain(), heapID)
-      val mayHeapDomain = new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
+      val mayHeapDomain = new NonRelationalHeapDomain[HeapId](new MayHeapSetDomain(), heapID)
       val heapDomain: MayMustHeapType = new NonRelationalMayAndMustHeapDomain[HeapId](mayHeapDomain, mustHeapDomain)
       heapDomain.setParameter("UnsoundEntryState", false)
 
@@ -93,7 +91,7 @@ object TouchPackingRun {
     } else {
       type HeapAndOtherType = HeapAndAnotherDomain[SemanticDomainType, NonRelHeapType, HeapId]
 
-      val heapDomain = new NonRelationalHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
+      val heapDomain = new NonRelationalHeapDomain[HeapId](new MayHeapSetDomain(), heapID)
       heapDomain.setParameter("UnsoundEntryState", false)
 
       val entryDomain = HeapAndAnotherDomain[SemanticDomainType, NonRelHeapType, HeapId](numerical, heapDomain)

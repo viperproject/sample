@@ -2,8 +2,14 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+
+object ACollection {
+
+  val field_count = new TouchField("count", TNumber.typName)
+
+}
 
 /**
  * Represents a collection (this class contains common read operations. Extend AMutable_Collections to get write ops)

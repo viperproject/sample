@@ -1,11 +1,11 @@
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.td.semantics.TNumber
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.compiler.TouchCollection
+import ch.ethz.inf.pm.td.semantics.TNumber
 
 /**
  *
@@ -93,9 +93,6 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
     this.setType(collectionSet.getType().asInstanceOf[TouchCollection].keyType)
 
   def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].valueType)
-
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) =
     this.setType(collectionSet.getType().asInstanceOf[TouchCollection].valueType)
 
   def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) = this

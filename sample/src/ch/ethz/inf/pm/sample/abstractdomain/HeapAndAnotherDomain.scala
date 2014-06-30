@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
-import util.HeapIdSetFunctionalLifting
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.util.HeapIdSetFunctionalLifting
 
 /**
  * A domain that combines a heap and another semantic domain.
@@ -319,12 +319,6 @@ I <: HeapIdentifier[I]](
     (this, mayValues) //.lub(mayValues, mustValues))
   }
 
-  def getCollectionValueByValue(collection: Assignable, value: Expression): (T, HeapIdSetDomain[I]) = {
-    val mayValues = this.getCollectionMayValuesByValue(collection, value)
-    val mustValues = this.getCollectionMustValuesByValue(collection, value)
-    (this, mayValues.lub(mustValues))
-  }
-
   def clearCollection(collection: Assignable): T = {
     def clearSingleCollection(initial: T)(collectionId: Assignable) = {
       var result: T = initial
@@ -373,7 +367,7 @@ I <: HeapIdentifier[I]](
     val (toCollectionIds, newHeap, rep) = heap.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, Some(fromCollectionTyp), None, pp)
     result = factory(semantic.merge(rep), newHeap)
 
-    val toCollectionOverApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), toCollectionIds, heap.getCollectionOverApproximation)
+    val toCollectionOverApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MayHeapSetDomain[I](), toCollectionIds, heap.getCollectionOverApproximation)
     val overApproxIds = heap.getCollectionOverApproximation(fromCollection)
     for (overApproxId <- overApproxIds.value) {
       val keyIds = heap.getCollectionKeys(overApproxId)
@@ -382,7 +376,7 @@ I <: HeapIdentifier[I]](
       }
     }
 
-    val toCollectionUnderApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), toCollectionIds, heap.getCollectionUnderApproximation)
+    val toCollectionUnderApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MayHeapSetDomain[I](), toCollectionIds, heap.getCollectionUnderApproximation)
     val underApproxIds = heap.getCollectionUnderApproximation(fromCollection)
     for (underApproxId <- underApproxIds.value) {
       val keyIds = heap.getCollectionKeys(underApproxId)
@@ -484,7 +478,7 @@ I <: HeapIdentifier[I]](
   def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr) ++ _2.explainError(expr)
 
   private def getCollectionMustValuesByValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
+    var matchedIds = new MayHeapSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
       val valueIds = heap.getCollectionValues(underApproxId)
@@ -499,7 +493,7 @@ I <: HeapIdentifier[I]](
   }
 
   private def getCollectionMayValuesByValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
+    var matchedIds = new MayHeapSetDomain[I]().bottom()
     val overApproxIds = heap.getCollectionOverApproximation(collection)
     for (overApproxId <- overApproxIds.value) {
       val valueIds = heap.getCollectionValues(overApproxId)
@@ -514,7 +508,7 @@ I <: HeapIdentifier[I]](
   }
 
   private def getCollectionMustValuesWithMayBeValue(collection: Assignable, value: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
+    var matchedIds = new MayHeapSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
       val valueIds = heap.getCollectionValues(underApproxId)
@@ -529,7 +523,7 @@ I <: HeapIdentifier[I]](
   }
 
   private def getCollectionMayValuesByKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
+    var matchedIds = new MayHeapSetDomain[I]().bottom()
 
     val overApproxIds = heap.getCollectionOverApproximation(collection)
     for (overApproxId <- overApproxIds.value) {
@@ -547,7 +541,7 @@ I <: HeapIdentifier[I]](
   }
 
   private def getCollectionMustKeysByKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
+    var matchedIds = new MayHeapSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
       val keyIds = heap.getCollectionKeys(underApproxId)
@@ -562,7 +556,7 @@ I <: HeapIdentifier[I]](
   }
 
   private def getCollectionMayKeysByKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
+    var matchedIds = new MayHeapSetDomain[I]().bottom()
     val overApproxIds = heap.getCollectionOverApproximation(collection)
     for (overApproxId <- overApproxIds.value) {
       val keyIds = heap.getCollectionKeys(overApproxId)
@@ -577,7 +571,7 @@ I <: HeapIdentifier[I]](
   }
 
   private def getCollectionMustKeysWithMayBeKey(collection: Assignable, key: Expression): HeapIdSetDomain[I] = {
-    var matchedIds = new MaybeHeapIdSetDomain[I]().bottom()
+    var matchedIds = new MayHeapSetDomain[I]().bottom()
     val underApproxIds = heap.getCollectionUnderApproximation(collection)
     for (underApproxId <- underApproxIds.value) {
       val keyIds = heap.getCollectionKeys(underApproxId)

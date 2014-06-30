@@ -1,13 +1,11 @@
 package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
 import ch.ethz.inf.pm.sample._
-import abstractdomain._
-import abstractdomain.Constant
-import abstractdomain.VariableIdentifier
-import oorepresentation._
-import property.Property
-import util.HeapIdSetFunctionalLifting
-import scala.Some
+import ch.ethz.inf.pm.sample.abstractdomain.{Constant, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.property.Property
+import ch.ethz.inf.pm.sample.util.HeapIdSetFunctionalLifting
+
 import scala.collection.mutable
 
 object NonRelationalHeapDomainSettings {
@@ -684,12 +682,12 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
   }
 
   override def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S, typ: Type) =
-    (new MaybeHeapIdSetDomain().convert(dom.getArrayCell(arrayIdentifier, index)), this.asInstanceOf[H], new Replacement);
+    (new MayHeapSetDomain().convert(dom.getArrayCell(arrayIdentifier, index)), this.asInstanceOf[H], new Replacement);
 
   override def createArray[S <: SemanticDomain[S]](length: Expression, typ: Type, pp: ProgramPoint, state: S) =
-    (new MaybeHeapIdSetDomain().convert(dom.createArray(length, typ, pp)), this.asInstanceOf[H], new Replacement);
+    (new MayHeapSetDomain().convert(dom.createArray(length, typ, pp)), this.asInstanceOf[H], new Replacement);
 
-  override def getArrayLength(id: Assignable) = (new MaybeHeapIdSetDomain().convert(dom.getArrayLength(id)), this.asInstanceOf[H], new Replacement)
+  override def getArrayLength(id: Assignable) = (new MayHeapSetDomain().convert(dom.getArrayLength(id)), this.asInstanceOf[H], new Replacement)
 
   override def assignArrayCell[S <: SemanticDomain[S]](obj: Assignable, index: Expression, expr: Expression, state: S) = {
     var result = this.bottom()
@@ -968,7 +966,7 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
   def getSummaryCollectionIfExists(collection: Assignable): HeapIdSetDomain[I] = {
     def getSummaryCollection(a: Assignable): HeapIdSetDomain[I] = a match {
       case collection: I =>
-        var newIds: HeapIdSetDomain[I] = new MaybeHeapIdSetDomain[I]()
+        var newIds: HeapIdSetDomain[I] = new MayHeapSetDomain[I]()
         if (hasId(collection.toSummaryNode)) {
           newIds = newIds.add(collection.toSummaryNode)
         } else {
@@ -979,7 +977,7 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
       case _ => throw new SemanticException("This is not a collection identifier " + a.toString)
     }
 
-    resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getSummaryCollection(_))
+    resolveVariables(new MayHeapSetDomain[I](), collection, getSummaryCollection(_))
   }
 
   override def getCollectionKeyByTuple(collectionTuple: Assignable): Assignable = {
@@ -1004,10 +1002,10 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
     def f(a: Assignable): HeapIdSetDomain[I] = a match {
       case collectionId: CollectionIdentifier =>
         isSummary = isSummary || !collectionId.representsSingleVariable
-        new MaybeHeapIdSetDomain[I]()
+        new MayHeapSetDomain[I]()
       case _ => throw new SemanticException("This is not a collection identifier " + a.toString)
     }
-    resolveVariables(new MaybeHeapIdSetDomain[I](), collectionId, f(_))
+    resolveVariables(new MayHeapSetDomain[I](), collectionId, f(_))
 
     return isSummary
   }
@@ -1044,11 +1042,11 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
             val origCollection = dom.extractField(collectionId.asInstanceOf[I], "orig", typ)
             this.heapEnv.get(origCollection)
           case None =>
-            new MaybeHeapIdSetDomain[I]().bottom()
+            new MayHeapSetDomain[I]().bottom()
         }
       case _ => throw new SemanticException("This is not a collection identifier " + collection)
     }
-    resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getOrigCollection(_))
+    resolveVariables(new MayHeapSetDomain[I](), collection, getOrigCollection(_))
   }
 
 
@@ -1060,36 +1058,36 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
             val keyCollection = dom.extractField(collectionId.asInstanceOf[I], "keys", typ)
             this.heapEnv.get(keyCollection)
           case None =>
-            new MaybeHeapIdSetDomain[I]().bottom()
+            new MayHeapSetDomain[I]().bottom()
         }
       case _ => throw new SemanticException("This is not a collection identifier " + collection)
     }
-    resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getKeysCollection(_))
+    resolveVariables(new MayHeapSetDomain[I](), collection, getKeysCollection(_))
   }
 
   override def getCollectionTuples(collectionApprox: Assignable): HeapIdSetDomain[I] = {
     val collectionApproxId = collectionApprox.asInstanceOf[I]
-    new MaybeHeapIdSetDomain[I]().add(this.heapEnv.get(collectionApproxId))
+    new MayHeapSetDomain[I]().add(this.heapEnv.get(collectionApproxId))
   }
 
 
   override def getCollectionKeys(collectionApprox: Assignable): HeapIdSetDomain[I] = {
     val collectionApproxId = collectionApprox.asInstanceOf[I]
-    val tupleIds = new MaybeHeapIdSetDomain[I]().add(this.heapEnv.get(collectionApproxId))
-    def f(a: Assignable) = new MaybeHeapIdSetDomain[I]().convert(dom.getCollectionKey(a))
-    HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), tupleIds, f(_))
+    val tupleIds = new MayHeapSetDomain[I]().add(this.heapEnv.get(collectionApproxId))
+    def f(a: Assignable) = new MayHeapSetDomain[I]().convert(dom.getCollectionKey(a))
+    HeapIdSetFunctionalLifting.applyToSetHeapId(new MayHeapSetDomain[I](), tupleIds, f(_))
   }
 
   override def getCollectionValues(collectionApprox: Assignable): HeapIdSetDomain[I] = {
     val collectionApproxId = collectionApprox.asInstanceOf[I]
-    val tupleIds = new MaybeHeapIdSetDomain[I]().add(this.heapEnv.get(collectionApproxId))
-    def f(a: Assignable) = new MaybeHeapIdSetDomain[I]().convert(dom.getCollectionValue(a))
-    HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), tupleIds, f(_))
+    val tupleIds = new MayHeapSetDomain[I]().add(this.heapEnv.get(collectionApproxId))
+    def f(a: Assignable) = new MayHeapSetDomain[I]().convert(dom.getCollectionValue(a))
+    HeapIdSetFunctionalLifting.applyToSetHeapId(new MayHeapSetDomain[I](), tupleIds, f(_))
   }
 
   override def getCollectionLength(collection: Assignable) = {
-    def f(a: Assignable): HeapIdSetDomain[I] = new MaybeHeapIdSetDomain().convert(dom.getCollectionLength(a))
-    resolveVariables(new MaybeHeapIdSetDomain(), collection, f(_))
+    def f(a: Assignable): HeapIdSetDomain[I] = new MayHeapSetDomain().convert(dom.getCollectionLength(a))
+    resolveVariables(new MayHeapSetDomain(), collection, f(_))
   }
 
   override def getUnreachableHeap: Set[I] = {
@@ -1165,7 +1163,7 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
     a match {
       case id: VariableIdentifier => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(_1.get(id)), f)
       case ids: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(ids), f)
-      case id: I => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(new MaybeHeapIdSetDomain().convert(id)), f)
+      case id: I => HeapIdSetFunctionalLifting.applyToSetHeapId(fact, this.normalize(new MayHeapSetDomain().convert(id)), f)
       case _ => f(a)
     }
   }
@@ -1285,7 +1283,7 @@ case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
     for (coll <- collections.value) {
       val approxId = dom.getCollectionOverApproximation(coll)
       //if(!this._2.value.contains(approxId)) {
-      val (assigned, _) = newHeap.assign(approxId, new MaybeHeapIdSetDomain[I](), null)
+      val (assigned, _) = newHeap.assign(approxId, new MayHeapSetDomain[I](), null)
       newHeap = assigned
       //}
     }
@@ -1314,10 +1312,10 @@ case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
       val newIds = result.heapEnv.get(collectionApproxId).add(tupleIds)
       result = result.set_2(result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds))
 
-      return new MaybeHeapIdSetDomain[I]().add(tupleIds)
+      return new MayHeapSetDomain[I]().add(tupleIds)
     }
 
-    val tuples = resolveVariables(new MaybeHeapIdSetDomain[I](), collection, insertCollectionElement(_))
+    val tuples = resolveVariables(new MayHeapSetDomain[I](), collection, insertCollectionElement(_))
     (tuples, result, resultRep)
   }
 
@@ -1325,11 +1323,11 @@ case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
     def getApprox(a: Assignable): HeapIdSetDomain[I] = a match {
       case collectionId: CollectionIdentifier =>
         val id = this.dom.getCollectionOverApproximation(collectionId)
-        new MaybeHeapIdSetDomain[I]().convert(id)
+        new MayHeapSetDomain[I]().convert(id)
       case _ => throw new SemanticException("This is not a collection " + collection.toString)
     }
 
-    resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getApprox(_))
+    resolveVariables(new MayHeapSetDomain[I](), collection, getApprox(_))
   }
 
   override def setCollectionToTop(collection: Assignable): NonRelationalHeapDomain[I] = {
@@ -1341,7 +1339,7 @@ case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
 
 
   override def getCollectionUnderApproximation(collection: Assignable): HeapIdSetDomain[I] = {
-    return new MaybeHeapIdSetDomain[I]().bottom()
+    return new MayHeapSetDomain[I]().bottom()
   }
 }
 
@@ -1382,22 +1380,22 @@ case class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](
   }
 
   override def insertCollectionTopElement(collection: Assignable, pp: ProgramPoint) = {
-    (new MaybeHeapIdSetDomain[I]().bottom(), this, new Replacement)
+    (new MayHeapSetDomain[I]().bottom(), this, new Replacement)
   }
 
   override def getCollectionUnderApproximation(collection: Assignable): HeapIdSetDomain[I] = {
     def getApprox(a: Assignable): HeapIdSetDomain[I] = a match {
       case collectionId: CollectionIdentifier =>
         val id = this.dom.getCollectionUnderApproximation(collectionId)
-        new MaybeHeapIdSetDomain[I]().convert(id)
+        new MayHeapSetDomain[I]().convert(id)
       case _ => throw new SemanticException("This is not a collection " + collection.toString)
     }
 
-    resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getApprox(_))
+    resolveVariables(new MayHeapSetDomain[I](), collection, getApprox(_))
   }
 
   override def getCollectionOverApproximation(collection: Assignable): HeapIdSetDomain[I] = {
-    new MaybeHeapIdSetDomain[I]().bottom()
+    new MayHeapSetDomain[I]().bottom()
   }
 
   override def insertCollectionElement(collection: Assignable, pp: ProgramPoint) = {
@@ -1418,10 +1416,10 @@ case class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](
       val newIds = result.heapEnv.get(collectionApproxId).add(tupleIds)
       result = result.set_2(result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds))
 
-      return new MaybeHeapIdSetDomain[I].add(tupleIds)
+      return new MayHeapSetDomain[I].add(tupleIds)
     }
 
-    val tuples = resolveVariables(new MaybeHeapIdSetDomain[I](), collection, insertCollectionElement(_))
+    val tuples = resolveVariables(new MayHeapSetDomain[I](), collection, insertCollectionElement(_))
     (tuples, result, resultRep)
   }
 }
@@ -1476,12 +1474,12 @@ case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]
       return (ids1, new NonRelationalMayAndMustHeapDomain[I](heap1, this._2), rep1)
     } else if (isCollectionMustVariable(objectIdentifier)) {
       val (ids2, heap2, rep2) = this._2.getFieldIdentifier(objectIdentifier, name, typ, pp)
-      return (new MaybeHeapIdSetDomain[I]().add(ids2), new NonRelationalMayAndMustHeapDomain[I](this._1, heap2), rep2)
+      return (new MayHeapSetDomain[I]().add(ids2), new NonRelationalMayAndMustHeapDomain[I](this._1, heap2), rep2)
     } else {
       val (ids1, heap1, rep1) = this._1.getFieldIdentifier(objectIdentifier, name, typ, pp)
       //return (ids1, new NonRelationalMayAndMustHeapDomain[I](heap1, this._2), rep1)
       val (ids2, heap2, rep2) = this._2.getFieldIdentifier(objectIdentifier, name, typ, pp)
-      return (ids1.glb(new MaybeHeapIdSetDomain[I]().add(ids2)), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
+      return (ids1.glb(new MayHeapSetDomain[I]().add(ids2)), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
     }
   }
 
@@ -1835,7 +1833,7 @@ case class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdenti
     var newHeap = heap
     for (coll <- collections.value) {
       val approxId = dom.getCollectionSummaryApproximation(coll)
-      val (assigned, _) = newHeap.assign(approxId, new MaybeHeapIdSetDomain[I](), null)
+      val (assigned, _) = newHeap.assign(approxId, new MayHeapSetDomain[I](), null)
       newHeap = assigned
     }
 
@@ -1847,18 +1845,18 @@ case class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdenti
   }
 
   override def getCollectionUnderApproximation(collection: Assignable): HeapIdSetDomain[I] = {
-    new MaybeHeapIdSetDomain[I]().bottom()
+    new MayHeapSetDomain[I]().bottom()
   }
 
   override def getCollectionOverApproximation(collection: Assignable): HeapIdSetDomain[I] = {
     def getApprox(a: Assignable): HeapIdSetDomain[I] = a match {
       case collectionId: CollectionIdentifier =>
         val id = this.dom.getCollectionSummaryApproximation(collectionId)
-        new MaybeHeapIdSetDomain[I]().convert(id)
+        new MayHeapSetDomain[I]().convert(id)
       case _ => throw new SemanticException("This is not a collection " + collection.toString)
     }
 
-    resolveVariables(new MaybeHeapIdSetDomain[I](), collection, getApprox(_))
+    resolveVariables(new MayHeapSetDomain[I](), collection, getApprox(_))
   }
 
   override def insertCollectionElement(collection: Assignable, pp: ProgramPoint) = {
@@ -1879,10 +1877,10 @@ case class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdenti
       val newIds = result.heapEnv.get(collectionApproxId).add(tupleIds)
       result = result.set_2(result.heapEnv.remove(collectionApproxId).add(collectionApproxId, newIds))
 
-      new MaybeHeapIdSetDomain[I]().add(tupleIds)
+      new MayHeapSetDomain[I]().add(tupleIds)
     }
 
-    val tuples = resolveVariables(new MaybeHeapIdSetDomain[I](), collection, insertCollectionElement(_))
+    val tuples = resolveVariables(new MayHeapSetDomain[I](), collection, insertCollectionElement(_))
     (tuples, result, resultRep)
   }
 }

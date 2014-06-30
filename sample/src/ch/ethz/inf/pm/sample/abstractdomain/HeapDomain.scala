@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.util.UndirectedGraph
 
 
@@ -563,19 +563,19 @@ trait HeapIdSetDomain[I <: HeapIdentifier[I]]
 
 }
 
-case class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
-                                                         pp: ProgramPoint,
-                                                         value: Set[I] = Set.empty[I],
-                                                         isTop: Boolean = false,
-                                                         isBottom: Boolean = false)
+case class MayHeapSetDomain[I <: HeapIdentifier[I]](
+                                                     pp: ProgramPoint,
+                                                     value: Set[I] = Set.empty[I],
+                                                     isTop: Boolean = false,
+                                                     isBottom: Boolean = false)
   extends HeapIdSetDomain[I] {
 
   def this() = this(null)
 
   def setFactory(_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
-    new MaybeHeapIdSetDomain[I](pp, _value, _isTop, _isBottom)
+    new MayHeapSetDomain[I](pp, _value, _isTop, _isBottom)
 
-  def convert(add: I): HeapIdSetDomain[I] = new MaybeHeapIdSetDomain(add.pp).add(add)
+  def convert(add: I): HeapIdSetDomain[I] = new MayHeapSetDomain(add.pp).add(add)
 
   override def typ: Type = {
     var res = SystemParameters.getType().bottom()
@@ -590,17 +590,17 @@ case class MaybeHeapIdSetDomain[I <: HeapIdentifier[I]](
   def ids = this.value.asInstanceOf[Set[Identifier]]
 }
 
-case class DefiniteHeapIdSetDomain[I <: HeapIdentifier[I]](
-                                                            pp: ProgramPoint,
-                                                            value: Set[I] = Set.empty[I],
-                                                            isTop: Boolean = false,
-                                                            isBottom: Boolean = false)
+case class MustHeapSetDomain[I <: HeapIdentifier[I]](
+                                                      pp: ProgramPoint,
+                                                      value: Set[I] = Set.empty[I],
+                                                      isTop: Boolean = false,
+                                                      isBottom: Boolean = false)
   extends HeapIdSetDomain[I] {
 
   def setFactory(_value: Set[I] = Set.empty[I], _isTop: Boolean = false, _isBottom: Boolean = false): HeapIdSetDomain[I] =
-    new DefiniteHeapIdSetDomain[I](pp, _value, _isTop, _isBottom)
+    new MustHeapSetDomain[I](pp, _value, _isTop, _isBottom)
 
-  def convert(add: I): HeapIdSetDomain[I] = new DefiniteHeapIdSetDomain(add.pp).add(add)
+  def convert(add: I): HeapIdSetDomain[I] = new MustHeapSetDomain(add.pp).add(add)
 
   override def typ: Type = {
     var res = SystemParameters.getType().top()

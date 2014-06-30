@@ -1,8 +1,8 @@
 package ch.ethz.inf.pm.sample.abstractdomain
 
-import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample._
-import util.HeapIdSetFunctionalLifting
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.util.HeapIdSetFunctionalLifting
 
 object ExpressionFactory {
 
@@ -844,36 +844,6 @@ I <: HeapIdentifier[I]](
     result
   }
 
-  def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet): AbstractState[N, H, I] = {
-    if (isBottom) return this
-
-    def getCollectionValue(result: AbstractState[N, H, I], value: Expression)(collection: Assignable): AbstractState[N, H, I] = {
-      val (newHeapAndSemantic, ids) = domain.getCollectionValueByValue(collection, value)
-
-      var expressions = new ExpressionSet(ids.typ).bottom()
-      if (!ids.isBottom) {
-        expressions = ExpressionSet(ids)
-      }
-
-      factory(newHeapAndSemantic, expressions)
-    }
-
-    var result: AbstractState[N, H, I] = bottom()
-
-    for (exprVal <- collectionSet.getSetOfExpressions;
-         valueExpr <- valueSet.getSetOfExpressions) {
-      val newState = exprVal match {
-        case id: Assignable => getCollectionValue(this, valueExpr)(id)
-        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(this, set, getCollectionValue(this, valueExpr))
-        case _ => bottom()
-      }
-
-      result = result.lub(newState)
-    }
-
-    result
-  }
-
   def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet): AbstractState[N, H, I] = {
     if (isBottom) return this
 
@@ -1040,23 +1010,6 @@ I <: HeapIdentifier[I]](
     }
     if (heapId == null) bottom()
     else setExpression(new ExpressionSet(SystemParameters.getType().top()).add(heapId)).setState(result)
-  }
-
-  def isSummaryCollection(collectionSet: ExpressionSet): Boolean = {
-
-    for (collection <- collectionSet.getSetOfExpressions) {
-      collection match {
-        case id: I =>
-          if (domain.isSummaryCollection(id)) return true
-        case set: HeapIdSetDomain[I] =>
-          for (id <- set.value) {
-            if (domain.isSummaryCollection(id)) return true
-          }
-        case _ => ()
-      }
-    }
-
-    false
   }
 
   /**

@@ -1,10 +1,9 @@
 package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.property.Property
+import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
+import ch.ethz.inf.pm.sample.property.Property
 
 /**
  * <code>TVSHeap</code> is a HeapDomain that uses TVLA to analyse the heap.
@@ -567,7 +566,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def getArrayLength(arrayIdentifier: Assignable) = throw new NotImplementedException("not implemented yet")
 
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
-                                           typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
+                                           typ: Type): (MustHeapSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
 
   def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
 
@@ -643,7 +642,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
  *
  */
 class TVSHeapIDSet(val pointedBy: String, _value: Set[NodeName] = Set.empty[NodeName], _isTop: Boolean = false, _isBottom: Boolean = false)
-  extends DefiniteHeapIdSetDomain[NodeName](null, _value, _isTop, _isBottom)
+  extends MustHeapSetDomain[NodeName](null, _value, _isTop, _isBottom)
 
 /**
  * Used to make a distinction between temporaries and normal variables
