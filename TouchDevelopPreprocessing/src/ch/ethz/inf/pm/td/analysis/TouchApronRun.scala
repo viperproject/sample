@@ -1,18 +1,18 @@
 package ch.ethz.inf.pm.td.analysis
 
 
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import java.io.{PrintWriter, StringWriter}
+
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
-import ch.ethz.inf.pm.sample.property.SingleStatementProperty
-
-import apron._
-import numericaldomain.ApronInterface
+import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.{SimpleProgramPointHeapIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
+import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
-import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis.SimpleProgramPointHeapIdentifier
+import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.domain._
+import ch.ethz.inf.pm.td.output.Exporters
 
 object TouchApronRun {
 
@@ -38,6 +38,8 @@ object TouchApronRun {
   def runSingle(file: String, customTouchParams: Option[TouchAnalysisParameters] = None): Seq[SampleMessage] = {
     customTouchParams.foreach(p => TouchAnalysisParameters.set(p))
     val touchParams = TouchAnalysisParameters.get
+
+    Exporters.setStatus("Analyzing")
 
     SystemParameters.compiler = new TouchCompiler
     SystemParameters.property = new SingleStatementProperty(new BottomVisitor)
@@ -100,7 +102,7 @@ object TouchApronRun {
       analysis.analyze(entryState)
     }
 
-
+    Exporters.setStatus("Done")
     val messages: Set[SampleMessage] = Reporter.seenErrors ++ Reporter.seenInfos
     SystemParameters.resetOutput()
     messages.toSeq
@@ -141,7 +143,21 @@ object TouchApronRun {
       sys.exit()
     }
 
-    files foreach (f => runSingle(f))
+    files foreach (
+      f =>
+        try {
+          runSingle(f)
+        } catch {
+          case x: Throwable =>
+            val sw: StringWriter = new StringWriter()
+            val pw: PrintWriter = new PrintWriter(sw)
+            x.printStackTrace(pw)
+            Exporters.setDebugInformation(x.toString + x.getMessage + sw.toString)
+            Exporters.setStatus("Failed")
+            throw x
+        }
+
+      )
   }
 
 }

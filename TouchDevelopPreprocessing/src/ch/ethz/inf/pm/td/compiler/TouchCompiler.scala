@@ -1,16 +1,14 @@
 package ch.ethz.inf.pm.td.compiler
 
-import ch.ethz.inf.pm.sample.oorepresentation._
-import scala.io.Source
-import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.typecheck.Typer
-import ch.ethz.inf.pm.td.webapi.{WebASTImporter, ScriptQuery}
-import ch.ethz.inf.pm.td.transform.LoopRewriter
-import ch.ethz.inf.pm.td.semantics._
-import scala.Some
-import ch.ethz.inf.pm.td.parser.LibraryDefinition
-import ch.ethz.inf.pm.td.parser.Script
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.td.parser.{LibraryDefinition, Script, _}
+import ch.ethz.inf.pm.td.semantics._
+import ch.ethz.inf.pm.td.transform.LoopRewriter
+import ch.ethz.inf.pm.td.typecheck.Typer
+import ch.ethz.inf.pm.td.webapi.{ScriptQuery, WebASTImporter}
+
+import scala.io.Source
 
 /**
  *
@@ -67,10 +65,12 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
       (ScriptCache.get(ScriptQuery.pubIDfromURL(path)), ScriptQuery.pubIDfromURL(path))
     else if (path.startsWith("td://"))
       (ScriptCache.get(path.substring(5)), path.substring(5))
+    else if (path.startsWith("mongo://"))
+      (MongoImporter.get(path.substring(8)), path.substring(8))
     else if (path.toLowerCase.endsWith(".td"))
       (ScriptParser(Source.fromFile(path).getLines().mkString("\n")), ScriptQuery.pubIDfromFilename(path))
     else if (path.toLowerCase.endsWith(".json"))
-      (WebASTImporter.convertFromString(Source.fromFile(path).getLines().mkString("\n")), ScriptQuery.pubIDfromFilename(path))
+      (WebASTImporter.convertFromString(Source.fromFile(path, "utf-8").getLines().mkString("\n")), ScriptQuery.pubIDfromFilename(path))
     else throw TouchException("Unrecognized path " + path)
   }
 

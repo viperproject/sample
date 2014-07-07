@@ -1,30 +1,27 @@
 package ch.ethz.inf.pm.td.output
 
-import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter}
-import ch.ethz.inf.pm.sample.reporting.Reporter
-import ch.ethz.inf.pm.sample.reporting.SampleError
-import ch.ethz.inf.pm.td.parser.Script
-import ch.ethz.inf.pm.td.compiler.SpaceSavingProgramPoint
+import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleError}
+import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, _}
+import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter, Script}
 
 /**
  * Exports to HTML
  *
  * @author Lucas Brutschy
  */
-class HTMLExporter extends ErrorExporter {
+class HTMLExporter extends FileSystemExporter {
 
   def getExtension = "html"
 
-  def apply(compiler: TouchCompiler): String = {
+  def warningsToString(compiler: TouchCompiler): String = {
     export(compiler.parsedTouchScripts)
   }
 
-  def apply(compiler: TouchCompiler, id: String): String = {
+  def warningsToString(compiler: TouchCompiler, id: String): String = {
     export(Map(id -> compiler.parsedTouchScripts.get(id).get))
   }
 
-  private def export(targets: Map[String, Script]): String = {
+  def export(targets: Map[String, Script]): String = {
     var res =
       """
         |<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"

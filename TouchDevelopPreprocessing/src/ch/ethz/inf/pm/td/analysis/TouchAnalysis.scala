@@ -1,26 +1,18 @@
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.property._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.Interval
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain._
-import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.td.output.FileSystemExporter
-import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{StringValueDomain, Bricks, StringDomain}
-import ch.ethz.inf.pm.sample.property.WarningProgramPoint
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import scala.Some
-import ch.ethz.inf.pm.td.domain.InvalidExpression
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.td.compiler.TouchSingletonProgramPoint
-import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.abstractdomain.{Constant, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Interval, _}
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{Bricks, StringDomain, StringValueDomain}
 import ch.ethz.inf.pm.sample.execution.CFGState
+import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, _}
+import ch.ethz.inf.pm.sample.property.{WarningProgramPoint, _}
+import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.td.compiler.{TouchSingletonProgramPoint, _}
+import ch.ethz.inf.pm.td.domain.{InvalidExpression, _}
+import ch.ethz.inf.pm.td.output.Exporters
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
 
 /**
  *
@@ -220,7 +212,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
       SystemParameters.propertyTimer.stop()
     }
 
-    FileSystemExporter(compiler)
+    Exporters(compiler)
 
     SystemParameters.progressOutput.end()
     results

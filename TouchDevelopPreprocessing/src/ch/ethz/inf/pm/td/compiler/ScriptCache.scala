@@ -1,8 +1,11 @@
 package ch.ethz.inf.pm.td.compiler
 
-import java.io.{PrintWriter, File}
+import java.io.{File, PrintWriter}
+
 import ch.ethz.inf.pm.td.parser.Script
-import ch.ethz.inf.pm.td.webapi.{URLFetcher, ScriptQuery, WebASTImporter}
+import ch.ethz.inf.pm.td.webapi.{ScriptQuery, URLFetcher, WebASTImporter}
+import com.mongodb.casbah.Imports._
+
 import scala.io.Source
 
 object ScriptCache {
@@ -18,12 +21,40 @@ object ScriptCache {
         out.println(URLFetcher.fetchFile(ScriptQuery.webastURLfromPubID(pubID)))
         out.close()
       }
-      WebASTImporter.convertFromString(Source.fromFile(file).getLines().mkString("\n"))
+      WebASTImporter.convertFromString(Source.fromFile(file, "utf-8").getLines().mkString("\n"))
     } else {
       // Can not use read or write cache
       println("Cache can not be read or written")
       WebASTImporter.queryAndConvert(pubID)
     }
   }
+
+}
+
+object MongoImporter {
+
+  lazy val client = {
+    MongoClient()("tb")("programs")
+  }
+
+  def get(programID: String): Script = {
+
+    client.findOne(MongoDBObject("programID" -> programID)) match {
+
+      case Some(x) =>
+
+        x.get("program") match {
+          case x: String => WebASTImporter.convertFromString(x)
+          case _ => throw TouchException("Unexpected contents in database")
+        }
+
+      case None =>
+
+        throw TouchException("Could not find program in database")
+
+    }
+
+  }
+
 
 }
