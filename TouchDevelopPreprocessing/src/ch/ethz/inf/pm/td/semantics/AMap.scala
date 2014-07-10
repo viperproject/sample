@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 /**
  * Represents a map collection in TouchDevelop
@@ -16,10 +16,10 @@ abstract class AMap extends ACollection {
     case "at" =>
       val List(key) = parameters // Key_Type
 
-      val result = If[S](CollectionContainsKey[S](this0, key) equal  True, Then={
+      val result = If[S](CollectionContainsKey[S](this0, key) equal True, Then = {
         Return[S](CollectionAt[S](this0, key))(_, pp)
-      }, Else={
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType))(_, pp)
+      }, Else = {
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType, "map may not contain the accessed key"))(_, pp)
       })
 
       result
@@ -33,10 +33,10 @@ abstract class AMap extends ACollection {
 
     case "set at" =>
       val List(key, value) = parameters // Number,Element_Type
-      If[S](CollectionContainsKey[S](this0, key) equal True, Then=(state) => {
+      If[S](CollectionContainsKey[S](this0, key) equal True, Then = (state) => {
         val s = CollectionUpdate[S](this0, key, value)(state, pp)
         s
-      }, Else=(state) => {
+      }, Else = (state) => {
         val newState = CollectionInsert[S](this0, key, value)(state, pp)
         val s = CollectionIncreaseLength[S](this0)(newState, pp)
         s
@@ -48,10 +48,10 @@ abstract class AMap extends ACollection {
     /** Removes the element at the given key **/
     case "remove" =>
       val List(key) = parameters
-      If[S](CollectionContainsKey[S](this0, key) equal True, Then=(state) => {
+      If[S](CollectionContainsKey[S](this0, key) equal True, Then = (state) => {
         val newState = CollectionRemove[S](this0, key)(state, pp)
         CollectionDecreaseLength[S](this0)(newState, pp)
-      }, Else={
+      }, Else = {
         CollectionRemove[S](this0, key)(_, pp)
       })
 
@@ -59,6 +59,6 @@ abstract class AMap extends ACollection {
       CollectionExtractKeys[S](this0)
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
+      super.forwardSemantics(this0, method, parameters, returnedType)
   }
 }

@@ -1,17 +1,13 @@
 package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.sample.oorepresentation.VariableDeclaration
-import scala.Some
-import ch.ethz.inf.pm.td.compiler.TouchMethodIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.td.domain.MultiValExpression
-import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
+import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.execution.CFGState
+import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, _}
+import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
+import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, _}
+import ch.ethz.inf.pm.td.domain.MultiValExpression
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
 
 case class MethodSummary[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration,
                                         cfgState: CFGState[S])
@@ -342,7 +338,7 @@ object MethodSummaries {
           if (TouchAnalysisParameters.argumentsToPublicMethodsValid || callTarget.name.asInstanceOf[TouchMethodIdentifier].isEvent) {
             curState = Top[S](x.typ.asInstanceOf[TouchType])(curState, x.programpoint)
           } else {
-            curState = TopWithInvalid[S](x.typ.asInstanceOf[TouchType])(curState, x.programpoint)
+            curState = TopWithInvalid[S](x.typ.asInstanceOf[TouchType], "Action arguments may be invalid")(curState, x.programpoint)
           }
           val right = curState.expr
           val expr = toExpressionSet(x.variable.id)
@@ -357,7 +353,7 @@ object MethodSummaries {
       x: VariableDeclaration =>
         val expr = toExpressionSet(x.variable.id)
         curState = curState.createVariable(expr, expr.getType(), callTarget.programpoint)
-        curState = curState.assignVariable(expr, Invalid(x.typ)(x.programpoint))
+        curState = curState.assignVariable(expr, Invalid(x.typ, "out-parameter may not have been initialized")(x.programpoint))
     })
 
     curState

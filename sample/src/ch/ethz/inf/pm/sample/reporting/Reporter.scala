@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.sample.reporting
 
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 
 object Reporter {
 
@@ -43,7 +43,8 @@ object Reporter {
 
   def reportError(err: SampleError) {
     if (!hasError(err) && enableOutputOfAlarms) {
-      SystemParameters.progressOutput.put("ALARM: "+err.message+" at "+err.pp.toString+" "+err.causes.map{x => x._1}.mkString(";"))
+      SystemParameters.progressOutput.put("ALARM: " + err.message + " at " + err.pp.toString +
+        (if (err.causes.size > 0) ", since " + err.causes.map { x => x._1}.mkString(" or ") else ""))
       seenErrors += err
     }
   }

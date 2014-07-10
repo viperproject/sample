@@ -1,19 +1,8 @@
 package ch.ethz.inf.pm.td.domain
 
-import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.{AbstractOperator, BinaryBooleanExpression, BinaryNondeterministicExpression, Constant, NegatedBooleanExpression, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
-import scala.Some
 import ch.ethz.inf.pm.td.domain.PositionedInvalidValueDomain._
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.td.domain.ValidExpression
-import scala.Some
-import ch.ethz.inf.pm.sample.abstractdomain.BinaryBooleanExpression
-import ch.ethz.inf.pm.td.domain.Invalid
-import ch.ethz.inf.pm.td.domain.Valid
-import ch.ethz.inf.pm.sample.abstractdomain.NegatedBooleanExpression
-import ch.ethz.inf.pm.td.domain.InvalidExpression
-import ch.ethz.inf.pm.sample.abstractdomain.AbstractOperator
-import ch.ethz.inf.pm.sample.abstractdomain.BinaryNondeterministicExpression
 import ch.ethz.inf.pm.td.semantics.TBoolean
 
 
@@ -97,7 +86,7 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
     case BinaryArithmeticExpression(left, right, _, typ) => eval(left).lub(eval(right))
     case BinaryNondeterministicExpression(left, right, _, typ) => eval(left).lub(eval(right))
     case AbstractOperator(left,List(right),Nil,AbstractOperatorIdentifiers.stringConcatenation,_) => eval(left).lub(eval(right))
-    case InvalidExpression(typ, pp) => domInvalid(pp)
+    case InvalidExpression(typ, str, pp) => domInvalid(str, pp)
     case ValidExpression(typ,pp) => domValid
     case Constant(_, _, _) => domValid
     case x: Identifier => this.get(x)
@@ -216,11 +205,11 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
    */
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = {
     val res : Set[(String, ProgramPoint)] = expr match {
-      case BinaryArithmeticExpression(a:Identifier, InvalidExpression(_,_), ArithmeticOperator.==, _) =>
+      case BinaryArithmeticExpression(a: Identifier, InvalidExpression(_, _, _), ArithmeticOperator.==, _) =>
 
         val left = eval(a)
         left.value flatMap {
-          case Invalid(pp) => Some("(caused by: "+pp+")", pp)
+          case InvalidDomainValue(explanation, pp) => Some(explanation, pp)
           case _ => None
         }
 
@@ -237,8 +226,10 @@ object PositionedInvalidValueDomain {
 
   // Helper values
   def domBottom = new PositionedInvalidValueDomain().bottom()
-  def domInvalid(pp:ProgramPoint) = new PositionedInvalidValueDomain().add(Invalid(pp))
-  def domValid = new PositionedInvalidValueDomain().add(Valid())
+
+  def domInvalid(explanation: String, pp: ProgramPoint) = new PositionedInvalidValueDomain().add(InvalidDomainValue(explanation, pp))
+
+  def domValid = new PositionedInvalidValueDomain().add(ValidDomainValue())
   def domTop = new PositionedInvalidValueDomain().top()
 
 }
@@ -251,19 +242,20 @@ object PositionedInvalidValueDomain {
  * Time: 10:49 AM
  */
 case class PositionedInvalidValueDomain(
-    value: Set[InvalidValue] = Set.empty[InvalidValue],
+                                         value: Set[ValidnessDomainValue] = Set.empty[ValidnessDomainValue],
     isTop: Boolean = false,
     isBottom: Boolean = false)
-  extends SetDomain[InvalidValue, PositionedInvalidValueDomain] {
+  extends SetDomain[ValidnessDomainValue, PositionedInvalidValueDomain] {
 
   def setFactory(
-      value: Set[InvalidValue] = Set.empty[InvalidValue],
+                  value: Set[ValidnessDomainValue] = Set.empty[ValidnessDomainValue],
       isTop: Boolean = false,
       isBottom: Boolean = false) =
     PositionedInvalidValueDomain(value, isTop, isBottom)
 
-  def canBeInvalid = isTop || value.exists { case Invalid(_) => true; case _ => false }
-  def canBeValid = isTop || value.exists { case Valid() => true; case _ => false }
+  def canBeInvalid = isTop || value.exists { case InvalidDomainValue(_, _) => true; case _ => false}
+
+  def canBeValid = isTop || value.exists { case ValidDomainValue() => true; case _ => false}
   def mustBeInvalid = canBeInvalid && !canBeValid
   def mustBeValid = canBeValid && !canBeInvalid
 
@@ -272,8 +264,8 @@ case class PositionedInvalidValueDomain(
     if (x.isTop) return this
     if (this.isTop) return this
     var res = new PositionedInvalidValueDomain()
-    if (x.canBeValid) res = res.setFactory(res.value ++ this.value.collect { case x@Valid() => x })
-    if (x.canBeInvalid) res = res.setFactory(res.value ++ this.value.collect { case x@Invalid(src) => x })
+    if (x.canBeValid) res = res.setFactory(res.value ++ this.value.collect { case x@ValidDomainValue() => x})
+    if (x.canBeInvalid) res = res.setFactory(res.value ++ this.value.collect { case x@InvalidDomainValue(_, _) => x})
     if (res.value.isEmpty) return bottom()
     res
   }
@@ -283,13 +275,15 @@ case class PositionedInvalidValueDomain(
     if (isBottom || value.isEmpty) return "Bottom"
     if (mustBeValid) return "Valid"
     value.map({
-      case Valid() => "Valid"
-      case Invalid(ss) => "Invalid due to "+ss
+      case ValidDomainValue() => "Valid"
+      case InvalidDomainValue(cause, ss) => "Invalid, since " + cause + " at " + ss
     }).mkString(" or ")
   }
 
 }
 
-trait InvalidValue
-case class Valid() extends InvalidValue
-case class Invalid(source:ProgramPoint) extends InvalidValue
+trait ValidnessDomainValue
+
+case class ValidDomainValue() extends ValidnessDomainValue
+
+case class InvalidDomainValue(explanation: String, source: ProgramPoint) extends ValidnessDomainValue

@@ -1,11 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of player
@@ -19,7 +19,7 @@ object SPlayer {
 
 
   /** Gets the active song if any */
-  val field_active_song = new TouchField("active song", TSong.typName, topDefault = TopWithInvalidInitializer)
+  val field_active_song = new TouchField("active song", TSong.typName, topDefault = TopWithInvalidInitializer("player may not have an active song"))
 
   /** Indicates if the player is muted */
   val field_is_muted = new TouchField("is muted", TBoolean.typName)

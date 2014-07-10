@@ -1,11 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Picture
@@ -28,10 +28,10 @@ object TPicture {
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the location where the picture was taken; if any. */
-  val field_location = new TouchField("location", TLocation.typName, InvalidInitializer)
+  val field_location = new TouchField("location", TLocation.typName, InvalidInitializer("picture may not have a location"))
 
   /** Gets the date time where the picture was taken; if any. */
-  val field_date = new TouchField("date", TDateTime.typName, InvalidInitializer)
+  val field_date = new TouchField("date", TDateTime.typName, InvalidInitializer("picture may not have a date"))
 
   val typName = "Picture"
   val typ = DefaultTouchType(typName, isSingleton = false, fields = List(field_width, field_height, field_location, field_date))
@@ -267,7 +267,7 @@ class TPicture extends AAny {
 
       val state1 = If[S](width <= 0, Then = {
         s: S =>
-        // new_w = new_h * (old_w / old_h)
+          // new_w = new_h * (old_w / old_h)
           AssignField[S](this0, TPicture.field_width, height * Field[S](this0, TPicture.field_width) / Field[S](this0, TPicture.field_height))(s, pp)
       }, Else = {
         s: S =>
@@ -276,7 +276,7 @@ class TPicture extends AAny {
 
       val state2 = If[S](height <= 0, Then = {
         s: S =>
-        // new_h = new_w * (old_h / old_w)
+          // new_h = new_w * (old_h / old_w)
           AssignField[S](this0, TPicture.field_height, width * Field[S](this0, TPicture.field_height) / Field[S](this0, TPicture.field_width))(s, pp)
       }, Else = {
         s: S =>

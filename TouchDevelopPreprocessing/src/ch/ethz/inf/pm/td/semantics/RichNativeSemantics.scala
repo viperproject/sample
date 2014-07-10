@@ -1,17 +1,12 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.td.compiler._
-import scala.Some
-import ch.ethz.inf.pm.td.compiler.TouchCollection
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.abstractdomain.UnitExpression
-import ch.ethz.inf.pm.td.analysis.{AccessCollectingState, MethodSummaries, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.domain.MultiValExpression
+import ch.ethz.inf.pm.sample.abstractdomain.{Constant, UnitExpression, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.td.analysis.{AccessCollectingState, MethodSummaries, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, _}
+import ch.ethz.inf.pm.td.domain.MultiValExpression
 
 /**
  *
@@ -160,13 +155,13 @@ object RichNativeSemantics extends RichExpressionImplicits {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
               val a = initials.get(f) match {
                 case None => f.default match {
-                  case InvalidInitializer =>
-                    Invalid(f.typ)
+                  case InvalidInitializer(r) =>
+                    Invalid(f.typ, r)
                   case TopInitializer =>
                     curState = Top[S](f.typ, createFields = !referenceLoop, initializeFields = !referenceLoop)(curState, newPP)
                     toRichExpression(curState.expr)
-                  case TopWithInvalidInitializer =>
-                    curState = TopWithInvalid[S](f.typ, initializeFields = !referenceLoop)(curState, newPP)
+                  case TopWithInvalidInitializer(r) =>
+                    curState = TopWithInvalid[S](f.typ, r, initializeFields = !referenceLoop)(curState, newPP)
                     toRichExpression(curState.expr)
                   case NewInitializer =>
                     curState = New[S](f.typ, createFields = !referenceLoop, initializeFields = !referenceLoop)(curState, newPP)
@@ -264,9 +259,9 @@ object RichNativeSemantics extends RichExpressionImplicits {
               val (newPP, referenceLoop) = DeepeningProgramPoint(pp, f.getName)
               val a = initials.get(f) match {
                 case None => f.topDefault match {
-                  case InvalidInitializer => Invalid(f.typ)
+                  case InvalidInitializer(r) => Invalid(f.typ, r)
                   case TopInitializer => curState = Top[S](f.typ, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
-                  case TopWithInvalidInitializer => curState = TopWithInvalid[S](f.typ, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
+                  case TopWithInvalidInitializer(r) => curState = TopWithInvalid[S](f.typ, r, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
                   case NewInitializer => curState = New[S](f.typ, initializeFields = !referenceLoop)(curState, newPP); toRichExpression(curState.expr)
                   case ExpressionInitializer(e) => e
                 }
@@ -283,13 +278,14 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def TopWithInvalid[S <: State[S]](typ: TouchType,
+                                    invalidCause: String,
                                     initials: Map[Identifier, RichExpression] = Map.empty[Identifier, RichExpression],
                                     createFields: Boolean = true,
                                     initializeFields: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
 
     val curState = Top[S](typ, initials, createFields = createFields, initializeFields = initializeFields)(s, pp)
     val validResult = curState.expr
-    Return[S](validResult, Invalid(typ))(curState, pp)
+    Return[S](validResult, Invalid(typ, invalidCause))(curState, pp)
 
   }
 
@@ -658,12 +654,12 @@ class TouchField(
 
 trait Initializer
 
-case object InvalidInitializer extends Initializer
+case class InvalidInitializer(invalidReason: String) extends Initializer
 
 case object NewInitializer extends Initializer
 
 case object TopInitializer extends Initializer
 
-case object TopWithInvalidInitializer extends Initializer
+case class TopWithInvalidInitializer(invalidReason: String) extends Initializer
 
 case class ExpressionInitializer(e: RichExpression) extends Initializer

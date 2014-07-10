@@ -1,15 +1,15 @@
 package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{Constant, VariableIdentifier, _}
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{Interval, _}
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{Bricks, StringDomain, StringValueDomain}
 import ch.ethz.inf.pm.sample.execution.CFGState
-import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, _}
-import ch.ethz.inf.pm.sample.property.{WarningProgramPoint, _}
+import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import ch.ethz.inf.pm.td.compiler.{TouchSingletonProgramPoint, _}
-import ch.ethz.inf.pm.td.domain.{InvalidExpression, _}
+import ch.ethz.inf.pm.td.compiler._
+import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
@@ -168,7 +168,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
               case "String" => Constant("", v.typ, v.programpoint)
               case "Number" => Constant("0", v.typ, v.programpoint)
               case "Boolean" => Constant("false", v.typ, v.programpoint)
-              case _ => InvalidExpression(v.typ.asInstanceOf[TouchType], v.programpoint)
+              case _ => InvalidExpression(v.typ.asInstanceOf[TouchType], "global data may be uninitialized", v.programpoint)
             }))
           }
 
@@ -182,7 +182,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
             curState = RichNativeSemantics.New[S](v.typ.asInstanceOf[TouchType])(curState, v.programpoint)
             curState.expr
           } else {
-            curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType])(curState,
+            curState = RichNativeSemantics.TopWithInvalid[S](v.typ.asInstanceOf[TouchType], "global variable may be invalid")(curState,
               if (TouchAnalysisParameters.fullAliasingInGenericInput) DummyProgramPoint else v.programpoint)
             curState.expr
           }

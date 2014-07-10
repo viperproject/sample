@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.TouchType
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 class ATable(tableTyp: TouchType, rowTyp: TouchType, rowTableField: TouchField) extends AMutable_Collection {
 
@@ -24,7 +24,7 @@ class ATable(tableTyp: TouchType, rowTyp: TouchType, rowTableField: TouchField) 
       super.forwardSemantics(this0, "at index", parameters, returnedType)
 
     case "invalid row" =>
-      Return[S](Invalid(rowTyp))
+      Return[S](Invalid(rowTyp, "value may have been initialized to invalid"))
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

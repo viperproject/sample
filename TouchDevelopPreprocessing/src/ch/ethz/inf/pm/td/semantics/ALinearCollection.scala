@@ -1,14 +1,14 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{SemanticException, ExpressionSet, State}
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 /**
-* This class represents collections that
-* have linear integer keys.
-**/
+ * This class represents collections that
+ * have linear integer keys.
+ **/
 abstract class ALinearCollection extends ACollection {
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S) = method match {
@@ -18,10 +18,10 @@ abstract class ALinearCollection extends ACollection {
       if (index.getType().name != TNumber.typName)
         throw new SemanticException("This is not a linear collection " + this0.toString)
 
-      val newState = If[S](CollectionIndexInRange[S](this0, index), Then={
+      val newState = If[S](CollectionIndexInRange[S](this0, index), Then = {
         Return[S](CollectionAt[S](this0, index))(_, pp)
-      }, Else={
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType))(_, pp)
+      }, Else = {
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType, "collection access may be out of range"))(_, pp)
       })
       newState
 
@@ -30,18 +30,18 @@ abstract class ALinearCollection extends ACollection {
       val List(index) = parameters // Key_Type
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
-      Return[S](CollectionAt[S](this0,index))
+      Return[S](CollectionAt[S](this0, index))
 
 
     /** Get random element */
     case "random" =>
-      If[S](CollectionSize[S](this0) > 0, Then={
+      If[S](CollectionSize[S](this0) > 0, Then = {
         Return[S](CollectionSummary[S](this0))(_, pp)
-      }, Else={
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType))(_, pp)
+      }, Else = {
+        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType, "collection may be empty"))(_, pp)
       })
 
     case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
+      super.forwardSemantics(this0, method, parameters, returnedType)
   }
 }

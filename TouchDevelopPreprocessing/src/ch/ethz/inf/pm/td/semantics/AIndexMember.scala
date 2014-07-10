@@ -4,7 +4,6 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import scala.Predef.String
 
 /**
  *
@@ -22,7 +21,7 @@ class AIndexMember(indexMemberType: TouchType, valueFields: List[TouchField]) ex
     case "clear fields" =>
       var curState = state
       for (valueField <- valueFields) {
-        curState = AssignField[S](this0, valueField, Invalid(valueField.typ))(curState, pp)
+        curState = AssignField[S](this0, valueField, Invalid(valueField.typ, "fields may have been cleared"))(curState, pp)
       }
       curState
 

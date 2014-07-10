@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.td.domain
 
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
-import ch.ethz.inf.pm.sample.abstractdomain._
-import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.ToStringUtilities
+import ch.ethz.inf.pm.sample.abstractdomain._
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 
 /**
  *
@@ -45,12 +45,13 @@ T <: NumericWithInvalidDomain[N, I, T]]
 /**
  * Represents TouchDevelops "Invalid" value
  * @param typ Type of the invalid value
+ * @param explanation String describing the cause of the invalid value
  * @param pp Program Point of the invalid value
  */
-case class InvalidExpression(typ: Type, pp: ProgramPoint) extends Expression {
+case class InvalidExpression(typ: Type, explanation: String, pp: ProgramPoint) extends Expression {
   def ids = Set.empty
 
-  override def toString = "invalid"
+  override def toString = "invalid(" + explanation + ")"
 
   def transform(f: (Expression) => Expression): Expression = f(this)
 }

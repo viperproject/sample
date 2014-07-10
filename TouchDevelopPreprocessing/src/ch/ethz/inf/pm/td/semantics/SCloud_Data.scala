@@ -1,10 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Cloud Data
@@ -75,7 +75,7 @@ class SCloud_Data extends AAny {
     /** Gets a session from a session id */
     case "session of" =>
       val List(id, title) = parameters // String,String
-      TopWithInvalid[S](TCloud_Session.typ)
+      TopWithInvalid[S](TCloud_Session.typ, "session id may be wrong")
 
     /** Asks the user to choose a session to switch to */
     case "switch sessions" =>

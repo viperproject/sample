@@ -1,12 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain._
-import scala.collection.immutable.Range.Inclusive
-import ch.ethz.inf.pm.sample.oorepresentation.{Type, ProgramPoint}
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.sample.abstractdomain.Constant
-import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
+import ch.ethz.inf.pm.sample.abstractdomain.{Constant, VariableIdentifier, _}
+import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
+import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.domain.{InvalidExpression, ValidExpression}
+
+import scala.collection.immutable.Range.Inclusive
 
 object RichExpressionImplicits extends RichExpressionImplicits
 
@@ -37,7 +36,8 @@ trait RichExpressionImplicits {
   def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
   def PositiveInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("posinfty",TNumber.typ,pp))
   def NegativeInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("neginfty",TNumber.typ,pp))
-  def Invalid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(InvalidExpression(typ,pp))
+
+  def Invalid(typ: Type, cause: String)(implicit pp: ProgramPoint): RichExpression = toRichExpression(InvalidExpression(typ, cause, pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(ValidExpression(typ,pp))
   def Singleton(typ: Type)(implicit pp: ProgramPoint): RichExpression = toRichExpression(VariableIdentifier(typ.name.toLowerCase)(typ, pp))
 }

@@ -1,11 +1,10 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.compiler.TouchCollection
+import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
+import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 
 /**
  * @author Lucas Brutschy
@@ -96,11 +95,11 @@ class TBoard extends AMutable_Collection {
 
     // Clears the background camera
     case "clear background camera" =>
-      AssignField(this0, TBoard.field_background_camera, Invalid(TCamera.typ))
+      AssignField(this0, TBoard.field_background_camera, Invalid(TCamera.typ, "background camera may have been cleared"))
 
     // Clear the background picture
     case "clear background picture" =>
-      AssignField(this0, TBoard.field_background_picture, Invalid(TPicture.typ))
+      AssignField(this0, TBoard.field_background_picture, Invalid(TPicture.typ, "background picture may have been cleared"))
 
     // Clear all queued events related to this board
     case "clear events" =>
