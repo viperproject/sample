@@ -3,6 +3,8 @@ import ch.ethz.inf.pm.td.analysis.TestRunner
 
 val toAnalyze =
   """inyha
+    |epppa
+    |uykb
     |gwsfmlau
     |blwd
     |eeorzcap
