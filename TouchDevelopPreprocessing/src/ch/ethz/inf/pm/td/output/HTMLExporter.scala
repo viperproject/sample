@@ -1,7 +1,8 @@
 package ch.ethz.inf.pm.td.output
 
+import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleError}
-import ch.ethz.inf.pm.td.compiler.{SpaceSavingProgramPoint, _}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.{IdPositional, PrettyPrinter, Script}
 
 /**
@@ -94,6 +95,11 @@ class HTMLExporter extends FileSystemExporter {
         |<body id="" class="">
       """.stripMargin
 
+    def toStr(s: ProgramPoint) = s match {
+      case p: SpaceSavingProgramPoint => p.fullPosString;
+      case _ => ""
+    }
+
     for ((id, script) <- targets) {
       res += <h2>
         {id}
@@ -112,8 +118,12 @@ class HTMLExporter extends FileSystemExporter {
               (for (SampleError(errorTypeId, message, pp, causes) <- Reporter.seenErrors) yield {
                 pp match {
                   case touchPP: SpaceSavingProgramPoint if TouchProgramPointRegistry.matches(touchPP, id, curPositional) =>
-                    val onmouseover2 = onmouseover + (for (c <- causes) yield {"$('#" + c._2.asInstanceOf[SpaceSavingProgramPoint].fullPosString + "').addClass('hoverCause');"}).mkString(";")
-                    val onmouseout2  = onmouseout + (for (c <- causes) yield {"$('#" + c._2.asInstanceOf[SpaceSavingProgramPoint].fullPosString + "').removeClass('hoverCause');"}).mkString(";")
+                    val onmouseover2 = onmouseover + (for (c <- causes) yield {
+                      "$('#" + toStr(c._2) + "').addClass('hoverCause');"
+                    }).mkString(";")
+                    val onmouseout2 = onmouseout + (for (c <- causes) yield {
+                      "$('#" + toStr(c._2) + "').removeClass('hoverCause');"
+                    }).mkString(";")
                     <div title={message} class="masterTooltip" onmouseover={onmouseover2} onmouseout={onmouseout2}></div>.toString()
                   case _ => ""
                 }
