@@ -10,20 +10,23 @@ object Main {
     var watchMode = false
     val ExportPath = "-exportPath=(.*)".r
     val JobID = "-jobID=(.*)".r
+    val Timeout = "-timeout=(.*)".r
 
     val nonOptions = (for (arg <- args) yield {
       arg match {
         case ExportPath(x) => FileSystemExporter.exportPath = x; None
         case "-json" => Exporters.exportAsJSON = true; None
-        case "-njson" => Exporters.exportAsJSON = false; None
+        case "-no-json" => Exporters.exportAsJSON = false; None
         case "-html" => Exporters.exportAsHTML = true; None
-        case "-nhtml" => Exporters.exportAsHTML = false; None
+        case "-no-html" => Exporters.exportAsHTML = false; None
         case "-tsv" => Exporters.exportAsTSV = true; None
-        case "-ntsv" => Exporters.exportAsTSV = false; None
+        case "-no-tsv" => Exporters.exportAsTSV = false; None
         case "-mongo" => Exporters.exportToMongo = true; None
-        case "-nmongo" => Exporters.exportToMongo = false; None
-        case "-tune" => TouchAnalysisParameters.tunePrecisionBySize = true; None
-        case "-ntune" => TouchAnalysisParameters.tunePrecisionBySize = false; None
+        case "-no-mongo" => Exporters.exportToMongo = false; None
+        case "-fast" => TouchAnalysisParameters.lowPrecision = true; None
+        case "-no-fast" => TouchAnalysisParameters.lowPrecision = false; None
+        case Timeout(x) => TouchAnalysisParameters.timeout = Some(x.toInt); None
+        case "-no-timeout" => TouchAnalysisParameters.timeout = None; None
         case JobID(x) => Exporters.jobID = x; None
         case "-watchMode" => watchMode = true; None
         case _ => Some(arg)

@@ -1,6 +1,19 @@
 package ch.ethz.inf.pm.td.analysis
 
+/**
+ * TODO: This class is annoyingly overengineered
+ */
 object TouchAnalysisParameters {
+
+  /**
+   * Lets the analysis timeout after a number of seconds
+   */
+  var timeout: Option[Int] = None
+
+  /**
+   * Turns off some expensive features of the analysis to improve speed
+   */
+  var lowPrecision = false
 
   private var currentParams: TouchAnalysisParameters = TouchAnalysisParameters()
 
