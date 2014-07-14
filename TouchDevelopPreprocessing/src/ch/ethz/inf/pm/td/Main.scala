@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td
 
-import ch.ethz.inf.pm.td.analysis.TouchApronRun
+import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchApronRun}
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
 
 object Main {
@@ -22,6 +22,8 @@ object Main {
         case "-ntsv" => Exporters.exportAsTSV = false; None
         case "-mongo" => Exporters.exportToMongo = true; None
         case "-nmongo" => Exporters.exportToMongo = false; None
+        case "-tune" => TouchAnalysisParameters.tunePrecisionBySize = true; None
+        case "-ntune" => TouchAnalysisParameters.tunePrecisionBySize = false; None
         case JobID(x) => Exporters.jobID = x; None
         case "-watchMode" => watchMode = true; None
         case _ => Some(arg)

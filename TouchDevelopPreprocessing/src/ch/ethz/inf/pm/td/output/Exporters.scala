@@ -19,19 +19,19 @@ object Exporters {
   /**
    * Export analysis result in a tab-separated value format
    */
-  var exportAsTSV = true
+  var exportAsTSV = false
 
   /**
    * Export the resulting json records representing error information
    */
-  var exportAsJSON = true
+  var exportAsJSON = false
 
   /**
    * Export to MongoDB
    */
-  var exportToMongo = true
+  var exportToMongo = false
 
-  def apply(compiler:TouchCompiler) {
+  def apply(compiler: TouchCompiler) {
     if (exportAsHTML) new HTMLExporter().exportWarnings(compiler)
     if (exportAsTSV) new TSVExporter().exportWarnings(compiler)
     if (exportAsJSON) new JSONExporter().exportWarnings(compiler)
