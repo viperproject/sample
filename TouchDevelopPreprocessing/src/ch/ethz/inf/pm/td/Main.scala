@@ -56,8 +56,10 @@ object Main {
 
       collection.findAndModify(MongoDBObject("status" -> "todo"), $set("status" -> "running")) match {
         case Some(x) =>
-          Exporters.jobID = x.get("jobID").toString
-          TouchApronRun.main(List(x.get("url").toString).toArray)
+          TouchAnalysisParameters.timeout = x.getAs[Int]("timeout")
+          TouchAnalysisParameters.lowPrecision = x.getAsOrElse[Boolean]("fast", false)
+          Exporters.jobID = x.getAsOrElse[String]("jobID", System.currentTimeMillis().toString)
+          TouchApronRun.main(x.getAs[String]("url").toArray)
         case _ =>
           Thread.sleep(1000)
       }
