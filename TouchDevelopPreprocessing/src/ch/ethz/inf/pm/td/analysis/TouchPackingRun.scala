@@ -50,6 +50,7 @@ object TouchPackingRun {
     val numericalDomainChoice = touchParams.domains.numericalDomain
     val domain =
       numericalDomainChoice match {
+        case NumericDomainChoice.Intervals => new Box()
         case NumericDomainChoice.Octagons => new OptOctagon()
         case NumericDomainChoice.Polyhedra => new Polka(false)
         case NumericDomainChoice.StrictPolyhedra => new Polka(true)

@@ -225,12 +225,12 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
 object PositionedInvalidValueDomain {
 
   // Helper values
-  def domBottom = new PositionedInvalidValueDomain().bottom()
+  lazy val domBottom = new PositionedInvalidValueDomain().bottom()
 
   def domInvalid(explanation: String, pp: ProgramPoint) = new PositionedInvalidValueDomain().add(InvalidDomainValue(explanation, pp))
 
-  def domValid = new PositionedInvalidValueDomain().add(ValidDomainValue())
-  def domTop = new PositionedInvalidValueDomain().top()
+  lazy val domValid = new PositionedInvalidValueDomain().add(ValidDomainValue())
+  lazy val domTop = new PositionedInvalidValueDomain().top()
 
 }
 

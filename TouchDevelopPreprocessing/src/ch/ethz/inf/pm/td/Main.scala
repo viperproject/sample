@@ -1,6 +1,6 @@
 package ch.ethz.inf.pm.td
 
-import ch.ethz.inf.pm.td.analysis.{TouchAnalysisParameters, TouchApronRun}
+import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.output.{Exporters, FileSystemExporter}
 
 object Main {
@@ -23,8 +23,8 @@ object Main {
         case "-no-tsv" => Exporters.exportAsTSV = false; None
         case "-mongo" => Exporters.exportToMongo = true; None
         case "-no-mongo" => Exporters.exportToMongo = false; None
-        case "-fast" => TouchAnalysisParameters.lowPrecision = true; None
-        case "-no-fast" => TouchAnalysisParameters.lowPrecision = false; None
+        case "-fast" => setFastMode(); None
+        case "-no-fast" => unsetFastMode(); None
         case Timeout(x) => TouchAnalysisParameters.timeout = Some(x.toInt); None
         case "-no-timeout" => TouchAnalysisParameters.timeout = None; None
         case JobID(x) => Exporters.jobID = x; None
@@ -54,10 +54,10 @@ object Main {
 
     while (true) {
 
-      collection.findAndModify(MongoDBObject("status" -> "todo"), $set("status" -> "running")) match {
+      collection.findAndModify(MongoDBObject("status" -> "Waiting"), $set("status" -> "Initializing")) match {
         case Some(x) =>
           TouchAnalysisParameters.timeout = x.getAs[Int]("timeout")
-          TouchAnalysisParameters.lowPrecision = x.getAsOrElse[Boolean]("fast", false)
+          if(x.getAsOrElse[Boolean]("fast", false)) setFastMode() else unsetFastMode()
           Exporters.jobID = x.getAsOrElse[String]("jobID", System.currentTimeMillis().toString)
           TouchApronRun.main(x.getAs[String]("url").toArray)
         case _ =>
@@ -65,6 +65,26 @@ object Main {
       }
 
     }
+
+  }
+
+  def setFastMode() {
+
+    TouchAnalysisParameters.set(
+      TouchAnalysisParameters(
+        execution = ExecutionModelParams(singleEventOccurrence = true),
+        domains = DomainParams(enableCollectionMustAnalysis = false, enableCollectionSummaryAnalysis = true,
+           numericalDomain = NumericDomainChoice.Intervals)
+      )
+    )
+
+  }
+
+  def unsetFastMode() {
+
+    TouchAnalysisParameters.set(
+      TouchAnalysisParameters()
+    )
 
   }
 

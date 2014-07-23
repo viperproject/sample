@@ -10,11 +10,6 @@ object TouchAnalysisParameters {
    */
   var timeout: Option[Int] = None
 
-  /**
-   * Turns off some expensive features of the analysis to improve speed
-   */
-  var lowPrecision = false
-
   private var currentParams: TouchAnalysisParameters = TouchAnalysisParameters()
 
   def get: TouchAnalysisParameters = currentParams
@@ -190,11 +185,6 @@ case class DomainParams(enableCollectionMustAnalysis: Boolean = true,
                         stringRepresentationBound: Int = 3,
 
                         /**
-                         * Use a variable packing domain
-                         */
-                        useVariablePackingDomain: Boolean = true,
-
-                        /**
                          * The numerical domain to be used.
                          *
                          * IMPORTANT: This parameter is ONLY respected when using
@@ -206,6 +196,7 @@ case class DomainParams(enableCollectionMustAnalysis: Boolean = true,
 object NumericDomainChoice extends Enumeration {
   type NumericDomainChoice = Value
 
+  val Intervals = Value
   val Octagons = Value
   val Polyhedra = Value
   val StrictPolyhedra = Value

@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.analysis
 
 import java.io.{PrintWriter, StringWriter}
 
-import apron.{OptOctagon, Polka}
+import apron.{Box, OptOctagon, Polka}
 import ch.ethz.inf.pm.sample._
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.heapanalysis._
@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.sample.reporting.{Reporter, SampleMessage}
-import ch.ethz.inf.pm.td.compiler.TouchCompiler
+import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, TouchCompiler}
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
 
@@ -40,6 +40,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
 
       customTouchParams.foreach(p => TouchAnalysisParameters.set(p))
       val touchParams = TouchAnalysisParameters.get
+      TouchProgramPointRegistry.reset()
 
       Exporters.setStatus("Analyzing")
 
@@ -57,6 +58,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
       val numericalDomainChoice = touchParams.domains.numericalDomain
       val domain =
         numericalDomainChoice match {
+          case NumericDomainChoice.Intervals => new Box()
           case NumericDomainChoice.Octagons => new OptOctagon()
           case NumericDomainChoice.Polyhedra => new Polka(false)
           case NumericDomainChoice.StrictPolyhedra => new Polka(true)
@@ -66,7 +68,7 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
 
       val entryValue = ExpressionSet()
 
-      if (TouchAnalysisParameters.enableCollectionSummaryAnalysis || TouchAnalysisParameters.lowPrecision) {
+      if (TouchAnalysisParameters.enableCollectionSummaryAnalysis) {
         type HeapAndOtherType = HeapAndAnotherDomain[SemanticDomainType, SummaryHeapType, HeapId]
 
         val heapDomain = new NonRelationalSummaryCollectionHeapDomain[HeapId](new MaybeHeapIdSetDomain(), heapID)
@@ -129,6 +131,7 @@ object TouchApronRun {
         this.wait(1000)
       while (t.isAlive) {
         System.out.println("TIME IS UP! Trying to stop a thread")
+        Exporters.setStatus("Timeout")
         for (i <- 0 to 100) t.stop()
         this.wait(1000)
       }

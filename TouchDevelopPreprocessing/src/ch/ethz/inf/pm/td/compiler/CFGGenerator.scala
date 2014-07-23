@@ -501,29 +501,32 @@ case class TouchClassIdentifier(name: String, typ: Type) extends Named with Clas
 object TouchProgramPointRegistry {
 
   /** inefficient, knowingly so */
-  def get(s: String, positional: IdPositional): Option[TouchProgramPoint] = {
-    for (i <- 0 to reg.length - 1) {
-      if (matches(SpaceSavingProgramPoint(i), s, positional)) {
-        return Some(reg(i))
-      }
-    }
-    None
+  def get(scriptID: String, positional: IdPositional): Option[TouchProgramPoint] = {
+    revReg.get((scriptID,Some(positional.pos),positional.customIdComponents))
   }
 
-  def matches(point: SpaceSavingProgramPoint, s: String, positional: IdPositional): Boolean = {
+  def matches(point: SpaceSavingProgramPoint, scriptID: String, positional: IdPositional): Boolean = {
     val pp = reg(point.id)
-    return pp.scriptID == s &&
+    return pp.scriptID == scriptID &&
       ((positional.pos == NoPosition && pp.lineColumnPosition == None) || Some(positional.pos) == pp.lineColumnPosition) &&
       (positional.customIdComponents == pp.customPositionElements)
   }
 
   val reg = mutable.ArrayBuffer.empty[TouchProgramPoint]
+  val revReg = mutable.HashMap.empty[(String,Option[Position],List[String]),TouchProgramPoint]
 
   def make(scriptID: String,
            lineColumnPosition: Option[Position],
            customPositionElements: List[String]): SpaceSavingProgramPoint = {
-    reg += new TouchProgramPoint(scriptID, lineColumnPosition, customPositionElements)
+    val pp = new TouchProgramPoint(scriptID, lineColumnPosition, customPositionElements)
+    reg += pp
+    revReg += ((scriptID,lineColumnPosition,customPositionElements) -> pp)
     SpaceSavingProgramPoint(reg.length - 1)
+  }
+
+  def reset() {
+    reg.clear()
+    revReg.clear()
   }
 
 }
