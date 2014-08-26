@@ -29,6 +29,8 @@ abstract class AbstractSymbolTable {
 
   protected var types = new mutable.HashMap[TypeName,Map[String,Member]]
 
+  protected var genericTypes = new mutable.HashMap[TypeName,TypeName => Map[String,Member]]
+
   def addSingleton (name:String,members:List[Member]) {
     val objName = TypeName(name)
     types(objName) = if (types.contains(objName)) types(objName) else immutable.Map.empty[String,Member]
@@ -202,7 +204,8 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
     try {
       code(action)(types)
     } catch {
-      case e:NoSuchElementException => throw new TouchException("Action/Event not found: "+action+" with arguments "+types,pos)
+      case e:NoSuchElementException =>
+        throw new TouchException("Action/Event not found: "+action+" with arguments "+types,pos)
     }
   }
 

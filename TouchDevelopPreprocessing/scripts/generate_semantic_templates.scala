@@ -63,11 +63,11 @@ for (
     )
 
     p.println(
-      """
+      ("""
         |object XXX {
         |
         |  val typName = "YYY"
-        |  val typ = DefaultTouchType(typName,isSingleton = true)
+        |  val typ = DefaultTouchType(typName,isSingleton = """+isData+""")
         |
         |}
         |
@@ -77,7 +77,7 @@ for (
         |
         |  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
         |                                     (implicit pp:ProgramPoint,state:S):S = method match {
-      """.stripMargin.replace("XXX", className).replace("YYY", name))
+      """).stripMargin.replace("XXX", className).replace("YYY", name))
 
     var fields : List[String] = Nil
     for (

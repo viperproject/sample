@@ -224,14 +224,14 @@ object Typer {
         // Interestingly, contract is a local variable, not a singleton.
         if (ident == "contract") is(TypeName("Contract"))
         else is(st.resolveLocal(scope, ident, l.pos))
-      case SingletonReference(singleton, typ) =>
-        if (CFGGenerator.isLibraryIdent(typ)) {
+      case SingletonReference(singleton, typX) =>
+        if (CFGGenerator.isLibraryIdent(typX)) {
           is(TypeName("♻"))
         } else {
-          is(TypeName(typ))
+          is(TypeName(typX))
         }
-      case Literal(typ, _) =>
-        is(typ)
+      case Literal(typX, _) =>
+        is(typX)
     }
 
     typ
@@ -240,7 +240,7 @@ object Typer {
   def processMultiValExpression(scope: Scope, st: SymbolTable, expr: Expression): List[TypeName] = {
 
     def is(typ: TypeName): TypeName = {
-      expr.typeName = typ;
+      expr.typeName = typ
       typ
     }
 

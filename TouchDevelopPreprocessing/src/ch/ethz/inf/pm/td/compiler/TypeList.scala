@@ -10,9 +10,9 @@ import ch.ethz.inf.pm.td.semantics._
  *
  */
 
-object TypeList {
+object TypeList  {
 
-  var types: Map[String, AAny] = Map(
+  var types : Map[String, AAny] = Map(
     SData.typName -> new SData(),
     SCode.typName -> new SCode(),
     SArt.typName -> new SArt(),
@@ -31,12 +31,19 @@ object TypeList {
     TVector_Action.typName -> new TVector_Action(),
     TWeb_Response_Action.typName -> new TWeb_Response_Action(),
     TMessage_Collection_Action.typName -> new TMessage_Collection_Action(),
+    TJson_Action.typName -> new TJson_Action(),
+    TComparison.typName -> new TComparison(),
+    TPredicate.typName -> new TPredicate(),
+    TNumber_Converter.typName -> new TNumber_Converter(),
+    TString_Converter.typName -> new TString_Converter(),
+    TConverter.typName -> new TConverter(),
     SApp.typName -> new SApp(),
     TAppointment.typName -> new TAppointment(),
     TAppointment_Collection.typName -> new TAppointment_Collection(),
     SBazaar.typName -> new SBazaar(),
     SBits.typName -> new SBits(),
     TBluetooth_Device.typName -> new TBluetooth_Device(),
+    TBluetooth_Le_Device.typName -> new TBluetooth_Le_Device(),
     TBoard.typName -> new TBoard(),
     TObstacle.typName -> new TObstacle(),
     TBoard_Background_Scene.typName -> new TBoard_Background_Scene(),
@@ -45,17 +52,21 @@ object TypeList {
     SBox.typName -> new SBox(),
     TBuffer.typName -> new TBuffer(),
     TCamera.typName -> new TCamera(),
+    TCloud_Picture.typName -> new TCloud_Picture(),
     TCloud_Session.typName -> new TCloud_Session(),
     SCloud_Data.typName -> new SCloud_Data(),
+    TCollection.typName -> new TCollection(),
     SCollections.typName -> new SCollections(),
     TColor.typName -> new TColor(),
     SColors.typName -> new SColors(),
     TContact.typName -> new TContact(),
     TContact_Collection.typName -> new TContact_Collection(),
     SContract.typName -> new SContract(),
+    SCreate.typName -> new SCreate(),
     TDateTime.typName -> new TDateTime(),
     TDevice.typName -> new TDevice(),
     TDevice_Collection.typName -> new TDevice_Collection(),
+    TEditor.typName -> new TEditor(),
     TEnumerator.typName -> new TEnumerator(),
     TEvent_Binding.typName -> new TEvent_Binding(),
     TForm_Builder.typName -> new TForm_Builder(),
@@ -66,6 +77,7 @@ object TypeList {
     SLanguages.typName -> new SLanguages(),
     TLink.typName -> new TLink(),
     TLink_Collection.typName -> new TLink_Collection(),
+    SCloud_Storage.typName -> new SCloud_Storage(),
     TLocation.typName -> new TLocation(),
     TLocation_Collection.typName -> new TLocation_Collection(),
     SLocations.typName -> new SLocations(),
@@ -104,7 +116,11 @@ object TypeList {
     TPrinter.typName -> new TPrinter(),
     TPrinter_Collection.typName -> new TPrinter_Collection(),
     SRadio.typName -> new SRadio(),
+    TRef.typName -> new TRef(),
     SSenses.typName -> new SSenses(),
+    TGamepad.typName -> new TGamepad(),
+    TServer_Request.typName -> new TServer_Request(),
+    TServer_Response.typName -> new TServer_Response(),
     SSocial.typName -> new SSocial(),
     TSong.typName -> new TSong(),
     TSong_Album.typName -> new TSong_Album(),
@@ -126,9 +142,11 @@ object TypeList {
     STiles.typName -> new STiles(),
     STime.typName -> new STime(),
     TTimer.typName -> new TTimer(),
+    STutorial.typName -> new STutorial(),
     TUser.typName -> new TUser(),
     TVector3.typName -> new TVector3(),
     SWall.typName -> new SWall(),
+    TWeb_Event_Source.typName -> new TWeb_Event_Source(),
     SWeb.typName -> new SWeb(),
     TWeb_Request.typName -> new TWeb_Request(),
     TWeb_Response.typName -> new TWeb_Response(),
@@ -139,7 +157,8 @@ object TypeList {
     GCollection.typName(TUser.typName) -> new GCollection(TUser.typName),
     GCollection.typName(TPicture.typName) -> new GCollection(TPicture.typName),
     GCollection.typName(TSound.typName) -> new GCollection(TSound.typName),
-    GCollection.typName(TBluetooth_Device.typName) -> new GCollection(TBluetooth_Device.typName)
+    GCollection.typName(TBluetooth_Device.typName) -> new GCollection(TBluetooth_Device.typName),
+    GCollection.typName(TGamepad.typName) -> new GCollection(TGamepad.typName)
 
   )
 

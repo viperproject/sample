@@ -136,6 +136,11 @@ class TSprite_Animation extends AAny {
       val List() = parameters //
       Skip
 
+    /** Changes the text of the sprite. */
+    case "text" =>
+      val List(duration,easing,shape,value) = parameters // Number,String,String,String
+      Skip
+
     /** Rotates the sprite. */
     case "turn to" =>
       val List(duration, easing, shape, angle) = parameters // Number,String,String,Number

@@ -114,6 +114,14 @@ case class AnalysisThread(file: String, customTouchParams: Option[TouchAnalysisP
 
       case x: ThreadDeath => Exporters.setStatus("Timeout")
 
+      case x: Throwable =>
+        val sw: StringWriter = new StringWriter()
+        val pw: PrintWriter = new PrintWriter(sw)
+        x.printStackTrace(pw)
+        Exporters.setDebugInformation(x.toString + x.getMessage + sw.toString)
+        Exporters.setStatus("Failed")
+        throw x
+
     }
   }
 

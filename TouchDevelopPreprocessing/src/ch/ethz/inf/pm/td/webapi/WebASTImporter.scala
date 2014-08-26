@@ -178,29 +178,38 @@ object WebASTImporter {
       convert(jInlineAction.body)).setId(jInlineAction.id)
   }
 
-  def makeTypeName(typeString: String): TypeName = {
+  def convertType(typeString:String):String = {
+
     val JUserType = """\{"o":"(.*)"\}""".r
     val JLibraryType = """\{"l":"(.*)","o":"(.*)"\}""".r
     val JGenericTypeInstance = """\{"g":"(.*)","a":\["(.*)"\]\}""".r
+    val JGenericTypeInstance2 = """\{"g":"(.*)","a":\[\{"g":"(.*)"\}\]\}""".r
     val JUngenericTypeInstance = """\{"g":"(.*)","a":\[\]\}""".r
+    val JUngenericTypeInstance2 = """\{"g":"(.*)"\}""".r
     val JGenericUserTypeInstance = """\{"g":"(.*)","a":\[\{"o":"(.*)"\}\]\}""".r
-
 
     typeString match {
       case JLibraryType(l, o) =>
-        TypeName(o)
+        o
       case JUngenericTypeInstance(g) =>
-        TypeName(g)
+        g
+      case JUngenericTypeInstance2(g) =>
+        g
       case JGenericTypeInstance(g, a) =>
-        TypeName(a + " " + g)
+        a + " " + g
+      case JGenericTypeInstance2(g, a) =>
+        a + " " + g
       case JGenericUserTypeInstance(g, a) =>
-        TypeName(a + " " + g)
+        a + " " + g
       case JUserType(o) =>
-        TypeName(o)
+        o
       case _ =>
-        TypeName(typeString)
+        typeString
     }
+
   }
+
+  def makeTypeName(typeString: String): TypeName = TypeName(convertType(typeString))
 
 }
 

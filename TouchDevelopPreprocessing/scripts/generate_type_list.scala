@@ -29,14 +29,14 @@ try {
       |
       |object TypeList  {
       |
-      |  var types : Map[String,AAny] = Map(
+      |  var types : Map[String, AAny] = Map(
       |    SData.typName -> new SData(),
       |    SCode.typName -> new SCode(),
       |    SArt.typName -> new SArt(),
       |    SRecords.typName -> new SRecords(),
       |    SLibs.typName -> new SLibs(),
       |    SHelpers.typName -> new SHelpers(),
-    """.stripMargin)
+      |""".stripMargin)
 
   val lines = for (
     JObject(root) <- json;
