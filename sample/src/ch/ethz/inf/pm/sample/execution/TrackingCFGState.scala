@@ -22,7 +22,11 @@ case class TrackingCFGStateFactory[S <: State[S]](stateFactory: S)
   }
 
   def makeFrom(cfg: ControlFlowGraph, cfgState: TrackingCFGState[S]): TrackingCFGState[S] = {
-    ???
+    val result = new TrackingCFGState[S](cfg, stateFactory)
+    for (idx <- 0 until cfg.nodes.size) {
+      result.setTrackedStatesOfBlock(idx, cfgState.trackedStatesOfBlock(idx))
+    }
+    result
   }
 }
 
@@ -57,6 +61,11 @@ class TrackingCFGState[S <: State[S]](val cfg: ControlFlowGraph, val stateFactor
 
   def trackedStatesOfBlock(idx: Int): List[List[S]] = {
     blockStates(idx)
+  }
+
+
+  def setTrackedStatesOfBlock(blockIdx: Int, states: List[List[S]]) {
+    blockStates += blockIdx -> states
   }
 
   def setStatesOfBlock(blockIdx: Int, states: List[S]) {

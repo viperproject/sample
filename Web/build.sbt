@@ -5,6 +5,8 @@ classpathTypes ~= (_ + "orbit")
 // Make SIL test files available as resources to the web application
 unmanagedResourceDirectories in Compile <+= baseDirectory(_ / "../SIL/src/test/resources")
 
+unmanagedResourceDirectories in Compile <+= baseDirectory(_ / "../TouchDevelopPreprocessing/test/resources")
+
 libraryDependencies ++= Seq(
   "org.scalatra" %% "scalatra" % "2.2.2",
   "org.scalatra" %% "scalatra-specs2" % "2.2.2" % "test",

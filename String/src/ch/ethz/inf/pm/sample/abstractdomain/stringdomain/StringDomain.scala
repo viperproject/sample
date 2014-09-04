@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.ToStringUtilities
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalDomain
 
-trait StringDomain[T <: StringValueDomain[T],X <: StringDomain[T,X]] extends SimplifiedSemanticDomain[X] { this: X => }
+trait StringDomain[X <: StringDomain[X]] extends SimplifiedSemanticDomain[X] { this: X => }
 
 /**
  * Represents a non-relational string domain.
@@ -18,7 +18,7 @@ class NonrelationalStringDomain[T <:StringValueSetDomain[T]](dom:T,
                                                           override val isBottom:Boolean = false,
                                                           val isTop:Boolean = false)
   extends BoxedDomain[T,NonrelationalStringDomain[T]]
-  with StringDomain[T,NonrelationalStringDomain[T]] {
+  with StringDomain[NonrelationalStringDomain[T]] {
 
   def functionalFactory(_value:Map[Identifier, T] = Map.empty[Identifier, T],
                         _isBottom:Boolean = false,
@@ -203,9 +203,8 @@ case class StringKSetDomain(
 
 trait NumericWithStringDomain[
     N <: NumericalDomain[N],
-    V <: StringValueDomain[V],
-    S <: StringDomain[V, S],
-    T <: NumericWithStringDomain[N, V, S, T]]
+    S <: StringDomain[S],
+    T <: NumericWithStringDomain[N, S, T]]
   extends SemanticCartesianProductDomain[N, S, T]
   with NumericalDomain[T] { this: T =>
 

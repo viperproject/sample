@@ -3,6 +3,7 @@ import org.scalatra.LifeCycle
 
 class ScalatraBootstrap extends LifeCycle {
   override def init(context: ServletContext) {
-    context.mount(new ch.ethz.inf.pm.sample.web.SilApp, "/*")
+    context.mount(new ch.ethz.inf.pm.sample.web.SilApp, "/sil/*")
+    context.mount(new ch.ethz.inf.pm.sample.web.TouchDevelopApp, "/td/*")
   }
 }

@@ -1,9 +1,10 @@
 package ch.ethz.inf.pm.td.analysis
 
+import apron.{PolkaEq, Polka, OptOctagon, Box}
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain._
-import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{Bricks, StringDomain, StringValueDomain}
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain._
 import ch.ethz.inf.pm.sample.execution.CFGState
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
@@ -21,9 +22,9 @@ import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
  * Time: 5:50 PM
  *
  */
-class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: StringDomain[V, S]]
+class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
 //extends SemanticAnalysis[TouchStringsAnd[InvalidAnd[D],V,S]] {
-  extends SemanticAnalysis[StringsAnd[InvalidAnd[D], V, S]] {
+  extends SemanticAnalysis[StringsAnd[InvalidAnd[D], S]] {
 
   val STRING_DOMAIN = "StringDomain"
   val NUMERICAL_DOMAIN = "Domain"
@@ -34,7 +35,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
 
   def getLabel(): String = "TouchDevelop analysis"
 
-  protected def numericalDomainList = (NUMERICAL_DOMAIN, List("Sign", "Interval"))
+  protected def numericalDomainList = (NUMERICAL_DOMAIN, List("Sign", "Interval","ApronInterval", "ApronOctagons", "ApronPolka", "ApronLinearEqualities"))
 
   protected def stringDomainList = (STRING_DOMAIN, List("KSet", "Bricks"))
 
@@ -47,17 +48,33 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
     }
   }
 
-  def getInitialState(): StringsAnd[InvalidAnd[D], V, S] = {
+  def getInitialState(): StringsAnd[InvalidAnd[D], S] = {
     val numericSubDomain = domain match {
       case "Sign" => new BoxedNonRelationalNumericalDomain(new Sign(SignValues.T)).asInstanceOf[D]
       case "Interval" => new BoxedNonRelationalNumericalDomain(new Interval(0, 0)).asInstanceOf[D]
+      case "ApronInterval" =>
+        val man = new Box()
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
+      case "ApronOctagons" =>
+        val man = new OptOctagon()
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
+      case "ApronPolka" =>
+        val man = new Polka(false)
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
+      case "ApronPolkaStrict" =>
+        val man = new Polka(true)
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
+      case "ApronLinearEqualities" =>
+        val man = new PolkaEq()
+        ApronInterface.Default(None, man, env = Set.empty).factory().asInstanceOf[D]
     }
 
     val invalidAndSubDomain = new InvalidAnd(numericSubDomain)
 
     stringDomain match {
-      case "Bricks" => new StringsAnd[InvalidAnd[D], V, S](invalidAndSubDomain, new Bricks().asInstanceOf[S])
-      case _ => new StringsAnd[InvalidAnd[D], V, S](invalidAndSubDomain)
+      case "Bricks" => new StringsAnd[InvalidAnd[D], S](invalidAndSubDomain, new Bricks().asInstanceOf[S])
+      case _ => new StringsAnd[InvalidAnd[D], S](invalidAndSubDomain,
+        new NonrelationalStringDomain(new StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)).asInstanceOf[S])
     }
 
 
@@ -82,7 +99,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = Nil
 
 
-  def analyze[S <: State[S]](entryState: S) {
+  def analyze[S <: State[S]](entryState: S): List[(Type, MethodDeclaration, CFGState[S])] = {
     analyze(Nil, entryState, new OutputCollector)
   }
 
@@ -119,25 +136,27 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
 
     // Initialize the fields of singletons (the environment)
     var curState = entryState
-    for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
-      if (sem.isInstanceOf[AAny]) {
-        val typ = sem.asInstanceOf[AAny].getTyp
-        if (typ.isSingleton &&
-          (!TouchAnalysisParameters.libraryFieldPruning ||
-            SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.name))) {
-          val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
-          if (typ.name == "records")
-            if (!TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode) {
-              curState = RichNativeSemantics.New[S](typ)(curState, singletonProgramPoint)
-            } else {
+    for (sem <- compiler.getNativeMethodsSemantics()) {
+      sem match {
+        case any: AAny =>
+          val typ = any.getTyp
+          if (typ.isSingleton &&
+            (!TouchAnalysisParameters.libraryFieldPruning ||
+              compiler.relevantLibraryFields.contains(typ.name))) {
+            val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
+            if (typ.name == "records")
+              if (!TouchAnalysisParameters.generalPersistentState && !compiler.isInLibraryMode) {
+                curState = RichNativeSemantics.New[S](typ)(curState, singletonProgramPoint)
+              } else {
+                curState = RichNativeSemantics.Top[S](typ)(curState, singletonProgramPoint)
+              }
+            else
               curState = RichNativeSemantics.Top[S](typ)(curState, singletonProgramPoint)
-            }
-          else
-            curState = RichNativeSemantics.Top[S](typ)(curState, singletonProgramPoint)
-          val obj = curState.expr
-          val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
-          curState = RichNativeSemantics.Assign[S](variable, obj)(curState, singletonProgramPoint)
-        }
+            val obj = curState.expr
+            val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
+            curState = RichNativeSemantics.Assign[S](variable, obj)(curState, singletonProgramPoint)
+          }
+        case _ =>
       }
     }
 
@@ -149,7 +168,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
       curState = curState.createVariable(leftExpr, v.typ, v.programpoint)
 
       val rightVal =
-        if (!TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode) {
+        if (!TouchAnalysisParameters.generalPersistentState && !compiler.isInLibraryMode) {
 
           // We analyze executions separately. In the first execution of the script, global fields are invalid
           // except for the obvious exception (art, read-only, primitives)
@@ -194,7 +213,7 @@ class TouchAnalysis[D <: NumericalDomain[D], V <: StringValueDomain[V], S <: Str
     }
 
     // The first fixpoint, which is computed over several executions of the same script
-    if (!TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode)
+    if (!TouchAnalysisParameters.generalPersistentState && !TouchAnalysisParameters.singleExecution && !compiler.isInLibraryMode)
       Lattice.lfp(curState, analyzeExecution(compiler, methods)(_: S), SystemParameters.wideningLimit)
     else
       analyzeExecution(compiler, methods)(curState)

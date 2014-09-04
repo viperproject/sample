@@ -34,7 +34,7 @@ object Main {
     }).flatten
 
     if (!watchMode) {
-      TouchApronRun.main(nonOptions)
+      TouchRun.main(nonOptions)
     } else {
       runWatchMode()
     }
@@ -59,7 +59,7 @@ object Main {
           TouchAnalysisParameters.timeout = x.getAs[Int]("timeout")
           if(x.getAsOrElse[Boolean]("fast", false)) setFastMode() else unsetFastMode()
           Exporters.jobID = x.getAsOrElse[String]("jobID", System.currentTimeMillis().toString)
-          TouchApronRun.main(x.getAs[String]("url").toArray)
+          TouchRun.main(x.getAs[String]("url").toArray)
         case _ =>
           Thread.sleep(1000)
       }

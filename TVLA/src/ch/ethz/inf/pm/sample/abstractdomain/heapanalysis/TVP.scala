@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.sample.abstractdomain.heapanalysis
 
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, Replacement}
+import ch.ethz.inf.pm.sample.util.MapUtil
 
 /**
  * A TVP specifies the program for TVLA to execute.

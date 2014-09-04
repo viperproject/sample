@@ -26,11 +26,9 @@ case class InvalidAnd[T <: NumericalDomain[T]](
 
 case class StringsAnd[
     T <: NumericalDomain[T],
-    V <: StringValueDomain[V],
-    S <: StringDomain[V,S]](
+    S <: StringDomain[S]](
     _1: T,
-    _2: S = new NonrelationalStringDomain[StringKSetDomain](
-      new StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)).asInstanceOf[S])
-  extends NumericWithStringDomain[T, V, S, StringsAnd[T, V, S]] {
+    _2: S)
+  extends NumericWithStringDomain[T, S, StringsAnd[T, S]] {
   override def factory(a:T,b:S) = new StringsAnd(a,b)
 }

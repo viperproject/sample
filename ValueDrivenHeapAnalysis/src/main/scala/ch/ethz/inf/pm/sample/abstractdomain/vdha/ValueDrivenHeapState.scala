@@ -69,17 +69,16 @@ trait ValueDrivenHeapState[
     }
   }
 
-  def removeVariable(x: Expression): T = x match {
-    case id: VariableIdentifier =>
-      if (id.typ.isObject) {
-        val vertex = LocalVariableVertex(id)
-        // Prune the heap as parts of it may have become unreachable
-        copy(abstractHeap = abstractHeap.removeVertices(Set(vertex))).prune()
-      } else {
-        copy(
-          abstractHeap = abstractHeap.removeVariable(id),
-          generalValState = generalValState.removeVariable(id))
-      }
+  def removeVariable(id: VariableIdentifier): T = {
+    if (id.typ.isObject) {
+      val vertex = LocalVariableVertex(id)
+      // Prune the heap as parts of it may have become unreachable
+      copy(abstractHeap = abstractHeap.removeVertices(Set(vertex))).prune()
+    } else {
+      copy(
+        abstractHeap = abstractHeap.removeVariable(id),
+        generalValState = generalValState.removeVariable(id))
+    }
   }
 
   /** Creates non-object variables in both the general value state and also

@@ -1,7 +1,7 @@
 package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, _}
-import ch.ethz.inf.pm.sample.execution.CFGState
+import ch.ethz.inf.pm.sample.execution._
 import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, _}
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
 import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, _}
@@ -10,7 +10,7 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
 
 case class MethodSummary[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration,
-                                        cfgState: CFGState[S])
+                                        cfgState: TrackingCFGState[S])
 
 /**
  * Stores summaries of methods. This is not thread-safe.
@@ -102,9 +102,7 @@ object MethodSummaries {
             val prev = prevSummary.asInstanceOf[MethodSummary[S]]
             executeMethod(enteredState, prev)
           case None =>
-            val factoryState = enteredState.factory()
-            val cfgState = new ControlFlowGraphExecution(callTarget.body, factoryState)
-            val prevSummary = new MethodSummary(identifyingPP, callTarget, cfgState)
+            val prevSummary = new MethodSummary(identifyingPP, callTarget, TrackingCFGStateFactory(entryState.top()).allBottom(callTarget.body))
             executeMethod(enteredState, prevSummary)
         }
 
@@ -218,10 +216,10 @@ object MethodSummaries {
    * @return a generalized summary
    */
   private def executeMethod[S <: State[S]](entryState: S, currentSummary: MethodSummary[S]): MethodSummary[S] = {
-    val methodDecl = currentSummary.method
     val newState =
-      SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(methodDecl)) {
-        currentSummary.cfgState.asInstanceOf[ControlFlowGraphExecution[S]].forwardSemantics(entryState)
+      SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(currentSummary.method)) {
+        val interpreter = TrackingForwardInterpreter[S](entryState.top())
+        interpreter.forwardExecuteWithCFGState(currentSummary.method.body, currentSummary.cfgState, entryState)
       }
     currentSummary.copy(cfgState = newState)
   }

@@ -215,7 +215,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   }
 
   def getMethodWithClassDefinition(name: String, classType: Type, parameters: List[Type]): Option[MethodDeclaration] = {
-    val matches = (for (clazz <- parsedScripts; if (clazz.typ.name == classType.name); method <- clazz.methods) yield {
+    val matches = (for (clazz <- parsedScripts; if clazz.typ.name == classType.name; method <- clazz.methods) yield {
       if (method.name.toString.equals(name) && method.arguments.apply(0).size == parameters.size) {
         var ok: Boolean = true
         for (i <- 0 to method.arguments(0).size - 1) {

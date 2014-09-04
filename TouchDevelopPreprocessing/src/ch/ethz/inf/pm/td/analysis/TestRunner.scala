@@ -38,7 +38,7 @@ object TestRunner {
   }
 
   def runDirectoryWithApron(dir:String) {
-    TouchApronRun.main(new File(basePath(dir)).listFiles(
+    TouchRun.main(new File(basePath(dir)).listFiles(
       new FileFilter {
         def accept(p1: File): Boolean = { p1.getName.matches(".*\\.td$") || p1.getName.matches(".*\\.json$") }
       }
@@ -46,11 +46,11 @@ object TestRunner {
   }
 
   def runFileWithApron(file:String) {
-    TouchApronRun.main(Array(basePath+file))
+    TouchRun.main(Array(basePath+file))
   }
 
   def runIdWithApron(id:String) {
-    TouchApronRun.main(Array("td://"+id))
+    TouchRun.main(Array("td://"+id))
   }
 
 

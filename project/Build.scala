@@ -65,7 +65,7 @@ object SampleBuild extends Build {
       Defaults.defaultSettings ++
       ScalatraPlugin.scalatraSettings ++
       Twirl.settings) dependsOn(
-    core, numerical, valuedrivenheap, sil)
+    core, numerical, valuedrivenheap, sil, touchdevelop)
 
   lazy val gui = Project(
     id = "sample-gui",

@@ -656,6 +656,21 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] {
 
 }
 
+trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] extends SimpleState[S] {
+  this: S =>
+
+  def removeObject(oldPreState: S, obj: ExpressionSet, fields: Option[Set[Identifier]]) = ???
+  def backwardAssignVariable(oldPreState: S, x: Expression, right: Expression) = ???
+  def backwardAssignField(oldPreState: S, obj: Expression, field: String, right: Expression) = ???
+  def backwardGetVariableValue(id: Assignable) = ???
+  def backwardGetFieldValue(obj: ExpressionSet, field: String, typ: Type) = ???
+  def nonDeterminismSourceAt(pp: ProgramPoint, typ: Type) = ???
+  def createNonDeterminismSource(typ: Type, pp: ProgramPoint, summary: Boolean)  = ???
+  def undoPruneUnreachableHeap(preState: S) = ???
+  def undoPruneVariables(unprunedPreState: S, filter: Identifier => Boolean) = ???
+
+}
+
 /** State whose collection-related methods throw a `NotImplementedError`.
   * Useful to avoid code clutter in states not supporting collections.
   */
@@ -830,11 +845,13 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
   /** Removes the given variable.
     * Implementations can assume this state is non-bottom
     */
-  def removeVariable(varExpr: Expression): S
+  def removeVariable(varExpr: VariableIdentifier): S
 
   def removeVariable(varSet: ExpressionSet): S = {
+    require(varSet.getSetOfExpressions.forall(_.isInstanceOf[VariableIdentifier]))
+
     unlessBottom(varSet, {
-      val result = Lattice.bigLub(varSet.getSetOfExpressions.map(removeVariable))
+      val result = Lattice.bigLub(varSet.getSetOfExpressions.map { x => removeVariable (x.asInstanceOf[VariableIdentifier])})
       result.removeExpression()
     })
   }

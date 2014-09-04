@@ -30,6 +30,8 @@ object TouchAnalysisParameters {
 
   def libraryFieldPruning = currentParams.libraryFieldPruning
 
+  def generalPersistentState = currentParams.execution.generalPersistentState
+
   def singleExecution = currentParams.execution.singleExecution
 
   def fullAliasingInGenericInput = currentParams.execution.fullAliasingInGenericInput
@@ -126,6 +128,11 @@ case class ExecutionModelParams(
                                   *
                                   * EXPERIMENTAL
                                   */
+                                 generalPersistentState: Boolean = false,
+
+                                 /**
+                                  * Analyze a single execution
+                                  */
                                  singleExecution: Boolean = false,
 
                                  fullAliasingInGenericInput: Boolean = false,
@@ -210,7 +217,7 @@ case class ReportingParams(reportNoncriticalParameterBoundViolations: Boolean = 
                            /**
                             * do not report errors in libraries
                             */
-                           reportOnlyAlarmsInMainScript: Boolean = true,
+                           reportOnlyAlarmsInMainScript: Boolean = false,
 
                            /**
                             * If this is true, the analysis will print something like

@@ -349,13 +349,8 @@ I <: HeapIdentifier[I]](
     result
   }
 
-  def removeVariable(varExpr: Expression): AbstractState[N, H, I] = {
-    varExpr match {
-      case variable: Assignable =>
-        factory(domain.removeVariable(variable), expr)
-      case _ =>
-        sys.error("I can remove only variables")
-    }
+  def removeVariable(varExpr: VariableIdentifier): AbstractState[N, H, I] = {
+    factory(domain.removeVariable(varExpr), expr)
   }
 
   override def removeObject(oldPreState: AbstractState[N, H, I], x: ExpressionSet, fields: Option[Set[Identifier]]): AbstractState[N, H, I] = {

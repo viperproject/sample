@@ -24,3 +24,6 @@ libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.1"
 
 libraryDependencies += "org.mongodb" %% "casbah" % "2.6.0"
 
+libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.0"
+
+
