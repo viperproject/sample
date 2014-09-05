@@ -3,8 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of home
@@ -17,25 +19,20 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SHome {
+object SHome extends ASingleton {
 
   /** Gets the media players on the current wireless network */
-  val field_players = new TouchField("players", TMedia_Player_Collection.typName)
+  lazy val field_players = new TouchField("players", TMedia_Player_Collection.typeName)
 
   /** Gets the printers on the current wireless network */
-  val field_printers = new TouchField("printers", TPrinter_Collection.typName)
+  lazy val field_printers = new TouchField("printers", TPrinter_Collection.typeName)
 
   /** Gets the media servers on the home network */
-  val field_servers = new TouchField("servers", TMedia_Server_Collection.typName)
+  lazy val field_servers = new TouchField("servers", TMedia_Server_Collection.typeName)
 
-  val typName = "Home"
-  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_players, field_printers, field_servers))
+  lazy val typeName = TypeName("Home")
 
-}
-
-class SHome extends AAny {
-
-  def getTyp = SHome.typ
+  override def possibleFields = super.possibleFields ++ (List(field_players, field_printers, field_servers))
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -43,7 +40,7 @@ class SHome extends AAny {
     /** Choose a media player on the current wireless network */
     case "choose player" =>
       val ret = If[S](CollectionSize[S](Field[S](this0, SHome.field_players)) equal 0, Then = {
-        Return[S](Invalid(TMedia_Player.typ, "user may abort the player selection"))(_, pp)
+        Return[S](Invalid(TMedia_Player, "user may abort the player selection"))(_, pp)
       }, Else = {
         Return[S](CollectionSummary[S](Field[S](this0, SHome.field_players)))(_, pp)
       })
@@ -52,7 +49,7 @@ class SHome extends AAny {
     /** Choose a printer on the current wireless network */
     case "choose printer" =>
       val ret = If[S](CollectionSize[S](Field[S](this0, SHome.field_printers)) equal 0, Then = {
-        Return[S](Invalid(TPrinter.typ, "user may abort the printer selection"))(_, pp)
+        Return[S](Invalid(TPrinter, "user may abort the printer selection"))(_, pp)
       }, Else = {
         Return[S](CollectionSummary[S](Field[S](this0, SHome.field_printers)))(_, pp)
       })
@@ -61,7 +58,7 @@ class SHome extends AAny {
     /** Choose a media server on the current wireless network */
     case "choose server" =>
       val ret = If[S](CollectionSize[S](Field[S](this0, SHome.field_servers)) equal 0, Then = {
-        Return[S](Invalid(TMedia_Server.typ, "user may abort the media server selection"))(_, pp)
+        Return[S](Invalid(TMedia_Server, "user may abort the media server selection"))(_, pp)
       }, Else = {
         Return[S](CollectionSummary[S](Field[S](this0, SHome.field_servers)))(_, pp)
       })

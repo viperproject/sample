@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Json Object
@@ -14,34 +16,33 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */
 
-object TJson_Object {
+object TJson_Object extends AMap {
 
   /** Gets the list of keys */
-  val field_keys = new TouchField("keys", TString_Collection.typName)
+  lazy val field_keys = new TouchField("keys", TString_Collection.typeName)
 
   /** Gets a json kind (string, number, object, array, boolean, null) */
-  val field_kind = new TouchField("kind", TString.typName)
+  lazy val field_kind = new TouchField("kind", TString.typeName)
 
   /** Converts to a boolean (type must be boolean) */
-  val field_to_boolean = new TouchField("to boolean", TBoolean.typName)
+  lazy val field_to_boolean = new TouchField("to boolean", TBoolean.typeName)
 
   /** Converts to a number (type must be number) */
-  val field_to_number = new TouchField("to number", TNumber.typName)
+  lazy val field_to_number = new TouchField("to number", TNumber.typeName)
 
   /** Converts to a number (type must be string) */
-  val field_to_string = new TouchField("to string", TString.typName)
+  lazy val field_to_string = new TouchField("to string", TString.typeName)
 
   /** Converts and parses to a date time (type must be string) */
-  val field_to_time = new TouchField("to time", TDateTime.typName)
+  lazy val field_to_time = new TouchField("to time", TDateTime.typeName)
 
-  val typName = "Json Object"
-  val typ = TouchCollection(typName, TString.typName, TJson_Object.typName, List(field_keys, field_kind, field_to_boolean, field_to_number, field_to_string, field_to_time), immutableCollection = true)
+  lazy val typeName = TypeName("Json Object")
 
-}
+  def keyTypeName = TString.typeName
+  def valueTypeName = TJson_Object.typeName
 
-class TJson_Object extends AMap {
-
-  def getTyp = TJson_Object.typ
+  override def possibleFields = super.possibleFields ++ Set(field_keys, field_kind, field_to_boolean, field_to_number,
+    field_to_string, field_to_time)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -70,7 +71,7 @@ class TJson_Object extends AMap {
     /** Create a string formatted for easy readability */
     case "format" =>
       val List(spaces) = parameters // Number
-      Top[S](TString.typ)
+      Top[S](TString)
 
     /** Gets a field value as a number */
     case "number" =>
@@ -88,7 +89,7 @@ class TJson_Object extends AMap {
 
     /** Copy current JSON object into a Json Builder so it can be modified */
     case "to json builder" =>
-      Top[S](TJson_Builder.typ, initials = Map(
+      Top[S](TJson_Builder, initials = Map(
         TJson_Builder.field_keys -> Field[S](this0, TJson_Object.field_keys),
         TJson_Builder.field_kind -> Field[S](this0, TJson_Object.field_kind),
         TJson_Builder.field_to_boolean -> Field[S](this0, TJson_Object.field_to_boolean),

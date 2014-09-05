@@ -3,8 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Wall
@@ -14,49 +16,50 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SWall {
+object SWall extends ASingleton {
 
   /** Gets the list of available page button names. */
-  val field_button_icon_names = new TouchField("button icon names", TString_Collection.typName)
+  lazy val field_button_icon_names = new TouchField("button icon names", TString_Collection.typeName)
 
   /** Gets the width of the screen (in pixels). */
-  val field_width = new TouchField("width", TNumber.typName)
+  lazy val field_width = new TouchField("width", TNumber.typeName)
 
   /** Gets the height of the screen (in pixels). */
-  val field_height = new TouchField("height", TNumber.typName)
+  lazy val field_height = new TouchField("height", TNumber.typeName)
 
   /** Sets the wall background camera. */
-  val field_background_camera = new TouchField("background camera", TCamera.typName)
+  lazy val field_background_camera = new TouchField("background camera", TCamera.typeName)
 
   /** Sets the wall background picture. The picture will be resized and clipped to the screen background as needed. */
-  val field_background_picture = new TouchField("background picture", TPicture.typName)
+  lazy val field_background_picture = new TouchField("background picture", TPicture.typeName)
 
   /** Sets the wall background color. */
-  val field_background = new TouchField("background", TColor.typName)
+  lazy val field_background = new TouchField("background", TColor.typeName)
 
   /** Sets the wall foreground color of elements. */
-  val field_foreground = new TouchField("foreground", TColor.typName)
+  lazy val field_foreground = new TouchField("foreground", TColor.typeName)
 
   /** [**dbg**] Sets the animation for push/pop of pages. */
-  val field_page_transition_style = new TouchField("page transition style", TString.typName)
+  lazy val field_page_transition_style = new TouchField("page transition style", TString.typeName)
 
   /** Reverses the elements on the wall and inserts new ones at the bottom. */
-  val field_reversed = new TouchField("reversed", TBoolean.typName)
+  lazy val field_reversed = new TouchField("reversed", TBoolean.typeName)
 
   /** Sets the subtitle of the wall. */
-  val field_subtitle = new TouchField("subtitle", TBoolean.typName)
+  lazy val field_subtitle = new TouchField("subtitle", TBoolean.typeName)
 
   /** Sets the title of the wall. */
-  val field_title = new TouchField("title", TBoolean.typName)
+  lazy val field_title = new TouchField("title", TBoolean.typeName)
 
   /** Returns the current back stack of pages, starting from the current page to the bottom page. */
-  val field_pages = new TouchField("pages", TPage_Collection.typName)
+  lazy val field_pages = new TouchField("pages", TPage_Collection.typeName)
 
   /** Indicates whether to show or hide the search icon */
-  val field_display_search = new TouchField("display search", TBoolean.typName)
+  lazy val field_display_search = new TouchField("display search", TBoolean.typeName)
 
-  val typName = "Wall"
-  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(
+  lazy val typeName = TypeName("Wall")
+
+  override def possibleFields = super.possibleFields ++ List(
     field_button_icon_names,
     field_width,
     field_height,
@@ -70,13 +73,7 @@ object SWall {
     field_title,
     field_pages,
     field_display_search
-  ))
-
-}
-
-class SWall extends AAny {
-
-  def getTyp = SWall.typ
+  )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -86,7 +83,7 @@ class SWall extends AAny {
       val List(icon, text) = parameters // String,String
     val pages = Field[S](this0, SWall.field_pages)
       val currentPage = CollectionAt[S](pages, CollectionSize[S](pages) - 1)
-      New[S](TPage_Button.typ, initials = Map(
+      New[S](TPage_Button, initials = Map(
         TPage_Button.field_icon -> icon,
         TPage_Button.field_text -> text,
         TPage_Button.field_page -> currentPage
@@ -95,24 +92,24 @@ class SWall extends AAny {
     /** Prompts the user with ok and cancel buttons */
     case "ask boolean" =>
       val List(text, caption) = parameters // String,String
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Prompts the user to input a number */
     case "ask number" =>
       val List(text) = parameters // String
-      Top[S](TNumber.typ)
+      Top[S](TNumber)
 
     /** Prompts the user to input a string */
     case "ask string" =>
       val List(text) = parameters // String
-      Top[S](TString.typ)
+      Top[S](TString)
 
     /** Clears the background color, picture and camera */
     case "clear background" =>
       var curState = state
-      curState = AssignField[S](this0, SWall.field_background, Invalid(TColor.typ, "background may have been cleared"))(curState, pp)
-      curState = AssignField[S](this0, SWall.field_background_camera, Invalid(TCamera.typ, "background camera may have been cleared"))(curState, pp)
-      curState = AssignField[S](this0, SWall.field_background_picture, Invalid(TPicture.typ, "background picture may have been cleared"))(curState, pp)
+      curState = AssignField[S](this0, SWall.field_background, Invalid(TColor, "background may have been cleared"))(curState, pp)
+      curState = AssignField[S](this0, SWall.field_background_camera, Invalid(TCamera, "background camera may have been cleared"))(curState, pp)
+      curState = AssignField[S](this0, SWall.field_background_picture, Invalid(TPicture, "background picture may have been cleared"))(curState, pp)
       curState
 
     /** Gets the current page displayed on the wall */
@@ -127,14 +124,14 @@ class SWall extends AAny {
     /** Clears the background, buttons and entries */
     case "clear" =>
       var curState = state
-      curState = CallApi[S](this0, "clear background", Nil, TNothing.typ)(curState, pp)
-      curState = CallApi[S](this0, "clear buttons", Nil, TNothing.typ)(curState, pp)
+      curState = CallApi[S](this0, "clear background", Nil, TNothing)(curState, pp)
+      curState = CallApi[S](this0, "clear buttons", Nil, TNothing)(curState, pp)
       curState
 
     /** Creates an updatable text box */
     case "create text box" =>
       val List(text, font_size) = parameters // String,Number
-      New[S](TTextBox.typ, initials = Map(TTextBox.field_text -> text, TTextBox.field_font_size -> font_size))
+      New[S](TTextBox, initials = Map(TTextBox.field_text -> text, TTextBox.field_font_size -> font_size))
 
     /** Indicates whether to show or hide the search icon */
     case "display search" =>
@@ -148,7 +145,7 @@ class SWall extends AAny {
     /** Prompts the user to pick a date. Returns a datetime whose date is set, the time is 12:00:00. */
     case "pick date" =>
       val List(text, caption) = parameters // String,String
-      TopWithInvalid[S](TDateTime.typ, "user may cancel date selection") // INVALID VALUE VERIFIED IN ONLINE VERSION
+      TopWithInvalid[S](TDateTime, "user may cancel date selection") // INVALID VALUE VERIFIED IN ONLINE VERSION
 
     /** Prompts the user to pick a string from a list. Returns the selected index. */
     case "pick string" =>
@@ -159,7 +156,7 @@ class SWall extends AAny {
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */
     case "pick time" =>
       val List(text, caption) = parameters // String,String
-      TopWithInvalid[S](TDateTime.typ, "user may cancel time selection")
+      TopWithInvalid[S](TDateTime, "user may cancel time selection")
 
     /** Same as `wall->pop_page`, but lets you use specific animation. */
     case "pop page with transition" =>
@@ -189,7 +186,7 @@ class SWall extends AAny {
     case "push new page" =>
       val pages = Field[S](this0, SWall.field_pages)
       var curState = state
-      curState = New[S](TPage.typ)(curState, pp)
+      curState = New[S](TPage)(curState, pp)
       val newPage = curState.expr
       curState = CollectionInsert[S](pages, CollectionSize[S](pages), newPage)(curState, pp)
       curState = CollectionIncreaseLength[S](pages)(curState, pp)
@@ -197,7 +194,7 @@ class SWall extends AAny {
 
     /** Takes a screenshot of the wall. */
     case "screenshot" =>
-      Top[S](TPicture.typ)
+      Top[S](TPicture)
 
     /** Sets the 3x3 affine matrix transformation applied to the wall. */
     case "set transform matrix" =>

@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
+import ch.ethz.inf.pm.td.analysis.TouchField
 import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, Parameter, TableDefinition, TypeName, WhereStatement, _}
 import ch.ethz.inf.pm.td.semantics._
 import ch.ethz.inf.pm.td.typecheck.Typer
@@ -73,7 +74,7 @@ class CFGGenerator(compiler: TouchCompiler) {
       case None => curScriptName = libraryIdent(pubID)
     }
     val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, script)
-    val typ: Type = typeNameToType(TypeName(curScriptName), true)
+    val typ: Type = typeNameToType(TypeName(curScriptName))
     SystemParameters.typ = typ
 
     findTypes(script)
@@ -102,39 +103,16 @@ class CFGGenerator(compiler: TouchCompiler) {
   private def findTypes(script: parser.Script) {
 
     def addTouchType(semantics: AAny) {
-      compiler.userTypes += semantics.getTypeName -> semantics
+      compiler.userTypes += semantics.typeName -> semantics
     }
 
     def addRecordsField(field: TouchField) {
-      SRecords.typ = DefaultTouchType(SRecords.typName, isSingleton = true, fields = SRecords.typ.possibleFields.toList ::: List(field))
+      compiler.recordsFields += field
     }
-
-    //    def createFieldMembers(fields:List[Parameter]): List[(TouchField,TouchField)] = {
-    //      for (field <- fields) yield {
-    //        val inp = field.typeName.toString
-    //        val (fieldTypeName, noFieldTypeName) =
-    //          if(inp.matches(""" field$""")) {
-    //            val (part1,check) = inp.splitAt(inp.size-7)
-    //            if (check != " field") throw TouchException("Expected field here")
-    //            (part1+" field",part1)
-    //          } else {
-    //            (inp+" field",inp)
-    //          }
-    //        val valueField = new TouchField("*value",noFieldTypeName)
-    //        val fieldType = DefaultTouchType(fieldTypeName,fields=List(valueField))
-    //
-    //        if (noFieldTypeName.equals("Number"))
-    //          addTouchType(new ANumberField(fieldType,valueField))
-    //        else
-    //          addTouchType(new AField(fieldType,valueField))
-    //
-    //        (new TouchField(field.ident,fieldTypeName,NewInitializer),valueField)
-    //      }
-    //    }
 
     def toTouchField(fields: List[Parameter]): List[TouchField] = {
       for (field <- fields) yield {
-        new TouchField(field.ident, field.typeName.ident)
+        new TouchField(field.ident, field.typeName)
       }
     }
 
@@ -146,52 +124,37 @@ class CFGGenerator(compiler: TouchCompiler) {
           typeName match {
             case "object" =>
 
-              val objectTyp = DefaultTouchType(ident, fields = toTouchField(fields))
-              val collectionTyp = new TouchCollection(ident + " Collection", TNumber.typName, ident)
-              val constructorTyp = DefaultTouchType(ident + " Constructor")
-
-              addTouchType(new AObject(objectTyp))
-              addTouchType(new AObjectCollection(collectionTyp, objectTyp))
-              addTouchType(new AObjectConstructor(constructorTyp, objectTyp, collectionTyp))
-
-              addRecordsField(new TouchField(ident, constructorTyp.name))
+              val objectTypeName = TypeName(ident)
+              val objectConstructor = new GObjectConstructor(objectTypeName)
+              addTouchType(new GObject(TypeName(ident),toTouchField(fields)))
+              addTouchType(new GObjectCollection(objectTypeName))
+              addTouchType(objectConstructor)
+              addRecordsField(new TouchField(ident, objectConstructor.typeName))
 
             case "table" =>
 
-              val rowTypName = ident
-              val tableTypeName = ident + " Table"
-
-              // An auxiliary field that stores a link from the row to the table, to implement row.delete_row
-              val tableField = new TouchField("*table", tableTypeName)
-
-              val rowTyp = DefaultTouchType(ident, fields = toTouchField(fields) ::: List(tableField))
-              val tableTyp = new TouchCollection(tableTypeName, TNumber.typName, rowTypName)
-
-              addTouchType(new ARow(rowTyp, tableField))
-              addTouchType(new ATable(tableTyp, rowTyp, tableField))
-
-              addRecordsField(new TouchField(ident + " table", tableTyp.name))
+              val rowTypName = TypeName(ident)
+              val tableType = new GTable(rowTypName)
+              addTouchType(new GRow(rowTypName, toTouchField(fields)))
+              addTouchType(tableType)
+              addRecordsField(new TouchField(ident + " table", tableType.typeName))
 
             case "index" =>
 
+              val indexMemberTypeName = TypeName(ident)
               val keyMembers = toTouchField(keys)
               val fieldMembers = toTouchField(fields)
-              val indexMemberType = DefaultTouchType(ident, fields = keyMembers ::: fieldMembers)
-              val keyTypes = keyMembers map (_.typ)
 
-              addTouchType(new AIndexMember(indexMemberType, fieldMembers))
+              addTouchType(new GIndexMember(indexMemberTypeName, keyMembers, fieldMembers))
               val indexType =
-                if (keyTypes.size > 0) {
-                  val ty = new TouchCollection(ident + " Index", TNumber.typName, indexMemberType.name)
-                  addTouchType(new AIndex(ty, keyTypes, indexMemberType))
-                  ty
+                if (keyMembers.size > 0) {
+                  new GIndex(indexMemberTypeName)
                 } else {
-                  val ty = DefaultTouchType(ident + " Index", fields = List(new TouchField("singleton", indexMemberType.name)))
-                  addTouchType(new ASingletonIndex(ty, indexMemberType))
-                  ty
+                  new GSingletonIndex(indexMemberTypeName)
                 }
+              addTouchType(indexType)
 
-              addRecordsField(new TouchField(ident + " index", indexType.name))
+              addRecordsField(new TouchField(ident + " index", indexType.typeName))
 
             case "decorator" =>
 
@@ -200,14 +163,13 @@ class CFGGenerator(compiler: TouchCompiler) {
               val keyMembers = toTouchField(keys)
               val fieldMembers = toTouchField(fields)
 
-              val decoratedType = keyMembers.head.typ
-              val decorationType = DefaultTouchType(ident, fields = fieldMembers ::: keyMembers)
-              val decoratorType = new TouchCollection(decoratedType + " Decorator", decoratedType.name, decorationType.name)
+              val decoratedType = keyMembers.head.typeName
+              val decorationType = TypeName(ident)
+              val decoratorType = new GIndex(decorationType,Some(TypeName(decoratedType.ident + " Decorator")))
 
-              addTouchType(new AIndexMember(decorationType, fieldMembers))
-              addTouchType(new AIndex(decoratorType, List(decoratedType), decorationType))
-
-              addRecordsField(new TouchField(decoratedType + " decorator", decoratorType.name))
+              addTouchType(new GIndexMember(decorationType, keyMembers, fieldMembers))
+              addTouchType(decoratorType)
+              addRecordsField(new TouchField(decoratedType + " decorator", decoratorType.typeName))
 
             case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 
@@ -243,10 +205,10 @@ class CFGGenerator(compiler: TouchCompiler) {
           val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, act)
           val scope: ScopeIdentifier = ProgramPointScopeIdentifier(programPoint)
           val modifiers: List[Modifier] = Nil
-          val isPrivate = isPriv || ((body find {
+          val isPrivate = isPriv || (body exists {
             case MetaStatement("private", _) => true;
             case _ => false
-          }) != None)
+          })
           val name: MethodIdentifier = TouchMethodIdentifier(ident, isEvent = isEvent, isPrivate = isPrivate)
           val parametricType: List[Type] = Nil
           val arguments: List[List[VariableDeclaration]] =
@@ -298,11 +260,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     VariableIdentifier(name, scope)(typ, programPoint)
   }
 
-  private def typeNameToType(typeName: parser.TypeName, isSingleton: Boolean = false): TouchType = {
-    if (!isLibraryIdent(typeName.ident)) {
-      compiler.getSemantics(typeName.ident).getTyp
-    } else DefaultTouchType(typeName.ident, isSingleton)
-  }
+  private def typeNameToType(typeName: parser.TypeName): TouchType = compiler.getType(typeName)
 
   private def addStatementsToCFG(statements: List[parser.Statement], cfg: ControlFlowGraph, scope: ScopeIdentifier,
                                  currentClassDef: ClassDefinition): (Int, Int, List[MethodDeclaration]) = {
@@ -459,7 +417,7 @@ class CFGGenerator(compiler: TouchCompiler) {
         } else throw new TouchException("Literals with type " + t.ident + " do not exist")
 
       case parser.SingletonReference(singleton, typ) =>
-        Variable(pc, VariableIdentifier(singleton)(typeNameToType(expr.typeName, isSingleton = true), pc))
+        Variable(pc, VariableIdentifier(singleton)(typeNameToType(expr.typeName), pc))
     }
 
   }

@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Task
@@ -13,19 +15,14 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TTask {
+object TTask extends AAny {
 
   /** Check if the task is done yet */
-  val field_completed = new TouchField("completed",TBoolean.typName)
+  lazy val field_completed = new TouchField("completed",TBoolean.typeName)
 
-  val typName = "Task"
-  val typ = DefaultTouchType(typName,isSingleton = false,fields = List(field_completed))
+  val typeName = TypeName("Task")
 
-}
-
-class TTask extends AAny {
-
-  def getTyp = TTask.typ
+  override def possibleFields = super.possibleFields ++ List(field_completed)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

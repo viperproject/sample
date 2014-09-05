@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of User
@@ -13,37 +15,33 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TUser {
+object TUser extends AAny {
 
   /** Gets the about-me text of the user */
-  val field_about = new TouchField("about",TString.typName)
+  lazy val field_about = new TouchField("about",TString.typeName)
 
   /** Indicates if the user has a picture */
-  val field_has_picture = new TouchField("has picture",TBoolean.typName)
+  lazy val field_has_picture = new TouchField("has picture",TBoolean.typeName)
 
   /** Gets the id */
-  val field_id = new TouchField("id",TString.typName)
+  lazy val field_id = new TouchField("id",TString.typeName)
 
   /** Gets the name of the user */
-  val field_name = new TouchField("name",TString.typName)
+  lazy val field_name = new TouchField("name",TString.typeName)
 
   /** Gets the url of the user picture where original is the unmodified user picture, square is 50x50, small has 50px
     * width, normal has 100px width, large has roughly 200px width */
-  val field_picture_address = new TouchField("picture address",TString.typName)
+  lazy val field_picture_address = new TouchField("picture address",TString.typeName)
 
   /** Gets the user picture where original is the unmodified user picture, square is 50x50, small has 50px width,
     * normal has 100px width, large has roughly 200px width */
-  val field_picture = new TouchField("picture",TPicture.typName)
+  lazy val field_picture = new TouchField("picture",TPicture.typeName)
 
-  val typName = "User"
-  val typ = DefaultTouchType(typName,isSingleton = false,fields = List(field_about, field_has_picture, field_id,
-    field_name, field_picture_address, field_picture))
+  val typeName = TypeName("User")
 
-}
+  override def possibleFields = super.possibleFields ++ List(field_about, field_has_picture, field_id,
+    field_name, field_picture_address, field_picture)
 
-class TUser extends AAny {
-
-  def getTyp = TUser.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet],
                                                returnedType:TouchType)

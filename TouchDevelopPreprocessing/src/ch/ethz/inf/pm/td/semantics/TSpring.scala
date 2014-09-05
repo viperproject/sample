@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Spring
@@ -14,19 +16,14 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */
 
-object TSpring {
+object TSpring extends AAny {
 
   /** Sets the spring stiffness. */
-  val field_stiffness = new TouchField("stiffness", TNumber.typName)
+  lazy val field_stiffness = new TouchField("stiffness", TNumber.typeName)
 
-  val typName = "Spring"
-  val typ = DefaultTouchType(typName, fields = List(field_stiffness))
+  val typeName = TypeName("Spring")
 
-}
-
-class TSpring extends AAny {
-
-  def getTyp = TSpring.typ
+  override def possibleFields = super.possibleFields ++ List(field_stiffness)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

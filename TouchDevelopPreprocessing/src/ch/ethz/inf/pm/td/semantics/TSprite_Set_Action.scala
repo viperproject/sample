@@ -1,9 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Sprite Set Action
@@ -13,16 +14,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TSprite_Set_Action {
+object TSprite_Set_Action extends AAction {
 
-  val typName = "Sprite Set Action"
-  val typ = DefaultTouchType(typName, fields = List(AAction.field_handlerName), isImmutable = true)
-
-}
-
-class TSprite_Set_Action extends AAny {
-
-  def getTyp = TSprite_Set_Action.typ
+  val typeName = TypeName("Sprite Set Action")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

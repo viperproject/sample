@@ -1,30 +1,26 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.sample.abstractdomain.{State, ExpressionSet}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * User: lucas
  * Date: 11/8/12
  * Time: 6:10 PM
  */
-object TVector3 {
+object TVector3 extends AAny {
 
-  val field_x = new TouchField("x", TNumber.typName)
-  val field_y = new TouchField("y", TNumber.typName)
-  val field_z = new TouchField("z", TNumber.typName)
+  lazy val field_x = new TouchField("x", TNumber.typeName)
+  lazy val field_y = new TouchField("y", TNumber.typeName)
+  lazy val field_z = new TouchField("z", TNumber.typeName)
 
-  val typName = "Vector3"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_x,field_y,field_z))
+  val typeName = TypeName("Vector3")
 
-}
-
-
-class TVector3 extends AAny {
-
-  def getTyp = TVector3.typ
+  override def possibleFields = super.possibleFields ++ List(field_x,field_y,field_z)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -34,7 +30,7 @@ class TVector3 extends AAny {
       val x = Field[S](this0,TVector3.field_x) + Field[S](other,TVector3.field_x)
       val y = Field[S](this0,TVector3.field_y) + Field[S](other,TVector3.field_y)
       val z = Field[S](this0,TVector3.field_z) + Field[S](other,TVector3.field_z)
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -47,7 +43,7 @@ class TVector3 extends AAny {
       val y = Field[S](min,TVector3.field_y) ndTo Field[S](max,TVector3.field_y)
       val z = Field[S](min,TVector3.field_z) ndTo Field[S](max,TVector3.field_z)
       // PRECISION: Here we are not using the original value of the vector.
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -65,7 +61,7 @@ class TVector3 extends AAny {
       val x = thisY * otherZ - thisZ * otherY
       val y = thisZ * otherX - thisX * otherZ
       val z = thisX * otherY - thisY * otherX
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -96,7 +92,7 @@ class TVector3 extends AAny {
       val x = Field[S](this0,TVector3.field_x) + amount * Field[S](other,TVector3.field_x)
       val y = Field[S](this0,TVector3.field_y) + amount * Field[S](other,TVector3.field_y)
       val z = Field[S](this0,TVector3.field_z) + amount * Field[S](other,TVector3.field_z)
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -108,7 +104,7 @@ class TVector3 extends AAny {
       val x = Field[S](this0,TVector3.field_x) * Field[S](other,TVector3.field_x)
       val y = Field[S](this0,TVector3.field_y) * Field[S](other,TVector3.field_y)
       val z = Field[S](this0,TVector3.field_z) * Field[S](other,TVector3.field_z)
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -118,7 +114,7 @@ class TVector3 extends AAny {
       val x = 0 - Field[S](this0,TVector3.field_x)
       val y = 0 - Field[S](this0,TVector3.field_y)
       val z = 0 - Field[S](this0,TVector3.field_z)
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -127,7 +123,7 @@ class TVector3 extends AAny {
     /** Returns a vector of one unit pointing in the same direction as the original vector */
     case "normalize" =>
       // PRECISION: There is a more precise way to do this
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> (-1 ndTo 1),
         TVector3.field_y -> (-1 ndTo 1),
         TVector3.field_z -> (-1 ndTo 1)
@@ -139,7 +135,7 @@ class TVector3 extends AAny {
       val x = scalar * Field[S](this0,TVector3.field_x)
       val y = scalar * Field[S](this0,TVector3.field_y)
       val z = scalar * Field[S](this0,TVector3.field_z)
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -151,7 +147,7 @@ class TVector3 extends AAny {
       val x = Field[S](this0,TVector3.field_x) - Field[S](other,TVector3.field_x)
       val y = Field[S](this0,TVector3.field_y) - Field[S](other,TVector3.field_y)
       val z = Field[S](this0,TVector3.field_z) - Field[S](other,TVector3.field_z)
-      New[S](TVector3.typ,Map(
+      New[S](TVector3,Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z

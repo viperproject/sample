@@ -6,7 +6,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{VariableDeclaration, _}
 import ch.ethz.inf.pm.sample.{AnalysisUnitContext, SystemParameters}
 import ch.ethz.inf.pm.td.compiler.{TouchMethodIdentifier, _}
 import ch.ethz.inf.pm.td.domain.MultiValExpression
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.{TNothing, TUnknown}
 
 case class MethodSummary[S <: State[S]](pp: ProgramPoint, method: MethodDeclaration,
@@ -102,7 +102,7 @@ object MethodSummaries {
             val prev = prevSummary.asInstanceOf[MethodSummary[S]]
             executeMethod(enteredState, prev)
           case None =>
-            val prevSummary = new MethodSummary(identifyingPP, callTarget, TrackingCFGStateFactory(entryState.top()).allBottom(callTarget.body))
+            val prevSummary = new MethodSummary(identifyingPP, callTarget, TrackingCFGStateFactory(entryState.factory()).allBottom(callTarget.body))
             executeMethod(enteredState, prevSummary)
         }
 
@@ -218,7 +218,7 @@ object MethodSummaries {
   private def executeMethod[S <: State[S]](entryState: S, currentSummary: MethodSummary[S]): MethodSummary[S] = {
     val newState =
       SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(currentSummary.method)) {
-        val interpreter = TrackingForwardInterpreter[S](entryState.top())
+        val interpreter = TrackingForwardInterpreter[S](entryState.factory())
         interpreter.forwardExecuteWithCFGState(currentSummary.method.body, currentSummary.cfgState, entryState)
       }
     currentSummary.copy(cfgState = newState)
@@ -394,8 +394,8 @@ object MethodSummaries {
     // Set the expression to the set of output parameters.
     def buildMultiVal(tempVars: List[VariableIdentifier]): Expression = tempVars match {
       case x :: Nil => x
-      case x :: xs => MultiValExpression(x, buildMultiVal(xs), TUnknown.typ.top())
-      case Nil => UnitExpression(TNothing.typ, callPoint)
+      case x :: xs => MultiValExpression(x, buildMultiVal(xs), TNothing.top())
+      case Nil => UnitExpression(TNothing, callPoint)
     }
     val z = buildMultiVal(tempVars)
     curState = curState.setExpression(ExpressionSet(z))

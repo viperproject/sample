@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Place
@@ -14,35 +16,30 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TPlace {
+object TPlace extends AAny {
 
   /** Gets the category of the place */
-  val field_category = new TouchField("category",TString.typName)
+  lazy val field_category = new TouchField("category",TString.typeName)
 
   /** Gets the link associated to the message */
-  val field_link = new TouchField("link",TString.typName)
+  lazy val field_link = new TouchField("link",TString.typeName)
 
   /** Gets the location of the place */
-  val field_location = new TouchField("location",TLocation.typName)
+  lazy val field_location = new TouchField("location",TLocation.typeName)
 
   /** Gets the name of the place */
-  val field_name = new TouchField("name",TString.typName)
+  lazy val field_name = new TouchField("name",TString.typeName)
 
   /** Gets a url to the picture */
-  val field_picture_link = new TouchField("picture link",TString.typName)
+  lazy val field_picture_link = new TouchField("picture link",TString.typeName)
 
   /** Gets the source of this place (facebook, touchdevelop) */
-  val field_source = new TouchField("source",TString.typName)
+  lazy val field_source = new TouchField("source",TString.typeName)
 
-  val typName = "Place"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_category, field_link, field_location,
-    field_name, field_picture_link, field_source))
+  lazy val typeName = TypeName("Place")
 
-}
-
-class TPlace extends AAny {
-
-  def getTyp = TPlace.typ
+  override def possibleFields = super.possibleFields ++ List(field_category, field_link, field_location,
+    field_name, field_picture_link, field_source)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

@@ -3,8 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, TopInitializer, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Media Link
@@ -14,34 +16,30 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TMedia_Link {
+object TMedia_Link extends AAny {
 
   /** Gets the album if available */
-  val field_album = new TouchField("album", TString.typName, TopWithInvalidInitializer("link may not have a album"))
+  lazy val field_album = new TouchField("album", TString.typeName, TopWithInvalidInitializer("link may not have a album"))
 
   /** Gets the author if available */
-  val field_author = new TouchField("author", TString.typName, TopWithInvalidInitializer("link may not have an author"))
+  lazy val field_author = new TouchField("author", TString.typeName, TopWithInvalidInitializer("link may not have an author"))
 
   /** Gets the date if available */
-  val field_date = new TouchField("date", TDateTime.typName, TopWithInvalidInitializer("link may not have a date"))
+  lazy val field_date = new TouchField("date", TDateTime.typeName, TopWithInvalidInitializer("link may not have a date"))
 
   /** Gets the duration in seconds (0 for pictures) */
-  val field_duration = new TouchField("duration", TNumber.typName, TopInitializer)
+  lazy val field_duration = new TouchField("duration", TNumber.typeName, TopInitializer)
 
   /** Gets the kind of media (video, song, picture) */
-  val field_kind = new TouchField("kind", TString.typName, TopInitializer)
+  lazy val field_kind = new TouchField("kind", TString.typeName, TopInitializer)
 
   /** Gets the title if available */
-  val field_title = new TouchField("title", TString.typName, TopWithInvalidInitializer("link may not have a title"))
+  lazy val field_title = new TouchField("title", TString.typeName, TopWithInvalidInitializer("link may not have a title"))
 
-  val typName = "Media Link"
-  val typ = DefaultTouchType(typName, isSingleton = false, fields = List(field_album, field_author, field_date, field_duration, field_kind, field_title))
+  lazy val typeName = TypeName("Media Link")
 
-}
-
-class TMedia_Link extends AAny {
-
-  def getTyp = TMedia_Link.typ
+  override def possibleFields = super.possibleFields ++ List(field_album, field_author, field_date, field_duration,
+    field_kind, field_title)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

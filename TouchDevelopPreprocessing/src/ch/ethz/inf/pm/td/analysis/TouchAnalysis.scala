@@ -12,8 +12,8 @@ import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.td.semantics.{AAny, RichNativeSemantics}
+import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.AAny
 
 /**
  *
@@ -139,7 +139,7 @@ class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
     for (sem <- compiler.getNativeMethodsSemantics()) {
       sem match {
         case any: AAny =>
-          val typ = any.getTyp
+          val typ = any
           if (typ.isSingleton &&
             (!TouchAnalysisParameters.libraryFieldPruning ||
               compiler.relevantLibraryFields.contains(typ.name))) {
@@ -323,7 +323,7 @@ class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
       // Init the fields of singletons (the environment)
       for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
         if (sem.isInstanceOf[AAny]) {
-          val typ = sem.asInstanceOf[AAny].getTyp
+          val typ = sem.asInstanceOf[AAny]
           if (typ.isSingleton &&
             (!TouchAnalysisParameters.libraryFieldPruning ||
               SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.name))) {

@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,16 +16,9 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TCloud_Picture {
+object TCloud_Picture extends AAny {
 
-  val typName = "Cloud Picture"
-  val typ = DefaultTouchType(typName)
-
-}
-
-class TCloud_Picture extends AAny {
-
-  def getTyp = TCloud_Picture.typ
+  lazy val typeName = TypeName("Cloud Picture")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -31,12 +26,12 @@ class TCloud_Picture extends AAny {
     /** Downloads the picture with a particular size. */
     case "download picture" =>
     //  val List(media) = parameters // String
-      TopWithInvalid[S](TPicture.typ,"download may fail")
+      TopWithInvalid[S](TPicture,"download may fail")
 
     /** Gets the picture with a particular size. */
     case "to picture" =>
     //   val List(media) = parameters // String
-       TopWithInvalid[S](TPicture.typ,"conversion may fail")
+       TopWithInvalid[S](TPicture,"conversion may fail")
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

@@ -3,9 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of player
@@ -15,53 +16,48 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SPlayer {
-
+object SPlayer extends ASingleton {
 
   /** Gets the active song if any */
-  val field_active_song = new TouchField("active song", TSong.typName, topDefault = TopWithInvalidInitializer("player may not have an active song"))
+  lazy val field_active_song = new TouchField("active song", TSong.typeName, topDefault = TopWithInvalidInitializer("player may not have an active song"))
 
   /** Indicates if the player is muted */
-  val field_is_muted = new TouchField("is muted", TBoolean.typName)
+  lazy val field_is_muted = new TouchField("is muted", TBoolean.typeName)
 
   /** Indicates if the player is paused */
-  val field_is_paused = new TouchField("is paused", TBoolean.typName)
+  lazy val field_is_paused = new TouchField("is paused", TBoolean.typeName)
 
   /** Indicates if the player is playing a song */
-  val field_is_playing = new TouchField("is playing", TBoolean.typName)
+  lazy val field_is_playing = new TouchField("is playing", TBoolean.typeName)
 
   /** Indicates if the player is repeating */
-  val field_is_repeating = new TouchField("is repeating", TBoolean.typName)
+  lazy val field_is_repeating = new TouchField("is repeating", TBoolean.typeName)
 
   /** Indicates if the player is shuffled */
-  val field_is_shuffled = new TouchField("is shuffled", TBoolean.typName)
+  lazy val field_is_shuffled = new TouchField("is shuffled", TBoolean.typeName)
 
   /** Indicates if the player is stopped */
-  val field_is_stopped = new TouchField("is stopped", TBoolean.typName)
+  lazy val field_is_stopped = new TouchField("is stopped", TBoolean.typeName)
 
   /** Gets the position in seconds whithin the active song */
-  val field_play_position = new TouchField("play position", TNumber.typName)
+  lazy val field_play_position = new TouchField("play position", TNumber.typeName)
 
   /** Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */
-  val field_sound_volume = new TouchField("sound volume", TNumber.typName)
+  lazy val field_sound_volume = new TouchField("sound volume", TNumber.typeName)
 
   /** Volume is no longer supported. */
-  val field_volume = new TouchField("volume", TNumber.typName)
+  lazy val field_volume = new TouchField("volume", TNumber.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  val field_active_song_changed_handler = new TouchField("active song changed", TAction.typName)
-  val field_player_state_changed_handler = new TouchField("player state changed", TAction.typName)
+  lazy val field_active_song_changed_handler = new TouchField("active song changed", TAction.typeName)
+  lazy val field_player_state_changed_handler = new TouchField("player state changed", TAction.typeName)
 
-  val typName = "Player"
-  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_active_song, field_is_muted, field_is_paused,
+  lazy val typeName = TypeName("Player")
+
+  override def possibleFields = super.possibleFields ++ List(field_active_song, field_is_muted, field_is_paused,
     field_is_playing, field_is_repeating, field_is_shuffled, field_is_stopped, field_play_position, field_sound_volume,
     field_volume, field_active_song_changed_handler, field_player_state_changed_handler
-  ))
-}
-
-class SPlayer extends AAny {
-
-  def getTyp = SPlayer.typ
+  )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -89,13 +85,13 @@ class SPlayer extends AAny {
     case "on active song changed" =>
       val List(changed) = parameters // Action
     val newState = AssignField[S](this0, SPlayer.field_active_song_changed_handler, changed)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Attaches a handler when the player state changes */
     case "on player state changed" =>
       val List(changed) = parameters // Action
     val newState = AssignField[S](this0, SPlayer.field_player_state_changed_handler, changed)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Plays an audio/video file from the home network */
     // case "play home media" =>

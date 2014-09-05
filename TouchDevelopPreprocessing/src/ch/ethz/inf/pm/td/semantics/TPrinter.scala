@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Printer
@@ -14,34 +16,30 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TPrinter {
+object TPrinter extends AAny {
+
   /** Gets the detailed information about this device */
-  val field_device = new TouchField("device",TDevice.typName)
+  lazy val field_device = new TouchField("device",TDevice.typeName)
 
   /** Indicates additional information about why the Printer is in its current state. */
-  val field_state_reason = new TouchField("state reason",TString.typName)
+  lazy val field_state_reason = new TouchField("state reason",TString.typeName)
 
   /** Gets the name of the printer */
-  val field_name = new TouchField("name",TString.typName)
+  lazy val field_name = new TouchField("name",TString.typeName)
 
   /** Indicates if no jobs can be processed and intervention is needed. */
-  val field_is_stopped = new TouchField("is stopped",TBoolean.typName)
+  lazy val field_is_stopped = new TouchField("is stopped",TBoolean.typeName)
 
   /** Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */
-  val field_is_processing = new TouchField("is processing",TBoolean.typName)
+  lazy val field_is_processing = new TouchField("is processing",TBoolean.typeName)
 
   /** Indicates if new jobs can start processing immediately without waiting. */
-  val field_is_idle = new TouchField("is idle",TBoolean.typName)
+  lazy val field_is_idle = new TouchField("is idle",TBoolean.typeName)
 
-  val typName = "Printer"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_device, field_is_idle, field_is_processing,
-    field_is_stopped, field_name, field_state_reason))
+  lazy val typeName = TypeName("Printer")
 
-}
-
-class TPrinter extends AAny {
-
-  def getTyp = TPrinter.typ
+  override def possibleFields = super.possibleFields ++ List(field_device, field_is_idle, field_is_processing,
+    field_is_stopped, field_name, field_state_reason)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

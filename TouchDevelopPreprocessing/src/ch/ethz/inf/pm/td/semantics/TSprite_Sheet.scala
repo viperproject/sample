@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,19 +16,14 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TSprite_Sheet {
+object TSprite_Sheet extends AAny {
 
   /** Gets the picture associated to this sprite sheet. */
-  val field_picture = new TouchField("picture", TPicture.typName)
+  lazy val field_picture = new TouchField("picture", TPicture.typeName)
 
-  val typName = "Sprite Sheet"
-  val typ = DefaultTouchType(typName, fields = List(field_picture))
+  val typeName = TypeName("Sprite Sheet")
 
-}
-
-class TSprite_Sheet extends AAny {
-
-  def getTyp = TSprite_Sheet.typ
+  override def possibleFields = super.possibleFields ++ List(field_picture)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -49,7 +46,7 @@ class TSprite_Sheet extends AAny {
     /** Creates a new sprite displaying the given frame. */
     case "create sprite" =>
       val List(frame) = parameters // String
-      Top[S](TSprite.typ)
+      Top[S](TSprite)
 
     /** Sets the frames as a rectangular grid. The tiles are numbered from top, left to bottom right starting at 0. */
     case "set frame grid" =>

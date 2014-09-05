@@ -1,15 +1,16 @@
 package ch.ethz.inf.pm.td.semantics
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, MethodSummaries}
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
-import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.td.analysis.MethodSummaries
 
-class AObject(objectTyp:TouchType) extends AAny {
+case class GObject(typeName:TypeName, fields:List[TouchField]) extends AAny {
 
-  def getTyp = objectTyp
+  override def possibleFields = super.possibleFields ++ fields
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -17,7 +18,7 @@ class AObject(objectTyp:TouchType) extends AAny {
     case "clear fields" =>
       //      var curState = state
       //      for (field <- objectTyp.possibleTouchFields) {
-      //        curState = CallApi[S](Field[S](this0,field),"clear",Nil,TUnknown.typ)(curState,pp)
+      //        curState = CallApi[S](Field[S](this0,field),"clear",Nil,TUnknown)(curState,pp)
       //      }
       //      curState
       Skip[S]

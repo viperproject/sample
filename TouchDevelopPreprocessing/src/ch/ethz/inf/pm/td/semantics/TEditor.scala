@@ -1,10 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Editor
@@ -14,16 +14,9 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TEditor {
+object TEditor extends AAny {
 
-  val typName = "Editor"
-  val typ = DefaultTouchType(typName)
-
-}
-
-class TEditor extends AAny {
-
-  def getTyp = TEditor.typ
+  lazy val typeName = TypeName("Editor")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -36,18 +29,18 @@ class TEditor extends AAny {
     /** [**beta**] Returns the AST of the script currently in the editor */
     // case "current script ast" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TJson_Object.typ)
+    //   TopWithInvalid[S](TJson_Object)
     // DECLARATION AS FIELD: 
     //   /** [**beta**] Returns the AST of the script currently in the editor */
-    //   val field_current_script_ast = new TouchField("current script ast",TJson_Object.typName)
+    //   lazy val field_current_script_ast = new TouchField("current script ast",TJson_Object.typeName)
 
     /** [**beta**] The id of the script currently in the editor */
     // case "current script id" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TString.typ)
+    //   TopWithInvalid[S](TString)
     // DECLARATION AS FIELD: 
     //   /** [**beta**] The id of the script currently in the editor */
-    //   val field_current_script_id = new TouchField("current script id",TString.typName)
+    //   lazy val field_current_script_id = new TouchField("current script id",TString.typeName)
 
     /** [**beta**] Replace standard 'running plugin' message with something else */
     // case "progress" => 

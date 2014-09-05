@@ -3,9 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * User: lucas
@@ -13,56 +14,49 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * Time: 6:53 PM
  */
 
-object SMath {
+object SMath extends ASingleton {
 
-  val typName = "Math"
-  val typ = DefaultTouchType(typName, isSingleton = true)
-
-}
-
-class SMath extends AAny {
-
-  def getTyp = SMath.typ
+  lazy val typeName = TypeName("Math")
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S): S = method match {
 
     /** Returns the negative infinity */
     case "∞₋" =>
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the positive infinity */
     case "∞₊" =>
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the absolute value of a number */
     case "abs" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the angle whose cosine is the specified number */
     case "acos" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the angle whose sine is the specified number */
     case "asin" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the angle whose tangent is the specified number */
     case "atan" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the angle whose tangent is the quotient of two specified numbers */
     case "atan2" =>
       val List(y, x) = parameters // Number,Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the smallest integral value greater than or equal to the specified number */
     case "ceiling" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Clamps `value` between `min` and `max` */
     case "clamp" =>
@@ -85,20 +79,20 @@ class SMath extends AAny {
     /** Returns the hyperbolic cosine of the specified angle (in radians) */
     case "cosh" =>
       val List(angle) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** OBSOLETE: Creates an empty number collection */
     case "create number collection" =>
-      New[S](TNumber_Collection.typ)
+      New[S](TNumber_Collection)
 
     /** OBSOLETE: Creates an empty number map */
     case "create number map" =>
-      New[S](TNumber_Map.typ)
+      New[S](TNumber_Map)
 
     /** Creates a 3D vector */
     case "create vector3" =>
       val List(x, y, z) = parameters // Number,Number,Number
-      New[S](TVector3.typ, Map(
+      New[S](TVector3, Map(
         TVector3.field_x -> x,
         TVector3.field_y -> y,
         TVector3.field_z -> z
@@ -107,21 +101,21 @@ class SMath extends AAny {
     /** Converts degrees into radians */
     case "deg to rad" =>
       val List(degrees) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the natural logarithmic base, specified by the constant, e */
     case "e" =>
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns e raised to the specified power */
     case "exp" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the largest integer less than or equal to the specified number */
     case "floor" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the gravity constant (9.80665) */
     case "gravity" =>
@@ -130,57 +124,57 @@ class SMath extends AAny {
     /** Returns the remainder resulting from the division of a specified number by another specified number */
     case "ieee remainder" =>
       val List(x, y) = parameters // Number,Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Indicates whether number evaluates to negative or positive infinity */
     case "is ∞" =>
       val List(x) = parameters // Number
-      Top[S](TBoolean.typ) // TODO
+      Top[S](TBoolean) // TODO
 
     /** Indicates whether number evaluates to negative infinity */
     case "is ∞₋" =>
       val List(x) = parameters // Number
-      Top[S](TBoolean.typ) // TODO
+      Top[S](TBoolean) // TODO
 
     /** Indicates whether number evaluates to positive infinity */
     case "is ∞₊" =>
       val List(x) = parameters // Number
-      Top[S](TBoolean.typ) // TODO
+      Top[S](TBoolean) // TODO
 
     /** Indicates that value cannot be represented as a number, i.e. Not-a-Number. This usually happens when the number is the initial of a division by zero. */
     case "is nan" =>
       val List(x) = parameters // Number
-      Top[S](TBoolean.typ) // TODO
+      Top[S](TBoolean) // TODO
 
     /** Returns the logarithm of a specified number in a specified base */
     case "log" =>
       val List(x, base) = parameters // Number,Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the base 10 logarithm of a specified number */
     case "log10" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the natural (base e) logarithm of a specified number */
     case "loge" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the larger of two numbers */
     case "max" =>
       val List(x, y) = parameters // Number,Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the smaller of two numbers */
     case "min" =>
       val List(x, y) = parameters // Number,Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the modulus resulting from the division of one number by another number */
     case "mod" =>
       val List(x, y) = parameters // Number,Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Clamps `value` between 0 and 1. */
     case "normalize" =>
@@ -198,7 +192,7 @@ class SMath extends AAny {
     /** Returns a specified number raised to the specified power */
     case "pow" =>
       val List(x, y) = parameters // Number,Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Converts rad into degrees */
     case "rad to deg" =>
@@ -244,7 +238,7 @@ class SMath extends AAny {
     /** Returns a value indicating the sign of a number */
     case "sign" =>
       val List(x) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the sine of the specified angle (in radians) */
     case "sin" =>
@@ -254,7 +248,7 @@ class SMath extends AAny {
     /** Returns the hyperbolic sine of the specified angle (in radians) */
     case "sinh" =>
       val List(angle) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the square root of a specified number */
     case "sqrt" =>
@@ -266,16 +260,16 @@ class SMath extends AAny {
     /** Returns the tangent of the specified angle (in radians) */
     case "tan" =>
       val List(angle) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the hyperbolic tangent of the specified angle (in radians) */
     case "tanh" =>
       val List(angle) = parameters // Number
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the smallest positive number greater than zero. */
     case "ε" =>
-      Top[S](TNumber.typ) // TODO
+      Top[S](TNumber) // TODO
 
     /** Returns the Pi constant */
     case "π" =>
@@ -284,7 +278,7 @@ class SMath extends AAny {
     /** Creates a matrix of zeros of a given size */
     case "create matrix" =>
       val List(rows, columns) = parameters // Number,Number
-      New[S](TMatrix.typ, Map(
+      New[S](TMatrix, Map(
         TMatrix.field_column_count -> columns,
         TMatrix.field_row_count -> rows
       ),

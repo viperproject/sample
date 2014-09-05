@@ -1,9 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Printer Collection
@@ -13,16 +14,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TPrinter_Collection {
+object TPrinter_Collection extends ALinearCollection {
 
-  val typName = "Printer Collection"
-  val typ = TouchCollection(typName,"Number","Printer", immutableCollection = true)
+  lazy val typeName = TypeName("Printer Collection")
 
-}
+  def keyTypeName = TNumber.typeName
 
-class TPrinter_Collection extends ALinearCollection {
-
-  def getTyp = TPrinter_Collection.typ
+  def valueTypeName = TPrinter.typeName
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

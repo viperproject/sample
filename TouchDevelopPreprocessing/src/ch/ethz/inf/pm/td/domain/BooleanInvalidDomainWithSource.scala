@@ -66,7 +66,7 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
   }
 
   override def backwardAssign(oldPreState: BooleanInvalidDomainWithSource, variable: Identifier, expr: Expression): BooleanInvalidDomainWithSource = {
-    val s = assume(BinaryArithmeticExpression(variable, expr, ArithmeticOperator.== , TBoolean.typ))
+    val s = assume(BinaryArithmeticExpression(variable, expr, ArithmeticOperator.== , TBoolean))
     s.setToTop(variable)
   }
 

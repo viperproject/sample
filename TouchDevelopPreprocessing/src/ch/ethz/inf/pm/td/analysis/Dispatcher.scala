@@ -1,13 +1,12 @@
-package ch.ethz.inf.pm.td.semantics
+package ch.ethz.inf.pm.td.analysis
 
-import ch.ethz.inf.pm.sample.abstractdomain.{VariableIdentifier, ExpressionSet, State}
-import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, NativeMethodSemantics, ProgramPoint, Type}
-import scala.{None, Some}
-import ch.ethz.inf.pm.td.analysis.MethodSummaries
-import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchCompiler}
 import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State, VariableIdentifier}
+import ch.ethz.inf.pm.sample.oorepresentation.{MethodDeclaration, NativeMethodSemantics, ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.td.compiler.{TouchType, CFGGenerator, TouchCompiler}
 import RichExpressionImplicits._
+import ch.ethz.inf.pm.td.semantics.AAny
 
 
 /**
@@ -17,7 +16,7 @@ import RichExpressionImplicits._
  * Date: 17.02.13
  * Time: 18:54
  */
-class Libraries() extends NativeMethodSemantics {
+class Dispatcher() extends NativeMethodSemantics {
 
   /**
    * Backward semantics are empty for all native function for now
@@ -63,7 +62,9 @@ class Libraries() extends NativeMethodSemantics {
           }
 
       }
-    } else { None }
+    } else {
+      Some(thisExpr.getType().asInstanceOf[AAny].forwardSemantics[S](thisExpr,operator,parameters,returnedtype.asInstanceOf[TouchType])(pp,state))
+    }
 
   }
 

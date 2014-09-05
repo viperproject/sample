@@ -2,24 +2,22 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * User: lucas
  * Date: 11/8/12
  * Time: 6:10 PM
  */
-object TSprite_Set {
+object TSprite_Set extends AMutable_Collection {
 
-  val typName = "Sprite Set"
-  val typ = TouchCollection(typName, "Number", "Sprite")
+  val typeName = TypeName("Sprite Set")
 
-}
-
-class TSprite_Set extends AMutable_Collection {
-
-  def getTyp = TSprite_Set.typ
+  def keyTypeName = TNumber.typeName
+  def valueTypeName = TSprite.typeName
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -39,9 +37,9 @@ class TSprite_Set extends AMutable_Collection {
     case "add from" =>
       val List(old_set, sprite) = parameters // Sprite_Set,Sprite
     var curState = state
-      curState = CallApi[S](this0, "add", List(sprite), TNothing.typ)(curState, pp)
+      curState = CallApi[S](this0, "add", List(sprite), TNothing)(curState, pp)
       val resultA = curState.expr
-      curState = CallApi[S](old_set, "remove", List(sprite), TBoolean.typ)(curState, pp)
+      curState = CallApi[S](old_set, "remove", List(sprite), TBoolean)(curState, pp)
       val resultB = curState.expr
       Return[S](resultA && resultB)(curState, pp)
 
@@ -62,7 +60,7 @@ class TSprite_Set extends AMutable_Collection {
         CollectionInvalidateKeys[S](this0)(newState, pp)
         Return[S](result)(newState, pp)
       }, Else = {
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType, "collection may be empty"))(_, pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
       })
 
     case _ =>

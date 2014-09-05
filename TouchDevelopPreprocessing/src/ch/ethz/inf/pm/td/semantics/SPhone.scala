@@ -3,9 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of phone
@@ -15,33 +16,26 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SPhone {
+object SPhone extends ASingleton {
 
-  val typName = "Phone"
-  val typ = DefaultTouchType(typName, isSingleton = true)
-
-}
-
-class SPhone extends AAny {
-
-  def getTyp = SPhone.typ
+  lazy val typeName = TypeName("Phone")
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 
     /** Chooses an address from the contacts */
     case "choose address" =>
-      val state1 = New[S](TLink.typ, Map(
+      val state1 = New[S](TLink, Map(
         TLink.field_kind -> String("address" /*TODO*/)
       ))
-      Return[S](state1.expr, Invalid(TLink.typ, "address selection may be aborted by the user"))(state1, pp)
+      Return[S](state1.expr, Invalid(TLink, "address selection may be aborted by the user"))(state1, pp)
 
     /** Chooses a phone number from the contact list */
     case "choose phone number" =>
-      val state1 = New[S](TLink.typ, Map(
+      val state1 = New[S](TLink, Map(
         TLink.field_kind -> String("phone number")
       ))
-      Return[S](state1.expr, Invalid(TLink.typ, "phone number selection may be aborted by the user"))(state1, pp)
+      Return[S](state1.expr, Invalid(TLink, "phone number selection may be aborted by the user"))(state1, pp)
 
     /** Starts a phone call */
     case "dial phone number" =>

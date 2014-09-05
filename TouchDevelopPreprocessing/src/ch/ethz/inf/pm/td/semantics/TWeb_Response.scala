@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Web Response
@@ -14,41 +16,37 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TWeb_Response {
+object TWeb_Response extends AAny {
 
   /** Reads the response body as a string */
-  val field_content = new TouchField("content",TString.typName)
+  lazy val field_content = new TouchField("content",TString.typeName)
 
   /** Reads the response body as a JSON tree */
-  val field_content_as_json = new TouchField("content as json",TJson_Object.typName)
+  lazy val field_content_as_json = new TouchField("content as json",TJson_Object.typeName)
 
   /** Reads the response body as a picture */
-  val field_content_as_picture = new TouchField("content as picture",TPicture.typName)
+  lazy val field_content_as_picture = new TouchField("content as picture",TPicture.typeName)
 
   /** Reads the response body as a wave sound */
-  val field_content_as_sound = new TouchField("content as sound",TSound.typName)
+  lazy val field_content_as_sound = new TouchField("content as sound",TSound.typeName)
 
   /** Reads the response body as a XML tree */
-  val field_content_as_xml = new TouchField("content as xml",TXml_Object.typName)
+  lazy val field_content_as_xml = new TouchField("content as xml",TXml_Object.typeName)
 
   /** Stores the headers. This is actually not publicly accessible */
-  val field_header_storage = new TouchField("header storage",TString_Map.typName)
+  lazy val field_header_storage = new TouchField("header storage",TString_Map.typeName)
 
   /** Gets the request associated to this response */
-  val field_request = new TouchField("request",TWeb_Request.typName)
+  lazy val field_request = new TouchField("request",TWeb_Request.typeName)
 
   /** Gets the HTTP Status code of the request if any */
-  val field_status_code = new TouchField("status code",TNumber.typName)
+  lazy val field_status_code = new TouchField("status code",TNumber.typeName)
 
-  val typName = "Web Response"
-  val typ = DefaultTouchType(typName,isSingleton = false, isImmutable = true, fields = List(field_header_storage, field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml, field_request, field_status_code))
+  val typeName = TypeName("Web Response")
 
-
-}
-
-class TWeb_Response extends AAny {
-
-  def getTyp = TWeb_Response.typ
+  override def possibleFields = super.possibleFields ++ List(field_header_storage,
+    field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml,
+    field_request, field_status_code)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -56,11 +54,11 @@ class TWeb_Response extends AAny {
     /** Gets the value of a given header */
     case "header" =>
       val List(name) = parameters // String
-      CallApi[S](Field[S](this0,TWeb_Request.field_header_storage),"at",List(name),TString.typ)
+      CallApi[S](Field[S](this0,TWeb_Request.field_header_storage),"at",List(name),TString)
 
     /** Gets the names of the headers */
     case "header names" =>
-      CallApi[S](Field[S](this0,TWeb_Request.field_header_storage),"keys",Nil,TString_Collection.typ)
+      CallApi[S](Field[S](this0,TWeb_Request.field_header_storage),"keys",Nil,TString_Collection)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

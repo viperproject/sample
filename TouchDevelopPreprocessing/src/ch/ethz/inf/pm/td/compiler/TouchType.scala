@@ -2,10 +2,15 @@ package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.oorepresentation.Type
 import ch.ethz.inf.pm.sample.{SystemParameters, oorepresentation}
-import ch.ethz.inf.pm.td.semantics.TouchField
+import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.sample.abstractdomain.Identifier
 
+
 trait TouchType extends Named with Type {
+
+  def name:String = typeName.toString
+  def typeName:TypeName
 
   def isSingleton: Boolean
   def isImmutable: Boolean
@@ -55,50 +60,29 @@ trait TouchType extends Named with Type {
 }
 
 case object TopTouchType extends TouchType {
-  val name = "Top"
+  val typeName = TypeName("Top")
   override def isTop: Boolean = true
 
   // these don't really make sense here
   val isSingleton = false
   val isImmutable = false
-  val possibleFields: Set[Identifier] = Set.empty
 }
 
 case object BottomTouchType extends TouchType {
-  val name = "Bottom"
+  val typeName = TypeName("Bottom")
   override def isBottom: Boolean = true
 
   // these don't really make sense here
   val isSingleton = false
   val isImmutable = false
-  val possibleFields: Set[Identifier] = Set.empty
 
 }
 
-case class DefaultTouchType(
-  name: String,
-  isSingleton: Boolean = false,
-  isImmutable: Boolean = false,
-  fields: List[Identifier] = Nil) extends TouchType {
-
-  def possibleFields: Set[Identifier] = fields.toSet
-}
-
-case class TouchCollection(
-  name: String,
-  keyTypeName: String,
-  valueTypeName: String,
-  fields: List[Identifier] = List.empty[Identifier],
-  immutableCollection: Boolean = false)
-  extends TouchType {
-
-  def keyType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(keyTypeName).getTyp
-
-  def valueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getSemantics(valueTypeName).getTyp
-
-  def possibleFields: Set[Identifier] = fields.toSet
-
-  def isSingleton: Boolean = false
-
-  def isImmutable: Boolean = immutableCollection
-}
+//case class DefaultTouchType(
+//  typeName: TypeName,
+//  isSingleton: Boolean = false,
+//  isImmutable: Boolean = false,
+//  fields: List[Identifier] = Nil) extends TouchType {
+//
+//  override def possibleFields: Set[Identifier] = super.possibleFields ++ fields.toSet
+//}

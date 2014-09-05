@@ -2,8 +2,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 
 /**
  * User: lucas
@@ -11,16 +13,9 @@ import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
  * Time: 12:44 PM
  */
 
-object SLocations {
+object SLocations extends ASingleton {
 
-  val typName = "Locations"
-  val typ = DefaultTouchType(typName, isSingleton = true)
-
-}
-
-class SLocations extends AAny {
-
-  def getTyp = SLocations.typ
+  lazy val typeName = TypeName("Locations")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -28,7 +23,7 @@ class SLocations extends AAny {
     /** Creates a new geo coordinate location */
     case "create location" =>
       val List(latitude,longitude) = parameters // Number,Number
-      val res = New[S](TLocation.typ,Map(
+      val res = New[S](TLocation,Map(
         TLocation.field_latitude -> latitude,
         TLocation.field_longitude -> longitude
       ))
@@ -36,18 +31,18 @@ class SLocations extends AAny {
 
     /** Creates an empty list of locations */
     case "create location list" =>
-      New[S](TLocation_Collection.typ)
+      New[S](TLocation_Collection)
 
     /** Looks for an address near a location using Bing. */
     case "describe location" =>
       val List(location) = parameters // Location
-      val ret = Top[S](TString.typ)
+      val ret = Top[S](TString)
       ret
 
     /** Looks for the coordinate of an address using Bing. */
     case "search location" =>
       val List(address,postal_code,city,country) = parameters // String,String,String,String
-      New[S](TLocation.typ)
+      New[S](TLocation)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

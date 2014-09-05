@@ -1,9 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  *
@@ -17,39 +19,34 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * Date: 11/8/12
  * Time: 6:10 PM
  */
-object TLocation {
+object TLocation extends AAny {
 
 
   /** Gets the latitude of the coordinate */
-  val field_latitude = new TouchField("latitude", TNumber.typName) // -90 ndTo 90
+  lazy val field_latitude = new TouchField("latitude", TNumber.typeName) // -90 ndTo 90
 
   /** Gets the longitude of the coordinate */
-  val field_longitude = new TouchField("longitude", TNumber.typName) // -180 ndTo 180
+  lazy val field_longitude = new TouchField("longitude", TNumber.typeName) // -180 ndTo 180
 
   /** Gets the altitude of the coordinate */
-  val field_altitude = new TouchField("altitude", TNumber.typName)//, Invalid(TNumber.typ))
+  lazy val field_altitude = new TouchField("altitude", TNumber.typeName)//, Invalid(TNumber))
 
   /** Gets the speed of the coordinate */
-  val field_speed = new TouchField("speed", TNumber.typName)//, Invalid(TNumber.typ))
+  lazy val field_speed = new TouchField("speed", TNumber.typeName)//, Invalid(TNumber))
 
   /** Gets the course of the coordinate, in degrees relative to true north */
-  val field_course = new TouchField("course", TNumber.typName)//, Invalid(TNumber.typ)) // 0 ndTo 360
+  lazy val field_course = new TouchField("course", TNumber.typeName)//, Invalid(TNumber)) // 0 ndTo 360
 
   /** Gets the horizontal accuracy of the coordinate */
-  val field_hor_accuracy = new TouchField("hor accuracy", TNumber.typName)//, Invalid(TNumber.typ))
+  lazy val field_hor_accuracy = new TouchField("hor accuracy", TNumber.typeName)//, Invalid(TNumber))
 
   /** Gets the vertical accuracy of the coordinate */
-  val field_vert_accuracy = new TouchField("vert accuracy", TNumber.typName)//, Invalid(TNumber.typ))
+  lazy val field_vert_accuracy = new TouchField("vert accuracy", TNumber.typeName)//, Invalid(TNumber))
 
-  val typName = "Location"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_latitude,field_longitude,field_altitude,
-      field_speed, field_hor_accuracy,field_course,field_vert_accuracy))
+  lazy val typeName = TypeName("Location")
 
-}
-
-class TLocation extends AAny {
-
-  def getTyp = TLocation.typ
+  override def possibleFields = super.possibleFields ++ List(field_latitude,field_longitude,field_altitude,
+      field_speed, field_hor_accuracy,field_course,field_vert_accuracy)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
@@ -57,13 +54,13 @@ class TLocation extends AAny {
     case "distance" =>
       val List(other) = parameters // Location
       Dummy[S](this0,method)
-      Top[S](TNumber.typ)
+      Top[S](TNumber)
 
     /** Indicates if this instance is equal to the other */
     case "equals" =>
       val List(other) = parameters // Location
       Dummy[S](this0,method)
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Displays the location in a map using Bing. */
     case "post to wall" =>

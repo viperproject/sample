@@ -1,11 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Web Request
@@ -15,53 +16,48 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  * @author Lucas Brutschy
  */
 
-object TWeb_Request {
+object TWeb_Request extends AAny {
 
   /** Reads the response body as a string */
-  val field_content = new TouchField("content", TString.typName)
+  lazy val field_content = new TouchField("content", TString.typeName)
 
   /** Reads the response body as a JSON tree */
-  val field_content_as_json = new TouchField("content as json", TJson_Object.typName)
+  lazy val field_content_as_json = new TouchField("content as json", TJson_Object.typeName)
 
   /** Reads the response body as a picture */
-  val field_content_as_picture = new TouchField("content as picture", TPicture.typName)
-  val field_content_as_picture_quality = new TouchField("content as picture", TPicture.typName)
+  lazy val field_content_as_picture = new TouchField("content as picture", TPicture.typeName)
+  lazy val field_content_as_picture_quality = new TouchField("content as picture", TPicture.typeName)
 
   /** Reads the response body as a picture */
-  val field_content_as_form = new TouchField("content as form", TForm_Builder.typName)
+  lazy val field_content_as_form = new TouchField("content as form", TForm_Builder.typeName)
 
   /** Reads the response body as a XML tree */
-  val field_content_as_xml = new TouchField("content as xml", TXml_Object.typName)
+  lazy val field_content_as_xml = new TouchField("content as xml", TXml_Object.typeName)
 
   /** Stores the headers. This is actually not publicly accessible */
-  val field_header_storage = new TouchField("header storage", TString_Map.typName)
+  lazy val field_header_storage = new TouchField("header storage", TString_Map.typeName)
 
   /** Gets whether it was a 'get' or a 'post'. */
-  val field_method = new TouchField("method", TString.typName)
+  lazy val field_method = new TouchField("method", TString.typeName)
 
   /** Gets the url of the request */
-  val field_url = new TouchField("url", TString.typName)
+  lazy val field_url = new TouchField("url", TString.typeName)
 
   /** Credentials name */
-  val field_credentials_name = new TouchField("credentials name", TString.typName)
+  lazy val field_credentials_name = new TouchField("credentials name", TString.typeName)
 
   /** Credentials password */
-  val field_credentials_password = new TouchField("credentials password", TString.typName)
+  lazy val field_credentials_password = new TouchField("credentials password", TString.typeName)
 
   /** Async response handler */
-  val field_handler = new TouchField("handler", TWeb_Response_Action.typName)
+  lazy val field_handler = new TouchField("handler", TWeb_Response_Action.typeName)
 
-  val typName = "Web Request"
-  val typ = DefaultTouchType(typName, isSingleton = false, fields = List(field_header_storage, field_method, field_url,
+  val typeName = TypeName("Web Request")
+
+  override def possibleFields = super.possibleFields ++ List(field_header_storage, field_method, field_url,
     field_content, field_content_as_json, field_content_as_picture, field_content_as_picture_quality,
     field_content_as_xml, field_content_as_form,
-    field_credentials_name, field_credentials_password, field_handler))
-
-}
-
-class TWeb_Request extends AAny {
-
-  def getTyp = TWeb_Request.typ
+    field_credentials_name, field_credentials_password, field_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -69,7 +65,7 @@ class TWeb_Request extends AAny {
     /** Indicates if both requests are the same instance. */
     case "equals" =>
       val List(other) = parameters // Web_Request
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Gets the value of a given header */
     case "header" =>
@@ -84,7 +80,7 @@ class TWeb_Request extends AAny {
     case "on response received" =>
       val List(handler) = parameters // Web_Response_Action
     val newState = AssignField[S](this0, TWeb_Request.field_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Sends the request asynchronously. Attach a handler to 'on response received' to receive the response. */
     case "send async" =>
@@ -93,9 +89,9 @@ class TWeb_Request extends AAny {
     /** Performs the request synchronously */
     case "send" =>
       if (TouchAnalysisParameters.reportPrematurelyOnInternetAccess)
-        Error[S](Field[S](Singleton(SWeb.typ), SWeb.field_is_connected).not, "send",
+        Error[S](Field[S](Singleton(SWeb), SWeb.field_is_connected).not, "send",
           "Check if the device is connected to the internet before using the connection")
-      Top[S](TWeb_Response.typ, Map(TWeb_Response.field_request -> this0))
+      Top[S](TWeb_Response, Map(TWeb_Response.field_request -> this0))
 
     /** Sets the Accept header type ('text/xml' for xml, 'application/json' for json). */
     case "set accept" =>

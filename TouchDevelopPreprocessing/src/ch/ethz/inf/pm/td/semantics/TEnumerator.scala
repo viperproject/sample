@@ -1,9 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Enumerator
@@ -13,16 +14,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TEnumerator {
+object TEnumerator extends AAny {
 
-  val typName = "Enumerator"
-  val typ = DefaultTouchType(typName,isSingleton = true)
-
-}
-
-class TEnumerator extends AAny {
-
-  def getTyp = TEnumerator.typ
+  lazy val typeName = TypeName("Enumerator")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -35,10 +29,10 @@ class TEnumerator extends AAny {
     /** Advance enumerator and return true if there is another element. */
     // case "move next" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TBoolean.typ)
+    //   TopWithInvalid[S](TBoolean)
     // DECLARATION AS FIELD: 
     //   /** Advance enumerator and return true if there is another element. */
-    //   val field_move_next = new TouchField("move next",TBoolean.typName)
+    //   lazy val field_move_next = new TouchField("move next",TBoolean.typeName)
 
     // FIELDS: field_move_next
 

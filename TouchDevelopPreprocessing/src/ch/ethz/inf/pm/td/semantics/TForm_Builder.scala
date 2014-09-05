@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -16,16 +18,9 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TForm_Builder {
+object TForm_Builder extends AAny {
 
-  val typName = "Form Builder"
-  val typ = DefaultTouchType(typName,isSingleton = false)
-
-}
-
-class TForm_Builder extends AAny {
-
-  def getTyp = TForm_Builder.typ
+  lazy val typeName = TypeName("Form Builder")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

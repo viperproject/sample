@@ -2,11 +2,17 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
-class AObjectCollection(collectionTyp:TouchType,objectTyp:TouchType) extends AMutable_Collection {
+case class GSingletonIndex(indexMemberType:TypeName) extends AAny {
 
-  def getTyp = collectionTyp
+  lazy val field_singleton = new TouchField("singleton", indexMemberType)
+
+  def typeName = TypeName(indexMemberType.ident + " Index")
+
+  override def possibleFields = super.possibleFields + field_singleton
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

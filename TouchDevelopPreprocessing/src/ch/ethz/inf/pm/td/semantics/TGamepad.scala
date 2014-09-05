@@ -1,10 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Gamepad
@@ -14,16 +14,9 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TGamepad {
+object TGamepad extends AAny {
 
-  val typName = "Gamepad"
-  val typ = DefaultTouchType(typName)
-
-}
-
-class TGamepad extends AAny {
-
-  def getTyp = TGamepad.typ
+  lazy val typeName = TypeName("Gamepad")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -31,66 +24,66 @@ class TGamepad extends AAny {
     /** Gets the `x` and `y` value of the selected axes. */
     // case "axes" => 
     //   val List(name) = parameters // String
-    //   TopWithInvalid[S](TVector3.typ)
+    //   TopWithInvalid[S](TVector3)
     // DECLARATION AS FIELD: 
     //   /** Gets the `x` and `y` value of the selected axes. */
-    //   val field_axes = new TouchField("axes",TVector3.typName)
+    //   lazy val field_axes = new TouchField("axes",TVector3.typeName)
 
     /** Gets the pressed value of a button. Returns 0 if button missing. */
     // case "button value" => 
     //   val List(name) = parameters // String
-    //   TopWithInvalid[S](TNumber.typ)
+    //   TopWithInvalid[S](TNumber)
     // DECLARATION AS FIELD: 
     //   /** Gets the pressed value of a button. Returns 0 if button missing. */
-    //   val field_button_value = new TouchField("button value",TNumber.typName)
+    //   lazy val field_button_value = new TouchField("button value",TNumber.typeName)
 
     /** Indicates if the gamepad data are identical */
     // case "equals" => 
     //   val List(other) = parameters // Gamepad
-    //   TopWithInvalid[S](TBoolean.typ)
+    //   TopWithInvalid[S](TBoolean)
     // DECLARATION AS FIELD: 
     //   /** Indicates if the gamepad data are identical */
-    //   val field_equals = new TouchField("equals",TBoolean.typName)
+    //   lazy val field_equals = new TouchField("equals",TBoolean.typeName)
 
     /** Gets the gamepad identifier */
     // case "id" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TString.typ)
+    //   TopWithInvalid[S](TString)
     // DECLARATION AS FIELD: 
     //   /** Gets the gamepad identifier */
-    //   val field_id = new TouchField("id",TString.typName)
+    //   lazy val field_id = new TouchField("id",TString.typeName)
 
     /** Gets the player index */
     // case "index" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TNumber.typ)
+    //   TopWithInvalid[S](TNumber)
     // DECLARATION AS FIELD: 
     //   /** Gets the player index */
-    //   val field_index = new TouchField("index",TNumber.typName)
+    //   lazy val field_index = new TouchField("index",TNumber.typeName)
 
     /** Indicates if a button is pressed. Returns false if button missing. */
     // case "is button pressed" => 
     //   val List(name) = parameters // String
-    //   TopWithInvalid[S](TBoolean.typ)
+    //   TopWithInvalid[S](TBoolean)
     // DECLARATION AS FIELD: 
     //   /** Indicates if a button is pressed. Returns false if button missing. */
-    //   val field_is_button_pressed = new TouchField("is button pressed",TBoolean.typName)
+    //   lazy val field_is_button_pressed = new TouchField("is button pressed",TBoolean.typeName)
 
     /** Indicates if the gamepad is still connected. */
     // case "is connected" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TBoolean.typ)
+    //   TopWithInvalid[S](TBoolean)
     // DECLARATION AS FIELD: 
     //   /** Indicates if the gamepad is still connected. */
-    //   val field_is_connected = new TouchField("is connected",TBoolean.typName)
+    //   lazy val field_is_connected = new TouchField("is connected",TBoolean.typeName)
 
     /** Gets the timestamp of this snapshot */
     // case "timestamp" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TNumber.typ)
+    //   TopWithInvalid[S](TNumber)
     // DECLARATION AS FIELD: 
     //   /** Gets the timestamp of this snapshot */
-    //   val field_timestamp = new TouchField("timestamp",TNumber.typName)
+    //   lazy val field_timestamp = new TouchField("timestamp",TNumber.typeName)
 
     // FIELDS: field_axes, field_button_value, field_equals, field_id, field_index, field_is_button_pressed, field_is_connected, field_timestamp
 

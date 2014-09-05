@@ -2,13 +2,14 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import RichNativeSemantics._
 
 /**
  * Represents a map collection in TouchDevelop
  */
-abstract class AMap extends ACollection {
+trait AMap extends ACollection {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -19,7 +20,7 @@ abstract class AMap extends ACollection {
       val result = If[S](CollectionContainsKey[S](this0, key) equal True, Then = {
         Return[S](CollectionAt[S](this0, key))(_, pp)
       }, Else = {
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType, "map may not contain the accessed key"))(_, pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "map may not contain the accessed key"))(_, pp)
       })
 
       result

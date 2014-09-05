@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,23 +16,18 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TSprite_Animation {
+object TSprite_Animation extends AAny {
 
   /** Gets the current time scale factor */
-  val field_time_scale = new TouchField("time scale", TNumber.typName)
+  lazy val field_time_scale = new TouchField("time scale", TNumber.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  val field_start_handler = new TouchField("start handler", TAction.typName)
-  val field_stop_handler = new TouchField("stop handler", TAction.typName)
+  lazy val field_start_handler = new TouchField("start handler", TAction.typeName)
+  lazy val field_stop_handler = new TouchField("stop handler", TAction.typeName)
 
-  val typName = "Sprite Animation"
-  val typ = DefaultTouchType(typName, fields = List(field_start_handler, field_stop_handler, field_time_scale))
+  val typeName = TypeName("Sprite Animation")
 
-}
-
-class TSprite_Animation extends AAny {
-
-  def getTyp = TSprite_Animation.typ
+  override def possibleFields = super.possibleFields ++ List(field_start_handler, field_stop_handler, field_time_scale)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -83,13 +80,13 @@ class TSprite_Animation extends AAny {
     case "on start" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, TSprite_Animation.field_start_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Raised when the animation stopped playing */
     case "on stop" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, TSprite_Animation.field_stop_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Starts playing an animation from the sprite sheet, if any */
     case "play frames" =>

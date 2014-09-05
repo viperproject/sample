@@ -1,9 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Position Action
@@ -13,16 +14,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TPosition_Action {
+object TPosition_Action extends AAction {
 
-  val typName = "Position Action"
-  val typ = DefaultTouchType(typName, fields = List(AAction.field_handlerName), isImmutable = true)
-
-}
-
-class TPosition_Action extends AAny {
-
-  def getTyp = TPosition_Action.typ
+  lazy val typeName = TypeName("Position Action")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

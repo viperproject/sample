@@ -3,10 +3,10 @@ package ch.ethz.inf.pm.td.domain
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.util.MapUtil
-import ch.ethz.inf.pm.td.semantics.TouchField
+import ch.ethz.inf.pm.td.analysis.TouchField
 
 case class HeapIdentifier(pp: ProgramPoint, typ:Type, summary:Boolean, unique:Int) extends Identifier {
-  override def getName: String = pp + summary.toString + unique
+  override def getName: String = pp + (if (summary) "Σ" else "") + unique
   override def getField: Option[String] = None
   override def representsSingleVariable: Boolean = !summary
 }
@@ -45,9 +45,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     valueState:        S = valueState,
     expr:              ExpressionSet = expr,
     isTop:             Boolean = isTop
-  ):T
+  ):T = factory(forwardMay,forwardMust,backwardMay,versions,valueState,expr,isTop)
 
-  def empty (
+  def factory (
     forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
     forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
     backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
@@ -110,12 +110,21 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     * Implementations can already assume that this state is non-bottom.
     */
   override def assignVariable(left: Expression, right: Expression): T = left match {
-    case leftVariable:VariableIdentifier =>
-      if (isTop) this
-      // strong update
-      right match {
-        case rightHeap:HeapIdentifier =>   strongUpdateReference(leftVariable,rightHeap)
-        case rightIdentifier:Identifier => strongUpdateAlias(leftVariable,rightIdentifier)
+    case leftVariable:Identifier =>
+      if (leftVariable.representsSingleVariable) {
+        // strong update
+        right match {
+          case rightHeap:HeapIdentifier =>   strongUpdateReference(leftVariable,rightHeap)
+          case rightIdentifier:Identifier => strongUpdateAlias(leftVariable,rightIdentifier)
+          case rightExpression:Expression => strongUpdateValue(leftVariable,rightExpression)
+        }
+      } else {
+        // weak update
+        right match {
+          case rightHeap:HeapIdentifier =>   weakUpdateReference(leftVariable,rightHeap)
+          case rightIdentifier:Identifier => weakUpdateAlias(leftVariable,rightIdentifier)
+          case rightExpression:Expression => weakUpdateValue(leftVariable,rightExpression)
+        }
       }
   }
 
@@ -129,14 +138,16 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       if (leftHeap.representsSingleVariable) {
         // strong update
         right match {
-          case rightHeap:HeapIdentifier =>   strongUpdateReference(leftField,rightHeap)
+          case rightHeap:HeapIdentifier   => strongUpdateReference(leftField,rightHeap)
           case rightIdentifier:Identifier => strongUpdateAlias(leftField,rightIdentifier)
+          case rightExpression:Expression => strongUpdateValue(leftField,rightExpression)
         }
       } else {
         // weak update
         right match {
-          case rightHeap:HeapIdentifier =>   weakUpdateReference(leftField,rightHeap)
+          case rightHeap:HeapIdentifier   => weakUpdateReference(leftField,rightHeap)
           case rightIdentifier:Identifier => weakUpdateAlias(leftField,rightIdentifier)
+          case rightExpression:Expression => weakUpdateValue(leftField,rightExpression)
         }
       }
   }
@@ -216,21 +227,23 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @param id The variable to access
    * @return The abstract state obtained after accessing the variable, that is, the state that contains as expression the symbolic representation of the value of the given variable
    */
-  override def getVariableValue(id: Assignable): T = this
+  override def getVariableValue(id: Assignable): T = id match {
+    case i: Identifier => copy(expr = new ExpressionSet(id.typ).add(i))
+  }
 
   /**
    * Returns the top value of the lattice
    *
    * @return The top value, that is, a value x that is greater or equal than any other value
    */
-  override def top(): T = empty(valueState = valueState.top(),isTop = true)
+  override def top(): T = factory(valueState = valueState.top(),isTop = true)
 
   /**
    * Returns the bottom value of the lattice
    *
    * @return The bottom value, that is, a value x that is less or equal than any other value
    */
-  override def bottom(): T = empty(valueState = valueState.bottom(),isTop = false)
+  override def bottom(): T = factory(valueState = valueState.bottom(),isTop = false)
 
 
   /**
@@ -242,7 +255,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def lub(other: T): T = {
 
     val (left,right) = adaptEnvironments(this,other)
-    empty(
+    factory(
       MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
       MapUtil.mapToSetIntersection(left.forwardMust,right.forwardMust),
       MapUtil.mapToSetUnion(left.backwardMay,right.backwardMay),
@@ -263,7 +276,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def widening(other: T): T = {
 
     val (left,right) = adaptEnvironments(this,other)
-    val widened = empty(
+    val widened = factory(
       MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
       MapUtil.mapToSetIntersection(left.forwardMust,right.forwardMust),
       MapUtil.mapToSetUnion(left.backwardMay,right.backwardMay),
@@ -308,6 +321,15 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     return true
   }
 
+  override def isBottom:Boolean = {
+
+    if (isTop) return false
+    //if (forwardMay.exists( _._2.isEmpty)) return true TODO: Add again
+    if (valueState.isBottom) return true
+    return false
+
+  }
+
   def merge[A <: Identifier,B <: Identifier](rep:Replacement,map:Map[A,Set[B]]): Map[A,Set[B]] = {
 
     if (rep.isEmpty()) return map
@@ -329,9 +351,11 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     result = for ((a,b) <- result) yield {
       var set = b
-      for ((c,d) <- rep) {
-        if ((set intersect c).nonEmpty) {
-          set = set -- c ++ d
+      for ((c,d) <- rep.value) {
+        val cB = c.collect { case x:B => x }.toSet
+        val dB = d.collect { case x:B => x }.toSet // FIXME: Inefficient!!
+        if ((set intersect cB).nonEmpty) {
+          set = set -- cB ++ dB
         }
       }
       a -> set
@@ -352,14 +376,14 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     )
   }
 
+  override def pruneUnreachableHeap(): T = this   // garbage collection is immediate
+  override def before(pp: ProgramPoint): T = this // nothing to be done
+  override def factory(): T = factory(valueState = valueState.factory())
   override def glb(other: T): T = ???
   override def setVariableToTop(varExpr: Expression): T = ???
-  override def factory(): T = ???
-  override def before(pp: ProgramPoint): T = ???
   override def setArgument(x: ExpressionSet, right: ExpressionSet): T = ???
   override def createVariableForArgument(x: VariableIdentifier, typ: Type): T = ???
   override def throws(t: ExpressionSet): T = ???
-  override def pruneUnreachableHeap(): T = ???
 
   /** Prune all objects that have no references, starting from startNode */
   def removeUnreachableNodes(nodes: Set[HeapIdentifier]): T = {
@@ -407,10 +431,11 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       forwardMust + (left -> newObjectsMust),
       (backwardMay map { x => x._1 -> (x._2 - left) }) ++ (newObjectsMay map { x => x -> (backwardMay.getOrElse(x,Set.empty) + left)}),
       versions,
-      valueState.assign(left,right).lub(valueState),
+      valueState.assign(left,right),
       ExpressionFactory.unitExpr
     ).removeUnreachableNodes(forwardMay.getOrElse(left,Set.empty))
   }
+
 
   def strongUpdateReference(left:Identifier, right:HeapIdentifier): T = {
     // reference object
@@ -419,9 +444,21 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       forwardMust + (left -> Set(right)),
       (backwardMay map { x => x._1 -> (x._2 - left) }) + (right -> (backwardMay.getOrElse(right,Set.empty) + left)),
       versions,
-      valueState.assign(left,right).lub(valueState),
+      valueState.assign(left,right),
       ExpressionFactory.unitExpr
     ).removeUnreachableNodes(forwardMay.getOrElse(left,Set.empty))
+  }
+
+  def strongUpdateValue(left:Identifier, right:Expression): T = {
+    // reference object
+    copy(
+      forwardMay,
+      forwardMust,
+      backwardMay,
+      versions,
+      valueState.assign(left,right),
+      ExpressionFactory.unitExpr
+    ) // TODO: Correct?
   }
 
   def weakUpdateReference(left:Identifier, right:HeapIdentifier): T = {
@@ -450,6 +487,18 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       ExpressionFactory.unitExpr
     )
     // nothing may become unreachable
+  }
+
+  def weakUpdateValue(left:Identifier, right:Expression): T = {
+    // reference object
+    copy(
+      forwardMay,
+      forwardMust,
+      backwardMay,
+      versions,
+      valueState.assign(left,right).lub(valueState),
+      ExpressionFactory.unitExpr
+    ) // TODO: Correct?
   }
 
   def ids:Set[Identifier] = {
@@ -491,4 +540,31 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
   }
 
+}
+
+object TouchState {
+  
+  case class Default[S <: SemanticDomain[S]](
+                                              forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+                                              forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+                                              backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
+                                              versions:          Map[ProgramPoint,Seq[HeapIdentifier]] = Map.empty,
+                                              valueState:        S,
+                                              expr:              ExpressionSet = ExpressionFactory.unitExpr,
+                                              isTop:             Boolean = false
+                                            )
+    extends TouchState[S, Default[S]] {
+
+    def factory (
+                  forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+                  forwardMust:       Map[Identifier,Set[HeapIdentifier]] = Map.empty,
+                  backwardMay:       Map[HeapIdentifier,Set[Identifier]] = Map.empty,
+                  versions:          Map[ProgramPoint,Seq[HeapIdentifier]] = Map.empty,
+                  valueState:        S,
+                  expr:              ExpressionSet = ExpressionFactory.unitExpr,
+                  isTop:             Boolean = false
+                ):Default[S] =
+      Default(forwardMay, forwardMust, backwardMay, versions, valueState, expr, isTop)
+
+  }
 }

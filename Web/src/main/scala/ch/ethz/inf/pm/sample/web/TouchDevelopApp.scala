@@ -10,6 +10,7 @@ import ch.ethz.inf.pm.sample.execution.{TrackingCFGState, AnalysisResult, Analys
 import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, TouchCompiler}
+import ch.ethz.inf.pm.td.domain.TouchState
 import ch.ethz.inf.pm.td.output.Exporters
 
 /**
@@ -23,6 +24,7 @@ class TouchDevelopApp extends App {
   /** List of pre-defined analysis runners. */
   override def availableAnalysisRunners = Seq(new TouchDevelopMayMustAnalysisRunner())//,new TouchDevelopMayAnalysisRunner(),new TouchDevelopSummaryAnalysisRunner())
 
+  val prefix = "td"
 }
 
 object TouchDevelopFileProvider extends ResourceTestFileProvider(namePattern = ".*\\.json") {
@@ -47,7 +49,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
   override def run(path: Path): List[AnalysisResult[S]] = {
     prepareContext()
     compiler.generateTopType()
-    val entryState = new MayMustEntryStateBuilder(TouchAnalysisParameters.get).topState
+    val entryState = new TouchEntryStateBuilder(TouchAnalysisParameters.get).topState
 
     SystemParameters.compiler.compile(path.toString)
     SystemParameters.addNativeMethodsSemantics(SystemParameters.compiler.getNativeMethodsSemantics())
@@ -58,7 +60,7 @@ trait TouchDevelopAnalysisRunner[S <: State[S]] extends AnalysisRunner[S] {
 
 }
 
-class TouchDevelopMayMustAnalysisRunner extends TouchDevelopAnalysisRunner[TouchDevelopEntryStateBuilder.AnalysisMayMustCollectionStateHeapType] {
+class TouchDevelopMayMustAnalysisRunner extends TouchDevelopAnalysisRunner[TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType]] {
   override val analysis = new TouchDevelopMayMustAnalysis
 }
 //class TouchDevelopMayAnalysisRunner extends TouchDevelopAnalysisRunner[TouchDevelopEntryStateBuilder.AnalysisMayCollectionStateType] {
@@ -68,7 +70,7 @@ class TouchDevelopMayMustAnalysisRunner extends TouchDevelopAnalysisRunner[Touch
 //  override val analysis = new TouchDevelopSummaryAnalysis
 //}
 
-class TouchDevelopMayMustAnalysis extends SimpleAnalysis[TouchDevelopEntryStateBuilder.AnalysisMayMustCollectionStateHeapType](new MayMustEntryStateBuilder(TouchAnalysisParameters.get))
+class TouchDevelopMayMustAnalysis extends SimpleAnalysis[TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType]](new TouchEntryStateBuilder(TouchAnalysisParameters.get))
 //class TouchDevelopMayAnalysis extends SimpleAnalysis[TouchDevelopEntryStateBuilder.AnalysisMayCollectionStateType](new MayEntryStateBuilder(TouchAnalysisParameters.get))
 //class TouchDevelopSummaryAnalysis extends SimpleAnalysis[TouchDevelopEntryStateBuilder.AnalysisSummaryCollectionHeapStateType](new SummaryEntryStateBuilder(TouchAnalysisParameters.get))
 

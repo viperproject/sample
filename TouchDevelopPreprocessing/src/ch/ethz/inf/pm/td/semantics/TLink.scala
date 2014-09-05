@@ -3,8 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{InvalidInitializer, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Link
@@ -14,28 +16,23 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TLink {
+object TLink extends AAny {
 
   /** Gets the url */
-  val field_address = new TouchField("address", TString.typName)
+  lazy val field_address = new TouchField("address", TString.typeName)
 
   /** Gets the kind of asset - media, image, email, phone number, hyperlink, deep zoom link, radio */
-  val field_kind = new TouchField("kind", TString.typName)
+  lazy val field_kind = new TouchField("kind", TString.typeName)
 
   /** Gets the location if any */
-  val field_location = new TouchField("location", TLocation.typName, InvalidInitializer("link may not have a location"))
+  lazy val field_location = new TouchField("location", TLocation.typeName, InvalidInitializer("link may not have a location"))
 
   /** Gets the name if any */
-  val field_name = new TouchField("name", TString.typName, InvalidInitializer("link may not have a name"))
+  lazy val field_name = new TouchField("name", TString.typeName, InvalidInitializer("link may not have a name"))
 
-  val typName = "Link"
-  val typ = DefaultTouchType(typName, isSingleton = false, fields = List(field_address, field_kind, field_location, field_name), isImmutable = false)
+  lazy val typeName = TypeName("Link")
 
-}
-
-class TLink extends AAny {
-
-  def getTyp = TLink.typ
+  override def possibleFields = super.possibleFields ++ List(field_address, field_kind, field_location, field_name)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

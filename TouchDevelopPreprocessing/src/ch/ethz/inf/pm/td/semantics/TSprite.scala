@@ -1,76 +1,79 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * User: lucas
  * Date: 11/8/12
  * Time: 6:10 PM
  */
-object TSprite {
+object TSprite extends AAny {
 
-  val field_acceleration_x = new TouchField("acceleration x", TNumber.typName)
+  lazy val field_acceleration_x = new TouchField("acceleration x", TNumber.typeName)
   // Gets the acceleration along x in pixels/sec^2
-  val field_acceleration_y = new TouchField("acceleration y", TNumber.typName)
+  lazy val field_acceleration_y = new TouchField("acceleration y", TNumber.typeName)
   // Gets the acceleration along y in pixels/sec^2
-  val field_angle = new TouchField("angle", TNumber.typName)
+  lazy val field_angle = new TouchField("angle", TNumber.typeName)
   // Gets the angle of the sprite in degrees
-  val field_angular_speed = new TouchField("angular speed", TNumber.typName)
+  lazy val field_angular_speed = new TouchField("angular speed", TNumber.typeName)
   // Gets the rotation speed in degrees/sec
-  val field_color = new TouchField("color", TColor.typName)
+  lazy val field_color = new TouchField("color", TColor.typeName)
   // Returns the sprite color.
-  val field_elasticity = new TouchField("elasticity", TNumber.typName)
+  lazy val field_elasticity = new TouchField("elasticity", TNumber.typeName)
   // Gets the sprite elasticity as a fraction of speed preservation per bounce (0-1)
-  val field_friction = new TouchField("friction", TNumber.typName)
+  lazy val field_friction = new TouchField("friction", TNumber.typeName)
   // Gets the fraction of speed loss between 0 and 1
-  val field_height = new TouchField("height", TNumber.typName)
+  lazy val field_height = new TouchField("height", TNumber.typeName)
   // Gets the height in pixels
-  val field_is_deleted = new TouchField("is deleted", TBoolean.typName, ExpressionInitializer(False(null)))
+  lazy val field_is_deleted = new TouchField("is deleted", TBoolean.typeName, ExpressionInitializer(False(null)))
   // Returns false if sprite is not deleted
-  val field_is_visible = new TouchField("is visible", TBoolean.typName)
+  lazy val field_is_visible = new TouchField("is visible", TBoolean.typeName)
   // Returns true if sprite is not hidden
-  val field_location = new TouchField("location", TLocation.typName)
+  lazy val field_location = new TouchField("location", TLocation.typeName)
   // Gets the geo location assigned to the sprite
-  val field_mass = new TouchField("mass", TNumber.typName)
+  lazy val field_mass = new TouchField("mass", TNumber.typeName)
   // Gets the mass
-  val field_opacity = new TouchField("opacity", TNumber.typName)
+  lazy val field_opacity = new TouchField("opacity", TNumber.typeName)
   // Gets the opacity (between 0 transparent and 1 opaque)
-  val field_picture = new TouchField("picture", TPicture.typName)
-  val field_speed_x = new TouchField("speed x", TNumber.typName)
+  lazy val field_picture = new TouchField("picture", TPicture.typeName)
+  lazy val field_speed_x = new TouchField("speed x", TNumber.typeName)
   // Gets the speed along x in pixels/sec
-  val field_speed_y = new TouchField("speed y", TNumber.typName)
+  lazy val field_speed_y = new TouchField("speed y", TNumber.typeName)
   // Gets the speed along y in pixels/sec
-  val field_text = new TouchField("text", TString.typName)
+  lazy val field_text = new TouchField("text", TString.typeName)
   // The text on a text sprite (if it is a text sprite)
-  val field_width = new TouchField("width", TNumber.typName)
+  lazy val field_width = new TouchField("width", TNumber.typeName)
   // Gets the width in pixels
-  val field_x = new TouchField("x", TNumber.typName)
+  lazy val field_x = new TouchField("x", TNumber.typeName)
   // Gets the x position in pixels
-  val field_y = new TouchField("y", TNumber.typName)
+  lazy val field_y = new TouchField("y", TNumber.typeName)
   // Gets the y position in pixels
-  val field_z_index = new TouchField("z index", TNumber.typName) // Gets the z-index of the sprite
+  lazy val field_z_index = new TouchField("z index", TNumber.typeName) // Gets the z-index of the sprite
 
-  val field_clip_left = new TouchField("clip left", TNumber.typName)
-  val field_clip_top = new TouchField("clip top", TNumber.typName)
-  val field_clip_width = new TouchField("clip width", TNumber.typName)
-  val field_clip_height = new TouchField("clip height", TNumber.typName)
+  lazy val field_clip_left = new TouchField("clip left", TNumber.typeName)
+  lazy val field_clip_top = new TouchField("clip top", TNumber.typeName)
+  lazy val field_clip_width = new TouchField("clip width", TNumber.typeName)
+  lazy val field_clip_height = new TouchField("clip height", TNumber.typeName)
 
   /** Gets the scaling applied when rendering the sprite. This scaling does not influence the bounding box. */
-  val field_scale = new TouchField("scale", TNumber.typName)
+  lazy val field_scale = new TouchField("scale", TNumber.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  val field_drag_handler = new TouchField("drag handler", TVector_Action.typName)
-  val field_swipe_handler = new TouchField("swipe handler", TVector_Action.typName)
-  val field_tap_handler = new TouchField("tap handler", TPosition_Action.typName)
-  val field_touch_down_handler = new TouchField("touch down handler", TPosition_Action.typName)
-  val field_touch_up_handler = new TouchField("touch up handler", TPosition_Action.typName)
-  val field_every_frame_handler = new TouchField("every frame handler", TAction.typName)
+  lazy val field_drag_handler = new TouchField("drag handler", TVector_Action.typeName)
+  lazy val field_swipe_handler = new TouchField("swipe handler", TVector_Action.typeName)
+  lazy val field_tap_handler = new TouchField("tap handler", TPosition_Action.typeName)
+  lazy val field_touch_down_handler = new TouchField("touch down handler", TPosition_Action.typeName)
+  lazy val field_touch_up_handler = new TouchField("touch up handler", TPosition_Action.typeName)
+  lazy val field_every_frame_handler = new TouchField("every frame handler", TAction.typeName)
 
-  val typName = "Sprite"
-  val typ = DefaultTouchType(typName, isSingleton = false, fields = List(
+  val typeName = TypeName("Sprite")
+
+  override def possibleFields = super.possibleFields ++ List(
     field_acceleration_x,
     field_acceleration_y,
     field_angle,
@@ -103,19 +106,13 @@ object TSprite {
     field_touch_down_handler,
     field_touch_up_handler,
     field_every_frame_handler
-  ))
-
-}
-
-class TSprite extends AAny {
-
-  def getTyp = TSprite.typ
+  )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S): S = method match {
 
     /** Starts a new tween animation. */
     case "create animation" =>
-      New[S](TSprite_Animation.typ)
+      New[S](TSprite_Animation)
 
     /** Delete sprite. */
     case "delete" =>
@@ -125,7 +122,7 @@ class TSprite extends AAny {
     case "equals" =>
       val List(other) = parameters // Sprite
       Dummy[S](this0, method)
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Hide sprite. */
     case "hide" =>
@@ -161,48 +158,48 @@ class TSprite extends AAny {
     case "on drag" =>
       val List(dragged) = parameters // Vector_Action
     val newState = AssignField[S](this0, TSprite.field_drag_handler, dragged)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Set the handler invoked when the sprite is swiped */
     case "on swipe" =>
       val List(swiped) = parameters // Vector_Action
     val newState = AssignField[S](this0, TSprite.field_swipe_handler, swiped)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Set the handler invoked when the sprite is tapped */
     case "on tap" =>
       val List(tapped) = parameters // Position_Action
     val newState = AssignField[S](this0, TSprite.field_tap_handler, tapped)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Set the handler invoked when the sprite is touched initially */
     case "on touch down" =>
       val List(touch_down) = parameters // Position_Action
     val newState = AssignField[S](this0, TSprite.field_touch_down_handler, touch_down)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Set the handler invoked when the sprite touch is released */
     case "on touch up" =>
       val List(touch_up) = parameters // Position_Action
     val newState = AssignField[S](this0, TSprite.field_touch_up_handler, touch_up)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     case "on every frame" =>
       val List(act) = parameters // Action
     val newState = AssignField[S](this0, TSprite.field_every_frame_handler, act)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Returns the subset of sprites in the given set that overlap with sprite. */
     case "overlap with" =>
       val List(sprites) = parameters // Sprite_Set
       Dummy[S](this0, method)
-      Top[S](TSprite_Set.typ)
+      Top[S](TSprite_Set)
 
     /** Do the sprites overlap */
     case "overlaps with" =>
       val List(other) = parameters // Sprite
       Dummy[S](this0, method)
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Sets the acceleration in pixels/sec^2 */
     case "set acceleration" =>
@@ -241,8 +238,8 @@ class TSprite extends AAny {
       val List(other, magnitude) = parameters // Sprite,Number
       Dummy[S](this0, method)
       var curState = state
-      curState = AssignField[S](this0, TSprite.field_speed_x, Valid(TNumber.typ))(curState, pp)
-      curState = AssignField[S](this0, TSprite.field_speed_y, Valid(TNumber.typ))(curState, pp)
+      curState = AssignField[S](this0, TSprite.field_speed_x, Valid(TNumber))(curState, pp)
+      curState = AssignField[S](this0, TSprite.field_speed_y, Valid(TNumber))(curState, pp)
       curState
 
     case _ =>

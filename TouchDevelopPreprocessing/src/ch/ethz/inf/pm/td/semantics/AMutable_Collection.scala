@@ -1,14 +1,17 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{SemanticException, ExpressionSet, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
 
 /**
  * A mutable collection with integer indices
  */
-abstract class AMutable_Collection extends ALinearCollection {
+trait AMutable_Collection extends ALinearCollection {
+
+  override def isImmutable = false
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
@@ -32,7 +35,7 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "index of" =>
       val List(item,start) = parameters // Element_Type,Number
 
-      if (start.getType().name != TNumber.typName)
+      if (start.getType().name != TNumber.typeName)
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, start) && CollectionContainsValue[S](this0, item) equal True , Then={
@@ -45,7 +48,7 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "insert at" =>
       val List(index,item) = parameters // Number,Element_Type
 
-      if (index.getType().name != TNumber.typName)
+      if (index.getType().name != TNumber.typeName)
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
@@ -60,7 +63,7 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "set at" =>
       val List(index, value) = parameters // Number,Element_Type
 
-      if (index.getType().name != TNumber.typName)
+      if (index.getType().name != TNumber.typeName)
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
@@ -89,7 +92,7 @@ abstract class AMutable_Collection extends ALinearCollection {
     case "remove at" =>
       val List(index) = parameters // Number
 
-      if (index.getType().name != TNumber.typName)
+      if (index.getType().name != TNumber.typeName)
         throw new SemanticException("This is not a linear collection " + this0)
 
       If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {

@@ -3,8 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Cloud Sessions
@@ -14,19 +16,14 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SCloud_Sessions {
+object SCloud_Sessions extends ASingleton {
 
   /** Gets the current session. */
-  val field_current_session = new TouchField("current session", TCloud_Session.typName)
+  lazy val field_current_session = new TouchField("current session", TCloud_Session.typeName)
 
-  val typName = "Cloud Sessions"
-  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_current_session))
+  lazy val typeName = TypeName("Cloud Sessions")
 
-}
-
-class SCloud_Sessions extends AAny {
-
-  def getTyp = SCloud_Sessions.typ
+  override def possibleFields = super.possibleFields ++ List(field_current_session)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -39,11 +36,11 @@ class SCloud_Sessions extends AAny {
     /** Gets a session from a session id for the current user */
     case "from id" =>
       val List(id) = parameters // String
-      TopWithInvalid[S](TCloud_Session.typ, "session id may be wrong")
+      TopWithInvalid[S](TCloud_Session, "session id may be wrong")
 
     /** Chooses a session */
     case "choose session" =>
-      TopWithInvalid[S](TCloud_Session.typ, "use may cancel session choice dialog")
+      TopWithInvalid[S](TCloud_Session, "use may cancel session choice dialog")
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

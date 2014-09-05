@@ -1,9 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Picture Albums
@@ -13,16 +14,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TPicture_Albums {
+object TPicture_Albums extends ALinearCollection {
 
-  val typName = "Picture Albums"
-  val typ = TouchCollection(typName,"Number","Picture Album", immutableCollection = true)
+  lazy val typeName = TypeName("Picture Albums")
 
-}
+  def keyTypeName = TNumber.typeName
 
-class TPicture_Albums extends ALinearCollection {
-
-  def getTyp = TPicture_Albums.typ
+  def valueTypeName = TPicture_Album.typeName
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

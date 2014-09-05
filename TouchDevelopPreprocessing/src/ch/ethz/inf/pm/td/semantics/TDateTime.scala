@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of DateTime
@@ -14,37 +16,32 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TDateTime {
+object TDateTime extends AAny {
 
   /** Gets the day of the month */
-  val field_day = new TouchField("day",TNumber.typName)
+  lazy val field_day = new TouchField("day",TNumber.typeName)
 
   /** Gets the hour */
-  val field_hour = new TouchField("hour",TNumber.typName)
+  lazy val field_hour = new TouchField("hour",TNumber.typeName)
 
   /** Gets the millisecond */
-  val field_millisecond = new TouchField("millisecond",TNumber.typName)
+  lazy val field_millisecond = new TouchField("millisecond",TNumber.typeName)
 
   /** Gets the minute */
-  val field_minute = new TouchField("minute",TNumber.typName)
+  lazy val field_minute = new TouchField("minute",TNumber.typeName)
 
   /** Gets the month */
-  val field_month = new TouchField("month",TNumber.typName)
+  lazy val field_month = new TouchField("month",TNumber.typeName)
 
   /** Gets the second */
-  val field_second = new TouchField("second",TNumber.typName)
+  lazy val field_second = new TouchField("second",TNumber.typeName)
 
   /** Gets the year */
-  val field_year = new TouchField("year",TNumber.typName)
+  lazy val field_year = new TouchField("year",TNumber.typeName)
 
-  val typName = "DateTime"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year))
+  lazy val typeName = TypeName("DateTime")
 
-}
-
-class TDateTime extends AAny {
-
-  def getTyp = TDateTime.typ
+  override def possibleFields = super.possibleFields ++ List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -100,7 +97,7 @@ class TDateTime extends AAny {
 
     /** Gets the date */
     case "date" =>
-      New[S](TDateTime.typ,Map(
+      New[S](TDateTime,Map(
         TDateTime.field_day -> Field[S](this0,TDateTime.field_day),
         TDateTime.field_month -> Field[S](this0,TDateTime.field_month),
         TDateTime.field_year -> Field[S](this0,TDateTime.field_year)
@@ -123,58 +120,58 @@ class TDateTime extends AAny {
     case "greater" =>
       val List(other) = parameters // DateTime
       Dummy[S](this0,method)
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Compares dates for greater or equal */
     case "greater or equal" =>
       val List(other) = parameters // DateTime
       Dummy[S](this0,method)
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Compares dates for less */
     case "less" =>
       val List(other) = parameters // DateTime
       Dummy[S](this0,method)
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Compares dates for less or equal */
     case "less or equals" =>
       val List(other) = parameters // DateTime
       Dummy[S](this0,method)
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     /** Compares dates for disequality */
     case "not equals" =>
       val List(other) = parameters // DateTime
       Dummy[S](this0,method)
-       Top[S](TBoolean.typ)
+       Top[S](TBoolean)
 
     /** Computes the difference between date-times in seconds */
     case "subtract" =>
       val List(value) = parameters // DateTime
-      Top[S](TNumber.typ)
+      Top[S](TNumber)
 
     /** Converts to the local time */
     case "to local time" =>
-      Top[S](TDateTime.typ)
+      Top[S](TDateTime)
 
     /** Converts coordinated universal time */
     case "to universal time" =>
-      Top[S](TDateTime.typ)
+      Top[S](TDateTime)
 
     /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
     case "week day" =>
-      Top[S](TNumber.typ)
+      Top[S](TNumber)
     // DECLARATION AS FIELD: 
     //   /** Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */
-    //   val field_week_day = new TouchField("week day",TNumber.typName)
+    //   lazy val field_week_day = new TouchField("week day",TNumber.typeName)
 
     /** Gets the day of the year between 1 and 366 */
     case "year day" =>
-      Top[S](TNumber.typ)
+      Top[S](TNumber)
     // DECLARATION AS FIELD: 
     //   /** Gets the day of the year between 1 and 366 */
-    //   val field_year_day = new TouchField("year day",TNumber.typName)
+    //   lazy val field_year_day = new TouchField("year day",TNumber.typeName)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

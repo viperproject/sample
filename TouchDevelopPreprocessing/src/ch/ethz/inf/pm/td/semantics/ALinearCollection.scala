@@ -2,26 +2,27 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import RichNativeSemantics._
 
 /**
  * This class represents collections that
  * have linear integer keys.
  **/
-abstract class ALinearCollection extends ACollection {
+trait ALinearCollection extends ACollection {
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S) = method match {
     case "at" =>
       val List(index) = parameters // Key_Type
 
-      if (index.getType().name != TNumber.typName)
+      if (index.getType() != TNumber)
         throw new SemanticException("This is not a linear collection " + this0.toString)
 
       val newState = If[S](CollectionIndexInRange[S](this0, index), Then = {
         Return[S](CollectionAt[S](this0, index))(_, pp)
       }, Else = {
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType, "collection access may be out of range"))(_, pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection access may be out of range"))(_, pp)
       })
       newState
 
@@ -38,7 +39,7 @@ abstract class ALinearCollection extends ACollection {
       If[S](CollectionSize[S](this0) > 0, Then = {
         Return[S](CollectionSummary[S](this0))(_, pp)
       }, Else = {
-        Return[S](Invalid(this0.getType().asInstanceOf[TouchCollection].valueType, "collection may be empty"))(_, pp)
+        Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
       })
 
     case _ =>

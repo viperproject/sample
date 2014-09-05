@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
 case object DummyObjectTypeA extends DummyObjectType {
   def name = "A"
-  def possibleFields = Set(
+  override def possibleFields = Set(
     VariableIdentifier("a")(DummyObjectTypeA),
     VariableIdentifier("b")(DummyObjectTypeB),
     VariableIdentifier("i")(DummyNumericalType))
@@ -13,13 +13,13 @@ case object DummyObjectTypeA extends DummyObjectType {
 
 case object DummyObjectTypeB extends DummyObjectType {
   def name = "B"
-  def possibleFields = Set(
+  override def possibleFields = Set(
     VariableIdentifier("a")(DummyObjectTypeA))
 }
 
 case object DummyObjectTypeC extends DummyObjectType {
   def name = "C"
-  def possibleFields = Set(
+  override def possibleFields = Set(
     VariableIdentifier("a")(DummyObjectTypeA))
 }
 

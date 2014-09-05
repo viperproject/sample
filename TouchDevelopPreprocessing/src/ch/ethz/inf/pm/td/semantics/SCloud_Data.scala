@@ -3,8 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Cloud Data
@@ -14,39 +16,34 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SCloud_Data {
+object SCloud_Data extends ASingleton {
 
   /** Gets a string that describes the state of the cloud synchronization, and additional details if requested */
-  val field_connection_status = new TouchField("connection status", TString.typName)
+  lazy val field_connection_status = new TouchField("connection status", TString.typeName)
 
   /** Gets the just-me session, in which cloud data is shared between devices by the same user. */
-  val field_just_me_session = new TouchField("just me session", TCloud_Session.typName)
+  lazy val field_just_me_session = new TouchField("just me session", TCloud_Session.typeName)
 
   /** Gets the everyone-session, in which cloud data is shared by everyone running this script. */
-  val field_everyone_session = new TouchField("everyone session", TCloud_Session.typName)
+  lazy val field_everyone_session = new TouchField("everyone session", TCloud_Session.typeName)
 
   /** Gets the currently active session. When the script starts, this is always the just-me session. */
-  val field_current_session = new TouchField("current session", TCloud_Session.typName)
+  lazy val field_current_session = new TouchField("current session", TCloud_Session.typeName)
 
   /* [**obsolete**] Deprecated: always equal to current session. */
-  val field_last_session = new TouchField("last session", TCloud_Session.typName)
+  lazy val field_last_session = new TouchField("last session", TCloud_Session.typeName)
 
   /** Returns the participant number within the current session, or -1 if not known yet. Participant numbers
     * are assigned by the server on first connect, starting with 0. */
-  val field_participant_number = new TouchField("participant number", TNumber.typName)
+  lazy val field_participant_number = new TouchField("participant number", TNumber.typeName)
 
   /** Returns a boolean indicating whether cloud synchronization is enabled for the current session */
-  val field_sync_enabled = new TouchField("sync enabled", TBoolean.typName)
+  lazy val field_sync_enabled = new TouchField("sync enabled", TBoolean.typeName)
 
-  val typName = "Cloud Data"
-  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_connection_status, field_current_session,
-    field_everyone_session, field_sync_enabled, field_just_me_session, field_last_session, field_participant_number))
+  lazy val typeName = TypeName("Cloud Data")
 
-}
-
-class SCloud_Data extends AAny {
-
-  def getTyp = SCloud_Data.typ
+  override def possibleFields = super.possibleFields ++ List(field_connection_status, field_current_session,
+    field_everyone_session, field_sync_enabled, field_just_me_session, field_last_session, field_participant_number)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet],
                                                returnedType: TouchType)
@@ -60,7 +57,7 @@ class SCloud_Data extends AAny {
     /** Creates a new cloud session owned by the current user. */
     case "create session" =>
       val List(title, typ) = parameters // String,String
-      New[S](TCloud_Session.typ, initials = Map(TCloud_Session.field_title -> title))
+      New[S](TCloud_Session, initials = Map(TCloud_Session.field_title -> title))
 
     /** Returns a boolean indicating whether cloud synchronization is enabled for the current session */
     case "is sync enabled" =>
@@ -75,7 +72,7 @@ class SCloud_Data extends AAny {
     /** Gets a session from a session id */
     case "session of" =>
       val List(id, title) = parameters // String,String
-      TopWithInvalid[S](TCloud_Session.typ, "session id may be wrong")
+      TopWithInvalid[S](TCloud_Session, "session id may be wrong")
 
     /** Asks the user to choose a session to switch to */
     case "switch sessions" =>
@@ -91,7 +88,7 @@ class SCloud_Data extends AAny {
       * exceeded. */
     case "wait for server" =>
       val List(timeout_msec) = parameters // Number
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

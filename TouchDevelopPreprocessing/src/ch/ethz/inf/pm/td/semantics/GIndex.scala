@@ -1,13 +1,20 @@
 package ch.ethz.inf.pm.td.semantics
 
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TypeList, TouchType}
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
-class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchType) extends ACollection {
+case class GIndex(indexMemberType:TypeName, alternativeName:Option[TypeName] = None) extends ACollection {
 
-  def getTyp = indexType
+  def typeName = alternativeName match { case None => TypeName(indexMemberType.ident + " Index"); case Some(x) => x }
+
+  override def keyTypeName: TypeName = TNumber.typeName
+
+  override def valueTypeName: TypeName = indexMemberType
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -25,7 +32,7 @@ class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchT
     case "at" =>
       val key = parameters.head
       If[S](CollectionContainsKey[S](this0, key) equal False, Then=(state) => {
-        var newState = New[S](indexMemberType)(state,pp)
+        var newState = New[S](SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(indexMemberType))(state,pp)
         val newIndexMember = newState.expr
         newState = CollectionInsert[S](this0, key, newIndexMember)(newState,pp)
         newState = CollectionIncreaseLength[S](this0)(newState, pp)
@@ -41,5 +48,4 @@ class AIndex(indexType:TouchType,keyTypes:List[TouchType],indexMemberType:TouchT
       super.forwardSemantics(this0,method,parameters,returnedType)
 
   }
-
 }

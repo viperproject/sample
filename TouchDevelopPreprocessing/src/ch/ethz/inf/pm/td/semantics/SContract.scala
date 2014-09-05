@@ -1,11 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
 
 /**
  * Specifies the abstract semantics of Contract
@@ -15,16 +16,9 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  * @author Lucas Brutschy
  */ 
 
-object SContract {
+object SContract extends ASingleton {
 
-  val typName = "Contract"
-  val typ = DefaultTouchType(typName,isSingleton = true)
-
-}
-
-class SContract extends AAny {
-
-  def getTyp = SContract.typ
+  lazy val typeName = TypeName("Contract")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

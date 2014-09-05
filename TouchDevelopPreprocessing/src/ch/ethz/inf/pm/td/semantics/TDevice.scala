@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Device
@@ -14,25 +16,20 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TDevice {
+object TDevice extends AAny {
 
   /** Checks if the device is connected */
-  val field_is_connected = new TouchField("is connected",TBoolean.typName)
+  lazy val field_is_connected = new TouchField("is connected",TBoolean.typeName)
 
   /** Gets the manfacturer name */
-  val field_manufacturer = new TouchField("manufacturer",TString.typName)
+  lazy val field_manufacturer = new TouchField("manufacturer",TString.typeName)
 
   /** Gets the friendly name of the device */
-  val field_name = new TouchField("name",TString.typName)
+  lazy val field_name = new TouchField("name",TString.typeName)
 
-  val typName = "Device"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_is_connected, field_manufacturer, field_name))
+  lazy val typeName = TypeName("Device")
 
-}
-
-class TDevice extends AAny {
-
-  def getTyp = TDevice.typ
+  override def possibleFields = super.possibleFields ++ List(field_is_connected, field_manufacturer, field_name)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

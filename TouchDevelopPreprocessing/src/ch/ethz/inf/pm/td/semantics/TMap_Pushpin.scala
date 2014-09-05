@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,25 +16,20 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TMap_Pushpin {
+object TMap_Pushpin extends AAny {
 
   /** Gets the pushpin geo location */
-  val field_location = new TouchField("location", TLocation.typName)
+  lazy val field_location = new TouchField("location", TLocation.typeName)
 
   /** Shows or hides the pushpin */
-  val field_visible = new TouchField("visible", TBoolean.typName)
+  lazy val field_visible = new TouchField("visible", TBoolean.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  val field_tap_handler = new TouchField("tap handler", TPosition_Action.typName)
+  lazy val field_tap_handler = new TouchField("tap handler", TPosition_Action.typeName)
 
-  val typName = "Map Pushpin"
-  val typ = DefaultTouchType(typName, fields = List(field_location, field_visible, field_tap_handler))
+  lazy val typeName = TypeName("Map Pushpin")
 
-}
-
-class TMap_Pushpin extends AAny {
-
-  def getTyp = TMap_Pushpin.typ
+  override def possibleFields = super.possibleFields ++ List(field_location, field_visible, field_tap_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -41,7 +38,7 @@ class TMap_Pushpin extends AAny {
     case "on tap" =>
       val List(tapped) = parameters // Action
     val newState = AssignField[S](this0, TMap_Pushpin.field_tap_handler, tapped)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

@@ -1,11 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, MethodSummaries, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.{TouchType}
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
-import ch.ethz.inf.pm.td.analysis.{MethodSummaries, TouchAnalysisParameters}
 
 /**
  * Specifies the abstract semantics of App
@@ -15,23 +16,16 @@ import ch.ethz.inf.pm.td.analysis.{MethodSummaries, TouchAnalysisParameters}
  * @author Lucas Brutschy
  */
 
-object SApp {
+object SApp extends ASingleton {
 
-  val typName = "App"
-  val typ = DefaultTouchType(typName, isSingleton = true)
-
-}
-
-class SApp extends AAny {
-
-  def getTyp = SApp.typ
+  lazy val typeName = TypeName("App")
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 
     /** Gets the binding of the current handler if any. This can be used to delete a handler from itself. */
     case "current handler" =>
-      New[S](TEvent_Binding.typ) // deleting a handler is ignored anyways.
+      New[S](TEvent_Binding) // deleting a handler is ignored anyways.
 
     /** Aborts the execution if the condition is false. */
     case "fail if not" =>

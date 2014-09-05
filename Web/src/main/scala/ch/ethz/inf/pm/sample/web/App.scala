@@ -29,6 +29,9 @@ abstract class App extends ScalatraServlet {
   /** List of pre-defined analysis runners. */
   def availableAnalysisRunners: Seq[AnalysisRunner[_]]
 
+  /** URL prefix */
+  def prefix: String
+
   /** The currently active runner using which analyses are performed.
     * Can be changed from the web interface and defaults to the first one.
     */
@@ -53,12 +56,12 @@ abstract class App extends ScalatraServlet {
         // If there is only a single result, redirect to it
         // Otherwise, let the user choose
         if (results.size == 1)
-          redirect("/results/0/?")
+          redirect("/"+prefix+"/results/0/?")
         else
-          redirect("/results/?")
+          redirect("/"+prefix+"/results/?")
       case None =>
         // TODO: Should probably output an error message
-        redirect("/")
+        redirect("/"+prefix+"/")
     }
   }
 
@@ -74,7 +77,7 @@ abstract class App extends ScalatraServlet {
   get("/results/") {
     resultsOption match {
       case Some(result) => html.AnalysisResults()(this)
-      case None => redirect("/")
+      case None => redirect("/"+prefix+"/")
     }
   }
 
@@ -82,7 +85,7 @@ abstract class App extends ScalatraServlet {
   get("/results/:result/") {
     resultOption match {
       case Some(result) => html.CFGState(result)(this)
-      case None => redirect("/")
+      case None => redirect("/"+prefix+"/")
     }
   }
 
@@ -92,7 +95,7 @@ abstract class App extends ScalatraServlet {
       case Some(result) =>
         val blockIndex = params("block").toInt
         html.CFGBlockState(result, blockIndex, iter(blockIndex))(this)
-      case None => redirect("/")
+      case None => redirect("/"+prefix+"/")
     }
   }
 
@@ -103,7 +106,7 @@ abstract class App extends ScalatraServlet {
         val blockIndex = params("block").toInt
         val stateIndex = params("state").toInt
         html.State(result, blockIndex, stateIndex, iter(blockIndex))(this)
-      case None => redirect("/")
+      case None => redirect("/"+prefix+"/")
     }
   }
 
@@ -134,12 +137,12 @@ abstract class App extends ScalatraServlet {
 /** Web app that detects SIL test programs and lets the user analyze them. */
 class SilApp extends App {
   val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
-
   val availableAnalysisRunners = Seq(
     PredicateAnalysisRunner,
     DefaultAnalysisRunner,
     PreciseAnalysisRunner
   )
+  val prefix = "sil"
 }
 
 /** Launches the web server.

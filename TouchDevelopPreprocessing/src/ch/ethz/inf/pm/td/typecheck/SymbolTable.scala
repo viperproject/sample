@@ -156,10 +156,10 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
   override def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {
 
     typ match {
-      case TypeName("code") => resolveCode(symbol, args, pos)
-      case TypeName("♻") => List(TypeName(CFGGenerator.libraryIdent(symbol)))
-      case TypeName("data") => List(resolveData(symbol, pos))
-      case TypeName("art") => List(resolveData(symbol, pos))
+      case TypeName("code",_) => resolveCode(symbol, args, pos)
+      case TypeName("♻",_) => List(TypeName(CFGGenerator.libraryIdent(symbol)))
+      case TypeName("data",_) => List(resolveData(symbol, pos))
+      case TypeName("art",_) => List(resolveData(symbol, pos))
       case _ =>
         if (CFGGenerator.isLibraryIdent(typ.ident)) {
           val lib = CFGGenerator.getLibraryName(typ.ident)

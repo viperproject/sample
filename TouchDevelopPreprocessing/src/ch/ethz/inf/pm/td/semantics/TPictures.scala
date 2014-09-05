@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,16 +16,13 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TPictures {
+object TPictures extends ALinearCollection {
 
-  val typName = "Pictures"
-  val typ = TouchCollection(typName,"Number","Picture")
+  lazy val typeName = TypeName("Pictures")
 
-}
+  def keyTypeName = TNumber.typeName
 
-class TPictures extends ALinearCollection {
-
-  def getTyp = TPictures.typ
+  def valueTypeName = TPicture.typeName
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -36,7 +35,7 @@ class TPictures extends ALinearCollection {
     /** Gets the thumbnail of i-th picture. */
     case "thumbnail" =>
       val List(index) = parameters // Number
-      New[S](TPicture.typ)
+      New[S](TPicture)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

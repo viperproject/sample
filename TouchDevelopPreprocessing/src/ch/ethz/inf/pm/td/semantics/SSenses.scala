@@ -2,8 +2,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of senses
@@ -13,52 +15,47 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SSenses {
+object SSenses extends ASingleton {
 
   /** Gets the primary camera if available */
-  val field_camera = new TouchField("camera", TCamera.typName, topDefault = TopWithInvalidInitializer("camera may not be available"))
+  lazy val field_camera = new TouchField("camera", TCamera.typeName, topDefault = TopWithInvalidInitializer("camera may not be available"))
 
   /** Gets the front facing camera if available */
-  val field_front_camera = new TouchField("front camera", TCamera.typName, topDefault = TopWithInvalidInitializer("camera may not be available"))
+  lazy val field_front_camera = new TouchField("front camera", TCamera.typeName, topDefault = TopWithInvalidInitializer("camera may not be available"))
 
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
-  val field_has_accelerometer = new TouchField("has accelerometer", TBoolean.typName)
+  lazy val field_has_accelerometer = new TouchField("has accelerometer", TBoolean.typeName)
 
   /** DEPRECATED. Test if the senses→heading is invalid instead */
-  val field_has_compass = new TouchField("has compass", TBoolean.typName)
+  lazy val field_has_compass = new TouchField("has compass", TBoolean.typeName)
 
   /** DEPRECATED. Test if the senses→front camera is invalid instead */
-  val field_has_front_camera = new TouchField("has front camera", TBoolean.typName)
+  lazy val field_has_front_camera = new TouchField("has front camera", TBoolean.typeName)
 
   /** Indicates if the gyroscope is available on the device */
-  val field_has_gyroscope = new TouchField("has gyroscope", TBoolean.typName)
+  lazy val field_has_gyroscope = new TouchField("has gyroscope", TBoolean.typeName)
 
   /** Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */
-  val field_battery_level = new TouchField("battery level", TNumber.typName)
+  lazy val field_battery_level = new TouchField("battery level", TNumber.typeName)
 
   /** Get the list of Bluetooth widgets paired with your device. */
-  val field_bluetooth_devices = new TouchField("bluetooth devices", GCollection.typName(TBluetooth_Device.typName))
+  lazy val field_bluetooth_devices = new TouchField("bluetooth devices", GCollection(TBluetooth_Device.typeName).typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  val field_shake_handler = new TouchField("shake handler", TAction.typName)
-  val field_phone_face_up_handler = new TouchField("phone face up handler", TAction.typName)
-  val field_phone_face_down_handler = new TouchField("phone face down handler", TAction.typName)
-  val field_phone_portrait = new TouchField("phone portrait handler", TAction.typName)
-  val field_phone_landscape_left = new TouchField("phone landscape left handler", TAction.typName)
-  val field_phone_langscape_right = new TouchField("phone landscape right handler", TAction.typName)
+  lazy val field_shake_handler = new TouchField("shake handler", TAction.typeName)
+  lazy val field_phone_face_up_handler = new TouchField("phone face up handler", TAction.typeName)
+  lazy val field_phone_face_down_handler = new TouchField("phone face down handler", TAction.typeName)
+  lazy val field_phone_portrait = new TouchField("phone portrait handler", TAction.typeName)
+  lazy val field_phone_landscape_left = new TouchField("phone landscape left handler", TAction.typeName)
+  lazy val field_phone_langscape_right = new TouchField("phone landscape right handler", TAction.typeName)
 
-  val typName = "Senses"
-  val typ = DefaultTouchType(typName, isSingleton = true,
-    fields = List(field_front_camera, field_camera, field_has_accelerometer, field_has_compass, field_has_front_camera,
+  lazy val typeName = TypeName("Senses")
+
+  override def possibleFields = super.possibleFields ++
+    List(field_front_camera, field_camera, field_has_accelerometer, field_has_compass, field_has_front_camera,
       field_has_gyroscope, field_bluetooth_devices, field_battery_level, field_shake_handler, field_phone_face_up_handler,
       field_phone_face_down_handler, field_phone_portrait, field_phone_landscape_left, field_phone_langscape_right
-    ))
-
-}
-
-class SSenses extends AAny {
-
-  def getTyp = SSenses.typ
+    )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -68,10 +65,10 @@ class SSenses extends AAny {
       val res = If[S](Field[S](this0, SSenses.field_has_accelerometer),
         Then = {
           s: S =>
-            Top[S](TVector3.typ)(s, pp)
+            Top[S](TVector3)(s, pp)
         }, Else = {
           s: S =>
-            Return[S](Invalid(TVector3.typ, "accelerometer may be unavailable on the users device"))(s, pp)
+            Return[S](Invalid(TVector3, "accelerometer may be unavailable on the users device"))(s, pp)
         }
       )
       res
@@ -81,10 +78,10 @@ class SSenses extends AAny {
       If[S](Field[S](this0, SSenses.field_has_accelerometer),
         Then = {
           s: S =>
-            Top[S](TVector3.typ)(s, pp)
+            Top[S](TVector3)(s, pp)
         }, Else = {
           s: S =>
-            Return[S](Invalid(TVector3.typ, "accelerometer may be unavailable on the users device"))(s, pp)
+            Return[S](Invalid(TVector3, "accelerometer may be unavailable on the users device"))(s, pp)
         }
       )
 
@@ -93,21 +90,21 @@ class SSenses extends AAny {
       If[S](Field[S](this0, SSenses.field_has_accelerometer),
         Then = {
           s: S =>
-            Top[S](TVector3.typ)(s, pp)
+            Top[S](TVector3)(s, pp)
         }, Else = {
           s: S =>
-            Return[S](Invalid(TVector3.typ, "accelerometer may be unavailable on the users device"))(s, pp)
+            Return[S](Invalid(TVector3, "accelerometer may be unavailable on the users device"))(s, pp)
         }
       )
 
     /** Gets the current phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */
     case "current location" =>
-      TopWithInvalid[S](TLocation.typ, "gps sensor may be unavailable")
+      TopWithInvalid[S](TLocation, "gps sensor may be unavailable")
 
     /** Gets the current phone location with the most accuracy. This includes using services that might charge money,
       * or consuming higher levels of battery power or connection bandwidth. */
     case "current location accurate" =>
-      TopWithInvalid[S](TLocation.typ, "gps sensor may be unavailable")
+      TopWithInvalid[S](TLocation, "gps sensor may be unavailable")
 
     /** DEPRECATED. Test if the senses→motion is invalid instead. */
     case "has motion" =>
@@ -120,10 +117,10 @@ class SSenses extends AAny {
       If[S](Field[S](this0, SSenses.field_has_compass),
         Then = {
           s: S =>
-            Top[S](TNumber.typ)(s, pp)
+            Top[S](TNumber)(s, pp)
         }, Else = {
           s: S =>
-            Return[S](Invalid(TNumber.typ, "compass may be unavailable on the users device"))(s, pp)
+            Return[S](Invalid(TNumber, "compass may be unavailable on the users device"))(s, pp)
         }
       )
 
@@ -131,10 +128,10 @@ class SSenses extends AAny {
     case "is device stable" =>
       If[S](Field[S](this0, SSenses.field_has_accelerometer), Then = {
         s: S =>
-          Top[S](TBoolean.typ)(s, pp)
+          Top[S](TBoolean)(s, pp)
       }, Else = {
         s: S =>
-          Return[S](Invalid(TBoolean.typ, "motion sensor may be unavailable on the users device"))(s, pp)
+          Return[S](Invalid(TBoolean, "motion sensor may be unavailable on the users device"))(s, pp)
       })
 
     /** Gets the current motion that combines data from the accelerometer, compass and gyroscope if available. */
@@ -144,10 +141,10 @@ class SSenses extends AAny {
         && Field[S](this0, SSenses.field_has_gyroscope),
         Then = {
           s: S =>
-            Top[S](TMotion.typ)(s, pp)
+            Top[S](TMotion)(s, pp)
         }, Else = {
           s: S =>
-            Return[S](Invalid(TMotion.typ, "motion sensor may be unavailable on the users device"))(s, pp)
+            Return[S](Invalid(TMotion, "motion sensor may be unavailable on the users device"))(s, pp)
         }
       )
 
@@ -155,77 +152,77 @@ class SSenses extends AAny {
     /** Attaches an event that triggers while the key is pressed. This event repeats while the key is down. */
     case "on key pressed" =>
       val List(key, handler) = parameters // String,Action
-      New[S](TEvent_Binding.typ)
+      New[S](TEvent_Binding)
 
     /** Attaches a handler to the `phone face down` event. */
     case "on phone face down" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, SSenses.field_phone_face_down_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Attaches a handler to the `phone face up` event. */
     case "on phone face up" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, SSenses.field_phone_face_up_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Attaches a handler to the `phone landscape left` event. */
     case "on phone landscape left" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, SSenses.field_phone_landscape_left, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Attaches a handler to the `phone landscape right` event. */
     case "on phone landscape right" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, SSenses.field_phone_langscape_right, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Attaches a handler to the `phone portrait` event. */
     case "on phone portrait" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, SSenses.field_phone_portrait, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Attaches a handler to the `shake` event. */
     case "on shake" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, SSenses.field_shake_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */
     case "orientation" =>
       If[S](Field[S](this0, SSenses.field_has_gyroscope), Then = {
         s: S =>
-          Top[S](TVector3.typ)(s, pp)
+          Top[S](TVector3)(s, pp)
       }, Else = {
         s: S =>
-          Return[S](Invalid(TVector3.typ, "gyroscope sensor may be unavailable"))(s, pp)
+          Return[S](Invalid(TVector3, "gyroscope sensor may be unavailable"))(s, pp)
       })
 
     /** Records audio using the microphone */
     case "record microphone" =>
-      TopWithInvalid[S](TSound.typ, "microphone may be unavailable")
+      TopWithInvalid[S](TSound, "microphone may be unavailable")
 
     /** Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */
     case "rotation speed" =>
       If[S](Field[S](this0, SSenses.field_has_gyroscope), Then = {
         s: S =>
-          Top[S](TVector3.typ)(s, pp)
+          Top[S](TVector3)(s, pp)
       }, Else = {
         s: S =>
-          Return[S](Invalid(TVector3.typ, "gyroscope may be unavailable on the users device"))(s, pp)
+          Return[S](Invalid(TVector3, "gyroscope may be unavailable on the users device"))(s, pp)
       })
 
     /** Takes a picture and returns it. This picture does not contain the gps location. */
     case "take camera picture" =>
-      If[S](Field[S](this0, SSenses.field_camera) equal Invalid(TCamera.typ, "camera may be unavailable on the users device"),
+      If[S](Field[S](this0, SSenses.field_camera) equal Invalid(TCamera, "camera may be unavailable on the users device"),
         Then = {
-          Return[S](Invalid(TPicture.typ, "camera may be unavailable on the users device"))(_, pp)
+          Return[S](Invalid(TPicture, "camera may be unavailable on the users device"))(_, pp)
         },
         Else = {
-          Top[S](TPicture.typ, Map(
-            TPicture.field_location -> Invalid(TLocation.typ, "gps sensor may be unavailable on the users device")
+          Top[S](TPicture, Map(
+            TPicture.field_location -> Invalid(TLocation, "gps sensor may be unavailable on the users device")
           ))(_, pp)
         }
       )

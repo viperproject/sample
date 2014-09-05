@@ -1,11 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Sound
@@ -15,28 +16,23 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  * @author Lucas Brutschy
  */ 
 
-object TSound {
+object TSound extends AAny {
 
   /** Gets the duration in seconds. */
-  val field_duration = new TouchField("duration",TNumber.typName)
+  lazy val field_duration = new TouchField("duration",TNumber.typeName)
 
   /** Gets the panning, ranging from -1.0 (full left) to 1.0 (full right). */
-  val field_pan = new TouchField("pan",TNumber.typName,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_pan = new TouchField("pan",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
 
   /** Gets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */
-  val field_pitch = new TouchField("pitch",TNumber.typName,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_pitch = new TouchField("pitch",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
 
   /** Gets the volume from 0 (silent) to 1 (full volume) */
-  val field_volume = new TouchField("volume",TNumber.typName,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_volume = new TouchField("volume",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
 
-  val typName = "Sound"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_duration, field_pan, field_pitch, field_volume))
+  lazy val typeName = TypeName("Sound")
 
-}
-
-class TSound extends AAny {
-
-  def getTyp = TSound.typ
+  override def possibleFields = super.possibleFields ++ List(field_duration, field_pan, field_pitch, field_volume)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

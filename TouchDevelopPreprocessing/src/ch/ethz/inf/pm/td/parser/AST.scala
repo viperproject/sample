@@ -93,7 +93,7 @@ case class ActionResolution(localName:String,libName:String)
 case class Parameter(ident:String,typeName:TypeName)
   extends IdPositional
 
-case class TypeName(ident:String)
+case class TypeName(ident:String,arguments:List[TypeName] = Nil)
   extends IdPositional {
   override def toString:String = ident
 }

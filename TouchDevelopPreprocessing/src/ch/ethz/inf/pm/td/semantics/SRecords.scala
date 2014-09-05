@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of records
@@ -13,18 +15,11 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */
 
-object SRecords {
+object SRecords extends ASingleton {
 
-  val typName = "records"
-  var typ = DefaultTouchType(typName,isSingleton = true)
+  lazy val typeName = TypeName("records")
 
-  def reset() { typ = DefaultTouchType(typName,isSingleton = true) }
-
-}
-
-class SRecords extends AAny {
-
-  def getTyp = SRecords.typ
+  override def possibleFields = super.possibleFields ++ SystemParameters.compiler.asInstanceOf[TouchCompiler].recordsFields
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

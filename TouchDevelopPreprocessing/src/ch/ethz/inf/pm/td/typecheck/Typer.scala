@@ -143,16 +143,16 @@ object Typer {
   def inParametersToActionType(params: List[Parameter]): TypeName = {
     TypeName(params match {
       case Nil => "Action"
-      case List(Parameter(_, TypeName("Boolean"))) => "Boolean Action"
-      case List(Parameter(_, TypeName("Number"))) => "Number Action"
-      case List(Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number"))) => "Position Action"
-      case List(Parameter(_, TypeName("String"))) => "Text Action"
-      case List(Parameter(_, TypeName("Sprite"))) => "Sprite Action"
-      case List(Parameter(_, TypeName("Sprite Set"))) => "Sprite Set Action"
-      case List(Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number")), Parameter(_, TypeName("Number"))) => "Vector Action"
-      case List(Parameter(_, TypeName("Web Response"))) => "Web Response Action"
-      case List(Parameter(_, TypeName("Message Collection"))) => "Message Collection Action"
-      case List(Parameter(_, TypeName(s))) => s + " action"
+      case List(Parameter(_, TypeName("Boolean",_))) => "Boolean Action"
+      case List(Parameter(_, TypeName("Number",_))) => "Number Action"
+      case List(Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_))) => "Position Action"
+      case List(Parameter(_, TypeName("String",_))) => "Text Action"
+      case List(Parameter(_, TypeName("Sprite",_))) => "Sprite Action"
+      case List(Parameter(_, TypeName("Sprite Set",_))) => "Sprite Set Action"
+      case List(Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_)), Parameter(_, TypeName("Number",_))) => "Vector Action"
+      case List(Parameter(_, TypeName("Web Response",_))) => "Web Response Action"
+      case List(Parameter(_, TypeName("Message Collection",_))) => "Message Collection Action"
+      case List(Parameter(_, TypeName(s,_))) => s + " action"
       case _ => println("Unknown action type, falling back to Action: " + params); "Action"
     })
   }

@@ -1,10 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Converter
@@ -14,16 +14,9 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TConverter {
+object TConverter extends AAny {
 
-  val typName = "Converter"
-  val typ = DefaultTouchType(typName,isSingleton = false)
-
-}
-
-class TConverter extends AAny {
-
-  def getTyp = TConverter.typ
+  lazy val typeName = TypeName("Converter")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -31,10 +24,10 @@ class TConverter extends AAny {
     /** Run the inline action. */
     // case "run" => 
     //   val List(elt) = parameters // From
-    //   TopWithInvalid[S](TTo.typ)
+    //   TopWithInvalid[S](TTo)
     // DECLARATION AS FIELD: 
     //   /** Run the inline action. */
-    //   val field_run = new TouchField("run",TTo.typName)
+    //   lazy val field_run = new TouchField("run",TTo.typeName)
 
     // FIELDS: field_run
 

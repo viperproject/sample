@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Playlist
@@ -14,25 +16,21 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TPlaylist {
+object TPlaylist extends AAny {
 
   /** Gets the duration in seconds */
-  val field_duration = new TouchField("duration",TNumber.typName)
+  lazy val field_duration = new TouchField("duration",TNumber.typeName)
 
   /** Gets the name of the song */
-  val field_name = new TouchField("name",TString.typName)
+  lazy val field_name = new TouchField("name",TString.typeName)
 
   /** Gets the songs */
-  val field_songs = new TouchField("songs",TSongs.typName)
+  lazy val field_songs = new TouchField("songs",TSongs.typeName)
 
-  val typName = "Playlist"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_duration,field_name,field_songs))
+  lazy val typeName = TypeName("Playlist")
 
-}
+  override def possibleFields = super.possibleFields ++ List(field_duration,field_name,field_songs)
 
-class TPlaylist extends AAny {
-
-  def getTyp = TPlaylist.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

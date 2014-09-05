@@ -3,9 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of tags
@@ -15,16 +16,9 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object STags {
+object STags extends ASingleton {
 
-  val typName = "Tags"
-  val typ = DefaultTouchType(typName, isSingleton = true)
-
-}
-
-class STags extends AAny {
-
-  def getTyp = STags.typ
+  lazy val typeName = TypeName("Tags")
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -32,12 +26,12 @@ class STags extends AAny {
 
     /** Receives a picture through NFC. */
     case "nfc receive picture" =>
-      TopWithInvalid[S](TPicture.typ, "NFC may not be available")
+      TopWithInvalid[S](TPicture, "NFC may not be available")
 
     /** Receives text through NFC. `type` may also be a mime type. */
     case "nfc receive" =>
       val List(typ) = parameters // String
-      TopWithInvalid[S](TString.typ, "NFC may not be available")
+      TopWithInvalid[S](TString, "NFC may not be available")
 
     /** Sends a url, text or any other format using NFC. `type` may be a mime type. */
     case "nfc send picture" =>
@@ -57,10 +51,10 @@ class STags extends AAny {
     /** [**dbg**] Scans an id tag create by TouchDevelop and returns the embeded text. */
     case "scan" =>
       val List() = parameters //
-      TopWithInvalid[S](TString.typ, "ID tag may not be successfully scanned")
+      TopWithInvalid[S](TString, "ID tag may not be successfully scanned")
     // DECLARATION AS FIELD:
     //   /** [**dbg**] Scans an id tag create by TouchDevelop and returns the embeded text. */
-    //   val field_scan = new TouchField("scan",TString.typ)
+    //   lazy val field_scan = new TouchField("scan",TString)
 
     /** Generates a 2D barcode pointing to the text using Microsoft Tag. text must be less than 1000 character long and size must be between 0.75 and 5 inches. */
     case "tag text" =>
@@ -69,7 +63,7 @@ class STags extends AAny {
       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](size, 0.75, 5, "tag url", "size")
       }
-      New[S](TPicture.typ, Map(
+      New[S](TPicture, Map(
         TPicture.field_width -> toRichExpression(601),
         TPicture.field_height -> toRichExpression(601)
       ))
@@ -81,7 +75,7 @@ class STags extends AAny {
       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](size, 0.75, 5, "tag url", "size")
       }
-      New[S](TPicture.typ, Map(
+      New[S](TPicture, Map(
         TPicture.field_width -> toRichExpression(601),
         TPicture.field_height -> toRichExpression(601)
       ))

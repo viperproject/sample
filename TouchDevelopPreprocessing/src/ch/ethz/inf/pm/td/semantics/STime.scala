@@ -1,10 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of time
@@ -14,19 +15,13 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  * @author Lucas Brutschy
  */
 
-object STime {
+object STime extends ASingleton {
 
   /** PRIVATE HANDLER FIELDS */
-  val field_every_frame_handler = new TouchField("every frame handler", TAction.typName)
+  lazy val field_every_frame_handler = new TouchField("every frame handler", TAction.typeName)
 
-  val typName = "Time"
-  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_every_frame_handler))
-
-}
-
-class STime extends AAny {
-
-  def getTyp = STime.typ
+  lazy val typeName = TypeName("Time")
+  override def possibleFields = super.possibleFields ++ List(field_every_frame_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -36,22 +31,22 @@ class STime extends AAny {
     case "on every frame" =>
       val List(perform) = parameters // Action
     val newState = AssignField[S](this0, STime.field_every_frame_handler, perform)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Starts a timer to run ``perform`` after ``seconds`` seconds. */
     case "run after" =>
       val List(seconds, perform) = parameters // Number,Action
-      New[S](TTimer.typ, initials = Map(TTimer.field_is_active -> True, TTimer.field_trigger_handler -> perform))
+      New[S](TTimer, initials = Map(TTimer.field_is_active -> True, TTimer.field_trigger_handler -> perform))
 
     /** Starts a timer to run ``perform`` every ``seconds`` seconds. */
     case "run every" =>
       val List(seconds, perform) = parameters // Number,Action
-      New[S](TTimer.typ, initials = Map(TTimer.field_is_active -> True, TTimer.field_trigger_handler -> perform))
+      New[S](TTimer, initials = Map(TTimer.field_is_active -> True, TTimer.field_trigger_handler -> perform))
 
     /** Creates a new date instance */
     case "create" =>
       val List(year, month, day, hour, minute, second) = parameters // Number,Number,Number,Number,Number,Number
-      New[S](TDateTime.typ, Map(
+      New[S](TDateTime, Map(
         TDateTime.field_year -> year,
         TDateTime.field_month -> month,
         TDateTime.field_day -> day,
@@ -76,7 +71,7 @@ class STime extends AAny {
 
     /** Gets the current time */
     case "now" =>
-      Top[S](TDateTime.typ)
+      Top[S](TDateTime)
 
     /** Waits for a specified amount of seconds */
     case "sleep" =>
@@ -95,11 +90,11 @@ class STime extends AAny {
 
     /** Gets today's date without time */
     case "today" =>
-      Top[S](TDateTime.typ)
+      Top[S](TDateTime)
 
     /** Gets tomorrow's date without time */
     case "tomorrow" =>
-      Top[S](TDateTime.typ)
+      Top[S](TDateTime)
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

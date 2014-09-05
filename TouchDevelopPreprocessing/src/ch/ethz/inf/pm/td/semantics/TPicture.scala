@@ -3,9 +3,10 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisConstants
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import ch.ethz.inf.pm.td.analysis._
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Picture
@@ -15,32 +16,27 @@ import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TPicture {
+object TPicture extends AAny {
 
   /** Gets the width in pixels */
-  val field_width = new TouchField("width", TNumber.typName,
+  lazy val field_width = new TouchField("width", TNumber.typeName,
     default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the height in pixels */
-  val field_height = new TouchField("height", TNumber.typName,
+  lazy val field_height = new TouchField("height", TNumber.typeName,
     default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the location where the picture was taken; if any. */
-  val field_location = new TouchField("location", TLocation.typName, InvalidInitializer("picture may not have a location"))
+  lazy val field_location = new TouchField("location", TLocation.typeName, InvalidInitializer("picture may not have a location"))
 
   /** Gets the date time where the picture was taken; if any. */
-  val field_date = new TouchField("date", TDateTime.typName, InvalidInitializer("picture may not have a date"))
+  lazy val field_date = new TouchField("date", TDateTime.typeName, InvalidInitializer("picture may not have a date"))
 
-  val typName = "Picture"
-  val typ = DefaultTouchType(typName, isSingleton = false, fields = List(field_width, field_height, field_location, field_date))
+  lazy val typeName = TypeName("Picture")
 
-}
-
-class TPicture extends AAny {
-
-  def getTyp = TPicture.typ
+  override def possibleFields = super.possibleFields ++ List(field_width, field_height, field_location, field_date)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -51,7 +47,7 @@ class TPicture extends AAny {
       val List(index) = parameters // Number
       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations)
         CheckInRangeInclusive[S](index, 0, (Field[S](this0, TPicture.field_height) * Field[S](this0, TPicture.field_width)) - NumericalAnalysisConstants.epsilon, "at", "index")
-      Top[S](TColor.typ)
+      Top[S](TColor)
 
     /** Writes another picture at a given location. The opacity ranges from 0 (transparent) to 1 (opaque). */
     case "blend" =>
@@ -253,7 +249,7 @@ class TPicture extends AAny {
         CheckInRangeInclusive[S](x, 0, Field[S](this0, TPicture.field_width) - NumericalAnalysisConstants.epsilon, "pixel", "x")
         CheckInRangeInclusive[S](y, 0, Field[S](this0, TPicture.field_height) - NumericalAnalysisConstants.epsilon, "pixel", "y")
       }
-      New[S](TColor.typ)
+      New[S](TColor)
 
     /** Resizes the picture to the given size in pixels */
     case "resize" =>
@@ -287,7 +283,7 @@ class TPicture extends AAny {
 
     /** Saves the picture to the 'saved pictures' album. Returns the file name. */
     case "save to library" =>
-      Top[S](TString.typ)
+      Top[S](TString)
 
     /** Sets the pixel color at a given pixel */
     case "set pixel" =>
@@ -311,12 +307,12 @@ class TPicture extends AAny {
     /** Copy all pixels from the picture */
     case "to buffer" =>
       val List() = parameters //
-      Top[S](TBuffer.typ)
+      Top[S](TBuffer)
 
     /** Encodes the image into a data uri using the desired quality (1 best, 0 worst). If the quality value is 1, the image is encoded as PNG, otherwise JPEG. */
     case "to data uri" =>
       val List(quality) = parameters // Number
-      Top[S](TString.typ)
+      Top[S](TString)
 
     /** Refreshes the picture on the wall */
     case "update on wall" =>

@@ -1,9 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Ref
@@ -13,16 +14,9 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */
 
-object TRef {
+object TRef extends AAny {
 
-  val typName = "Ref"
-  val typ = DefaultTouchType(typName)
-
-}
-
-class TRef extends AAny {
-
-  def getTyp = TRef.typ
+  lazy val typeName = TypeName("Ref")
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -40,26 +34,26 @@ class TRef extends AAny {
     /** Check if reference has been written to the storage/server */
     // case "◈confirmed" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TBoolean.typ)
+    //   TopWithInvalid[S](TBoolean)
     // DECLARATION AS FIELD: 
     //   /** Check if reference has been written to the storage/server */
-    //   val field_◈confirmed = new TouchField("◈confirmed",TBoolean.typName)
+    //   lazy val field_◈confirmed = new TouchField("◈confirmed",TBoolean.typeName)
 
     /** Get the current value of the reference */
     // case "◈get" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](TT.typ)
+    //   TopWithInvalid[S](TT)
     // DECLARATION AS FIELD: 
     //   /** Get the current value of the reference */
-    //   val field_◈get = new TouchField("◈get",TT.typName)
+    //   lazy val field_◈get = new TouchField("◈get",TT.typeName)
 
     /** Retrive the reference itself (useful on globals and fields) */
     // case "◈ref" => 
     //   val List() = parameters // 
-    //   TopWithInvalid[S](T{"g":"Ref","a":["T"]}.typ)
+    //   TopWithInvalid[S](T{"g":"Ref","a":["T"]})
     // DECLARATION AS FIELD: 
     //   /** Retrive the reference itself (useful on globals and fields) */
-    //   val field_◈ref = new TouchField("◈ref",T{"g":"Ref","a":["T"]}.typName)
+    //   lazy val field_◈ref = new TouchField("◈ref",T{"g":"Ref","a":["T"]}.typeName)
 
     /** Set the value of the reference */
     // case "◈set" => 

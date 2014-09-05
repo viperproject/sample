@@ -1,10 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import RichNativeSemantics._
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Json Action
@@ -14,16 +14,9 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TJson_Action {
+object TJson_Action extends AAny {
 
-  val typName = "Json Action"
-  val typ = DefaultTouchType(typName)
-
-}
-
-class TJson_Action extends AAny {
-
-  def getTyp = TJson_Action.typ
+  lazy val typeName = TypeName("Json Action")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

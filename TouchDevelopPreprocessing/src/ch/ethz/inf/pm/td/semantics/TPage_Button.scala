@@ -1,8 +1,10 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Page Button
@@ -12,25 +14,20 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */
 
-object TPage_Button {
+object TPage_Button extends AAny {
 
   /** Gets the text */
-  val field_text = new TouchField("text",TString.typName)
+  lazy val field_text = new TouchField("text",TString.typeName)
 
   /** Gets the page hosting this button */
-  val field_page = new TouchField("page",TPage.typName)
+  lazy val field_page = new TouchField("page",TPage.typeName)
 
   /** Gets the icon name */
-  val field_icon = new TouchField("icon",TString.typName)
+  lazy val field_icon = new TouchField("icon",TString.typeName)
 
-  val typName = "Page Button"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_text,field_page,field_icon))
+  lazy val typeName = TypeName("Page Button")
 
-}
-
-class TPage_Button extends AAny {
-
-  def getTyp = TPage_Button.typ
+  override def possibleFields = super.possibleFields ++ List(field_text,field_page,field_icon)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {
@@ -38,7 +35,7 @@ class TPage_Button extends AAny {
     /** Gets a value indicating if both instances are equal */
     // case "equals" => 
     //   val List(page_button) = parameters // Page_Button
-    //   Top[S](TBoolean.typ)
+    //   Top[S](TBoolean)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

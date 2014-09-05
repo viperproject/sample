@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,25 +16,20 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TServer_Response {
+object TServer_Response extends AAny {
 
   /** [**beta**] Gets the HTTP Status code of the response (defaults to 200) */
-  val field_status_code = new TouchField("status code",TNumber.typName)
+  lazy val field_status_code = new TouchField("status code",TNumber.typeName)
 
   /** [**beta**] Gets the names of the headers */
-  val field_header_map = new TouchField("header map",TString_Map.typName)
+  lazy val field_header_map = new TouchField("header map",TString_Map.typeName)
 
   /** [**beta**] Gets the request associated to this response */
-  val field_request = new TouchField("request",TServer_Request.typName)
+  lazy val field_request = new TouchField("request",TServer_Request.typeName)
 
-  val typName = "Server Response"
-  val typ = DefaultTouchType(typName,fields = List(field_header_map, field_request, field_status_code))
+  lazy val typeName = TypeName("Server Response")
 
-}
-
-class TServer_Response extends AAny {
-
-  def getTyp = TServer_Response.typ
+  override def possibleFields = super.possibleFields ++ List(field_header_map, field_request, field_status_code)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -40,7 +37,7 @@ class TServer_Response extends AAny {
     /** [**beta**] Indicates if both responses are the same instance. */
     case "equals" =>
        //val List(other) = parameters // Server_Response
-       Top[S](TBoolean.typ)
+       Top[S](TBoolean)
 
     /** [**beta**] Gets the value of a given header */
     case "header" =>

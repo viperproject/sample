@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,35 +16,34 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TJson_Builder {
+object TJson_Builder extends AMap {
 
   /** Gets the list of keys */
-  val field_keys = new TouchField("keys",TString_Collection.typName)
+  lazy val field_keys = new TouchField("keys",TString_Collection.typeName)
 
   /** Gets a json kind (string, number, object, array, boolean, null) */
-  val field_kind = new TouchField("kind",TString.typName)
+  lazy val field_kind = new TouchField("kind",TString.typeName)
 
   /** Converts to a boolean (type must be boolean) */
-  val field_to_boolean = new TouchField("to boolean",TBoolean.typName)
+  lazy val field_to_boolean = new TouchField("to boolean",TBoolean.typeName)
 
   /** Converts to a number (type must be number) */
-  val field_to_number = new TouchField("to number",TNumber.typName)
+  lazy val field_to_number = new TouchField("to number",TNumber.typeName)
 
   /** Converts to a number (type must be string) */
-  val field_to_string = new TouchField("to string",TString.typName)
+  lazy val field_to_string = new TouchField("to string",TString.typeName)
 
   /** Converts and parses to a date time (type must be string) */
-  val field_to_time = new TouchField("to time",TDateTime.typName)
+  lazy val field_to_time = new TouchField("to time",TDateTime.typeName)
 
-  val typName = "Json Builder"
-  val typ = TouchCollection(typName,TString.typName,TJson_Builder.typName,List(field_keys, field_kind, field_to_boolean, field_to_number, field_to_string, field_to_time), immutableCollection = true)
+  lazy val typeName = TypeName("Json Builder")
 
+  def keyTypeName = TString.typeName
 
-}
+  def valueTypeName = TJson_Builder.typeName
 
-class TJson_Builder extends AMap {
-
-  def getTyp = TJson_Builder.typ
+  override def possibleFields = super.possibleFields ++ Set(field_keys, field_kind, field_to_boolean, field_to_number,
+    field_to_string, field_to_time)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -65,62 +66,62 @@ class TJson_Builder extends AMap {
     /** Stringify the current JSON object */
     case "serialize" =>
        val List() = parameters //
-       Top[S](TString.typ)
+       Top[S](TString)
 
     /** Sets the field value. */
     case "set field" =>
       val List(name,value) = parameters // String,Json_Object
-      CallApi[S](this0,"set at",List(name,value),TNothing.typ)
+      CallApi[S](this0,"set at",List(name,value),TNothing)
 
     /** Sets the string value. */
     case "set string" =>
       val List(name,value) = parameters // String,String
-      val curState = New[S](TJson_Builder.typ,Map(
+      val curState = New[S](TJson_Builder,Map(
         TJson_Builder.field_kind -> String("string"),
         TJson_Builder.field_to_string -> value
       ))
-      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing)(curState,pp)
 
     /** Sets the field the the reference to JsonBuilder. */
     case "set builder" =>
       val List(name,value) = parameters // String,Json_Builder
-      val curState = Top[S](TJson_Builder.typ)
-      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
+      val curState = Top[S](TJson_Builder)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing)(curState,pp)
 
     /** Sets the Picture value as a data uri. */
     case "set picture" =>
       val List(name,pic,quality) = parameters // String,Picture,Number
-      val curState = Top[S](TJson_Builder.typ)
-      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
+      val curState = Top[S](TJson_Builder)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing)(curState,pp)
 
     /** Sets the Sound value as a data uri. */
     case "set sound" =>
       val List(name,snd) = parameters // String,Sound
-      val curState = Top[S](TJson_Builder.typ)
-      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
+      val curState = Top[S](TJson_Builder)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing)(curState,pp)
 
     /** Sets the number value. */
     case "set number" =>
       val List(name,value) = parameters // String,Number
-      val curState = New[S](TJson_Builder.typ,Map(
+      val curState = New[S](TJson_Builder,Map(
         TJson_Builder.field_kind -> String("number"),
         TJson_Builder.field_to_number -> value
       ))
-      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing)(curState,pp)
 
     /** Sets the boolean value. */
     case "set boolean" =>
       val List(name,value) = parameters // String,Boolean
-      val curState = New[S](TJson_Builder.typ,Map(
+      val curState = New[S](TJson_Builder,Map(
         TJson_Builder.field_kind -> String("boolean"),
         TJson_Builder.field_to_boolean -> value
       ))
-      CallApi[S](this0,"set at",List(name,curState.expr),TNothing.typ)(curState,pp)
+      CallApi[S](this0,"set at",List(name,curState.expr),TNothing)(curState,pp)
 
     /** Sets the field value as null. */
     case "set field null" =>
       val List(name) = parameters // String
-      CallApi[S](this0,"remove at",List(name),TNothing.typ)
+      CallApi[S](this0,"remove at",List(name),TNothing)
 
     /** Deletes named field */
     case "remove field" =>
@@ -166,7 +167,7 @@ class TJson_Builder extends AMap {
 
     /** Copy current JSON object into a Json Builder so it can be modified */
     case "to json" =>
-      Top[S](TJson_Object.typ,initials = Map (
+      Top[S](TJson_Object,initials = Map (
         TJson_Object.field_keys -> Field[S](this0,TJson_Builder.field_keys),
         TJson_Object.field_kind -> Field[S](this0,TJson_Builder.field_kind),
         TJson_Object.field_to_boolean -> Field[S](this0,TJson_Builder.field_to_boolean),

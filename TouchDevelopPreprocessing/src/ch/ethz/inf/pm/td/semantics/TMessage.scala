@@ -1,10 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Message
@@ -14,53 +16,48 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TMessage {
+object TMessage extends AAny {
 
   /** Gets the message identifier */
-  val field_id = new TouchField("id",TString.typName)
+  lazy val field_id = new TouchField("id",TString.typeName)
 
   /** Gets the author */
-  val field_from = new TouchField("from",TString.typName)
+  lazy val field_from = new TouchField("from",TString.typeName)
 
   /** Gets the link associated to the message */
-  val field_link = new TouchField("link",TString.typName)
+  lazy val field_link = new TouchField("link",TString.typeName)
 
   /** Gets the geo coordinates */
-  val field_location = new TouchField("location",TLocation.typName)
+  lazy val field_location = new TouchField("location",TLocation.typeName)
 
   /** Gets a url to the media */
-  val field_media_link = new TouchField("media link",TString.typName)
+  lazy val field_media_link = new TouchField("media link",TString.typeName)
 
   /** Gets the message text */
-  val field_message = new TouchField("message",TString.typName)
+  lazy val field_message = new TouchField("message",TString.typeName)
 
   /** Gets a url to the picture */
-  val field_picture_link = new TouchField("picture link",TString.typName)
+  lazy val field_picture_link = new TouchField("picture link",TString.typeName)
 
   /** Gets the source of this message (Facebook, Twitter, etc...) */
-  val field_source = new TouchField("source",TString.typName)
+  lazy val field_source = new TouchField("source",TString.typeName)
 
   /** Gets the time */
-  val field_time = new TouchField("time",TDateTime.typName)
+  lazy val field_time = new TouchField("time",TDateTime.typeName)
 
   /** Gets the title text */
-  val field_title = new TouchField("title",TString.typName)
+  lazy val field_title = new TouchField("title",TString.typeName)
 
   /** Gets the recipient */
-  val field_to = new TouchField("to",TString.typName)
+  lazy val field_to = new TouchField("to",TString.typeName)
 
   /** Gets the additional values stored in the message */
-  val field_values = new TouchField("values",TString_Map.typName)
+  lazy val field_values = new TouchField("values",TString_Map.typeName)
 
-  val typName = "Message"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_from, field_link, field_location, field_media_link,
-    field_message, field_picture_link, field_source, field_time, field_title, field_to, field_values, field_id), isImmutable = false)
+  lazy val typeName = TypeName("Message")
 
-}
-
-class TMessage extends AAny {
-
-  def getTyp = TMessage.typ
+  override def possibleFields = super.possibleFields ++ List(field_from, field_link, field_location, field_media_link,
+    field_message, field_picture_link, field_source, field_time, field_title, field_to, field_values, field_id)
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

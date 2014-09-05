@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,74 +16,74 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SBox {
+object SBox extends ASingleton {
 
-  val field_is_init = new TouchField("is init", TBoolean.typName)
+  lazy val field_is_init = new TouchField("is init", TBoolean.typeName)
 
-  val field_horizontal_align = new TouchField("horizontal align", TString.typName)
-  val field_vertical_align = new TouchField("vertical align", TString.typName)
+  lazy val field_horizontal_align = new TouchField("horizontal align", TString.typeName)
+  lazy val field_vertical_align = new TouchField("vertical align", TString.typeName)
 
-  val field_left_horizontal_alignment = new TouchField("left horizontal alignment", TNumber.typName)
-  val field_right_horizontal_alignment = new TouchField("right horizontal alignment", TNumber.typName)
+  lazy val field_left_horizontal_alignment = new TouchField("left horizontal alignment", TNumber.typeName)
+  lazy val field_right_horizontal_alignment = new TouchField("right horizontal alignment", TNumber.typeName)
 
-  val field_left_vertical_alignment = new TouchField("left vertical alignment", TNumber.typName)
-  val field_right_vertical_alignment = new TouchField("right vertical alignment", TNumber.typName)
+  lazy val field_left_vertical_alignment = new TouchField("left vertical alignment", TNumber.typeName)
+  lazy val field_right_vertical_alignment = new TouchField("right vertical alignment", TNumber.typeName)
 
-  val field_font_size = new TouchField("font size", TNumber.typName)
-  val field_font_weight = new TouchField("font weight", TString.typName)
+  lazy val field_font_size = new TouchField("font size", TNumber.typeName)
+  lazy val field_font_weight = new TouchField("font weight", TString.typeName)
 
-  val field_top_margin = new TouchField("top margin", TNumber.typName)
-  val field_left_margin = new TouchField("left margin", TNumber.typName)
-  val field_right_margin = new TouchField("right margin", TNumber.typName)
-  val field_bottom_margin = new TouchField("bottom margin", TNumber.typName)
+  lazy val field_top_margin = new TouchField("top margin", TNumber.typeName)
+  lazy val field_left_margin = new TouchField("left margin", TNumber.typeName)
+  lazy val field_right_margin = new TouchField("right margin", TNumber.typeName)
+  lazy val field_bottom_margin = new TouchField("bottom margin", TNumber.typeName)
 
-  val field_bottom_padding = new TouchField("bottom padding", TNumber.typName)
-  val field_top_padding = new TouchField("top padding", TNumber.typName)
-  val field_left_padding = new TouchField("left padding", TNumber.typName)
-  val field_right_padding = new TouchField("right padding", TNumber.typName)
+  lazy val field_bottom_padding = new TouchField("bottom padding", TNumber.typeName)
+  lazy val field_top_padding = new TouchField("top padding", TNumber.typeName)
+  lazy val field_left_padding = new TouchField("left padding", TNumber.typeName)
+  lazy val field_right_padding = new TouchField("right padding", TNumber.typeName)
 
-  val field_background = new TouchField("background", TColor.typName)
-  val field_foreground = new TouchField("foreground", TColor.typName)
+  lazy val field_background = new TouchField("background", TColor.typeName)
+  lazy val field_foreground = new TouchField("foreground", TColor.typeName)
 
-  val field_border_color = new TouchField("border color", TColor.typName)
-  val field_border_width_top = new TouchField("border width top", TNumber.typName)
-  val field_border_width_right = new TouchField("border width right", TNumber.typName)
-  val field_border_width_left = new TouchField("border width left", TNumber.typName)
-  val field_border_width_bottom = new TouchField("border width bottom", TNumber.typName)
+  lazy val field_border_color = new TouchField("border color", TColor.typeName)
+  lazy val field_border_width_top = new TouchField("border width top", TNumber.typeName)
+  lazy val field_border_width_right = new TouchField("border width right", TNumber.typeName)
+  lazy val field_border_width_left = new TouchField("border width left", TNumber.typeName)
+  lazy val field_border_width_bottom = new TouchField("border width bottom", TNumber.typeName)
 
-  val field_height = new TouchField("height", TNumber.typName)
-  val field_width = new TouchField("width", TNumber.typName)
+  lazy val field_height = new TouchField("height", TNumber.typeName)
+  lazy val field_width = new TouchField("width", TNumber.typeName)
 
-  val field_page_width = new TouchField("page width", TNumber.typName)
-  val field_page_height = new TouchField("page height", TNumber.typName)
+  lazy val field_page_width = new TouchField("page width", TNumber.typeName)
+  lazy val field_page_height = new TouchField("page height", TNumber.typeName)
 
-  val field_text_wrapping_wrap = new TouchField("text wrapping wrap", TBoolean.typName)
-  val field_text_wrapping_minimumwidth = new TouchField("text wrapping minimumwidth", TNumber.typName)
+  lazy val field_text_wrapping_wrap = new TouchField("text wrapping wrap", TBoolean.typeName)
+  lazy val field_text_wrapping_minimumwidth = new TouchField("text wrapping minimumwidth", TNumber.typeName)
 
-  val field_horizontal_scrolling = new TouchField("horizontal scrolling ", TBoolean.typName)
-  val field_vertical_scrolling = new TouchField("vertical scrolling", TBoolean.typName)
+  lazy val field_horizontal_scrolling = new TouchField("horizontal scrolling ", TBoolean.typeName)
+  lazy val field_vertical_scrolling = new TouchField("vertical scrolling", TBoolean.typeName)
 
-  val field_overlay_layout = new TouchField("overlay layout", TBoolean.typName)
-  val field_horizontal_layout = new TouchField("horizontal layout", TBoolean.typName)
-  val field_vertical_layout = new TouchField("vertical layout", TBoolean.typName)
+  lazy val field_overlay_layout = new TouchField("overlay layout", TBoolean.typeName)
+  lazy val field_horizontal_layout = new TouchField("horizontal layout", TBoolean.typeName)
+  lazy val field_vertical_layout = new TouchField("vertical layout", TBoolean.typeName)
 
   /** Specify how to compute box width (0 = shrink to fit content, 1 = stretch to fit frame, , 0.5 = stretch to half width) */
-  val field_horizontal_stretch = new TouchField("horizontal stretch", TNumber.typName)
-  val field_vertical_stretch = new TouchField("vertical stretch", TNumber.typName)
+  lazy val field_horizontal_stretch = new TouchField("horizontal stretch", TNumber.typeName)
+  lazy val field_vertical_stretch = new TouchField("vertical stretch", TNumber.typeName)
 
-  val field_min_width = new TouchField("min width", TNumber.typName)
-  val field_max_width = new TouchField("max width", TNumber.typName)
+  lazy val field_min_width = new TouchField("min width", TNumber.typeName)
+  lazy val field_max_width = new TouchField("max width", TNumber.typeName)
 
-  val field_min_height = new TouchField("min height", TNumber.typName)
-  val field_max_height = new TouchField("max height", TNumber.typName)
+  lazy val field_min_height = new TouchField("min height", TNumber.typeName)
+  lazy val field_max_height = new TouchField("max height", TNumber.typeName)
 
   // PRIVATE
-  val field_text_edited_handler = new TouchField("text edited handler", TText_Action.typName)
-  val field_text_editing_handler = new TouchField("text editing handler", TText_Action.typName)
-  val field_tapped_handler = new TouchField("tapped handler", TAction.typName)
+  lazy val field_text_edited_handler = new TouchField("text edited handler", TText_Action.typeName)
+  lazy val field_text_editing_handler = new TouchField("text editing handler", TText_Action.typeName)
+  lazy val field_tapped_handler = new TouchField("tapped handler", TAction.typeName)
 
-  val typName = "Box"
-  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(
+  lazy val typeName = TypeName("Box")
+  override def possibleFields = super.possibleFields ++ (List(
     field_is_init,
     field_vertical_align,
     field_horizontal_align,
@@ -128,18 +130,12 @@ object SBox {
     field_tapped_handler
   ))
 
-}
-
-class SBox extends AAny {
-
-  def getTyp = SBox.typ
-
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 
     /** Get the number of pixels in an em */
     case "pixels per em" =>
-      Top[S](TNumber.typ)
+      Top[S](TNumber)
 
     // OBSOLETE
     case "set horizontal alignment" =>
@@ -194,25 +190,25 @@ class SBox extends AAny {
     case "edit" =>
       val List(style, value, changehandler) = parameters // String,String,Text_Action
     val newState = AssignField[S](this0, SBox.field_text_editing_handler, changehandler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Set what happens when the user has finished editing the text in the box. */
     case "on text edited" =>
       val List(handler) = parameters // Text_Action
     val newState = AssignField[S](this0, SBox.field_text_edited_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Set what happens whenever the text in the box is being edited. */
     case "on text editing" =>
       val List(handler) = parameters // Text_Action
     val newState = AssignField[S](this0, SBox.field_text_editing_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Set what happens when the box is tapped. */
     case "on tapped" =>
       val List(handler) = parameters // Action
     val newState = AssignField[S](this0, SBox.field_tapped_handler, handler)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** Set the color and width of the border. */
     case "set border" =>

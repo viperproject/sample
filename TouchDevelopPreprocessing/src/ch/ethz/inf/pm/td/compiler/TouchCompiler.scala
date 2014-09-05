@@ -2,6 +2,7 @@ package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
+import ch.ethz.inf.pm.td.analysis.{TouchField, Dispatcher}
 import ch.ethz.inf.pm.td.parser.{LibraryDefinition, Script, _}
 import ch.ethz.inf.pm.td.semantics._
 import ch.ethz.inf.pm.td.transform.LoopRewriter
@@ -39,7 +40,8 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var events: Set[MethodDeclaration] = Set.empty
   var globalData: Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields: Set[String] = Set.empty
-  var userTypes: Map[String, AAny] = Map.empty
+  var userTypes: Map[TypeName, AAny] = Map.empty
+  var recordsFields: Set[TouchField] = Set.empty
 
   var isInLibraryMode = false
 
@@ -160,26 +162,23 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     }).mkString("\n")
   }
 
-  def getNativeMethodsSemantics(): List[NativeMethodSemantics] = {
-    (new Libraries() :: TypeList.types.values.toList) ::: userTypes.values.toList
-  }
+  def getNativeMethodsSemantics(): List[NativeMethodSemantics] = List(new Dispatcher())
 
-  def getSemantics(name: String): AAny = {
-    TypeList.types.get(name) match {
-      case Some(x) => x
-      case None =>
-        userTypes.get(name) match {
-          case Some(x) => x
-          case None =>
-            throw new TouchException("Could not find type " + name)
-        }
+  /** FIXME: THIS HAS TO GO */
+  def getType(xName: TypeName): AAny = {
+    if (!CFGGenerator.isLibraryIdent(xName.ident)) {
+      userTypes.get(xName) match {
+        case Some(x) => x
+        case None => TypeList.types(xName)
+      }
+    } else new ASingleton {
+      override def typeName: TypeName = xName
     }
   }
 
   def extensions(): List[String] = List("td", "json")
 
   def getLabel(): String = "TouchDevelop"
-
 
   /**
    * Discovers all libraries required by a script
@@ -254,11 +253,11 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     parsedTouchScripts = Map.empty
     userTypes = Map.empty
     isInLibraryMode = false
-    SRecords.reset()
+    recordsFields = Set.empty
   }
 
   def generateTopType() {
-    SystemParameters.typ = DefaultTouchType("__TMP__").top()
+    SystemParameters.typ = TNothing.top()
   }
 
   override def allMethods: List[MethodDeclaration] = ???

@@ -2,7 +2,9 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, TouchField}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Contact
@@ -14,90 +16,85 @@ import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
  * @author Lucas Brutschy
  */
 
-object TContact {
+object TContact extends AAny {
 
   /** Gets the birth date if any. */
-  val field_birthday = new TouchField("birthday", TDateTime.typName, topDefault = TopWithInvalidInitializer("contact may not have a birthday"))
+  lazy val field_birthday = new TouchField("birthday", TDateTime.typeName, topDefault = TopWithInvalidInitializer("contact may not have a birthday"))
 
   /** Gets the company name if any. */
-  val field_company = new TouchField("company", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a company"))
+  lazy val field_company = new TouchField("company", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a company"))
 
   /** Gets the work or personal email if any */
-  val field_email = new TouchField("email", TLink.typName, topDefault = TopWithInvalidInitializer("contact may not have an email"))
+  lazy val field_email = new TouchField("email", TLink.typeName, topDefault = TopWithInvalidInitializer("contact may not have an email"))
 
   /** Gets the first name if any. */
-  val field_first_name = new TouchField("first name", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a first name"))
+  lazy val field_first_name = new TouchField("first name", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a first name"))
 
   /** Gets the work address if any */
-  val field_home_address = new TouchField("home address", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a home address"))
+  lazy val field_home_address = new TouchField("home address", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a home address"))
 
   /** Gets the home phone number if any */
-  val field_home_phone = new TouchField("home phone", TLink.typName, topDefault = TopWithInvalidInitializer("contact may not have a home phone"))
+  lazy val field_home_phone = new TouchField("home phone", TLink.typeName, topDefault = TopWithInvalidInitializer("contact may not have a home phone"))
 
   /** Gets the job title at the company if any. */
-  val field_job_title = new TouchField("job title", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a job title"))
+  lazy val field_job_title = new TouchField("job title", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a job title"))
 
   /** Gets the last name if any. */
-  val field_last_name = new TouchField("last name", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a last name"))
+  lazy val field_last_name = new TouchField("last name", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a last name"))
 
   /** Gets the middle name if any. */
-  val field_middle_name = new TouchField("middle name", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a middle name"))
+  lazy val field_middle_name = new TouchField("middle name", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a middle name"))
 
   /** Gets the cell phone number if any */
-  val field_mobile_phone = new TouchField("mobile phone", TLink.typName, topDefault = TopWithInvalidInitializer("contact may not have a mobile phone"))
+  lazy val field_mobile_phone = new TouchField("mobile phone", TLink.typeName, topDefault = TopWithInvalidInitializer("contact may not have a mobile phone"))
 
   /** Gets the display name (not used when saving contact) */
-  val field_name = new TouchField("name", TString.typName)
+  lazy val field_name = new TouchField("name", TString.typeName)
 
   /** Gets the nickname if any. */
-  val field_nick_name = new TouchField("nick name", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a nick name"))
+  lazy val field_nick_name = new TouchField("nick name", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a nick name"))
 
   /** Gets the office location at the company if any. */
-  val field_office = new TouchField("office", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have an office"))
+  lazy val field_office = new TouchField("office", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have an office"))
 
   /** Gets the personal email if any */
-  val field_personal_email = new TouchField("personal email", TLink.typName, topDefault = TopWithInvalidInitializer("contact may not have a personal email"))
+  lazy val field_personal_email = new TouchField("personal email", TLink.typeName, topDefault = TopWithInvalidInitializer("contact may not have a personal email"))
 
   /** Gets the cell or work or home phone number if any */
-  val field_phone_number = new TouchField("phone number", TLink.typName, topDefault = TopWithInvalidInitializer("contact may not have a phone number"))
+  lazy val field_phone_number = new TouchField("phone number", TLink.typeName, topDefault = TopWithInvalidInitializer("contact may not have a phone number"))
 
   /** Gets the picture of the contact if any. */
-  val field_picture = new TouchField("picture", TPicture.typName, topDefault = TopWithInvalidInitializer("contact may not have a picture"))
+  lazy val field_picture = new TouchField("picture", TPicture.typeName, topDefault = TopWithInvalidInitializer("contact may not have a picture"))
 
   /** Gets the source of this contact (phone, etc...) */
-  val field_source = new TouchField("source", TString.typName)
+  lazy val field_source = new TouchField("source", TString.typeName)
 
   /** Gets the name suffix if any. */
-  val field_suffix = new TouchField("suffix", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a suffix"))
+  lazy val field_suffix = new TouchField("suffix", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a suffix"))
 
   /** Gets the name title if any. */
-  val field_title = new TouchField("title", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a title"))
+  lazy val field_title = new TouchField("title", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a title"))
 
   /** Gets the web site if any */
-  val field_web_site = new TouchField("web site", TLink.typName, topDefault = TopWithInvalidInitializer("contact may not have a website"))
+  lazy val field_web_site = new TouchField("web site", TLink.typeName, topDefault = TopWithInvalidInitializer("contact may not have a website"))
 
   /** Gets the home address if any */
-  val field_work_address = new TouchField("work address", TString.typName, topDefault = TopWithInvalidInitializer("contact may not have a work address"))
+  lazy val field_work_address = new TouchField("work address", TString.typeName, topDefault = TopWithInvalidInitializer("contact may not have a work address"))
 
   /** Gets the work email if any */
-  val field_work_email = new TouchField("work email", TLink.typName, topDefault = TopWithInvalidInitializer("contact may not have a work email"))
+  lazy val field_work_email = new TouchField("work email", TLink.typeName, topDefault = TopWithInvalidInitializer("contact may not have a work email"))
 
   /** Gets the work phone number if any */
-  val field_work_phone = new TouchField("work phone", TLink.typName, topDefault = TopWithInvalidInitializer("contact may not have a work phone"))
+  lazy val field_work_phone = new TouchField("work phone", TLink.typeName, topDefault = TopWithInvalidInitializer("contact may not have a work phone"))
 
-  val typName = "Contact"
-  val typ = DefaultTouchType(typName, isSingleton = false, fields = List(
+  lazy val typeName = TypeName("Contact")
+
+  override def possibleFields = super.possibleFields ++ List(
     field_birthday, field_company, field_email, field_first_name, field_home_address, field_home_phone, field_job_title,
     field_last_name, field_middle_name, field_mobile_phone, field_name, field_nick_name, field_office,
     field_personal_email, field_phone_number, field_picture, field_source, field_suffix, field_title, field_web_site,
     field_work_address, field_work_email, field_work_phone
-  ))
-
-}
-
-class TContact extends AAny {
-
-  def getTyp = TContact.typ
+  )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

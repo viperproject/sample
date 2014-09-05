@@ -1,11 +1,12 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of Media Player
@@ -15,48 +16,43 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  * @author Lucas Brutschy
  */ 
 
-object TMedia_Player {
+object TMedia_Player extends AAny {
 
   /** Gets the uri of the media currently active */
-  val field_active_media = new TouchField("active media",TString.typName)
+  lazy val field_active_media = new TouchField("active media",TString.typeName)
 
   /** Gets the detailed information about this device */
-  val field_device = new TouchField("device",TDevice.typName)
+  lazy val field_device = new TouchField("device",TDevice.typeName)
 
   /** Indicates the media can be played, paused, resumed */
-  val field_is_control_supported = new TouchField("is control supported",TBoolean.typName)
+  lazy val field_is_control_supported = new TouchField("is control supported",TBoolean.typeName)
 
   /** Indicates if the player is paused */
-  val field_is_paused = new TouchField("is paused",TBoolean.typName)
+  lazy val field_is_paused = new TouchField("is paused",TBoolean.typeName)
 
   /** Indicates if the player is playing */
-  val field_is_playing = new TouchField("is playing",TBoolean.typName)
+  lazy val field_is_playing = new TouchField("is playing",TBoolean.typeName)
 
   /** Indicates if the player is stopped */
-  val field_is_stopped = new TouchField("is stopped",TBoolean.typName)
+  lazy val field_is_stopped = new TouchField("is stopped",TBoolean.typeName)
 
   /** Indicates if volume can be changed */
-  val field_is_volume_supported = new TouchField("is volume supported",TBoolean.typName)
+  lazy val field_is_volume_supported = new TouchField("is volume supported",TBoolean.typeName)
 
   /** Gets the name of the audio/video player */
-  val field_name = new TouchField("name",TString.typName)
+  lazy val field_name = new TouchField("name",TString.typeName)
 
   /** Gets the status of the player */
-  val field_status = new TouchField("status",TString.typName)
+  lazy val field_status = new TouchField("status",TString.typeName)
 
   /** Gets the current volume */
-  val field_volume = new TouchField("volume",TNumber.typName)
+  lazy val field_volume = new TouchField("volume",TNumber.typeName)
 
-  val typName = "Media Player"
-  val typ = DefaultTouchType(typName,isSingleton = false,fields = List(field_active_media, field_device,
+  lazy val typeName = TypeName("Media Player")
+  override def possibleFields = super.possibleFields ++ List(field_active_media, field_device,
     field_is_control_supported, field_is_paused, field_is_playing, field_is_stopped, field_is_volume_supported,
-    field_name, field_status, field_volume))
+    field_name, field_status, field_volume)
 
-}
-
-class TMedia_Player extends AAny {
-
-  def getTyp = TMedia_Player.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
@@ -100,7 +96,7 @@ class TMedia_Player extends AAny {
 
     /** Gets the position in seconds whithin the active media */
     case "play position" =>
-      Top[S](TNumber.typ)
+      Top[S](TNumber)
 
     /** Moves the player to the previous media in the queue. */
     case "previous" =>

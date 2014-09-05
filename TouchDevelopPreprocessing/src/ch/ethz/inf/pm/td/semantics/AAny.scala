@@ -2,17 +2,20 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, RichExpressionImplicits, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.domain.MultiValExpression
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
+import RichNativeSemantics._
 
 /**
  * User: Lucas Brutschy
  * Date: 11/8/12
  * Time: 5:36 PM
  */
-abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
+trait AAny extends NativeMethodSemantics with RichExpressionImplicits with TouchType {
+
+  def isSingleton = false
+  def isImmutable = true
 
   /**
    * Backward semantics are empty for all native function for now
@@ -31,7 +34,7 @@ abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
                                                  returnedtype: Type, pp: ProgramPoint, state: S): Option[S] = {
 
 
-    if (thisExpr.getType().toString == getTypeName) {
+    if (thisExpr.getType().asInstanceOf[TouchType].typeName == typeName) {
 
       if (state.lessEqual(state.bottom())) {
         return Some(state.bottom())
@@ -42,22 +45,16 @@ abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
       // Check if the object or an argument can be invalid - in this case, we must produce an error
       if (operator != "is invalid" && operator != ":=" && operator != "," && thisExpr.getType().name != "code") {
         if (!thisExpr.getType().isStatic) {
-          if (thisExpr.getType() != TBoolean.typ) {
-            // FIXME: Invalid boolean types. Do they exist?
-            if (TouchAnalysisParameters.printValuesInWarnings)
-              curState = Error(thisExpr equal Invalid(thisExpr.getType(), "")(pp), operator, "Object (" + thisExpr + ") whose field/method is accessed might be invalid")(curState, pp)
-            else
-              curState = Error(thisExpr equal Invalid(thisExpr.getType(), "")(pp), operator, "Object whose field/method is accessed might be invalid")(curState, pp)
-          }
+          if (TouchAnalysisParameters.printValuesInWarnings)
+            curState = Error(thisExpr equal Invalid(thisExpr.getType(), "")(pp), operator, "Object (" + thisExpr + ") whose field/method is accessed might be invalid")(curState, pp)
+          else
+            curState = Error(thisExpr equal Invalid(thisExpr.getType(), "")(pp), operator, "Object whose field/method is accessed might be invalid")(curState, pp)
         }
         for (param <- parameters) {
-          if (param.getType() != TBoolean.typ) {
-            // FIXME: Invalid boolean types. Do they exist?
-            if (TouchAnalysisParameters.printValuesInWarnings)
-              curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter (" + param + ") might be invalid")(curState, pp)
-            else
-              curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter might be invalid")(curState, pp)
-          }
+          if (TouchAnalysisParameters.printValuesInWarnings)
+            curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter (" + param + ") might be invalid")(curState, pp)
+          else
+            curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter might be invalid")(curState, pp)
         }
       }
 
@@ -66,16 +63,6 @@ abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
     } else None
 
   }
-
-  /**
-   * The string name of the current type
-   */
-  def getTypeName = getTyp.name
-
-  /**
-   * The current type
-   */
-  def getTyp: TouchType
 
   /**
    * Implements forward semantics
@@ -101,14 +88,14 @@ abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
       Return[S](this0 concat other)
 
     case "to string" =>
-      Top[S](TString.typ)
+      Top[S](TString)
 
     case "is invalid" =>
       Return[S](this0 equal Invalid(this0.getType(), "")(pp))(state, pp)
 
     case "equals" =>
       Dummy[S](this0, method)
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     case ":=" =>
       val List(right) = parameters
@@ -121,14 +108,14 @@ abstract class AAny extends NativeMethodSemantics with RichExpressionImplicits {
 
     case "," =>
       val List(right) = parameters // Unknown,Unknown
-    var multiValExpressionSet = new ExpressionSet(TUnknown.typ)
+    var multiValExpressionSet = new ExpressionSet(TUnknown)
       for (l <- this0.getSetOfExpressions; r <- right.getSetOfExpressions) {
-        multiValExpressionSet = multiValExpressionSet.add(new MultiValExpression(l, r, TUnknown.typ))
+        multiValExpressionSet = multiValExpressionSet.add(new MultiValExpression(l, r, TUnknown))
       }
       state.setExpression(multiValExpressionSet)
 
     case _ =>
-      MatchFields[S](this0, parameters, getTyp, method)
+      MatchFields[S](this0, parameters, this, method)
 
   }
 

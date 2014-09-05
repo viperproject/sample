@@ -3,9 +3,9 @@ package ch.ethz.inf.pm.td.analysis
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ClassDefinition, Type, ProgramPoint}
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.td.semantics.TNumber
+import ch.ethz.inf.pm.td.semantics.{ACollection, TNumber}
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import ch.ethz.inf.pm.td.compiler.TouchCollection
+
 
 /**
  *
@@ -90,13 +90,13 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
   def insertCollectionTopElement(collectionSet: ExpressionSet, keyTop: ExpressionSet, valueTop: ExpressionSet, pp: ProgramPoint) = this
 
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].keyType)
+    this.setType(collectionSet.getType().asInstanceOf[ACollection].keyType)
 
   def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].valueType)
+    this.setType(collectionSet.getType().asInstanceOf[ACollection].valueType)
 
   def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) =
-    this.setType(collectionSet.getType().asInstanceOf[TouchCollection].valueType)
+    this.setType(collectionSet.getType().asInstanceOf[ACollection].valueType)
 
   def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) = this
 
@@ -118,7 +118,7 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def clearCollection(collectionSet: ExpressionSet) = this
 
-  def getCollectionLength(collectionSet: ExpressionSet): AccessCollectingState = this.setType(TNumber.typ)
+  def getCollectionLength(collectionSet: ExpressionSet): AccessCollectingState = this.setType(TNumber)
 
   def collectionContainsKey(collectionSet: ExpressionSet, keySet: ExpressionSet, booleanTyp: Type, pp: ProgramPoint) = this
 

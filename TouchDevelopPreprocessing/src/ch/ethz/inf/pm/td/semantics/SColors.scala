@@ -1,10 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.semantics.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of colors
@@ -14,39 +15,34 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  * @author Lucas Brutschy
  */
 
-object SColors {
+object SColors extends ASingleton {
 
   // STRIPPED DOWN FOR PERFORMANCE
 
   // Indicates if the user is using a light theme in his phone
-  val field_is_light_theme = new TouchField("is light theme", TBoolean.typName)
+  lazy val field_is_light_theme = new TouchField("is light theme", TBoolean.typeName)
 
-  val typName = "Colors"
-  val typ = DefaultTouchType(typName, isSingleton = true, fields = List(field_is_light_theme))
+  lazy val typeName = TypeName("Colors")
 
-}
-
-class SColors extends AAny {
-
-  def getTyp = SColors.typ
+  override def possibleFields = super.possibleFields ++ List(field_is_light_theme)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S): S = method match {
 
     // Gets the accent color in the current theme
-    case "accent" => Top[S](TColor.typ)
-    //      New(TColor.typ,Map(
+    case "accent" => Top[S](TColor)
+    //      New(TColor,Map(
     //        TColor.field_A -> 1
     //      ))
 
     // Gets the background color in the current theme
-    case "background" => Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+    case "background" => Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1
     //      ))
 
     // Gets the color that has the ARGB value of #FF000000
-    case "black" => Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+    case "black" => Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0,
     //        TColor.field_G -> 0,
@@ -54,8 +50,8 @@ class SColors extends AAny {
     //      ))
 
     // Gets the color that has the ARGB value of #FF0000FF
-    case "blue" => Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+    case "blue" => Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0,
     //        TColor.field_G -> 0,
@@ -63,8 +59,8 @@ class SColors extends AAny {
     //      ))
 
     // Gets the color that has the ARGB value of #FFA52A2A
-    case "brown" => Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+    case "brown" => Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0.647,
     //        TColor.field_G ->  0.165,
@@ -72,14 +68,14 @@ class SColors extends AAny {
     //      )) // TODO: Precision?
 
     // Gets the chrome color in the current theme (control background)
-    case "chrome" => Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+    case "chrome" => Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1
     //      ))
 
     // Gets the color that has the ARGB value of #FF00FFFF
-    case "cyan" => Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+    case "cyan" => Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0,
     //        TColor.field_G -> 1,
@@ -88,11 +84,11 @@ class SColors extends AAny {
 
 
     case "equals" =>
-      Top[S](TBoolean.typ)
+      Top[S](TBoolean)
 
     // Gets the color that has the ARGB value of #FFA9A9A9
-    case "dark gray" => Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+    case "dark gray" => Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0.663,
     //        TColor.field_G -> 0.663,
@@ -100,8 +96,8 @@ class SColors extends AAny {
     //      )) // TODO: Precision?
 
     // Gets the foreground color in the current theme
-    case "foreground" => Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+    case "foreground" => Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1
     //      ))
 
@@ -114,9 +110,9 @@ class SColors extends AAny {
         CheckInRangeInclusive[S](s, 0, 1, "from ahsb", "saturation")
         CheckInRangeInclusive[S](b, 0, 1, "from ahsb", "brightness")
       }
-      Top[S](TColor.typ)
+      Top[S](TColor)
     // PRECISION: COMPUTE RGB
-    //      New(TColor.typ,Map(
+    //      New(TColor,Map(
     //        TColor.field_A -> a,
     //        TColor.field_hue -> h,
     //        TColor.field_saturation -> s,
@@ -132,8 +128,8 @@ class SColors extends AAny {
         CheckInRangeInclusive[S](g, 0, 1, "from argb", "green")
         CheckInRangeInclusive[S](b, 0, 1, "from argb", "blue")
       }
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //       TColor.field_A -> a,
     //       TColor.field_R -> r,
     //       TColor.field_G -> g,
@@ -148,9 +144,9 @@ class SColors extends AAny {
         CheckInRangeInclusive[S](s, 0, 1, "from hsb", "saturation")
         CheckInRangeInclusive[S](b, 0, 1, "from hsb", "brightness")
       }
-      Top[S](TColor.typ)
+      Top[S](TColor)
     // PRECISION: Compute RGB
-    //     Top[S](TColor.typ,Map(
+    //     Top[S](TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_hue -> h,
     //        TColor.field_saturation -> s,
@@ -165,8 +161,8 @@ class SColors extends AAny {
         CheckInRangeInclusive[S](g, 0, 1, "from rgb", "green")
         CheckInRangeInclusive[S](b, 0, 1, "from rgb", "blue")
       }
-      Top[S](TColor.typ)
-    //      Top[S](TColor.typ,Map(
+      Top[S](TColor)
+    //      Top[S](TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> r,
     //        TColor.field_G -> g,
@@ -174,8 +170,8 @@ class SColors extends AAny {
     //      ))
 
     case "gray" => // Gets the color that has the ARGB value of #FF808080
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0.502,
     //        TColor.field_G -> 0.502,
@@ -184,8 +180,8 @@ class SColors extends AAny {
 
     // Gets the color that has the ARGB value of #FF008000
     case "green" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0,
     //        TColor.field_G -> 0.502,
@@ -194,8 +190,8 @@ class SColors extends AAny {
 
     //Gets the color that has the ARGB value of #FFD3D3D3
     case "light gray" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0.827,
     //        TColor.field_G -> 0.827,
@@ -208,13 +204,13 @@ class SColors extends AAny {
       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](frac, 0, 1, "linear gradient", "fraction")
       }
-      Top[S](TColor.typ)
+      Top[S](TColor)
     //      val frac1 = toRichExpression(1) - frac
     //      val a = frac * Field[S](colA,TColor.field_A) + frac1 * Field[S](colB,TColor.field_A)
     //      val r = frac * Field[S](colA,TColor.field_R) + frac1 * Field[S](colB,TColor.field_R)
     //      val g = frac * Field[S](colA,TColor.field_G) + frac1 * Field[S](colB,TColor.field_G)
     //      val b = frac * Field[S](colA,TColor.field_B) + frac1 * Field[S](colB,TColor.field_B)
-    //     New(TColor.typ,Map(
+    //     New(TColor,Map(
     //        TColor.field_A -> a,
     //        TColor.field_R -> r,
     //        TColor.field_G -> g,
@@ -223,8 +219,8 @@ class SColors extends AAny {
 
     //Gets the color that has the ARGB value of #FFFF00FF
     case "magenta" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 1,
     //        TColor.field_G -> 0,
@@ -233,8 +229,8 @@ class SColors extends AAny {
 
     // Gets the color that has the ARGB value of #FFFFA500
     case "orange" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 1,
     //        TColor.field_G -> 0.647,
@@ -243,12 +239,12 @@ class SColors extends AAny {
 
     /** Gets the color that has the ARGB value of #FFFFCBDB */
     case "pink" =>
-      Top[S](TColor.typ)
+      Top[S](TColor)
 
     // Gets the color that has the ARGB value of #FF800080
     case "purple" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0.502,
     //        TColor.field_G -> 0,
@@ -257,22 +253,22 @@ class SColors extends AAny {
 
     // Picks a random color                                                                       -
     case "random" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1
     //      ))
 
     // Picks a random color (OBSOLETE)
     case "rand" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1
     //      ))
 
     // Gets the color that has the ARGB value of #FFFF0000
     case "red" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 1,
     //        TColor.field_G -> 0,
@@ -281,8 +277,8 @@ class SColors extends AAny {
 
     // Gets the color that has the ARGB value of #FF704214
     case "sepia" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 0.439,
     //        TColor.field_G -> 0.259,
@@ -291,15 +287,15 @@ class SColors extends AAny {
 
     // Gets the subtle color in the current theme (light gray)
     case "subtle" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1
     //      ))
 
     // Gets the color that has the ARGB value of #00FFFFFF
     case "transparent" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 0,
     //        TColor.field_R -> 1,
     //        TColor.field_G -> 1,
@@ -309,12 +305,12 @@ class SColors extends AAny {
     /** Picks a color from a color wheel where the hue is between 0 and 1. */
     case "wheel" =>
       val List(hue) = parameters // Number
-      Top[S](TColor.typ)
+      Top[S](TColor)
 
     // Gets the color that has the ARGB value of #FFFFFFFF
     case "white" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 1,
     //        TColor.field_G -> 1,
@@ -323,8 +319,8 @@ class SColors extends AAny {
 
     // Gets the color that has the ARGB value of #FFFFFF00
     case "yellow" =>
-      Top[S](TColor.typ)
-    //     New(TColor.typ,Map(
+      Top[S](TColor)
+    //     New(TColor,Map(
     //        TColor.field_A -> 1,
     //        TColor.field_R -> 1,
     //        TColor.field_G -> 1,

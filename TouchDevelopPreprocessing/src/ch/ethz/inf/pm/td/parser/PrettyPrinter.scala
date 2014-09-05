@@ -101,7 +101,7 @@ object PrettyPrinter {
         case LocalReference(ident) => "$" + apply(ident)
         case SingletonReference(ident, typ) => apply(ident)
         case Literal(typ, value) => typ match {
-          case TypeName("String") => "\"" + value + "\""
+          case TypeName("String",_) => "\"" + value + "\""
           case _ => value
         }
       })

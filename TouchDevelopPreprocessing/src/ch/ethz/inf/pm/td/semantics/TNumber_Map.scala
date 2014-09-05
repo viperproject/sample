@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -16,15 +18,13 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TNumber_Map {
+object TNumber_Map extends AMap {
 
-  val typName = "Number Map"
-  val typ = TouchCollection(typName,"Number","Number")
-}
+  lazy val typeName = TypeName("Number Map")
 
-class TNumber_Map extends AMap {
+  def keyTypeName = TNumber.typeName
 
-  def getTyp = TNumber_Map.typ
+  def valueTypeName = TNumber.typeName
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {

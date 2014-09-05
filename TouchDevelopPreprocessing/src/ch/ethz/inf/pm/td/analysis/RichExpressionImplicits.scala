@@ -1,9 +1,10 @@
-package ch.ethz.inf.pm.td.semantics
+package ch.ethz.inf.pm.td.analysis
 
 import ch.ethz.inf.pm.sample.abstractdomain.{Constant, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.domain.{InvalidExpression, ValidExpression}
+import ch.ethz.inf.pm.td.semantics.{TBoolean, TNumber, TString}
 
 import scala.collection.immutable.Range.Inclusive
 
@@ -17,10 +18,10 @@ trait RichExpressionImplicits {
     toRichExpression(value.head) ndTo toRichExpression(value.last)
 
   implicit def toRichExpression(value:Int) : RichExpression =
-    RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ)))
+    RichExpression(new ExpressionSet(TNumber).add(new Constant(value.toString,TNumber)))
 
   implicit def toRichExpression(value:Double) : RichExpression =
-    RichExpression(new ExpressionSet(TNumber.typ).add(new Constant(value.toString,TNumber.typ)))
+    RichExpression(new ExpressionSet(TNumber).add(new Constant(value.toString,TNumber)))
 
   implicit def toRichExpression(value:Expression) : RichExpression =
     RichExpression(new ExpressionSet(value.typ).add(value))
@@ -30,12 +31,12 @@ trait RichExpressionImplicits {
 
   /*-- Constants --*/
 
-  def String(a:String)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant(a,TString.typ,pp))
-  def True(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("true",TBoolean.typ,pp))
-  def False(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("false",TBoolean.typ,pp))
+  def String(a:String)(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant(a,TString,pp))
+  def True(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("true",TBoolean,pp))
+  def False(implicit pp:ProgramPoint) : RichExpression = toRichExpression(Constant("false",TBoolean,pp))
   def Bottom(typ:TouchType): RichExpression = toRichExpression(new ExpressionSet(typ).bottom())
-  def PositiveInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("posinfty",TNumber.typ,pp))
-  def NegativeInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("neginfty",TNumber.typ,pp))
+  def PositiveInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("posinfty",TNumber,pp))
+  def NegativeInfinity(implicit pp:ProgramPoint) :RichExpression = toRichExpression(new Constant("neginfty",TNumber,pp))
 
   def Invalid(typ: Type, cause: String)(implicit pp: ProgramPoint): RichExpression = toRichExpression(InvalidExpression(typ, cause, pp))
   def Valid(typ:Type)(implicit pp:ProgramPoint) :RichExpression = toRichExpression(ValidExpression(typ,pp))

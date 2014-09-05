@@ -2,7 +2,8 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 
 /**
@@ -12,16 +13,9 @@ import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
  *
  * @author Lucas Brutschy
  */
-object TNothing {
+object TNothing extends AAny {
 
-  val typName = "Nothing"
-  val typ = DefaultTouchType(typName,isSingleton = false)
-
-}
-
-class TNothing extends AAny {
-
-  def getTyp = TNothing.typ
+  lazy val typeName = TypeName("Nothing")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String,parameters:List[ExpressionSet],returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 

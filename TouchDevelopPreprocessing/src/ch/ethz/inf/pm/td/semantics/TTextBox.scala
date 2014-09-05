@@ -1,10 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
-import RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
+import RichNativeSemantics._
 
 /**
  * Specifies the abstract semantics of TextBox
@@ -14,24 +15,20 @@ import ch.ethz.inf.pm.td.analysis.TouchAnalysisParameters
  * @author Lucas Brutschy
  */
 
-object TTextBox {
+object TTextBox extends AAny {
 
-  val field_background = new TouchField("background",TColor.typName)
-  val field_border = new TouchField("border",TColor.typName)
-  val field_font_size = new TouchField("font size",TNumber.typName)
-  val field_foreground = new TouchField("foreground",TColor.typName)
-  val field_icon = new TouchField("icon",TPicture.typName)
-  val field_text = new TouchField("text",TString.typName)
+  lazy val field_background = new TouchField("background",TColor.typeName)
+  lazy val field_border = new TouchField("border",TColor.typeName)
+  lazy val field_font_size = new TouchField("font size",TNumber.typeName)
+  lazy val field_foreground = new TouchField("foreground",TColor.typeName)
+  lazy val field_icon = new TouchField("icon",TPicture.typeName)
+  lazy val field_text = new TouchField("text",TString.typeName)
 
-  val typName = "TextBox"
-  val typ = DefaultTouchType(typName,isSingleton = false, fields = List(field_background,field_border,field_font_size,field_foreground,
-    field_icon,field_text))
+  val typeName = TypeName("TextBox")
 
-}
+  override def possibleFields = super.possibleFields ++ List(field_background,field_border,field_font_size,field_foreground,
+    field_icon,field_text)
 
-class TTextBox extends AAny {
-
-  def getTyp = TTextBox.typ
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = method match {

@@ -1,9 +1,10 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Appointment Collection
@@ -13,16 +14,13 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
  * @author Lucas Brutschy
  */ 
 
-object TAppointment_Collection {
+object TAppointment_Collection extends ALinearCollection {
 
-  val typName = "Appointment Collection"
-  val typ = new TouchCollection(typName,TNumber.typName,TAppointment.typName, immutableCollection = true)
+  lazy val typeName = TypeName("Appointment Collection")
 
-}
+  lazy val keyTypeName = TNumber.typeName
 
-class TAppointment_Collection extends ALinearCollection {
-
-  def getTyp = TAppointment_Collection.typ
+  lazy val valueTypeName = TAppointment.typeName
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

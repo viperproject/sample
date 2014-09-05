@@ -2,7 +2,9 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{TouchCollection, TouchType}
+import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -10,16 +12,12 @@ import RichNativeSemantics._
  * Date: 11/26/12
  * Time: 1:16 PM
  */
-object TLocation_Collection {
+object TLocation_Collection extends AMutable_Collection {
 
-  val typName = "Location Collection"
-  val typ = TouchCollection(typName,"Number","Location")
+  lazy val typeName = TypeName("Location Collection")
 
-}
-
-class TLocation_Collection extends AMutable_Collection {
-
-  def getTyp = TLocation_Collection.typ
+  def keyTypeName = TNumber.typeName
+  def valueTypeName = TLocation.typeName
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

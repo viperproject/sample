@@ -1,9 +1,11 @@
 
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.td.compiler.{DefaultTouchType, TouchType}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
+import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
@@ -14,25 +16,20 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TTimer {
+object TTimer extends AAny {
 
   /** is the timer active */
-  val field_is_active = new TouchField("is active", TBoolean.typName)
+  lazy val field_is_active = new TouchField("is active", TBoolean.typeName)
 
   /** is this an interval timer that fires regularly */
-  val field_is_interval = new TouchField("is interval", TBoolean.typName)
+  lazy val field_is_interval = new TouchField("is interval", TBoolean.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  val field_trigger_handler = new TouchField("trigger handler", TAction.typName)
+  lazy val field_trigger_handler = new TouchField("trigger handler", TAction.typeName)
 
-  val typName = "Timer"
-  val typ = DefaultTouchType(typName, fields = List(field_is_active, field_is_interval, field_trigger_handler))
+  val typeName = TypeName("Timer")
 
-}
-
-class TTimer extends AAny {
-
-  def getTyp = TTimer.typ
+  override def possibleFields = super.possibleFields ++ List(field_is_active, field_is_interval, field_trigger_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -46,7 +43,7 @@ class TTimer extends AAny {
     case "on trigger" =>
       val List(perform) = parameters // Action
     val newState = AssignField[S](this0, TTimer.field_trigger_handler, perform)
-      New[S](TEvent_Binding.typ)(newState, pp)
+      New[S](TEvent_Binding)(newState, pp)
 
     /** deactivates the timer */
     case "pause" =>
