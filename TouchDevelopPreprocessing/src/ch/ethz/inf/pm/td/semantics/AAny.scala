@@ -16,6 +16,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
   def isSingleton = false
   def isImmutable = true
+  def possibleFields = Set.empty
 
   /**
    * Backward semantics are empty for all native function for now

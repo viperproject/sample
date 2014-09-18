@@ -200,12 +200,12 @@ object TBoard extends AMutable_Collection {
 
     // Update positions of sprites on board.
     case "evolve" =>
-      If[S](CollectionSize[S](this0) > 0, Then = {
+      If[S](collectionSize[S](this0) > 0, Then = {
         x: S =>
           var curState = x
-          curState = CallApi[S](CollectionSummary[S](this0), "set pos", List(Valid(TNumber), Valid(TNumber)), TNothing)(curState, pp)
-          curState = CallApi[S](CollectionSummary[S](this0), "set speed", List(Valid(TNumber), Valid(TNumber)), TNothing)(curState, pp)
-          curState = CallApi[S](CollectionSummary[S](this0), "set acceleration", List(Valid(TNumber), Valid(TNumber)), TNothing)(curState, pp)
+          curState = CallApi[S](collectionAllValues[S](this0), "set pos", List(Valid(TNumber), Valid(TNumber)), TNothing)(curState, pp)
+          curState = CallApi[S](collectionAllValues[S](this0), "set speed", List(Valid(TNumber), Valid(TNumber)), TNothing)(curState, pp)
+          curState = CallApi[S](collectionAllValues[S](this0), "set acceleration", List(Valid(TNumber), Valid(TNumber)), TNothing)(curState, pp)
           curState
       }, Else = {
         x: S => x

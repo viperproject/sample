@@ -18,10 +18,9 @@ object SLibs extends ASingleton {
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                               (implicit pp:ProgramPoint,state:S):S = {
 
-    lazy val typ = new TouchType {
+    lazy val typ = new AAny {
       override def typeName: TypeName = TypeName("♻"+method)
       override def isSingleton: Boolean = true
-      override def isImmutable: Boolean = true
     }
 
     state.setExpression(ExpressionSet(Constant("", typ, pp)))

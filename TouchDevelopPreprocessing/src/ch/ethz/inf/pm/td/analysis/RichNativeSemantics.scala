@@ -8,6 +8,7 @@ import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
+import RichNativeSemantics._
 
 /**
  *
@@ -130,16 +131,11 @@ object RichNativeSemantics extends RichExpressionImplicits {
                 case Some(x) =>
                   //TODO: Can be more precise
                   curState = Top[S](SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(col.keyTypeName))(curState, pp)
-                  curState = CollectionInsert[S](obj, curState.expr, x)(curState, pp)
+                  curState = col.collectionInsert[S](obj, curState.expr, x)(curState, pp)
               }
 
               // Initialize collection size
-              initialCollectionSize match {
-                case None =>
-                  curState = Assign[S](CollectionSize[S](obj), 0)(curState, pp)
-                case Some(x) =>
-                  curState = Assign[S](CollectionSize[S](obj), x)(curState, pp)
-              }
+              curState = col.collectionSetSize[S](obj, initialCollectionSize.getOrElse(0))(curState, pp)
             case _ => ()
           }
 
@@ -170,9 +166,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
           }
         }
 
-        // Make sure that our value is "valid"  now
-        curState = curState.assignVariable(obj, Valid(typ))
-
         curState.setExpression(obj)
     }
   }
@@ -199,39 +192,23 @@ object RichNativeSemantics extends RichExpressionImplicits {
           else if (!initializeFields) Some(Set.empty[Identifier])
           else None
 
-        var curState = typ match {
-          case col: ACollection =>
-            val keyCollectionTyp = getKeyCollectionTyp(col)
-            s.createCollection(col, col.keyType, col.valueType, TNumber, keyCollectionTyp, pp, fields)
-          case _ =>
-            s.createObject(typ, pp, fields)
-        }
+        var curState = s.createObject(typ, pp, fields)
+        val obj = curState.expr
 
-        var obj = curState.expr
-
-        // Make sure that our value is "valid"  now
-        curState = curState.assignVariable(obj, Valid(typ))
+        // TODO: Support for recursive datastructures
+//        val tempVariable = VariableIdentifier("initVar"+pp.toString)(typ,pp)
+//        curState = s.createVariable(toRichExpression(tempVariable),typ,pp)
+//        curState = s.assignVariable(toRichExpression(tempVariable),obj)
 
         if (initializeFields) {
           typ match {
             case col: ACollection =>
 
-              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp, "__collkey" + col.keyTypeName)
-              curState = Top[S](col.keyType, initializeFields = !referenceLoop1)(curState, newPP1)
-              val keyTop = curState.expr
+              val (newPP1, referenceLoop1) = DeepeningProgramPoint(pp, "colEntry_" + col.entryType.typeName)
+              curState = Top[S](col.entryType, initializeFields = !referenceLoop1)(curState, newPP1)
+              val entryTop = curState.expr
 
-              val (newPP2, referenceLoop2) = DeepeningProgramPoint(pp, "__collvalue" + col.valueTypeName)
-              curState = Top[S](col.valueType, initializeFields = !referenceLoop2)(curState, newPP2)
-              val valueTop = curState.expr
-
-              // If the value of a collection is another collection of the same type (e.g. JSONObject)
-              // the collection value is abstracted to the collection value itself. Therefore
-              // the collection changes to a summary collection and we have to update the
-              // collection identifier to a summary identifier.
-              curState = curState.getSummaryCollectionIfExists(obj)
-              obj = curState.expr
-
-              curState = curState.insertCollectionTopElement(obj, keyTop, valueTop, pp)
+              curState = AssignField[S](obj,col.field_entry,entryTop)
 
               // Initialize collection size
               initialCollectionSize match {
@@ -239,9 +216,9 @@ object RichNativeSemantics extends RichExpressionImplicits {
                   val (newPP3, referenceLoop3) = DeepeningProgramPoint(pp, "__length")
                   curState = Top[S](TNumber, initializeFields = !referenceLoop3)(curState, newPP3)
                   val lengthTop = curState.expr
-                  curState = Assign[S](CollectionSize[S](obj), lengthTop)(curState, newPP3)
+                  curState = col.collectionSetSize[S](obj, lengthTop)(curState, newPP3)
                 case Some(x) =>
-                  curState = Assign[S](CollectionSize[S](obj), x)(curState, pp)
+                  curState = col.collectionSetSize[S](obj, x)(curState, pp)
               }
 
             case _ => ()
@@ -338,10 +315,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def CollectionSize[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     Field[S](collection,collection.getType().asInstanceOf[ACollection].field_count)
-  }
-
-  def CollectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    state.getCollectionValueByKey(collection, key).expr
   }
 
   def CollectionContainsValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
@@ -470,6 +443,10 @@ object RichNativeSemantics extends RichExpressionImplicits {
     }
   }
 
+  def CollectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    state.getCollectionValueByKey(collection, key).expr
+  }
+
   /*-- Misc --*/
 
   def Assume[S <: State[S]](expr: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
@@ -573,7 +550,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def Field[S <: State[S]](obj: RichExpression, field: TouchField)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    state.getFieldValue(obj, field.getName, field.typ).expr
+    obj.thisExpr.getType().asInstanceOf[AAny].forwardSemantics(obj,field.getName,Nil,field.typ).expr
   }
 
   /*-- Skipping --*/
@@ -594,8 +571,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
       // Getters
         typ.possibleFields.find(_.getName == method) match {
           case Some(field) =>
-            val fieldValue = Field[S](this0, field.asInstanceOf[TouchField])
-            val stateWithExpr = Return[S](fieldValue)
+            val stateWithExpr = state.getFieldValue(this0,method,field.typ)
             Some(stateWithExpr)
           case None => None
         }
@@ -637,9 +613,6 @@ case class TouchField(
   override def hashCode(): Int = name.hashCode() + typeName.hashCode()
 
   override def representsSingleVariable = !isSummaryNode
-
-  override def equals(o: Any) = (o.isInstanceOf[TouchField] && o.asInstanceOf[TouchField].getName == this.getName
-    && o.asInstanceOf[TouchField] == this)
 }
 
 trait Initializer

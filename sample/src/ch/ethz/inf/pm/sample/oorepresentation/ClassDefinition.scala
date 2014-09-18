@@ -267,7 +267,7 @@ trait Type extends Lattice[Type] {
    * If the current type represents a class, it returns the list
    * of the possible fields, an empty set otherwise.
    */
-  def possibleFields: Set[Identifier] = Set.empty
+  def possibleFields: Set[Identifier]
 
   /** Returns the possible fields with an object type. */
   def objectFields: Set[Identifier] =
@@ -353,6 +353,8 @@ case object DummyNumericalType extends DummyType {
   def isObject = false
 
   def isNumericalType = true
+
+  def possibleFields: Set[Identifier] = Set.empty
 }
 
 /** A dummy boolean type with no proper hierarchy for testing. */
@@ -364,6 +366,8 @@ case object DummyBooleanType extends DummyType {
   def isNumericalType = true
 
   override def isBooleanType = true
+
+  def possibleFields: Set[Identifier] = Set.empty
 }
 
 /**

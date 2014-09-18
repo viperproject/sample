@@ -101,7 +101,7 @@ object SPlayer extends ASingleton {
     /** Plays a collection of songs */
     case "play many" =>
       val List(songs) = parameters // Songs
-      AssignField[S](this0, SPlayer.field_active_song, CollectionSummary[S](songs))
+      AssignField[S](this0, SPlayer.field_active_song, TSongs.collectionAllValues[S](songs))
 
     /** Moves to the previous song in the queue of playing songs */
     case "previous" =>

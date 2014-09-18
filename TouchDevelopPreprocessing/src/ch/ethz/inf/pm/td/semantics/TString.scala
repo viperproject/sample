@@ -157,7 +157,7 @@ object TString extends AAny {
     var curState = state
       curState = Top[S](TString_Collection)(curState, pp)
       val obj = curState.expr
-      curState = Assume(CollectionSize[S](obj) >= 1)(curState, pp)
+      curState = Assume(TString_Collection.collectionSize[S](obj) >= 1)(curState, pp)
       Return[S](obj)(curState, pp)
 
     /** Determines whether the beginning matches the specified string */

@@ -29,7 +29,7 @@ object TString_Collection extends AMutable_Collection {
 
     /** Sorts the strings in this collection */
     case "sort" =>
-      CollectionInvalidateKeys(this0)
+      collectionInvalidateKeys(this0)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

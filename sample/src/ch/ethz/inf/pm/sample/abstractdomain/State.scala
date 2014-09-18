@@ -938,7 +938,13 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
   /** Executes the given function only if this state and the given
     * `ExpressionSet` is not bottom. */
   def unlessBottom(set: ExpressionSet, f: => S): S =
-    if (isBottom || set.isBottom) bottom()
+    if (isBottom) {
+      println("state is Bottom")
+      bottom()
+    } else if (set.isBottom) {
+      println("set is Bottom")
+      bottom()
+    }
     else f
 
   /** @todo merge with `removeExpression`. */

@@ -41,15 +41,15 @@ object TNumber_Map extends AMap {
 
     /** Computes the average of the values */
     case "avg" =>
-      Return[S](CollectionSummary[S](this0))
+      Return[S](collectionAllValues[S](this0))
 
     /** Computes the maximum of the values */
     case "max" =>
-      Return[S](CollectionSummary[S](this0))
+      Return[S](collectionAllValues[S](this0))
 
     /** Computes the minimum of the values */
     case "min" =>
-      Return[S](CollectionSummary[S](this0))
+      Return[S](collectionAllValues[S](this0))
 
     /** Extracts the elements at indices between start (inclusive) and end (non-inclusive). */
     case "slice" =>
@@ -58,7 +58,7 @@ object TNumber_Map extends AMap {
 
     /** Computes the sum of the values */
     case "sum" =>
-      Return[S]( (CollectionSize[S](this0)) * (CollectionSummary[S](this0)))
+      Return[S]( collectionSize[S](this0) * collectionAllValues[S](this0))
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

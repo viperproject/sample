@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{RichExpression, TouchField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TypeList, TouchType}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -16,16 +16,69 @@ trait ACollection extends AAny {
   def keyTypeName:TypeName
   def valueTypeName:TypeName
 
-  def keyType =   SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(keyTypeName)
-  def valueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(valueTypeName)
+  lazy val entryType = GEntry(keyTypeName,valueTypeName)
+
+  lazy val keyType =   SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(keyTypeName)
+  lazy val valueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(valueTypeName)
 
   lazy val field_count = TouchField("count",TNumber.typeName)
-  lazy val field_entry = TouchField("entries",TypeName("Entry",List(keyTypeName,valueTypeName)))
+  lazy val field_entry = TouchField("entries",entryType.typeName)
 
   override def isSingleton: Boolean = false
 
   override def possibleFields: Set[Identifier] =
     super.possibleFields ++ Set(field_entry,field_count)
+
+  def collectionAllKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    Field[S](Field[S](collection,field_entry),field_entry.typ.asInstanceOf[GEntry].field_key)
+  }
+
+  def collectionAllValues[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    Field[S](Field[S](collection,field_entry),field_entry.typ.asInstanceOf[GEntry].field_value)
+  }
+
+  def collectionSize[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    Field[S](collection,field_count)
+  }
+
+  def collectionSetSize[S <: State[S]](collection: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    AssignField[S](collection,field_count,right)
+  }
+
+  def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    var curState = state
+    val entryType = GEntry(keyTypeName,valueTypeName)
+    curState = New[S](entryType,initials = Map(
+      entryType.field_key -> index,
+      entryType.field_value -> right
+    ))(curState,pp)
+    curState = AssignField[S](collection,field_entry,curState.expr.add(Field[S](collection,field_entry)))(curState,pp)
+    curState
+  }
+
+  def collectionIncreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    AssignField[S](collection, field_count, collectionSize[S](collection) + 1)
+  }
+
+  def collectionDecreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    AssignField[S](collection, field_count, collectionSize[S](collection) - 1)
+  }
+
+  def collectionClear[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    var curState = state
+    curState = collectionSetSize[S](collection, 0)(curState, pp)
+    curState = AssignField[S](collection,field_entry,
+      Invalid(GEntry(keyTypeName,valueTypeName),"collection cleared"))(curState,pp)
+    curState
+  }
+
+  def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    collectionAllValues[S](collection) // TODO
+  }
+
+  def collectionRemoveFirst[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint) = {
+    state // TODO
+  }
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

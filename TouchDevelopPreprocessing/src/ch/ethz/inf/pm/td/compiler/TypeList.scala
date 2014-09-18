@@ -156,6 +156,7 @@ object TypeList  {
     case TUnknown.typeName => TUnknown
 
     case TypeName("Collection", List(typeName)) => new GCollection(typeName)
+    case TypeName("Entry", List(key,value)) => new GEntry(key,value)
 
   }
 

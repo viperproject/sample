@@ -136,7 +136,7 @@ class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
 
     // Initialize the fields of singletons (the environment)
     var curState = entryState
-    for (sem <- compiler.getNativeMethodsSemantics()) {
+    for (sem <- compiler.getSingletons) {
       sem match {
         case any: AAny =>
           val typ = any

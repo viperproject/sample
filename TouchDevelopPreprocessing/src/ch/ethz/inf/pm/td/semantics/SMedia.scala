@@ -46,10 +46,10 @@ object SMedia extends ASingleton {
     /** Chooses a picture from the media library */
     case "choose picture" =>
       val mediaPictures = Field[S](Singleton(SMedia), SMedia.field_pictures)
-      val res = If[S](CollectionSize[S](mediaPictures) equal 0, Then = {
+      val res = If[S](TPictures.collectionSize[S](mediaPictures) equal 0, Then = {
         Return[S](Invalid(TPicture, "picture selection may be aborted by the user"))(_, pp)
       }, Else = {
-        Return[S](CollectionSummary[S](mediaPictures))(_, pp)
+        Return[S](TPictures.collectionAllValues[S](mediaPictures))(_, pp)
       })
       res
 

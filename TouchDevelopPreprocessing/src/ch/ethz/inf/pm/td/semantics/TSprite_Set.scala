@@ -25,9 +25,9 @@ object TSprite_Set extends AMutable_Collection {
     /** Add sprite to set. Returns true if sprite was not already in set. */
     case "add" =>
       val List(sprite) = parameters // Sprite
-      If[S](CollectionContainsValue[S](this0, sprite) equal False, Then = (state) => {
-        var newState = CollectionInsert[S](this0, CollectionSize[S](this0)(state, pp), sprite)(state, pp)
-        newState = CollectionIncreaseLength(this0)(newState, pp)
+      If[S](collectionContainsValue[S](this0, sprite) equal False, Then = (state) => {
+        var newState = CollectionInsert[S](this0, collectionSize[S](this0)(state, pp), sprite)(state, pp)
+        newState = collectionIncreaseLength(this0)(newState, pp)
         Return[S](True)(newState, pp)
       }, Else = {
         Return[S](False)(_, pp)
@@ -45,19 +45,19 @@ object TSprite_Set extends AMutable_Collection {
 
     case "index of" =>
       val List(item) = parameters
-      If[S](CollectionContainsValue[S](this0, item) equal True, Then = {
-        Return[S](0 ndTo CollectionSize[S](this0) - 1)(_, pp)
+      If[S](collectionContainsValue[S](this0, item) equal True, Then = {
+        Return[S](0 ndTo collectionSize[S](this0) - 1)(_, pp)
       }, Else = {
         Return[S](-1)(_, pp)
       })
 
     /** Remove sprite that was added to set first. */
     case "remove first" =>
-      If[S](CollectionSize[S](this0) > 0, Then = (state) => {
+      If[S](collectionSize[S](this0) > 0, Then = (state) => {
         val result = state.getCollectionValue(CollectionAt[S](this0, toRichExpression(0))(state, pp)).expr
         var newState = CollectionRemove[S](this0, toRichExpression(0))(state, pp)
-        newState = CollectionDecreaseLength[S](this0)(newState, pp)
-        CollectionInvalidateKeys[S](this0)(newState, pp)
+        newState = collectionDecreaseLength[S](this0)(newState, pp)
+        collectionInvalidateKeys[S](this0)(newState, pp)
         Return[S](result)(newState, pp)
       }, Else = {
         Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)

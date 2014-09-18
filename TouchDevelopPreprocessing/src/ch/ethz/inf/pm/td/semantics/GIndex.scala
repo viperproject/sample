@@ -24,7 +24,7 @@ case class GIndex(indexMemberType:TypeName, alternativeName:Option[TypeName] = N
       val List(index) = parameters
       // Check disabled -- ALWAYS FALSE ALARM!
       // CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - 1, "at index", "index")
-      Return[S](CollectionSummary[S](this0))
+      Return[S](collectionAllValues[S](this0))
 
     // This overrides the default "at" behavior of collections: Instead of returning "invalid" for a new key, we
     // create a new value of that key. Since we do not really track keys, we create a new object every times
@@ -35,7 +35,7 @@ case class GIndex(indexMemberType:TypeName, alternativeName:Option[TypeName] = N
         var newState = New[S](SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(indexMemberType))(state,pp)
         val newIndexMember = newState.expr
         newState = CollectionInsert[S](this0, key, newIndexMember)(newState,pp)
-        newState = CollectionIncreaseLength[S](this0)(newState, pp)
+        newState = collectionIncreaseLength[S](this0)(newState, pp)
         Return[S](CollectionAt[S](this0, key)(newState, pp))(newState, pp)
       }, Else=(state)=>{
         Return[S](CollectionAt[S](this0, key)(state, pp))(state, pp)

@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.{SystemParameters, oorepresentation}
 import ch.ethz.inf.pm.td.analysis.TouchField
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.sample.abstractdomain.Identifier
+import ch.ethz.inf.pm.td.semantics.AAny
 
 
 trait TouchType extends Named with Type {
@@ -59,22 +60,17 @@ trait TouchType extends Named with Type {
 
 }
 
-case object TopTouchType extends TouchType {
+case object TopTouchType extends AAny {
+
   val typeName = TypeName("Top")
   override def isTop: Boolean = true
 
-  // these don't really make sense here
-  val isSingleton = false
-  val isImmutable = false
 }
 
-case object BottomTouchType extends TouchType {
+case object BottomTouchType extends AAny {
+
   val typeName = TypeName("Bottom")
   override def isBottom: Boolean = true
-
-  // these don't really make sense here
-  val isSingleton = false
-  val isImmutable = false
 
 }
 

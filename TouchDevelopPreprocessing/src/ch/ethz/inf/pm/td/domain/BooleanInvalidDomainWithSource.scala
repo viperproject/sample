@@ -89,6 +89,7 @@ class BooleanInvalidDomainWithSource (val map:Map[Identifier, PositionedInvalidV
     case InvalidExpression(typ, str, pp) => domInvalid(str, pp)
     case ValidExpression(typ,pp) => domValid
     case Constant(_, _, _) => domValid
+    case h: HeapIdentifier => domValid
     case x: Identifier => this.get(x)
     case xs: HeapIdSetDomain[_] =>
       var result = domBottom

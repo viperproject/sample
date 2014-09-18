@@ -30,7 +30,7 @@ object TPictures extends ALinearCollection {
     /** Finds a picture by name and returns the index. Returns -1 if not found. */
     case "find" =>
       val List(name) = parameters // String
-      Return[S](-1 ndTo CollectionSize[S](this0))
+      Return[S](-1 ndTo collectionSize[S](this0))
 
     /** Gets the thumbnail of i-th picture. */
     case "thumbnail" =>

@@ -176,6 +176,10 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     }
   }
 
+  // FIXME: THIS HAS TO GO
+  def getSingletons = List(SBazaar,SBox,SCloud_Data,SCloud_Sessions,SCloud_Storage,
+    SColors,SHome,SLanguages,SLocations,SMedia,SPlayer,SRadio,SRecords,SSenses,SSocial,STime,SWall,SWeb)
+
   def extensions(): List[String] = List("td", "json")
 
   def getLabel(): String = "TouchDevelop"

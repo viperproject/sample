@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
 
 /**
  * Specifies the abstract semantics of Matrix
@@ -52,11 +53,11 @@ object TMatrix extends AMutable_Collection {
 
     /** Computes the minimum of the values */
     case "min" =>
-      Return[S](CollectionSummary[S](this0))
+      Return[S](collectionAllValues[S](this0))
 
     /** Computes the maximum of the values */
     case "max" =>
-      Return[S](CollectionSummary[S](this0))
+      Return[S](collectionAllValues[S](this0))
 
     /** Returns a copy of the matrix scaled by factor. */
     // case "scale" => 

@@ -61,7 +61,7 @@ object SBazaar extends ASingleton {
     /** Posts the current game score to the script leaderboard */
     case "post leaderboard score" =>
       val List(score) = parameters // Number
-      Assign(Field[S](this0, SBazaar.field_leaderboard_score), score)
+      AssignField[S](this0, SBazaar.field_leaderboard_score, score)
 
     /** Posts the current game leaderboard to the wall */
     case "post leaderboard to wall" =>

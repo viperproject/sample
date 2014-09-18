@@ -220,7 +220,7 @@ object TSprite extends AAny {
     /** Sets the position in pixels */
     case "set pos" =>
       val List(x, y) = parameters // Number,Number
-    val curState = AssignField[S](this0, TSprite.field_x, x)
+      val curState = AssignField[S](this0, TSprite.field_x, x)
       AssignField[S](this0, TSprite.field_y, y)(curState, pp)
 
     /** Sets the speed in pixels/sec */

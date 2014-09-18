@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
 
 /**
  * Specifies the abstract semantics of Buffer
@@ -30,23 +31,23 @@ object TBuffer extends ALinearCollection {
     /** Copies all bytes from `source` to current buffer at `offset` */
     case "clone" =>
       // TODO CHECK RANGE
-      Assign[S](CollectionSummary[S](this0), Top[S](TNumber).expr)
+      Assign[S](collectionAllValues[S](this0), Top[S](TNumber).expr)
 
     /** Copies all bytes from `source` to current buffer at `offset` */
     case "copy from" =>
       val List(target_offset, source) = parameters // Number,Buffer
       // TODO CHECK RANGE
-      Assign[S](CollectionSummary[S](this0), Top[S](TNumber).expr)
+      Assign[S](collectionAllValues[S](this0), Top[S](TNumber).expr)
 
     /** Fills the buffer with random values */
     case "fill random" =>
       val List() = parameters //
-      Assign[S](CollectionSummary[S](this0), Top[S](TNumber).expr)
+      Assign[S](collectionAllValues[S](this0), Top[S](TNumber).expr)
 
     /** Sets all bytes in buffer to `value` */
     case "fill" =>
       val List(value) = parameters // Number
-      Assign[S](CollectionSummary[S](this0), value)
+      Assign[S](collectionAllValues[S](this0), value)
 
     /** Set byte at `index` to `value` */
     case "set" =>

@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
 
 /**
  * Specifies the abstract semantics of Json Object
@@ -52,7 +53,7 @@ object TJson_Object extends AMap {
       val List(index) = parameters
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
-      Return[S](CollectionSummary[S](this0))
+      Return[S](collectionAllValues[S](this0))
 
     /** Gets a field value as a boolean */
     case "boolean" =>

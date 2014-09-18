@@ -39,7 +39,7 @@ trait AMap extends ACollection {
         s
       }, Else = (state) => {
         val newState = CollectionInsert[S](this0, key, value)(state, pp)
-        val s = CollectionIncreaseLength[S](this0)(newState, pp)
+        val s = collectionIncreaseLength[S](this0)(newState, pp)
         s
       })
 
@@ -51,7 +51,7 @@ trait AMap extends ACollection {
       val List(key) = parameters
       If[S](CollectionContainsKey[S](this0, key) equal True, Then = (state) => {
         val newState = CollectionRemove[S](this0, key)(state, pp)
-        CollectionDecreaseLength[S](this0)(newState, pp)
+        collectionDecreaseLength[S](this0)(newState, pp)
       }, Else = {
         CollectionRemove[S](this0, key)(_, pp)
       })

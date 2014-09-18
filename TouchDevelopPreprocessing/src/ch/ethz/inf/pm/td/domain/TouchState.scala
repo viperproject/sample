@@ -6,16 +6,15 @@ import ch.ethz.inf.pm.sample.util.MapUtil
 import ch.ethz.inf.pm.td.analysis.TouchField
 
 case class HeapIdentifier(pp: ProgramPoint, typ:Type, summary:Boolean, unique:Int) extends Identifier {
-  override def getName: String = pp + (if (summary) "Σ" else "") + unique
+  override def getName: String = pp + typ.toString + (if (summary) "Σ" else "") + unique
   override def getField: Option[String] = None
   override def representsSingleVariable: Boolean = !summary
 }
 
-case class FieldIdentifier(o:HeapIdentifier,f:TouchField) extends Identifier {
+case class FieldIdentifier(o:HeapIdentifier,f:String,typ:Type) extends Identifier {
   override def pp:  ProgramPoint = o.pp
-  override def typ: Type = f.typ
-  override def getName: String = f.getName
-  override def getField: Option[String] = ???
+  override def getName: String = o + f + typ.toString
+  override def getField: Option[String] = Some(f)
   override def representsSingleVariable: Boolean = o.representsSingleVariable
 }
 
@@ -61,46 +60,47 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     * Implementations can already assume that this state is non-bottom.
     */
   override def createVariable(va: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
-    if (isTop) this
     copy(
       forwardMay + (va -> Set.empty),
       forwardMust + (va -> Set.empty),
       backwardMay,
       versions,
       valueState.createVariable(va)
-    ).removeUnreachableNodes(forwardMust.getOrElse(va,Set.empty))
+    ).garbageCollect(forwardMust.getOrElse(va,Set.empty).toList).canonicalizeEnvironment
   }
 
   /** Removes the given variable.
     * Implementations can assume this state is non-bottom
     */
   override def removeVariable(va: VariableIdentifier): T = {
-    if (isTop) this
     copy(
       forwardMay - va,
       forwardMust - va,
       backwardMay.map( x => x._1 -> (x._2 - va) ),
       versions,
       valueState.removeVariable(va)
-    ).removeUnreachableNodes(forwardMust.getOrElse(va,Set.empty))
+    ).garbageCollect(forwardMay.getOrElse(va,Set.empty).toList).canonicalizeEnvironment
   }
 
   /** Returns a new state whose `ExpressionSet` holds the value of the given field.
     * Implementations can already assume that this state is non-bottom.
     */
   override def getFieldValue(obj: Expression, field: String, typ: Type): T = obj match {
-    case a:Identifier =>
-      if (isTop) this
+    case h:HeapIdentifier =>
       copy(
-        expr = new ExpressionSet(typ,SetDomain.Default(forwardMay.getOrElse(a,Set.empty[Expression]).toSet[Expression]))
+        expr = new ExpressionSet(typ,SetDomain.Default(Set(FieldIdentifier(h,field,typ))))
       )
-  }
+    case a:Identifier =>
+      val objs = forwardMay.getOrElse(a,Set.empty)
+      copy(
+        expr = new ExpressionSet(typ,SetDomain.Default(objs.map(FieldIdentifier(_,field,typ))))
+      )
+}
 
   /** Assumes an expression.
     * Implementations can already assume that this state is non-bottom.
     */
   override def assume(cond: Expression): T = {
-    if (isTop) this
     copy(
       valueState = valueState.assume(cond)
     )
@@ -110,20 +110,20 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     * Implementations can already assume that this state is non-bottom.
     */
   override def assignVariable(left: Expression, right: Expression): T = left match {
-    case leftVariable:Identifier =>
+    case leftVariable:VariableIdentifier =>
       if (leftVariable.representsSingleVariable) {
         // strong update
         right match {
-          case rightHeap:HeapIdentifier =>   strongUpdateReference(leftVariable,rightHeap)
-          case rightIdentifier:Identifier => strongUpdateAlias(leftVariable,rightIdentifier)
-          case rightExpression:Expression => strongUpdateValue(leftVariable,rightExpression)
+          case rightHeap: HeapIdentifier => strongUpdateReference(leftVariable, rightHeap)
+          case rightIdentifier: Identifier => strongUpdateAlias(leftVariable, rightIdentifier)
+          case _ => strongUpdateValue(leftVariable,right)
         }
       } else {
         // weak update
         right match {
-          case rightHeap:HeapIdentifier =>   weakUpdateReference(leftVariable,rightHeap)
-          case rightIdentifier:Identifier => weakUpdateAlias(leftVariable,rightIdentifier)
-          case rightExpression:Expression => weakUpdateValue(leftVariable,rightExpression)
+          case rightHeap: HeapIdentifier => weakUpdateReference(leftVariable, rightHeap)
+          case rightIdentifier: Identifier => weakUpdateAlias(leftVariable, rightIdentifier)
+          case _ => weakUpdateValue(leftVariable,right)
         }
       }
   }
@@ -133,22 +133,29 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     */
   override def assignField(obj: Expression, field: String, right: Expression): T = obj match {
     case leftHeap:HeapIdentifier =>
-      if (isTop) this
       val leftField = fieldFromString(leftHeap,field)
       if (leftHeap.representsSingleVariable) {
         // strong update
         right match {
-          case rightHeap:HeapIdentifier   => strongUpdateReference(leftField,rightHeap)
-          case rightIdentifier:Identifier => strongUpdateAlias(leftField,rightIdentifier)
-          case rightExpression:Expression => strongUpdateValue(leftField,rightExpression)
+          case rightHeap: HeapIdentifier => strongUpdateReference(leftField, rightHeap)
+          case rightIdentifier: Identifier => strongUpdateAlias(leftField, rightIdentifier)
+          case _ => strongUpdateValue(leftField,right)
         }
       } else {
         // weak update
         right match {
           case rightHeap:HeapIdentifier   => weakUpdateReference(leftField,rightHeap)
           case rightIdentifier:Identifier => weakUpdateAlias(leftField,rightIdentifier)
-          case rightExpression:Expression => weakUpdateValue(leftField,rightExpression)
+          case _ => weakUpdateValue(leftField,right)
         }
+      }
+    case leftIdentifier:Identifier =>
+      forwardMay.get(leftIdentifier) match {
+        case Some(set) if set.nonEmpty =>
+          Lattice.bigLub(set.map{assignField(_,field,right)})
+        case _ =>
+          println("assigning to something that is empty - not a good idea")
+          this
       }
   }
 
@@ -184,7 +191,6 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @return The abstract state after the evaluation of the constant, that is, the state that contains an expression representing this constant
    */
   override def evalConstant(value: String, typ: Type, pp: ProgramPoint): T = {
-    if (this.isBottom) return this
     this.setExpression(ExpressionSet(new Constant(value, typ, pp)))
   }
 
@@ -199,7 +205,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    */
   override def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): T = {
     val oldVersions = versions.getOrElse(pp,Seq.empty[HeapIdentifier])
-    val unique = oldVersions.headOption match {
+    val unique = oldVersions.lastOption match {
       case Some(x) => x.unique+1
       case None => 0
     }
@@ -386,39 +392,42 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def throws(t: ExpressionSet): T = ???
 
   /** Prune all objects that have no references, starting from startNode */
-  def removeUnreachableNodes(nodes: Set[HeapIdentifier]): T = {
-    var cur = this
-    for (node <- nodes) {
-      if (cur.backwardMay.getOrElse(node, Set.empty).isEmpty) {
-        cur = cur.removeObject(node).removeUnreachableNodes(
-          (node.typ.possibleFields map {
-            case field : TouchField  => forwardMay.getOrElse(FieldIdentifier(node,field),Set.empty)
-          }).flatten
-        )
-      }
-    }
-    cur
-  }
+  def garbageCollect(nodes: List[HeapIdentifier]): T = {
 
-  def removeObject(node:HeapIdentifier): T = {
-    val fields = fieldsOf(node)
-    copy(
-      (forwardMay -- fields).map { x => x._1 -> (x._2 - node) },
-      (forwardMust -- fields).map { x => x._1 -> (x._2 - node) },
-      (backwardMay - node).map { x => x._1 -> (x._2 -- fields) },
-      versions.map { x => x._1 -> x._2.filterNot( _ == node) },
-      valueState.removeVariables(fields)
-    )
+    def removeObject(node:HeapIdentifier): T = {
+      val fields = fieldsOf(node)
+      copy(
+        (forwardMay -- fields).map { x => x._1 -> (x._2 - node) },
+        (forwardMust -- fields).map { x => x._1 -> (x._2 - node) },
+        (backwardMay - node).map { x => x._1 -> (x._2 -- fields) },
+        versions.map { x => x._1 -> x._2.filterNot( _ == node) },
+        valueState.removeVariables(fields + node)
+      )
+    }
+
+    nodes match {
+      case x :: xs =>
+        if (backwardMay.getOrElse(x, Set.empty).isEmpty) {
+          removeObject(x).garbageCollect(
+            (x.typ.possibleFields map {
+              case field : TouchField  => forwardMay.getOrElse(FieldIdentifier(x,field.getName,field.typ),Set.empty)
+            }).flatten.toList ::: xs
+          )
+        } else { garbageCollect(xs) }
+      case Nil => this
+    }
+
   }
 
   def fieldsOf(node:HeapIdentifier):Set[Identifier] = {
     node.typ.possibleFields map {
-      case field : TouchField  => FieldIdentifier(node,field)
+      case field : TouchField  => FieldIdentifier(node,field.getName,field.typ)
     }
   }
 
   def fieldFromString(node:HeapIdentifier, field:String):FieldIdentifier = {
-    FieldIdentifier(node,node.typ.possibleFields.find{_.getName == field}.get.asInstanceOf[TouchField])
+    val tField = node.typ.possibleFields.find{_.getName == field}.get
+    FieldIdentifier(node,tField.getName,tField.typ)
   }
 
 
@@ -433,7 +442,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       versions,
       valueState.assign(left,right),
       ExpressionFactory.unitExpr
-    ).removeUnreachableNodes(forwardMay.getOrElse(left,Set.empty))
+    ).garbageCollect(forwardMay.getOrElse(left,Set.empty).toList).canonicalizeEnvironment
   }
 
 
@@ -444,9 +453,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       forwardMust + (left -> Set(right)),
       (backwardMay map { x => x._1 -> (x._2 - left) }) + (right -> (backwardMay.getOrElse(right,Set.empty) + left)),
       versions,
-      valueState.assign(left,right),
+      valueState.assign(left,ValidExpression(left.typ,left.pp)),
       ExpressionFactory.unitExpr
-    ).removeUnreachableNodes(forwardMay.getOrElse(left,Set.empty))
+    ).garbageCollect(forwardMay.getOrElse(left,Set.empty).toList).canonicalizeEnvironment
   }
 
   def strongUpdateValue(left:Identifier, right:Expression): T = {
@@ -468,7 +477,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       forwardMust + (left -> (forwardMust.getOrElse(left,Set.empty) + right)),
       backwardMay + (right -> (backwardMay.getOrElse(right,Set.empty) + left)),
       versions,
-      valueState.assign(left,right).lub(valueState),
+      valueState.assign(left,ValidExpression(left.typ,left.pp)).lub(valueState),
       ExpressionFactory.unitExpr
     )
     // nothing may become unreachable
@@ -505,33 +514,43 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       forwardMay.keySet
   }
 
-  def adaptEnvironments(l:T,r:T): (T,T) = {
+  /**
+   * Makes sure that versions are called according to their indexes in the list
+   */
+  def canonicalizeEnvironment:T = {
 
-    val replaceLeft  = new Replacement
-    val replaceRight = new Replacement
-
-    for (pp <- l.versions.keys ++ r.versions.keys) {
-
-      val left = l.versions.getOrElse(pp,Seq.empty)
-      val right = r.versions.getOrElse(pp,Seq.empty)
-
-      if (right.isEmpty || right.head.representsSingleVariable ||
-        (left.nonEmpty && !left.head.representsSingleVariable)) {
-
-        // give preference to left names
-        for ((a,b) <- left zip right) {
-          if (a != b)
-            replaceRight.value(Set(b)) = Set[Identifier](a)
+    val rep  = new Replacement(isPureRenaming = true)
+    for ( (k,v) <- versions ) {
+      for ((x,i) <- v.view.zipWithIndex) {
+        if (x.unique != i) {
+          rep.value(Set(x)) = Set(x.copy(unique = i).asInstanceOf[Identifier])
         }
+      }
+    }
+    this.merge(rep)
 
-      } else {
+  }
 
-        // give preference to left names
-        for ((a,b) <- left zip right) {
-          if (a != b)
-            replaceLeft.value(Set(a)) = Set[Identifier](b)
-        }
+  /**
+   * Makes sure left is summary iff right is summary
+   *
+   * precondition: l and r canonicalized!
+   */
+  def adaptSummaryNodes(l:T,r:T): (T,T) = {
 
+    val replaceLeft  = new Replacement(isPureRenaming = true)
+    val replaceRight = new Replacement(isPureRenaming = true)
+
+    for (
+      pp <- l.versions.keySet intersect r.versions.keySet;
+      (left,right) = (l.versions.get(pp).get,r.versions.get(pp).get)
+      if left.nonEmpty && right.nonEmpty
+    ) {
+
+      if (left.head.summary && !right.head.summary) {
+        replaceRight.value(Set(right.head)) = Set(left.head.asInstanceOf[Identifier])
+      } else if (!left.head.summary && right.head.summary) {
+        replaceLeft.value(Set(left.head)) = Set(right.head.asInstanceOf[Identifier])
       }
 
     }
@@ -539,6 +558,45 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     (l.merge(replaceLeft),r.merge(replaceRight))
 
   }
+
+  def adaptEnvironments(l:T,r:T): (T,T) = {
+    adaptSummaryNodes(l.canonicalizeEnvironment,r.canonicalizeEnvironment)
+  }
+
+//  def adaptEnvironments(l:T,r:T): (T,T) = {
+//
+//    val replaceLeft  = new Replacement(isPureRenaming = true)
+//    val replaceRight = new Replacement(isPureRenaming = true)
+//
+//    for (pp <- l.versions.keys ++ r.versions.keys) {
+//
+//      val left = l.versions.getOrElse(pp,Seq.empty)
+//      val right = r.versions.getOrElse(pp,Seq.empty)
+//
+//      if (right.isEmpty || right.head.representsSingleVariable ||
+//        (left.nonEmpty && !left.head.representsSingleVariable)) {
+//
+//        // give preference to left names
+//        for ((a,b) <- left zip right) {
+//          if (a != b)
+//            replaceRight.value(Set(b)) = Set[Identifier](a)
+//        }
+//
+//      } else {
+//
+//        // give preference to left names
+//        for ((a,b) <- left zip right) {
+//          if (a != b)
+//            replaceLeft.value(Set(a)) = Set[Identifier](b)
+//        }
+//
+//      }
+//
+//    }
+//
+//    (l.merge(replaceLeft),r.merge(replaceRight))
+//
+//  }
 
 }
 

@@ -4,7 +4,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TopTouchType, TouchType}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -82,7 +82,7 @@ object SWall extends ASingleton {
     case "add button" =>
       val List(icon, text) = parameters // String,String
     val pages = Field[S](this0, SWall.field_pages)
-      val currentPage = CollectionAt[S](pages, CollectionSize[S](pages) - 1)
+      val currentPage = CollectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1)
       New[S](TPage_Button, initials = Map(
         TPage_Button.field_icon -> icon,
         TPage_Button.field_text -> text,
@@ -115,7 +115,7 @@ object SWall extends ASingleton {
     /** Gets the current page displayed on the wall */
     case "current page" =>
       val pages = Field[S](this0, SWall.field_pages)
-      Return[S](CollectionAt[S](pages, CollectionSize[S](pages) - 1))
+      Return[S](CollectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))
 
     /** Clears the application bar buttons and hides the bar */
     case "clear buttons" =>
@@ -150,7 +150,7 @@ object SWall extends ASingleton {
     /** Prompts the user to pick a string from a list. Returns the selected index. */
     case "pick string" =>
       val List(text, caption, values) = parameters // String,String,String_Collection
-      If(CollectionSize[S](values) > 0, Then = { s: S => Return[S](0 ndTo (CollectionSize[S](values) - 1))(s, pp)},
+      If(TPage_Collection.collectionSize[S](values) > 0, Then = { s: S => Return[S](0 ndTo (TPage_Collection.collectionSize[S](values) - 1))(s, pp)},
         Else = { s: S => Error[S](True, "pick string", "User may have to select string from empty string collection")})
 
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */
@@ -162,8 +162,8 @@ object SWall extends ASingleton {
     case "pop page with transition" =>
       val List(style) = parameters // String
     val pages = Field[S](this0, SWall.field_pages)
-      If[S](CollectionSize[S](pages) > 0, Then = { s: S =>
-        Return[S](True)(CollectionRemoveFirst[S](pages, CollectionAt[S](pages, CollectionSize[S](pages) - 1))(s, pp), pp)
+      If[S](TPage_Collection.collectionSize[S](pages) > 0, Then = { s: S =>
+        Return[S](True)(CollectionRemoveFirst[S](pages, CollectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))(s, pp), pp)
       }, Else = {
         Return[S](False)(_, pp)
       })
@@ -171,8 +171,8 @@ object SWall extends ASingleton {
     /** Pops the current page and restores the previous wall page. Returns false if already on the default page. */
     case "pop page" =>
       val pages = Field[S](this0, SWall.field_pages)
-      If[S](CollectionSize[S](pages) > 0, Then = { s: S =>
-        Return[S](True)(CollectionRemoveFirst[S](pages, CollectionAt[S](pages, CollectionSize[S](pages) - 1))(s, pp), pp)
+      If[S](TPage_Collection.collectionSize[S](pages) > 0, Then = { s: S =>
+        Return[S](True)(TPage_Collection.collectionRemoveFirst[S](pages, TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))(s, pp), pp)
       }, Else = {
         Return[S](False)(_, pp)
       })
@@ -188,8 +188,8 @@ object SWall extends ASingleton {
       var curState = state
       curState = New[S](TPage)(curState, pp)
       val newPage = curState.expr
-      curState = CollectionInsert[S](pages, CollectionSize[S](pages), newPage)(curState, pp)
-      curState = CollectionIncreaseLength[S](pages)(curState, pp)
+      curState = TPage_Collection.collectionInsert[S](pages, TPage_Collection.collectionSize[S](pages), newPage)(curState, pp)
+      curState = TPage_Collection.collectionIncreaseLength[S](pages)(curState, pp)
       Return[S](newPage)(curState, pp)
 
     /** Takes a screenshot of the wall. */

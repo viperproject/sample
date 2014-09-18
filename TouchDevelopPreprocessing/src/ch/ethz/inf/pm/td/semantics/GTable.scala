@@ -24,8 +24,8 @@ case class GTable(rowTyp: TypeName) extends AMutable_Collection {
       // Create row with backlink to this table for removal
       var newState = New[S](SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(rowTyp), initials = Map(field_table -> this0))(state, pp)
       val row = newState.expr
-      newState = CollectionInsert[S](this0, CollectionSize[S](this0)(newState, pp), row)(newState, pp)
-      newState = CollectionIncreaseLength[S](this0)(newState, pp)
+      newState = CollectionInsert[S](this0, collectionSize[S](this0)(newState, pp), row)(newState, pp)
+      newState = collectionIncreaseLength[S](this0)(newState, pp)
       Return[S](row)(newState, pp)
 
     case "row at" =>
