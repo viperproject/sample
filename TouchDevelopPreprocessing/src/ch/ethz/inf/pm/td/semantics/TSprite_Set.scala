@@ -54,7 +54,7 @@ object TSprite_Set extends AMutable_Collection {
     /** Remove sprite that was added to set first. */
     case "remove first" =>
       If[S](collectionSize[S](this0) > 0, Then = (state) => {
-        val result = state.getCollectionValue(CollectionAt[S](this0, toRichExpression(0))(state, pp)).expr
+        val result = state.getCollectionValue(collectionAt[S](this0, toRichExpression(0))(state, pp)).expr
         var newState = CollectionRemove[S](this0, toRichExpression(0))(state, pp)
         newState = collectionDecreaseLength[S](this0)(newState, pp)
         collectionInvalidateKeys[S](this0)(newState, pp)

@@ -33,7 +33,7 @@ trait ALinearCollection extends ACollection {
         throw new SemanticException("This is not a linear collection " + this0.toString)
 
       val newState = If[S](CollectionIndexInRange[S](this0, index), Then = {
-        Return[S](CollectionAt[S](this0, index))(_, pp)
+        Return[S](collectionAt[S](this0, index))(_, pp)
       }, Else = {
         Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection access may be out of range"))(_, pp)
       })
@@ -44,7 +44,7 @@ trait ALinearCollection extends ACollection {
       val List(index) = parameters // Key_Type
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
-      Return[S](CollectionAt[S](this0, index))
+      Return[S](collectionAt[S](this0, index))
 
 
     /** Get random element */

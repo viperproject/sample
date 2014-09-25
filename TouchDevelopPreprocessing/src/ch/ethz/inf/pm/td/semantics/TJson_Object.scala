@@ -58,7 +58,7 @@ object TJson_Object extends AMap {
     /** Gets a field value as a boolean */
     case "boolean" =>
       val List(key) = parameters // String
-      Return[S](Field[S](CollectionAt[S](this0, key), TJson_Object.field_to_boolean))
+      Return[S](Field[S](collectionAt[S](this0, key), TJson_Object.field_to_boolean))
 
     /** Indicates if the key exists */
     case "contains key" =>
@@ -77,7 +77,7 @@ object TJson_Object extends AMap {
     /** Gets a field value as a number */
     case "number" =>
       val List(key) = parameters // String
-      Return[S](Field[S](CollectionAt[S](this0, key), TJson_Object.field_to_number))
+      Return[S](Field[S](collectionAt[S](this0, key), TJson_Object.field_to_number))
 
     /** Gets a field value as a string */
     case "string" =>
@@ -86,7 +86,7 @@ object TJson_Object extends AMap {
     /** Gets the field value as a time */
     case "time" =>
       val List(key) = parameters // String
-      Return[S](Field[S](CollectionAt[S](this0, key), TJson_Object.field_to_time))
+      Return[S](Field[S](collectionAt[S](this0, key), TJson_Object.field_to_time))
 
     /** Copy current JSON object into a Json Builder so it can be modified */
     case "to json builder" =>

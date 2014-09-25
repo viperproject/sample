@@ -18,7 +18,7 @@ trait AMap extends ACollection {
       val List(key) = parameters // Key_Type
 
       val result = If[S](CollectionContainsKey[S](this0, key) equal True, Then = {
-        Return[S](CollectionAt[S](this0, key))(_, pp)
+        Return[S](collectionAt[S](this0, key))(_, pp)
       }, Else = {
         Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "map may not contain the accessed key"))(_, pp)
       })

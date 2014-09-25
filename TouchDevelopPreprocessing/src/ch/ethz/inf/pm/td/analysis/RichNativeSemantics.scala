@@ -532,32 +532,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
     state.top()
   }
 
-  def MatchFields[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], typ: TouchType, method: String)(implicit state: S, pp: ProgramPoint): S = {
-
-    val fieldResult =
-      if (parameters.length == 0)
-      // Getters
-        typ.possibleFields.find(_.getName == method) match {
-          case Some(field) =>
-            val stateWithExpr = state.getFieldValue(this0,method,field.typ)
-            Some(stateWithExpr)
-          case None => None
-        }
-      else if (parameters.length == 1)
-      // Setters
-        typ.possibleFields.find("set " + _.getName == method) match {
-          case Some(field) =>
-            Some(AssignField[S](this0, field, parameters.head))
-          case None => None
-        }
-      else None
-
-    fieldResult match {
-      case Some(res) => res
-      case None => Unimplemented[S](typ.toString + "." + method)
-    }
-
-  }
 }
 
 case class TouchField(

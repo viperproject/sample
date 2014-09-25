@@ -70,7 +70,7 @@ object TWeb_Request extends AAny {
     /** Gets the value of a given header */
     case "header" =>
       val List(name) = parameters // String
-      Return[S](CollectionAt[S](Field[S](this0, TWeb_Request.field_header_storage), name))
+      Return[S](TString_Map.collectionAt[S](Field[S](this0, TWeb_Request.field_header_storage), name))
 
     /** Gets the names of the headers */
     case "header names" =>

@@ -36,9 +36,9 @@ case class GIndex(indexMemberType:TypeName, alternativeName:Option[TypeName] = N
         val newIndexMember = newState.expr
         newState = CollectionInsert[S](this0, key, newIndexMember)(newState,pp)
         newState = collectionIncreaseLength[S](this0)(newState, pp)
-        Return[S](CollectionAt[S](this0, key)(newState, pp))(newState, pp)
+        Return[S](collectionAt[S](this0, key)(newState, pp))(newState, pp)
       }, Else=(state)=>{
-        Return[S](CollectionAt[S](this0, key)(state, pp))(state, pp)
+        Return[S](collectionAt[S](this0, key)(state, pp))(state, pp)
       })
 
     case "clear" =>

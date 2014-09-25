@@ -59,17 +59,18 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     isTop:             Boolean = false
   ):T
 
+
   /** Creates a variable given a `VariableIdentifier`.
     * Implementations can already assume that this state is non-bottom.
     */
   override def createVariable(va: VariableIdentifier, typ: Type, pp: ProgramPoint): T = {
     copy(
-      forwardMay + (va -> Set.empty),
-      forwardMust + (va -> Set.empty),
+      forwardMay,// + (va -> Set.empty),
+      forwardMust,// + (va -> Set.empty),
       backwardMay,
       versions,
       valueState.createVariable(va)
-    ).garbageCollect(forwardMust.getOrElse(va,Set.empty).toList).canonicalizeEnvironment
+    )//.garbageCollect(forwardMust.getOrElse(va,Set.empty).toList).canonicalizeEnvironment
   }
 
   /** Removes the given variable.
@@ -87,6 +88,13 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     if (SystemParameters.DEBUG) {
       val ids = result.ids
       assert(!ids.contains(va))
+    }
+
+    // Garbage collection invariant
+    if (SystemParameters.DEBUG) {
+      for ( (k,v) <- result.backwardMay ) {
+        assert(v.nonEmpty)
+      }
     }
 
     result
@@ -299,7 +307,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def lub(other: T): T = {
 
     val (left,right) = adaptEnvironments(this,other)
-    factory(
+    val result = factory(
       MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
       MapUtil.mapToSetIntersection(left.forwardMust,right.forwardMust),
       MapUtil.mapToSetUnion(left.backwardMay,right.backwardMay),
@@ -309,6 +317,14 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       left.isTop || right.isTop
     )
 
+    // Garbage collection invariant
+    if (SystemParameters.DEBUG) {
+      for ( (k,v) <- result.backwardMay ) {
+        assert(v.nonEmpty)
+      }
+    }
+
+    result
   }
 
   /**
@@ -348,6 +364,13 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     }
 
     val result = widened.merge(replacement).canonicalizeEnvironment
+
+    // Garbage collection invariant
+    if (SystemParameters.DEBUG) {
+      for ( (k,v) <- result.backwardMay ) {
+        assert(v.nonEmpty)
+      }
+    }
 
     result
   }
@@ -423,8 +446,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   def mergeBackwards(rep:Replacement,map:Map[HeapIdentifier,Set[Identifier]]): Map[HeapIdentifier,Set[Identifier]] = {
 
     if (rep.isEmpty()) return map
+    val mapKeys = map.keySet.toSet[Identifier]
     var result = map
-    for ((left,right) <- rep.value) {
+    for ((left,right) <- rep.value if (left intersect mapKeys).nonEmpty) {
       // compute the lub of everything on the left side
       val lub = left.foldLeft(Set.empty[Identifier])((s,l) => l match { case a:HeapIdentifier => s ++ map.getOrElse(a,Set.empty); case _ => s })
       // assign it to everything on the right side
@@ -530,6 +554,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   /** Prune all objects that have no references, starting from startNode */
   def garbageCollect(nodes: List[HeapIdentifier]): T = {
 
+    if (nodes.isEmpty) return this
+
     def removeObject(node:HeapIdentifier): T = {
       val fields = fieldsOf(node)
       copy(
@@ -547,20 +573,19 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       )
     }
 
-    nodes match {
+    val result = nodes match {
       case x :: xs =>
-        val result =
-          if (backwardMay.getOrElse(x, Set.empty).isEmpty) {
-            removeObject(x).garbageCollect(
-              (x.typ.possibleFields map {
-                case field : TouchField  => forwardMay.getOrElse(FieldIdentifier(x,field.getField.get,field.typ),Set.empty)
-              }).flatten.toList ::: xs
-            )
-          } else { garbageCollect(xs) }
-        result
+        if (backwardMay.getOrElse(x, Set.empty).isEmpty) {
+          removeObject(x).garbageCollect(
+            (x.typ.possibleFields map {
+              case field : TouchField  => forwardMay.getOrElse(FieldIdentifier(x,field.getField.get,field.typ),Set.empty)
+            }).flatten.toList ::: xs
+          )
+        } else { garbageCollect(xs) }
       case Nil => this
     }
 
+    result
   }
 
   def fieldsOf(node:HeapIdentifier):Set[Identifier] = {
@@ -706,6 +731,13 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
         for ((x, i) <- v.view.zipWithIndex) {
           assert (x.unique == i)
         }
+      }
+    }
+
+    // Garbage collection invariant
+    if (SystemParameters.DEBUG) {
+      for ( (k,v) <- step2.backwardMay ) {
+        assert(v.nonEmpty)
       }
     }
 

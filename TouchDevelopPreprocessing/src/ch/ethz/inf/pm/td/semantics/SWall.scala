@@ -82,7 +82,7 @@ object SWall extends ASingleton {
     case "add button" =>
       val List(icon, text) = parameters // String,String
     val pages = Field[S](this0, SWall.field_pages)
-      val currentPage = CollectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1)
+      val currentPage = TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1)
       New[S](TPage_Button, initials = Map(
         TPage_Button.field_icon -> icon,
         TPage_Button.field_text -> text,
@@ -115,7 +115,7 @@ object SWall extends ASingleton {
     /** Gets the current page displayed on the wall */
     case "current page" =>
       val pages = Field[S](this0, SWall.field_pages)
-      Return[S](CollectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))
+      Return[S](TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))
 
     /** Clears the application bar buttons and hides the bar */
     case "clear buttons" =>
@@ -163,7 +163,7 @@ object SWall extends ASingleton {
       val List(style) = parameters // String
     val pages = Field[S](this0, SWall.field_pages)
       If[S](TPage_Collection.collectionSize[S](pages) > 0, Then = { s: S =>
-        Return[S](True)(CollectionRemoveFirst[S](pages, CollectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))(s, pp), pp)
+        Return[S](True)(CollectionRemoveFirst[S](pages, TPage_Collection.collectionAt[S](pages, TPage_Collection.collectionSize[S](pages) - 1))(s, pp), pp)
       }, Else = {
         Return[S](False)(_, pp)
       })

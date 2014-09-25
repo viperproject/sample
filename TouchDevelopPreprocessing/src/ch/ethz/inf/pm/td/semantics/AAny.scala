@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
-import ch.ethz.inf.pm.td.analysis.{RichNativeSemantics, RichExpressionImplicits, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import RichNativeSemantics._
@@ -17,6 +17,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
   def isSingleton = false
   def isImmutable = true
   def possibleFields = Set.empty
+  def mutedFields:Set[TouchField] = Set.empty
 
   /**
    * Backward semantics are empty for all native function for now
@@ -116,7 +117,56 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       state.setExpression(multiValExpressionSet)
 
     case _ =>
-      MatchFields[S](this0, parameters, this, method)
+      matchFields[S](this0, parameters, method)
+
+  }
+
+
+  def matchFields[S <: State[S]](this0: RichExpression, parameters: List[ExpressionSet], method: String)(implicit state: S, pp: ProgramPoint): S = {
+
+    val fieldResult =
+      if (parameters.length == 0)
+      // Getters
+        possibleFields.find(_.getName == method) match {
+          case Some(field) =>
+            val stateWithExpr = state.getFieldValue(this0,method,field.typ)
+            Some(stateWithExpr)
+          case None => None
+        }
+      else if (parameters.length == 1)
+        // Setters
+        possibleFields.find("set " + _.getName == method) match {
+          case Some(field) =>
+            Some(AssignField[S](this0, field, parameters.head))
+          case None => None
+        }
+      else None
+
+
+    fieldResult match {
+      case Some(res) => res
+      case None =>
+
+        val mutedFieldResult =
+          if (parameters.length == 0)
+          // Getters
+            mutedFields.find(_.getName == method) match {
+              case Some(field) => Some(Top[S](field.typ)(state,pp))
+              case None => None
+            }
+          else if (parameters.length == 1)
+          // Setters
+            mutedFields.find("set " + _.getName == method) match {
+              case Some(field) => Some(state)
+              case None => None
+            }
+          else None
+
+        mutedFieldResult match {
+          case Some(res) => res
+          case None => Unimplemented[S](this.toString + "." + method)
+        }
+    }
 
   }
 
