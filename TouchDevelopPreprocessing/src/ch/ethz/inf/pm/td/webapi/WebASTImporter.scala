@@ -346,7 +346,7 @@ case class JAction(
                     outParameters: List[JLocalDef],
                     // note that events should be always treated as private, but for historical reasons this field can be true or false
                     isPrivate: Boolean,
-                    isOffloaded: Boolean,
+                    isOffloaded: Option[Boolean],
                     isTest: Boolean,
                     body: List[JStmt]) extends JDecl(id, name)
 
@@ -357,7 +357,7 @@ case class JPage(
                   outParameters: List[JLocalDef],
                   // note that events should be always treated as private, but for historical reasons this field can be true or false
                   isPrivate: Boolean,
-                  isOffloaded: Boolean,
+                  isOffloaded: Option[Boolean],
                   isTest: Boolean,
                   initBody: List[JStmt],
                   displayBody: List[JStmt]
@@ -370,7 +370,7 @@ case class JEvent(
                    outParameters: List[JLocalDef],
                    // note that events should be always treated as private, but for historical reasons this field can be true or false
                    isPrivate: Boolean,
-                   isOffloaded: Boolean,
+                   isOffloaded: Option[Boolean],
                    isTest: Boolean,
                    // when building provide name or both eventName and eventVariableId (which take precedence over name)
                    eventName: String,
@@ -385,7 +385,7 @@ case class JLibAction(
                        outParameters: List[JLocalDef],
                        // note that events should be always treated as private, but for historical reasons this field can be true or false
                        isPrivate: Boolean,
-                       isOffloaded: Boolean,
+                       isOffloaded: Option[Boolean],
                        isTest: Boolean,
                        parentLibId: String /*JNodeRef*/
                        // this can be empty - it means "current script"

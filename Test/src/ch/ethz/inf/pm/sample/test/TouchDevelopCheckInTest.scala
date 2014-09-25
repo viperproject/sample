@@ -7,13 +7,13 @@ import org.scalatest.FlatSpec
  */
 class TouchDevelopCheckInTest extends FlatSpec {
 
-//  "TouchBoost" should "have the same results for all scripts with aa" in {
-//     Run.main(List("-v","-p","Test/test/TouchDevelop/aa").toArray)
-//  }
+  "TouchBoost" should "have the same results for all scripts with aa" in {
+     Run.main(List("-v","-p","Test/test/TouchDevelop/aa").toArray)
+  }
 
-//  "TouchBoost" should "have the same results for all handconstructed scripts" in {
-//    Run.main(List("-v","-p","Test/test/TouchDevelop/handconstructed").toArray)
-//  }
+  "TouchBoost" should "have the same results for all handconstructed scripts" in {
+    Run.main(List("-v","-p","Test/test/TouchDevelop/handconstructed").toArray)
+  }
 
   "TouchBoost" should "pass the apron tests" in {
      Run.main(List("-v","-p","Test/test/TouchDevelop/apron").toArray)

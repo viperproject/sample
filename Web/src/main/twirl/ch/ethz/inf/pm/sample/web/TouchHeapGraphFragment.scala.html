@@ -1,0 +1,77 @@
+@(heapGraph: ch.ethz.inf.pm.td.domain.TouchState[_, _])(additionalPanels: Html)
+@import ch.ethz.inf.pm.td._
+@import ch.ethz.inf.pm.sample.abstractdomain._
+
+@nodeId(vertex: Identifier) = @{
+s"node-${vertex.sanitizedName}"
+}
+
+@edgeId(edge: (Identifier,String,Identifier)) = @{
+s"edge-${edge._1.sanitizedName}-${edge._2}-${edge._3.sanitizedName}"
+}
+
+@nodeCssClassNames(vertex: Identifier) = @{
+vertex match {
+case v: VariableIdentifier => "local-var-node"
+case v: domain.FieldIdentifier if v.o.summary => "heap-node summary-heap-node"
+case v: domain.FieldIdentifier if !v.o.summary => "heap-node definite-heap-node"
+case v: domain.HeapIdentifier if v.summary => "heap-node summary-heap-node"
+case v: domain.HeapIdentifier if !v.summary => "heap-node definite-heap-node"
+}
+}
+<div class="row-fluid">
+    <div class="col-sm-9">
+        <div class="well graph-well">
+            <div class="graph control-flow-graph-block" id="graph">
+                @heapGraph.vertices.toList.map { vertex =>
+                <div class="node @nodeCssClassNames(vertex)" id="@nodeId(vertex)">@vertex.sanitizedName</div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-3">
+        @additionalPanels
+
+        <div class="panel panel-info" id="edge-state-panel">
+            <div class="panel-heading">Edge Value State</div>
+            <div class="panel-body">
+                <i class="placeholder">Move your mouse over an edge</i>
+                @heapGraph.edges.map { edge =>
+                <div class="edge-state" id="@edgeId(edge)" style="display: none;">
+                </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    jsPlumb.ready(function() {
+        var view = new GraphView();
+        view.rankDir = "LR";
+        @heapGraph.edges.map { edge =>
+            view.graph.addEdge(null, "@nodeId(edge._1)", "@nodeId(edge._3)", {
+                label: "${edge._2}",
+                onConnected: function(con) {
+                    con.bind("mouseenter", function(con) {
+                        $("#edge-state-panel .placeholder").hide();
+                        $("#edge-state-panel .edge-state").hide();
+                        $("#@edgeId(edge)").show();
+                    });
+
+                    con.bind("mouseexit", function(con) {
+                        $("#edge-state-panel .edge-state").hide();
+                        $("#edge-state-panel .placeholder").show();
+                    });
+                }
+            });
+        }
+
+        view.display();
+
+        // Makes debugging easier
+        window.view = view;
+    });
+
+</script>

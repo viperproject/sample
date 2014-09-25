@@ -22,9 +22,8 @@ import ch.ethz.inf.pm.td.semantics.AAny
  * Time: 5:50 PM
  *
  */
-class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
-//extends SemanticAnalysis[TouchStringsAnd[InvalidAnd[D],V,S]] {
-  extends SemanticAnalysis[StringsAnd[InvalidAnd[D], S]] {
+class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
+  extends SemanticAnalysis[StringsAnd[InvalidAnd[D], R]] {
 
   val STRING_DOMAIN = "StringDomain"
   val NUMERICAL_DOMAIN = "Domain"
@@ -48,7 +47,7 @@ class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
     }
   }
 
-  def getInitialState(): StringsAnd[InvalidAnd[D], S] = {
+  def getInitialState(): StringsAnd[InvalidAnd[D], R] = {
     val numericSubDomain = domain match {
       case "Sign" => new BoxedNonRelationalNumericalDomain(new Sign(SignValues.T)).asInstanceOf[D]
       case "Interval" => new BoxedNonRelationalNumericalDomain(new Interval(0, 0)).asInstanceOf[D]
@@ -72,9 +71,9 @@ class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
     val invalidAndSubDomain = new InvalidAnd(numericSubDomain)
 
     stringDomain match {
-      case "Bricks" => new StringsAnd[InvalidAnd[D], S](invalidAndSubDomain, new Bricks().asInstanceOf[S])
-      case _ => new StringsAnd[InvalidAnd[D], S](invalidAndSubDomain,
-        new NonrelationalStringDomain(new StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)).asInstanceOf[S])
+      case "Bricks" => new StringsAnd[InvalidAnd[D], R](invalidAndSubDomain, new Bricks().asInstanceOf[R])
+      case _ => new StringsAnd[InvalidAnd[D], R](invalidAndSubDomain,
+        new NonrelationalStringDomain(new StringKSetDomain(TouchAnalysisParameters.stringRepresentationBound)).asInstanceOf[R])
     }
 
 
@@ -253,7 +252,7 @@ class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
 
     if (TouchAnalysisParameters.treatPrivateMethodLikePublicMethods)
       methodsToBeAnalyzed = methodsToBeAnalyzed ++ compiler.getPrivateMethods
-    if (!methods.isEmpty) methodsToBeAnalyzed = methodsToBeAnalyzed.filter {
+    if (methods.nonEmpty) methodsToBeAnalyzed = methodsToBeAnalyzed.filter {
       tm =>
         val methodId = tm.name
         methods.contains(methodId.toString)
@@ -322,19 +321,20 @@ class TouchAnalysis[D <: NumericalDomain[D], S <: StringDomain[S]]
 
       // Init the fields of singletons (the environment)
       for (sem <- SystemParameters.compiler.asInstanceOf[TouchCompiler].getNativeMethodsSemantics()) {
-        if (sem.isInstanceOf[AAny]) {
-          val typ = sem.asInstanceOf[AAny]
-          if (typ.isSingleton &&
-            (!TouchAnalysisParameters.libraryFieldPruning ||
-              SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.name))) {
-            if (typ.name != "records" && typ.name != "art" && typ.name != "data" && typ.name != "code") {
-              val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
-              curState = RichNativeSemantics.Top[S](typ)(curState, singletonProgramPoint)
-              val obj = curState.expr
-              val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
-              curState = RichNativeSemantics.Assign[S](variable, obj)(curState, singletonProgramPoint)
+        sem match {
+          case typ: AAny =>
+            if (typ.isSingleton &&
+              (!TouchAnalysisParameters.libraryFieldPruning ||
+                SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields.contains(typ.name))) {
+              if (typ.name != "records" && typ.name != "art" && typ.name != "data" && typ.name != "code") {
+                val singletonProgramPoint = TouchSingletonProgramPoint(typ.name)
+                curState = RichNativeSemantics.Top[S](typ)(curState, singletonProgramPoint)
+                val obj = curState.expr
+                val variable = ExpressionSet(VariableIdentifier(typ.name.toLowerCase)(typ, singletonProgramPoint))
+                curState = RichNativeSemantics.Assign[S](variable, obj)(curState, singletonProgramPoint)
+              }
             }
-          }
+          case _ =>
         }
       }
 
@@ -363,7 +363,7 @@ class ImprecisionVisitor extends Visitor {
    */
   def checkSingleStatement[S <: State[S]](state: S, statement: Statement, printer: OutputCollector) {
     val errors = Reporter.getImprecision(statement.getPC())
-    if (!errors.isEmpty) {
+    if (errors.nonEmpty) {
       for (mess <- Reporter.getImprecision(statement.getPC())) {
         printer.add(WarningProgramPoint(statement.getPC(), mess))
       }
@@ -393,7 +393,7 @@ class AlarmVisitor extends Visitor {
    */
   def checkSingleStatement[S <: State[S]](state: S, statement: Statement, printer: OutputCollector) {
     val errors = Reporter.getErrors(statement.getPC())
-    if (!errors.isEmpty) {
+    if (errors.nonEmpty) {
       for (mess <- Reporter.getErrors(statement.getPC())) {
         printer.add(WarningProgramPoint(statement.getPC(), mess))
       }

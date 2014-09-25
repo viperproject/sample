@@ -37,6 +37,9 @@ class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], S
                   val isPureExpanding: Boolean = false,
                   val isPureRemoving: Boolean = false) {
 
+  def addedIdentifiers: Set[Identifier] = value.values.flatten.toSet -- value.keys.flatten
+  def removedIdentifiers: Set[Identifier] = value.keys.flatten.toSet -- value.values.flatten
+
   /**
    * Compute lub of replacements. Note that this was developed with the interval domain in mind
    * (may be too specific for that case).

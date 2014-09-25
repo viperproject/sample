@@ -30,7 +30,7 @@ trait AMap extends ACollection {
       val List(index) = parameters
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive(index, 0, CollectionSize[S](this0) - NumericalAnalysisConstants.epsilon, "at index", "index")
-      Return[S](CollectionKeySummary[S](this0))
+      Return[S](collectionAllKeys[S](this0))
 
     case "set at" =>
       val List(key, value) = parameters // Number,Element_Type

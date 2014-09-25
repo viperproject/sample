@@ -109,9 +109,10 @@ object Lattice {
       prev = cur
       iteration += 1
       if (iteration > wideningLimit) {
-        if (iteration > wideningLimit + 10)
-        // TODO: Not very helpful. Remove?
+        if (iteration > wideningLimit + 10) {
+          println(cur)
           System.err.println("Looks like we are not terminating here!")
+        }
         cur = prev.widening(f(prev))
       }
       else cur = prev.lub(f(prev))

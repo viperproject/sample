@@ -413,6 +413,8 @@ trait Identifier extends Expression with Assignable {
   def representsSingleVariable: Boolean
 
   override def toString = getName
+
+  def sanitizedName = getName.replaceAll("[^a-z0-9A-Z]*","")
 }
 
 /**

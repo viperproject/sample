@@ -1,6 +1,7 @@
 @(result: ch.ethz.inf.pm.sample.execution.AnalysisResult[_], blockIndex: Int, stateIndex: Int, iter: Int)(app: ch.ethz.inf.pm.sample.web.App)
 @import ch.ethz.inf.pm.sample.abstractdomain._
 @import ch.ethz.inf.pm.sample.oorepresentation._
+@import ch.ethz.inf.pm.td.domain._
 
 @stmtSpan(stmt: Statement) = {
 <span class="code">@stmt</span>
@@ -53,7 +54,10 @@ else Html(s"between ${stmtSpan(stmts(stateIndex - 1))} and ${stmtSpan(stmts(stat
 @defining(result.cfgState.trackedStatesOfBlock(blockIndex)(iter)(stateIndex)) { state =>
 @state match {
 case state: vdha.ValueDrivenHeapState[_, _] => {
-@ValueDrivenHeapStateFragment(state)
+    @ValueDrivenHeapStateFragment(state)
+}
+case state: TouchState[_, _] => {
+    @TouchStateFragment(state)
 }
 }
 }

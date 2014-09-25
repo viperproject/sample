@@ -43,7 +43,7 @@
 
             @for(stateIndex <- 0 to states.size - 2) {
                 view.graph.addEdge(null, @nodeId(stateIndex), @nodeId(stateIndex + 1), {
-                    label: "@result.cfgState.cfg.nodes(blockIndex)(stateIndex).toString"
+                    label: "${blockIndex},${stateIndex}"
                 });
             }
 

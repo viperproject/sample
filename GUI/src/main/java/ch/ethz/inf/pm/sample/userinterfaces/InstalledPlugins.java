@@ -10,7 +10,6 @@ import ch.ethz.inf.pm.sample.oorepresentation.scalalang.ScalaCompiler;
 import ch.ethz.inf.pm.sample.td.cost.loops.CostAnalysis;
 import ch.ethz.inf.pm.sample.td.cost.loops.LoopCostCompiler;
 import ch.ethz.inf.pm.td.analysis.TouchAnalysis;
-import ch.ethz.inf.pm.td.analysis.TouchAnalysisWithApron;
 import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.stringanalysis.BricksAnalysis;
 import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.stringanalysis.PrefixAndSuffixAnalysis;
@@ -36,7 +35,6 @@ public class InstalledPlugins {
                 new BricksAnalysis(),
                 new SurelyAndMaybeContainedCharactersAnalysis(),
                 new TouchAnalysis(),
-                new TouchAnalysisWithApron(),
                 new CostAnalysis()
         };
 

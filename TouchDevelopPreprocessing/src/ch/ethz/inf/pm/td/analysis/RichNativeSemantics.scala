@@ -342,16 +342,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
     return state.collectionContainsKey(collection, key, TBoolean, pp).expr
   }
 
-  def CollectionSummary[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    val keyTyp = collection.thisExpr._1.asInstanceOf[ACollection].keyType
-    state.getCollectionValueByKey(collection, Valid(keyTyp)).expr
-  }
-
-  def CollectionKeySummary[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    val result = state.getCollectionKeyByKey(collection, Valid(collection.getType().asInstanceOf[ACollection].keyType))
-    result.expr
-  }
-
   def CollectionExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     val collectionTyp = collection.getType().asInstanceOf[ACollection]
     val keyTyp = collectionTyp.keyType
@@ -419,28 +409,6 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
   def CollectionIndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     index >= 0 && index < CollectionSize[S](collection)
-  }
-
-  def CollectionIncreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    val newState = Assign[S](CollectionSize[S](collection), CollectionSize[S](collection) + 1)(state, pp)
-
-    if (newState.isSummaryCollection(collection)) {
-      return newState.lub(state)
-    } else {
-      return newState
-    }
-  }
-
-  def CollectionDecreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
-    val assigned = Assign[S](CollectionSize[S](collection), CollectionSize[S](collection) - 1)
-    // ensure that collection length is never < 0
-    val newState = assigned.assume(CollectionSize[S](collection) >= 0)
-
-    if (newState.isSummaryCollection(collection)) {
-      return newState.lub(state)
-    } else {
-      return newState
-    }
   }
 
   def CollectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {

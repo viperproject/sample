@@ -128,26 +128,32 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
   def resolveUsertypeAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil): Option[List[TypeName]] = {
 
     // Standard function of records
-    try {
-      return Some(List(usertypes(typ)(symbol).retType))
-    } catch {
-      case e: NoSuchElementException => ()
+    usertypes.get(typ) match {
+      case Some(x) => x.get(symbol) match {
+        case Some (y) => return Some(List(y.retType))
+        case None => ()
+      }
+      case None => ()
     }
 
-    // library function of type lib->f(record,...) can be run as record->f(...)
+    // library function of type lib->f(record,...) can be run as record->f(...) ()
     for ((_, lib) <- libs) {
-      try {
-        return Some(lib(symbol)(typ :: args))
-      } catch {
-        case e: NoSuchElementException => ()
+      lib.get(symbol) match {
+        case Some(x) => x.get(typ :: args) match {
+          case Some(y) => return Some(y)
+          case None => ()
+        }
+        case None =>
       }
     }
 
     // local function of type code->f(record,...) can be run as record->f(...)
-    try {
-      return Some(code(symbol)(typ :: args))
-    } catch {
-      case e: NoSuchElementException => ()
+    code.get(symbol) match {
+      case Some(x) => x.get(typ :: args) match {
+        case Some(y) => return Some(y)
+        case None => ()
+      }
+      case None =>
     }
 
     return None

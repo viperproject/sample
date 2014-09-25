@@ -1,10 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.SystemParameters
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, Identifier, State}
+import ch.ethz.inf.pm.sample.abstractdomain.{SetDomain, ExpressionSet, Identifier, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{RichExpression, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{TouchDevelopEntryStateBuilder, RichExpression, TouchField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TypeList, TouchType}
+import ch.ethz.inf.pm.td.domain.{FieldIdentifier, HeapIdentifier, TouchState}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -73,7 +74,17 @@ trait ACollection extends AAny {
   }
 
   def collectionAt[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    collectionAllValues[S](collection) // TODO
+    state match {
+      case tS: TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType] =>
+        new ExpressionSet(entryType.field_value.typ,SetDomain.Default(
+          tS.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
+          {
+            (x:HeapIdentifier,s:TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType]) =>
+              !s.assume(FieldIdentifier(x,entryType.field_key.getField.get,entryType.field_key.typ) equal key).isBottom
+          }
+          ).map(FieldIdentifier(_,entryType.field_value.getField.get,entryType.field_value.typ))))
+      case _ => collectionAllValues[S](collection)
+    }
   }
 
   def collectionRemoveFirst[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint) = {

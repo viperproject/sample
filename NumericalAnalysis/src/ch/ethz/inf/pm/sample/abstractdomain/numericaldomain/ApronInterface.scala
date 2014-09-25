@@ -419,7 +419,7 @@ trait ApronInterface[T <: ApronInterface[T]]
 
         } else {
 
-          factory(Some(assignedState), domain, env = someState.env + variable)
+          factory(Some(assignedState), domain, env = someState.env ++ Normalizer.getIdsForExpression(someExpr) + variable)
 
         }
       })
@@ -494,9 +494,10 @@ trait ApronInterface[T <: ApronInterface[T]]
         summaryNodeWrapper(expr, this, (someExpr1, someState1) => {
           nondeterminismWrapper(someExpr1, someState1, (someExpr2, someState2) => {
 
+            val expIds = Normalizer.getIdsForExpression(someExpr2)
             var tmp = someState2.instantiateState()
             var expEnv = new Environment()
-            for (id <- Normalizer.getIdsForExpression(someExpr2)) {
+            for (id <- expIds) {
               expEnv = addToEnvironment(expEnv, id.typ, id.getName)
             }
             val unionEnv = unionOfEnvironments(tmp.getEnvironment, expEnv)
@@ -511,7 +512,7 @@ trait ApronInterface[T <: ApronInterface[T]]
                 for (xMore <- xs) {
                   result = result.joinCopy(domain, tmp.meetCopy(domain, xMore))
                 }
-                factory(Some(result), domain, env = someState2.env)
+                factory(Some(result), domain, env = someState2.env ++ expIds)
 
               case Nil => throw new ApronException("empty set of constraints generated")
 
