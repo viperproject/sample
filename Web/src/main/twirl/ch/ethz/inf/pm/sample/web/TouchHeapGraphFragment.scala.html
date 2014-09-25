@@ -52,7 +52,7 @@ case v: domain.HeapIdentifier if !v.summary => "heap-node definite-heap-node"
         view.rankDir = "LR";
         @heapGraph.edges.map { edge =>
             view.graph.addEdge(null, "@nodeId(edge._1)", "@nodeId(edge._3)", {
-                label: "${edge._2}",
+                label: "@edge._2",
                 onConnected: function(con) {
                     con.bind("mouseenter", function(con) {
                         $("#edge-state-panel .placeholder").hide();

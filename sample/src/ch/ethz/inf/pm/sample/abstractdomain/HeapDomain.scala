@@ -126,7 +126,7 @@ class Replacement(val value: scala.collection.mutable.HashMap[Set[Identifier], S
    */
   override def toString = {
     val lines = for ((k, v) <- value) yield k.mkString("{", ",", "}") + "->" + v.mkString("{", ",", "}")
-    lines.mkString(", ")
+    lines.mkString("\n")
   }
 }
 

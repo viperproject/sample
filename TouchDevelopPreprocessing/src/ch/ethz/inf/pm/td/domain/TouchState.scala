@@ -76,13 +76,20 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     * Implementations can assume this state is non-bottom
     */
   override def removeVariable(va: VariableIdentifier): T = {
-    copy(
+    val result = copy(
       forwardMay - va,
       forwardMust - va,
       backwardMay.map( x => x._1 -> (x._2 - va) ),
       versions,
       valueState.removeVariable(va)
     ).garbageCollect(forwardMay.getOrElse(va,Set.empty).toList).canonicalizeEnvironment
+
+    if (SystemParameters.DEBUG) {
+      val ids = result.ids
+      assert(!ids.contains(va))
+    }
+
+    result
   }
 
   /** Returns a new state whose `ExpressionSet` holds the value of the given field.
@@ -485,7 +492,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   }
 
   def merge(r:Replacement):T = {
+
     if (r.isEmpty()) return this
+
     val result = copy(
       mergeForwards(r,forwardMay),
       mergeForwards(r,forwardMust),
@@ -658,20 +667,49 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    */
   def canonicalizeEnvironment:T = {
 
-    val rep  = new Replacement(isPureRenaming = true)
-    for ( (k,v) <- versions ) {
-      for ((x,i) <- v.view.zipWithIndex) {
-        if (x.unique != i) {
-          val newObject = x.copy(unique = i)
-          rep.value(Set(x)) = Set(newObject.asInstanceOf[Identifier])
-          for (field <- x.typ.possibleFields) {
-              rep.value(Set(FieldIdentifier(x,field.getField.get,field.typ)).toSet[Identifier]) =
-                Set(FieldIdentifier(newObject,field.getField.get,field.typ)).toSet[Identifier]
+    val step1 = {
+      val rep = new Replacement(isPureRenaming = true)
+      for ((k, v) <- versions) {
+        for ((x, i) <- v.view.zipWithIndex) {
+          if (x.unique != i) {
+            val newObject = x.copy(unique = -i)
+            rep.value(Set(x)) = Set(newObject.asInstanceOf[Identifier])
+            for (field <- x.typ.possibleFields) {
+              rep.value(Set(FieldIdentifier(x, field.getField.get, field.typ)).toSet[Identifier]) =
+                Set(FieldIdentifier(newObject, field.getField.get, field.typ)).toSet[Identifier]
+            }
           }
         }
       }
+      this.merge(rep)
     }
-    this.merge(rep)
+
+    val step2 = {
+      val rep = new Replacement(isPureRenaming = true)
+      for ((k, v) <- step1.versions) {
+        for ((x, i) <- v.view.zipWithIndex) {
+          if (x.unique < 0) {
+            val newObject = x.copy(unique = i)
+            rep.value(Set(x)) = Set(newObject.asInstanceOf[Identifier])
+            for (field <- x.typ.possibleFields) {
+              rep.value(Set(FieldIdentifier(x, field.getField.get, field.typ)).toSet[Identifier]) =
+                Set(FieldIdentifier(newObject, field.getField.get, field.typ)).toSet[Identifier]
+            }
+          }
+        }
+      }
+      step1.merge(rep)
+    }
+
+    if (SystemParameters.DEBUG) {
+      for ( (k,v) <- step2.versions ) {
+        for ((x, i) <- v.view.zipWithIndex) {
+          assert (x.unique == i)
+        }
+      }
+    }
+
+    step2
 
   }
 
