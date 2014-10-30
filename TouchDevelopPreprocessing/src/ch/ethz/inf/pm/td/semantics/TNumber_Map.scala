@@ -33,7 +33,7 @@ object TNumber_Map extends AMap {
     /** === NUMBER MAPS RETURN 0 FOR UNITIALIZED FIELDS! === */
     case "at" =>
       val List(key) = parameters // Key_Type
-      If[S](CollectionContainsKey[S](this0, key), Then={
+      If[S](collectionContainsKey[S](this0, key), Then={
         Return[S](collectionAt[S](this0, key))(_, pp)
       }, Else={
         Return[S](0)(_, pp)

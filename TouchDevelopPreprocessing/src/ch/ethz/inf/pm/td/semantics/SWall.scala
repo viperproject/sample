@@ -150,7 +150,7 @@ object SWall extends ASingleton {
     /** Prompts the user to pick a string from a list. Returns the selected index. */
     case "pick string" =>
       val List(text, caption, values) = parameters // String,String,String_Collection
-      If(TPage_Collection.collectionSize[S](values) > 0, Then = { s: S => Return[S](0 ndTo (TPage_Collection.collectionSize[S](values) - 1))(s, pp)},
+      If(TString_Collection.collectionSize[S](values) > 0, Then = { s: S => Return[S](0 ndTo (TString_Collection.collectionSize[S](values) - 1))(s, pp)},
         Else = { s: S => Error[S](True, "pick string", "User may have to select string from empty string collection")})
 
     /** Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */

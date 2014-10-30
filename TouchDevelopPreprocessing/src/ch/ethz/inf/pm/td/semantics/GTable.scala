@@ -7,6 +7,7 @@ import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TypeList, TouchType}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.semantics.TBuffer._
 
 case class GTable(rowTyp: TypeName) extends AMutable_Collection {
 
@@ -24,7 +25,7 @@ case class GTable(rowTyp: TypeName) extends AMutable_Collection {
       // Create row with backlink to this table for removal
       var newState = New[S](SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(rowTyp), initials = Map(field_table -> this0))(state, pp)
       val row = newState.expr
-      newState = CollectionInsert[S](this0, collectionSize[S](this0)(newState, pp), row)(newState, pp)
+      newState = collectionInsert[S](this0, collectionSize[S](this0)(newState, pp), row)(newState, pp)
       newState = collectionIncreaseLength[S](this0)(newState, pp)
       Return[S](row)(newState, pp)
 

@@ -273,7 +273,7 @@ case class PositionedInvalidValueDomain(
 
   override def toString:String = {
     if (isTop) return "Valid or Invalid with unknown cause"
-    if (isBottom || value.isEmpty) return "Bottom"
+    if (isBottom || value.isEmpty) return "⊥"
     if (mustBeValid) return "Valid"
     value.map({
       case ValidDomainValue() => "Valid"

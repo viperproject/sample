@@ -615,7 +615,7 @@ trait ValueDrivenHeapState[
     (newState, newVertex)
   }
 
-  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): T = {
+  def createObject(typ: Type, pp: ProgramPoint): T = {
     if (isBottom) return this
     val (newState, newVertex) = createObject(typ)
     newState.copy(expr = ExpressionSet(VertexExpression(typ, newVertex)(pp)))

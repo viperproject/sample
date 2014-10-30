@@ -1,9 +1,10 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
+import ch.ethz.inf.pm.sample.SystemParameters
+import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import RichNativeSemantics._
 
@@ -16,7 +17,19 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
   def isSingleton = false
   def isImmutable = true
+
   def possibleFields = Set.empty
+
+  override def representedFields =
+    if (TouchAnalysisParameters.libraryFieldPruning) {
+      val relFields = SystemParameters.compiler.asInstanceOf[TouchCompiler].relevantLibraryFields
+      val typFields = possibleFields -- mutedFields
+      typFields.filter({ f: Identifier => relFields.contains(this.name + "." + f.getName)}).toSet[Identifier]
+    } else {
+      possibleFields -- mutedFields
+    }
+  def representedTouchFields = representedFields.map(_.asInstanceOf[TouchField])
+
   def mutedFields:Set[TouchField] = Set.empty
 
   /**

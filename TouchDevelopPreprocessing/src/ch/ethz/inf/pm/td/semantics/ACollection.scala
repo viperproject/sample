@@ -82,8 +82,27 @@ trait ACollection extends AAny {
             (x:HeapIdentifier,s:TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType]) =>
               !s.assume(FieldIdentifier(x,entryType.field_key.getField.get,entryType.field_key.typ) equal key).isBottom
           }
-          ).map(FieldIdentifier(_,entryType.field_value.getField.get,entryType.field_value.typ))))
+          )._1.map(FieldIdentifier(_,entryType.field_value.getField.get,entryType.field_value.typ))))
       case _ => collectionAllValues[S](collection)
+    }
+  }
+
+  def collectionContainsKey[S <: State[S]](collection: RichExpression, key: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    state match {
+      case tS: TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType] =>
+
+        val (mayMatching,mustMatching) = tS.getFieldValueWhere(collection,field_entry.getField.get,field_entry.typ,
+          {
+            (x:HeapIdentifier,s:TouchState.Default[TouchDevelopEntryStateBuilder.SemanticDomainType]) =>
+              !s.assume(FieldIdentifier(x,entryType.field_key.getField.get,entryType.field_key.typ) equal key).isBottom
+          }
+          )
+
+        if (mayMatching.nonEmpty) True
+        else if (mustMatching.isEmpty) False
+        else True or False
+
+      case _ => True or False
     }
   }
 

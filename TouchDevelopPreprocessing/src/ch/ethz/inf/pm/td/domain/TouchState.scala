@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.domain
 import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
-import ch.ethz.inf.pm.sample.util.MapUtil
+import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
 import ch.ethz.inf.pm.td.analysis.TouchField
 
 import scala.collection.immutable.Set
@@ -47,7 +47,17 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     valueState:        S = valueState,
     expr:              ExpressionSet = expr,
     isTop:             Boolean = isTop
-  ):T = factory(forwardMay,forwardMust,backwardMay,versions,valueState,expr,isTop)
+  ):T = {
+
+    // Invariants
+    if (SystemParameters.DEBUG) {
+      val isBottom = this.isBottom
+      val isLessEqualBottom = this.lessEqual(this.bottom())
+      assert((isBottom && isLessEqualBottom) || (!isBottom && !isLessEqualBottom))
+    }
+
+    factory(forwardMay,forwardMust,backwardMay,versions,valueState,expr,isTop)
+  }
 
   def factory (
     forwardMay:        Map[Identifier,Set[HeapIdentifier]] = Map.empty,
@@ -58,7 +68,6 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     expr:              ExpressionSet = ExpressionFactory.unitExpr,
     isTop:             Boolean = false
   ):T
-
 
   /** Creates a variable given a `VariableIdentifier`.
     * Implementations can already assume that this state is non-bottom.
@@ -113,32 +122,49 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       copy(
         expr = new ExpressionSet(typ,SetDomain.Default(objects.map(FieldIdentifier(_,field,typ))))
       )
+    case _ => bottom()
   }
 
-  /** TODO: Is this enough? */
-  def getFieldValueWhere(obj: Expression, field: String, typ: Type, filter:(HeapIdentifier,T) => Boolean): Set[HeapIdentifier] = {
+  /** TODO: Is this enough?
+    *
+    * Returns May / Must information
+    *
+    * */
+  def getFieldValueWhere(obj: Expression, field: String, typ: Type, filter:(HeapIdentifier,T) => Boolean): (Set[HeapIdentifier],Set[HeapIdentifier]) = {
     assert (typ.isObject)
+
     val objs = obj match {
       case h:HeapIdentifier => Set(h)
       case a:Identifier => forwardMay.getOrElse(a,Set.empty)
     }
-    val vals = (for (o <- objs) yield {
+
+    val valsMay = (for (o <- objs) yield {
       val fieldTargets = forwardMay.getOrElse(FieldIdentifier(o,field,typ),Set.empty)
       fieldTargets.filter{filter(_,this)}
     }).flatten
-    vals
+
+    val valsMust = (for (o <- objs) yield {
+      val fieldTargets = forwardMust.getOrElse(FieldIdentifier(o,field,typ),Set.empty)
+      fieldTargets.filter{filter(_,this)}
+    }).flatten
+
+    (valsMay,valsMust)
   }
-  def getFieldValueWhere(objSet: ExpressionSet, field: String, typ: Type, filter:(HeapIdentifier,T) => Boolean): Set[HeapIdentifier] = {
-    objSet.getSetOfExpressions.map(getFieldValueWhere(_, field, typ, filter)).flatten
+
+  def getFieldValueWhere(objSet: ExpressionSet, field: String, typ: Type, filter:(HeapIdentifier,T) => Boolean): (Set[HeapIdentifier],Set[HeapIdentifier]) = {
+    val (left,right) = objSet.getSetOfExpressions.map(getFieldValueWhere(_, field, typ, filter)).unzip
+    val (newLeft,newRight) = (left.flatten,right.flatten)
+    (newLeft,newRight)
   }
 
   /** Assumes an expression.
     * Implementations can already assume that this state is non-bottom.
     */
   override def assume(cond: Expression): T = {
-    copy(
+    val result = copy(
       valueState = valueState.assume(cond)
     )
+    result
   }
 
   /** Assigns an expression to a variable.
@@ -192,6 +218,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
           println("assigning to something that is empty - not a good idea")
           this
       }
+    case _ => bottom()
   }
 
   /**
@@ -236,11 +263,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    *
    * @param typ The dynamic type of the created object
    * @param pp The point of the program that creates the object
-   * @param fields If this is defined, the given fields will be created instead of the types fields (e.g. for reducing
-   *               the set of initialized fields)
    * @return The abstract state after the creation of the object
    */
-  override def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]]): T = {
+  override def createObject(typ: Type, pp: ProgramPoint): T = {
     val oldVersions = versions.getOrElse((pp,typ),Seq.empty[HeapIdentifier])
     val unique = oldVersions.lastOption match {
       case Some(x) => x.unique+1
@@ -249,10 +274,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     val id = HeapIdentifier(pp,typ,summary = false, unique)
     val newVersions = versions.getOrElse((pp,typ),Seq.empty[HeapIdentifier]) :+ id
 
-    val fieldIdentifiers = for (field <- fields.orElse(Some(typ.possibleFields)).get) yield {
+    val fieldIdentifiers = for (field <- typ.representedFields) yield {
       FieldIdentifier(id,field.getField.get,field.typ).asInstanceOf[Identifier]
     }
-    val fieldAssignment = fieldIdentifiers.map( _ -> Set.empty[HeapIdentifier] )
+
+    val fieldIdentifierObjects = fieldIdentifiers.filter(_.typ.isObject)
+    val fieldAssignment = fieldIdentifierObjects.map( _ -> Set.empty[HeapIdentifier] )
 
     copy(
       forwardMay = forwardMay ++ fieldAssignment,
@@ -350,10 +377,10 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    val replacement = new Replacement()
     for ((pp,typ) <- widened.versions.keys) {
       val versions = widened.versions.getOrElse((pp,typ),Seq.empty)
-      if (versions.length > 3) {
+      if (versions.length > 2) {
         val id = HeapIdentifier(pp,typ,summary = true,versions.head.unique)
-        val objectsToBeMerged = versions.take(versions.length - 3).toSet[Identifier] -> Set(id).toSet[Identifier]
-        val fieldsToBeMerged = (for (field <- typ.possibleFields) yield {
+        val objectsToBeMerged = versions.take(versions.length - 2).toSet[Identifier] -> Set(id).toSet[Identifier]
+        val fieldsToBeMerged = (for (field <- typ.representedFields) yield {
           objectsToBeMerged._1.map{
             x => FieldIdentifier(x.asInstanceOf[HeapIdentifier],field.getField.get,field.typ)}.toSet[Identifier] ->
                 Set(FieldIdentifier(id,field.getField.get,field.typ)).toSet[Identifier]
@@ -577,7 +604,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       case x :: xs =>
         if (backwardMay.getOrElse(x, Set.empty).isEmpty) {
           removeObject(x).garbageCollect(
-            (x.typ.possibleFields map {
+            (x.typ.representedFields map {
               case field : TouchField  => forwardMay.getOrElse(FieldIdentifier(x,field.getField.get,field.typ),Set.empty)
             }).flatten.toList ::: xs
           )
@@ -589,13 +616,13 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   }
 
   def fieldsOf(node:HeapIdentifier):Set[Identifier] = {
-    node.typ.possibleFields map {
+    node.typ.representedFields map {
       case field : TouchField  => FieldIdentifier(node,field.getField.get,field.typ)
     }
   }
 
   def fieldFromString(node:HeapIdentifier, field:String):FieldIdentifier = {
-    val tField = node.typ.possibleFields.find{_.getField.get == field}.get
+    val tField = node.typ.representedFields.find{_.getField.get == field}.get
     FieldIdentifier(node,tField.getField.get,tField.typ)
   }
 
@@ -692,6 +719,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    */
   def canonicalizeEnvironment:T = {
 
+    AccumulatingTimer.start("canonicalizeEnvironment")
+
     val step1 = {
       val rep = new Replacement(isPureRenaming = true)
       for ((k, v) <- versions) {
@@ -699,7 +728,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
           if (x.unique != i) {
             val newObject = x.copy(unique = -i)
             rep.value(Set(x)) = Set(newObject.asInstanceOf[Identifier])
-            for (field <- x.typ.possibleFields) {
+            for (field <- x.typ.representedFields) {
               rep.value(Set(FieldIdentifier(x, field.getField.get, field.typ)).toSet[Identifier]) =
                 Set(FieldIdentifier(newObject, field.getField.get, field.typ)).toSet[Identifier]
             }
@@ -716,7 +745,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
           if (x.unique < 0) {
             val newObject = x.copy(unique = i)
             rep.value(Set(x)) = Set(newObject.asInstanceOf[Identifier])
-            for (field <- x.typ.possibleFields) {
+            for (field <- x.typ.representedFields) {
               rep.value(Set(FieldIdentifier(x, field.getField.get, field.typ)).toSet[Identifier]) =
                 Set(FieldIdentifier(newObject, field.getField.get, field.typ)).toSet[Identifier]
             }
@@ -740,6 +769,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
         assert(v.nonEmpty)
       }
     }
+
+    AccumulatingTimer.stop("canonicalizeEnvironment")
 
     step2
 

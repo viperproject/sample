@@ -31,10 +31,10 @@ case class GIndex(indexMemberType:TypeName, alternativeName:Option[TypeName] = N
     // TODO: This does not work for multi-key indexes
     case "at" =>
       val key = parameters.head
-      If[S](CollectionContainsKey[S](this0, key) equal False, Then=(state) => {
+      If[S](collectionContainsKey[S](this0, key) equal False, Then=(state) => {
         var newState = New[S](SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(indexMemberType))(state,pp)
         val newIndexMember = newState.expr
-        newState = CollectionInsert[S](this0, key, newIndexMember)(newState,pp)
+        newState = collectionInsert[S](this0, key, newIndexMember)(newState,pp)
         newState = collectionIncreaseLength[S](this0)(newState, pp)
         Return[S](collectionAt[S](this0, key)(newState, pp))(newState, pp)
       }, Else=(state)=>{

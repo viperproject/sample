@@ -269,6 +269,8 @@ trait Type extends Lattice[Type] {
    */
   def possibleFields: Set[Identifier]
 
+  def representedFields = possibleFields
+
   /** Returns the possible fields with an object type. */
   def objectFields: Set[Identifier] =
     possibleFields.filter(_.typ.isObject)

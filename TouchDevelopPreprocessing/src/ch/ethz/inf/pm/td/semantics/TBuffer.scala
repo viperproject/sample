@@ -54,7 +54,7 @@ object TBuffer extends ALinearCollection {
       val List(index, value) = parameters // Number,Number
       If[S](CollectionIndexInRange[S](this0, index), Then = (state) => {
         val newState = CollectionRemove[S](this0, index)(state, pp)
-        CollectionInsert[S](this0, index, value)(newState, pp)
+        collectionInsert[S](this0, index, value)(newState, pp)
       }, Else = (state) => {
         state
       })

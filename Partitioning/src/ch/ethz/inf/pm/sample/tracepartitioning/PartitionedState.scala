@@ -188,8 +188,8 @@ class PartitionedState[D <: State[D]] (val partitioning: Partitioning[D])
    *
    * @see #map
    */
-  override def createObject(t: Type, pp: ProgramPoint, fields : Option[Set[Identifier]] = None): PartitionedState[D] = {
-    map(_.createObject(t, pp, fields))
+  override def createObject(t: Type, pp: ProgramPoint): PartitionedState[D] = {
+    map(_.createObject(t, pp))
   }
 
   /**

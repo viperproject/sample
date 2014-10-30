@@ -63,7 +63,7 @@ object TJson_Object extends AMap {
     /** Indicates if the key exists */
     case "contains key" =>
       val List(key) = parameters // String
-      Return[S](CollectionContainsKey[S](this0, key))
+      Return[S](collectionContainsKey[S](this0, key))
 
     /** Gets a value by name */
     case "field" =>

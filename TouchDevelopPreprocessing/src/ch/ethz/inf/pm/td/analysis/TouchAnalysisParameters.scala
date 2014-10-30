@@ -93,6 +93,7 @@ case class TouchAnalysisParameters(
                                      * objects from the library will be represented.
                                      */
                                     libraryFieldPruning: Boolean = true,
+
                                     // Fields that are always TOP
                                     topFields: Set[String] = Set("x", "y", "z", "z index", "speed x", "speed y",
                                       "speed z", "width", "height", "acceleration x", "acceleration y", "angle", "radius",
@@ -115,7 +116,6 @@ case class ExecutionModelParams(
                                   * Context-sensitivity in the interprocedural analysis.
                                   */
                                  contextSensitiveInterproceduralAnalysis: Boolean = false,
-
 
                                  /**
                                   * The default behavior of TouchBoost is to initialize the global state to invalid

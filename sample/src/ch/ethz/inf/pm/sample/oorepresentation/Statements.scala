@@ -363,9 +363,10 @@ case class MethodCall(
     val body: Statement = method.normalize()
     var result: S = state.bottom()
     //Method call used to represent a goto statement to a while label
-    if (body.isInstanceOf[Variable] && body.asInstanceOf[Variable].getName.startsWith("while"))
-      throw new Exception("This should not appear here!"); //return state
-
+    body match {
+      case variable: Variable if variable.getName.startsWith("while") => throw new Exception("This should not appear here!")
+      case _ =>
+    }; //return state
     if (!body.isInstanceOf[FieldAccess]) return state
     //TODO: Sometimes it is a variable, check if $this is implicit!
     val castedStatement = body.asInstanceOf[FieldAccess]
@@ -444,10 +445,10 @@ case class New(pp: ProgramPoint, typ: Type) extends Statement(pp) {
    *         of type <code>typ</code> has been created
    */
   override def forwardSemantics[S <: State[S]](state: S): S =
-    state.createObject(typ, pp, Some(typ.possibleFields))
+    state.createObject(typ, pp)
 
   override def backwardSemantics[S <: State[S]](state: S, oldPreState: S): S = {
-    val ex = state.createObject(typ, pp, Some(typ.possibleFields)).expr
+    val ex = state.createObject(typ, pp).expr
     state.removeExpression().removeVariable(ex)
   }
 

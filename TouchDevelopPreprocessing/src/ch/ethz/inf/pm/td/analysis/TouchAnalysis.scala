@@ -209,6 +209,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
       curState = curState.createVariable(leftExpr, leftExpr.getType(), v.programpoint)
       curState = curState.assignVariable(leftExpr, rightVal)
+      curState
     }
 
     // The first fixpoint, which is computed over several executions of the same script

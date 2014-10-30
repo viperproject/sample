@@ -17,7 +17,7 @@ object SystemParameters {
   /**
    * Enables costly debugging flags
    */
-  val DEBUG = true
+  val DEBUG = false
 
   /**
    * Flag that informs whether the running analysis is ValueDrivenHeapAnalysis

@@ -78,12 +78,13 @@ object SMedia extends ASingleton {
         CheckNonNegative[S](width, "create landscape board", "width")
         CheckNonNegative[S](height, "create landscape board", "height")
       }
-      New[S](TBoard, Map(
+      val result = New[S](TBoard, Map(
         TBoard.field_width -> width,
         TBoard.field_height -> height,
         TBoard.field_is_landscape -> True
       )) // According to Windows Phone Spec.
-    // TODO: Landscape??
+      result
+      // TODO: Landscape??
 
     case "create picture" =>
       val List(width, height) = parameters // Number,Number

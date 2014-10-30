@@ -53,7 +53,7 @@ trait AMutable_Collection extends ALinearCollection {
 
       If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
         var newState = collectionInvalidateKeys[S](this0)(state, pp)
-        newState = CollectionInsert[S](this0, index, item)(newState, pp)
+        newState = collectionInsert[S](this0, index, item)(newState, pp)
         collectionIncreaseLength[S](this0)(newState, pp)
       }, Else=(state) => {
         state
@@ -70,7 +70,7 @@ trait AMutable_Collection extends ALinearCollection {
         //val newState = CollectionRemove[S](this0, index)(state, pp)
         //CollectionInsert[S](this0, index, value)(newState, pp)
         // FIXME: This is broken
-        CollectionInsert[S](this0, index, value)(state,pp)
+        collectionInsert[S](this0, index, value)(state,pp)
       }, Else=(state) => {
         state
       })

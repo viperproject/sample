@@ -249,7 +249,7 @@ I <: HeapIdentifier[I]](
 
   def before(pp: ProgramPoint) = this
 
-  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]] = None): AbstractState[N, H, I] = {
+  def createObject(typ: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
 
     if (isBottom) return this
 
@@ -260,7 +260,7 @@ I <: HeapIdentifier[I]](
     // Create all variables involved representing the object
     result = HeapIdSetFunctionalLifting.applyToSetHeapId(result, createdLocation, result.createVariable(_, typ))
     var result2 = result
-    for (field <- fields.orElse(Some(typ.possibleFields)).get) {
+    for (field <- typ.possibleFields) {
       val (ids, state, rep2) = HeapIdSetFunctionalLifting.applyGetFieldId(createdLocation, result2, result2.heap.getFieldIdentifier(_, field.getName, field.typ, field.pp))
       result2 = HeapIdSetFunctionalLifting.applyToSetHeapId(result2, ids, domain.factory(result2.semantic.merge(rep2), state).createVariable(_, field.typ))
     }

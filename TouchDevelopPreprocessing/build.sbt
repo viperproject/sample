@@ -26,4 +26,6 @@ libraryDependencies += "org.mongodb" %% "casbah" % "2.6.0"
 
 libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.1.0"
 
+libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.10.3"
+
 

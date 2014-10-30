@@ -17,7 +17,7 @@ trait AMap extends ACollection {
     case "at" =>
       val List(key) = parameters // Key_Type
 
-      val result = If[S](CollectionContainsKey[S](this0, key) equal True, Then = {
+      val result = If[S](collectionContainsKey[S](this0, key) equal True, Then = {
         Return[S](collectionAt[S](this0, key))(_, pp)
       }, Else = {
         Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "map may not contain the accessed key"))(_, pp)
@@ -34,11 +34,11 @@ trait AMap extends ACollection {
 
     case "set at" =>
       val List(key, value) = parameters // Number,Element_Type
-      If[S](CollectionContainsKey[S](this0, key) equal True, Then = (state) => {
+      If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
         val s = CollectionUpdate[S](this0, key, value)(state, pp)
         s
       }, Else = (state) => {
-        val newState = CollectionInsert[S](this0, key, value)(state, pp)
+        val newState = collectionInsert[S](this0, key, value)(state, pp)
         val s = collectionIncreaseLength[S](this0)(newState, pp)
         s
       })
@@ -49,7 +49,7 @@ trait AMap extends ACollection {
     /** Removes the element at the given key **/
     case "remove" =>
       val List(key) = parameters
-      If[S](CollectionContainsKey[S](this0, key) equal True, Then = (state) => {
+      If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
         val newState = CollectionRemove[S](this0, key)(state, pp)
         collectionDecreaseLength[S](this0)(newState, pp)
       }, Else = {

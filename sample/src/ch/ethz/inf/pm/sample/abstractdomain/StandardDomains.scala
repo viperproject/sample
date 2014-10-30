@@ -217,12 +217,18 @@ trait BoxedDomain[V <: Lattice[V], T <: BoxedDomain[V, T]]
     for (v <- removedVariables)
       result = result.remove(v)
 
-    for (s <- r.keySet()) {
-      // We compute the value that should be assigned to all other ids
-      val value = Lattice.bigLub(s.map(this.get))
 
-      // We assign the value to all other ids
-      for (v <- r.apply(s)) result = result.merge(v, value)
+
+    for (s <- r.keySet()) {
+      if ((ids intersect s).nonEmpty) {
+
+        // We compute the value that should be assigned to all other ids
+        val value = Lattice.bigLub(s.map(this.get))
+
+        // We assign the value to all other ids
+        for (v <- r.apply(s)) result = result.merge(v, value)
+
+      }
     }
 
     result

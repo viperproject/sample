@@ -63,7 +63,7 @@ class Dispatcher() extends NativeMethodSemantics {
 
       }
     } else {
-      Some(thisExpr.getType().asInstanceOf[AAny].forwardSemantics[S](thisExpr,operator,parameters,returnedtype.asInstanceOf[TouchType])(pp,state))
+      thisExpr.getType().asInstanceOf[AAny].applyForwardNativeSemantics[S](thisExpr,operator,parameters,Nil,returnedtype.asInstanceOf[TouchType],pp,state)
     }
 
   }

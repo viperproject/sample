@@ -26,7 +26,7 @@ object TSprite_Set extends AMutable_Collection {
     case "add" =>
       val List(sprite) = parameters // Sprite
       If[S](collectionContainsValue[S](this0, sprite) equal False, Then = (state) => {
-        var newState = CollectionInsert[S](this0, collectionSize[S](this0)(state, pp), sprite)(state, pp)
+        var newState = collectionInsert[S](this0, collectionSize[S](this0)(state, pp), sprite)(state, pp)
         newState = collectionIncreaseLength(this0)(newState, pp)
         Return[S](True)(newState, pp)
       }, Else = {

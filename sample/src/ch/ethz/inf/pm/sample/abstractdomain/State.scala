@@ -173,7 +173,7 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] {
    *               the set of initialized fields)
    * @return The abstract state after the creation of the object
    */
-  def createObject(typ: Type, pp: ProgramPoint, fields: Option[Set[Identifier]] = None): S
+  def createObject(typ: Type, pp: ProgramPoint): S
 
   /**
    * Undoes the effect of object creation. Intended to be the backward version
@@ -940,7 +940,6 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     * `ExpressionSet` is not bottom. */
   def unlessBottom(set: ExpressionSet, f: => S): S =
     if (isBottom) {
-      println("state is Bottom")
       bottom()
     } else if (set.isBottom) {
       println("set is Bottom")
