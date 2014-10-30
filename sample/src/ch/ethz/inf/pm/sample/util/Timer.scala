@@ -38,6 +38,9 @@ object AccumulatingTimer {
     times.get(s) match {
       case None => times(s) = TimeEntry(0,Some(System.currentTimeMillis))
       case Some(TimeEntry(x,None)) => times(s) = TimeEntry(x,Some(System.currentTimeMillis))
+      case Some(TimeEntry(x,Some(y))) =>
+        println("Still had a running timer (did we crash?). Restarted!")
+        times(s) = TimeEntry(x,Some(System.currentTimeMillis))
     }
   }
 

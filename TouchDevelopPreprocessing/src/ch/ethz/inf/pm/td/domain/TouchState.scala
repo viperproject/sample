@@ -187,6 +187,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
           case _ => weakUpdateValue(leftVariable,right)
         }
       }
+    case leftField:FieldIdentifier =>
+      assignField(leftField.o,leftField.f,right)
   }
 
   /** Assigns an expression to a field.
