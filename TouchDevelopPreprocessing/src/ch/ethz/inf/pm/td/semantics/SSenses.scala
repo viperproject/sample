@@ -136,7 +136,7 @@ object SSenses extends ASingleton {
 
     /** Gets the current motion that combines data from the accelerometer, compass and gyroscope if available. */
     case "motion" =>
-      If[S](Field[S](this0, SSenses.field_has_accelerometer)
+      val res = If[S](Field[S](this0, SSenses.field_has_accelerometer)
         && Field[S](this0, SSenses.field_has_compass)
         && Field[S](this0, SSenses.field_has_gyroscope),
         Then = {
@@ -147,7 +147,7 @@ object SSenses extends ASingleton {
             Return[S](Invalid(TMotion, "motion sensor may be unavailable on the users device"))(s, pp)
         }
       )
-
+      res
 
     /** Attaches an event that triggers while the key is pressed. This event repeats while the key is down. */
     case "on key pressed" =>

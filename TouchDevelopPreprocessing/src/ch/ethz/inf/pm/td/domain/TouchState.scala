@@ -49,14 +49,37 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     isTop:             Boolean = isTop
   ):T = {
 
+    val res = factory(forwardMay,forwardMust,backwardMay,versions,valueState,expr,isTop)
+
     // Invariants
     if (SystemParameters.DEBUG) {
-      val isBottom = this.isBottom
-      val isLessEqualBottom = this.lessEqual(this.bottom())
+      val isBottom = res.isBottom
+      val isLessEqualBottom = res.lessEqual(res.bottom())
+      val resIds = res.ids
+
       assert((isBottom && isLessEqualBottom) || (!isBottom && !isLessEqualBottom))
+      assert(res.forwardMay.keySet.find(_.isInstanceOf[HeapIdentifier]).isEmpty)
+      assert(res.forwardMust.keySet.find(_.isInstanceOf[HeapIdentifier]).isEmpty)
+      assert(res.valueState.ids.find(_.isInstanceOf[HeapIdentifier]).isEmpty)
+
+      // ASSERT FOR EVERY HEAP IDENTIFIER, THAT ONLY EITHER A SUMMARY OR A NONSUMMARY EXISTS
+      for (id <- resIds) id match {
+        case h:HeapIdentifier => assert(!(resIds.contains(h) && resIds.contains(h.copy(summary = !h.summary))))
+        case f:FieldIdentifier => assert(!(resIds.contains(f) && resIds.contains(f.copy(o = f.o.copy(summary = !f.o.summary)))))
+        case _ => ()
+      }
+
+      // forward May corresponds to backward May
+      for ((obj,pointers) <- res.backwardMay; pointer <- pointers) {
+        assert (res.forwardMay.getOrElse(pointer,Set.empty).contains(obj))
+      }
+      for ((pointer,objects) <- res.forwardMay; obj <- objects) {
+        assert (res.backwardMay.getOrElse(obj,Set.empty).contains(pointer))
+      }
+
     }
 
-    factory(forwardMay,forwardMust,backwardMay,versions,valueState,expr,isTop)
+    res
   }
 
   def factory (
@@ -92,21 +115,23 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       backwardMay.map( x => x._1 -> (x._2 - va) ),
       versions,
       valueState.removeVariable(va)
-    ).garbageCollect(forwardMay.getOrElse(va,Set.empty).toList).canonicalizeEnvironment
+    )
+    val result2 = result.garbageCollect(forwardMay.getOrElse(va,Set.empty).toList)
+    val result3 = result2.canonicalizeEnvironment
 
     if (SystemParameters.DEBUG) {
-      val ids = result.ids
+      val ids = result3.ids
       assert(!ids.contains(va))
     }
 
     // Garbage collection invariant
     if (SystemParameters.DEBUG) {
-      for ( (k,v) <- result.backwardMay ) {
+      for ( (k,v) <- result3.backwardMay ) {
         assert(v.nonEmpty)
       }
     }
 
-    result
+    result3
   }
 
   /** Returns a new state whose `ExpressionSet` holds the value of the given field.
@@ -283,13 +308,15 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     val fieldIdentifierObjects = fieldIdentifiers.filter(_.typ.isObject)
     val fieldAssignment = fieldIdentifierObjects.map( _ -> Set.empty[HeapIdentifier] )
 
-    copy(
+    val res = copy(
       forwardMay = forwardMay ++ fieldAssignment,
       forwardMust = forwardMust ++ fieldAssignment,
       versions = versions + ((pp,typ) -> newVersions),
       valueState = valueState.createVariables(fieldIdentifiers),
       expr = new ExpressionSet(typ).add(id)
     )
+
+    res
   }
 
   /**
@@ -317,14 +344,14 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    *
    * @return The top value, that is, a value x that is greater or equal than any other value
    */
-  override def top(): T = factory(valueState = valueState.top(),isTop = true)
+  override def top(): T = factory(valueState = valueState.top(), expr = expr.top(), isTop = true)
 
   /**
    * Returns the bottom value of the lattice
    *
    * @return The bottom value, that is, a value x that is less or equal than any other value
    */
-  override def bottom(): T = factory(valueState = valueState.bottom(),isTop = false)
+  override def bottom(): T = factory(valueState = valueState.bottom(), expr = expr.bottom(), isTop = false)
 
 
   /**
@@ -365,6 +392,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   override def widening(other: T): T = {
 
     val (left,right) = adaptEnvironments(this,other)
+
     val widened = factory(
       MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
       MapUtil.mapToSetIntersection(left.forwardMust,right.forwardMust),
@@ -380,15 +408,19 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     for ((pp,typ) <- widened.versions.keys) {
       val versions = widened.versions.getOrElse((pp,typ),Seq.empty)
       if (versions.length > 2) {
-        val id = HeapIdentifier(pp,typ,summary = true,versions.head.unique)
-        val objectsToBeMerged = versions.take(versions.length - 2).toSet[Identifier] -> Set(id).toSet[Identifier]
-        val fieldsToBeMerged = (for (field <- typ.representedFields) yield {
-          objectsToBeMerged._1.map{
-            x => FieldIdentifier(x.asInstanceOf[HeapIdentifier],field.getField.get,field.typ)}.toSet[Identifier] ->
-                Set(FieldIdentifier(id,field.getField.get,field.typ)).toSet[Identifier]
-        }).toMap
-        replacement.value += objectsToBeMerged
-        replacement.value ++= fieldsToBeMerged
+
+        // Merge objects
+        val summaryID = HeapIdentifier(pp,typ,summary = true,versions.head.unique)
+        val objectsToBeMerged = versions.take(versions.length - 1).toSet[Identifier]
+        replacement.value += (objectsToBeMerged -> Set[Identifier](summaryID))
+
+        // Merge fields
+        val fieldsToBeMerged = for (field <- typ.representedFields) {
+          val summaryField = FieldIdentifier(summaryID,field.getField.get,field.typ)
+          val fieldsToBeMerged = objectsToBeMerged.map{x => FieldIdentifier(x.asInstanceOf[HeapIdentifier],field.getField.get,field.typ)}.toSet[Identifier]
+          replacement.value += (fieldsToBeMerged -> Set[Identifier](summaryField))
+        }
+
       }
     }
 
@@ -445,16 +477,20 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       // compute the lub of everything on the left side
       val lub = left.foldLeft(Set.empty[HeapIdentifier])((s,l) => l match { case a:Identifier => s ++ map.getOrElse(a,Set.empty); case _ => s })
       // assign it to everything on the right side
-      for (r <- right) {
-        r match {
-          case a:Identifier => result = result + (a -> lub)
-          case _ => ()
+      if (lub.nonEmpty) {
+        for (r <- right) {
+          r match {
+            case a: HeapIdentifier => ()
+            case a: Identifier => result = result + (a -> lub)
+            case _ => ()
+          }
         }
       }
     }
 
     // remove everything on the left side in the keys of the map
-    result = result -- rep.keySet().flatten.collect { case x:Identifier => x }.toSet
+    val toBeRemoved = rep.value.keySet.flatten -- rep.value.values.flatten
+    result = result -- toBeRemoved
 
     result = for ((a,b) <- result) yield {
       var set = b
@@ -490,7 +526,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     }
 
     // remove everything on the left side in the keys of the map
-    result = result -- rep.keySet().flatten.collect { case x:HeapIdentifier => x }.toSet
+    val toBeRemoved = rep.value.keySet.flatten.collect{ case x:HeapIdentifier => x }.toSet -- rep.value.values.flatten.collect{ case x:HeapIdentifier => x }
+    result = result -- toBeRemoved
 
     result = for ((a,b) <- result) yield {
       var set = b
@@ -586,7 +623,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     if (nodes.isEmpty) return this
 
     def removeObject(node:HeapIdentifier): T = {
-      val fields = fieldsOf(node)
+      val fields = fieldsOf(node).toSet[Identifier]
       copy(
         (forwardMay -- fields).map { x => x._1 -> (x._2 - node) },
         (forwardMust -- fields).map { x => x._1 -> (x._2 - node) },
@@ -614,10 +651,23 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       case Nil => this
     }
 
+    if (SystemParameters.DEBUG) {
+        val ids = result.ids
+        for (n <- nodes) {
+          if (result.backwardMay.getOrElse(n, Set.empty).isEmpty) {
+            // unreachable
+            assert(!ids.contains(n))
+            for (m <- fieldsOf(n)) {
+              assert(!ids.contains(m))
+            }
+          }
+        }
+    }
+
     result
   }
 
-  def fieldsOf(node:HeapIdentifier):Set[Identifier] = {
+  def fieldsOf(node:HeapIdentifier):Set[FieldIdentifier] = {
     node.typ.representedFields map {
       case field : TouchField  => FieldIdentifier(node,field.getField.get,field.typ)
     }
@@ -646,14 +696,17 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
   def strongUpdateReference(left:Identifier, right:HeapIdentifier): T = {
     // reference object
-    copy(
+    val afterUpdate = this.copy(
       forwardMay +  (left -> Set(right)),
       forwardMust + (left -> Set(right)),
       (backwardMay map { x => x._1 -> (x._2 - left) }) + (right -> (backwardMay.getOrElse(right,Set.empty) + left)),
       versions,
       valueState.assign(left,ValidExpression(left.typ,left.pp)),
       ExpressionFactory.unitExpr
-    ).garbageCollect(forwardMay.getOrElse(left,Set.empty).toList).canonicalizeEnvironment
+    )
+    val afterGarbageCollect = afterUpdate.garbageCollect(forwardMay.getOrElse(left,Set.empty).toList)
+    val canonicalized = afterGarbageCollect.canonicalizeEnvironment
+    canonicalized
   }
 
   def strongUpdateValue(left:Identifier, right:Expression): T = {
@@ -723,42 +776,27 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     AccumulatingTimer.start("canonicalizeEnvironment")
 
-    val step1 = {
-      val rep = new Replacement(isPureRenaming = true)
-      for ((k, v) <- versions) {
-        for ((x, i) <- v.view.zipWithIndex) {
-          if (x.unique != i) {
-            val newObject = x.copy(unique = -i)
-            rep.value(Set(x)) = Set(newObject.asInstanceOf[Identifier])
-            for (field <- x.typ.representedFields) {
-              rep.value(Set(FieldIdentifier(x, field.getField.get, field.typ)).toSet[Identifier]) =
-                Set(FieldIdentifier(newObject, field.getField.get, field.typ)).toSet[Identifier]
-            }
-          }
-        }
-      }
-      this.merge(rep)
-    }
+    var curState = this
 
-    val step2 = {
-      val rep = new Replacement(isPureRenaming = true)
-      for ((k, v) <- step1.versions) {
-        for ((x, i) <- v.view.zipWithIndex) {
-          if (x.unique < 0) {
-            val newObject = x.copy(unique = i)
-            rep.value(Set(x)) = Set(newObject.asInstanceOf[Identifier])
-            for (field <- x.typ.representedFields) {
-              rep.value(Set(FieldIdentifier(x, field.getField.get, field.typ)).toSet[Identifier]) =
-                Set(FieldIdentifier(newObject, field.getField.get, field.typ)).toSet[Identifier]
-            }
+    for ((k, v) <- versions) {
+      for ((x, i) <- v.view.zipWithIndex) {
+        if (x.unique != i) {
+          val rep = new Replacement(isPureRenaming = true)
+          val newObject = x.copy(unique = i)
+          rep.value(Set(x)) = Set(newObject.asInstanceOf[Identifier])
+          for (field <- x.typ.representedFields) {
+            val from = FieldIdentifier(x, field.getField.get, field.typ)
+            val to = FieldIdentifier(newObject, field.getField.get, field.typ)
+            assert(!curState.ids.contains(to))
+            rep.value(Set(from).toSet[Identifier]) = Set(to).toSet[Identifier]
           }
+          curState = curState.merge(rep)
         }
       }
-      step1.merge(rep)
     }
 
     if (SystemParameters.DEBUG) {
-      for ( (k,v) <- step2.versions ) {
+      for ( (k,v) <- curState.versions ) {
         for ((x, i) <- v.view.zipWithIndex) {
           assert (x.unique == i)
         }
@@ -767,14 +805,14 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     // Garbage collection invariant
     if (SystemParameters.DEBUG) {
-      for ( (k,v) <- step2.backwardMay ) {
+      for ( (k,v) <- curState.backwardMay ) {
         assert(v.nonEmpty)
       }
     }
 
     AccumulatingTimer.stop("canonicalizeEnvironment")
 
-    step2
+    curState
 
   }
 
@@ -795,9 +833,11 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     ) {
 
       if (left.head.summary && !right.head.summary) {
-        replaceRight.value(Set(right.head)) = Set(left.head.asInstanceOf[Identifier])
+        replaceRight.value(Set[Identifier](right.head)) = Set[Identifier](left.head)
+        for (f <- fieldsOf(right.head)) replaceRight.value(Set[Identifier](f)) = Set[Identifier](f.copy(o = left.head))
       } else if (!left.head.summary && right.head.summary) {
-        replaceLeft.value(Set(left.head)) = Set(right.head.asInstanceOf[Identifier])
+        replaceLeft.value(Set[Identifier](left.head)) = Set[Identifier](right.head)
+        for (f <- fieldsOf(left.head)) replaceLeft.value(Set[Identifier](f)) = Set[Identifier](f.copy(o = right.head))
       }
 
     }

@@ -423,7 +423,7 @@ class BottomVisitor extends Visitor {
    * @param printer the output collector that has to be used to signal warning, validate properties, or inferred contracts
    */
   def checkSingleStatement[S <: State[S]](state: S, statement: Statement, printer: OutputCollector) {
-    if (!childrenNotToReport.contains(statement) && state.lessEqual(state.bottom())) {
+    if (!childrenNotToReport.contains(statement) && state.isBottom) {
       // if all children of the statement are bottom, do not report any of them
       def transitive(x: Statement): Set[Statement] = x.getChildren.foldLeft(Set.empty[Statement])(_ ++ transitive(_)) + x
       childrenNotToReport = childrenNotToReport ++ transitive(statement)

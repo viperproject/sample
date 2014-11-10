@@ -51,7 +51,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
     if (thisExpr.getType().asInstanceOf[TouchType].typeName == typeName) {
 
-      if (state.lessEqual(state.bottom())) {
+      if (state.isBottom) {
         return Some(state.bottom())
       }
 
@@ -71,6 +71,10 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
           else
             curState = Error(param equal Invalid(param.getType(), "")(pp), operator, "Parameter might be invalid")(curState, pp)
         }
+      }
+
+      if (curState.isBottom) {
+        return Some(state.bottom())
       }
 
       Some(forwardSemantics(thisExpr, operator, parameters, returnedtype.asInstanceOf[TouchType])(pp, curState))
@@ -143,7 +147,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
         possibleFields.find(_.getName == method) match {
           case Some(field) =>
             val stateWithExpr = state.getFieldValue(this0,method,field.typ)
-            Some(stateWithExpr)
+            if (stateWithExpr.isBottom) Some(state.setExpression(new ExpressionSet(field.typ).top()))
+            else Some(stateWithExpr)
           case None => None
         }
       else if (parameters.length == 1)

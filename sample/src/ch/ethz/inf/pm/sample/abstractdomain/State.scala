@@ -915,8 +915,7 @@ trait SimpleState[S <: SimpleState[S]] extends State[S] {
     // Return this, not bottom, when set of conditions is empty
     if (isBottom || condSet.isBottom || condSet.isTop) this
     else {
-      val result = Lattice.bigLub(condSet.getSetOfExpressions.map(assume))
-      result.setUnitExpression()
+      Lattice.bigLub(condSet.getSetOfExpressions.map(assume))
     }
   }
 

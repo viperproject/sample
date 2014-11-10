@@ -68,7 +68,6 @@ object MethodSummaries {
     val result = entriesOnStack.get(identifyingPP) match {
       case Some(oldEntryState) =>
 
-        // This is a recursive call (non top level).
         // Join the entry state and continue with previously recorded
         // exit + entryState (updates inside recursive calls are weak)
         val newEntryState = oldEntryState.asInstanceOf[S].widening(enteredState)
@@ -102,7 +101,7 @@ object MethodSummaries {
             val prev = prevSummary.asInstanceOf[MethodSummary[S]]
             executeMethod(enteredState, prev)
           case None =>
-            val prevSummary = new MethodSummary(identifyingPP, callTarget, TrackingCFGStateFactory(entryState.top()).allBottom(callTarget.body))
+            val prevSummary = new MethodSummary(identifyingPP, callTarget, TrackingCFGStateFactory(entryState).allBottom(callTarget.body))
             executeMethod(enteredState, prevSummary)
         }
 
@@ -116,6 +115,8 @@ object MethodSummaries {
         }
 
         entriesOnStack = entriesOnStack - identifyingPP
+
+        if ( currentSummary.cfgState.exitState().isBottom ) return currentSummary.cfgState.exitState().bottom()
 
         val exitState = exitFunction(callPoint, callTarget, currentSummary.cfgState.exitState(), parameters)
         val localState = pruneGlobalState(entryState)
@@ -218,7 +219,7 @@ object MethodSummaries {
   private def executeMethod[S <: State[S]](entryState: S, currentSummary: MethodSummary[S]): MethodSummary[S] = {
     val newState =
       SystemParameters.withAnalysisUnitContext(AnalysisUnitContext(currentSummary.method)) {
-        val interpreter = TrackingForwardInterpreter[S](entryState.factory())
+        val interpreter = TrackingForwardInterpreter[S](entryState)
         interpreter.forwardExecuteWithCFGState(currentSummary.method.body, currentSummary.cfgState, entryState)
       }
     currentSummary.copy(cfgState = newState)

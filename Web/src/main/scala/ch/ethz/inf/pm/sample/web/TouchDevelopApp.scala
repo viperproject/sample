@@ -27,7 +27,7 @@ class TouchDevelopApp extends App {
   val prefix = "td"
 }
 
-object TouchDevelopFileProvider extends ResourceTestFileProvider(namePattern = ".*\\.json") {
+object TouchDevelopFileProvider extends ResourceTestFileProvider(namePattern = ".*\\.(td|json)") {
 
 
 }

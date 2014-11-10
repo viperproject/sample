@@ -28,12 +28,6 @@ T <: NumericWithInvalidDomain[N, I, T]]
 
   override def _1canHandle(id: Identifier) = id.typ.isNumericalType
 
-  override def assign(variable: Identifier, expr: Expression): T = {
-    if (expr.isInstanceOf[ValidExpression] || expr.isInstanceOf[InvalidExpression]) {
-      factory(this._1.setToTop(variable), this._2.assign(variable, expr))
-    } else super.assign(variable, expr)
-  }
-
   def numericalDomain: N = _1
 
   def invalidDomain: I = _2

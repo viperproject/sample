@@ -386,11 +386,20 @@ case class MethodCall(
     val (calledExpr, resultingState) = UtilitiesOnStates.forwardExecuteStatement[S](initialState, obj)
     val (parametersExpr, resultingState1) = UtilitiesOnStates.forwardExecuteListStatements[S](resultingState, parameters)
 
-    // TODO: verify that this is indeed correct.
-    if (calledExpr.isBottom)
-      return initialState.bottom()
-    if (calledExpr.isTop)
-      return initialState.top()
+    if (SystemParameters.DEBUG) {
+      if (resultingState1.isBottom) {
+        println("resultingState1 is bottom!")
+        return initialState.bottom()
+      }
+      if (calledExpr.isBottom) {
+        println("bottom called expression")
+        return initialState.bottom()
+      }
+      if (calledExpr.isTop) {
+        println("top called expression")
+        return initialState.top()
+      }
+    }
     applyNativeForwardSemanticsOnObject(calledMethod, calledExpr, parametersExpr, resultingState1, programpoint)
   }
 

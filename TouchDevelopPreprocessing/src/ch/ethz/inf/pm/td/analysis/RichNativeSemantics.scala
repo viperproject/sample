@@ -42,14 +42,14 @@ object RichNativeSemantics extends RichExpressionImplicits {
   def Error[S <: State[S]](expr: RichExpression, message: String)(implicit state: S, pp: ProgramPoint): S = {
     if (!state.isInstanceOf[AccessCollectingState]) {
       val errorState = state.assume(expr).setExpression(ExpressionSet(new UnitExpression(SystemParameters.typ.top(), pp)))
-      if (!errorState.lessEqual(state.bottom())) {
+      if (!errorState.isBottom) {
         val currentClass = SystemParameters.analysisUnitContext.clazzType.toString
         if (!TouchAnalysisParameters.reportOnlyAlarmsInMainScript
           || currentClass.equals(SystemParameters.compiler.asInstanceOf[TouchCompiler].main.toString)) {
           Reporter.reportError(message, pp, state.explainError(expr))
         }
         val ret = state.assume(expr.not())
-        if (ret.lessEqual(ret.bottom())) return ret.bottom()
+        if (ret.isBottom) return ret.bottom()
         ret
       } else state
     } else state
@@ -80,9 +80,9 @@ object RichNativeSemantics extends RichExpressionImplicits {
     val thenState = state.assume(expr)
     val elseState = state.assume(expr.not())
 
-    if (thenState.lessEqual(state.bottom())) {
+    if (thenState.isBottom) {
       Else(elseState)
-    } else if (elseState.lessEqual(state.bottom())) {
+    } else if (elseState.isBottom) {
       Then(thenState)
     } else {
       val thenRes = Then(thenState)
@@ -184,7 +184,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
               curState = Top[S](col.entryType, initializeFields = !referenceLoop1)(curState, newPP1)
               val entryTop = curState.expr
 
-              curState = AssignField[S](obj,col.field_entry,entryTop)
+              curState = AssignField[S](obj,col.field_entry,entryTop)(curState,newPP1)
 
               // Initialize collection size
               initialCollectionSize match {
@@ -282,7 +282,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def CollectionContainsValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
-    if (state.assume(CollectionSize[S](collection) > 0).lessEqual(state.bottom())) return False
+    if (state.assume(CollectionSize[S](collection) > 0).isBottom) return False
     return state.collectionContainsValue(collection, value, TBoolean, pp).expr
   }
 
@@ -292,7 +292,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     var expression = collection contains(keyTop, value, pp)
 
     val origCollection = newState.getOriginalCollection(collection).expr
-    if (!origCollection.lessEqual(origCollection.bottom()) && origCollection.getType().isInstanceOf[ACollection]) {
+    if (!origCollection.isBottom && origCollection.getType().isInstanceOf[ACollection]) {
       newState = Top[S](origCollection.getType().asInstanceOf[ACollection].valueType)
       val valueTop = newState.expr
       expression = expression && (origCollection contains(value, valueTop, pp))
@@ -347,7 +347,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     var result = state.insertCollectionElement(collection, index, right, pp)
 
     val originalCollection = result.getOriginalCollection(collection).expr
-    if (!originalCollection.lessEqual(originalCollection.bottom()) && originalCollection.getType().isInstanceOf[ACollection]) {
+    if (!originalCollection.isBottom && originalCollection.getType().isInstanceOf[ACollection]) {
       result = result.removeCollectionKeyConnection(originalCollection, collection)
     }
     result
@@ -356,7 +356,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
   def CollectionRemove[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var result = state.removeCollectionValueByKey(collection, index)
     val keysCollection = result.getKeysCollection(collection).expr
-    if (!keysCollection.lessEqual(keysCollection.bottom()) && keysCollection.getType().isInstanceOf[ACollection]) {
+    if (!keysCollection.isBottom && keysCollection.getType().isInstanceOf[ACollection]) {
       result = result.removeCollectionKeyConnection(collection, keysCollection)
     }
     result
