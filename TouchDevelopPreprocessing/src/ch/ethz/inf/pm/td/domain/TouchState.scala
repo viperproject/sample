@@ -469,7 +469,9 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
   }
 
 
-  def mergeForwards(rep:Replacement,map:Map[Identifier,Set[HeapIdentifier]]): Map[Identifier,Set[HeapIdentifier]] = {
+  def mergeForwards(rep:Replacement,map:Map[Identifier,Set[HeapIdentifier]],revMap:Map[HeapIdentifier,Set[Identifier]]): Map[Identifier,Set[HeapIdentifier]] = {
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.mergeForwards")
 
     if (rep.isEmpty()) return map
     var result = map
@@ -492,23 +494,25 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     val toBeRemoved = rep.value.keySet.flatten -- rep.value.values.flatten
     result = result -- toBeRemoved
 
-    result = for ((a,b) <- result) yield {
-      var set = b
-      for ((c,d) <- rep.value) {
-        val cHeapIdentifier = c.collect { case x:HeapIdentifier => x }.toSet
-        val dHeapIdentifier = d.collect { case x:HeapIdentifier => x }.toSet // FIXME: Inefficient!!
-        if ((set intersect cHeapIdentifier).nonEmpty) {
-          set = set -- cHeapIdentifier ++ dHeapIdentifier
-        }
+    // perform replacements on the right side
+    for ((l,r) <- rep.value) {
+      val toBeReplacedSet = l.view.collect { case x:HeapIdentifier => x }.toSet
+      val byThis = r.view.collect { case x:HeapIdentifier => x }.toSet
+
+      // look it up using the reverse map
+      for (toBeReplaced <- toBeReplacedSet; pointer <- revMap.getOrElse(toBeReplaced,Set.empty); if !toBeRemoved.contains(pointer)) {
+        result = result + (pointer -> ((result.getOrElse(pointer,Set.empty) -- toBeReplacedSet) ++ byThis))
       }
-      a -> set
     }
 
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.mergeForwards")
 
     result
   }
 
-  def mergeBackwards(rep:Replacement,map:Map[HeapIdentifier,Set[Identifier]]): Map[HeapIdentifier,Set[Identifier]] = {
+  def mergeBackwards(rep:Replacement,map:Map[HeapIdentifier,Set[Identifier]],revMap:Map[Identifier,Set[HeapIdentifier]]): Map[HeapIdentifier,Set[Identifier]] = {
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.mergeBackwards")
 
     if (rep.isEmpty()) return map
     val mapKeys = map.keySet.toSet[Identifier]
@@ -526,27 +530,30 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     }
 
     // remove everything on the left side in the keys of the map
-    val toBeRemoved = rep.value.keySet.flatten.collect{ case x:HeapIdentifier => x }.toSet -- rep.value.values.flatten.collect{ case x:HeapIdentifier => x }
+    val toBeRemoved = rep.value.keySet.flatten.collect { case x:HeapIdentifier => x } -- rep.value.values.flatten.collect { case x:HeapIdentifier => x }
     result = result -- toBeRemoved
 
-    result = for ((a,b) <- result) yield {
-      var set = b
-      for ((c,d) <- rep.value) {
-        val cIdentifier = c.collect { case x:Identifier => x }.toSet
-        val dIdentifier = d.collect { case x:Identifier => x }.toSet // FIXME: Inefficient!!
-        if ((set intersect cIdentifier).nonEmpty) {
-          set = set -- cIdentifier ++ dIdentifier
-        }
+    // perform replacements on the right side
+    for ((l,r) <- rep.value) {
+      val toBeReplacedSet = l.view.filter { case x:HeapIdentifier => false; case _ => true }.toSet
+      val byThis = r.view.filter { case x:HeapIdentifier => false; case _ => true }.toSet
+
+      // look it up using the reverse map
+      for (toBeReplaced <- toBeReplacedSet; pointer <- revMap.getOrElse(toBeReplaced,Set.empty); if !toBeRemoved.contains(pointer)) {
+        result = result + (pointer -> ((result.getOrElse(pointer,Set.empty) -- toBeReplacedSet) ++ byThis))
       }
-      a -> set
     }
 
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.mergeBackwards")
 
     result
   }
 
 
   def mergeVersions(rep: Replacement, map: Map[(ProgramPoint,Type), Seq[HeapIdentifier]]): Map[(ProgramPoint,Type), Seq[HeapIdentifier]] = {
+
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.mergeVersions")
 
     var cur = map
     for ((ls,rs) <- rep.value) {
@@ -578,6 +585,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       }
     }
 
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.mergeVersions")
+
     cur
   }
 
@@ -585,10 +594,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     if (r.isEmpty()) return this
 
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.merge")
+
     val result = copy(
-      mergeForwards(r,forwardMay),
-      mergeForwards(r,forwardMust),
-      mergeBackwards(r,backwardMay),
+      mergeForwards(r,forwardMay,backwardMay),
+      mergeForwards(r,forwardMust,backwardMay),
+      mergeBackwards(r,backwardMay,forwardMay),
       mergeVersions(r,versions),
       valueState.merge(r),
       expr.merge(r)
@@ -604,6 +615,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       assert (remaining.isEmpty)
       assert (nonAdded.isEmpty)
     }
+
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.merge")
 
     result
   }
@@ -774,7 +787,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    */
   def canonicalizeEnvironment:T = {
 
-    AccumulatingTimer.start("canonicalizeEnvironment")
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.canonicalizeEnvironment")
 
     var curState = this
 
@@ -810,7 +823,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       }
     }
 
-    AccumulatingTimer.stop("canonicalizeEnvironment")
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.canonicalizeEnvironment")
 
     curState
 

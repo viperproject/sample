@@ -126,8 +126,8 @@ object TJson_Builder extends AMap {
 
     /** Deletes named field */
     case "remove field" =>
-       val List(name) = parameters // String
-       CollectionRemove[S](this0,name)
+      val List(name) = parameters // String
+      CollectionRemove[S](this0,name)
 
     // ---- ALL THE STANDARD STUFF
 

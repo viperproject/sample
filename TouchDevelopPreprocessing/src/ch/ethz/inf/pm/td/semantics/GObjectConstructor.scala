@@ -21,6 +21,9 @@ case class GObjectConstructor(objectTyp:TypeName) extends AAny {
     case "create collection" =>
       New[S](GObjectCollection(objectTyp))
 
+    case "invalid" =>
+      Return[S](Invalid(SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(objectTyp),"invalid objected created"))
+
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)
 

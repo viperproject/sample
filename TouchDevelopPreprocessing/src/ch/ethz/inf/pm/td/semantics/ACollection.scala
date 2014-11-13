@@ -48,13 +48,18 @@ trait ACollection extends AAny {
 
   def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
-    val entryType = GEntry(keyTypeName,valueTypeName)
-    curState = New[S](entryType,initials = Map(
+    val entryType = GEntry(keyTypeName, valueTypeName)
+    curState = New[S](entryType, initials = Map(
       entryType.field_key -> index,
       entryType.field_value -> right
-    ))(curState,pp)
-    curState = AssignField[S](collection,field_entry,curState.expr.add(Field[S](collection,field_entry)))(curState,pp)
+    ))(curState, pp)
+    curState = AssignField[S](collection, field_entry, curState.expr.add(Field[S](collection, field_entry)))(curState, pp)
     curState
+  }
+
+  def collectionUpdate[S <: State[S]](collection: RichExpression, key: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
+    val newState = CollectionRemove[S](collection, key)(state, pp)
+    collectionInsert[S](collection, key, value)(newState, pp)
   }
 
   def collectionIncreaseLength[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {

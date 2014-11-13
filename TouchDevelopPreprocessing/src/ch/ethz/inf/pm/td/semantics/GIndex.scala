@@ -42,7 +42,7 @@ case class GIndex(indexMemberType:TypeName, alternativeName:Option[TypeName] = N
       })
 
     case "clear" =>
-      CollectionClear[S](this0)
+      collectionClear[S](this0)
 
     case _ =>
       super.forwardSemantics(this0,method,parameters,returnedType)

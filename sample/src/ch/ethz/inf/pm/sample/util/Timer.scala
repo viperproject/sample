@@ -50,8 +50,10 @@ object AccumulatingTimer {
     }
   }
 
-  def dump: String = {
-    times.mkString("\n")
+  override def toString: String = {
+    times.map{x => x._1.toString + "\t" + x._2.sum.toString + "ms"}.mkString("\n")
   }
+
+  def reset = times.clear()
 
 }

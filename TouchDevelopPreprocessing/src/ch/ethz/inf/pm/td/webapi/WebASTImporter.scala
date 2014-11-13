@@ -23,7 +23,7 @@ object WebASTImporter {
       classOf[JAction], classOf[JPage], classOf[JEvent], classOf[JLibAction], classOf[JArt], classOf[JData], classOf[JLibrary],
       classOf[JTypeBinding], classOf[JActionBinding], classOf[JResolveClause], classOf[JRecord], classOf[JRecordField],
       classOf[JRecordKey], classOf[JLocalDef], classOf[JApp], classOf[JPropertyParameter], classOf[JProperty],
-      classOf[JTypeDef], classOf[JApis], classOf[JCall])
+      classOf[JTypeDef], classOf[JApis], classOf[JCall], classOf[JActionType])
     )
   }
 
@@ -66,6 +66,8 @@ object WebASTImporter {
         TableDefinition(name, category, keys map convert, fields map convert).setId(id)
       case JAction(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, body) =>
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = false, isPrivate = isPrivate).setId(id)
+      case JActionType(id,name,inParameters,outParameters,isPrivate,isOffloaded,isTest,body) =>
+        ActionType(name, inParameters map convert, outParameters map convert, convert(body), isPrivate = isPrivate).setId(id)
     }
   }
 
@@ -452,6 +454,18 @@ case class JResolveClause(
                            withTypes: List[JTypeBinding],
                            withActions: List[JActionBinding]
                            ) extends JNode(id)
+
+
+case class JActionType(
+                    id: String,
+                    name: String,
+                    inParameters: List[JLocalDef],
+                    outParameters: List[JLocalDef],
+                    // note that events should be always treated as private, but for historical reasons this field can be true or false
+                    isPrivate: Boolean,
+                    isOffloaded: Option[Boolean],
+                    isTest: Boolean,
+                    body: List[JStmt]) extends JDecl(id, name)
 
 case class JRecord(
                     id: String,

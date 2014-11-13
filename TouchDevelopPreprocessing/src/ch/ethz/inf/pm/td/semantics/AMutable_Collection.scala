@@ -38,7 +38,7 @@ trait AMutable_Collection extends ALinearCollection {
       if (start.getType() != TNumber)
         throw new SemanticException("This is not a linear collection " + this0)
 
-      If[S](CollectionIndexInRange[S](this0, start) && collectionContainsValue[S](this0, item) equal True , Then={
+      If[S](collectionIndexInRange[S](this0, start) && collectionContainsValue[S](this0, item) equal True , Then={
         Return[S](0 ndTo collectionSize[S](this0)-1)(_, pp)
       }, Else={
         Return[S](-1)(_, pp)
@@ -51,7 +51,7 @@ trait AMutable_Collection extends ALinearCollection {
       if (index.getType() != TNumber)
         throw new SemanticException("This is not a linear collection " + this0)
 
-      If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
+      If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
         var newState = collectionInvalidateKeys[S](this0)(state, pp)
         newState = collectionInsert[S](this0, index, item)(newState, pp)
         collectionIncreaseLength[S](this0)(newState, pp)
@@ -66,7 +66,7 @@ trait AMutable_Collection extends ALinearCollection {
       if (index.getType() != TNumber)
         throw new SemanticException("This is not a linear collection " + this0)
 
-      If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
+      If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
         //val newState = CollectionRemove[S](this0, index)(state, pp)
         //CollectionInsert[S](this0, index, value)(newState, pp)
         // FIXME: This is broken
@@ -97,7 +97,7 @@ trait AMutable_Collection extends ALinearCollection {
       if (index.getType() != TNumber)
         throw new SemanticException("This is not a linear collection " + this0)
 
-      If[S](CollectionIndexInRange[S](this0, index), Then=(state) => {
+      If[S](collectionIndexInRange[S](this0, index), Then=(state) => {
         var newState = CollectionRemove[S](this0, index)(state, pp)
         newState = collectionDecreaseLength[S](this0)(newState, pp)
         collectionInvalidateKeys[S](this0)(newState, pp)

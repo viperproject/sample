@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample
 
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.sample.util.Timer
+import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, Timer}
 import scala.util.DynamicVariable
 import ch.ethz.inf.pm.sample.reporting.Reporter
 
@@ -18,6 +18,11 @@ object SystemParameters {
    * Enables costly debugging flags
    */
   val DEBUG = false
+
+  /**
+   * Enables costly debugging flags
+   */
+  val TIME = true
 
   /**
    * Flag that informs whether the running analysis is ValueDrivenHeapAnalysis
@@ -116,6 +121,7 @@ object SystemParameters {
     if (progressOutput != null) progressOutput.reset()
     if (analysisOutput != null) analysisOutput.reset()
     Reporter.reset()
+    AccumulatingTimer.reset
   }
 
 }

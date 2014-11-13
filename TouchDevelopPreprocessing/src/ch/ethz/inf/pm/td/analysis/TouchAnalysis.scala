@@ -9,6 +9,7 @@ import ch.ethz.inf.pm.sample.execution.CFGState
 import ch.ethz.inf.pm.sample.oorepresentation._
 import ch.ethz.inf.pm.sample.property._
 import ch.ethz.inf.pm.sample.reporting.Reporter
+import ch.ethz.inf.pm.sample.util.AccumulatingTimer
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain._
 import ch.ethz.inf.pm.td.output.Exporters
@@ -232,6 +233,8 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
     }
 
     Exporters(compiler)
+
+    if (SystemParameters.TIME) println(AccumulatingTimer)
 
     SystemParameters.progressOutput.end()
     results

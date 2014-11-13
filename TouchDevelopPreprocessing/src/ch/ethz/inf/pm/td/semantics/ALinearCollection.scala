@@ -24,6 +24,10 @@ trait ALinearCollection extends ACollection {
     Assign[S](collectionAllKeys[S](collection),0 ndTo collectionSize[S](collection) - 1)
   }
 
+  def collectionIndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
+    index >= 0 && index < collectionSize[S](collection)
+  }
+
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S) = method match {
     case "at" =>
@@ -32,7 +36,7 @@ trait ALinearCollection extends ACollection {
       if (index.getType() != TNumber)
         throw new SemanticException("This is not a linear collection " + this0.toString)
 
-      val newState = If[S](CollectionIndexInRange[S](this0, index), Then = {
+      val newState = If[S](collectionIndexInRange[S](this0, index), Then = {
         Return[S](collectionAt[S](this0, index))(_, pp)
       }, Else = {
         Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection access may be out of range"))(_, pp)

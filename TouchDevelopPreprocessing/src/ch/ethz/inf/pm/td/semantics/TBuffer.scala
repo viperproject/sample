@@ -52,7 +52,7 @@ object TBuffer extends ALinearCollection {
     /** Set byte at `index` to `value` */
     case "set" =>
       val List(index, value) = parameters // Number,Number
-      If[S](CollectionIndexInRange[S](this0, index), Then = (state) => {
+      If[S](collectionIndexInRange[S](this0, index), Then = (state) => {
         val newState = CollectionRemove[S](this0, index)(state, pp)
         collectionInsert[S](this0, index, value)(newState, pp)
       }, Else = (state) => {

@@ -35,7 +35,7 @@ trait AMap extends ACollection {
     case "set at" =>
       val List(key, value) = parameters // Number,Element_Type
       If[S](collectionContainsKey[S](this0, key) equal True, Then = (state) => {
-        val s = CollectionUpdate[S](this0, key, value)(state, pp)
+        val s = collectionUpdate[S](this0, key, value)(state, pp)
         s
       }, Else = (state) => {
         val newState = collectionInsert[S](this0, key, value)(state, pp)

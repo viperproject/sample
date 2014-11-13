@@ -66,6 +66,7 @@ object TouchAnalysisParameters {
 
   def reportOnlyAlarmsInMainScript = currentParams.reporting.reportOnlyAlarmsInMainScript
 
+  // TODO: Move to muted fields
   def topFields = currentParams.topFields
 
 
