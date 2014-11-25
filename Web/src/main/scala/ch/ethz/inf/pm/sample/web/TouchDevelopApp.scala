@@ -1,17 +1,15 @@
 package ch.ethz.inf.pm.sample.web
 
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
 import ch.ethz.inf.pm.sample.{StdOutOutput, StringCollector, SystemParameters}
 import ch.ethz.inf.pm.sample.abstractdomain.State
-import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, NumericalDomain}
-import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain, StringDomain, StringValueDomain}
+import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface}
+import ch.ethz.inf.pm.sample.abstractdomain.stringdomain.{NonrelationalStringDomain, StringKSetDomain}
 import ch.ethz.inf.pm.sample.execution.{TrackingCFGState, AnalysisResult, AnalysisRunner, SimpleAnalysis}
-import ch.ethz.inf.pm.sample.property.SingleStatementProperty
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.compiler.{TouchProgramPointRegistry, TouchCompiler}
+import ch.ethz.inf.pm.td.compiler.TouchCompiler
 import ch.ethz.inf.pm.td.domain.TouchState
-import ch.ethz.inf.pm.td.output.Exporters
 
 /**
  * Implements web interface for TouchDevelop

@@ -7,3 +7,5 @@ addSbtPlugin("io.spray" % "sbt-twirl" % "0.7.0")
 
 addSbtPlugin("org.scalatra.sbt" % "scalatra-sbt" % "0.3.5")
 
+
+

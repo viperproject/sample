@@ -1,12 +1,12 @@
 package ch.ethz.inf.pm.sample.web
 
+import ch.ethz.inf.pm.sample.abstractdomain.State
 import org.scalatra._
 import ch.ethz.inf.pm.sample.oorepresentation.sil._
 import org.eclipse.jetty.webapp.WebAppContext
 import org.scalatra.servlet.ScalatraListener
 import org.eclipse.jetty.servlet.DefaultServlet
 import org.eclipse.jetty.server.Server
-import scala.Some
 import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AnalysisRunner}
 
 /** Web application that lets users analyze programs and explore the result.
@@ -27,7 +27,7 @@ abstract class App extends ScalatraServlet {
   def fileProvider: TestFileProvider
 
   /** List of pre-defined analysis runners. */
-  def availableAnalysisRunners: Seq[AnalysisRunner[_]]
+  def availableAnalysisRunners: Seq[AnalysisRunner[_ <: State[_]]]
 
   /** URL prefix */
   def prefix: String
@@ -35,10 +35,10 @@ abstract class App extends ScalatraServlet {
   /** The currently active runner using which analyses are performed.
     * Can be changed from the web interface and defaults to the first one.
     */
-  var analysisRunnerOption: Option[AnalysisRunner[_]] = None
+  var analysisRunnerOption: Option[AnalysisRunner[_ <: State[_]]] = None
 
   /** The currently active analysis results that the user can inspect. */
-  var resultsOption: Option[List[AnalysisResult[_]]] = None
+  var resultsOption: Option[List[AnalysisResult[_ <: State[_]]]] = None
 
   /** Renders the list of test files that can be analyzed. */
   get("/") {
@@ -51,7 +51,7 @@ abstract class App extends ScalatraServlet {
     fileProvider.testFiles.find(_.toString == testFileString) match {
       case Some(testFile) =>
         val results = analysisRunner.run(testFile.path)
-        resultsOption = Some(results)
+        resultsOption = Some(results.asInstanceOf[List[AnalysisResult[_ <: State[_]]]])
 
         // If there is only a single result, redirect to it
         // Otherwise, let the user choose
@@ -68,7 +68,7 @@ abstract class App extends ScalatraServlet {
   /** Sets a new analysis runner and purges the current analysis result. */
   get("/runner/") {
     val analysisRunner = availableAnalysisRunners(params("index").toInt)
-    analysisRunnerOption = Some[AnalysisRunner[_]](analysisRunner)
+    analysisRunnerOption = Some[AnalysisRunner[_ <: State[_]]](analysisRunner)
     resultsOption = None
     redirect("/")
   }
@@ -110,15 +110,15 @@ abstract class App extends ScalatraServlet {
     }
   }
 
-  def analysisRunner: AnalysisRunner[_] =
+  def analysisRunner: AnalysisRunner[_ <: State[_]] =
     analysisRunnerOption.getOrElse(availableAnalysisRunners.head)
 
   /** Returns the `AnalysisResult` to display according to the URL parameter. */
-  private def resultOption: Option[AnalysisResult[_]] = {
+  private def resultOption[S <: State[S]]: Option[AnalysisResult[S]] = {
     resultsOption match {
       case Some(results) =>
         val resultIndex = params("result").toInt
-        Some(results(resultIndex))
+        Some(results(resultIndex).asInstanceOf[AnalysisResult[S]])
       case None =>
         None
     }
@@ -138,9 +138,10 @@ abstract class App extends ScalatraServlet {
 class SilApp extends App {
   val fileProvider = ResourceTestFileProvider(namePattern = ".*\\.sil")
   val availableAnalysisRunners = Seq(
-    PredicateAnalysisRunner,
-    DefaultAnalysisRunner,
-    PreciseAnalysisRunner
+    PredicateAnalysisRunner
+// TODO: Instantiates existential type with several types
+//    DefaultAnalysisRunner,
+//    PreciseAnalysisRunner
   )
   val prefix = "sil"
 }
