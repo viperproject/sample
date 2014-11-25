@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -20,10 +20,10 @@ import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
 object TMatrix extends AMutable_Collection {
 
   /** Gets the number of columns */
-  lazy val field_column_count = new TouchField("column count",TNumber.typeName)
+  lazy val field_column_count = new ApiField("column count",TNumber.typeName)
 
   /** Gets the number of rows */
-  lazy val field_row_count = new TouchField("row count",TNumber.typeName)
+  lazy val field_row_count = new ApiField("row count",TNumber.typeName)
 
   lazy val typeName = TypeName("Matrix")
 

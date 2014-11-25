@@ -3,8 +3,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{SetDomain, ExpressionSet, Identifier, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchDevelopEntryStateBuilder, RichExpression, TouchField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TypeList, TouchType}
+import ch.ethz.inf.pm.td.analysis.{TouchDevelopEntryStateBuilder, RichExpression, ApiField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.{FieldIdentifier, HeapIdentifier, TouchState}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -22,8 +22,24 @@ trait ACollection extends AAny {
   lazy val keyType =   SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(keyTypeName)
   lazy val valueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(valueTypeName)
 
-  lazy val field_count = TouchField("count",TNumber.typeName)
-  lazy val field_entry = TouchField("entries",entryType.typeName)
+  lazy val field_count = ApiField("count",TNumber.typeName)
+  lazy val field_entry = ApiField("entries",entryType.typeName)
+
+
+  /** Exports a JSON representation of the contents. */
+  lazy val member_to_json = new ApiMember("to json", List(), ApiParam(this), TJson_Object) with TopSemantics
+
+  /** Gets the number of elements */
+  lazy val member_count = new ApiMember("count", List(), ApiParam(this), TNumber) with DefaultSemantics
+
+  /** Imports a JSON representation of the contents. */
+  lazy val member_from_json = new ApiMember("from json", List(ApiParam(TJson_Object)), ApiParam(TString_Collection,isMutated=true), TNothing) with DefaultSemantics
+
+  override lazy val declarations:Map[String,ApiMember] = super.declarations ++ Map(
+    "to json" -> member_to_json,
+    "count" -> member_count,
+    "from json" -> member_from_json
+  )
 
   override def isSingleton: Boolean = false
 

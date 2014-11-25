@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,13 +19,13 @@ import RichNativeSemantics._
 object TTimer extends AAny {
 
   /** is the timer active */
-  lazy val field_is_active = new TouchField("is active", TBoolean.typeName)
+  lazy val field_is_active = new ApiField("is active", TBoolean.typeName)
 
   /** is this an interval timer that fires regularly */
-  lazy val field_is_interval = new TouchField("is interval", TBoolean.typeName)
+  lazy val field_is_interval = new ApiField("is interval", TBoolean.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_trigger_handler = new TouchField("trigger handler", TAction.typeName)
+  lazy val field_trigger_handler = new ApiField("trigger handler", TAction.typeName)
 
   val typeName = TypeName("Timer")
 

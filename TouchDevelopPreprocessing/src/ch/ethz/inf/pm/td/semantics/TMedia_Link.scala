@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, TopInitializer, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, TopInitializer, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,22 +19,22 @@ import RichNativeSemantics._
 object TMedia_Link extends AAny {
 
   /** Gets the album if available */
-  lazy val field_album = new TouchField("album", TString.typeName, TopWithInvalidInitializer("link may not have a album"))
+  lazy val field_album = new ApiField("album", TString.typeName, TopWithInvalidInitializer("link may not have a album"))
 
   /** Gets the author if available */
-  lazy val field_author = new TouchField("author", TString.typeName, TopWithInvalidInitializer("link may not have an author"))
+  lazy val field_author = new ApiField("author", TString.typeName, TopWithInvalidInitializer("link may not have an author"))
 
   /** Gets the date if available */
-  lazy val field_date = new TouchField("date", TDateTime.typeName, TopWithInvalidInitializer("link may not have a date"))
+  lazy val field_date = new ApiField("date", TDateTime.typeName, TopWithInvalidInitializer("link may not have a date"))
 
   /** Gets the duration in seconds (0 for pictures) */
-  lazy val field_duration = new TouchField("duration", TNumber.typeName, TopInitializer)
+  lazy val field_duration = new ApiField("duration", TNumber.typeName, TopInitializer)
 
   /** Gets the kind of media (video, song, picture) */
-  lazy val field_kind = new TouchField("kind", TString.typeName, TopInitializer)
+  lazy val field_kind = new ApiField("kind", TString.typeName, TopInitializer)
 
   /** Gets the title if available */
-  lazy val field_title = new TouchField("title", TString.typeName, TopWithInvalidInitializer("link may not have a title"))
+  lazy val field_title = new ApiField("title", TString.typeName, TopWithInvalidInitializer("link may not have a title"))
 
   lazy val typeName = TypeName("Media Link")
 

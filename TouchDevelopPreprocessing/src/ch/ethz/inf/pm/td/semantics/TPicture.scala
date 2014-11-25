@@ -19,20 +19,20 @@ import RichNativeSemantics._
 object TPicture extends AAny {
 
   /** Gets the width in pixels */
-  lazy val field_width = new TouchField("width", TNumber.typeName,
+  lazy val field_width = new ApiField("width", TNumber.typeName,
     default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the height in pixels */
-  lazy val field_height = new TouchField("height", TNumber.typeName,
+  lazy val field_height = new ApiField("height", TNumber.typeName,
     default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the location where the picture was taken; if any. */
-  lazy val field_location = new TouchField("location", TLocation.typeName, InvalidInitializer("picture may not have a location"))
+  lazy val field_location = new ApiField("location", TLocation.typeName, InvalidInitializer("picture may not have a location"))
 
   /** Gets the date time where the picture was taken; if any. */
-  lazy val field_date = new TouchField("date", TDateTime.typeName, InvalidInitializer("picture may not have a date"))
+  lazy val field_date = new ApiField("date", TDateTime.typeName, InvalidInitializer("picture may not have a date"))
 
   lazy val typeName = TypeName("Picture")
 

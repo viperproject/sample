@@ -3,12 +3,12 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, MethodSummaries}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, MethodSummaries}
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
-case class GObject(typeName:TypeName, fields:List[TouchField]) extends AAny {
+case class GObject(typeName:TypeName, fields:List[ApiField]) extends AAny {
 
   override def possibleFields = super.possibleFields ++ fields
 

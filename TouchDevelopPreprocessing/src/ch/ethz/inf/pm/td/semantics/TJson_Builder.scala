@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -20,22 +20,22 @@ import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
 object TJson_Builder extends AMap {
 
   /** Gets the list of keys */
-  lazy val field_keys = new TouchField("keys",TString_Collection.typeName)
+  lazy val field_keys = new ApiField("keys",TString_Collection.typeName)
 
   /** Gets a json kind (string, number, object, array, boolean, null) */
-  lazy val field_kind = new TouchField("kind",TString.typeName)
+  lazy val field_kind = new ApiField("kind",TString.typeName)
 
   /** Converts to a boolean (type must be boolean) */
-  lazy val field_to_boolean = new TouchField("to boolean",TBoolean.typeName)
+  lazy val field_to_boolean = new ApiField("to boolean",TBoolean.typeName)
 
   /** Converts to a number (type must be number) */
-  lazy val field_to_number = new TouchField("to number",TNumber.typeName)
+  lazy val field_to_number = new ApiField("to number",TNumber.typeName)
 
   /** Converts to a number (type must be string) */
-  lazy val field_to_string = new TouchField("to string",TString.typeName)
+  lazy val field_to_string = new ApiField("to string",TString.typeName)
 
   /** Converts and parses to a date time (type must be string) */
-  lazy val field_to_time = new TouchField("to time",TDateTime.typeName)
+  lazy val field_to_time = new ApiField("to time",TDateTime.typeName)
 
   lazy val typeName = TypeName("Json Builder")
 

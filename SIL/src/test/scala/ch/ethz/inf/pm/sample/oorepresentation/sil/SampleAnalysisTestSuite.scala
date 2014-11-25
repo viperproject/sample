@@ -1,12 +1,12 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import java.nio.file.Path
-import semper.sil.frontend.{Frontend, SilFrontendConfig, SilFrontend}
-import semper.sil.verifier._
-import semper.sil.ast.{Position, Program}
+import viper.silver.frontend.{Frontend, SilFrontendConfig, SilFrontend}
+import viper.silver.verifier._
+import viper.silver.ast.{Position, Program}
 import ch.ethz.inf.pm.sample.reporting.Reporter
-import semper.sil.verifier.Failure
-import semper.sil.testing.SilSuite
+import viper.silver.verifier.Failure
+import viper.silver.testing.SilSuite
 
 class SampleAnalysisTestSuite extends SilSuite {
   def testDirectories = Seq("sil/issues", "sil/translation")

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -16,10 +16,10 @@ import RichNativeSemantics._
 object TMap extends AAny {
 
   /** Gets the zoom level */
-  lazy val field_zoom = new TouchField("zoom", TNumber.typeName)
+  lazy val field_zoom = new ApiField("zoom", TNumber.typeName)
 
   /** Gets the map center location */
-  lazy val field_center = new TouchField("center", TLocation.typeName)
+  lazy val field_center = new ApiField("center", TLocation.typeName)
 
   lazy val typeName = TypeName("Map")
   override def possibleFields = super.possibleFields ++ List(field_zoom, field_center)

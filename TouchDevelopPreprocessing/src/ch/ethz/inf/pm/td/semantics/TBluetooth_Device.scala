@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,13 +19,13 @@ import RichNativeSemantics._
 object TBluetooth_Device extends AAny {
 
   /** Get the internal address of the device */
-  lazy val field_address = new TouchField("address", TString.typeName)
+  lazy val field_address = new ApiField("address", TString.typeName)
 
   /** Check if we're currently connected to device */
-  lazy val field_connected = new TouchField("connected", TBoolean.typeName)
+  lazy val field_connected = new ApiField("connected", TBoolean.typeName)
 
   /** Get the user-friendly name of the device */
-  lazy val field_name = new TouchField("name", TString.typeName)
+  lazy val field_name = new ApiField("name", TString.typeName)
 
   lazy val typeName = TypeName("Bluetooth Device")
 

@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,38 +19,38 @@ import RichNativeSemantics._
 object SPlayer extends ASingleton {
 
   /** Gets the active song if any */
-  lazy val field_active_song = new TouchField("active song", TSong.typeName, topDefault = TopWithInvalidInitializer("player may not have an active song"))
+  lazy val field_active_song = new ApiField("active song", TSong.typeName, topDefault = TopWithInvalidInitializer("player may not have an active song"))
 
   /** Indicates if the player is muted */
-  lazy val field_is_muted = new TouchField("is muted", TBoolean.typeName)
+  lazy val field_is_muted = new ApiField("is muted", TBoolean.typeName)
 
   /** Indicates if the player is paused */
-  lazy val field_is_paused = new TouchField("is paused", TBoolean.typeName)
+  lazy val field_is_paused = new ApiField("is paused", TBoolean.typeName)
 
   /** Indicates if the player is playing a song */
-  lazy val field_is_playing = new TouchField("is playing", TBoolean.typeName)
+  lazy val field_is_playing = new ApiField("is playing", TBoolean.typeName)
 
   /** Indicates if the player is repeating */
-  lazy val field_is_repeating = new TouchField("is repeating", TBoolean.typeName)
+  lazy val field_is_repeating = new ApiField("is repeating", TBoolean.typeName)
 
   /** Indicates if the player is shuffled */
-  lazy val field_is_shuffled = new TouchField("is shuffled", TBoolean.typeName)
+  lazy val field_is_shuffled = new ApiField("is shuffled", TBoolean.typeName)
 
   /** Indicates if the player is stopped */
-  lazy val field_is_stopped = new TouchField("is stopped", TBoolean.typeName)
+  lazy val field_is_stopped = new ApiField("is stopped", TBoolean.typeName)
 
   /** Gets the position in seconds whithin the active song */
-  lazy val field_play_position = new TouchField("play position", TNumber.typeName)
+  lazy val field_play_position = new ApiField("play position", TNumber.typeName)
 
   /** Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */
-  lazy val field_sound_volume = new TouchField("sound volume", TNumber.typeName)
+  lazy val field_sound_volume = new ApiField("sound volume", TNumber.typeName)
 
   /** Volume is no longer supported. */
-  lazy val field_volume = new TouchField("volume", TNumber.typeName)
+  lazy val field_volume = new ApiField("volume", TNumber.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_active_song_changed_handler = new TouchField("active song changed", TAction.typeName)
-  lazy val field_player_state_changed_handler = new TouchField("player state changed", TAction.typeName)
+  lazy val field_active_song_changed_handler = new ApiField("active song changed", TAction.typeName)
+  lazy val field_player_state_changed_handler = new ApiField("player state changed", TAction.typeName)
 
   lazy val typeName = TypeName("Player")
 

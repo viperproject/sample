@@ -1,5 +1,9 @@
-addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.5.2")
+resolvers += "Splay" at "http://repo.spray.io/"
+resolvers += "Sonatype snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/"
 
-addSbtPlugin("io.spray" % "sbt-twirl" % "0.6.1")
+addSbtPlugin("com.github.mpeltonen" % "sbt-idea" % "1.7.0-SNAPSHOT")
 
-addSbtPlugin("org.scalatra.sbt" % "scalatra-sbt" % "0.3.2")
+addSbtPlugin("io.spray" % "sbt-twirl" % "0.7.0")
+
+addSbtPlugin("org.scalatra.sbt" % "scalatra-sbt" % "0.3.5")
+

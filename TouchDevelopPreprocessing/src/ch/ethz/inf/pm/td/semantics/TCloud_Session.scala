@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 
@@ -18,19 +18,19 @@ import ch.ethz.inf.pm.td.parser.TypeName
 object TCloud_Session extends AAny {
 
   /** Gets a value indicating if the session is connected */
-  lazy val field_is_connected = new TouchField("is connected",TBoolean.typeName)
+  lazy val field_is_connected = new ApiField("is connected",TBoolean.typeName)
 
   /** Gets the session id */
-  lazy val field_id = new TouchField("id",TString.typeName)
+  lazy val field_id = new ApiField("id",TString.typeName)
 
   /** Gets a string that describes this cloud session */
-  lazy val field_title = new TouchField("title",TString.typeName)
+  lazy val field_title = new ApiField("title",TString.typeName)
 
   /** [**dbg**] Query server about current state of this session. You must be the authenticated owner. */
-  lazy val field_server_info = new TouchField("server info",TJson_Object.typeName)
+  lazy val field_server_info = new ApiField("server info",TJson_Object.typeName)
 
   /** Gets information about the user that owns this session */
-  lazy val field_owner = new TouchField("owner",TUser.typeName)
+  lazy val field_owner = new ApiField("owner",TUser.typeName)
 
   lazy val typeName = TypeName("Cloud Session")
 

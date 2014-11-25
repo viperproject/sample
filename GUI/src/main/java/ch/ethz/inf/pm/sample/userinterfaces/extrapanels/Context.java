@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.tracepartitioning.UncheckedVariableContext;
 import ch.ethz.inf.pm.sample.tracepartitioning.VariableContext;
 import scala.Tuple2;
 import scala.collection.immutable.List;
+import scala.collection.immutable.Nil$;
 
 import javax.swing.*;
 import java.awt.event.ActionEvent;
@@ -103,7 +104,7 @@ public class Context implements Extra {
 		String variable = variableField.getText().trim();
 
 		if (variable.length() > 0 && n > 0) {
-			List bounds = List.empty();
+			List bounds = Nil$.MODULE$;
 			for (int i = 0; i < n; i++) {
 				Bound bound = (Bound) boundsListModel.get(i);
 				bounds = bounds.$colon$colon(new Tuple2(bound.lower, bound.upper));

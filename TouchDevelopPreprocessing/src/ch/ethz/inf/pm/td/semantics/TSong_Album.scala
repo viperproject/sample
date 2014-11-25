@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,28 +19,28 @@ import RichNativeSemantics._
 object TSong_Album extends AAny {
 
 /** Gets album art picture */
-  lazy val field_art = new TouchField("art",TPicture.typeName)
+  lazy val field_art = new ApiField("art",TPicture.typeName)
 
   /** Gets the name of the artist */
-  lazy val field_artist = new TouchField("artist",TString.typeName)
+  lazy val field_artist = new ApiField("artist",TString.typeName)
 
   /** Gets the duration in seconds */
-  lazy val field_duration = new TouchField("duration",TNumber.typeName)
+  lazy val field_duration = new ApiField("duration",TNumber.typeName)
 
   /** Gets the genre of the song */
-  lazy val field_genre = new TouchField("genre",TString.typeName)
+  lazy val field_genre = new ApiField("genre",TString.typeName)
 
   /** Indicates if the album has art */
-  lazy val field_has_art = new TouchField("has art",TBoolean.typeName)
+  lazy val field_has_art = new ApiField("has art",TBoolean.typeName)
 
   /** Gets the name of the album */
-  lazy val field_name = new TouchField("name",TString.typeName)
+  lazy val field_name = new ApiField("name",TString.typeName)
 
   /** Gets the songs */
-  lazy val field_songs = new TouchField("songs",TSongs.typeName)
+  lazy val field_songs = new ApiField("songs",TSongs.typeName)
 
   /** Gets the thumbnail picture */
-  lazy val field_thumbnail = new TouchField("thumbnail",TPicture.typeName)
+  lazy val field_thumbnail = new ApiField("thumbnail",TPicture.typeName)
 
   lazy val typeName = TypeName("Song Album")
 

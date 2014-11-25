@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{RichExpression, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
 
 /**
@@ -27,6 +27,7 @@ trait ALinearCollection extends ACollection {
   def collectionIndexInRange[S <: State[S]](collection: RichExpression, index: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     index >= 0 && index < collectionSize[S](collection)
   }
+
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S) = method match {
@@ -53,6 +54,14 @@ trait ALinearCollection extends ACollection {
 
     /** Get random element */
     case "random" =>
+      If[S](collectionSize[S](this0) > 0, Then = {
+        Return[S](collectionAllValues[S](this0))(_, pp)
+      }, Else = {
+        Return[S](Invalid(this0.getType().asInstanceOf[ACollection].valueType, "collection may be empty"))(_, pp)
+      })
+
+    /** Get random element (old name) */
+    case "rand" =>
       If[S](collectionSize[S](this0) > 0, Then = {
         Return[S](collectionAllValues[S](this0))(_, pp)
       }, Else = {

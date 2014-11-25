@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.{SystemParameters, ToStringUtilities}
 import ch.ethz.inf.pm.sample.abstractdomain._
 import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type}
 import ch.ethz.inf.pm.sample.util.{AccumulatingTimer, MapUtil}
-import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.analysis.ApiField
 
 import scala.collection.immutable.Set
 
@@ -657,7 +657,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
         if (backwardMay.getOrElse(x, Set.empty).isEmpty) {
           removeObject(x).garbageCollect(
             (x.typ.representedFields map {
-              case field : TouchField  => forwardMay.getOrElse(FieldIdentifier(x,field.getField.get,field.typ),Set.empty)
+              case field : ApiField  => forwardMay.getOrElse(FieldIdentifier(x,field.getField.get,field.typ),Set.empty)
             }).flatten.toList ::: xs
           )
         } else { garbageCollect(xs) }
@@ -682,7 +682,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
   def fieldsOf(node:HeapIdentifier):Set[FieldIdentifier] = {
     node.typ.representedFields map {
-      case field : TouchField  => FieldIdentifier(node,field.getField.get,field.typ)
+      case field : ApiField  => FieldIdentifier(node,field.getField.get,field.typ)
     }
   }
 

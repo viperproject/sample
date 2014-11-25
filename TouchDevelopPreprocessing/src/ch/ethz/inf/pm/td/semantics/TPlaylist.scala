@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,13 +19,13 @@ import RichNativeSemantics._
 object TPlaylist extends AAny {
 
   /** Gets the duration in seconds */
-  lazy val field_duration = new TouchField("duration",TNumber.typeName)
+  lazy val field_duration = new ApiField("duration",TNumber.typeName)
 
   /** Gets the name of the song */
-  lazy val field_name = new TouchField("name",TString.typeName)
+  lazy val field_name = new ApiField("name",TString.typeName)
 
   /** Gets the songs */
-  lazy val field_songs = new TouchField("songs",TSongs.typeName)
+  lazy val field_songs = new ApiField("songs",TSongs.typeName)
 
   lazy val typeName = TypeName("Playlist")
 

@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import org.scalatest.FunSuite
 import org.scalatest.matchers.ShouldMatchers
-import semper.sil.{ast => sil}
+import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 
 class SampleConverterTest extends FunSuite with ShouldMatchers {

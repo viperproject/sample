@@ -74,7 +74,6 @@ object ExpSimplifier extends Function[Expression, Expression] {
 }
 
 object ExpPrettyPrinter extends Function[Expression, String] {
-  import ArithmeticOperator._
 
   /**
    * Pretty-prints the given expression.
@@ -94,10 +93,10 @@ object ExpPrettyPrinter extends Function[Expression, String] {
   }
 
   def apply(op: ArithmeticOperator.Value): String = op match {
-    case `>=` => "≥"
-    case `<=` => "≤"
-    case `==` => "="
-    case `!=` => "≠"
+    case ArithmeticOperator.`>=` => "≥"
+    case ArithmeticOperator.`<=` => "≤"
+    case ArithmeticOperator.`==` => "="
+    case ArithmeticOperator.`!=` => "≠"
     case _ => op.toString
   }
 }

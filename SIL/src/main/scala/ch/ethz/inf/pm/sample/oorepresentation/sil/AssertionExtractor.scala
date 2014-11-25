@@ -2,12 +2,12 @@ package ch.ethz.inf.pm.sample.oorepresentation.sil
 
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.abstractdomain._
-import semper.sil.{ast => sil}
+import org.slf4s.Logging
+import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.Edge
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.HeapGraph
-import semper.sil.ast.utility.Transformer
+import viper.silver.ast.utility.Transformer
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.{ApronInterface, ApronInterfaceTranslator}
-import com.weiglewilczek.slf4s.Logging
 
 /** Registry that maps predicate identifiers from the analysis
   * to actual SIL predicates.
@@ -446,13 +446,13 @@ case class AssertionExtractor[S <: ApronInterface[S]](
       "the edge targets are not unique")
 
     if (ambigEdges.size != 2) {
-      logger.warn("Cannot find sufficient conditions " +
+      log.warn("Cannot find sufficient conditions " +
         "for more than two ambiguous out-going edges")
       return Map.empty
     }
 
     if (ambigEdges.forall(_.target != NullVertex)) {
-      logger.warn("Cannot find sufficient conditions other than nullness")
+      log.warn("Cannot find sufficient conditions other than nullness")
       return Map.empty
     }
 

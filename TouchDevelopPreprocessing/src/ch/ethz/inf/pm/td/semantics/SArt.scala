@@ -21,4 +21,5 @@ object SArt extends ASingleton {
     state.setExpression(ExpressionSet(VariableIdentifier(CFGGenerator.globalReferenceIdent(method))(returnedType, pp)))
 
   }
+
 }

@@ -1,9 +1,9 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
+import org.slf4s.Logging
+
 import scala.collection.mutable
-import semper.sil.{ast => sil}
-import scala.Some
-import com.weiglewilczek.slf4s.Logging
+import viper.silver.{ast => sil}
 
 trait SilConverter {
   /** Converts a whole SIL program to a list of Sample class definition. */
@@ -46,6 +46,7 @@ trait SilConverter {
 object DefaultSilConverter extends SilConverter with Logging {
   var refType: sample.RefType = sample.RefType()
   var classDef: sample.ClassDefinition = null
+  var prog: sil.Program = null
 
   def convert(p: sil.Program): List[sample.ClassDefinition] = {
     // Chicken-egg problem: To build the reference type,
@@ -53,6 +54,7 @@ object DefaultSilConverter extends SilConverter with Logging {
     // (possibly reference fields), we need the reference type.
     refType = sample.RefType()
     refType.fields = p.fields.map(makeVariableIdentifier).toSet
+    prog = p
 
     classDef = new sample.ClassDefinition(
       programpoint = go(p.pos),
@@ -169,14 +171,15 @@ object DefaultSilConverter extends SilConverter with Logging {
         name = NativeMethods.assume.toString,
         args = exp :: Nil,
         returnType = sample.TopType)
-    case sil.NewStmt(lhs) =>
+    case sil.NewStmt(lhs, fields) =>
+      // TODO: Do something with fields
       sample.Assignment(go(s.pos), go(lhs), sample.New(go(s.pos), refType))
     case sil.FieldAssign(lhs, rhs) =>
       sample.Assignment(go(s.pos), go(lhs), go(rhs))
     case sil.MethodCall(method, args, targets) =>
       sample.MethodCall(
         pp = go(s.pos),
-        method = makeVariable(s.pos, sil.Ref, method.name),
+        method = makeVariable(s.pos, sil.Ref, method),
         parametricTypes = Nil,
         parameters = args.map(go).toList,
         returnedType = sample.TopType)
@@ -188,7 +191,7 @@ object DefaultSilConverter extends SilConverter with Logging {
       sample.EmptyStatement(go(s.pos))
     case sil.Unfold(acc) =>
       sample.EmptyStatement(go(s.pos))
-    case sil.FreshReadPerm(_, _) | sil.Seqn(_) => ???
+    case sil.Fresh(_) | sil.Constraining(_,_) | sil.Seqn(_) => ???
     case sil.Goto(_) |
          sil.If(_, _, _) |
          sil.Label(_) |
@@ -198,7 +201,7 @@ object DefaultSilConverter extends SilConverter with Logging {
 
   def convert(e: sil.Exp): sample.Statement = e match {
     case e: sil.DomainOpExp =>
-      makeNativeMethodCall(e.pos, e.op, e.args, go(e.typ))
+      makeNativeMethodCall(e.pos, e.func(prog).op, e.args, go(e.typ))
     case e: sil.EqualityCmp =>
       // No common ancestor
       makeNativeMethodCall(e.pos, e.op, e.args, go(e.typ))
@@ -214,7 +217,7 @@ object DefaultSilConverter extends SilConverter with Logging {
       sample.MethodCall(
         pp = go(e.pos),
         // Functions are static, so there is no receiver
-        method = makeVariable(e.pos, sil.Ref, func.name),
+        method = makeVariable(e.pos, sil.Ref, func),
         parametricTypes = Nil,
         parameters = args.map(go).toList,
         returnedType = go(e.typ))
@@ -330,11 +333,11 @@ object DefaultSilConverter extends SilConverter with Logging {
         if formalArgVar == rcv && args == Seq(fa) =>
         // Found a nested predicate access predicate for a field
         // of the formal argument
-        val nestedPredId = new sample.PredicateIdentifier(nestedPred.name)
+        val nestedPredId = new sample.PredicateIdentifier(nestedPred)
         fieldsWithPerm += makeVariableIdentifier(field) -> Set(nestedPredId)
       case n =>
         // Give up if the predicate contains anything else
-        logger.warn(s"Cannot handle constituent $n of predicate ${pred.name}")
+        log.warn(s"Cannot handle constituent $n of predicate ${pred.name}")
         return None
     })
 
@@ -369,7 +372,9 @@ object DefaultSilConverter extends SilConverter with Logging {
             go(sil.Assert(inv)(inv.pos))
           })
           assertMethodCalls :+ go(lb.cond)
-        case b: sil.FreshReadPermBlock =>
+        case b: sil.Fresh =>
+          sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
+        case b: sil.Constraining =>
           sample.EmptyStatement(sample.DummyProgramPoint) :: Nil
       }
       // Create new node and register its index *before* recursing

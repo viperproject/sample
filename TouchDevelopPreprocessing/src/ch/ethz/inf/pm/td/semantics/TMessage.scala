@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,40 +19,40 @@ import RichNativeSemantics._
 object TMessage extends AAny {
 
   /** Gets the message identifier */
-  lazy val field_id = new TouchField("id",TString.typeName)
+  lazy val field_id = new ApiField("id",TString.typeName)
 
   /** Gets the author */
-  lazy val field_from = new TouchField("from",TString.typeName)
+  lazy val field_from = new ApiField("from",TString.typeName)
 
   /** Gets the link associated to the message */
-  lazy val field_link = new TouchField("link",TString.typeName)
+  lazy val field_link = new ApiField("link",TString.typeName)
 
   /** Gets the geo coordinates */
-  lazy val field_location = new TouchField("location",TLocation.typeName)
+  lazy val field_location = new ApiField("location",TLocation.typeName)
 
   /** Gets a url to the media */
-  lazy val field_media_link = new TouchField("media link",TString.typeName)
+  lazy val field_media_link = new ApiField("media link",TString.typeName)
 
   /** Gets the message text */
-  lazy val field_message = new TouchField("message",TString.typeName)
+  lazy val field_message = new ApiField("message",TString.typeName)
 
   /** Gets a url to the picture */
-  lazy val field_picture_link = new TouchField("picture link",TString.typeName)
+  lazy val field_picture_link = new ApiField("picture link",TString.typeName)
 
   /** Gets the source of this message (Facebook, Twitter, etc...) */
-  lazy val field_source = new TouchField("source",TString.typeName)
+  lazy val field_source = new ApiField("source",TString.typeName)
 
   /** Gets the time */
-  lazy val field_time = new TouchField("time",TDateTime.typeName)
+  lazy val field_time = new ApiField("time",TDateTime.typeName)
 
   /** Gets the title text */
-  lazy val field_title = new TouchField("title",TString.typeName)
+  lazy val field_title = new ApiField("title",TString.typeName)
 
   /** Gets the recipient */
-  lazy val field_to = new TouchField("to",TString.typeName)
+  lazy val field_to = new ApiField("to",TString.typeName)
 
   /** Gets the additional values stored in the message */
-  lazy val field_values = new TouchField("values",TString_Map.typeName)
+  lazy val field_values = new ApiField("values",TString_Map.typeName)
 
   lazy val typeName = TypeName("Message")
 

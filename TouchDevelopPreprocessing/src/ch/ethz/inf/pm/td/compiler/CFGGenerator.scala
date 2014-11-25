@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Expression, VariableIdentifier, _}
 import ch.ethz.inf.pm.sample.oorepresentation.{ConstantStatement, EmptyStatement, FieldAccess, MethodCall, Statement, Variable, VariableDeclaration, _}
 import ch.ethz.inf.pm.td._
-import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.parser.{Box, ExpressionStatement, InlineAction, LibraryDefinition, MetaStatement, Parameter, TableDefinition, TypeName, WhereStatement, _}
 import ch.ethz.inf.pm.td.semantics._
 import ch.ethz.inf.pm.td.typecheck.Typer
@@ -106,13 +106,13 @@ class CFGGenerator(compiler: TouchCompiler) {
       compiler.userTypes += semantics.typeName -> semantics
     }
 
-    def addRecordsField(field: TouchField) {
+    def addRecordsField(field: ApiField) {
       compiler.recordsFields += field
     }
 
-    def toTouchField(fields: List[Parameter]): List[TouchField] = {
+    def toTouchField(fields: List[Parameter]): List[ApiField] = {
       for (field <- fields) yield {
-        new TouchField(field.ident, field.typeName)
+        new ApiField(field.ident, field.typeName)
       }
     }
 
@@ -129,7 +129,7 @@ class CFGGenerator(compiler: TouchCompiler) {
               addTouchType(new GObject(TypeName(ident),toTouchField(fields)))
               addTouchType(new GObjectCollection(objectTypeName))
               addTouchType(objectConstructor)
-              addRecordsField(new TouchField(ident, objectConstructor.typeName))
+              addRecordsField(new ApiField(ident, objectConstructor.typeName))
 
             case "table" =>
 
@@ -137,7 +137,7 @@ class CFGGenerator(compiler: TouchCompiler) {
               val tableType = new GTable(rowTypName)
               addTouchType(new GRow(rowTypName, toTouchField(fields)))
               addTouchType(tableType)
-              addRecordsField(new TouchField(ident + " table", tableType.typeName))
+              addRecordsField(new ApiField(ident + " table", tableType.typeName))
 
             case "index" =>
 
@@ -154,7 +154,7 @@ class CFGGenerator(compiler: TouchCompiler) {
                 }
               addTouchType(indexType)
 
-              addRecordsField(new TouchField(ident + " index", indexType.typeName))
+              addRecordsField(new ApiField(ident + " index", indexType.typeName))
 
             case "decorator" =>
 
@@ -169,7 +169,7 @@ class CFGGenerator(compiler: TouchCompiler) {
 
               addTouchType(new GIndexMember(decorationType, keyMembers, fieldMembers))
               addTouchType(decoratorType)
-              addRecordsField(new TouchField(decoratedType + " decorator", decoratorType.typeName))
+              addRecordsField(new ApiField(decoratedType + " decorator", decoratorType.typeName))
 
             case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 

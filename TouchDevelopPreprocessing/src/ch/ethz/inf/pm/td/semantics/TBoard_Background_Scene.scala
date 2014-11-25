@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -16,13 +16,13 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TBoard_Background_Scene extends ACollection {
+object TBoard_Background_Scene extends ALinearCollection {
 
   /** Gets the view horizontal offset */
-  lazy val field_view_x = new TouchField("view x", TNumber.typeName)
+  lazy val field_view_x = new ApiField("view x", TNumber.typeName)
 
   /** Gets the view vertical offset */
-  lazy val field_view_y = new TouchField("view y", TNumber.typeName)
+  lazy val field_view_y = new ApiField("view y", TNumber.typeName)
 
   lazy val typeName = TypeName("Board Background Scene")
 

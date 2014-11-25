@@ -4,9 +4,11 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
+import ch.ethz.inf.pm.td.compiler.{ApiMember, TouchCompiler, TouchType}
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import RichNativeSemantics._
+import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.typecheck.Member
 
 /**
  * User: Lucas Brutschy
@@ -18,6 +20,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
   def isSingleton = false
   def isImmutable = true
 
+  def declarations:Map[String,ApiMember] = Map.empty
   def possibleFields = Set.empty
 
   override def representedFields =
@@ -28,9 +31,9 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
     } else {
       possibleFields -- mutedFields
     }
-  def representedTouchFields = representedFields.map(_.asInstanceOf[TouchField])
+  def representedTouchFields = representedFields.map(_.asInstanceOf[ApiField])
 
-  def mutedFields:Set[TouchField] = Set.empty
+  def mutedFields:Set[ApiField] = Set.empty
 
   /**
    * Backward semantics are empty for all native function for now

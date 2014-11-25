@@ -36,4 +36,14 @@ object URLFetcher {
     codeSource.getLines().mkString("\n")
   }
 
+  /**
+   * Download the given File and return the contents as a string.
+   *
+   * @param path the File to load
+   * @return A string containing the payload
+   */
+  def fetchLocalFile(path: String): String = {
+    Source.fromFile(path).getLines().mkString("\n")
+  }
+
 }

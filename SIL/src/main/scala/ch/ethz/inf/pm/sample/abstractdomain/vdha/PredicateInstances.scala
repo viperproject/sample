@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{DummyProgramPoint, Type}
 import ch.ethz.inf.pm.sample.oorepresentation.sil.PredType
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
-import com.weiglewilczek.slf4s.Logging
+import org.slf4s.Logging
 
 case class PredicateInstancesDomain(
     map: Map[Identifier, PredicateInstanceDomain] = Map.empty,
@@ -125,7 +125,7 @@ case class PredicateInstancesDomain(
       state: PredicateInstanceState, ArithmeticOperator.==, _) =>
       add(id, get(id).add(state))
     case _ =>
-      logger.debug(s"Assuming expression $expr in predicate instances domain " +
+      log.debug(s"Assuming expression $expr in predicate instances domain " +
         "is not supported")
       this
   }

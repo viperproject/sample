@@ -2,12 +2,12 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
-case class GRow(typeName: TypeName, fields: List[TouchField]) extends AAny {
+case class GRow(typeName: TypeName, fields: List[ApiField]) extends AAny {
 
   override def possibleFields = super.possibleFields ++ (GTable(typeName).field_table :: fields)
 

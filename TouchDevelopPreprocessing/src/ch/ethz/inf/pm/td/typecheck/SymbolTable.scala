@@ -29,12 +29,16 @@ abstract class AbstractSymbolTable {
 
   protected var types = new mutable.HashMap[TypeName,Map[String,Member]]
 
-  protected var genericTypes = new mutable.HashMap[TypeName,TypeName => Map[String,Member]]
+  protected var genericTypes = new mutable.HashMap[String,TypeName => List[Member]]
 
   def addSingleton (name:String,members:List[Member]) {
     val objName = TypeName(name)
     types(objName) = if (types.contains(objName)) types(objName) else immutable.Map.empty[String,Member]
     for (mem <- members) types(objName) = types(objName) + (mem.name -> mem)
+  }
+
+  def addGenericType (name:String, members:TypeName => List[Member]): Unit = {
+    genericTypes(name) = members
   }
 
   def addType (name:String,members:List[Member]) {
@@ -89,14 +93,12 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
   /** User defined types */
   private val usertypes = new mutable.HashMap[TypeName,Map[String,Member]]
 
-  def addUserSingleton (name:String,members:List[Member]) {
-    val objName = TypeName(name)
+  def addUserSingleton (objName:TypeName,members:List[Member]) {
     usertypes(objName) = if (usertypes.contains(objName)) usertypes(objName) else immutable.Map.empty[String,Member]
     for (mem <- members) usertypes(objName) = usertypes(objName) + (mem.name -> mem)
   }
 
-  def addUserType (name:String,members:List[Member]) {
-    val typeName = TypeName(name)
+  def addUserType (typeName:TypeName,members:List[Member]) {
     usertypes(typeName) = if (usertypes.contains(typeName)) usertypes(typeName) else immutable.Map.empty[String,Member]
     for (mem <- members) usertypes(typeName) = usertypes(typeName) + (mem.name -> mem)
   }

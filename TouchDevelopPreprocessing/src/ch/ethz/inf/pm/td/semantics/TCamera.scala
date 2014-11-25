@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,13 +19,13 @@ import RichNativeSemantics._
 object TCamera extends AAny {
 
   /** Gets the height of the camera image in pixels. */
-  lazy val field_height = new TouchField("height",TNumber.typeName)
+  lazy val field_height = new ApiField("height",TNumber.typeName)
 
   /** Gets the width of the camera image in pixels. */
-  lazy val field_width = new TouchField("width",TNumber.typeName)
+  lazy val field_width = new ApiField("width",TNumber.typeName)
 
   /** Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */
-  lazy val field_is_front = new TouchField("is front",TBoolean.typeName)
+  lazy val field_is_front = new ApiField("is front",TBoolean.typeName)
 
   lazy val typeName = TypeName("Camera")
 

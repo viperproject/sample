@@ -13,6 +13,7 @@ import ch.ethz.inf.pm.td.compiler.TouchCompiler;
 import ch.ethz.inf.pm.td.webapi.*;
 import scala.Option;
 import scala.collection.immutable.List;
+import scala.collection.immutable.Nil$;
 
 import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
@@ -121,7 +122,7 @@ public class WindowApplication {
 				if (file != null) {
 					try {
 						BufferedReader reader = new BufferedReader(new FileReader(file));
-						StringBuffer lineBuffer = new StringBuffer();
+						StringBuilder lineBuffer = new StringBuilder();
 						String line;
 						while ((line = reader.readLine()) != null) {
 							lineBuffer.append(line);
@@ -139,7 +140,7 @@ public class WindowApplication {
                     try {
                         URL url = new URL(urlField.getText());
                         BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
-                        StringBuffer lineBuffer = new StringBuffer();
+                        StringBuilder lineBuffer = new StringBuilder();
                         String line;
                         while ((line = reader.readLine()) != null) {
                             lineBuffer.append(line);
@@ -378,7 +379,7 @@ public class WindowApplication {
             // The core of the analysis
             public Void doInBackground() throws Exception {
                 try{
-					List<String> methods = List.empty();
+					List methods = Nil$.MODULE$;
 					for (Object method : methodListModel.toArray()) {
 						methods = methods.$colon$colon(method.toString());
 					}

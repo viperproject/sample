@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -18,69 +18,69 @@ import RichNativeSemantics._
 
 object SBox extends ASingleton {
 
-  lazy val field_is_init = new TouchField("is init", TBoolean.typeName)
+  lazy val field_is_init = new ApiField("is init", TBoolean.typeName)
 
-  lazy val field_horizontal_align = new TouchField("horizontal align", TString.typeName)
-  lazy val field_vertical_align = new TouchField("vertical align", TString.typeName)
+  lazy val field_horizontal_align = new ApiField("horizontal align", TString.typeName)
+  lazy val field_vertical_align = new ApiField("vertical align", TString.typeName)
 
-  lazy val field_left_horizontal_alignment = new TouchField("left horizontal alignment", TNumber.typeName)
-  lazy val field_right_horizontal_alignment = new TouchField("right horizontal alignment", TNumber.typeName)
+  lazy val field_left_horizontal_alignment = new ApiField("left horizontal alignment", TNumber.typeName)
+  lazy val field_right_horizontal_alignment = new ApiField("right horizontal alignment", TNumber.typeName)
 
-  lazy val field_left_vertical_alignment = new TouchField("left vertical alignment", TNumber.typeName)
-  lazy val field_right_vertical_alignment = new TouchField("right vertical alignment", TNumber.typeName)
+  lazy val field_left_vertical_alignment = new ApiField("left vertical alignment", TNumber.typeName)
+  lazy val field_right_vertical_alignment = new ApiField("right vertical alignment", TNumber.typeName)
 
-  lazy val field_font_size = new TouchField("font size", TNumber.typeName)
-  lazy val field_font_weight = new TouchField("font weight", TString.typeName)
+  lazy val field_font_size = new ApiField("font size", TNumber.typeName)
+  lazy val field_font_weight = new ApiField("font weight", TString.typeName)
 
-  lazy val field_top_margin = new TouchField("top margin", TNumber.typeName)
-  lazy val field_left_margin = new TouchField("left margin", TNumber.typeName)
-  lazy val field_right_margin = new TouchField("right margin", TNumber.typeName)
-  lazy val field_bottom_margin = new TouchField("bottom margin", TNumber.typeName)
+  lazy val field_top_margin = new ApiField("top margin", TNumber.typeName)
+  lazy val field_left_margin = new ApiField("left margin", TNumber.typeName)
+  lazy val field_right_margin = new ApiField("right margin", TNumber.typeName)
+  lazy val field_bottom_margin = new ApiField("bottom margin", TNumber.typeName)
 
-  lazy val field_bottom_padding = new TouchField("bottom padding", TNumber.typeName)
-  lazy val field_top_padding = new TouchField("top padding", TNumber.typeName)
-  lazy val field_left_padding = new TouchField("left padding", TNumber.typeName)
-  lazy val field_right_padding = new TouchField("right padding", TNumber.typeName)
+  lazy val field_bottom_padding = new ApiField("bottom padding", TNumber.typeName)
+  lazy val field_top_padding = new ApiField("top padding", TNumber.typeName)
+  lazy val field_left_padding = new ApiField("left padding", TNumber.typeName)
+  lazy val field_right_padding = new ApiField("right padding", TNumber.typeName)
 
-  lazy val field_background = new TouchField("background", TColor.typeName)
-  lazy val field_foreground = new TouchField("foreground", TColor.typeName)
+  lazy val field_background = new ApiField("background", TColor.typeName)
+  lazy val field_foreground = new ApiField("foreground", TColor.typeName)
 
-  lazy val field_border_color = new TouchField("border color", TColor.typeName)
-  lazy val field_border_width_top = new TouchField("border width top", TNumber.typeName)
-  lazy val field_border_width_right = new TouchField("border width right", TNumber.typeName)
-  lazy val field_border_width_left = new TouchField("border width left", TNumber.typeName)
-  lazy val field_border_width_bottom = new TouchField("border width bottom", TNumber.typeName)
+  lazy val field_border_color = new ApiField("border color", TColor.typeName)
+  lazy val field_border_width_top = new ApiField("border width top", TNumber.typeName)
+  lazy val field_border_width_right = new ApiField("border width right", TNumber.typeName)
+  lazy val field_border_width_left = new ApiField("border width left", TNumber.typeName)
+  lazy val field_border_width_bottom = new ApiField("border width bottom", TNumber.typeName)
 
-  lazy val field_height = new TouchField("height", TNumber.typeName)
-  lazy val field_width = new TouchField("width", TNumber.typeName)
+  lazy val field_height = new ApiField("height", TNumber.typeName)
+  lazy val field_width = new ApiField("width", TNumber.typeName)
 
-  lazy val field_page_width = new TouchField("page width", TNumber.typeName)
-  lazy val field_page_height = new TouchField("page height", TNumber.typeName)
+  lazy val field_page_width = new ApiField("page width", TNumber.typeName)
+  lazy val field_page_height = new ApiField("page height", TNumber.typeName)
 
-  lazy val field_text_wrapping_wrap = new TouchField("text wrapping wrap", TBoolean.typeName)
-  lazy val field_text_wrapping_minimumwidth = new TouchField("text wrapping minimumwidth", TNumber.typeName)
+  lazy val field_text_wrapping_wrap = new ApiField("text wrapping wrap", TBoolean.typeName)
+  lazy val field_text_wrapping_minimumwidth = new ApiField("text wrapping minimumwidth", TNumber.typeName)
 
-  lazy val field_horizontal_scrolling = new TouchField("horizontal scrolling ", TBoolean.typeName)
-  lazy val field_vertical_scrolling = new TouchField("vertical scrolling", TBoolean.typeName)
+  lazy val field_horizontal_scrolling = new ApiField("horizontal scrolling ", TBoolean.typeName)
+  lazy val field_vertical_scrolling = new ApiField("vertical scrolling", TBoolean.typeName)
 
-  lazy val field_overlay_layout = new TouchField("overlay layout", TBoolean.typeName)
-  lazy val field_horizontal_layout = new TouchField("horizontal layout", TBoolean.typeName)
-  lazy val field_vertical_layout = new TouchField("vertical layout", TBoolean.typeName)
+  lazy val field_overlay_layout = new ApiField("overlay layout", TBoolean.typeName)
+  lazy val field_horizontal_layout = new ApiField("horizontal layout", TBoolean.typeName)
+  lazy val field_vertical_layout = new ApiField("vertical layout", TBoolean.typeName)
 
   /** Specify how to compute box width (0 = shrink to fit content, 1 = stretch to fit frame, , 0.5 = stretch to half width) */
-  lazy val field_horizontal_stretch = new TouchField("horizontal stretch", TNumber.typeName)
-  lazy val field_vertical_stretch = new TouchField("vertical stretch", TNumber.typeName)
+  lazy val field_horizontal_stretch = new ApiField("horizontal stretch", TNumber.typeName)
+  lazy val field_vertical_stretch = new ApiField("vertical stretch", TNumber.typeName)
 
-  lazy val field_min_width = new TouchField("min width", TNumber.typeName)
-  lazy val field_max_width = new TouchField("max width", TNumber.typeName)
+  lazy val field_min_width = new ApiField("min width", TNumber.typeName)
+  lazy val field_max_width = new ApiField("max width", TNumber.typeName)
 
-  lazy val field_min_height = new TouchField("min height", TNumber.typeName)
-  lazy val field_max_height = new TouchField("max height", TNumber.typeName)
+  lazy val field_min_height = new ApiField("min height", TNumber.typeName)
+  lazy val field_max_height = new ApiField("max height", TNumber.typeName)
 
   // PRIVATE
-  lazy val field_text_edited_handler = new TouchField("text edited handler", TText_Action.typeName)
-  lazy val field_text_editing_handler = new TouchField("text editing handler", TText_Action.typeName)
-  lazy val field_tapped_handler = new TouchField("tapped handler", TAction.typeName)
+  lazy val field_text_edited_handler = new ApiField("text edited handler", TText_Action.typeName)
+  lazy val field_text_editing_handler = new ApiField("text editing handler", TText_Action.typeName)
+  lazy val field_tapped_handler = new ApiField("tapped handler", TAction.typeName)
 
   lazy val typeName = TypeName("Box")
   override def possibleFields = super.possibleFields ++ (List(

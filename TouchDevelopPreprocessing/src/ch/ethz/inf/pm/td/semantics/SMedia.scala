@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -16,25 +16,25 @@ import RichNativeSemantics._
 object SMedia extends ASingleton {
 
   /** Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings. */
-  lazy val field_icon_names = new TouchField("icon names", TString_Collection.typeName)
+  lazy val field_icon_names = new ApiField("icon names", TString_Collection.typeName)
 
   /** Gets the picture albums */
-  lazy val field_picture_albums = new TouchField("picture albums", TPicture_Albums.typeName)
+  lazy val field_picture_albums = new ApiField("picture albums", TPicture_Albums.typeName)
 
   /** Gets the pictures on the phone */
-  lazy val field_pictures = new TouchField("pictures", TPictures.typeName)
+  lazy val field_pictures = new ApiField("pictures", TPictures.typeName)
 
   /** Gets the playlists on the phone */
-  lazy val field_playlists = new TouchField("playlists", TPlaylists.typeName)
+  lazy val field_playlists = new ApiField("playlists", TPlaylists.typeName)
 
   /** Gets the saved pictures on the phone */
-  lazy val field_saved_pictures = new TouchField("saved pictures", TPictures.typeName)
+  lazy val field_saved_pictures = new ApiField("saved pictures", TPictures.typeName)
 
   /** Gets the song albums on the phone */
-  lazy val field_song_albums = new TouchField("song albums", TSong_Albums.typeName)
+  lazy val field_song_albums = new ApiField("song albums", TSong_Albums.typeName)
 
   /** Gets the songs on the phone */
-  lazy val field_songs = new TouchField("songs", TSongs.typeName)
+  lazy val field_songs = new ApiField("songs", TSongs.typeName)
 
   lazy val typeName = TypeName("Media")
 

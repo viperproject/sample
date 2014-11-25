@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 
@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
 object TTask extends AAny {
 
   /** Check if the task is done yet */
-  lazy val field_completed = new TouchField("completed",TBoolean.typeName)
+  lazy val field_completed = new ApiField("completed",TBoolean.typeName)
 
   val typeName = TypeName("Task")
 

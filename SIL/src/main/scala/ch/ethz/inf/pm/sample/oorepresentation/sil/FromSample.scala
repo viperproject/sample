@@ -1,7 +1,8 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
-import semper.sil.{ast => sil}
-import semper.sil.ast.SourcePosition
+import ch.ethz.inf.pm.sample.abstractdomain.{BooleanOperator, ArithmeticOperator}
+import viper.silver.{ast => sil}
+import viper.silver.ast.SourcePosition
 
 trait SampleConverter {
   /** Converts a Sample expression to a SIL expression. */
@@ -16,35 +17,32 @@ trait SampleConverter {
 
 object DefaultSampleConverter extends SampleConverter {
 
-  import sample.BooleanOperator.{&&, ||}
-  import sample.ArithmeticOperator._
-
   def convert(e: sample.Expression): sil.Exp = e match {
     case sample.NegatedBooleanExpression(inner) => sil.Not(go(inner))()
     case sample.BinaryBooleanExpression(left, right, op, typ) => op match {
-      case `&&` => sil.And(go(left), go(right))()
-      case `||` => sil.Or(go(left), go(right))()
+      case BooleanOperator.`&&` => sil.And(go(left), go(right))()
+      case BooleanOperator.`||` => sil.Or(go(left), go(right))()
     }
     case sample.ReferenceComparisonExpression(left, right, op, typ) => op match {
-      case `==` => sil.EqCmp(go(left), go(right))()
-      case `!=` => sil.NeCmp(go(left), go(right))()
+      case ArithmeticOperator.`==` => sil.EqCmp(go(left), go(right))()
+      case ArithmeticOperator.`!=` => sil.NeCmp(go(left), go(right))()
     }
     case sample.BinaryArithmeticExpression(left, right, op, typ) => op match {
-      case `+` => sil.Add(go(left), go(right))()
-      case `-` => sil.Sub(go(left), go(right))()
-      case `*` => sil.Mul(go(left), go(right))()
-      case `/` => sil.Div(go(left), go(right))()
-      case `%` => sil.Mod(go(left), go(right))()
-      case `>=` => sil.GeCmp(go(left), go(right))()
-      case `<=` => sil.LeCmp(go(left), go(right))()
-      case `==` => sil.EqCmp(go(left), go(right))()
-      case `!=` => sil.NeCmp(go(left), go(right))()
-      case `<` => sil.LtCmp(go(left), go(right))()
-      case `>` => sil.GtCmp(go(left), go(right))()
+      case ArithmeticOperator.`+` => sil.Add(go(left), go(right))()
+      case ArithmeticOperator.`-` => sil.Sub(go(left), go(right))()
+      case ArithmeticOperator.`*` => sil.Mul(go(left), go(right))()
+      case ArithmeticOperator.`/` => sil.Div(go(left), go(right))()
+      case ArithmeticOperator.`%` => sil.Mod(go(left), go(right))()
+      case ArithmeticOperator.`>=` => sil.GeCmp(go(left), go(right))()
+      case ArithmeticOperator.`<=` => sil.LeCmp(go(left), go(right))()
+      case ArithmeticOperator.`==` => sil.EqCmp(go(left), go(right))()
+      case ArithmeticOperator.`!=` => sil.NeCmp(go(left), go(right))()
+      case ArithmeticOperator.`<` => sil.LtCmp(go(left), go(right))()
+      case ArithmeticOperator.`>` => sil.GtCmp(go(left), go(right))()
     }
     case sample.UnaryArithmeticExpression(inner, op, typ) => op match {
-      case `+` => go(inner)
-      case `-` => sil.Neg(go(inner))()
+      case ArithmeticOperator.`+` => go(inner)
+      case ArithmeticOperator.`-` => sil.Neg(go(inner))()
     }
     case sample.Constant(c, typ, pp) => typ match {
       case sample.BoolType => c match {

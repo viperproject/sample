@@ -1,3 +1,5 @@
-scalaSource in Compile <<= baseDirectory(_ / "src")
+scalaSource in Compile := baseDirectory.value / "src"
 
-libraryDependencies += "commons-io" % "commons-io" % "2.0.1"
+libraryDependencies += "commons-io" % "commons-io" % "2.4"
+libraryDependencies += "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.2"
+

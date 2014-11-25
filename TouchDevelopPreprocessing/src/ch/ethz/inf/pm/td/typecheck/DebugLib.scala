@@ -18,20 +18,5 @@ trait DebugLib extends AbstractSymbolTable {
     Member("∥",List("Unknown"),"String")
   ))
 
-  // A collection of appointments
-  addType("User Collection", gMutableCollection("User Collection", "User"))
-
-  // A collection of appointments
-  addType("Action Collection", gMutableCollection("Action Collection", "Action"))
-
-  // A collection of appointments
-  addType("Sound Collection", gMutableCollection("Sound Collection", "Sound"))
-
-  // A collection of appointments
-  addType("Picture Collection", gMutableCollection("Picture Collection", "Picture"))
-
-  // A collection of appointments
-  addType("Bluetooth Device Collection", gMutableCollection("Bluetooth Device Collection", "Bluetooth Device"))
-
 
 }

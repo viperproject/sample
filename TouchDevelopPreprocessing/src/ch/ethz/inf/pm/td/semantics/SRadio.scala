@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{NewInitializer, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{NewInitializer, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,10 +19,10 @@ import RichNativeSemantics._
 object SRadio extends ASingleton {
 
   /** Gets the frequency */
-  lazy val field_frequency = new TouchField("frequency",TNumber.typeName, NewInitializer)
+  lazy val field_frequency = new ApiField("frequency",TNumber.typeName, NewInitializer)
 
   /** Indicates if the radio is on */
-  lazy val field_is_playing = new TouchField("is playing",TBoolean.typeName, NewInitializer)
+  lazy val field_is_playing = new ApiField("is playing",TBoolean.typeName, NewInitializer)
 
   lazy val typeName = TypeName("Radio")
 

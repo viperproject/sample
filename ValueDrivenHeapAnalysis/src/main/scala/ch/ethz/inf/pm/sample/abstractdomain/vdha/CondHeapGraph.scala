@@ -202,8 +202,6 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
         result
       }
       case ReferenceComparisonExpression(left, right, op, returnTyp) => {
-        import ArithmeticOperator._
-
         evalExp(left).intersect(evalExp(right)).apply().mapCondHeaps(condHeap => {
           def targetVertex(exp: Expression): Vertex = exp match {
             case (Constant("null", _, _)) => NullVertex
@@ -214,9 +212,9 @@ case class CondHeapGraph[S <: SemanticDomain[S]](
           val rightTarget = targetVertex(right)
 
           op match {
-            case `==` =>
+            case ArithmeticOperator.`==` =>
               if (leftTarget == rightTarget) Seq(condHeap) else Seq()
-            case `!=` =>
+            case ArithmeticOperator.`!=` =>
               if (leftTarget != rightTarget || leftTarget.isInstanceOf[SummaryHeapVertex]) Seq(condHeap) else Seq()
           }
         })

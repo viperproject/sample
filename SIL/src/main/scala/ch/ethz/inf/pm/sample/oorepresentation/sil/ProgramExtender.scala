@@ -1,14 +1,13 @@
 package ch.ethz.inf.pm.sample.oorepresentation.sil
 
-import semper.sil.{ast => sil}
+import org.slf4s.Logging
+import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, vdha}
 import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.execution.{AnalysisResult, AbstractCFGState}
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.oorepresentation.CFGPosition
-import scala.Some
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.UnfoldGhostOpEvent
-import com.weiglewilczek.slf4s.Logging
 
 case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
   type T = PredicateDrivenHeapState[S]
@@ -34,19 +33,12 @@ case class ProgramExtender[S <: ApronInterface[S]]() extends Logging {
         }
       }).unzip
 
-      // Ensure that all method calls in the program refer to
-      // the extended methods
-      newMethods = newMethods.map(_.transform({
-        case mc @ sil.MethodCall(m, _, _) =>
-          mc.copy(method = newMethods.find(_.name == m.name).get)(mc.pos, mc.info)
-      })())
-
       // Now build the new program
       val result = p.copy(
         methods = newMethods,
         predicates = p.predicates ++ newPredicates.flatten)(p.pos, p.info)
 
-      logger.info(s"Extended Program:\n $result")
+      log.info(s"Extended Program:\n $result")
 
       result
     })

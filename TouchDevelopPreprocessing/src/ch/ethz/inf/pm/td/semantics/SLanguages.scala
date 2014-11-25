@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,7 +19,7 @@ import RichNativeSemantics._
 object SLanguages extends ASingleton {
 
   /** Gets the current language code, to be used in the 'translate' method. */
-  lazy val field_current_language = new TouchField("current language", TString.typeName)
+  lazy val field_current_language = new ApiField("current language", TString.typeName)
 
   lazy val typeName = TypeName("Languages")
 

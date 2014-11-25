@@ -1,6 +1,8 @@
 package ch.ethz.inf.pm.td.typecheck
 
 import GenericTypes._
+import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.semantics._
 
 /**
  *
@@ -15,2334 +17,2395 @@ trait StdLib extends AbstractSymbolTable {
 
 
   // Represents no value of interest
-  addType("Nothing", gAny("Nothing") ::: List(
+  addType("Nothing", gAny(TNothing.typeName) ::: List(
 
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Action", gAny("Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", "Nothing") /* Run the inline action. */
+  addType("Action", gAny(TAction.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Text Action", gAny("Text Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("String"), "Nothing") /* Run the inline action. */
+  addType("Text Action", gAny(TText_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TString.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Number Action", gAny("Number Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Number"), "Nothing") /* Run the inline action. */
+  addType("Number Action", gAny(TNumber_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TNumber.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Boolean Action", gAny("Boolean Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Boolean"), "Nothing") /* Run the inline action. */
+  addType("Boolean Action", gAny(TBoolean_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TBoolean.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Position Action", gAny("Position Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Number", "Number"), "Nothing") /* Run the inline action. */
+  addType("Position Action", gAny(TPosition_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Sprite Action", gAny("Sprite Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Sprite"), "Nothing") /* Run the inline action. */
+  addType("Sprite Action", gAny(TSprite_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TSprite.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Sprite Set Action", gAny("Sprite Set Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Sprite Set"), "Nothing") /* Run the inline action. */
+  addType("Sprite Set Action", gAny(TSprite_Set_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TSprite_Set.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Vector Action", gAny("Vector Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Number", "Number", "Number", "Number"), "Nothing") /* Run the inline action. */
+  addType("Vector Action", gAny(TVector_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Web Response Action", gAny("Web Response Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Web Response"), "Nothing") /* Run the inline action. */
+  addType("Web Response Action", gAny(TWeb_Response_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TWeb_Response.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Message Collection Action", gAny("Message Collection Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Message Collection"), "Nothing") /* Run the inline action. */
+  addType("Message Collection Action", gAny(TMessage_Collection_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TMessage_Collection.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // A place to hook up an action to execute in response to an event
-  addType("Json Action", gAny("Json Action") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Json Object"), "Nothing") /* Run the inline action. */
+  addType("Json Action", gAny(TJson_Action.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TJson_Object.typeName), TNothing.typeName) /* Run the inline action. */
   ))
 
   // An atomic comparison action
-  addType("Comparison", gAny("Comparison") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Elt", "Elt"), "Number") /* Run the inline action. */
-  ))
+  addGenericType("Comparison", { TElt:TypeName => gAny(TComparison.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TElt, TElt), TNumber.typeName) /* Run the inline action. */
+  )})
 
   // An atomic predicate test
-  addType("Predicate", gAny("Predicate") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Elt"), "Boolean") /* Run the inline action. */
-  ))
+  addGenericType("Predicate", { TElt:TypeName => gAny(TPredicate.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TElt), TBoolean.typeName) /* Run the inline action. */
+  )})
+
+//  // An atomic single argument action
+//  addGenericType("Atomic Action1", { TT:TypeName => gAny(TAtomic_Action1.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("run", List(TT), TNothing.typeName) /* Run the inline action. */
+//  )})
+
+//  // A possibly non-atomic single argument action
+//  addGenericType("Action1", { TT:TypeName => gAny(TAction1.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("run", List(TT), TNothing.typeName) /* Run the inline action. */
+//  )})
 
   // An atomic conversion function to number
-  addType("Number Converter", gAny("Number Converter") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Elt"), "Number") /* Run the inline action. */
-  ))
+  addGenericType("Number Converter", { TT:TypeName => gAny(TNumber_Converter.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TT), TNumber.typeName) /* Run the inline action. */
+  )})
 
   // An atomic conversion function to string
-  addType("String Converter", gAny("String Converter") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("Elt"), "String") /* Run the inline action. */
-  ))
+  addGenericType("String Converter", { TElt:TypeName => gAny(TString_Converter.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("run", List(TElt), TString.typeName) /* Run the inline action. */
+  )})
 
   // A generic atomic conversion function
-  addType("Converter", gAny("Converter") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("run", List("From"), "To") /* Run the inline action. */
+  addType("Converter", gAny(TConverter.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */
+    //Member("run", List(TFrom.typeName), TTo.typeName) /* Run the inline action. */
   ))
 
+  // A custom logger
+//  addType("App Logger", gAny(TApp_Logger.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("debug", List(TString.typeName), TNothing.typeName) /* Logs a debug message */ ,
+//    Member("info", List(TString.typeName), TNothing.typeName) /* Logs an informational message */ ,
+//    Member("warning", List(TString.typeName), TNothing.typeName) /* Logs a warning message */ ,
+//    Member("error", List(TString.typeName), TNothing.typeName) /* Logs an error message */ ,
+//    Member("log", List(TString.typeName, TString.typeName, TJson_Object.typeName), TNothing.typeName) /* Logs a new message with optional metadata. The level follows the syslog convention. */
+//  ))
+
+  // Various properties of application environment
+//  addType("App Env", gAny(TApp_Env.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("user agent", TString.typeName) /* Get the browser name and version */ ,
+//    Member("runtime kind", TString.typeName) /* Where are we running from: "editor", "website", "nodejs", "mobileapp", "plugin" */ ,
+//    Member("form factor", TString.typeName) /* Get device 'size': "phone", "tablet", or "desktop" */ ,
+//    Member("operating system", TString.typeName) /* Get current OS: "windows", "osx", "linux", "wp", "ios", "android", ... */ ,
+//    Member("initial url", TString.typeName) /* Initial URL used to launch the website; invalid when `->runtime kind` is "editor" */
+//  ))
+
   // Interact with the app runtime
-  addSingleton("App", gAlsoSingletons("App") ::: List(
-    Member("log", List("String"), "Nothing") /* Appends this message to the debug log. */ ,
-    Member("current handler", "Event Binding") /* Gets the binding of the current handler if any. This can be used to delete a handler from itself. */ ,
-    Member("stop", "Nothing") /* Stops the app. */ ,
-    Member("fail if not", List("Boolean"), "Nothing") /* Aborts the execution if the condition is false. */ ,
-    Member("javascript", List("String", "String"), "Nothing") /* [**dbg**] When exported server-side, run `script` instead of the body of the action */ ,
-    Member("javascript async", List("String", "String"), "Nothing") /* [**dbg**] When exported server-side, run `script` instead of the body of the action */ ,
-    Member("javascript import", List("String", "String"), "Nothing") /* [**dbg**] Make `module` available in `app->javascript` calls; if `version` is non-empty it will be installed with npm */ ,
-    Member("server request", "Server Request") /* [**beta**] Get the current incomming HTTP web request */ ,
-    Member("server response", "Server Response") /* [**beta**] Get the response corresponding to the current incomming HTTP web request */ ,
-    Member("editor", "Editor") /* [**dbg**] Get the Editor interface */
+  addSingleton("App", gAlsoSingletons(SApp.typeName) ::: List(
+//    Member("create logger", List(TString.typeName), TApp_Logger.typeName) /* Creates a specialized logger */ ,
+    Member("log", List(TString.typeName), TNothing.typeName) /* Appends this message to the debug log. */ ,
+    Member("current handler", TEvent_Binding.typeName) /* Gets the binding of the current handler if any. This can be used to delete a handler from itself. */ ,
+    Member("stop", TNothing.typeName) /* Stops the app. */ ,
+    Member("fail if not", List(TBoolean.typeName), TNothing.typeName) /* Aborts the execution if the condition is false. */ ,
+    Member("server setting", List(TString.typeName, TBoolean.typeName), TString.typeName) /* [**beta**] When exported server-side, retreives the value of a setting stored on the server. If not optional, fails if missing. Returns invalid if missing. */ ,
+    Member("javascript", List(TString.typeName, TString.typeName), TNothing.typeName) /* [**dbg**] When exported server-side, run `script` instead of the body of the action */ ,
+    Member("javascript async", List(TString.typeName, TString.typeName), TNothing.typeName) /* [**dbg**] When exported server-side, run `script` instead of the body of the action */ ,
+    Member("cordova import", List(TString.typeName, TString.typeName), TNothing.typeName) /* [**dbg**] When exported client-side, adds the Cordova plugin to the client build */ ,
+    Member("javascript import", List(TString.typeName, TString.typeName), TNothing.typeName) /* [**dbg**] When exported server-side, make `module` available in `app->javascript` calls; if `version` is non-empty it will be installed with npm */ ,
+    Member("server request", TServer_Request.typeName) /* [**beta**] Get the current incomming HTTP web request */ ,
+    Member("server response", TServer_Response.typeName) /* [**beta**] Get the response corresponding to the current incomming HTTP web request */ ,
+    Member("editor", TEditor.typeName) /* [**beta**] Get the Editor interface */
+//    Member("env", TApp_Env.typeName) /* [**beta**] Access various properties of application environment */
   ))
 
   // An calendar appointment
-  addType("Appointment", gAny("Appointment") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("is private", "Boolean") /* Indicates if this appointment is private */ ,
-    Member("is all day event", "Boolean") /* Indicates if this is an all day event */ ,
-    Member("status", "String") /* Gets your status (free, tentative, busy, outofoffice) */ ,
-    Member("organizer", "Contact") /* Gets the organizer */ ,
-    Member("end time", "DateTime") /* Gets the end time */ ,
-    Member("start time", "DateTime") /* Gets the location */ ,
-    Member("location", "String") /* Gets the location */ ,
-    Member("subject", "String") /* Gets the subject */ ,
-    Member("details", "String") /* Gets the details */ ,
-    Member("source", "String") /* Gets the source of this appointment (facebook, etc...) */ ,
-    Member("attendees", "Contact Collection") /* Gets the list of attendees. Each contact contains a name and email address. */ ,
-    Member("post to wall", "Nothing") /* Posts the appointment to the wall */
+  addType("Appointment", gAny(TAppointment.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("is private", TBoolean.typeName) /* Indicates if this appointment is private */ ,
+    Member("is all day event", TBoolean.typeName) /* Indicates if this is an all day event */ ,
+    Member("status", TString.typeName) /* Gets your status (free, tentative, busy, outofoffice) */ ,
+    Member("organizer", TContact.typeName) /* Gets the organizer */ ,
+    Member("end time", TDateTime.typeName) /* Gets the end time */ ,
+    Member("start time", TDateTime.typeName) /* Gets the location */ ,
+    Member("location", TString.typeName) /* Gets the location */ ,
+    Member("subject", TString.typeName) /* Gets the subject */ ,
+    Member("details", TString.typeName) /* Gets the details */ ,
+    Member("source", TString.typeName) /* Gets the source of this appointment (facebook, etc...) */ ,
+    Member("attendees", TContact_Collection.typeName) /* Gets the list of attendees. Each contact contains a name and email address. */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the appointment to the wall */
   ))
 
   // A collection of appointments
-  addType("Appointment Collection", gAny("Appointment Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of appointments */ ,
+  addType("Appointment Collection", gAny(TAppointment_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of appointments */ ,
     Member("at index", List("Number"), "Appointment") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Appointment Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Appointment") /* Gets the appointment at index */ ,
-    Member("post to wall", "Nothing") /* Posts the appointments on the wall */
+    Member("at", List(TNumber.typeName), TAppointment.typeName) /* Gets the appointment at index */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the appointments on the wall */
   ))
 
   // Browse and review scripts from the bazaar
-  addSingleton("Bazaar", gAlsoSingletons("Bazaar") ::: List(
-    Member("user of", List("String"), "User") /* Returns a user object for a specified user id */ ,
-    Member("current user", "User") /* Returns the user object of the current user */ ,
-    Member("leaderboard score", "Number") /* Gets the current score for the current script */ ,
-    Member("post leaderboard score", List("Number"), "Nothing") /* Posts the current game score to the script leaderboard */ ,
-    Member("post leaderboard to wall", "Nothing") /* Posts the current game leaderboard to the wall */ ,
-    Member("open", "Nothing") /* [**obsolete**] Launches the bazaar. */ ,
-    Member("open review", "Nothing") /* [**obsolete**] Opens the review page for the current script */ ,
-    Member("open leaderboard", "Nothing") /* [**obsolete**] Opens the leaderboard for the current script */ ,
-    Member("script id", List("String"), "String") /* Returns an identifier of either the top-level script or the current library */ ,
-    Member("pick script", List("String", "String"), "String") /* Asks the user to pick a script and return its identifier */ ,
-    Member("save ast", List("String", "Json Object"), "Nothing") /* Saves given Abstract Syntax Tree as a script */ ,
-    Member("ast of", List("String"), "Json Object") /* Returns the Abstract Syntax Tree JSON object for specified script */
+  addSingleton("Bazaar", gAlsoSingletons(SBazaar.typeName) ::: List(
+    Member("user of", List(TString.typeName), TUser.typeName) /* Returns a user object for a specified user id */ ,
+    Member("current user", TUser.typeName) /* Returns the user object of the current user */ ,
+    Member("leaderboard score", TNumber.typeName) /* Gets the current score for the current script */ ,
+    Member("post leaderboard score", List(TNumber.typeName), TNothing.typeName) /* Posts the current game score to the script leaderboard */ ,
+    Member("post leaderboard to wall", TNothing.typeName) /* Posts the current game leaderboard to the wall */ ,
+    Member("merge3", List(TString.typeName, TString.typeName, TString.typeName), TString.typeName) /* [**dbg**] three-way merge script texts. Debug only: for testing. */ ,
+    Member("open", TNothing.typeName) /* [**obsolete**] Launches the bazaar. */ ,
+    Member("open review", TNothing.typeName) /* [**obsolete**] Opens the review page for the current script */ ,
+    Member("open leaderboard", TNothing.typeName) /* [**obsolete**] Opens the leaderboard for the current script */ ,
+    Member("script id", List(TString.typeName), TString.typeName) /* Returns an identifier of either the top-level script or the current library */ ,
+    Member("pick script", List(TString.typeName, TString.typeName), TString.typeName) /* Asks the user to pick a script and return its identifier */ ,
+    Member("save ast", List(TString.typeName, TJson_Object.typeName), TNothing.typeName) /* Saves given Abstract Syntax Tree as a script */ ,
+    Member("ast of", List(TString.typeName), TJson_Object.typeName) /* Returns the Abstract Syntax Tree JSON object for specified script */
   ))
 
   // Arithmetic and bitwise operations on 32 bit integers
-  addSingleton("Bits", gAlsoSingletons("Bits") ::: List(
-    Member("add uint32", List("Number", "Number"), "Number") /* Add two unsigned 32 bit numbers */ ,
-    Member("subtract uint32", List("Number", "Number"), "Number") /* Subtract two unsigned 32 bit numbers */ ,
-    Member("multiply uint32", List("Number", "Number"), "Number") /* Multiply two unsigned 32 bit numbers */ ,
-    Member("add int32", List("Number", "Number"), "Number") /* Add two signed 32 bit numbers */ ,
-    Member("subtract int32", List("Number", "Number"), "Number") /* Subtract two signed 32 bit numbers */ ,
-    Member("multiply int32", List("Number", "Number"), "Number") /* Multiply two signed 32 bit numbers */ ,
-    Member("and uint32", List("Number", "Number"), "Number") /* Perform bitwise and (`&` in C) */ ,
-    Member("or uint32", List("Number", "Number"), "Number") /* Perform bitwise or (`|` in C) */ ,
-    Member("xor uint32", List("Number", "Number"), "Number") /* Perform bitwise exclusive or (`^` in C) */ ,
-    Member("not uint32", List("Number"), "Number") /* Perform bitwise negation (`~` in C) */ ,
-    Member("shift left uint32", List("Number", "Number"), "Number") /* Shift `x` by `bits` left (`<<` in C) */ ,
-    Member("shift right uint32", List("Number", "Number"), "Number") /* Shift `x` by `bits` right (`>>` in C, `>>>` in JavaScript) */ ,
-    Member("rotate left uint32", List("Number", "Number"), "Number") /* Rotate `x` by `bits` left (rotl) */ ,
-    Member("rotate right uint32", List("Number", "Number"), "Number") /* Rotate `x` by `bits` right (rotr) */ ,
-    Member("create buffer", List("Number"), "Buffer") /* Creates an empty binary buffer of `size` bytes */ ,
-    Member("string to buffer", List("String", "String"), "Buffer") /* Decodes string into a binary buffer */
+  addSingleton("Bits", gAlsoSingletons(SBits.typeName) ::: List(
+    Member("add uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Add two unsigned 32 bit numbers */ ,
+    Member("subtract uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Subtract two unsigned 32 bit numbers */ ,
+    Member("multiply uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Multiply two unsigned 32 bit numbers */ ,
+    Member("add int32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Add two signed 32 bit numbers */ ,
+    Member("subtract int32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Subtract two signed 32 bit numbers */ ,
+    Member("multiply int32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Multiply two signed 32 bit numbers */ ,
+    Member("and uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Perform bitwise and (`&` in C) */ ,
+    Member("or uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Perform bitwise or (`|` in C) */ ,
+    Member("xor uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Perform bitwise exclusive or (`^` in C) */ ,
+    Member("not uint32", List(TNumber.typeName), TNumber.typeName) /* Perform bitwise negation (`~` in C) */ ,
+    Member("shift left uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Shift `x` by `bits` left (`<<` in C) */ ,
+    Member("shift right uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Shift `x` by `bits` right (`>>` in C, `>>>` in JavaScript) */ ,
+    Member("rotate left uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Rotate `x` by `bits` left (rotl) */ ,
+    Member("rotate right uint32", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Rotate `x` by `bits` right (rotr) */ ,
+    Member("create buffer", List(TNumber.typeName), TBuffer.typeName) /* Creates an empty binary buffer of `size` bytes */ ,
+    Member("string to buffer", List(TString.typeName, TString.typeName), TBuffer.typeName) /* Decodes string into a binary buffer */
   ))
 
   // A device connected via Bluetooth
-  addType("Bluetooth Device", gAny("Bluetooth Device") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("name", "String") /* Get the user-friendly name of the device */ ,
-    Member("address", "String") /* Get the internal address of the device */ ,
-    Member("connected", "Boolean") /* Check if we're currently connected to device */ ,
-    Member("connect", "Nothing") /* Try to connect to the device; use `->connected` to check if it succeeded. */ ,
-    Member("disconnect", "Nothing") /* Close connection to the device. */ ,
-    Member("read buffer at most", List("Number"), "Buffer") /* Read at most `max_length` bytes from the device */ ,
-    Member("read buffer", List("Number"), "Buffer") /* Read exactly `length` bytes from the device */ ,
-    Member("write buffer", List("Buffer"), "Nothing") /* Send the `buffer` to the device */ ,
-    Member("post to wall", "Nothing") /* Display the name of the device */
+  addType("Bluetooth Device", gAny(TBluetooth_Device.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("name", TString.typeName) /* Get the user-friendly name of the device */ ,
+    Member("address", TString.typeName) /* Get the internal address of the device */ ,
+    Member("connected", TBoolean.typeName) /* Check if we're currently connected to device */ ,
+    Member("connect", TNothing.typeName) /* Try to connect to the device; use `->connected` to check if it succeeded. */ ,
+    Member("disconnect", TNothing.typeName) /* Close connection to the device. */ ,
+    Member("read buffer at most", List(TNumber.typeName), TBuffer.typeName) /* Read at most `max_length` bytes from the device */ ,
+    Member("read buffer", List(TNumber.typeName), TBuffer.typeName) /* Read exactly `length` bytes from the device */ ,
+    Member("write buffer", List(TBuffer.typeName), TNothing.typeName) /* Send the `buffer` to the device */ ,
+    Member("post to wall", TNothing.typeName) /* Display the name of the device */
   ))
 
   // A device connected via BluetoothLE
-  addType("Bluetooth Le Device", gAny("Bluetooth Le Device") ::: List(
-    Member("is invalid", "Boolean") /* [**dbg**] Returns true if the current instance is useless */ ,
-    Member("name", "String") /* [**dbg**] Get the user-friendly name of the device */ ,
-    Member("id", "String") /* [**dbg**] Get the device id */ ,
-    Member("services", "String Collection") /* [**dbg**] Gets the list of service UUID installed on the device */ ,
-    Member("connected", "Boolean") /* [**dbg**] Check if we're currently connected to device */ ,
-    Member("read value", List("String", "String"), "Buffer Collection") /* [**dbg**] Read the value for a given service and characteristic. */ ,
-    Member("write value", List("String", "String", "Boolean", "Buffer"), "Nothing") /* [**dbg**] Writes the `buffer` to the service characteristic. */ ,
-    Member("post to wall", "Nothing") /* [**dbg**] Display the name of the device */
+  addType("Bluetooth Le Device", gAny(TBluetooth_Le_Device.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* [**dbg**] Returns true if the current instance is useless */ ,
+    Member("name", TString.typeName) /* [**dbg**] Get the user-friendly name of the device */ ,
+    Member("id", TString.typeName) /* [**dbg**] Get the device id */ ,
+    Member("services", TString_Collection.typeName) /* [**dbg**] Gets the list of service UUID installed on the device */ ,
+    Member("connected", TBoolean.typeName) /* [**dbg**] Check if we're currently connected to device */ ,
+    Member("read value", List(TString.typeName, TString.typeName), TypeName("Collection",List(TBuffer.typeName))) /* [**dbg**] Read the value for a given service and characteristic. */ ,
+    Member("write value", List(TString.typeName, TString.typeName, TBoolean.typeName, TBuffer.typeName), TNothing.typeName) /* [**dbg**] Writes the `buffer` to the service characteristic. */ ,
+    Member("post to wall", TNothing.typeName) /* [**dbg**] Display the name of the device */
   ))
 
   // A board to build 2D games
-  addType("Board", gAny("Board") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("height", "Number") /* Gets the height in pixels */ ,
-    Member("count", "Number") /* Gets the sprite count */ ,
-    Member("width", "Number") /* Gets the width in pixels */ ,
-    Member("touched", "Boolean") /* True if board is touched */ ,
-    Member("touch start", "Vector3") /* Last touch start point */ ,
-    Member("touch current", "Vector3") /* Current touch point */ ,
-    Member("touch end", "Vector3") /* Last touch end point */ ,
-    Member("touch velocity", "Vector3") /* Final touch velocity after touch ended */ ,
-    Member("create boundary", List("Number"), "Nothing") /* Create walls around the board at the given distance. */ ,
-    Member("create sprite set", "Sprite Set") /* Create a new collection for sprites. */ ,
-    Member("frame timer", "Timer") /* gets the timer that fires for every display frame. */ ,
-    Member("add on every frame", List("Action"), "Event Binding") /* add an action that fires for every display frame. */ ,
-    Member("clear every frame timers", "Nothing") /* Stops and clears all the `every frame` timers */ ,
-    Member("on tap", List("Position Action"), "Event Binding") /* set the handler that is invoked when the board is tapped */ ,
-    Member("on swipe", List("Vector Action"), "Event Binding") /* set the handler that is invoked when the board is swiped */ ,
-    Member("on touch down", List("Position Action"), "Event Binding") /* set the handler that is invoked when the board is touched */ ,
-    Member("on touch up", List("Position Action"), "Event Binding") /* set the handler that is invoked when the board touch is released */ ,
-    Member("evolve", "Nothing") /* Update positions of sprites on board. */ ,
-    Member("equals", List("Board"), "Boolean") /* Checks if the board is the same instance as the other board. */ ,
-    Member("background scene", "Board Background Scene") /* Gets the background scene */ ,
-    Member("set background", List("Color"), "Nothing") /* Sets the background color */ ,
-    Member("set background camera", List("Camera"), "Nothing") /* Sets the background camera */ ,
-    Member("set background picture", List("Picture"), "Nothing") /* Sets the background picture */ ,
-    Member("set debug mode", List("Boolean"), "Nothing") /* In debug mode, board displays speed and other info of sprites */ ,
-    Member("set friction", List("Number"), "Nothing") /* Sets the default friction for sprites to a fraction of speed loss between 0 and 1 */ ,
-    Member("is landscape", "Boolean") /* Gets a value indicating if the board is designed to be viewed in landscape mode */ ,
-    Member("set gravity", List("Number", "Number"), "Nothing") /* Sets the uniform acceleration vector for objects on the board to pixels/sec^2 */ ,
+  addType("Board", gAny(TBoard.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("height", TNumber.typeName) /* Gets the height in pixels */ ,
+    Member("count", TNumber.typeName) /* Gets the sprite count */ ,
+    Member("width", TNumber.typeName) /* Gets the width in pixels */ ,
+    Member("touched", TBoolean.typeName) /* True if board is touched */ ,
+    Member("touch start", TVector3.typeName) /* Last touch start point */ ,
+    Member("touch current", TVector3.typeName) /* Current touch point */ ,
+    Member("touch end", TVector3.typeName) /* Last touch end point */ ,
+    Member("touch velocity", TVector3.typeName) /* Final touch velocity after touch ended */ ,
+    Member("create boundary", List(TNumber.typeName), TNothing.typeName) /* Create walls around the board at the given distance. */ ,
+    Member("create sprite set", TSprite_Set.typeName) /* Create a new collection for sprites. */ ,
+    Member("frame timer", TTimer.typeName) /* gets the timer that fires for every display frame. */ ,
+    Member("add on every frame", List(TAction.typeName), TEvent_Binding.typeName) /* add an action that fires for every display frame. */ ,
+    Member("clear every frame timers", TNothing.typeName) /* Stops and clears all the `every frame` timers */ ,
+    Member("on tap", List(TPosition_Action.typeName), TEvent_Binding.typeName) /* set the handler that is invoked when the board is tapped */ ,
+    Member("on swipe", List(TVector_Action.typeName), TEvent_Binding.typeName) /* set the handler that is invoked when the board is swiped */ ,
+    Member("on touch down", List(TPosition_Action.typeName), TEvent_Binding.typeName) /* set the handler that is invoked when the board is touched */ ,
+    Member("on touch up", List(TPosition_Action.typeName), TEvent_Binding.typeName) /* set the handler that is invoked when the board touch is released */ ,
+    Member("evolve", TNothing.typeName) /* Update positions of sprites on board. */ ,
+    Member("equals", List(TBoard.typeName), TBoolean.typeName) /* Checks if the board is the same instance as the other board. */ ,
+    Member("background scene", TBoard_Background_Scene.typeName) /* Gets the background scene */ ,
+    Member("set background", List(TColor.typeName), TNothing.typeName) /* Sets the background color */ ,
+    Member("set background camera", List(TCamera.typeName), TNothing.typeName) /* Sets the background camera */ ,
+    Member("set background picture", List(TPicture.typeName), TNothing.typeName) /* Sets the background picture */ ,
+    Member("set debug mode", List(TBoolean.typeName), TNothing.typeName) /* In debug mode, board displays speed and other info of sprites */ ,
+    Member("set friction", List(TNumber.typeName), TNothing.typeName) /* Sets the default friction for sprites to a fraction of speed loss between 0 and 1 */ ,
+    Member("is landscape", TBoolean.typeName) /* Gets a value indicating if the board is designed to be viewed in landscape mode */ ,
+    Member("set gravity", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the uniform acceleration vector for objects on the board to pixels/sec^2 */ ,
     Member("at index", List("Number"), "Sprite") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Board") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Sprite") /* Gets the sprite indexed by i */ ,
-    Member("update on wall", "Nothing") /* Make updates visible. */ ,
-    Member("create ellipse", List("Number", "Number"), "Sprite") /* Create a new ellipse sprite. */ ,
-    Member("create rectangle", List("Number", "Number"), "Sprite") /* Create a new rectangle sprite. */ ,
-    Member("create text", List("Number", "Number", "Number", "String"), "Sprite") /* Create a new text sprite. */ ,
-    Member("create picture", List("Picture"), "Sprite") /* Create a new picture sprite. */ ,
-    Member("create sprite sheet", List("Picture"), "Sprite Sheet") /* Create a new sprite sheet. */ ,
-    Member("create anchor", List("Number", "Number"), "Sprite") /* Create an anchor sprite. */ ,
-    Member("create obstacle", List("Number", "Number", "Number", "Number", "Number"), "Obstacle") /* Create a line obstacle with given start point, and given width and height. Elasticity is 0 for sticky, 1 for complete bounce. */ ,
-    Member("create spring", List("Sprite", "Sprite", "Number"), "Spring") /* Create a spring between the two sprites. */ ,
-    Member("clear events", "Nothing") /* Clear all queued events related to this board */ ,
-    Member("clear background camera", "Nothing") /* Clears the background camera */ ,
-    Member("clear background picture", "Nothing") /* Clear the background picture */ ,
-    Member("post to wall", "Nothing") /* Shows the board on the wall. */
+    Member("at", List(TNumber.typeName), TSprite.typeName) /* Gets the sprite indexed by i */ ,
+    Member("update on wall", TNothing.typeName) /* Make updates visible. */ ,
+    Member("create ellipse", List(TNumber.typeName, TNumber.typeName), TSprite.typeName) /* Create a new ellipse sprite. */ ,
+    Member("create rectangle", List(TNumber.typeName, TNumber.typeName), TSprite.typeName) /* Create a new rectangle sprite. */ ,
+    Member("create text", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TString.typeName), TSprite.typeName) /* Create a new text sprite. */ ,
+    Member("create picture", List(TPicture.typeName), TSprite.typeName) /* Create a new picture sprite. */ ,
+    Member("create sprite sheet", List(TPicture.typeName), TSprite_Sheet.typeName) /* Create a new sprite sheet. */ ,
+    Member("create anchor", List(TNumber.typeName, TNumber.typeName), TSprite.typeName) /* Create an anchor sprite. */ ,
+    Member("create obstacle", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TObstacle.typeName) /* Create a line obstacle with given start point, and given width and height. Elasticity is 0 for sticky, 1 for complete bounce. */ ,
+    Member("create spring", List(TSprite.typeName, TSprite.typeName, TNumber.typeName), TSpring.typeName) /* Create a spring between the two sprites. */ ,
+    Member("clear events", TNothing.typeName) /* Clear all queued events related to this board */ ,
+    Member("clear background camera", TNothing.typeName) /* Clears the background camera */ ,
+    Member("clear background picture", TNothing.typeName) /* Clear the background picture */ ,
+    Member("post to wall", TNothing.typeName) /* Shows the board on the wall. */
   ))
 
   // An obstacle on a board
-  addType("Obstacle", gAny("Obstacle") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("on collision", List("Sprite Action"), "Event Binding") /* Attaches a handler where a sprite bounces on the obstacle */ ,
-    Member("set color", List("Color"), "Nothing") /* Sets the obstacle color */ ,
-    Member("set thickness", List("Number"), "Nothing") /* Sets the obstacle thickness */ ,
-    Member("delete", "Nothing") /* Delete the obstacle */
+  addType("Obstacle", gAny(TObstacle.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("on collision", List(TSprite_Action.typeName), TEvent_Binding.typeName) /* Attaches a handler where a sprite bounces on the obstacle */ ,
+    Member("set color", List(TColor.typeName), TNothing.typeName) /* Sets the obstacle color */ ,
+    Member("set thickness", List(TNumber.typeName), TNothing.typeName) /* Sets the obstacle thickness */ ,
+    Member("delete", TNothing.typeName) /* Delete the obstacle */
   ))
 
   // A scene contains layers of parralax backgrounds.
-  addType("Board Background Scene", gAny("Board Background Scene") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("view x", "Number") /* Gets the view horizontal offset */ ,
-    Member("set view x", List("Number"), "Nothing") /* Sets the view horizontal offset */ ,
-    Member("view y", "Number") /* Gets the view vertical offset */ ,
-    Member("set view y", List("Number"), "Nothing") /* Sets the view vertical offset */ ,
-    Member("create layer", List("Number", "Picture"), "Board Background Layer") /* Creates a new layer on the scene. The distance determines the order of rendering and how fast the layer moves */ ,
-    Member("count", "Nothing") /* Gets the number of layers in the scene */ ,
+  addType("Board Background Scene", gAny(TBoard_Background_Scene.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("view x", TNumber.typeName) /* Gets the view horizontal offset */ ,
+    Member("set view x", List(TNumber.typeName), TNothing.typeName) /* Sets the view horizontal offset */ ,
+    Member("view y", TNumber.typeName) /* Gets the view vertical offset */ ,
+    Member("set view y", List(TNumber.typeName), TNothing.typeName) /* Sets the view vertical offset */ ,
+    Member("create layer", List(TNumber.typeName, TPicture.typeName), TBoard_Background_Layer.typeName) /* Creates a new layer on the scene. The distance determines the order of rendering and how fast the layer moves */ ,
+    Member("count", TNumber.typeName) /* Gets the number of layers in the scene */ ,
     Member("at index", List("Number"), "Board Background Layer") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Board Background Scene") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Board Background Layer") /* Gets the layer at the given index */ ,
-    Member("clear", "Nothing") /* Removes all layers from scene and resets the viewport */ ,
-    Member("post to wall", "Nothing") /* Displays the sprite sheet. */
+    Member("at", List(TNumber.typeName), TBoard_Background_Layer.typeName) /* Gets the layer at the given index */ ,
+    Member("clear", TNothing.typeName) /* Removes all layers from scene and resets the viewport */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the sprite sheet. */
   ))
 
   // A background scene layer
-  addType("Board Background Layer", gAny("Board Background Layer") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("picture", "Nothing") /* Gets the picture associated to the layer. */ ,
-    Member("distance", "Nothing") /* Gets the layer distance */ ,
-    Member("set distance", List("Number"), "Nothing") /* Sets the layer distance */ ,
-    Member("align x", "Nothing") /* Gets a value indicating how the picture aligns horizontally. The default is `left`. */ ,
-    Member("set align x", List("String"), "Nothing") /* Sets a value indicating how the picture aligns horizontally. The default is `left`. */ ,
-    Member("align y", "Nothing") /* Gets a value indicating how the picture aligns vertically. The default is `top`. */ ,
-    Member("set align y", List("String"), "Nothing") /* Sets a value indicating how the picture aligns vertically. The default is `top`. */ ,
-    Member("repeat x", "Nothing") /* Gets a value indicating if the background repeats horizontally */ ,
-    Member("set repeat x", List("Boolean"), "Nothing") /* Sets a value indicating if the background repeats horizontally */ ,
-    Member("repeat y", "Nothing") /* Gets a value indicating if the background repeats horizontally */ ,
-    Member("set repeat y", List("Boolean"), "Nothing") /* Sets a value indicating if the background repeats horizontally */
+  addType("Board Background Layer", gAny(TBoard_Background_Layer.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("picture", TNothing.typeName) /* Gets the picture associated to the layer. */ ,
+    Member("distance", TNothing.typeName) /* Gets the layer distance */ ,
+    Member("set distance", List(TNumber.typeName), TNothing.typeName) /* Sets the layer distance */ ,
+    Member("align x", TNothing.typeName) /* Gets a value indicating how the picture aligns horizontally. The default is `left`. */ ,
+    Member("set align x", List(TString.typeName), TNothing.typeName) /* Sets a value indicating how the picture aligns horizontally. The default is `left`. */ ,
+    Member("align y", TNothing.typeName) /* Gets a value indicating how the picture aligns vertically. The default is `top`. */ ,
+    Member("set align y", List(TString.typeName), TNothing.typeName) /* Sets a value indicating how the picture aligns vertically. The default is `top`. */ ,
+    Member("repeat x", TNothing.typeName) /* Gets a value indicating if the background repeats horizontally */ ,
+    Member("set repeat x", List(TBoolean.typeName), TNothing.typeName) /* Sets a value indicating if the background repeats horizontally */ ,
+    Member("repeat y", TNothing.typeName) /* Gets a value indicating if the background repeats horizontally */ ,
+    Member("set repeat y", List(TBoolean.typeName), TNothing.typeName) /* Sets a value indicating if the background repeats horizontally */
   ))
 
   // true or false
-  addType("Boolean", gAny("Boolean") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("equals", List("Boolean"), "Boolean") /* Indicates that the two values are equal */ ,
-    Member("not", "Boolean") /* Negates the boolean expression */ ,
-    Member("and", List("Boolean"), "Boolean") /* Builds conjunction */ ,
-    Member("or", List("Boolean"), "Boolean") /* Builds disjunction */ ,
-    Member("to string", "String") /* Converts a boolean to a string */ ,
-    Member("to number", "Number") /* Converts true to 1 and false to 0 */ ,
-    Member("post to wall", "Nothing") /* Displays the value on the wall */ ,
-    Member("to json", "Json Object") /* Converts the value into a json data structure. */
+  addType("Boolean", gAny(TBoolean.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("equals", List(TBoolean.typeName), TBoolean.typeName) /* Indicates that the two values are equal */ ,
+    Member("not", TBoolean.typeName) /* Negates the boolean expression */ ,
+    Member("and", List(TBoolean.typeName), TBoolean.typeName) /* Builds conjunction */ ,
+    Member("or", List(TBoolean.typeName), TBoolean.typeName) /* Builds disjunction */ ,
+    Member("to string", TString.typeName) /* Converts a boolean to a string */ ,
+    Member("to number", TNumber.typeName) /* Converts true to 1 and false to 0 */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the value on the wall */ ,
+    Member("to json", TJson_Object.typeName) /* Converts the value into a json data structure. */
   ))
 
   // Current box element in the page.
-  addSingleton("Box", gAlsoSingletons("Box") ::: List(
-    Member("set foreground", List("Color"), "Nothing") /* Sets the foreground color of elements. */ ,
-    Member("set background", List("Color"), "Nothing") /* Sets the background color. */ ,
-    Member("add background picture", List("Picture", "String", "String", "String", "String"), "Nothing") /* Sets the background picture. The picture must be a resource or from the web. The size of the picture does not impact the size of the box. */ ,
-    Member("use vertical layout", "Nothing") /* Arrange boxes inside this box from top to bottom. */ ,
-    Member("use horizontal layout", "Nothing") /* Arrange boxes inside this box from left to right. */ ,
-    Member("use overlay layout", "Nothing") /* Arrange boxes inside this box as layers on top of each other. */ ,
-    Member("set width", List("Number"), "Nothing") /* Set the width of this box. */ ,
-    Member("set height", List("Number"), "Nothing") /* Set the height of this box. */ ,
-    Member("set width range", List("Number", "Number"), "Nothing") /* Set lower and upper limits on the width of this box. */ ,
-    Member("set height range", List("Number", "Number"), "Nothing") /* Set lower and upper limits on the height of this box. */ ,
-    Member("set horizontal stretch", List("Number"), "Nothing") /* Specify how to compute box width (0 = shrink to fit content, 1 = stretch to fit frame, , 0.5 = stretch to half width) */ ,
-    Member("set vertical stretch", List("Number"), "Nothing") /* Specify how to compute box height (0 = shrink to fit content, 1 = stretch to fit frame, 0.5 = stretch to half height) */ ,
-    Member("set border", List("Color", "Number"), "Nothing") /* Set the color and width of the border. */ ,
-    Member("set border widths", List("Number", "Number", "Number", "Number"), "Nothing") /* Set the width of each border. */ ,
-    Member("set margins", List("Number", "Number", "Number", "Number"), "Nothing") /* Set the margins of this box (to leave space around the outside of this box). */ ,
-    Member("set padding", List("Number", "Number", "Number", "Number"), "Nothing") /* Set the padding of this box (to leave space around the contents of this box). */ ,
-    Member("add css class", List("String"), "Nothing") /* [**dbg**] specify a CSS class name for this box */ ,
-    Member("set horizontal alignment", List("Number", "Number"), "Nothing") /* [**obsolete**] align (0,0)=center (1,0)=left, (0,1)=right, (1,1)=stretch */ ,
-    Member("set vertical alignment", List("Number", "Number"), "Nothing") /* [**obsolete**] align (0,0)=center (1,0)=top, (0,1)=bottom, (1,1)=stretch */ ,
-    Member("set horizontal align", List("String"), "Nothing") /* Specify how to arrange the content of this box */ ,
-    Member("set vertical align", List("String"), "Nothing") /* Specify how to arrange the content of this box */ ,
-    Member("set font size", List("Number"), "Nothing") /* Set font size in this box and contained boxes. */ ,
-    Member("set font weight", List("String"), "Nothing") /* Set font weight in this box and contained boxes. */ ,
-    Member("set scrolling", List("Boolean", "Boolean"), "Nothing") /* Specify whether to use scrollbars on overflow. */ ,
-    Member("on tapped", List("Action"), "Nothing") /* Set what happens when the box is tapped. */ ,
-    Member("on text editing", List("Text Action"), "Nothing") /* [**obsolete**] Set what happens whenever the text in the box is being edited. */ ,
-    Member("on text edited", List("Text Action"), "Nothing") /* [**obsolete**] Set what happens when the user has finished editing the text in the box. */ ,
-    Member("edit text", List("String", "Boolean"), "Nothing") /* [**obsolete**] Display editable text. */ ,
-    Member("edit", List("String", "String", "Text Action"), "Nothing") /* Display editable text, for the given content and change handler. */ ,
-    Member("edit ref", List("String", "String Ref"), "Nothing") /* Display editable text, bound to the given string reference. */ ,
-    Member("is init", "Boolean") /*  */ ,
-    Member("page width", "Number") /* Get the total width of the page. */ ,
-    Member("page height", "Number") /* Get the total height of the page. */ ,
-    Member("pixels per em", "Number") /* Get the number of pixels in an em */ ,
-    Member("set text wrapping", List("Boolean", "Number"), "Nothing") /* Set whether to break long lines, and specify what length is too short for breaking */
+  addSingleton("Box", gAlsoSingletons(SBox.typeName) ::: List(
+    Member("set foreground", List(TColor.typeName), TNothing.typeName) /* Sets the foreground color of elements. */ ,
+    Member("set background", List(TColor.typeName), TNothing.typeName) /* Sets the background color. */ ,
+    Member("add background picture", List(TPicture.typeName, TString.typeName, TString.typeName, TString.typeName, TString.typeName), TNothing.typeName) /* Sets the background picture. The picture must be a resource or from the web. The size of the picture does not impact the size of the box. */ ,
+    Member("use vertical layout", TNothing.typeName) /* Arrange boxes inside this box from top to bottom. */ ,
+    Member("use horizontal layout", TNothing.typeName) /* Arrange boxes inside this box from left to right. */ ,
+    Member("use overlay layout", TNothing.typeName) /* Arrange boxes inside this box as layers on top of each other. */ ,
+    Member("set width", List(TNumber.typeName), TNothing.typeName) /* Set the width of this box. */ ,
+    Member("set height", List(TNumber.typeName), TNothing.typeName) /* Set the height of this box. */ ,
+    Member("set width range", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Set lower and upper limits on the width of this box. */ ,
+    Member("set height range", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Set lower and upper limits on the height of this box. */ ,
+    Member("set horizontal stretch", List(TNumber.typeName), TNothing.typeName) /* Specify how to compute box width (0 = shrink to fit content, 1 = stretch to fit frame, , 0.5 = stretch to half width) */ ,
+    Member("set vertical stretch", List(TNumber.typeName), TNothing.typeName) /* Specify how to compute box height (0 = shrink to fit content, 1 = stretch to fit frame, 0.5 = stretch to half height) */ ,
+    Member("set border", List(TColor.typeName, TNumber.typeName), TNothing.typeName) /* Set the color and width of the border. */ ,
+    Member("set border widths", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Set the width of each border. */ ,
+    Member("set margins", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Set the margins of this box (to leave space around the outside of this box). */ ,
+    Member("set padding", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Set the padding of this box (to leave space around the contents of this box). */ ,
+    Member("add css class", List(TString.typeName), TNothing.typeName) /* [**dbg**] specify a CSS class name for this box */ ,
+    Member("set horizontal alignment", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* [**obsolete**] align (0,0)=center (1,0)=left, (0,1)=right, (1,1)=stretch */ ,
+    Member("set vertical alignment", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* [**obsolete**] align (0,0)=center (1,0)=top, (0,1)=bottom, (1,1)=stretch */ ,
+    Member("set horizontal align", List(TString.typeName), TNothing.typeName) /* Specify how to arrange the content of this box */ ,
+    Member("set vertical align", List(TString.typeName), TNothing.typeName) /* Specify how to arrange the content of this box */ ,
+    Member("set font size", List(TNumber.typeName), TNothing.typeName) /* Set font size in this box and contained boxes. */ ,
+    Member("set font weight", List(TString.typeName), TNothing.typeName) /* Set font weight in this box and contained boxes. */ ,
+    Member("set font family", List(TString.typeName), TNothing.typeName) /* [**dbg**] Set font family in this box and contained boxes. */ ,
+    Member("set scrolling", List(TBoolean.typeName, TBoolean.typeName), TNothing.typeName) /* Specify whether to use scrollbars on overflow. */ ,
+    Member("on tapped", List(TAction.typeName), TNothing.typeName) /* Set what happens when the box is tapped. */ ,
+    Member("on text editing", List(TText_Action.typeName), TNothing.typeName) /* [**obsolete**] Set what happens whenever the text in the box is being edited. */ ,
+    Member("on text edited", List(TText_Action.typeName), TNothing.typeName) /* [**obsolete**] Set what happens when the user has finished editing the text in the box. */ ,
+    Member("edit text", List(TString.typeName, TBoolean.typeName), TNothing.typeName) /* [**obsolete**] Display editable text. */ ,
+    Member("edit", List(TString.typeName, TString.typeName, TText_Action.typeName), TNothing.typeName) /* Display editable text, for the given content and change handler. */ ,
+    Member("edit ref", List(TString.typeName, TypeName("Ref",List(TString.typeName))), TNothing.typeName) /* Display editable text, bound to the given string reference. */ ,
+    Member("is init", TBoolean.typeName) /*  */ ,
+    Member("page width", TNumber.typeName) /* Get the total width of the page. */ ,
+    Member("page height", TNumber.typeName) /* Get the total height of the page. */ ,
+    Member("pixels per em", TNumber.typeName) /* Get the number of pixels in an em */ ,
+    Member("set text wrapping", List(TBoolean.typeName, TNumber.typeName), TNothing.typeName) /* Set whether to break long lines, and specify what length is too short for breaking */
   ))
 
   // Contains binary data
-  addType("Buffer", gAny("Buffer") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("read number", List("Number", "String", "String"), "Number") /* Read a binary number at `offset` */ ,
-    Member("write number", List("Number", "Number", "String", "String"), "Nothing") /* Write a binary number `value` at `offset` */ ,
-    Member("set", List("Number", "Number"), "Nothing") /* Set byte at `index` to `value` */ ,
+  addType("Buffer", gAny(TBuffer.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("read number", List(TNumber.typeName, TString.typeName, TString.typeName), TNumber.typeName) /* Read a binary number at `offset` */ ,
+    Member("write number", List(TNumber.typeName, TNumber.typeName, TString.typeName, TString.typeName), TNothing.typeName) /* Write a binary number `value` at `offset` */ ,
+    Member("set", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Set byte at `index` to `value` */ ,
     Member("at index", List("Number"), "Number") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Buffer") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Number") /* Get byte at `index` */ ,
-    Member("count", "Number") /* Return the number of bytes in the buffer */ ,
-    Member("concat", List("Buffer"), "Buffer") /* Return a new buffer consiting of the current and `other` in sequence */ ,
-    Member("sub buffer", List("Number", "Number"), "Buffer") /* Creates a read-write view of the current buffer. */ ,
-    Member("fill random", "Nothing") /* Fills the buffer with random values */ ,
-    Member("fill", List("Number"), "Nothing") /* Sets all bytes in buffer to `value` */ ,
-    Member("copy from", List("Number", "Buffer"), "Nothing") /* Copies all bytes from `source` to current buffer at `offset` */ ,
-    Member("clone", "Nothing") /* Copies all bytes from `source` to current buffer at `offset` */ ,
-    Member("to string", List("String"), "String") /* Convert the buffer to a string */
+    Member("at", List(TNumber.typeName), TNumber.typeName) /* Get byte at `index` */ ,
+    Member("count", TNumber.typeName) /* Return the number of bytes in the buffer */ ,
+    Member("concat", List(TBuffer.typeName), TBuffer.typeName) /* Return a new buffer consiting of the current and `other` in sequence */ ,
+    Member("sub buffer", List(TNumber.typeName, TNumber.typeName), TBuffer.typeName) /* Creates a read-write view of the current buffer. */ ,
+    Member("fill random", TNothing.typeName) /* Fills the buffer with random values */ ,
+    Member("fill", List(TNumber.typeName), TNothing.typeName) /* Sets all bytes in buffer to `value` */ ,
+    Member("copy from", List(TNumber.typeName, TBuffer.typeName), TNothing.typeName) /* Copies all bytes from `source` to current buffer at `offset` */ ,
+    Member("clone", TNothing.typeName) /* Copies all bytes from `source` to current buffer at `offset` */ ,
+    Member("to string", List(TString.typeName), TString.typeName) /* Convert the buffer to a string */
   ))
 
   // The front or back camera
-  addType("Camera", gAny("Camera") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("height", "Number") /* [**not implemented**] Gets the height of the camera image in pixels. */ ,
-    Member("is front", "Boolean") /* Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */ ,
-    Member("width", "Number") /* [**not implemented**] Gets the width of the camera image in pixels. */ ,
-    Member("post to wall", "Nothing") /* Displays the camera video stream in full screen. */ ,
-    Member("preview", "Picture") /* Takes a low quality picture from the camera. */
+  addType("Camera", gAny(TCamera.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("height", TNumber.typeName) /* [**not implemented**] Gets the height of the camera image in pixels. */ ,
+    Member("is front", TBoolean.typeName) /* Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */ ,
+    Member("width", TNumber.typeName) /* [**not implemented**] Gets the width of the camera image in pixels. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the camera video stream in full screen. */ ,
+    Member("preview", TPicture.typeName) /* Takes a low quality picture from the camera. */
   ))
 
   // A picture hosted on OneDrive.
-  addType("Cloud Picture", gAny("Cloud Picture") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("to picture", List("String"), "Picture") /* Gets the picture with a particular size. */ ,
-    Member("download picture", List("String"), "Picture") /* Downloads the picture with a particular size. */ ,
-    Member("post to wall", "Nothing") /* Posts the picture to the wall. */
+  addType("Cloud Picture", gAny(TCloud_Picture.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("to picture", List(TString.typeName), TPicture.typeName) /* Gets the picture with a particular size. */ ,
+    Member("download picture", List(TString.typeName), TPicture.typeName) /* Downloads the picture with a particular size. */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the picture to the wall. */
   ))
 
   // A cloud data session
-  addType("Cloud Session", gAny("Cloud Session") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("equals", List("Cloud Session"), "Boolean") /* Checks if this cloud session is the same as another one */ ,
-    Member("id", "String") /* Gets a string that uniquely identifies this cloud session; other users can connect by using this string. */ ,
-    Member("title", "String") /* Gets a string that describes this cloud session */ ,
-    Member("owner", "User") /* Gets information about the user that owns this session */ ,
-    Member("is owned", "Boolean") /* Indicates if the current user owns this session */ ,
-    Member("post to wall", "Nothing") /* Displays the session description on the wall. */ ,
-    Member("server info", "Json Object") /* [**dbg**] Query server about current state of this session. You must be the authenticated owner. */
+  addType("Cloud Session", gAny(TCloud_Session.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("equals", List(TCloud_Session.typeName), TBoolean.typeName) /* Checks if this cloud session is the same as another one */ ,
+    Member("id", TString.typeName) /* Gets a string that uniquely identifies this cloud session; other users can connect by using this string. */ ,
+    Member("title", TString.typeName) /* Gets a string that describes this cloud session */ ,
+    Member("owner", TUser.typeName) /* Gets information about the user that owns this session */ ,
+    Member("is owned", TBoolean.typeName) /* Indicates if the current user owns this session */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the session description on the wall. */ ,
+    Member("server info", TJson_Object.typeName) /* [**dbg**] Query server about current state of this session. You must be the authenticated owner. */
   ))
 
   // Cloud session management
-  addSingleton("Cloud Data", gAlsoSingletons("Cloud Data") ::: List(
-    Member("current session", "Cloud Session") /* Gets the currently active session. When the script starts, this is always the just-me session. */ ,
-    Member("rebuild cache", "Nothing") /* [**dbg**] Clear the local cache of the current session (which discards unsynced changes) and get fresh data from server */ ,
-    Member("clear all data", "Nothing") /* Clear all data of the currently active session. */ ,
-    Member("last session", "Cloud Session") /* [**obsolete**] Deprecated: always equal to current session. */ ,
-    Member("just me session", "Cloud Session") /* Gets the just-me session, in which cloud data is shared between devices by the same user. */ ,
-    Member("everyone session", "Cloud Session") /* Gets the everyone-session, in which cloud data is shared by everyone running this script. */ ,
-    Member("wait for server", List("Number"), "Boolean") /* Waits until the current server state has been received. Returns false if offline, or if time limit is exceeded. */ ,
-    Member("create session", List("String", "String"), "Cloud Session") /* Creates a new cloud session owned by the current user. */ ,
-    Member("session of", List("String", "String"), "Cloud Session") /* Gets a session from a session id */ ,
-    Member("connection status", List("Boolean"), "String") /* Gets a string that describes the state of the cloud synchronization, and additional details if requested */ ,
-    Member("participant number", "Number") /* Returns the participant number within the current session, or -1 if not known yet. Participant numbers are assigned by the server on first connect, starting with 0. */ ,
-    Member("set sync enabled", List("Boolean"), "Nothing") /* Enable or disable cloud synchronization for the current session */ ,
-    Member("is sync enabled", "Boolean") /* Returns a boolean indicating whether cloud synchronization is enabled for the current session */ ,
-    Member("switch to session", List("Cloud Session"), "Nothing") /* Connect to the given session. The user may be asked to confirm. */ ,
-    Member("switch sessions", "Nothing") /* Asks the user to choose a session to switch to */
+  addSingleton("Cloud Data", gAlsoSingletons(SCloud_Data.typeName) ::: List(
+    Member("current session", TCloud_Session.typeName) /* Gets the currently active session. When the script starts, this is always the just-me session. */ ,
+    Member("rebuild cache", TCloud_Session.typeName) /* [**dbg**] Clear the local cache of the current session (discarding unsynced changes) and get fresh data from server */ ,
+    Member("clear all data", TNothing.typeName) /* Clear all data of the currently active session. */ ,
+    Member("to json", TJson_Object.typeName) /* [**dbg**] Export a JSON representation of all the cloud data */ ,
+    Member("from json", List(TJson_Object.typeName), TNothing.typeName) /* [**dbg**] Import a JSON representation of the cloud data */ ,
+    Member("last session", TCloud_Session.typeName) /* [**obsolete**] Deprecated: always equal to current session. */ ,
+    Member("just me session", TCloud_Session.typeName) /* Gets the just-me session, in which cloud data is shared between devices by the same user. */ ,
+    Member("set token validator", List(TypeName("String Converter",List(TString.typeName))), TNothing.typeName) /* [**dbg**] `validator(token)` should return user id (eg, `"fb:123456"`) or `""` in case token is invalid */ ,
+    Member("authenticate", List(TString.typeName), TBoolean.typeName) /* [**dbg**] Authenticate against your deployed cloud library. Returns false if the authentication fails or the connection times out. */ ,
+    Member("everyone session", TCloud_Session.typeName) /* Gets the everyone-session, in which cloud data is shared by everyone running this script. */ ,
+    Member("wait for server", List(TNumber.typeName), TBoolean.typeName) /* Waits until the current server state has been received. Returns false if offline, or if time limit is exceeded. */ ,
+    Member("create session", List(TString.typeName, TString.typeName), TCloud_Session.typeName) /* Creates a new cloud session owned by the current user. */ ,
+    Member("session of", List(TString.typeName, TString.typeName), TCloud_Session.typeName) /* Gets a session from a session id */ ,
+    Member("connection status", List(TBoolean.typeName), TString.typeName) /* Gets a string that describes the state of the cloud synchronization, and additional details if requested */ ,
+    Member("participant number", TNumber.typeName) /* Returns the participant number within the current session, or -1 if not known yet. Participant numbers are assigned by the server on first connect, starting with 0. */ ,
+    Member("set sync enabled", List(TBoolean.typeName), TNothing.typeName) /* Enable or disable cloud synchronization for the current session */ ,
+    Member("is sync enabled", TBoolean.typeName) /* Returns a boolean indicating whether cloud synchronization is enabled for the current session */ ,
+    Member("switch to session", List(TCloud_Session.typeName), TNothing.typeName) /* Connect to the given session. The user may be asked to confirm. */ ,
+    Member("switch sessions", TNothing.typeName) /* Asks the user to choose a session to switch to */
   ))
 
   // A collection of objects
-  addType("Collection", gAny("Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of objects. */ ,
-    Member("clear", "Nothing") /* Removes all objects from the collection */ ,
-    Member("add", List("T"), "Nothing") /* Adds an object */ ,
-    Member("add many", List("T Collection"), "Nothing") /* Adds many objects at once */ ,
-    Member("index of", List("T", "Number"), "Number") /* Gets the index of the first occurrence of an object. Returns -1 if not found or start is out of range. */ ,
-    Member("at index", List("Number"), "T") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
+  addGenericType("Collection", { TT:TypeName => gAny(TCollection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of objects. */ ,
+    Member("clear", TNothing.typeName) /* Removes all objects from the collection */ ,
+    Member("add", List(TT), TNothing.typeName) /* Adds an object */ ,
+    Member("add many", List(TypeName("Collection",List(TT))), TNothing.typeName) /* Adds many objects at once */ ,
+    Member("index of", List(TT, TNumber.typeName), TNumber.typeName) /* Gets the index of the first occurrence of an object. Returns -1 if not found or start is out of range. */ ,
+    Member("at index", List(TNumber.typeName), TT) /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "T") /* Gets the object at position index. Returns invalid if index is out of range */ ,
-    Member("contains", List("T"), "Boolean") /* Checks if the item is in the collection */ ,
-    Member("remove", List("T"), "Boolean") /* Removes the first occurence of an object. Returns true if removed. */ ,
-    Member("remove at", List("Number"), "Nothing") /* Removes the object at position index. */ ,
-    Member("reverse", "Nothing") /* Reverses the order of objects in the collection */ ,
-    Member("random", "T") /* Gets a random object from the collection. Returns invalid if the collection is empty. */ ,
-    Member("set at", List("Number", "T"), "Nothing") /* Sets the object at position index. Does nothing if the index is out of range. */ ,
-    Member("insert at", List("Number", "T"), "Nothing") /* Inserts an object at position index. Does nothing if index is out of range. */ ,
-    Member("to json", "Json Object") /* Exports a JSON representation of the contents. */ ,
-    Member("from json", List("Json Object"), "Nothing") /* Imports a JSON representation of the contents. */ ,
-    Member("where", List("T Predicate"), "T Collection") /* Returns a collections of elements that satisfy the filter `condition` */ ,
-    Member("map to", "Unfinished Type") /* [**beta**] Applies `converter` on all elements of the input collection and returns a collection of results */ ,
-    Member("sorted", List("T Comparison"), "T Collection") /* Returns a collection sorted using specified `comparison` function */ ,
-    Member("ordered by", List("T Number Converter"), "T Collection") /* Returns a collection sorted using specified comparison key */ ,
-    Member("ordered by string", List("T String Converter"), "T Collection") /* Returns a collection sorted using specified comparison key */ ,
-    Member("take", List("Number"), "T Collection") /* Returns a collection with the `count` first elements if any. */ ,
-    Member("slice", List("Number", "Number"), "T Collection") /* Returns a slice of the collection starting at `start`, and ends at, but does not include, the `end`. */ ,
-    Member("post to wall", "Nothing") /* Display all objects on the wall */ ,
-    Member("pick entry", List("String"), "T") /* Ask user to pick an entry from this collection */ ,
-    Member("sum of", List("T Number Converter"), "Number") /* Computes the sum of the key of the elements in the collection */ ,
-    Member("max of", List("T Number Converter"), "Number") /* Computes the maximum of the key of the elements in the collection */ ,
-    Member("avg of", List("T Number Converter"), "Number") /* Computes the average of the key of the elements in the collection */ ,
-    Member("min of", List("T Number Converter"), "Number") /* Computes the minimum of the key of the elements in the collection */ ,
-    Member("min", "Number") /* Computes the minimum of the values */ ,
-    Member("max", "Number") /* Computes the maximum of the values */ ,
-    Member("sum", "Number") /* Computes the sum of the values */ ,
-    Member("avg", "Number") /* Computes the average of the values */ ,
-    Member("sort by date", "Nothing") /* Sorts from the newest to oldest */ ,
-    Member("sort", "Nothing") /* Sorts the strings in this collection */ ,
-    Member("sort by distance", List("Location"), "Nothing") /* Sorts the places by distance to the location */ ,
-    Member("join", List("String"), "String") /* Concatenates the separator and items into a string */
-  ))
+    Member("at", List(TNumber.typeName), TT) /* Gets the object at position index. Returns invalid if index is out of range */ ,
+    Member("contains", List(TT), TBoolean.typeName) /* Checks if the item is in the collection */ ,
+    Member("remove", List(TT), TBoolean.typeName) /* Removes the first occurence of an object. Returns true if removed. */ ,
+    Member("remove at", List(TNumber.typeName), TNothing.typeName) /* Removes the object at position index. */ ,
+    Member("reverse", TNothing.typeName) /* Reverses the order of objects in the collection */ ,
+    Member("random", TT) /* Gets a random object from the collection. Returns invalid if the collection is empty. */ ,
+    Member("set at", List(TNumber.typeName, TT), TNothing.typeName) /* Sets the object at position index. Does nothing if the index is out of range. */ ,
+    Member("insert at", List(TNumber.typeName, TT), TNothing.typeName) /* Inserts an object at position index. Does nothing if index is out of range. */ ,
+    Member("to json", TJson_Object.typeName) /* Exports a JSON representation of the contents. */ ,
+    Member("from json", List(TJson_Object.typeName), TNothing.typeName) /* Imports a JSON representation of the contents. */ ,
+    Member("where", List(TypeName("Predicate",List(TT))), TypeName("Collection",List(TT))) /* Returns a collections of elements that satisfy the filter `condition` */ ,
+//    Member("map to", TUnfinished_Type.typeName) /* [**beta**] Applies `converter` on all elements of the input collection and returns a collection of results */ ,
+    Member("sorted", List(TypeName("Comparison",List(TT))), TypeName("Collection",List(TT))) /* Returns a collection sorted using specified `comparison` function */ ,
+    Member("ordered by", List(TypeName("Number Converter",List(TT))), TypeName("Collection",List(TT))) /* Returns a collection sorted using specified comparison key */ ,
+    Member("ordered by string", List(TypeName("String Converter",List(TT))), TypeName("Collection",List(TT))) /* Returns a collection sorted using specified comparison key */ ,
+    Member("take", List(TNumber.typeName), TypeName("Collection",List(TT))) /* Returns a collection with the `count` first elements if any. */ ,
+    Member("slice", List(TNumber.typeName, TNumber.typeName), TypeName("Collection",List(TT))) /* Returns a slice of the collection starting at `start`, and ends at, but does not include, the `end`. */ ,
+    Member("post to wall", TNothing.typeName) /* Display all objects on the wall */ ,
+    Member("pick entry", List(TString.typeName), TT) /* Ask user to pick an entry from this collection */ ,
+    Member("sum of", List(TypeName("Number Converter",List(TT))), TNumber.typeName) /* Computes the sum of the key of the elements in the collection */ ,
+    Member("max of", List(TypeName("Number Converter",List(TT))), TNumber.typeName) /* Computes the maximum of the key of the elements in the collection */ ,
+    Member("avg of", List(TypeName("Number Converter",List(TT))), TNumber.typeName) /* Computes the average of the key of the elements in the collection */ ,
+    Member("min of", List(TypeName("Number Converter",List(TT))), TNumber.typeName) /* Computes the minimum of the key of the elements in the collection */ ,
+    Member("min", TNumber.typeName) /* Computes the minimum of the values */ ,
+    Member("max", TNumber.typeName) /* Computes the maximum of the values */ ,
+    Member("sum", TNumber.typeName) /* Computes the sum of the values */ ,
+    Member("avg", TNumber.typeName) /* Computes the average of the values */ ,
+    Member("sort by date", TNothing.typeName) /* Sorts from the newest to oldest */ ,
+    Member("sort", TNothing.typeName) /* Sorts the strings in this collection */ ,
+    Member("sort by distance", List(TLocation.typeName), TNothing.typeName) /* Sorts the places by distance to the location */ ,
+    Member("join", List(TString.typeName), TString.typeName) /* Concatenates the separator and items into a string */
+  )})
 
   // Create collections of items.
-  addSingleton("Collections", gAlsoSingletons("Collections") ::: List(
-    Member("create user collection", "User Collection") /* Creates an empty User collection */ ,
-    Member("create date time collection", "DateTime Collection") /* Creates an empty DateTime collection */ ,
-    Member("create picture collection", "Picture Collection") /* Creates an empty Picture collection */ ,
-    Member("create sound collection", "Sound Collection") /* Creates an empty Picture collection */ ,
-    Member("create action collection", "Action Collection") /* Creates an empty Action collection */ ,
-    Member("create string collection", "String Collection") /* Creates an empty string collection */ ,
-    Member("create place collection", "Place Collection") /* Creates an empty place collection */ ,
-    Member("create link collection", "Link Collection") /* Creates an empty link collection */ ,
-    Member("create message collection", "Message Collection") /* Creates an empty message collection */ ,
-    Member("create location collection", "Location Collection") /* Creates an empty location collection */ ,
-    Member("create number map", "Number Map") /* Creates an empty number map */ ,
-    Member("create string map", "String Map") /* Creates an empty string map (case and culture sensitive) */ ,
-    Member("create number collection", "Number Collection") /* Creates an empty number collection */
+  addSingleton("Collections", gAlsoSingletons(SCollections.typeName) ::: List(
+    Member("create user collection", TypeName("Collection",List(TUser.typeName))) /* Creates an empty User collection */ ,
+    Member("create date time collection", TypeName("Collection",List(TDateTime.typeName))) /* Creates an empty DateTime collection */ ,
+    Member("create picture collection", TypeName("Collection",List(TPicture.typeName))) /* Creates an empty Picture collection */ ,
+    Member("create sound collection", TypeName("Collection",List(TSound.typeName))) /* Creates an empty Picture collection */ ,
+    Member("create action collection", TypeName("Collection",List(TAction.typeName))) /* Creates an empty Action collection */ ,
+    Member("create string collection", TString_Collection.typeName) /* Creates an empty string collection */ ,
+    Member("create place collection", TPlace_Collection.typeName) /* Creates an empty place collection */ ,
+    Member("create link collection", TLink_Collection.typeName) /* Creates an empty link collection */ ,
+    Member("create message collection", TMessage_Collection.typeName) /* Creates an empty message collection */ ,
+    Member("create location collection", TLocation_Collection.typeName) /* Creates an empty location collection */ ,
+    Member("create number map", TNumber_Map.typeName) /* Creates an empty number map */ ,
+    Member("create string map", TString_Map.typeName) /* Creates an empty string map (case and culture sensitive) */ ,
+    Member("create number collection", TNumber_Collection.typeName) /* Creates an empty number collection */
   ))
 
   // A argb color (alpha, red, green, blue)
-  addType("Color", gAny("Color") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("A", "Number") /* Gets the normalized alpha value (0.0-1.0) */ ,
-    Member("R", "Number") /* Gets the normalized red value (0.0-1.0) */ ,
-    Member("G", "Number") /* Gets the normalized green value (0.0-1.0) */ ,
-    Member("B", "Number") /* Gets the normalized blue value (0.0-1.0) */ ,
-    Member("equals", List("Color"), "Boolean") /* Checks if the color is equal to the other */ ,
-    Member("blend", List("Color"), "Color") /* Composes a new color using alpha blending */ ,
-    Member("make transparent", List("Number"), "Color") /* Creates a new color by changing the alpha channel from 0 (transparent) to 1 (opaque). */ ,
-    Member("darken", List("Number"), "Color") /* Makes a darker color by a delta between 0 and 1. */ ,
-    Member("lighten", List("Number"), "Color") /* Makes a lighter color by a delta between 0 and 1. */ ,
-    Member("to html", "String") /* Convert color to HTML syntax (either #FF002A or rgba(255, 0, 42, 0.5) when A is non-1) */ ,
-    Member("hue", "Number") /* Gets the hue component of the color. */ ,
-    Member("saturation", "Number") /* Gets the saturation component of the color. */ ,
-    Member("brightness", "Number") /* Gets the brightness component of the color. */ ,
-    Member("post to wall", "Nothing") /* Prints the value to the wall */
+  addType("Color", gAny(TColor.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("A", TNumber.typeName) /* Gets the normalized alpha value (0.0-1.0) */ ,
+    Member("R", TNumber.typeName) /* Gets the normalized red value (0.0-1.0) */ ,
+    Member("G", TNumber.typeName) /* Gets the normalized green value (0.0-1.0) */ ,
+    Member("B", TNumber.typeName) /* Gets the normalized blue value (0.0-1.0) */ ,
+    Member("equals", List(TColor.typeName), TBoolean.typeName) /* Checks if the color is equal to the other */ ,
+    Member("blend", List(TColor.typeName), TColor.typeName) /* Composes a new color using alpha blending */ ,
+    Member("make transparent", List(TNumber.typeName), TColor.typeName) /* Creates a new color by changing the alpha channel from 0 (transparent) to 1 (opaque). */ ,
+    Member("darken", List(TNumber.typeName), TColor.typeName) /* Makes a darker color by a delta between 0 and 1. */ ,
+    Member("lighten", List(TNumber.typeName), TColor.typeName) /* Makes a lighter color by a delta between 0 and 1. */ ,
+    Member("to html", TString.typeName) /* Convert color to HTML syntax (either #FF002A or rgba(255, 0, 42, 0.5) when A is non-1) */ ,
+    Member("hue", TNumber.typeName) /* Gets the hue component of the color. */ ,
+    Member("saturation", TNumber.typeName) /* Gets the saturation component of the color. */ ,
+    Member("brightness", TNumber.typeName) /* Gets the brightness component of the color. */ ,
+    Member("post to wall", TNothing.typeName) /* Prints the value to the wall */
   ))
 
   // New or built-in colors
-  addSingleton("Colors", gAlsoSingletons("Colors") ::: List(
-    Member("accent", "Color") /* Gets the accent color in the current theme */ ,
-    Member("subtle", "Color") /* Gets the subtle color in the current theme (light gray) */ ,
-    Member("chrome", "Color") /* Gets the chrome color in the current theme (control background) */ ,
-    Member("foreground", "Color") /* Gets the foreground color in the current theme */ ,
-    Member("background", "Color") /* Gets the background color in the current theme */ ,
-    Member("is light theme", "Boolean") /* Indicates if the user is using a light theme in their phone */ ,
-    Member("from rgb", List("Number", "Number", "Number"), "Color") /* Creates a color from the red, green, blue channels (0.0-1.0 range) */ ,
-    Member("from argb", List("Number", "Number", "Number", "Number"), "Color") /* Creates a color from the alpha, red, green, blue channels (0.0-1.0 range) */ ,
-    Member("pink", "Color") /* Gets the color that has the ARGB value of #FFFFCBDB */ ,
-    Member("black", "Color") /* Gets the color that has the ARGB value of #FF000000 */ ,
-    Member("blue", "Color") /* Gets the color that has the ARGB value of #FF0000FF */ ,
-    Member("brown", "Color") /* Gets the color that has the ARGB value of #FFA52A2A */ ,
-    Member("cyan", "Color") /* Gets the color that has the ARGB value of #FF00FFFF */ ,
-    Member("dark gray", "Color") /* Gets the color that has the ARGB value of #FFA9A9A9 */ ,
-    Member("gray", "Color") /* Gets the color that has the ARGB value of #FF808080 */ ,
-    Member("green", "Color") /* Gets the color that has the ARGB value of #FF008000 */ ,
-    Member("light gray", "Color") /* Gets the color that has the ARGB value of #FFD3D3D3 */ ,
-    Member("magenta", "Color") /* Gets the color that has the ARGB value of #FFFF00FF */ ,
-    Member("orange", "Color") /* Gets the color that has the ARGB value of #FFFFA500 */ ,
-    Member("purple", "Color") /* Gets the color that has the ARGB value of #FF800080 */ ,
-    Member("red", "Color") /* Gets the color that has the ARGB value of #FFFF0000 */ ,
-    Member("transparent", "Color") /* Gets the color that has the ARGB value of #00FFFFFF */ ,
-    Member("white", "Color") /* Gets the color that has the ARGB value of #FFFFFFFF */ ,
-    Member("yellow", "Color") /* Gets the color that has the ARGB value of #FFFFFF00 */ ,
-    Member("sepia", "Color") /* Gets the color that has the ARGB value of #FF704214 */ ,
-    Member("linear gradient", List("Color", "Color", "Number"), "Color") /* Computes an intermediate color */ ,
-    Member("rand", "Color") /* Renamed to 'random' */ ,
-    Member("random", "Color") /* Picks a random color */ ,
-    Member("wheel", List("Number"), "Color") /* Picks a color from a color wheel where the hue is between 0 and 1. */ ,
-    Member("from hsb", List("Number", "Number", "Number"), "Color") /* Creates a color from the hue, saturation, brightness channels (0.0-1.0 range) */ ,
-    Member("from ahsb", List("Number", "Number", "Number", "Number"), "Color") /* Creates a color from the alpha, hue, saturation, brightness channels (0.0-1.0 range) */
+  addSingleton("Colors", gAlsoSingletons(SColors.typeName) ::: List(
+    Member("accent", TColor.typeName) /* Gets the accent color in the current theme */ ,
+    Member("subtle", TColor.typeName) /* Gets the subtle color in the current theme (light gray) */ ,
+    Member("chrome", TColor.typeName) /* Gets the chrome color in the current theme (control background) */ ,
+    Member("foreground", TColor.typeName) /* Gets the foreground color in the current theme */ ,
+    Member("background", TColor.typeName) /* Gets the background color in the current theme */ ,
+    Member("is light theme", TBoolean.typeName) /* Indicates if the user is using a light theme in their phone */ ,
+    Member("from rgb", List(TNumber.typeName, TNumber.typeName, TNumber.typeName), TColor.typeName) /* Creates a color from the red, green, blue channels (0.0-1.0 range) */ ,
+    Member("from argb", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TColor.typeName) /* Creates a color from the alpha, red, green, blue channels (0.0-1.0 range) */ ,
+    Member("pink", TColor.typeName) /* Gets the color that has the ARGB value of #FFFFCBDB */ ,
+    Member("black", TColor.typeName) /* Gets the color that has the ARGB value of #FF000000 */ ,
+    Member("blue", TColor.typeName) /* Gets the color that has the ARGB value of #FF0000FF */ ,
+    Member("brown", TColor.typeName) /* Gets the color that has the ARGB value of #FFA52A2A */ ,
+    Member("cyan", TColor.typeName) /* Gets the color that has the ARGB value of #FF00FFFF */ ,
+    Member("dark gray", TColor.typeName) /* Gets the color that has the ARGB value of #FFA9A9A9 */ ,
+    Member("gray", TColor.typeName) /* Gets the color that has the ARGB value of #FF808080 */ ,
+    Member("green", TColor.typeName) /* Gets the color that has the ARGB value of #FF008000 */ ,
+    Member("light gray", TColor.typeName) /* Gets the color that has the ARGB value of #FFD3D3D3 */ ,
+    Member("magenta", TColor.typeName) /* Gets the color that has the ARGB value of #FFFF00FF */ ,
+    Member("orange", TColor.typeName) /* Gets the color that has the ARGB value of #FFFFA500 */ ,
+    Member("purple", TColor.typeName) /* Gets the color that has the ARGB value of #FF800080 */ ,
+    Member("red", TColor.typeName) /* Gets the color that has the ARGB value of #FFFF0000 */ ,
+    Member("transparent", TColor.typeName) /* Gets the color that has the ARGB value of #00FFFFFF */ ,
+    Member("white", TColor.typeName) /* Gets the color that has the ARGB value of #FFFFFFFF */ ,
+    Member("yellow", TColor.typeName) /* Gets the color that has the ARGB value of #FFFFFF00 */ ,
+    Member("sepia", TColor.typeName) /* Gets the color that has the ARGB value of #FF704214 */ ,
+    Member("linear gradient", List(TColor.typeName, TColor.typeName, TNumber.typeName), TColor.typeName) /* Computes an intermediate color */ ,
+    Member("rand", TColor.typeName) /* Renamed to 'random' */ ,
+    Member("random", TColor.typeName) /* Picks a random color */ ,
+    Member("wheel", List(TNumber.typeName), TColor.typeName) /* Picks a color from a color wheel where the hue is between 0 and 1. */ ,
+    Member("from hsb", List(TNumber.typeName, TNumber.typeName, TNumber.typeName), TColor.typeName) /* Creates a color from the hue, saturation, brightness channels (0.0-1.0 range) */ ,
+    Member("from ahsb", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TColor.typeName) /* Creates a color from the alpha, hue, saturation, brightness channels (0.0-1.0 range) */
   ))
 
   // A contact
-  addType("Contact", gAny("Contact") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("id", "String") /* Gets the user id if any */ ,
-    Member("set id", List("String"), "Nothing") /* Sets the user id */ ,
-    Member("name", "String") /* Gets the display name (not used when saving contact) */ ,
-    Member("first name", "String") /* Gets the first name if any. */ ,
-    Member("set first name", List("String"), "Nothing") /* Sets the first name */ ,
-    Member("last name", "String") /* Gets the last name if any. */ ,
-    Member("set last name", List("String"), "Nothing") /* Sets the last name */ ,
-    Member("nick name", "String") /* Gets the nickname if any. */ ,
-    Member("set nick name", List("String"), "Nothing") /* Sets the middle name */ ,
-    Member("middle name", "String") /* Gets the middle name if any. */ ,
-    Member("set middle name", List("String"), "Nothing") /* Sets the middle name */ ,
-    Member("title", "String") /* Gets the name title if any. */ ,
-    Member("set title", List("String"), "Nothing") /* Sets the title */ ,
-    Member("suffix", "String") /* Gets the name suffix if any. */ ,
-    Member("set suffix", List("String"), "Nothing") /* Sets the suffix */ ,
-    Member("company", "String") /* Gets the company name if any. */ ,
-    Member("set company", List("String"), "Nothing") /* Sets the company */ ,
-    Member("job title", "String") /* Gets the job title at the company if any. */ ,
-    Member("set job title", List("String"), "Nothing") /* Sets the job title */ ,
-    Member("office", "String") /* Gets the office location at the company if any. */ ,
-    Member("set office", List("String"), "Nothing") /* Sets the office location at the company */ ,
-    Member("work address", "String") /* Gets the home address if any */ ,
-    Member("set work address", List("String"), "Nothing") /* Sets the work address */ ,
-    Member("home address", "String") /* Gets the work address if any */ ,
-    Member("set home address", List("String"), "Nothing") /* Sets the home address */ ,
-    Member("source", "String") /* Gets the source of this contact (phone, etc...) */ ,
-    Member("set source", List("String"), "Nothing") /* Sets the source */ ,
-    Member("birthday", "DateTime") /* Gets the birth date if any. */ ,
-    Member("set birthday", List("DateTime"), "Nothing") /* Sets the birthday */ ,
-    Member("picture", "Picture") /* Gets the picture of the contact if any. */ ,
-    Member("set picture", List("Picture"), "Nothing") /* Sets the picture */ ,
-    Member("set Picture url", List("String"), "Nothing") /* Sets the picture url */ ,
-    Member("email", "Link") /* Gets the work or personal email if any */ ,
-    Member("set email", List("String"), "Nothing") /* Sets the work or personal email */ ,
-    Member("work email", "Link") /* Gets the work email if any */ ,
-    Member("set work email", List("String"), "Nothing") /* Sets the work email */ ,
-    Member("personal email", "Link") /* Gets the personal email if any */ ,
-    Member("set personal email", List("String"), "Nothing") /* Sets the personal email */ ,
-    Member("phone number", "Link") /* Gets the cell or work or home phone number if any */ ,
-    Member("set phone number", List("String"), "Nothing") /* Sets the cell or work or home phone number if any */ ,
-    Member("home phone", "Link") /* Gets the home phone number if any */ ,
-    Member("set home phone", List("String"), "Nothing") /* Sets the home phone */ ,
-    Member("work phone", "Link") /* Gets the work phone number if any */ ,
-    Member("set work phone", List("String"), "Nothing") /* Sets the work phone */ ,
-    Member("mobile phone", "Link") /* Gets the cell phone number if any */ ,
-    Member("set mobile phone", List("String"), "Nothing") /* Sets the mobile phone */ ,
-    Member("web site", "Link") /* Gets the web site if any */ ,
-    Member("set web site", List("String"), "Nothing") /* Sets the web site */ ,
-    Member("post to wall", "Nothing") /* Posts the contact to the wall */
+  addType("Contact", gAny(TContact.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("id", TString.typeName) /* Gets the user id if any */ ,
+    Member("set id", List(TString.typeName), TNothing.typeName) /* Sets the user id */ ,
+    Member("name", TString.typeName) /* Gets the display name (not used when saving contact) */ ,
+    Member("first name", TString.typeName) /* Gets the first name if any. */ ,
+    Member("set first name", List(TString.typeName), TNothing.typeName) /* Sets the first name */ ,
+    Member("last name", TString.typeName) /* Gets the last name if any. */ ,
+    Member("set last name", List(TString.typeName), TNothing.typeName) /* Sets the last name */ ,
+    Member("nick name", TString.typeName) /* Gets the nickname if any. */ ,
+    Member("set nick name", List(TString.typeName), TNothing.typeName) /* Sets the middle name */ ,
+    Member("middle name", TString.typeName) /* Gets the middle name if any. */ ,
+    Member("set middle name", List(TString.typeName), TNothing.typeName) /* Sets the middle name */ ,
+    Member("title", TString.typeName) /* Gets the name title if any. */ ,
+    Member("set title", List(TString.typeName), TNothing.typeName) /* Sets the title */ ,
+    Member("suffix", TString.typeName) /* Gets the name suffix if any. */ ,
+    Member("set suffix", List(TString.typeName), TNothing.typeName) /* Sets the suffix */ ,
+    Member("company", TString.typeName) /* Gets the company name if any. */ ,
+    Member("set company", List(TString.typeName), TNothing.typeName) /* Sets the company */ ,
+    Member("job title", TString.typeName) /* Gets the job title at the company if any. */ ,
+    Member("set job title", List(TString.typeName), TNothing.typeName) /* Sets the job title */ ,
+    Member("office", TString.typeName) /* Gets the office location at the company if any. */ ,
+    Member("set office", List(TString.typeName), TNothing.typeName) /* Sets the office location at the company */ ,
+    Member("work address", TString.typeName) /* Gets the home address if any */ ,
+    Member("set work address", List(TString.typeName), TNothing.typeName) /* Sets the work address */ ,
+    Member("home address", TString.typeName) /* Gets the work address if any */ ,
+    Member("set home address", List(TString.typeName), TNothing.typeName) /* Sets the home address */ ,
+    Member("source", TString.typeName) /* Gets the source of this contact (phone, etc...) */ ,
+    Member("set source", List(TString.typeName), TNothing.typeName) /* Sets the source */ ,
+    Member("birthday", TDateTime.typeName) /* Gets the birth date if any. */ ,
+    Member("set birthday", List(TDateTime.typeName), TNothing.typeName) /* Sets the birthday */ ,
+    Member("picture", TPicture.typeName) /* Gets the picture of the contact if any. */ ,
+    Member("set picture", List(TPicture.typeName), TNothing.typeName) /* Sets the picture */ ,
+    Member("set Picture url", List(TString.typeName), TNothing.typeName) /* Sets the picture url */ ,
+    Member("email", TLink.typeName) /* Gets the work or personal email if any */ ,
+    Member("set email", List(TString.typeName), TNothing.typeName) /* Sets the work or personal email */ ,
+    Member("work email", TLink.typeName) /* Gets the work email if any */ ,
+    Member("set work email", List(TString.typeName), TNothing.typeName) /* Sets the work email */ ,
+    Member("personal email", TLink.typeName) /* Gets the personal email if any */ ,
+    Member("set personal email", List(TString.typeName), TNothing.typeName) /* Sets the personal email */ ,
+    Member("phone number", TLink.typeName) /* Gets the cell or work or home phone number if any */ ,
+    Member("set phone number", List(TString.typeName), TNothing.typeName) /* Sets the cell or work or home phone number if any */ ,
+    Member("home phone", TLink.typeName) /* Gets the home phone number if any */ ,
+    Member("set home phone", List(TString.typeName), TNothing.typeName) /* Sets the home phone */ ,
+    Member("work phone", TLink.typeName) /* Gets the work phone number if any */ ,
+    Member("set work phone", List(TString.typeName), TNothing.typeName) /* Sets the work phone */ ,
+    Member("mobile phone", TLink.typeName) /* Gets the cell phone number if any */ ,
+    Member("set mobile phone", List(TString.typeName), TNothing.typeName) /* Sets the mobile phone */ ,
+    Member("web site", TLink.typeName) /* Gets the web site if any */ ,
+    Member("set web site", List(TString.typeName), TNothing.typeName) /* Sets the web site */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the contact to the wall */
   ))
 
   // A collection of contacts
-  addType("Contact Collection", gAny("Contact Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("name", "String") /* [**obsolete**] Gets the name of this collection */ ,
-    Member("set name", List("String"), "Nothing") /* [**obsolete**] Sets the name of this collection */ ,
-    Member("count", "Number") /* Gets the number of contacts */ ,
+  addType("Contact Collection", gAny(TContact_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("name", TString.typeName) /* [**obsolete**] Gets the name of this collection */ ,
+    Member("set name", List(TString.typeName), TNothing.typeName) /* [**obsolete**] Sets the name of this collection */ ,
+    Member("count", TNumber.typeName) /* Gets the number of contacts */ ,
     Member("at index", List("Number"), "Contact") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Contact Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Contact") /* Gets the contact at index */ ,
-    Member("set at", List("Number", "Contact"), "Nothing") /* [**obsolete**] Sets the contact at index */ ,
-    Member("clear", "Nothing") /* [**obsolete**] Clears the collection */ ,
-    Member("add", List("Contact"), "Nothing") /* [**obsolete**] Adds a contact */ ,
-    Member("post to wall", "Nothing") /* Posts the contacts on the wall */
+    Member("at", List(TNumber.typeName), TContact.typeName) /* Gets the contact at index */ ,
+    Member("set at", List(TNumber.typeName, TContact.typeName), TNothing.typeName) /* [**obsolete**] Sets the contact at index */ ,
+    Member("clear", TNothing.typeName) /* [**obsolete**] Clears the collection */ ,
+    Member("add", List(TContact.typeName), TNothing.typeName) /* [**obsolete**] Adds a contact */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the contacts on the wall */
   ))
 
   // Correctness helpers
-  addSingleton("Contract", gAlsoSingletons("Contract") ::: List(
-    Member("requires", List("Boolean", "String"), "Nothing") /* Specifies a precondition contract for the action; if the condition is false, execution fails. Does nothing for published scripts. */ ,
-    Member("assert", List("Boolean", "String"), "Nothing") /* Checks for a condition; if the condition is false, execution fails. Does nothing for published scripts. */
+  addSingleton("Contract", gAlsoSingletons(SContract.typeName) ::: List(
+    Member("requires", List(TBoolean.typeName, TString.typeName), TNothing.typeName) /* Specifies a precondition contract for the action; if the condition is false, execution fails. Does nothing for published scripts. */ ,
+    Member("assert", List(TBoolean.typeName, TString.typeName), TNothing.typeName) /* Checks for a condition; if the condition is false, execution fails. Does nothing for published scripts. */
   ))
 
   // Create collections of items.
-  addSingleton("Create", gAlsoSingletons("Create") ::: List(
-    Member("collection of", "Unfinished Type") /* [**beta**] Creates an empty collection of arbitrary type */
+  addSingleton("Create", gAlsoSingletons(SCreate.typeName) ::: List(
+//    Member("collection of", TUnfinished_Type.typeName) /* [**beta**] Creates an empty collection of arbitrary type */
   ))
 
   // A combination of date and time
-  addType("DateTime", gAny("DateTime") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("to json", "Json Object") /* Converts the value into a json data structure. */ ,
-    Member("add days", List("Number"), "DateTime") /* Returns a date that adds the specified number of days to the value of this instance. */ ,
-    Member("add hours", List("Number"), "DateTime") /* Returns a date that adds the specified number of hours to the value of this instance. */ ,
-    Member("add minutes", List("Number"), "DateTime") /* Returns a date that adds the specified number of minutes to the value of this instance. */ ,
-    Member("add seconds", List("Number"), "DateTime") /* Returns a date that adds the specified number of seconds to the value of this instance. */ ,
-    Member("add milliseconds", List("Number"), "DateTime") /* Returns a date that adds the specified number of milliseconds to the value of this instance. */ ,
-    Member("subtract", List("DateTime"), "Number") /* Computes the difference between date-times in seconds */ ,
-    Member("equals", List("DateTime"), "Boolean") /* Compares dates for equality */ ,
-    Member("not equals", List("DateTime"), "Boolean") /* Compares dates for disequality */ ,
-    Member("less or equals", List("DateTime"), "Boolean") /* Compares dates for less or equal */ ,
-    Member("less", List("DateTime"), "Boolean") /* Compares dates for less */ ,
-    Member("greater or equal", List("DateTime"), "Boolean") /* Compares dates for greater or equal */ ,
-    Member("greater", List("DateTime"), "Boolean") /* Compares dates for greater */ ,
-    Member("to string", "String") /* Converts a dates to a string */ ,
-    Member("date", "DateTime") /* Gets the date */ ,
-    Member("milliseconds since epoch", "Number") /* Gets the milliseconds elapsed since January 1, 1970 UTC; same as getTime() in JavaScript. */ ,
-    Member("from now", "String") /* Converts into text that describes the elapsed time in a friendly way. */ ,
-    Member("day", "Number") /* Gets the day of the month */ ,
-    Member("hour", "Number") /* Gets the hour */ ,
-    Member("millisecond", "Number") /* Gets the millisecond */ ,
-    Member("minute", "Number") /* Gets the minute */ ,
-    Member("month", "Number") /* Gets the month */ ,
-    Member("second", "Number") /* Gets the second */ ,
-    Member("year", "Number") /* Gets the year */ ,
-    Member("week day", "Number") /* Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */ ,
-    Member("year day", "Number") /* Gets the day of the year between 1 and 366 */ ,
-    Member("add years", List("Number"), "DateTime") /* [**not implemented**] Returns a date that adds the specified number of years to the value of this instance. */ ,
-    Member("add months", List("Number"), "DateTime") /* [**not implemented**] Returns a date that adds the specified number of months to the value of this instance. */ ,
-    Member("to universal time", "DateTime") /* Converts coordinated universal time */ ,
-    Member("to local time", "DateTime") /* [**not implemented**] Converts to the local time */ ,
-    Member("post to wall", "Nothing") /* Prints the date to the wall */
+  addType("DateTime", gAny(TDateTime.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("to json", TJson_Object.typeName) /* Converts the value into a json data structure. */ ,
+    Member("add days", List(TNumber.typeName), TDateTime.typeName) /* Returns a date that adds the specified number of days to the value of this instance. */ ,
+    Member("add hours", List(TNumber.typeName), TDateTime.typeName) /* Returns a date that adds the specified number of hours to the value of this instance. */ ,
+    Member("add minutes", List(TNumber.typeName), TDateTime.typeName) /* Returns a date that adds the specified number of minutes to the value of this instance. */ ,
+    Member("add seconds", List(TNumber.typeName), TDateTime.typeName) /* Returns a date that adds the specified number of seconds to the value of this instance. */ ,
+    Member("add milliseconds", List(TNumber.typeName), TDateTime.typeName) /* Returns a date that adds the specified number of milliseconds to the value of this instance. */ ,
+    Member("subtract", List(TDateTime.typeName), TNumber.typeName) /* Computes the difference between date-times in seconds */ ,
+    Member("equals", List(TDateTime.typeName), TBoolean.typeName) /* Compares dates for equality */ ,
+    Member("not equals", List(TDateTime.typeName), TBoolean.typeName) /* Compares dates for disequality */ ,
+    Member("less or equals", List(TDateTime.typeName), TBoolean.typeName) /* Compares dates for less or equal */ ,
+    Member("less", List(TDateTime.typeName), TBoolean.typeName) /* Compares dates for less */ ,
+    Member("greater or equal", List(TDateTime.typeName), TBoolean.typeName) /* Compares dates for greater or equal */ ,
+    Member("greater", List(TDateTime.typeName), TBoolean.typeName) /* Compares dates for greater */ ,
+    Member("to string", TString.typeName) /* Converts a dates to a string */ ,
+    Member("date", TDateTime.typeName) /* Gets the date */ ,
+    Member("milliseconds since epoch", TNumber.typeName) /* Gets the milliseconds elapsed since January 1, 1970 UTC; same as getTime() in JavaScript. */ ,
+    Member("from now", TString.typeName) /* Converts into text that describes the elapsed time in a friendly way. */ ,
+    Member("day", TNumber.typeName) /* Gets the day of the month */ ,
+    Member("hour", TNumber.typeName) /* Gets the hour */ ,
+    Member("millisecond", TNumber.typeName) /* Gets the millisecond */ ,
+    Member("minute", TNumber.typeName) /* Gets the minute */ ,
+    Member("month", TNumber.typeName) /* Gets the month */ ,
+    Member("second", TNumber.typeName) /* Gets the second */ ,
+    Member("year", TNumber.typeName) /* Gets the year */ ,
+    Member("week day", TNumber.typeName) /* Gets the day of the week (sunday = 0, monday = 1, ... saturday = 6) */ ,
+    Member("year day", TNumber.typeName) /* Gets the day of the year between 1 and 366 */ ,
+    Member("add years", List(TNumber.typeName), TDateTime.typeName) /* [**not implemented**] Returns a date that adds the specified number of years to the value of this instance. */ ,
+    Member("add months", List(TNumber.typeName), TDateTime.typeName) /* [**not implemented**] Returns a date that adds the specified number of months to the value of this instance. */ ,
+    Member("to universal time", TDateTime.typeName) /* Converts coordinated universal time */ ,
+    Member("to local time", TDateTime.typeName) /* [**not implemented**] Converts to the local time */ ,
+    Member("post to wall", TNothing.typeName) /* Prints the date to the wall */
   ))
 
   // A device on the home network
-  addType("Device", gAny("Device") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("name", "String") /* Gets the friendly name of the device */ ,
-    Member("set name", List("String"), "Nothing") /* Sets the friendly name of the device */ ,
-    Member("manufacturer", "String") /* [**not implemented**] Gets the manfacturer name */ ,
-    Member("browse", "Nothing") /* [**not implemented**] Browses to the device control panel */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Display the device to the wall */ ,
-    Member("is connected", "Boolean") /* [**not implemented**] Checks if the device is connected */
+  addType("Device", gAny(TDevice.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("name", TString.typeName) /* Gets the friendly name of the device */ ,
+    Member("set name", List(TString.typeName), TNothing.typeName) /* Sets the friendly name of the device */ ,
+    Member("manufacturer", TString.typeName) /* [**not implemented**] Gets the manfacturer name */ ,
+    Member("browse", TNothing.typeName) /* [**not implemented**] Browses to the device control panel */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Display the device to the wall */ ,
+    Member("is connected", TBoolean.typeName) /* [**not implemented**] Checks if the device is connected */
   ))
 
   // A collection of devices
-  addType("Device Collection", gAny("Device Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* [**not implemented**] Gets the number of devices */ ,
+  addType("Device Collection", gAny(TDevice_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* [**not implemented**] Gets the number of devices */ ,
     Member("at index", List("Number"), "Device") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Device Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Device") /* [**not implemented**] Gets the device at index */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Posts the devices on the wall */
+    Member("at", List(TNumber.typeName), TDevice.typeName) /* [**not implemented**] Gets the device at index */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Posts the devices on the wall */
   ))
 
   // An interface to TouchDevelop editor
-  addType("Editor", gAny("Editor") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("progress", List("String"), "Nothing") /* Replace standard 'running plugin' message with something else */ ,
-    Member("annotate ast", List("String", "String", "String"), "Nothing") /* Place a message on an AST node */ ,
-    Member("current script id", "String") /* The id of the script currently in the editor */ ,
-    Member("current script ast", "Json Object") /* Returns the AST of the script currently in the editor */ ,
-    Member("tutorial step completed", "Nothing") /* Signal that the current tutorial step is done. */ ,
-    Member("deployment settings", "Json Object") /* Get (Azure) web site deployment settings. */
+  addType("Editor", gAny(TEditor.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("progress", List(TString.typeName), TNothing.typeName) /* Replace standard 'running plugin' message with something else */ ,
+    Member("annotate ast", List(TString.typeName, TString.typeName, TString.typeName), TNothing.typeName) /* Place a message on an AST node */ ,
+    Member("current script id", TString.typeName) /* The id of the script currently in the editor */ ,
+    Member("current script ast", TJson_Object.typeName) /* Returns the AST of the script currently in the editor */ ,
+    Member("tutorial step completed", TNothing.typeName) /* Signal that the current tutorial step is done. */ ,
+    Member("deployment settings", TJson_Object.typeName) /* Get (Azure) web site deployment settings. */ ,
+    Member("upload json", List(TJson_Builder.typeName), TString.typeName) /* Uploads a payload to a temporary blob and retreives the url. While the URL will remain unchanged, the data will eventually be wiped out. */
   ))
 
   // An general enumerator
-  addType("Enumerator", gAny("Enumerator") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("current", "Nothing") /* [**not implemented**] Return current value */ ,
-    Member("move next", "Boolean") /* [**not implemented**] Advance enumerator and return true if there is another element. */
+  addType("Enumerator", gAny(TEnumerator.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("current", TNothing.typeName) /* [**not implemented**] Return current value */ ,
+    Member("move next", TBoolean.typeName) /* [**not implemented**] Advance enumerator and return true if there is another element. */
   ))
 
   // A handler attached to an event.
-  addType("Event Binding", gAny("Event Binding") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("delete", "Nothing") /* Detaches the handler from the event. */
+  addType("Event Binding", gAny(TEvent_Binding.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("delete", TNothing.typeName) /* Detaches the handler from the event. */
   ))
 
   // A builder to create HTML Form data
-  addType("Form Builder", gAny("Form Builder") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("post to wall", "Nothing") /* Displays the form to the wall */ ,
-    Member("add buffer", List("String", "Buffer", "String"), "Nothing") /* Adds a buffer as an attached file */ ,
-    Member("add string as file", List("String", "String", "String"), "Nothing") /* Adds a buffer as an attached file */ ,
-    Member("add string", List("String", "String"), "Nothing") /* Adds a string value */ ,
-    Member("add number", List("String", "Number"), "Nothing") /* Adds a number value */ ,
-    Member("add boolean", List("String", "Boolean"), "Nothing") /* Adds a boolean value */ ,
-    Member("add picture", List("String", "Picture", "String"), "Nothing") /* Adds a picture */
+  addType("Form Builder", gAny(TForm_Builder.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the form to the wall */ ,
+    Member("add text", List(TString.typeName, TString.typeName, TString.typeName, TString.typeName), TNothing.typeName) /* Adds a piece of text to the form using a custom type and/or file name. */ ,
+    Member("add buffer", List(TString.typeName, TBuffer.typeName, TString.typeName), TNothing.typeName) /* Adds a buffer as an attached file */ ,
+    Member("add string as file", List(TString.typeName, TString.typeName, TString.typeName), TNothing.typeName) /* Adds a buffer as an attached file */ ,
+    Member("add string", List(TString.typeName, TString.typeName), TNothing.typeName) /* Adds a string value */ ,
+    Member("add number", List(TString.typeName, TNumber.typeName), TNothing.typeName) /* Adds a number value */ ,
+    Member("add boolean", List(TString.typeName, TBoolean.typeName), TNothing.typeName) /* Adds a boolean value */ ,
+    Member("add picture", List(TString.typeName, TPicture.typeName, TString.typeName), TNothing.typeName) /* Adds a picture */
   ))
 
   // Interact with devices in the home network. Devices must be UPnP™ compatible.
-  addSingleton("Home", gAlsoSingletons("Home") ::: List(
-    Member("printers", "Printer Collection") /* [**not implemented**] Gets the printers on the current wireless network */ ,
-    Member("players", "Media Player Collection") /* [**not implemented**] Gets the media players on the current wireless network */ ,
-    Member("servers", "Media Server Collection") /* [**not implemented**] Gets the media servers on the home network */ ,
-    Member("choose printer", "Printer") /* [**not implemented**] Choose a printer on the current wireless network */ ,
-    Member("choose player", "Media Player") /* [**not implemented**] Choose a media player on the current wireless network */ ,
-    Member("choose server", "Media Server") /* [**not implemented**] Choose a media server on the current wireless network */
+  addSingleton("Home", gAlsoSingletons(SHome.typeName) ::: List(
+    Member("printers", TPrinter_Collection.typeName) /* [**not implemented**] Gets the printers on the current wireless network */ ,
+    Member("players", TMedia_Player_Collection.typeName) /* [**not implemented**] Gets the media players on the current wireless network */ ,
+    Member("servers", TMedia_Server_Collection.typeName) /* [**not implemented**] Gets the media servers on the home network */ ,
+    Member("choose printer", TPrinter.typeName) /* [**not implemented**] Choose a printer on the current wireless network */ ,
+    Member("choose player", TMedia_Player.typeName) /* [**not implemented**] Choose a media player on the current wireless network */ ,
+    Member("choose server", TMedia_Server.typeName) /* [**not implemented**] Choose a media server on the current wireless network */
   ))
 
   // Create invalid values
-  addSingleton("Invalid", gAlsoSingletons("Invalid") ::: List(
-    Member("number", "Number") /* Creates an invalid Number instance */ ,
-    Member("boolean", "Boolean") /* Creates an invalid Boolean instance */ ,
-    Member("string", "String") /* Creates an invalid String instance */ ,
-    Member("string collection", "String Collection") /* Creates an invalid String Collection instance */ ,
-    Member("datetime", "DateTime") /* Creates an invalid DateTime instance */ ,
-    Member("color", "Color") /* Creates an invalid Color instance */ ,
-    Member("picture", "Picture") /* Creates an invalid Picture instance */ ,
-    Member("pictures", "Pictures") /* Creates an invalid Pictures instance */ ,
-    Member("picture album", "Picture Album") /* Creates an invalid Picture Album instance */ ,
-    Member("picture albums", "Picture Albums") /* Creates an invalid Picture Albums instance */ ,
-    Member("song", "Song") /* Creates an invalid Song instance */ ,
-    Member("songs", "Songs") /* Creates an invalid Songs instance */ ,
-    Member("song album", "Song Album") /* Creates an invalid Song Album instance */ ,
-    Member("song albums", "Song Albums") /* Creates an invalid Song Albums instance */ ,
-    Member("playlist", "Playlist") /* Creates an invalid Playlist instance */ ,
-    Member("playlists", "Playlists") /* Creates an invalid Playlists instance */ ,
-    Member("location", "Location") /* Creates an invalid Location instance */ ,
-    Member("location collection", "Location Collection") /* Creates an invalid Location Collection instance */ ,
-    Member("map", "Map") /* Creates an invalid Map instance */ ,
-    Member("sound", "Sound") /* Creates an invalid Sound instance */ ,
-    Member("json object", "Json Object") /* Creates an invalid Json Object instance */ ,
-    Member("link", "Link") /* Creates an invalid Link instance */ ,
-    Member("link collection", "Link Collection") /* Creates an invalid Link Collection instance */ ,
-    Member("vector3", "Vector3") /* Creates an invalid Vector3 instance */ ,
-    Member("number map", "Number Map") /* Creates an invalid Number Map instance */ ,
-    Member("string map", "String Map") /* Creates an invalid String Map instance */ ,
-    Member("message", "Message") /* Creates an invalid Message instance */ ,
-    Member("message collection", "Message Collection") /* Creates an invalid Message Collection instance */ ,
-    Member("board", "Board") /* Creates an invalid Board instance */ ,
-    Member("sprite", "Sprite") /* Creates an invalid Sprite instance */ ,
-    Member("sprite set", "Sprite Set") /* Creates an invalid Sprite Set instance */ ,
-    Member("tile", "Tile") /* Creates an invalid Tile instance */ ,
-    Member("xml object", "Xml Object") /* Creates an invalid Xml Object instance */ ,
-    Member("device", "Device") /* Creates an invalid Device instance */ ,
-    Member("device collection", "Device Collection") /* Creates an invalid Device Collection instance */ ,
-    Member("printer", "Printer") /* Creates an invalid Printer instance */ ,
-    Member("printer collection", "Printer Collection") /* Creates an invalid Printer Collection instance */ ,
-    Member("media player", "Media Player") /* Creates an invalid Media Player instance */ ,
-    Member("media player collection", "Media Player Collection") /* Creates an invalid Media Player Collection instance */ ,
-    Member("media server", "Media Server") /* Creates an invalid Media Server instance */ ,
-    Member("media server collection", "Media Server Collection") /* Creates an invalid Media Server Collection instance */ ,
-    Member("media link", "Media Link") /* Creates an invalid Media Link instance */ ,
-    Member("media link collection", "Media Link Collection") /* Creates an invalid Media Link Collection instance */ ,
-    Member("place", "Place") /* Creates an invalid Place instance */ ,
-    Member("place collection", "Place Collection") /* Creates an invalid Place Collection instance */ ,
-    Member("textbox", "TextBox") /* Creates an invalid TextBox instance */ ,
-    Member("contact", "Contact") /* Creates an invalid Contact instance */ ,
-    Member("contact collection", "Contact Collection") /* Creates an invalid Contact Collection instance */ ,
-    Member("appointment", "Appointment") /* Creates an invalid Appointment instance */ ,
-    Member("appointment collection", "Appointment Collection") /* Creates an invalid Appointment Collection instance */ ,
-    Member("motion", "Motion") /* Creates an invalid Motion instance */ ,
-    Member("camera", "Camera") /* Creates an invalid Camera instance */ ,
-    Member("web request", "Web Request") /* Creates an invalid Web Request instance */ ,
-    Member("web response", "Web Response") /* Creates an invalid Web Response instance */ ,
-    Member("number collection", "Number Collection") /* Creates an invalid Number Collection instance */ ,
-    Member("page", "Page") /* Creates an invalid Page instance */ ,
-    Member("page button", "Page Button") /* Creates an invalid Page Button instance */ ,
-    Member("page collection", "Page Collection") /* Creates an invalid Page Collection instance */ ,
-    Member("matrix", "Matrix") /* Creates an invalid Matrix instance */ ,
-    Member("action", "Action") /* Creates an invalid Action instance */ ,
-    Member("text action", "Action") /* Creates an invalid Text Action instance */ ,
-    Member("position action", "Action") /* Creates an invalid Position Action instance */ ,
-    Member("vector action", "Action") /* Creates an invalid Vector Action instance */ ,
-    Member("webresponse action", "Action") /* Creates an invalid WebResponse Action instance */ ,
-    Member("sprite action", "Action") /* Creates an invalid Sprite Action instance */ ,
-    Member("sprite set action", "Action") /* Creates an invalid Sprite Set Action instance */ ,
-    Member("json builder", "Json Builder") /* Creates an invalid Json Builder instance */ ,
-    Member("message collection action", "Action") /* Creates an invalid Message Collection Action instance */ ,
-    Member("oauth response", "OAuth Response") /* Creates an invalid OAuth Response instance */ ,
-    Member("form builder", "Form Builder") /* Creates an invalid Form Builder instance */ ,
-    Member("bluetooth device", "Bluetooth Device") /* Creates an invalid BlueTooth Device instance */ ,
-    Member("bluetooth LE device", "Bluetooth Le Device") /* [**dbg**] Creates an invalid BlueTooth LE Device instance */ ,
-    Member("user", "User") /* Creates an invalid User instance */ ,
-    Member("gamepad", "Gamepad") /* Creates an invalid Gamepad instance */
+  addSingleton("Invalid", gAlsoSingletons(SInvalid.typeName) ::: List(
+    Member("number", TNumber.typeName) /* Creates an invalid Number instance */ ,
+    Member("boolean", TBoolean.typeName) /* Creates an invalid Boolean instance */ ,
+    Member("string", TString.typeName) /* Creates an invalid String instance */ ,
+    Member("string collection", TString_Collection.typeName) /* Creates an invalid String Collection instance */ ,
+    Member("datetime", TDateTime.typeName) /* Creates an invalid DateTime instance */ ,
+    Member("color", TColor.typeName) /* Creates an invalid Color instance */ ,
+    Member("picture", TPicture.typeName) /* Creates an invalid Picture instance */ ,
+    Member("pictures", TPictures.typeName) /* Creates an invalid Pictures instance */ ,
+    Member("picture album", TPicture_Album.typeName) /* Creates an invalid Picture Album instance */ ,
+    Member("picture albums", TPicture_Albums.typeName) /* Creates an invalid Picture Albums instance */ ,
+    Member("song", TSong.typeName) /* Creates an invalid Song instance */ ,
+    Member("songs", TSongs.typeName) /* Creates an invalid Songs instance */ ,
+    Member("song album", TSong_Album.typeName) /* Creates an invalid Song Album instance */ ,
+    Member("song albums", TSong_Albums.typeName) /* Creates an invalid Song Albums instance */ ,
+    Member("playlist", TPlaylist.typeName) /* Creates an invalid Playlist instance */ ,
+    Member("playlists", TPlaylists.typeName) /* Creates an invalid Playlists instance */ ,
+    Member("location", TLocation.typeName) /* Creates an invalid Location instance */ ,
+    Member("location collection", TLocation_Collection.typeName) /* Creates an invalid Location Collection instance */ ,
+    Member("map", TMap.typeName) /* Creates an invalid Map instance */ ,
+    Member("sound", TSound.typeName) /* Creates an invalid Sound instance */ ,
+    Member("json object", TJson_Object.typeName) /* Creates an invalid Json Object instance */ ,
+    Member("link", TLink.typeName) /* Creates an invalid Link instance */ ,
+    Member("link collection", TLink_Collection.typeName) /* Creates an invalid Link Collection instance */ ,
+    Member("vector3", TVector3.typeName) /* Creates an invalid Vector3 instance */ ,
+    Member("number map", TNumber_Map.typeName) /* Creates an invalid Number Map instance */ ,
+    Member("string map", TString_Map.typeName) /* Creates an invalid String Map instance */ ,
+    Member("message", TMessage.typeName) /* Creates an invalid Message instance */ ,
+    Member("message collection", TMessage_Collection.typeName) /* Creates an invalid Message Collection instance */ ,
+    Member("board", TBoard.typeName) /* Creates an invalid Board instance */ ,
+    Member("sprite", TSprite.typeName) /* Creates an invalid Sprite instance */ ,
+    Member("sprite animation", TSprite_Animation.typeName) /* Creates an invalid Sprite Animation instance */ ,
+    Member("sprite set", TSprite_Set.typeName) /* Creates an invalid Sprite Set instance */ ,
+    Member("tile", TTile.typeName) /* Creates an invalid Tile instance */ ,
+    Member("xml object", TXml_Object.typeName) /* Creates an invalid Xml Object instance */ ,
+    Member("device", TDevice.typeName) /* Creates an invalid Device instance */ ,
+    Member("device collection", TDevice_Collection.typeName) /* Creates an invalid Device Collection instance */ ,
+    Member("printer", TPrinter.typeName) /* Creates an invalid Printer instance */ ,
+    Member("printer collection", TPrinter_Collection.typeName) /* Creates an invalid Printer Collection instance */ ,
+    Member("media player", TMedia_Player.typeName) /* Creates an invalid Media Player instance */ ,
+    Member("media player collection", TMedia_Player_Collection.typeName) /* Creates an invalid Media Player Collection instance */ ,
+    Member("media server", TMedia_Server.typeName) /* Creates an invalid Media Server instance */ ,
+    Member("media server collection", TMedia_Server_Collection.typeName) /* Creates an invalid Media Server Collection instance */ ,
+    Member("media link", TMedia_Link.typeName) /* Creates an invalid Media Link instance */ ,
+    Member("media link collection", TMedia_Link_Collection.typeName) /* Creates an invalid Media Link Collection instance */ ,
+    Member("place", TPlace.typeName) /* Creates an invalid Place instance */ ,
+    Member("place collection", TPlace_Collection.typeName) /* Creates an invalid Place Collection instance */ ,
+    Member("textbox", TTextBox.typeName) /* Creates an invalid TextBox instance */ ,
+    Member("contact", TContact.typeName) /* Creates an invalid Contact instance */ ,
+    Member("contact collection", TContact_Collection.typeName) /* Creates an invalid Contact Collection instance */ ,
+    Member("appointment", TAppointment.typeName) /* Creates an invalid Appointment instance */ ,
+    Member("appointment collection", TAppointment_Collection.typeName) /* Creates an invalid Appointment Collection instance */ ,
+    Member("motion", TMotion.typeName) /* Creates an invalid Motion instance */ ,
+    Member("camera", TCamera.typeName) /* Creates an invalid Camera instance */ ,
+    Member("web request", TWeb_Request.typeName) /* Creates an invalid Web Request instance */ ,
+    Member("web response", TWeb_Response.typeName) /* Creates an invalid Web Response instance */ ,
+    Member("number collection", TNumber_Collection.typeName) /* Creates an invalid Number Collection instance */ ,
+    Member("page", TPage.typeName) /* Creates an invalid Page instance */ ,
+    Member("page button", TPage_Button.typeName) /* Creates an invalid Page Button instance */ ,
+    Member("page collection", TPage_Collection.typeName) /* Creates an invalid Page Collection instance */ ,
+    Member("matrix", TMatrix.typeName) /* Creates an invalid Matrix instance */ ,
+    Member("action", TAction.typeName) /* Creates an invalid Action instance */ ,
+    Member("text action", TAction.typeName) /* Creates an invalid Text Action instance */ ,
+    Member("position action", TAction.typeName) /* Creates an invalid Position Action instance */ ,
+    Member("vector action", TAction.typeName) /* Creates an invalid Vector Action instance */ ,
+    Member("webresponse action", TAction.typeName) /* Creates an invalid WebResponse Action instance */ ,
+    Member("sprite action", TAction.typeName) /* Creates an invalid Sprite Action instance */ ,
+    Member("sprite set action", TAction.typeName) /* Creates an invalid Sprite Set Action instance */ ,
+    Member("json builder", TJson_Builder.typeName) /* Creates an invalid Json Builder instance */ ,
+    Member("message collection action", TAction.typeName) /* Creates an invalid Message Collection Action instance */ ,
+    Member("oauth response", TOAuth_Response.typeName) /* Creates an invalid OAuth Response instance */ ,
+    Member("form builder", TForm_Builder.typeName) /* Creates an invalid Form Builder instance */ ,
+    Member("bluetooth device", TBluetooth_Device.typeName) /* Creates an invalid BlueTooth Device instance */ ,
+    Member("bluetooth LE device", TBluetooth_Le_Device.typeName) /* [**dbg**] Creates an invalid BlueTooth LE Device instance */ ,
+    Member("user", TUser.typeName) /* Creates an invalid User instance */ ,
+    Member("gamepad", TGamepad.typeName) /* Creates an invalid Gamepad instance */
   ))
 
   // A json data structure builder
-  addType("Json Builder", gAny("Json Builder") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("set field", List("String", "Json Object"), "Nothing") /* Sets the field value. */ ,
-    Member("set builder", List("String", "Json Builder"), "Nothing") /* Sets the field the the reference to JsonBuilder. */ ,
-    Member("set string", List("String", "String"), "Nothing") /* Sets the string value. */ ,
-    Member("set number", List("String", "Number"), "Nothing") /* Sets the number value. */ ,
-    Member("set boolean", List("String", "Boolean"), "Nothing") /* Sets the boolean value. */ ,
-    Member("set sound", List("String", "Sound"), "Nothing") /* Sets the Sound value as a data uri. */ ,
-    Member("set picture", List("String", "Picture", "Number"), "Nothing") /* Sets the Picture value as a data uri. */ ,
-    Member("set field null", List("String"), "Nothing") /* Sets the field value as null. */ ,
-    Member("add", List("Json Object"), "Nothing") /* Adds a value to the array. */ ,
-    Member("add builder", List("Json Builder"), "Nothing") /* Add a reference to JsonBuilder to the array. */ ,
-    Member("clear", "Nothing") /* Deletes all array elements from the current builder. */ ,
-    Member("add null", "Nothing") /* Adds a null value to the array. */ ,
-    Member("to json", "Json Object") /* Converts the builder into a json data structure */ ,
-    Member("count", "Number") /* Gets the number of values */ ,
+  addType("Json Builder", gAny(TJson_Builder.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("set field", List(TString.typeName, TJson_Object.typeName), TNothing.typeName) /* Sets the field value. */ ,
+    Member("set builder", List(TString.typeName, TJson_Builder.typeName), TNothing.typeName) /* Sets the field the the reference to JsonBuilder. */ ,
+    Member("set string", List(TString.typeName, TString.typeName), TNothing.typeName) /* Sets the string value. */ ,
+    Member("set number", List(TString.typeName, TNumber.typeName), TNothing.typeName) /* Sets the number value. */ ,
+    Member("set boolean", List(TString.typeName, TBoolean.typeName), TNothing.typeName) /* Sets the boolean value. */ ,
+    Member("set sound", List(TString.typeName, TSound.typeName), TNothing.typeName) /* Sets the Sound value as a data uri. */ ,
+    Member("set picture", List(TString.typeName, TPicture.typeName, TNumber.typeName), TNothing.typeName) /* Sets the Picture value as a data uri. */ ,
+    Member("set field null", List(TString.typeName), TNothing.typeName) /* Sets the field value as null. */ ,
+    Member("add", List(TJson_Object.typeName), TNothing.typeName) /* Adds a value to the array. */ ,
+    Member("add builder", List(TJson_Builder.typeName), TNothing.typeName) /* Add a reference to JsonBuilder to the array. */ ,
+    Member("clear", TNothing.typeName) /* Deletes all array elements from the current builder. */ ,
+    Member("add null", TNothing.typeName) /* Adds a null value to the array. */ ,
+    Member("to json", TJson_Object.typeName) /* Converts the builder into a json data structure */ ,
+    Member("count", TNumber.typeName) /* Gets the number of values */ ,
     Member("at index", List("Number"), "Json Builder") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Json Builder") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Json Builder") /* Gets the i-th json value */ ,
-    Member("set at", List("Number", "Json Builder"), "Nothing") /* Sets the i-th json value */ ,
-    Member("remove at", List("Number"), "Nothing") /* Removes the i-th json value */ ,
-    Member("remove field", List("String"), "Nothing") /* Deletes named field */ ,
-    Member("boolean", List("String"), "Boolean") /* Gets a field value as a boolean */ ,
-    Member("contains key", List("String"), "Boolean") /* Indicates if the key exists */ ,
-    Member("time", List("String"), "DateTime") /* Gets the field value as a time */ ,
-    Member("field", List("String"), "Json Builder") /* Gets a value by name */ ,
-    Member("keys", "String Collection") /* Gets the list of keys */ ,
-    Member("kind", "String") /* Gets a json kind (string, number, object, array, boolean, null) */ ,
-    Member("number", List("String"), "Number") /* Gets a field value as a number */ ,
-    Member("string", List("String"), "String") /* Gets a field value as a string */ ,
-    Member("post to wall", "Nothing") /* Prints the value to the wall */ ,
-    Member("to boolean", "Boolean") /* Converts to a boolean (type must be boolean) */ ,
-    Member("to number", "Number") /* Converts to a number (type must be number) */ ,
-    Member("to string", "String") /* Converts to a string (type must be string) */ ,
-    Member("to time", "DateTime") /* Converts and parses to a date time (type must be string) */ ,
-    Member("serialize", "String") /* Stringify the current JSON object */
+    Member("at", List(TNumber.typeName), TJson_Builder.typeName) /* Gets the i-th json value */ ,
+    Member("set at", List(TNumber.typeName, TJson_Builder.typeName), TNothing.typeName) /* Sets the i-th json value */ ,
+    Member("remove at", List(TNumber.typeName), TNothing.typeName) /* Removes the i-th json value */ ,
+    Member("remove field", List(TString.typeName), TNothing.typeName) /* Deletes named field */ ,
+    Member("boolean", List(TString.typeName), TBoolean.typeName) /* Gets a field value as a boolean */ ,
+    Member("contains key", List(TString.typeName), TBoolean.typeName) /* Indicates if the key exists */ ,
+    Member("time", List(TString.typeName), TDateTime.typeName) /* Gets the field value as a time */ ,
+    Member("field", List(TString.typeName), TJson_Builder.typeName) /* Gets a value by name */ ,
+    Member("keys", TString_Collection.typeName) /* Gets the list of keys */ ,
+    Member("kind", TString.typeName) /* Gets a json kind (string, number, object, array, boolean, null) */ ,
+    Member("number", List(TString.typeName), TNumber.typeName) /* Gets a field value as a number */ ,
+    Member("string", List(TString.typeName), TString.typeName) /* Gets a field value as a string */ ,
+    Member("post to wall", TNothing.typeName) /* Prints the value to the wall */ ,
+    Member("to boolean", TBoolean.typeName) /* Converts to a boolean (type must be boolean) */ ,
+    Member("to number", TNumber.typeName) /* Converts to a number (type must be number) */ ,
+    Member("to string", TString.typeName) /* Converts to a string (type must be string) */ ,
+    Member("to time", TDateTime.typeName) /* Converts and parses to a date time (type must be string) */ ,
+    Member("serialize", TString.typeName) /* Stringify the current JSON object */
   ))
 
   // A json data structure.
-  addType("Json Object", gAny("Json Object") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of values */ ,
+  addType("Json Object", gAny(TJson_Object.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of values */ ,
     Member("at index", List("Number"), "Json Object") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Json Object") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Json Object") /* Gets the i-th json value */ ,
-    Member("boolean", List("String"), "Boolean") /* Gets a field value as a boolean */ ,
-    Member("contains key", List("String"), "Boolean") /* Indicates if the key exists */ ,
-    Member("time", List("String"), "DateTime") /* Gets the field value as a time */ ,
-    Member("field", List("String"), "Json Object") /* Gets a value by name */ ,
-    Member("keys", "String Collection") /* Gets the list of keys */ ,
-    Member("kind", "String") /* Gets a json kind (string, number, object, array, boolean, null) */ ,
-    Member("number", List("String"), "Number") /* Gets a field value as a number */ ,
-    Member("string", List("String"), "String") /* Gets a field value as a string */ ,
-    Member("post to wall", "Nothing") /* Prints the value to the wall */ ,
-    Member("format", List("Number"), "String") /* Create a string formatted for easy readability */ ,
-    Member("to boolean", "Boolean") /* Converts to a boolean (type must be boolean) */ ,
-    Member("to number", "Number") /* Converts to a number (type must be number) */ ,
-    Member("to string", "String") /* Converts to a string (type must be string) */ ,
-    Member("to time", "DateTime") /* Converts and parses to a date time (type must be string) */ ,
-    Member("serialize", "String") /* Stringify the current JSON object */ ,
-    Member("to json builder", "Json Builder") /* Copy current JSON object into a Json Builder so it can be modified */
+    Member("at", List(TNumber.typeName), TJson_Object.typeName) /* Gets the i-th json value */ ,
+    Member("boolean", List(TString.typeName), TBoolean.typeName) /* Gets a field value as a boolean */ ,
+    Member("contains key", List(TString.typeName), TBoolean.typeName) /* Indicates if the key exists */ ,
+    Member("time", List(TString.typeName), TDateTime.typeName) /* Gets the field value as a time */ ,
+    Member("field", List(TString.typeName), TJson_Object.typeName) /* Gets a value by name */ ,
+    Member("keys", TString_Collection.typeName) /* Gets the list of keys */ ,
+    Member("kind", TString.typeName) /* Gets a json kind (string, number, object, array, boolean, null) */ ,
+    Member("number", List(TString.typeName), TNumber.typeName) /* Gets a field value as a number */ ,
+    Member("string", List(TString.typeName), TString.typeName) /* Gets a field value as a string */ ,
+    Member("post to wall", TNothing.typeName) /* Prints the value to the wall */ ,
+    Member("format", List(TNumber.typeName), TString.typeName) /* Create a string formatted for easy readability */ ,
+    Member("to boolean", TBoolean.typeName) /* Converts to a boolean (type must be boolean) */ ,
+    Member("to number", TNumber.typeName) /* Converts to a number (type must be number) */ ,
+    Member("to string", TString.typeName) /* Converts to a string (type must be string) */ ,
+    Member("to time", TDateTime.typeName) /* Converts and parses to a date time (type must be string) */ ,
+    Member("serialize", TString.typeName) /* Stringify the current JSON object */ ,
+    Member("to json builder", TJson_Builder.typeName) /* Copy current JSON object into a Json Builder so it can be modified */
   ))
 
   // Translation, speech to text, ...
-  addSingleton("Languages", gAlsoSingletons("Languages") ::: List(
-    Member("current language", "String") /* Gets the current language code, to be used in the 'translate' method. */ ,
-    Member("speech to text", List("String", "Sound"), "String") /* [**not implemented**] [**obsolete**] Converts a sound to a text using Project Hawaii from Microsoft Research. */ ,
-    Member("picture to text", List("String", "Picture"), "String") /* Extracts text in the picture using Project Hawaii from Microsoft Research. */ ,
-    Member("record text", "String") /* Converts the microphone dictation to text. */ ,
-    Member("translate", List("String", "String", "String"), "String") /* Translates some text between two languages using Bing. Empty source language to auto-detect. */ ,
-    Member("detect language", List("String"), "String") /* Automatically detects the language of a given text using Bing. */ ,
-    Member("speak", List("String", "String"), "Sound") /* [**obsolete**] This api was renamed. Use `speak_text` instead. */ ,
-    Member("speak text", List("String", "String", "String"), "Nothing") /* Speaks the text immediately using the text-to-speech engine on the device. */ ,
-    Member("speak ssml", List("Xml Object"), "Nothing") /* Speaks the SSML markup immediately using the text-to-speech engine on the device. */
+  addSingleton("Languages", gAlsoSingletons(SLanguages.typeName) ::: List(
+    Member("current language", TString.typeName) /* Gets the current language code, to be used in the 'translate' method. */ ,
+    Member("speech to text", List(TString.typeName, TSound.typeName), TString.typeName) /* [**not implemented**] [**obsolete**] Converts a sound to a text using Project Hawaii from Microsoft Research. */ ,
+    Member("picture to text", List(TString.typeName, TPicture.typeName), TString.typeName) /* Extracts text in the picture using Project Hawaii from Microsoft Research. */ ,
+    Member("record text", TString.typeName) /* Converts the microphone dictation to text. */ ,
+    Member("translate", List(TString.typeName, TString.typeName, TString.typeName), TString.typeName) /* Translates some text between two languages using Bing. Empty source language to auto-detect. */ ,
+    Member("detect language", List(TString.typeName), TString.typeName) /* Automatically detects the language of a given text using Bing. */ ,
+    Member("speak", List(TString.typeName, TString.typeName), TSound.typeName) /* [**obsolete**] This api was renamed. Use `speak_text` instead. */ ,
+    Member("speak text", List(TString.typeName, TString.typeName, TString.typeName), TNothing.typeName) /* Speaks the text immediately using the text-to-speech engine on the device. */ ,
+    Member("speak ssml", List(TXml_Object.typeName), TNothing.typeName) /* Speaks the SSML markup immediately using the text-to-speech engine on the device. */
   ))
 
   // A link to a video, image, email, phone number
-  addType("Link", gAny("Link") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("name", "String") /* Gets the name if any */ ,
-    Member("set name", List("String"), "Nothing") /* Sets the name */ ,
-    Member("location", "Location") /* Gets the location if any */ ,
-    Member("set location", List("Location"), "Nothing") /* Sets the location */ ,
-    Member("address", "String") /* Gets the url */ ,
-    Member("to picture", "Picture") /* Gets a picture pointing to this address. Only applies to `image` link kinds. */ ,
-    Member("kind", "String") /* Gets the kind of asset - media, image, email, phone number, hyperlink, deep zoom link, radio */ ,
-    Member("share", List("String"), "Nothing") /* Shares the link (email, sms, facebook, social or '' to pick from a list) */ ,
-    Member("post to wall", "Nothing") /* Displays the link on the wall */
+  addType("Link", gAny(TLink.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("name", TString.typeName) /* Gets the name if any */ ,
+    Member("set name", List(TString.typeName), TNothing.typeName) /* Sets the name */ ,
+    Member("location", TLocation.typeName) /* Gets the location if any */ ,
+    Member("set location", List(TLocation.typeName), TNothing.typeName) /* Sets the location */ ,
+    Member("address", TString.typeName) /* Gets the url */ ,
+    Member("to picture", TPicture.typeName) /* Gets a picture pointing to this address. Only applies to `image` link kinds. */ ,
+    Member("kind", TString.typeName) /* Gets the kind of asset - media, image, email, phone number, hyperlink, deep zoom link, radio */ ,
+    Member("share", List(TString.typeName), TNothing.typeName) /* Shares the link (email, sms, facebook, social or '' to pick from a list) */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the link on the wall */
   ))
 
   // A list of links
-  addType("Link Collection", gAny("Link Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of elements */ ,
-    Member("clear", "Nothing") /* Clears the collection */ ,
-    Member("add", List("Link"), "Nothing") /* Adds a link */ ,
-    Member("add many", List("Link Collection"), "Nothing") /* Adds many links at once */ ,
-    Member("index of", List("Link", "Number"), "Number") /* Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */ ,
+  addType("Link Collection", gAny(TLink_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements */ ,
+    Member("clear", TNothing.typeName) /* Clears the collection */ ,
+    Member("add", List(TLink.typeName), TNothing.typeName) /* Adds a link */ ,
+    Member("add many", List(TLink_Collection.typeName), TNothing.typeName) /* Adds many links at once */ ,
+    Member("index of", List(TLink.typeName, TNumber.typeName), TNumber.typeName) /* Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */ ,
     Member("at index", List("Number"), "Link") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Link Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Link") /* Gets the i-th link */ ,
-    Member("remove", List("Link"), "Boolean") /* Removes the first occurence of the link. Returns true if removed. */ ,
-    Member("remove at", List("Number"), "Nothing") /* Removes the link at position index. */ ,
-    Member("reverse", "Nothing") /* Reverses the order of the elements. */ ,
-    Member("random", "Link") /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
-    Member("set at", List("Number", "Link"), "Nothing") /* Sets the i-th link */ ,
-    Member("insert at", List("Number", "Link"), "Nothing") /* Inserts a link at position index. Does nothing if index is out of range. */ ,
-    Member("post to wall", "Nothing") /* Displays the links on the wall */
+    Member("at", List(TNumber.typeName), TLink.typeName) /* Gets the i-th link */ ,
+    Member("remove", List(TLink.typeName), TBoolean.typeName) /* Removes the first occurence of the link. Returns true if removed. */ ,
+    Member("remove at", List(TNumber.typeName), TNothing.typeName) /* Removes the link at position index. */ ,
+    Member("reverse", TNothing.typeName) /* Reverses the order of the elements. */ ,
+    Member("random", TLink.typeName) /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
+    Member("set at", List(TNumber.typeName, TLink.typeName), TNothing.typeName) /* Sets the i-th link */ ,
+    Member("insert at", List(TNumber.typeName, TLink.typeName), TNothing.typeName) /* Inserts a link at position index. Does nothing if index is out of range. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the links on the wall */
   ))
 
   // OneDrive, OneNote operations
-  addSingleton("Cloud Storage", gAlsoSingletons("Cloud Storage") ::: List(
-    Member("upload picture", List("Picture", "String", "String"), "Cloud Picture") /* Prompts the user to upload a picture to OneDrive. If the filename is empty, a default filename gets generated. */ ,
-    Member("upload note", List("Form Builder"), "String") /* Uploads a new OneNote page and returns the web client url if successful. The 'Presentation' field must contain the well-formed HTML. Additional pictures can be stored in other fields. */
+  addSingleton("Cloud Storage", gAlsoSingletons(SCloud_Storage.typeName) ::: List(
+    Member("upload picture", List(TPicture.typeName, TString.typeName, TString.typeName), TCloud_Picture.typeName) /* Prompts the user to upload a picture to OneDrive. If the filename is empty, a default filename gets generated. */ ,
+    Member("create note", List(TString.typeName), TForm_Builder.typeName) /* Creates a OneNote page from the given HTML fragment. The page can be uploaded using `cloud storage->upload note'. */ ,
+    Member("upload note", List(TForm_Builder.typeName), TString.typeName) /* Uploads a new OneNote page and returns the web client url if successful. The 'Presentation' field must contain the well-formed HTML. Additional pictures can be stored in other fields. */
   ))
 
   // A geo coordinate (latitude, longitude, ...)
-  addType("Location", gAny("Location") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("to string", "String") /* Converts to a string lat,long */ ,
-    Member("latitude", "Number") /* Gets the latitude of the coordinate */ ,
-    Member("longitude", "Number") /* Gets the longitude of the coordinate */ ,
-    Member("altitude", "Number") /* Gets the altitude of the coordinate */ ,
-    Member("hor accuracy", "Number") /* Gets the horizontal accuracy of the coordinate */ ,
-    Member("vert accuracy", "Number") /* Gets the vertical accuracy of the coordinate */ ,
-    Member("speed", "Number") /* Gets the speed of the coordinate */ ,
-    Member("course", "Number") /* Gets the course of the coordinate */ ,
-    Member("equals", List("Location"), "Boolean") /* Indicates if this instance is equal to the other */ ,
-    Member("share", List("String", "String"), "Nothing") /* Shares the location (email, sms, social or '' to pick from a list) */ ,
-    Member("distance", List("Location"), "Number") /* Calculates the distance in meters */ ,
-    Member("post to wall", "Nothing") /* Displays the location in a map using Bing. */
+  addType("Location", gAny(TLocation.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("to string", TString.typeName) /* Converts to a string lat,long */ ,
+    Member("latitude", TNumber.typeName) /* Gets the latitude of the coordinate */ ,
+    Member("longitude", TNumber.typeName) /* Gets the longitude of the coordinate */ ,
+    Member("altitude", TNumber.typeName) /* Gets the altitude of the coordinate */ ,
+    Member("hor accuracy", TNumber.typeName) /* Gets the horizontal accuracy of the coordinate */ ,
+    Member("vert accuracy", TNumber.typeName) /* Gets the vertical accuracy of the coordinate */ ,
+    Member("speed", TNumber.typeName) /* Gets the speed of the coordinate */ ,
+    Member("course", TNumber.typeName) /* Gets the course of the coordinate */ ,
+    Member("equals", List(TLocation.typeName), TBoolean.typeName) /* Indicates if this instance is equal to the other */ ,
+    Member("share", List(TString.typeName, TString.typeName), TNothing.typeName) /* Shares the location (email, sms, social or '' to pick from a list) */ ,
+    Member("distance", List(TLocation.typeName), TNumber.typeName) /* Calculates the distance in meters */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the location in a map using Bing. */
   ))
 
   // A list of locations
-  addType("Location Collection", gAny("Location Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of elements */ ,
-    Member("clear", "Nothing") /* Clears the collection */ ,
-    Member("add", List("Location"), "Nothing") /* Adds a location */ ,
-    Member("add many", List("Location Collection"), "Nothing") /* Adds many locations at once */ ,
-    Member("index of", List("Location", "Number"), "Number") /* Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */ ,
+  addType("Location Collection", gAny(TLocation_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements */ ,
+    Member("clear", TNothing.typeName) /* Clears the collection */ ,
+    Member("add", List(TLocation.typeName), TNothing.typeName) /* Adds a location */ ,
+    Member("add many", List(TLocation_Collection.typeName), TNothing.typeName) /* Adds many locations at once */ ,
+    Member("index of", List(TLocation.typeName, TNumber.typeName), TNumber.typeName) /* Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */ ,
     Member("at index", List("Number"), "Location") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Location Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Location") /* Gets the i-th geo coordinate */ ,
-    Member("remove", List("Location"), "Boolean") /* Removes the first occurence of the location. Returns true if removed. */ ,
-    Member("remove at", List("Number"), "Nothing") /* Removes the location at position index. */ ,
-    Member("reverse", "Nothing") /* Reverses the order of the elements. */ ,
-    Member("random", "Location") /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
-    Member("set at", List("Number", "Location"), "Nothing") /* Sets the i-th geo coordinate */ ,
-    Member("insert at", List("Number", "Location"), "Nothing") /* Inserts a location at position index. Does nothing if index is out of range. */ ,
-    Member("post to wall", "Nothing") /* Displays the locations in a map using Bing. */ ,
-    Member("sort by distance", List("Location"), "Nothing") /* [**not implemented**] Sorts by distance to the location */
+    Member("at", List(TNumber.typeName), TLocation.typeName) /* Gets the i-th geo coordinate */ ,
+    Member("remove", List(TLocation.typeName), TBoolean.typeName) /* Removes the first occurence of the location. Returns true if removed. */ ,
+    Member("remove at", List(TNumber.typeName), TNothing.typeName) /* Removes the location at position index. */ ,
+    Member("reverse", TNothing.typeName) /* Reverses the order of the elements. */ ,
+    Member("random", TLocation.typeName) /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
+    Member("set at", List(TNumber.typeName, TLocation.typeName), TNothing.typeName) /* Sets the i-th geo coordinate */ ,
+    Member("insert at", List(TNumber.typeName, TLocation.typeName), TNothing.typeName) /* Inserts a location at position index. Does nothing if index is out of range. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the locations in a map using Bing. */ ,
+    Member("sort by distance", List(TLocation.typeName), TNothing.typeName) /* [**not implemented**] Sorts by distance to the location */
   ))
 
   // Geo coordinates
-  addSingleton("Locations", gAlsoSingletons("Locations") ::: List(
-    Member("create location", List("Number", "Number"), "Location") /* Creates a new geo coordinate location */ ,
-    Member("create location list", "Location Collection") /* Creates an empty list of locations */ ,
-    Member("describe location", List("Location"), "String") /* Looks for an address near a location using Bing. */ ,
-    Member("search location", List("String", "String", "String", "String"), "Location") /* Looks for the coordinate of an address using Bing. */
+  addSingleton("Locations", gAlsoSingletons(SLocations.typeName) ::: List(
+    Member("create location", List(TNumber.typeName, TNumber.typeName), TLocation.typeName) /* Creates a new geo coordinate location */ ,
+    Member("create location list", TLocation_Collection.typeName) /* Creates an empty list of locations */ ,
+    Member("describe location", List(TLocation.typeName), TString.typeName) /* Looks for an address near a location using Bing. */ ,
+    Member("search location", List(TString.typeName, TString.typeName, TString.typeName, TString.typeName), TLocation.typeName) /* Looks for the coordinate of an address using Bing. */
   ))
 
   // A map pushpin
-  addType("Map Pushpin", gAny("Map Pushpin") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("on tap", List("Action"), "Event Binding") /* Set the handler invoked when the pushpin is tapped */ ,
-    Member("location", "Location") /* Gets the pushpin geo location */ ,
-    Member("set location", List("Location"), "Nothing") /* Sets the location of the pushpin */ ,
-    Member("set visible", List("Boolean"), "Nothing") /* Shows or hides the pushpin */
+  addType("Map Pushpin", gAny(TMap_Pushpin.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("on tap", List(TAction.typeName), TEvent_Binding.typeName) /* Set the handler invoked when the pushpin is tapped */ ,
+    Member("location", TLocation.typeName) /* Gets the pushpin geo location */ ,
+    Member("set location", List(TLocation.typeName), TNothing.typeName) /* Sets the location of the pushpin */ ,
+    Member("set visible", List(TBoolean.typeName), TNothing.typeName) /* Shows or hides the pushpin */
   ))
 
   // A Bing map
-  addType("Map", gAny("Map") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("zoom", "Number") /* Gets the zoom level */ ,
-    Member("set zoom", List("Number"), "Nothing") /* Sets the zoom level from 1 (earth) to 21 (street) */ ,
-    Member("center", "Location") /* Gets the map center location */ ,
-    Member("set center", List("Location"), "Nothing") /* Sets the map center location */ ,
-    Member("add text", List("Location", "String", "Color", "Color"), "Map Pushpin") /* Adds a text pushpin on the map */ ,
-    Member("add cloud picture", List("Location", "Cloud Picture", "Color"), "Map Pushpin") /* Adds a cloud picture pushpin on the map */ ,
-    Member("add link", List("Link", "Color", "Color"), "Map Pushpin") /* Adds a link pushpin on the map (ignored if the location if not set) */ ,
-    Member("add message", List("Message", "Color", "Color"), "Map Pushpin") /* Adds a message pushpin on the map (ignored if the location is not set) */ ,
-    Member("add picture", List("Location", "Picture", "Color"), "Map Pushpin") /* Adds a picture pushpin on the map */ ,
-    Member("add place", List("Place", "Color", "Color"), "Map Pushpin") /* Adds a place pushpin on the map (ignored if the location is not set) */ ,
-    Member("add line", List("Location Collection", "Color", "Number"), "Nothing") /* Adds a polyline that passes through various geocoordinates */ ,
-    Member("fill region", List("Location Collection", "Color", "Color", "Number"), "Nothing") /* Fills a region with a color */ ,
-    Member("clear", "Nothing") /* Clears the lines, regions and pushpins */ ,
-    Member("view pushpins", "Nothing") /* Changes the current zoom and center so that all the pushpins are visible. This method has no effect if the map is not posted on a the wall yet. */ ,
-    Member("post to wall", "Nothing") /* Displays the map in the wall using Bing. */
+  addType("Map", gAny(TMap.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("zoom", TNumber.typeName) /* Gets the zoom level */ ,
+    Member("set zoom", List(TNumber.typeName), TNothing.typeName) /* Sets the zoom level from 1 (earth) to 21 (street) */ ,
+    Member("center", TLocation.typeName) /* Gets the map center location */ ,
+    Member("set center", List(TLocation.typeName), TNothing.typeName) /* Sets the map center location */ ,
+    Member("add text", List(TLocation.typeName, TString.typeName, TColor.typeName, TColor.typeName), TMap_Pushpin.typeName) /* Adds a text pushpin on the map */ ,
+    Member("add cloud picture", List(TLocation.typeName, TCloud_Picture.typeName, TColor.typeName), TMap_Pushpin.typeName) /* Adds a cloud picture pushpin on the map */ ,
+    Member("add link", List(TLink.typeName, TColor.typeName, TColor.typeName), TMap_Pushpin.typeName) /* Adds a link pushpin on the map (ignored if the location if not set) */ ,
+    Member("add message", List(TMessage.typeName, TColor.typeName, TColor.typeName), TMap_Pushpin.typeName) /* Adds a message pushpin on the map (ignored if the location is not set) */ ,
+    Member("add picture", List(TLocation.typeName, TPicture.typeName, TColor.typeName), TMap_Pushpin.typeName) /* Adds a picture pushpin on the map */ ,
+    Member("add place", List(TPlace.typeName, TColor.typeName, TColor.typeName), TMap_Pushpin.typeName) /* Adds a place pushpin on the map (ignored if the location is not set) */ ,
+    Member("add line", List(TLocation_Collection.typeName, TColor.typeName, TNumber.typeName), TNothing.typeName) /* Adds a polyline that passes through various geocoordinates */ ,
+    Member("fill region", List(TLocation_Collection.typeName, TColor.typeName, TColor.typeName, TNumber.typeName), TNothing.typeName) /* Fills a region with a color */ ,
+    Member("clear", TNothing.typeName) /* Clears the lines, regions and pushpins */ ,
+    Member("view pushpins", TNothing.typeName) /* Changes the current zoom and center so that all the pushpins are visible. This method has no effect if the map is not posted on a the wall yet. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the map in the wall using Bing. */
   ))
 
   // Maps, location to address, address to location
-  addSingleton("Maps", gAlsoSingletons("Maps") ::: List(
-    Member("create map", "Map") /* Creates a Bing map. Use 'post to wall' to display it. */ ,
-    Member("create full map", "Map") /* Creates a full screen Bing map. Use 'post to wall' to display it. */ ,
-    Member("directions", List("Location", "Location", "Boolean"), "Location Collection") /* Calculates the directions between two coordinates using Bing. */ ,
-    Member("open directions", List("String", "Location", "String", "Location"), "Nothing") /* Shows the directions in the Bing map application. If search term is provided, location is ignored.Provide search term or location for start and end. */ ,
-    Member("open map", List("Location", "String", "Number"), "Nothing") /* Opens the Bing map application. zoom between 0 (close) and 1 (far). */
+  addSingleton("Maps", gAlsoSingletons(SMaps.typeName) ::: List(
+    Member("create map", TMap.typeName) /* Creates a Bing map. Use 'post to wall' to display it. */ ,
+    Member("create full map", TMap.typeName) /* Creates a full screen Bing map. Use 'post to wall' to display it. */ ,
+    Member("directions", List(TLocation.typeName, TLocation.typeName, TBoolean.typeName), TLocation_Collection.typeName) /* Calculates the directions between two coordinates using Bing. */ ,
+    Member("open directions", List(TString.typeName, TLocation.typeName, TString.typeName, TLocation.typeName), TNothing.typeName) /* Shows the directions in the Bing map application. If search term is provided, location is ignored.Provide search term or location for start and end. */ ,
+    Member("open map", List(TLocation.typeName, TString.typeName, TNumber.typeName), TNothing.typeName) /* Opens the Bing map application. zoom between 0 (close) and 1 (far). */
   ))
 
   // Mathematical operators, cos, sin, ...
-  addSingleton("Math", gAlsoSingletons("Math") ::: List(
-    Member("create matrix", List("Number", "Number"), "Matrix") /* Creates a matrix of zeros of a given size */ ,
-    Member("ceiling", List("Number"), "Number") /* Returns the smallest integral value greater than or equal to the specified number */ ,
-    Member("floor", List("Number"), "Number") /* Returns the largest integer less than or equal to the specified number */ ,
-    Member("pow", List("Number", "Number"), "Number") /* Returns a specified number raised to the specified power */ ,
-    Member("random range", List("Number", "Number"), "Number") /* Returns a random integral number between `min` and `max` included. */ ,
-    Member("random", List("Number"), "Number") /* Returns a random integral number bounded between limit and 0, not including limit unless it is 0 */ ,
-    Member("random normalized", "Number") /* Returns a random floating-point number x: 0 ≤ x < 1 */ ,
-    Member("rand", List("Number"), "Number") /* Renamed to 'random' */ ,
-    Member("rand norm", "Number") /* Renamed to 'random normalized' */ ,
-    Member("div", List("Number", "Number"), "Number") /* Returns the result of integer division of one number by another number */ ,
-    Member("mod", List("Number", "Number"), "Number") /* Returns the modulus resulting from the division of one number by another number */ ,
-    Member("abs", List("Number"), "Number") /* Returns the absolute value of a number */ ,
-    Member("acos", List("Number"), "Number") /* Returns the angle whose cosine is the specified number */ ,
-    Member("asin", List("Number"), "Number") /* Returns the angle whose sine is the specified number */ ,
-    Member("atan", List("Number"), "Number") /* Returns the angle whose tangent is the specified number */ ,
-    Member("atan2", List("Number", "Number"), "Number") /* Returns the angle whose tangent is the quotient of two specified numbers */ ,
-    Member("cos", List("Number"), "Number") /* Returns the cosine of the specified angle (in radians) */ ,
-    Member("e", "Number") /* Returns the natural logarithmic base, specified by the constant, e */ ,
-    Member("exp", List("Number"), "Number") /* Returns e raised to the specified power */ ,
-    Member("log", List("Number", "Number"), "Number") /* Returns the logarithm of a specified number in a specified base */ ,
-    Member("loge", List("Number"), "Number") /* Returns the natural (base e) logarithm of a specified number */ ,
-    Member("log10", List("Number"), "Number") /* Returns the base 10 logarithm of a specified number */ ,
-    Member("max", List("Number", "Number"), "Number") /* Returns the larger of two numbers */ ,
-    Member("min", List("Number", "Number"), "Number") /* Returns the smaller of two numbers */ ,
-    Member("π", "Number") /* Returns the Pi constant */ ,
-    Member("gravity", "Number") /* Returns the gravity constant (9.80665) */ ,
-    Member("round", List("Number"), "Number") /* Rounds a number to the nearest integral value */ ,
-    Member("sign", List("Number"), "Number") /* Returns a value indicating the sign of a number */ ,
-    Member("sin", List("Number"), "Number") /* Returns the sine of the specified angle (in radians) */ ,
-    Member("sqrt", List("Number"), "Number") /* Returns the square root of a specified number */ ,
-    Member("tan", List("Number"), "Number") /* Returns the tangent of the specified angle (in radians) */ ,
-    Member("deg to rad", List("Number"), "Number") /* Converts degrees into radians */ ,
-    Member("rad to deg", List("Number"), "Number") /* Converts rad into degrees */ ,
-    Member("∞₊", "Number") /* Returns the positive infinity */ ,
-    Member("∞₋", "Number") /* Returns the negative infinity */ ,
-    Member("is ∞", List("Number"), "Boolean") /* Indicates whether number evaluates to negative or positive infinity */ ,
-    Member("is ∞₊", List("Number"), "Boolean") /* Indicates whether number evaluates to positive infinity */ ,
-    Member("is ∞₋", List("Number"), "Boolean") /* Indicates whether number evaluates to negative infinity */ ,
-    Member("is nan", List("Number"), "Boolean") /* Indicates that value cannot be represented as a number, i.e. Not-a-Number. This usually happens when the number is the result of a division by zero. */ ,
-    Member("round with precision", List("Number", "Number"), "Number") /* Rounds a number to a specified number of fractional digits. */ ,
-    Member("cosh", List("Number"), "Number") /* Returns the hyperbolic cosine of the specified angle (in radians) */ ,
-    Member("sinh", List("Number"), "Number") /* Returns the hyperbolic sine of the specified angle (in radians) */ ,
-    Member("tanh", List("Number"), "Number") /* Returns the hyperbolic tangent of the specified angle (in radians) */ ,
-    Member("create number map", "Number Map") /* Use Collections->create number map instead. */ ,
-    Member("create vector3", List("Number", "Number", "Number"), "Vector3") /* Creates a 3D vector */ ,
-    Member("ε", "Number") /* Returns the machine epsilon, the smallest positive number greater than zero. */ ,
-    Member("clamp", List("Number", "Number", "Number"), "Number") /* Clamps `value` between `min` and `max` */ ,
-    Member("normalize", List("Number"), "Nothing") /* Clamps `value` between 0 and 1. */ ,
-    Member("ieee remainder", List("Number", "Number"), "Number") /* Returns the remainder resulting from the division of a specified number by another specified number */ ,
-    Member("range", List("Number", "Number"), "Number Collection") /* [**dbg**] Return numbers between `start` and `start + length - 1` inclusively */
+  addSingleton("Math", gAlsoSingletons(SMath.typeName) ::: List(
+    Member("create matrix", List(TNumber.typeName, TNumber.typeName), TMatrix.typeName) /* Creates a matrix of zeros of a given size */ ,
+    Member("ceiling", List(TNumber.typeName), TNumber.typeName) /* Returns the smallest integral value greater than or equal to the specified number */ ,
+    Member("floor", List(TNumber.typeName), TNumber.typeName) /* Returns the largest integer less than or equal to the specified number */ ,
+    Member("pow", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns a specified number raised to the specified power */ ,
+    Member("random range", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns a random integral number between `min` and `max` included. */ ,
+    Member("random", List(TNumber.typeName), TNumber.typeName) /* Returns a random integral number bounded between limit and 0, not including limit unless it is 0 */ ,
+    Member("random normalized", TNumber.typeName) /* Returns a random floating-point number x: 0 ≤ x < 1 */ ,
+    Member("rand", List(TNumber.typeName), TNumber.typeName) /* Renamed to 'random' */ ,
+    Member("rand norm", TNumber.typeName) /* Renamed to 'random normalized' */ ,
+    Member("div", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns the result of integer division of one number by another number */ ,
+    Member("mod", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns the modulus resulting from the division of one number by another number */ ,
+    Member("abs", List(TNumber.typeName), TNumber.typeName) /* Returns the absolute value of a number */ ,
+    Member("acos", List(TNumber.typeName), TNumber.typeName) /* Returns the angle whose cosine is the specified number */ ,
+    Member("asin", List(TNumber.typeName), TNumber.typeName) /* Returns the angle whose sine is the specified number */ ,
+    Member("atan", List(TNumber.typeName), TNumber.typeName) /* Returns the angle whose tangent is the specified number */ ,
+    Member("atan2", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns the angle whose tangent is the quotient of two specified numbers */ ,
+    Member("cos", List(TNumber.typeName), TNumber.typeName) /* Returns the cosine of the specified angle (in radians) */ ,
+    Member("e", TNumber.typeName) /* Returns the natural logarithmic base, specified by the constant, e */ ,
+    Member("exp", List(TNumber.typeName), TNumber.typeName) /* Returns e raised to the specified power */ ,
+    Member("log", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns the logarithm of a specified number in a specified base */ ,
+    Member("loge", List(TNumber.typeName), TNumber.typeName) /* Returns the natural (base e) logarithm of a specified number */ ,
+    Member("log10", List(TNumber.typeName), TNumber.typeName) /* Returns the base 10 logarithm of a specified number */ ,
+    Member("max", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns the larger of two numbers */ ,
+    Member("min", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns the smaller of two numbers */ ,
+    Member("π", TNumber.typeName) /* Returns the Pi constant */ ,
+    Member("gravity", TNumber.typeName) /* Returns the gravity constant (9.80665) */ ,
+    Member("round", List(TNumber.typeName), TNumber.typeName) /* Rounds a number to the nearest integral value */ ,
+    Member("sign", List(TNumber.typeName), TNumber.typeName) /* Returns a value indicating the sign of a number */ ,
+    Member("sin", List(TNumber.typeName), TNumber.typeName) /* Returns the sine of the specified angle (in radians) */ ,
+    Member("sqrt", List(TNumber.typeName), TNumber.typeName) /* Returns the square root of a specified number */ ,
+    Member("tan", List(TNumber.typeName), TNumber.typeName) /* Returns the tangent of the specified angle (in radians) */ ,
+    Member("deg to rad", List(TNumber.typeName), TNumber.typeName) /* Converts degrees into radians */ ,
+    Member("rad to deg", List(TNumber.typeName), TNumber.typeName) /* Converts rad into degrees */ ,
+    Member("∞₊", TNumber.typeName) /* Returns the positive infinity */ ,
+    Member("∞₋", TNumber.typeName) /* Returns the negative infinity */ ,
+    Member("is ∞", List(TNumber.typeName), TBoolean.typeName) /* Indicates whether number evaluates to negative or positive infinity */ ,
+    Member("is ∞₊", List(TNumber.typeName), TBoolean.typeName) /* Indicates whether number evaluates to positive infinity */ ,
+    Member("is ∞₋", List(TNumber.typeName), TBoolean.typeName) /* Indicates whether number evaluates to negative infinity */ ,
+    Member("is nan", List(TNumber.typeName), TBoolean.typeName) /* Indicates that value cannot be represented as a number, i.e. Not-a-Number. This usually happens when the number is the result of a division by zero. */ ,
+    Member("round with precision", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Rounds a number to a specified number of fractional digits. */ ,
+    Member("cosh", List(TNumber.typeName), TNumber.typeName) /* Returns the hyperbolic cosine of the specified angle (in radians) */ ,
+    Member("sinh", List(TNumber.typeName), TNumber.typeName) /* Returns the hyperbolic sine of the specified angle (in radians) */ ,
+    Member("tanh", List(TNumber.typeName), TNumber.typeName) /* Returns the hyperbolic tangent of the specified angle (in radians) */ ,
+    Member("create number map", TNumber_Map.typeName) /* Use Collections->create number map instead. */ ,
+    Member("create vector3", List(TNumber.typeName, TNumber.typeName, TNumber.typeName), TVector3.typeName) /* Creates a 3D vector */ ,
+    Member("ε", TNumber.typeName) /* Returns the machine epsilon, the smallest positive number greater than zero. */ ,
+    Member("clamp", List(TNumber.typeName, TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Clamps `value` between `min` and `max` */ ,
+    Member("normalize", List(TNumber.typeName), TNothing.typeName) /* Clamps `value` between 0 and 1. */ ,
+    Member("ieee remainder", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Returns the remainder resulting from the division of a specified number by another specified number */ ,
+    Member("range", List(TNumber.typeName, TNumber.typeName), TypeName("Collection",List(TNumber.typeName))) /* [**dbg**] Return numbers between `start` and `start + length - 1` inclusively */
   ))
 
   // A 2D matrix of numbers
-  addType("Matrix", gAny("Matrix") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the total number of elements */ ,
-    Member("row count", "Number") /* Gets the number of rows */ ,
-    Member("column count", "Number") /* Gets the number of columns */ ,
-    Member("post to wall", "Nothing") /* Displays the value of the array on the wall */ ,
+  addType("Matrix", gAny(TMatrix.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the total number of elements */ ,
+    Member("row count", TNumber.typeName) /* Gets the number of rows */ ,
+    Member("column count", TNumber.typeName) /* Gets the number of columns */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the value of the array on the wall */ ,
+    Member("copy from", List(TNumber.typeName, TNumber.typeName, TMatrix.typeName), TNothing.typeName) /* Copies the content from ``other`` starting at position ``row`` and ``column`` */ ,
     Member("at index", List("Number"), "Number") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Matrix") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Number") /* Gets the value at a given index. Elements are ordered line by line starting top left. */ ,
-    Member("set at", List("Number", "Number"), "Nothing") /* Sets the value at a given index. Elements are ordered line by line starting top left. */ ,
-    Member("item", List("Number", "Number"), "Number") /* Gets the value at a given location. Returns invalid if outside of the array dimensions */ ,
-    Member("set item", List("Number", "Number", "Number"), "Nothing") /* Sets the value at a particular position. The matrix  will be expanded if the position falls outside the boundaries. */ ,
-    Member("clone", "Matrix") /* Creates a deep copy of the matrix. */ ,
-    Member("min", "Number") /* Computes the minimum of the values */ ,
-    Member("max", "Number") /* Computes the maximum of the values */ ,
-    Member("scale", List("Number"), "Matrix") /* Returns a copy of the matrix scaled by factor. */ ,
-    Member("negate", "Matrix") /* Returns the matrix negated. */ ,
-    Member("transpose", "Matrix") /* Returns the transposed matrix. */ ,
-    Member("add", List("Matrix"), "Matrix") /* Returns a matrix resulting from adding this matrix to b. The size of both matrices must match. */ ,
-    Member("subtract", List("Matrix"), "Matrix") /* Returns a matrix resulting from subtracting b from this matrix. The size of both matrices must match. */ ,
-    Member("multiply", List("Matrix"), "Matrix") /* Returns a matrix resulting from multiply each element in the matrices. The size of both matrices must match. */ ,
-    Member("to string", "String") /* Gets the string representation of the matrix */ ,
-    Member("random", "Number") /* Gets a random element. Returns invalid if the matrix is empty. */ ,
-    Member("clear", List("Number"), "Nothing") /* Sets all the element of the matrix to the value. */
+    Member("at", List(TNumber.typeName), TNumber.typeName) /* Gets the value at a given index. Elements are ordered line by line starting top left. */ ,
+    Member("set at", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the value at a given index. Elements are ordered line by line starting top left. */ ,
+    Member("item", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Gets the value at a given location. Returns invalid if outside of the array dimensions */ ,
+    Member("set item", List(TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the value at a particular position. The matrix  will be expanded if the position falls outside the boundaries. */ ,
+    Member("clone", TMatrix.typeName) /* Creates a deep copy of the matrix. */ ,
+    Member("min", TNumber.typeName) /* Computes the minimum of the values */ ,
+    Member("max", TNumber.typeName) /* Computes the maximum of the values */ ,
+    Member("scale", List(TNumber.typeName), TMatrix.typeName) /* Returns a copy of the matrix scaled by factor. */ ,
+    Member("negate", TMatrix.typeName) /* Returns the matrix negated. */ ,
+    Member("transpose", TMatrix.typeName) /* Returns the transposed matrix. */ ,
+    Member("add", List(TMatrix.typeName), TMatrix.typeName) /* Returns a matrix resulting from adding this matrix to b. The size of both matrices must match. */ ,
+    Member("subtract", List(TMatrix.typeName), TMatrix.typeName) /* Returns a matrix resulting from subtracting b from this matrix. The size of both matrices must match. */ ,
+    Member("multiply", List(TMatrix.typeName), TMatrix.typeName) /* Returns a matrix resulting from multiply each element in the matrices. The size of both matrices must match. */ ,
+    Member("to string", TString.typeName) /* Gets the string representation of the matrix */ ,
+    Member("random", TNumber.typeName) /* Gets a random element. Returns invalid if the matrix is empty. */ ,
+    Member("clear", List(TNumber.typeName), TNothing.typeName) /* Sets all the element of the matrix to the value. */
   ))
 
   // Pictures and music...
-  addSingleton("Media", gAlsoSingletons("Media") ::: List(
-    Member("create picture", List("Number", "Number"), "Picture") /* Creates a new picture of the given size */ ,
-    Member("search marketplace", List("String", "String"), "Nothing") /* [**not implemented**] Searches the Windows Phone Store (type in applications or music) */ ,
-    Member("playlists", "Playlists") /* Gets the playlists on the phone */ ,
-    Member("pictures", "Pictures") /* Gets the pictures on the phone */ ,
-    Member("saved pictures", "Pictures") /* Gets the saved pictures on the phone */ ,
-    Member("choose picture", "Picture") /* Chooses a picture from the media library */ ,
-    Member("picture albums", "Picture Albums") /* Gets the picture albums */ ,
-    Member("songs", "Songs") /* Gets the songs on the phone */ ,
-    Member("song albums", "Song Albums") /* Gets the song albums on the phone */ ,
-    Member("create board", List("Number"), "Board") /* Creates a new game board */ ,
-    Member("create full board", "Board") /* [**obsolete**] Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */ ,
-    Member("create portrait board", List("Number", "Number"), "Board") /* Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */ ,
-    Member("create landscape board", List("Number", "Number"), "Board") /* Creates a new game board in landscape mode. On rotatable devices it will take the entire screen when posted. */ ,
-    Member("icon names", "String Collection") /* Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings. */ ,
-    Member("icon", List("String"), "Picture") /* Gets a 48x48 icon picture. Use 'media->icon names' to retrieve the list of names available. */ ,
-    Member("large icon", List("String"), "Picture") /* Gets a 96x96 icon picture. Use 'media->icon names' to retrieve the list of names available. */
+  addSingleton("Media", gAlsoSingletons(SMedia.typeName) ::: List(
+    Member("create picture", List(TNumber.typeName, TNumber.typeName), TPicture.typeName) /* Creates a new picture of the given size */ ,
+    Member("search marketplace", List(TString.typeName, TString.typeName), TNothing.typeName) /* [**not implemented**] Searches the Windows Phone Store (type in applications or music) */ ,
+    Member("playlists", TPlaylists.typeName) /* Gets the playlists on the phone */ ,
+    Member("pictures", TPictures.typeName) /* Gets the pictures on the phone */ ,
+    Member("saved pictures", TPictures.typeName) /* Gets the saved pictures on the phone */ ,
+    Member("choose picture", TPicture.typeName) /* Chooses a picture from the media library */ ,
+    Member("picture albums", TPicture_Albums.typeName) /* Gets the picture albums */ ,
+    Member("songs", TSongs.typeName) /* Gets the songs on the phone */ ,
+    Member("song albums", TSong_Albums.typeName) /* Gets the song albums on the phone */ ,
+    Member("create board", List(TNumber.typeName), TBoard.typeName) /* Creates a new game board */ ,
+    Member("create full board", TBoard.typeName) /* [**obsolete**] Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */ ,
+    Member("create portrait board", List(TNumber.typeName, TNumber.typeName), TBoard.typeName) /* Creates a new game board in portrait mode. On rotatable devices it will take the entire screen when posted. */ ,
+    Member("create landscape board", List(TNumber.typeName, TNumber.typeName), TBoard.typeName) /* Creates a new game board in landscape mode. On rotatable devices it will take the entire screen when posted. */ ,
+    Member("icon names", TString_Collection.typeName) /* Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings. */ ,
+    Member("icon", List(TString.typeName), TPicture.typeName) /* Gets a 48x48 icon picture. Use 'media->icon names' to retrieve the list of names available. */ ,
+    Member("large icon", List(TString.typeName), TPicture.typeName) /* Gets a 96x96 icon picture. Use 'media->icon names' to retrieve the list of names available. */
   ))
 
   // A media file on the home network
-  addType("Media Link", gAny("Media Link") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("title", "String") /* Gets the title if available */ ,
-    Member("author", "String") /* Gets the author if available */ ,
-    Member("album", "String") /* Gets the album if available */ ,
-    Member("date", "DateTime") /* Gets the date if available */ ,
-    Member("duration", "Number") /* Gets the duration in seconds (0 for pictures) */ ,
-    Member("kind", "String") /* Gets the kind of media (video, song, picture) */ ,
-    Member("post to wall", "Nothing") /* Post the media to the wall */ ,
-    Member("play", "Nothing") /* Plays or displays the media on the phone */
+  addType("Media Link", gAny(TMedia_Link.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("title", TString.typeName) /* Gets the title if available */ ,
+    Member("author", TString.typeName) /* Gets the author if available */ ,
+    Member("album", TString.typeName) /* Gets the album if available */ ,
+    Member("date", TDateTime.typeName) /* Gets the date if available */ ,
+    Member("duration", TNumber.typeName) /* Gets the duration in seconds (0 for pictures) */ ,
+    Member("kind", TString.typeName) /* Gets the kind of media (video, song, picture) */ ,
+    Member("post to wall", TNothing.typeName) /* Post the media to the wall */ ,
+    Member("play", TNothing.typeName) /* Plays or displays the media on the phone */
   ))
 
   // A list of media links on the home network
-  addType("Media Link Collection", gAny("Media Link Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of elements */ ,
+  addType("Media Link Collection", gAny(TMedia_Link_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements */ ,
     Member("at index", List("Number"), "Media Link") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Media Link Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Media Link") /* Gets the i-th media link */ ,
-    Member("post to wall", "Nothing") /* Displays the links on the wall */
+    Member("at", List(TNumber.typeName), TMedia_Link.typeName) /* Gets the i-th media link */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the links on the wall */
   ))
 
   // An audio/video player on the home network
-  addType("Media Player", gAny("Media Player") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("volume", "Number") /* Gets the current volume */ ,
-    Member("set volume", List("Number"), "Nothing") /* Sets the current value */ ,
-    Member("device", "Device") /* [**not implemented**] Gets the detailled information about this device */ ,
-    Member("name", "String") /* [**not implemented**] Gets the name of the audio/video player */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Display the player to the wall */ ,
-    Member("is control supported", "Boolean") /* [**not implemented**] Indicates the media can be played, paused, resumed */ ,
-    Member("resume", "Nothing") /* [**not implemented**] Resumes playing the current media if any. */ ,
-    Member("stop", "Nothing") /* [**not implemented**] Stops the current media if any. */ ,
-    Member("pause", "Nothing") /* [**not implemented**] Pauses the current media if any. */ ,
-    Member("next", "Nothing") /* [**not implemented**] Moves the player to the next media in the queue. */ ,
-    Member("previous", "Nothing") /* [**not implemented**] Moves the player to the previous media in the queue. */ ,
-    Member("play", "Nothing") /* [**not implemented**] Plays the current media from the start. */ ,
-    Member("play media", List("String"), "Nothing") /* [**not implemented**] Plays the media at the 'url' internet address. */ ,
-    Member("play home media", List("Media Link"), "Nothing") /* [**not implemented**] Plays a media from the home network. */ ,
-    Member("active media", "String") /* [**not implemented**] Gets the uri of the media currently active */ ,
-    Member("play position", "Number") /* [**not implemented**] Gets the position in seconds whithin the active media */ ,
-    Member("is stopped", "Boolean") /* [**not implemented**] Indicates if the player is stopped */ ,
-    Member("is playing", "Boolean") /* [**not implemented**] Indicates if the player is playing */ ,
-    Member("is paused", "Boolean") /* [**not implemented**] Indicates if the player is paused */ ,
-    Member("status", "String") /* [**not implemented**] Gets the status of the player */ ,
-    Member("is volume supported", "Boolean") /* [**not implemented**] Indicates if volume can be changed */
+  addType("Media Player", gAny(TMedia_Player.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("volume", TNumber.typeName) /* Gets the current volume */ ,
+    Member("set volume", List(TNumber.typeName), TNothing.typeName) /* Sets the current value */ ,
+    Member("device", TDevice.typeName) /* [**not implemented**] Gets the detailled information about this device */ ,
+    Member("name", TString.typeName) /* [**not implemented**] Gets the name of the audio/video player */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Display the player to the wall */ ,
+    Member("is control supported", TBoolean.typeName) /* [**not implemented**] Indicates the media can be played, paused, resumed */ ,
+    Member("resume", TNothing.typeName) /* [**not implemented**] Resumes playing the current media if any. */ ,
+    Member("stop", TNothing.typeName) /* [**not implemented**] Stops the current media if any. */ ,
+    Member("pause", TNothing.typeName) /* [**not implemented**] Pauses the current media if any. */ ,
+    Member("next", TNothing.typeName) /* [**not implemented**] Moves the player to the next media in the queue. */ ,
+    Member("previous", TNothing.typeName) /* [**not implemented**] Moves the player to the previous media in the queue. */ ,
+    Member("play", TNothing.typeName) /* [**not implemented**] Plays the current media from the start. */ ,
+    Member("play media", List(TString.typeName), TNothing.typeName) /* [**not implemented**] Plays the media at the 'url' internet address. */ ,
+    Member("play home media", List(TMedia_Link.typeName), TNothing.typeName) /* [**not implemented**] Plays a media from the home network. */ ,
+    Member("active media", TString.typeName) /* [**not implemented**] Gets the uri of the media currently active */ ,
+    Member("play position", TNumber.typeName) /* [**not implemented**] Gets the position in seconds whithin the active media */ ,
+    Member("is stopped", TBoolean.typeName) /* [**not implemented**] Indicates if the player is stopped */ ,
+    Member("is playing", TBoolean.typeName) /* [**not implemented**] Indicates if the player is playing */ ,
+    Member("is paused", TBoolean.typeName) /* [**not implemented**] Indicates if the player is paused */ ,
+    Member("status", TString.typeName) /* [**not implemented**] Gets the status of the player */ ,
+    Member("is volume supported", TBoolean.typeName) /* [**not implemented**] Indicates if volume can be changed */
   ))
 
   // A collection of media players
-  addType("Media Player Collection", gAny("Media Player Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* [**not implemented**] Gets the number of media players */ ,
-    Member("clear", "Nothing") /* [**not implemented**] [**obsolete**] Clears the players */ ,
-    Member("add", List("Media Player"), "Nothing") /* [**not implemented**] [**obsolete**] Adds a new player to the collection */ ,
+  addType("Media Player Collection", gAny(TMedia_Player_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* [**not implemented**] Gets the number of media players */ ,
+    Member("clear", TNothing.typeName) /* [**not implemented**] [**obsolete**] Clears the players */ ,
+    Member("add", List(TMedia_Player.typeName), TNothing.typeName) /* [**not implemented**] [**obsolete**] Adds a new player to the collection */ ,
     Member("at index", List("Number"), "Media Player") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Media Player Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Media Player") /* [**not implemented**] Gets the media player at index */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Posts the media players on the wall */
+    Member("at", List(TNumber.typeName), TMedia_Player.typeName) /* [**not implemented**] Gets the media player at index */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Posts the media players on the wall */
   ))
 
   // A media server on the home network
-  addType("Media Server", gAny("Media Server") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("device", "Device") /* [**not implemented**] Gets the detailled information about this device */ ,
-    Member("name", "String") /* [**not implemented**] Gets the name of the printer */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Display the printer to the wall */ ,
-    Member("songs", "Media Link Collection") /* [**not implemented**] Gets a list of all songs */ ,
-    Member("videos", "Media Link Collection") /* [**not implemented**] Gets a list of all videos */ ,
-    Member("pictures", "Media Link Collection") /* [**not implemented**] Gets a list of all pictures */ ,
-    Member("search songs", List("String"), "Media Link Collection") /* [**not implemented**] Searches for songs */ ,
-    Member("search videos", List("String"), "Media Link Collection") /* [**not implemented**] Searches for videos */ ,
-    Member("search videos by date", List("DateTime", "DateTime"), "Media Link Collection") /* [**not implemented**] Searches for videos in a particular date range. */ ,
-    Member("search pictures by date", List("DateTime", "DateTime"), "Media Link Collection") /* [**not implemented**] Searches for pictures in a particular date range. */ ,
-    Member("choose song", "Media Link") /* [**not implemented**] Chooses a song */ ,
-    Member("choose video", "Media Link") /* [**not implemented**] Chooses a video or a movie */ ,
-    Member("choose picture", "Media Link") /* [**not implemented**] Chooses a picture */
+  addType("Media Server", gAny(TMedia_Server.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("device", TDevice.typeName) /* [**not implemented**] Gets the detailled information about this device */ ,
+    Member("name", TString.typeName) /* [**not implemented**] Gets the name of the printer */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Display the printer to the wall */ ,
+    Member("songs", TMedia_Link_Collection.typeName) /* [**not implemented**] Gets a list of all songs */ ,
+    Member("videos", TMedia_Link_Collection.typeName) /* [**not implemented**] Gets a list of all videos */ ,
+    Member("pictures", TMedia_Link_Collection.typeName) /* [**not implemented**] Gets a list of all pictures */ ,
+    Member("search songs", List(TString.typeName), TMedia_Link_Collection.typeName) /* [**not implemented**] Searches for songs */ ,
+    Member("search videos", List(TString.typeName), TMedia_Link_Collection.typeName) /* [**not implemented**] Searches for videos */ ,
+    Member("search videos by date", List(TDateTime.typeName, TDateTime.typeName), TMedia_Link_Collection.typeName) /* [**not implemented**] Searches for videos in a particular date range. */ ,
+    Member("search pictures by date", List(TDateTime.typeName, TDateTime.typeName), TMedia_Link_Collection.typeName) /* [**not implemented**] Searches for pictures in a particular date range. */ ,
+    Member("choose song", TMedia_Link.typeName) /* [**not implemented**] Chooses a song */ ,
+    Member("choose video", TMedia_Link.typeName) /* [**not implemented**] Chooses a video or a movie */ ,
+    Member("choose picture", TMedia_Link.typeName) /* [**not implemented**] Chooses a picture */
   ))
 
   // A collection of media servers
-  addType("Media Server Collection", gAny("Media Server Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* [**not implemented**] Gets the number of media players */ ,
-    Member("clear", "Nothing") /* [**not implemented**] [**obsolete**] Clears the servers */ ,
-    Member("add", List("Media Server"), "Nothing") /* [**not implemented**] [**obsolete**] Adds a new server to the collection */ ,
+  addType("Media Server Collection", gAny(TMedia_Server_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* [**not implemented**] Gets the number of media players */ ,
+    Member("clear", TNothing.typeName) /* [**not implemented**] [**obsolete**] Clears the servers */ ,
+    Member("add", List(TMedia_Server.typeName), TNothing.typeName) /* [**not implemented**] [**obsolete**] Adds a new server to the collection */ ,
     Member("at index", List("Number"), "Media Server") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Media Server Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Media Server") /* [**not implemented**] Gets the media player at index */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Posts the media players on the wall */
+    Member("at", List(TNumber.typeName), TMedia_Server.typeName) /* [**not implemented**] Gets the media player at index */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Posts the media players on the wall */
   ))
 
   // A post on a message board
-  addType("Message", gAny("Message") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("title", "String") /* Gets the title text */ ,
-    Member("set title", List("String"), "Nothing") /* Sets the title text */ ,
-    Member("message", "String") /* Gets the message text */ ,
-    Member("set message", List("String"), "Nothing") /* Sets the message text */ ,
-    Member("id", "String") /* Gets the message identifier */ ,
-    Member("set id", List("String"), "Nothing") /* Sets the message identifier */ ,
-    Member("from", "String") /* Gets the author */ ,
-    Member("set from", List("String"), "Nothing") /* Sets the author */ ,
-    Member("to", "String") /* Gets the recipient */ ,
-    Member("set to", List("String"), "Nothing") /* Sets the recipient */ ,
-    Member("picture link", "String") /* Gets a url to the picture */ ,
-    Member("set picture link", List("String"), "Nothing") /* Sets the url to the picture */ ,
-    Member("link", "String") /* Gets the link associated to the message */ ,
-    Member("set link", List("String"), "Nothing") /* Sets the link associated to the message */ ,
-    Member("media link", "String") /* Gets a url to the media */ ,
-    Member("set media link", List("String"), "Nothing") /* Sets the url to the media */ ,
-    Member("location", "Location") /* Gets the geo coordinates */ ,
-    Member("set location", List("Location"), "Nothing") /* Sets the geo coordinates */ ,
-    Member("time", "DateTime") /* Gets the time */ ,
-    Member("set time", List("DateTime"), "Nothing") /* Sets the time */ ,
-    Member("source", "String") /* Gets the source of this message (Facebook, Twitter, etc...) */ ,
-    Member("set source", List("String"), "Nothing") /* Sets the source of this message */ ,
-    Member("share", List("String"), "Nothing") /* Shares this message (email, sms, facebook, social or '' to pick from a list) */ ,
-    Member("values", "String Map") /* Gets the additional values stored in the message */ ,
-    Member("post to wall", "Nothing") /* Posts the message to the wall */
+  addType("Message", gAny(TMessage.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("title", TString.typeName) /* Gets the title text */ ,
+    Member("set title", List(TString.typeName), TNothing.typeName) /* Sets the title text */ ,
+    Member("message", TString.typeName) /* Gets the message text */ ,
+    Member("set message", List(TString.typeName), TNothing.typeName) /* Sets the message text */ ,
+    Member("id", TString.typeName) /* Gets the message identifier */ ,
+    Member("set id", List(TString.typeName), TNothing.typeName) /* Sets the message identifier */ ,
+    Member("from", TString.typeName) /* Gets the author */ ,
+    Member("set from", List(TString.typeName), TNothing.typeName) /* Sets the author */ ,
+    Member("to", TString.typeName) /* Gets the recipient */ ,
+    Member("set to", List(TString.typeName), TNothing.typeName) /* Sets the recipient */ ,
+    Member("picture link", TString.typeName) /* Gets a url to the picture */ ,
+    Member("set picture link", List(TString.typeName), TNothing.typeName) /* Sets the url to the picture */ ,
+    Member("link", TString.typeName) /* Gets the link associated to the message */ ,
+    Member("set link", List(TString.typeName), TNothing.typeName) /* Sets the link associated to the message */ ,
+    Member("media link", TString.typeName) /* Gets a url to the media */ ,
+    Member("set media link", List(TString.typeName), TNothing.typeName) /* Sets the url to the media */ ,
+    Member("location", TLocation.typeName) /* Gets the geo coordinates */ ,
+    Member("set location", List(TLocation.typeName), TNothing.typeName) /* Sets the geo coordinates */ ,
+    Member("time", TDateTime.typeName) /* Gets the time */ ,
+    Member("set time", List(TDateTime.typeName), TNothing.typeName) /* Sets the time */ ,
+    Member("source", TString.typeName) /* Gets the source of this message (Facebook, Twitter, etc...) */ ,
+    Member("set source", List(TString.typeName), TNothing.typeName) /* Sets the source of this message */ ,
+    Member("share", List(TString.typeName), TNothing.typeName) /* Shares this message (email, sms, facebook, social or '' to pick from a list) */ ,
+    Member("values", TString_Map.typeName) /* Gets the additional values stored in the message */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the message to the wall */
   ))
 
   // A list of messages
-  addType("Message Collection", gAny("Message Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("continuation", "String") /* Gets the identifier of the next set of messages */ ,
-    Member("set continuation", List("String"), "Nothing") /* Sets the identifier of the next set of messages */ ,
-    Member("count", "Number") /* Gets the number of elements */ ,
-    Member("clear", "Nothing") /* Clears the collection */ ,
-    Member("add", List("Message"), "Nothing") /* Adds a Message */ ,
-    Member("add many", List("Message Collection"), "Nothing") /* Adds a collection of Message items */ ,
-    Member("index of", List("Message", "Number"), "Number") /* Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */ ,
+  addType("Message Collection", gAny(TMessage_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("continuation", TString.typeName) /* Gets the identifier of the next set of messages */ ,
+    Member("set continuation", List(TString.typeName), TNothing.typeName) /* Sets the identifier of the next set of messages */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements */ ,
+    Member("clear", TNothing.typeName) /* Clears the collection */ ,
+    Member("add", List(TMessage.typeName), TNothing.typeName) /* Adds a Message */ ,
+    Member("add many", List(TMessage_Collection.typeName), TNothing.typeName) /* Adds a collection of Message items */ ,
+    Member("index of", List(TMessage.typeName, TNumber.typeName), TNumber.typeName) /* Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */ ,
     Member("at index", List("Number"), "Message") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Message Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Message") /* Gets the i-th Message */ ,
-    Member("remove", List("Message"), "Boolean") /* Removes the first occurence of the message. Returns true if removed. */ ,
-    Member("remove at", List("Number"), "Nothing") /* Removes the message at position index. */ ,
-    Member("reverse", "Nothing") /* Reverses the order of the elements. */ ,
-    Member("random", "Message") /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
-    Member("set at", List("Number", "Message"), "Nothing") /* Sets the i-th Message */ ,
-    Member("insert at", List("Number", "Message"), "Nothing") /* Inserts a link at position index. Does nothing if index is out of range. */ ,
-    Member("post to wall", "Nothing") /* Displays the Messages in the wall */ ,
-    Member("sort by date", "Nothing") /* Sorts from the newest to oldest */
+    Member("at", List(TNumber.typeName), TMessage.typeName) /* Gets the i-th Message */ ,
+    Member("remove", List(TMessage.typeName), TBoolean.typeName) /* Removes the first occurence of the message. Returns true if removed. */ ,
+    Member("remove at", List(TNumber.typeName), TNothing.typeName) /* Removes the message at position index. */ ,
+    Member("reverse", TNothing.typeName) /* Reverses the order of the elements. */ ,
+    Member("random", TMessage.typeName) /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
+    Member("set at", List(TNumber.typeName, TMessage.typeName), TNothing.typeName) /* Sets the i-th Message */ ,
+    Member("insert at", List(TNumber.typeName, TMessage.typeName), TNothing.typeName) /* Inserts a link at position index. Does nothing if index is out of range. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the Messages in the wall */ ,
+    Member("sort by date", TNothing.typeName) /* Sorts from the newest to oldest */
   ))
 
   // Describes the motion of the device
-  addType("Motion", gAny("Motion") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("acceleration", "Vector3") /* Gets the linear acceleration of the device, in gravitational units. */ ,
-    Member("rotation speed", "Vector3") /* Gets the device rotation speed in degrees per sec. */ ,
-    Member("gravity", "Vector3") /* Gets the gravity vector associated with this reading. */ ,
-    Member("time", "DateTime") /* Gets a timestamp indicating the time at which the reading was calculated. */ ,
-    Member("yaw", "Number") /* Gets the yaw of the attitude in degrees */ ,
-    Member("pitch", "Number") /* Gets the pitch of the attitude in degrees */ ,
-    Member("roll", "Number") /* Gets the roll of the attitude in degrees */ ,
-    Member("post to wall", "Nothing") /* Displays the motion reading to the wall. */
+  addType("Motion", gAny(TMotion.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("acceleration", TVector3.typeName) /* Gets the linear acceleration of the device, in gravitational units. */ ,
+    Member("rotation speed", TVector3.typeName) /* Gets the device rotation speed in degrees per sec. */ ,
+    Member("gravity", TVector3.typeName) /* Gets the gravity vector associated with this reading. */ ,
+    Member("time", TDateTime.typeName) /* Gets a timestamp indicating the time at which the reading was calculated. */ ,
+    Member("yaw", TNumber.typeName) /* Gets the yaw of the attitude in degrees */ ,
+    Member("pitch", TNumber.typeName) /* Gets the pitch of the attitude in degrees */ ,
+    Member("roll", TNumber.typeName) /* Gets the roll of the attitude in degrees */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the motion reading to the wall. */
   ))
 
   // A number (possibly negative and/or fractional)
-  addType("Number", gAny("Number") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("to string", "String") /* Converts a number to a string */ ,
-    Member("post to wall", "Nothing") /* Prints the number to the wall */ ,
-    Member("to character", "String") /* Interprets a number as a unicode value and converts it to the single character string */ ,
-    Member("to color", "Color") /* Interprets the number as a ARGB (alpha, red, green, blue) color */ ,
-    Member("to json", "Json Object") /* Converts the value into a json data structure. */ ,
-    Member("+", List("Number"), "Number") /* Adds numbers */ ,
-    Member("-", List("Number"), "Number") /* Subtracts numbers */ ,
-    Member("*", List("Number"), "Number") /* Multiplies numbers */ ,
-    Member("/", List("Number"), "Number") /* Divides numbers */ ,
-    Member("=", List("Number"), "Boolean") /* Compares numbers for equality */ ,
-    Member("≠", List("Number"), "Boolean") /* Compares numbers for disequality */ ,
-    Member("≤", List("Number"), "Boolean") /* Compares numbers for less or equal */ ,
-    Member("<", List("Number"), "Boolean") /* Compares numbers for less */ ,
-    Member("≥", List("Number"), "Boolean") /* Compares numbers for more or equal */ ,
-    Member(">", List("Number"), "Boolean") /* Compares numbers for more */
+  addType("Number", gAny(TNumber.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("to string", TString.typeName) /* Converts a number to a string */ ,
+    Member("post to wall", TNothing.typeName) /* Prints the number to the wall */ ,
+    Member("to character", TString.typeName) /* Interprets a number as a unicode value and converts it to the single character string */ ,
+    Member("to color", TColor.typeName) /* Interprets the number as a ARGB (alpha, red, green, blue) color */ ,
+    Member("to json", TJson_Object.typeName) /* Converts the value into a json data structure. */ ,
+    Member("+", List(TNumber.typeName), TNumber.typeName) /* Adds numbers */ ,
+    Member("-", List(TNumber.typeName), TNumber.typeName) /* Subtracts numbers */ ,
+    Member("*", List(TNumber.typeName), TNumber.typeName) /* Multiplies numbers */ ,
+    Member("/", List(TNumber.typeName), TNumber.typeName) /* Divides numbers */ ,
+    Member("=", List(TNumber.typeName), TBoolean.typeName) /* Compares numbers for equality */ ,
+    Member("≠", List(TNumber.typeName), TBoolean.typeName) /* Compares numbers for disequality */ ,
+    Member("≤", List(TNumber.typeName), TBoolean.typeName) /* Compares numbers for less or equal */ ,
+    Member("<", List(TNumber.typeName), TBoolean.typeName) /* Compares numbers for less */ ,
+    Member("≥", List(TNumber.typeName), TBoolean.typeName) /* Compares numbers for more or equal */ ,
+    Member(">", List(TNumber.typeName), TBoolean.typeName) /* Compares numbers for more */
   ))
 
   // A collection of numbers
-  addType("Number Collection", gAny("Number Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of items */ ,
-    Member("clear", "Nothing") /* Clears the numbers */ ,
-    Member("add", List("Number"), "Nothing") /* Adds a number at the end of the collection */ ,
-    Member("add many", List("Number Collection"), "Nothing") /* Adds many numbers at once */ ,
-    Member("index of", List("Number", "Number"), "Number") /* Gets the index of the first occurence of a number. Returns -1 if not found or start is out of range. */ ,
+  addType("Number Collection", gAny(TNumber_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of items */ ,
+    Member("clear", TNothing.typeName) /* Clears the numbers */ ,
+    Member("add", List(TNumber.typeName), TNothing.typeName) /* Adds a number at the end of the collection */ ,
+    Member("add many", List(TNumber_Collection.typeName), TNothing.typeName) /* Adds many numbers at once */ ,
+    Member("index of", List(TNumber.typeName, TNumber.typeName), TNumber.typeName) /* Gets the index of the first occurence of a number. Returns -1 if not found or start is out of range. */ ,
     Member("at index", List("Number"), "Number") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Number Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Number") /* Gets the number at position index. Returns invalid if index is out of range */ ,
-    Member("remove", List("Number"), "Boolean") /* Removes the first occurence of a number. Returns true if removed. */ ,
-    Member("remove at", List("Number"), "Nothing") /* Removes the number at position index. */ ,
-    Member("reverse", "Nothing") /* Reverses the items */ ,
-    Member("random", "Number") /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
-    Member("set at", List("Number", "Number"), "Nothing") /* Sets the number at position index. Does nothing if the index is out of range. */ ,
-    Member("insert at", List("Number", "Number"), "Nothing") /* Inserts a double at position index. Does nothing if index is out of range. */ ,
-    Member("min", "Number") /* Computes the minimum of the values */ ,
-    Member("max", "Number") /* Computes the maximum of the values */ ,
-    Member("sum", "Number") /* Computes the sum of the values */ ,
-    Member("avg", "Number") /* Computes the average of the values */ ,
-    Member("contains", List("Number"), "Boolean") /* Indicates if the collection contains the item */ ,
-    Member("post to wall", "Nothing") /* Displays the numbers on the wall */ ,
-    Member("to json", "Json Object") /* Exports a JSON representation of the contents. */ ,
-    Member("from json", List("Json Object"), "Nothing") /* Imports a JSON representation of the contents. */ ,
-    Member("sort", "Nothing") /* Sorts the numbers in this collection */
+    Member("at", List(TNumber.typeName), TNumber.typeName) /* Gets the number at position index. Returns invalid if index is out of range */ ,
+    Member("remove", List(TNumber.typeName), TBoolean.typeName) /* Removes the first occurence of a number. Returns true if removed. */ ,
+    Member("remove at", List(TNumber.typeName), TNothing.typeName) /* Removes the number at position index. */ ,
+    Member("reverse", TNothing.typeName) /* Reverses the items */ ,
+    Member("random", TNumber.typeName) /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
+    Member("set at", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the number at position index. Does nothing if the index is out of range. */ ,
+    Member("insert at", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Inserts a double at position index. Does nothing if index is out of range. */ ,
+    Member("min", TNumber.typeName) /* Computes the minimum of the values */ ,
+    Member("max", TNumber.typeName) /* Computes the maximum of the values */ ,
+    Member("sum", TNumber.typeName) /* Computes the sum of the values */ ,
+    Member("avg", TNumber.typeName) /* Computes the average of the values */ ,
+    Member("contains", List(TNumber.typeName), TBoolean.typeName) /* Indicates if the collection contains the item */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the numbers on the wall */ ,
+    Member("to json", TJson_Object.typeName) /* Exports a JSON representation of the contents. */ ,
+    Member("from json", List(TJson_Object.typeName), TNothing.typeName) /* Imports a JSON representation of the contents. */ ,
+    Member("sort", TNothing.typeName) /* Sorts the numbers in this collection */
   ))
 
   // A map of numbers to numbers
-  addType("Number Map", gAny("Number Map") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of elements */ ,
-    Member("clear", "Nothing") /* Clears the number map. */ ,
-    Member("sum", "Number") /* Computes the sum of the values */ ,
-    Member("avg", "Number") /* Computes the average of the values */ ,
-    Member("slice", List("Number", "Number"), "Number Map") /* Extracts the elements at indices between start (inclusive) and end (non-inclusive). */ ,
-    Member("min", "Number") /* Computes the minimum of the values */ ,
-    Member("max", "Number") /* Computes the maximum of the values */ ,
+  addType("Number Map", gAny(TNumber_Map.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements */ ,
+    Member("clear", TNothing.typeName) /* Clears the number map. */ ,
+    Member("sum", TNumber.typeName) /* Computes the sum of the values */ ,
+    Member("avg", TNumber.typeName) /* Computes the average of the values */ ,
+    Member("slice", List(TNumber.typeName, TNumber.typeName), TNumber_Map.typeName) /* Extracts the elements at indices between start (inclusive) and end (non-inclusive). */ ,
+    Member("min", TNumber.typeName) /* Computes the minimum of the values */ ,
+    Member("max", TNumber.typeName) /* Computes the maximum of the values */ ,
     Member("at index", List("Number"), "Number") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Number Map") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Number") /* Gets the element at index. Index may be any floating-point value. */ ,
-    Member("set at", List("Number", "Number"), "Nothing") /* Sets the element at index. Index may be any floating-point value. */ ,
-    Member("set many", List("Number Map"), "Nothing") /* Sets many elements at once. */ ,
-    Member("remove", List("Number"), "Nothing") /* Removes the value at a given index */ ,
-    Member("update on wall", "Nothing") /* Updates any display of this map */ ,
-    Member("to json", "Json Object") /* Exports a JSON representation of the contents. */ ,
-    Member("from json", List("Json Object"), "Nothing") /* Imports a JSON representation of the contents. */ ,
-    Member("post to wall", "Nothing") /* Displays the map in a line chart; you need to call 'update on wall' later if you want changes to be reflected. */
+    Member("at", List(TNumber.typeName), TNumber.typeName) /* Gets the element at index. Index may be any floating-point value. */ ,
+    Member("set at", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the element at index. Index may be any floating-point value. */ ,
+    Member("set many", List(TNumber_Map.typeName), TNothing.typeName) /* Sets many elements at once. */ ,
+    Member("remove", List(TNumber.typeName), TNothing.typeName) /* Removes the value at a given index */ ,
+    Member("update on wall", TNothing.typeName) /* Updates any display of this map */ ,
+    Member("to json", TJson_Object.typeName) /* Exports a JSON representation of the contents. */ ,
+    Member("from json", List(TJson_Object.typeName), TNothing.typeName) /* Imports a JSON representation of the contents. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the map in a line chart; you need to call 'update on wall' later if you want changes to be reflected. */
   ))
 
   // OAuth 2.0 Access Token or Error as described in http://tools.ietf.org/html/rfc6749.
-  addType("OAuth Response", gAny("OAuth Response") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("access token", "String") /* The access token issued by the authorization server. */ ,
-    Member("expires in", "Number") /* (Optional) The lifetime in seconds of the access token. */ ,
-    Member("scope", "String") /* (Optional) Optional if identical to the scope requested by the client; otherwise, the scope of the access token as described by Section 3.3 of the OAuth 2.0 specification. */ ,
-    Member("error", "String") /* A single ASCII [USASCII] error code. */ ,
-    Member("error description", "String") /* (Optional) A human readable error code. */ ,
-    Member("error uri", "String") /* (Optional) A URI identifying a human-readable web page with information about the error, used to provide the client developer with additional information about the error. */ ,
-    Member("others", "String Map") /* (Optional) Additional key-value pairs not covered by the OAuth 2.0 specification. */ ,
-    Member("is expiring", List("Number"), "Boolean") /* (Optional) Indicates if the token might expire within the next seconds. */ ,
-    Member("is error", "Boolean") /* Indicates if this response is an error. */ ,
-    Member("post to wall", "Nothing") /* Displays the response. */
+  addType("OAuth Response", gAny(TOAuth_Response.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("access token", TString.typeName) /* The access token issued by the authorization server. */ ,
+    Member("expires in", TNumber.typeName) /* (Optional) The lifetime in seconds of the access token. */ ,
+    Member("scope", TString.typeName) /* (Optional) Optional if identical to the scope requested by the client; otherwise, the scope of the access token as described by Section 3.3 of the OAuth 2.0 specification. */ ,
+    Member("error", TString.typeName) /* A single ASCII [USASCII] error code. */ ,
+    Member("error description", TString.typeName) /* (Optional) A human readable error code. */ ,
+    Member("error uri", TString.typeName) /* (Optional) A URI identifying a human-readable web page with information about the error, used to provide the client developer with additional information about the error. */ ,
+    Member("others", TString_Map.typeName) /* (Optional) Additional key-value pairs not covered by the OAuth 2.0 specification. */ ,
+    Member("is expiring", List(TNumber.typeName), TBoolean.typeName) /* (Optional) Indicates if the token might expire within the next seconds. */ ,
+    Member("is error", TBoolean.typeName) /* Indicates if this response is an error. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the response. */
   ))
 
   // A page on a wall
-  addType("Page", gAny("Page") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("on navigated from", List("Action"), "Event Binding") /* Sets a handler that runs when the page is popped. */ ,
-    Member("equals", List("Page"), "Boolean") /* Gets a value indicating if the page is equal to the other */ ,
-    Member("post to wall", "Nothing") /* Does nothing. */
+  addType("Page", gAny(TPage.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("on navigated from", List(TAction.typeName), TEvent_Binding.typeName) /* Sets a handler that runs when the page is popped. */ ,
+    Member("equals", List(TPage.typeName), TBoolean.typeName) /* Gets a value indicating if the page is equal to the other */ ,
+    Member("post to wall", TNothing.typeName) /* Does nothing. */
   ))
 
   // A page button on the wall
-  addType("Page Button", gAny("Page Button") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("page", "Page") /* Gets the page hosting this button */ ,
-    Member("equals", List("Page Button"), "Boolean") /* Gets a value indicating if both instances are equal */ ,
-    Member("post to wall", "Nothing") /* Pushes this button on the wall */ ,
-    Member("icon", "String") /* Gets the icon name */ ,
-    Member("text", "String") /* Gets the text */
+  addType("Page Button", gAny(TPage_Button.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("page", TPage.typeName) /* Gets the page hosting this button */ ,
+    Member("equals", List(TPage_Button.typeName), TBoolean.typeName) /* Gets a value indicating if both instances are equal */ ,
+    Member("post to wall", TNothing.typeName) /* Pushes this button on the wall */ ,
+    Member("icon", TString.typeName) /* Gets the icon name */ ,
+    Member("text", TString.typeName) /* Gets the text */
   ))
 
   // A collection of page
-  addType("Page Collection", gAny("Page Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of pages */ ,
+  addType("Page Collection", gAny(TPage_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of pages */ ,
     Member("at index", List("Number"), "Page") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Page Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Page") /* Gets the pages at index */ ,
-    Member("post to wall", "Nothing") /* Posts the pages on the wall */
+    Member("at", List(TNumber.typeName), TPage.typeName) /* Gets the pages at index */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the pages on the wall */
   ))
 
   // Phone numbers, vibrate, etc...
-  addSingleton("Phone", gAlsoSingletons("Phone") ::: List(
-    Member("dial phone number", List("String"), "Nothing") /* Starts a phone call */ ,
-    Member("choose phone number", "Link") /* Chooses a phone number from the contact list */ ,
-    Member("save phone number", List("String"), "Nothing") /* Allows the user to save the phone number */ ,
-    Member("save contact", List("Contact"), "Nothing") /* [**obsolete**] Obsolete, use social->save contact instead */ ,
-    Member("vibrate", List("Number"), "Nothing") /* Vibrates the phone for ... seconds (0.02 minimum) */ ,
-    Member("choose address", "Link") /* Chooses an address from the contacts */ ,
-    Member("power source", "String") /* Indicates if the phone is on 'battery' or 'external' power source. */
+  addSingleton("Phone", gAlsoSingletons(SPhone.typeName) ::: List(
+    Member("dial phone number", List(TString.typeName), TNothing.typeName) /* Starts a phone call */ ,
+    Member("choose phone number", TLink.typeName) /* Chooses a phone number from the contact list */ ,
+    Member("save phone number", List(TString.typeName), TNothing.typeName) /* Allows the user to save the phone number */ ,
+    Member("save contact", List(TContact.typeName), TNothing.typeName) /* [**obsolete**] Obsolete, use social->save contact instead */ ,
+    Member("vibrate", List(TNumber.typeName), TNothing.typeName) /* Vibrates the phone for ... seconds (0.02 minimum) */ ,
+    Member("choose address", TLink.typeName) /* Chooses an address from the contacts */ ,
+    Member("power source", TString.typeName) /* Indicates if the phone is on 'battery' or 'external' power source. */
   ))
 
   // A picture
-  addType("Picture", gAny("Picture") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of pixels */ ,
-    Member("date", "DateTime") /* Gets the date time where the picture was taken; if any. */ ,
-    Member("height", "Number") /* Gets the height in pixels */ ,
-    Member("equals", List("Picture"), "Boolean") /* Checks if the picture is the same instance as the other picture. This action does not check that pixels are the same between two different pictures. */ ,
-    Member("is panorama", "Boolean") /* Indicates if the picture width is greater than its height */ ,
-    Member("location", "Location") /* Gets the location where the picture was taken; if any. */ ,
-    Member("width", "Number") /* Gets the width in pixels */ ,
-    Member("update on wall", "Nothing") /* Refreshes the picture on the wall */ ,
+  addType("Picture", gAny(TPicture.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of pixels */ ,
+    Member("date", TDateTime.typeName) /* Gets the date time where the picture was taken; if any. */ ,
+    Member("height", TNumber.typeName) /* Gets the height in pixels */ ,
+    Member("equals", List(TPicture.typeName), TBoolean.typeName) /* Checks if the picture is the same instance as the other picture. This action does not check that pixels are the same between two different pictures. */ ,
+    Member("is panorama", TBoolean.typeName) /* Indicates if the picture width is greater than its height */ ,
+    Member("location", TLocation.typeName) /* Gets the location where the picture was taken; if any. */ ,
+    Member("width", TNumber.typeName) /* Gets the width in pixels */ ,
+    Member("update on wall", TNothing.typeName) /* Refreshes the picture on the wall */ ,
     Member("at index", List("Number"), "Color") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Picture") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Color") /* Gets the pixel color at the given linear index */ ,
-    Member("blend", List("Picture", "Number", "Number", "Number", "Number"), "Nothing") /* Writes another picture at a given location. The opacity ranges from 0 (transparent) to 1 (opaque). */ ,
-    Member("clone", "Picture") /* Returns a copy of the image */ ,
-    Member("fill rect", List("Number", "Number", "Number", "Number", "Number", "Color"), "Nothing") /* Fills a rectangle with a given color */ ,
-    Member("pixel", List("Number", "Number"), "Color") /* Gets the pixel color */ ,
-    Member("resize", List("Number", "Number"), "Nothing") /* Resizes the picture to the given size in pixels */ ,
-    Member("save to library", "String") /* Saves the picture and returns the file name if successful. */ ,
-    Member("clear", List("Color"), "Nothing") /* Clears the picture to a given color */ ,
-    Member("clear rect", List("Color", "Number", "Number", "Number", "Number"), "Nothing") /* Clears a rectangle on a the picture to a given color */ ,
-    Member("colorize", List("Color", "Color", "Number"), "Nothing") /* Recolors the picture with the background and foreground color, based on a color threshold between 0.0 and 1.0 */ ,
-    Member("negative", "Nothing") /* Inverts the colors in the picture */ ,
-    Member("desaturate", "Nothing") /* Makes picture monochromatic (black and white) */ ,
-    Member("invert", "Nothing") /* Inverts the red, blue and green channels */ ,
-    Member("tint", List("Color"), "Nothing") /* Converts every pixel to gray and tints it with the given color. */ ,
-    Member("brightness", List("Number"), "Nothing") /* Changes the brightness of the picture. factor in [-1, 1]. */ ,
-    Member("contrast", List("Number"), "Nothing") /* Changes the contrast of the picture. factor in [-1, 1]. */ ,
-    Member("crop", List("Number", "Number", "Number", "Number"), "Nothing") /* Crops a sub-image */ ,
-    Member("draw ellipse", List("Number", "Number", "Number", "Number", "Number", "Color", "Number"), "Nothing") /* Draws an elliptic border with a given color */ ,
-    Member("draw line", List("Number", "Number", "Number", "Number", "Color", "Number"), "Nothing") /* Draws a line between two points */ ,
-    Member("draw rect", List("Number", "Number", "Number", "Number", "Number", "Color", "Number"), "Nothing") /* Draws a rectangle border with a given color */ ,
-    Member("draw text", List("Number", "Number", "String", "Number", "Number", "Color"), "Nothing") /* Draws some text border with a given color and font size */ ,
-    Member("fill ellipse", List("Number", "Number", "Number", "Number", "Number", "Color"), "Nothing") /* Fills a ellipse with a given color */ ,
-    Member("draw path", List("Number", "Number", "Number", "Color", "Number", "String"), "Nothing") /* Draws a path with a given color. */ ,
-    Member("fill path", List("Number", "Number", "Number", "Color", "String"), "Nothing") /* Fills a path with a given color. */ ,
-    Member("set pixel", List("Number", "Number", "Color"), "Nothing") /* Sets the pixel color at a given pixel */ ,
-    Member("to buffer", "Buffer") /* Copy all pixels from the picture */ ,
-    Member("write buffer", List("Buffer"), "Nothing") /* Copy pixels from `buffer` to the picture */ ,
-    Member("share", List("String", "String"), "Nothing") /* Shares this message ('' to pick from a list) */ ,
-    Member("flip horizontal", "Nothing") /* Flips the picture horizontally */ ,
-    Member("flip vertical", "Nothing") /* Flips the picture vertically */ ,
-    Member("to data uri", List("Number"), "String") /* Encodes the image into a data uri using the desired quality (1 best, 0 worst). If the quality value is 1, the image is encoded as PNG, otherwise JPEG. */ ,
-    Member("blend svg", List("String", "Number", "Number", "Number", "Number", "Number"), "Nothing") /* Writes an Scalable Vector Graphics (SVG) document at a given location. By default, this action uses the viewport size provided in the SVG document when width or height are negative. */ ,
-    Member("post to wall", "Nothing") /* Displays the image to the wall; you need to call 'update on wall' later if you want changes to be reflected. */
+    Member("at", List(TNumber.typeName), TColor.typeName) /* Gets the pixel color at the given linear index */ ,
+    Member("blend", List(TPicture.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Writes another picture at a given location. The opacity ranges from 0 (transparent) to 1 (opaque). */ ,
+    Member("clone", TPicture.typeName) /* Returns a copy of the image */ ,
+    Member("fill rect", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TColor.typeName), TNothing.typeName) /* Fills a rectangle with a given color */ ,
+    Member("pixel", List(TNumber.typeName, TNumber.typeName), TColor.typeName) /* Gets the pixel color */ ,
+    Member("resize", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Resizes the picture to the given size in pixels */ ,
+    Member("save to library", TString.typeName) /* Saves the picture and returns the file name if successful. */ ,
+    Member("clear", List(TColor.typeName), TNothing.typeName) /* Clears the picture to a given color */ ,
+    Member("clear rect", List(TColor.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Clears a rectangle on a the picture to a given color */ ,
+    Member("colorize", List(TColor.typeName, TColor.typeName, TNumber.typeName), TNothing.typeName) /* Recolors the picture with the background and foreground color, based on a color threshold between 0.0 and 1.0 */ ,
+    Member("negative", TNothing.typeName) /* Inverts the colors in the picture */ ,
+    Member("desaturate", TNothing.typeName) /* Makes picture monochromatic (black and white) */ ,
+    Member("invert", TNothing.typeName) /* Inverts the red, blue and green channels */ ,
+    Member("tint", List(TColor.typeName), TNothing.typeName) /* Converts every pixel to gray and tints it with the given color. */ ,
+    Member("brightness", List(TNumber.typeName), TNothing.typeName) /* Changes the brightness of the picture. factor in [-1, 1]. */ ,
+    Member("contrast", List(TNumber.typeName), TNothing.typeName) /* Changes the contrast of the picture. factor in [-1, 1]. */ ,
+    Member("crop", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Crops a sub-image */ ,
+    Member("draw ellipse", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TColor.typeName, TNumber.typeName), TNothing.typeName) /* Draws an elliptic border with a given color */ ,
+    Member("draw line", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TColor.typeName, TNumber.typeName), TNothing.typeName) /* Draws a line between two points */ ,
+    Member("draw rect", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TColor.typeName, TNumber.typeName), TNothing.typeName) /* Draws a rectangle border with a given color */ ,
+    Member("draw text", List(TNumber.typeName, TNumber.typeName, TString.typeName, TNumber.typeName, TNumber.typeName, TColor.typeName), TNothing.typeName) /* Draws some text border with a given color and font size */ ,
+    Member("fill ellipse", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TColor.typeName), TNothing.typeName) /* Fills a ellipse with a given color */ ,
+    Member("draw path", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TColor.typeName, TNumber.typeName, TString.typeName), TNothing.typeName) /* Draws a path with a given color. */ ,
+    Member("fill path", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TColor.typeName, TString.typeName), TNothing.typeName) /* Fills a path with a given color. */ ,
+    Member("set pixel", List(TNumber.typeName, TNumber.typeName, TColor.typeName), TNothing.typeName) /* Sets the pixel color at a given pixel */ ,
+    Member("to buffer", TBuffer.typeName) /* Copy all pixels from the picture */ ,
+    Member("write buffer", List(TBuffer.typeName), TNothing.typeName) /* Copy pixels from `buffer` to the picture */ ,
+    Member("share", List(TString.typeName, TString.typeName), TNothing.typeName) /* Shares this message ('' to pick from a list) */ ,
+    Member("flip horizontal", TNothing.typeName) /* Flips the picture horizontally */ ,
+    Member("flip vertical", TNothing.typeName) /* Flips the picture vertically */ ,
+    Member("to data uri", List(TNumber.typeName), TString.typeName) /* Encodes the image into a data uri using the desired quality (1 best, 0 worst). If the quality value is 1, the image is encoded as PNG, otherwise JPEG. */ ,
+    Member("blend svg", List(TString.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Writes an Scalable Vector Graphics (SVG) document at a given location. By default, this action uses the viewport size provided in the SVG document when width or height are negative. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the image to the wall; you need to call 'update on wall' later if you want changes to be reflected. */
   ))
 
   // A picture album
-  addType("Picture Album", gAny("Picture Album") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("albums", "Picture Albums") /* Gets the children albums */ ,
-    Member("name", "String") /* Gets the name of the album */ ,
-    Member("pictures", "Pictures") /* Gets the pictures */ ,
-    Member("post to wall", "Nothing") /* Displays the album to the wall */
+  addType("Picture Album", gAny(TPicture_Album.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("albums", TPicture_Albums.typeName) /* Gets the children albums */ ,
+    Member("name", TString.typeName) /* Gets the name of the album */ ,
+    Member("pictures", TPictures.typeName) /* Gets the pictures */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the album to the wall */
   ))
 
   // A collection of picture albums
-  addType("Picture Albums", gAny("Picture Albums") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
+  addType("Picture Albums", gAny(TPicture_Albums.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
     Member("at index", List("Number"), "Picture Album") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Picture Albums") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Picture Album") /* Gets the item at position 'index'; invalid if index is out of bounds */ ,
-    Member("random", "Picture Album") /* Gets a random item; invalid if collection is empty */ ,
-    Member("count", "Number") /* Gets the number of elements in the collection */ ,
-    Member("post to wall", "Nothing") /* Displays the value to the wall */
+    Member("at", List(TNumber.typeName), TPicture_Album.typeName) /* Gets the item at position 'index'; invalid if index is out of bounds */ ,
+    Member("random", TPicture_Album.typeName) /* Gets a random item; invalid if collection is empty */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements in the collection */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the value to the wall */
   ))
 
   // A collection of pictures
-  addType("Pictures", gAny("Pictures") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
+  addType("Pictures", gAny(TPictures.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
     Member("at index", List("Number"), "Picture") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Pictures") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Picture") /* Gets the picture at position 'index'; invalid if index is out of bounds */ ,
-    Member("random", "Picture") /* Gets a random picture; invalid if collection is empty */ ,
-    Member("count", "Number") /* Gets the number of elements in the collection */ ,
-    Member("find", List("String"), "Number") /* Finds a picture by name and returns the index. Returns -1 if not found. */ ,
-    Member("post to wall", "Nothing") /* Displays the picture thumbmails to the wall */ ,
-    Member("full", List("Number"), "Picture") /* Gets the full resolution of i-th picture. */ ,
-    Member("thumbnail", List("Number"), "Picture") /* Gets the thumbnail of i-th picture. */ ,
-    Member("rand", "Picture") /* Renamed to 'random' */
+    Member("at", List(TNumber.typeName), TPicture.typeName) /* Gets the picture at position 'index'; invalid if index is out of bounds */ ,
+    Member("random", TPicture.typeName) /* Gets a random picture; invalid if collection is empty */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements in the collection */ ,
+    Member("find", List(TString.typeName), TNumber.typeName) /* Finds a picture by name and returns the index. Returns -1 if not found. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the picture thumbmails to the wall */ ,
+    Member("full", List(TNumber.typeName), TPicture.typeName) /* Gets the full resolution of i-th picture. */ ,
+    Member("thumbnail", List(TNumber.typeName), TPicture.typeName) /* Gets the thumbnail of i-th picture. */ ,
+    Member("rand", TPicture.typeName) /* Renamed to 'random' */
   ))
 
   // A named location
-  addType("Place", gAny("Place") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("location", "Location") /* Gets the location of the place */ ,
-    Member("set location", List("Location"), "Nothing") /* Sets the location of the place */ ,
-    Member("id", "String") /* Gets the identifier of this place */ ,
-    Member("set id", List("String"), "Nothing") /* Sets the identifier of this place */ ,
-    Member("name", "String") /* Gets the name of the place */ ,
-    Member("set name", List("String"), "Nothing") /* Sets the name of the place */ ,
-    Member("picture link", "String") /* Gets a url to the picture */ ,
-    Member("set picture link", List("String"), "Nothing") /* Sets the url to the picture */ ,
-    Member("link", "String") /* Gets the link associated to the message */ ,
-    Member("set link", List("String"), "Nothing") /* Sets the link associated to the place */ ,
-    Member("category", "String") /* Gets the category of the place */ ,
-    Member("set category", List("String"), "Nothing") /* Sets the category of the place */ ,
-    Member("source", "String") /* Gets the source of this place */ ,
-    Member("set source", List("String"), "Nothing") /* Sets the source of this place */ ,
-    Member("values", "String Map") /* Gets the additional values stored in the place */ ,
-    Member("to string", "String") /* Converts to a string name,lat,long */ ,
-    Member("check in", "Nothing") /* [**not implemented**] [**obsolete**] Checks into the place (supported for Facebook) */ ,
-    Member("post to wall", "Nothing") /* Posts the place to the wall */
+  addType("Place", gAny(TPlace.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("location", TLocation.typeName) /* Gets the location of the place */ ,
+    Member("set location", List(TLocation.typeName), TNothing.typeName) /* Sets the location of the place */ ,
+    Member("id", TString.typeName) /* Gets the identifier of this place */ ,
+    Member("set id", List(TString.typeName), TNothing.typeName) /* Sets the identifier of this place */ ,
+    Member("name", TString.typeName) /* Gets the name of the place */ ,
+    Member("set name", List(TString.typeName), TNothing.typeName) /* Sets the name of the place */ ,
+    Member("picture link", TString.typeName) /* Gets a url to the picture */ ,
+    Member("set picture link", List(TString.typeName), TNothing.typeName) /* Sets the url to the picture */ ,
+    Member("link", TString.typeName) /* Gets the link associated to the message */ ,
+    Member("set link", List(TString.typeName), TNothing.typeName) /* Sets the link associated to the place */ ,
+    Member("category", TString.typeName) /* Gets the category of the place */ ,
+    Member("set category", List(TString.typeName), TNothing.typeName) /* Sets the category of the place */ ,
+    Member("source", TString.typeName) /* Gets the source of this place */ ,
+    Member("set source", List(TString.typeName), TNothing.typeName) /* Sets the source of this place */ ,
+    Member("values", TString_Map.typeName) /* Gets the additional values stored in the place */ ,
+    Member("to string", TString.typeName) /* Converts to a string name,lat,long */ ,
+    Member("check in", TNothing.typeName) /* [**not implemented**] [**obsolete**] Checks into the place (supported for Facebook) */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the place to the wall */
   ))
 
   // A collection of places
-  addType("Place Collection", gAny("Place Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("continuation", "String") /* Gets the identifier of the next set of messages */ ,
-    Member("set continuation", List("String"), "Nothing") /* Sets the identifier of the next set of messages */ ,
-    Member("count", "Number") /* Gets the number of elements */ ,
-    Member("clear", "Nothing") /* Clears the collection */ ,
-    Member("add", List("Place"), "Nothing") /* Adds a place */ ,
-    Member("add many", List("Place Collection"), "Nothing") /* Adds many places at once */ ,
-    Member("index of", List("Place", "Number"), "Number") /* Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */ ,
+  addType("Place Collection", gAny(TPlace_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("continuation", TString.typeName) /* Gets the identifier of the next set of messages */ ,
+    Member("set continuation", List(TString.typeName), TNothing.typeName) /* Sets the identifier of the next set of messages */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements */ ,
+    Member("clear", TNothing.typeName) /* Clears the collection */ ,
+    Member("add", List(TPlace.typeName), TNothing.typeName) /* Adds a place */ ,
+    Member("add many", List(TPlace_Collection.typeName), TNothing.typeName) /* Adds many places at once */ ,
+    Member("index of", List(TPlace.typeName, TNumber.typeName), TNumber.typeName) /* Gets the index of the first occurence of item. Returns -1 if not found or start is out of range. */ ,
     Member("at index", List("Number"), "Place") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Place Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Place") /* Gets the i-th place */ ,
-    Member("remove", List("Place"), "Boolean") /* Removes the first occurence of a place. Returns true if removed. */ ,
-    Member("remove at", List("Number"), "Nothing") /* Removes the location at position index. */ ,
-    Member("reverse", "Nothing") /* Reverses the order of the elements. */ ,
-    Member("random", "Place") /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
-    Member("set at", List("Number", "Place"), "Nothing") /* Sets the i-th place */ ,
-    Member("insert at", List("Number", "Place"), "Nothing") /* Inserts a place at position index. Does nothing if index is out of range. */ ,
-    Member("post to wall", "Nothing") /* Posts the places on the wall */ ,
-    Member("sort by distance", List("Location"), "Nothing") /* Sorts the places by distance to the location */
+    Member("at", List(TNumber.typeName), TPlace.typeName) /* Gets the i-th place */ ,
+    Member("remove", List(TPlace.typeName), TBoolean.typeName) /* Removes the first occurence of a place. Returns true if removed. */ ,
+    Member("remove at", List(TNumber.typeName), TNothing.typeName) /* Removes the location at position index. */ ,
+    Member("reverse", TNothing.typeName) /* Reverses the order of the elements. */ ,
+    Member("random", TPlace.typeName) /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
+    Member("set at", List(TNumber.typeName, TPlace.typeName), TNothing.typeName) /* Sets the i-th place */ ,
+    Member("insert at", List(TNumber.typeName, TPlace.typeName), TNothing.typeName) /* Inserts a place at position index. Does nothing if index is out of range. */ ,
+    Member("post to wall", TNothing.typeName) /* Posts the places on the wall */ ,
+    Member("sort by distance", List(TLocation.typeName), TNothing.typeName) /* Sorts the places by distance to the location */
   ))
 
   // Play, stop or resume songs, ...
-  addSingleton("Player", gAlsoSingletons("Player") ::: List(
-    Member("active song", "Song") /* Gets the active song if any */ ,
-    Member("on active song changed", List("Action"), "Event Binding") /* Attaches a handler when the active song changes */ ,
-    Member("on player state changed", List("Action"), "Event Binding") /* Attaches a handler when the player state changes */ ,
-    Member("next", "Nothing") /* Moves to the next song in the queue of playing songs */ ,
-    Member("previous", "Nothing") /* Moves to the previous song in the queue of playing songs */ ,
-    Member("pause", "Nothing") /* Pauses the currently playing song */ ,
-    Member("play", List("Song"), "Nothing") /* Plays a Song */ ,
-    Member("play many", List("Songs"), "Nothing") /* Plays a collection of songs */ ,
-    Member("play position", "Number") /* Gets the position in seconds whithin the active song */ ,
-    Member("resume", "Nothing") /* Resumes a paused song */ ,
-    Member("stop", "Nothing") /* Stops playing a song */ ,
-    Member("is muted", "Boolean") /* Indicates if the player is muted */ ,
-    Member("sound volume", "Number") /* [**not implemented**] Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */ ,
-    Member("set sound volume", List("Number"), "Nothing") /* [**not implemented**] Sets the sound volume level from 0 (silent) to 1 (current volume) */ ,
-    Member("is repeating", "Boolean") /* Indicates if the player is repeating */ ,
-    Member("set repeating", List("Boolean"), "Nothing") /* Sets the repeating on and off */ ,
-    Member("is shuffled", "Boolean") /* Indicates if the player is shuffled */ ,
-    Member("set shuffled", List("Boolean"), "Nothing") /* Sets the shuffling on and off */ ,
-    Member("is stopped", "Boolean") /* Indicates if the player is stopped */ ,
-    Member("is playing", "Boolean") /* Indicates if the player is playing a song */ ,
-    Member("is paused", "Boolean") /* Indicates if the player is paused */ ,
-    Member("play home media", List("Media Link"), "Nothing") /* Plays an audio/video file from the home network */ ,
-    Member("volume", "Number") /* [**obsolete**] Volume is no longer supported. */
+  addSingleton("Player", gAlsoSingletons(SPlayer.typeName) ::: List(
+    Member("active song", TSong.typeName) /* Gets the active song if any */ ,
+    Member("on active song changed", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler when the active song changes */ ,
+    Member("on player state changed", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler when the player state changes */ ,
+    Member("next", TNothing.typeName) /* Moves to the next song in the queue of playing songs */ ,
+    Member("previous", TNothing.typeName) /* Moves to the previous song in the queue of playing songs */ ,
+    Member("pause", TNothing.typeName) /* Pauses the currently playing song */ ,
+    Member("play", List(TSong.typeName), TNothing.typeName) /* Plays a Song */ ,
+    Member("play many", List(TSongs.typeName), TNothing.typeName) /* Plays a collection of songs */ ,
+    Member("play position", TNumber.typeName) /* Gets the position in seconds whithin the active song */ ,
+    Member("resume", TNothing.typeName) /* Resumes a paused song */ ,
+    Member("stop", TNothing.typeName) /* Stops playing a song */ ,
+    Member("is muted", TBoolean.typeName) /* Indicates if the player is muted */ ,
+    Member("sound volume", TNumber.typeName) /* [**not implemented**] Gets the sound volume for sounds from 0 (silent) to 1 (current volume) */ ,
+    Member("set sound volume", List(TNumber.typeName), TNothing.typeName) /* [**not implemented**] Sets the sound volume level from 0 (silent) to 1 (current volume) */ ,
+    Member("is repeating", TBoolean.typeName) /* Indicates if the player is repeating */ ,
+    Member("set repeating", List(TBoolean.typeName), TNothing.typeName) /* Sets the repeating on and off */ ,
+    Member("is shuffled", TBoolean.typeName) /* Indicates if the player is shuffled */ ,
+    Member("set shuffled", List(TBoolean.typeName), TNothing.typeName) /* Sets the shuffling on and off */ ,
+    Member("is stopped", TBoolean.typeName) /* Indicates if the player is stopped */ ,
+    Member("is playing", TBoolean.typeName) /* Indicates if the player is playing a song */ ,
+    Member("is paused", TBoolean.typeName) /* Indicates if the player is paused */ ,
+    Member("play home media", List(TMedia_Link.typeName), TNothing.typeName) /* Plays an audio/video file from the home network */ ,
+    Member("volume", TNumber.typeName) /* [**obsolete**] Volume is no longer supported. */
   ))
 
   // A song playlist
-  addType("Playlist", gAny("Playlist") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("duration", "Number") /* [**not implemented**] Gets the duration in seconds */ ,
-    Member("name", "String") /* [**not implemented**] Gets the name of the song */ ,
-    Member("songs", "Songs") /* [**not implemented**] Gets the songs */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Displays the playlist to the wall */ ,
-    Member("play", "Nothing") /* [**not implemented**] Plays the songs in the playlist */
+  addType("Playlist", gAny(TPlaylist.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("duration", TNumber.typeName) /* [**not implemented**] Gets the duration in seconds */ ,
+    Member("name", TString.typeName) /* [**not implemented**] Gets the name of the song */ ,
+    Member("songs", TSongs.typeName) /* [**not implemented**] Gets the songs */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Displays the playlist to the wall */ ,
+    Member("play", TNothing.typeName) /* [**not implemented**] Plays the songs in the playlist */
   ))
 
   // A collection of playlists
-  addType("Playlists", gAny("Playlists") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* [**not implemented**] Gets the number of playlists */ ,
+  addType("Playlists", gAny(TPlaylists.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* [**not implemented**] Gets the number of playlists */ ,
     Member("at index", List("Number"), "Playlist") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Playlists") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Playlist") /* [**not implemented**] Gets i-th playlist */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Displays the value to the wall */
+    Member("at", List(TNumber.typeName), TPlaylist.typeName) /* [**not implemented**] Gets i-th playlist */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Displays the value to the wall */
   ))
 
   // A printer on the home network
-  addType("Printer", gAny("Printer") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("device", "Device") /* [**not implemented**] Gets the detailled information about this device */ ,
-    Member("name", "String") /* [**not implemented**] Gets the name of the printer */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Display the printer to the wall */ ,
-    Member("print text", List("String"), "Nothing") /* [**not implemented**] Queues a job to print the text. */ ,
-    Member("is idle", "Boolean") /* [**not implemented**] Indicates if new jobs can start processing immediately without waiting. */ ,
-    Member("is processing", "Boolean") /* [**not implemented**] Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */ ,
-    Member("is stopped", "Boolean") /* [**not implemented**] Indicates if no jobs can be processed and intervention is needed. */ ,
-    Member("state reason", "String") /* [**not implemented**] Indicates additional information about why the Printer is in its current state. */
+  addType("Printer", gAny(TPrinter.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("device", TDevice.typeName) /* [**not implemented**] Gets the detailled information about this device */ ,
+    Member("name", TString.typeName) /* [**not implemented**] Gets the name of the printer */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Display the printer to the wall */ ,
+    Member("print text", List(TString.typeName), TNothing.typeName) /* [**not implemented**] Queues a job to print the text. */ ,
+    Member("is idle", TBoolean.typeName) /* [**not implemented**] Indicates if new jobs can start processing immediately without waiting. */ ,
+    Member("is processing", TBoolean.typeName) /* [**not implemented**] Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */ ,
+    Member("is stopped", TBoolean.typeName) /* [**not implemented**] Indicates if no jobs can be processed and intervention is needed. */ ,
+    Member("state reason", TString.typeName) /* [**not implemented**] Indicates additional information about why the Printer is in its current state. */
   ))
 
   // A collection of printers
-  addType("Printer Collection", gAny("Printer Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* [**not implemented**] Gets the number of printers */ ,
-    Member("clear", "Nothing") /* [**not implemented**] [**obsolete**] Clears the printers */ ,
-    Member("add", List("Printer"), "Nothing") /* [**not implemented**] [**obsolete**] Adds a printer to the collection */ ,
+  addType("Printer Collection", gAny(TPrinter_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* [**not implemented**] Gets the number of printers */ ,
+    Member("clear", TNothing.typeName) /* [**not implemented**] [**obsolete**] Clears the printers */ ,
+    Member("add", List(TPrinter.typeName), TNothing.typeName) /* [**not implemented**] [**obsolete**] Adds a printer to the collection */ ,
     Member("at index", List("Number"), "Printer") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Printer Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Printer") /* [**not implemented**] Gets the printer at index */ ,
-    Member("post to wall", "Nothing") /* [**not implemented**] Posts the printers on the wall */
+    Member("at", List(TNumber.typeName), TPrinter.typeName) /* [**not implemented**] Gets the printer at index */ ,
+    Member("post to wall", TNothing.typeName) /* [**not implemented**] Posts the printers on the wall */
   ))
 
   // Access to the radio
-  addSingleton("Radio", gAlsoSingletons("Radio") ::: List(
-    Member("is playing", "Boolean") /* Indicates if the radio is on */ ,
-    Member("start", "Nothing") /* Turns on the radio */ ,
-    Member("stop", "Nothing") /* Turns off the radio */ ,
-    Member("signal strength", "Number") /* Gets the signal strength */ ,
-    Member("frequency", "Number") /* Gets the frequency */ ,
-    Member("set frequency", List("Number"), "Nothing") /* Sets the frequency */ ,
-    Member("link frequency", List("String", "Number"), "Link") /* Creates a link to a radio frequency */
+  addSingleton("Radio", gAlsoSingletons(SRadio.typeName) ::: List(
+    Member("is playing", TBoolean.typeName) /* Indicates if the radio is on */ ,
+    Member("start", TNothing.typeName) /* Turns on the radio */ ,
+    Member("stop", TNothing.typeName) /* Turns off the radio */ ,
+    Member("signal strength", TNumber.typeName) /* Gets the signal strength */ ,
+    Member("frequency", TNumber.typeName) /* Gets the frequency */ ,
+    Member("set frequency", List(TNumber.typeName), TNothing.typeName) /* Sets the frequency */ ,
+    Member("link frequency", List(TString.typeName, TNumber.typeName), TLink.typeName) /* Creates a link to a radio frequency */
   ))
 
   // A reference to a value
-  addType("Ref", gAny("Ref") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("◈get", "T") /* Get the current value of the reference */ ,
-    Member("◈confirmed", "Boolean") /* Check if reference has been written to the storage/server */ ,
-    Member("◈set", List("T"), "Nothing") /* Set the value of the reference */ ,
-    Member("◈clear", "Nothing") /* Set reference to invalid */ ,
-    Member("◈ref", "T Ref") /* Retrive the reference itself (useful on globals and fields) */ ,
-    Member("◈add", List("Number"), "Nothing") /* Add specified value to given reference */ ,
-    Member("◈test and set", List("T"), "Nothing") /* Set reference to `v` if it's currently non-empty */ ,
-    Member("◈with notify", List("Action"), "T Ref") /* [**dbg**] Create a new ref, that invokes `on changed` whenever the update is performed through it */
-  ))
+  addGenericType("Ref", { TT:TypeName => gAny(TRef.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("◈get", TT) /* Get the current value of the reference */ ,
+    Member("◈confirmed", TBoolean.typeName) /* Check if reference has been written to the storage/server */ ,
+    Member("◈set", List(TT), TNothing.typeName) /* Set the value of the reference */ ,
+    Member("◈clear", TNothing.typeName) /* Set reference to invalid */ ,
+    Member("◈ref", TypeName("Ref",List(TT))) /* Retrive the reference itself (useful on globals and fields) */ ,
+    Member("◈add", List(TNumber.typeName), TNothing.typeName) /* Add specified value to given reference */ ,
+    Member("◈test and set", List(TT), TNothing.typeName) /* Set reference to `v` if it's currently non-empty */ ,
+    Member("◈with notify", List(TAction.typeName), TypeName("Ref",List(TT))) /* [**dbg**] Create a new ref, that invokes `on changed` whenever the update is performed through it */
+  )})
 
   // Camera, location, microphone and other sensors
-  addSingleton("Senses", gAlsoSingletons("Senses") ::: List(
-    Member("on shake", List("Action"), "Event Binding") /* Attaches a handler to the `shake` event. */ ,
-    Member("on phone face up", List("Action"), "Event Binding") /* Attaches a handler to the `phone face up` event. */ ,
-    Member("on phone face down", List("Action"), "Event Binding") /* Attaches a handler to the `phone face down` event. */ ,
-    Member("on phone portrait", List("Action"), "Event Binding") /* Attaches a handler to the `phone portrait` event. */ ,
-    Member("on phone landscape left", List("Action"), "Event Binding") /* Attaches a handler to the `phone landscape left` event. */ ,
-    Member("on phone landscape right", List("Action"), "Event Binding") /* Attaches a handler to the `phone landscape right` event. */ ,
-    Member("take camera picture", "Picture") /* Takes a picture and returns it. This picture does not contain the gps location. */ ,
-    Member("record microphone", "Sound") /* Records audio using the microphone */ ,
-    Member("is device stable", "Boolean") /* Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */ ,
-    Member("has accelerometer", "Boolean") /* Indicates if an accelerometer is available. */ ,
-    Member("acceleration stable", "Vector3") /* Gets filtered and temporally averaged accelerometer data using an arithmetic mean of the last 25 'optimally filtered' samples, so over 500ms at 50Hz on each axis, to virtually eliminate most sensor noise. This provides a very stable reading but it has also a very high latency and cannot be used for rapidly reacting UI. */ ,
-    Member("acceleration smooth", "Vector3") /* Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */ ,
-    Member("acceleration quick", "Vector3") /* Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */ ,
-    Member("current location", "Location") /* Gets the current approximate phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */ ,
-    Member("current location accurate", "Location") /* Gets the current phone location with the most accuracy. This includes using services that might charge money, or consuming higher levels of battery power or connection bandwidth. */ ,
-    Member("camera", "Camera") /* Gets the primary camera if available */ ,
-    Member("front camera", "Camera") /* Gets the front facing camera if available */ ,
-    Member("has front camera", "Boolean") /* [**obsolete**] Test if the senses→front camera is invalid instead */ ,
-    Member("has motion", "Boolean") /* [**not implemented**] [**obsolete**] Test if the senses→motion is invalid instead. */ ,
-    Member("motion", "Motion") /* [**not implemented**] Gets the current motion that combines data from the accelerometer, compass and gyroscope if available. */ ,
-    Member("orientation", "Vector3") /* Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */ ,
-    Member("has compass", "Boolean") /* [**obsolete**] Test if the senses→heading is invalid instead */ ,
-    Member("heading", "Number") /* Gets the compass heading, in degrees, measured clockwise from the Earth’s geographic north. */ ,
-    Member("has gyroscope", "Boolean") /* Indicates if the gyroscope is available on the device */ ,
-    Member("rotation speed", "Vector3") /* Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */ ,
-    Member("battery level", "Number") /* Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */ ,
-    Member("bluetooth devices", "Bluetooth Device Collection") /* Get the list of Bluetooth widgets paired with your device. */ ,
-    Member("bluetooth LE devices", "Bluetooth Le Device Collection") /* [**dbg**] Get the list of Bluetooth LE devices paired with your device. */ ,
-    Member("is key pressed", List("String"), "Boolean") /* Indicates if the specified key is pressed. */ ,
-    Member("on key pressed", List("String", "Action"), "Event Binding") /* Attaches an event that triggers while the key is pressed. This event repeats while the key is down. */ ,
-    Member("gamepads", "Gamepad Collection") /* Gets a snapshot of the gamepad states (if any connected to the browser). Empty if unsupported or no gamepad connected. */ ,
-    Member("first gamepad", "Gamepad") /* Gets the first connected gamepad available */
+  addSingleton("Senses", gAlsoSingletons(SSenses.typeName) ::: List(
+    Member("on shake", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler to the `shake` event. */ ,
+    Member("on phone face up", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler to the `phone face up` event. */ ,
+    Member("on phone face down", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler to the `phone face down` event. */ ,
+    Member("on phone portrait", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler to the `phone portrait` event. */ ,
+    Member("on phone landscape left", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler to the `phone landscape left` event. */ ,
+    Member("on phone landscape right", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler to the `phone landscape right` event. */ ,
+    Member("take camera picture", TPicture.typeName) /* Takes a picture and returns it. This picture does not contain the gps location. */ ,
+    Member("record microphone", TSound.typeName) /* Records audio using the microphone */ ,
+    Member("is device stable", TBoolean.typeName) /* Indicates whether the device is 'stable' (no movement for about 0.5 seconds) */ ,
+    Member("has accelerometer", TBoolean.typeName) /* Indicates if an accelerometer is available. */ ,
+    Member("acceleration stable", TVector3.typeName) /* Gets filtered and temporally averaged accelerometer data using an arithmetic mean of the last 25 'optimally filtered' samples, so over 500ms at 50Hz on each axis, to virtually eliminate most sensor noise. This provides a very stable reading but it has also a very high latency and cannot be used for rapidly reacting UI. */ ,
+    Member("acceleration smooth", TVector3.typeName) /* Gets filtered accelerometer data using a 1 Hz first-order low-pass on each axis to eliminate the main sensor noise while providing a medium latency. This can be used for moderately reacting UI updates requiring a very smooth signal. */ ,
+    Member("acceleration quick", TVector3.typeName) /* Gets filtered accelerometer data using a combination of a low-pass and threshold triggered high-pass on each axis to eliminate the majority of the sensor low amplitude noise while trending very quickly to large offsets (not perfectly smooth signal in that case), providing a very low latency. This is ideal for quickly reacting UI updates. */ ,
+    Member("current location", TLocation.typeName) /* Gets the current approximate phone location. The phone optimizes the accuracy for power, performance, and other cost considerations. */ ,
+    Member("current location accurate", TLocation.typeName) /* Gets the current phone location with the most accuracy. This includes using services that might charge money, or consuming higher levels of battery power or connection bandwidth. */ ,
+    Member("camera", TCamera.typeName) /* Gets the primary camera if available */ ,
+    Member("front camera", TCamera.typeName) /* Gets the front facing camera if available */ ,
+    Member("has front camera", TBoolean.typeName) /* [**obsolete**] Test if the senses→front camera is invalid instead */ ,
+    Member("has motion", TBoolean.typeName) /* [**not implemented**] [**obsolete**] Test if the senses→motion is invalid instead. */ ,
+    Member("motion", TMotion.typeName) /* [**not implemented**] Gets the current motion that combines data from the accelerometer, compass and gyroscope if available. */ ,
+    Member("orientation", TVector3.typeName) /* Gets the current orientation in degrees if available. (x,y,z) is also called (pitch, roll, yaw) or (alpha, beta, gamma). */ ,
+    Member("has compass", TBoolean.typeName) /* [**obsolete**] Test if the senses→heading is invalid instead */ ,
+    Member("heading", TNumber.typeName) /* Gets the compass heading, in degrees, measured clockwise from the Earth’s geographic north. */ ,
+    Member("has gyroscope", TBoolean.typeName) /* Indicates if the gyroscope is available on the device */ ,
+    Member("rotation speed", TVector3.typeName) /* Gets the gyroscope rotational velocity around each axis of the device, in degrees per second. */ ,
+    Member("battery level", TNumber.typeName) /* Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */ ,
+    Member("bluetooth devices", TypeName("Collection",List(TBluetooth_Device.typeName))) /* Get the list of Bluetooth widgets paired with your device. */ ,
+    Member("bluetooth LE devices", TypeName("Collection",List(TBluetooth_Le_Device.typeName))) /* [**dbg**] Get the list of Bluetooth LE devices paired with your device. */ ,
+    Member("is key pressed", List(TString.typeName), TBoolean.typeName) /* Indicates if the specified key is pressed. */ ,
+    Member("on key pressed", List(TString.typeName, TAction.typeName), TEvent_Binding.typeName) /* Attaches an event that triggers while the key is pressed. This event repeats while the key is down. */ ,
+    Member("gamepads", TypeName("Collection",List(TGamepad.typeName))) /* Gets a snapshot of the gamepad states (if any connected to the browser). Empty if unsupported or no gamepad connected. */ ,
+    Member("first gamepad", TGamepad.typeName) /* Gets the first connected gamepad available */
   ))
 
   // A snapshot of the gamepad state
-  addType("Gamepad", gAny("Gamepad") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("equals", List("Gamepad"), "Boolean") /* Indicates if the gamepad data are identical */ ,
-    Member("post to wall", "Nothing") /* Displays the state of the gamepad on the wall */ ,
-    Member("id", "String") /* Gets the gamepad identifier */ ,
-    Member("index", "Number") /* Gets the player index */ ,
-    Member("timestamp", "Number") /* Gets the timestamp of this snapshot */ ,
-    Member("is connected", "Boolean") /* Indicates if the gamepad is still connected. */ ,
-    Member("is button pressed", List("String"), "Boolean") /* Indicates if a button is pressed. Returns false if button missing. */ ,
-    Member("button value", List("String"), "Number") /* Gets the pressed value of a button. Returns 0 if button missing. */ ,
-    Member("axes", List("String"), "Vector3") /* Gets the `x` and `y` value of the selected axes. */
-  ))
-
-  // A collection of appointments
-  addType("Gamepad Collection", gAny("Gamepad Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of appointments */ ,
-    Member("at index", List("Number"), "Gamepad") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
-    Member("copy", "Gamepad Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Gamepad") /* Gets the appointment at index */ ,
-    Member("post to wall", "Nothing") /* Posts the appointments on the wall */
+  addType("Gamepad", gAny(TGamepad.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("equals", List(TGamepad.typeName), TBoolean.typeName) /* Indicates if the gamepad data are identical */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the state of the gamepad on the wall */ ,
+    Member("id", TString.typeName) /* Gets the gamepad identifier */ ,
+    Member("index", TNumber.typeName) /* Gets the player index */ ,
+    Member("timestamp", TNumber.typeName) /* Gets the timestamp of this snapshot */ ,
+    Member("is connected", TBoolean.typeName) /* Indicates if the gamepad is still connected. */ ,
+    Member("is button pressed", List(TString.typeName), TBoolean.typeName) /* Indicates if a button is pressed. Returns false if button missing. */ ,
+    Member("button value", List(TString.typeName), TNumber.typeName) /* Gets the pressed value of a button. Returns 0 if button missing. */ ,
+    Member("axes", List(TString.typeName), TVector3.typeName) /* Gets the `x` and `y` value of the selected axes. */
   ))
 
   // An incomming HTTP web request
-  addType("Server Request", gAny("Server Request") ::: List(
-    Member("is invalid", "Boolean") /* [**beta**] Returns true if the current instance is useless */ ,
-    Member("response", "Server Response") /* [**beta**] Gets the associated response */ ,
-    Member("content", "String") /* [**beta**] Reads the request body as a string */ ,
-    Member("content as buffer", "Buffer") /* [**beta**] Reads the request body as a binary buffer */ ,
-    Member("content as json", "Json Object") /* [**beta**] Reads the request body as a JSON tree */ ,
-    Member("method", "String") /* [**beta**] Gets whether it was a 'get', 'post', 'put', 'delete', 'options', etc. */ ,
-    Member("url", "String") /* [**beta**] Gets the url of the request */ ,
-    Member("header", List("String"), "String") /* [**beta**] Gets the value of a given header */ ,
-    Member("query", List("String"), "String") /* [**beta**] Gets the value of a given query string parameter */ ,
-    Member("equals", List("Server Request"), "Boolean") /* [**beta**] Indicates if both requests are the same instance. */ ,
-    Member("post to wall", "Nothing") /* [**beta**] Displays the request to the wall */ ,
-    Member("header names", "String Collection") /* [**beta**] Gets the names of the headers */ ,
-    Member("query names", "String Collection") /* [**beta**] Gets the names of the query string parameters */
+  addType("Server Request", gAny(TServer_Request.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* [**beta**] Returns true if the current instance is useless */ ,
+    Member("response", TServer_Response.typeName) /* [**beta**] Gets the associated response */ ,
+    Member("content", TString.typeName) /* [**beta**] Reads the request body as a string */ ,
+    Member("content as buffer", TBuffer.typeName) /* [**beta**] Reads the request body as a binary buffer */ ,
+    Member("content as json", TJson_Object.typeName) /* [**beta**] Reads the request body as a JSON tree */ ,
+    Member("method", TString.typeName) /* [**beta**] Gets whether it was a 'get', 'post', 'put', 'delete', 'options', etc. */ ,
+    Member("url", TString.typeName) /* [**beta**] Gets the url of the request */ ,
+    Member("header", List(TString.typeName), TString.typeName) /* [**beta**] Gets the value of a given header */ ,
+    Member("query", List(TString.typeName), TString.typeName) /* [**beta**] Gets the value of a given query string parameter */ ,
+    Member("equals", List(TServer_Request.typeName), TBoolean.typeName) /* [**beta**] Indicates if both requests are the same instance. */ ,
+    Member("post to wall", TNothing.typeName) /* [**beta**] Displays the request to the wall */ ,
+    Member("header names", TString_Collection.typeName) /* [**beta**] Gets the names of the headers */ ,
+    Member("query names", TString_Collection.typeName) /* [**beta**] Gets the names of the query string parameters */ ,
+    Member("user", TUser.typeName) /* [**dbg**] Get the user who sent this request */
   ))
 
   // An HTTP web response to be returned
-  addType("Server Response", gAny("Server Response") ::: List(
-    Member("is invalid", "Boolean") /* [**beta**] Returns true if the current instance is useless */ ,
-    Member("header", List("String"), "String") /* [**beta**] Gets the value of a given header */ ,
-    Member("set header", List("String", "String"), "Nothing") /* [**beta**] Sets an HTTP header value. Empty string clears the value */ ,
-    Member("request", "Server Request") /* [**beta**] Gets the request associated to this response */ ,
-    Member("status code", "Number") /* [**beta**] Gets the HTTP Status code of the response (defaults to 200) */ ,
-    Member("set status code", List("Number"), "Nothing") /* [**beta**] Sets the HTTP Status code of the response (defaults to 200) */ ,
-    Member("equals", List("Server Response"), "Boolean") /* [**beta**] Indicates if both responses are the same instance. */ ,
-    Member("post to wall", "Nothing") /* [**beta**] Displays the request to the wall */ ,
-    Member("set content type", List("String"), "Nothing") /* [**beta**] Sets the 'Content-Type' HTTP header; call after `->set_content...` */ ,
-    Member("set content", List("String"), "Nothing") /* [**beta**] Sets the content of the response */ ,
-    Member("set content as json", List("Json Object"), "Nothing") /* [**beta**] Sets the content of the response as the JSON tree */ ,
-    Member("set content as buffer", List("Buffer"), "Nothing") /* [**beta**] Sets the content of the response as a binary buffer */ ,
-    Member("set content as xml", List("Xml Object"), "Nothing") /* [**beta**] Sets the content of the response as the XML tree */ ,
-    Member("header names", "String Collection") /* [**beta**] Gets the names of the headers */
+  addType("Server Response", gAny(TServer_Response.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* [**beta**] Returns true if the current instance is useless */ ,
+    Member("header", List(TString.typeName), TString.typeName) /* [**beta**] Gets the value of a given header */ ,
+    Member("set header", List(TString.typeName, TString.typeName), TNothing.typeName) /* [**beta**] Sets an HTTP header value. Empty string clears the value */ ,
+    Member("request", TServer_Request.typeName) /* [**beta**] Gets the request associated to this response */ ,
+    Member("status code", TNumber.typeName) /* [**beta**] Gets the HTTP Status code of the response (defaults to 200) */ ,
+    Member("set status code", List(TNumber.typeName), TNothing.typeName) /* [**beta**] Sets the HTTP Status code of the response (defaults to 200) */ ,
+    Member("equals", List(TServer_Response.typeName), TBoolean.typeName) /* [**beta**] Indicates if both responses are the same instance. */ ,
+    Member("post to wall", TNothing.typeName) /* [**beta**] Displays the request to the wall */ ,
+    Member("set content type", List(TString.typeName), TNothing.typeName) /* [**beta**] Sets the 'Content-Type' HTTP header; call after `->set_content...` */ ,
+    Member("set content", List(TString.typeName), TNothing.typeName) /* [**beta**] Sets the content of the response */ ,
+    Member("set content as json", List(TJson_Object.typeName), TNothing.typeName) /* [**beta**] Sets the content of the response as the JSON tree */ ,
+    Member("set content as buffer", List(TBuffer.typeName), TNothing.typeName) /* [**beta**] Sets the content of the response as a binary buffer */ ,
+    Member("set content as xml", List(TXml_Object.typeName), TNothing.typeName) /* [**beta**] Sets the content of the response as the XML tree */ ,
+    Member("header names", TString_Collection.typeName) /* [**beta**] Gets the names of the headers */
   ))
 
   // Emails, sms, contacts, calendar, ...
-  addSingleton("Social", gAlsoSingletons("Social") ::: List(
-    Member("send email", List("String", "String", "String"), "Nothing") /* Opens the mail client */ ,
-    Member("save email", List("String"), "Nothing") /* Allows the user to save the email address (email) */ ,
-    Member("save contact", List("Contact"), "Nothing") /* Saves a new contact */ ,
-    Member("send sms", List("String", "String"), "Nothing") /* Opens the short message client (to, body) */ ,
-    Member("link phone number", List("String"), "Link") /* Creates a link from a phone number */ ,
-    Member("link email", List("String"), "Link") /* Creates a link from an email */ ,
-    Member("create message", List("String"), "Message") /* Creates a message to share */ ,
-    Member("create place", List("String", "Location"), "Place") /* Creates a place */ ,
-    Member("search", List("String", "String"), "Message Collection") /* [**obsolete**] Searches for recent messages in a social network (twitter, facebook) */ ,
-    Member("search places nearby", List("String", "String", "Location", "Number"), "Place Collection") /* [**not implemented**] [**obsolete**] Searches for places nearby. The distance is in meters. */ ,
-    Member("contacts", List("String"), "Contact Collection") /* Retrieves the list of contacts */ ,
-    Member("search contacts", List("String"), "Contact Collection") /* Searches for contacts by name. */ ,
-    Member("choose email", "Link") /* Chooses an email from the contact list */ ,
-    Member("choose contact", "Contact") /* Chooses a contact from the contact list */ ,
-    Member("search appointments", List("DateTime", "DateTime"), "Appointment Collection") /* Searches for appointments in a given time range */ ,
-    Member("create contact", List("String"), "Contact") /* Creates a new contact */
+  addSingleton("Social", gAlsoSingletons(SSocial.typeName) ::: List(
+    Member("send email", List(TString.typeName, TString.typeName, TString.typeName), TNothing.typeName) /* Opens the mail client */ ,
+    Member("save email", List(TString.typeName), TNothing.typeName) /* Allows the user to save the email address (email) */ ,
+    Member("save contact", List(TContact.typeName), TNothing.typeName) /* Saves a new contact */ ,
+    Member("send sms", List(TString.typeName, TString.typeName), TNothing.typeName) /* Opens the short message client (to, body) */ ,
+    Member("link phone number", List(TString.typeName), TLink.typeName) /* Creates a link from a phone number */ ,
+    Member("link email", List(TString.typeName), TLink.typeName) /* Creates a link from an email */ ,
+    Member("create message", List(TString.typeName), TMessage.typeName) /* Creates a message to share */ ,
+    Member("create place", List(TString.typeName, TLocation.typeName), TPlace.typeName) /* Creates a place */ ,
+    Member("search", List(TString.typeName, TString.typeName), TMessage_Collection.typeName) /* [**obsolete**] Searches for recent messages in a social network (twitter, facebook) */ ,
+    Member("search places nearby", List(TString.typeName, TString.typeName, TLocation.typeName, TNumber.typeName), TPlace_Collection.typeName) /* [**not implemented**] [**obsolete**] Searches for places nearby. The distance is in meters. */ ,
+    Member("contacts", List(TString.typeName), TContact_Collection.typeName) /* Retrieves the list of contacts */ ,
+    Member("search contacts", List(TString.typeName), TContact_Collection.typeName) /* Searches for contacts by name. */ ,
+    Member("choose email", TLink.typeName) /* Chooses an email from the contact list */ ,
+    Member("choose contact", TContact.typeName) /* Chooses a contact from the contact list */ ,
+    Member("search appointments", List(TDateTime.typeName, TDateTime.typeName), TAppointment_Collection.typeName) /* Searches for appointments in a given time range */ ,
+    Member("create contact", List(TString.typeName), TContact.typeName) /* Creates a new contact */
   ))
 
   // A song
-  addType("Song", gAny("Song") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("album", "Song Album") /* Gets the song album containing the song */ ,
-    Member("artist", "String") /* Gets the name of the artist */ ,
-    Member("duration", "Number") /* Gets the duration in seconds */ ,
-    Member("genre", "String") /* Gets the genre of the song */ ,
-    Member("name", "String") /* Gets the name of the song */ ,
-    Member("play count", "Number") /* Gets the play count */ ,
-    Member("rating", "Number") /* Gets the users rating. -1 if not rated. */ ,
-    Member("track", "Number") /* Gets the track number in the album */ ,
-    Member("play", "Nothing") /* Plays the song. */ ,
-    Member("protected", "Boolean") /* [**not implemented**] Gets a value whether the song is DRM protected */ ,
-    Member("post to wall", "Nothing") /* Displays the song on the wall */
+  addType("Song", gAny(TSong.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("album", TSong_Album.typeName) /* Gets the song album containing the song */ ,
+    Member("artist", TString.typeName) /* Gets the name of the artist */ ,
+    Member("duration", TNumber.typeName) /* Gets the duration in seconds */ ,
+    Member("genre", TString.typeName) /* Gets the genre of the song */ ,
+    Member("name", TString.typeName) /* Gets the name of the song */ ,
+    Member("play count", TNumber.typeName) /* Gets the play count */ ,
+    Member("rating", TNumber.typeName) /* Gets the users rating. -1 if not rated. */ ,
+    Member("track", TNumber.typeName) /* Gets the track number in the album */ ,
+    Member("play", TNothing.typeName) /* Plays the song. */ ,
+    Member("protected", TBoolean.typeName) /* [**not implemented**] Gets a value whether the song is DRM protected */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the song on the wall */
   ))
 
   // A song album
-  addType("Song Album", gAny("Song Album") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("art", "Picture") /* Gets album art picture */ ,
-    Member("artist", "String") /* Gets the name of the artist */ ,
-    Member("duration", "Number") /* Gets the duration in seconds */ ,
-    Member("genre", "String") /* Gets the genre of the song */ ,
-    Member("has art", "Boolean") /* Indicates if the album has art */ ,
-    Member("name", "String") /* Gets the name of the album */ ,
-    Member("post to wall", "Nothing") /* Displays the song album on the wall */ ,
-    Member("songs", "Songs") /* Gets the songs */ ,
-    Member("thumbnail", "Picture") /* Gets the thumbnail picture */ ,
-    Member("play", "Nothing") /* Plays the songs of the album */
+  addType("Song Album", gAny(TSong_Album.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("art", TPicture.typeName) /* Gets album art picture */ ,
+    Member("artist", TString.typeName) /* Gets the name of the artist */ ,
+    Member("duration", TNumber.typeName) /* Gets the duration in seconds */ ,
+    Member("genre", TString.typeName) /* Gets the genre of the song */ ,
+    Member("has art", TBoolean.typeName) /* Indicates if the album has art */ ,
+    Member("name", TString.typeName) /* Gets the name of the album */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the song album on the wall */ ,
+    Member("songs", TSongs.typeName) /* Gets the songs */ ,
+    Member("thumbnail", TPicture.typeName) /* Gets the thumbnail picture */ ,
+    Member("play", TNothing.typeName) /* Plays the songs of the album */
   ))
 
   // A collection of albums
-  addType("Song Albums", gAny("Song Albums") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
+  addType("Song Albums", gAny(TSong_Albums.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
     Member("at index", List("Number"), "Song Album") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Song Albums") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Song Album") /* Gets the item at position 'index'; invalid if index is out of bounds */ ,
-    Member("random", "Song Album") /* Gets a random item; invalid if collection is empty */ ,
-    Member("count", "Number") /* Gets the number of elements in the collection */ ,
-    Member("post to wall", "Nothing") /* Displays the albums to the wall */
+    Member("at", List(TNumber.typeName), TSong_Album.typeName) /* Gets the item at position 'index'; invalid if index is out of bounds */ ,
+    Member("random", TSong_Album.typeName) /* Gets a random item; invalid if collection is empty */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements in the collection */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the albums to the wall */
   ))
 
   // A collection of songs
-  addType("Songs", gAny("Songs") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
+  addType("Songs", gAny(TSongs.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
     Member("at index", List("Number"), "Song") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Songs") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Song") /* Gets the item at position 'index'; invalid if index is out of bounds */ ,
-    Member("random", "Song") /* Gets a random item; invalid if collection is empty */ ,
-    Member("count", "Number") /* Gets the number of elements in the collection */ ,
-    Member("play", "Nothing") /* Plays the song. */ ,
-    Member("post to wall", "Nothing") /* Displays the songs on the wall */ ,
-    Member("rand", "Song") /* Renamed to 'random' */
+    Member("at", List(TNumber.typeName), TSong.typeName) /* Gets the item at position 'index'; invalid if index is out of bounds */ ,
+    Member("random", TSong.typeName) /* Gets a random item; invalid if collection is empty */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements in the collection */ ,
+    Member("play", TNothing.typeName) /* Plays the song. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the songs on the wall */ ,
+    Member("rand", TSong.typeName) /* Renamed to 'random' */
   ))
 
   // A sound effect
-  addType("Sound", gAny("Sound") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("pan", "Number") /* Gets the panning, ranging from -1.0 (full left) to 1.0 (full right). */ ,
-    Member("set pan", List("Number"), "Nothing") /* Sets the panning, ranging from -1.0 (full left) to 1.0 (full right). */ ,
-    Member("pitch", "Number") /* Gets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */ ,
-    Member("set pitch", List("Number"), "Nothing") /* Sets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */ ,
-    Member("volume", "Number") /* Gets the volume from 0 (silent) to 1 (full volume) */ ,
-    Member("set volume", List("Number"), "Nothing") /* Sets the volume from 0 (silent) to 1 (full volume). */ ,
-    Member("duration", "Number") /* Gets the duration in seconds. */ ,
-    Member("pause", "Nothing") /* [**obsolete**] Not supported anymore */ ,
-    Member("play", "Nothing") /* Plays the sound effect */ ,
-    Member("play special", List("Number", "Number", "Number"), "Nothing") /* Plays the song with different volume (0 to 1), pitch (-1 to 1) and pan (-1 to 1). */ ,
-    Member("post to wall", "Nothing") /* Displays a player on the wall */ ,
-    Member("resume", "Nothing") /* [**obsolete**] Not supported anymore */ ,
-    Member("state", "String") /* [**obsolete**] Not supported anymore */ ,
-    Member("stop", "Nothing") /* [**obsolete**] Not supported anymore */
+  addType("Sound", gAny(TSound.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("pan", TNumber.typeName) /* Gets the panning, ranging from -1.0 (full left) to 1.0 (full right). */ ,
+    Member("set pan", List(TNumber.typeName), TNothing.typeName) /* Sets the panning, ranging from -1.0 (full left) to 1.0 (full right). */ ,
+    Member("pitch", TNumber.typeName) /* Gets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */ ,
+    Member("set pitch", List(TNumber.typeName), TNothing.typeName) /* Sets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */ ,
+    Member("volume", TNumber.typeName) /* Gets the volume from 0 (silent) to 1 (full volume) */ ,
+    Member("set volume", List(TNumber.typeName), TNothing.typeName) /* Sets the volume from 0 (silent) to 1 (full volume). */ ,
+    Member("duration", TNumber.typeName) /* Gets the duration in seconds. */ ,
+    Member("pause", TNothing.typeName) /* [**obsolete**] Not supported anymore */ ,
+    Member("play", TNothing.typeName) /* Plays the sound effect */ ,
+    Member("play special", List(TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Plays the song with different volume (0 to 1), pitch (-1 to 1) and pan (-1 to 1). */ ,
+    Member("post to wall", TNothing.typeName) /* Displays a player on the wall */ ,
+    Member("resume", TNothing.typeName) /* [**obsolete**] Not supported anymore */ ,
+    Member("state", TString.typeName) /* [**obsolete**] Not supported anymore */ ,
+    Member("stop", TNothing.typeName) /* [**obsolete**] Not supported anymore */
   ))
 
   // A spring between two sprites.
-  addType("Spring", gAny("Spring") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("set stiffness", List("Number"), "Nothing") /* Sets the spring stiffness. */ ,
-    Member("delete", "Nothing") /* Deletes the spring */
+  addType("Spring", gAny(TSpring.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("set stiffness", List(TNumber.typeName), TNothing.typeName) /* Sets the spring stiffness. */ ,
+    Member("delete", TNothing.typeName) /* Deletes the spring */
   ))
 
   // A sprite
-  addType("Sprite", gAny("Sprite") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("friction", "Number") /* Gets the fraction of speed loss between 0 and 1 */ ,
-    Member("set friction", List("Number"), "Nothing") /* Sets the friction to a fraction of speed loss between 0 and 1 */ ,
-    Member("scale", "Number") /* Gets the scaling applied when rendering the sprite. This scaling does not influence the bounding box. */ ,
-    Member("set scale", List("Number"), "Nothing") /* Sets the scaling applied to the sprite on rendering. This scaling does not influence the bounding box. */ ,
-    Member("angular speed", "Number") /* Gets the rotation speed in degrees/sec */ ,
-    Member("set angular speed", List("Number"), "Nothing") /* Sets the rotation speed in degrees/sec */ ,
-    Member("height", "Number") /* Gets the height in pixels */ ,
-    Member("location", "Location") /* Gets the geo location assigned to the sprite */ ,
-    Member("set location", List("Location"), "Nothing") /* Sets the geo location of the sprite */ ,
-    Member("angle", "Number") /* Gets the angle of the sprite in degrees */ ,
-    Member("set angle", List("Number"), "Nothing") /* Sets the angle of the sprite in degrees */ ,
-    Member("elasticity", "Number") /* Gets the sprite elasticity as a fraction of speed preservation per bounce (0-1) */ ,
-    Member("set elasticity", List("Number"), "Nothing") /* Sets the sprite elasticity as a fraction of speed preservation per bounce (0-1) */ ,
-    Member("speed x", "Number") /* Gets the speed along x in pixels/sec */ ,
-    Member("set speed x", List("Number"), "Nothing") /* Sets the x speed in pixels/sec */ ,
-    Member("speed y", "Number") /* Gets the speed along y in pixels/sec */ ,
-    Member("set speed y", List("Number"), "Nothing") /* Sets the y speed in pixels/sec */ ,
-    Member("width", "Number") /* Gets the width in pixels */ ,
-    Member("set height", List("Number"), "Nothing") /* Sets the height in pixels */ ,
-    Member("set width", List("Number"), "Nothing") /* Sets the width in pixels */ ,
-    Member("x", "Number") /* Gets the x position in pixels */ ,
-    Member("set x", List("Number"), "Nothing") /* Sets the x position in pixels */ ,
-    Member("y", "Number") /* Gets the y position in pixels */ ,
-    Member("set y", List("Number"), "Nothing") /* Sets the y position in pixels */ ,
-    Member("color", "Color") /* Returns the sprite color. */ ,
-    Member("set color", List("Color"), "Nothing") /* Sets the sprite color. */ ,
-    Member("opacity", "Number") /* Gets the opacity (between 0 transparent and 1 opaque) */ ,
-    Member("set opacity", List("Number"), "Nothing") /* Sets the sprite opacity (between 0 transparent and 1 opaque). */ ,
-    Member("sheet", "Sprite Sheet") /* Gets the associated sprite sheet */ ,
-    Member("text", "String") /* The text on a text sprite (if it is a text sprite) */ ,
-    Member("set text", List("String"), "Nothing") /* Updates text on a text sprite (if it is a text sprite) */ ,
-    Member("mass", "Number") /* Gets the mass */ ,
-    Member("set mass", List("Number"), "Nothing") /* Sets the sprite mass. */ ,
-    Member("acceleration x", "Number") /* Gets the acceleration along x in pixels/sec^2 */ ,
-    Member("acceleration y", "Number") /* Gets the acceleration along y in pixels/sec^2 */ ,
-    Member("set acceleration x", List("Number"), "Nothing") /* Sets the x acceleration in pixels/sec^2 */ ,
-    Member("set acceleration y", List("Number"), "Nothing") /* Sets the y acceleration in pixels/sec^2 */ ,
-    Member("set acceleration", List("Number", "Number"), "Nothing") /* Sets the acceleration in pixels/sec^2 */ ,
-    Member("on tap", List("Position Action"), "Event Binding") /* Set the handler invoked when the sprite is tapped */ ,
-    Member("on swipe", List("Vector Action"), "Event Binding") /* Set the handler invoked when the sprite is swiped */ ,
-    Member("on drag", List("Vector Action"), "Event Binding") /* Set the handler invoked when the sprite is dragged */ ,
-    Member("on touch down", List("Position Action"), "Event Binding") /* Set the handler invoked when the sprite is touched initially */ ,
-    Member("on touch up", List("Position Action"), "Event Binding") /* Set the handler invoked when the sprite touch is released */ ,
-    Member("on every frame", List("Action"), "Event Binding") /* Add an action that fires for every display frame */ ,
-    Member("hide", "Nothing") /* Hide sprite. */ ,
-    Member("is visible", "Boolean") /* Returns true if sprite is not hidden */ ,
-    Member("move", List("Number", "Number"), "Nothing") /* Moves sprite. */ ,
-    Member("move towards", List("Sprite", "Number"), "Nothing") /* Moves sprite towards other sprite. */ ,
-    Member("overlaps with", List("Sprite"), "Boolean") /* Do the sprites overlap */ ,
-    Member("overlap with", List("Sprite Set"), "Sprite Set") /* Returns the subset of sprites in the given set that overlap with sprite. */ ,
-    Member("equals", List("Sprite"), "Boolean") /* Are these the same sprite */ ,
-    Member("set picture", List("Picture"), "Nothing") /* Updates picture on a picture sprite (if it is a picture sprite) */ ,
-    Member("picture", "Picture") /* The picture on a picture sprite (if it is a picture sprite) */ ,
-    Member("set pos", List("Number", "Number"), "Nothing") /* Sets the position in pixels */ ,
-    Member("set speed", List("Number", "Number"), "Nothing") /* Sets the speed in pixels/sec */ ,
-    Member("show", "Nothing") /* Show sprite. */ ,
-    Member("speed towards", List("Sprite", "Number"), "Nothing") /* Sets sprite speed direction towards other sprite with given magnitude. */ ,
-    Member("set clip", List("Number", "Number", "Number", "Number"), "Nothing") /* Sets the clipping area for an image sprite (if it is an image sprite) */ ,
-    Member("move clip", List("Number", "Number"), "Nothing") /* [**obsolete**] Use `Sprite Sheet` instead. */ ,
-    Member("delete", "Nothing") /* Delete sprite. */ ,
-    Member("is deleted", "Boolean") /* True if sprite is deleted. */ ,
-    Member("z index", "Number") /* Gets the z-index of the sprite */ ,
-    Member("set z index", List("Number"), "Nothing") /* Sets the z-index of the sprite */ ,
-    Member("create animation", "Sprite Animation") /* Starts a new tween animation. */
+  addType("Sprite", gAny(TSprite.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("friction", TNumber.typeName) /* Gets the fraction of speed loss between 0 and 1 */ ,
+    Member("set friction", List(TNumber.typeName), TNothing.typeName) /* Sets the friction to a fraction of speed loss between 0 and 1 */ ,
+    Member("scale", TNumber.typeName) /* Gets the scaling applied when rendering the sprite. This scaling does not influence the bounding box. */ ,
+    Member("set scale", List(TNumber.typeName), TNothing.typeName) /* Sets the scaling applied to the sprite on rendering. This scaling does not influence the bounding box. */ ,
+    Member("angular speed", TNumber.typeName) /* Gets the rotation speed in degrees/sec */ ,
+    Member("set angular speed", List(TNumber.typeName), TNothing.typeName) /* Sets the rotation speed in degrees/sec */ ,
+    Member("height", TNumber.typeName) /* Gets the height in pixels */ ,
+    Member("location", TLocation.typeName) /* Gets the geo location assigned to the sprite */ ,
+    Member("set location", List(TLocation.typeName), TNothing.typeName) /* Sets the geo location of the sprite */ ,
+    Member("angle", TNumber.typeName) /* Gets the angle of the sprite in degrees */ ,
+    Member("set angle", List(TNumber.typeName), TNothing.typeName) /* Sets the angle of the sprite in degrees */ ,
+    Member("elasticity", TNumber.typeName) /* Gets the sprite elasticity as a fraction of speed preservation per bounce (0-1) */ ,
+    Member("set elasticity", List(TNumber.typeName), TNothing.typeName) /* Sets the sprite elasticity as a fraction of speed preservation per bounce (0-1) */ ,
+    Member("speed x", TNumber.typeName) /* Gets the speed along x in pixels/sec */ ,
+    Member("set speed x", List(TNumber.typeName), TNothing.typeName) /* Sets the x speed in pixels/sec */ ,
+    Member("speed y", TNumber.typeName) /* Gets the speed along y in pixels/sec */ ,
+    Member("set speed y", List(TNumber.typeName), TNothing.typeName) /* Sets the y speed in pixels/sec */ ,
+    Member("width", TNumber.typeName) /* Gets the width in pixels */ ,
+    Member("set height", List(TNumber.typeName), TNothing.typeName) /* Sets the height in pixels */ ,
+    Member("set width", List(TNumber.typeName), TNothing.typeName) /* Sets the width in pixels */ ,
+    Member("top", TNumber.typeName) /* Gets the top position in pixels */ ,
+    Member("set top", List(TNumber.typeName), TNothing.typeName) /* Sets the top position in pixels */ ,
+    Member("bottom", TNumber.typeName) /* Gets the bottom position in pixels */ ,
+    Member("set bottom", List(TNumber.typeName), TNothing.typeName) /* Sets the bottom position in pixels */ ,
+    Member("right", TNumber.typeName) /* Gets the right position in pixels */ ,
+    Member("set right", List(TNumber.typeName), TNothing.typeName) /* Sets the right position in pixels */ ,
+    Member("left", TNumber.typeName) /* Gets the left position in pixels */ ,
+    Member("set left", List(TNumber.typeName), TNothing.typeName) /* Sets the left position in pixels */ ,
+    Member("x", TNumber.typeName) /* Gets the center horizontal position of in pixels */ ,
+    Member("set x", List(TNumber.typeName), TNothing.typeName) /* Sets the center horizontal position in pixels */ ,
+    Member("y", TNumber.typeName) /* Gets the y position in pixels */ ,
+    Member("set y", List(TNumber.typeName), TNothing.typeName) /* Sets the y position in pixels */ ,
+    Member("color", TColor.typeName) /* Returns the sprite color. */ ,
+    Member("set color", List(TColor.typeName), TNothing.typeName) /* Sets the sprite color. */ ,
+    Member("opacity", TNumber.typeName) /* Gets the opacity (between 0 transparent and 1 opaque) */ ,
+    Member("set opacity", List(TNumber.typeName), TNothing.typeName) /* Sets the sprite opacity (between 0 transparent and 1 opaque). */ ,
+    Member("sheet", TSprite_Sheet.typeName) /* Gets the associated sprite sheet */ ,
+    Member("set font size", List(TNumber.typeName), TNothing.typeName) /* Sets the font size in pixels of the sprite (for text sprites) */ ,
+    Member("font size", TNumber.typeName) /* Gets the font size in pixels (for text sprites) */ ,
+    Member("set text baseline", List(TString.typeName), TNothing.typeName) /* Sets the current text baseline used when drawing text (for text sprites) */ ,
+    Member("text baseline", TString.typeName) /* Gets the current text baseline (for text sprites) */ ,
+    Member("fit text", TNothing.typeName) /* Fits the bounding box to the size of the text */ ,
+    Member("text", TString.typeName) /* The text on a text sprite (if it is a text sprite) */ ,
+    Member("set text", List(TString.typeName), TNothing.typeName) /* Updates text on a text sprite (if it is a text sprite) */ ,
+    Member("mass", TNumber.typeName) /* Gets the mass */ ,
+    Member("set mass", List(TNumber.typeName), TNothing.typeName) /* Sets the sprite mass. */ ,
+    Member("acceleration x", TNumber.typeName) /* Gets the acceleration along x in pixels/sec^2 */ ,
+    Member("acceleration y", TNumber.typeName) /* Gets the acceleration along y in pixels/sec^2 */ ,
+    Member("set acceleration x", List(TNumber.typeName), TNothing.typeName) /* Sets the x acceleration in pixels/sec^2 */ ,
+    Member("set acceleration y", List(TNumber.typeName), TNothing.typeName) /* Sets the y acceleration in pixels/sec^2 */ ,
+    Member("set acceleration", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the acceleration in pixels/sec^2 */ ,
+    Member("on tap", List(TPosition_Action.typeName), TEvent_Binding.typeName) /* Set the handler invoked when the sprite is tapped */ ,
+    Member("on swipe", List(TVector_Action.typeName), TEvent_Binding.typeName) /* Set the handler invoked when the sprite is swiped */ ,
+    Member("on drag", List(TVector_Action.typeName), TEvent_Binding.typeName) /* Set the handler invoked when the sprite is dragged */ ,
+    Member("on touch down", List(TPosition_Action.typeName), TEvent_Binding.typeName) /* Set the handler invoked when the sprite is touched initially */ ,
+    Member("on touch up", List(TPosition_Action.typeName), TEvent_Binding.typeName) /* Set the handler invoked when the sprite touch is released */ ,
+    Member("on every frame", List(TAction.typeName), TEvent_Binding.typeName) /* Add an action that fires for every display frame */ ,
+    Member("hide", TNothing.typeName) /* Hide sprite. */ ,
+    Member("is visible", TBoolean.typeName) /* Returns true if sprite is not hidden */ ,
+    Member("move", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Moves sprite. */ ,
+    Member("move towards", List(TSprite.typeName, TNumber.typeName), TNothing.typeName) /* Moves sprite towards other sprite. */ ,
+    Member("overlaps with", List(TSprite.typeName), TBoolean.typeName) /* Do the sprites overlap */ ,
+    Member("overlap with", List(TSprite_Set.typeName), TSprite_Set.typeName) /* Returns the subset of sprites in the given set that overlap with sprite. */ ,
+    Member("equals", List(TSprite.typeName), TBoolean.typeName) /* Are these the same sprite */ ,
+    Member("set picture", List(TPicture.typeName), TNothing.typeName) /* Updates picture on a picture sprite (if it is a picture sprite) */ ,
+    Member("picture", TPicture.typeName) /* The picture on a picture sprite (if it is a picture sprite) */ ,
+    Member("set pos", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the position in pixels */ ,
+    Member("set speed", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the speed in pixels/sec */ ,
+    Member("show", TNothing.typeName) /* Show sprite. */ ,
+    Member("speed towards", List(TSprite.typeName, TNumber.typeName), TNothing.typeName) /* Sets sprite speed direction towards other sprite with given magnitude. */ ,
+    Member("set clip", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the clipping area for an image sprite (if it is an image sprite) */ ,
+    Member("move clip", List(TNumber.typeName, TNumber.typeName), TNothing.typeName) /* [**obsolete**] Use `Sprite Sheet` instead. */ ,
+    Member("delete", TNothing.typeName) /* Delete sprite. */ ,
+    Member("is deleted", TBoolean.typeName) /* True if sprite is deleted. */ ,
+    Member("z index", TNumber.typeName) /* Gets the z-index of the sprite */ ,
+    Member("set z index", List(TNumber.typeName), TNothing.typeName) /* Sets the z-index of the sprite */ ,
+    Member("create animation", TSprite_Animation.typeName) /* Starts a new tween animation. */
   ))
 
   // A animation to animate sprite properties.
-  addType("Sprite Animation", gAny("Sprite Animation") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("time scale", "Number") /* Gets the current time scale factor */ ,
-    Member("set time scale", List("Number"), "Nothing") /* Sets the current time scale factor */ ,
-    Member("move to", List("Number", "String", "String", "Number", "Number"), "Nothing") /* Moves the sprite to a given location using separate easing for x and y */ ,
-    Member("text", List("Number", "String", "String", "String"), "Nothing") /* Changes the text of the sprite. */ ,
-    Member("color", List("Number", "String", "String", "Color"), "Nothing") /* Changes the color of the sprite */ ,
-    Member("beat", List("Number", "Number", "Number"), "Nothing") /* Creating a beating animation */ ,
-    Member("scale", List("Number", "String", "String", "Number"), "Nothing") /* Scales the sprite */ ,
-    Member("width", List("Number", "String", "String", "Number"), "Nothing") /* Modifies the sprite width */ ,
-    Member("height", List("Number", "String", "String", "Number"), "Nothing") /* Modifies the sprite height */ ,
-    Member("fork", "Sprite Animation") /* Starts a new animation and continues with the current animation */ ,
-    Member("wait", "Nothing") /* Waits till the animation completes. This action will evolve the board if needed. */ ,
-    Member("wait for", List("Sprite Animation"), "Nothing") /* Waits for the other animation to complete before proceding. */ ,
-    Member("stop", "Nothing") /* Stops this animation */ ,
-    Member("repeat", List("Number", "Boolean"), "Nothing") /* Repeats the latest animation. Negative ``count`` makes infinite repetition. ``yoyo`` makes the animation repeat back and forth. */ ,
-    Member("on start", List("Action"), "Event Binding") /* Raised when the animation started playing */ ,
-    Member("on stop", List("Action"), "Event Binding") /* Raised when the animation stopped playing */ ,
-    Member("sleep", List("Number"), "Nothing") /* Waits for a number of seconds */ ,
-    Member("fade in", List("Number", "String"), "Nothing") /* Fades in to fully opaque */ ,
-    Member("fade out", List("Number", "String"), "Nothing") /* Fades out to transparent */ ,
-    Member("fade", List("Number", "String", "String", "Number"), "Nothing") /* Changes the opacity of the sprite */ ,
-    Member("puff out", List("Number", "String", "Number"), "Nothing") /* Scales up and fades out an object */ ,
-    Member("hide", "Nothing") /* Hides the sprite */ ,
-    Member("show", "Nothing") /* shows the sprite */ ,
-    Member("delete", "Nothing") /* deletes the sprite */ ,
-    Member("play sound", List("Sound"), "Nothing") /* play sound */ ,
-    Member("frame", List("String"), "Nothing") /* Sets a different frame from the sprite sheet */ ,
-    Member("play frames", List("String"), "Nothing") /* Starts playing an animation from the sprite sheet, if any */ ,
-    Member("turn to", List("Number", "String", "String", "Number"), "Nothing") /* Rotates the sprite. */ ,
-    Member("run", List("Number", "String", "String", "Number Action"), "Nothing") /* Calls a user handler during the animation. ``handler`` receives a number from 0 to 1 during the tweeining. */ ,
-    Member("is active", "Boolean") /* Gets a value indicating if the animation is still running */ ,
-    Member("post to wall", "Nothing") /* Describes the animation. */
+  addType("Sprite Animation", gAny(TSprite_Animation.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("time scale", TNumber.typeName) /* Gets the current time scale factor */ ,
+    Member("set time scale", List(TNumber.typeName), TNothing.typeName) /* Sets the current time scale factor */ ,
+    Member("move to", List(TNumber.typeName, TString.typeName, TString.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Moves the sprite to a given location using separate easing for x and y */ ,
+    Member("text", List(TNumber.typeName, TString.typeName, TString.typeName, TString.typeName), TNothing.typeName) /* Changes the text of the sprite. */ ,
+    Member("color", List(TNumber.typeName, TString.typeName, TString.typeName, TColor.typeName), TNothing.typeName) /* Changes the color of the sprite */ ,
+    Member("beat", List(TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Creating a beating animation */ ,
+    Member("scale", List(TNumber.typeName, TString.typeName, TString.typeName, TNumber.typeName), TNothing.typeName) /* Scales the sprite */ ,
+    Member("width", List(TNumber.typeName, TString.typeName, TString.typeName, TNumber.typeName), TNothing.typeName) /* Modifies the sprite width */ ,
+    Member("height", List(TNumber.typeName, TString.typeName, TString.typeName, TNumber.typeName), TNothing.typeName) /* Modifies the sprite height */ ,
+    Member("fork", TSprite_Animation.typeName) /* Starts a new animation and continues with the current animation */ ,
+    Member("wait", TNothing.typeName) /* Waits till the animation completes. This action will evolve the board if needed. */ ,
+    Member("wait for", List(TSprite_Animation.typeName), TNothing.typeName) /* Waits for the other animation to complete before proceding. */ ,
+    Member("stop", TNothing.typeName) /* Stops this animation */ ,
+    Member("repeat", List(TNumber.typeName, TBoolean.typeName), TNothing.typeName) /* Repeats the latest animation. Negative ``count`` makes infinite repetition. ``yoyo`` makes the animation repeat back and forth. */ ,
+    Member("on start", List(TAction.typeName), TEvent_Binding.typeName) /* Raised when the animation started playing */ ,
+    Member("on stop", List(TAction.typeName), TEvent_Binding.typeName) /* Raised when the animation stopped playing */ ,
+    Member("sleep", List(TNumber.typeName), TNothing.typeName) /* Waits for a number of seconds */ ,
+    Member("fade in", List(TNumber.typeName, TString.typeName), TNothing.typeName) /* Fades in to fully opaque */ ,
+    Member("fade out", List(TNumber.typeName, TString.typeName), TNothing.typeName) /* Fades out to transparent */ ,
+    Member("fade", List(TNumber.typeName, TString.typeName, TString.typeName, TNumber.typeName), TNothing.typeName) /* Changes the opacity of the sprite */ ,
+    Member("puff out", List(TNumber.typeName, TString.typeName, TNumber.typeName), TNothing.typeName) /* Scales up and fades out an object */ ,
+    Member("hide", TNothing.typeName) /* Hides the sprite */ ,
+    Member("show", TNothing.typeName) /* shows the sprite */ ,
+    Member("delete", TNothing.typeName) /* deletes the sprite */ ,
+    Member("play sound", List(TSound.typeName), TNothing.typeName) /* play sound */ ,
+    Member("frame", List(TString.typeName), TNothing.typeName) /* Sets a different frame from the sprite sheet */ ,
+    Member("play frames", List(TString.typeName), TNothing.typeName) /* Starts playing an animation from the sprite sheet, if any */ ,
+    Member("turn to", List(TNumber.typeName, TString.typeName, TString.typeName, TNumber.typeName), TNothing.typeName) /* Rotates the sprite. */ ,
+    Member("run", List(TNumber.typeName, TString.typeName, TString.typeName, TNumber_Action.typeName), TNothing.typeName) /* Calls a user handler during the animation. ``handler`` receives a number from 0 to 1 during the tweeining. */ ,
+    Member("is active", TBoolean.typeName) /* Gets a value indicating if the animation is still running */ ,
+    Member("post to wall", TNothing.typeName) /* Describes the animation. */
   ))
 
   // A collection of sprites
-  addType("Sprite Set", gAny("Sprite Set") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("clear", "Nothing") /* Removes all sprites from the set. */ ,
-    Member("count", "Number") /* Returns the number of sprites in the set */ ,
-    Member("add", List("Sprite"), "Boolean") /* Add sprite to set. Returns true if sprite was not already in set. */ ,
-    Member("add from", List("Sprite Set", "Sprite"), "Boolean") /* Add sprite to set and remove from old set. Returns true if sprite was in old set and not in new set. */ ,
-    Member("remove", List("Sprite"), "Boolean") /* Remove sprite from set. Returns true if sprite was in set. */ ,
-    Member("contains", List("Sprite"), "Boolean") /* Returns true if sprite is in set. */ ,
-    Member("remove first", "Sprite") /* Remove sprite that was added to set first. */ ,
-    Member("index of", List("Sprite"), "Number") /* Returns index of sprite in this set or -1 if not in set. */ ,
+  addType("Sprite Set", gAny(TSprite_Set.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("clear", TNothing.typeName) /* Removes all sprites from the set. */ ,
+    Member("count", TNumber.typeName) /* Returns the number of sprites in the set */ ,
+    Member("add", List(TSprite.typeName), TBoolean.typeName) /* Add sprite to set. Returns true if sprite was not already in set. */ ,
+    Member("add from", List(TSprite_Set.typeName, TSprite.typeName), TBoolean.typeName) /* Add sprite to set and remove from old set. Returns true if sprite was in old set and not in new set. */ ,
+    Member("remove", List(TSprite.typeName), TBoolean.typeName) /* Remove sprite from set. Returns true if sprite was in set. */ ,
+    Member("contains", List(TSprite.typeName), TBoolean.typeName) /* Returns true if sprite is in set. */ ,
+    Member("remove first", TSprite.typeName) /* Remove sprite that was added to set first. */ ,
+    Member("index of", List(TSprite.typeName), TNumber.typeName) /* Returns index of sprite in this set or -1 if not in set. */ ,
     Member("at index", List("Number"), "Sprite") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "Sprite Set") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Sprite") /* Return sprite at given index. */
+    Member("at", List(TNumber.typeName), TSprite.typeName) /* Return sprite at given index. */
   ))
 
   // A sprite sheet which packs multiple frames in a single picture
-  addType("Sprite Sheet", gAny("Sprite Sheet") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("picture", "Picture") /* Gets the picture associated to this sprite sheet. */ ,
-    Member("set frame", List("Sprite", "String"), "Nothing") /* Sets the current frame displayed by sprite */ ,
-    Member("create sprite", List("String"), "Sprite") /* Creates a new sprite displaying the given frame. */ ,
-    Member("set frame grid", List("Number", "Number", "Number", "Number", "Number", "Number", "Number"), "Nothing") /* Sets the frames as a rectangular grid. The tiles are numbered from top, left to bottom right starting at 0. */ ,
-    Member("add frame", List("String", "Number", "Number", "Number", "Number", "Boolean"), "Nothing") /* Defines a new frame in the sprite sheet */ ,
-    Member("add grid animation", List("String", "Number", "Number", "Number", "Number", "Boolean"), "Nothing") /* Defines an animation as a continuous sequence of frames. The frame index starts at `1`. */ ,
-    Member("add animation", List("String", "String Collection", "Number", "Number", "Boolean"), "Nothing") /* Defines an animation as a custom sequence of frames. */ ,
-    Member("post to wall", "Nothing") /* Displays the sprite sheet. */
+  addType("Sprite Sheet", gAny(TSprite_Sheet.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("picture", TPicture.typeName) /* Gets the picture associated to this sprite sheet. */ ,
+    Member("set frame", List(TSprite.typeName, TString.typeName), TNothing.typeName) /* Sets the current frame displayed by sprite */ ,
+    Member("create sprite", List(TString.typeName), TSprite.typeName) /* Creates a new sprite displaying the given frame. */ ,
+    Member("set frame grid", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* Sets the frames as a rectangular grid. The tiles are numbered from top, left to bottom right starting at 0. */ ,
+    Member("add frame", List(TString.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TBoolean.typeName), TNothing.typeName) /* Defines a new frame in the sprite sheet */ ,
+    Member("add grid animation", List(TString.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TBoolean.typeName), TNothing.typeName) /* Defines an animation as a continuous sequence of frames. The frame index starts at `1`. */ ,
+    Member("add animation", List(TString.typeName, TString_Collection.typeName, TNumber.typeName, TNumber.typeName, TBoolean.typeName), TNothing.typeName) /* Defines an animation as a custom sequence of frames. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the sprite sheet. */
   ))
 
   // A piece of text
-  addType("String", gAny("String") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("split", List("String"), "String Collection") /* Returns a string collection that contains the substrings in this string that are delimited by elements of a specified string. */ ,
-    Member("post to wall", "Nothing") /* Displays string on the wall */ ,
-    Member("count", "Number") /* Returns the number of characters */ ,
+  addType("String", gAny(TString.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("split", List(TString.typeName), TString_Collection.typeName) /* Returns a string collection that contains the substrings in this string that are delimited by elements of a specified string. */ ,
+    Member("trim overflow", List(TNumber.typeName), TString.typeName) /* Trims the string at the given length and adds ``...`` if necessary */ ,
+    Member("post to wall", TNothing.typeName) /* Displays string on the wall */ ,
+    Member("count", TNumber.typeName) /* Returns the number of characters */ ,
     Member("at index", List("Number"), "String") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "String") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "String") /* Gets the character at a specified index */ ,
-    Member("to lower case", "String") /* Returns a copy of this string converted to lowercase, using the casing rules of the current culture. */ ,
-    Member("to upper case", "String") /* Returns a copy of this string converted to uppercase, using the casing rules of the current culture. */ ,
-    Member("to unicode", "Number") /* Converts a single character string into its unicode number */ ,
-    Member("compare", List("String"), "Number") /* Compares two pieces of text */ ,
-    Member("concat", List("String"), "String") /* Concatenates two pieces of text */ ,
-    Member("∥", List("String"), "String") /* Concatenates two pieces of text */ ,
-    Member("contains", List("String"), "Boolean") /* Returns a value indicating if the second string is contained */ ,
-    Member("equals", List("String"), "Boolean") /* Checks if two strings are the same */ ,
-    Member("ends with", List("String"), "Boolean") /* Determines whether the ending matches the specified string */ ,
-    Member("index of", List("String", "Number"), "Number") /* Returns the index of the first occurence if found starting at a given position */ ,
-    Member("insert", List("Number", "String"), "String") /* Inserts a string at a given position */ ,
-    Member("is empty", "Boolean") /* Indicates if the string is empty */ ,
-    Member("is match regex", List("String"), "Boolean") /* Indicates if the string matches a regular expression */ ,
-    Member("last index of", List("String", "Number"), "Number") /* Returns the index of the last occurence if found starting at a given position */ ,
-    Member("match", List("String"), "String Collection") /* Gets the groups from the matching the regex expression (pattern) */ ,
-    Member("matches", List("String"), "String Collection") /* Gets the strings matching the regex expression (pattern) */ ,
-    Member("remove", List("Number"), "String") /* Returns the string with characters removed starting at a given index */ ,
-    Member("replace", List("String", "String"), "String") /* Returns a given string with a replacement */ ,
-    Member("replace regex", List("String", "String"), "String") /* Replace every match of the regex according to the replacement string */ ,
-    Member("starts with", List("String"), "Boolean") /* Determines whether the beginning matches the specified string */ ,
-    Member("substring", List("Number", "Number"), "String") /* Returns a substring given a start index and a length */ ,
-    Member("trim", List("String"), "String") /* Removes all leading and trailing occurrences of a set of characters specified in a string from the current string. */ ,
-    Member("trim start", List("String"), "String") /* Removes all leading occurrences of a set of characters specified in a string from the current string. */ ,
-    Member("trim end", List("String"), "String") /* Removes all trailing occurrences of a set of characters specified in a string from the current string. */ ,
-    Member("to time", "Number") /* Parses the string as a time (12:30:12) and returns the number of seconds. */ ,
-    Member("to number", "Number") /* Parses the string as a number */ ,
-    Member("to boolean", "Boolean") /* Parses the string as a boolean */ ,
-    Member("to location", "Location") /* Parses the string as a geo coordinate. */ ,
-    Member("share", List("String"), "Nothing") /* Shares the string (email, sms, facebook, social or '' to pick from a list) */ ,
-    Member("copy to clipboard", "Nothing") /* Stores text in the clipboard */ ,
-    Member("to datetime", "DateTime") /* Parses the string as a date and time. */ ,
-    Member("to color", "Color") /* Parses the string as a color. */ ,
-    Member("to json", "Json Object") /* Converts the value into a json data structure. */
+    Member("at", List(TNumber.typeName), TString.typeName) /* Gets the character at a specified index */ ,
+    Member("to lower case", TString.typeName) /* Returns a copy of this string converted to lowercase, using the casing rules of the current culture. */ ,
+    Member("to upper case", TString.typeName) /* Returns a copy of this string converted to uppercase, using the casing rules of the current culture. */ ,
+    Member("to unicode", TNumber.typeName) /* Converts a single character string into its unicode number */ ,
+    Member("compare", List(TString.typeName), TNumber.typeName) /* Compares two pieces of text */ ,
+    Member("concat", List(TString.typeName), TString.typeName) /* Concatenates two pieces of text */ ,
+    Member("∥", List(TString.typeName), TString.typeName) /* Concatenates two pieces of text */ ,
+    Member("contains", List(TString.typeName), TBoolean.typeName) /* Returns a value indicating if the second string is contained */ ,
+    Member("equals", List(TString.typeName), TBoolean.typeName) /* Checks if two strings are the same */ ,
+    Member("ends with", List(TString.typeName), TBoolean.typeName) /* Determines whether the ending matches the specified string */ ,
+    Member("index of", List(TString.typeName, TNumber.typeName), TNumber.typeName) /* Returns the index of the first occurence if found starting at a given position */ ,
+    Member("insert", List(TNumber.typeName, TString.typeName), TString.typeName) /* Inserts a string at a given position */ ,
+    Member("is empty", TBoolean.typeName) /* Indicates if the string is empty */ ,
+    Member("is match regex", List(TString.typeName), TBoolean.typeName) /* Indicates if the string matches a regular expression */ ,
+    Member("last index of", List(TString.typeName, TNumber.typeName), TNumber.typeName) /* Returns the index of the last occurence if found starting at a given position */ ,
+    Member("match", List(TString.typeName), TString_Collection.typeName) /* Gets the groups from the matching the regex expression (pattern) */ ,
+    Member("matches", List(TString.typeName), TString_Collection.typeName) /* Gets the strings matching the regex expression (pattern) */ ,
+    Member("remove", List(TNumber.typeName), TString.typeName) /* Returns the string with characters removed starting at a given index */ ,
+    Member("replace", List(TString.typeName, TString.typeName), TString.typeName) /* Returns a given string with a replacement */ ,
+    Member("replace regex", List(TString.typeName, TString.typeName), TString.typeName) /* Replace every match of the regex according to the replacement string */ ,
+    Member("starts with", List(TString.typeName), TBoolean.typeName) /* Determines whether the beginning matches the specified string */ ,
+    Member("substring", List(TNumber.typeName, TNumber.typeName), TString.typeName) /* Returns a substring given a start index and a length */ ,
+    Member("trim", List(TString.typeName), TString.typeName) /* Removes all leading and trailing occurrences of a set of characters specified in a string from the current string. */ ,
+    Member("trim start", List(TString.typeName), TString.typeName) /* Removes all leading occurrences of a set of characters specified in a string from the current string. */ ,
+    Member("trim end", List(TString.typeName), TString.typeName) /* Removes all trailing occurrences of a set of characters specified in a string from the current string. */ ,
+    Member("to time", TNumber.typeName) /* Parses the string as a time (12:30:12) and returns the number of seconds. */ ,
+    Member("to number", TNumber.typeName) /* Parses the string as a number */ ,
+    Member("to boolean", TBoolean.typeName) /* Parses the string as a boolean */ ,
+    Member("to location", TLocation.typeName) /* Parses the string as a geo coordinate. */ ,
+    Member("share", List(TString.typeName), TNothing.typeName) /* Shares the string (email, sms, facebook, social or '' to pick from a list) */ ,
+    Member("copy to clipboard", TNothing.typeName) /* Stores text in the clipboard */ ,
+    Member("to datetime", TDateTime.typeName) /* Parses the string as a date and time. */ ,
+    Member("to color", TColor.typeName) /* Parses the string as a color. */ ,
+    Member("to json", TJson_Object.typeName) /* Converts the value into a json data structure. */
   ))
 
   // A collection of strings
-  addType("String Collection", gAny("String Collection") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of strings */ ,
-    Member("clear", "Nothing") /* Clears the strings */ ,
-    Member("add", List("String"), "Nothing") /* Adds a string */ ,
-    Member("add many", List("String Collection"), "Nothing") /* Adds many strings at once */ ,
-    Member("index of", List("String", "Number"), "Number") /* Gets the index of the first occurence of a string. Returns -1 if not found or start is out of range. */ ,
+  addType("String Collection", gAny(TString_Collection.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of strings */ ,
+    Member("clear", TNothing.typeName) /* Clears the strings */ ,
+    Member("add", List(TString.typeName), TNothing.typeName) /* Adds a string */ ,
+    Member("add many", List(TString_Collection.typeName), TNothing.typeName) /* Adds many strings at once */ ,
+    Member("index of", List(TString.typeName, TNumber.typeName), TNumber.typeName) /* Gets the index of the first occurence of a string. Returns -1 if not found or start is out of range. */ ,
     Member("at index", List("Number"), "String") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "String Collection") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "String") /* Gets the string at position index. Returns invalid if index is out of range */ ,
-    Member("remove", List("String"), "Boolean") /* Removes the first occurence of a string. Returns true if removed. */ ,
-    Member("remove at", List("Number"), "Nothing") /* Removes the string at position index. */ ,
-    Member("reverse", "Nothing") /* Reverses the items */ ,
-    Member("random", "String") /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
-    Member("set at", List("Number", "String"), "Nothing") /* Sets the string at position index. Does nothing if the index is out of range. */ ,
-    Member("insert at", List("Number", "String"), "Nothing") /* Inserts a string at position index. Does nothing if index is out of range. */ ,
-    Member("join", List("String"), "String") /* Concatenates the separator and items into a string */ ,
-    Member("contains", List("String"), "Boolean") /* Indicates if the collection contains the item */ ,
-    Member("sort", "Nothing") /* Sorts the strings in this collection */ ,
-    Member("share", List("String"), "Nothing") /* Shares the content (email, sms, social) */ ,
-    Member("to json", "Json Object") /* Exports a JSON representation of the contents. */ ,
-    Member("from json", List("Json Object"), "Nothing") /* Imports a JSON representation of the contents. */ ,
-    Member("post to wall", "Nothing") /* Displays the string on the wall */
+    Member("at", List(TNumber.typeName), TString.typeName) /* Gets the string at position index. Returns invalid if index is out of range */ ,
+    Member("remove", List(TString.typeName), TBoolean.typeName) /* Removes the first occurence of a string. Returns true if removed. */ ,
+    Member("remove at", List(TNumber.typeName), TNothing.typeName) /* Removes the string at position index. */ ,
+    Member("reverse", TNothing.typeName) /* Reverses the items */ ,
+    Member("random", TString.typeName) /* Gets a random element from the collection. Returns invalid if the collection is empty. */ ,
+    Member("set at", List(TNumber.typeName, TString.typeName), TNothing.typeName) /* Sets the string at position index. Does nothing if the index is out of range. */ ,
+    Member("insert at", List(TNumber.typeName, TString.typeName), TNothing.typeName) /* Inserts a string at position index. Does nothing if index is out of range. */ ,
+    Member("join", List(TString.typeName), TString.typeName) /* Concatenates the separator and items into a string */ ,
+    Member("contains", List(TString.typeName), TBoolean.typeName) /* Indicates if the collection contains the item */ ,
+    Member("sort", TNothing.typeName) /* Sorts the strings in this collection */ ,
+    Member("share", List(TString.typeName), TNothing.typeName) /* Shares the content (email, sms, social) */ ,
+    Member("to json", TJson_Object.typeName) /* Exports a JSON representation of the contents. */ ,
+    Member("from json", List(TJson_Object.typeName), TNothing.typeName) /* Imports a JSON representation of the contents. */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the string on the wall */
   ))
 
   // A map from strings to strings
-  addType("String Map", gAny("String Map") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of elements in the map */ ,
-    Member("keys", "String Collection") /* Gets the keys in the map */ ,
+  addType("String Map", gAny(TString_Map.typeName) ::: List(
+    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+    Member("count", TNumber.typeName) /* Gets the number of elements in the map */ ,
+    Member("keys", TString_Collection.typeName) /* Gets the keys in the map */ ,
     Member("at index", List("Number"), "String") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
     Member("copy", "String Map") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("String"), "String") /* Gets the value at a given key; invalid if not found */ ,
-    Member("set at", List("String", "String"), "Nothing") /* Sets the value at a given key; invalid if not found */ ,
-    Member("to json", "Json Object") /* Exports a JSON representation of the contents. */ ,
-    Member("from json", List("Json Object"), "Nothing") /* Imports a JSON representation of the contents. */ ,
-    Member("clear", "Nothing") /* Clears the values from the map */ ,
-    Member("set many", List("String Map"), "Nothing") /* Sets many elements at once. */ ,
-    Member("remove", List("String"), "Nothing") /* Removes the value at a given key */ ,
-    Member("post to wall", "Nothing") /* Displays the list of key,value pairs in a table */
+    Member("at", List(TString.typeName), TString.typeName) /* Gets the value at a given key; invalid if not found */ ,
+    Member("set at", List(TString.typeName, TString.typeName), TNothing.typeName) /* Sets the value at a given key; invalid if not found */ ,
+    Member("to json", TJson_Object.typeName) /* Exports a JSON representation of the contents. */ ,
+    Member("from json", List(TJson_Object.typeName), TNothing.typeName) /* Imports a JSON representation of the contents. */ ,
+    Member("clear", TNothing.typeName) /* Clears the values from the map */ ,
+    Member("set many", List(TString_Map.typeName), TNothing.typeName) /* Sets many elements at once. */ ,
+    Member("remove", List(TString.typeName), TNothing.typeName) /* Removes the value at a given key */ ,
+    Member("post to wall", TNothing.typeName) /* Displays the list of key,value pairs in a table */
   ))
 
   // 2D barcodes, QR codes and NFC tags
-  addSingleton("Tags", gAlsoSingletons("Tags") ::: List(
-    Member("nfc receive", List("String"), "String") /* Receives text through NFC. `type` may also be a mime type. */ ,
-    Member("nfc receive picture", "Picture") /* Receives a picture through NFC. */ ,
-    Member("nfc send", List("String", "String"), "Nothing") /* Sends a url, text or any other text format using NFC. `type` may be a mime type. */ ,
-    Member("nfc send picture", List("Picture"), "Nothing") /* Sends a url, text or any other format using NFC. `type` may be a mime type. */ ,
-    Member("nfc write tag", List("String", "String"), "Nothing") /* Writes a static NFC tag with url, text or any other format. `type` may be a mime type. */ ,
-    Member("tag url", List("String", "Number", "Boolean"), "Picture") /* Generates a 2D barcode pointing to the url using Microsoft Tag. url must be less than 1000 character long and size must be between 0.75 and 5 inches. */ ,
-    Member("tag text", List("String", "Number", "Boolean"), "Picture") /* Generates a 2D barcode pointing to the text using Microsoft Tag. text must be less than 1000 character long and size must be between 0.75 and 5 inches. */ ,
-    Member("scan", "String") /* [**not implemented**] [**dbg**] Scans an id tag created by TouchDevelop and returns the embeded text. */
+  addSingleton("Tags", gAlsoSingletons(STags.typeName) ::: List(
+    Member("nfc receive", List(TString.typeName), TString.typeName) /* Receives text through NFC. `type` may also be a mime type. */ ,
+    Member("nfc receive picture", TPicture.typeName) /* Receives a picture through NFC. */ ,
+    Member("nfc send", List(TString.typeName, TString.typeName), TNothing.typeName) /* Sends a url, text or any other text format using NFC. `type` may be a mime type. */ ,
+    Member("nfc send picture", List(TPicture.typeName), TNothing.typeName) /* Sends a url, text or any other format using NFC. `type` may be a mime type. */ ,
+    Member("nfc write tag", List(TString.typeName, TString.typeName), TNothing.typeName) /* Writes a static NFC tag with url, text or any other format. `type` may be a mime type. */ ,
+    Member("tag url", List(TString.typeName, TNumber.typeName, TBoolean.typeName), TPicture.typeName) /* Generates a 2D barcode pointing to the url using Microsoft Tag. url must be less than 1000 character long and size must be between 0.75 and 5 inches. */ ,
+    Member("tag text", List(TString.typeName, TNumber.typeName, TBoolean.typeName), TPicture.typeName) /* Generates a 2D barcode pointing to the text using Microsoft Tag. text must be less than 1000 character long and size must be between 0.75 and 5 inches. */ ,
+    Member("scan", TString.typeName) /* [**not implemented**] [**dbg**] Scans an id tag created by TouchDevelop and returns the embeded text. */
   ))
-
-  // A task created with `async` keyword
-  addType("Task", gAny("Task") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("completed", "Boolean") /* Check if the task is done yet */ ,
-    Member("await", "T") /* Wait for the task to finish, and return any possible value */ ,
-    Member("value", "T") /* Get the value of the task, which must have completed. */ ,
-    Member("await at most", List("Number"), "T") /* Wait for the task to finish for at most `seconds`; returns invalid in case of timeout */
-  ))
-
-  // A text box
-  addType("TextBox", gAny("TextBox") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("text", "String") /* Gets the text */ ,
-    Member("set text", List("String"), "Nothing") /* Sets the text */ ,
-    Member("icon", "Picture") /* Gets the icon picture (max 173x173) */ ,
-    Member("set icon", List("Picture"), "Nothing") /* Sets the icon picture (max 96 x 96) */ ,
-    Member("font size", "Number") /* Gets the font size */ ,
-    Member("set font size", List("Number"), "Nothing") /* Sets the font size (small = 14, normal = 15, medium = 17, medium large = 19, large = 24, extra large = 32, extra extra large = 54, huge = 140 */ ,
-    Member("background", "Color") /* Gets the background color */ ,
-    Member("set background", List("Color"), "Nothing") /* Sets the background color */ ,
-    Member("foreground", "Color") /* Gets the foreground color */ ,
-    Member("set foreground", List("Color"), "Nothing") /* Sets the foreground color */ ,
-    Member("border", "Color") /* Gets the border color */ ,
-    Member("set border", List("Color"), "Nothing") /* Sets the border color */ ,
-    Member("post to wall", "Nothing") /* Posts the textbox to the wall */
-  ))
-
-  // This type is no longer supported. See [](/tiles) for more information.
-  addType("Tile", gAny("Tile") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("title", "String") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("set title", List("String"), "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("back title", "String") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("set back title", List("String"), "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("background", "Color") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("set background", List("Color"), "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("back icon", "Picture") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("set back icon", List("Picture"), "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("content", "String") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("set content", List("String"), "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("counter", "Number") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("set counter", List("Number"), "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("icon", "Picture") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("set icon", List("Picture"), "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("panorama", "Boolean") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("set panorama", List("Boolean"), "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("height", "Number") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("width", "Number") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("clear back icon", "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("clear icon", "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("pin to start", "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
-    Member("post to wall", "Nothing") /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */
-  ))
-
-  // tiles and notifications for Windows and Windows Phone
-  addSingleton("Tiles", gAlsoSingletons("Tiles") ::: List(
-    Member("set default", List("String", "String", "Number"), "Nothing") /* Sets the title, content and counter of the default tile. The counter is hidden if the number is not between 1 or 99. */ ,
-    Member("set default counter", List("Number"), "Nothing") /* Sets the counter of the default tile. Hidden if the number is not between 1 or 99. */ ,
-    Member("set default text", List("String", "String"), "Nothing") /* Sets the front of a standard tile. */ ,
-    Member("pin default", "Nothing") /* Pins or updates the default tile. */ ,
-    Member("pin pictures", List("String", "Number", "Picture", "Picture Collection"), "Nothing") /* Pins or updates the default tile with custom pictures. */ ,
-    Member("pin picture", List("String", "String", "Number", "Picture"), "Nothing") /* Pins or updates the default tile with a custom picture. */
-  ))
-
-  // time and dates
-  addSingleton("Time", gAlsoSingletons("Time") ::: List(
-    Member("on every frame", List("Action"), "Event Binding") /* Attaches a handler to run on every time frame, roughly every 20ms. */ ,
-    Member("run after", List("Number", "Action"), "Timer") /* Starts a timer to run ``perform`` after ``seconds`` seconds. */ ,
-    Member("run every", List("Number", "Action"), "Timer") /* Starts a timer to run ``perform`` every ``seconds`` seconds. */ ,
-    Member("sleep", List("Number"), "Nothing") /* Waits for a specified amount of seconds */ ,
-    Member("now", "DateTime") /* Gets the current time */ ,
-    Member("today", "DateTime") /* Gets today's date without time */ ,
-    Member("tomorrow", "DateTime") /* Gets tomorrow's date without time */ ,
-    Member("fail if not", List("Boolean"), "Nothing") /* [**obsolete**] Use `app->fail_if_not` instead. */ ,
-    Member("stop", "Nothing") /* Use `app->stop` instead. */ ,
-    Member("log", List("String"), "Nothing") /* Use `app->log` instead. */ ,
-    Member("stop and close", "Nothing") /* Stops the execution and leaves the wall. */ ,
-    Member("create", List("Number", "Number", "Number", "Number", "Number", "Number"), "DateTime") /* Creates a new date instance */
-  ))
-
-  // A timer
-  addType("Timer", gAny("Timer") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("clear", "Nothing") /* Clears the handlers and pauses the timer */ ,
-    Member("on trigger", List("Action"), "Event Binding") /* sets the action to perform when the timer fires */ ,
-    Member("is active", "Boolean") /* is the timer active */ ,
-    Member("is interval", "Boolean") /* is this an interval timer that fires regularly */ ,
-    Member("set interval", List("Number"), "Nothing") /* set the regular interval in seconds at which this timer fires */ ,
-    Member("set timeout", List("Number"), "Nothing") /* set the time in seconds after which this timer fires once */ ,
-    Member("pause", "Nothing") /* deactivates the timer */ ,
-    Member("resume", "Nothing") /* reactives the timer */
-  ))
-
-  // Support for interactive tutorials.
-  addSingleton("Tutorial", gAlsoSingletons("Tutorial") ::: List(
-    Member("step completed", "Nothing") /* Signal that the step is done. */ ,
-    Member("show hint", List("String"), "Nothing") /* [**dbg**] Show a suggestion to the user (eg., an error description) */
-  ))
-
-  // A user account
-  addType("User", gAny("User") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("equals", List("User"), "Boolean") /* Gets a value idincating if the user is the same as the other. */ ,
-    Member("id", "String") /* Gets a unique identifier for the user. */ ,
-    Member("preload", "Nothing") /* Download user-data if needed */ ,
-    Member("name", "String") /* Gets the name of the user */ ,
-    Member("about", "String") /* Gets the about-me text of the user */ ,
-    Member("has picture", "Boolean") /* Indicates if the user has a picture */ ,
-    Member("picture address", List("String"), "String") /* Gets the url of the user picture where original is the unmodified user picture, square is 50x50, small has 50px width, normal has 100px width, large has roughly 200px width */ ,
-    Member("picture", List("String"), "Picture") /* Gets the user picture where original is the unmodified user picture, square is 50x50, small has 50px width, normal has 100px width, large has roughly 200px width */ ,
-    Member("post to wall", "Nothing") /* Displays the link on the wall */
-  ))
-
-  // A 3D vector
-  addType("Vector3", gAny("Vector3") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("x", "Number") /* Gets the x-component */ ,
-    Member("y", "Number") /* Gets the y-component */ ,
-    Member("z", "Number") /* Gets the z-component */ ,
-    Member("length", "Number") /* Gets the length of the vector */ ,
-    Member("distance", List("Vector3"), "Number") /* Gets the distance between the two vectors */ ,
-    Member("negate", "Vector3") /* Returns a vector pointing in the opposite direction */ ,
-    Member("normalize", "Vector3") /* Returns a vector of one unit pointing in the same direction as the original vector */ ,
-    Member("add", List("Vector3"), "Vector3") /* Adds a vector */ ,
-    Member("subtract", List("Vector3"), "Vector3") /* Subtracts another vector */ ,
-    Member("multiply", List("Vector3"), "Vector3") /* Multiplies component-wise with a vector */ ,
-    Member("scale", List("Number"), "Vector3") /* Multiplies with a scaling factor */ ,
-    Member("clamp", List("Vector3", "Vector3"), "Vector3") /* Restricts the vector in the specified range */ ,
-    Member("cross", List("Vector3"), "Vector3") /* Calculates the cross product with the other vector */ ,
-    Member("linear interpolation", List("Vector3", "Number"), "Vector3") /* Linear interpolation between two vectors */ ,
-    Member("to string", "String") /* Turns the vector into a string */ ,
-    Member("post to wall", "Nothing") /* Displays the vector on the wall */
-  ))
-
-  // Ask or display values on the wall...
-  addSingleton("Wall", gAlsoSingletons("Wall") ::: List(
-    Member("clear", "Nothing") /* Clears the background, buttons and entries */ ,
-    Member("display search", List("Boolean"), "Nothing") /* [**obsolete**] This action is not supported anymore. */ ,
-    Member("prompt", List("String"), "Nothing") /* Prompts the user with a ok button */ ,
-    Member("ask boolean", List("String", "String"), "Boolean") /* Prompts the user with ok and cancel buttons */ ,
-    Member("ask number", List("String"), "Number") /* Prompts the user to input a number */ ,
-    Member("ask string", List("String"), "String") /* Prompts the user to input a string */ ,
-    Member("screenshot", "Picture") /* Takes a screenshot of the wall. */ ,
-    Member("create text box", List("String", "Number"), "TextBox") /* Creates an updatable text box */ ,
-    Member("pick string", List("String", "String", "String Collection"), "Number") /* Prompts the user to pick a string from a list. Returns the selected index. */ ,
-    Member("pick time", List("String", "String"), "DateTime") /* Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */ ,
-    Member("pick date", List("String", "String"), "DateTime") /* Prompts the user to pick a date. Returns a datetime whose date is set, the time is 12:00:00. */ ,
-    Member("set foreground", List("Color"), "Nothing") /* Sets the wall foreground color of elements. */ ,
-    Member("use css layout", "Nothing") /* [**dbg**] Use CSS for layout */ ,
-    Member("clear background", "Nothing") /* Clears the background color, picture and camera */ ,
-    Member("set background", List("Color"), "Nothing") /* Sets the wall background color. */ ,
-    Member("set page transition style", List("String"), "Nothing") /* [**dbg**] Sets the animation for push/pop of pages. */ ,
-    Member("set background cloud picture", List("Cloud Picture"), "Nothing") /* Sets the wall background as a cloud picture. The best resolution will be picked and the picture might be clipped to fit the screen. */ ,
-    Member("set background picture", List("Picture"), "Nothing") /* Sets the wall background picture. The picture will be resized and clipped to the screen background as needed. */ ,
-    Member("set background camera", List("Camera"), "Nothing") /* Sets the wall background camera. */ ,
-    Member("set transform matrix", List("Number", "Number", "Number", "Number", "Number", "Number"), "Nothing") /* [**not implemented**] Sets the 3x3 affine matrix transformation applied to the wall. */ ,
-    Member("set reversed", List("Boolean"), "Nothing") /* Reverses the elements on the wall and inserts new ones at the bottom. */ ,
-    Member("show title bar", List("Boolean"), "Nothing") /* Indicates if the title and subtitle bar should be visible on a page. */ ,
-    Member("show back button", List("Boolean"), "Nothing") /* Indicates if the back button should be visible on the current page. The back button gets visible automatically when the app is paused or stopped in the editor. */ ,
-    Member("set title", List("String"), "Nothing") /* Sets the title of the wall. */ ,
-    Member("set subtitle", List("String"), "Nothing") /* Sets the subtitle of the wall. */ ,
-    Member("icon names", "String Collection") /* [**obsolete**] Use button icon names instead. */ ,
-    Member("clear buttons", "Nothing") /* Clears the application bar buttons and hides the bar */ ,
-    Member("add button", List("String", "String"), "Page Button") /* Add a new button. icon must be the name of a built-in icon, text must be non-empty. */ ,
-    Member("current page", "Page") /* Gets the current page displayed on the wall */ ,
-    Member("push new page", "Page") /* Pushes an empty page on the wall. */ ,
-    Member("pop page", "Boolean") /* Pops the current page and restores the previous wall page. Returns false if already on the default page. */ ,
-    Member("pop page with transition", List("String"), "Boolean") /* Same as `wall->pop_page`, but lets you use specific animation. */ ,
-    Member("pages", "Page Collection") /* Returns the current back stack of pages, starting from the current page to the bottom page. */ ,
-    Member("button icon names", "String Collection") /* Gets the list of available page button names. */ ,
-    Member("width", "Number") /* Gets the width of the screen (in pixels). */ ,
-    Member("height", "Number") /* Gets the height of the screen (in pixels). */
-  ))
-
-  // A Server-Sent-Events client
-  addType("Web Event Source", gAny("Web Event Source") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("on message", List("String", "Text Action"), "Event Binding") /* Sets an event to run when a message is received. Change name to receive custom events. */ ,
-    Member("state", "String") /* Gets the current connection state (`connecting`, `open`, `closed`) */ ,
-    Member("on open", List("Action"), "Event Binding") /* Sets an event to run when the event source is opened */ ,
-    Member("on error", List("Action"), "Event Binding") /* Sets an event to run when an error occurs */ ,
-    Member("close", "Nothing") /* Closes the EventSource. No further event will be raised. */
-  ))
-
-  // Search and browse the web...
-  addSingleton("Web", gAlsoSingletons("Web") ::: List(
-    Member("search", List("String"), "Link Collection") /* Searching the web using Bing */ ,
-    Member("search nearby", List("String", "Location", "Number"), "Link Collection") /* Searching the web near a location using Bing. Distance in meters, negative to ignore. */ ,
-    Member("search images", List("String"), "Link Collection") /* Searching images using Bing */ ,
-    Member("search images nearby", List("String", "Location", "Number"), "Link Collection") /* Searching images near a location using Bing. Distance in meters, negative to ignore. */ ,
-    Member("search phone numbers", List("String"), "Link Collection") /* [**obsolete**] Search phone numbers using Bing */ ,
-    Member("search phone numbers nearby", List("String", "Location", "Number"), "Link Collection") /* [**obsolete**] Search phone numbers near a location using Bing. Distance in meters, negative to ignore. */ ,
-    Member("search news", List("String"), "Link Collection") /* Searching news using Bing */ ,
-    Member("search news nearby", List("String", "Location", "Number"), "Link Collection") /* Searching news near a location using Bing. Distance in meters, negative to ignore. */ ,
-    Member("is connected", "Boolean") /* Indicates whether any network connection is available */ ,
-    Member("connection type", "String") /* Gets the type of the network servicing Internet requests (unknown, none, ethernet, wifi, mobile) */ ,
-    Member("connection name", "String") /* Gets a name of the currently connected network servicing Internet requests. Empty string if no connection. */ ,
-    Member("open connection settings", List("String"), "Nothing") /* Opens a connection settings page (airplanemode, bluetooth, wifi, cellular) */ ,
-    Member("browse", List("String"), "Nothing") /* Opens a web browser to a url */ ,
-    Member("play media", List("String"), "Nothing") /* Plays an internet audio/video in full screen */ ,
-    Member("link media", List("String"), "Link") /* Creates a link to an internet audio/video */ ,
-    Member("link image", List("String"), "Link") /* Creates a link to an internet image */ ,
-    Member("link url", List("String", "String"), "Link") /* Creates a link to an internet page */ ,
-    Member("link deep zoom", List("String"), "Link") /* [**obsolete**] Creates a multi-scale image from an image url */ ,
-    Member("download", List("String"), "String") /* Downloads the content of an internet page (http get) */ ,
-    Member("download json", List("String"), "Json Object") /* Downloads a web service response as a JSON data structure (http get) */ ,
-    Member("download sound", List("String"), "Sound") /* Downloads a WAV sound file from internet */ ,
-    Member("download song", List("String", "String"), "Song") /* Create a streamed song file from internet (download happens when playing) */ ,
-    Member("upload", List("String", "String"), "String") /* Uploads text to an internet page (http post) */ ,
-    Member("upload sound", List("String", "Sound"), "String") /* Uploads a sound to an internet page (http post). The sound must have been recorded from the microphone. */ ,
-    Member("upload picture", List("String", "Picture"), "String") /* Uploads a picture to an internet page (http post) */ ,
-    Member("download picture", List("String"), "Picture") /* Downloads a picture from internet */ ,
-    Member("html decode", List("String"), "String") /* Decodes a string that has been HTML-encoded */ ,
-    Member("html encode", List("String"), "String") /* Converts a text string into an HTML-encoded string */ ,
-    Member("url decode", List("String"), "String") /* Decodes a string that has been url-encoded */ ,
-    Member("url encode", List("String"), "String") /* Converts a text string into an url-encoded string */ ,
-    Member("json", List("String"), "Json Object") /* Parses the string as a json object */ ,
-    Member("json object", "Json Object") /* Returns an empty json object */ ,
-    Member("json array", "Json Object") /* Returns an empty json array */ ,
-    Member("xml", List("String"), "Xml Object") /* Parses the string as a xml element */ ,
-    Member("rss", List("String"), "Message Collection") /* [**obsolete**] Obsolete. Use 'feed' instead. */ ,
-    Member("create request", List("String"), "Web Request") /* Creates a web request */ ,
-    Member("base64 decode", List("String"), "String") /* Decodes a string that has been base64-encoded */ ,
-    Member("base64 encode", List("String"), "String") /* Converts a string into an base64-encoded string */ ,
-    Member("feed", List("String"), "Message Collection") /* Parses the newsfeed string (RSS 2.0 or Atom 1.0) into a message collection */ ,
-    Member("create json builder", "Json Builder") /* Creates a json builder */ ,
-    Member("csv", List("String", "String"), "Json Object") /* Parses a Command Separated Values document into a JsonObject where the `headers` is a string array of column names; `records` is an array of rows where each row is itself an array of strings. The delimiter is inferred if not specified. */ ,
-    Member("picture", List("String"), "Picture") /* Creates a picture from a web address. The resulting picture cannot be modified, use clone if you want to change it. */ ,
-    Member("oauth v2", List("String"), "OAuth Response") /* Authenticate with OAuth 2.0 and receives the access token or error. See [](/oauthv2) for more information on which Redirect URI to choose. */ ,
-    Member("create form builder", "Form Builder") /* Create a form builder */ ,
-    Member("post message to parent", List("String", "Json Object"), "Nothing") /* Posts a message to the parent window if any. The `target origin` must match the domain of the parent window, * is not accepted. */ ,
-    Member("wait for message from parent", List("String"), "Json Object") /* Waits for the next message from the parent window in `origin`. */ ,
-    Member("on received message from parent", List("String", "Json Action"), "Event Binding") /* Attaches code to run when a message is received. Only messages from the parent window and `origin` will be received. */ ,
-    Member("create event source", List("String"), "Web Event Source") /* Opens an Server-Sent-Events client on the given URL. If not supported, returns invalid. The server must implement CORS to allow https://www.touchdevelop.com to receive messages. */
-  ))
-
-  // An HTTP web request
-  addType("Web Request", gAny("Web Request") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("show notifications", List("Boolean"), "Nothing") /* Indicates if program notifications should be shown to the user. Default is true. */ ,
-    Member("method", "String") /* Gets whether it was a 'get' or a 'post'. */ ,
-    Member("set method", List("String"), "Nothing") /* Sets the method. Default value is 'get'. */ ,
-    Member("url", "String") /* Gets the url of the request */ ,
-    Member("set url", List("String"), "Nothing") /* Sets the url of the request. Must be a valid internet address. */ ,
-    Member("header", List("String"), "String") /* Gets the value of a given header */ ,
-    Member("set header", List("String", "String"), "Nothing") /* Sets an HTML header value. Empty string clears the value */ ,
-    Member("equals", List("Web Request"), "Boolean") /* Indicates if both requests are the same instance. */ ,
-    Member("set accept", List("String"), "Nothing") /* Sets the Accept header type ('text/xml' for xml, 'application/json' for json). */ ,
-    Member("post to wall", "Nothing") /* Displays the request to the wall */ ,
-    Member("send async", "Nothing") /* Sends the request asynchronously. Attach a handler to 'on response received' to receive the response. */ ,
-    Member("on response received", List("Web Response Action"), "Event Binding") /* Set what happens whenever the response comes back from 'send async'. */ ,
-    Member("send", "Web Response") /* Performs the request synchronously */ ,
-    Member("set content", List("String"), "Nothing") /* Sets the content of a 'post' request */ ,
-    Member("set content as json", List("Json Object"), "Nothing") /* Sets the content of a 'post' request as the JSON tree */ ,
-    Member("set content as buffer", List("Buffer"), "Nothing") /* Sets the content of a 'post' request as a binary buffer */ ,
-    Member("set content as form", List("Form Builder"), "Nothing") /* Sets the content as multipart/form-data. */ ,
-    Member("set content as picture", List("Picture", "Number"), "Nothing") /* Sets the content of a 'post' request as a JPEG encoded image. Quality from 0 (worse) to 1 (best). */ ,
-    Member("set content as xml", List("Xml Object"), "Nothing") /* Sets the content of a 'post' request as the XML tree */ ,
-    Member("set credentials", List("String", "String"), "Nothing") /* Sets the name and password for basic authentication. Requires an HTTPS URL, empty string clears. */ ,
-    Member("header names", "String Collection") /* Gets the names of the headers */ ,
-    Member("set compress", List("Boolean"), "Nothing") /* [**obsolete**] Compresses the request content with gzip and sets the Content-Encoding header */
-  ))
-
-  // An HTTP web response
-  addType("Web Response", gAny("Web Response") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("request", "Web Request") /* Gets the request associated to this response */ ,
-    Member("status code", "Number") /* Gets the HTTP Status code of the request if any */ ,
-    Member("content", "String") /* Reads the response body as a string */ ,
-    Member("content as json", "Json Object") /* Reads the response body as a JSON tree */ ,
-    Member("content as picture", "Picture") /* Reads the response body as a picture */ ,
-    Member("content as sound", "Sound") /* [**not implemented**] Reads the response body as a wave sound */ ,
-    Member("content as xml", "Xml Object") /* Reads the response body as a XML tree */ ,
-    Member("header", List("String"), "String") /* Gets the value of a given header */ ,
-    Member("header names", "String Collection") /* Gets the names of the headers */ ,
-    Member("post to wall", "Nothing") /* Displays the response to the wall */
-  ))
-
-  // An xml element or collection of elements
-  addType("Xml Object", gAny("Xml Object") ::: List(
-    Member("is invalid", "Boolean") /* Returns true if the current instance is useless */ ,
-    Member("count", "Number") /* Gets the number of child element */ ,
-    Member("is element", "Boolean") /* Indicates if this instance is an element or a filtered collection */ ,
-    Member("name", "String") /* Gets the full name of this element */ ,
-    Member("value", "String") /* Gets the concatenated text contents of this element */ ,
-    Member("at index", List("Number"), "Xml Object") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
-    Member("copy", "Xml Object") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
-    Member("at", List("Number"), "Xml Object") /* Gets the i-th child element in the collection */ ,
-    Member("attr", List("String"), "String") /* Gets the value of the attribute */ ,
-    Member("attr names", "String Collection") /* Gets the list of attribute names */ ,
-    Member("child", List("String"), "Xml Object") /* Gets a first child element matching the fully qualified name */ ,
-    Member("children", List("String"), "Xml Object") /* Gets a collection of child element matching the fully qualified name */ ,
-    Member("post to wall", "Nothing") /* Display the xml content to the wall */ ,
-    Member("to string", "String") /* Gets an xml string */ ,
-    Member("local name", "String") /* Gets the local name of this element */ ,
-    Member("namespace", "String") /* Gets the namespace of this element */ ,
-    Member("create name", List("String", "String"), "String") /* Creates a qualified full name from the namespace and local name */
-  ))
+//
+//  // A task created with `async` keyword
+//  addGenericType("Task", { TT:TypeName => gAny(TTask.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("completed", TBoolean.typeName) /* Check if the task is done yet */ ,
+//    Member("await", TT) /* Wait for the task to finish, and return any possible value */ ,
+//    Member("value", TT) /* Get the value of the task, which must have completed. */ ,
+//    Member("await at most", List(TNumber.typeName), TT) /* Wait for the task to finish for at most `seconds`; returns invalid in case of timeout */
+//  )})
+//
+//  // A text box
+//  addType("TextBox", gAny(TTextBox.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("text", TString.typeName) /* Gets the text */ ,
+//    Member("set text", List(TString.typeName), TNothing.typeName) /* Sets the text */ ,
+//    Member("icon", TPicture.typeName) /* Gets the icon picture (max 173x173) */ ,
+//    Member("set icon", List(TPicture.typeName), TNothing.typeName) /* Sets the icon picture (max 96 x 96) */ ,
+//    Member("font size", TNumber.typeName) /* Gets the font size */ ,
+//    Member("set font size", List(TNumber.typeName), TNothing.typeName) /* Sets the font size (small = 14, normal = 15, medium = 17, medium large = 19, large = 24, extra large = 32, extra extra large = 54, huge = 140 */ ,
+//    Member("background", TColor.typeName) /* Gets the background color */ ,
+//    Member("set background", List(TColor.typeName), TNothing.typeName) /* Sets the background color */ ,
+//    Member("foreground", TColor.typeName) /* Gets the foreground color */ ,
+//    Member("set foreground", List(TColor.typeName), TNothing.typeName) /* Sets the foreground color */ ,
+//    Member("border", TColor.typeName) /* Gets the border color */ ,
+//    Member("set border", List(TColor.typeName), TNothing.typeName) /* Sets the border color */ ,
+//    Member("post to wall", TNothing.typeName) /* Posts the textbox to the wall */
+//  ))
+//
+//  // This type is no longer supported. See [](/tiles) for more information.
+//  addType("Tile", gAny(TTile.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("title", TString.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("set title", List(TString.typeName), TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("back title", TString.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("set back title", List(TString.typeName), TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("background", TColor.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("set background", List(TColor.typeName), TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("back icon", TPicture.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("set back icon", List(TPicture.typeName), TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("content", TString.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("set content", List(TString.typeName), TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("counter", TNumber.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("set counter", List(TNumber.typeName), TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("icon", TPicture.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("set icon", List(TPicture.typeName), TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("panorama", TBoolean.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("set panorama", List(TBoolean.typeName), TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("height", TNumber.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("width", TNumber.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("clear back icon", TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("clear icon", TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("pin to start", TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */ ,
+//    Member("post to wall", TNothing.typeName) /* [**obsolete**] This action is no longer supported. See [](/tiles) for more information. */
+//  ))
+//
+//  // tiles and notifications for Windows and Windows Phone
+//  addSingleton("Tiles", gAlsoSingletons(STiles.typeName) ::: List(
+//    Member("set default", List(TString.typeName, TString.typeName, TNumber.typeName), TNothing.typeName) /* Sets the title, content and counter of the default tile. The counter is hidden if the number is not between 1 or 99. */ ,
+//    Member("set default counter", List(TNumber.typeName), TNothing.typeName) /* Sets the counter of the default tile. Hidden if the number is not between 1 or 99. */ ,
+//    Member("set default text", List(TString.typeName, TString.typeName), TNothing.typeName) /* Sets the front of a standard tile. */ ,
+//    Member("pin default", TNothing.typeName) /* Pins or updates the default tile. */ ,
+//    Member("pin pictures", List(TString.typeName, TNumber.typeName, TPicture.typeName, TypeName("Collection",List(TPicture.typeName))), TNothing.typeName) /* Pins or updates the default tile with custom pictures. */ ,
+//    Member("pin picture", List(TString.typeName, TString.typeName, TNumber.typeName, TPicture.typeName), TNothing.typeName) /* Pins or updates the default tile with a custom picture. */
+//  ))
+//
+//  // time and dates
+//  addSingleton("Time", gAlsoSingletons(STime.typeName) ::: List(
+//    Member("on every frame", List(TAction.typeName), TEvent_Binding.typeName) /* Attaches a handler to run on every time frame, roughly every 20ms. */ ,
+//    Member("run after", List(TNumber.typeName, TAction.typeName), TTimer.typeName) /* Starts a timer to run ``perform`` after ``seconds`` seconds. */ ,
+//    Member("run every", List(TNumber.typeName, TAction.typeName), TTimer.typeName) /* Starts a timer to run ``perform`` every ``seconds`` seconds. */ ,
+//    Member("sleep", List(TNumber.typeName), TNothing.typeName) /* Waits for a specified amount of seconds */ ,
+//    Member("now", TDateTime.typeName) /* Gets the current time */ ,
+//    Member("today", TDateTime.typeName) /* Gets today's date without time */ ,
+//    Member("tomorrow", TDateTime.typeName) /* Gets tomorrow's date without time */ ,
+//    Member("fail if not", List(TBoolean.typeName), TNothing.typeName) /* [**obsolete**] Use `app->fail_if_not` instead. */ ,
+//    Member("stop", TNothing.typeName) /* Use `app->stop` instead. */ ,
+//    Member("log", List(TString.typeName), TNothing.typeName) /* Use `app->log` instead. */ ,
+//    Member("stop and close", TNothing.typeName) /* Use `app->stop` instead. */ ,
+//    Member("create", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TDateTime.typeName) /* Creates a new date instance */
+//  ))
+//
+//  // A timer
+//  addType("Timer", gAny(TTimer.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("clear", TNothing.typeName) /* Clears the handlers and pauses the timer */ ,
+//    Member("on trigger", List(TAction.typeName), TEvent_Binding.typeName) /* sets the action to perform when the timer fires */ ,
+//    Member("is active", TBoolean.typeName) /* is the timer active */ ,
+//    Member("is interval", TBoolean.typeName) /* is this an interval timer that fires regularly */ ,
+//    Member("set interval", List(TNumber.typeName), TNothing.typeName) /* set the regular interval in seconds at which this timer fires */ ,
+//    Member("set timeout", List(TNumber.typeName), TNothing.typeName) /* set the time in seconds after which this timer fires once */ ,
+//    Member("pause", TNothing.typeName) /* deactivates the timer */ ,
+//    Member("resume", TNothing.typeName) /* reactives the timer */
+//  ))
+//
+//  // Support for interactive tutorials.
+//  addSingleton("Tutorial", gAlsoSingletons(STutorial.typeName) ::: List(
+//    Member("step completed", TNothing.typeName) /* Signal that the step is done. */ ,
+//    Member("show hint", List(TString.typeName), TNothing.typeName) /* [**dbg**] Show a suggestion to the user (eg., an error description) */
+//  ))
+//
+//  // A user account
+//  addType("User", gAny(TUser.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("equals", List(TUser.typeName), TBoolean.typeName) /* Gets a value idincating if the user is the same as the other. */ ,
+//    Member("id", TString.typeName) /* Gets a unique identifier for the user. */ ,
+//    Member("preload", TNothing.typeName) /* Download user-data if needed */ ,
+//    Member("name", TString.typeName) /* Gets the name of the user */ ,
+//    Member("about", TString.typeName) /* Gets the about-me text of the user */ ,
+//    Member("has picture", TBoolean.typeName) /* Indicates if the user has a picture */ ,
+//    Member("picture address", List(TString.typeName), TString.typeName) /* Gets the url of the user picture where original is the unmodified user picture, square is 50x50, small has 50px width, normal has 100px width, large has roughly 200px width */ ,
+//    Member("picture", List(TString.typeName), TPicture.typeName) /* Gets the user picture where original is the unmodified user picture, square is 50x50, small has 50px width, normal has 100px width, large has roughly 200px width */ ,
+//    Member("post to wall", TNothing.typeName) /* Displays the link on the wall */
+//  ))
+//
+//  // A 3D vector
+//  addType("Vector3", gAny(TVector3.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("x", TNumber.typeName) /* Gets the x-component */ ,
+//    Member("y", TNumber.typeName) /* Gets the y-component */ ,
+//    Member("z", TNumber.typeName) /* Gets the z-component */ ,
+//    Member("length", TNumber.typeName) /* Gets the length of the vector */ ,
+//    Member("distance", List(TVector3.typeName), TNumber.typeName) /* Gets the distance between the two vectors */ ,
+//    Member("negate", TVector3.typeName) /* Returns a vector pointing in the opposite direction */ ,
+//    Member("normalize", TVector3.typeName) /* Returns a vector of one unit pointing in the same direction as the original vector */ ,
+//    Member("add", List(TVector3.typeName), TVector3.typeName) /* Adds a vector */ ,
+//    Member("subtract", List(TVector3.typeName), TVector3.typeName) /* Subtracts another vector */ ,
+//    Member("multiply", List(TVector3.typeName), TVector3.typeName) /* Multiplies component-wise with a vector */ ,
+//    Member("scale", List(TNumber.typeName), TVector3.typeName) /* Multiplies with a scaling factor */ ,
+//    Member("clamp", List(TVector3.typeName, TVector3.typeName), TVector3.typeName) /* Restricts the vector in the specified range */ ,
+//    Member("cross", List(TVector3.typeName), TVector3.typeName) /* Calculates the cross product with the other vector */ ,
+//    Member("linear interpolation", List(TVector3.typeName, TNumber.typeName), TVector3.typeName) /* Linear interpolation between two vectors */ ,
+//    Member("to string", TString.typeName) /* Turns the vector into a string */ ,
+//    Member("post to wall", TNothing.typeName) /* Displays the vector on the wall */
+//  ))
+//
+//  // Ask or display values on the wall...
+//  addSingleton("Wall", gAlsoSingletons(SWall.typeName) ::: List(
+//    Member("clear", TNothing.typeName) /* Clears the background, buttons and entries */ ,
+//    Member("display search", List(TBoolean.typeName), TNothing.typeName) /* [**obsolete**] This action is not supported anymore. */ ,
+//    Member("prompt", List(TString.typeName), TNothing.typeName) /* Prompts the user with a ok button */ ,
+//    Member("ask boolean", List(TString.typeName, TString.typeName), TBoolean.typeName) /* Prompts the user with ok and cancel buttons */ ,
+//    Member("ask number", List(TString.typeName), TNumber.typeName) /* Prompts the user to input a number */ ,
+//    Member("ask string", List(TString.typeName), TString.typeName) /* Prompts the user to input a string */ ,
+//    Member("screenshot", TPicture.typeName) /* Takes a screenshot of the wall. */ ,
+//    Member("create text box", List(TString.typeName, TNumber.typeName), TTextBox.typeName) /* Creates an updatable text box */ ,
+//    Member("pick string", List(TString.typeName, TString.typeName, TString_Collection.typeName), TNumber.typeName) /* Prompts the user to pick a string from a list. Returns the selected index. */ ,
+//    Member("pick time", List(TString.typeName, TString.typeName), TDateTime.typeName) /* Prompts the user to pick a time. Returns a datetime whose time is set, the date is undefined. */ ,
+//    Member("pick date", List(TString.typeName, TString.typeName), TDateTime.typeName) /* Prompts the user to pick a date. Returns a datetime whose date is set, the time is 12:00:00. */ ,
+//    Member("set foreground", List(TColor.typeName), TNothing.typeName) /* Sets the wall foreground color of elements. */ ,
+//    Member("use css layout", TNothing.typeName) /* [**dbg**] Use CSS for layout */ ,
+//    Member("clear background", TNothing.typeName) /* Clears the background color, picture and camera */ ,
+//    Member("set background", List(TColor.typeName), TNothing.typeName) /* Sets the wall background color. */ ,
+//    Member("set page transition style", List(TString.typeName), TNothing.typeName) /* [**dbg**] Sets the animation for push/pop of pages. */ ,
+//    Member("set background cloud picture", List(TCloud_Picture.typeName), TNothing.typeName) /* Sets the wall background as a cloud picture. The best resolution will be picked and the picture might be clipped to fit the screen. */ ,
+//    Member("set background picture", List(TPicture.typeName), TNothing.typeName) /* Sets the wall background picture. The picture will be resized and clipped to the screen background as needed. */ ,
+//    Member("set background camera", List(TCamera.typeName), TNothing.typeName) /* Sets the wall background camera. */ ,
+//    Member("set transform matrix", List(TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName, TNumber.typeName), TNothing.typeName) /* [**not implemented**] Sets the 3x3 affine matrix transformation applied to the wall. */ ,
+//    Member("set reversed", List(TBoolean.typeName), TNothing.typeName) /* Reverses the elements on the wall and inserts new ones at the bottom. */ ,
+//    Member("show title bar", List(TBoolean.typeName), TNothing.typeName) /* Indicates if the title and subtitle bar should be visible on a page. */ ,
+//    Member("show back button", List(TBoolean.typeName), TNothing.typeName) /* Indicates if the back button should be visible on the current page. The back button gets visible automatically when the app is paused or stopped in the editor. */ ,
+//    Member("set title", List(TString.typeName), TNothing.typeName) /* Sets the title of the wall. */ ,
+//    Member("set subtitle", List(TString.typeName), TNothing.typeName) /* Sets the subtitle of the wall. */ ,
+//    Member("icon names", TString_Collection.typeName) /* [**obsolete**] Use button icon names instead. */ ,
+//    Member("clear buttons", TNothing.typeName) /* Clears the application bar buttons and hides the bar */ ,
+//    Member("add button", List(TString.typeName, TString.typeName), TPage_Button.typeName) /* Add a new button. icon must be the name of a built-in icon, text must be non-empty. */ ,
+//    Member("current page", TPage.typeName) /* Gets the current page displayed on the wall */ ,
+//    Member("push new page", TPage.typeName) /* Pushes an empty page on the wall. */ ,
+//    Member("pop page", TBoolean.typeName) /* Pops the current page and restores the previous wall page. Returns false if already on the default page. */ ,
+//    Member("pop page with transition", List(TString.typeName), TBoolean.typeName) /* Same as `wall->pop_page`, but lets you use specific animation. */ ,
+//    Member("pages", TPage_Collection.typeName) /* Returns the current back stack of pages, starting from the current page to the bottom page. */ ,
+//    Member("button icon names", TString_Collection.typeName) /* Gets the list of available page button names. */ ,
+//    Member("width", TNumber.typeName) /* Gets the width of the screen (in pixels). */ ,
+//    Member("height", TNumber.typeName) /* Gets the height of the screen (in pixels). */
+//  ))
+//
+//  // A Server-Sent-Events client
+//  addType("Web Event Source", gAny(TWeb_Event_Source.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("on message", List(TString.typeName, TText_Action.typeName), TEvent_Binding.typeName) /* Sets an event to run when a message is received. Change name to receive custom events. */ ,
+//    Member("state", TString.typeName) /* Gets the current connection state (`connecting`, `open`, `closed`) */ ,
+//    Member("on open", List(TAction.typeName), TEvent_Binding.typeName) /* Sets an event to run when the event source is opened */ ,
+//    Member("on error", List(TAction.typeName), TEvent_Binding.typeName) /* Sets an event to run when an error occurs */ ,
+//    Member("close", TNothing.typeName) /* Closes the EventSource. No further event will be raised. */
+//  ))
+//
+//  // Search and browse the web...
+//  addSingleton("Web", gAlsoSingletons(SWeb.typeName) ::: List(
+//    Member("search", List(TString.typeName), TLink_Collection.typeName) /* Searching the web using Bing */ ,
+//    Member("search nearby", List(TString.typeName, TLocation.typeName, TNumber.typeName), TLink_Collection.typeName) /* Searching the web near a location using Bing. Distance in meters, negative to ignore. */ ,
+//    Member("search images", List(TString.typeName), TLink_Collection.typeName) /* Searching images using Bing */ ,
+//    Member("search images nearby", List(TString.typeName, TLocation.typeName, TNumber.typeName), TLink_Collection.typeName) /* Searching images near a location using Bing. Distance in meters, negative to ignore. */ ,
+//    Member("search phone numbers", List(TString.typeName), TLink_Collection.typeName) /* [**obsolete**] Search phone numbers using Bing */ ,
+//    Member("search phone numbers nearby", List(TString.typeName, TLocation.typeName, TNumber.typeName), TLink_Collection.typeName) /* [**obsolete**] Search phone numbers near a location using Bing. Distance in meters, negative to ignore. */ ,
+//    Member("search news", List(TString.typeName), TLink_Collection.typeName) /* Searching news using Bing */ ,
+//    Member("search news nearby", List(TString.typeName, TLocation.typeName, TNumber.typeName), TLink_Collection.typeName) /* Searching news near a location using Bing. Distance in meters, negative to ignore. */ ,
+//    Member("is connected", TBoolean.typeName) /* Indicates whether any network connection is available */ ,
+//    Member("connection type", TString.typeName) /* Gets the type of the network servicing Internet requests (unknown, none, ethernet, wifi, mobile) */ ,
+//    Member("connection name", TString.typeName) /* Gets a name of the currently connected network servicing Internet requests. Empty string if no connection. */ ,
+//    Member("open connection settings", List(TString.typeName), TNothing.typeName) /* Opens a connection settings page (airplanemode, bluetooth, wifi, cellular) */ ,
+//    Member("browse", List(TString.typeName), TNothing.typeName) /* Opens a web browser to a url */ ,
+//    Member("redirect", List(TString.typeName), TNothing.typeName) /* [**beta**] Redirects the browser to a url; only available when exporting */ ,
+//    Member("play media", List(TString.typeName), TNothing.typeName) /* Plays an internet audio/video in full screen */ ,
+//    Member("link media", List(TString.typeName), TLink.typeName) /* Creates a link to an internet audio/video */ ,
+//    Member("link image", List(TString.typeName), TLink.typeName) /* Creates a link to an internet image */ ,
+//    Member("link url", List(TString.typeName, TString.typeName), TLink.typeName) /* Creates a link to an internet page */ ,
+//    Member("link deep zoom", List(TString.typeName), TLink.typeName) /* [**obsolete**] Creates a multi-scale image from an image url */ ,
+//    Member("download", List(TString.typeName), TString.typeName) /* Downloads the content of an internet page (http get) */ ,
+//    Member("download json", List(TString.typeName), TJson_Object.typeName) /* Downloads a web service response as a JSON data structure (http get) */ ,
+//    Member("download xml", List(TString.typeName), TXml_Object.typeName) /* Downloads a web service response as a XML data structure (http get) */ ,
+//    Member("download sound", List(TString.typeName), TSound.typeName) /* Downloads a WAV sound file from internet */ ,
+//    Member("download song", List(TString.typeName, TString.typeName), TSong.typeName) /* Create a streamed song file from internet (download happens when playing) */ ,
+//    Member("upload", List(TString.typeName, TString.typeName), TString.typeName) /* Uploads text to an internet page (http post) */ ,
+//    Member("upload sound", List(TString.typeName, TSound.typeName), TString.typeName) /* Uploads a sound to an internet page (http post). The sound must have been recorded from the microphone. */ ,
+//    Member("upload picture", List(TString.typeName, TPicture.typeName), TString.typeName) /* Uploads a picture to an internet page (http post) */ ,
+//    Member("download picture", List(TString.typeName), TPicture.typeName) /* Downloads a picture from internet */ ,
+//    Member("html decode", List(TString.typeName), TString.typeName) /* Decodes a string that has been HTML-encoded */ ,
+//    Member("html encode", List(TString.typeName), TString.typeName) /* Converts a text string into an HTML-encoded string */ ,
+//    Member("decode uri", List(TString.typeName), TString.typeName) /* Decodes a URI component */ ,
+//    Member("encode uri", List(TString.typeName), TString.typeName) /* Encodes a uri component */ ,
+//    Member("decode uri component", List(TString.typeName), TString.typeName) /* Decodes a URI component */ ,
+//    Member("encode uri component", List(TString.typeName), TString.typeName) /* Encodes a uri component */ ,
+//    Member("url decode", List(TString.typeName), TString.typeName) /* [**obsolete**] Use `web->decode uri component` instead. */ ,
+//    Member("url encode", List(TString.typeName), TString.typeName) /* [**obsolete**] Use `web->encode uri component` instead. */ ,
+//    Member("json", List(TString.typeName), TJson_Object.typeName) /* Parses the string as a json object */ ,
+//    Member("json object", TJson_Object.typeName) /* Returns an empty json object */ ,
+//    Member("json array", TJson_Object.typeName) /* Returns an empty json array */ ,
+//    Member("xml", List(TString.typeName), TXml_Object.typeName) /* Parses the string as a xml element */ ,
+//    Member("rss", List(TString.typeName), TMessage_Collection.typeName) /* [**obsolete**] Obsolete. Use 'feed' instead. */ ,
+//    Member("create request", List(TString.typeName), TWeb_Request.typeName) /* Creates a web request */ ,
+//    Member("base64 decode", List(TString.typeName), TString.typeName) /* Decodes a string that has been base64-encoded */ ,
+//    Member("base64 encode", List(TString.typeName), TString.typeName) /* Converts a string into an base64-encoded string */ ,
+//    Member("feed", List(TString.typeName), TMessage_Collection.typeName) /* Parses the newsfeed string (RSS 2.0 or Atom 1.0) into a message collection */ ,
+//    Member("create json builder", TJson_Builder.typeName) /* Creates a json builder */ ,
+//    Member("csv", List(TString.typeName, TString.typeName), TJson_Object.typeName) /* Parses a Command Separated Values document into a JsonObject where the `headers` is a string array of column names; `records` is an array of rows where each row is itself an array of strings. The delimiter is inferred if not specified. */ ,
+//    Member("picture", List(TString.typeName), TPicture.typeName) /* Creates a picture from a web address. The resulting picture cannot be modified, use clone if you want to change it. */ ,
+//    Member("oauth v2", List(TString.typeName), TOAuth_Response.typeName) /* Authenticate with OAuth 2.0 and receives the access token or error. See [](/oauthv2) for more information on which Redirect URI to choose. */ ,
+//    Member("create form builder", TForm_Builder.typeName) /* Create a form builder */ ,
+//    Member("post message to parent", List(TString.typeName, TJson_Object.typeName), TNothing.typeName) /* Posts a message to the parent window if any. The `target origin` must match the domain of the parent window, * is not accepted. */ ,
+//    Member("wait for message from parent", List(TString.typeName), TJson_Object.typeName) /* Waits for the next message from the parent window in `origin`. */ ,
+//    Member("on received message from parent", List(TString.typeName, TJson_Action.typeName), TEvent_Binding.typeName) /* Attaches code to run when a message is received. Only messages from the parent window and `origin` will be received. */ ,
+//    Member("create event source", List(TString.typeName), TWeb_Event_Source.typeName) /* Opens an Server-Sent-Events client on the given URL. If not supported, returns invalid. The server must implement CORS to allow https://www.touchdevelop.com to receive messages. */ ,
+//    Member("oauth token from url", List(TString.typeName), TOAuth_Response.typeName) /* Parses a OAuth v2.0 access token from a redirect uri as described in http://tools.ietf.org/html/rfc6749. Returns invalid if the url does not contain an OAuth token. */ ,
+//    Member("oauth token from json", List(TJson_Object.typeName), TOAuth_Response.typeName) /* Parses a OAuth v2.0 access token from a JSON payload as described in http://tools.ietf.org/html/rfc6749. Returns invalid if the payload is not an OAuth token. */
+//  ))
+//
+//  // An HTTP web request
+//  addType("Web Request", gAny(TWeb_Request.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("show notifications", List(TBoolean.typeName), TNothing.typeName) /* Indicates if program notifications should be shown to the user. Default is true. */ ,
+//    Member("method", TString.typeName) /* Gets whether it was a 'get' or a 'post'. */ ,
+//    Member("set method", List(TString.typeName), TNothing.typeName) /* Sets the method. Default value is 'get'. */ ,
+//    Member("url", TString.typeName) /* Gets the url of the request */ ,
+//    Member("set url", List(TString.typeName), TNothing.typeName) /* Sets the url of the request. Must be a valid internet address. */ ,
+//    Member("header", List(TString.typeName), TString.typeName) /* Gets the value of a given header */ ,
+//    Member("set header", List(TString.typeName, TString.typeName), TNothing.typeName) /* Sets an HTML header value. Empty string clears the value */ ,
+//    Member("equals", List(TWeb_Request.typeName), TBoolean.typeName) /* Indicates if both requests are the same instance. */ ,
+//    Member("set accept", List(TString.typeName), TNothing.typeName) /* Sets the Accept header type ('text/xml' for xml, 'application/json' for json). */ ,
+//    Member("post to wall", TNothing.typeName) /* Displays the request to the wall */ ,
+//    Member("send async", TNothing.typeName) /* User ``send`` instead */ ,
+//    Member("on response received", List(TWeb_Response_Action.typeName), TEvent_Binding.typeName) /* Use ``send`` instead */ ,
+//    Member("send", TWeb_Response.typeName) /* Performs the request synchronously */ ,
+//    Member("set content", List(TString.typeName), TNothing.typeName) /* Sets the content of a 'post' request */ ,
+//    Member("set content as json", List(TJson_Object.typeName), TNothing.typeName) /* Sets the content of a 'post' request as the JSON tree */ ,
+//    Member("set content as buffer", List(TBuffer.typeName), TNothing.typeName) /* Sets the content of a 'post' request as a binary buffer */ ,
+//    Member("set content as form", List(TForm_Builder.typeName), TNothing.typeName) /* Sets the content as multipart/form-data. */ ,
+//    Member("set content as picture", List(TPicture.typeName, TNumber.typeName), TNothing.typeName) /* Sets the content of a 'post' request as a JPEG encoded image. Quality from 0 (worse) to 1 (best). */ ,
+//    Member("set content as xml", List(TXml_Object.typeName), TNothing.typeName) /* Sets the content of a 'post' request as the XML tree */ ,
+//    Member("set credentials", List(TString.typeName, TString.typeName), TNothing.typeName) /* Sets the name and password for basic authentication. Requires an HTTPS URL, empty string clears. */ ,
+//    Member("header names", TString_Collection.typeName) /* Gets the names of the headers */ ,
+//    Member("set compress", List(TBoolean.typeName), TNothing.typeName) /* [**obsolete**] Compresses the request content with gzip and sets the Content-Encoding header */
+//  ))
+//
+//  // An HTTP web response
+//  addType("Web Response", gAny(TWeb_Response.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("request", TWeb_Request.typeName) /* Gets the request associated to this response */ ,
+//    Member("status code", TNumber.typeName) /* Gets the HTTP Status code of the request if any */ ,
+//    Member("content", TString.typeName) /* Reads the response body as a string */ ,
+//    Member("content as buffer", TBuffer.typeName) /* Reads the response body as a Buffer. */ ,
+//    Member("content as json", TJson_Object.typeName) /* Reads the response body as a JSON tree */ ,
+//    Member("content as picture", TPicture.typeName) /* Reads the response body as a picture */ ,
+//    Member("content as sound", TSound.typeName) /* [**not implemented**] Reads the response body as a wave sound */ ,
+//    Member("content as xml", TXml_Object.typeName) /* Reads the response body as a XML tree */ ,
+//    Member("header", List(TString.typeName), TString.typeName) /* Gets the value of a given header */ ,
+//    Member("header names", TString_Collection.typeName) /* Gets the names of the headers */ ,
+//    Member("post to wall", TNothing.typeName) /* Displays the response to the wall */
+//  ))
+//
+//  // An xml element or collection of elements
+//  addType("Xml Object", gAny(TXml_Object.typeName) ::: List(
+//    Member("is invalid", TBoolean.typeName) /* Returns true if the current instance is useless */ ,
+//    Member("count", TNumber.typeName) /* Gets the number of child element */ ,
+//    Member("is element", TBoolean.typeName) /* Indicates if this instance is an element or a filtered collection */ ,
+//    Member("name", TString.typeName) /* Gets the full name of this element */ ,
+//    Member("value", TString.typeName) /* Gets the concatenated text contents of this element */ ,
+//    Member("at index", List("Number"), "Xml Object") /* ONLY INSIDE SAMPLE: an accessor which is always number based */ ,
+//    Member("copy", "Xml Object") /* ONLY INSIDE SAMPLE: cloning a collection*/ ,
+//    Member("at", List(TNumber.typeName), TXml_Object.typeName) /* Gets the i-th child element in the collection */ ,
+//    Member("attr", List(TString.typeName), TString.typeName) /* Gets the value of the attribute */ ,
+//    Member("attr names", TString_Collection.typeName) /* Gets the list of attribute names */ ,
+//    Member("child", List(TString.typeName), TXml_Object.typeName) /* Gets a first child element matching the fully qualified name */ ,
+//    Member("children", List(TString.typeName), TXml_Object.typeName) /* Gets a collection of child element matching the fully qualified name */ ,
+//    Member("post to wall", TNothing.typeName) /* Display the xml content to the wall */ ,
+//    Member("to string", TString.typeName) /* Gets an xml string */ ,
+//    Member("local name", TString.typeName) /* Gets the local name of this element */ ,
+//    Member("namespace", TString.typeName) /* Gets the namespace of this element */ ,
+//    Member("create name", List(TString.typeName, TString.typeName), TString.typeName) /* Creates a qualified full name from the namespace and local name */
+//  ))
 
   // an unknown value
-  addType("Unknown", gAny("Unknown") ::: List(
-    Member(":=", List("Unknown", "Unknown"), "Unknown") /*  */ ,
-    Member(",", List("Unknown", "Unknown"), "Unknown") /*  */ ,
-    Member("async", List("Unknown"), "Unknown") /*  */
+  addType("Unknown", gAny(TUnknown.typeName) ::: List(
+    Member(":=", List(TUnknown.typeName, TUnknown.typeName), TUnknown.typeName) /*  */ ,
+    Member(",", List(TUnknown.typeName, TUnknown.typeName), TUnknown.typeName) /*  */ ,
+    Member("async", List(TUnknown.typeName), TUnknown.typeName) /*  */
   ))
 
 

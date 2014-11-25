@@ -4,12 +4,11 @@ import ch.ethz.inf.pm.sample.oorepresentation._
 import java.io.{FileReader, BufferedReader}
 import java.nio.file.{Files, Paths}
 import scala.io.Source
-import semper.sil.parser.Parser
-import semper.sil.{ast => sil}
+import viper.silver.parser.Parser
+import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.oorepresentation.Type
-import semper.sil.parser.Translator
-import scala.Some
-import semper.sil.parser.Resolver
+import viper.silver.parser.Translator
+import viper.silver.parser.Resolver
 import ch.ethz.inf.pm.sample.SystemParameters
 
 class SilCompiler extends Compiler {
@@ -31,7 +30,7 @@ class SilCompiler extends Compiler {
     val parseResult = Parser.parse(input, file)
     Resolver(parseResult.get).run
 
-    val (program, _) = Translator(parseResult.get).translate
+    val program = Translator(parseResult.get).translate.get
     compileProgram(program)
   }
 

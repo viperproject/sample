@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,7 +19,7 @@ import RichNativeSemantics._
 object TSprite_Sheet extends AAny {
 
   /** Gets the picture associated to this sprite sheet. */
-  lazy val field_picture = new TouchField("picture", TPicture.typeName)
+  lazy val field_picture = new ApiField("picture", TPicture.typeName)
 
   val typeName = TypeName("Sprite Sheet")
 

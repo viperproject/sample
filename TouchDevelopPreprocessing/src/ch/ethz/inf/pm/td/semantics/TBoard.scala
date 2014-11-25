@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -13,49 +13,49 @@ import RichNativeSemantics._
 object TBoard extends AMutable_Collection {
 
   /** Gets the background scene */
-  lazy val field_background_scene = new TouchField("background scene", TBoard_Background_Scene.typeName)
+  lazy val field_background_scene = new ApiField("background scene", TBoard_Background_Scene.typeName)
 
   /** The width in pixels */
-  lazy val field_width = new TouchField("width", TNumber.typeName)
+  lazy val field_width = new ApiField("width", TNumber.typeName)
 
   /** The height in pixels */
-  lazy val field_height = new TouchField("height", TNumber.typeName)
+  lazy val field_height = new ApiField("height", TNumber.typeName)
 
   /** The background color */
-  lazy val field_background = new TouchField("background", TColor.typeName)
+  lazy val field_background = new ApiField("background", TColor.typeName)
 
   /** The background camera */
-  lazy val field_background_camera = new TouchField("background camera", TCamera.typeName)
+  lazy val field_background_camera = new ApiField("background camera", TCamera.typeName)
 
   /** The background picture */
-  lazy val field_background_picture = new TouchField("background picture", TPicture.typeName)
+  lazy val field_background_picture = new ApiField("background picture", TPicture.typeName)
 
   /** In debug mode, board displays speed and other info of sprites */
-  lazy val field_debug_mode = new TouchField("debug mode", TBoolean.typeName)
+  lazy val field_debug_mode = new ApiField("debug mode", TBoolean.typeName)
 
   /** The default friction for sprites to a fraction of speed loss between 0 and 1 */
-  lazy val field_friction = new TouchField("friction", TNumber.typeName)
+  lazy val field_friction = new ApiField("friction", TNumber.typeName)
 
   /** The uniform x acceleration for objects on the board to pixels/sec2 */
-  lazy val field_gravity_x = new TouchField("gravity x", TNumber.typeName)
+  lazy val field_gravity_x = new ApiField("gravity x", TNumber.typeName)
 
   /** The uniform y acceleration for objects on the board to pixels/sec2 */
-  lazy val field_gravity_y = new TouchField("gravity y", TNumber.typeName)
+  lazy val field_gravity_y = new ApiField("gravity y", TNumber.typeName)
 
   /** Gets a value indicating if the board is designed to be viewed in landscape mode */
-  lazy val field_is_landscape = new TouchField("is landscape", TBoolean.typeName)
+  lazy val field_is_landscape = new ApiField("is landscape", TBoolean.typeName)
 
   /** [**dbg**] Read the current position of virtual joystick */
-  lazy val field_joystick = new TouchField("joystick", TVector3.typeName)
+  lazy val field_joystick = new ApiField("joystick", TVector3.typeName)
 
   /** [**dbg**] joystick (default), wheel, balance, drag or swipe. */
-  lazy val field_joystick_profile = new TouchField("joystick profile", TVector3.typeName)
+  lazy val field_joystick_profile = new ApiField("joystick profile", TVector3.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_swipe_handler = new TouchField("swipe handler", TVector_Action.typeName)
-  lazy val field_tap_handler = new TouchField("tap handler", TPosition_Action.typeName)
-  lazy val field_touch_down_handler = new TouchField("touch down handler", TPosition_Action.typeName)
-  lazy val field_touch_up_handler = new TouchField("touch up handler", TPosition_Action.typeName)
+  lazy val field_swipe_handler = new ApiField("swipe handler", TVector_Action.typeName)
+  lazy val field_tap_handler = new ApiField("tap handler", TPosition_Action.typeName)
+  lazy val field_touch_down_handler = new ApiField("touch down handler", TPosition_Action.typeName)
+  lazy val field_touch_up_handler = new ApiField("touch up handler", TPosition_Action.typeName)
 
   /** String name of the type */
   lazy val typeName = TypeName("Board")

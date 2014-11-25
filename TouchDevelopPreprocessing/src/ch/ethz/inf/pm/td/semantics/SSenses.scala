@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{TopWithInvalidInitializer, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -18,36 +18,36 @@ import RichNativeSemantics._
 object SSenses extends ASingleton {
 
   /** Gets the primary camera if available */
-  lazy val field_camera = new TouchField("camera", TCamera.typeName, topDefault = TopWithInvalidInitializer("camera may not be available"))
+  lazy val field_camera = new ApiField("camera", TCamera.typeName, topDefault = TopWithInvalidInitializer("camera may not be available"))
 
   /** Gets the front facing camera if available */
-  lazy val field_front_camera = new TouchField("front camera", TCamera.typeName, topDefault = TopWithInvalidInitializer("camera may not be available"))
+  lazy val field_front_camera = new ApiField("front camera", TCamera.typeName, topDefault = TopWithInvalidInitializer("camera may not be available"))
 
   /** DEPRECATED. Test if the senses→acceleration quick is invalid instead */
-  lazy val field_has_accelerometer = new TouchField("has accelerometer", TBoolean.typeName)
+  lazy val field_has_accelerometer = new ApiField("has accelerometer", TBoolean.typeName)
 
   /** DEPRECATED. Test if the senses→heading is invalid instead */
-  lazy val field_has_compass = new TouchField("has compass", TBoolean.typeName)
+  lazy val field_has_compass = new ApiField("has compass", TBoolean.typeName)
 
   /** DEPRECATED. Test if the senses→front camera is invalid instead */
-  lazy val field_has_front_camera = new TouchField("has front camera", TBoolean.typeName)
+  lazy val field_has_front_camera = new ApiField("has front camera", TBoolean.typeName)
 
   /** Indicates if the gyroscope is available on the device */
-  lazy val field_has_gyroscope = new TouchField("has gyroscope", TBoolean.typeName)
+  lazy val field_has_gyroscope = new ApiField("has gyroscope", TBoolean.typeName)
 
   /** Gets the charge level of the battery between 0 (discharged) and 1 (fully charged). Returns invalid if this information is not available. */
-  lazy val field_battery_level = new TouchField("battery level", TNumber.typeName)
+  lazy val field_battery_level = new ApiField("battery level", TNumber.typeName)
 
   /** Get the list of Bluetooth widgets paired with your device. */
-  lazy val field_bluetooth_devices = new TouchField("bluetooth devices", GCollection(TBluetooth_Device.typeName).typeName)
+  lazy val field_bluetooth_devices = new ApiField("bluetooth devices", GCollection(TBluetooth_Device.typeName).typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_shake_handler = new TouchField("shake handler", TAction.typeName)
-  lazy val field_phone_face_up_handler = new TouchField("phone face up handler", TAction.typeName)
-  lazy val field_phone_face_down_handler = new TouchField("phone face down handler", TAction.typeName)
-  lazy val field_phone_portrait = new TouchField("phone portrait handler", TAction.typeName)
-  lazy val field_phone_landscape_left = new TouchField("phone landscape left handler", TAction.typeName)
-  lazy val field_phone_langscape_right = new TouchField("phone landscape right handler", TAction.typeName)
+  lazy val field_shake_handler = new ApiField("shake handler", TAction.typeName)
+  lazy val field_phone_face_up_handler = new ApiField("phone face up handler", TAction.typeName)
+  lazy val field_phone_face_down_handler = new ApiField("phone face down handler", TAction.typeName)
+  lazy val field_phone_portrait = new ApiField("phone portrait handler", TAction.typeName)
+  lazy val field_phone_landscape_left = new ApiField("phone landscape left handler", TAction.typeName)
+  lazy val field_phone_langscape_right = new ApiField("phone landscape right handler", TAction.typeName)
 
   lazy val typeName = TypeName("Senses")
 

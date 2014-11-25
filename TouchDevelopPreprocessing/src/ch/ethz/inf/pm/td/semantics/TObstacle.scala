@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,13 +19,13 @@ import RichNativeSemantics._
 object TObstacle extends AAny {
 
   /** Color */
-  lazy val field_color = new TouchField("color", TColor.typeName)
+  lazy val field_color = new ApiField("color", TColor.typeName)
 
   /** Sets the obstacle thickness */
-  lazy val field_thickness = new TouchField("thickness", TNumber.typeName)
+  lazy val field_thickness = new ApiField("thickness", TNumber.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_collision_handler = new TouchField("collision handler", TSprite_Action.typeName)
+  lazy val field_collision_handler = new ApiField("collision handler", TSprite_Action.typeName)
 
   lazy val typeName = TypeName("Obstacle")
 

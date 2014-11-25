@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -23,25 +23,25 @@ object TLocation extends AAny {
 
 
   /** Gets the latitude of the coordinate */
-  lazy val field_latitude = new TouchField("latitude", TNumber.typeName) // -90 ndTo 90
+  lazy val field_latitude = new ApiField("latitude", TNumber.typeName) // -90 ndTo 90
 
   /** Gets the longitude of the coordinate */
-  lazy val field_longitude = new TouchField("longitude", TNumber.typeName) // -180 ndTo 180
+  lazy val field_longitude = new ApiField("longitude", TNumber.typeName) // -180 ndTo 180
 
   /** Gets the altitude of the coordinate */
-  lazy val field_altitude = new TouchField("altitude", TNumber.typeName)//, Invalid(TNumber))
+  lazy val field_altitude = new ApiField("altitude", TNumber.typeName)//, Invalid(TNumber))
 
   /** Gets the speed of the coordinate */
-  lazy val field_speed = new TouchField("speed", TNumber.typeName)//, Invalid(TNumber))
+  lazy val field_speed = new ApiField("speed", TNumber.typeName)//, Invalid(TNumber))
 
   /** Gets the course of the coordinate, in degrees relative to true north */
-  lazy val field_course = new TouchField("course", TNumber.typeName)//, Invalid(TNumber)) // 0 ndTo 360
+  lazy val field_course = new ApiField("course", TNumber.typeName)//, Invalid(TNumber)) // 0 ndTo 360
 
   /** Gets the horizontal accuracy of the coordinate */
-  lazy val field_hor_accuracy = new TouchField("hor accuracy", TNumber.typeName)//, Invalid(TNumber))
+  lazy val field_hor_accuracy = new ApiField("hor accuracy", TNumber.typeName)//, Invalid(TNumber))
 
   /** Gets the vertical accuracy of the coordinate */
-  lazy val field_vert_accuracy = new TouchField("vert accuracy", TNumber.typeName)//, Invalid(TNumber))
+  lazy val field_vert_accuracy = new ApiField("vert accuracy", TNumber.typeName)//, Invalid(TNumber))
 
   lazy val typeName = TypeName("Location")
 

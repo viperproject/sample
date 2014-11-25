@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,13 +19,13 @@ import RichNativeSemantics._
 object TMap_Pushpin extends AAny {
 
   /** Gets the pushpin geo location */
-  lazy val field_location = new TouchField("location", TLocation.typeName)
+  lazy val field_location = new ApiField("location", TLocation.typeName)
 
   /** Shows or hides the pushpin */
-  lazy val field_visible = new TouchField("visible", TBoolean.typeName)
+  lazy val field_visible = new ApiField("visible", TBoolean.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_tap_handler = new TouchField("tap handler", TPosition_Action.typeName)
+  lazy val field_tap_handler = new ApiField("tap handler", TPosition_Action.typeName)
 
   lazy val typeName = TypeName("Map Pushpin")
 

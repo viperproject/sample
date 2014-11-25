@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,22 +19,22 @@ import RichNativeSemantics._
 object TPlace extends AAny {
 
   /** Gets the category of the place */
-  lazy val field_category = new TouchField("category",TString.typeName)
+  lazy val field_category = new ApiField("category",TString.typeName)
 
   /** Gets the link associated to the message */
-  lazy val field_link = new TouchField("link",TString.typeName)
+  lazy val field_link = new ApiField("link",TString.typeName)
 
   /** Gets the location of the place */
-  lazy val field_location = new TouchField("location",TLocation.typeName)
+  lazy val field_location = new ApiField("location",TLocation.typeName)
 
   /** Gets the name of the place */
-  lazy val field_name = new TouchField("name",TString.typeName)
+  lazy val field_name = new ApiField("name",TString.typeName)
 
   /** Gets a url to the picture */
-  lazy val field_picture_link = new TouchField("picture link",TString.typeName)
+  lazy val field_picture_link = new ApiField("picture link",TString.typeName)
 
   /** Gets the source of this place (facebook, touchdevelop) */
-  lazy val field_source = new TouchField("source",TString.typeName)
+  lazy val field_source = new ApiField("source",TString.typeName)
 
   lazy val typeName = TypeName("Place")
 

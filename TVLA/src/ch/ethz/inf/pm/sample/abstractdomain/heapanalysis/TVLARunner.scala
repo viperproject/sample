@@ -105,7 +105,7 @@ object TVLARunner {
       case e : IOException => println("TVLA settings could not be copied to the working directory")
                 println(e.toString)
                 println(e.printStackTrace())
-                exit(1)
+                scala.sys.exit(1)
     }
   }
 

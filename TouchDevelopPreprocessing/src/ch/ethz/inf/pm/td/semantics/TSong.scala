@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,31 +19,31 @@ import RichNativeSemantics._
 object TSong extends AAny {
 
   /** Gets the song album containing the song */
-  lazy val field_album = new TouchField("album",TSong_Album.typeName)
+  lazy val field_album = new ApiField("album",TSong_Album.typeName)
 
   /** Gets the name of the artist */
-  lazy val field_artist = new TouchField("artist",TString.typeName)
+  lazy val field_artist = new ApiField("artist",TString.typeName)
 
   /** Gets the duration in seconds */
-  lazy val field_duration = new TouchField("duration",TNumber.typeName)
+  lazy val field_duration = new ApiField("duration",TNumber.typeName)
 
   /** Gets the genre of the song */
-  lazy val field_genre = new TouchField("genre",TString.typeName)
+  lazy val field_genre = new ApiField("genre",TString.typeName)
 
   /** Gets the name of the song */
-  lazy val field_name = new TouchField("name",TString.typeName)
+  lazy val field_name = new ApiField("name",TString.typeName)
 
   /** Gets the play count */
-  lazy val field_play_count = new TouchField("play count",TNumber.typeName)
+  lazy val field_play_count = new ApiField("play count",TNumber.typeName)
 
   /** Gets a value whether the song is DRM protected */
-  lazy val field_protected = new TouchField("protected",TBoolean.typeName)
+  lazy val field_protected = new ApiField("protected",TBoolean.typeName)
 
   /** Gets the users rating. -1 if not rated. */
-  lazy val field_rating = new TouchField("rating",TNumber.typeName)
+  lazy val field_rating = new ApiField("rating",TNumber.typeName)
 
   /** Gets the track number in the album */
-  lazy val field_track = new TouchField("track",TNumber.typeName)
+  lazy val field_track = new ApiField("track",TNumber.typeName)
 
   lazy val typeName = TypeName("Song")
 

@@ -1,7 +1,8 @@
-scalaSource in Compile <<= baseDirectory(_ / "src")
+scalaSource in Compile := baseDirectory.value / "src"
 
-scalaSource in Test <<= baseDirectory(_ / "test" / "scala")
+scalaSource in Test := baseDirectory.value / "test" / "scala"
 
-resourceDirectory in Test <<= baseDirectory(_ / "test" / "resources")
+resourceDirectory in Test := baseDirectory.value / "test" / "resources"
 
-libraryDependencies += "org.scalatest" % "scalatest_2.10" % "1.9.2" % "test"
+libraryDependencies += "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test"
+

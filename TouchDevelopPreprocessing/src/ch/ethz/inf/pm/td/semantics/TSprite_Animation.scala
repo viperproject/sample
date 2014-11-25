@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,11 +19,11 @@ import RichNativeSemantics._
 object TSprite_Animation extends AAny {
 
   /** Gets the current time scale factor */
-  lazy val field_time_scale = new TouchField("time scale", TNumber.typeName)
+  lazy val field_time_scale = new ApiField("time scale", TNumber.typeName)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_start_handler = new TouchField("start handler", TAction.typeName)
-  lazy val field_stop_handler = new TouchField("stop handler", TAction.typeName)
+  lazy val field_start_handler = new ApiField("start handler", TAction.typeName)
+  lazy val field_stop_handler = new ApiField("stop handler", TAction.typeName)
 
   val typeName = TypeName("Sprite Animation")
 

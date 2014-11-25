@@ -8,7 +8,7 @@ import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TypeList, TouchType}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
-case class GIndex(indexMemberType:TypeName, alternativeName:Option[TypeName] = None) extends ACollection {
+case class GIndex(indexMemberType:TypeName, alternativeName:Option[TypeName] = None) extends ALinearCollection {
 
   def typeName = alternativeName match { case None => TypeName(indexMemberType.ident + " Index"); case Some(x) => x }
 

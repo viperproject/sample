@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 
@@ -17,13 +17,13 @@ import ch.ethz.inf.pm.td.parser.TypeName
 object TPage_Button extends AAny {
 
   /** Gets the text */
-  lazy val field_text = new TouchField("text",TString.typeName)
+  lazy val field_text = new ApiField("text",TString.typeName)
 
   /** Gets the page hosting this button */
-  lazy val field_page = new TouchField("page",TPage.typeName)
+  lazy val field_page = new ApiField("page",TPage.typeName)
 
   /** Gets the icon name */
-  lazy val field_icon = new TouchField("icon",TString.typeName)
+  lazy val field_icon = new ApiField("icon",TString.typeName)
 
   lazy val typeName = TypeName("Page Button")
 

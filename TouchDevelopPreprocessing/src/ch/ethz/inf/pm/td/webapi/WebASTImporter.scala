@@ -180,7 +180,7 @@ object WebASTImporter {
       convert(jInlineAction.body)).setId(jInlineAction.id)
   }
 
-  def convertType(typeString:String):String = {
+  def makeTypeName(typeString: String): TypeName = {
 
     val JUserType = """\{"o":"(.*)"\}""".r
     val JLibraryType = """\{"l":"(.*)","o":"(.*)"\}""".r
@@ -192,26 +192,24 @@ object WebASTImporter {
 
     typeString match {
       case JLibraryType(l, o) =>
-        o
+        TypeName(o)
       case JUngenericTypeInstance(g) =>
-        g
+        TypeName(g)
       case JUngenericTypeInstance2(g) =>
-        g
+        TypeName(g)
       case JGenericTypeInstance(g, a) =>
-        a + " " + g
+        TypeName(g,List(TypeName(a)))
       case JGenericTypeInstance2(g, a) =>
-        a + " " + g
+        TypeName(g,List(TypeName(a)))
       case JGenericUserTypeInstance(g, a) =>
-        a + " " + g
+        TypeName(g,List(TypeName(a)))
       case JUserType(o) =>
-        o
+        TypeName(o)
       case _ =>
-        typeString
+        TypeName(typeString)
     }
 
   }
-
-  def makeTypeName(typeString: String): TypeName = TypeName(convertType(typeString))
 
 }
 

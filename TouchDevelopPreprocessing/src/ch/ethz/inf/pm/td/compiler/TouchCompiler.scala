@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.compiler
 
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.oorepresentation._
-import ch.ethz.inf.pm.td.analysis.{TouchField, Dispatcher}
+import ch.ethz.inf.pm.td.analysis.{ApiField, Dispatcher}
 import ch.ethz.inf.pm.td.parser.{LibraryDefinition, Script, _}
 import ch.ethz.inf.pm.td.semantics._
 import ch.ethz.inf.pm.td.transform.LoopRewriter
@@ -41,7 +41,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var globalData: Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields: Set[String] = Set.empty
   var userTypes: Map[TypeName, AAny] = Map.empty
-  var recordsFields: Set[TouchField] = Set.empty
+  var recordsFields: Set[ApiField] = Set.empty
 
   var isInLibraryMode = false
 

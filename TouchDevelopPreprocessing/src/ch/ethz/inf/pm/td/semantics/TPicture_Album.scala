@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 
@@ -18,13 +18,13 @@ import ch.ethz.inf.pm.td.parser.TypeName
 object TPicture_Album extends AAny {
 
   /** Gets the children albums */
-  lazy val field_albums = new TouchField("albums",TPicture_Albums.typeName)
+  lazy val field_albums = new ApiField("albums",TPicture_Albums.typeName)
 
   /** Gets the name of the album */
-  lazy val field_name = new TouchField("name",TString.typeName)
+  lazy val field_name = new ApiField("name",TString.typeName)
 
   /** Gets the pictures */
-  lazy val field_pictures = new TouchField("pictures",TPictures.typeName)
+  lazy val field_pictures = new ApiField("pictures",TPictures.typeName)
 
   lazy val typeName = TypeName("Picture Album")
 

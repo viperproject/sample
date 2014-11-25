@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.{ProgramPoint, Type, DummyProgramP
 import ch.ethz.inf.pm.sample.oorepresentation.sil.{PredType, Constants}
 import ch.ethz.inf.pm.sample.abstractdomain.VariableIdentifier
 import ch.ethz.inf.pm.sample.util.Predef._
-import com.weiglewilczek.slf4s.Logging
+import org.slf4s.Logging
 
 /** Domain that represents (candidate) predicate definitions.
   * Concretely, it maps predicate identifiers to predicate bodies.
@@ -138,7 +138,7 @@ case class PredicateDefinitionsDomain(
 
   def merge(r: Replacement): PredicateDefinitionsDomain = {
     if (!r.isEmpty())
-      logger.warn(s"Replacement $r ignored. " +
+      log.warn(s"Replacement $r ignored. " +
         "Use custom merge(PredicateIdentifierMerge) instead.")
     this
   }

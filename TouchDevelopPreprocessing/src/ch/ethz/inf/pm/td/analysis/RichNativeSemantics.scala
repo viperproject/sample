@@ -96,7 +96,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
    * Creates a new Object of type typ, and initializes its fields with the given arguments.
    */
   def New[S <: State[S]](typ: TouchType,
-                         initials: Map[TouchField, RichExpression] = Map.empty[TouchField, RichExpression],
+                         initials: Map[ApiField, RichExpression] = Map.empty[ApiField, RichExpression],
                          initializeFields: Boolean = true,
                          initialCollectionSize: Option[RichExpression] = None,
                          initialCollectionValue: Option[RichExpression] = None)(implicit s: S, pp: ProgramPoint): S = {
@@ -228,6 +228,10 @@ object RichNativeSemantics extends RichExpressionImplicits {
     val validResult = curState.expr
     Return[S](validResult, Invalid(typ, invalidCause))(curState, pp)
 
+  }
+
+  def SetToTopWithInvalid[S <: State[S]](expr: RichExpression, invalidCause: String)(implicit s: S, pp: ProgramPoint): S = {
+    ???
   }
 
   def Clone[S <: State[S]](obj: RichExpression, initials: Map[Identifier, RichExpression] = Map.empty[Identifier, RichExpression], recursive: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {
@@ -469,7 +473,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
     } else state
   }
 
-  def Field[S <: State[S]](obj: RichExpression, field: TouchField)(implicit state: S, pp: ProgramPoint): RichExpression = {
+  def Field[S <: State[S]](obj: RichExpression, field: ApiField)(implicit state: S, pp: ProgramPoint): RichExpression = {
     obj.thisExpr.getType().asInstanceOf[AAny].forwardSemantics(obj,field.getName,Nil,field.typ).expr
   }
 
@@ -486,7 +490,7 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
 }
 
-case class TouchField(
+case class ApiField(
                   name: String,
                   typeName: TypeName,
                   default: Initializer = NewInitializer,

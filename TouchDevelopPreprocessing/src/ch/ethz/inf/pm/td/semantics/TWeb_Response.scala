@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,28 +19,28 @@ import RichNativeSemantics._
 object TWeb_Response extends AAny {
 
   /** Reads the response body as a string */
-  lazy val field_content = new TouchField("content",TString.typeName)
+  lazy val field_content = new ApiField("content",TString.typeName)
 
   /** Reads the response body as a JSON tree */
-  lazy val field_content_as_json = new TouchField("content as json",TJson_Object.typeName)
+  lazy val field_content_as_json = new ApiField("content as json",TJson_Object.typeName)
 
   /** Reads the response body as a picture */
-  lazy val field_content_as_picture = new TouchField("content as picture",TPicture.typeName)
+  lazy val field_content_as_picture = new ApiField("content as picture",TPicture.typeName)
 
   /** Reads the response body as a wave sound */
-  lazy val field_content_as_sound = new TouchField("content as sound",TSound.typeName)
+  lazy val field_content_as_sound = new ApiField("content as sound",TSound.typeName)
 
   /** Reads the response body as a XML tree */
-  lazy val field_content_as_xml = new TouchField("content as xml",TXml_Object.typeName)
+  lazy val field_content_as_xml = new ApiField("content as xml",TXml_Object.typeName)
 
   /** Stores the headers. This is actually not publicly accessible */
-  lazy val field_header_storage = new TouchField("header storage",TString_Map.typeName)
+  lazy val field_header_storage = new ApiField("header storage",TString_Map.typeName)
 
   /** Gets the request associated to this response */
-  lazy val field_request = new TouchField("request",TWeb_Request.typeName)
+  lazy val field_request = new ApiField("request",TWeb_Request.typeName)
 
   /** Gets the HTTP Status code of the request if any */
-  lazy val field_status_code = new TouchField("status code",TNumber.typeName)
+  lazy val field_status_code = new ApiField("status code",TNumber.typeName)
 
   val typeName = TypeName("Web Response")
 

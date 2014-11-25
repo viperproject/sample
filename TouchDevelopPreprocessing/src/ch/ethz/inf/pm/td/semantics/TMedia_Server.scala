@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,19 +19,19 @@ import RichNativeSemantics._
 object TMedia_Server extends AAny {
 
   /** Gets the detailed information about this device */
-  lazy val field_device = new TouchField("device", TDevice.typeName)
+  lazy val field_device = new ApiField("device", TDevice.typeName)
 
   /** Gets the name of the printer */
-  lazy val field_name = new TouchField("name", TString.typeName)
+  lazy val field_name = new ApiField("name", TString.typeName)
 
   /** Gets a list of all pictures */
-  lazy val field_pictures = new TouchField("pictures", TMedia_Link_Collection.typeName)
+  lazy val field_pictures = new ApiField("pictures", TMedia_Link_Collection.typeName)
 
   /** Gets a list of all songs */
-  lazy val field_songs = new TouchField("songs", TMedia_Link_Collection.typeName)
+  lazy val field_songs = new ApiField("songs", TMedia_Link_Collection.typeName)
 
   /** Gets a list of all videos */
-  lazy val field_videos = new TouchField("videos", TMedia_Link_Collection.typeName)
+  lazy val field_videos = new ApiField("videos", TMedia_Link_Collection.typeName)
 
   lazy val typeName = TypeName("Media Server")
 

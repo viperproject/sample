@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TypeList, TouchType}
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -12,7 +12,7 @@ import ch.ethz.inf.pm.td.semantics.TBuffer._
 case class GTable(rowTyp: TypeName) extends AMutable_Collection {
 
   /** Backlink. Not a field of this table, but a field of all rows of the table */
-  val field_table = new TouchField("*table", typeName)
+  val field_table = new ApiField("*table", typeName)
 
   override def typeName: TypeName = TypeName(rowTyp.ident + " Table")
   override def keyTypeName: TypeName = TNumber.typeName

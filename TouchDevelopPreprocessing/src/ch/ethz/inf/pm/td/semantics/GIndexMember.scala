@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -12,7 +12,7 @@ import RichNativeSemantics._
  * @param valueFields To access the value of our index member fields (the object with get/set/clear)
  *                    we pass the "access path" to that field. So for this->someField->value we pass (someField,value)
  */
-case class GIndexMember(typeName: TypeName, keyFields: List[TouchField], valueFields: List[TouchField]) extends AAny {
+case class GIndexMember(typeName: TypeName, keyFields: List[ApiField], valueFields: List[ApiField]) extends AAny {
 
   override def possibleFields = super.possibleFields ++ keyFields ++ valueFields
 

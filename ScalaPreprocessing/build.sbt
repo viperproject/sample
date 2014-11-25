@@ -1,3 +1,3 @@
-scalaSource in Compile <<= baseDirectory(_ / "src")
+scalaSource in Compile := baseDirectory.value / "src"
 
-libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.10.3"
+libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value

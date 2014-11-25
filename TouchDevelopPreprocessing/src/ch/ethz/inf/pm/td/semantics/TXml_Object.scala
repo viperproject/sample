@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, NewInitializer, TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, NewInitializer, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,19 +19,19 @@ import RichNativeSemantics._
 object TXml_Object extends ALinearCollection {
 
   /** Gets the list of attribute names */
-  lazy val field_attributes = new TouchField("  attributes", TString_Map.typeName, NewInitializer)
+  lazy val field_attributes = new ApiField("  attributes", TString_Map.typeName, NewInitializer)
 
   /** Indicates if this instance is an element or a filtered collection */
-  lazy val field_is_element = new TouchField("is element", TBoolean.typeName, ExpressionInitializer(True(null)))
+  lazy val field_is_element = new ApiField("is element", TBoolean.typeName, ExpressionInitializer(True(null)))
 
   /** Gets the concatenated text contents of this element */
-  lazy val field_value = new TouchField("value", TString.typeName)
+  lazy val field_value = new ApiField("value", TString.typeName)
 
   /** Gets the namespace of this element */
-  lazy val field_namespace = new TouchField("namespace", TString.typeName)
+  lazy val field_namespace = new ApiField("namespace", TString.typeName)
 
   /** Gets the local name of this element */
-  lazy val field_local_name = new TouchField("local name", TString.typeName)
+  lazy val field_local_name = new ApiField("local name", TString.typeName)
 
   val typeName = TypeName("Xml Object")
 

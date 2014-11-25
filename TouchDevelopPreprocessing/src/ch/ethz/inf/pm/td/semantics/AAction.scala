@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import RichNativeSemantics._
 
@@ -17,7 +17,7 @@ trait AAction extends AAny {
     * corresponding action is created with a unique name (e.g. program point based) and this object is
     * returned with the handlerName field set to the name of the created action. If this field
     * is top, and run is executed, we have to go to top, since we do not know what is executed */
-  lazy val field_handlerName = new TouchField("*handlername",TString.typeName)
+  lazy val field_handlerName = new ApiField("*handlername",TString.typeName)
 
   override def possibleFields = super.possibleFields + field_handlerName
 

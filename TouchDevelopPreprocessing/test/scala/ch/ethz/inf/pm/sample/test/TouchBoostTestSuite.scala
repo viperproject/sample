@@ -270,44 +270,14 @@ abstract class ResourceBasedTestSuite extends FunSuite {
   }
 
   /** The config map passed to ScalaTest. */
-  protected var configMap: Map[String, Any] = Map[String, Any]()
+  protected var configMap: ConfigMap = ConfigMap()
 
   protected override def runTest(
                                   testName: String,
-                                  reporter: Reporter,
-                                  stopper: Stopper,
-                                  configMap: Map[String, Any],
-                                  tracker: Tracker) {
-    this.configMap = configMap
+                                  args:Args):Status = {
+    this.configMap = args.configMap
     registerTests()
-    super.runTest(testName, reporter, stopper, configMap, tracker)
-  }
-
-  protected override def runTests(
-                                   testName: Option[String],
-                                   reporter: Reporter,
-                                   stopper: Stopper,
-                                   filter: Filter,
-                                   configMap: Map[String, Any],
-                                   distributor: Option[Distributor],
-                                   tracker: Tracker) {
-    this.configMap = configMap
-    registerTests()
-
-    super.runTests(testName, reporter, stopper, filter, configMap, distributor, tracker)
-  }
-
-  override def run(
-                    testName: Option[String],
-                    reporter: Reporter,
-                    stopper: Stopper,
-                    filter: Filter,
-                    configMap: Map[String, Any],
-                    distributor: Option[Distributor],
-                    tracker: Tracker) {
-    this.configMap = configMap
-    registerTests()
-    super.run(testName, reporter, stopper, filter, configMap, distributor, tracker)
+    super.runTest(testName, args)
   }
 }
 
@@ -456,9 +426,6 @@ trait SystemUnderTest {
 
 /**
  * An output produced by a system under test.
- *
- * It deliberately does not reference [[semper.sil.ast.Position]],
- * such that the testing infrastructure is independent from SIL's AST.
  *
  * Its `toString` method will be used to output an error message
  * if the output was not supposed occur.

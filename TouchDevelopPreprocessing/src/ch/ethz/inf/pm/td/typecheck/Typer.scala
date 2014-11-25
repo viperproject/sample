@@ -39,54 +39,47 @@ object Typer {
       case TableDefinition(ident, typeName, keys, fields) =>
         val fieldMembers = for (field <- fields) yield {
           Member(field.ident, field.typeName)
-          //          val inp = field.typeName.toString
-          //          val (fieldType, noFieldType) =
-          //            if(inp.matches(""" field$""")) {
-          //              val (part1,check) = inp.splitAt(inp.size-7)
-          //              if (check != " field") throw TouchException("Expected field here")
-          //              (part1+" field",part1)
-          //            } else {
-          //              (inp+" field",inp)
-          //            }
-          //          if (noFieldType == "Number") st.addUserType(fieldType, GenericTypes.gNumberField(fieldType))
-          //          else st.addUserType(fieldType, GenericTypes.gField(fieldType, noFieldType))
-          //          Member(field.ident, fieldType)
         }
-
+        val records = TypeName("records")
+        val typ = TypeName(ident)
         typeName match {
           case "object" =>
-            st.addUserType(ident, GenericTypes.gObject(ident, fieldMembers))
-            st.addUserType(ident + " Collection", GenericTypes.gMutableCollection(ident + " Collection", ident))
-            st.addUserType(ident + " Constructor", List(Member("create", ident),
-              Member("create collection", ident + " Collection"),
-              Member("invalid", ident)))
-            st.addUserSingleton("records", List(Member(ident, ident + " Constructor")))
+            val constructorTyp = TypeName("Constructor", List(typ))
+            val collectionTyp = TypeName("Collection", List(typ))
+            st.addUserType(typ, GenericTypes.gObject(typ, fieldMembers))
+            st.addUserType(collectionTyp, GenericTypes.gMutableCollection(collectionTyp, typ))
+            st.addUserType(constructorTyp, List(Member("create", typ), Member("create collection", collectionTyp),
+              Member("invalid", typ)))
+            st.addUserSingleton(records, List(Member(ident, constructorTyp)))
           case "table" =>
-            st.addUserType(ident, GenericTypes.gRow(ident, fieldMembers))
-            st.addUserType(ident + " Table", GenericTypes.gTable(ident + " Table", ident))
-            st.addUserSingleton("records", List(Member(ident + " table", ident + " Table")))
+            val tableTyp = TypeName("Table",List(typ))
+            st.addUserType(typ, GenericTypes.gRow(typ, fieldMembers))
+            st.addUserType(tableTyp, GenericTypes.gTable(tableTyp, typ))
+            st.addUserSingleton(records, List(Member(ident + " table", tableTyp)))
           case "index" =>
+            val indexTyp = TypeName("Index",List(typ))
             val keyMembers = keys map {
-              case Parameter(x, typ) => Member(x, typ)
+              case Parameter(x, typX) => Member(x, typX)
             }
             val keyTypes = keys map {
-              case Parameter(_, typ) => typ.toString
+              case Parameter(_, typX) => typX
             }
             val fieldAndKeyMembers = fieldMembers ::: keyMembers
-            st.addUserType(ident, GenericTypes.gIndexMember(ident, fieldAndKeyMembers))
-            st.addUserType(ident + " Index", GenericTypes.gIndex(ident + " Index", keyTypes, ident))
-            st.addUserSingleton("records", List(Member(ident + " index", ident + " Index")))
+            st.addUserType(typ, GenericTypes.gIndexMember(typ, fieldAndKeyMembers))
+            st.addUserType(indexTyp, GenericTypes.gIndex(indexTyp, keyTypes, typ))
+            st.addUserSingleton(records, List(Member(ident + " index", indexTyp)))
           case "decorator" =>
+            val decoratorTyp = TypeName("Decorator",List(typ))
             if (keys.size != 1) throw TouchException("Decorators must have exactly one entry", thing.pos)
-            val decoratedType = keys.head.typeName.toString
+            val decoratedType = keys.head.typeName
             val keyMembers = keys map {
-              case Parameter(x, typ) => Member(x, typ)
+              case Parameter(x, typX) => Member(x, typX)
             }
             val fieldAndKeyMembers = fieldMembers ::: keyMembers
-            st.addUserType(ident, GenericTypes.gIndexMember(ident, fieldAndKeyMembers))
-            st.addUserType(decoratedType + " Decorator",
-              GenericTypes.gIndex(decoratedType + " Decorator", List(decoratedType), ident))
-            st.addUserSingleton("records", List(Member(decoratedType + " decorator", decoratedType + " Decorator")))
+            st.addUserType(typ, GenericTypes.gIndexMember(typ, fieldAndKeyMembers))
+            st.addUserType(decoratorTyp,
+              GenericTypes.gIndex(decoratorTyp, List(decoratedType), typ))
+            st.addUserSingleton(records, List(Member(decoratedType + " decorator", decoratorTyp)))
           case _ => throw TouchException("Table type " + typeName + " not supported", thing.pos)
 
         }
@@ -161,7 +154,7 @@ object Typer {
   def processExpression(scope: Scope, st: SymbolTable, expr: Expression): TypeName = {
 
     def is(typ: TypeName): TypeName = {
-      expr.typeName = typ;
+      expr.typeName = typ
       typ
     }
 

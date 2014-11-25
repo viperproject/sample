@@ -4,8 +4,8 @@ import ch.ethz.inf.pm.sample.abstractdomain.vdha._
 import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.ApronInterface
 import ch.ethz.inf.pm.sample.execution.{EntryStateBuilder, AnalysisResult, SimpleAnalysis, AnalysisRunner, Analysis}
 import ch.ethz.inf.pm.sample.abstractdomain._
-import semper.sil.{ast => sil}
-import com.weiglewilczek.slf4s.Logging
+import org.slf4s.Logging
+import viper.silver.{ast => sil}
 import ch.ethz.inf.pm.sample.oorepresentation.MethodDeclaration
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.vdha.PredicateDrivenHeapState._
@@ -88,8 +88,9 @@ object ReusingPredicateEntryStateBuilder extends PredicateEntryStateBuilder {
         val paramLocalVars = silMethod.formalArgs.map(_.localVar)
         paramLocalVars.find(Seq(_) == args) match {
           case Some(paramLocalVar) =>
+            val predX = program.findPredicate(pred)
             // Try to convert the predicate
-            val existingPreds = DefaultSilConverter.convert(Seq(pred))
+            val existingPreds = DefaultSilConverter.convert(Seq(predX))
             if (!existingPreds.map.isEmpty) {
               val heap = initialState.abstractHeap
               // Find the predicate identifier that created by the analysis
@@ -146,7 +147,7 @@ case class PredicateAnalysis[S <: SemanticDomain[S]](
             // the analysis was aborted to the entry state
             initialState = initialState.map(_.transformPredDefs(_ lub preds))
 
-            logger.info(s"Restarting analysis of method ${method.name}.")
+            log.info(s"Restarting analysis of method ${method.name}.")
         }
       }
 

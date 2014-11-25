@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -17,12 +17,12 @@ import RichNativeSemantics._
 
 object TTextBox extends AAny {
 
-  lazy val field_background = new TouchField("background",TColor.typeName)
-  lazy val field_border = new TouchField("border",TColor.typeName)
-  lazy val field_font_size = new TouchField("font size",TNumber.typeName)
-  lazy val field_foreground = new TouchField("foreground",TColor.typeName)
-  lazy val field_icon = new TouchField("icon",TPicture.typeName)
-  lazy val field_text = new TouchField("text",TString.typeName)
+  lazy val field_background = new ApiField("background",TColor.typeName)
+  lazy val field_border = new ApiField("border",TColor.typeName)
+  lazy val field_font_size = new ApiField("font size",TNumber.typeName)
+  lazy val field_foreground = new ApiField("foreground",TColor.typeName)
+  lazy val field_icon = new ApiField("icon",TPicture.typeName)
+  lazy val field_text = new ApiField("text",TString.typeName)
 
   val typeName = TypeName("TextBox")
 

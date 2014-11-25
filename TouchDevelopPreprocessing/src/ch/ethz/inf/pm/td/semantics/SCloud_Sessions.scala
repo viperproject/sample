@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{TouchField, RichNativeSemantics}
+import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,7 +19,7 @@ import RichNativeSemantics._
 object SCloud_Sessions extends ASingleton {
 
   /** Gets the current session. */
-  lazy val field_current_session = new TouchField("current session", TCloud_Session.typeName)
+  lazy val field_current_session = new ApiField("current session", TCloud_Session.typeName)
 
   lazy val typeName = TypeName("Cloud Sessions")
 

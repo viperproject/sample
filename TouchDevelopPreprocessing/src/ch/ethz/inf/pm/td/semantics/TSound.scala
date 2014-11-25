@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, TouchField, RichNativeSemantics, TouchAnalysisParameters}
+import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -19,16 +19,16 @@ import RichNativeSemantics._
 object TSound extends AAny {
 
   /** Gets the duration in seconds. */
-  lazy val field_duration = new TouchField("duration",TNumber.typeName)
+  lazy val field_duration = new ApiField("duration",TNumber.typeName)
 
   /** Gets the panning, ranging from -1.0 (full left) to 1.0 (full right). */
-  lazy val field_pan = new TouchField("pan",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_pan = new ApiField("pan",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
 
   /** Gets the pitch adjustment, ranging from -1 (down one octave) to 1 (up one octave). */
-  lazy val field_pitch = new TouchField("pitch",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_pitch = new ApiField("pitch",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
 
   /** Gets the volume from 0 (silent) to 1 (full volume) */
-  lazy val field_volume = new TouchField("volume",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
+  lazy val field_volume = new ApiField("volume",TNumber.typeName,ExpressionInitializer(-1 ndTo 1))
 
   lazy val typeName = TypeName("Sound")
 

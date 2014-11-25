@@ -3,7 +3,7 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.TouchField
+import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
 import ch.ethz.inf.pm.td.parser.TypeName
 
@@ -18,7 +18,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
 object TString_Map extends AMap {
 
   /** Gets the keys in the map */
-  lazy val field_keys = new TouchField("keys",TString_Collection.typeName)
+  lazy val field_keys = new ApiField("keys",TString_Collection.typeName)
 
   val typeName = TypeName("String Map")
 
