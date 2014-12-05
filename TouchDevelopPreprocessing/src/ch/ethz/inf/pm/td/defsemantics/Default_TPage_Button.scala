@@ -1,0 +1,66 @@
+
+package ch.ethz.inf.pm.td.defsemantics
+
+import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+import ch.ethz.inf.pm.td.parser.TypeName
+import ch.ethz.inf.pm.td.semantics._
+
+/**
+ * Specifies the abstract semantics of Page Button
+ *
+ * A page button on the wall
+ *
+ * @author Lucas Brutschy
+ */
+
+trait Default_TPage_Button extends AAny {
+
+  lazy val typeName = TypeName("Page Button")
+          
+  /** Rarely used: Gets a value indicating if both instances are equal */
+  def member_equals = ApiMember(
+    name = "equals",
+    paramTypes = List(ApiParam(TPage_Button)),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = DefaultSemantics
+  )
+
+  /** Frequently used: Gets the icon name */
+  def member_icon = ApiMember(
+    name = "icon",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
+  /** Rarely used: Gets the page hosting this button */
+  def member_page = ApiMember(
+    name = "page",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TPage,
+    semantics = DefaultSemantics
+  )
+
+  /** Frequently used: Gets the text */
+  def member_text = ApiMember(
+    name = "text",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
+
+  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
+    "equals" -> member_equals,
+    "icon" -> member_icon,
+    "page" -> member_page,
+    "text" -> member_text
+  )
+            
+
+}
+          
