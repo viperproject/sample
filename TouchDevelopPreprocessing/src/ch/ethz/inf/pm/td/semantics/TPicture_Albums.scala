@@ -4,6 +4,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TPicture_Albums
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -14,13 +15,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */ 
 
-object TPicture_Albums extends ALinearCollection {
-
-  lazy val typeName = TypeName("Picture Albums")
-
-  def keyTypeName = TNumber.typeName
-
-  def valueTypeName = TPicture_Album.typeName
+object TPicture_Albums extends Default_TPicture_Albums {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TServer_Response
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,18 +17,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TServer_Response extends AAny {
+object TServer_Response extends Default_TServer_Response {
 
   /** [**beta**] Gets the HTTP Status code of the response (defaults to 200) */
-  lazy val field_status_code = new ApiField("status code",TNumber.typeName)
+  lazy val field_status_code = ApiField("status code", TNumber)
 
   /** [**beta**] Gets the names of the headers */
-  lazy val field_header_map = new ApiField("header map",TString_Map.typeName)
+  lazy val field_header_map = ApiField("header map", TString_Map)
 
   /** [**beta**] Gets the request associated to this response */
-  lazy val field_request = new ApiField("request",TServer_Request.typeName)
-
-  lazy val typeName = TypeName("Server Response")
+  lazy val field_request = ApiField("request", TServer_Request)
 
   override def possibleFields = super.possibleFields ++ List(field_header_map, field_request, field_status_code)
 

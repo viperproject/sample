@@ -4,6 +4,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TLink_Collection
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -14,12 +15,7 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */ 
 
-object TLink_Collection extends AMutable_Collection {
-
-  lazy val typeName = TypeName("Link Collection")
-
-  def keyTypeName = TNumber.typeName
-  def valueTypeName = TLink.typeName
+object TLink_Collection extends Default_TLink_Collection {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

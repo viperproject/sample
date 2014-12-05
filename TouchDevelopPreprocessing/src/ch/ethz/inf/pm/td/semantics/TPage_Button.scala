@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TPage_Button
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -14,18 +15,16 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */
 
-object TPage_Button extends AAny {
+object TPage_Button extends Default_TPage_Button {
 
   /** Gets the text */
-  lazy val field_text = new ApiField("text",TString.typeName)
+  lazy val field_text = ApiField("text", TString)
 
   /** Gets the page hosting this button */
-  lazy val field_page = new ApiField("page",TPage.typeName)
+  lazy val field_page = ApiField("page", TPage)
 
   /** Gets the icon name */
-  lazy val field_icon = new ApiField("icon",TString.typeName)
-
-  lazy val typeName = TypeName("Page Button")
+  lazy val field_icon = ApiField("icon", TString)
 
   override def possibleFields = super.possibleFields ++ List(field_text,field_page,field_icon)
 
@@ -33,7 +32,7 @@ object TPage_Button extends AAny {
                                               (implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Gets a value indicating if both instances are equal */
-    // case "equals" => 
+    // case "equals" =>
     //   val List(page_button) = parameters // Page_Button
     //   Top[S](TBoolean)
 

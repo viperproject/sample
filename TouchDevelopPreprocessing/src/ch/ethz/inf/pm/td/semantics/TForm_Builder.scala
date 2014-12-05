@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TForm_Builder
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -18,40 +19,6 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TForm_Builder extends AAny {
-
-  lazy val typeName = TypeName("Form Builder")
-
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                     (implicit pp:ProgramPoint,state:S):S = method match {
-      
-    /** Adds a string value */
-    case "add string" =>
-      val List(name,value) = parameters // String,String
-      Dummy[S](this0,method)
-      Skip
-
-    /** Adds a number value */
-    case "add number" =>
-      val List(name,value) = parameters // String,Number
-      Dummy[S](this0,method)
-      Skip
-
-    /** Adds a boolean value */
-    case "add boolean" =>
-      val List(name,value) = parameters // String,Boolean
-      Dummy[S](this0,method)
-      Skip
-
-    /** Adds a picture */
-    case "add picture" =>
-      val List(name,value,picture_Name) = parameters // String,Picture,String
-      Dummy[S](this0,method)
-      Skip
-
-    case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
-
-  }
+object TForm_Builder extends Default_TForm_Builder {
 }
       

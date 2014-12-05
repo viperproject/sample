@@ -331,13 +331,13 @@ trait HeapDomain[T <: HeapDomain[T, I], I <: HeapIdentifier[I]]
    * Creates the heap structure for an empty collection
    *
    * @param collTyp  The type of the collection
-   * @param keyTyp  The type of the collection's keys
-   * @param valueTyp The type of the collection's values
+   * @param keyType  The type of the collection's keys
+   * @param valueType The type of the collection's values
    * @param lengthTyp  The type of the collection's length
    * @param pp The program point at which the collection is created
    * @return The Heapidentifier of the newly created collection and the heap with the newly created collection
    */
-  def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
+  def createEmptyCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement)
 
   /**
    * Returns the collection identifier or if a summary collection for

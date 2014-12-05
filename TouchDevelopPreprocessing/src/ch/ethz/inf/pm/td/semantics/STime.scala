@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_STime
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -15,12 +16,11 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object STime extends ASingleton {
+object STime extends Default_STime {
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_every_frame_handler = new ApiField("every frame handler", TAction.typeName)
+  lazy val field_every_frame_handler = ApiField("every frame handler", TAction)
 
-  lazy val typeName = TypeName("Time")
   override def possibleFields = super.possibleFields ++ List(field_every_frame_handler)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)

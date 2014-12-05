@@ -570,7 +570,7 @@ class TVSHeap extends HeapDomain[TVSHeap, NodeName] {
   def getArrayCell[S <: SemanticDomain[S]](arrayIdentifier: Assignable, index: Expression, state: S,
                                            typ: Type): (DefiniteHeapIdSetDomain[NodeName], TVSHeap, Replacement) = throw new NotImplementedException("not implemented yet")
 
-  def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
+  def createEmptyCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = throw new NotImplementedException("not implemented yet")
 
   def getSummaryCollectionIfExists(collection: Assignable) = throw new NotImplementedException("not implemented yet")
 

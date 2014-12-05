@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TPrinter
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,27 +17,25 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TPrinter extends AAny {
+object TPrinter extends Default_TPrinter {
 
   /** Gets the detailed information about this device */
-  lazy val field_device = new ApiField("device",TDevice.typeName)
+  lazy val field_device = ApiField("device", TDevice)
 
   /** Indicates additional information about why the Printer is in its current state. */
-  lazy val field_state_reason = new ApiField("state reason",TString.typeName)
+  lazy val field_state_reason = ApiField("state reason", TString)
 
   /** Gets the name of the printer */
-  lazy val field_name = new ApiField("name",TString.typeName)
+  lazy val field_name = ApiField("name", TString)
 
   /** Indicates if no jobs can be processed and intervention is needed. */
-  lazy val field_is_stopped = new ApiField("is stopped",TBoolean.typeName)
+  lazy val field_is_stopped = ApiField("is stopped", TBoolean)
 
   /** Indicates if jobs are processing; new jobs will wait before processing, i.e., are said to be pending. */
-  lazy val field_is_processing = new ApiField("is processing",TBoolean.typeName)
+  lazy val field_is_processing = ApiField("is processing", TBoolean)
 
   /** Indicates if new jobs can start processing immediately without waiting. */
-  lazy val field_is_idle = new ApiField("is idle",TBoolean.typeName)
-
-  lazy val typeName = TypeName("Printer")
+  lazy val field_is_idle = ApiField("is idle", TBoolean)
 
   override def possibleFields = super.possibleFields ++ List(field_device, field_is_idle, field_is_processing,
     field_is_stopped, field_name, field_state_reason)

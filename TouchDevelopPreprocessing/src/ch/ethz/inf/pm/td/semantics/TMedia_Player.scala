@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TMedia_Player
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,39 +17,38 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TMedia_Player extends AAny {
+object TMedia_Player extends Default_TMedia_Player {
 
   /** Gets the uri of the media currently active */
-  lazy val field_active_media = new ApiField("active media",TString.typeName)
+  lazy val field_active_media = ApiField("active media", TString)
 
   /** Gets the detailed information about this device */
-  lazy val field_device = new ApiField("device",TDevice.typeName)
+  lazy val field_device = ApiField("device", TDevice)
 
   /** Indicates the media can be played, paused, resumed */
-  lazy val field_is_control_supported = new ApiField("is control supported",TBoolean.typeName)
+  lazy val field_is_control_supported = ApiField("is control supported", TBoolean)
 
   /** Indicates if the player is paused */
-  lazy val field_is_paused = new ApiField("is paused",TBoolean.typeName)
+  lazy val field_is_paused = ApiField("is paused", TBoolean)
 
   /** Indicates if the player is playing */
-  lazy val field_is_playing = new ApiField("is playing",TBoolean.typeName)
+  lazy val field_is_playing = ApiField("is playing", TBoolean)
 
   /** Indicates if the player is stopped */
-  lazy val field_is_stopped = new ApiField("is stopped",TBoolean.typeName)
+  lazy val field_is_stopped = ApiField("is stopped", TBoolean)
 
   /** Indicates if volume can be changed */
-  lazy val field_is_volume_supported = new ApiField("is volume supported",TBoolean.typeName)
+  lazy val field_is_volume_supported = ApiField("is volume supported", TBoolean)
 
   /** Gets the name of the audio/video player */
-  lazy val field_name = new ApiField("name",TString.typeName)
+  lazy val field_name = ApiField("name", TString)
 
   /** Gets the status of the player */
-  lazy val field_status = new ApiField("status",TString.typeName)
+  lazy val field_status = ApiField("status", TString)
 
   /** Gets the current volume */
-  lazy val field_volume = new ApiField("volume",TNumber.typeName)
+  lazy val field_volume = ApiField("volume", TNumber)
 
-  lazy val typeName = TypeName("Media Player")
   override def possibleFields = super.possibleFields ++ List(field_active_media, field_device,
     field_is_control_supported, field_is_paused, field_is_playing, field_is_stopped, field_is_volume_supported,
     field_name, field_status, field_volume)

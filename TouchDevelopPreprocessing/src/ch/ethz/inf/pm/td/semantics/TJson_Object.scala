@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TJson_Object
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
@@ -17,30 +18,25 @@ import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
  * @author Lucas Brutschy
  */
 
-object TJson_Object extends AMap {
+object TJson_Object extends Default_TJson_Object {
 
   /** Gets the list of keys */
-  lazy val field_keys = new ApiField("keys", TString_Collection.typeName)
+  lazy val field_keys = ApiField("keys", TString_Collection)
 
   /** Gets a json kind (string, number, object, array, boolean, null) */
-  lazy val field_kind = new ApiField("kind", TString.typeName)
+  lazy val field_kind = ApiField("kind", TString)
 
   /** Converts to a boolean (type must be boolean) */
-  lazy val field_to_boolean = new ApiField("to boolean", TBoolean.typeName)
+  lazy val field_to_boolean = ApiField("to boolean", TBoolean)
 
   /** Converts to a number (type must be number) */
-  lazy val field_to_number = new ApiField("to number", TNumber.typeName)
+  lazy val field_to_number = ApiField("to number", TNumber)
 
   /** Converts to a number (type must be string) */
-  lazy val field_to_string = new ApiField("to string", TString.typeName)
+  lazy val field_to_string = ApiField("to string", TString)
 
   /** Converts and parses to a date time (type must be string) */
-  lazy val field_to_time = new ApiField("to time", TDateTime.typeName)
-
-  lazy val typeName = TypeName("Json Object")
-
-  def keyTypeName = TString.typeName
-  def valueTypeName = TJson_Object.typeName
+  lazy val field_to_time = ApiField("to time", TDateTime)
 
   override def possibleFields = super.possibleFields ++ Set(field_keys, field_kind, field_to_boolean, field_to_number,
     field_to_string, field_to_time)

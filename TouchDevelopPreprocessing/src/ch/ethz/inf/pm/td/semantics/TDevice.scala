@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TDevice
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,18 +17,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TDevice extends AAny {
+object TDevice extends Default_TDevice {
 
   /** Checks if the device is connected */
-  lazy val field_is_connected = new ApiField("is connected",TBoolean.typeName)
+  lazy val field_is_connected = ApiField("is connected", TBoolean)
 
   /** Gets the manfacturer name */
-  lazy val field_manufacturer = new ApiField("manufacturer",TString.typeName)
+  lazy val field_manufacturer = ApiField("manufacturer", TString)
 
   /** Gets the friendly name of the device */
-  lazy val field_name = new ApiField("name",TString.typeName)
-
-  lazy val typeName = TypeName("Device")
+  lazy val field_name = ApiField("name", TString)
 
   override def possibleFields = super.possibleFields ++ List(field_is_connected, field_manufacturer, field_name)
 

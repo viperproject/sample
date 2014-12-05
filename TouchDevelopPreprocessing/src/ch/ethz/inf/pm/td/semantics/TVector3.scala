@@ -3,7 +3,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.Default_TVector3
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -12,13 +13,11 @@ import RichNativeSemantics._
  * Date: 11/8/12
  * Time: 6:10 PM
  */
-object TVector3 extends AAny {
+object TVector3 extends Default_TVector3 {
 
-  lazy val field_x = new ApiField("x", TNumber.typeName)
-  lazy val field_y = new ApiField("y", TNumber.typeName)
-  lazy val field_z = new ApiField("z", TNumber.typeName)
-
-  val typeName = TypeName("Vector3")
+  lazy val field_x = ApiField("x", TNumber)
+  lazy val field_y = ApiField("y", TNumber)
+  lazy val field_z = ApiField("z", TNumber)
 
   override def possibleFields = super.possibleFields ++ List(field_x,field_y,field_z)
 

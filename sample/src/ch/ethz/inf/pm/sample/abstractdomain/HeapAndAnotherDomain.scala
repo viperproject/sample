@@ -168,9 +168,9 @@ I <: HeapIdentifier[I]](
     factory(newSemanticResult, newHeap3)
   }
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionType: Option[Type], keyCollectionType: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement) = {
+  def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, originalCollectionType: Option[Type], keyCollectionType: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], T, Replacement) = {
 
-    val (collectionIds, newHeap, rep) = heap.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionType, keyCollectionType, pp)
+    val (collectionIds, newHeap, rep) = heap.createEmptyCollection(collTyp, keyType, valueType, lengthTyp, originalCollectionType, keyCollectionType, pp)
     var result = factory(semantic.merge(rep), newHeap)
 
     def setCollectionLength(initial: T, lengthTyp: Type)(collection: Assignable) = {
@@ -361,7 +361,7 @@ I <: HeapIdentifier[I]](
     }
   }
 
-  def extractCollectionKeys(fromCollection: Assignable, newKeyValue: Expression, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): (T, HeapIdSetDomain[I], Replacement) = {
+  def extractCollectionKeys(fromCollection: Assignable, newKeyValue: Expression, fromCollectionTyp: Type, collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, pp: ProgramPoint): (T, HeapIdSetDomain[I], Replacement) = {
     var resultRep = new Replacement()
     def insertKeyAsValue(keyId: I, key: Expression, result: T)(collectionApprox: Assignable) = {
       val (res, rep) = result.insertCollectionElementToApprox(collectionApprox, key, keyId, keyId.pp)
@@ -370,7 +370,7 @@ I <: HeapIdentifier[I]](
     }
 
     var result = this.factory()
-    val (toCollectionIds, newHeap, rep) = heap.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, Some(fromCollectionTyp), None, pp)
+    val (toCollectionIds, newHeap, rep) = heap.createEmptyCollection(collTyp, keyType, valueType, lengthTyp, Some(fromCollectionTyp), None, pp)
     result = factory(semantic.merge(rep), newHeap)
 
     val toCollectionOverApproxIds = HeapIdSetFunctionalLifting.applyToSetHeapId(new MaybeHeapIdSetDomain[I](), toCollectionIds, heap.getCollectionOverApproximation)

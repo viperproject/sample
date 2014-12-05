@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TMatrix
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
@@ -17,19 +18,13 @@ import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
  * @author Lucas Brutschy
  */ 
 
-object TMatrix extends AMutable_Collection {
+object TMatrix extends Default_TMatrix {
 
   /** Gets the number of columns */
-  lazy val field_column_count = new ApiField("column count",TNumber.typeName)
+  lazy val field_column_count = ApiField("column count", TNumber)
 
   /** Gets the number of rows */
-  lazy val field_row_count = new ApiField("row count",TNumber.typeName)
-
-  lazy val typeName = TypeName("Matrix")
-
-  def keyTypeName = TNumber.typeName
-
-  def valueTypeName = TNumber.typeName
+  lazy val field_row_count = ApiField("row count", TNumber)
 
   override def possibleFields = super.possibleFields ++ Set(field_column_count,field_row_count)
 

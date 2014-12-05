@@ -4,65 +4,59 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TBoard
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
 /**
  * @author Lucas Brutschy
  */
-object TBoard extends AMutable_Collection {
+object TBoard extends Default_TBoard {
 
   /** Gets the background scene */
-  lazy val field_background_scene = new ApiField("background scene", TBoard_Background_Scene.typeName)
+  lazy val field_background_scene = ApiField("background scene", TBoard_Background_Scene)
 
   /** The width in pixels */
-  lazy val field_width = new ApiField("width", TNumber.typeName)
+  lazy val field_width = ApiField("width", TNumber)
 
   /** The height in pixels */
-  lazy val field_height = new ApiField("height", TNumber.typeName)
+  lazy val field_height = ApiField("height", TNumber)
 
   /** The background color */
-  lazy val field_background = new ApiField("background", TColor.typeName)
+  lazy val field_background = ApiField("background", TColor)
 
   /** The background camera */
-  lazy val field_background_camera = new ApiField("background camera", TCamera.typeName)
+  lazy val field_background_camera = ApiField("background camera", TCamera)
 
   /** The background picture */
-  lazy val field_background_picture = new ApiField("background picture", TPicture.typeName)
+  lazy val field_background_picture = ApiField("background picture", TPicture)
 
   /** In debug mode, board displays speed and other info of sprites */
-  lazy val field_debug_mode = new ApiField("debug mode", TBoolean.typeName)
+  lazy val field_debug_mode = ApiField("debug mode", TBoolean)
 
   /** The default friction for sprites to a fraction of speed loss between 0 and 1 */
-  lazy val field_friction = new ApiField("friction", TNumber.typeName)
+  lazy val field_friction = ApiField("friction", TNumber)
 
   /** The uniform x acceleration for objects on the board to pixels/sec2 */
-  lazy val field_gravity_x = new ApiField("gravity x", TNumber.typeName)
+  lazy val field_gravity_x = ApiField("gravity x", TNumber)
 
   /** The uniform y acceleration for objects on the board to pixels/sec2 */
-  lazy val field_gravity_y = new ApiField("gravity y", TNumber.typeName)
+  lazy val field_gravity_y = ApiField("gravity y", TNumber)
 
   /** Gets a value indicating if the board is designed to be viewed in landscape mode */
-  lazy val field_is_landscape = new ApiField("is landscape", TBoolean.typeName)
+  lazy val field_is_landscape = ApiField("is landscape", TBoolean)
 
   /** [**dbg**] Read the current position of virtual joystick */
-  lazy val field_joystick = new ApiField("joystick", TVector3.typeName)
+  lazy val field_joystick = ApiField("joystick", TVector3)
 
   /** [**dbg**] joystick (default), wheel, balance, drag or swipe. */
-  lazy val field_joystick_profile = new ApiField("joystick profile", TVector3.typeName)
+  lazy val field_joystick_profile = ApiField("joystick profile", TVector3)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_swipe_handler = new ApiField("swipe handler", TVector_Action.typeName)
-  lazy val field_tap_handler = new ApiField("tap handler", TPosition_Action.typeName)
-  lazy val field_touch_down_handler = new ApiField("touch down handler", TPosition_Action.typeName)
-  lazy val field_touch_up_handler = new ApiField("touch up handler", TPosition_Action.typeName)
-
-  /** String name of the type */
-  lazy val typeName = TypeName("Board")
-
-  def keyTypeName = TNumber.typeName
-
-  def valueTypeName = TSprite.typeName
+  lazy val field_swipe_handler = ApiField("swipe handler", TVector_Action)
+  lazy val field_tap_handler = ApiField("tap handler", TPosition_Action)
+  lazy val field_touch_down_handler = ApiField("touch down handler", TPosition_Action)
+  lazy val field_touch_up_handler = ApiField("touch up handler", TPosition_Action)
 
   override def possibleFields = super.possibleFields ++ List(
     field_width,

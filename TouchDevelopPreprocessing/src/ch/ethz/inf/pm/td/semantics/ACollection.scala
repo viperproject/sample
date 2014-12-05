@@ -14,32 +14,66 @@ import RichNativeSemantics._
  */
 trait ACollection extends AAny {
 
-  def keyTypeName:TypeName
-  def valueTypeName:TypeName
-
-  lazy val entryType = GEntry(keyTypeName,valueTypeName)
-
-  lazy val keyType =   SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(keyTypeName)
-  lazy val valueType = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(valueTypeName)
-
-  lazy val field_count = ApiField("count",TNumber.typeName)
-  lazy val field_entry = ApiField("entries",entryType.typeName)
-
+  def keyType:AAny
+  def valueType:AAny
 
   /** Exports a JSON representation of the contents. */
-  lazy val member_to_json = new ApiMember("to json", List(), ApiParam(this), TJson_Object) with TopSemantics
+  def member_to_json = new ApiMember(
+    name = "to json",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TJson_Object,
+    semantics = TopSemantics
+  )
 
   /** Gets the number of elements */
-  lazy val member_count = new ApiMember("count", List(), ApiParam(this), TNumber) with DefaultSemantics
+  def member_count = new ApiMember(
+    name = "count",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    TNumber,
+    DefaultSemantics
+  )
 
   /** Imports a JSON representation of the contents. */
-  lazy val member_from_json = new ApiMember("from json", List(ApiParam(TJson_Object)), ApiParam(TString_Collection,isMutated=true), TNothing) with DefaultSemantics
+  def member_from_json = new ApiMember(
+    name = "from json",
+    paramTypes = List(ApiParam(TJson_Object)),
+    thisType = ApiParam(this,isMutated=true),
+    returnType = TNothing,
+    DefaultSemantics
+  )
 
-  override lazy val declarations:Map[String,ApiMember] = super.declarations ++ Map(
+  /** Never used: Clears the values from the map */
+  def member_copy = ApiMember(
+    name = "copy",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = this,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Clears the values from the map */
+  def member_at_index = ApiMember(
+    name = "at index",
+    paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = valueType,
+    semantics = DefaultSemantics
+  )
+
+  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
     "to json" -> member_to_json,
     "count" -> member_count,
-    "from json" -> member_from_json
+    "from json" -> member_from_json,
+    "copy" -> member_copy,
+    "at index" -> member_at_index
   )
+
+  lazy val entryType = GEntry(keyType,valueType)
+
+  lazy val field_count = ApiField("count",TNumber)
+  lazy val field_entry = ApiField("entries",entryType)
 
   override def isSingleton: Boolean = false
 
@@ -64,7 +98,6 @@ trait ACollection extends AAny {
 
   def collectionInsert[S <: State[S]](collection: RichExpression, index: RichExpression, right: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     var curState = state
-    val entryType = GEntry(keyTypeName, valueTypeName)
     curState = New[S](entryType, initials = Map(
       entryType.field_key -> index,
       entryType.field_value -> right
@@ -90,7 +123,7 @@ trait ACollection extends AAny {
     var curState = state
     curState = collectionSetSize[S](collection, 0)(curState, pp)
     curState = AssignField[S](collection,field_entry,
-      Invalid(GEntry(keyTypeName,valueTypeName),"collection cleared"))(curState,pp)
+      Invalid(entryType,"collection cleared"))(curState,pp)
     curState
   }
 

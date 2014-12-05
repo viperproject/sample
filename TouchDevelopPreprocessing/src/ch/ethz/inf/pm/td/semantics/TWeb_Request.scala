@@ -4,7 +4,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.Default_TWeb_Request
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,44 +17,41 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TWeb_Request extends AAny {
+object TWeb_Request extends Default_TWeb_Request {
 
   /** Reads the response body as a string */
-  lazy val field_content = new ApiField("content", TString.typeName)
+  lazy val field_content = ApiField("content", TString)
 
   /** Reads the response body as a JSON tree */
-  lazy val field_content_as_json = new ApiField("content as json", TJson_Object.typeName)
+  lazy val field_content_as_json = ApiField("content as json", TJson_Object)
 
   /** Reads the response body as a picture */
-  lazy val field_content_as_picture = new ApiField("content as picture", TPicture.typeName)
-  lazy val field_content_as_picture_quality = new ApiField("content as picture", TPicture.typeName)
+  lazy val field_content_as_picture = ApiField("content as picture", TPicture)
+  lazy val field_content_as_picture_quality = ApiField("content as picture", TPicture)
 
   /** Reads the response body as a picture */
-  lazy val field_content_as_form = new ApiField("content as form", TForm_Builder.typeName)
+  lazy val field_content_as_form = ApiField("content as form", TForm_Builder)
 
   /** Reads the response body as a XML tree */
-  lazy val field_content_as_xml = new ApiField("content as xml", TXml_Object.typeName)
+  lazy val field_content_as_xml = ApiField("content as xml", TXml_Object)
 
   /** Stores the headers. This is actually not publicly accessible */
-  lazy val field_header_storage = new ApiField("header storage", TString_Map.typeName)
+  lazy val field_header_storage = ApiField("header storage", TString_Map)
 
   /** Gets whether it was a 'get' or a 'post'. */
-  lazy val field_method = new ApiField("method", TString.typeName)
+  lazy val field_method = ApiField("method", TString)
 
   /** Gets the url of the request */
-  lazy val field_url = new ApiField("url", TString.typeName)
+  lazy val field_url = ApiField("url", TString)
 
   /** Credentials name */
-  lazy val field_credentials_name = new ApiField("credentials name", TString.typeName)
+  lazy val field_credentials_name = ApiField("credentials name", TString)
 
   /** Credentials password */
-  lazy val field_credentials_password = new ApiField("credentials password", TString.typeName)
+  lazy val field_credentials_password = ApiField("credentials password", TString)
 
   /** Async response handler */
-  lazy val field_handler = new ApiField("handler", TWeb_Response_Action.typeName)
-
-  val typeName = TypeName("Web Request")
-
+  lazy val field_handler = ApiField("handler", TWeb_Response_Action)
   override def possibleFields = super.possibleFields ++ List(field_header_storage, field_method, field_url,
     field_content, field_content_as_json, field_content_as_picture, field_content_as_picture_quality,
     field_content_as_xml, field_content_as_form,

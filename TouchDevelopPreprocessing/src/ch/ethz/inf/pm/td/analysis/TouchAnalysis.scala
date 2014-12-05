@@ -136,7 +136,7 @@ class TouchAnalysis[D <: NumericalDomain[D], R <: StringDomain[R]]
 
     // Initialize the fields of singletons (the environment)
     var curState = entryState
-    for (sem <- compiler.getSingletons) {
+    for (sem <- TypeList.getSingletons) {
       sem match {
         case any: AAny =>
           val typ = any

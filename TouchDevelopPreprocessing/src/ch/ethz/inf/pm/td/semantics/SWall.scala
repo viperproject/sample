@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.{TopTouchType, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.Default_SWall
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,48 +17,46 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SWall extends ASingleton {
+object SWall extends Default_SWall {
 
   /** Gets the list of available page button names. */
-  lazy val field_button_icon_names = new ApiField("button icon names", TString_Collection.typeName)
+  lazy val field_button_icon_names = ApiField("button icon names", TString_Collection)
 
   /** Gets the width of the screen (in pixels). */
-  lazy val field_width = new ApiField("width", TNumber.typeName)
+  lazy val field_width = ApiField("width", TNumber)
 
   /** Gets the height of the screen (in pixels). */
-  lazy val field_height = new ApiField("height", TNumber.typeName)
+  lazy val field_height = ApiField("height", TNumber)
 
   /** Sets the wall background camera. */
-  lazy val field_background_camera = new ApiField("background camera", TCamera.typeName)
+  lazy val field_background_camera = ApiField("background camera", TCamera)
 
   /** Sets the wall background picture. The picture will be resized and clipped to the screen background as needed. */
-  lazy val field_background_picture = new ApiField("background picture", TPicture.typeName)
+  lazy val field_background_picture = ApiField("background picture", TPicture)
 
   /** Sets the wall background color. */
-  lazy val field_background = new ApiField("background", TColor.typeName)
+  lazy val field_background = ApiField("background", TColor)
 
   /** Sets the wall foreground color of elements. */
-  lazy val field_foreground = new ApiField("foreground", TColor.typeName)
+  lazy val field_foreground = ApiField("foreground", TColor)
 
   /** [**dbg**] Sets the animation for push/pop of pages. */
-  lazy val field_page_transition_style = new ApiField("page transition style", TString.typeName)
+  lazy val field_page_transition_style = ApiField("page transition style", TString)
 
   /** Reverses the elements on the wall and inserts new ones at the bottom. */
-  lazy val field_reversed = new ApiField("reversed", TBoolean.typeName)
+  lazy val field_reversed = ApiField("reversed", TBoolean)
 
   /** Sets the subtitle of the wall. */
-  lazy val field_subtitle = new ApiField("subtitle", TBoolean.typeName)
+  lazy val field_subtitle = ApiField("subtitle", TBoolean)
 
   /** Sets the title of the wall. */
-  lazy val field_title = new ApiField("title", TBoolean.typeName)
+  lazy val field_title = ApiField("title", TBoolean)
 
   /** Returns the current back stack of pages, starting from the current page to the bottom page. */
-  lazy val field_pages = new ApiField("pages", TPage_Collection.typeName)
+  lazy val field_pages = ApiField("pages", TPage_Collection)
 
   /** Indicates whether to show or hide the search icon */
-  lazy val field_display_search = new ApiField("display search", TBoolean.typeName)
-
-  lazy val typeName = TypeName("Wall")
+  lazy val field_display_search = ApiField("display search", TBoolean)
 
   override def possibleFields = super.possibleFields ++ List(
     field_button_icon_names,

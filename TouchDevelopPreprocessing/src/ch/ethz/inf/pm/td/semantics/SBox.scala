@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_SBox
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,74 +17,73 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SBox extends ASingleton {
+object SBox extends Default_SBox {
 
-  lazy val field_is_init = new ApiField("is init", TBoolean.typeName)
+  lazy val field_is_init = ApiField("is init", TBoolean)
 
-  lazy val field_horizontal_align = new ApiField("horizontal align", TString.typeName)
-  lazy val field_vertical_align = new ApiField("vertical align", TString.typeName)
+  lazy val field_horizontal_align = ApiField("horizontal align", TString)
+  lazy val field_vertical_align = ApiField("vertical align", TString)
 
-  lazy val field_left_horizontal_alignment = new ApiField("left horizontal alignment", TNumber.typeName)
-  lazy val field_right_horizontal_alignment = new ApiField("right horizontal alignment", TNumber.typeName)
+  lazy val field_left_horizontal_alignment = ApiField("left horizontal alignment", TNumber)
+  lazy val field_right_horizontal_alignment = ApiField("right horizontal alignment", TNumber)
 
-  lazy val field_left_vertical_alignment = new ApiField("left vertical alignment", TNumber.typeName)
-  lazy val field_right_vertical_alignment = new ApiField("right vertical alignment", TNumber.typeName)
+  lazy val field_left_vertical_alignment = ApiField("left vertical alignment", TNumber)
+  lazy val field_right_vertical_alignment = ApiField("right vertical alignment", TNumber)
 
-  lazy val field_font_size = new ApiField("font size", TNumber.typeName)
-  lazy val field_font_weight = new ApiField("font weight", TString.typeName)
+  lazy val field_font_size = ApiField("font size", TNumber)
+  lazy val field_font_weight = ApiField("font weight", TString)
 
-  lazy val field_top_margin = new ApiField("top margin", TNumber.typeName)
-  lazy val field_left_margin = new ApiField("left margin", TNumber.typeName)
-  lazy val field_right_margin = new ApiField("right margin", TNumber.typeName)
-  lazy val field_bottom_margin = new ApiField("bottom margin", TNumber.typeName)
+  lazy val field_top_margin = ApiField("top margin", TNumber)
+  lazy val field_left_margin = ApiField("left margin", TNumber)
+  lazy val field_right_margin = ApiField("right margin", TNumber)
+  lazy val field_bottom_margin = ApiField("bottom margin", TNumber)
 
-  lazy val field_bottom_padding = new ApiField("bottom padding", TNumber.typeName)
-  lazy val field_top_padding = new ApiField("top padding", TNumber.typeName)
-  lazy val field_left_padding = new ApiField("left padding", TNumber.typeName)
-  lazy val field_right_padding = new ApiField("right padding", TNumber.typeName)
+  lazy val field_bottom_padding = ApiField("bottom padding", TNumber)
+  lazy val field_top_padding = ApiField("top padding", TNumber)
+  lazy val field_left_padding = ApiField("left padding", TNumber)
+  lazy val field_right_padding = ApiField("right padding", TNumber)
 
-  lazy val field_background = new ApiField("background", TColor.typeName)
-  lazy val field_foreground = new ApiField("foreground", TColor.typeName)
+  lazy val field_background = ApiField("background", TColor)
+  lazy val field_foreground = ApiField("foreground", TColor)
 
-  lazy val field_border_color = new ApiField("border color", TColor.typeName)
-  lazy val field_border_width_top = new ApiField("border width top", TNumber.typeName)
-  lazy val field_border_width_right = new ApiField("border width right", TNumber.typeName)
-  lazy val field_border_width_left = new ApiField("border width left", TNumber.typeName)
-  lazy val field_border_width_bottom = new ApiField("border width bottom", TNumber.typeName)
+  lazy val field_border_color = ApiField("border color", TColor)
+  lazy val field_border_width_top = ApiField("border width top", TNumber)
+  lazy val field_border_width_right = ApiField("border width right", TNumber)
+  lazy val field_border_width_left = ApiField("border width left", TNumber)
+  lazy val field_border_width_bottom = ApiField("border width bottom", TNumber)
 
-  lazy val field_height = new ApiField("height", TNumber.typeName)
-  lazy val field_width = new ApiField("width", TNumber.typeName)
+  lazy val field_height = ApiField("height", TNumber)
+  lazy val field_width = ApiField("width", TNumber)
 
-  lazy val field_page_width = new ApiField("page width", TNumber.typeName)
-  lazy val field_page_height = new ApiField("page height", TNumber.typeName)
+  lazy val field_page_width = ApiField("page width", TNumber)
+  lazy val field_page_height = ApiField("page height", TNumber)
 
-  lazy val field_text_wrapping_wrap = new ApiField("text wrapping wrap", TBoolean.typeName)
-  lazy val field_text_wrapping_minimumwidth = new ApiField("text wrapping minimumwidth", TNumber.typeName)
+  lazy val field_text_wrapping_wrap = ApiField("text wrapping wrap", TBoolean)
+  lazy val field_text_wrapping_minimumwidth = ApiField("text wrapping minimumwidth", TNumber)
 
-  lazy val field_horizontal_scrolling = new ApiField("horizontal scrolling ", TBoolean.typeName)
-  lazy val field_vertical_scrolling = new ApiField("vertical scrolling", TBoolean.typeName)
+  lazy val field_horizontal_scrolling = ApiField("horizontal scrolling ", TBoolean)
+  lazy val field_vertical_scrolling = ApiField("vertical scrolling", TBoolean)
 
-  lazy val field_overlay_layout = new ApiField("overlay layout", TBoolean.typeName)
-  lazy val field_horizontal_layout = new ApiField("horizontal layout", TBoolean.typeName)
-  lazy val field_vertical_layout = new ApiField("vertical layout", TBoolean.typeName)
+  lazy val field_overlay_layout = ApiField("overlay layout", TBoolean)
+  lazy val field_horizontal_layout = ApiField("horizontal layout", TBoolean)
+  lazy val field_vertical_layout = ApiField("vertical layout", TBoolean)
 
   /** Specify how to compute box width (0 = shrink to fit content, 1 = stretch to fit frame, , 0.5 = stretch to half width) */
-  lazy val field_horizontal_stretch = new ApiField("horizontal stretch", TNumber.typeName)
-  lazy val field_vertical_stretch = new ApiField("vertical stretch", TNumber.typeName)
+  lazy val field_horizontal_stretch = ApiField("horizontal stretch", TNumber)
+  lazy val field_vertical_stretch = ApiField("vertical stretch", TNumber)
 
-  lazy val field_min_width = new ApiField("min width", TNumber.typeName)
-  lazy val field_max_width = new ApiField("max width", TNumber.typeName)
+  lazy val field_min_width = ApiField("min width", TNumber)
+  lazy val field_max_width = ApiField("max width", TNumber)
 
-  lazy val field_min_height = new ApiField("min height", TNumber.typeName)
-  lazy val field_max_height = new ApiField("max height", TNumber.typeName)
+  lazy val field_min_height = ApiField("min height", TNumber)
+  lazy val field_max_height = ApiField("max height", TNumber)
 
   // PRIVATE
-  lazy val field_text_edited_handler = new ApiField("text edited handler", TText_Action.typeName)
-  lazy val field_text_editing_handler = new ApiField("text editing handler", TText_Action.typeName)
-  lazy val field_tapped_handler = new ApiField("tapped handler", TAction.typeName)
+  lazy val field_text_edited_handler = ApiField("text edited handler", TText_Action)
+  lazy val field_text_editing_handler = ApiField("text editing handler", TText_Action)
+  lazy val field_tapped_handler = ApiField("tapped handler", TAction)
 
-  lazy val typeName = TypeName("Box")
-  override def possibleFields = super.possibleFields ++ (List(
+  override def possibleFields = super.possibleFields ++ List(
     field_is_init,
     field_vertical_align,
     field_horizontal_align,
@@ -128,7 +128,7 @@ object SBox extends ASingleton {
     field_text_edited_handler,
     field_text_editing_handler,
     field_tapped_handler
-  ))
+  )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_SLanguages
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,14 +17,12 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SLanguages extends ASingleton {
+object SLanguages extends Default_SLanguages {
 
   /** Gets the current language code, to be used in the 'translate' method. */
-  lazy val field_current_language = new ApiField("current language", TString.typeName)
+  lazy val field_current_language = ApiField("current language", TString)
 
-  lazy val typeName = TypeName("Languages")
-
-  override def possibleFields = super.possibleFields ++ (List(field_current_language))
+  override def possibleFields = super.possibleFields ++ List(field_current_language)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

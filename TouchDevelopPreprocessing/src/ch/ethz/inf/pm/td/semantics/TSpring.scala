@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TSpring
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,12 +17,10 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TSpring extends AAny {
+object TSpring extends Default_TSpring {
 
   /** Sets the spring stiffness. */
-  lazy val field_stiffness = new ApiField("stiffness", TNumber.typeName)
-
-  val typeName = TypeName("Spring")
+  lazy val field_stiffness = ApiField("stiffness", TNumber)
 
   override def possibleFields = super.possibleFields ++ List(field_stiffness)
 

@@ -476,12 +476,12 @@ I <: HeapIdentifier[I]](
 
   override def explainError(expr: Expression): Set[(String, ProgramPoint)] = _1.explainError(expr)
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]] = None): AbstractState[N, H, I] = {
+  def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]] = None): AbstractState[N, H, I] = {
 
     if (isBottom) return this
 
     // It discharges on the heap analysis the creation of the object and its fields
-    val (createdLocation, heapAndSemantics, _) = domain.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, None, keyCollectionTyp, tpp)
+    val (createdLocation, heapAndSemantics, _) = domain.createCollection(collTyp, keyType, valueType, lengthTyp, None, keyCollectionTyp, tpp)
     var resHeapAndSemantics = heapAndSemantics
 
     // Create all variables involved representing the object
@@ -898,11 +898,11 @@ I <: HeapIdentifier[I]](
     result.removeExpression()
   }
 
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, pp: ProgramPoint): AbstractState[N, H, I] = {
     if (isBottom) return this
 
-    def extractCollectionKeys(result: AbstractState[N, H, I], newKeyValue: Expression, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint)(fromCollection: Assignable): AbstractState[N, H, I] = {
-      val (newHeapAndSemantic, collectionIds, rep) = result.domain.extractCollectionKeys(fromCollection, newKeyValue, fromCollectionTyp, collTyp, keyTyp, valueTyp, lengthTyp, pp)
+    def extractCollectionKeys(result: AbstractState[N, H, I], newKeyValue: Expression, collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, pp: ProgramPoint)(fromCollection: Assignable): AbstractState[N, H, I] = {
+      val (newHeapAndSemantic, collectionIds, rep) = result.domain.extractCollectionKeys(fromCollection, newKeyValue, fromCollectionTyp, collTyp, keyType, valueType, lengthTyp, pp)
       if (collectionIds == null) return bottom()
 
       factory(newHeapAndSemantic, new ExpressionSet(collTyp).add(collectionIds).merge(rep))
@@ -912,8 +912,8 @@ I <: HeapIdentifier[I]](
     for (fromCollection <- fromCollectionSet.getSetOfExpressions;
          newKeyValue <- newKeyValueSet.getSetOfExpressions) {
       val newState = fromCollection match {
-        case id: Assignable => extractCollectionKeys(this, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp)(id)
-        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(factory(), set, extractCollectionKeys(this, newKeyValue, collTyp, keyTyp, valueTyp, lengthTyp, pp))
+        case id: Assignable => extractCollectionKeys(this, newKeyValue, collTyp, keyType, valueType, lengthTyp, pp)(id)
+        case set: HeapIdSetDomain[I] => HeapIdSetFunctionalLifting.applyToSetHeapId(factory(), set, extractCollectionKeys(this, newKeyValue, collTyp, keyType, valueType, lengthTyp, pp))
         case _ => bottom()
       }
 

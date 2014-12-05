@@ -4,7 +4,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.Default_TTimer
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,18 +17,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TTimer extends AAny {
+object TTimer extends Default_TTimer {
 
   /** is the timer active */
-  lazy val field_is_active = new ApiField("is active", TBoolean.typeName)
+  lazy val field_is_active = ApiField("is active", TBoolean)
 
   /** is this an interval timer that fires regularly */
-  lazy val field_is_interval = new ApiField("is interval", TBoolean.typeName)
+  lazy val field_is_interval = ApiField("is interval", TBoolean)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_trigger_handler = new ApiField("trigger handler", TAction.typeName)
-
-  val typeName = TypeName("Timer")
+  lazy val field_trigger_handler = ApiField("trigger handler", TAction)
 
   override def possibleFields = super.possibleFields ++ List(field_is_active, field_is_interval, field_trigger_handler)
 

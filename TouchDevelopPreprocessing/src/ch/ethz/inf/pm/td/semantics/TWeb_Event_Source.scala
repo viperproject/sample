@@ -3,7 +3,9 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.analysis.ApiField
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.{Default_TWeb_Event_Source, Default_TWeb_Request}
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -14,55 +16,13 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */ 
 
-object TWeb_Event_Source extends AAny {
+object TWeb_Event_Source extends Default_TWeb_Event_Source {
 
-  val typeName = TypeName("Web Event Source")
+  lazy val field_state = ApiField("state", TString)
 
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                     (implicit pp:ProgramPoint,state:S):S = method match {
-      
-    /** Closes the EventSource. No further event will be raised. */
-    // case "close" =>
-    //   val List() = parameters // 
-    //   Skip
+  override lazy val possibleFields = super.possibleFields ++ Set(
+    field_state
+  )
 
-    /** Sets an event to run when an error occurs */
-    // case "on error" => 
-    //   val List(handler) = parameters // {"g":"Action","a":[]}
-    //   TopWithInvalid[S](TEvent_Binding)
-    // DECLARATION AS FIELD: 
-    //   /** Sets an event to run when an error occurs */
-    //   lazy val field_on_error = new TouchField("on error",TEvent_Binding.typeName)
-
-    /** Sets an event to run when a message is received. Change name to receive custom events. */
-    // case "on message" => 
-    //   val List(name,handler) = parameters // String,{"g":"Text_Action","a":[]}
-    //   TopWithInvalid[S](TEvent_Binding)
-    // DECLARATION AS FIELD: 
-    //   /** Sets an event to run when a message is received. Change name to receive custom events. */
-    //   lazy val field_on_message = new TouchField("on message",TEvent_Binding.typeName)
-
-    /** Sets an event to run when the event source is opened */
-    // case "on open" => 
-    //   val List(opened) = parameters // {"g":"Action","a":[]}
-    //   TopWithInvalid[S](TEvent_Binding)
-    // DECLARATION AS FIELD: 
-    //   /** Sets an event to run when the event source is opened */
-    //   lazy val field_on_open = new TouchField("on open",TEvent_Binding.typeName)
-
-    /** Gets the current connection state (`connecting`, `open`, `closed`) */
-    // case "state" => 
-    //   val List() = parameters // 
-    //   TopWithInvalid[S](TString)
-    // DECLARATION AS FIELD: 
-    //   /** Gets the current connection state (`connecting`, `open`, `closed`) */
-    //   lazy val field_state = new TouchField("state",TString.typeName)
-
-    // FIELDS: field_on_error, field_on_message, field_on_open, field_state
-
-    case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
-
-  }
 }
       

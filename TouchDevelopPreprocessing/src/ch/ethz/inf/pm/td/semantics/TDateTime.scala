@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TDateTime
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,30 +17,28 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TDateTime extends AAny {
+object TDateTime extends Default_TDateTime {
 
   /** Gets the day of the month */
-  lazy val field_day = new ApiField("day",TNumber.typeName)
+  lazy val field_day = ApiField("day", TNumber)
 
   /** Gets the hour */
-  lazy val field_hour = new ApiField("hour",TNumber.typeName)
+  lazy val field_hour = ApiField("hour", TNumber)
 
   /** Gets the millisecond */
-  lazy val field_millisecond = new ApiField("millisecond",TNumber.typeName)
+  lazy val field_millisecond = ApiField("millisecond", TNumber)
 
   /** Gets the minute */
-  lazy val field_minute = new ApiField("minute",TNumber.typeName)
+  lazy val field_minute = ApiField("minute", TNumber)
 
   /** Gets the month */
-  lazy val field_month = new ApiField("month",TNumber.typeName)
+  lazy val field_month = ApiField("month", TNumber)
 
   /** Gets the second */
-  lazy val field_second = new ApiField("second",TNumber.typeName)
+  lazy val field_second = ApiField("second", TNumber)
 
   /** Gets the year */
-  lazy val field_year = new ApiField("year",TNumber.typeName)
-
-  lazy val typeName = TypeName("DateTime")
+  lazy val field_year = ApiField("year", TNumber)
 
   override def possibleFields = super.possibleFields ++ List(field_day, field_hour, field_millisecond, field_minute, field_month, field_second, field_year)
 

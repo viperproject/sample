@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TLocation
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -19,31 +20,29 @@ import RichNativeSemantics._
  * Date: 11/8/12
  * Time: 6:10 PM
  */
-object TLocation extends AAny {
+object TLocation extends Default_TLocation {
 
 
   /** Gets the latitude of the coordinate */
-  lazy val field_latitude = new ApiField("latitude", TNumber.typeName) // -90 ndTo 90
+  lazy val field_latitude = ApiField("latitude", TNumber) // -90 ndTo 90
 
   /** Gets the longitude of the coordinate */
-  lazy val field_longitude = new ApiField("longitude", TNumber.typeName) // -180 ndTo 180
+  lazy val field_longitude = ApiField("longitude", TNumber) // -180 ndTo 180
 
   /** Gets the altitude of the coordinate */
-  lazy val field_altitude = new ApiField("altitude", TNumber.typeName)//, Invalid(TNumber))
+  lazy val field_altitude = ApiField("altitude", TNumber)//, Invalid(TNumber))
 
   /** Gets the speed of the coordinate */
-  lazy val field_speed = new ApiField("speed", TNumber.typeName)//, Invalid(TNumber))
+  lazy val field_speed = ApiField("speed", TNumber)//, Invalid(TNumber))
 
   /** Gets the course of the coordinate, in degrees relative to true north */
-  lazy val field_course = new ApiField("course", TNumber.typeName)//, Invalid(TNumber)) // 0 ndTo 360
+  lazy val field_course = ApiField("course", TNumber)//, Invalid(TNumber)) // 0 ndTo 360
 
   /** Gets the horizontal accuracy of the coordinate */
-  lazy val field_hor_accuracy = new ApiField("hor accuracy", TNumber.typeName)//, Invalid(TNumber))
+  lazy val field_hor_accuracy = ApiField("hor accuracy", TNumber)//, Invalid(TNumber))
 
   /** Gets the vertical accuracy of the coordinate */
-  lazy val field_vert_accuracy = new ApiField("vert accuracy", TNumber.typeName)//, Invalid(TNumber))
-
-  lazy val typeName = TypeName("Location")
+  lazy val field_vert_accuracy = ApiField("vert accuracy", TNumber)//, Invalid(TNumber))
 
   override def possibleFields = super.possibleFields ++ List(field_latitude,field_longitude,field_altitude,
       field_speed, field_hor_accuracy,field_course,field_vert_accuracy)

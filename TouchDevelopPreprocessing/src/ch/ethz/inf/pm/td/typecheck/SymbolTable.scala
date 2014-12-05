@@ -2,7 +2,7 @@ package ch.ethz.inf.pm.td.typecheck
 
 import ch.ethz.inf.pm.td.parser._
 import scala.collection._
-import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchException}
+import ch.ethz.inf.pm.td.compiler.{TypeList, CFGGenerator, TouchException}
 import util.parsing.input.Position
 
 /**
@@ -31,46 +31,10 @@ abstract class AbstractSymbolTable {
 
   protected var genericTypes = new mutable.HashMap[String,TypeName => List[Member]]
 
-  def addSingleton (name:String,members:List[Member]) {
-    val objName = TypeName(name)
-    types(objName) = if (types.contains(objName)) types(objName) else immutable.Map.empty[String,Member]
-    for (mem <- members) types(objName) = types(objName) + (mem.name -> mem)
-  }
-
-  def addGenericType (name:String, members:TypeName => List[Member]): Unit = {
-    genericTypes(name) = members
-  }
-
-  def addType (name:String,members:List[Member]) {
-    val typeName = TypeName(name)
-    types(typeName) = if (types.contains(typeName)) types(typeName) else immutable.Map.empty[String,Member]
-    for (mem <- members) types(typeName) = types(typeName) + (mem.name -> mem)
-
-    // HACK: Add refernence type as an alias
-    val refTypeName = TypeName(name + " Ref")
-    types(refTypeName) = if (types.contains(refTypeName)) types(refTypeName) else immutable.Map.empty[String, Member]
-    for (mem <- members) types(refTypeName) = types(refTypeName) + (mem.name -> mem)
-  }
-
-  def addSingletonMember (a1:String,a2:String,a3:Member) {
-    types(TypeName(a1)) = types(TypeName(a1)) + (a2 -> a3)
-  }
-
-  def addTypeMember (a1:TypeName,a2:String,a3:Member) {
-    types(a1) = types(a1) + (a2 -> a3)
-  }
-
   def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {
-    try {
-      List(types(typ)(symbol).retType)
-    } catch {
-      case e:NoSuchElementException =>
-        try {
-          List(types(TypeName("Unknown"))(symbol).retType)
-        } catch {
-          case e: NoSuchElementException =>
-            throw new TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
-        }
+    TypeList.types(typ).declarations.get(symbol) match {
+      case Some(member) => List(member.returnType.typeName)
+      case None => throw new TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
     }
   }
 

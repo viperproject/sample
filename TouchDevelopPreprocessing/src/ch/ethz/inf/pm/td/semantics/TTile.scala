@@ -3,7 +3,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.Default_TTile
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -13,43 +14,41 @@ import RichNativeSemantics._
  * Time: 2:04 PM
  */
 
-object TTile extends AAny {
+object TTile extends Default_TTile {
 
   /** Gets the back icon picture */
-  lazy val field_back_icon = new ApiField("back icon", TPicture.typeName)
+  lazy val field_back_icon = ApiField("back icon", TPicture)
 
   /** Gets the back title */
-  lazy val field_back_title = new ApiField("back title", TString.typeName)
+  lazy val field_back_title = ApiField("back title", TString)
 
   /** Gets the background color */
-  lazy val field_background = new ApiField("background", TColor.typeName)
+  lazy val field_background = ApiField("background", TColor)
 
   /** Gets the content */
-  lazy val field_content = new ApiField("content", TString.typeName)
+  lazy val field_content = ApiField("content", TString)
 
   /** Gets the counter */
-  lazy val field_counter = new ApiField("counter", TNumber.typeName)
+  lazy val field_counter = ApiField("counter", TNumber)
 
   /** Gets the height in pixels */
-  lazy val field_height = new ApiField("height", TNumber.typeName,
+  lazy val field_height = new ApiField("height", TNumber,
     default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the icon picture */
-  lazy val field_icon = new ApiField("icon", TPicture.typeName)
+  lazy val field_icon = ApiField("icon", TPicture)
 
   /** This property is deprecated. */
-  lazy val field_panorama = new ApiField("panorama", TBoolean.typeName)
+  lazy val field_panorama = ApiField("panorama", TBoolean)
 
   /** Gets the front title */
-  lazy val field_title = new ApiField("title", TString.typeName)
+  lazy val field_title = ApiField("title", TString)
 
   /** Gets the width in pixels */
-  lazy val field_width = new ApiField("width", TNumber.typeName,
+  lazy val field_width = new ApiField("width", TNumber,
     default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
-
-  val typeName = TypeName("Tile")
 
   override def possibleFields = super.possibleFields ++ List(
     field_back_icon,

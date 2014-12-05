@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TObstacle
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,18 +17,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TObstacle extends AAny {
+object TObstacle extends Default_TObstacle {
 
   /** Color */
-  lazy val field_color = new ApiField("color", TColor.typeName)
+  lazy val field_color = ApiField("color", TColor)
 
   /** Sets the obstacle thickness */
-  lazy val field_thickness = new ApiField("thickness", TNumber.typeName)
+  lazy val field_thickness = ApiField("thickness", TNumber)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_collision_handler = new ApiField("collision handler", TSprite_Action.typeName)
-
-  lazy val typeName = TypeName("Obstacle")
+  lazy val field_collision_handler = ApiField("collision handler", TSprite_Action)
 
   override def possibleFields = super.possibleFields ++ List(field_color, field_thickness, field_collision_handler)
 

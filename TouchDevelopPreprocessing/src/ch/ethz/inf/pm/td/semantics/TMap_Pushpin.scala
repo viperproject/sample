@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TMap_Pushpin
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,18 +17,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TMap_Pushpin extends AAny {
+object TMap_Pushpin extends Default_TMap_Pushpin {
 
   /** Gets the pushpin geo location */
-  lazy val field_location = new ApiField("location", TLocation.typeName)
+  lazy val field_location = ApiField("location", TLocation)
 
   /** Shows or hides the pushpin */
-  lazy val field_visible = new ApiField("visible", TBoolean.typeName)
+  lazy val field_visible = ApiField("visible", TBoolean)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_tap_handler = new ApiField("tap handler", TPosition_Action.typeName)
-
-  lazy val typeName = TypeName("Map Pushpin")
+  lazy val field_tap_handler = ApiField("tap handler", TPosition_Action)
 
   override def possibleFields = super.possibleFields ++ List(field_location, field_visible, field_tap_handler)
 

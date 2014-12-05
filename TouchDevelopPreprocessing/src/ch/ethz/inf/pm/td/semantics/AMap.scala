@@ -3,13 +3,68 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
 import RichNativeSemantics._
 
 /**
  * Represents a map collection in TouchDevelop
  */
 trait AMap extends ACollection {
+
+  /** Frequently used: Gets the value at a given key; invalid if not found */
+  def member_at = ApiMember(
+    name = "at",
+    paramTypes = List(ApiParam(keyType)),
+    thisType = ApiParam(this),
+    returnType = valueType,
+    semantics = DefaultSemantics
+  )
+
+  /** Rarely used: Removes the value at a given key */
+  def member_remove = ApiMember(
+    name = "remove",
+    paramTypes = List(ApiParam(keyType)),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Frequently used: Sets the value at a given key; invalid if not found */
+  def member_set_at = ApiMember(
+    name = "set at",
+    paramTypes = List(ApiParam(keyType), ApiParam(valueType)),
+    thisType = ApiParam(this,isMutated=true),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Rarely used: Sets many elements at once. */
+  def member_set_many = ApiMember(
+    name = "set many",
+    paramTypes = List(ApiParam(this)),
+    thisType = ApiParam(this,isMutated=true),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Clears the values from the map */
+  def member_clear = ApiMember(
+    name = "clear",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
+    "at" -> member_at,
+    "clear" -> member_clear,
+    "is invalid" -> member_is_invalid,
+    "post to wall" -> member_post_to_wall,
+    "remove" -> member_remove,
+    "set at" -> member_set_at,
+    "set many" -> member_set_many
+  )
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
@@ -42,9 +97,6 @@ trait AMap extends ACollection {
         val s = collectionIncreaseLength[S](this0)(newState, pp)
         s
       })
-
-    case "set many" =>
-      Skip //TODO: implement
 
     /** Removes the element at the given key **/
     case "remove" =>

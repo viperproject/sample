@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TSprite_Sheet
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,12 +17,10 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TSprite_Sheet extends AAny {
+object TSprite_Sheet extends Default_TSprite_Sheet {
 
   /** Gets the picture associated to this sprite sheet. */
-  lazy val field_picture = new ApiField("picture", TPicture.typeName)
-
-  val typeName = TypeName("Sprite Sheet")
+  lazy val field_picture = ApiField("picture", TPicture)
 
   override def possibleFields = super.possibleFields ++ List(field_picture)
 

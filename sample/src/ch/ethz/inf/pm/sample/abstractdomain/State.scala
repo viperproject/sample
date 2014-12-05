@@ -393,12 +393,12 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] {
    * Creates an empty collection.
    *
    * @param collTyp  The type of the collection
-   * @param keyTyp The type of the collection's keys
-   * @param valueTyp The type of the collection's values
+   * @param keyType The type of the collection's keys
+   * @param valueType The type of the collection's values
    * @param lengthTyp The type of the collection length
    * @param tpp  The program point at which the collection is created
    */
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type],
+  def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, keyCollectionTyp: Option[Type],
                        tpp: ProgramPoint, fields: Option[Set[Identifier]] = None): S
 
   /**
@@ -474,12 +474,12 @@ trait State[S <: State[S]] extends Lattice[S] with LatticeHelpers[S] {
    *
    * @param fromCollectionSet The collection from which the keys shall be extracted
    * @param collTyp  The collection type of the newly created collection
-   * @param keyTyp  The key type of the newly created collection
-   * @param valueTyp The value type of the newly created collection
+   * @param keyType  The key type of the newly created collection
+   * @param valueType The value type of the newly created collection
    * @param lengthTyp  The length type of the newly created collection@param pp
    * @return The state that contains the newly created collection and has it's CollectionHeapIdentifier as expression
    */
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint): S
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, pp: ProgramPoint): S
 
   /**
    * From a keys collection, get the map
@@ -677,7 +677,7 @@ trait StateWithBackwardAnalysisStubs[S <: StateWithBackwardAnalysisStubs[S]] ext
   */
 trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S] {
   this: S =>
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, tpp: ProgramPoint) = ???
+  def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, tpp: ProgramPoint) = ???
 
   def assignCollectionCell(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet) = ???
 
@@ -693,27 +693,27 @@ trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S
 
   def getCollectionKeyByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = ???
 
-  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = ???
+  def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueType: Type) = ???
 
   def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) = ???
 
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) = ???
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, pp: ProgramPoint) = ???
 
-  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = ???
+  def copyCollection(fromCollectionSet: ExpressionSet, toCollectionSet: ExpressionSet, keyType: Type, valueType: Type) = ???
 
   def insertCollectionValue(collectionSet: ExpressionSet, keySet: ExpressionSet, rightSet: ExpressionSet, pp: ProgramPoint) = ???
 
-  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueTyp: Type) = ???
+  def removeCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet, valueType: Type) = ???
 
-  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = ???
+  def removeCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyType: Type) = ???
 
-  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyTyp: Type) = ???
+  def assignAllCollectionKeys(collectionSet: ExpressionSet, valueSet: ExpressionSet, keyType: Type) = ???
 
-  def clearCollection(collectionSet: ExpressionSet, keyTyp: Type, valueTyp: Type) = ???
+  def clearCollection(collectionSet: ExpressionSet, keyType: Type, valueType: Type) = ???
 
   def isSummaryCollection(collectionSet: ExpressionSet): Boolean = ???
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]) = ???
+  def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]]) = ???
 
   def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = ???
 
@@ -723,7 +723,7 @@ trait StateWithCollectionStubs[S <: StateWithCollectionStubs[S]] extends State[S
 
   def getCollectionValueByKey(collectionSet: ExpressionSet, keySet: ExpressionSet) = ???
 
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) = ???
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, pp: ProgramPoint) = ???
 
   def getOriginalCollection(collectionSet: ExpressionSet) = ???
 

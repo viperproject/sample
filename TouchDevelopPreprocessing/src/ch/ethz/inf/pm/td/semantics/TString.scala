@@ -4,7 +4,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.Default_TString
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -18,12 +19,10 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TString extends AAny {
+object TString extends Default_TString {
 
   /** Returns the number of characters */
   //TODO lazy val field_count = new TouchField("count",TNumber.typeName)
-
-  val typeName = TypeName("String")
 
   override def possibleFields = super.possibleFields ++ List(/*TODO field_count*/)
 

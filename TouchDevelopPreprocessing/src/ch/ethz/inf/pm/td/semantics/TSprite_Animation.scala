@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TSprite_Animation
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,16 +17,14 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TSprite_Animation extends AAny {
+object TSprite_Animation extends Default_TSprite_Animation {
 
   /** Gets the current time scale factor */
-  lazy val field_time_scale = new ApiField("time scale", TNumber.typeName)
+  lazy val field_time_scale = ApiField("time scale", TNumber)
 
   /** PRIVATE HANDLER FIELDS */
-  lazy val field_start_handler = new ApiField("start handler", TAction.typeName)
-  lazy val field_stop_handler = new ApiField("stop handler", TAction.typeName)
-
-  val typeName = TypeName("Sprite Animation")
+  lazy val field_start_handler = ApiField("start handler", TAction)
+  lazy val field_stop_handler = ApiField("stop handler", TAction)
 
   override def possibleFields = super.possibleFields ++ List(field_start_handler, field_stop_handler, field_time_scale)
 

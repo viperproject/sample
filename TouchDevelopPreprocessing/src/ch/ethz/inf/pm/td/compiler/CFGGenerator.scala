@@ -102,17 +102,13 @@ class CFGGenerator(compiler: TouchCompiler) {
    */
   private def findTypes(script: parser.Script) {
 
-    def addTouchType(semantics: AAny) {
-      compiler.userTypes += semantics.typeName -> semantics
-    }
-
     def addRecordsField(field: ApiField) {
       compiler.recordsFields += field
     }
 
     def toTouchField(fields: List[Parameter]): List[ApiField] = {
       for (field <- fields) yield {
-        new ApiField(field.ident, field.typeName)
+        ApiField(field.ident, TypeList.types(field.typeName))
       }
     }
 
@@ -125,51 +121,45 @@ class CFGGenerator(compiler: TouchCompiler) {
             case "object" =>
 
               val objectTypeName = TypeName(ident)
-              val objectConstructor = new GObjectConstructor(objectTypeName)
-              addTouchType(new GObject(TypeName(ident),toTouchField(fields)))
-              addTouchType(new GObjectCollection(objectTypeName))
-              addTouchType(objectConstructor)
-              addRecordsField(new ApiField(ident, objectConstructor.typeName))
+              val objectConstructor = GObjectConstructor(SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(objectTypeName))
+              addRecordsField(ApiField(ident, objectConstructor))
 
             case "table" =>
 
               val rowTypName = TypeName(ident)
-              val tableType = new GTable(rowTypName)
-              addTouchType(new GRow(rowTypName, toTouchField(fields)))
-              addTouchType(tableType)
-              addRecordsField(new ApiField(ident + " table", tableType.typeName))
+              val rowTyp = GRow(rowTypName,toTouchField(fields))
+              val tableType = GTable(rowTyp)
+              addRecordsField(ApiField(ident + " table", tableType))
 
             case "index" =>
 
               val indexMemberTypeName = TypeName(ident)
               val keyMembers = toTouchField(keys)
               val fieldMembers = toTouchField(fields)
-
-              addTouchType(new GIndexMember(indexMemberTypeName, keyMembers, fieldMembers))
+              val indexMember = GIndexMember(indexMemberTypeName,keyMembers,fieldMembers)
               val indexType =
                 if (keyMembers.size > 0) {
-                  new GIndex(indexMemberTypeName)
+                  GIndex(indexMember)
                 } else {
-                  new GSingletonIndex(indexMemberTypeName)
+                  GSingletonIndex(indexMember)
                 }
-              addTouchType(indexType)
 
-              addRecordsField(new ApiField(ident + " index", indexType.typeName))
+              // TODO: Add types
+              addRecordsField(ApiField(ident + " index", indexType))
 
             case "decorator" =>
 
               if (keys.size != 1) throw TouchException("Decorators must have exactly one entry " + thing.getPositionDescription)
 
+              val decorationType = TypeName(ident)
               val keyMembers = toTouchField(keys)
               val fieldMembers = toTouchField(fields)
+              val indexMember = GIndexMember(decorationType,keyMembers,fieldMembers)
 
-              val decoratedType = keyMembers.head.typeName
-              val decorationType = TypeName(ident)
-              val decoratorType = new GIndex(decorationType,Some(TypeName(decoratedType.ident + " Decorator")))
+              val decoratedType = keyMembers.head
+              val decoratorType = GDecorator(indexMember,decoratedType.typ)
 
-              addTouchType(new GIndexMember(decorationType, keyMembers, fieldMembers))
-              addTouchType(decoratorType)
-              addRecordsField(new ApiField(decoratedType + " decorator", decoratorType.typeName))
+              addRecordsField(new ApiField(decoratedType + " decorator", decoratorType))
 
             case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 

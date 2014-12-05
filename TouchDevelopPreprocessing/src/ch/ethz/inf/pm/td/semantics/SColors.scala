@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_SColors
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -15,14 +16,10 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SColors extends ASingleton {
-
-  // STRIPPED DOWN FOR PERFORMANCE
+object SColors extends Default_SColors {
 
   // Indicates if the user is using a light theme in his phone
-  lazy val field_is_light_theme = new ApiField("is light theme", TBoolean.typeName)
-
-  lazy val typeName = TypeName("Colors")
+  lazy val field_is_light_theme = ApiField("is light theme", TBoolean)
 
   override def possibleFields = super.possibleFields ++ List(field_is_light_theme)
 

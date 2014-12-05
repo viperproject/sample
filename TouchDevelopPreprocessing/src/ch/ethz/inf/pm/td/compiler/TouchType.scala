@@ -82,102 +82,70 @@ case class ApiMember(
                       paramTypes:List[ApiParam],
                       thisType:ApiParam,
                       returnType:AAny,
+                      semantics:ApiMemberSemantics,
                       runOnInvalid:Boolean = false
                       ) {
 
-  def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
-                                              (implicit pp: ProgramPoint, state: S): S = ???
+}
+
+trait ApiMemberSemantics {
+
+  def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
+                                     (implicit pp: ProgramPoint, state: S): S
 
 }
 
-trait TopSemantics extends ApiMember {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
+object TopSemantics extends ApiMemberSemantics {
+
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    Top[S](returnType)
+    Top[S](method.returnType)
   }
 
 }
 
-trait TopWithInvalidSemantics extends ApiMember {
+object TopWithInvalidSemantics extends ApiMemberSemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    TopWithInvalid[S](returnType, "Return value may be invalid")
+    TopWithInvalid[S](method.returnType, "Return value may be invalid")
   }
 
 }
 
-trait SkipSemantics extends ApiMember {
+object SkipSemantics extends ApiMemberSemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    assert(returnType == TNothing)
+    assert(method.returnType == TNothing)
     Skip[S]
   }
 
 }
 
-trait InvalidSemantics extends ApiMember {
+object InvalidSemantics extends ApiMemberSemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    Return[S](Invalid(returnType, "Return value may be invalid"))
+    Return[S](Invalid(method.returnType, "Return value may be invalid"))
   }
 
 }
-
-trait FieldRelated extends ApiMember {
-
-  def fieldName:String
-
-}
-
-trait GetterSemantics extends FieldRelated {
-
-  def fieldName = name
-
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
-                                              (implicit pp: ProgramPoint, state: S): S = {
-    assert(returnType != TNothing)
-    state.getFieldValue(this0,fieldName,returnType)
-  }
-
-}
-
-trait SetterSemantics extends FieldRelated {
-
-  lazy val fieldName = {
-    val SetterName = """set (.*)""".r
-    name match {
-      case SetterName(x) => x
-      case _ => throw TouchException("Setter semantics doesn't know which field we are talking about")
-    }
-  }
-
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
-                                              (implicit pp: ProgramPoint, state: S): S = {
-    assert(parameters.length == 1)
-    AssignField[S](this0,fieldName,parameters.head)
-
-  }
-}
-
-
 /**
  * Sound semantics
  */
-trait DefaultSemantics extends ApiMember {
+object DefaultSemantics extends ApiMemberSemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    assert (parameters.length == paramTypes.length)
+    assert (parameters.length == method.paramTypes.length)
 
     var curState = state
 
     // Is this just a getter of a field?
-    if (!thisType.isMutated && parameters.isEmpty) { // FIXME: Faster access
-      thisType.typ.representedTouchFields.find(_.getName == name) match {
+    if (!method.thisType.isMutated && parameters.isEmpty) { // FIXME: Faster access
+      method.thisType.typ.representedTouchFields.find(_.getName == method.name) match {
         case Some(x) =>
           return Return[S](Field[S](this0,x))(curState,pp)
         case _ => ()
@@ -185,27 +153,27 @@ trait DefaultSemantics extends ApiMember {
     }
 
     // Is this just a setter for a field?
-    if (thisType.isMutated && parameters.size == 1) {
+    if (method.thisType.isMutated && parameters.size == 1) {
       val Setter = """set (.*)""".r
-      name match {
-        case Setter(x) if thisType.typ.representedFields.exists(_.getName == x) => // FIXME: Faster access
+      method.name match {
+        case Setter(x) if method.thisType.typ.representedFields.exists(_.getName == x) => // FIXME: Faster access
           return AssignField[S](this0,x,parameters.head)(curState,pp)
         case _  => ()
       }
     }
 
     // Set everything we mutate to top with invalid
-    if (thisType.isMutated) {
-      curState = SetToTopWithInvalid[S](this0, "Potentially invalidated by "+name)(curState,pp)
+    if (method.thisType.isMutated) {
+      curState = SetToTopWithInvalid[S](this0, "Potentially invalidated by "+method.name)(curState,pp)
     }
-    for ((paramExpr,paramTyp) <- parameters.zip(paramTypes)) {
+    for ((paramExpr,paramTyp) <- parameters.zip(method.paramTypes)) {
       if (paramTyp.isMutated) {
-        curState = SetToTopWithInvalid[S](paramExpr, "Potentially invalidated by "+name)(curState, pp)
+        curState = SetToTopWithInvalid[S](paramExpr, "Potentially invalidated by "+method.name)(curState, pp)
       }
     }
 
     // Return top with invalid
-    curState = TopWithInvalid[S](returnType,"returned type may be invalid (default semantics)")(curState,pp)
+    curState = TopWithInvalid[S](method.returnType,"returned type may be invalid (default semantics)")(curState,pp)
 
     curState
   }
@@ -216,22 +184,15 @@ trait DefaultSemantics extends ApiMember {
  * Defines a semantics that returns any valid value of the return type.
  * The semantics does not define any side effects.
  */
-trait ValidPureSemantics extends ApiMember {
+object ValidPureSemantics extends ApiMemberSemantics {
 
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
                                               (implicit pp: ProgramPoint, state: S): S = {
-    assert(!thisType.isMutated)
-    assert(paramTypes.forall(!_.isMutated))
+    assert(!method.thisType.isMutated)
+    assert(method.paramTypes.forall(!_.isMutated))
 
-    Top[S](returnType)
+    Top[S](method.returnType)
 
   }
-
-}
-
-trait CustomSemantics extends ApiMember {
-
-  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, parameters: List[ExpressionSet])
-                                              (implicit pp: ProgramPoint, state: S): S
 
 }

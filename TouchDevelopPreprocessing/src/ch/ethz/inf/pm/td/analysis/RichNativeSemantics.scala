@@ -8,8 +8,6 @@ import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
-import RichNativeSemantics._
-
 /**
  *
  * This class defines a richer interface to interact with the current state. This enables us to specify the
@@ -304,14 +302,14 @@ object RichNativeSemantics extends RichExpressionImplicits {
 //
   def CollectionExtractKeys[S <: State[S]](collection: RichExpression)(implicit state: S, pp: ProgramPoint): S = {
     val collectionTyp = collection.getType().asInstanceOf[ACollection]
-    val keyTyp = collectionTyp.keyType
+    val keyType = collectionTyp.keyType
 
     val newCollectionTyp = getKeyCollectionTyp(collectionTyp) match {
       case Some(x) => x
       case None => throw new SemanticException("keys() operation is not supported for that object")
     }
 
-    var newState = state.extractCollectionKeys(collection, 0 ndTo (collection.getType().asInstanceOf[ACollection].collectionSize[S](collection) - 1), collectionTyp, newCollectionTyp, TNumber, keyTyp, TNumber, pp)
+    var newState = state.extractCollectionKeys(collection, 0 ndTo (collection.getType().asInstanceOf[ACollection].collectionSize[S](collection) - 1), collectionTyp, newCollectionTyp, TNumber, keyType, TNumber, pp)
     val newCollection = newState.expr
     // Make sure that our value is "valid"  now
     newState = newState.assignVariable(newCollection, Valid(newCollectionTyp))
@@ -490,9 +488,8 @@ object RichNativeSemantics extends RichExpressionImplicits {
 
 }
 
-case class ApiField(
-                  name: String,
-                  typeName: TypeName,
+case class ApiField(name: String,
+                  typ: AAny,
                   default: Initializer = NewInitializer,
                   topDefault: Initializer = TopInitializer,
                   isSummaryNode: Boolean = false)
@@ -500,15 +497,13 @@ case class ApiField(
 
   val pp = null
 
-  def typ = SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(typeName)
-
   override def getName = name.toString
 
   override def toString = name.toString
 
   override def getField = Some(name)
 
-  override def hashCode(): Int = name.hashCode() + typeName.hashCode()
+  override def hashCode(): Int = name.hashCode() + typ.typeName.hashCode()
 
   override def representsSingleVariable = !isSummaryNode
 }

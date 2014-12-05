@@ -4,7 +4,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.Default_TWeb_Response
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,33 +17,31 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TWeb_Response extends AAny {
+object TWeb_Response extends Default_TWeb_Response {
 
   /** Reads the response body as a string */
-  lazy val field_content = new ApiField("content",TString.typeName)
+  lazy val field_content = ApiField("content", TString)
 
   /** Reads the response body as a JSON tree */
-  lazy val field_content_as_json = new ApiField("content as json",TJson_Object.typeName)
+  lazy val field_content_as_json = ApiField("content as json", TJson_Object)
 
   /** Reads the response body as a picture */
-  lazy val field_content_as_picture = new ApiField("content as picture",TPicture.typeName)
+  lazy val field_content_as_picture = ApiField("content as picture", TPicture)
 
   /** Reads the response body as a wave sound */
-  lazy val field_content_as_sound = new ApiField("content as sound",TSound.typeName)
+  lazy val field_content_as_sound = ApiField("content as sound", TSound)
 
   /** Reads the response body as a XML tree */
-  lazy val field_content_as_xml = new ApiField("content as xml",TXml_Object.typeName)
+  lazy val field_content_as_xml = ApiField("content as xml", TXml_Object)
 
   /** Stores the headers. This is actually not publicly accessible */
-  lazy val field_header_storage = new ApiField("header storage",TString_Map.typeName)
+  lazy val field_header_storage = ApiField("header storage", TString_Map)
 
   /** Gets the request associated to this response */
-  lazy val field_request = new ApiField("request",TWeb_Request.typeName)
+  lazy val field_request = ApiField("request", TWeb_Request)
 
   /** Gets the HTTP Status code of the request if any */
-  lazy val field_status_code = new ApiField("status code",TNumber.typeName)
-
-  val typeName = TypeName("Web Response")
+  lazy val field_status_code = ApiField("status code", TNumber)
 
   override def possibleFields = super.possibleFields ++ List(field_header_storage,
     field_content, field_content_as_json, field_content_as_picture, field_content_as_sound, field_content_as_xml,

@@ -9,21 +9,21 @@ import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.TBuffer._
 
-case class GTable(rowTyp: TypeName) extends AMutable_Collection {
+case class GTable(rowTyp: AAny) extends AMutable_Collection {
 
   /** Backlink. Not a field of this table, but a field of all rows of the table */
-  val field_table = new ApiField("*table", typeName)
+  val field_table = new ApiField("*table", this)
 
-  override def typeName: TypeName = TypeName(rowTyp.ident + " Table")
-  override def keyTypeName: TypeName = TNumber.typeName
-  override def valueTypeName: TypeName = rowTyp
+  override def typeName: TypeName = TypeName("Table",List(rowTyp.typeName))
+  override def keyType = TNumber
+  override def valueType = rowTyp
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 
     case "add row" =>
       // Create row with backlink to this table for removal
-      var newState = New[S](SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(rowTyp), initials = Map(field_table -> this0))(state, pp)
+      var newState = New[S](rowTyp, initials = Map(field_table -> this0))(state, pp)
       val row = newState.expr
       newState = collectionInsert[S](this0, collectionSize[S](this0)(newState, pp), row)(newState, pp)
       newState = collectionIncreaseLength[S](this0)(newState, pp)
@@ -33,7 +33,7 @@ case class GTable(rowTyp: TypeName) extends AMutable_Collection {
       super.forwardSemantics(this0, "at index", parameters, returnedType)
 
     case "invalid row" =>
-      Return[S](Invalid(SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(rowTyp), "value may have been initialized to invalid"))
+      Return[S](Invalid(rowTyp, "value may have been initialized to invalid"))
 
     case _ =>
       super.forwardSemantics(this0, method, parameters, returnedType)

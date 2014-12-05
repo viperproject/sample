@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TMotion
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -15,30 +16,28 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */ 
 
-object TMotion extends AAny {
+object TMotion extends Default_TMotion {
 
   /** Gets the linear acceleration of the device, in gravitational units. */
-  lazy val field_acceleration = new ApiField("acceleration",TVector3.typeName)
+  lazy val field_acceleration = ApiField("acceleration", TVector3)
 
   /** Gets the gravity vector associated with this reading. */
-  lazy val field_gravity = new ApiField("gravity",TVector3.typeName)
+  lazy val field_gravity = ApiField("gravity", TVector3)
 
   /** Gets the pitch of the attitude in degrees */
-  lazy val field_pitch = new ApiField("pitch",TNumber.typeName)
+  lazy val field_pitch = ApiField("pitch", TNumber)
 
   /** Gets the roll of the attitude in degrees */
-  lazy val field_roll = new ApiField("roll",TNumber.typeName)
+  lazy val field_roll = ApiField("roll", TNumber)
 
   /** Gets the device rotation speed in degrees per sec. */
-  lazy val field_rotation_speed = new ApiField("rotation speed",TVector3.typeName)
+  lazy val field_rotation_speed = ApiField("rotation speed", TVector3)
 
   /** Gets a timestamp indicating the time at which the reading was calculated. */
-  lazy val field_time = new ApiField("time",TDateTime.typeName)
+  lazy val field_time = ApiField("time", TDateTime)
 
   /** Gets the yaw of the attitude in degrees */
-  lazy val field_yaw = new ApiField("yaw",TNumber.typeName)
-
-  lazy val typeName = TypeName("Motion")
+  lazy val field_yaw = ApiField("yaw", TNumber)
 
   override def possibleFields = super.possibleFields ++ List(field_acceleration, field_gravity, field_pitch, field_roll,
     field_rotation_speed, field_time, field_yaw)

@@ -9,13 +9,13 @@ import RichNativeSemantics._
 
 case class GRow(typeName: TypeName, fields: List[ApiField]) extends AAny {
 
-  override def possibleFields = super.possibleFields ++ (GTable(typeName).field_table :: fields)
+  override def possibleFields = super.possibleFields ++ (GTable(this).field_table :: fields)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 
     case "delete row" =>
-      CallApi[S](Field[S](this0, GTable(typeName).field_table), "remove", List(this0), TBoolean)
+      CallApi[S](Field[S](this0, GTable(this).field_table), "remove", List(this0), TBoolean)
 
     case "confirmed" =>
       Top[S](TBoolean)

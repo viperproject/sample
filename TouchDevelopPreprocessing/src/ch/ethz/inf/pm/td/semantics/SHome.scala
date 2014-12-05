@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_SHome
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -19,18 +20,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SHome extends ASingleton {
+object SHome extends Default_SHome {
 
   /** Gets the media players on the current wireless network */
-  lazy val field_players = new ApiField("players", TMedia_Player_Collection.typeName)
+  lazy val field_players = ApiField("players", TMedia_Player_Collection)
 
   /** Gets the printers on the current wireless network */
-  lazy val field_printers = new ApiField("printers", TPrinter_Collection.typeName)
+  lazy val field_printers = ApiField("printers", TPrinter_Collection)
 
   /** Gets the media servers on the home network */
-  lazy val field_servers = new ApiField("servers", TMedia_Server_Collection.typeName)
-
-  lazy val typeName = TypeName("Home")
+  lazy val field_servers = ApiField("servers", TMedia_Server_Collection)
 
   override def possibleFields = super.possibleFields ++ List(field_players, field_printers, field_servers)
 

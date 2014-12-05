@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_SMedia
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -13,30 +14,28 @@ import RichNativeSemantics._
  * Time: 6:53 PM
  */
 
-object SMedia extends ASingleton {
+object SMedia extends Default_SMedia {
 
   /** Gets the list of built-in 48x48 icon names. You can see the icon list in the script settings. */
-  lazy val field_icon_names = new ApiField("icon names", TString_Collection.typeName)
+  lazy val field_icon_names = ApiField("icon names", TString_Collection)
 
   /** Gets the picture albums */
-  lazy val field_picture_albums = new ApiField("picture albums", TPicture_Albums.typeName)
+  lazy val field_picture_albums = ApiField("picture albums", TPicture_Albums)
 
   /** Gets the pictures on the phone */
-  lazy val field_pictures = new ApiField("pictures", TPictures.typeName)
+  lazy val field_pictures = ApiField("pictures", TPictures)
 
   /** Gets the playlists on the phone */
-  lazy val field_playlists = new ApiField("playlists", TPlaylists.typeName)
+  lazy val field_playlists = ApiField("playlists", TPlaylists)
 
   /** Gets the saved pictures on the phone */
-  lazy val field_saved_pictures = new ApiField("saved pictures", TPictures.typeName)
+  lazy val field_saved_pictures = ApiField("saved pictures", TPictures)
 
   /** Gets the song albums on the phone */
-  lazy val field_song_albums = new ApiField("song albums", TSong_Albums.typeName)
+  lazy val field_song_albums = ApiField("song albums", TSong_Albums)
 
   /** Gets the songs on the phone */
-  lazy val field_songs = new ApiField("songs", TSongs.typeName)
-
-  lazy val typeName = TypeName("Media")
+  lazy val field_songs = ApiField("songs", TSongs)
 
   override def possibleFields = super.possibleFields ++ List(field_icon_names, field_picture_albums, field_pictures,
     field_playlists, field_saved_pictures, field_song_albums, field_songs)

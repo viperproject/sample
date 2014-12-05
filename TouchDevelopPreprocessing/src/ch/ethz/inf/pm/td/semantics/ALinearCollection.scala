@@ -12,6 +12,40 @@ import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
  **/
 trait ALinearCollection extends ACollection {
 
+
+  /** Sometimes used: Gets the picture at position 'index'; invalid if index is out of bounds */
+  def member_at = ApiMember(
+    name = "at",
+    paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = valueType,
+    semantics = DefaultSemantics
+  )
+
+  /** Never used: Renamed to 'random' */
+  def member_rand = ApiMember(
+    name = "rand",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = valueType,
+    semantics = DefaultSemantics
+  )
+
+  /** Sometimes used: Gets a random picture; invalid if collection is empty */
+  def member_random = ApiMember(
+    name = "random",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = valueType,
+    semantics = DefaultSemantics
+  )
+
+  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
+    "at" -> member_at,
+    "rand" -> member_rand,
+    "random" -> member_random
+  )
+
   def collectionContainsValue[S <: State[S]](collection: RichExpression, value: RichExpression)(implicit state: S, pp: ProgramPoint): RichExpression = {
     If[S](collectionAllValues[S](collection) equal value, { then: S =>
       Return[S](True)
@@ -50,7 +84,6 @@ trait ALinearCollection extends ACollection {
       // Check disabled -- ALWAYS FALSE ALARM!
       //CheckInRangeInclusive[S](index,0,(CollectionSize[S](this0)-NumericalAnalysisConstants.epsilon),method,"index")
       Return[S](collectionAt[S](this0, index))
-
 
     /** Get random element */
     case "random" =>

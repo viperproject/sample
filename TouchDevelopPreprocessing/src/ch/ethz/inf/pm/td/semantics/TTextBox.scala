@@ -3,7 +3,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.defsemantics.Default_TTextBox
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -15,16 +16,14 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TTextBox extends AAny {
+object TTextBox extends Default_TTextBox {
 
-  lazy val field_background = new ApiField("background",TColor.typeName)
-  lazy val field_border = new ApiField("border",TColor.typeName)
-  lazy val field_font_size = new ApiField("font size",TNumber.typeName)
-  lazy val field_foreground = new ApiField("foreground",TColor.typeName)
-  lazy val field_icon = new ApiField("icon",TPicture.typeName)
-  lazy val field_text = new ApiField("text",TString.typeName)
-
-  val typeName = TypeName("TextBox")
+  lazy val field_background = ApiField("background", TColor)
+  lazy val field_border = ApiField("border", TColor)
+  lazy val field_font_size = ApiField("font size", TNumber)
+  lazy val field_foreground = ApiField("foreground", TColor)
+  lazy val field_icon = ApiField("icon", TPicture)
+  lazy val field_text = ApiField("text", TString)
 
   override def mutedFields = super.mutedFields ++ List(field_background,field_border,field_font_size,field_foreground,field_icon)
 

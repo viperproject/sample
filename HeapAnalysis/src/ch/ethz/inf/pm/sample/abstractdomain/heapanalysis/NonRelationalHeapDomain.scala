@@ -589,7 +589,7 @@ trait NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]] extends H
    */
   def hasMultipleAccessPaths: Boolean
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, origCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): I
+  def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, origCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): I
 
   def getCollectionOverApproximation(collection: Assignable): I
 
@@ -597,11 +597,11 @@ trait NonRelationalHeapIdentifier[I <: NonRelationalHeapIdentifier[I]] extends H
 
   def getCollectionSummaryApproximation(collection: Assignable): I
 
-  def createCollectionSummaryTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type): I
+  def createCollectionSummaryTuple(collectionApprox: Assignable, keyType: Type, valueType: Type): I
 
-  def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type, pp: ProgramPoint): I
+  def createCollectionTuple(collectionApprox: Assignable, keyType: Type, valueType: Type, pp: ProgramPoint): I
 
-  def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type, pps: Set[ProgramPoint]): I
+  def createCollectionTuple(collectionApprox: Assignable, keyType: Type, valueType: Type, pps: Set[ProgramPoint]): I
 
   def createCollectionTuple(collectionTuple1: Assignable, collectionTuple2: Assignable): I
 
@@ -1015,10 +1015,10 @@ H <: AbstractNonRelationalHeapDomain[I, H]]
   override def insertCollectionElementToApprox(collectionApprox: Assignable, pp: ProgramPoint) = {
     val collectionApproxId = collectionApprox.asInstanceOf[I]
     val collectionId = collectionApprox.asInstanceOf[FieldAndProgramPoint].p1.asInstanceOf[CollectionIdentifier]
-    val keyTyp = collectionId.keyTyp
-    val valueTyp = collectionId.valueTyp
+    val keyType = collectionId.keyType
+    val valueType = collectionId.valueType
 
-    val (tupleIds, res, rep) = makeSummaryIfRequired(dom.createCollectionTuple(collectionApproxId, keyTyp, valueTyp, pp))
+    val (tupleIds, res, rep) = makeSummaryIfRequired(dom.createCollectionTuple(collectionApproxId, keyType, valueType, pp))
     //val (res, rep) = result.createVariable(tupleId, tupleId.getType())
     var result = res
 
@@ -1277,8 +1277,8 @@ case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
 
   def getLabel(): String = "Heap Domain:" + dom.getLabel();
 
-  override def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
-    val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
+  override def createEmptyCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalHeapDomain[I], Replacement) = {
+    val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyType, valueType, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
 
     var newHeap = heap
 
@@ -1303,11 +1303,11 @@ case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
     var resultRep = new Replacement()
 
     def insertCollectionElement(collection: Assignable): HeapIdSetDomain[I] = {
-      val keyTyp = collection.asInstanceOf[CollectionIdentifier].keyTyp
-      val valueTyp = collection.asInstanceOf[CollectionIdentifier].valueTyp
+      val keyType = collection.asInstanceOf[CollectionIdentifier].keyType
+      val valueType = collection.asInstanceOf[CollectionIdentifier].valueType
 
       val collectionApproxId = this.dom.getCollectionOverApproximation(collection)
-      val (tupleIds, newHeap, rep) = result.makeSummaryIfRequired(dom.createCollectionTuple(collectionApproxId, keyTyp, valueTyp, pp))
+      val (tupleIds, newHeap, rep) = result.makeSummaryIfRequired(dom.createCollectionTuple(collectionApproxId, keyType, valueType, pp))
       result = newHeap
       resultRep = resultRep ++ rep
 
@@ -1317,7 +1317,7 @@ case class NonRelationalHeapDomain[I <: NonRelationalHeapIdentifier[I]](
       return new MaybeHeapIdSetDomain[I]().add(tupleIds)
     }
 
-    val tuples = resolveVariables(new MaybeHeapIdSetDomain[I](), collection, insertCollectionElement(_))
+    val tuples = resolveVariables(new MaybeHeapIdSetDomain[I](), collection, insertCollectionElement)
     (tuples, result, resultRep)
   }
 
@@ -1368,8 +1368,8 @@ case class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](
   }
 
 
-  override def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMustHeapDomain[I], Replacement) = {
-    val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
+  override def createEmptyCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMustHeapDomain[I], Replacement) = {
+    val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyType, valueType, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
 
     var newHeap = heap
     for (coll <- collections.value) {
@@ -1408,10 +1408,10 @@ case class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](
       val collectionId = collection.asInstanceOf[CollectionIdentifier]
       //if (!collectionId.representSingleVariable()) return new MaybeHeapIdSetDomain[I]()
 
-      val keyTyp = collectionId.keyTyp
-      val valueTyp = collectionId.valueTyp
+      val keyType = collectionId.keyType
+      val valueType = collectionId.valueType
       val collectionApproxId = this.dom.getCollectionUnderApproximation(collection)
-      val (tupleIds, newHeap, rep) = makeSummaryIfRequired(dom.createCollectionTuple(collectionApproxId, keyTyp, valueTyp, pp))
+      val (tupleIds, newHeap, rep) = makeSummaryIfRequired(dom.createCollectionTuple(collectionApproxId, keyType, valueType, pp))
       result = newHeap
       resultRep = resultRep ++ rep
 
@@ -1421,7 +1421,7 @@ case class NonRelationalMustHeapDomain[I <: NonRelationalHeapIdentifier[I]](
       return new MaybeHeapIdSetDomain[I].add(tupleIds)
     }
 
-    val tuples = resolveVariables(new MaybeHeapIdSetDomain[I](), collection, insertCollectionElement(_))
+    val tuples = resolveVariables(new MaybeHeapIdSetDomain[I](), collection, insertCollectionElement)
     (tuples, result, resultRep)
   }
 }
@@ -1620,9 +1620,9 @@ case class NonRelationalMayAndMustHeapDomain[I <: NonRelationalHeapIdentifier[I]
     return ids1 ++ ids2
   }
 
-  def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
-    val (ids1, heap1, rep1) = this._1.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp)
-    val (ids2, heap2, rep2) = this._2.createEmptyCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp)
+  def createEmptyCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalMayAndMustHeapDomain[I], Replacement) = {
+    val (ids1, heap1, rep1) = this._1.createEmptyCollection(collTyp, keyType, valueType, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp)
+    val (ids2, heap2, rep2) = this._2.createEmptyCollection(collTyp, keyType, valueType, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp)
 
     (ids1.lub(ids2), new NonRelationalMayAndMustHeapDomain[I](heap1, heap2), rep1.lub(rep2))
   }
@@ -1829,8 +1829,8 @@ case class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdenti
 
   def getInitialState(): NonRelationalSummaryCollectionHeapDomain[I] = new NonRelationalSummaryCollectionHeapDomain(new VariableEnv(env.dom), new HeapEnv(heap.dom), cod, dom);
 
-  override def createEmptyCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalSummaryCollectionHeapDomain[I], Replacement) = {
-    val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyTyp, valueTyp, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
+  override def createEmptyCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, originalCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint): (HeapIdSetDomain[I], NonRelationalSummaryCollectionHeapDomain[I], Replacement) = {
+    val (collections, heap, rep) = makeSummaryIfRequired(dom.createCollection(collTyp, keyType, valueType, lengthTyp, originalCollectionTyp, keyCollectionTyp, pp))
 
     var newHeap = heap
     for (coll <- collections.value) {
@@ -1868,11 +1868,11 @@ case class NonRelationalSummaryCollectionHeapDomain[I <: NonRelationalHeapIdenti
     def insertCollectionElement(collection: Assignable): HeapIdSetDomain[I] = {
       val collectionId = collection.asInstanceOf[CollectionIdentifier]
 
-      val keyTyp = collectionId.keyTyp
-      val valueTyp = collectionId.valueTyp
+      val keyType = collectionId.keyType
+      val valueType = collectionId.valueType
 
       val collectionApproxId = this.dom.getCollectionSummaryApproximation(collectionId)
-      val (tupleIds, newHeap, rep) = makeSummaryIfRequired(dom.createCollectionSummaryTuple(collectionApproxId, keyTyp, valueTyp))
+      val (tupleIds, newHeap, rep) = makeSummaryIfRequired(dom.createCollectionSummaryTuple(collectionApproxId, keyType, valueType))
       result = newHeap
       resultRep = resultRep ++ rep
 
@@ -1935,7 +1935,7 @@ case class TopHeapIdentifier(typ: Type, pp: ProgramPoint)
 
   override def setCounter(c: Int) = this
 
-  override def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, origCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = this
+  override def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, origCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = this
 
   override def getCollectionOverApproximation(collection: Assignable) = this
 
@@ -1943,11 +1943,11 @@ case class TopHeapIdentifier(typ: Type, pp: ProgramPoint)
 
   override def getCollectionSummaryApproximation(collection: Assignable) = this
 
-  override def createCollectionSummaryTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type) = this
+  override def createCollectionSummaryTuple(collectionApprox: Assignable, keyType: Type, valueType: Type) = this
 
-  override def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type, pp: ProgramPoint) = this
+  override def createCollectionTuple(collectionApprox: Assignable, keyType: Type, valueType: Type, pp: ProgramPoint) = this
 
-  override def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type, pps: Set[ProgramPoint]) = this
+  override def createCollectionTuple(collectionApprox: Assignable, keyType: Type, valueType: Type, pps: Set[ProgramPoint]) = this
 
   override def createCollectionTuple(collectionTuple1: Assignable, collectionTuple2: Assignable) = this
 

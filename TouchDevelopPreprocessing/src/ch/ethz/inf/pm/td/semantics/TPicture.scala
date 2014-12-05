@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis._
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TPicture
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,25 +17,23 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TPicture extends AAny {
+object TPicture extends Default_TPicture {
 
   /** Gets the width in pixels */
-  lazy val field_width = new ApiField("width", TNumber.typeName,
+  lazy val field_width = new ApiField("width", TNumber,
     default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the height in pixels */
-  lazy val field_height = new ApiField("height", TNumber.typeName,
+  lazy val field_height = new ApiField("height", TNumber,
     default = ExpressionInitializer(0 ndTo PositiveInfinity(null)),
     topDefault = ExpressionInitializer(0 ndTo PositiveInfinity(null)))
 
   /** Gets the location where the picture was taken; if any. */
-  lazy val field_location = new ApiField("location", TLocation.typeName, InvalidInitializer("picture may not have a location"))
+  lazy val field_location = new ApiField("location", TLocation, InvalidInitializer("picture may not have a location"))
 
   /** Gets the date time where the picture was taken; if any. */
-  lazy val field_date = new ApiField("date", TDateTime.typeName, InvalidInitializer("picture may not have a date"))
-
-  lazy val typeName = TypeName("Picture")
+  lazy val field_date = new ApiField("date", TDateTime, InvalidInitializer("picture may not have a date"))
 
   override def possibleFields = super.possibleFields ++ List(field_width, field_height, field_location, field_date)
 

@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TPlaylist
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,18 +17,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TPlaylist extends AAny {
+object TPlaylist extends Default_TPlaylist {
 
   /** Gets the duration in seconds */
-  lazy val field_duration = new ApiField("duration",TNumber.typeName)
+  lazy val field_duration = ApiField("duration", TNumber)
 
   /** Gets the name of the song */
-  lazy val field_name = new ApiField("name",TString.typeName)
+  lazy val field_name = ApiField("name", TString)
 
   /** Gets the songs */
-  lazy val field_songs = new ApiField("songs",TSongs.typeName)
-
-  lazy val typeName = TypeName("Playlist")
+  lazy val field_songs = ApiField("songs", TSongs)
 
   override def possibleFields = super.possibleFields ++ List(field_duration,field_name,field_songs)
 

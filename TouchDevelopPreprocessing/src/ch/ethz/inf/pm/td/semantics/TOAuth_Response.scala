@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TOAuth_Response
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,35 +17,33 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TOAuth_Response extends AAny {
+object TOAuth_Response extends Default_TOAuth_Response {
 
   /** The access token issued by the authorization server. */
-  lazy val field_access_token = new ApiField("access token",TString.typeName)
+  lazy val field_access_token = ApiField("access token", TString)
 
   /** (Optional) The lifetime in seconds of the access token. */
-  lazy val field_expires_in = new ApiField("expires in",TNumber.typeName)
+  lazy val field_expires_in = ApiField("expires in", TNumber)
 
   /** (Optional) Optional if if identical to the scope requested by the client; otherwise, the scope of the access token as described by Section 3.3. */
-  lazy val field_scope = new ApiField("scope",TString.typeName)
+  lazy val field_scope = ApiField("scope", TString)
 
   /** A single ASCII [USASCII] error code. */
   // TODO: Invalid iff is_error = false ?
-  lazy val field_error = new ApiField("error",TString.typeName)
+  lazy val field_error = ApiField("error", TString)
 
   /** (Optional) A human readable error code. */
   // TODO: Invalid iff is_error = false ?
-  lazy val field_error_description = new ApiField("error description",TString.typeName)
+  lazy val field_error_description = ApiField("error description", TString)
 
   /** (Optional) A URI identifying a human-readable web page with information about the error, used to provide the client developer with additional information about the error. */
-  lazy val field_error_uri = new ApiField("error uri",TString.typeName)
+  lazy val field_error_uri = ApiField("error uri", TString)
 
   /** (Optional) Additional key-value pairs not covered by the OAuth 2.0 specification. */
-  lazy val field_others = new ApiField("others",TString_Map.typeName)
+  lazy val field_others = ApiField("others", TString_Map)
 
   /** Indicates if this response is an error. */
-  lazy val field_is_error = new ApiField("is error",TBoolean.typeName)
-
-  lazy val typeName = TypeName("OAuth Response")
+  lazy val field_is_error = ApiField("is error", TBoolean)
 
   override def possibleFields = super.possibleFields ++ List(field_access_token, field_expires_in, field_scope,
     field_error, field_error_description, field_error_uri, field_others, field_is_error)

@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_SWeb
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,18 +17,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SWeb extends ASingleton {
+object SWeb extends Default_SWeb {
 
   /** Gets a name of the currently connected network servicing Internet requests */
-  lazy val field_connection_name = new ApiField("connection name", TString.typeName)
+  lazy val field_connection_name = ApiField("connection name", TString)
 
   /** Gets the type of the network servicing Internet requests (unknown, none, ethernet, wifi, mobile) */
-  lazy val field_connection_type = new ApiField("connection type", TString.typeName)
+  lazy val field_connection_type = ApiField("connection type", TString)
 
   /** Indicates whether any network connection is available */
-  lazy val field_is_connected = new ApiField("is connected", TBoolean.typeName)
-
-  lazy val typeName = TypeName("Web")
+  lazy val field_is_connected = ApiField("is connected", TBoolean)
 
   override def possibleFields = super.possibleFields ++ List(field_connection_name, field_connection_type, field_is_connected)
 

@@ -2,8 +2,8 @@ package ch.ethz.inf.pm.td.webapi
 
 import ch.ethz.inf.pm.td.compiler.TouchException
 import ch.ethz.inf.pm.td.parser._
-import net.liftweb.json.JsonAST.JObject
-import net.liftweb.json.{DefaultFormats, TypeHints, parse}
+import net.liftweb.json.JsonAST.{JArray, JString, JObject}
+import net.liftweb.json.{JValue, DefaultFormats, TypeHints, parse}
 
 /**
  *
@@ -180,35 +180,35 @@ object WebASTImporter {
       convert(jInlineAction.body)).setId(jInlineAction.id)
   }
 
-  def makeTypeName(typeString: String): TypeName = {
+  def makeTypeName(value:JValue): TypeName = {
+    value match {
 
-    val JUserType = """\{"o":"(.*)"\}""".r
-    val JLibraryType = """\{"l":"(.*)","o":"(.*)"\}""".r
-    val JGenericTypeInstance = """\{"g":"(.*)","a":\["(.*)"\]\}""".r
-    val JGenericTypeInstance2 = """\{"g":"(.*)","a":\[\{"g":"(.*)"\}\]\}""".r
-    val JUngenericTypeInstance = """\{"g":"(.*)","a":\[\]\}""".r
-    val JUngenericTypeInstance2 = """\{"g":"(.*)"\}""".r
-    val JGenericUserTypeInstance = """\{"g":"(.*)","a":\[\{"o":"(.*)"\}\]\}""".r
-
-    typeString match {
-      case JLibraryType(l, o) =>
-        TypeName(o)
-      case JUngenericTypeInstance(g) =>
-        TypeName(g)
-      case JUngenericTypeInstance2(g) =>
-        TypeName(g)
-      case JGenericTypeInstance(g, a) =>
-        TypeName(g,List(TypeName(a)))
-      case JGenericTypeInstance2(g, a) =>
-        TypeName(g,List(TypeName(a)))
-      case JGenericUserTypeInstance(g, a) =>
-        TypeName(g,List(TypeName(a)))
-      case JUserType(o) =>
-        TypeName(o)
+      case JString(x) => TypeName(x)
       case _ =>
-        TypeName(typeString)
-    }
 
+        value \ "o" match {
+          case JString(x) => return TypeName(x)
+          case _ => ()
+        }
+
+        value \ "g" match {
+          case JString(x) =>
+            value \ "a" match {
+              case JArray(y) =>
+                return TypeName(x,y map makeTypeName)
+              case _ =>
+                return TypeName(x)
+            }
+          case _ => ()
+        }
+
+        throw new TouchException("conversion of typename failed: "+value)
+    }
+  }
+
+  def makeTypeName(typeString: String): TypeName = {
+    if (typeString.startsWith("{")) makeTypeName(parse(typeString))
+    else TypeName(typeString)
   }
 
 }

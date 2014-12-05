@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TSongs
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,24 +17,7 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TSongs extends ALinearCollection {
+object TSongs extends Default_TSongs {
 
-  lazy val typeName = TypeName("Songs")
-
-  def keyTypeName = TNumber.typeName
-
-  def valueTypeName = TSong.typeName
-
-  override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
-                                     (implicit pp:ProgramPoint,state:S):S = method match {
-
-    /** Plays the song. */
-    case "play" =>
-      Skip
-
-    case _ =>
-      super.forwardSemantics(this0,method,parameters,returnedType)
-
-  }
 }
       

@@ -13,6 +13,9 @@ import ch.ethz.inf.pm.td.semantics._
 
 object TypeList  {
 
+  def getSingletons = List(SBazaar,SBox,SCloud_Data,SCloud_Storage,
+    SColors,SHome,SLanguages,SLocations,SMedia,SPlayer,SRadio,SRecords,SSenses,SSocial,STime,SWall,SWeb)
+
   def types(typ:TypeName):AAny = typ match {
     
     case SData.typeName => SData
@@ -34,11 +37,6 @@ object TypeList  {
     case TWeb_Response_Action.typeName => TWeb_Response_Action
     case TMessage_Collection_Action.typeName => TMessage_Collection_Action
     case TJson_Action.typeName => TJson_Action
-    case TComparison.typeName => TComparison
-    case TPredicate.typeName => TPredicate
-    case TNumber_Converter.typeName => TNumber_Converter
-    case TString_Converter.typeName => TString_Converter
-    case TConverter.typeName => TConverter
     case SApp.typeName => SApp
     case TAppointment.typeName => TAppointment
     case TAppointment_Collection.typeName => TAppointment_Collection
@@ -57,7 +55,6 @@ object TypeList  {
     case TCloud_Picture.typeName => TCloud_Picture
     case TCloud_Session.typeName => TCloud_Session
     case SCloud_Data.typeName => SCloud_Data
-    case TCollection.typeName => TCollection
     case SCollections.typeName => SCollections
     case TColor.typeName => TColor
     case SColors.typeName => SColors
@@ -118,7 +115,6 @@ object TypeList  {
     case TPrinter.typeName => TPrinter
     case TPrinter_Collection.typeName => TPrinter_Collection
     case SRadio.typeName => SRadio
-    case TRef.typeName => TRef
     case SSenses.typeName => SSenses
     case TGamepad.typeName => TGamepad
     case TServer_Request.typeName => TServer_Request
@@ -138,13 +134,11 @@ object TypeList  {
     case TString_Collection.typeName => TString_Collection
     case TString_Map.typeName => TString_Map
     case STags.typeName => STags
-    case TTask.typeName => TTask
     case TTextBox.typeName => TTextBox
     case TTile.typeName => TTile
     case STiles.typeName => STiles
     case STime.typeName => STime
     case TTimer.typeName => TTimer
-    case STutorial.typeName => STutorial
     case TUser.typeName => TUser
     case TVector3.typeName => TVector3
     case SWall.typeName => SWall
@@ -155,8 +149,13 @@ object TypeList  {
     case TXml_Object.typeName => TXml_Object
     case TUnknown.typeName => TUnknown
 
-    case TypeName("Collection", List(typeName)) => new GCollection(typeName)
-    case TypeName("Entry", List(key,value)) => new GEntry(key,value)
+    case TypeName("Collection", List(elt)) => GCollection(TypeList.types(elt))
+    case TypeName("Entry", List(key,value)) => GEntry(TypeList.types(key),TypeList.types(value))
+    case TypeName("Comparison", List(elt)) => GComparison(TypeList.types(elt))
+    case TypeName("Predicate",List(elt)) => GPredicate(TypeList.types(elt))
+    case TypeName("Number Converter",List(elt)) => GNumber_Converter(TypeList.types(elt))
+    case TypeName("Collection",List(elt)) => GCollection(TypeList.types(elt))
+    case TypeName("Ref",List(elt)) => GRef(TypeList.types(elt))
 
   }
 

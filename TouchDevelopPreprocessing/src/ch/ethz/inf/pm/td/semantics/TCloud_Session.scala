@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TCloud_Session
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -15,24 +16,22 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */ 
 
-object TCloud_Session extends AAny {
+object TCloud_Session extends Default_TCloud_Session {
 
   /** Gets a value indicating if the session is connected */
-  lazy val field_is_connected = new ApiField("is connected",TBoolean.typeName)
+  lazy val field_is_connected = ApiField("is connected", TBoolean)
 
   /** Gets the session id */
-  lazy val field_id = new ApiField("id",TString.typeName)
+  lazy val field_id = ApiField("id", TString)
 
   /** Gets a string that describes this cloud session */
-  lazy val field_title = new ApiField("title",TString.typeName)
+  lazy val field_title = ApiField("title", TString)
 
   /** [**dbg**] Query server about current state of this session. You must be the authenticated owner. */
-  lazy val field_server_info = new ApiField("server info",TJson_Object.typeName)
+  lazy val field_server_info = ApiField("server info", TJson_Object)
 
   /** Gets information about the user that owns this session */
-  lazy val field_owner = new ApiField("owner",TUser.typeName)
-
-  lazy val typeName = TypeName("Cloud Session")
+  lazy val field_owner = ApiField("owner", TUser)
 
   override def possibleFields = super.possibleFields ++ List(field_is_connected,field_id,field_title,field_server_info,field_owner)
 

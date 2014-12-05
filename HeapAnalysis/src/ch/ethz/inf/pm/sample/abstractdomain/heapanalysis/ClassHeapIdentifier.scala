@@ -85,7 +85,7 @@ class ClassHeapIdentifier(val value: Type, val pp: ProgramPoint)
 
   override def setCounter(c: Int) = this
 
-  override def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, origCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = throw new SemanticException("Not yet supported")
+  override def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, origCollectionTyp: Option[Type], keyCollectionTyp: Option[Type], pp: ProgramPoint) = throw new SemanticException("Not yet supported")
 
   override def getCollectionOverApproximation(collection: Assignable) = throw new SemanticException("Not yet supported")
 
@@ -93,11 +93,11 @@ class ClassHeapIdentifier(val value: Type, val pp: ProgramPoint)
 
   override def getCollectionSummaryApproximation(collection: Assignable) = throw new SemanticException("Not yet supported")
 
-  override def createCollectionSummaryTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type) = throw new SemanticException("Not yet supported")
+  override def createCollectionSummaryTuple(collectionApprox: Assignable, keyType: Type, valueType: Type) = throw new SemanticException("Not yet supported")
 
-  override def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type, pp: ProgramPoint) = throw new SemanticException("Not yet supported")
+  override def createCollectionTuple(collectionApprox: Assignable, keyType: Type, valueType: Type, pp: ProgramPoint) = throw new SemanticException("Not yet supported")
 
-  override def createCollectionTuple(collectionApprox: Assignable, keyTyp: Type, valueTyp: Type, pps: Set[ProgramPoint]) = throw new SemanticException("Not yet supported")
+  override def createCollectionTuple(collectionApprox: Assignable, keyType: Type, valueType: Type, pps: Set[ProgramPoint]) = throw new SemanticException("Not yet supported")
 
   override def createCollectionTuple(collectionTuple1: Assignable, collectionTuple2: Assignable) = throw new SemanticException("Not yet supported")
 

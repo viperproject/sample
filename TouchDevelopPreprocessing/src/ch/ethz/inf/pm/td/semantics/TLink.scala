@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{InvalidInitializer, ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TLink
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,21 +17,19 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object TLink extends AAny {
+object TLink extends Default_TLink {
 
   /** Gets the url */
-  lazy val field_address = new ApiField("address", TString.typeName)
+  lazy val field_address = ApiField("address", TString)
 
   /** Gets the kind of asset - media, image, email, phone number, hyperlink, deep zoom link, radio */
-  lazy val field_kind = new ApiField("kind", TString.typeName)
+  lazy val field_kind = ApiField("kind", TString)
 
   /** Gets the location if any */
-  lazy val field_location = new ApiField("location", TLocation.typeName, InvalidInitializer("link may not have a location"))
+  lazy val field_location = new ApiField("location", TLocation, InvalidInitializer("link may not have a location"))
 
   /** Gets the name if any */
-  lazy val field_name = new ApiField("name", TString.typeName, InvalidInitializer("link may not have a name"))
-
-  lazy val typeName = TypeName("Link")
+  lazy val field_name = new ApiField("name", TString, InvalidInitializer("link may not have a name"))
 
   override def possibleFields = super.possibleFields ++ List(field_address, field_kind, field_location, field_name)
 

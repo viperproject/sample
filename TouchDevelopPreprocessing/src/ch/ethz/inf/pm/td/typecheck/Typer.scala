@@ -17,7 +17,7 @@ import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchException}
 object Typer {
 
   def processScript(script: Script): SymbolTable = {
-    val symbolTable = new SymbolTable(script) with StdLib with DebugLib
+    val symbolTable = new SymbolTable(script)
     processScript(script, symbolTable)
     symbolTable
   }
@@ -37,48 +37,22 @@ object Typer {
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
       case TableDefinition(ident, typeName, keys, fields) =>
-        val fieldMembers = for (field <- fields) yield {
-          Member(field.ident, field.typeName)
-        }
         val records = TypeName("records")
         val typ = TypeName(ident)
         typeName match {
           case "object" =>
             val constructorTyp = TypeName("Constructor", List(typ))
-            val collectionTyp = TypeName("Collection", List(typ))
-            st.addUserType(typ, GenericTypes.gObject(typ, fieldMembers))
-            st.addUserType(collectionTyp, GenericTypes.gMutableCollection(collectionTyp, typ))
-            st.addUserType(constructorTyp, List(Member("create", typ), Member("create collection", collectionTyp),
-              Member("invalid", typ)))
             st.addUserSingleton(records, List(Member(ident, constructorTyp)))
           case "table" =>
             val tableTyp = TypeName("Table",List(typ))
-            st.addUserType(typ, GenericTypes.gRow(typ, fieldMembers))
-            st.addUserType(tableTyp, GenericTypes.gTable(tableTyp, typ))
             st.addUserSingleton(records, List(Member(ident + " table", tableTyp)))
           case "index" =>
             val indexTyp = TypeName("Index",List(typ))
-            val keyMembers = keys map {
-              case Parameter(x, typX) => Member(x, typX)
-            }
-            val keyTypes = keys map {
-              case Parameter(_, typX) => typX
-            }
-            val fieldAndKeyMembers = fieldMembers ::: keyMembers
-            st.addUserType(typ, GenericTypes.gIndexMember(typ, fieldAndKeyMembers))
-            st.addUserType(indexTyp, GenericTypes.gIndex(indexTyp, keyTypes, typ))
             st.addUserSingleton(records, List(Member(ident + " index", indexTyp)))
           case "decorator" =>
             val decoratorTyp = TypeName("Decorator",List(typ))
             if (keys.size != 1) throw TouchException("Decorators must have exactly one entry", thing.pos)
             val decoratedType = keys.head.typeName
-            val keyMembers = keys map {
-              case Parameter(x, typX) => Member(x, typX)
-            }
-            val fieldAndKeyMembers = fieldMembers ::: keyMembers
-            st.addUserType(typ, GenericTypes.gIndexMember(typ, fieldAndKeyMembers))
-            st.addUserType(decoratorTyp,
-              GenericTypes.gIndex(decoratorTyp, List(decoratedType), typ))
             st.addUserSingleton(records, List(Member(decoratedType + " decorator", decoratorTyp)))
           case _ => throw TouchException("Table type " + typeName + " not supported", thing.pos)
 

@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TColor
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -15,7 +16,7 @@ import RichNativeSemantics._
  * Date: 11/8/12
  * Time: 6:13 PM
  */
-object TColor extends AAny  {
+object TColor extends Default_TColor  {
 
 //  lazy val field_A = new TouchField("A",TNumber,ExpressionInitializer(0 ndTo 1))
 //  lazy val field_R = new TouchField("R",TNumber,ExpressionInitializer(0 ndTo 1))
@@ -30,8 +31,6 @@ object TColor extends AAny  {
 //  lazy val field_hue = new TouchField("hue",TNumber,ExpressionInitializer(0 ndTo 1))
 //  lazy val field_saturation = new TouchField("saturation",TNumber,ExpressionInitializer(0 ndTo 1))
 //  lazy val field_brightness = new TouchField("brightness",TNumber,ExpressionInitializer(0 ndTo 1))
-
-  lazy val typeName = TypeName("Color")
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 

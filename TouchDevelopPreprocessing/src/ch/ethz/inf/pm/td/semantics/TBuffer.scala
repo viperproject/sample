@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TBuffer
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
@@ -17,13 +18,7 @@ import ch.ethz.inf.pm.td.semantics.TNumber_Collection._
  * @author Lucas Brutschy
  */
 
-object TBuffer extends ALinearCollection {
-
-  lazy val typeName = TypeName("Buffer")
-
-  def keyTypeName = TNumber.typeName
-
-  def valueTypeName =  TNumber.typeName
+object TBuffer extends Default_TBuffer {
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TPicture_Album
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -15,18 +16,16 @@ import ch.ethz.inf.pm.td.parser.TypeName
  * @author Lucas Brutschy
  */ 
 
-object TPicture_Album extends AAny {
+object TPicture_Album extends Default_TPicture_Album {
 
   /** Gets the children albums */
-  lazy val field_albums = new ApiField("albums",TPicture_Albums.typeName)
+  lazy val field_albums = ApiField("albums", TPicture_Albums)
 
   /** Gets the name of the album */
-  lazy val field_name = new ApiField("name",TString.typeName)
+  lazy val field_name = ApiField("name", TString)
 
   /** Gets the pictures */
-  lazy val field_pictures = new ApiField("pictures",TPictures.typeName)
-
-  lazy val typeName = TypeName("Picture Album")
+  lazy val field_pictures = ApiField("pictures", TPictures)
 
   override def possibleFields = super.possibleFields ++ List(field_albums, field_name, field_pictures)
 

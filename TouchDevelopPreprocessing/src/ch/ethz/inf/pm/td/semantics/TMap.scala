@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics, TouchAnalysisParameters}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TMap
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -13,15 +14,14 @@ import RichNativeSemantics._
  * Time: 6:34 PM
  */
 
-object TMap extends AAny {
+object TMap extends Default_TMap {
 
   /** Gets the zoom level */
-  lazy val field_zoom = new ApiField("zoom", TNumber.typeName)
+  lazy val field_zoom = ApiField("zoom", TNumber)
 
   /** Gets the map center location */
-  lazy val field_center = new ApiField("center", TLocation.typeName)
+  lazy val field_center = ApiField("center", TLocation)
 
-  lazy val typeName = TypeName("Map")
   override def possibleFields = super.possibleFields ++ List(field_zoom, field_center)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)(implicit pp: ProgramPoint, state: S): S = method match {

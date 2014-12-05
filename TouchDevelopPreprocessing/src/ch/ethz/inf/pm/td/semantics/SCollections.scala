@@ -4,6 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_SCollections
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -15,27 +16,25 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */
 
-object SCollections extends ASingleton {
-
-  lazy val typeName = TypeName("Collections")
+object SCollections extends Default_SCollections {
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)(implicit pp:ProgramPoint,state:S):S = method match {
 
     /** Creates an empty user collection */
     case "create user collection" =>
-      New[S](GCollection(TUser.typeName))
+      New[S](GCollection(TUser))
 
     /** Creates an empty picture collection */
     case "create picture collection" =>
-      New[S](GCollection(TPicture.typeName))
+      New[S](GCollection(TPicture))
 
     /** Creates an empty sound collection */
     case "create sound collection" =>
-      New[S](GCollection(TSound.typeName))
+      New[S](GCollection(TSound))
 
     /** Creates an empty action collection */
     case "create action collection" =>
-      New[S](GCollection(TAction.typeName))
+      New[S](GCollection(TAction))
 
     /** Creates an empty link collection */
     case "create link collection" =>

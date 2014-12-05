@@ -5,6 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ApiField, RichNativeSemantics}
 import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.defsemantics.Default_TCamera
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
 
@@ -16,18 +17,16 @@ import RichNativeSemantics._
  * @author Lucas Brutschy
  */ 
 
-object TCamera extends AAny {
+object TCamera extends Default_TCamera {
 
   /** Gets the height of the camera image in pixels. */
-  lazy val field_height = new ApiField("height",TNumber.typeName)
+  lazy val field_height = ApiField("height", TNumber)
 
   /** Gets the width of the camera image in pixels. */
-  lazy val field_width = new ApiField("width",TNumber.typeName)
+  lazy val field_width = ApiField("width", TNumber)
 
   /** Indicates if this camera is in front of the phone; false if this is the primary (back) camera. */
-  lazy val field_is_front = new ApiField("is front",TBoolean.typeName)
-
-  lazy val typeName = TypeName("Camera")
+  lazy val field_is_front = ApiField("is front", TBoolean)
 
   override def possibleFields = super.possibleFields ++ List(field_height, field_is_front, field_width)
 

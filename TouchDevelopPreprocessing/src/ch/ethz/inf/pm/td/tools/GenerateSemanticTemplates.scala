@@ -95,27 +95,111 @@ object GenerateSemanticTemplates {
         else if (isData) "T" + name.replace(" ","_")
         else "S" + name.replace(" ","_")
 
-      val scalaDecl =
-        if (isData && myTypeName.arguments.nonEmpty)
-          s"case class $className (" +  myTypeName.arguments.map{typeNameToScalaType(_) + ":AAny"}.mkString(", ") + ")"
-        else s"object $className"
+      // ============================================================
+      /// DETERMINE SUBTYPING
+      // ============================================================
 
-      // Dump the code
-      val p = new PrintWriter(new File(GEN_DIR + className + ".scala"))
+      var keyType:Option[String] = None
+      var valueType:Option[String] = None
+      var actionArgs:List[String] = Nil
+      className match {
+        case "TSongs" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TSong")
+        case "TPictures" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPicture")
+        case "TXml_Object" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TXml_Object")
+        case "TAppointment_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TAppointment")
+        case "TPicture_Albums" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPicture_Album")
+        case "TMedia_Player_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TMedia_Player")
+        case "TMedia_Server_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TMedia_Server")
+        case "TPage_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPage")
+        case "TPlaylists" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPlaylist")
+        case "TPrinter_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPrinter")
+        case "TSong_Albums" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TSong_Album")
+        case "TMedia_Link_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TMedia_Link")
+        case "TContact_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TContact")
+        case "TDevice_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TDevice")
+        case "TBuffer" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TNumber")
+        case "TBoard_Background_Scene" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TBoard_Background_Layer")
+        case "TJson_Object" => superClass = "AMap"; keyType = Some("TNumber"); valueType = Some("TJson_Object")
+        case "TJson_Builder" => superClass = "AMap"; keyType = Some("TString"); valueType = Some("TJson_Builder")
+        case "TString_Map" => superClass = "AMap"; keyType = Some("TString"); valueType = Some("TString")
+        case "TNumber_Map" => superClass = "AMap"; keyType = Some("TNumber"); valueType = Some("TNumber")
+        case "TLink_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TLink")
+        case "TMatrix" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TNumber")
+        case "TBoard" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TSprite")
+        case "TNumber_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TNumber")
+        case "TMessage_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TMessage")
+        case "TSprite_Set" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TSprite")
+        case "TPlace_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TPlace")
+        case "TString_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TString")
+        case "TLocation_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TLocation")
+        case "GCollection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TT")
+        case "GAction1" => superClass = "AAction"; actionArgs = List("TT")
+        case "GAtomic_Action1" => superClass = "AAction"; actionArgs = List("TT")
+        case "TAction" => superClass = "AAction"; actionArgs = List()
+        case "TBoolean_Action" => superClass = "AAction"; actionArgs = List("TBoolean_Action")
+        case "TJson_Action" => superClass = "AAction"; actionArgs = List("TJson_Action")
+        case "TMessage_Collection_Action" => superClass = "AAction"; actionArgs = List("TMessage_Collection")
+        case "TNumber_Action" => superClass = "AAction"; actionArgs = List("TNumber")
+        case "TPosition_Action" => superClass = "AAction"; actionArgs = List("TNumber","TNumber")
+        case "TVector_Action" => superClass = "AAction"; actionArgs = List("TNumber","TNumber","TNumber","TNumber")
+        case "TSprite_Action" => superClass = "AAction"; actionArgs = List("TSprite_Action")
+        case "TSprite_Set_Action" => superClass = "AAction"; actionArgs = List("TSprite_Set")
+        case "TText_Action" => superClass = "AAction"; actionArgs = List("TString")
+        case "TWeb_Response_Action" => superClass = "AAction"; actionArgs = List("TWeb_Response")
+        case _ => ()
+      }
+
+      var filter = Set("is invalid", "post to wall",",",":=","async")
+      superClass match {
+        case "AAction" => filter = filter + "run"
+        case "ACollection" => filter = filter ++ Set("count","copy","to json","from json","at index")
+        case "ALinearCollection" => filter = filter ++  Set("count","copy","to json","from json","at","random","rand")
+        case "AMap" => filter = filter ++ Set("count","copy","to json","from json","at","set at","set many",
+          "remove","clear")
+        case "AMutable_Collection" => filter = filter ++ Set("count","copy","to json","from json","at","random","rand","set at",
+          "remove","add","add many","clear","index of","insert at","remove","remove at","reverse",
+          "sort","contains")
+        case _ => ()
+      }
+
+      // ============================================================
+      /// CONSTRUCT HEADERS
+      // ============================================================
+
+      val abstractDecl =
+        if (isData && myTypeName.arguments.nonEmpty) {
+          val defs = myTypeName.arguments.map{"def "+ typeNameToScalaType(_) + ":AAny"}.mkString("\n  ")
+          s"""trait Default_$className extends $superClass {
+             |
+             |  $defs
+           """.stripMargin
+        } else s"trait Default_$className extends $superClass {"
+
+      val scalaDecl =
+        if (isData && myTypeName.arguments.nonEmpty) {
+          val defs = myTypeName.arguments.map{typeNameToScalaType(_) + ":AAny"}.mkString(", ")
+          s"case class $className ($defs) extends Default_$className {"
+        } else s"object $className extends Default_$className {"
+
+
+      var fieldsDecl = List[String]()
+      var fields = List[String]()
+
+      // ============================================================
+      /// DUMP DEFAULT
+      // ============================================================
+
+      val p = new PrintWriter(new File(GEN_DIR + "Default_"+ className + ".scala"))
 
       try {
 
-
         p.println(
           s"""
-            |package ch.ethz.inf.pm.td.semantics
+            |package ch.ethz.inf.pm.td.defsemantics
             |
-            |import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
-            |import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-            |import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-            |import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, TouchType, ApiMember}
+            |import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
             |import ch.ethz.inf.pm.td.parser.TypeName
-            |import ch.ethz.inf.pm.td.analysis.ApiField
+            |import ch.ethz.inf.pm.td.semantics._
             |
             |/**
             | * Specifies the abstract semantics of $name
@@ -124,92 +208,20 @@ object GenerateSemanticTemplates {
             | *
             | * @author Lucas Brutschy
             | */
-          """.stripMargin
-        )
-
-        // ============================================================
-        /// DETERMINE SUBTYPING
-        // ============================================================
-
-        var keyType:Option[String] = None
-        var valueType:Option[String] = None
-        var actionArgs:List[String] = Nil
-        className match {
-          case "TSongs" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TSong")
-          case "TPictures" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPicture")
-          case "TXml_Object" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TXml_Object")
-          case "TAppointment_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TAppointment")
-          case "TPicture_Albums" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPicture_Album")
-          case "TMedia_Player_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TMedia_Player")
-          case "TPage_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPage")
-          case "TPlaylists" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPlaylist")
-          case "TPrinter_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TPrinter")
-          case "TSong_Albums" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TSong_Album")
-          case "TMedia_Link_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TMedia_Link")
-          case "TContact_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TContact")
-          case "TDevice_Collection" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TDevice")
-          case "TBuffer" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TNumber")
-          case "TBoard_Background_Scene" => superClass = "ALinearCollection"; keyType = Some("TNumber"); valueType = Some("TBoard_Background_Layer")
-          case "TJson_Object" => superClass = "AMap"; keyType = Some("TNumber"); valueType = Some("TJson_Object")
-          case "TJson_Builder" => superClass = "AMap"; keyType = Some("TString"); valueType = Some("TJson_Builder")
-          case "TString_Map" => superClass = "AMap"; keyType = Some("TString"); valueType = Some("TString")
-          case "TNumber_Map" => superClass = "AMap"; keyType = Some("TNumber"); valueType = Some("TNumber")
-          case "TLink_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TLink")
-          case "TMatrix" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TNumber")
-          case "TBoard" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TSprite")
-          case "TNumber_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TNumber")
-          case "TMessage_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TMessage")
-          case "TSprite_Set" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TSprite")
-          case "TPlace_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TPlace")
-          case "TString_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TString")
-          case "TLocation_Collection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TLocation")
-          case "GCollection" => superClass = "AMutable_Collection"; keyType = Some("TNumber"); valueType = Some("TT")
-          case "GAction1" => superClass = "AAction"; actionArgs = List("TT")
-          case "GAtomic_Action1" => superClass = "AAction"; actionArgs = List("TT")
-          case "TAction" => superClass = "AAction"; actionArgs = List()
-          case "TBoolean_Action" => superClass = "AAction"; actionArgs = List("TBoolean_Action")
-          case "TJson_Action" => superClass = "AAction"; actionArgs = List("TJson_Action")
-          case "TMessage_Collection_Action" => superClass = "AAction"; actionArgs = List("TMessage_Collection")
-          case "TNumber_Action" => superClass = "AAction"; actionArgs = List("TNumber")
-          case "TPosition_Action" => superClass = "AAction"; actionArgs = List("TNumber","TNumber")
-          case "TSprite_Action" => superClass = "AAction"; actionArgs = List("TSprite_Action")
-          case "TSprite_Set_Action" => superClass = "AAction"; actionArgs = List("TSprite_Set")
-          case "TText_Action" => superClass = "AAction"; actionArgs = List("TString")
-          case "TWeb_Response_Action" => superClass = "AAction"; actionArgs = List("TWeb_Response")
-          case _ => ()
-        }
-
-        var filter = Set("is invalid", "post to wall")
-        superClass match {
-          case "AAction" => filter = filter + "run"
-          case "ACollection" => filter = filter ++ Set("count","copy","to json","from json")
-          case "ALinearCollection" => filter = filter ++  Set("count","copy","to json","from json","at","random","rand")
-          case "AMap" => filter = filter ++ Set("count","copy","to json","from json","at","random","rand","set at","set many",
-            "remove","keys")
-          case "AMutable_Collection" => filter = filter ++ Set("count","copy","to json","from json","at","random","rand","set at",
-            "set many","remove","keys","add","add many","clear","index of","insert at","remove","remove at","reverse",
-            "sort","contains")
-          case _ => ()
-        }
-
-        p.println(
-          s"""
-            |$scalaDecl extends $superClass {
+            |
+            |$abstractDecl
             |
             |  lazy val typeName = $scalaTypeName
           """.stripMargin
         )
 
-        if (keyType.isDefined) p.println("  def keyTypeName = "+keyType.get+".typeName\n")
-        if (valueType.isDefined) p.println("  def valueTypeName = "+valueType.get+".typeName\n")
+        if (keyType.isDefined) p.println("  def keyType = "+keyType.get+"\n")
+        if (valueType.isDefined) p.println("  def valueType = "+valueType.get+"\n")
         if (superClass == "AAction") p.println("  def actionArguments = List("+actionArgs.map("ApiParam("+_+")").mkString(",")+")\n")
 
         // ============================================================
         // PRINT DECLARATIONS.
         // ============================================================
-
-        var fieldsDecl = List[String]()
-        var fields = List[String]()
 
         val members = (for (
           JField("properties", JArray(properties)) <- typ;
@@ -252,7 +264,7 @@ object GenerateSemanticTemplates {
             val fieldFieldName = "field_"+propJsName
 
             if (ret != "TNothing" && parameters.isEmpty && isPure) {
-              fieldsDecl ::= s"""lazy val $fieldFieldName = ApiField("$propName",$ret.typeName)"""
+              fieldsDecl ::= s"""lazy val $fieldFieldName = ApiField("$propName",$ret)"""
               fields ::= s"""$fieldFieldName"""
             }
 
@@ -272,12 +284,13 @@ object GenerateSemanticTemplates {
 
             p.println(s"""  /** $countText: $propHelp */""")
             p.println(
-              s"""  lazy val $propFieldName = new ApiMember(
+              s"""  def $propFieldName = ApiMember(
                  |    name = "$propName",
                  |    paramTypes = List($parameters),
                  |    thisType = $thisType,
-                 |    returnType = $ret
-                 |  ) with $semantics""".stripMargin+"\n")
+                 |    returnType = $ret,
+                 |    semantics = $semantics
+                 |  )""".stripMargin+"\n")
             Some(s""""$propName" -> $propFieldName""")
 
           } else None
@@ -287,28 +300,11 @@ object GenerateSemanticTemplates {
         if (members.nonEmpty) {
           p.println(
             s"""
-            |  override lazy val declarations:Map[String,ApiMember] = super.declarations ++ Map(
+            |  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
             |    $members
             |  )
             """.stripMargin
           )
-        }
-
-        if (fields.nonEmpty) {
-          val fieldDeclString = fieldsDecl.mkString("\n//  ")
-          p.println(
-            s"""
-                |//  $fieldDeclString
-                """.stripMargin
-          )
-          val fieldListString = fields.mkString(",\n//    ")
-          p.println(
-            s"""
-                |//  override lazy val possibleFields = super.possibleFields ++ Set(
-                |//    $fieldListString
-                |//  )
-                """.stripMargin
-            )
         }
 
         p.println(
@@ -320,6 +316,63 @@ object GenerateSemanticTemplates {
       } finally {
         p.close()
       }
+
+      // ============================================================
+      /// DUMP DEFAULT
+      // ============================================================
+
+
+      val p2 = new PrintWriter(new File(GEN_DIR + className + ".scala"))
+
+      try {
+
+        p2.println(
+          s"""
+            |package ch.ethz.inf.pm.td.semantics
+            |
+            |import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, ApiMember}
+            |import ch.ethz.inf.pm.td.parser.TypeName
+            |import ch.ethz.inf.pm.td.defsemantics.Default_$className
+            |
+            |/**
+            | * Customizes the abstract semantics of $name
+            | *
+            | * $help
+            | *
+            | * @author Lucas Brutschy
+            | */
+            |
+            |$scalaDecl
+          """.stripMargin
+        )
+
+        if (fields.nonEmpty) {
+          val fieldDeclString = fieldsDecl.mkString("\n//  ")
+          p2.println(
+            s"""
+                  |//  $fieldDeclString
+                  """.stripMargin
+          )
+          val fieldListString = fields.mkString(",\n//    ")
+          p2.println(
+            s"""
+                  |//  override lazy val possibleFields = super.possibleFields ++ Set(
+                  |//    $fieldListString
+                  |//  )
+                  """.stripMargin
+          )
+        }
+
+        p2.println(
+          s"""
+          |}
+          """.stripMargin
+        )
+
+      } finally {
+        p2.close()
+      }
+
 
     }
   }

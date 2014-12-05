@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{Identifier, ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.{NativeMethodSemantics, ProgramPoint, Type}
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.compiler.{ApiMember, TouchCompiler, TouchType}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.domain.MultiValExpression
 import RichNativeSemantics._
 import ch.ethz.inf.pm.td.parser.TypeName
@@ -17,10 +17,66 @@ import ch.ethz.inf.pm.td.typecheck.Member
  */
 trait AAny extends NativeMethodSemantics with RichExpressionImplicits with TouchType {
 
+  def member_∥ = ApiMember(
+    name = "∥",
+    paramTypes = List(ApiParam(TString)),
+    thisType = ApiParam(this),
+    returnType = TString,
+    semantics = DefaultSemantics
+  )
+
+  def member_is_invalid = ApiMember(
+    name = "is invalid",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TBoolean,
+    semantics = DefaultSemantics
+  )
+
+  def member_comma = new ApiMember(
+    name = ",",
+    paramTypes = List(ApiParam(TUnknown), ApiParam(TUnknown)),
+    thisType = ApiParam(this),
+    returnType = TUnknown,
+    semantics = DefaultSemantics
+  )
+
+  def member_:= = new ApiMember(
+    name = ":=",
+    paramTypes = List(ApiParam(TUnknown), ApiParam(TUnknown)),
+    thisType = ApiParam(this),
+    returnType = TUnknown,
+    semantics = DefaultSemantics
+  )
+
+  def member_async = new ApiMember(
+    name = "async",
+    paramTypes = List(ApiParam(TUnknown)),
+    thisType = ApiParam(this),
+    returnType = TUnknown,
+    semantics = DefaultSemantics
+  )
+
+  def member_post_to_wall = ApiMember(
+    name = "post to wall",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = TNothing,
+    semantics = DefaultSemantics
+  )
+
+  def declarations:Map[String,ApiMember] = Map(
+    "," -> member_comma,
+    ":=" -> member_:=,
+    "∥" -> member_∥,
+    "async" -> member_async,
+    "is invalid" -> member_is_invalid,
+    "post to wall" -> member_post_to_wall
+  )
+
   def isSingleton = false
   def isImmutable = true
 
-  def declarations:Map[String,ApiMember] = Map.empty
   def possibleFields = Set.empty
 
   override def representedFields =

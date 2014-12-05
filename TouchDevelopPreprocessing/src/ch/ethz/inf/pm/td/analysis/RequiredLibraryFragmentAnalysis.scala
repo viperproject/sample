@@ -80,7 +80,7 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
 
   def getVariableValue(id: Assignable): AccessCollectingState = this.setType(id.typ)
 
-  def createCollection(collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]] = None) =
+  def createCollection(collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, keyCollectionTyp: Option[Type], tpp: ProgramPoint, fields: Option[Set[Identifier]] = None) =
     this.setType(collTyp)
 
   def getSummaryCollectionIfExists(collectionSet: ExpressionSet) = this
@@ -98,7 +98,7 @@ class AccessCollectingState(myType: Type) extends State[AccessCollectingState] w
   def getCollectionValueByValue(collectionSet: ExpressionSet, valueSet: ExpressionSet) =
     this.setType(collectionSet.getType().asInstanceOf[ACollection].valueType)
 
-  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyTyp: Type, valueTyp: Type, lengthTyp: Type, pp: ProgramPoint) = this
+  def extractCollectionKeys(fromCollectionSet: ExpressionSet, newKeyValueSet: ExpressionSet, fromCollectionTyp: Type, collTyp: Type, keyType: Type, valueType: Type, lengthTyp: Type, pp: ProgramPoint) = this
 
   def getOriginalCollection(collectionSet: ExpressionSet) = this
 
