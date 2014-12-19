@@ -193,6 +193,7 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
       state.setExpression(multiValExpressionSet)
 
     case _ =>
+
       matchFields[S](this0, parameters, method)
 
   }
@@ -241,7 +242,14 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
         mutedFieldResult match {
           case Some(res) => res
-          case None => Unimplemented[S](this.toString + "." + method)
+          case None =>
+            declarations.get(method) match {
+              case Some(res) =>
+                res.semantics.forwardSemantics(this0,res,parameters)
+              case None =>
+                Unimplemented[S](this.toString + "." + method)
+            }
+
         }
     }
 

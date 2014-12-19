@@ -485,10 +485,10 @@ trait HeapIdentifier[I <: HeapIdentifier[I]] extends Identifier {}
 case class UnitExpression(typ: Type, pp: ProgramPoint) extends Expression {
   def ids = Set.empty
 
-  override def hashCode(): Int = 0;
+  override def hashCode(): Int = 0
 
   override def equals(o: Any) = o match {
-    case UnitExpression(t, pp) => true
+    case UnitExpression(_,_) => true
     case _ => false
   }
 

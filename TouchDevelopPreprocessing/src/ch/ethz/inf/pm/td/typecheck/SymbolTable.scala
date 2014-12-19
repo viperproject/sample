@@ -25,22 +25,7 @@ object Member {
 case class Member (name:String,argsTypes:List[TypeName],retType:TypeName)
 
 
-abstract class AbstractSymbolTable {
-
-  protected var types = new mutable.HashMap[TypeName,Map[String,Member]]
-
-  protected var genericTypes = new mutable.HashMap[String,TypeName => List[Member]]
-
-  def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {
-    TypeList.types(typ).declarations.get(symbol) match {
-      case Some(member) => List(member.returnType.typeName)
-      case None => throw new TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
-    }
-  }
-
-}
-
-class SymbolTable(script:Script) extends AbstractSymbolTable {
+class SymbolTable(script:Script) {
 
   /** Global fields: Data, Art */
   private val data = new mutable.HashMap[String,TypeName]
@@ -53,19 +38,6 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
 
   /** Library Actions */
   private val libs = new mutable.HashMap[String,Map[String,Map[List[TypeName],List[TypeName]]]]
-
-  /** User defined types */
-  private val usertypes = new mutable.HashMap[TypeName,Map[String,Member]]
-
-  def addUserSingleton (objName:TypeName,members:List[Member]) {
-    usertypes(objName) = if (usertypes.contains(objName)) usertypes(objName) else immutable.Map.empty[String,Member]
-    for (mem <- members) usertypes(objName) = usertypes(objName) + (mem.name -> mem)
-  }
-
-  def addUserType (typeName:TypeName,members:List[Member]) {
-    usertypes(typeName) = if (usertypes.contains(typeName)) usertypes(typeName) else immutable.Map.empty[String,Member]
-    for (mem <- members) usertypes(typeName) = usertypes(typeName) + (mem.name -> mem)
-  }
 
   def addLibAction (a1:String,a2:String,a3:List[Parameter],a4:List[Parameter]) {
     val libSym = if(libs.contains(a1)) libs(a1) else Map.empty[String,Map[List[TypeName],List[TypeName]]]
@@ -93,15 +65,6 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
 
   def resolveUsertypeAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil): Option[List[TypeName]] = {
 
-    // Standard function of records
-    usertypes.get(typ) match {
-      case Some(x) => x.get(symbol) match {
-        case Some (y) => return Some(List(y.retType))
-        case None => ()
-      }
-      case None => ()
-    }
-
     // library function of type lib->f(record,...) can be run as record->f(...) ()
     for ((_, lib) <- libs) {
       lib.get(symbol) match {
@@ -125,7 +88,7 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
     return None
   }
 
-  override def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {
+  def resolveAccess(typ: TypeName, symbol: String, args: List[TypeName] = Nil, pos: Position): List[TypeName] = {
 
     typ match {
       case TypeName("code",_) => resolveCode(symbol, args, pos)
@@ -139,7 +102,11 @@ class SymbolTable(script:Script) extends AbstractSymbolTable {
         } else {
           resolveUsertypeAccess(typ, symbol, args) match {
             case Some(x) => x
-            case None => super.resolveAccess(typ, symbol, args, pos)
+            case None =>
+              TypeList.types(typ).declarations.get(symbol) match {
+                case Some(member) => List(member.returnType.typeName)
+                case None => throw new TouchException("API method not found: " + typ + "." + symbol + " with arguments " + args, pos)
+              }
           }
         }
     }

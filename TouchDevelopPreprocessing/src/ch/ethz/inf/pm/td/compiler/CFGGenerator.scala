@@ -76,9 +76,6 @@ class CFGGenerator(compiler: TouchCompiler) {
     val programPoint: ProgramPoint = makeTouchProgramPoint(curPubID, script)
     val typ: Type = typeNameToType(TypeName(curScriptName))
     SystemParameters.typ = typ
-
-    findTypes(script)
-
     val modifiers: List[Modifier] = Nil
     val name: ClassIdentifier = TouchClassIdentifier(curScriptName, typ)
     val parametricTypes: List[Type] = Nil
@@ -91,83 +88,6 @@ class CFGGenerator(compiler: TouchCompiler) {
     classDef.fields = fields
     classDef.methods = methods
     classDef
-  }
-
-  /**
-   *
-   * Discovers user-defined types such as Object, Table, Index, Decorator
-   * and adds those definitions to the compiler
-   *
-   * @param script The script that is searched for type declarations
-   */
-  private def findTypes(script: parser.Script) {
-
-    def addRecordsField(field: ApiField) {
-      compiler.recordsFields += field
-    }
-
-    def toTouchField(fields: List[Parameter]): List[ApiField] = {
-      for (field <- fields) yield {
-        ApiField(field.ident, TypeList.types(field.typeName))
-      }
-    }
-
-    for (dec <- script.declarations) {
-      dec match {
-        case thing@TableDefinition(ident, typeName, keys, fields) =>
-
-
-          typeName match {
-            case "object" =>
-
-              val objectTypeName = TypeName(ident)
-              val objectConstructor = GObjectConstructor(SystemParameters.compiler.asInstanceOf[TouchCompiler].getType(objectTypeName))
-              addRecordsField(ApiField(ident, objectConstructor))
-
-            case "table" =>
-
-              val rowTypName = TypeName(ident)
-              val rowTyp = GRow(rowTypName,toTouchField(fields))
-              val tableType = GTable(rowTyp)
-              addRecordsField(ApiField(ident + " table", tableType))
-
-            case "index" =>
-
-              val indexMemberTypeName = TypeName(ident)
-              val keyMembers = toTouchField(keys)
-              val fieldMembers = toTouchField(fields)
-              val indexMember = GIndexMember(indexMemberTypeName,keyMembers,fieldMembers)
-              val indexType =
-                if (keyMembers.size > 0) {
-                  GIndex(indexMember)
-                } else {
-                  GSingletonIndex(indexMember)
-                }
-
-              // TODO: Add types
-              addRecordsField(ApiField(ident + " index", indexType))
-
-            case "decorator" =>
-
-              if (keys.size != 1) throw TouchException("Decorators must have exactly one entry " + thing.getPositionDescription)
-
-              val decorationType = TypeName(ident)
-              val keyMembers = toTouchField(keys)
-              val fieldMembers = toTouchField(fields)
-              val indexMember = GIndexMember(decorationType,keyMembers,fieldMembers)
-
-              val decoratedType = keyMembers.head
-              val decoratorType = GDecorator(indexMember,decoratedType.typ)
-
-              addRecordsField(new ApiField(decoratedType + " decorator", decoratorType))
-
-            case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
-
-          }
-
-        case _ => ()
-      }
-    }
   }
 
   private def findFields(script: parser.Script, currentClassDef: ClassDefinition): List[FieldDeclaration] = {
@@ -250,7 +170,7 @@ class CFGGenerator(compiler: TouchCompiler) {
     VariableIdentifier(name, scope)(typ, programPoint)
   }
 
-  private def typeNameToType(typeName: parser.TypeName): TouchType = compiler.getType(typeName)
+  private def typeNameToType(typeName: parser.TypeName): TouchType = TypeList.getType(typeName)
 
   private def addStatementsToCFG(statements: List[parser.Statement], cfg: ControlFlowGraph, scope: ScopeIdentifier,
                                  currentClassDef: ClassDefinition): (Int, Int, List[MethodDeclaration]) = {

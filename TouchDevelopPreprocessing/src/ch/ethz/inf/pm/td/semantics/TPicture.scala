@@ -4,7 +4,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.numericaldomain.NumericalAnalysisCon
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis._
-import ch.ethz.inf.pm.td.compiler.TouchType
+import ch.ethz.inf.pm.td.compiler.{SkipSemantics, TouchType}
 import ch.ethz.inf.pm.td.defsemantics.Default_TPicture
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -18,6 +18,9 @@ import RichNativeSemantics._
  */
 
 object TPicture extends Default_TPicture {
+
+  override lazy val member_clear_rect = super.member_clear_rect.copy(semantics = SkipSemantics)
+  override lazy val member_clear = super.member_clear.copy(semantics = SkipSemantics)
 
   /** Gets the width in pixels */
   lazy val field_width = new ApiField("width", TNumber,
@@ -80,11 +83,6 @@ object TPicture extends Default_TPicture {
       if (TouchAnalysisParameters.reportNoncriticalParameterBoundViolations) {
         CheckInRangeInclusive[S](factor, -1, 1, "brightness", "factor")
       }
-      Skip
-
-    /** Clears the picture to a given color */
-    case "clear" =>
-      val List(color) = parameters // Color
       Skip
 
     /** Returns a copy of the image */

@@ -4,7 +4,8 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.SystemParameters
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
+import ch.ethz.inf.pm.td.analysis.ApiField
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
@@ -19,7 +20,7 @@ object SRecords extends ASingleton {
 
   lazy val typeName = TypeName("records")
 
-  override def possibleFields = super.possibleFields ++ SystemParameters.compiler.asInstanceOf[TouchCompiler].recordsFields
+  override def declarations = super.declarations ++ TypeList.recordsMembers
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {

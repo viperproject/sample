@@ -11,7 +11,7 @@ import ch.ethz.inf.pm.td.semantics.{AAny, TNothing}
 
 trait TouchType extends Named with Type {
 
-  def name:String = typeName.toString
+  lazy val name:String = typeName.toString
   def typeName:TypeName
 
   def isSingleton: Boolean

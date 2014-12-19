@@ -40,8 +40,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
   var events: Set[MethodDeclaration] = Set.empty
   var globalData: Set[FieldDeclaration] = Set.empty
   var relevantLibraryFields: Set[String] = Set.empty
-  var recordsFields: Set[ApiField] = Set.empty
-  var userTypes: Map[TypeName, AAny] = Map.empty
 
   var isInLibraryMode = false
 
@@ -164,18 +162,6 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   def getNativeMethodsSemantics(): List[NativeMethodSemantics] = List(new Dispatcher())
 
-  /** FIXME: THIS HAS TO GO */
-  def getType(xName: TypeName): AAny = {
-    if (!CFGGenerator.isLibraryIdent(xName.ident)) {
-      userTypes.get(xName) match {
-        case Some(x) => x
-        case None => TypeList.types(xName)
-      }
-    } else new ASingleton {
-      override def typeName: TypeName = xName
-    }
-  }
-
   def extensions(): List[String] = List("td", "json")
 
   def getLabel(): String = "TouchDevelop"
@@ -242,6 +228,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     yield (mdecl.classDef, mdecl)
 
   def reset() {
+    TypeList.reset()
     main = null
     publicMethods = Set.empty
     privateMethods = Set.empty
@@ -251,9 +238,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
     relevantLibraryFields = Set.empty
     parsedScripts = Nil
     parsedTouchScripts = Map.empty
-    userTypes = Map.empty
     isInLibraryMode = false
-    recordsFields = Set.empty
   }
 
   def generateTopType() {

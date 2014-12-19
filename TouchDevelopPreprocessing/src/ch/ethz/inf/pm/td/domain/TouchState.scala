@@ -9,14 +9,14 @@ import ch.ethz.inf.pm.td.analysis.ApiField
 import scala.collection.immutable.Set
 
 case class HeapIdentifier(pp: ProgramPoint, typ:Type, summary:Boolean, unique:Int) extends Identifier {
-  override def getName: String = pp + (if (summary) "Σ" else "") + "[v"+unique+"]" + typ.toString
+  override val getName: String = pp + (if (summary) "Σ" else "") + "[v"+unique+"]" + typ.toString
   override def getField: Option[String] = None
   override def representsSingleVariable: Boolean = !summary
 }
 
 case class FieldIdentifier(o:HeapIdentifier,f:String,typ:Type) extends Identifier {
   override def pp:  ProgramPoint = o.pp
-  override def getName: String = o + "." + f
+  override val getName: String = o + "." + f
   override def getField: Option[String] = Some(f)
   override def representsSingleVariable: Boolean = o.representsSingleVariable
 }
@@ -362,6 +362,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    */
   override def lub(other: T): T = {
 
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.lub")
+
     val (left,right) = adaptEnvironments(this,other)
     val result = factory(
       MapUtil.mapToSetUnion(left.forwardMay,right.forwardMay),
@@ -380,6 +382,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       }
     }
 
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.lub")
+
     result
   }
 
@@ -390,6 +394,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
    * @return The widening of <code>left</code> and <code>right</code>
    */
   override def widening(other: T): T = {
+
+    if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.widening")
 
     val (left,right) = adaptEnvironments(this,other)
 
@@ -432,6 +438,8 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
         assert(v.nonEmpty)
       }
     }
+
+    if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.widening")
 
     result
   }

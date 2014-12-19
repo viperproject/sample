@@ -1,5 +1,6 @@
 package ch.ethz.inf.pm.td.compiler
 
+import ch.ethz.inf.pm.td.analysis.ApiField
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 
@@ -13,8 +14,35 @@ import ch.ethz.inf.pm.td.semantics._
 
 object TypeList  {
 
+  def reset() {
+    userTypes = Map.empty
+    recordsMembers = Map.empty
+  }
+
+  var userTypes: Map[TypeName, AAny] = Map.empty
+  var recordsMembers: Map[String, ApiMember] = Map.empty
+
+  def addTouchType(semantics: AAny) {
+    TypeList.userTypes += semantics.typeName -> semantics
+  }
+
+  def addRecordsMember(name:String, returnType:AAny) {
+    TypeList.recordsMembers += name -> ApiMember(name,Nil,ApiParam(SRecords),returnType,DefaultSemantics)
+  }
+
   def getSingletons = List(SBazaar,SBox,SCloud_Data,SCloud_Storage,
     SColors,SHome,SLanguages,SLocations,SMedia,SPlayer,SRadio,SRecords,SSenses,SSocial,STime,SWall,SWeb)
+
+  def getType(xName: TypeName): AAny = {
+    if (!CFGGenerator.isLibraryIdent(xName.ident)) {
+      userTypes.get(xName) match {
+        case Some(x) => x
+        case None => types(xName)
+      }
+    } else new ASingleton {
+      override def typeName: TypeName = xName
+    }
+  }
 
   def types(typ:TypeName):AAny = typ match {
     
@@ -156,6 +184,12 @@ object TypeList  {
     case TypeName("Number Converter",List(elt)) => GNumber_Converter(TypeList.types(elt))
     case TypeName("Collection",List(elt)) => GCollection(TypeList.types(elt))
     case TypeName("Ref",List(elt)) => GRef(TypeList.types(elt))
+
+    case _ =>
+      userTypes.get(typ) match {
+        case Some(x) => x
+        case None => throw TouchException("TypeList: Non-existing type detected: "+typ)
+      }
 
   }
 

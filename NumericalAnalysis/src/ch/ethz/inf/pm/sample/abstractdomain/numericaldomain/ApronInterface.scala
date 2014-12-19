@@ -83,9 +83,9 @@ trait ApronInterface[T <: ApronInterface[T]]
     factory(None, domain, isPureBottom = true, env = Set.empty)
   }
 
-  override def isBottom: Boolean = {
-    if (isPureBottom) return true
-    state match {
+  override lazy val isBottom: Boolean = {
+    if (isPureBottom) true
+    else state match {
       case Some(s) => s.isBottom(domain)
       case None => false // top state
     }

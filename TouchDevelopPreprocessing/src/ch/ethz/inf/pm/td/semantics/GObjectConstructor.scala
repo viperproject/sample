@@ -10,6 +10,8 @@ import RichNativeSemantics._
 
 case class GObjectConstructor(objectTyp:AAny) extends AAny {
 
+
+
   def typeName = TypeName("Constructor", List(objectTyp.typeName))
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)

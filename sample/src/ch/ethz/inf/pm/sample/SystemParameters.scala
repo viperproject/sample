@@ -17,7 +17,7 @@ object SystemParameters {
   /**
    * Enables costly debugging flags
    */
-  val DEBUG = false
+  val DEBUG = true
 
   /**
    * Enables costly debugging flags
@@ -49,58 +49,58 @@ object SystemParameters {
   }
 
   //TODO:Remove it
-  var semanticsComputing: Boolean = false;
+  var semanticsComputing: Boolean = false
 
   /**
    * Ir true Sample supposes that if we invoke numerical methods like + on an object of any type we are
    * performing arithmetical operations
    */
-  var ignoreTypeForNumericalMethods: Boolean = false;
+  var ignoreTypeForNumericalMethods: Boolean = false
 
   /**
   The output for the window that shows the progresses of the analysis
     */
-  var progressOutput: ScreenOutput = null;
+  var progressOutput: ScreenOutput = null
   /**
   The output for the window that shows the results of the analysis
     */
-  var analysisOutput: ScreenOutput = null;
+  var analysisOutput: ScreenOutput = null
   /**
   The timer that collects the amount of time spent by the heap abstraction
     */
-  val heapTimer: Timer = new Timer;
+  val heapTimer: Timer = new Timer
   /**
   The timer that collects the amount of time spent by the semantic analysis
     */
-  val domainTimer: Timer = new Timer;
+  val domainTimer: Timer = new Timer
   /**
   The timer that collects the amount of time spent by the property checker
     */
-  val propertyTimer: Timer = new Timer;
+  val propertyTimer: Timer = new Timer
   /**
   The timer that collects the amount of time spent by the compiler
     */
-  val compilerTimer: Timer = new Timer;
+  val compilerTimer: Timer = new Timer
   /**
   An instance of the current type system
     */
-  var typ: Type = null;
+  var typ: Type = null
   /**
   The compiler used to compile the given files
     */
-  var compiler: Compiler = null;
+  var compiler: Compiler = null
   /**
   The checked property
     */
-  var property: Property = null;
+  var property: Property = null
 
-  def getType() = typ;
+  def getType() = typ
 
   def addNativeMethodsSemantics(l: List[NativeMethodSemantics]) = {
     for (s1 <- l) {
-      var already = false;
+      var already = false
       for (s2 <- nativeMethodsSemantics)
-        if (s1 == s2) already = true;
+        if (s1 == s2) already = true
       if (!already)
         nativeMethodsSemantics = nativeMethodsSemantics ::: s1 :: Nil
     }
@@ -108,13 +108,13 @@ object SystemParameters {
 
   def resetNativeMethodsSemantics(): Unit = nativeMethodsSemantics = Nil
 
-  def setProperty(p: Property) = property = p;
+  def setProperty(p: Property) = property = p
 
-  def setCompiler(c: Compiler) = compiler = c;
+  def setCompiler(c: Compiler) = compiler = c
 
-  def setProgressOutput(p: ScreenOutput) = progressOutput = p;
+  def setProgressOutput(p: ScreenOutput) = progressOutput = p
 
-  def setAnalysisOutput(p: ScreenOutput) = analysisOutput = p;
+  def setAnalysisOutput(p: ScreenOutput) = analysisOutput = p
 
   def resetOutput(): Unit = {
     Reporter.enableAllOutputs()
@@ -135,8 +135,8 @@ abstract class ScreenOutput {
   private var indent = 0
 
   def begin(s: String) {
-    put("{ " + s);
-    Timer.start;
+    put("{ " + s)
+    Timer.start
     indent += 1
   }
 
@@ -146,7 +146,7 @@ abstract class ScreenOutput {
   }
 
   def end(s: String) {
-    indent -= 1;
+    indent -= 1
     put("} " + s + " (time: " + Timer.stop + ")")
   }
 
@@ -201,7 +201,7 @@ class CombinedOutput(a: ScreenOutput, b: ScreenOutput) extends ScreenOutput {
 
 class Timer {
   var lastValue: Option[Long] = None
-  var totalTime: Long = 0;
+  var totalTime: Long = 0
 
   def start() = lastValue = Some(System.currentTimeMillis())
 
@@ -210,6 +210,7 @@ class Timer {
     case None => System.out.println("Timer not started before!");
   }
 
-  def reset() = totalTime = 0;
-  lastValue = None;
+  def reset() = totalTime = 0
+
+  lastValue = None
 }

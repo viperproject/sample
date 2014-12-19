@@ -104,7 +104,7 @@ case class Parameter(ident:String,typeName:TypeName)
 
 case class TypeName(ident:String,arguments:List[TypeName] = Nil)
   extends IdPositional {
-  override def toString:String = (arguments:::List(ident)).mkString(" ")
+  override lazy val toString:String = (arguments:::List(ident)).mkString(" ")
   def makeCode:String = {
     "TypeName(\""+ident+"\"" +
       (if (arguments.nonEmpty) ",List("+arguments.map(_.makeCode).mkString(",")+")" else "") +

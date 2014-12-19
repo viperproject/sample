@@ -1,7 +1,10 @@
 package ch.ethz.inf.pm.td.typecheck
 
+import ch.ethz.inf.pm.td.analysis.ApiField
+import ch.ethz.inf.pm.td.parser
 import ch.ethz.inf.pm.td.parser._
-import ch.ethz.inf.pm.td.compiler.{CFGGenerator, TouchException}
+import ch.ethz.inf.pm.td.compiler.{TypeList, CFGGenerator, TouchException}
+import ch.ethz.inf.pm.td.semantics._
 
 /**
  *
@@ -27,8 +30,14 @@ object Typer {
     for (declaration <- script.declarations) typeLocals(script, symbolTable, declaration)
   }
 
-
   def addGlobals(scope: Script, st: SymbolTable, thing: Declaration) {
+
+    def toTouchField(fields: List[Parameter]): List[ApiField] = {
+      for (field <- fields) yield {
+        ApiField(field.ident, TypeList.types(field.typeName))
+      }
+    }
+
     thing match {
       case a@ActionDefinition(name, inParameters, outParameters, body, isEvent, isPrivate) =>
         st.addAction(name, inParameters, outParameters)
@@ -37,24 +46,59 @@ object Typer {
       case VariableDefinition(Parameter(name, kind), flags) =>
         st.addGlobalData(name, kind)
       case TableDefinition(ident, typeName, keys, fields) =>
-        val records = TypeName("records")
-        val typ = TypeName(ident)
         typeName match {
           case "object" =>
-            val constructorTyp = TypeName("Constructor", List(typ))
-            st.addUserSingleton(records, List(Member(ident, constructorTyp)))
+
+            val objectType = GObject(TypeName(ident),toTouchField(fields))
+            val objectConstructor = GObjectConstructor(objectType)
+            val objectCollection = GObjectCollection(objectType)
+
+            TypeList.addTouchType(objectType)
+            TypeList.addTouchType(objectCollection)
+            TypeList.addTouchType(objectConstructor)
+            TypeList.addRecordsMember(ident, objectConstructor)
+
           case "table" =>
-            val tableTyp = TypeName("Table",List(typ))
-            st.addUserSingleton(records, List(Member(ident + " table", tableTyp)))
+
+            val rowTyp = GRow(TypeName(ident), toTouchField(fields))
+            val tableType = GTable(rowTyp)
+
+            TypeList.addTouchType(rowTyp)
+            TypeList.addTouchType(tableType)
+            TypeList.addRecordsMember(ident + " table", tableType)
+
           case "index" =>
-            val indexTyp = TypeName("Index",List(typ))
-            st.addUserSingleton(records, List(Member(ident + " index", indexTyp)))
+
+            val keyMembers = toTouchField(keys)
+            val fieldMembers = toTouchField(fields)
+            val indexMember = GIndexMember(TypeName(ident), keyMembers, fieldMembers)
+            val indexType =
+              if (keyMembers.size > 0) {
+                GIndex(indexMember)
+              } else {
+                GSingletonIndex(indexMember)
+              }
+
+            TypeList.addTouchType(indexMember)
+            TypeList.addTouchType(indexType)
+            TypeList.addRecordsMember(ident + " index", indexType)
+
           case "decorator" =>
-            val decoratorTyp = TypeName("Decorator",List(typ))
-            if (keys.size != 1) throw TouchException("Decorators must have exactly one entry", thing.pos)
-            val decoratedType = keys.head.typeName
-            st.addUserSingleton(records, List(Member(decoratedType + " decorator", decoratorTyp)))
-          case _ => throw TouchException("Table type " + typeName + " not supported", thing.pos)
+
+            if (keys.size != 1) throw TouchException("Decorators must have exactly one entry " + thing.getPositionDescription)
+
+            val keyMembers = toTouchField(keys)
+            val fieldMembers = toTouchField(fields)
+            val indexMember = GIndexMember(TypeName(ident),keyMembers,fieldMembers)
+
+            val decoratedType = keyMembers.head
+            val decoratorType = GDecorator(TypeName(decoratedType.name.toString + " Decorator"),indexMember)
+
+            TypeList.addTouchType(indexMember)
+            TypeList.addTouchType(decoratorType)
+            TypeList.addRecordsMember(decoratedType + " decorator", decoratorType)
+
+          case _ => throw TouchException("Table type " + typeName + " not supported " + thing.getPositionDescription)
 
         }
       case LibraryDefinition(libName, pub, usages, resolves) =>

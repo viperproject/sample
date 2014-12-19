@@ -2,9 +2,11 @@ package ch.ethz.inf.pm.td.semantics
 
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, SemanticException, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
-import ch.ethz.inf.pm.td.analysis.{RichExpression, RichNativeSemantics}
-import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.analysis.{RichExpression}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
+
+
 
 /**
  * This class represents collections that
@@ -62,6 +64,11 @@ trait ALinearCollection extends ACollection {
     index >= 0 && index < collectionSize[S](collection)
   }
 
+  object InvalidateKeysSemantics extends ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      collectionInvalidateKeys(this0)
+    }
+  }
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S) = method match {
