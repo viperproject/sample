@@ -388,15 +388,12 @@ case class MethodCall(
 
     if (SystemParameters.DEBUG) {
       if (resultingState1.isBottom) {
-        println("resultingState1 is bottom!")
         return initialState.bottom()
       }
       if (calledExpr.isBottom) {
-        println("bottom called expression")
         return initialState.bottom()
       }
       if (calledExpr.isTop) {
-        println("top called expression")
         return initialState.top()
       }
     }

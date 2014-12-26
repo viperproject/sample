@@ -11,6 +11,8 @@ case class GRow(typeName: TypeName, fields: List[ApiField]) extends AAny {
 
   override def possibleFields = super.possibleFields ++ (GTable(this).field_table :: fields)
 
+  override lazy val declarations = super.declarations ++ mkGetterSetters(GTable(this).field_table :: fields)
+
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 

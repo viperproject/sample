@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.abstractdomain.{Constant, UnitExpression, VariableI
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.sample.reporting.Reporter
 import ch.ethz.inf.pm.td.compiler._
-import ch.ethz.inf.pm.td.domain.MultiValExpression
+import ch.ethz.inf.pm.td.domain.{TouchState, MultiValExpression}
 import ch.ethz.inf.pm.td.parser.TypeName
 import ch.ethz.inf.pm.td.semantics._
 /**
@@ -229,7 +229,11 @@ object RichNativeSemantics extends RichExpressionImplicits {
   }
 
   def SetToTopWithInvalid[S <: State[S]](expr: RichExpression, invalidCause: String)(implicit s: S, pp: ProgramPoint): S = {
-    ???
+    Assign[S](expr,Valid(expr.getType()) or Invalid(expr.getType(),invalidCause)) // FIXME: Unsound: Handle object types
+  }
+
+  def SetToTop[S <: State[S]](expr: RichExpression)(implicit s: S, pp: ProgramPoint): S = {
+    Assign[S](expr,Valid(expr.getType())) // FIXME: Unsound: Handle object types
   }
 
   def Clone[S <: State[S]](obj: RichExpression, initials: Map[Identifier, RichExpression] = Map.empty[Identifier, RichExpression], recursive: Boolean = true)(implicit s: S, pp: ProgramPoint): S = {

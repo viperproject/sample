@@ -255,4 +255,8 @@ trait AAny extends NativeMethodSemantics with RichExpressionImplicits with Touch
 
   }
 
+  def mkGetterSetters(fields: List[ApiField]) = fields.map{x:ApiField => Map(
+    x.getName -> ApiMember(x.getName,List(), ApiParam(this),x.typ,DefaultSemantics),
+    "set "+x.getName -> ApiMember("set "+x.getName,List(),ApiParam(this,isMutated = true),TNothing,DefaultSemantics))}.flatten
+
 }

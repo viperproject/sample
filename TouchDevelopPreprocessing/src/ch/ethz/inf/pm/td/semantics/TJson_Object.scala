@@ -41,6 +41,8 @@ object TJson_Object extends Default_TJson_Object {
   override def possibleFields = super.possibleFields ++ Set(field_keys, field_kind, field_to_boolean, field_to_number,
     field_to_string, field_to_time)
 
+  override def declarations = super.declarations ++ mkGetterSetters(List(field_keys))
+
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {
 

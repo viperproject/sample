@@ -21,6 +21,7 @@ object WebASTImporter {
       classOf[JExprHolder], classOf[JComment], classOf[JFor], classOf[JForeach], classOf[JWhere], classOf[JWhile],
       classOf[JIf], classOf[JElseIf], classOf[JBoxed], classOf[JExprStmt], classOf[JInlineActions], classOf[JInlineAction],
       classOf[JAction], classOf[JPage], classOf[JEvent], classOf[JLibAction], classOf[JArt], classOf[JData], classOf[JLibrary],
+      classOf[JLibAbstractType], classOf[JLibActionType],
       classOf[JTypeBinding], classOf[JActionBinding], classOf[JResolveClause], classOf[JRecord], classOf[JRecordField],
       classOf[JRecordKey], classOf[JLocalDef], classOf[JApp], classOf[JPropertyParameter], classOf[JProperty],
       classOf[JTypeDef], classOf[JApis], classOf[JCall], classOf[JActionType])
@@ -60,8 +61,8 @@ object WebASTImporter {
         PageDefinition(name, inParameters map convert, outParameters map convert, convert(initBody), convert(displayBody), isPrivate).setId(id)
       case JEvent(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, eventName, eventVariableId, body) =>
         ActionDefinition(name, inParameters map convert, outParameters map convert, convert(body), isEvent = true, isPrivate = isPrivate).setId(id)
-      case JLibrary(id, name, libIdentifier, libIsPublished, exportedTypes, exportedActions, resolveClauses) =>
-        LibraryDefinition(name, libIdentifier, exportedActions map convert, resolveClauses map convert).setId(id)
+      case JLibrary(id, name, libIdentifier, libIsPublished, exportedTypes, exportedTypeDefs, exportedActions, resolveClauses) =>
+        LibraryDefinition(name, libIdentifier, exportedActions map convert, exportedTypes, exportedTypeDefs, resolveClauses map convert).setId(id)
       case JRecord(id, name, comment, category, isCloudEnabled, keys, fields) =>
         TableDefinition(name, category, keys map convert, fields map convert).setId(id)
       case JAction(id, name, inParameters, outParameters, isPrivate, isOffloaded, isTest, body) =>
@@ -422,6 +423,7 @@ case class JLibrary(
                      libIdentifier: String,
                      libIsPublished: Boolean,
                      exportedTypes: String /*JTypeRef*/ ,
+                     exportedTypeDefs: List[JAbstractTypeDef],
                      exportedActions: List[JLibAction],
                      resolveClauses: List[JResolveClause]
                      ) extends JDecl(id, name)
@@ -574,3 +576,22 @@ case class JApis(
                   jsonVersion: String,
                   types: List[JTypeDef]
                   )
+
+
+trait JAbstractTypeDef
+
+case class JLibAbstractType(
+                           name:String
+                             ) extends JAbstractTypeDef
+
+case class JLibActionType(
+                           name:String,
+                           inParameters:List[JLocalDef],
+                           outParameters:List[JLocalDef],
+                           isPrivate:Boolean,
+                           isTest:Boolean,
+                           isQuery:Boolean,
+                           isOffline:Boolean,
+                           isAsync:Boolean,
+                           description:String
+                           )

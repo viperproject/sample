@@ -112,24 +112,23 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
 
   def compileScriptRecursive(script: Script, pubID: String, libDef: Option[LibraryDefinition] = None): ClassDefinition = {
 
-    val rewrittenScript = LoopRewriter(script)
-    Typer.processScript(rewrittenScript)
-
     // update fields
     libDef match {
-      case Some(LibraryDefinition(name, _, _, _)) => parsedNames = parsedNames ::: List(name)
+      case Some(LibraryDefinition(name, _, _, _, _, _)) => parsedNames = parsedNames ::: List(name)
       case None => parsedNames = parsedNames ::: List(pubID)
     }
-    parsedTouchScripts += ((pubID, rewrittenScript))
 
     // recursive for libs
-    val libDefs = discoverRequiredLibraries(rewrittenScript)
+    val libDefs = discoverRequiredLibraries(script)
     // FIXME: This should actually be checking for parsed names not parsed ids, right?
     for (lib <- libDefs; if !parsedNames.contains(lib.name) && !lib.pubID.isEmpty) {
       val (libScript, libPubID) = retrieveScript("td://" + lib.pubID)
       compileScriptRecursive(libScript, libPubID, Some(lib))
     }
 
+    val rewrittenScript = LoopRewriter(script)
+    Typer.processScript(rewrittenScript)
+    parsedTouchScripts += ((pubID, rewrittenScript))
     val newCFG = cfgGenerator.process(rewrittenScript, pubID, libDef)
     parsedScripts = parsedScripts ::: List(newCFG)
 
@@ -173,7 +172,7 @@ class TouchCompiler extends ch.ethz.inf.pm.sample.oorepresentation.Compiler {
    */
   private def discoverRequiredLibraries(script: Script): List[LibraryDefinition] = {
     script.declarations.foldLeft(List[LibraryDefinition]())((libs: List[LibraryDefinition], dec: Declaration) => dec match {
-      case l@LibraryDefinition(_, _, _, _) => l :: libs
+      case l@LibraryDefinition(_, _, _, _, _, _) => l :: libs
       case _ => libs
     })
   }

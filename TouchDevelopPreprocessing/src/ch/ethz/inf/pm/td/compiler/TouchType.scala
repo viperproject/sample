@@ -180,6 +180,19 @@ object DefaultSemantics extends ApiMemberSemantics {
 
 }
 
+
+/**
+ * Sound semantics
+ */
+object NewSemantics extends ApiMemberSemantics {
+
+  override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method:ApiMember, parameters: List[ExpressionSet])
+                                              (implicit pp: ProgramPoint, state: S): S = {
+    New[S](method.returnType)
+  }
+
+}
+
 /**
  * Defines a semantics that returns any valid value of the return type.
  * The semantics does not define any side effects.

@@ -161,6 +161,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     val objs = obj match {
       case h:HeapIdentifier => Set(h)
       case a:Identifier => forwardMay.getOrElse(a,Set.empty)
+      case i:InvalidExpression => return (Set.empty,Set.empty)
     }
 
     val valsMay = (for (o <- objs) yield {
@@ -481,6 +482,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
 
     if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.mergeForwards")
 
+    var localRevMap = revMap
     if (rep.isEmpty()) return map
     var result = map
     for ((left,right) <- rep.value) {
@@ -496,6 +498,10 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
           }
         }
       }
+      // update local reverse map
+      for (l <- lub) {
+        localRevMap = localRevMap + (l -> (localRevMap.getOrElse(l,Set.empty) ++ right))
+      }
     }
 
     // remove everything on the left side in the keys of the map
@@ -508,7 +514,7 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       val byThis = r.view.collect { case x:HeapIdentifier => x }.toSet
 
       // look it up using the reverse map
-      for (toBeReplaced <- toBeReplacedSet; pointer <- revMap.getOrElse(toBeReplaced,Set.empty); if !toBeRemoved.contains(pointer)) {
+      for (toBeReplaced <- toBeReplacedSet; pointer <- localRevMap.getOrElse(toBeReplaced,Set.empty); if !toBeRemoved.contains(pointer)) {
         result = result + (pointer -> ((result.getOrElse(pointer,Set.empty) -- toBeReplacedSet) ++ byThis))
       }
     }
@@ -523,7 +529,12 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
     if (SystemParameters.TIME) AccumulatingTimer.start("TouchState.mergeBackwards")
 
     if (rep.isEmpty()) return map
+    var localRevMap = revMap
     val mapKeys = map.keySet.toSet[Identifier]
+    val lefts = rep.value.keySet.flatten.collect { case x:HeapIdentifier => x }
+    val rights = rep.value.values.flatten.collect { case x:HeapIdentifier => x }
+    val toBeRemoved =  lefts.toSet -- rights
+
     var result = map
     for ((left,right) <- rep.value if (left intersect mapKeys).nonEmpty) {
       // compute the lub of everything on the left side
@@ -531,14 +542,18 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       // assign it to everything on the right side
       for (r <- right) {
         r match {
-          case a:HeapIdentifier => result = result + (a -> lub)
+          case a:HeapIdentifier =>
+            result = result + (a -> lub)
           case _ => ()
         }
+      }
+      // update local reverse map
+      for (l <- lub) {
+        localRevMap = localRevMap + (l -> (localRevMap.getOrElse(l,Set.empty) ++ right.view.collect { case x:HeapIdentifier => x }))
       }
     }
 
     // remove everything on the left side in the keys of the map
-    val toBeRemoved = rep.value.keySet.flatten.collect { case x:HeapIdentifier => x } -- rep.value.values.flatten.collect { case x:HeapIdentifier => x }
     result = result -- toBeRemoved
 
     // perform replacements on the right side
@@ -547,9 +562,10 @@ trait TouchState [S <: SemanticDomain[S], T <: TouchState[S, T]]
       val byThis = r.view.filter { case x:HeapIdentifier => false; case _ => true }.toSet
 
       // look it up using the reverse map
-      for (toBeReplaced <- toBeReplacedSet; pointer <- revMap.getOrElse(toBeReplaced,Set.empty); if !toBeRemoved.contains(pointer)) {
+      for (toBeReplaced <- toBeReplacedSet; pointer <- localRevMap.getOrElse(toBeReplaced, Set.empty); if !toBeRemoved.contains(pointer)) {
         result = result + (pointer -> ((result.getOrElse(pointer,Set.empty) -- toBeReplacedSet) ++ byThis))
       }
+
     }
 
     if (SystemParameters.TIME) AccumulatingTimer.stop("TouchState.mergeBackwards")

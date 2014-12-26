@@ -4,7 +4,7 @@ package ch.ethz.inf.pm.td.semantics
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
-import ch.ethz.inf.pm.td.compiler.{DefaultSemantics, ApiParam, ApiMember, TouchType}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_TString
 import ch.ethz.inf.pm.td.parser.TypeName
 import RichNativeSemantics._
@@ -21,10 +21,31 @@ import RichNativeSemantics._
 
 object TString extends Default_TString {
 
+
+  /** Never used: Clears the values from the map */
+  def member_at_index = ApiMember(
+    name = "at index",
+    paramTypes = List(ApiParam(TNumber)),
+    thisType = ApiParam(this),
+    returnType = this,
+    semantics = ValidPureSemantics
+  )
+
+  /** Never used: Clears the values from the map */
+  def member_copy = ApiMember(
+    name = "copy",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = this,
+    semantics = DefaultSemantics
+  )
+
   /** Returns the number of characters */
   //TODO lazy val field_count = new TouchField("count",TNumber.typeName)
 
   override def possibleFields = super.possibleFields ++ List(/*TODO field_count*/)
+
+  override def declarations = super.declarations ++ Map ("copy" -> member_copy, "at index" -> member_at_index)
 
   override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: String, parameters: List[ExpressionSet], returnedType: TouchType)
                                               (implicit pp: ProgramPoint, state: S): S = method match {

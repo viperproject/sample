@@ -1047,7 +1047,7 @@ trait ApronInterface[T <: ApronInterface[T]]
         case ArithmeticOperator.!= => for (e <- expr1) yield new Tcons1(env, Tcons1.DISEQ, e)
         case ArithmeticOperator.> =>
 
-          if (domain.isInstanceOf[Octagon]) {
+          if (domain.isInstanceOf[Octagon] || domain.isInstanceOf[OptOctagon]) {
 
             // Some domains, like Octagons have trouble representing >. In floating point mode, they will replace
             // A > B by A >= B, which can cause massive imprecision. We replace this by A >= B + EPSILON, where

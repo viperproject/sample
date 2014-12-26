@@ -76,7 +76,7 @@ object ScriptParser extends RegexParsers with PackratParsers {
 
   lazy val libraryImport: PackratParser[Declaration] = positioned (
     "meta" ~ "import" ~ ident ~ "{" ~ ("pub" ~> stringLiteral) ~ libraryUsage ~ resolveBlock.* ~ "}"
-      ^^ { case _~_~name~_~pub~use~res~_ => LibraryDefinition(name,pub,use,res) }
+      ^^ { case _~_~name~_~pub~use~res~_ => LibraryDefinition(name,pub,use,"",List.empty,res) }
   )
 
   lazy val libraryUsage: PackratParser[List[UsageDeclaration]] =  (

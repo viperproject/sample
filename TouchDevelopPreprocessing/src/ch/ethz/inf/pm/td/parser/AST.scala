@@ -1,5 +1,7 @@
 package ch.ethz.inf.pm.td.parser
 
+import ch.ethz.inf.pm.td.webapi.JAbstractTypeDef
+
 import scala.util.parsing.input.{NoPosition, Positional}
 
 /**
@@ -68,6 +70,8 @@ case class TableDefinition(ident:String,
 case class LibraryDefinition(name:String,
                              pubID:String,
                              usages:List[UsageDeclaration],
+                             exportedTypes:String,
+                             exportedTypeDefs:List[JAbstractTypeDef],
                              resolves:List[ResolveBlock])
   extends Declaration
   with IdPositional

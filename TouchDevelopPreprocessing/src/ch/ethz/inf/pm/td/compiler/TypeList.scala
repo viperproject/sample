@@ -168,6 +168,7 @@ object TypeList  {
     case STime.typeName => STime
     case TTimer.typeName => TTimer
     case TUser.typeName => TUser
+    case TUnfinished_Type.typeName => TUnfinished_Type
     case TVector3.typeName => TVector3
     case SWall.typeName => SWall
     case TWeb_Event_Source.typeName => TWeb_Event_Source

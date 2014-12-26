@@ -5,7 +5,7 @@ import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{RichExpression}
 import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-
+import ch.ethz.inf.pm.td.domain.TouchState
 
 
 /**

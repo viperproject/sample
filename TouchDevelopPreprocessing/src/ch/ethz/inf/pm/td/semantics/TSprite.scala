@@ -1,17 +1,11 @@
 package ch.ethz.inf.pm.td.semantics
 
-import ch.ethz.inf.pm.sample.abstractdomain.State
 import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.{ExpressionInitializer, ApiField}
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.ApiMember
-import ch.ethz.inf.pm.td.compiler.DefaultSemantics
-import ch.ethz.inf.pm.td.compiler.ApiParam
-import ch.ethz.inf.pm.td.compiler.TouchType
-import ch.ethz.inf.pm.td.compiler.{ApiParam, DefaultSemantics, TouchType, ApiMember}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.defsemantics.Default_TSprite
-import ch.ethz.inf.pm.td.parser.TypeName
 
 /**
  * Specifies the abstract semantics of Sprite
@@ -23,6 +17,15 @@ import ch.ethz.inf.pm.td.parser.TypeName
 
 
 object TSprite extends Default_TSprite {
+
+  override lazy val member_fit_text = super.member_fit_text.copy(semantics = new ApiMemberSemantics {
+    override def forwardSemantics[S <: State[S]](this0: ExpressionSet, method: ApiMember, parameters: List[ExpressionSet])(implicit pp: ProgramPoint, state: S): S = {
+      var curState = state
+      curState = SetToTop[S](Field[S](this0,field_width))(curState,pp)
+      curState = SetToTop[S](Field[S](this0,field_height))(curState,pp)
+      curState
+    }
+  })
 
   lazy val field_acceleration_x = ApiField("acceleration x", TNumber)
   // Gets the acceleration along x in pixels/sec^2

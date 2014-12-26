@@ -149,7 +149,7 @@ object GenerateSemanticTemplates {
         case _ => ()
       }
 
-      var filter = Set("is invalid", "post to wall",",",":=","async")
+      var filter = Set("is invalid", "post to wall",",",":=","async","equals")
       superClass match {
         case "AAction" => filter = filter + "run"
         case "ACollection" => filter = filter ++ Set("count","copy","to json","from json","at index")

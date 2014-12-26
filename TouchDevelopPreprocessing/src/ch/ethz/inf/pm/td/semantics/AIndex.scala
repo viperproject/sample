@@ -5,12 +5,24 @@ import ch.ethz.inf.pm.sample.abstractdomain.{ExpressionSet, State}
 import ch.ethz.inf.pm.sample.oorepresentation.ProgramPoint
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics
 import ch.ethz.inf.pm.td.analysis.RichNativeSemantics._
-import ch.ethz.inf.pm.td.compiler.{TouchCompiler, TouchType}
+import ch.ethz.inf.pm.td.compiler._
 import ch.ethz.inf.pm.td.parser.TypeName
 
 trait AIndex extends ALinearCollection {
 
   override def keyType = TNumber
+
+  def member_clear = ApiMember(
+    name = "clear",
+    paramTypes = List(),
+    thisType = ApiParam(this),
+    returnType = valueType,
+    semantics = DefaultSemantics
+  )
+
+  override def declarations:Map[String,ApiMember] = super.declarations ++ Map(
+    "clear" -> member_clear
+  )
 
   override def forwardSemantics[S <: State[S]](this0:ExpressionSet, method:String, parameters:List[ExpressionSet], returnedType:TouchType)
                                      (implicit pp:ProgramPoint,state:S):S = method match {
